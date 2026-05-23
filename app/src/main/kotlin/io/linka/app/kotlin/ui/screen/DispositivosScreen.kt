@@ -846,7 +846,7 @@ private fun EmptyStateDispositivos(
     val iconColor: androidx.compose.ui.graphics.Color
 
     if (temErro) {
-        val (ttl, sbt) = traduzirErroParaPortugues(erro!!)
+        val (ttl, sbt) = traduzirErroParaPortugues(checkNotNull(erro) { "invariante: temErro=true implica erro não-nulo" })
         titulo = ttl; subtitulo = sbt
         icone = Icons.Outlined.WarningAmber; iconColor = LkColors.warning
     } else if (isLoading) {

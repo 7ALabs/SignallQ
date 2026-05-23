@@ -132,7 +132,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .observarTodos()
             // Filtra entidades sem apelido (registradas silenciosamente para supressao de
             // notificacao de dispositivo novo). So inclui no mapa dispositivos com apelido definido.
-            .map { list -> list.filter { it.apelido != null }.associate { it.mac to it.apelido!! } }
+            .map { list -> list.mapNotNull { e -> e.apelido?.let { ap -> e.mac to ap } }.toMap() }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
     }
 
@@ -406,7 +406,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun dispararBenchmarkDns() {
         val agora = System.currentTimeMillis()
         val expirado = ultimoBenchmarkDnsEpochMs == null ||
-            (agora - ultimoBenchmarkDnsEpochMs!!) > DNS_CACHE_TTL_MS
+            (agora - (ultimoBenchmarkDnsEpochMs ?: 0L)) > DNS_CACHE_TTL_MS
         if (!expirado) return
         val rede = monitorRede.snapshotFlow.value
         ultimoBenchmarkDnsEpochMs = agora

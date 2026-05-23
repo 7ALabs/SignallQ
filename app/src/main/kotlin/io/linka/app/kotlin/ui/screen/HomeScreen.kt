@@ -418,10 +418,13 @@ fun HomeScreen(
                         }
                         Spacer(modifier = Modifier.height(LkSpacing.md))
                         if (hasEffectiveResult) {
+                            val ts = effectiveTs ?: return@item
+                            val dl = effectiveDl ?: return@item
+                            val ul = effectiveUl ?: return@item
                             LastResultHero(
-                                timestampEpochMs = effectiveTs!!,
-                                downloadMbps = effectiveDl!!,
-                                uploadMbps = effectiveUl!!,
+                                timestampEpochMs = ts,
+                                downloadMbps = dl,
+                                uploadMbps = ul,
                                 c = c,
                             )
                             Spacer(modifier = Modifier.height(LkSpacing.md))
@@ -1887,11 +1890,11 @@ private fun GamerSheet(
                 ) { Text("Iniciar teste de velocidade") }
             }
         } else {
-            val latV = lat!!
-            val jitV = jit!!
-            val lossV = loss!!
-            val dlV = dl!!
-            val ulV = ul!!
+            val latV = checkNotNull(lat) { "lat deve ser non-null quando temDados=true" }
+            val jitV = checkNotNull(jit) { "jit deve ser non-null quando temDados=true" }
+            val lossV = checkNotNull(loss) { "loss deve ser non-null quando temDados=true" }
+            val dlV = checkNotNull(dl) { "dl deve ser non-null quando temDados=true" }
+            val ulV = checkNotNull(ul) { "ul deve ser non-null quando temDados=true" }
 
             val vereditoGamer = resultado?.diagnosticoQualidade?.vereditoGamer
                 ?: when {
