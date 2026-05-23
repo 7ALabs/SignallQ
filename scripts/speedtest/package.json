@@ -1,0 +1,19 @@
+﻿{
+  "name": "linkaSpeedtestPwa-calibrador",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Calibrador isolado de Speedtest do Linka. Wrapper Node do SDK oficial @cloudflare/speedtest para servir como referÃªncia (gold standard) numa varredura empÃ­rica de parÃ¢metros conduzida pelo Python.",
+  "main": "coletorReferenciaOficial.js",
+  "type": "module",
+  "scripts": {
+    "ref": "node coletorReferenciaOficial.js"
+  },
+  "dependencies": {
+    "@cloudflare/speedtest": "^1.4.0",
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+

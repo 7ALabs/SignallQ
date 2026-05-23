@@ -1,0 +1,17 @@
+name = "linka-ai-diagnosis-worker"
+main = "src/index.ts"
+compatibility_date = "2026-05-09"
+
+[vars]
+# Modelo padrao do diagnostico Linka: Gemma 2 9B (Google) via Cloudflare
+# Workers AI. Modelo denso sem reasoning tokens, muito mais rapido que o
+# Gemma 4 26B MoE (que gerava >3500 tokens incluindo thinking, causando
+# timeout de 30s no wall-clock do Worker).
+# Politica do projeto: Llama/Meta NAO deve ser configurado aqui — nem como
+# padrao, nem como fallback cloud. Em caso de falha do modelo, o cliente
+# Kotlin usa o fallback local (sem IA externa).
+AI_MODEL = "@cf/google/gemma-4-26b-a4b-it"
+
+[ai]
+binding = "AI"
+

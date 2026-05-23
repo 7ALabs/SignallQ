@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <external-files-path name="laudos" path="Documents/" />
+    <cache-path name="laudos_cache" path="laudos/" />
+    <cache-path name="export_historico" path="." />
+    <cache-path name="share_images" path="share/" />
+</paths>

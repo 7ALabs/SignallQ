@@ -1,0 +1,11 @@
+# Template — copie este arquivo para key.properties e preencha com as credenciais reais.
+# NUNCA commitar key.properties. Já está no .gitignore.
+#
+# O storeFile é relativo à raiz do projeto Android.
+# Com o keystore em segredos/linka.jks:
+#   segredos/linka.jks
+
+storePassword=PREENCHA_AQUI
+keyPassword=PREENCHA_AQUI
+keyAlias=linka
+storeFile=segredos/linka.jks

@@ -1,0 +1,17 @@
+{
+  "name": "Linka Calibrador Speedtest",
+  "short_name": "Linka Speed",
+  "description": "Ferramenta de calibração do algoritmo speedtest do app Linka — compara algoritmo oficial Cloudflare vs algoritmo Linka em diferentes configurações",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#050714",
+  "theme_color": "#6C2BFF",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

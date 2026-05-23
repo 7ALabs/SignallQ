@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+        READ_PHONE_STATE: necessario para CellInfo + signalStrength em rede movel.
+        A partir do Android 6 (API 23) e runtime; deve ser solicitada com
+        justificativa "para analise de sinal 4G/5G" e SOMENTE quando o usuario
+        roda um diagnostico em rede movel (lazy). Veja MonitorTelephonyImpl —
+        sem permissao, snapshotFlow emite null e a IA recebe `movel: null`.
+
+        Privacidade: cellId/mcc/mnc/tac sao metadados de celula. Coletados
+        apenas para diagnostico de IA e descartados apos envio. Nao persistidos
+        localmente. Nao logar em producao.
+
+        NAO solicitamos ACCESS_*_LOCATION — `getAllCellInfo()` em API 29+ nao
+        exige (apenas READ_PHONE_STATE). NAO usamos IMEI/IMSI/getDeviceId.
+    -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+</manifest>

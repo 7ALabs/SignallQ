@@ -1,0 +1,46 @@
+[
+  {
+    "versao": "0.8.0",
+    "data": "Maio 2026",
+    "titulo": "Configurações Completas",
+    "itens": [
+      "Tela de Configurações reorganizada em 4 seções com acesso rápido",
+      "Detecção automática de operadora com banner de confirmação",
+      "Seleção de estado e cidade via lista IBGE com busca integrada",
+      "Campo de velocidade contratada com alertas ANATEL e direito de rescisão",
+      "Nova tela de Privacidade com política de dados completa",
+      "Nova tela de Novidades com histórico de versões do app"
+    ]
+  },
+  {
+    "versao": "0.7.0",
+    "data": "Maio 2026",
+    "titulo": "Monitoramento Inteligente",
+    "itens": [
+      "Monitoramento passivo de latência, DNS e sinal Wi-Fi em segundo plano",
+      "Notificações automáticas quando a conexão piora",
+      "Histórico de uptime com narrativa por período",
+      "Novo layout de abas para acesso mais rápido"
+    ]
+  },
+  {
+    "versao": "0.6.0",
+    "data": "Abril 2026",
+    "titulo": "Diagnóstico com IA",
+    "itens": [
+      "Diagnóstico assistido por IA com análise contextual",
+      "Identificação automática do tipo de rede e gateway",
+      "Sugestões práticas baseadas nos resultados do teste"
+    ]
+  },
+  {
+    "versao": "0.5.0",
+    "data": "Março 2026",
+    "titulo": "SpeedTest Aprimorado",
+    "itens": [
+      "Motor de speedtest via Cloudflare com medição paralela",
+      "Gauge circular animado com gráfico ao vivo",
+      "Comprovante em PDF para reclamação na Anatel"
+    ]
+  }
+]

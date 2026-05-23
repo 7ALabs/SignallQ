@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="appName">linka app</string>
+
+    <!-- Canal: textos explicativos dinâmicos (CanalTextGenerator) -->
+    <string name="canal_banda_congestionada">Sua faixa %1$s está congestionada. Há muitas redes competindo pelos mesmos canais, o que pode causar interferência e lentidão.</string>
+    <string name="canal_faixa_quase_vazia">Sua faixa %1$s está quase vazia. Há poucas redes por aqui — ótima condição para uma conexão estável.</string>
+    <string name="canal_atual_congestionado">O canal %1$d que você usa está muito congestionado. Migrar para o canal %2$d pode melhorar significativamente sua conexão.</string>
+    <string name="canal_recomendado_livre">O canal %1$d é o mais livre da faixa %2$s. Você está bem posicionado para uma conexão estável.</string>
+    <string name="canal_recomendado_moderado">O canal %1$d tem o menor congestionamento na faixa %2$s. Considere migrar para melhorar a estabilidade.</string>
+    <string name="canal_sem_dados">Não há dados suficientes para analisar os canais. Tente um novo scan.</string>
+
+    <!-- Redes: Estado vazio diferenciado por faixa -->
+    <string name="sinal_sem_redes_nesta_faixa">Sem redes em %1$s</string>
+    <string name="sinal_redes_em_faixa">Mas há %1$d em %2$s</string>
+    <string name="sinal_redes_em_outras_faixas">Mas há %1$d em outras faixas</string>
+    <string name="sinal_trocar_faixa">Trocar faixa</string>
+
+    <!-- Canal: estado idle -->
+    <string name="canal_idle_titulo">Escanear redes</string>
+    <string name="canal_idle_descricao">Toque para analisar os canais Wi-Fi próximos</string>
+
+    <!-- Canal: erros de scan -->
+    <string name="canal_erro_permissao_mensagem">Permissão de localização necessária para escanear redes Wi-Fi</string>
+    <string name="canal_erro_permissao_botao">Abrir configurações</string>
+    <string name="canal_erro_scan_mensagem">Não foi possível escanear as redes. Tente novamente.</string>
+    <string name="canal_erro_scan_botao">Tentar novamente</string>
+</resources>

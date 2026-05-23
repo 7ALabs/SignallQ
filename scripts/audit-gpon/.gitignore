@@ -1,0 +1,9 @@
+# Dependências instaladas localmente para rodar o script Playwright.
+node_modules/
+package-lock.json
+
+# Capturas geradas com dados reais do modem (IPs internos, DNS da operadora,
+# serial do ONU, métricas ópticas). Não contêm credenciais nem cookies de
+# sessão, mas mesmo assim não devem ir para o repositório.
+captures/
+*.json.tmp

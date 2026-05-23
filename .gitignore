@@ -1,0 +1,45 @@
+.gradle/
+.kotlin/
+.idea/
+.wrangler/
+.dart_tool/
+
+build/
+**/build/
+!scripts/build/
+!scripts/build/**
+out/
+tmp/
+captures/
+coverage/
+
+local.properties
+key.properties
+*.jks
+*.keystore
+*.crt
+*.key
+.env
+.env.*
+!.env.example
+!key.properties.template
+
+node_modules/
+__pycache__/
+*.pyc
+
+*.iml
+*.log
+*.zip
+*.apk
+*.aab
+
+# Segredos e certificados locais
+segredos/
+certificados/
+
+# Issues locais migradas (mantidas como histórico opcional — descomente para ignorar)
+# .issues/
+
+# Tasks/queue dos agentes (estado local)
+.claude/tasks/

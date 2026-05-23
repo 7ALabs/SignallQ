@@ -1,0 +1,13 @@
+{
+  "name": "linka-audit-gpon",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Script de auditoria do modem Nokia G-1425G-B via Playwright. Não publicar.",
+  "scripts": {
+    "fetch": "node fetch_gpon.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.59.0"
+  }
+}

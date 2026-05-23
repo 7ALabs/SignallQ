@@ -1,0 +1,10 @@
+# Dependências
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Resultados de execução (volumosos, contêm IP público e samples brutos)
+resultados/*
+!resultados/.gitkeep

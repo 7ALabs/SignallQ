@@ -1,0 +1,152 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 8,
+    "identityHash": "f4ebac21ee15783198c755e6b6bf7bd2",
+    "entities": [
+      {
+        "tableName": "medicao",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `timestampEpochMs` INTEGER NOT NULL, `connectionType` TEXT NOT NULL, `connectionTypeStart` TEXT, `connectionTypeEnd` TEXT, `contaminado` INTEGER NOT NULL, `speedtestMode` TEXT, `specVersion` TEXT, `downloadMbps` REAL, `uploadMbps` REAL, `latencyMs` REAL, `jitterMs` REAL, `perdaPercentual` REAL, `bufferbloatMs` REAL, `packetLossSource` TEXT, `vereditoStreaming` TEXT, `vereditoGamer` TEXT, `vereditoVideoChamada` TEXT, `gargaloPrimario` TEXT, `fonte` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestampEpochMs",
+            "columnName": "timestampEpochMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "connectionType",
+            "columnName": "connectionType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "connectionTypeStart",
+            "columnName": "connectionTypeStart",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "connectionTypeEnd",
+            "columnName": "connectionTypeEnd",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "contaminado",
+            "columnName": "contaminado",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "speedtestMode",
+            "columnName": "speedtestMode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "specVersion",
+            "columnName": "specVersion",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "downloadMbps",
+            "columnName": "downloadMbps",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "uploadMbps",
+            "columnName": "uploadMbps",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "latencyMs",
+            "columnName": "latencyMs",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "jitterMs",
+            "columnName": "jitterMs",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "perdaPercentual",
+            "columnName": "perdaPercentual",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "bufferbloatMs",
+            "columnName": "bufferbloatMs",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "packetLossSource",
+            "columnName": "packetLossSource",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vereditoStreaming",
+            "columnName": "vereditoStreaming",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vereditoGamer",
+            "columnName": "vereditoGamer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vereditoVideoChamada",
+            "columnName": "vereditoVideoChamada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "gargaloPrimario",
+            "columnName": "gargaloPrimario",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fonte",
+            "columnName": "fonte",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "apelido_dispositivo",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mac` TEXT NOT NULL, `apelido` TEXT, PRIMARY KEY(`mac`))",
+        "fields": [
+          {
+            "fieldPath": "mac",
+            "columnName": "mac",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "apelido",
+            "columnName": "apelido",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "mac"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f4ebac21ee15783198c755e6b6bf7bd2')"
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Dependency version bumps are managed separately — suppress to keep lint clean -->
+    <issue id="GradleDependency" severity="ignore" />
+    <issue id="NewerVersionAvailable" severity="ignore" />
+
+    <!-- Launcher icon monochrome is intentionally a copy of foreground for this app version -->
+    <issue id="IconDuplicates" severity="ignore" />
+</lint>

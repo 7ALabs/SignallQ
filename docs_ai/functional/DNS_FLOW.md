@@ -1,0 +1,40 @@
+# DNS Flow
+
+## Objective
+
+This document details the user flow for DNS-related features, mapping specific components and interactions within the Linka Android Kotlin application.
+
+## User Interactions and Flows
+
+The `featureDns` module provides DNS configuration and testing capabilities.
+
+1.  **Viewing Current DNS Settings**:
+    -   **Entry Point**: UI elements within `linka-android-kotlin/featureDns/ui/DnsScreen.kt` (*inferential path*).
+    -   **Action**: Application queries device network state.
+    -   **System Interaction**: Likely uses `ConnectivityManager` and `LinkProperties` APIs via a utility class in `coreNetwork/` or `coreTelephony/` (*inferential paths*).
+    -   **Display**: Current primary/secondary DNS servers shown in `DnsScreen.kt`.
+
+2.  **Changing DNS Servers**:
+    -   **Entry Point**: `DnsScreen.kt`.
+    -   **Action**: User inputs custom DNS addresses.
+    -   **System Interaction**: Direct modification of system DNS settings may require VPN service or system dialogs. This implementation requires human validation. If not system-wide, it might involve `coreNetwork` to direct DNS queries through specific servers for testing purposes.
+    -   **Persistence**: Custom DNS settings, if applied, are likely saved using `coreDatastore/` (e.g., `AppSettingsDataSource.kt` - *inferential path*).
+
+3.  **DNS Lookup Testing**:
+    -   **Entry Point**: A "Test DNS" option in `DnsScreen.kt`.
+    -   **Action**: Application performs DNS lookups for specified hostnames.
+    -   **System Interaction**: May use `coreNetwork/api/ApiService.kt` or a dedicated DNS utility within `coreNetwork/` to perform queries against current or custom DNS servers.
+    -   **Display**: Results shown in `DnsScreen.kt`.
+
+## Key Files/Modules
+
+-   **`linka-android-kotlin/featureDns/`**: Contains `DnsScreen.kt` and `DnsViewModel.kt` (*inferential paths*).
+-   **`linka-android-kotlin/coreNetwork/`**: May contain DNS query utilities or API definitions for network lookups.
+-   **`linka-android-kotlin/coreDatastore/`**: Likely used for persisting custom DNS settings.
+-   **`linka-android-kotlin/coreTelephony/`**: Potentially used for retrieving system network info.
+
+## Known Risks
+
+-   The exact mechanism for modifying system DNS settings requires human validation due to Android API restrictions.
+-   The specific DNS query implementation and supported protocols need confirmation.
+-   File paths for ViewModels and utility classes are inferential.
