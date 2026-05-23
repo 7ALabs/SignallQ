@@ -205,6 +205,14 @@ fun AppShell(
     onIniciarOrbitComResultado: (ResultadoSpeedtest, String?) -> Unit = { _, _ -> },
     // T6.2/T6.5: mensagens digitadas têm fluxo separado do selecionarChip
     onEnviarMensagemTexto: (String) -> Unit = {},
+    // Task 4 — confirmação de speedtest em rede medida
+    speedtestPendenteModoMovel: ModoSpeedtest? = null,
+    onConfirmarSpeedtestMovel: () -> Unit = {},
+    onCancelarSpeedtestMovel: () -> Unit = {},
+    // Task 5 — preferências de dados móveis para AjustesScreen
+    speedtestPermiteHeavyMovel: Boolean = false,
+    onSetSpeedtestPermiteHeavyMovel: (Boolean) -> Unit = {},
+    speedtestMbConsumidosMes: Long = 0L,
 ) {
     val c = LocalLkTokens.current
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -334,6 +342,9 @@ fun AppShell(
                         fotoUri = fotoUriUsuario,
                         onAbrirPerfil = { showPerfilSheet = true },
                         planoInternet = planoInternet,
+                        speedtestPendenteModoMovel = speedtestPendenteModoMovel,
+                        onConfirmarSpeedtestMovel = onConfirmarSpeedtestMovel,
+                        onCancelarSpeedtestMovel = onCancelarSpeedtestMovel,
                     )
                     // NAV-B: Tab 2 — Sinal (SinalScreen como tab fixa, sem botão voltar)
                     2 -> SinalScreen(
@@ -422,6 +433,11 @@ fun AppShell(
                         onAbrirPerfil = { showPerfilSheet = true },
                         onAbrirPrivacidade = { if (Overlay.Privacidade !in overlayStack) overlayStack.add(Overlay.Privacidade) },
                         onAbrirNovidades = { if (Overlay.Novidades !in overlayStack) overlayStack.add(Overlay.Novidades) },
+                        dadosMoveis = AjustesDadosMoveisState(
+                            speedtestPermiteHeavyMovel = speedtestPermiteHeavyMovel,
+                            speedtestMbConsumidosMes = speedtestMbConsumidosMes,
+                            onSetSpeedtestPermiteHeavyMovel = onSetSpeedtestPermiteHeavyMovel,
+                        ),
                     )
                 }
             }

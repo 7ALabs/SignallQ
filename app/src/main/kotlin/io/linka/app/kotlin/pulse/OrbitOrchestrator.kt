@@ -4,6 +4,7 @@ import android.util.Log
 import io.linka.app.kotlin.core.database.MedicaoDao
 import io.linka.app.kotlin.core.network.GatewayLatencyMeasurer
 import io.linka.app.kotlin.core.network.MonitorRede
+import io.linka.app.kotlin.core.network.NetworkCapabilitiesProvider
 import io.linka.app.kotlin.feature.diagnostico.ConnectionType
 import io.linka.app.kotlin.feature.diagnostico.DiagnosticInput
 import io.linka.app.kotlin.feature.diagnostico.DiagnosticOrchestrator
@@ -88,6 +89,9 @@ class OrbitOrchestrator(
     private val additionalContextProvider: suspend () -> AdditionalAiContext = { AdditionalAiContext() },
     /** Measurer de RTT TCP para o gateway local. Default funciona sem config adicional. */
     private val gatewayLatencyMeasurer: GatewayLatencyMeasurer = GatewayLatencyMeasurer(),
+    /** Provedor de capacidades de rede — usado para forcar modo fast em rede medida
+     *  no speedtest silencioso (sem dialog, sem interrompimento do fluxo do OrbitOrchestrator). */
+    private val networkCapabilitiesProvider: NetworkCapabilitiesProvider? = null,
 ) {
     private val aiRepository = AiDiagnosisRepository(
         baseUrl = AI_BASE_URL,
@@ -576,8 +580,15 @@ class OrbitOrchestrator(
                 resultadoReutilizado
             } else {
                 val connType = monitorRede.snapshotFlow.value.estadoConexao.name
+                // Em rede medida (móvel), usa modo fast para economizar dados.
+                // Sem dialog — decisão silenciosa e automática dentro do OrbitOrchestrator.
+                val modoEfetivo = if (networkCapabilitiesProvider?.isMeteredNetwork() == true) {
+                    ModoSpeedtest.fast
+                } else {
+                    ModoSpeedtest.complete
+                }
                 executorSpeedtest.executar(
-                    modo = ModoSpeedtest.complete,
+                    modo = modoEfetivo,
                     connectionType = connType,
                     connectionTypeProvider = { monitorRede.snapshotFlow.value.estadoConexao.name },
                 )

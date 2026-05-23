@@ -40,6 +40,11 @@ class PreferenciasAppRepository(
 
     private val ONBOARDING_CONCLUIDO = booleanPreferencesKey("onboarding_concluido")
 
+    // Speedtest em rede medida (móvel)
+    private val chaveSpeedtestPermiteHeavyMovel = booleanPreferencesKey("speedtest_permite_heavy_movel")
+    private val chaveSpeedtestMbConsumidosMes = longPreferencesKey("speedtest_mb_consumidos_mes")
+    private val chaveSpeedtestMesReferencia = stringPreferencesKey("speedtest_mes_referencia")
+
     // Histerese de alertas — rastreiam se cada tipo de alerta está ativo
     private val chaveAlertaLatenciaAtivo = booleanPreferencesKey("alerta_latencia_ativo")
     private val chaveAlertaDnsAtivo = booleanPreferencesKey("alerta_dns_ativo")
@@ -111,6 +116,16 @@ class PreferenciasAppRepository(
 
     val onboardingConcluidoFlow: Flow<Boolean> =
         context.dataStore.data.map { it[ONBOARDING_CONCLUIDO] ?: false }
+
+    // Speedtest em rede medida (móvel)
+    val speedtestPermiteHeavyMovel: Flow<Boolean> =
+        context.dataStore.data.map { it[chaveSpeedtestPermiteHeavyMovel] ?: false }
+
+    val speedtestMbConsumidosMes: Flow<Long> =
+        context.dataStore.data.map { it[chaveSpeedtestMbConsumidosMes] ?: 0L }
+
+    val speedtestMesReferencia: Flow<String> =
+        context.dataStore.data.map { it[chaveSpeedtestMesReferencia] ?: "" }
 
     // Flows de histerese
     val alertaLatenciaAtivoFlow: Flow<Boolean> =
@@ -222,6 +237,19 @@ class PreferenciasAppRepository(
 
     suspend fun definirOnboardingConcluido(concluido: Boolean) {
         context.dataStore.edit { it[ONBOARDING_CONCLUIDO] = concluido }
+    }
+
+    // Setters de speedtest em rede medida (móvel)
+    suspend fun setSpeedtestPermiteHeavyMovel(value: Boolean) {
+        context.dataStore.edit { it[chaveSpeedtestPermiteHeavyMovel] = value }
+    }
+
+    suspend fun setSpeedtestMbConsumidosMes(value: Long) {
+        context.dataStore.edit { it[chaveSpeedtestMbConsumidosMes] = value }
+    }
+
+    suspend fun setSpeedtestMesReferencia(value: String) {
+        context.dataStore.edit { it[chaveSpeedtestMesReferencia] = value }
     }
 
     // Setters de controles granulares

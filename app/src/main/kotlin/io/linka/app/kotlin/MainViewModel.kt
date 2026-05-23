@@ -12,6 +12,7 @@ import io.linka.app.kotlin.core.database.MedicaoEntity
 import io.linka.app.kotlin.core.datastore.CoreDatastoreModulo
 import io.linka.app.kotlin.core.network.CoreNetworkModulo
 import io.linka.app.kotlin.core.network.EstadoConexao
+import io.linka.app.kotlin.core.network.NetworkCapabilitiesProvider
 import io.linka.app.kotlin.core.permissions.CorePermissionsModulo
 import io.linka.app.kotlin.core.telephony.CoreTelephonyModulo
 import io.linka.app.kotlin.core.telephony.MovelSnapshot
@@ -82,6 +83,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     @Suppress("unused")
     private val orientadorConfiguracaoDns by lazy { OrientadorConfiguracaoDns() }
     val executorSpeedtest by lazy { FeatureSpeedtestModulo.criarExecutorSpeedtest() }
+    val networkCapabilitiesProvider: NetworkCapabilitiesProvider by lazy {
+        CoreNetworkModulo.criarNetworkCapabilitiesProvider(application)
+    }
     val scannerRedesWifi by lazy { FeatureWifiModulo.criarScannerRedesWifi(application) }
     val diagnosticOrchestrator by lazy { DiagnosticOrchestrator() }
     val executorFibra by lazy { FeatureFibraModulo.criarExecutor() }
@@ -99,6 +103,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             medicaoDao = bancoDados.medicaoDao(),
             scope = viewModelScope,
             additionalContextProvider = { coletarContextoAdicionalIa() },
+            networkCapabilitiesProvider = networkCapabilitiesProvider,
         )
     }
     val orbitUiStateFlow by lazy {
@@ -121,6 +126,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     val gemmaAvailable = MutableStateFlow(false)
+
+    // Speedtest em rede medida — emite o modo aguardando confirmação do usuário, null caso contrário
+    private val _speedtestPendenteModoMovel = MutableStateFlow<ModoSpeedtest?>(null)
+    val speedtestPendenteModoMovel: StateFlow<ModoSpeedtest?> = _speedtestPendenteModoMovel
 
     fun verificarDisponibilidadeGemma() {
         viewModelScope.launch {
@@ -335,10 +344,74 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         localizacaoServidorColetada = false
         ultimoResultadoPersistidoEpochMs = null
         viewModelScope.launch {
+            // Guarda de rede medida: se móvel, modo pesado e usuário não autorizou,
+            // suspende e aguarda confirmação via dialog (Task 4). Sem dialog agora.
+            if (modo != ModoSpeedtest.fast && networkCapabilitiesProvider.isMeteredNetwork()) {
+                val permiteHeavy = preferenciasAppRepository.speedtestPermiteHeavyMovel.first()
+                if (!permiteHeavy) {
+                    _speedtestPendenteModoMovel.value = modo
+                    return@launch
+                }
+            }
             try {
                 executarSpeedtest(modo)
+                acumularMbConsumidos(modo)
             } finally {
                 iniciarRotinasNaoSpeedtest()
+            }
+        }
+    }
+
+    /** Chamada pelo dialog de confirmação (Task 4 — Lia) quando usuário aceita usar dados móveis. */
+    fun confirmarSpeedtestEmMovel() {
+        val modo = _speedtestPendenteModoMovel.value ?: return
+        _speedtestPendenteModoMovel.value = null
+        viewModelScope.launch {
+            try {
+                executarSpeedtest(modo)
+                acumularMbConsumidos(modo)
+            } finally {
+                iniciarRotinasNaoSpeedtest()
+            }
+        }
+    }
+
+    /** Chamada pelo dialog quando o usuário cancela. */
+    fun cancelarSpeedtestMovel() {
+        _speedtestPendenteModoMovel.value = null
+    }
+
+    /** Persiste a preferência de permitir testes pesados em rede medida (Task 5). */
+    fun setSpeedtestPermiteHeavyMovel(valor: Boolean) {
+        viewModelScope.launch { preferenciasAppRepository.setSpeedtestPermiteHeavyMovel(valor) }
+    }
+
+    /**
+     * Acumula MB estimados consumidos no mês corrente.
+     * Reset automático quando o mês muda em relação ao valor salvo em [speedtestMesReferencia].
+     * Estimativas: fast=10 MB, complete=25 MB, triplo=30 MB.
+     */
+    private fun acumularMbConsumidos(modo: ModoSpeedtest) {
+        val mbEstimado = when (modo) {
+            ModoSpeedtest.fast -> 10L
+            ModoSpeedtest.complete -> 25L
+            ModoSpeedtest.triplo -> 30L
+        }
+        // Usa Calendar para compatibilidade com minSdk 24 (java.time requer API 26+ ou desugaring)
+        val cal = java.util.Calendar.getInstance()
+        val mesAtual = "%04d-%02d".format(cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH) + 1)
+        viewModelScope.launch {
+            // NonCancellable garante que a escrita no DataStore completa mesmo se o ViewModel
+            // for destruído entre o .first() e o set — evita race condition de contagem perdida.
+            withContext(kotlinx.coroutines.NonCancellable) {
+                val mesReferencia = preferenciasAppRepository.speedtestMesReferencia.first()
+                val mbAcumulados = if (mesReferencia == mesAtual) {
+                    preferenciasAppRepository.speedtestMbConsumidosMes.first()
+                } else {
+                    preferenciasAppRepository.setSpeedtestMesReferencia(mesAtual)
+                    0L
+                }
+                preferenciasAppRepository.setSpeedtestMbConsumidosMes(mbAcumulados + mbEstimado)
             }
         }
     }

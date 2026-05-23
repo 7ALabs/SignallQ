@@ -88,7 +88,6 @@ import io.linka.app.kotlin.ui.LkRadius
 import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
 import io.linka.app.kotlin.ui.LocalLkTokens
-import io.linka.app.kotlin.ui.component.ConfirmacaoDialog
 import io.linka.app.kotlin.feature.speedtest.SeveridadeBufferbloat
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.filled.CheckCircle
@@ -118,6 +117,9 @@ fun SpeedTestScreen(
     onAbrirAjustes: () -> Unit = {},
     nomeUsuario: String = "",
     fotoUri: String? = null,
+    speedtestPendenteModoMovel: ModoSpeedtest? = null,
+    onConfirmarSpeedtestMovel: () -> Unit = {},
+    onCancelarSpeedtestMovel: () -> Unit = {},
     onAbrirPerfil: () -> Unit = {},
     planoInternet: String = "",
 ) {
@@ -155,38 +157,32 @@ fun SpeedTestScreen(
         )
     }
 
-    var showAvisoMobilDialog by remember { mutableStateOf(false) }
-    var avisadoNestaSecao by remember { mutableStateOf(false) }
-
-    val onIniciarTesteComAviso: () -> Unit = {
-        if (!snapshotRede.conectado) {
-            // sem conexão — botão desabilitado via SpeedTestCircle, não faz nada
-        } else if (snapshotRede.estadoConexao == EstadoConexao.movel && !avisadoNestaSecao) {
-            showAvisoMobilDialog = true
-        } else {
-            onIniciarTeste()
+    // Dialog de confirmação de uso de dados móveis — fonte de verdade no ViewModel (Task 4)
+    if (speedtestPendenteModoMovel != null) {
+        val titulo = when (speedtestPendenteModoMovel) {
+            ModoSpeedtest.triplo -> "Usar dados móveis para teste triplo?"
+            ModoSpeedtest.complete -> "Usar dados móveis para teste?"
+            else -> "Usar dados móveis para teste?"
         }
-    }
-
-    // Mínimo por modo = 1 requisição de download + 1 de upload (valores do SpeedtestConfig)
-    val estimativaMbMinimo = when (modoSelecionado) {
-        ModoSpeedtest.fast -> 15     // 10 MB down + 5 MB up
-        ModoSpeedtest.complete -> 35 // 25 MB down + 10 MB up
-        ModoSpeedtest.triplo -> 45   // 3 × rápido
-    }
-
-    if (showAvisoMobilDialog) {
-        ConfirmacaoDialog(
-            titulo = "Vai usar dados móveis",
-            mensagem = "Este teste vai usar pelo menos $estimativaMbMinimo MB da sua franquia. Conexões mais rápidas consomem mais. Se você estiver no Wi-Fi e viu esse aviso, verifique se 'Aceleração de rede dupla' está ativo nas configurações do celular.",
-            textoBotaoConfirmar = "Testar mesmo assim",
-            textoBotaoCancelar = "Cancelar",
-            onConfirmar = {
-                avisadoNestaSecao = true
-                showAvisoMobilDialog = false
-                onIniciarTeste()
+        val mensagem = when (speedtestPendenteModoMovel) {
+            ModoSpeedtest.triplo -> "Este teste vai usar aproximadamente 30 MB em 3 medições. Você poderá repetir em Wi-Fi depois."
+            ModoSpeedtest.complete -> "Este teste vai usar aproximadamente 25 MB. Você poderá repetir em Wi-Fi depois."
+            else -> "Este teste vai usar aproximadamente 25 MB. Você poderá repetir em Wi-Fi depois."
+        }
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = onCancelarSpeedtestMovel,
+            title = { Text(titulo) },
+            text = { Text(mensagem) },
+            confirmButton = {
+                androidx.compose.material3.Button(onClick = onConfirmarSpeedtestMovel) {
+                    Text("Testar")
+                }
             },
-            onCancelar = { showAvisoMobilDialog = false },
+            dismissButton = {
+                TextButton(onClick = onCancelarSpeedtestMovel) {
+                    Text("Cancelar")
+                }
+            },
         )
     }
 
@@ -241,7 +237,7 @@ fun SpeedTestScreen(
                 progresso = snapshotSpeedtest.progressoPercentual,
                 fase = snapshotSpeedtest.faseAtual,
                 velocidadeMbps = if (snapshotSpeedtest.aguardandoProximaRodada) 0.0 else snapshotSpeedtest.velocidadeAtualMbps,
-                onIniciarTeste = onIniciarTesteComAviso,
+                onIniciarTeste = onIniciarTeste,
             )
 
             if (!snapshotRede.conectado) {

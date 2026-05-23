@@ -46,3 +46,9 @@ data class AjustesModemState(
     val onSalvarConfiguracaoModem: (host: String, username: String, password: String, permanecer: Boolean) -> Unit,
     val onConectarFibra: (host: String, username: String, password: String) -> Unit,
 )
+
+data class AjustesDadosMoveisState(
+    val speedtestPermiteHeavyMovel: Boolean,
+    val speedtestMbConsumidosMes: Long,
+    val onSetSpeedtestPermiteHeavyMovel: (Boolean) -> Unit,
+)

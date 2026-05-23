@@ -43,6 +43,9 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 ### Added
 - **WiFi screen topology icons:** Substitui chips de texto (Roteador/Mesh/Repetidor) por ícones visuais (Router/Hub/CellTower/Lan) com cores semanticamente distintas (cinza, azul accent, laranja warning). Nó conectado exato destacado em cor accent.
 - **Network grouping by SSID:** Redes de terceiros agrupadas por SSID com expand/collapse para múltiplos nós (BSSIDs). Single-BSSID networks abrem detalhe direto. SSIDs ocultos agrupados em seção "Redes ocultas". Filtragem por banda preservada.
+- **Proteção de dados móveis:** Speedtest detecta rede celular medida e solicita confirmação antes de testes de 25 MB (Completo) ou 30 MB (Triplo). Modo Rápido (10 MB) executa sem aviso.
+- **Preferência de dados móveis:** Novo toggle em Ajustes — "Sempre permitir testes pesados em dados móveis" — desativa o aviso para quem tem plano ilimitado.
+- **Consumo mensal:** Ajustes exibe o total de dados consumidos em testes este mês, com reset automático na virada do mês.
 
 ### Changed
 - **Qualidade de código:** Eliminado uso de `!!` (not-null assertion) em código de produção. Substituído por `checkNotNull` com mensagem descritiva, elvis operator e early return conforme o contexto.

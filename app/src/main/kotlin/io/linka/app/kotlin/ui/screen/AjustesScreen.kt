@@ -52,6 +52,7 @@ import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Shield
@@ -136,6 +137,11 @@ fun AjustesScreen(
     onAbrirPerfil: () -> Unit = {},
     onAbrirPrivacidade: () -> Unit = {},
     onAbrirNovidades: () -> Unit = {},
+    dadosMoveis: AjustesDadosMoveisState = AjustesDadosMoveisState(
+        speedtestPermiteHeavyMovel = false,
+        speedtestMbConsumidosMes = 0L,
+        onSetSpeedtestPermiteHeavyMovel = {},
+    ),
 ) {
     val c = LocalLkTokens.current
     val context = LocalContext.current
@@ -176,6 +182,9 @@ fun AjustesScreen(
     val onDefinirNotificacaoSemInternetAtiva = monitoramento.onDefinirNotificacaoSemInternetAtiva
     val onSalvarConfiguracaoModem = modem.onSalvarConfiguracaoModem
     val onConectarFibra = modem.onConectarFibra
+    val speedtestPermiteHeavyMovel = dadosMoveis.speedtestPermiteHeavyMovel
+    val speedtestMbConsumidosMes = dadosMoveis.speedtestMbConsumidosMes
+    val onSetSpeedtestPermiteHeavyMovel = dadosMoveis.onSetSpeedtestPermiteHeavyMovel
 
     var showRoteadorSheet by remember { mutableStateOf(false) }
     var showPerfilSheet by remember { mutableStateOf(false) }
@@ -505,6 +514,25 @@ fun AjustesScreen(
                 subtitle = "v$appVersion · Android · Kotlin",
                 onClick = { showSobreSheet = true },
             )
+        }
+        item { Spacer(Modifier.height(16.dp)) }
+
+        // ── DADOS MÓVEIS ──────────────────────────────────────────────────────────
+        item { SectionHeader("Dados móveis", c) }
+        item {
+            ToggleItem(
+                c = c,
+                icon = Icons.Outlined.SignalCellularAlt,
+                label = "Sempre permitir testes pesados em dados móveis",
+                subtitle = "Não mostrar aviso para modo Completo e Triplo na próxima vez",
+                checked = speedtestPermiteHeavyMovel,
+                onCheckedChange = onSetSpeedtestPermiteHeavyMovel,
+            )
+        }
+        item { HorizontalDivider(color = c.border, thickness = 1.dp) }
+        item {
+            val mbLabel = if (speedtestMbConsumidosMes > 0L) "${speedtestMbConsumidosMes} MB" else "—"
+            InfoRow(c, "Consumo em testes este mês", mbLabel)
         }
         item { Spacer(Modifier.height(16.dp)) }
 

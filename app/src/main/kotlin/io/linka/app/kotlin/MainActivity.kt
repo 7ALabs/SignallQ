@@ -120,6 +120,12 @@ class MainActivity : ComponentActivity() {
                 .collectAsStateWithLifecycle(initialValue = false).value
             val limiteAlertaMbps = viewModel.preferenciasAppRepository.limiteAlertaMbpsFlow
                 .collectAsStateWithLifecycle(initialValue = 0).value
+            val speedtestPermiteHeavyMovel = viewModel.preferenciasAppRepository.speedtestPermiteHeavyMovel
+                .collectAsStateWithLifecycle(initialValue = false).value
+            val speedtestMbConsumidosMes = viewModel.preferenciasAppRepository.speedtestMbConsumidosMes
+                .collectAsStateWithLifecycle(initialValue = 0L).value
+            val speedtestPendenteModoMovel = viewModel.speedtestPendenteModoMovel
+                .collectAsStateWithLifecycle().value
             val apelidos = viewModel.apelidos.collectAsStateWithLifecycle().value
             val darkTheme = when (temaSelecionado) {
                 "claro" -> false
@@ -217,6 +223,12 @@ class MainActivity : ComponentActivity() {
                     onConfirmarIsp = { op -> viewModel.confirmarIspDetectado(op) },
                     onDispensarBannerIsp = { viewModel.dispensarBannerIsp() },
                     onSalvarLimiteAlerta = { limite -> viewModel.salvarLimiteAlerta(limite) },
+                    speedtestPendenteModoMovel = speedtestPendenteModoMovel,
+                    onConfirmarSpeedtestMovel = { viewModel.confirmarSpeedtestEmMovel() },
+                    onCancelarSpeedtestMovel = { viewModel.cancelarSpeedtestMovel() },
+                    speedtestPermiteHeavyMovel = speedtestPermiteHeavyMovel,
+                    onSetSpeedtestPermiteHeavyMovel = { valor -> viewModel.setSpeedtestPermiteHeavyMovel(valor) },
+                    speedtestMbConsumidosMes = speedtestMbConsumidosMes,
                     onIniciarDiagnostico = {
                         solicitarPermissaoTelefoniaSeNecessario()
                         viewModel.iniciarDiagnostico()
