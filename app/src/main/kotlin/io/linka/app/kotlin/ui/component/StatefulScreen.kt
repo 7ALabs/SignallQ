@@ -22,6 +22,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.linka.app.kotlin.ui.LkColors
@@ -46,6 +48,7 @@ fun <T> StatefulScreen(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
     emptyIcon: ImageVector = Icons.Outlined.Inbox,
+    emptyIconDescription: String? = null,
     emptyTitle: String = "Nada por aqui",
     emptySubtitle: String = "Nenhum dado disponivel no momento.",
     emptyActionLabel: String? = null,
@@ -58,9 +61,11 @@ fun <T> StatefulScreen(
         when (state) {
             is UiState.Loading -> {
                 CircularProgressIndicator(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .align(Alignment.Center),
+                    modifier =
+                        Modifier
+                            .size(40.dp)
+                            .align(Alignment.Center)
+                            .semantics { contentDescription = "Carregando" },
                     color = LkColors.accent,
                     strokeWidth = 3.dp,
                 )
@@ -68,15 +73,16 @@ fun <T> StatefulScreen(
 
             is UiState.Empty -> {
                 Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(horizontal = LkSpacing.xxl),
+                    modifier =
+                        Modifier
+                            .align(Alignment.Center)
+                            .padding(horizontal = LkSpacing.xxl),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
                     Icon(
                         imageVector = emptyIcon,
-                        contentDescription = null,
+                        contentDescription = emptyIconDescription ?: emptyTitle,
                         modifier = Modifier.size(56.dp),
                         tint = c.textTertiary,
                     )
@@ -105,9 +111,10 @@ fun <T> StatefulScreen(
 
             is UiState.Error -> {
                 Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(horizontal = LkSpacing.xxl),
+                    modifier =
+                        Modifier
+                            .align(Alignment.Center)
+                            .padding(horizontal = LkSpacing.xxl),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
@@ -134,9 +141,10 @@ fun <T> StatefulScreen(
                     Spacer(modifier = Modifier.height(LkSpacing.xl))
                     Button(
                         onClick = onRetry,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = LkColors.accent,
-                        ),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = LkColors.accent,
+                            ),
                     ) {
                         Text(text = "Tentar novamente")
                     }
