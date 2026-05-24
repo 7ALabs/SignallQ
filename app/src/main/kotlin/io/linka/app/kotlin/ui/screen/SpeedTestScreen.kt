@@ -857,7 +857,12 @@ private fun CardRqualAnatel(
                 )
                 Spacer(Modifier.height(LkSpacing.sm))
                 Text(
-                    text = "A ANATEL define dois limites de velocidade que sua operadora é obrigada a cumprir.\n\nO mínimo garantido é 40% da velocidade que você contratou — em qualquer momento do dia. Este teste mede exatamente isso.\n\nO limite de velocidade normal é 80% da velocidade contratada. Esse cálculo usa uma média de vários testes ao longo do tempo — não é possível confirmar esse critério com uma única medição.",
+                    text =
+                        "A ANATEL define dois limites de velocidade que sua operadora é obrigada a cumprir.\n\n" +
+                            "O mínimo garantido é 40% da velocidade que você contratou — em qualquer momento do dia. " +
+                            "Este teste mede exatamente isso.\n\n" +
+                            "O limite de velocidade normal é 80% da velocidade contratada. Esse cálculo usa uma média " +
+                            "de vários testes ao longo do tempo — não é possível confirmar esse critério com uma única medição.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = c.textSecondary,
                 )

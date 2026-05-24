@@ -28,7 +28,7 @@ class InferirTipoGatewayTest {
     fun `(a) 1 BSSID SSID generico retorna wifiRouter`() {
         val redes = listOf(rede("MinhaCasa", "AA:BB:CC:DD:EE:01", -60))
         val resultado = inferirTipoGatewayPorScan("MinhaCasa", redes)
-        assertEquals(ConnectionNodeType.wifiRouter, resultado)
+        assertEquals(ConnectionNodeType.WifiRouter, resultado)
     }
 
     @Test
@@ -39,7 +39,7 @@ class InferirTipoGatewayTest {
                 rede("MinhaCasa", "AA:BB:CC:DD:EE:02", -60),
             )
         val resultado = inferirTipoGatewayPorScan("MinhaCasa", redes)
-        assertEquals(ConnectionNodeType.wifiMesh, resultado)
+        assertEquals(ConnectionNodeType.WifiMesh, resultado)
     }
 
     @Test
@@ -50,13 +50,13 @@ class InferirTipoGatewayTest {
                 rede("MinhaCasa", "AA:BB:CC:DD:EE:02", -80),
             )
         val resultado = inferirTipoGatewayPorScan("MinhaCasa", redes)
-        assertEquals(ConnectionNodeType.wifiRouter, resultado)
+        assertEquals(ConnectionNodeType.WifiRouter, resultado)
     }
 
     @Test
     fun `(d) SSID com DECO retorna wifiMesh pela heuristica de nome`() {
         val resultado = inferirTipoGatewayPorScan("DECO_SALA", emptyList())
-        assertEquals(ConnectionNodeType.wifiMesh, resultado)
+        assertEquals(ConnectionNodeType.WifiMesh, resultado)
     }
 
     // ─── M3: threshold RSSI exatamente em -75 dBm ────────────────────────────────
@@ -69,7 +69,7 @@ class InferirTipoGatewayTest {
                 rede("MinhaCasa", "AA:BB:CC:DD:EE:02", -75),
             )
         val resultado = inferirTipoGatewayPorScan("MinhaCasa", redes)
-        assertEquals(ConnectionNodeType.wifiMesh, resultado)
+        assertEquals(ConnectionNodeType.WifiMesh, resultado)
     }
 
     // ─── M2: falsos positivos de heurística de SSID ──────────────────────────────
@@ -77,31 +77,31 @@ class InferirTipoGatewayTest {
     @Test
     fun `(f) SSID ORANGE nao deve ser confundido com RANGE retorna wifiRouter`() {
         val resultado = inferirTipoGatewayPorScan("ORANGE", emptyList())
-        assertEquals(ConnectionNodeType.wifiRouter, resultado)
+        assertEquals(ConnectionNodeType.WifiRouter, resultado)
     }
 
     @Test
     fun `(g) SSID GRANGE nao deve ser confundido com RANGE retorna wifiRouter`() {
         val resultado = inferirTipoGatewayPorScan("GRANGE", emptyList())
-        assertEquals(ConnectionNodeType.wifiRouter, resultado)
+        assertEquals(ConnectionNodeType.WifiRouter, resultado)
     }
 
     @Test
     fun `(h) SSID WIFI-RANGE-5G com token RANGE isolado retorna wifiExtender`() {
         val resultado = inferirTipoGatewayPorScan("WIFI-RANGE-5G", emptyList())
-        assertEquals(ConnectionNodeType.wifiExtender, resultado)
+        assertEquals(ConnectionNodeType.WifiExtender, resultado)
     }
 
     @Test
     fun `(i) SSID WIFI-EXT-SALA com token EXT isolado retorna wifiExtender`() {
         val resultado = inferirTipoGatewayPorScan("WIFI-EXT-SALA", emptyList())
-        assertEquals(ConnectionNodeType.wifiExtender, resultado)
+        assertEquals(ConnectionNodeType.WifiExtender, resultado)
     }
 
     @Test
     fun `(j) SSID EXTERIOR nao deve ser confundido com EXT retorna wifiRouter`() {
         val resultado = inferirTipoGatewayPorScan("EXTERIOR", emptyList())
-        assertEquals(ConnectionNodeType.wifiRouter, resultado)
+        assertEquals(ConnectionNodeType.WifiRouter, resultado)
     }
 
     // ─── Edge cases de inferirTipoGatewayPorScan ────────────────────────────────
@@ -109,19 +109,19 @@ class InferirTipoGatewayTest {
     @Test
     fun `(k) SSID vazio retorna wifiRouter sem crash`() {
         val resultado = inferirTipoGatewayPorScan("", listOf(rede("", "AA:BB:CC:DD:EE:01", -60)))
-        assertEquals(ConnectionNodeType.wifiRouter, resultado)
+        assertEquals(ConnectionNodeType.WifiRouter, resultado)
     }
 
     @Test
     fun `(l) SSID generico lista vazia retorna wifiRouter`() {
         val resultado = inferirTipoGatewayPorScan("MinhaCasa", emptyList())
-        assertEquals(ConnectionNodeType.wifiRouter, resultado)
+        assertEquals(ConnectionNodeType.WifiRouter, resultado)
     }
 
     @Test
     fun `(m) SSID com keyword de extensor lista vazia retorna wifiExtender`() {
         val resultado = inferirTipoGatewayPorScan("WIFI-EXT-SALA", emptyList())
-        assertEquals(ConnectionNodeType.wifiExtender, resultado)
+        assertEquals(ConnectionNodeType.WifiExtender, resultado)
     }
 
     @Test
@@ -132,7 +132,7 @@ class InferirTipoGatewayTest {
                 rede("MinhaCasa", "AA:BB:CC:DD:EE:01", -60),
             )
         val resultado = inferirTipoGatewayPorScan("MinhaCasa", redes)
-        assertEquals(ConnectionNodeType.wifiRouter, resultado)
+        assertEquals(ConnectionNodeType.WifiRouter, resultado)
     }
 
     // ─── C1+C2: testes de bssidCurto ────────────────────────────────────────────

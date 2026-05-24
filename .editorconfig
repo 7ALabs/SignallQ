@@ -11,13 +11,8 @@ ktlint_standard_no-wildcard-imports = disabled
 [app/src/main/kotlin/io/linka/app/kotlin/ui/**/*.kt]
 ktlint_standard_function-naming = disabled
 
-# Issue #29 — residual manual violations to be fixed in follow-up PR
-# These 4 rules have non-auto-correctable violations that require code changes
-[app/src/main/kotlin/io/linka/app/kotlin/**/*.kt]
-ktlint_standard_property-naming = disabled
-ktlint_standard_max-line-length = disabled
-ktlint_standard_enum-entry-name-case = disabled
-ktlint_standard_no-empty-file = disabled
+# Issue #29 — residual manual violations to be fixed in this PR
+# (Temporarily ALL enabled to validate fixes; will be re-suppressed if any remain)
 
 # Gradle build script pre-existing formatting violations
 [*.gradle.kts]

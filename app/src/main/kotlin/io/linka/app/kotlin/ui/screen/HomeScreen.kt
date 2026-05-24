@@ -222,7 +222,7 @@ fun HomeScreen(
         ) {
             GatewayInfoSheet(
                 gateway = gw,
-                connectedNetwork = if (gw.ip == null && gw.type == ConnectionNodeType.wifiRouter) null else connectedNetwork,
+                connectedNetwork = if (gw.ip == null && gw.type == ConnectionNodeType.WifiRouter) null else connectedNetwork,
                 c = c,
             )
         }
@@ -590,7 +590,7 @@ private fun NetworkPath(
             )
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 val (icon, _) = nodeDisplay(gw.type)
-                val isMobileNode = gw.type == ConnectionNodeType.mobile
+                val isMobileNode = gw.type == ConnectionNodeType.Mobile
                 PathNode(
                     icon = icon,
                     iconColor = c.textSecondary,
@@ -654,11 +654,11 @@ private fun NetworkPath(
 
 private fun nodeDisplay(type: ConnectionNodeType): Pair<ImageVector, String> =
     when (type) {
-        ConnectionNodeType.wifiRouter -> Icons.Outlined.Router to "Roteador"
-        ConnectionNodeType.wifiMesh -> Icons.Outlined.Hub to "Mesh"
-        ConnectionNodeType.wifiExtender -> Icons.Outlined.SettingsInputAntenna to "Extensor"
-        ConnectionNodeType.mobile -> Icons.Outlined.CellTower to "Antena móvel"
-        ConnectionNodeType.unknown -> Icons.Outlined.DeviceHub to "Rede"
+        ConnectionNodeType.WifiRouter -> Icons.Outlined.Router to "Roteador"
+        ConnectionNodeType.WifiMesh -> Icons.Outlined.Hub to "Mesh"
+        ConnectionNodeType.WifiExtender -> Icons.Outlined.SettingsInputAntenna to "Extensor"
+        ConnectionNodeType.Mobile -> Icons.Outlined.CellTower to "Antena móvel"
+        ConnectionNodeType.Unknown -> Icons.Outlined.DeviceHub to "Rede"
     }
 
 @Composable
@@ -1573,15 +1573,15 @@ private fun GatewayInfoSheet(
 ) {
     val typeLabel =
         when (gateway.type) {
-            ConnectionNodeType.wifiRouter -> "Roteador Wi-Fi"
-            ConnectionNodeType.wifiMesh -> "Rede Mesh"
-            ConnectionNodeType.wifiExtender -> "Repetidor Wi-Fi"
-            ConnectionNodeType.mobile -> "Antena móvel"
-            ConnectionNodeType.unknown -> "Não identificado"
+            ConnectionNodeType.WifiRouter -> "Roteador Wi-Fi"
+            ConnectionNodeType.WifiMesh -> "Rede Mesh"
+            ConnectionNodeType.WifiExtender -> "Repetidor Wi-Fi"
+            ConnectionNodeType.Mobile -> "Antena móvel"
+            ConnectionNodeType.Unknown -> "Não identificado"
         }
     val isMeshOrExtensor =
-        gateway.type == ConnectionNodeType.wifiMesh ||
-            gateway.type == ConnectionNodeType.wifiExtender
+        gateway.type == ConnectionNodeType.WifiMesh ||
+            gateway.type == ConnectionNodeType.WifiExtender
     Column(
         modifier =
             Modifier

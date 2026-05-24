@@ -7,17 +7,17 @@ data class HistoryPoint(
 )
 
 enum class ConnectionNodeType {
-    wifiRouter,
-    wifiMesh,
-    wifiExtender,
-    mobile,
-    unknown,
+    WifiRouter,
+    WifiMesh,
+    WifiExtender,
+    Mobile,
+    Unknown,
 }
 
 data class GatewayInfo(
     val ip: String?,
     val name: String,
-    val type: ConnectionNodeType = ConnectionNodeType.unknown,
+    val type: ConnectionNodeType = ConnectionNodeType.Unknown,
 )
 
 data class IspInfo(
