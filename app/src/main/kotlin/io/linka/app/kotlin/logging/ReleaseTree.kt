@@ -12,7 +12,12 @@ import timber.log.Timber
  * Futuramente pode encaminhar para Crashlytics ou outro backend de logging.
  */
 internal class ReleaseTree : Timber.Tree() {
-    override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
+    override fun log(
+        priority: Int,
+        tag: String?,
+        message: String,
+        t: Throwable?,
+    ) {
         if (priority < Log.WARN) {
             return
         }

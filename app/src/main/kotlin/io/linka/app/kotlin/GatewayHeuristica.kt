@@ -18,8 +18,7 @@ private val SSID_EXTENSOR_TOKEN = listOf("EXT", "RANGE")
 internal const val RSSI_MESH_MINIMO = -75
 
 /** Separa o SSID em tokens alfanuméricos (qualquer não-alfanumérico é delimitador). */
-private fun tokenize(upper: String): Set<String> =
-    upper.split(Regex("[^A-Z0-9]")).filter { it.isNotEmpty() }.toSet()
+private fun tokenize(upper: String): Set<String> = upper.split(Regex("[^A-Z0-9]")).filter { it.isNotEmpty() }.toSet()
 
 fun inferirTipoGatewayPorScan(
     ssid: String,

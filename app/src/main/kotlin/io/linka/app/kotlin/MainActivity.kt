@@ -17,14 +17,12 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import io.linka.app.kotlin.core.network.EstadoConexao
-import io.linka.app.kotlin.core.telephony.MovelSnapshot
 import io.linka.app.kotlin.ui.LinkaTheme
 import io.linka.app.kotlin.ui.screen.AppShell
 import io.linka.app.kotlin.ui.screen.OnboardingScreen
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
     private val viewModel: MainViewModel by viewModels()
 
     private val solicitacaoPermissoes =
