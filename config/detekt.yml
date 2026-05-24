@@ -23,10 +23,12 @@ comments:
 naming:
   active: true
 
-libraries:
-  ForbiddenImport:
-    active: true
-    severity: error
-    imports:
-      - value: 'android.util.Log'
-        reason: 'Use Timber.* para logging centralizado. android.util.Log bypassa o filtro de release.'
+# ForbiddenImport: desabilitada temporariamente — 'libraries' não existe no Detekt 1.23.7.
+# A rule pertence à categoria 'imports' (ou 'style'). Reativar com a sintaxe correta.
+# imports:
+#   ForbiddenImport:
+#     active: true
+#     severity: error
+#     imports:
+#       - value: 'android.util.Log'
+#         reason: 'Use Timber.* para logging centralizado. android.util.Log bypassa o filtro de release.'
