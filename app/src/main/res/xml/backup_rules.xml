@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Excluir DataStore — contém preferências e dados de sessão -->
+    <exclude domain="file" path="datastore/"/>
+    <!-- Excluir Room — banco local reconstruído do servidor -->
+    <exclude domain="database" path="linkaKotlin.db"/>
+    <exclude domain="database" path="linkaKotlin.db-shm"/>
+    <exclude domain="database" path="linkaKotlin.db-wal"/>
+</full-backup-content>
