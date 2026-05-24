@@ -14,9 +14,10 @@ import java.util.UUID
  * A persistencia em si e testada na integracao (requer Robolectric ou device).
  */
 class MonitoramentoWorkerMedicaoTest {
-
-    private fun criarMedicaoMonitor(latenciaMs: Long?, rssiDbm: Int?): MedicaoEntity {
-        return MedicaoEntity(
+    private fun criarMedicaoMonitor(
+        latenciaMs: Long?,
+        rssiDbm: Int?,
+    ) = MedicaoEntity(
             id = UUID.randomUUID().toString(),
             timestampEpochMs = System.currentTimeMillis(),
             connectionType = "monitor",
@@ -38,7 +39,6 @@ class MonitoramentoWorkerMedicaoTest {
             gargaloPrimario = null,
             fonte = "monitor",
         )
-    }
 
     @Test
     fun `medicao monitor tem fonte igual a monitor`() {
