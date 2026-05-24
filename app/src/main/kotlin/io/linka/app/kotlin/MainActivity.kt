@@ -143,7 +143,9 @@ class MainActivity : ComponentActivity() {
             val connectedBssid = snapshotRede.wifiLinkSnapshot?.bssid
             val connectedNetwork = if (connectedBssid != null) {
                 snapshotWifi.redes.find { it.bssid == connectedBssid }
-            } else null
+            } else {
+                null
+            }
 
             LinkaTheme(darkTheme = darkTheme) {
                 if (!onboardingConcluido) {
@@ -151,109 +153,109 @@ class MainActivity : ComponentActivity() {
                         onConcluir = { viewModel.marcarOnboardingConcluido() },
                     )
                 } else {
-                AppShell(
-                    snapshotRede = snapshotRede,
-                    snapshotSpeedtest = snapshotSpeedtest,
-                    snapshotDns = snapshotDns,
-                    snapshotDevices = snapshotDevices,
-                    snapshotDiagnostico = snapshotDiagnostico,
-                    history = history,
-                    localIp = localIp,
-                    publicIp = publicIp,
-                    ispInfo = ispInfo,
-                    gateways = gateways,
-                    deviceName = Build.MODEL,
-                    nomeUsuario = nomeUsuario,
-                    fotoUriUsuario = fotoUriUsuario,
-                    operadora = operadora,
-                    planoInternet = planoInternet,
-                    regiao = regiao,
-                    estadoUf = estadoUf,
-                    cidadeNome = cidadeNome,
-                    ispConfirmado = ispConfirmado,
-                    limiteAlertaMbps = limiteAlertaMbps,
-                    dnsResolverIp = snapshotRede.dnsServidores.firstOrNull(),
-                    connectedNetwork = connectedNetwork,
-                    snapshotWifi = snapshotWifi,
-                    historico = historico,
-                    blocoUptime = blocoUptime,
-                    narrativaUptime = narrativaUptime,
-                    resumoHistorico = resumoHistorico,
-                    snapshotFibra = snapshotFibra,
-                    modemHost = modemHost,
-                    modemUsername = modemUsername,
-                    modemPassword = modemPassword,
-                    modemPermanecerConectado = modemPermanecerConectado,
-                    gatewayIpDetectado = gatewayIpDetectado,
-                    localizacaoServidor = localizacaoServidor,
-                    onNovoTeste = { modo -> viewModel.reiniciarSuite(modo) },
-                    onCancelarTeste = { viewModel.executorSpeedtest.cancelar() },
-                    onDispararBenchmarkDns = { viewModel.dispararBenchmarkDns() },
-                    onRefreshDispositivos = { viewModel.refreshDispositivos() },
-                    apelidos = apelidos,
-                    onSalvarApelido = { mac, apelido -> viewModel.salvarApelido(mac, apelido) },
-                    onRefreshSinal = { viewModel.refreshSinal() },
-                    onReconectarFibra = { host, user, pass -> viewModel.reconectarFibra(host, user, pass) },
-                    onSalvarConfiguracaoModem = { host, user, pass, perm ->
-                        viewModel.salvarConfiguracaoModem(host, user, pass, perm)
-                    },
-                    temaSelecionado = temaSelecionado,
-                    analiseAvancada = analiseAvancada,
-                    onDefinirTemaSelecionado = { tema -> viewModel.definirTemaSelecionado(tema) },
-                    onDefinirAnaliseAvancada = { ativa -> viewModel.definirAnaliseAvancada(ativa) },
-                    onLimparHistorico = { viewModel.limparHistorico() },
-                    onApagarDadosLocais = { viewModel.apagarDadosLocais() },
-                    onResetarApp = { viewModel.resetarApp() },
-                    monitoramentoAtivo = monitoramentoAtivo,
-                    onAtivarMonitoramento = { ativo ->
-                        if (ativo) solicitarPermissaoNotificacaoSeNecessario { viewModel.atualizarMonitoramento(true) }
-                        else viewModel.atualizarMonitoramento(false)
-                    },
-                    notificacaoLatenciaAtiva = notificacaoLatenciaAtiva,
-                    notificacaoDnsAtiva = notificacaoDnsAtiva,
-                    notificacaoRssiAtiva = notificacaoRssiAtiva,
-                    notificacaoSemInternetAtiva = notificacaoSemInternetAtiva,
-                    onDefinirNotificacaoLatenciaAtiva = { viewModel.definirNotificacaoLatenciaAtiva(it) },
-                    onDefinirNotificacaoDnsAtiva = { viewModel.definirNotificacaoDnsAtiva(it) },
-                    onDefinirNotificacaoRssiAtiva = { viewModel.definirNotificacaoRssiAtiva(it) },
-                    onDefinirNotificacaoSemInternetAtiva = { viewModel.definirNotificacaoSemInternetAtiva(it) },
-                    onSalvarPerfil = { nome, fotoUri -> viewModel.salvarPerfil(nome, fotoUri) },
-                    onSalvarDadosProvedor = { op, plano, reg -> viewModel.salvarDadosProvedor(op, plano, reg) },
-                    onSalvarEstadoCidade = { uf, cidade -> viewModel.salvarEstadoCidade(uf, cidade) },
-                    onConfirmarIsp = { op -> viewModel.confirmarIspDetectado(op) },
-                    onDispensarBannerIsp = { viewModel.dispensarBannerIsp() },
-                    onSalvarLimiteAlerta = { limite -> viewModel.salvarLimiteAlerta(limite) },
-                    speedtestPendenteModoMovel = speedtestPendenteModoMovel,
-                    onConfirmarSpeedtestMovel = { viewModel.confirmarSpeedtestEmMovel() },
-                    onCancelarSpeedtestMovel = { viewModel.cancelarSpeedtestMovel() },
-                    speedtestPermiteHeavyMovel = speedtestPermiteHeavyMovel,
-                    onSetSpeedtestPermiteHeavyMovel = { valor -> viewModel.setSpeedtestPermiteHeavyMovel(valor) },
-                    speedtestMbConsumidosMes = speedtestMbConsumidosMes,
-                    onIniciarDiagnostico = {
-                        solicitarPermissaoTelefoniaSeNecessario()
-                        viewModel.iniciarDiagnostico()
-                    },
-                    temPermissaoTelefonia = temPermissaoTelefonia,
-                    onSolicitarPermissaoTelefonia = { solicitarPermissaoTelefoniaContextual() },
-                    temPermissaoLocalizacao = temPermissaoLocalizacao,
-                    onSolicitarPermissaoLocalizacao = { solicitarPermissaoLocalizacaoContextual() },
-                    orbitUiState = orbitUiState,
-                    movelSnapshot = movelSnapshot,
-                    onIniciarOrbit = { foco ->
-                        solicitarPermissaoTelefoniaSeNecessario()
-                        viewModel.iniciarOrbit(foco)
-                    },
-                    onResetOrbit = { viewModel.resetOrbit() },
-                    onSelecionarChip = { chip -> viewModel.selecionarChipOrbit(chip) },
-                    onResponderPergunta = { opcao -> viewModel.responderPerguntaOrbit(opcao) },
-                    gemmaAvailable = gemmaAvailable,
-                    onVerificarGemma = { viewModel.verificarDisponibilidadeGemma() },
-                    onIniciarOrbitComResultado = { resultado, foco ->
-                        solicitarPermissaoTelefoniaSeNecessario()
-                        viewModel.iniciarOrbitComResultado(resultado, foco)
-                    },
-                    onEnviarMensagemTexto = { texto -> viewModel.enviarMensagemTextoOrbit(texto) },
-                )
+                    AppShell(
+                        snapshotRede = snapshotRede,
+                        snapshotSpeedtest = snapshotSpeedtest,
+                        snapshotDns = snapshotDns,
+                        snapshotDevices = snapshotDevices,
+                        snapshotDiagnostico = snapshotDiagnostico,
+                        history = history,
+                        localIp = localIp,
+                        publicIp = publicIp,
+                        ispInfo = ispInfo,
+                        gateways = gateways,
+                        deviceName = Build.MODEL,
+                        nomeUsuario = nomeUsuario,
+                        fotoUriUsuario = fotoUriUsuario,
+                        operadora = operadora,
+                        planoInternet = planoInternet,
+                        regiao = regiao,
+                        estadoUf = estadoUf,
+                        cidadeNome = cidadeNome,
+                        ispConfirmado = ispConfirmado,
+                        limiteAlertaMbps = limiteAlertaMbps,
+                        dnsResolverIp = snapshotRede.dnsServidores.firstOrNull(),
+                        connectedNetwork = connectedNetwork,
+                        snapshotWifi = snapshotWifi,
+                        historico = historico,
+                        blocoUptime = blocoUptime,
+                        narrativaUptime = narrativaUptime,
+                        resumoHistorico = resumoHistorico,
+                        snapshotFibra = snapshotFibra,
+                        modemHost = modemHost,
+                        modemUsername = modemUsername,
+                        modemPassword = modemPassword,
+                        modemPermanecerConectado = modemPermanecerConectado,
+                        gatewayIpDetectado = gatewayIpDetectado,
+                        localizacaoServidor = localizacaoServidor,
+                        onNovoTeste = { modo -> viewModel.reiniciarSuite(modo) },
+                        onCancelarTeste = { viewModel.executorSpeedtest.cancelar() },
+                        onDispararBenchmarkDns = { viewModel.dispararBenchmarkDns() },
+                        onRefreshDispositivos = { viewModel.refreshDispositivos() },
+                        apelidos = apelidos,
+                        onSalvarApelido = { mac, apelido -> viewModel.salvarApelido(mac, apelido) },
+                        onRefreshSinal = { viewModel.refreshSinal() },
+                        onReconectarFibra = { host, user, pass -> viewModel.reconectarFibra(host, user, pass) },
+                        onSalvarConfiguracaoModem = { host, user, pass, perm ->
+                            viewModel.salvarConfiguracaoModem(host, user, pass, perm)
+                        },
+                        temaSelecionado = temaSelecionado,
+                        analiseAvancada = analiseAvancada,
+                        onDefinirTemaSelecionado = { tema -> viewModel.definirTemaSelecionado(tema) },
+                        onDefinirAnaliseAvancada = { ativa -> viewModel.definirAnaliseAvancada(ativa) },
+                        onLimparHistorico = { viewModel.limparHistorico() },
+                        onApagarDadosLocais = { viewModel.apagarDadosLocais() },
+                        onResetarApp = { viewModel.resetarApp() },
+                        monitoramentoAtivo = monitoramentoAtivo,
+                        onAtivarMonitoramento = { ativo ->
+                            if (ativo) solicitarPermissaoNotificacaoSeNecessario { viewModel.atualizarMonitoramento(true) }
+                            else viewModel.atualizarMonitoramento(false)
+                        },
+                        notificacaoLatenciaAtiva = notificacaoLatenciaAtiva,
+                        notificacaoDnsAtiva = notificacaoDnsAtiva,
+                        notificacaoRssiAtiva = notificacaoRssiAtiva,
+                        notificacaoSemInternetAtiva = notificacaoSemInternetAtiva,
+                        onDefinirNotificacaoLatenciaAtiva = { viewModel.definirNotificacaoLatenciaAtiva(it) },
+                        onDefinirNotificacaoDnsAtiva = { viewModel.definirNotificacaoDnsAtiva(it) },
+                        onDefinirNotificacaoRssiAtiva = { viewModel.definirNotificacaoRssiAtiva(it) },
+                        onDefinirNotificacaoSemInternetAtiva = { viewModel.definirNotificacaoSemInternetAtiva(it) },
+                        onSalvarPerfil = { nome, fotoUri -> viewModel.salvarPerfil(nome, fotoUri) },
+                        onSalvarDadosProvedor = { op, plano, reg -> viewModel.salvarDadosProvedor(op, plano, reg) },
+                        onSalvarEstadoCidade = { uf, cidade -> viewModel.salvarEstadoCidade(uf, cidade) },
+                        onConfirmarIsp = { op -> viewModel.confirmarIspDetectado(op) },
+                        onDispensarBannerIsp = { viewModel.dispensarBannerIsp() },
+                        onSalvarLimiteAlerta = { limite -> viewModel.salvarLimiteAlerta(limite) },
+                        speedtestPendenteModoMovel = speedtestPendenteModoMovel,
+                        onConfirmarSpeedtestMovel = { viewModel.confirmarSpeedtestEmMovel() },
+                        onCancelarSpeedtestMovel = { viewModel.cancelarSpeedtestMovel() },
+                        speedtestPermiteHeavyMovel = speedtestPermiteHeavyMovel,
+                        onSetSpeedtestPermiteHeavyMovel = { valor -> viewModel.setSpeedtestPermiteHeavyMovel(valor) },
+                        speedtestMbConsumidosMes = speedtestMbConsumidosMes,
+                        onIniciarDiagnostico = {
+                            solicitarPermissaoTelefoniaSeNecessario()
+                            viewModel.iniciarDiagnostico()
+                        },
+                        temPermissaoTelefonia = temPermissaoTelefonia,
+                        onSolicitarPermissaoTelefonia = { solicitarPermissaoTelefoniaContextual() },
+                        temPermissaoLocalizacao = temPermissaoLocalizacao,
+                        onSolicitarPermissaoLocalizacao = { solicitarPermissaoLocalizacaoContextual() },
+                        orbitUiState = orbitUiState,
+                        movelSnapshot = movelSnapshot,
+                        onIniciarOrbit = { foco ->
+                            solicitarPermissaoTelefoniaSeNecessario()
+                            viewModel.iniciarOrbit(foco)
+                        },
+                        onResetOrbit = { viewModel.resetOrbit() },
+                        onSelecionarChip = { chip -> viewModel.selecionarChipOrbit(chip) },
+                        onResponderPergunta = { opcao -> viewModel.responderPerguntaOrbit(opcao) },
+                        gemmaAvailable = gemmaAvailable,
+                        onVerificarGemma = { viewModel.verificarDisponibilidadeGemma() },
+                        onIniciarOrbitComResultado = { resultado, foco ->
+                            solicitarPermissaoTelefoniaSeNecessario()
+                            viewModel.iniciarOrbitComResultado(resultado, foco)
+                        },
+                        onEnviarMensagemTexto = { texto -> viewModel.enviarMensagemTextoOrbit(texto) },
+                    )
                 } // else onboardingConcluido
             }
         }
