@@ -7,13 +7,13 @@ allowed-tools: Read(*), Bash(*), PowerShell(*)
 ## Sistema de Design Atual (lido dos arquivos em tempo real)
 
 **LinkaTheme.kt — tokens vivos:**
-!`cat "e:/Projetos/projetosAtivos/linkaAndroidKotlin/linka-android-kotlin/app/src/main/kotlin/io/linka/app/kotlin/ui/LinkaTheme.kt"`
+!`cat "C:/Projetos/Linka Android/app/src/main/kotlin/io/linka/app/kotlin/ui/LinkaTheme.kt"`
 
 **Componentes reutilizáveis disponíveis:**
-!`ls "e:/Projetos/projetosAtivos/linkaAndroidKotlin/linka-android-kotlin/app/src/main/kotlin/io/linka/app/kotlin/ui/component/" 2>/dev/null | grep ".kt" || echo "(diretório não encontrado)"`
+!`ls "C:/Projetos/Linka Android/app/src/main/kotlin/io/linka/app/kotlin/ui/component/" 2>/dev/null | grep ".kt" || echo "(diretório não encontrado)"`
 
 **Telas existentes (referência de padrão):**
-!`ls "e:/Projetos/projetosAtivos/linkaAndroidKotlin/linka-android-kotlin/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/" 2>/dev/null | grep ".kt" || echo "(diretório não encontrado)"`
+!`ls "C:/Projetos/Linka Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/" 2>/dev/null | grep ".kt" || echo "(diretório não encontrado)"`
 
 ---
 

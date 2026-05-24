@@ -1,0 +1,74 @@
+name: "Bug"
+description: "Comportamento incorreto, crash ou regressão"
+title: "[BUG] "
+labels: ["type:bug"]
+body:
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: "Comportamento atual"
+      description: "O que está acontecendo? Uma frase direta."
+      placeholder: "O app trava ao abrir o diagnóstico com Wi-Fi desativado."
+    validations:
+      required: true
+
+  - type: textarea
+    id: esperado
+    attributes:
+      label: "Comportamento esperado"
+      description: "O que deveria acontecer?"
+      placeholder: "O diagnóstico abre normalmente e exibe o estado da rede."
+    validations:
+      required: true
+
+  - type: textarea
+    id: passos
+    attributes:
+      label: "Passos para reproduzir"
+      value: "1. \n2. \n3. "
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Logs / stacktrace"
+      description: "Cole aqui o stack trace, logcat relevante ou mensagem de erro."
+      render: text
+
+  - type: input
+    id: device
+    attributes:
+      label: "Device / API level"
+      placeholder: "Samsung Galaxy A33 — Android 11 (API 30)"
+
+  - type: checkboxes
+    id: regressao
+    attributes:
+      label: "Regressão"
+      options:
+        - label: "Funcionava antes e parou de funcionar"
+
+  - type: textarea
+    id: criterios
+    attributes:
+      label: "Critérios de aceite"
+      value: "- [ ] \n- [ ] "
+    validations:
+      required: true
+
+  - type: dropdown
+    id: plataforma
+    attributes:
+      label: "Plataforma"
+      options: ["Android", "PWA", "Ambos", "Infraestrutura"]
+    validations:
+      required: true
+
+  - type: dropdown
+    id: prioridade
+    attributes:
+      label: "Prioridade"
+      options: ["P0 — Urgente (produção quebrada)", "P1 — Importante (caminho crítico)", "P2 — Backlog"]
+    validations:
+      required: true

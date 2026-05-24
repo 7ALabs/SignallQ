@@ -6,16 +6,16 @@ allowed-tools: Read(*)
 ## Estado Atual do Projeto (lido dos arquivos agora)
 
 **Versão Kotlin (ativa):**
-!`cat "E:/Projetos/Linka/linkaAndroidKotlin/gradle/libs.versions.toml" 2>/dev/null | grep -E "versionName|versionCode"`
+!`cat "C:/Projetos/Linka Android/gradle/libs.versions.toml" 2>/dev/null | grep -E "versionName|versionCode"`
 
 **Último release:**
-!`cat "E:/Projetos/Linka/linkaAndroidKotlin/apk/releases/CHANGELOG.md" 2>/dev/null | head -20`
+!`cat "C:/Projetos/Linka Android/CHANGELOG.md" 2>/dev/null | head -20`
 
 **Pendências abertas (top 15 linhas):**
-!`cat "E:/Projetos/Linka/linkaAndroidKotlin/docs/PendenciasSanitizacaoCodigo.md" 2>/dev/null | head -15`
+!`cat "C:/Projetos/Linka Android/docs/PendenciasSanitizacaoCodigo.md" 2>/dev/null | head -15`
 
 **Fase atual do plano:**
-!`cat "E:/Projetos/Linka/linkaAndroidKotlin/docs/LINKA — Plano Faseado por Custo-Benefício.md" 2>/dev/null | head -30`
+!`cat "C:/Projetos/Linka Android/docs/PlanoFaseadoCustoBeneficio.md" 2>/dev/null | head -30`
 
 ---
 

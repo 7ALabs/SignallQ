@@ -17,10 +17,9 @@
 
 ## Key Paths
 
-- Agent definitions: `.orbit/agents/[name]/`
-- Skills: `.orbit/skills/`
-- Workflows: `.orbit/workflow/`
-- Documentation: `docs_ai/ai/`
+- Agent definitions: `.claude/agents/[name].md`
+- Commands: `.claude/commands/`
+- Documentation: `docs_ai/ai/`, `docs/PIPELINE_AUTONOMO.md`
 
 ## Build/Verify
 

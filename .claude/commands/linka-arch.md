@@ -7,16 +7,16 @@ allowed-tools: Read(*), Bash(*), PowerShell(*)
 ## Contexto Arquitetural Atual (lido dos arquivos agora)
 
 **Módulos ativos (settings.gradle.kts):**
-!`cat "e:/Projetos/projetosAtivos/linkaAndroidKotlin/linka-android-kotlin/settings.gradle.kts" 2>/dev/null`
+!`cat "C:/Projetos/Linka Android/settings.gradle.kts" 2>/dev/null`
 
 **SDKs e dependências principais (libs.versions.toml):**
-!`cat "e:/Projetos/projetosAtivos/linkaAndroidKotlin/linka-android-kotlin/gradle/libs.versions.toml" 2>/dev/null`
+!`cat "C:/Projetos/Linka Android/gradle/libs.versions.toml" 2>/dev/null`
 
 **Telas existentes (ui/screen/):**
-!`ls "e:/Projetos/projetosAtivos/linkaAndroidKotlin/linka-android-kotlin/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/" 2>/dev/null`
+!`ls "C:/Projetos/Linka Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/" 2>/dev/null`
 
 **Componentes reutilizáveis (ui/component/):**
-!`ls "e:/Projetos/projetosAtivos/linkaAndroidKotlin/linka-android-kotlin/app/src/main/kotlin/io/linka/app/kotlin/ui/component/" 2>/dev/null`
+!`ls "C:/Projetos/Linka Android/app/src/main/kotlin/io/linka/app/kotlin/ui/component/" 2>/dev/null`
 
 ---
 

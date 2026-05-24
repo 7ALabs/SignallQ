@@ -7,13 +7,13 @@ allowed-tools: Read(*), Edit(*), Bash(*)
 ## Índice de Documentação Atual (lido dos arquivos agora)
 
 **Índice oficial:**
-!`cat "e:/Projetos/projetosAtivos/linkaAndroidKotlin/docs/IndiceDocumentacao.md" 2>/dev/null | head -80`
+!`cat "C:/Projetos/Linka Android/docs/IndiceDocumentacao.md" 2>/dev/null | head -80`
 
 **Documentação consolidada (mapa de navegação):**
-!`cat "e:/Projetos/projetosAtivos/linkaAndroidKotlin/DOCUMENTACAO_CONSOLIDADA.md" 2>/dev/null | head -60`
+!`cat "C:/Projetos/Linka Android/DOCUMENTACAO_CONSOLIDADA.md" 2>/dev/null | head -60`
 
 **Pendências técnicas abertas (top 20 linhas):**
-!`cat "e:/Projetos/projetosAtivos/linkaAndroidKotlin/docs/PendenciasSanitizacaoCodigo.md" 2>/dev/null | head -20`
+!`cat "C:/Projetos/Linka Android/docs/PendenciasSanitizacaoCodigo.md" 2>/dev/null | head -20`
 
 ---
 
