@@ -85,6 +85,7 @@ import io.linka.app.kotlin.ui.LkRadius
 import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
 import io.linka.app.kotlin.ui.LocalLkTokens
+import io.linka.app.kotlin.ui.state.UiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -92,6 +93,36 @@ import java.util.Date
 import java.util.Locale
 
 private const val AI_BASE_URL = "https://linka-ai-diagnosis-worker.giammattey-luiz.workers.dev"
+
+/**
+ * Fase de carregamento do DiagnosticoScreen.
+ * Distingue loading das engines de rede do loading da analise de IA.
+ */
+enum class DiagnosticoFase { Engines, Ia }
+
+/**
+ * Dado de UI do DiagnosticoScreen.
+ *
+ * [Carregando] representa qualquer fase intermediaria — engines ou IA.
+ * [Resultado] representa o estado final com o laudo da IA.
+ *
+ * Mapeamento para UiState<DiagnosticoUiData>:
+ *   - UiState.Empty         → tela inicial (Idle), nenhuma analise solicitada
+ *   - UiState.Success(Carregando(Engines)) → engines de rede em execucao
+ *   - UiState.Success(Carregando(Ia))      → IA consultando resultado
+ *   - UiState.Success(Resultado(...))      → laudo disponivel
+ *   - UiState.Error(message)               → falha no diagnostico
+ */
+sealed interface DiagnosticoUiData {
+    data class Carregando(
+        val fase: DiagnosticoFase,
+    ) : DiagnosticoUiData
+
+    data class Resultado(
+        val result: AiDiagnosisResult,
+        val isFallback: Boolean,
+    ) : DiagnosticoUiData
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -159,15 +190,15 @@ fun DiagnosticoScreen(
             )
         },
     ) { padding ->
-        val state = resolveScreenState(snapshotDiagnostico, aiState, analiseSolicitada)
+        val uiState = resolveUiState(snapshotDiagnostico, aiState, analiseSolicitada)
         Box(
             modifier =
                 Modifier
                     .fillMaxSize()
                     .padding(padding),
         ) {
-            when (state) {
-                DiagnosticoScreenState.Idle ->
+            when (uiState) {
+                UiState.Empty ->
                     DiagnosticoIdleContent(
                         c = c,
                         onAnalisar = {
@@ -177,37 +208,47 @@ fun DiagnosticoScreen(
                         },
                     )
 
-                DiagnosticoScreenState.EnginesRodando ->
-                    DiagnosticoLoadingContent(
-                        c = c,
-                        isAiPhase = false,
-                    )
+                UiState.Loading -> {
+                    // Nao utilizado — loading com fase usa Success<Carregando>
+                }
 
-                DiagnosticoScreenState.AiRodando ->
-                    DiagnosticoLoadingContent(
-                        c = c,
-                        isAiPhase = true,
-                    )
+                is UiState.Success -> {
+                    when (val data = uiState.data) {
+                        is DiagnosticoUiData.Carregando ->
+                            DiagnosticoLoadingContent(
+                                c = c,
+                                isAiPhase = data.fase == DiagnosticoFase.Ia,
+                            )
 
-                is DiagnosticoScreenState.Resultado ->
-                    DiagnosticoResultadoContent(
-                        c = c,
-                        result = state.result,
-                        isFallback = state.isFallback,
-                        input = snapshotDiagnostico.input,
-                        onReanalisar = {
-                            scope.launch {
-                                val relatorio = snapshotDiagnostico.relatorio ?: return@launch
-                                onAiStateChange(AiDiagnosisState.loading)
-                                val connectionType = snapshotDiagnostico.input?.connectionType ?: ConnectionType.desconhecido
-                                val ctx = DiagnosisAiContextFactory.from(relatorio, snapshotDiagnostico.input, connectionType)
-                                onAiStateChange(aiRepository.explainDiagnosis(ctx) { AiFallbackFactory.fromLocal(relatorio) })
-                            }
-                        },
-                        onAbrirRedes = onAbrirRedes,
-                    )
+                        is DiagnosticoUiData.Resultado ->
+                            DiagnosticoResultadoContent(
+                                c = c,
+                                result = data.result,
+                                isFallback = data.isFallback,
+                                input = snapshotDiagnostico.input,
+                                onReanalisar = {
+                                    scope.launch {
+                                        val relatorio = snapshotDiagnostico.relatorio ?: return@launch
+                                        onAiStateChange(AiDiagnosisState.loading)
+                                        val connectionType =
+                                            snapshotDiagnostico.input?.connectionType ?: ConnectionType.desconhecido
+                                        val ctx =
+                                            DiagnosisAiContextFactory.from(
+                                                relatorio,
+                                                snapshotDiagnostico.input,
+                                                connectionType,
+                                            )
+                                        onAiStateChange(
+                                            aiRepository.explainDiagnosis(ctx) { AiFallbackFactory.fromLocal(relatorio) },
+                                        )
+                                    }
+                                },
+                                onAbrirRedes = onAbrirRedes,
+                            )
+                    }
+                }
 
-                DiagnosticoScreenState.Erro ->
+                is UiState.Error ->
                     DiagnosticoErroContent(
                         c = c,
                         onTentar = {
@@ -222,33 +263,23 @@ fun DiagnosticoScreen(
 
 // ─── State resolution ─────────────────────────────────────────────────────────
 
-private sealed interface DiagnosticoScreenState {
-    data object Idle : DiagnosticoScreenState
-
-    data object EnginesRodando : DiagnosticoScreenState
-
-    data object AiRodando : DiagnosticoScreenState
-
-    data class Resultado(
-        val result: AiDiagnosisResult,
-        val isFallback: Boolean,
-    ) : DiagnosticoScreenState
-
-    data object Erro : DiagnosticoScreenState
-}
-
-private fun resolveScreenState(
+private fun resolveUiState(
     snap: SnapshotDiagnostico,
     ai: AiDiagnosisState,
     solicitada: Boolean,
-): DiagnosticoScreenState {
-    if (!solicitada) return DiagnosticoScreenState.Idle
-    if (snap.estado == EstadoDiagnostico.erro) return DiagnosticoScreenState.Erro
-    if (ai is AiDiagnosisState.success) return DiagnosticoScreenState.Resultado(ai.result, false)
-    if (ai is AiDiagnosisState.fallback) return DiagnosticoScreenState.Resultado(ai.result, true)
-    if (ai is AiDiagnosisState.loading) return DiagnosticoScreenState.AiRodando
-    if (snap.estado == EstadoDiagnostico.idle) return DiagnosticoScreenState.EnginesRodando
-    return DiagnosticoScreenState.EnginesRodando
+): UiState<DiagnosticoUiData> {
+    if (!solicitada) return UiState.Empty
+    if (snap.estado == EstadoDiagnostico.erro) return UiState.Error("Não foi possível diagnosticar a conexão.")
+    if (ai is AiDiagnosisState.success) {
+        return UiState.Success(DiagnosticoUiData.Resultado(ai.result, isFallback = false))
+    }
+    if (ai is AiDiagnosisState.fallback) {
+        return UiState.Success(DiagnosticoUiData.Resultado(ai.result, isFallback = true))
+    }
+    if (ai is AiDiagnosisState.loading) {
+        return UiState.Success(DiagnosticoUiData.Carregando(DiagnosticoFase.Ia))
+    }
+    return UiState.Success(DiagnosticoUiData.Carregando(DiagnosticoFase.Engines))
 }
 
 // ─── Estados da tela ──────────────────────────────────────────────────────────
@@ -877,9 +908,19 @@ private fun ActionsSimpleList(
                             .background(LkColors.accent),
                 )
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(acao.titulo, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
+                    Text(
+                        acao.titulo,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.W600,
+                        color = c.textPrimary,
+                    )
                     if (acao.descricao.isNotBlank()) {
-                        Text(acao.descricao, style = MaterialTheme.typography.bodySmall, color = c.textSecondary, lineHeight = 17.sp)
+                        Text(
+                            acao.descricao,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = c.textSecondary,
+                            lineHeight = 17.sp,
+                        )
                     }
                     val isRedesAction =
                         acao.titulo.contains("rede", ignoreCase = true) ||
@@ -940,7 +981,12 @@ private fun AnaliseCompletaContent(
                                 .padding(top = 2.dp)
                                 .size(12.dp),
                     )
-                    Text(limite, style = MaterialTheme.typography.labelMedium, color = c.textTertiary, lineHeight = 17.sp)
+                    Text(
+                        limite,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = c.textTertiary,
+                        lineHeight = 17.sp,
+                    )
                 }
             }
         }
@@ -1026,13 +1072,28 @@ private fun EvidenciaItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
+                Text(
+                    label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.W600,
+                    color = c.textPrimary,
+                )
                 if (valor.isNotBlank()) {
-                    Text(valor, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.W500, color = LkColors.accent)
+                    Text(
+                        valor,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.W500,
+                        color = LkColors.accent,
+                    )
                 }
             }
             if (interpretacao.isNotBlank()) {
-                Text(interpretacao, style = MaterialTheme.typography.bodySmall, color = c.textSecondary, lineHeight = 17.sp)
+                Text(
+                    interpretacao,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.textSecondary,
+                    lineHeight = 17.sp,
+                )
             }
         }
     }
