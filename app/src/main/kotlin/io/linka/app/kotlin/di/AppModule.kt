@@ -32,59 +32,63 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+    @Provides
+    @Singleton
+    fun provideBancoDados(
+        @ApplicationContext ctx: Context,
+    ): LinkaDatabase = CoreDatabaseModulo.criarBanco(ctx)
 
     @Provides
     @Singleton
-    fun provideBancoDados(@ApplicationContext ctx: Context): LinkaDatabase =
-        CoreDatabaseModulo.criarBanco(ctx)
+    fun providePreferenciasAppRepository(
+        @ApplicationContext ctx: Context,
+    ): PreferenciasAppRepository = CoreDatastoreModulo.criarPreferenciasAppRepository(ctx)
 
     @Provides
     @Singleton
-    fun providePreferenciasAppRepository(@ApplicationContext ctx: Context): PreferenciasAppRepository =
-        CoreDatastoreModulo.criarPreferenciasAppRepository(ctx)
+    fun provideMonitorRede(
+        @ApplicationContext ctx: Context,
+    ): MonitorRede = CoreNetworkModulo.criarMonitorRede(ctx)
 
     @Provides
     @Singleton
-    fun provideMonitorRede(@ApplicationContext ctx: Context): MonitorRede =
-        CoreNetworkModulo.criarMonitorRede(ctx)
+    fun provideNetworkCapabilitiesProvider(
+        @ApplicationContext ctx: Context,
+    ): NetworkCapabilitiesProvider = CoreNetworkModulo.criarNetworkCapabilitiesProvider(ctx)
 
     @Provides
     @Singleton
-    fun provideNetworkCapabilitiesProvider(@ApplicationContext ctx: Context): NetworkCapabilitiesProvider =
-        CoreNetworkModulo.criarNetworkCapabilitiesProvider(ctx)
+    fun provideGerenciadorPermissoes(
+        @ApplicationContext ctx: Context,
+    ): GerenciadorPermissoesRede = CorePermissionsModulo.criarGerenciadorPermissoesRede(ctx)
 
     @Provides
     @Singleton
-    fun provideGerenciadorPermissoes(@ApplicationContext ctx: Context): GerenciadorPermissoesRede =
-        CorePermissionsModulo.criarGerenciadorPermissoesRede(ctx)
+    fun provideScannerDispositivos(
+        @ApplicationContext ctx: Context,
+    ): ScannerDispositivos = FeatureDevicesModulo.criarScannerDispositivos(ctx)
 
     @Provides
     @Singleton
-    fun provideScannerDispositivos(@ApplicationContext ctx: Context): ScannerDispositivos =
-        FeatureDevicesModulo.criarScannerDispositivos(ctx)
+    fun provideBenchmarkDns(): BenchmarkDns = FeatureDnsModulo.criarBenchmarkDns()
 
     @Provides
     @Singleton
-    fun provideBenchmarkDns(): BenchmarkDns =
-        FeatureDnsModulo.criarBenchmarkDns()
+    fun provideExecutorSpeedtest(): ExecutorSpeedtest = FeatureSpeedtestModulo.criarExecutorSpeedtest()
 
     @Provides
     @Singleton
-    fun provideExecutorSpeedtest(): ExecutorSpeedtest =
-        FeatureSpeedtestModulo.criarExecutorSpeedtest()
+    fun provideScannerRedesWifi(
+        @ApplicationContext ctx: Context,
+    ): ScannerRedesWifi = FeatureWifiModulo.criarScannerRedesWifi(ctx)
 
     @Provides
     @Singleton
-    fun provideScannerRedesWifi(@ApplicationContext ctx: Context): ScannerRedesWifi =
-        FeatureWifiModulo.criarScannerRedesWifi(ctx)
+    fun provideExecutorFibra(): ExecutorFibra = FeatureFibraModulo.criarExecutor()
 
     @Provides
     @Singleton
-    fun provideExecutorFibra(): ExecutorFibra =
-        FeatureFibraModulo.criarExecutor()
-
-    @Provides
-    @Singleton
-    fun provideMonitorTelephony(@ApplicationContext ctx: Context): MonitorTelephony =
-        CoreTelephonyModulo.criarMonitorTelephony(ctx)
+    fun provideMonitorTelephony(
+        @ApplicationContext ctx: Context,
+    ): MonitorTelephony = CoreTelephonyModulo.criarMonitorTelephony(ctx)
 }
