@@ -6,17 +6,18 @@ import android.net.ConnectivityManager
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import io.linka.app.kotlin.core.database.ApelidoDispositivoEntity
-import io.linka.app.kotlin.core.database.CoreDatabaseModulo
+import io.linka.app.kotlin.core.database.LinkaDatabase
 import io.linka.app.kotlin.core.database.MedicaoEntity
-import io.linka.app.kotlin.core.datastore.CoreDatastoreModulo
-import io.linka.app.kotlin.core.network.CoreNetworkModulo
+import io.linka.app.kotlin.core.datastore.PreferenciasAppRepository
 import io.linka.app.kotlin.core.network.EstadoConexao
+import io.linka.app.kotlin.core.network.MonitorRede
 import io.linka.app.kotlin.core.network.NetworkCapabilitiesProvider
-import io.linka.app.kotlin.core.permissions.CorePermissionsModulo
-import io.linka.app.kotlin.core.telephony.CoreTelephonyModulo
+import io.linka.app.kotlin.core.permissions.GerenciadorPermissoesRede
+import io.linka.app.kotlin.core.telephony.MonitorTelephony
 import io.linka.app.kotlin.core.telephony.MovelSnapshot
-import io.linka.app.kotlin.feature.devices.FeatureDevicesModulo
+import io.linka.app.kotlin.feature.devices.ScannerDispositivos
 import io.linka.app.kotlin.feature.diagnostico.DiagnosticOrchestrator
 import io.linka.app.kotlin.feature.diagnostico.FibraDiagnosticInput
 import io.linka.app.kotlin.feature.diagnostico.InternetDiagnosticInput
@@ -30,21 +31,20 @@ import io.linka.app.kotlin.feature.diagnostico.pulse.OpcaoResposta
 import io.linka.app.kotlin.monitoramento.MonitoramentoScheduler
 import io.linka.app.kotlin.notificacao.LinkaNotificationHelper
 import io.linka.app.kotlin.feature.dns.AvaliadorCoerenciaDns
+import io.linka.app.kotlin.feature.dns.BenchmarkDns
 import io.linka.app.kotlin.feature.dns.EstadoBenchmarkDns
-import io.linka.app.kotlin.feature.dns.FeatureDnsModulo
 import io.linka.app.kotlin.feature.dns.OrientadorConfiguracaoDns
 import io.linka.app.kotlin.feature.fibra.EstadoFibra
-import io.linka.app.kotlin.feature.fibra.FeatureFibraModulo
+import io.linka.app.kotlin.feature.fibra.ExecutorFibra
 import io.linka.app.kotlin.feature.history.BlocoUptime
-import io.linka.app.kotlin.feature.history.FeatureHistoryModulo
 import io.linka.app.kotlin.feature.history.ObservadorHistoricoRoom
 import io.linka.app.kotlin.feature.history.ResumoHistorico
 import io.linka.app.kotlin.feature.history.UptimeChartUseCase
 import io.linka.app.kotlin.feature.history.UptimeNarrativaEngine
 import io.linka.app.kotlin.feature.speedtest.EstadoExecucaoSpeedtest
-import io.linka.app.kotlin.feature.speedtest.FeatureSpeedtestModulo
+import io.linka.app.kotlin.feature.speedtest.ExecutorSpeedtest
 import io.linka.app.kotlin.feature.speedtest.ModoSpeedtest
-import io.linka.app.kotlin.feature.wifi.FeatureWifiModulo
+import io.linka.app.kotlin.feature.wifi.ScannerRedesWifi
 import io.linka.app.kotlin.pulse.OrbitOrchestrator
 import io.linka.app.kotlin.pulse.OrbitUiStateMapper
 import io.linka.app.kotlin.ui.ConnectionNodeType
@@ -52,6 +52,7 @@ import io.linka.app.kotlin.ui.GatewayInfo
 import io.linka.app.kotlin.ui.HistoryPoint
 import io.linka.app.kotlin.ui.IspInfo
 import io.linka.app.kotlin.ui.screen.OrbitUiState
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -66,34 +67,35 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
 
-class MainViewModel(application: Application) : AndroidViewModel(application) {
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    application: Application,
+    val preferenciasAppRepository: PreferenciasAppRepository,
+    val monitorRede: MonitorRede,
+    val networkCapabilitiesProvider: NetworkCapabilitiesProvider,
+    val gerenciadorPermissoes: GerenciadorPermissoesRede,
+    val scannerDispositivos: ScannerDispositivos,
+    val benchmarkDns: BenchmarkDns,
+    val executorSpeedtest: ExecutorSpeedtest,
+    val scannerRedesWifi: ScannerRedesWifi,
+    val executorFibra: ExecutorFibra,
+    /** Monitor de telefonia movel — instanciado pelo Hilt. NAO inicia automaticamente:
+     *  o start so acontece quando [iniciarMonitorTelefoniaSeMovel] e chamado
+     *  (rede movel ativa + permissao concedida). Em Wi-Fi/Ethernet, o monitor
+     *  fica idle e nao consome bateria com callbacks de TelephonyManager. */
+    val monitorTelephony: MonitorTelephony,
+    private val bancoDados: LinkaDatabase,
+) : AndroidViewModel(application) {
 
     private companion object {
         const val logTag = "LinkaSpeedtestSuite"
         const val DNS_CACHE_TTL_MS = 15 * 60 * 1_000L
     }
 
-    private val bancoDados by lazy { CoreDatabaseModulo.criarBanco(application) }
-    val preferenciasAppRepository by lazy { CoreDatastoreModulo.criarPreferenciasAppRepository(application) }
-    val monitorRede by lazy { CoreNetworkModulo.criarMonitorRede(application) }
-    val gerenciadorPermissoes by lazy { CorePermissionsModulo.criarGerenciadorPermissoesRede(application) }
-    val scannerDispositivos by lazy { FeatureDevicesModulo.criarScannerDispositivos(application) }
-    val benchmarkDns by lazy { FeatureDnsModulo.criarBenchmarkDns() }
     private val avaliadorCoerenciaDns by lazy { AvaliadorCoerenciaDns() }
     @Suppress("unused")
     private val orientadorConfiguracaoDns by lazy { OrientadorConfiguracaoDns() }
-    val executorSpeedtest by lazy { FeatureSpeedtestModulo.criarExecutorSpeedtest() }
-    val networkCapabilitiesProvider: NetworkCapabilitiesProvider by lazy {
-        CoreNetworkModulo.criarNetworkCapabilitiesProvider(application)
-    }
-    val scannerRedesWifi by lazy { FeatureWifiModulo.criarScannerRedesWifi(application) }
     val diagnosticOrchestrator by lazy { DiagnosticOrchestrator() }
-    val executorFibra by lazy { FeatureFibraModulo.criarExecutor() }
-    /** Monitor de telefonia movel — instanciado lazy. NAO inicia automaticamente:
-     *  o start so acontece quando [iniciarMonitorTelefoniaSeMovel] e chamado
-     *  (rede movel ativa + permissao concedida). Em Wi-Fi/Ethernet, o monitor
-     *  fica idle e nao consome bateria com callbacks de TelephonyManager. */
-    val monitorTelephony by lazy { CoreTelephonyModulo.criarMonitorTelephony(application) }
     val movelSnapshot: StateFlow<MovelSnapshot?> get() = monitorTelephony.snapshotFlow
     val orbitOrchestrator by lazy {
         OrbitOrchestrator(
