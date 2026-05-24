@@ -6,7 +6,7 @@ import android.net.NetworkCapabilities
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.Build
-import android.util.Log
+import timber.log.Timber
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import io.linka.app.kotlin.core.database.CoreDatabaseModulo
@@ -40,7 +40,7 @@ internal class MonitoramentoWorker(
 
         preferenciasAppRepository.definirUltimaVerificacaoMonitoramento(System.currentTimeMillis())
 
-        Log.d("LinkaMonitor", "Metricas: latencia=${latencia}ms, dns=${dns}ms, rssi=${rssiInfo.rssi} (motivo=${rssiInfo.motivo})")
+        Timber.d("Metricas: latencia=${latencia}ms, dns=${dns}ms, rssi=${rssiInfo.rssi} (motivo=${rssiInfo.motivo})")
 
         aplicarHisterese(latencia, dns, rssiInfo)
         persistirMedicaoMonitor(latencia, rssiInfo.rssi)
@@ -80,9 +80,9 @@ internal class MonitoramentoWorker(
             withContext(Dispatchers.IO) {
                 CoreDatabaseModulo.criarBanco(applicationContext).medicaoDao().salvar(medicao)
             }
-            Log.d("LinkaMonitor", "Medicao monitor persistida id=${medicao.id} latencia=${latenciaMs}ms")
+            Timber.d("Medicao monitor persistida id=${medicao.id} latencia=${latenciaMs}ms")
         } catch (e: Exception) {
-            Log.w("LinkaMonitor", "Falha ao persistir medicao monitor: ${e.message}")
+            Timber.w("Falha ao persistir medicao monitor: ${e.message}")
         }
     }
 
@@ -171,7 +171,7 @@ internal class MonitoramentoWorker(
                 conexao.disconnect()
                 amostras.add(fim - inicio)
             } catch (e: Exception) {
-                Log.d("LinkaMonitor", "Erro ao medir latencia HTTP: ${e.message}")
+                Timber.d("Erro ao medir latencia HTTP: ${e.message}")
             }
         }
         if (amostras.isEmpty()) return null
@@ -186,7 +186,7 @@ internal class MonitoramentoWorker(
             val fim = System.nanoTime()
             (fim - inicio) / 1_000_000
         } catch (e: Exception) {
-            Log.d("LinkaMonitor", "Erro ao medir DNS: ${e.message}")
+            Timber.d("Erro ao medir DNS: ${e.message}")
             null
         }
     }
@@ -212,7 +212,7 @@ internal class MonitoramentoWorker(
                 if (rssi == Integer.MAX_VALUE) RssiInfo(null, RssiMotivo.Invalido) else RssiInfo(rssi, null)
             }
         } catch (e: Exception) {
-            Log.d("LinkaMonitor", "Erro ao medir RSSI: ${e.message}")
+            Timber.d("Erro ao medir RSSI: ${e.message}")
             RssiInfo(null, RssiMotivo.Invalido)
         }
     }

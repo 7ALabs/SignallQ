@@ -1,6 +1,6 @@
 package io.linka.app.kotlin.pulse
 
-import android.util.Log
+import timber.log.Timber
 import io.linka.app.kotlin.core.database.MedicaoDao
 import io.linka.app.kotlin.core.network.GatewayLatencyMeasurer
 import io.linka.app.kotlin.core.network.MonitorRede
@@ -117,7 +117,7 @@ class OrbitOrchestrator(
         resultado: ResultadoSpeedtest,
         focoDiagnostico: String? = null,
     ) {
-        Log.i(TAG, "iniciarDiagnosticoComResultado foco=$focoDiagnostico dl=${resultado.downloadMbps}")
+        Timber.i("iniciarDiagnosticoComResultado foco=$focoDiagnostico dl=${resultado.downloadMbps}")
         activeSession = null
         cancelarRotacaoMensagens()
 
@@ -136,7 +136,7 @@ class OrbitOrchestrator(
         val extraContext = try {
             additionalContextProvider()
         } catch (t: Throwable) {
-            Log.w(TAG, "additionalContextProvider falhou na fase Thinking: ${t.message}")
+            Timber.w("additionalContextProvider falhou na fase Thinking: ${t.message}")
             AdditionalAiContext()
         }
 
@@ -144,11 +144,11 @@ class OrbitOrchestrator(
             try {
                 gatewayLatencyMeasurer.measureRttGateway(gw)
             } catch (t: Throwable) {
-                Log.w(TAG, "measureRttGateway falhou: ${t.message}")
+                Timber.w("measureRttGateway falhou: ${t.message}")
                 null
             }
         }
-        Log.d(TAG, "RTT gateway=${rttGatewayMs}ms (gatewayIp=${extraContext.gatewayIp})")
+        Timber.d("RTT gateway=${rttGatewayMs}ms (gatewayIp=${extraContext.gatewayIp})")
 
         val internetInput = InternetDiagnosticInput(
             downloadMbps = resultado.downloadMbps,
@@ -254,11 +254,11 @@ class OrbitOrchestrator(
 
         cancelarRotacaoMensagens()
         emitSession(pulseState)
-        Log.i(TAG, "iniciarDiagnosticoComResultado concluído estado=$pulseState")
+        Timber.i("iniciarDiagnosticoComResultado concluído estado=$pulseState")
     }
 
     suspend fun iniciarDiagnostico(focoDiagnostico: String? = null, forcarNovoSpeedtest: Boolean = false) {
-        Log.i(TAG, "iniciarDiagnostico foco=$focoDiagnostico forcar=$forcarNovoSpeedtest")
+        Timber.i("iniciarDiagnostico foco=$focoDiagnostico forcar=$forcarNovoSpeedtest")
         activeSession = null
         cancelarRotacaoMensagens()
 
@@ -289,7 +289,7 @@ class OrbitOrchestrator(
         val extraContext = try {
             additionalContextProvider()
         } catch (t: Throwable) {
-            Log.w(TAG, "additionalContextProvider falhou na fase Thinking: ${t.message}")
+            Timber.w("additionalContextProvider falhou na fase Thinking: ${t.message}")
             AdditionalAiContext()
         }
 
@@ -299,11 +299,11 @@ class OrbitOrchestrator(
             try {
                 gatewayLatencyMeasurer.measureRttGateway(gw)
             } catch (t: Throwable) {
-                Log.w(TAG, "measureRttGateway falhou: ${t.message}")
+                Timber.w("measureRttGateway falhou: ${t.message}")
                 null
             }
         }
-        Log.d(TAG, "RTT gateway=${rttGatewayMs}ms (gatewayIp=${extraContext.gatewayIp})")
+        Timber.d("RTT gateway=${rttGatewayMs}ms (gatewayIp=${extraContext.gatewayIp})")
 
         val internetInput = speedtestResult?.let {
             InternetDiagnosticInput(
@@ -426,17 +426,17 @@ class OrbitOrchestrator(
 
         cancelarRotacaoMensagens()
         emitSession(pulseState)
-        Log.i(TAG, "iniciarDiagnostico concluído estado=$pulseState")
+        Timber.i("iniciarDiagnostico concluído estado=$pulseState")
     }
 
     suspend fun selecionarChip(chip: OpcaoResposta) {
         val session = activeSession ?: return
-        Log.i(TAG, "selecionarChip id=${chip.id}")
+        Timber.i("selecionarChip id=${chip.id}")
 
         // --- Chips de feedback (após diagnóstico inicial) ---
         // Ir diretamente ao Gemma sem perguntas adicionais
         if (questionEngine.isFeedbackChip(chip.id)) {
-            Log.i(TAG, "Chip de feedback detectado: ${chip.id}")
+            Timber.i("Chip de feedback detectado: ${chip.id}")
             val novoContexto = ContextAccumulator.appendChip(session.contextAccumulated, chip)
             val sessionComChip = session.copy(
                 chipHistory = session.chipHistory + chip.label,
@@ -468,7 +468,7 @@ class OrbitOrchestrator(
     suspend fun responderPergunta(opcao: OpcaoResposta) {
         val session = activeSession ?: return
         val question = session.pendingQuestion ?: return
-        Log.i(TAG, "responderPergunta qId=${question.id} aId=${opcao.id}")
+        Timber.i("responderPergunta qId=${question.id} aId=${opcao.id}")
 
         val novoContexto = ContextAccumulator.appendAnswer(session.contextAccumulated, question, opcao)
         val novaResposta = QuestionAnswer(
@@ -529,7 +529,7 @@ class OrbitOrchestrator(
 
         // Guard de escopo off-topic — retorno local imediato, sem incrementar turno
         if (isOffTopic(textoTrimado)) {
-            Log.i(TAG, "Mensagem off-topic bloqueada: $textoTrimado")
+            Timber.i("Mensagem off-topic bloqueada: $textoTrimado")
             val offTopicEntry = AiAnalysisEntry(
                 trigger = "off_topic",
                 content = "Posso ajudar apenas com dúvidas sobre sua conexão de internet, Wi-Fi, DNS e rede doméstica. Tem alguma pergunta sobre sua conexão?",
@@ -576,7 +576,7 @@ class OrbitOrchestrator(
             val medicaoRecente = if (!forcarNovoSpeedtest) medicaoDao.observarUltimas(1).first().firstOrNull() else null
             val resultadoReutilizado = medicaoRecente?.toReusableSpeedtestResult()
             if (resultadoReutilizado != null) {
-                Log.i(TAG, "Reutilizando speedtest recente (sem execução silenciosa) timestamp=${resultadoReutilizado.timestampEpochMs}")
+                Timber.i("Reutilizando speedtest recente (sem execução silenciosa) timestamp=${resultadoReutilizado.timestampEpochMs}")
                 resultadoReutilizado
             } else {
                 val connType = monitorRede.snapshotFlow.value.estadoConexao.name
@@ -596,7 +596,7 @@ class OrbitOrchestrator(
                 if (snap.estado == EstadoExecucaoSpeedtest.concluido) snap.resultado else null
             }
         } catch (t: Throwable) {
-            Log.w(TAG, "speedtest silencioso falhou: ${t.message}")
+            Timber.w("speedtest silencioso falhou: ${t.message}")
             null
         }
     }
@@ -733,7 +733,7 @@ class OrbitOrchestrator(
         val extra = preCollectedExtra ?: try {
             additionalContextProvider()
         } catch (t: Throwable) {
-            Log.w(TAG, "additionalContextProvider falhou: ${t.message}")
+            Timber.w("additionalContextProvider falhou: ${t.message}")
             AdditionalAiContext()
         }
 

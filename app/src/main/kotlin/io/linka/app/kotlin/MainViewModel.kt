@@ -3,7 +3,7 @@ package io.linka.app.kotlin
 import android.app.Application
 import android.content.Context
 import android.net.ConnectivityManager
-import android.util.Log
+import timber.log.Timber
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -663,7 +663,7 @@ class MainViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                Log.w("MainViewModel", "verificarDispositivosNovos falhou: ${e.message}")
+                Timber.w("verificarDispositivosNovos falhou: ${e.message}")
             }
         }
     }
@@ -775,13 +775,13 @@ class MainViewModel @Inject constructor(
 
     private suspend fun executarSpeedtest(modo: ModoSpeedtest) {
         val connectionType = monitorRede.snapshotFlow.value.estadoConexao.name
-        Log.i(logTag, "iniciando modo=${modo.name} connectionType=$connectionType")
+        Timber.i("iniciando modo=${modo.name} connectionType=$connectionType")
         executorSpeedtest.executar(
             modo = modo,
             connectionType = connectionType,
             connectionTypeProvider = { monitorRede.snapshotFlow.value.estadoConexao.name },
         )
-        Log.i(logTag, "finalizado modo=${modo.name}")
+        Timber.i("finalizado modo=${modo.name}")
     }
 
     /**

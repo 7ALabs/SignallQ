@@ -1,6 +1,6 @@
 package io.linka.app.kotlin.pulse
 
-import android.util.Log
+import timber.log.Timber
 import io.linka.app.kotlin.core.database.MedicaoDao
 import io.linka.app.kotlin.core.network.MonitorRede
 import io.linka.app.kotlin.feature.diagnostico.ConnectionType
@@ -65,7 +65,7 @@ class LinkaPulseOrchestrator(
     // ---- API pública ----
 
     suspend fun iniciarDiagnostico() {
-        Log.i(TAG, "iniciarDiagnostico")
+        Timber.i("iniciarDiagnostico")
         activeSession = null
         cancelarRotacaoMensagens()
 
@@ -179,12 +179,12 @@ class LinkaPulseOrchestrator(
 
         cancelarRotacaoMensagens()
         emitSession(pulseState)
-        Log.i(TAG, "iniciarDiagnostico concluído estado=$pulseState")
+        Timber.i("iniciarDiagnostico concluído estado=$pulseState")
     }
 
     suspend fun selecionarChip(chip: OpcaoResposta) {
         val session = activeSession ?: return
-        Log.i(TAG, "selecionarChip id=${chip.id}")
+        Timber.i("selecionarChip id=${chip.id}")
 
         val novoContexto = ContextAccumulator.appendChip(session.contextAccumulated, chip)
         val proximaPergunta = questionEngine.getNextQuestion(chip.id, emptyList())
@@ -206,7 +206,7 @@ class LinkaPulseOrchestrator(
     suspend fun responderPergunta(opcao: OpcaoResposta) {
         val session = activeSession ?: return
         val question = session.pendingQuestion ?: return
-        Log.i(TAG, "responderPergunta qId=${question.id} aId=${opcao.id}")
+        Timber.i("responderPergunta qId=${question.id} aId=${opcao.id}")
 
         val novoContexto = ContextAccumulator.appendAnswer(session.contextAccumulated, question, opcao)
         val novaResposta = QuestionAnswer(
@@ -263,7 +263,7 @@ class LinkaPulseOrchestrator(
         val snap = executorSpeedtest.snapshotFlow.value
         if (snap.estado == EstadoExecucaoSpeedtest.concluido) snap.resultado else null
     } catch (t: Throwable) {
-        Log.w(TAG, "speedtest silencioso falhou: ${t.message}")
+        Timber.w("speedtest silencioso falhou: ${t.message}")
         null
     }
 
@@ -296,23 +296,23 @@ class LinkaPulseOrchestrator(
         val state = withTimeoutOrNull(95_000L) {
             aiRepository.explainDiagnosis(ctx) { AiFallbackFactory.fromLocal(report) }
         } ?: run {
-            Log.w(TAG, "callAi[$trigger] timeout após 95s — usando fallback local")
+            Timber.w("callAi[$trigger] timeout após 95s — usando fallback local")
             return fallbackEntry(true, genericFallbackText)
         }
 
         return when (state) {
             is AiDiagnosisState.success -> {
                 val content = state.result.resumo.ifBlank { state.result.textoLaudo }.ifBlank { genericFallbackText }
-                Log.d(TAG, "callAi[$trigger] success — content length=${content.length}, isFallback=false")
+                Timber.d("callAi[$trigger] success — content length=${content.length}, isFallback=false")
                 fallbackEntry(false, content)
             }
             is AiDiagnosisState.fallback -> {
                 val content = state.result.resumo.ifBlank { state.result.textoLaudo }.ifBlank { genericFallbackText }
-                Log.d(TAG, "callAi[$trigger] fallback — content length=${content.length}, isFallback=true")
+                Timber.d("callAi[$trigger] fallback — content length=${content.length}, isFallback=true")
                 fallbackEntry(true, content)
             }
             else -> {
-                Log.w(TAG, "callAi[$trigger] estado inesperado — usando mensagemUsuario do report: '$genericFallbackText'")
+                Timber.w("callAi[$trigger] estado inesperado — usando mensagemUsuario do report: '$genericFallbackText'")
                 fallbackEntry(true, genericFallbackText)
             }
         }
