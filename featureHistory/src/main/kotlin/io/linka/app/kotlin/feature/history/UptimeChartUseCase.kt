@@ -1,6 +1,9 @@
 package io.linka.app.kotlin.feature.history
 
 import io.linka.app.kotlin.core.database.MedicaoDao
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -46,13 +49,16 @@ private const val TOTAL_BLOCOS = DIAS_HISTORICO * BLOCOS_POR_DIA // 336
  * Retorna exatamente [TOTAL_BLOCOS] blocos ordenados do mais antigo para
  * o mais recente.
  */
-class UptimeChartUseCase(private val medicaoDao: MedicaoDao) {
+class UptimeChartUseCase(
+    private val medicaoDao: MedicaoDao,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) {
 
     suspend fun gerar7dias(): List<BlocoUptime> {
         val agora = System.currentTimeMillis()
         val seteDiasAtras = agora - (DIAS_HISTORICO * 24 * 3600 * 1000L)
 
-        val medicoes = medicaoDao.buscarDesde(seteDiasAtras)
+        val medicoes = withContext(ioDispatcher) { medicaoDao.buscarDesde(seteDiasAtras) }
 
         // Gera os TOTAL_BLOCOS slots de 30min, do mais antigo para o mais recente.
         // O slot mais recente e o que inclui "agora".

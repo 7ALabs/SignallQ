@@ -1,6 +1,7 @@
 package io.linka.app.kotlin.feature.history
 
 import io.linka.app.kotlin.core.database.MedicaoDao
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -12,8 +13,9 @@ import kotlinx.coroutines.flow.stateIn
 
 class ObservadorHistoricoRoom(
     medicaoDao: MedicaoDao,
+    ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ObservadorHistorico {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
     override val resumoFlow: StateFlow<ResumoHistorico> =
         medicaoDao
