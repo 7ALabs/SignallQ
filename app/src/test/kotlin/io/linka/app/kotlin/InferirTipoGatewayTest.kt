@@ -9,8 +9,11 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class InferirTipoGatewayTest {
-
-    private fun rede(ssid: String?, bssid: String, rssi: Int) = RedeVizinha(
+    private fun rede(
+        ssid: String?,
+        bssid: String,
+        rssi: Int,
+    ) = RedeVizinha(
         ssid = ssid,
         bssid = bssid,
         rssiDbm = rssi,

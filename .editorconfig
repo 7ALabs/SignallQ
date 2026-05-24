@@ -26,6 +26,3 @@ ktlint_standard_chain-method-continuation = disabled
 ktlint_standard_comma-spacing = disabled
 ktlint_standard_multiline-expression-wrapping = disabled
 
-# Pre-existing test source violations tracked in Issue #29
-[app/src/test/kotlin/**/*.kt]
-ktlint_standard_no-blank-line-before-closing-bracket = disabled
