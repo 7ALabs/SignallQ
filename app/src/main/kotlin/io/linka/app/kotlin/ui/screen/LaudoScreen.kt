@@ -197,7 +197,9 @@ fun LaudoScreen(
                 )
                 Spacer(Modifier.height(LkSpacing.xs))
                 Text(
-                    text = "Documento com seus dados de conexão medidos pelo Linka. Aceito como prova em reclamações na Anatel, no Procon e junto à sua operadora.",
+                    text =
+                        "Documento com seus dados de conexão medidos pelo Linka. " +
+                            "Aceito como prova em reclamações na Anatel, no Procon e junto à sua operadora.",
                     style = MaterialTheme.typography.bodySmall,
                     color = c.textSecondary,
                 )
@@ -493,7 +495,9 @@ private suspend fun gerarECompartilharLaudo(
 
                 // Rodapé ANATEL (texto longo — desenhar manualmente com quebra)
                 val rodapeAnatel = "De acordo com as normas da ANATEL, sua operadora é obrigada a entregar pelo menos 80% da velocidade contratada."
-                val rodapeAnatel2 = "Se ficar abaixo do mínimo por período prolongado, você tem direito a desconto ou cancelamento sem multa (Res. nº 574/2011, RQUAL)."
+                val rodapeAnatel2 =
+                    "Se ficar abaixo do mínimo por período prolongado, você tem direito a desconto ou cancelamento " +
+                        "sem multa (Res. nº 574/2011, RQUAL)."
                 if (y + 40f < 795f) {
                     y += 8f
                     canvas.drawText(rodapeAnatel, margem, y, paintFooter)

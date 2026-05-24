@@ -89,7 +89,7 @@ class MainViewModel
         private val bancoDados: LinkaDatabase,
     ) : AndroidViewModel(application) {
         private companion object {
-            const val logTag = "LinkaSpeedtestSuite"
+            const val LOG_TAG = "LinkaSpeedtestSuite"
             const val DNS_CACHE_TTL_MS = 15 * 60 * 1_000L
         }
 
@@ -770,7 +770,7 @@ class MainViewModel
 
             val snapshotRede = monitorRede.snapshotFlow.value
             if (snapshotRede.estadoConexao == EstadoConexao.movel) {
-                gateways.value = listOf(GatewayInfo(ip = null, name = "Antena móvel", type = ConnectionNodeType.mobile))
+                gateways.value = listOf(GatewayInfo(ip = null, name = "Antena móvel", type = ConnectionNodeType.Mobile))
                 return
             }
 
@@ -784,8 +784,8 @@ class MainViewModel
             val gatewayName =
                 ssid.ifBlank {
                     when (gatewayType) {
-                        ConnectionNodeType.wifiMesh -> "Rede Mesh"
-                        ConnectionNodeType.wifiExtender -> "Repetidor"
+                        ConnectionNodeType.WifiMesh -> "Rede Mesh"
+                        ConnectionNodeType.WifiExtender -> "Repetidor"
                         else -> "Roteador"
                     }
                 }
@@ -796,14 +796,14 @@ class MainViewModel
                     .distinct()
             gateways.value =
                 if (
-                    gatewayType == ConnectionNodeType.wifiMesh ||
-                    gatewayType == ConnectionNodeType.wifiExtender
+                    gatewayType == ConnectionNodeType.WifiMesh ||
+                    gatewayType == ConnectionNodeType.WifiExtender
                 ) {
                     val meshIp = gatewayIps.getOrNull(0)
                     val routerIp = gatewayIps.getOrNull(1)
                     listOf(
                         GatewayInfo(ip = meshIp, name = gatewayName, type = gatewayType),
-                        GatewayInfo(ip = routerIp, name = "Roteador", type = ConnectionNodeType.wifiRouter),
+                        GatewayInfo(ip = routerIp, name = "Roteador", type = ConnectionNodeType.WifiRouter),
                     )
                 } else {
                     gatewayIps
@@ -840,7 +840,7 @@ class MainViewModel
                     if (monitorRede.snapshotFlow.value.estadoConexao == EstadoConexao.movel) {
                         gateways.value =
                             listOf(
-                                GatewayInfo(ip = null, name = operadora ?: "Operadora", type = ConnectionNodeType.mobile),
+                                GatewayInfo(ip = null, name = operadora ?: "Operadora", type = ConnectionNodeType.Mobile),
                             )
                     }
                 } catch (_: Exception) {

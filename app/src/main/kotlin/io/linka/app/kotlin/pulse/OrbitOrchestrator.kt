@@ -601,7 +601,9 @@ class OrbitOrchestrator(
             val offTopicEntry =
                 AiAnalysisEntry(
                     trigger = "off_topic",
-                    content = "Posso ajudar apenas com dúvidas sobre sua conexão de internet, Wi-Fi, DNS e rede doméstica. Tem alguma pergunta sobre sua conexão?",
+                    content =
+                        "Posso ajudar apenas com dúvidas sobre sua conexão de internet, Wi-Fi, DNS e rede doméstica. " +
+                            "Tem alguma pergunta sobre sua conexão?",
                     isFallback = false,
                     timestamp = System.currentTimeMillis(),
                     fullResult = null,

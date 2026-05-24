@@ -369,8 +369,8 @@ fun AjustesScreen(
                             fontWeight = FontWeight.Bold,
                             color = c.textPrimary,
                         )
-                        val tudo_vazio = operadora.isBlank() && planoInternet.isBlank() && regiao.isBlank() && cidadeNome.isBlank() && estadoUf.isBlank()
-                        if (tudo_vazio) {
+                        val tudoVazio = operadora.isBlank() && planoInternet.isBlank() && regiao.isBlank() && cidadeNome.isBlank() && estadoUf.isBlank()
+                        if (tudoVazio) {
                             Text(
                                 text = "Toque para configurar sua conexão",
                                 style = MaterialTheme.typography.bodySmall,
@@ -712,7 +712,9 @@ fun AjustesScreen(
     if (showConfirmResetApp) {
         ConfirmacaoDialog(
             titulo = "Redefinir o app?",
-            mensagem = "Esta ação apagará todos os dados locais: histórico de testes, configurações salvas e preferências. O app voltará ao estado inicial. Esta ação não pode ser desfeita.",
+            mensagem =
+                "Esta ação apagará todos os dados locais: histórico de testes, configurações salvas e preferências. " +
+                    "O app voltará ao estado inicial. Esta ação não pode ser desfeita.",
             onConfirmar = {
                 onResetarApp()
                 showConfirmResetApp = false
@@ -1878,7 +1880,10 @@ private fun DiagnosticoSheet(
                         modifier = Modifier.size(16.dp),
                     )
                     Text(
-                        text = "Em alguns dispositivos ${OemKillInfo.nomeFabricante}, o sistema pode reduzir a frequência das verificações para economizar bateria. Para garantir o funcionamento, mantenha o Linka na lista de apps sem restrição de bateria nas configurações do sistema.",
+                        text =
+                            "Em alguns dispositivos ${OemKillInfo.nomeFabricante}, o sistema pode reduzir a frequência " +
+                                "das verificações para economizar bateria. Para garantir o funcionamento, mantenha o Linka " +
+                                "na lista de apps sem restrição de bateria nas configurações do sistema.",
                         style = MaterialTheme.typography.bodySmall,
                         color = c.textSecondary,
                     )
@@ -1902,7 +1907,9 @@ private fun DiagnosticoSheet(
     if (showConfirmMonitoramento) {
         ConfirmacaoDialog(
             titulo = "Ativar monitoramento em segundo plano?",
-            mensagem = "O Linka verificará sua conexão periodicamente e enviará uma notificação se detectar lentidão ou instabilidade. Consome dados e bateria de forma mínima.",
+            mensagem =
+                "O Linka verificará sua conexão periodicamente e enviará uma notificação se detectar lentidão " +
+                    "ou instabilidade. Consome dados e bateria de forma mínima.",
             textoBotaoConfirmar = "Ativar",
             textoBotaoCancelar = "Agora não",
             onConfirmar = {

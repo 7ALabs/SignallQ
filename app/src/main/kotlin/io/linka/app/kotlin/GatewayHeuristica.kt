@@ -24,23 +24,23 @@ fun inferirTipoGatewayPorScan(
     ssid: String,
     redesVizinhas: List<RedeVizinha>,
 ): ConnectionNodeType {
-    if (ssid.isEmpty()) return ConnectionNodeType.wifiRouter
+    if (ssid.isEmpty()) return ConnectionNodeType.WifiRouter
 
     val upper = ssid.uppercase()
     val tokens = tokenize(upper)
 
     // Mesh por substring exata (termos muito específicos e raramente em SSIDs comuns)
-    if (SSID_MESH_EXATOS.any { upper.contains(it) }) return ConnectionNodeType.wifiMesh
+    if (SSID_MESH_EXATOS.any { upper.contains(it) }) return ConnectionNodeType.WifiMesh
 
     // "ORBI" é específico o suficiente como token isolado, mas "ORBISAT" não deve dar match.
     // Verificamos se algum token é exatamente "ORBI" (não apenas um prefixo de outro token).
-    if (SSID_MESH_PREFIXO.any { tokens.contains(it) }) return ConnectionNodeType.wifiMesh
+    if (SSID_MESH_PREFIXO.any { tokens.contains(it) }) return ConnectionNodeType.WifiMesh
 
     // Extensor por substring exata (termos longos e específicos)
-    if (SSID_EXTENSOR_EXATOS.any { upper.contains(it) }) return ConnectionNodeType.wifiExtender
+    if (SSID_EXTENSOR_EXATOS.any { upper.contains(it) }) return ConnectionNodeType.WifiExtender
 
     // Extensor por token isolado (EXT, RANGE — evita ORANGE, GRANGE, EXTERIOR etc.)
-    if (SSID_EXTENSOR_TOKEN.any { tokens.contains(it) }) return ConnectionNodeType.wifiExtender
+    if (SSID_EXTENSOR_TOKEN.any { tokens.contains(it) }) return ConnectionNodeType.WifiExtender
 
     val ssidNorm = ssid.trim().lowercase()
     val bssidsComMesmoSsid =
@@ -50,7 +50,7 @@ fun inferirTipoGatewayPorScan(
             .map { it.bssid }
             .distinct()
 
-    if (bssidsComMesmoSsid.size >= 2) return ConnectionNodeType.wifiMesh
+    if (bssidsComMesmoSsid.size >= 2) return ConnectionNodeType.WifiMesh
 
-    return ConnectionNodeType.wifiRouter
+    return ConnectionNodeType.WifiRouter
 }

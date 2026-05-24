@@ -183,7 +183,9 @@ fun PrivacidadeScreen(onVoltar: () -> Unit) {
                             .padding(LkSpacing.lg),
                 ) {
                     Text(
-                        text = "Todos os dados ficam armazenados localmente no seu dispositivo.\n\nVocê pode apagar tudo a qualquer momento em Configurações → Gerenciar dados locais.",
+                        text =
+                            "Todos os dados ficam armazenados localmente no seu dispositivo.\n\n" +
+                                "Você pode apagar tudo a qualquer momento em Configurações → Gerenciar dados locais.",
                         style = MaterialTheme.typography.bodySmall,
                         color = c.textSecondary,
                     )
