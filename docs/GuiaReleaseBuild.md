@@ -67,6 +67,18 @@ Alternativa Gradle:
 
 O arquivo `app/build/outputs/apk/release/app-release.apk` e apenas uma saida bruta interna do Gradle. Nao distribua esse arquivo diretamente.
 
+## Seguranca de Signing
+
+**Credenciais locais — Fora do Git:**
+
+- `key.properties` — configuração local com senhas, NUNCA commitada (`.gitignore` linha 17)
+- `segredos/linka.jks` — keystore local, NUNCA commitada (`.gitignore` linha 18)
+- `key.properties.template` — template sem credenciais, RASTREADO no git (referência)
+
+**Setup inicial:** copie `key.properties.template` para `key.properties`, preencha com as credenciais reais, e coloque `linka.jks` em `segredos/`.
+
+**Para detalhes completos** sobre setup, credenciais CI (GitHub Secrets) e geração de novo keystore, leia `docs_ai/operations/SIGNING.md`.
+
 ## Validacao pos-build
 
 ```powershell
@@ -80,7 +92,8 @@ adb install -r $apk
 
 - [ ] `versionCode` incrementado.
 - [ ] `versionName` correto.
-- [ ] `key.properties` presente.
+- [ ] `key.properties` presente (copiado de `.template`).
+- [ ] `segredos/linka.jks` presente.
 - [ ] APK salvo em `builds/apk/release/<versionName>/`.
 - [ ] Nome contem `versionName`, `versionCode`, `release` e timestamp.
 - [ ] APK validado com `aapt`.

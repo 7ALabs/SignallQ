@@ -56,3 +56,12 @@ ou:
 ```
 
 APKs validos ficam em `builds/apk/<buildType>/<versionName>/`.
+
+## Signing — Credenciais e Keystore
+
+Para builds de **release** assinados, veja `docs_ai/operations/SIGNING.md` para:
+
+- Setup local de `key.properties` e keystore
+- Configuração de GitHub Secrets para CI/CD
+- Geração de novo keystore se necessário
+- Checklist de segurança
