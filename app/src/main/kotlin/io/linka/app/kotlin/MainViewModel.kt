@@ -10,6 +10,7 @@ import io.linka.app.kotlin.core.database.ApelidoDispositivoEntity
 import io.linka.app.kotlin.core.database.LinkaDatabase
 import io.linka.app.kotlin.core.database.MedicaoEntity
 import io.linka.app.kotlin.core.datastore.PreferenciasAppRepository
+import io.linka.app.kotlin.core.network.DispatcherProvider
 import io.linka.app.kotlin.core.network.EstadoConexao
 import io.linka.app.kotlin.core.network.MonitorRede
 import io.linka.app.kotlin.core.network.NetworkCapabilitiesProvider
@@ -51,7 +52,6 @@ import io.linka.app.kotlin.ui.GatewayInfo
 import io.linka.app.kotlin.ui.HistoryPoint
 import io.linka.app.kotlin.ui.IspInfo
 import io.linka.app.kotlin.ui.screen.OrbitUiState
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -87,6 +87,7 @@ class MainViewModel
          *  fica idle e nao consome bateria com callbacks de TelephonyManager. */
         val monitorTelephony: MonitorTelephony,
         private val bancoDados: LinkaDatabase,
+        private val dispatchers: DispatcherProvider,
     ) : AndroidViewModel(application) {
         private companion object {
             const val LOG_TAG = "LinkaSpeedtestSuite"
@@ -161,13 +162,13 @@ class MainViewModel
         val blocoUptime = MutableStateFlow<List<BlocoUptime>>(emptyList())
         val narrativaUptime = MutableStateFlow<String>("")
 
-        private val observadorHistorico by lazy { ObservadorHistoricoRoom(bancoDados.medicaoDao()) }
+        private val observadorHistorico by lazy { ObservadorHistoricoRoom(bancoDados.medicaoDao(), dispatchers.io) }
 
         val resumoHistorico: StateFlow<ResumoHistorico?> =
             observadorHistorico.resumoFlow
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-        private val uptimeChartUseCase by lazy { UptimeChartUseCase(bancoDados.medicaoDao()) }
+        private val uptimeChartUseCase by lazy { UptimeChartUseCase(bancoDados.medicaoDao(), dispatchers.io) }
 
         private var scannerDispositivosDisparado = false
         private var scanWifiDisparado = false
@@ -297,7 +298,7 @@ class MainViewModel
                 // observarUltimas(1) serve como trigger — qualquer nova medicao
                 // invalida o cache e gera novamente os 336 blocos.
                 bancoDados.medicaoDao().observarUltimas(1).collect {
-                    val blocos = withContext(Dispatchers.IO) { uptimeChartUseCase.gerar7dias() }
+                    val blocos = withContext(dispatchers.io) { uptimeChartUseCase.gerar7dias() }
                     blocoUptime.value = blocos
                     narrativaUptime.value = UptimeNarrativaEngine.gerarNarrativa(blocos)
                 }
@@ -598,7 +599,7 @@ class MainViewModel
         }
 
         fun limparHistorico() {
-            viewModelScope.launch { bancoDados.medicaoDao().deletarTodos() }
+            viewModelScope.launch(dispatchers.io) { bancoDados.medicaoDao().deletarTodos() }
         }
 
         fun apagarDadosLocais() {
@@ -606,7 +607,7 @@ class MainViewModel
         }
 
         fun resetarApp() {
-            viewModelScope.launch {
+            viewModelScope.launch(dispatchers.io) {
                 bancoDados.medicaoDao().deletarTodos()
                 preferenciasAppRepository.limparTodasPreferencias()
             }
@@ -692,7 +693,7 @@ class MainViewModel
          * Chamado no onResume da MainActivity — scan leve, sem WorkManager.
          */
         fun verificarDispositivosNovos(context: android.content.Context) {
-            viewModelScope.launch(Dispatchers.IO) {
+            viewModelScope.launch(dispatchers.io) {
                 try {
                     // Scan leve — nao bloqueia UI, resultado rapido via ARP cache
                     scannerDispositivos.iniciarScan(profundo = false)
@@ -816,7 +817,7 @@ class MainViewModel
         }
 
         private suspend fun coletarIspInfo() =
-            withContext(Dispatchers.IO) {
+            withContext(dispatchers.io) {
                 try {
                     val connection =
                         URL("https://ip-api.com/json?fields=query,isp,as,country,regionName")
@@ -1017,7 +1018,7 @@ class MainViewModel
         }
 
         private suspend fun buscarLocalizacaoServidor() =
-            withContext(Dispatchers.IO) {
+            withContext(dispatchers.io) {
                 try {
                     val connection =
                         URL("https://speed.cloudflare.com/meta")
