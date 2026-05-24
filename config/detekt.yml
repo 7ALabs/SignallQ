@@ -1,0 +1,21 @@
+build:
+  maxIssues: 0
+
+config:
+  validation: true
+  warningsAsErrors: false
+
+complexity:
+  LongMethod:
+    threshold: 80
+  LongParameterList:
+    functionThreshold: 8
+    constructorThreshold: 8
+
+style:
+  MaxLineLength:
+    maxLineLength: 160
+    excludeCommentStatements: true
+
+comments:
+  active: false

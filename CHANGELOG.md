@@ -49,6 +49,7 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 
 ### Changed
 - **Qualidade de código:** Eliminado uso de `!!` (not-null assertion) em código de produção. Substituído por `checkNotNull` com mensagem descritiva, elvis operator e early return conforme o contexto.
+- **Injeção de dependência:** Introduzido Hilt para DI. `MainViewModel` migrado de instanciação manual (`lazy { Modulo.criar*() }`) para `@HiltViewModel` com injeção via construtor. Melhora testabilidade e ciclo de vida das dependências.
 
 ### Security
 - **Network Security Config:** Substituído `usesCleartextTraffic` global por configuração declarativa. Cleartext HTTP restrito a IPs de gateway LAN (acesso a modem). Chamada `ip-api.com` migrada para HTTPS.

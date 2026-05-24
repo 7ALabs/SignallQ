@@ -1,6 +1,6 @@
 # Handoff Rules
 
-> Referência completa do fluxo de trabalho: `AGENTS.md` e `docs_ai/ai/AGENT_WORKFLOW.md`.
+> Referência completa do fluxo de trabalho: `AGENTS.md`, `docs/PIPELINE_AUTONOMO.md` e `docs_ai/ai/AGENT_WORKFLOW.md`.
 > Comandos de agentes: `.claude/commands/`
 
 ## Quando fazer handoff

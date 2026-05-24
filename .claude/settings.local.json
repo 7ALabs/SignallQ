@@ -3,7 +3,17 @@
     "allow": [
       "Bash(gh auth *)",
       "Bash(gh repo *)",
-      "Bash(Select-String -Pattern \"linka\")"
-    ]
+      "Bash(Select-String -Pattern \"linka\")",
+      "Skill(linka)",
+      "Skill(linka:*)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Projetos\\\\Linka Android\" -Force)",
+      "Bash(Select-Object Name, Mode)",
+      "Bash(mv scripts/agent-delegate.ps1 scripts/agent-delegate.ps1.old)",
+      "Bash(mv scripts/agent-wake.ps1 scripts/agent-wake.ps1.old)",
+      "Bash(mv scripts/agent-status.ps1 scripts/agent-status.ps1.old)",
+      "Bash(mv docs_ai/operations/PAPERCLIP_INTEGRATION.md docs_ai/operations/PAPERCLIP_INTEGRATION.md.old)",
+      "Bash(cat >> *)"
+    ],
+    "defaultMode": "bypassPermissions"
   }
 }
