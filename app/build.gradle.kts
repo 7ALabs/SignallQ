@@ -157,7 +157,6 @@ android {
         compose = true
         buildConfig = true
     }
-
 }
 
 kotlin {
