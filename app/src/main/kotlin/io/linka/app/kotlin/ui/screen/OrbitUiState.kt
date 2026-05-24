@@ -53,13 +53,14 @@ sealed interface OrbitUiState {
 
 /** Extrai o foco diagnóstico de qualquer estado. */
 val OrbitUiState.focoDiagnostico: String?
-    get() = when (this) {
-        is OrbitUiState.Idle -> null
-        is OrbitUiState.Collecting -> focoDiagnostico
-        is OrbitUiState.Thinking -> focoDiagnostico
-        is OrbitUiState.Analyzing -> focoDiagnostico
-        is OrbitUiState.AwaitingChipSelection -> focoDiagnostico
-        is OrbitUiState.AwaitingAnswer -> focoDiagnostico
-        is OrbitUiState.Result -> focoDiagnostico
-        is OrbitUiState.Erro -> focoDiagnostico
-    }
+    get() =
+        when (this) {
+            is OrbitUiState.Idle -> null
+            is OrbitUiState.Collecting -> focoDiagnostico
+            is OrbitUiState.Thinking -> focoDiagnostico
+            is OrbitUiState.Analyzing -> focoDiagnostico
+            is OrbitUiState.AwaitingChipSelection -> focoDiagnostico
+            is OrbitUiState.AwaitingAnswer -> focoDiagnostico
+            is OrbitUiState.Result -> focoDiagnostico
+            is OrbitUiState.Erro -> focoDiagnostico
+        }

@@ -23,17 +23,19 @@ fun OrbitUserMessageBubble(
 ) {
     val c = LocalLkTokens.current
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = LkSpacing.md),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(vertical = LkSpacing.md),
     ) {
         Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(start = LkSpacing.xxl)
-                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp))
-                .background(LkColors.accent.copy(alpha = 0.12f))
-                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
+            modifier =
+                Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(start = LkSpacing.xxl)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp))
+                    .background(LkColors.accent.copy(alpha = 0.12f))
+                    .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
         ) {
             Text(
                 text = text,

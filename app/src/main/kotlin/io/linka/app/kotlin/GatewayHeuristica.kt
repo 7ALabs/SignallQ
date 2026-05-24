@@ -43,11 +43,12 @@ fun inferirTipoGatewayPorScan(
     if (SSID_EXTENSOR_TOKEN.any { tokens.contains(it) }) return ConnectionNodeType.wifiExtender
 
     val ssidNorm = ssid.trim().lowercase()
-    val bssidsComMesmoSsid = redesVizinhas
-        .filter { it.ssid?.trim()?.lowercase() == ssidNorm && ssidNorm.isNotEmpty() }
-        .filter { it.rssiDbm >= RSSI_MESH_MINIMO }
-        .map { it.bssid }
-        .distinct()
+    val bssidsComMesmoSsid =
+        redesVizinhas
+            .filter { it.ssid?.trim()?.lowercase() == ssidNorm && ssidNorm.isNotEmpty() }
+            .filter { it.rssiDbm >= RSSI_MESH_MINIMO }
+            .map { it.bssid }
+            .distinct()
 
     if (bssidsComMesmoSsid.size >= 2) return ConnectionNodeType.wifiMesh
 

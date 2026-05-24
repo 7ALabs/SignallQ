@@ -14,8 +14,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Lightbulb
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -33,11 +33,12 @@ fun OrbitActionsCard(
 ) {
     val c = LocalLkTokens.current
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(c.bgSecondary)
-            .padding(12.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(c.bgSecondary)
+                .padding(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -66,14 +67,17 @@ private fun ActionRow(action: AiAcaoRecomendada) {
     val c = LocalLkTokens.current
     Row(
         verticalAlignment = Alignment.Top,
-        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+        horizontalArrangement =
+            androidx.compose.foundation.layout.Arrangement
+                .spacedBy(8.dp),
     ) {
         Box(
-            modifier = Modifier
-                .padding(top = 4.dp)
-                .size(4.dp)
-                .clip(CircleShape)
-                .background(LkColors.accent),
+            modifier =
+                Modifier
+                    .padding(top = 4.dp)
+                    .size(4.dp)
+                    .clip(CircleShape)
+                    .background(LkColors.accent),
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(action.titulo, style = MaterialTheme.typography.bodyMedium, color = c.textPrimary)

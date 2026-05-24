@@ -14,8 +14,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -51,9 +51,10 @@ fun OrbitInputArea(
 
     Surface(modifier = modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
         ) {
             // T2.3: chips desaparecem após receber a primeira resposta da IA
@@ -93,27 +94,28 @@ fun OrbitInputArea(
                     },
                     // T2.4: contador de caracteres como supportingText
                     // T6.3: mensagem de limite substitui o contador quando bloqueado
-                    supportingText = when {
-                        isLimitReached -> {
-                            {
-                                Text(
-                                    text = "Limite atingido. Inicie um novo diagnóstico para continuar.",
-                                    color = c.textTertiary,
-                                    style = MaterialTheme.typography.labelMedium,
-                                )
+                    supportingText =
+                        when {
+                            isLimitReached -> {
+                                {
+                                    Text(
+                                        text = "Limite atingido. Inicie um novo diagnóstico para continuar.",
+                                        color = c.textTertiary,
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
+                                }
                             }
-                        }
-                        showCounter -> {
-                            {
-                                Text(
-                                    text = "$charCount/$CHAR_LIMIT",
-                                    color = if (isOverLimit) MaterialTheme.colorScheme.error else c.textSecondary,
-                                    style = MaterialTheme.typography.labelMedium,
-                                )
+                            showCounter -> {
+                                {
+                                    Text(
+                                        text = "$charCount/$CHAR_LIMIT",
+                                        color = if (isOverLimit) MaterialTheme.colorScheme.error else c.textSecondary,
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
+                                }
                             }
-                        }
-                        else -> null
-                    },
+                            else -> null
+                        },
                 )
                 IconButton(
                     onClick = onEnviarMensagem,

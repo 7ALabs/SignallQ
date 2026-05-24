@@ -2,21 +2,11 @@ package io.linka.app.kotlin.ui.screen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.MaterialTheme
-import io.linka.app.kotlin.BuildConfig
-import kotlinx.coroutines.delay
-import io.linka.app.kotlin.FeatureFlags
-import io.linka.app.kotlin.feature.diagnostico.SnapshotDiagnostico
-import io.linka.app.kotlin.feature.fibra.SnapshotFibra
-import io.linka.app.kotlin.feature.fibra.EstadoFibra
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -26,8 +16,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -36,31 +24,36 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material.icons.outlined.GridView
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Wifi
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -69,22 +62,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import io.linka.app.kotlin.feature.diagnostico.pulse.OpcaoResposta
-import io.linka.app.kotlin.feature.speedtest.EstadoExecucaoSpeedtest
-import io.linka.app.kotlin.feature.speedtest.ModoSpeedtest
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -93,18 +81,25 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.linka.app.kotlin.BuildConfig
+import io.linka.app.kotlin.FeatureFlags
 import io.linka.app.kotlin.core.database.MedicaoEntity
 import io.linka.app.kotlin.core.network.EstadoConexao
 import io.linka.app.kotlin.core.network.SnapshotRede
 import io.linka.app.kotlin.core.telephony.MovelSnapshot
 import io.linka.app.kotlin.feature.devices.SnapshotScanDispositivos
+import io.linka.app.kotlin.feature.diagnostico.SnapshotDiagnostico
+import io.linka.app.kotlin.feature.diagnostico.pulse.OpcaoResposta
 import io.linka.app.kotlin.feature.dns.EstadoBenchmarkDns
 import io.linka.app.kotlin.feature.dns.ResultadoBenchmarkDns
 import io.linka.app.kotlin.feature.dns.SnapshotBenchmarkDns
-import kotlin.math.roundToInt
+import io.linka.app.kotlin.feature.fibra.EstadoFibra
+import io.linka.app.kotlin.feature.fibra.SnapshotFibra
+import io.linka.app.kotlin.feature.history.ResumoHistorico
+import io.linka.app.kotlin.feature.speedtest.EstadoExecucaoSpeedtest
+import io.linka.app.kotlin.feature.speedtest.ModoSpeedtest
 import io.linka.app.kotlin.feature.speedtest.ResultadoSpeedtest
 import io.linka.app.kotlin.feature.speedtest.SnapshotExecucaoSpeedtest
-import io.linka.app.kotlin.feature.history.ResumoHistorico
 import io.linka.app.kotlin.feature.wifi.RedeVizinha
 import io.linka.app.kotlin.feature.wifi.SnapshotScanWifi
 import io.linka.app.kotlin.ui.GatewayInfo
@@ -115,9 +110,17 @@ import io.linka.app.kotlin.ui.LkRadius
 import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
 import io.linka.app.kotlin.ui.LocalLkTokens
+import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
 private enum class Overlay {
-    Laudo, Chat, Ping, Privacidade, Novidades, ResultadoVelocidade, Fibra
+    Laudo,
+    Chat,
+    Ping,
+    Privacidade,
+    Novidades,
+    ResultadoVelocidade,
+    Fibra,
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -275,178 +278,190 @@ fun AppShell(
             },
         ) { padding ->
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding),
             ) {
                 when (selectedTab) {
                     // NAV-E: Tab 0 — Home
-                    0 -> HomeScreen(
-                        snapshotRede = snapshotRede,
-                        snapshotSpeedtest = snapshotSpeedtest,
-                        history = history,
-                        ultimaMedicao = primeiraHistoria,
-                        localIp = localIp,
-                        publicIp = publicIp,
-                        ispInfo = ispInfo,
-                        gateways = gateways,
-                        deviceName = deviceName,
-                        nomeUsuario = nomeUsuario,
-                        fotoUriUsuario = fotoUriUsuario,
-                        connectedNetwork = connectedNetwork,
-                        movelSnapshot = movelSnapshot,
-                        onNovoTeste = {
-                            if (snapshotRede.estadoConexao == EstadoConexao.movel) {
-                                showForaDoWifiDialog = true
-                            } else {
-                                selectedTab = 1
-                            }
-                        },
-                        onAbrirHistorico = { selectedTab = 3 },
-                        onAbrirPerfil = { showPerfilSheet = true },
-                        // NAV-B: Sinal agora é tab 2 — navega por tab em vez de overlay
-                        onAbrirRedes = { selectedTab = 2 },
-                        onAbrirDiagnostico = {
-                            if (FeatureFlags.DIAGNOSTICO_CHAT) {
-                                onIniciarOrbit(null)
-                                if (Overlay.Chat !in overlayStack) overlayStack.add(Overlay.Chat)
-                            } else {
-                                // fallback: vai para tab Velocidade (comportamento legado DIAGNOSTICO_ITERATIVO)
-                                selectedTab = 1
-                            }
-                        },
-                    )
-                    // NAV-E: Tab 1 — Velocidade (SpeedTestScreen como tab fixa)
-                    1 -> SpeedTestScreen(
-                        snapshotSpeedtest = snapshotSpeedtest,
-                        snapshotRede = snapshotRede,
-                        ispInfo = ispInfo,
-                        localizacaoServidor = localizacaoServidor,
-                        modoSelecionado = modoSelecionado,
-                        onModoSelecionado = { modoSelecionado = it },
-                        onIniciarTeste = { onNovoTeste(modoSelecionado) },
-                        onCancelarTeste = onCancelarTeste,
-                        onAbrirDnsBenchmark = {
-                            if (FeatureFlags.DNS_SCREEN) showDnsSheet = true
-                        },
-                        onAbrirDiagnostico = {
-                            if (FeatureFlags.DIAGNOSTICO_CHAT) {
-                                onIniciarOrbit(null)
-                                if (Overlay.Chat !in overlayStack) overlayStack.add(Overlay.Chat)
-                            }
-                        },
-                        onAbrirPing = { if (Overlay.Ping !in overlayStack) overlayStack.add(Overlay.Ping) },
-                        onVerResultado = { if (Overlay.ResultadoVelocidade !in overlayStack) overlayStack.add(Overlay.ResultadoVelocidade) },
-                        onAbrirAjustes = { selectedTab = 4 },
-                        nomeUsuario = nomeUsuario,
-                        fotoUri = fotoUriUsuario,
-                        onAbrirPerfil = { showPerfilSheet = true },
-                        planoInternet = planoInternet,
-                        speedtestPendenteModoMovel = speedtestPendenteModoMovel,
-                        onConfirmarSpeedtestMovel = onConfirmarSpeedtestMovel,
-                        onCancelarSpeedtestMovel = onCancelarSpeedtestMovel,
-                    )
-                    // NAV-B: Tab 2 — Sinal (SinalScreen como tab fixa, sem botão voltar)
-                    2 -> SinalScreen(
-                        snapshotWifi = snapshotWifi,
-                        connectedNetwork = connectedNetwork,
-                        estadoConexao = snapshotRede.estadoConexao,
-                        conectado = snapshotRede.conectado,
-                        movelSnapshot = movelSnapshot,
-                        localIp = localIp,
-                        temPermissaoTelefonia = temPermissaoTelefonia,
-                        onSolicitarPermissaoTelefonia = onSolicitarPermissaoTelefonia,
-                        temPermissaoLocalizacao = temPermissaoLocalizacao,
-                        onSolicitarPermissaoLocalizacao = onSolicitarPermissaoLocalizacao,
-                        onRefresh = onRefreshSinal,
-                        onVoltar = { selectedTab = 0 },
-                        nomeUsuario = nomeUsuario,
-                        fotoUri = fotoUriUsuario,
-                        onAbrirPerfil = { showPerfilSheet = true },
-                        wifiLinkSnapshot = snapshotRede.wifiLinkSnapshot,
-                    )
-                    // Tab 3 — Histórico (índice mantido conforme spec)
-                    3 -> HistoricoScreen(
-                        historico = historico,
-                        blocoUptime = blocoUptime,
-                        narrativaUptime = narrativaUptime,
-                        resumoHistorico = resumoHistorico,
-                        nomeUsuario = nomeUsuario,
-                        fotoUri = fotoUriUsuario,
-                        onAbrirPerfil = { showPerfilSheet = true },
-                        onIniciarTeste = { selectedTab = 1 },
-                    )
-                    // Tab 4 — Ajustes
-                    else -> AjustesScreen(
-                        perfil = AjustesPerfilState(
+                    0 ->
+                        HomeScreen(
+                            snapshotRede = snapshotRede,
+                            snapshotSpeedtest = snapshotSpeedtest,
+                            history = history,
+                            ultimaMedicao = primeiraHistoria,
+                            localIp = localIp,
+                            publicIp = publicIp,
+                            ispInfo = ispInfo,
+                            gateways = gateways,
+                            deviceName = deviceName,
                             nomeUsuario = nomeUsuario,
                             fotoUriUsuario = fotoUriUsuario,
-                            deviceName = deviceName,
-                            appVersion = BuildConfig.VERSION_NAME,
-                            onSalvarPerfil = onSalvarPerfil,
-                        ),
-                        provedor = AjustesProvedorState(
-                            operadora = operadora,
+                            connectedNetwork = connectedNetwork,
+                            movelSnapshot = movelSnapshot,
+                            onNovoTeste = {
+                                if (snapshotRede.estadoConexao == EstadoConexao.movel) {
+                                    showForaDoWifiDialog = true
+                                } else {
+                                    selectedTab = 1
+                                }
+                            },
+                            onAbrirHistorico = { selectedTab = 3 },
+                            onAbrirPerfil = { showPerfilSheet = true },
+                            // NAV-B: Sinal agora é tab 2 — navega por tab em vez de overlay
+                            onAbrirRedes = { selectedTab = 2 },
+                            onAbrirDiagnostico = {
+                                if (FeatureFlags.DIAGNOSTICO_CHAT) {
+                                    onIniciarOrbit(null)
+                                    if (Overlay.Chat !in overlayStack) overlayStack.add(Overlay.Chat)
+                                } else {
+                                    // fallback: vai para tab Velocidade (comportamento legado DIAGNOSTICO_ITERATIVO)
+                                    selectedTab = 1
+                                }
+                            },
+                        )
+                    // NAV-E: Tab 1 — Velocidade (SpeedTestScreen como tab fixa)
+                    1 ->
+                        SpeedTestScreen(
+                            snapshotSpeedtest = snapshotSpeedtest,
+                            snapshotRede = snapshotRede,
+                            ispInfo = ispInfo,
+                            localizacaoServidor = localizacaoServidor,
+                            modoSelecionado = modoSelecionado,
+                            onModoSelecionado = { modoSelecionado = it },
+                            onIniciarTeste = { onNovoTeste(modoSelecionado) },
+                            onCancelarTeste = onCancelarTeste,
+                            onAbrirDnsBenchmark = {
+                                if (FeatureFlags.DNS_SCREEN) showDnsSheet = true
+                            },
+                            onAbrirDiagnostico = {
+                                if (FeatureFlags.DIAGNOSTICO_CHAT) {
+                                    onIniciarOrbit(null)
+                                    if (Overlay.Chat !in overlayStack) overlayStack.add(Overlay.Chat)
+                                }
+                            },
+                            onAbrirPing = { if (Overlay.Ping !in overlayStack) overlayStack.add(Overlay.Ping) },
+                            onVerResultado = { if (Overlay.ResultadoVelocidade !in overlayStack) overlayStack.add(Overlay.ResultadoVelocidade) },
+                            onAbrirAjustes = { selectedTab = 4 },
+                            nomeUsuario = nomeUsuario,
+                            fotoUri = fotoUriUsuario,
+                            onAbrirPerfil = { showPerfilSheet = true },
                             planoInternet = planoInternet,
-                            regiao = regiao,
-                            estadoUf = estadoUf,
-                            cidadeNome = cidadeNome,
-                            ispDetectado = ispInfo?.isp,
-                            ispConfirmado = ispConfirmado,
-                            onSalvarDadosProvedor = onSalvarDadosProvedor,
-                            onSalvarEstadoCidade = onSalvarEstadoCidade,
-                            onConfirmarIsp = onConfirmarIsp,
-                            onDispensarBannerIsp = onDispensarBannerIsp,
-                        ),
-                        monitoramento = AjustesMonitoramentoState(
-                            monitoramentoAtivo = monitoramentoAtivo,
-                            analiseAvancada = analiseAvancada,
-                            notificacaoLatenciaAtiva = notificacaoLatenciaAtiva,
-                            notificacaoDnsAtiva = notificacaoDnsAtiva,
-                            notificacaoRssiAtiva = notificacaoRssiAtiva,
-                            notificacaoSemInternetAtiva = notificacaoSemInternetAtiva,
-                            onAtivarMonitoramento = onAtivarMonitoramento,
-                            onDefinirAnaliseAvancada = onDefinirAnaliseAvancada,
-                            onDefinirNotificacaoLatenciaAtiva = onDefinirNotificacaoLatenciaAtiva,
-                            onDefinirNotificacaoDnsAtiva = onDefinirNotificacaoDnsAtiva,
-                            onDefinirNotificacaoRssiAtiva = onDefinirNotificacaoRssiAtiva,
-                            onDefinirNotificacaoSemInternetAtiva = onDefinirNotificacaoSemInternetAtiva,
-                        ),
-                        modem = AjustesModemState(
-                            modemHost = modemHost,
-                            modemUsername = modemUsername,
-                            modemPassword = modemPassword,
-                            modemPermanecerConectado = modemPermanecerConectado,
-                            gatewayIpDetectado = gatewayIpDetectado,
-                            onSalvarConfiguracaoModem = onSalvarConfiguracaoModem,
-                            onConectarFibra = { host, user, pass -> onReconectarFibra(host, user, pass) },
-                        ),
-                        temaSelecionado = temaSelecionado,
-                        onDefinirTemaSelecionado = onDefinirTemaSelecionado,
-                        limiteAlertaMbps = limiteAlertaMbps,
-                        onSalvarLimiteAlerta = onSalvarLimiteAlerta,
-                        onLimparHistorico = onLimparHistorico,
-                        onApagarDadosLocais = onApagarDadosLocais,
-                        onResetarApp = onResetarApp,
-                        onAbrirHistorico = { selectedTab = 3 },
-                        onAbrirLaudo = { if (Overlay.Laudo !in overlayStack) overlayStack.add(Overlay.Laudo) },
-                        onAbrirPerfil = { showPerfilSheet = true },
-                        onAbrirPrivacidade = { if (Overlay.Privacidade !in overlayStack) overlayStack.add(Overlay.Privacidade) },
-                        onAbrirNovidades = { if (Overlay.Novidades !in overlayStack) overlayStack.add(Overlay.Novidades) },
-                        dadosMoveis = AjustesDadosMoveisState(
-                            speedtestPermiteHeavyMovel = speedtestPermiteHeavyMovel,
-                            speedtestMbConsumidosMes = speedtestMbConsumidosMes,
-                            onSetSpeedtestPermiteHeavyMovel = onSetSpeedtestPermiteHeavyMovel,
-                        ),
-                    )
+                            speedtestPendenteModoMovel = speedtestPendenteModoMovel,
+                            onConfirmarSpeedtestMovel = onConfirmarSpeedtestMovel,
+                            onCancelarSpeedtestMovel = onCancelarSpeedtestMovel,
+                        )
+                    // NAV-B: Tab 2 — Sinal (SinalScreen como tab fixa, sem botão voltar)
+                    2 ->
+                        SinalScreen(
+                            snapshotWifi = snapshotWifi,
+                            connectedNetwork = connectedNetwork,
+                            estadoConexao = snapshotRede.estadoConexao,
+                            conectado = snapshotRede.conectado,
+                            movelSnapshot = movelSnapshot,
+                            localIp = localIp,
+                            temPermissaoTelefonia = temPermissaoTelefonia,
+                            onSolicitarPermissaoTelefonia = onSolicitarPermissaoTelefonia,
+                            temPermissaoLocalizacao = temPermissaoLocalizacao,
+                            onSolicitarPermissaoLocalizacao = onSolicitarPermissaoLocalizacao,
+                            onRefresh = onRefreshSinal,
+                            onVoltar = { selectedTab = 0 },
+                            nomeUsuario = nomeUsuario,
+                            fotoUri = fotoUriUsuario,
+                            onAbrirPerfil = { showPerfilSheet = true },
+                            wifiLinkSnapshot = snapshotRede.wifiLinkSnapshot,
+                        )
+                    // Tab 3 — Histórico (índice mantido conforme spec)
+                    3 ->
+                        HistoricoScreen(
+                            historico = historico,
+                            blocoUptime = blocoUptime,
+                            narrativaUptime = narrativaUptime,
+                            resumoHistorico = resumoHistorico,
+                            nomeUsuario = nomeUsuario,
+                            fotoUri = fotoUriUsuario,
+                            onAbrirPerfil = { showPerfilSheet = true },
+                            onIniciarTeste = { selectedTab = 1 },
+                        )
+                    // Tab 4 — Ajustes
+                    else ->
+                        AjustesScreen(
+                            perfil =
+                                AjustesPerfilState(
+                                    nomeUsuario = nomeUsuario,
+                                    fotoUriUsuario = fotoUriUsuario,
+                                    deviceName = deviceName,
+                                    appVersion = BuildConfig.VERSION_NAME,
+                                    onSalvarPerfil = onSalvarPerfil,
+                                ),
+                            provedor =
+                                AjustesProvedorState(
+                                    operadora = operadora,
+                                    planoInternet = planoInternet,
+                                    regiao = regiao,
+                                    estadoUf = estadoUf,
+                                    cidadeNome = cidadeNome,
+                                    ispDetectado = ispInfo?.isp,
+                                    ispConfirmado = ispConfirmado,
+                                    onSalvarDadosProvedor = onSalvarDadosProvedor,
+                                    onSalvarEstadoCidade = onSalvarEstadoCidade,
+                                    onConfirmarIsp = onConfirmarIsp,
+                                    onDispensarBannerIsp = onDispensarBannerIsp,
+                                ),
+                            monitoramento =
+                                AjustesMonitoramentoState(
+                                    monitoramentoAtivo = monitoramentoAtivo,
+                                    analiseAvancada = analiseAvancada,
+                                    notificacaoLatenciaAtiva = notificacaoLatenciaAtiva,
+                                    notificacaoDnsAtiva = notificacaoDnsAtiva,
+                                    notificacaoRssiAtiva = notificacaoRssiAtiva,
+                                    notificacaoSemInternetAtiva = notificacaoSemInternetAtiva,
+                                    onAtivarMonitoramento = onAtivarMonitoramento,
+                                    onDefinirAnaliseAvancada = onDefinirAnaliseAvancada,
+                                    onDefinirNotificacaoLatenciaAtiva = onDefinirNotificacaoLatenciaAtiva,
+                                    onDefinirNotificacaoDnsAtiva = onDefinirNotificacaoDnsAtiva,
+                                    onDefinirNotificacaoRssiAtiva = onDefinirNotificacaoRssiAtiva,
+                                    onDefinirNotificacaoSemInternetAtiva = onDefinirNotificacaoSemInternetAtiva,
+                                ),
+                            modem =
+                                AjustesModemState(
+                                    modemHost = modemHost,
+                                    modemUsername = modemUsername,
+                                    modemPassword = modemPassword,
+                                    modemPermanecerConectado = modemPermanecerConectado,
+                                    gatewayIpDetectado = gatewayIpDetectado,
+                                    onSalvarConfiguracaoModem = onSalvarConfiguracaoModem,
+                                    onConectarFibra = { host, user, pass -> onReconectarFibra(host, user, pass) },
+                                ),
+                            temaSelecionado = temaSelecionado,
+                            onDefinirTemaSelecionado = onDefinirTemaSelecionado,
+                            limiteAlertaMbps = limiteAlertaMbps,
+                            onSalvarLimiteAlerta = onSalvarLimiteAlerta,
+                            onLimparHistorico = onLimparHistorico,
+                            onApagarDadosLocais = onApagarDadosLocais,
+                            onResetarApp = onResetarApp,
+                            onAbrirHistorico = { selectedTab = 3 },
+                            onAbrirLaudo = { if (Overlay.Laudo !in overlayStack) overlayStack.add(Overlay.Laudo) },
+                            onAbrirPerfil = { showPerfilSheet = true },
+                            onAbrirPrivacidade = { if (Overlay.Privacidade !in overlayStack) overlayStack.add(Overlay.Privacidade) },
+                            onAbrirNovidades = { if (Overlay.Novidades !in overlayStack) overlayStack.add(Overlay.Novidades) },
+                            dadosMoveis =
+                                AjustesDadosMoveisState(
+                                    speedtestPermiteHeavyMovel = speedtestPermiteHeavyMovel,
+                                    speedtestMbConsumidosMes = speedtestMbConsumidosMes,
+                                    onSetSpeedtestPermiteHeavyMovel = onSetSpeedtestPermiteHeavyMovel,
+                                ),
+                        )
                 }
             }
         }
 
         // Overlay de execução do speedtest — cobre toda a tela durante o teste
         AnimatedVisibility(
-            visible = snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.executando ||
-                snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro,
+            visible =
+                snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.executando ||
+                    snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
@@ -467,9 +482,10 @@ fun AppShell(
         ) {
             val cLocal = LocalLkTokens.current
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(cLocal.bgPrimary),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(cLocal.bgPrimary),
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -534,7 +550,6 @@ fun AppShell(
                 onEnviarMensagemTexto = onEnviarMensagemTexto,
             )
         }
-
 
         AnimatedVisibility(
             visible = Overlay.Laudo in overlayStack,
@@ -665,10 +680,11 @@ private fun RowScope.AppNavItem(
     val badgePulseAlpha by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 0.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(700, easing = androidx.compose.animation.core.LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(700, easing = androidx.compose.animation.core.LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
         label = "badgeAlpha",
     )
     NavigationBarItem(
@@ -685,13 +701,14 @@ private fun RowScope.AppNavItem(
             }
         },
         label = { Text(label, fontWeight = FontWeight.W600) },
-        colors = NavigationBarItemDefaults.colors(
-            selectedIconColor = LkColors.accent,
-            unselectedIconColor = c.textTertiary,
-            selectedTextColor = LkColors.accent,
-            unselectedTextColor = c.textTertiary,
-            indicatorColor = LkColors.accent.copy(alpha = 0.12f),
-        ),
+        colors =
+            NavigationBarItemDefaults.colors(
+                selectedIconColor = LkColors.accent,
+                unselectedIconColor = c.textTertiary,
+                selectedTextColor = LkColors.accent,
+                unselectedTextColor = c.textTertiary,
+                indicatorColor = LkColors.accent.copy(alpha = 0.12f),
+            ),
     )
 }
 
@@ -724,14 +741,15 @@ private fun ForaDoWifiDialog(
 
 // ─── DNS comparison sheet ─────────────────────────────────────────────────────
 
-private fun resolveDnsName(dnsIp: String?): String = when (dnsIp) {
-    "1.1.1.1", "1.0.0.1" -> "Cloudflare"
-    "8.8.8.8", "8.8.4.4" -> "Google DNS"
-    "9.9.9.9", "149.112.112.112" -> "Quad9"
-    "208.67.222.222", "208.67.220.220" -> "OpenDNS"
-    "94.140.14.14", "94.140.15.15" -> "AdGuard"
-    else -> "DNS do Provedor"
-}
+private fun resolveDnsName(dnsIp: String?): String =
+    when (dnsIp) {
+        "1.1.1.1", "1.0.0.1" -> "Cloudflare"
+        "8.8.8.8", "8.8.4.4" -> "Google DNS"
+        "9.9.9.9", "149.112.112.112" -> "Quad9"
+        "208.67.222.222", "208.67.220.220" -> "OpenDNS"
+        "94.140.14.14", "94.140.15.15" -> "AdGuard"
+        else -> "DNS do Provedor"
+    }
 
 @Composable
 private fun DnsComparisonSheetContent(
@@ -744,19 +762,21 @@ private fun DnsComparisonSheetContent(
     var showGuia by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            .padding(bottom = 32.dp)
-            .navigationBarsPadding(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(bottom = 32.dp)
+                .navigationBarsPadding(),
     ) {
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             Box(
-                modifier = Modifier
-                    .width(40.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(c.border),
+                modifier =
+                    Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(c.border),
             )
         }
         Spacer(Modifier.height(20.dp))
@@ -809,11 +829,12 @@ private fun DnsComparisonSheetContent(
 
             Spacer(Modifier.height(20.dp))
             Row(
-                modifier = Modifier
-                    .minimumInteractiveComponentSize()
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { showGuia = true }
-                    .padding(vertical = LkSpacing.sm),
+                modifier =
+                    Modifier
+                        .minimumInteractiveComponentSize()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { showGuia = true }
+                        .padding(vertical = LkSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("Como alterar meu DNS", fontSize = 13.sp, color = LkColors.accent, fontWeight = FontWeight.W500)
@@ -844,10 +865,11 @@ private fun DnsRowSheet(
                 if (isCurrent) {
                     Spacer(Modifier.width(LkSpacing.sm))
                     Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(LkColors.accent.copy(alpha = 0.12f))
-                            .padding(horizontal = LkSpacing.sm, vertical = 4.dp),
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(LkColors.accent.copy(alpha = 0.12f))
+                                .padding(horizontal = LkSpacing.sm, vertical = 4.dp),
                     ) {
                         Text("atual", fontSize = 10.sp, fontWeight = FontWeight.W600, color = LkColors.accent)
                     }
@@ -855,10 +877,11 @@ private fun DnsRowSheet(
                 if (isRecomendado) {
                     Spacer(Modifier.width(LkSpacing.sm))
                     Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(LkColors.success.copy(alpha = 0.12f))
-                            .padding(horizontal = LkSpacing.sm, vertical = 4.dp),
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(LkColors.success.copy(alpha = 0.12f))
+                                .padding(horizontal = LkSpacing.sm, vertical = 4.dp),
                     ) {
                         Text("recomendado", fontSize = 10.sp, fontWeight = FontWeight.W600, color = LkColors.success)
                     }
@@ -877,18 +900,23 @@ private fun DnsRowSheet(
 }
 
 @Composable
-private fun DnsGradeBadge(grade: String, c: LkTokens) {
-    val color = when (grade) {
-        "A" -> LkColors.success
-        "B" -> LkColors.accent
-        "C" -> LkColors.warning
-        else -> LkColors.error
-    }
+private fun DnsGradeBadge(
+    grade: String,
+    c: LkTokens,
+) {
+    val color =
+        when (grade) {
+            "A" -> LkColors.success
+            "B" -> LkColors.accent
+            "C" -> LkColors.warning
+            else -> LkColors.error
+        }
     Box(
-        modifier = Modifier
-            .size(24.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(color.copy(alpha = 0.15f)),
+        modifier =
+            Modifier
+                .size(24.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(color.copy(alpha = 0.15f)),
         contentAlignment = Alignment.Center,
     ) {
         Text(grade, fontSize = 12.sp, fontWeight = FontWeight.W700, color = color)
@@ -898,7 +926,10 @@ private fun DnsGradeBadge(grade: String, c: LkTokens) {
 // ─── DNS guide ────────────────────────────────────────────────────────────────
 
 @Composable
-private fun DnsGuideView(c: LkTokens, onVoltar: () -> Unit) {
+private fun DnsGuideView(
+    c: LkTokens,
+    onVoltar: () -> Unit,
+) {
     var tabSelecionada by remember { mutableIntStateOf(0) }
     Column {
         TextButton(
@@ -981,13 +1012,18 @@ private fun DnsGuideView(c: LkTokens, onVoltar: () -> Unit) {
 }
 
 @Composable
-private fun DnsGuideStep(numero: Int, texto: String, c: LkTokens) {
+private fun DnsGuideStep(
+    numero: Int,
+    texto: String,
+    c: LkTokens,
+) {
     Row(verticalAlignment = Alignment.Top) {
         Box(
-            modifier = Modifier
-                .size(20.dp)
-                .clip(CircleShape)
-                .background(LkColors.accent.copy(alpha = 0.12f)),
+            modifier =
+                Modifier
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .background(LkColors.accent.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
             Text("$numero", fontSize = 11.sp, fontWeight = FontWeight.W600, color = LkColors.accent)
@@ -1007,14 +1043,17 @@ private fun FibraStatusOverlay(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        scrimColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.32f),
+        scrimColor =
+            androidx.compose.ui.graphics.Color.Black
+                .copy(alpha = 0.32f),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.lg)
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = LkSpacing.md, vertical = LkSpacing.lg)
+                    .navigationBarsPadding(),
         ) {
             Text(
                 "Status Fibra Óptica",
@@ -1056,11 +1095,12 @@ private fun FibraStatusOverlay(
                 }
                 EstadoFibra.erro -> {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(LkColors.error.copy(alpha = 0.1f))
-                            .padding(LkSpacing.md),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(LkColors.error.copy(alpha = 0.1f))
+                                .padding(LkSpacing.md),
                     ) {
                         Text(
                             "Erro de conexão",
@@ -1084,9 +1124,10 @@ private fun FibraStatusOverlay(
             Spacer(Modifier.height(LkSpacing.lg))
             Button(
                 onClick = onDismiss,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(44.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
                 shape = RoundedCornerShape(LkRadius.button),
             ) {
@@ -1097,7 +1138,11 @@ private fun FibraStatusOverlay(
 }
 
 @Composable
-private fun FibraStatusField(label: String, value: String, c: LkTokens) {
+private fun FibraStatusField(
+    label: String,
+    value: String,
+    c: LkTokens,
+) {
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = LkSpacing.md)) {
         Text(
             label,

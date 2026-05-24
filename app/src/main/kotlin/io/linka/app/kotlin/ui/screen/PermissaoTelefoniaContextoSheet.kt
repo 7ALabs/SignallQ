@@ -37,18 +37,20 @@ fun PermissaoTelefoniaContextoSheet(
 ) {
     val c = LocalLkTokens.current
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg)
-            .navigationBarsPadding(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg)
+                .navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier
-                .width(40.dp)
-                .height(4.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(c.border),
+            modifier =
+                Modifier
+                    .width(40.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(c.border),
         )
         Spacer(Modifier.height(24.dp))
         Icon(
@@ -82,7 +84,9 @@ fun PermissaoTelefoniaContextoSheet(
         Spacer(Modifier.height(LkSpacing.xl))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(LkSpacing.md),
+            horizontalArrangement =
+                androidx.compose.foundation.layout.Arrangement
+                    .spacedBy(LkSpacing.md),
         ) {
             TextButton(
                 onClick = onAgoraNao,

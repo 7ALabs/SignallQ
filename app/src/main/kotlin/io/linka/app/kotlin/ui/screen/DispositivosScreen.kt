@@ -3,7 +3,6 @@ package io.linka.app.kotlin.ui.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -28,18 +27,17 @@ import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Print
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Smartphone
-import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material.icons.outlined.WarningAmber
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -104,46 +102,48 @@ fun DispositivosScreen(
         },
     ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
         ) {
             if (!snapshotRede.conectado) {
                 OfflineBanner()
             }
-        Box(
-            modifier = Modifier
-                .weight(1f),
-        ) {
-            if (snapshotRede.estadoConexao != EstadoConexao.wifi) {
-                SemWifiFallback(c = c, hasDadosMoveis = snapshotRede.estadoConexao == EstadoConexao.movel)
-                return@Box
-            }
+            Box(
+                modifier =
+                    Modifier
+                        .weight(1f),
+            ) {
+                if (snapshotRede.estadoConexao != EstadoConexao.wifi) {
+                    SemWifiFallback(c = c, hasDadosMoveis = snapshotRede.estadoConexao == EstadoConexao.movel)
+                    return@Box
+                }
 
-            val dispositivos = snapshotDevices.dispositivos
-            val isLoading = snapshotDevices.estado == EstadoScanDispositivos.varrendo
-            val erro = snapshotDevices.erroMensagem
+                val dispositivos = snapshotDevices.dispositivos
+                val isLoading = snapshotDevices.estado == EstadoScanDispositivos.varrendo
+                val erro = snapshotDevices.erroMensagem
 
-            if (dispositivos.isEmpty()) {
-                EmptyStateDispositivos(
-                    c = c,
-                    isLoading = isLoading,
-                    progresso = snapshotDevices.progressoPercentual,
-                    erro = erro,
-                    onRefresh = onRefresh,
-                )
-            } else {
-                DispositivosLista(
-                    c = c,
-                    dispositivos = dispositivos,
-                    isLoading = isLoading,
-                    erro = erro,
-                    onRefresh = onRefresh,
-                    apelidos = apelidos,
-                    onSalvarApelido = onSalvarApelido,
-                )
-            }
-        } // Box
+                if (dispositivos.isEmpty()) {
+                    EmptyStateDispositivos(
+                        c = c,
+                        isLoading = isLoading,
+                        progresso = snapshotDevices.progressoPercentual,
+                        erro = erro,
+                        onRefresh = onRefresh,
+                    )
+                } else {
+                    DispositivosLista(
+                        c = c,
+                        dispositivos = dispositivos,
+                        isLoading = isLoading,
+                        erro = erro,
+                        onRefresh = onRefresh,
+                        apelidos = apelidos,
+                        onSalvarApelido = onSalvarApelido,
+                    )
+                }
+            } // Box
         } // Column
     }
 }
@@ -165,11 +165,12 @@ private fun DispositivosLista(
 ) {
     val gateways = remember(dispositivos) { dispositivos.filter { it.fonteNome == "gateway" } }
     val aps = remember(dispositivos) { dispositivos.filter { it.fonteNome != "gateway" && it.tipoDispositivo == TipoDispositivo.pontoAcesso } }
-    val clientes = remember(dispositivos) {
-        dispositivos
-            .filter { it.fonteNome != "gateway" && it.tipoDispositivo != TipoDispositivo.pontoAcesso }
-            .sortedByDescending { it.esteDispositivo }
-    }
+    val clientes =
+        remember(dispositivos) {
+            dispositivos
+                .filter { it.fonteNome != "gateway" && it.tipoDispositivo != TipoDispositivo.pontoAcesso }
+                .sortedByDescending { it.esteDispositivo }
+        }
 
     var deviceEmSheet by remember { mutableStateOf<DispositivoRede?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
@@ -187,9 +188,10 @@ private fun DispositivosLista(
             if (isLoading) {
                 item {
                     LinearProgressIndicator(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(2.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(2.dp),
                         color = LkColors.accent,
                         trackColor = c.bgSecondary,
                     )
@@ -250,9 +252,10 @@ private fun DispositivosLista(
             if (clientes.isEmpty()) {
                 item {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -314,10 +317,11 @@ private fun GatewayItem(
         c = c,
         leading = {
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(LkRadius.button))
-                    .background(bgColor),
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(LkRadius.button))
+                        .background(bgColor),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -361,10 +365,11 @@ private fun ApMeshItem(
         c = c,
         leading = {
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(LkRadius.button))
-                    .background(LkColors.success.copy(alpha = 0.12f)),
+                modifier =
+                    Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(LkRadius.button))
+                        .background(LkColors.success.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -409,24 +414,25 @@ private fun DispositivoItem(
     val icon = iconForTipo(dispositivo.tipoDispositivo)
 
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .minimumInteractiveComponentSize()
-            .clickable(onClick = onTap)
-            .border(
-                width = 0.5.dp,
-                color = c.border.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(0.dp),
-            )
-            .padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .minimumInteractiveComponentSize()
+                .clickable(onClick = onTap)
+                .border(
+                    width = 0.5.dp,
+                    color = c.border.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(0.dp),
+                ).padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             // Ícone
             Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(LkRadius.button))
-                    .background(iconBg),
+                modifier =
+                    Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(LkRadius.button))
+                        .background(iconBg),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -507,15 +513,16 @@ private fun DeviceDetailSheet(
     val fabricante = dispositivo.fabricante
     var apelidoInput by remember { mutableStateOf(apelidoAtual) }
 
-    val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = LkColors.accent,
-        unfocusedBorderColor = c.border,
-        focusedLabelColor = LkColors.accent,
-        unfocusedLabelColor = c.textSecondary,
-        cursorColor = LkColors.accent,
-        focusedTextColor = c.textPrimary,
-        unfocusedTextColor = c.textPrimary,
-    )
+    val fieldColors =
+        OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = LkColors.accent,
+            unfocusedBorderColor = c.border,
+            focusedLabelColor = LkColors.accent,
+            unfocusedLabelColor = c.textSecondary,
+            cursorColor = LkColors.accent,
+            focusedTextColor = c.textPrimary,
+            unfocusedTextColor = c.textPrimary,
+        )
 
     LazyColumn(
         contentPadding = PaddingValues(bottom = 32.dp),
@@ -531,10 +538,11 @@ private fun DeviceDetailSheet(
                 verticalAlignment = Alignment.Top,
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(iconBg),
+                    modifier =
+                        Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(iconBg),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -554,10 +562,11 @@ private fun DeviceDetailSheet(
                     Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(LkColors.success),
+                            modifier =
+                                Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(LkColors.success),
                         )
                         Spacer(Modifier.width(5.dp))
                         Text(
@@ -659,15 +668,16 @@ private fun MeshApSheet(
     val fabricante = dispositivo.fabricante
     var apelidoInput by remember { mutableStateOf(apelidoAtual) }
 
-    val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = LkColors.accent,
-        unfocusedBorderColor = c.border,
-        focusedLabelColor = LkColors.accent,
-        unfocusedLabelColor = c.textSecondary,
-        cursorColor = LkColors.accent,
-        focusedTextColor = c.textPrimary,
-        unfocusedTextColor = c.textPrimary,
-    )
+    val fieldColors =
+        OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = LkColors.accent,
+            unfocusedBorderColor = c.border,
+            focusedLabelColor = LkColors.accent,
+            unfocusedLabelColor = c.textSecondary,
+            cursorColor = LkColors.accent,
+            focusedTextColor = c.textPrimary,
+            unfocusedTextColor = c.textPrimary,
+        )
 
     LazyColumn(contentPadding = PaddingValues(bottom = 32.dp)) {
         item {
@@ -681,10 +691,11 @@ private fun MeshApSheet(
                 verticalAlignment = Alignment.Top,
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(LkColors.success.copy(alpha = 0.12f)),
+                    modifier =
+                        Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(LkColors.success.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -704,10 +715,11 @@ private fun MeshApSheet(
                     Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            modifier = Modifier
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(LkColors.success),
+                            modifier =
+                                Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(LkColors.success),
                         )
                         Spacer(Modifier.width(5.dp))
                         Text(text = "Online", style = MaterialTheme.typography.labelSmall, color = LkColors.success)
@@ -725,8 +737,9 @@ private fun MeshApSheet(
             Spacer(Modifier.height(LkSpacing.md))
             Box(modifier = Modifier.padding(horizontal = LkSpacing.lg)) {
                 AlertBanner(
-                    text = "Sinal, banda e clientes conectados não estão disponíveis via varredura passiva. " +
-                        "Para métricas detalhadas, acesse o painel do seu roteador mesh.",
+                    text =
+                        "Sinal, banda e clientes conectados não estão disponíveis via varredura passiva. " +
+                            "Para métricas detalhadas, acesse o painel do seu roteador mesh.",
                     c = c,
                 )
             }
@@ -793,12 +806,16 @@ private fun MeshApSheet(
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun SemWifiFallback(c: LkTokens, hasDadosMoveis: Boolean) {
-    val subtitle = if (hasDadosMoveis) {
-        "Conecte-se a uma rede Wi-Fi para ver os dispositivos."
-    } else {
-        "Sem conexão de rede. Conecte-se a uma rede Wi-Fi para escanear."
-    }
+private fun SemWifiFallback(
+    c: LkTokens,
+    hasDadosMoveis: Boolean,
+) {
+    val subtitle =
+        if (hasDadosMoveis) {
+            "Conecte-se a uma rede Wi-Fi para ver os dispositivos."
+        } else {
+            "Sem conexão de rede. Conecte-se a uma rede Wi-Fi para escanear."
+        }
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -847,14 +864,20 @@ private fun EmptyStateDispositivos(
 
     if (temErro) {
         val (ttl, sbt) = traduzirErroParaPortugues(checkNotNull(erro) { "invariante: temErro=true implica erro não-nulo" })
-        titulo = ttl; subtitulo = sbt
-        icone = Icons.Outlined.WarningAmber; iconColor = LkColors.warning
+        titulo = ttl
+        subtitulo = sbt
+        icone = Icons.Outlined.WarningAmber
+        iconColor = LkColors.warning
     } else if (isLoading) {
-        titulo = "Procurando dispositivos..."; subtitulo = "Progresso: $progresso%"
-        icone = Icons.Outlined.DevicesOther; iconColor = c.textTertiary
+        titulo = "Procurando dispositivos..."
+        subtitulo = "Progresso: $progresso%"
+        icone = Icons.Outlined.DevicesOther
+        iconColor = c.textTertiary
     } else {
-        titulo = "Nenhum dispositivo encontrado"; subtitulo = "Tente novamente ou verifique a conexão."
-        icone = Icons.Outlined.DevicesOther; iconColor = c.textTertiary
+        titulo = "Nenhum dispositivo encontrado"
+        subtitulo = "Tente novamente ou verifique a conexão."
+        icone = Icons.Outlined.DevicesOther
+        iconColor = c.textTertiary
     }
 
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -907,9 +930,10 @@ private fun SectionHeaderRow(
     trailing: @Composable (() -> Unit)? = null,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = LkSpacing.lg, top = 20.dp, end = LkSpacing.lg, bottom = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(start = LkSpacing.lg, top = 20.dp, end = LkSpacing.lg, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -931,7 +955,10 @@ private fun SectionHeaderRow(
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun SheetSectionHeader(title: String, c: LkTokens) {
+private fun SheetSectionHeader(
+    title: String,
+    c: LkTokens,
+) {
     Text(
         text = title,
         fontSize = 11.sp,
@@ -947,14 +974,18 @@ private fun SheetSectionHeader(title: String, c: LkTokens) {
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun AlertBanner(text: String, c: LkTokens) {
+private fun AlertBanner(
+    text: String,
+    c: LkTokens,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.button))
-            .background(LkColors.warning.copy(alpha = 0.10f))
-            .border(1.dp, LkColors.warning.copy(alpha = 0.35f), RoundedCornerShape(LkRadius.button))
-            .padding(12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.button))
+                .background(LkColors.warning.copy(alpha = 0.10f))
+                .border(1.dp, LkColors.warning.copy(alpha = 0.35f), RoundedCornerShape(LkRadius.button))
+                .padding(12.dp),
         verticalAlignment = Alignment.Top,
     ) {
         Icon(
@@ -984,16 +1015,16 @@ private fun LkListRow(
 ) {
     Column {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(
-                    if (onTap != null) {
-                        Modifier.minimumInteractiveComponentSize().clickable(onClick = onTap)
-                    } else {
-                        Modifier
-                    },
-                )
-                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (onTap != null) {
+                            Modifier.minimumInteractiveComponentSize().clickable(onClick = onTap)
+                        } else {
+                            Modifier
+                        },
+                    ).padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (leading != null) {
@@ -1020,12 +1051,17 @@ private fun LkListRow(
 // ---------------------------------------------------------------------------
 
 @Composable
-private fun BadgePill(label: String, bg: Color, fg: Color) {
+private fun BadgePill(
+    label: String,
+    bg: Color,
+    fg: Color,
+) {
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(bg)
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(4.dp))
+                .background(bg)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = fg, fontWeight = FontWeight.W700)
     }
@@ -1043,70 +1079,82 @@ private fun Padding16(content: @Composable () -> Unit) {
 // Helpers de mapeamento
 // ---------------------------------------------------------------------------
 
-private fun iconForTipo(tipo: TipoDispositivo): ImageVector = when (tipo) {
-    TipoDispositivo.roteador -> Icons.Outlined.Router
-    TipoDispositivo.pontoAcesso -> Icons.Outlined.CellTower
-    TipoDispositivo.computador -> Icons.Outlined.Laptop
-    TipoDispositivo.smartphone -> Icons.Outlined.Smartphone
-    TipoDispositivo.smarthome -> Icons.Outlined.Lightbulb
-    TipoDispositivo.impressora -> Icons.Outlined.Print
-    TipoDispositivo.desconhecido -> Icons.Outlined.DevicesOther
-}
+private fun iconForTipo(tipo: TipoDispositivo): ImageVector =
+    when (tipo) {
+        TipoDispositivo.roteador -> Icons.Outlined.Router
+        TipoDispositivo.pontoAcesso -> Icons.Outlined.CellTower
+        TipoDispositivo.computador -> Icons.Outlined.Laptop
+        TipoDispositivo.smartphone -> Icons.Outlined.Smartphone
+        TipoDispositivo.smarthome -> Icons.Outlined.Lightbulb
+        TipoDispositivo.impressora -> Icons.Outlined.Print
+        TipoDispositivo.desconhecido -> Icons.Outlined.DevicesOther
+    }
 
 @Composable
-private fun iconBgColor(tipo: TipoDispositivo, c: LkTokens): Color = when (tipo) {
-    TipoDispositivo.smartphone -> LkColors.accent.copy(alpha = 0.12f)
-    TipoDispositivo.computador -> LkColors.success.copy(alpha = 0.12f)
-    TipoDispositivo.roteador -> LkColors.accent.copy(alpha = 0.12f)
-    TipoDispositivo.pontoAcesso -> LkColors.success.copy(alpha = 0.12f)
-    TipoDispositivo.smarthome -> LkColors.warning.copy(alpha = 0.12f)
-    else -> c.bgSecondary
-}
+private fun iconBgColor(
+    tipo: TipoDispositivo,
+    c: LkTokens,
+): Color =
+    when (tipo) {
+        TipoDispositivo.smartphone -> LkColors.accent.copy(alpha = 0.12f)
+        TipoDispositivo.computador -> LkColors.success.copy(alpha = 0.12f)
+        TipoDispositivo.roteador -> LkColors.accent.copy(alpha = 0.12f)
+        TipoDispositivo.pontoAcesso -> LkColors.success.copy(alpha = 0.12f)
+        TipoDispositivo.smarthome -> LkColors.warning.copy(alpha = 0.12f)
+        else -> c.bgSecondary
+    }
 
 @Composable
-private fun iconFgColor(tipo: TipoDispositivo, c: LkTokens): Color = when (tipo) {
-    TipoDispositivo.smartphone -> LkColors.accent
-    TipoDispositivo.computador -> LkColors.success
-    TipoDispositivo.roteador -> LkColors.accent
-    TipoDispositivo.pontoAcesso -> LkColors.success
-    TipoDispositivo.smarthome -> LkColors.warning
-    else -> c.textSecondary
-}
+private fun iconFgColor(
+    tipo: TipoDispositivo,
+    c: LkTokens,
+): Color =
+    when (tipo) {
+        TipoDispositivo.smartphone -> LkColors.accent
+        TipoDispositivo.computador -> LkColors.success
+        TipoDispositivo.roteador -> LkColors.accent
+        TipoDispositivo.pontoAcesso -> LkColors.success
+        TipoDispositivo.smarthome -> LkColors.warning
+        else -> c.textSecondary
+    }
 
-private fun tipoLabel(tipo: TipoDispositivo): String = when (tipo) {
-    TipoDispositivo.roteador -> "Roteador / Gateway"
-    TipoDispositivo.pontoAcesso -> "Ponto de Acesso / Mesh"
-    TipoDispositivo.computador -> "Computador"
-    TipoDispositivo.smartphone -> "Celular / Tablet"
-    TipoDispositivo.smarthome -> "Dispositivo inteligente"
-    TipoDispositivo.impressora -> "Impressora"
-    TipoDispositivo.desconhecido -> "Desconhecido"
-}
+private fun tipoLabel(tipo: TipoDispositivo): String =
+    when (tipo) {
+        TipoDispositivo.roteador -> "Roteador / Gateway"
+        TipoDispositivo.pontoAcesso -> "Ponto de Acesso / Mesh"
+        TipoDispositivo.computador -> "Computador"
+        TipoDispositivo.smartphone -> "Celular / Tablet"
+        TipoDispositivo.smarthome -> "Dispositivo inteligente"
+        TipoDispositivo.impressora -> "Impressora"
+        TipoDispositivo.desconhecido -> "Desconhecido"
+    }
 
-private fun fonteNomeLabel(fonte: String) = when (fonte) {
-    "gateway"  -> "Roteador (gateway)"
-    "mdns"     -> "mDNS · Bonjour"
-    "ssdp"     -> "UPnP · SSDP"
-    "nbns"     -> "NetBIOS"
-    "arp"      -> "ARP (varredura)"
-    "tcpProbe" -> "TCP probe"
-    else       -> fonte
-}
+private fun fonteNomeLabel(fonte: String) =
+    when (fonte) {
+        "gateway" -> "Roteador (gateway)"
+        "mdns" -> "mDNS · Bonjour"
+        "ssdp" -> "UPnP · SSDP"
+        "nbns" -> "NetBIOS"
+        "arp" -> "ARP (varredura)"
+        "tcpProbe" -> "TCP probe"
+        else -> fonte
+    }
 
-private fun traduzirErroParaPortugues(erro: String): Pair<String, String> = when {
-    erro.contains("semPermissaoLocalizacao", ignoreCase = true) -> {
-        "Permissão de localização não concedida" to "Acesse as configurações do app para conceder acesso à localização."
+private fun traduzirErroParaPortugues(erro: String): Pair<String, String> =
+    when {
+        erro.contains("semPermissaoLocalizacao", ignoreCase = true) -> {
+            "Permissão de localização não concedida" to "Acesse as configurações do app para conceder acesso à localização."
+        }
+        erro.contains("erroRede", ignoreCase = true) -> {
+            "Erro de conexão de rede" to "Verifique se sua conexão Wi-Fi está estável e tente novamente."
+        }
+        erro.contains("semWifi", ignoreCase = true) -> {
+            "Sem conexão Wi-Fi" to "Conecte-se a uma rede Wi-Fi para escanear dispositivos."
+        }
+        erro.contains("timeout", ignoreCase = true) -> {
+            "Tempo limite excedido" to "O escanear levou muito tempo. Tente novamente."
+        }
+        else -> {
+            "Erro ao escanear" to "Não foi possível escanear a rede. Tente novamente."
+        }
     }
-    erro.contains("erroRede", ignoreCase = true) -> {
-        "Erro de conexão de rede" to "Verifique se sua conexão Wi-Fi está estável e tente novamente."
-    }
-    erro.contains("semWifi", ignoreCase = true) -> {
-        "Sem conexão Wi-Fi" to "Conecte-se a uma rede Wi-Fi para escanear dispositivos."
-    }
-    erro.contains("timeout", ignoreCase = true) -> {
-        "Tempo limite excedido" to "O escanear levou muito tempo. Tente novamente."
-    }
-    else -> {
-        "Erro ao escanear" to "Não foi possível escanear a rede. Tente novamente."
-    }
-}

@@ -52,12 +52,13 @@ fun PulseResultCard(
     val preview = analysis.content.take(120).let { if (analysis.content.length > 120) "$it…" else it }
 
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .clickable { expanded = !expanded }
-            .padding(LkSpacing.lg),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .clickable { expanded = !expanded }
+                .padding(LkSpacing.lg),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

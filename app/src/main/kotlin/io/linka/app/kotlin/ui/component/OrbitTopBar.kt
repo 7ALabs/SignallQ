@@ -28,23 +28,25 @@ private data class OrbitTopBarInfo(
     val isActive: Boolean,
 )
 
-private fun OrbitUiState.toTopBarInfo(): OrbitTopBarInfo = when (this) {
-    is OrbitUiState.Idle -> OrbitTopBarInfo(OrbitState.Idle, "Pronto", false)
-    is OrbitUiState.Collecting -> OrbitTopBarInfo(OrbitState.Collecting, "Medindo...", true)
-    is OrbitUiState.Thinking -> OrbitTopBarInfo(OrbitState.Thinking, "Analisando...", true)
-    is OrbitUiState.Analyzing -> OrbitTopBarInfo(OrbitState.Analyzing, "Consultando IA...", true)
-    is OrbitUiState.AwaitingChipSelection -> OrbitTopBarInfo(OrbitState.AwaitingInput, "Aguardando", false)
-    is OrbitUiState.AwaitingAnswer -> OrbitTopBarInfo(OrbitState.AwaitingInput, "Aguardando", false)
-    is OrbitUiState.Result -> {
-        val state = when (session.diagnosticReport?.decisao?.status) {
-            DiagnosticStatus.critical -> OrbitState.Critical
-            DiagnosticStatus.attention -> OrbitState.Warning
-            else -> OrbitState.Success
+private fun OrbitUiState.toTopBarInfo(): OrbitTopBarInfo =
+    when (this) {
+        is OrbitUiState.Idle -> OrbitTopBarInfo(OrbitState.Idle, "Pronto", false)
+        is OrbitUiState.Collecting -> OrbitTopBarInfo(OrbitState.Collecting, "Medindo...", true)
+        is OrbitUiState.Thinking -> OrbitTopBarInfo(OrbitState.Thinking, "Analisando...", true)
+        is OrbitUiState.Analyzing -> OrbitTopBarInfo(OrbitState.Analyzing, "Consultando IA...", true)
+        is OrbitUiState.AwaitingChipSelection -> OrbitTopBarInfo(OrbitState.AwaitingInput, "Aguardando", false)
+        is OrbitUiState.AwaitingAnswer -> OrbitTopBarInfo(OrbitState.AwaitingInput, "Aguardando", false)
+        is OrbitUiState.Result -> {
+            val state =
+                when (session.diagnosticReport?.decisao?.status) {
+                    DiagnosticStatus.critical -> OrbitState.Critical
+                    DiagnosticStatus.attention -> OrbitState.Warning
+                    else -> OrbitState.Success
+                }
+            OrbitTopBarInfo(state, "Pronto", false)
         }
-        OrbitTopBarInfo(state, "Pronto", false)
+        is OrbitUiState.Erro -> OrbitTopBarInfo(OrbitState.Idle, "Erro", false)
     }
-    is OrbitUiState.Erro -> OrbitTopBarInfo(OrbitState.Idle, "Erro", false)
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,12 +58,13 @@ fun OrbitTopBar(
     val info = uiState.toTopBarInfo()
 
     val statusColor by animateColorAsState(
-        targetValue = when {
-            info.isActive -> LkColors.accent
-            info.statusLabel == "Pronto" -> LkColors.success
-            info.statusLabel == "Erro" -> LkColors.error
-            else -> c.textTertiary
-        },
+        targetValue =
+            when {
+                info.isActive -> LkColors.accent
+                info.statusLabel == "Pronto" -> LkColors.success
+                info.statusLabel == "Erro" -> LkColors.error
+                else -> c.textTertiary
+            },
         animationSpec = tween(400),
         label = "status-color",
     )
@@ -76,7 +79,8 @@ fun OrbitTopBar(
                     state = info.orbitState,
                     size = 18.dp,
                 )
-                androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(LkSpacing.sm))
+                androidx.compose.foundation.layout
+                    .Spacer(modifier = Modifier.size(LkSpacing.sm))
                 Text(
                     text = "Diagnóstico IA",
                     style = MaterialTheme.typography.titleMedium,
@@ -90,7 +94,8 @@ fun OrbitTopBar(
                 style = MaterialTheme.typography.labelMedium,
                 color = statusColor,
             )
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.size(LkSpacing.md))
+            androidx.compose.foundation.layout
+                .Spacer(modifier = Modifier.size(LkSpacing.md))
         },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
     )

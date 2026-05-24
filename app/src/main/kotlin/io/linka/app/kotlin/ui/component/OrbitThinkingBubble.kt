@@ -46,28 +46,31 @@ fun OrbitThinkingBubble(
     val scale1 by transition.animateFloat(
         initialValue = 0.6f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(500, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
         label = "dot1",
     )
     val scale2 by transition.animateFloat(
         initialValue = 0.6f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(500, delayMillis = 167, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(500, delayMillis = 167, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
         label = "dot2",
     )
     val scale3 by transition.animateFloat(
         initialValue = 0.6f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(500, delayMillis = 334, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(500, delayMillis = 334, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
         label = "dot3",
     )
 
@@ -85,10 +88,11 @@ fun OrbitThinkingBubble(
         val tokens = LocalLkTokens.current
         Column {
             Row(
-                modifier = Modifier
-                    .clip(BUBBLE_SHAPE)
-                    .background(tokens.bgSecondary)
-                    .padding(horizontal = LkSpacing.lg, vertical = 12.dp),
+                modifier =
+                    Modifier
+                        .clip(BUBBLE_SHAPE)
+                        .background(tokens.bgSecondary)
+                        .padding(horizontal = LkSpacing.lg, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
             ) {
@@ -115,10 +119,11 @@ fun OrbitThinkingBubble(
 @Composable
 private fun ThinkingDot(scale: Float) {
     Box(
-        modifier = Modifier
-            .scale(scale)
-            .size(8.dp)
-            .clip(CircleShape)
-            .background(LkColors.accent.copy(alpha = 0.7f)),
+        modifier =
+            Modifier
+                .scale(scale)
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(LkColors.accent.copy(alpha = 0.7f)),
     )
 }

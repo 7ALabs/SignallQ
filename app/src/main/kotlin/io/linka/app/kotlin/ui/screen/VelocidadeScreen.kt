@@ -3,9 +3,6 @@ package io.linka.app.kotlin.ui.screen
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.core.tween as tweenSpec
-import androidx.compose.runtime.withFrameMillis
-import kotlinx.coroutines.isActive
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,13 +13,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -36,17 +32,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -54,7 +50,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.linka.app.kotlin.feature.speedtest.EstadoExecucaoSpeedtest
 import io.linka.app.kotlin.feature.speedtest.FaseSpeedtest
-import io.linka.app.kotlin.feature.speedtest.PontoAoVivo
 import io.linka.app.kotlin.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.linka.app.kotlin.ui.IspInfo
 import io.linka.app.kotlin.ui.LkColors
@@ -63,6 +58,8 @@ import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LocalLkTokens
 import io.linka.app.kotlin.ui.component.GaugeCircular
 import io.linka.app.kotlin.ui.component.MiniGrafico
+import kotlinx.coroutines.isActive
+import androidx.compose.animation.core.tween as tweenSpec
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -127,34 +124,38 @@ fun VelocidadeScreen(
                 mensagem = snapshot.erroMensagem,
                 onReiniciar = onReiniciar,
                 onCancelar = onCancelar,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(LkSpacing.xl),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .padding(LkSpacing.xl),
             )
             return@Scaffold
         }
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Linha de servidor
             LinhaServidor(
                 localizacaoServidor = localizacaoServidor,
                 ispInfo = ispInfo,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = LkSpacing.xl),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = LkSpacing.xl),
             )
 
             // Gauge centralizado com peso para ocupar espaço restante
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
                 contentAlignment = Alignment.Center,
             ) {
                 // Suavização do número: 0.25 * target + 0.75 * rendered por frame (~60fps)
@@ -169,10 +170,11 @@ fun VelocidadeScreen(
                     }
                 }
 
-                val velocidadeExibida = when (fase) {
-                    FaseSpeedtest.download, FaseSpeedtest.upload -> renderedMbps
-                    else -> 0f
-                }
+                val velocidadeExibida =
+                    when (fase) {
+                        FaseSpeedtest.download, FaseSpeedtest.upload -> renderedMbps
+                        else -> 0f
+                    }
 
                 GaugeCircular(
                     progressoGlobal = snapshot.progressoGlobal,
@@ -180,13 +182,15 @@ fun VelocidadeScreen(
                     velocidadeMbps = velocidadeExibida,
                     corFase = corFase,
                     unidade = "Mbps",
-                    modifier = Modifier.semantics {
-                        contentDescription = if (velocidadeExibida > 0f) {
-                            "Velocidade atual: ${"%.1f".format(velocidadeExibida)} Mbps"
-                        } else {
-                            "Medindo velocidade"
-                        }
-                    },
+                    modifier =
+                        Modifier.semantics {
+                            contentDescription =
+                                if (velocidadeExibida > 0f) {
+                                    "Velocidade atual: ${"%.1f".format(velocidadeExibida)} Mbps"
+                                } else {
+                                    "Medindo velocidade"
+                                }
+                        },
                 )
             }
 
@@ -197,13 +201,15 @@ fun VelocidadeScreen(
                 exit = fadeOut(),
             ) {
                 val pontosAoVivo = snapshot.pontosAoVivo
-                val dlMedio = remember(pontosAoVivo) {
-                    pontosAoVivo.mapNotNull { it.dl }.average().takeIf { !it.isNaN() }
-                }
+                val dlMedio =
+                    remember(pontosAoVivo) {
+                        pontosAoVivo.mapNotNull { it.dl }.average().takeIf { !it.isNaN() }
+                    }
                 if (dlMedio != null) {
                     Row(
-                        modifier = Modifier
-                            .padding(bottom = LkSpacing.sm),
+                        modifier =
+                            Modifier
+                                .padding(bottom = LkSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center,
                     ) {
@@ -230,9 +236,10 @@ fun VelocidadeScreen(
                 exit = fadeOut(),
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = LkSpacing.xl),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = LkSpacing.xl),
                     contentAlignment = Alignment.Center,
                 ) {
                     MiniGrafico(
@@ -282,10 +289,11 @@ private fun LinhaServidor(
     modifier: Modifier = Modifier,
 ) {
     val c = LocalLkTokens.current
-    val partes = listOfNotNull(
-        localizacaoServidor?.takeIf { it.isNotBlank() && it != "—" },
-        ispInfo?.isp?.takeIf { it.isNotBlank() && it != "—" },
-    )
+    val partes =
+        listOfNotNull(
+            localizacaoServidor?.takeIf { it.isNotBlank() && it != "—" },
+            ispInfo?.isp?.takeIf { it.isNotBlank() && it != "—" },
+        )
     if (partes.isEmpty()) {
         Spacer(Modifier.height(LkSpacing.sm))
         return
@@ -301,13 +309,18 @@ private fun LinhaServidor(
     )
 }
 
-private data class PillConfig(val fase: FaseSpeedtest, val label: String, val ordem: Int)
-
-private val fasePills = listOf(
-    PillConfig(FaseSpeedtest.ping, "LATÊNCIA", 0),
-    PillConfig(FaseSpeedtest.download, "DOWN", 1),
-    PillConfig(FaseSpeedtest.upload, "UP", 2),
+private data class PillConfig(
+    val fase: FaseSpeedtest,
+    val label: String,
+    val ordem: Int,
 )
+
+private val fasePills =
+    listOf(
+        PillConfig(FaseSpeedtest.ping, "LATÊNCIA", 0),
+        PillConfig(FaseSpeedtest.download, "DOWN", 1),
+        PillConfig(FaseSpeedtest.upload, "UP", 2),
+    )
 
 @Composable
 private fun PillsFase(faseAtual: FaseSpeedtest) {
@@ -323,30 +336,33 @@ private fun PillsFase(faseAtual: FaseSpeedtest) {
             val ativo = pill.fase == faseAtual
             val concluido = ordemPill < ordemAtual
 
-            val corBorda = when {
-                concluido -> LkColors.phaseDownload
-                ativo -> corDaFase(faseAtual)
-                else -> c.border
-            }
-            val corTexto = when {
-                concluido -> LkColors.phaseDownload
-                ativo -> corDaFase(faseAtual)
-                else -> c.textTertiary
-            }
-            val bgColor = when {
-                concluido -> LkColors.phaseDownload.copy(alpha = 0.08f)
-                ativo -> corDaFase(faseAtual).copy(alpha = 0.08f)
-                else -> Color.Transparent
-            }
+            val corBorda =
+                when {
+                    concluido -> LkColors.phaseDownload
+                    ativo -> corDaFase(faseAtual)
+                    else -> c.border
+                }
+            val corTexto =
+                when {
+                    concluido -> LkColors.phaseDownload
+                    ativo -> corDaFase(faseAtual)
+                    else -> c.textTertiary
+                }
+            val bgColor =
+                when {
+                    concluido -> LkColors.phaseDownload.copy(alpha = 0.08f)
+                    ativo -> corDaFase(faseAtual).copy(alpha = 0.08f)
+                    else -> Color.Transparent
+                }
 
             Box(
-                modifier = Modifier
-                    .border(
-                        width = 1.dp,
-                        color = corBorda,
-                        shape = RoundedCornerShape(LkRadius.button),
-                    )
-                    .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
+                modifier =
+                    Modifier
+                        .border(
+                            width = 1.dp,
+                            color = corBorda,
+                            shape = RoundedCornerShape(LkRadius.button),
+                        ).padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -404,25 +420,28 @@ private fun ErroContent(
     }
 }
 
-fun corDaFase(fase: FaseSpeedtest): Color = when (fase) {
-    FaseSpeedtest.ping -> LkColors.phaseLatencia
-    FaseSpeedtest.download -> LkColors.phaseDownload
-    FaseSpeedtest.upload -> LkColors.phaseUpload
-    else -> LkColors.accent
-}
+fun corDaFase(fase: FaseSpeedtest): Color =
+    when (fase) {
+        FaseSpeedtest.ping -> LkColors.phaseLatencia
+        FaseSpeedtest.download -> LkColors.phaseDownload
+        FaseSpeedtest.upload -> LkColors.phaseUpload
+        else -> LkColors.accent
+    }
 
-private fun rotuloFase(fase: FaseSpeedtest): String = when (fase) {
-    FaseSpeedtest.ping -> "LATÊNCIA"
-    FaseSpeedtest.download -> "DOWNLOAD"
-    FaseSpeedtest.upload -> "UPLOAD"
-    FaseSpeedtest.concluido -> "CONCLUÍDO"
-    else -> "AGUARDANDO"
-}
+private fun rotuloFase(fase: FaseSpeedtest): String =
+    when (fase) {
+        FaseSpeedtest.ping -> "LATÊNCIA"
+        FaseSpeedtest.download -> "DOWNLOAD"
+        FaseSpeedtest.upload -> "UPLOAD"
+        FaseSpeedtest.concluido -> "CONCLUÍDO"
+        else -> "AGUARDANDO"
+    }
 
-private fun fraseFase(fase: FaseSpeedtest): String = when (fase) {
-    FaseSpeedtest.ping -> "Verificando a resposta do servidor…"
-    FaseSpeedtest.download -> "Medindo a velocidade de download…"
-    FaseSpeedtest.upload -> "Medindo a velocidade de upload…"
-    FaseSpeedtest.concluido -> "Quase pronto…"
-    else -> "Preparando o teste…"
-}
+private fun fraseFase(fase: FaseSpeedtest): String =
+    when (fase) {
+        FaseSpeedtest.ping -> "Verificando a resposta do servidor…"
+        FaseSpeedtest.download -> "Medindo a velocidade de download…"
+        FaseSpeedtest.upload -> "Medindo a velocidade de upload…"
+        FaseSpeedtest.concluido -> "Quase pronto…"
+        else -> "Preparando o teste…"
+    }

@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.linka.app.kotlin.feature.diagnostico.ai.PerguntaContextual
 import io.linka.app.kotlin.feature.diagnostico.pulse.OpcaoResposta
-import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LocalLkTokens
 import io.linka.app.kotlin.ui.component.AiModelFooter
@@ -58,9 +57,10 @@ fun OrbitScreen(
 ) {
     val tokens = LocalLkTokens.current
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(tokens.bgPrimary),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(tokens.bgPrimary),
     ) {
         OrbitTopBar(uiState = uiState)
         OrbitChatContent(
@@ -91,32 +91,45 @@ private fun OrbitChatContent(
     val isError = uiState is OrbitUiState.Erro
     val isAwaitingAnswer = uiState is OrbitUiState.AwaitingAnswer
 
-    val loadingMessage = when (uiState) {
-        is OrbitUiState.Collecting -> uiState.mensagem
-        is OrbitUiState.Thinking -> uiState.mensagem
-        is OrbitUiState.Analyzing -> uiState.mensagem
-        else -> ""
-    }
+    val loadingMessage =
+        when (uiState) {
+            is OrbitUiState.Collecting -> uiState.mensagem
+            is OrbitUiState.Thinking -> uiState.mensagem
+            is OrbitUiState.Analyzing -> uiState.mensagem
+            else -> ""
+        }
 
-    val session = when (uiState) {
-        is OrbitUiState.Analyzing -> uiState.session
-        is OrbitUiState.AwaitingChipSelection -> uiState.session
-        is OrbitUiState.AwaitingAnswer -> uiState.session
-        is OrbitUiState.Result -> uiState.session
-        else -> null
-    }
+    val session =
+        when (uiState) {
+            is OrbitUiState.Analyzing -> uiState.session
+            is OrbitUiState.AwaitingChipSelection -> uiState.session
+            is OrbitUiState.AwaitingAnswer -> uiState.session
+            is OrbitUiState.Result -> uiState.session
+            else -> null
+        }
 
-    val availableChips = when (uiState) {
-        is OrbitUiState.AwaitingChipSelection -> uiState.chips
-        is OrbitUiState.Result -> uiState.availableChips
-        else -> emptyList()
-    }
+    val availableChips =
+        when (uiState) {
+            is OrbitUiState.AwaitingChipSelection -> uiState.chips
+            is OrbitUiState.Result -> uiState.availableChips
+            else -> emptyList()
+        }
 
     val pendingQuestion = (uiState as? OrbitUiState.AwaitingAnswer)?.question
-    val perguntasContextuais = session?.analyses?.lastOrNull()?.fullResult?.perguntasContextuais
-        ?.takeIf { uiState is OrbitUiState.Result }
-        .orEmpty()
-    val modeloIa = session?.analyses?.lastOrNull()?.fullResult?.modeloIa
+    val perguntasContextuais =
+        session
+            ?.analyses
+            ?.lastOrNull()
+            ?.fullResult
+            ?.perguntasContextuais
+            ?.takeIf { uiState is OrbitUiState.Result }
+            .orEmpty()
+    val modeloIa =
+        session
+            ?.analyses
+            ?.lastOrNull()
+            ?.fullResult
+            ?.modeloIa
     val hasChipsFooter = availableChips.isNotEmpty()
     val hasAnyFooter = hasChipsFooter || modeloIa != null
     val chatBottomPadding = if (hasAnyFooter) 176.dp else 112.dp
@@ -124,8 +137,9 @@ private fun OrbitChatContent(
 
     // Auto-scroll when analyses count or loading state changes
     val analysesCount = session?.analyses?.size ?: 0
-    val scrollKey = analysesCount * 10 + (if (isAnalyzing || isLoading) 1 else 0) +
-        (if (isAwaitingAnswer) 2 else 0)
+    val scrollKey =
+        analysesCount * 10 + (if (isAnalyzing || isLoading) 1 else 0) +
+            (if (isAwaitingAnswer) 2 else 0)
     LaunchedEffect(scrollKey) {
         val count = listState.layoutInfo.totalItemsCount
         if (count > 0) listState.animateScrollToItem(count - 1)
@@ -136,12 +150,13 @@ private fun OrbitChatContent(
 
         LazyColumn(
             state = listState,
-            contentPadding = PaddingValues(
-                start = LkSpacing.lg,
-                end = LkSpacing.lg,
-                top = LkSpacing.md,
-                bottom = chatBottomPadding,
-            ),
+            contentPadding =
+                PaddingValues(
+                    start = LkSpacing.lg,
+                    end = LkSpacing.lg,
+                    top = LkSpacing.md,
+                    bottom = chatBottomPadding,
+                ),
             // T2.5: espaçamento zero — cada item controla seu próprio padding vertical
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
@@ -162,9 +177,10 @@ private fun OrbitChatContent(
             item(key = "user_intent") {
                 OrbitUserMessageBubble(
                     text = intentLabel,
-                    modifier = Modifier.animateItem(
-                        fadeInSpec = tween(200, easing = LinearOutSlowInEasing),
-                    ),
+                    modifier =
+                        Modifier.animateItem(
+                            fadeInSpec = tween(200, easing = LinearOutSlowInEasing),
+                        ),
                 )
             }
 
@@ -176,18 +192,20 @@ private fun OrbitChatContent(
                             analysis = analysis,
                             isLatest = !isAnalyzing && idx == s.analyses.lastIndex,
                             session = if (idx == 0) s else null,
-                            modifier = Modifier.animateItem(
-                                fadeInSpec = tween(200, easing = LinearOutSlowInEasing),
-                            ),
+                            modifier =
+                                Modifier.animateItem(
+                                    fadeInSpec = tween(200, easing = LinearOutSlowInEasing),
+                                ),
                         )
                     }
                     s.chipHistory.getOrNull(idx)?.let { userText ->
                         item(key = "user_chip_${idx}_${s.sessionId}") {
                             OrbitUserMessageBubble(
                                 text = userText,
-                                modifier = Modifier.animateItem(
-                                    fadeInSpec = tween(200, easing = LinearOutSlowInEasing),
-                                ),
+                                modifier =
+                                    Modifier.animateItem(
+                                        fadeInSpec = tween(200, easing = LinearOutSlowInEasing),
+                                    ),
                             )
                         }
                     }
@@ -199,9 +217,10 @@ private fun OrbitChatContent(
                 item(key = "thinking") {
                     OrbitThinkingBubble(
                         mensagem = loadingMessage.ifBlank { "Analisando..." },
-                        modifier = Modifier.animateItem(
-                            fadeInSpec = tween(200, easing = LinearOutSlowInEasing),
-                        ),
+                        modifier =
+                            Modifier.animateItem(
+                                fadeInSpec = tween(200, easing = LinearOutSlowInEasing),
+                            ),
                     )
                 }
             }
@@ -262,9 +281,10 @@ private fun OrbitChatContent(
 
         // ── Bottom footer stack ─────────────────────────────────────────────────
         Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth(),
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
         ) {
             AiModelFooter(modeloIa = modeloIa)
             OrbitInputArea(
@@ -291,22 +311,27 @@ private fun OrbitChatContent(
     }
 }
 
-private fun PerguntaContextual.toOpcoes(): List<OpcaoResposta> = opcoes.map { op ->
-    OpcaoResposta(
-        id = "${id}_${op.id}",
-        label = op.rotulo,
-        contextoParaIA = "$pergunta → ${op.rotulo}",
-    )
-}
+private fun PerguntaContextual.toOpcoes(): List<OpcaoResposta> =
+    opcoes.map { op ->
+        OpcaoResposta(
+            id = "${id}_${op.id}",
+            label = op.rotulo,
+            contextoParaIA = "$pergunta → ${op.rotulo}",
+        )
+    }
 
 @Composable
-private fun OrbitErrorCard(mensagem: String, onTentar: () -> Unit) {
+private fun OrbitErrorCard(
+    mensagem: String,
+    onTentar: () -> Unit,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
     ) {
         Text(
             mensagem,

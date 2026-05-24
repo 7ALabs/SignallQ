@@ -12,8 +12,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -26,8 +24,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Analytics
@@ -42,12 +42,12 @@ import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -61,7 +61,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -86,6 +85,7 @@ import io.linka.app.kotlin.ui.LkRadius
 import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
 import io.linka.app.kotlin.ui.LocalLkTokens
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -108,9 +108,10 @@ fun DiagnosticoScreen(
     val c = LocalLkTokens.current
     val scope = rememberCoroutineScope()
 
-    val aiRepository = remember {
-        AiDiagnosisRepository(baseUrl = AI_BASE_URL, isAuthorized = { true })
-    }
+    val aiRepository =
+        remember {
+            AiDiagnosisRepository(baseUrl = AI_BASE_URL, isAuthorized = { true })
+        }
 
     LaunchedEffect(snapshotDiagnostico.estado, analiseSolicitada) {
         if (!analiseSolicitada) return@LaunchedEffect
@@ -160,54 +161,60 @@ fun DiagnosticoScreen(
     ) { padding ->
         val state = resolveScreenState(snapshotDiagnostico, aiState, analiseSolicitada)
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
         ) {
             when (state) {
-                DiagnosticoScreenState.Idle -> DiagnosticoIdleContent(
-                    c = c,
-                    onAnalisar = {
-                        onAnaliseSolicitadaChange(true)
-                        onAiStateChange(AiDiagnosisState.idle)
-                        onIniciarDiagnostico()
-                    },
-                )
+                DiagnosticoScreenState.Idle ->
+                    DiagnosticoIdleContent(
+                        c = c,
+                        onAnalisar = {
+                            onAnaliseSolicitadaChange(true)
+                            onAiStateChange(AiDiagnosisState.idle)
+                            onIniciarDiagnostico()
+                        },
+                    )
 
-                DiagnosticoScreenState.EnginesRodando -> DiagnosticoLoadingContent(
-                    c = c,
-                    isAiPhase = false,
-                )
+                DiagnosticoScreenState.EnginesRodando ->
+                    DiagnosticoLoadingContent(
+                        c = c,
+                        isAiPhase = false,
+                    )
 
-                DiagnosticoScreenState.AiRodando -> DiagnosticoLoadingContent(
-                    c = c,
-                    isAiPhase = true,
-                )
+                DiagnosticoScreenState.AiRodando ->
+                    DiagnosticoLoadingContent(
+                        c = c,
+                        isAiPhase = true,
+                    )
 
-                is DiagnosticoScreenState.Resultado -> DiagnosticoResultadoContent(
-                    c = c,
-                    result = state.result,
-                    isFallback = state.isFallback,
-                    input = snapshotDiagnostico.input,
-                    onReanalisar = {
-                        scope.launch {
-                            val relatorio = snapshotDiagnostico.relatorio ?: return@launch
-                            onAiStateChange(AiDiagnosisState.loading)
-                            val connectionType = snapshotDiagnostico.input?.connectionType ?: ConnectionType.desconhecido
-                            val ctx = DiagnosisAiContextFactory.from(relatorio, snapshotDiagnostico.input, connectionType)
-                            onAiStateChange(aiRepository.explainDiagnosis(ctx) { AiFallbackFactory.fromLocal(relatorio) })
-                        }
-                    },
-                    onAbrirRedes = onAbrirRedes,
-                )
+                is DiagnosticoScreenState.Resultado ->
+                    DiagnosticoResultadoContent(
+                        c = c,
+                        result = state.result,
+                        isFallback = state.isFallback,
+                        input = snapshotDiagnostico.input,
+                        onReanalisar = {
+                            scope.launch {
+                                val relatorio = snapshotDiagnostico.relatorio ?: return@launch
+                                onAiStateChange(AiDiagnosisState.loading)
+                                val connectionType = snapshotDiagnostico.input?.connectionType ?: ConnectionType.desconhecido
+                                val ctx = DiagnosisAiContextFactory.from(relatorio, snapshotDiagnostico.input, connectionType)
+                                onAiStateChange(aiRepository.explainDiagnosis(ctx) { AiFallbackFactory.fromLocal(relatorio) })
+                            }
+                        },
+                        onAbrirRedes = onAbrirRedes,
+                    )
 
-                DiagnosticoScreenState.Erro -> DiagnosticoErroContent(
-                    c = c,
-                    onTentar = {
-                        onAnaliseSolicitadaChange(false)
-                        onAiStateChange(AiDiagnosisState.idle)
-                    },
-                )
+                DiagnosticoScreenState.Erro ->
+                    DiagnosticoErroContent(
+                        c = c,
+                        onTentar = {
+                            onAnaliseSolicitadaChange(false)
+                            onAiStateChange(AiDiagnosisState.idle)
+                        },
+                    )
             }
         }
     }
@@ -222,7 +229,10 @@ private sealed interface DiagnosticoScreenState {
 
     data object AiRodando : DiagnosticoScreenState
 
-    data class Resultado(val result: AiDiagnosisResult, val isFallback: Boolean) : DiagnosticoScreenState
+    data class Resultado(
+        val result: AiDiagnosisResult,
+        val isFallback: Boolean,
+    ) : DiagnosticoScreenState
 
     data object Erro : DiagnosticoScreenState
 }
@@ -248,22 +258,25 @@ private fun DiagnosticoIdleContent(
     c: LkTokens,
     onAnalisar: () -> Unit,
 ) {
-    val gradient = remember {
-        Brush.linearGradient(colors = listOf(LkColors.accent, LkColors.accentBlue))
-    }
+    val gradient =
+        remember {
+            Brush.linearGradient(colors = listOf(LkColors.accent, LkColors.accentBlue))
+        }
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(LkSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.lg),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(gradient)
-                .padding(LkSpacing.xxl),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(LkRadius.card))
+                    .background(gradient)
+                    .padding(LkSpacing.xxl),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -271,10 +284,11 @@ private fun DiagnosticoIdleContent(
                 verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(LkColors.linkaTextOnDark.copy(alpha = 0.18f)),
+                    modifier =
+                        Modifier
+                            .size(80.dp)
+                            .clip(CircleShape)
+                            .background(LkColors.linkaTextOnDark.copy(alpha = 0.18f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -304,11 +318,12 @@ private fun DiagnosticoIdleContent(
         }
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.bgCard)
-                .padding(LkSpacing.lg),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(LkRadius.card))
+                    .background(c.bgCard)
+                    .padding(LkSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
         ) {
             Text(
@@ -329,9 +344,10 @@ private fun DiagnosticoIdleContent(
 
         Button(
             onClick = onAnalisar,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
             shape = RoundedCornerShape(LkRadius.button),
         ) {
@@ -353,7 +369,10 @@ private fun DiagnosticoIdleContent(
 }
 
 @Composable
-private fun DiagnosticoFeatureItem(text: String, c: LkTokens) {
+private fun DiagnosticoFeatureItem(
+    text: String,
+    c: LkTokens,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
@@ -374,11 +393,12 @@ private fun DiagnosticoFeatureItem(text: String, c: LkTokens) {
     }
 }
 
-private val ENGINE_STEPS = listOf(
-    "Coletando velocidade e latência",
-    "Verificando sinal Wi-Fi",
-    "Checando DNS e histórico",
-)
+private val ENGINE_STEPS =
+    listOf(
+        "Coletando velocidade e latência",
+        "Verificando sinal Wi-Fi",
+        "Checando DNS e histórico",
+    )
 
 private enum class StepEstado { Pendente, Ativo, Concluido }
 
@@ -401,9 +421,10 @@ private fun DiagnosticoLoadingContent(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = LkSpacing.xl),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = LkSpacing.xl),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -455,40 +476,45 @@ private fun StepRow(
     )
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = LkSpacing.sm),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = LkSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
         when (estado) {
-            StepEstado.Concluido -> Icon(
-                imageVector = Icons.Outlined.CheckCircle,
-                contentDescription = null,
-                tint = LkColors.success,
-                modifier = Modifier.size(20.dp),
-            )
-            StepEstado.Ativo -> CircularProgressIndicator(
-                color = LkColors.accent,
-                strokeWidth = 2.dp,
-                modifier = Modifier.size(20.dp),
-            )
-            StepEstado.Pendente -> Icon(
-                imageVector = Icons.Outlined.RadioButtonUnchecked,
-                contentDescription = null,
-                tint = c.textTertiary,
-                modifier = Modifier.size(20.dp),
-            )
+            StepEstado.Concluido ->
+                Icon(
+                    imageVector = Icons.Outlined.CheckCircle,
+                    contentDescription = null,
+                    tint = LkColors.success,
+                    modifier = Modifier.size(20.dp),
+                )
+            StepEstado.Ativo ->
+                CircularProgressIndicator(
+                    color = LkColors.accent,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(20.dp),
+                )
+            StepEstado.Pendente ->
+                Icon(
+                    imageVector = Icons.Outlined.RadioButtonUnchecked,
+                    contentDescription = null,
+                    tint = c.textTertiary,
+                    modifier = Modifier.size(20.dp),
+                )
         }
         Text(
             texto,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = if (estado == StepEstado.Ativo) FontWeight.W600 else FontWeight.W400,
-            color = when (estado) {
-                StepEstado.Concluido -> c.textSecondary
-                StepEstado.Ativo -> c.textPrimary.copy(alpha = pulse)
-                StepEstado.Pendente -> c.textTertiary
-            },
+            color =
+                when (estado) {
+                    StepEstado.Concluido -> c.textSecondary
+                    StepEstado.Ativo -> c.textPrimary.copy(alpha = pulse)
+                    StepEstado.Pendente -> c.textTertiary
+                },
         )
     }
 }
@@ -499,9 +525,10 @@ private fun DiagnosticoErroContent(
     onTentar: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = LkSpacing.xl),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = LkSpacing.xl),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -549,18 +576,20 @@ private fun DiagnosticoResultadoContent(
     var analiseExpandida by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(c.bgPrimary),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(c.bgPrimary),
     ) {
         LazyColumn(
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(
-                start = LkSpacing.lg,
-                end = LkSpacing.lg,
-                top = LkSpacing.md,
-                bottom = LkSpacing.lg,
-            ),
+            contentPadding =
+                PaddingValues(
+                    start = LkSpacing.lg,
+                    end = LkSpacing.lg,
+                    top = LkSpacing.md,
+                    bottom = LkSpacing.lg,
+                ),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
         ) {
             // Mensagem do usuário (direita)
@@ -568,17 +597,17 @@ private fun DiagnosticoResultadoContent(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     Text(
                         "Analisar minha conexão",
-                        modifier = Modifier
-                            .clip(
-                                RoundedCornerShape(
-                                    topStart = 18.dp,
-                                    topEnd = 4.dp,
-                                    bottomEnd = 18.dp,
-                                    bottomStart = 18.dp,
-                                )
-                            )
-                            .background(LkColors.accent)
-                            .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
+                        modifier =
+                            Modifier
+                                .clip(
+                                    RoundedCornerShape(
+                                        topStart = 18.dp,
+                                        topEnd = 4.dp,
+                                        bottomEnd = 18.dp,
+                                        bottomStart = 18.dp,
+                                    ),
+                                ).background(LkColors.accent)
+                                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.W500,
                         color = LkColors.linkaTextOnDark,
@@ -600,7 +629,6 @@ private fun DiagnosticoResultadoContent(
                 )
             }
         }
-
     }
 }
 
@@ -617,20 +645,22 @@ private fun AiResultBubble(
 ) {
     val statusColor = statusToColor(result.status, c)
 
-    val bubbleShape = RoundedCornerShape(
-        topStart = 4.dp,
-        topEnd = LkRadius.card,
-        bottomEnd = LkRadius.card,
-        bottomStart = LkRadius.card,
-    )
+    val bubbleShape =
+        RoundedCornerShape(
+            topStart = 4.dp,
+            topEnd = LkRadius.card,
+            bottomEnd = LkRadius.card,
+            bottomStart = LkRadius.card,
+        )
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(bubbleShape)
-            .background(c.bgCard)
-            .border(1.dp, c.border, bubbleShape)
-            .padding(16.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(bubbleShape)
+                .background(c.bgCard)
+                .border(1.dp, c.border, bubbleShape)
+                .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         // Ícone de IA + badge de fallback (quando aplicável)
@@ -640,10 +670,11 @@ private fun AiResultBubble(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(LkColors.accent.copy(alpha = 0.10f)),
+                modifier =
+                    Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(LkColors.accent.copy(alpha = 0.10f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -661,10 +692,11 @@ private fun AiResultBubble(
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(c.textTertiary.copy(alpha = 0.10f))
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(c.textTertiary.copy(alpha = 0.10f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Info,
@@ -699,11 +731,12 @@ private fun AiResultBubble(
         // Header da seção expandível
         HorizontalDivider(color = c.border, thickness = 0.5.dp)
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .clickable { onToggleAnalise() }
-                .padding(vertical = LkSpacing.md),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onToggleAnalise() }
+                    .padding(vertical = LkSpacing.md),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -735,9 +768,10 @@ private fun AiResultBubble(
         }
 
         // Rodapé: modelo de IA
-        val rodape = result.modeloIa.textoRodape
-            .removePrefix("Motor de análise: ")
-            .ifBlank { "Linka IA" }
+        val rodape =
+            result.modeloIa.textoRodape
+                .removePrefix("Motor de análise: ")
+                .ifBlank { "Linka IA" }
         Text(
             rodape,
             style = MaterialTheme.typography.labelMedium,
@@ -765,18 +799,20 @@ private fun MetricsRow(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(100.dp))
-                .background(statusColor.copy(alpha = 0.10f))
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier =
+                Modifier
+                    .clip(RoundedCornerShape(100.dp))
+                    .background(statusColor.copy(alpha = 0.10f))
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .clip(CircleShape)
-                    .background(statusColor),
+                modifier =
+                    Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(statusColor),
             )
             Text(
                 result.status.replaceFirstChar { it.uppercaseChar() },
@@ -833,20 +869,22 @@ private fun ActionsSimpleList(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
-                    modifier = Modifier
-                        .padding(top = 4.dp)
-                        .size(5.dp)
-                        .clip(CircleShape)
-                        .background(LkColors.accent),
+                    modifier =
+                        Modifier
+                            .padding(top = 4.dp)
+                            .size(5.dp)
+                            .clip(CircleShape)
+                            .background(LkColors.accent),
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(acao.titulo, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
                     if (acao.descricao.isNotBlank()) {
                         Text(acao.descricao, style = MaterialTheme.typography.bodySmall, color = c.textSecondary, lineHeight = 17.sp)
                     }
-                    val isRedesAction = acao.titulo.contains("rede", ignoreCase = true) ||
-                        acao.titulo.contains("canal", ignoreCase = true) ||
-                        acao.titulo.contains("Wi-Fi", ignoreCase = true)
+                    val isRedesAction =
+                        acao.titulo.contains("rede", ignoreCase = true) ||
+                            acao.titulo.contains("canal", ignoreCase = true) ||
+                            acao.titulo.contains("Wi-Fi", ignoreCase = true)
                     if (isRedesAction) {
                         TextButton(
                             onClick = onAbrirRedes,
@@ -897,9 +935,10 @@ private fun AnaliseCompletaContent(
                         Icons.Outlined.Info,
                         contentDescription = null,
                         tint = c.textTertiary,
-                        modifier = Modifier
-                            .padding(top = 2.dp)
-                            .size(12.dp),
+                        modifier =
+                            Modifier
+                                .padding(top = 2.dp)
+                                .size(12.dp),
                     )
                     Text(limite, style = MaterialTheme.typography.labelMedium, color = c.textTertiary, lineHeight = 17.sp)
                 }
@@ -937,21 +976,24 @@ private fun AnaliseCompletaContent(
     }
 }
 
-
 // ─── Componentes internos ─────────────────────────────────────────────────────
 
 @Composable
-private fun ConfiancaBarra(confianca: Double, color: Color) {
+private fun ConfiancaBarra(
+    confianca: Double,
+    color: Color,
+) {
     val totalBlocos = 10
     val blocosCheios = (confianca * totalBlocos).toInt().coerceIn(0, totalBlocos)
     Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
         repeat(totalBlocos) { i ->
             Box(
-                modifier = Modifier
-                    .width(14.dp)
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(if (i < blocosCheios) color else color.copy(alpha = 0.15f)),
+                modifier =
+                    Modifier
+                        .width(14.dp)
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(if (i < blocosCheios) color else color.copy(alpha = 0.15f)),
             )
         }
     }
@@ -973,9 +1015,10 @@ private fun EvidenciaItem(
             Icons.Outlined.CheckCircle,
             contentDescription = null,
             tint = LkColors.accent.copy(alpha = 0.6f),
-            modifier = Modifier
-                .padding(top = 2.dp)
-                .size(16.dp),
+            modifier =
+                Modifier
+                    .padding(top = 2.dp)
+                    .size(16.dp),
         )
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(
@@ -997,9 +1040,13 @@ private fun EvidenciaItem(
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-private fun statusToColor(status: String, c: LkTokens): Color = when (status.lowercase()) {
-    "excelente", "bom" -> LkColors.success
-    "regular" -> LkColors.warning
-    "ruim", "critico" -> LkColors.error
-    else -> c.textTertiary
-}
+private fun statusToColor(
+    status: String,
+    c: LkTokens,
+): Color =
+    when (status.lowercase()) {
+        "excelente", "bom" -> LkColors.success
+        "regular" -> LkColors.warning
+        "ruim", "critico" -> LkColors.error
+        else -> c.textTertiary
+    }

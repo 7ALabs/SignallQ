@@ -1,6 +1,7 @@
 package io.linka.app.kotlin.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,7 +15,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,18 +38,20 @@ fun PermissaoLocalizacaoContextoSheet(
 ) {
     val c = LocalLkTokens.current
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg)
-            .navigationBarsPadding(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg)
+                .navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(
-            modifier = Modifier
-                .width(40.dp)
-                .height(4.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(c.border),
+            modifier =
+                Modifier
+                    .width(40.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(c.border),
         )
         Spacer(Modifier.height(24.dp))
         Icon(
@@ -83,7 +85,9 @@ fun PermissaoLocalizacaoContextoSheet(
         Spacer(Modifier.height(LkSpacing.xl))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(LkSpacing.md),
+            horizontalArrangement =
+                androidx.compose.foundation.layout.Arrangement
+                    .spacedBy(LkSpacing.md),
         ) {
             TextButton(
                 onClick = onAgoraNao,

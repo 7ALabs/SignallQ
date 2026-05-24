@@ -67,17 +67,18 @@ data class LkTokens(
     val border: Color,
 )
 
-val LocalLkTokens = staticCompositionLocalOf {
-    LkTokens(
-        bgPrimary = LkColors.Light.bgPrimary,
-        bgSecondary = LkColors.Light.bgSecondary,
-        bgCard = LkColors.Light.bgCard,
-        textPrimary = LkColors.Light.textPrimary,
-        textSecondary = LkColors.Light.textSecondary,
-        textTertiary = LkColors.Light.textTertiary,
-        border = LkColors.Light.border,
-    )
-}
+val LocalLkTokens =
+    staticCompositionLocalOf {
+        LkTokens(
+            bgPrimary = LkColors.Light.bgPrimary,
+            bgSecondary = LkColors.Light.bgSecondary,
+            bgCard = LkColors.Light.bgCard,
+            textPrimary = LkColors.Light.textPrimary,
+            textSecondary = LkColors.Light.textSecondary,
+            textTertiary = LkColors.Light.textTertiary,
+            border = LkColors.Light.border,
+        )
+    }
 
 object LkSpacing {
     val xs: Dp = 4.dp
@@ -95,54 +96,57 @@ object LkRadius {
     val input: Dp = 12.dp
 }
 
-private val lightScheme = lightColorScheme(
-    primary = LkColors.accent,
-    background = LkColors.Light.bgPrimary,
-    surface = LkColors.Light.bgCard,
-    onPrimary = Color.White,
-    onBackground = LkColors.Light.textPrimary,
-    onSurface = LkColors.Light.textPrimary,
-    secondary = LkColors.Light.bgSecondary,
-    outline = LkColors.Light.border,
-)
+private val lightScheme =
+    lightColorScheme(
+        primary = LkColors.accent,
+        background = LkColors.Light.bgPrimary,
+        surface = LkColors.Light.bgCard,
+        onPrimary = Color.White,
+        onBackground = LkColors.Light.textPrimary,
+        onSurface = LkColors.Light.textPrimary,
+        secondary = LkColors.Light.bgSecondary,
+        outline = LkColors.Light.border,
+    )
 
-private val darkScheme = darkColorScheme(
-    primary = LkColors.accent,
-    background = LkColors.Dark.bgPrimary,
-    surface = LkColors.Dark.bgCard,
-    onPrimary = Color.White,
-    onBackground = LkColors.Dark.textPrimary,
-    onSurface = LkColors.Dark.textPrimary,
-    secondary = LkColors.Dark.bgSecondary,
-    outline = LkColors.Dark.border,
-)
+private val darkScheme =
+    darkColorScheme(
+        primary = LkColors.accent,
+        background = LkColors.Dark.bgPrimary,
+        surface = LkColors.Dark.bgCard,
+        onPrimary = Color.White,
+        onBackground = LkColors.Dark.textPrimary,
+        onSurface = LkColors.Dark.textPrimary,
+        secondary = LkColors.Dark.bgSecondary,
+        outline = LkColors.Dark.border,
+    )
 
 @Composable
 fun LinkaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    val tokens = if (darkTheme) {
-        LkTokens(
-            bgPrimary = LkColors.Dark.bgPrimary,
-            bgSecondary = LkColors.Dark.bgSecondary,
-            bgCard = LkColors.Dark.bgCard,
-            textPrimary = LkColors.Dark.textPrimary,
-            textSecondary = LkColors.Dark.textSecondary,
-            textTertiary = LkColors.Dark.textTertiary,
-            border = LkColors.Dark.border,
-        )
-    } else {
-        LkTokens(
-            bgPrimary = LkColors.Light.bgPrimary,
-            bgSecondary = LkColors.Light.bgSecondary,
-            bgCard = LkColors.Light.bgCard,
-            textPrimary = LkColors.Light.textPrimary,
-            textSecondary = LkColors.Light.textSecondary,
-            textTertiary = LkColors.Light.textTertiary,
-            border = LkColors.Light.border,
-        )
-    }
+    val tokens =
+        if (darkTheme) {
+            LkTokens(
+                bgPrimary = LkColors.Dark.bgPrimary,
+                bgSecondary = LkColors.Dark.bgSecondary,
+                bgCard = LkColors.Dark.bgCard,
+                textPrimary = LkColors.Dark.textPrimary,
+                textSecondary = LkColors.Dark.textSecondary,
+                textTertiary = LkColors.Dark.textTertiary,
+                border = LkColors.Dark.border,
+            )
+        } else {
+            LkTokens(
+                bgPrimary = LkColors.Light.bgPrimary,
+                bgSecondary = LkColors.Light.bgSecondary,
+                bgCard = LkColors.Light.bgCard,
+                textPrimary = LkColors.Light.textPrimary,
+                textSecondary = LkColors.Light.textSecondary,
+                textTertiary = LkColors.Light.textTertiary,
+                border = LkColors.Light.border,
+            )
+        }
 
     CompositionLocalProvider(LocalLkTokens provides tokens) {
         MaterialTheme(
@@ -156,18 +160,19 @@ fun LinkaTheme(
 // Escala tipográfica LINKA — Material 3 / WCAG 2.2 AA.
 // Todos os tamanhos em sp para respeitar fontScale do sistema.
 // bodyMedium≥14sp, bodyLarge=16sp (telas principais), botões/labels≥14sp.
-private val linkaTypography = Typography(
-    displayLarge = TextStyle(fontSize = 34.sp, fontWeight = FontWeight.Bold),
-    headlineLarge = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.SemiBold),
-    headlineMedium = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold),
-    headlineSmall = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.SemiBold),
-    titleLarge = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium),
-    titleMedium = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Medium),
-    titleSmall = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
-    bodyLarge = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Normal),
-    bodyMedium = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Normal),
-    bodySmall = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Normal),
-    labelLarge = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
-    labelMedium = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Normal),
-    labelSmall = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Normal),
-)
+private val linkaTypography =
+    Typography(
+        displayLarge = TextStyle(fontSize = 34.sp, fontWeight = FontWeight.Bold),
+        headlineLarge = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.SemiBold),
+        headlineMedium = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold),
+        headlineSmall = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.SemiBold),
+        titleLarge = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium),
+        titleMedium = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Medium),
+        titleSmall = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
+        bodyLarge = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Normal),
+        bodyMedium = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Normal),
+        bodySmall = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Normal),
+        labelLarge = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
+        labelMedium = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Normal),
+        labelSmall = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Normal),
+    )

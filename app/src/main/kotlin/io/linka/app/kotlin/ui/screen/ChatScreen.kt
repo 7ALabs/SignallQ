@@ -90,9 +90,10 @@ fun ChatScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = c.bgPrimary,
-                ),
+                colors =
+                    TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = c.bgPrimary,
+                    ),
             )
         },
     ) { innerPadding ->
@@ -103,9 +104,10 @@ fun ChatScreen(
             onSelecionarChip = onSelecionarChip,
             onResponderPergunta = onResponderPergunta,
             onEnviarMensagemTexto = onEnviarMensagemTexto,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
         )
     }
 }
@@ -128,32 +130,45 @@ private fun ChatContent(
     val isError = uiState is OrbitUiState.Erro
     val isAwaitingAnswer = uiState is OrbitUiState.AwaitingAnswer
 
-    val loadingMessage = when (uiState) {
-        is OrbitUiState.Collecting -> uiState.mensagem
-        is OrbitUiState.Thinking -> uiState.mensagem
-        is OrbitUiState.Analyzing -> uiState.mensagem
-        else -> ""
-    }
+    val loadingMessage =
+        when (uiState) {
+            is OrbitUiState.Collecting -> uiState.mensagem
+            is OrbitUiState.Thinking -> uiState.mensagem
+            is OrbitUiState.Analyzing -> uiState.mensagem
+            else -> ""
+        }
 
-    val session = when (uiState) {
-        is OrbitUiState.Analyzing -> uiState.session
-        is OrbitUiState.AwaitingChipSelection -> uiState.session
-        is OrbitUiState.AwaitingAnswer -> uiState.session
-        is OrbitUiState.Result -> uiState.session
-        else -> null
-    }
+    val session =
+        when (uiState) {
+            is OrbitUiState.Analyzing -> uiState.session
+            is OrbitUiState.AwaitingChipSelection -> uiState.session
+            is OrbitUiState.AwaitingAnswer -> uiState.session
+            is OrbitUiState.Result -> uiState.session
+            else -> null
+        }
 
-    val availableChips = when (uiState) {
-        is OrbitUiState.AwaitingChipSelection -> uiState.chips
-        is OrbitUiState.Result -> uiState.availableChips
-        else -> emptyList()
-    }
+    val availableChips =
+        when (uiState) {
+            is OrbitUiState.AwaitingChipSelection -> uiState.chips
+            is OrbitUiState.Result -> uiState.availableChips
+            else -> emptyList()
+        }
 
     val pendingQuestion = (uiState as? OrbitUiState.AwaitingAnswer)?.question
-    val perguntasContextuais = session?.analyses?.lastOrNull()?.fullResult?.perguntasContextuais
-        ?.takeIf { uiState is OrbitUiState.Result }
-        .orEmpty()
-    val modeloIa = session?.analyses?.lastOrNull()?.fullResult?.modeloIa
+    val perguntasContextuais =
+        session
+            ?.analyses
+            ?.lastOrNull()
+            ?.fullResult
+            ?.perguntasContextuais
+            ?.takeIf { uiState is OrbitUiState.Result }
+            .orEmpty()
+    val modeloIa =
+        session
+            ?.analyses
+            ?.lastOrNull()
+            ?.fullResult
+            ?.modeloIa
     val hasChipsFooter = availableChips.isNotEmpty()
     val hasAnyFooter = hasChipsFooter || modeloIa != null
     val chatBottomPadding = if (hasAnyFooter) 176.dp else 112.dp
@@ -163,37 +178,41 @@ private fun ChatContent(
     val isLimitReached = session?.userTurnCount?.let { it >= 5 } == true
 
     val analysesCount = session?.analyses?.size ?: 0
-    val scrollKey = analysesCount * 10 + (if (isAnalyzing || isLoading) 1 else 0) +
-        (if (isAwaitingAnswer) 2 else 0)
+    val scrollKey =
+        analysesCount * 10 + (if (isAnalyzing || isLoading) 1 else 0) +
+            (if (isAwaitingAnswer) 2 else 0)
     LaunchedEffect(scrollKey) {
         val count = listState.layoutInfo.totalItemsCount
         if (count > 0) listState.animateScrollToItem(count - 1)
     }
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(c.bgPrimary),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(c.bgPrimary),
     ) {
         AppBorderGlowEffect(active = isAnalyzing || isLoading)
 
         LazyColumn(
             state = listState,
-            contentPadding = PaddingValues(
-                start = LkSpacing.lg,
-                end = LkSpacing.lg,
-                top = LkSpacing.md,
-                bottom = chatBottomPadding,
-            ),
+            contentPadding =
+                PaddingValues(
+                    start = LkSpacing.lg,
+                    end = LkSpacing.lg,
+                    top = LkSpacing.md,
+                    bottom = chatBottomPadding,
+                ),
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             // Estado inicial — Thinking/Collecting chega aqui logo após navegar
             if (uiState is OrbitUiState.Idle) {
                 item(key = "idle_hint") {
                     Box(
-                        modifier = Modifier
-                            .fillParentMaxSize()
-                            .padding(horizontal = LkSpacing.lg),
+                        modifier =
+                            Modifier
+                                .fillParentMaxSize()
+                                .padding(horizontal = LkSpacing.lg),
                         contentAlignment = Alignment.Center,
                     ) {
                         OrbitThinkingBubble(mensagem = "Iniciando análise...")
@@ -208,9 +227,10 @@ private fun ChatContent(
             item(key = "user_intent") {
                 OrbitUserMessageBubble(
                     text = intentLabel,
-                    modifier = Modifier
-                        .animateItem(fadeInSpec = tween(200, easing = LinearOutSlowInEasing))
-                        .semantics { contentDescription = "Você: $intentLabel" },
+                    modifier =
+                        Modifier
+                            .animateItem(fadeInSpec = tween(200, easing = LinearOutSlowInEasing))
+                            .semantics { contentDescription = "Você: $intentLabel" },
                 )
             }
 
@@ -223,10 +243,11 @@ private fun ChatContent(
                     if (idx == firstGemmaIdx && hasInsights && firstGemmaIdx > 0) {
                         item(key = "gemma_divider") {
                             HorizontalDivider(
-                                modifier = Modifier.padding(
-                                    vertical = LkSpacing.md,
-                                    horizontal = LkSpacing.lg,
-                                ),
+                                modifier =
+                                    Modifier.padding(
+                                        vertical = LkSpacing.md,
+                                        horizontal = LkSpacing.lg,
+                                    ),
                                 color = c.border.copy(alpha = 0.5f),
                                 thickness = 0.5.dp,
                             )
@@ -238,18 +259,20 @@ private fun ChatContent(
                             isLatest = !isAnalyzing && idx == s.analyses.lastIndex,
                             // Métricas inline só para a primeira entry Gemma (initial analysis)
                             session = if (idx == firstGemmaIdx) s else null,
-                            modifier = Modifier
-                                .animateItem(fadeInSpec = tween(200, easing = LinearOutSlowInEasing))
-                                .semantics { contentDescription = "Assistente: ${analysis.content}" },
+                            modifier =
+                                Modifier
+                                    .animateItem(fadeInSpec = tween(200, easing = LinearOutSlowInEasing))
+                                    .semantics { contentDescription = "Assistente: ${analysis.content}" },
                         )
                     }
                     s.chipHistory.getOrNull(idx)?.let { userText ->
                         item(key = "user_chip_${idx}_${s.sessionId}") {
                             OrbitUserMessageBubble(
                                 text = userText,
-                                modifier = Modifier
-                                    .animateItem(fadeInSpec = tween(200, easing = LinearOutSlowInEasing))
-                                    .semantics { contentDescription = "Você: $userText" },
+                                modifier =
+                                    Modifier
+                                        .animateItem(fadeInSpec = tween(200, easing = LinearOutSlowInEasing))
+                                        .semantics { contentDescription = "Você: $userText" },
                             )
                         }
                     }
@@ -261,9 +284,10 @@ private fun ChatContent(
                 item(key = "thinking") {
                     OrbitThinkingBubble(
                         mensagem = loadingMessage.ifBlank { "Analisando..." },
-                        modifier = Modifier.animateItem(
-                            fadeInSpec = tween(200, easing = LinearOutSlowInEasing),
-                        ),
+                        modifier =
+                            Modifier.animateItem(
+                                fadeInSpec = tween(200, easing = LinearOutSlowInEasing),
+                            ),
                     )
                 }
             }
@@ -324,9 +348,10 @@ private fun ChatContent(
 
         // Footer: modelo + input
         Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth(),
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
         ) {
             AiModelFooter(modeloIa = modeloIa)
             // Contador de turnos: exibe quando >= 3 turnos usados
@@ -335,9 +360,10 @@ private fun ChatContent(
                 val c = LocalLkTokens.current
                 if (isLimitReached) {
                     androidx.compose.foundation.layout.Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = LkSpacing.lg, vertical = 4.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = LkSpacing.lg, vertical = 4.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -348,9 +374,10 @@ private fun ChatContent(
                     }
                 } else {
                     androidx.compose.foundation.layout.Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = LkSpacing.lg, vertical = 4.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = LkSpacing.lg, vertical = 4.dp),
                         contentAlignment = Alignment.CenterEnd,
                     ) {
                         Text(
@@ -380,22 +407,27 @@ private fun ChatContent(
     }
 }
 
-private fun PerguntaContextual.toOpcoes(): List<OpcaoResposta> = opcoes.map { op ->
-    OpcaoResposta(
-        id = "${id}_${op.id}",
-        label = op.rotulo,
-        contextoParaIA = "$pergunta → ${op.rotulo}",
-    )
-}
+private fun PerguntaContextual.toOpcoes(): List<OpcaoResposta> =
+    opcoes.map { op ->
+        OpcaoResposta(
+            id = "${id}_${op.id}",
+            label = op.rotulo,
+            contextoParaIA = "$pergunta → ${op.rotulo}",
+        )
+    }
 
 @Composable
-private fun ChatErrorCard(mensagem: String, onTentar: () -> Unit) {
+private fun ChatErrorCard(
+    mensagem: String,
+    onTentar: () -> Unit,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
     ) {
         Text(
             mensagem,

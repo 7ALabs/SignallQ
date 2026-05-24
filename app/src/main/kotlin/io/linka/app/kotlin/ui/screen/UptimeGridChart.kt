@@ -1,6 +1,5 @@
 package io.linka.app.kotlin.ui.screen
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -39,8 +37,8 @@ import java.util.Locale
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-private const val LINHAS_DIAS = 7      // dias exibidos
-private const val COLUNAS_TEMPO = 48   // blocos de 30min por dia
+private const val LINHAS_DIAS = 7 // dias exibidos
+private const val COLUNAS_TEMPO = 48 // blocos de 30min por dia
 
 // ─── UptimeGridChart ──────────────────────────────────────────────────────────
 
@@ -97,12 +95,13 @@ fun UptimeGridChart(
 
             val labelDia = diasLabels.getOrElse(diaIdx) { "Dia ${diaIdx + 1}" }
 
-            val barCor = when {
-                uptimePct == 100 -> LkColors.success
-                uptimePct >= 95  -> LkColors.success.copy(alpha = 0.7f)
-                uptimePct >= 80  -> LkColors.warning
-                else             -> LkColors.error
-            }
+            val barCor =
+                when {
+                    uptimePct == 100 -> LkColors.success
+                    uptimePct >= 95 -> LkColors.success.copy(alpha = 0.7f)
+                    uptimePct >= 80 -> LkColors.warning
+                    else -> LkColors.error
+                }
             val pctCor = barCor
 
             // Calcular períodos offline
@@ -127,10 +126,11 @@ fun UptimeGridChart(
                     Box(modifier = Modifier.weight(1f)) {
                         LinearProgressIndicator(
                             progress = { uptimePct / 100f },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp)),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(6.dp)
+                                    .clip(RoundedCornerShape(3.dp)),
                             color = barCor,
                             trackColor = c.border.copy(alpha = 0.3f),
                             strokeCap = StrokeCap.Round,
@@ -177,10 +177,11 @@ private fun calcularLabelsDiasCompletos(blocos: List<BlocoUptime>): List<String>
             when {
                 data == hoje -> "Hoje"
                 data == hoje.minusDays(1) -> "Ontem"
-                else -> dt.dayOfWeek
-                    .getDisplayName(TextStyle.SHORT, Locale.forLanguageTag("pt-BR"))
-                    .replaceFirstChar { it.uppercaseChar() }
-                    .take(3)
+                else ->
+                    dt.dayOfWeek
+                        .getDisplayName(TextStyle.SHORT, Locale.forLanguageTag("pt-BR"))
+                        .replaceFirstChar { it.uppercaseChar() }
+                        .take(3)
             }
         } else {
             ""
@@ -197,7 +198,11 @@ private fun calcularResumoOffline(diaBlocos: List<BlocoUptime>): String? {
     if (diaBlocos.isEmpty()) return null
 
     // Encontrar sequências consecutivas de OFFLINE
-    data class Periodo(val inicio: Int, val tamanho: Int, val hora: LocalDateTime?)
+    data class Periodo(
+        val inicio: Int,
+        val tamanho: Int,
+        val hora: LocalDateTime?,
+    )
 
     val periodos = mutableListOf<Periodo>()
     var emPeriodo = false

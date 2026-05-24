@@ -45,11 +45,12 @@ fun OperadoraContactCard(
     val context = LocalContext.current
 
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgSecondary)
-            .padding(LkSpacing.lg),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgSecondary)
+                .padding(LkSpacing.lg),
     ) {
         if (operadora != null) {
             // Estado: operadora reconhecida
@@ -69,9 +70,10 @@ fun OperadoraContactCard(
 
             Button(
                 onClick = {
-                    val intent = Intent(Intent.ACTION_DIAL).apply {
-                        data = Uri.parse("tel:${operadora.sac}")
-                    }
+                    val intent =
+                        Intent(Intent.ACTION_DIAL).apply {
+                            data = Uri.parse("tel:${operadora.sac}")
+                        }
                     context.startActivity(intent)
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -95,9 +97,10 @@ fun OperadoraContactCard(
                 Spacer(Modifier.height(LkSpacing.sm))
                 OutlinedButton(
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://wa.me/55${operadora.whatsapp}")
-                        }
+                        val intent =
+                            Intent(Intent.ACTION_VIEW).apply {
+                                data = Uri.parse("https://wa.me/55${operadora.whatsapp}")
+                            }
                         context.startActivity(intent)
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -138,9 +141,10 @@ fun OperadoraContactCard(
             Spacer(Modifier.height(LkSpacing.md))
             OutlinedButton(
                 onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW).apply {
-                        data = Uri.parse("https://www.anatel.gov.br/consumidor/acessar-central")
-                    }
+                    val intent =
+                        Intent(Intent.ACTION_VIEW).apply {
+                            data = Uri.parse("https://www.anatel.gov.br/consumidor/acessar-central")
+                        }
                     context.startActivity(intent)
                 },
                 modifier = Modifier.fillMaxWidth(),

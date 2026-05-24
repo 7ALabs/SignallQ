@@ -25,11 +25,12 @@ fun SheetDragHandle() {
     ) {
         Spacer(Modifier.height(LkSpacing.sm))
         Box(
-            modifier = Modifier
-                .width(40.dp)
-                .height(4.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(c.border),
+            modifier =
+                Modifier
+                    .width(40.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(c.border),
         )
         Spacer(Modifier.height(LkSpacing.lg))
     }

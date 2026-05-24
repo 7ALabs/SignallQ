@@ -1,5 +1,8 @@
 package io.linka.app.kotlin.ui.screen
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,11 +27,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import android.content.Intent
-import android.net.Uri
-import android.provider.Settings
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.outlined.Cable
@@ -49,22 +48,20 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -79,13 +76,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.linka.app.kotlin.R
@@ -97,9 +94,9 @@ import io.linka.app.kotlin.feature.diagnostico.CanalStrings
 import io.linka.app.kotlin.feature.diagnostico.CanalTextGenerator
 import io.linka.app.kotlin.feature.diagnostico.DadoCanal
 import io.linka.app.kotlin.feature.diagnostico.NivelCongestionamento
+import io.linka.app.kotlin.feature.diagnostico.RedeWifiVizinha
 import io.linka.app.kotlin.feature.diagnostico.SnapshotEspectroCanal
 import io.linka.app.kotlin.feature.diagnostico.WifiChannelDiagnosticEngine
-import io.linka.app.kotlin.feature.diagnostico.RedeWifiVizinha
 import io.linka.app.kotlin.feature.wifi.ConfiancaTopologia
 import io.linka.app.kotlin.feature.wifi.EstadoScanWifi
 import io.linka.app.kotlin.feature.wifi.GrupoRedeWifi
@@ -125,70 +122,84 @@ private data class TopologiaIconData(
     val cor: Color,
 )
 
-private fun TipoTopologia.toIconData(): TopologiaIconData? = when (this) {
-    TipoTopologia.ROTEADOR -> TopologiaIconData(Icons.Outlined.Router, Color(0xFF9CA3AF)) // cinza neutro
-    TipoTopologia.ROTEADOR_MESH -> TopologiaIconData(Icons.Outlined.Hub, LkColors.accent)
-    TipoTopologia.NO_MESH -> TopologiaIconData(Icons.Outlined.Hub, LkColors.accent)
-    TipoTopologia.REPETIDOR -> TopologiaIconData(Icons.Outlined.CellTower, LkColors.warning)
-    TipoTopologia.PONTO_DE_ACESSO -> TopologiaIconData(Icons.Outlined.Lan, Color(0xFF9CA3AF)) // cinza neutro
-    TipoTopologia.DESCONHECIDO -> null
-}
-
-private fun signalQuality(rssiDbm: Int, banda: BandaWifi = BandaWifi.desconhecida): String =
-    when (banda) {
-        BandaWifi.ghz5 -> when {
-            rssiDbm >= -55 -> "Excelente"
-            rssiDbm >= -65 -> "Bom"
-            rssiDbm >= -75 -> "Regular"
-            else -> "Fraco"
-        }
-        else -> when {
-            rssiDbm >= -50 -> "Excelente"
-            rssiDbm >= -60 -> "Bom"
-            rssiDbm >= -70 -> "Regular"
-            else -> "Fraco"
-        }
+private fun TipoTopologia.toIconData(): TopologiaIconData? =
+    when (this) {
+        TipoTopologia.ROTEADOR -> TopologiaIconData(Icons.Outlined.Router, Color(0xFF9CA3AF)) // cinza neutro
+        TipoTopologia.ROTEADOR_MESH -> TopologiaIconData(Icons.Outlined.Hub, LkColors.accent)
+        TipoTopologia.NO_MESH -> TopologiaIconData(Icons.Outlined.Hub, LkColors.accent)
+        TipoTopologia.REPETIDOR -> TopologiaIconData(Icons.Outlined.CellTower, LkColors.warning)
+        TipoTopologia.PONTO_DE_ACESSO -> TopologiaIconData(Icons.Outlined.Lan, Color(0xFF9CA3AF)) // cinza neutro
+        TipoTopologia.DESCONHECIDO -> null
     }
 
-private fun signalColor(rssiDbm: Int, banda: BandaWifi = BandaWifi.desconhecida): Color =
+private fun signalQuality(
+    rssiDbm: Int,
+    banda: BandaWifi = BandaWifi.desconhecida,
+): String =
     when (banda) {
-        BandaWifi.ghz5 -> when {
-            rssiDbm >= -65 -> LkColors.success
-            rssiDbm >= -75 -> LkColors.warning
-            else -> LkColors.error
-        }
-        else -> when {
-            rssiDbm >= -60 -> LkColors.success
-            rssiDbm >= -70 -> LkColors.warning
-            else -> LkColors.error
-        }
+        BandaWifi.ghz5 ->
+            when {
+                rssiDbm >= -55 -> "Excelente"
+                rssiDbm >= -65 -> "Bom"
+                rssiDbm >= -75 -> "Regular"
+                else -> "Fraco"
+            }
+        else ->
+            when {
+                rssiDbm >= -50 -> "Excelente"
+                rssiDbm >= -60 -> "Bom"
+                rssiDbm >= -70 -> "Regular"
+                else -> "Fraco"
+            }
     }
 
-private fun congestionColor(nivel: NivelCongestionamento): Color = when (nivel) {
-    NivelCongestionamento.livre -> LkColors.success
-    NivelCongestionamento.moderado -> LkColors.warning
-    NivelCongestionamento.congestionado -> LkColors.error
-}
+private fun signalColor(
+    rssiDbm: Int,
+    banda: BandaWifi = BandaWifi.desconhecida,
+): Color =
+    when (banda) {
+        BandaWifi.ghz5 ->
+            when {
+                rssiDbm >= -65 -> LkColors.success
+                rssiDbm >= -75 -> LkColors.warning
+                else -> LkColors.error
+            }
+        else ->
+            when {
+                rssiDbm >= -60 -> LkColors.success
+                rssiDbm >= -70 -> LkColors.warning
+                else -> LkColors.error
+            }
+    }
 
-private fun securityLabel(s: SegurancaWifi): String = when (s) {
-    SegurancaWifi.aberta -> "Aberta"
-    SegurancaWifi.wep -> "WEP"
-    SegurancaWifi.wpa -> "WPA"
-    SegurancaWifi.wpa2 -> "WPA2"
-    SegurancaWifi.wpa3 -> "WPA3"
-    SegurancaWifi.desconhecida -> "Desconhecida"
-}
+private fun congestionColor(nivel: NivelCongestionamento): Color =
+    when (nivel) {
+        NivelCongestionamento.livre -> LkColors.success
+        NivelCongestionamento.moderado -> LkColors.warning
+        NivelCongestionamento.congestionado -> LkColors.error
+    }
+
+private fun securityLabel(s: SegurancaWifi): String =
+    when (s) {
+        SegurancaWifi.aberta -> "Aberta"
+        SegurancaWifi.wep -> "WEP"
+        SegurancaWifi.wpa -> "WPA"
+        SegurancaWifi.wpa2 -> "WPA2"
+        SegurancaWifi.wpa3 -> "WPA3"
+        SegurancaWifi.desconhecida -> "Desconhecida"
+    }
 
 // ─── ConexaoTipo ──────────────────────────────────────────────────────────────
 
 private enum class ConexaoTipo { WIFI, MOBILE, CABO, DESCONHECIDO }
 
-private fun EstadoConexao.toConexaoTipo(): ConexaoTipo = when (this) {
-    EstadoConexao.wifi -> ConexaoTipo.WIFI
-    EstadoConexao.movel -> ConexaoTipo.MOBILE
-    EstadoConexao.ethernet -> ConexaoTipo.CABO
-    else -> ConexaoTipo.DESCONHECIDO
-}
+private fun EstadoConexao.toConexaoTipo(): ConexaoTipo =
+    when (this) {
+        EstadoConexao.wifi -> ConexaoTipo.WIFI
+        EstadoConexao.movel -> ConexaoTipo.MOBILE
+        EstadoConexao.ethernet -> ConexaoTipo.CABO
+        else -> ConexaoTipo.DESCONHECIDO
+    }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -240,19 +251,33 @@ fun SinalScreen(
     Scaffold(
         containerColor = c.bgPrimary,
         topBar = {
-            val tituloTopBar = when (conexaoTipo) {
-                ConexaoTipo.MOBILE -> "Sinal Móvel"
-                ConexaoTipo.WIFI -> "Redes Wi-Fi"
-                else -> "Sinal"
-            }
-            val iconeTopBar = when (conexaoTipo) {
-                ConexaoTipo.MOBILE -> Icons.Outlined.SignalCellularAlt
-                else -> Icons.Outlined.Wifi
-            }
+            val tituloTopBar =
+                when (conexaoTipo) {
+                    ConexaoTipo.MOBILE -> "Sinal Móvel"
+                    ConexaoTipo.WIFI -> "Redes Wi-Fi"
+                    else -> "Sinal"
+                }
+            val iconeTopBar =
+                when (conexaoTipo) {
+                    ConexaoTipo.MOBILE -> Icons.Outlined.SignalCellularAlt
+                    else -> Icons.Outlined.Wifi
+                }
             CenterAlignedTopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = iconeTopBar, contentDescription = if (conexaoTipo == ConexaoTipo.MOBILE) "Sinal móvel" else "Sinal Wi-Fi", tint = c.textPrimary, modifier = Modifier.size(18.dp))
+                        Icon(
+                            imageVector = iconeTopBar,
+                            contentDescription =
+                                if (conexaoTipo ==
+                                    ConexaoTipo.MOBILE
+                                ) {
+                                    "Sinal móvel"
+                                } else {
+                                    "Sinal Wi-Fi"
+                                },
+                            tint = c.textPrimary,
+                            modifier = Modifier.size(18.dp),
+                        )
                         Spacer(Modifier.width(LkSpacing.xs))
                         Text(tituloTopBar, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
                     }
@@ -325,28 +350,31 @@ fun SinalScreen(
             }
 
             // Calcular congestionamento do canal atual para badge na tab Canal
-            val canalCongestionado = remember(snapshotWifi.redes, connectedNetwork) {
-                if (connectedNetwork == null) return@remember false
-                val bandaConectada = connectedNetwork.banda ?: return@remember false
-                val redesBanda = snapshotWifi.redes.filter { it.banda == bandaConectada }
-                val espectro = WifiChannelDiagnosticEngine.computarEspectro(
-                    redes = redesBanda.map {
-                        RedeWifiVizinha(
-                            canal = it.canal,
-                            rssiDbm = it.rssiDbm,
-                            frequenciaMhz = it.frequenciaMhz,
-                            ssid = it.ssid,
-                            bssid = it.bssid,
+            val canalCongestionado =
+                remember(snapshotWifi.redes, connectedNetwork) {
+                    if (connectedNetwork == null) return@remember false
+                    val bandaConectada = connectedNetwork.banda ?: return@remember false
+                    val redesBanda = snapshotWifi.redes.filter { it.banda == bandaConectada }
+                    val espectro =
+                        WifiChannelDiagnosticEngine.computarEspectro(
+                            redes =
+                                redesBanda.map {
+                                    RedeWifiVizinha(
+                                        canal = it.canal,
+                                        rssiDbm = it.rssiDbm,
+                                        frequenciaMhz = it.frequenciaMhz,
+                                        ssid = it.ssid,
+                                        bssid = it.bssid,
+                                    )
+                                },
+                            canalAtual = connectedNetwork.canal,
+                            banda = bandaConectada,
+                            seuSSID = connectedNetwork.ssid,
                         )
-                    },
-                    canalAtual = connectedNetwork.canal,
-                    banda = bandaConectada,
-                    seuSSID = connectedNetwork.ssid,
-                )
-                espectro.dadosPorCanal
-                    .firstOrNull { it.ehCanalAtual }
-                    ?.nivel == NivelCongestionamento.congestionado
-            }
+                    espectro.dadosPorCanal
+                        .firstOrNull { it.ehCanalAtual }
+                        ?.nivel == NivelCongestionamento.congestionado
+                }
 
             TabRow(
                 selectedTabIndex = selectedTab,
@@ -378,20 +406,22 @@ fun SinalScreen(
                 }
             }
             when (selectedTab) {
-                0 -> RedesTab(
-                    snapshotWifi = snapshotWifi,
-                    connectedNetwork = connectedNetwork,
-                    onRefresh = onRefresh,
-                    wifiLinkSnapshot = wifiLinkSnapshot,
-                )
-                else -> CanalTab(
-                    redes = snapshotWifi.redes,
-                    connectedNetwork = connectedNetwork,
-                    estado = snapshotWifi.estado,
-                    erroMensagem = snapshotWifi.erroMensagem,
-                    onRefresh = onRefresh,
-                    wifiLinkSnapshot = wifiLinkSnapshot,
-                )
+                0 ->
+                    RedesTab(
+                        snapshotWifi = snapshotWifi,
+                        connectedNetwork = connectedNetwork,
+                        onRefresh = onRefresh,
+                        wifiLinkSnapshot = wifiLinkSnapshot,
+                    )
+                else ->
+                    CanalTab(
+                        redes = snapshotWifi.redes,
+                        connectedNetwork = connectedNetwork,
+                        estado = snapshotWifi.estado,
+                        erroMensagem = snapshotWifi.erroMensagem,
+                        onRefresh = onRefresh,
+                        wifiLinkSnapshot = wifiLinkSnapshot,
+                    )
             }
         }
     }
@@ -455,64 +485,74 @@ private fun RedesTab(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val isRefreshing = snapshotWifi.estado == EstadoScanWifi.scanning
 
-    val filteredRedes = remember(snapshotWifi.redes, selectedBanda) {
-        if (selectedBanda == "Todos") snapshotWifi.redes
-        else snapshotWifi.redes.filter { it.banda == selectedBanda }
-    }
-    val showConnected = remember(selectedBanda, connectedNetwork) {
-        connectedNetwork != null && (selectedBanda == "Todos" || connectedNetwork.banda == selectedBanda)
-    }
+    val filteredRedes =
+        remember(snapshotWifi.redes, selectedBanda) {
+            if (selectedBanda == "Todos") {
+                snapshotWifi.redes
+            } else {
+                snapshotWifi.redes.filter { it.banda == selectedBanda }
+            }
+        }
+    val showConnected =
+        remember(selectedBanda, connectedNetwork) {
+            connectedNetwork != null && (selectedBanda == "Todos" || connectedNetwork.banda == selectedBanda)
+        }
 
     // Classificação de topologia para todas as redes visíveis
-    val topologiaPorBssid = remember(snapshotWifi.redes, connectedNetwork) {
-        val classificadas = TopologiaWifiEngine.classificar(
-            redes = snapshotWifi.redes,
-            connectedBssid = connectedNetwork?.bssid,
-        )
-        classificadas.associate { it.rede.bssid to it.tipo }
-    }
+    val topologiaPorBssid =
+        remember(snapshotWifi.redes, connectedNetwork) {
+            val classificadas =
+                TopologiaWifiEngine.classificar(
+                    redes = snapshotWifi.redes,
+                    connectedBssid = connectedNetwork?.bssid,
+                )
+            classificadas.associate { it.rede.bssid to it.tipo }
+        }
 
     // Nós da mesma rede: conectado na frente + mesmo SSID ordenado por sinal
-    val grupoNos = remember(filteredRedes, connectedNetwork) {
-        if (connectedNetwork == null) return@remember emptyList()
-        buildList {
-            add(connectedNetwork)
-            addAll(
-                filteredRedes
-                    .filter { it.bssid != connectedNetwork.bssid && it.ssid != null && it.ssid == connectedNetwork.ssid }
-                    .sortedByDescending { it.rssiDbm },
-            )
-        }
-    }
-
-    // Redes de outros SSIDs (exclui nós da mesma rede) — classificadas e agrupadas por SSID
-    val otherClassificadas = remember(filteredRedes, connectedNetwork, filteredRedes.size) {
-        val connSsid = connectedNetwork?.ssid
-        val filtered = filteredRedes
-            .filter { it.bssid != connectedNetwork?.bssid }
-            .filter { rede -> connSsid == null || rede.ssid == null || rede.ssid != connSsid }
-
-        // Classificar cada rede com TopologiaWifiEngine
-        val classificadas = filtered.map { rede ->
-            RedeClassificada(
-                rede = rede,
-                tipo = TipoTopologia.DESCONHECIDO, // TODO: integrar com TopologiaWifiEngine se necessário
-                confianca = ConfiancaTopologia.BAIXA,
-                motivo = ""
-            )
-        }
-
-        // Agrupar por SSID (SSIDs nulos vão para "[Ocultas]")
-        classificadas
-            .groupBy { it.rede.ssid ?: "[Ocultas]" }
-            .map { (ssid, redes) ->
-                GrupoRedeWifi(
-                    ssid = ssid,
-                    redes = redes.sortedByDescending { it.rede.rssiDbm }
+    val grupoNos =
+        remember(filteredRedes, connectedNetwork) {
+            if (connectedNetwork == null) return@remember emptyList()
+            buildList {
+                add(connectedNetwork)
+                addAll(
+                    filteredRedes
+                        .filter { it.bssid != connectedNetwork.bssid && it.ssid != null && it.ssid == connectedNetwork.ssid }
+                        .sortedByDescending { it.rssiDbm },
                 )
             }
-            .sortedByDescending { grupo -> grupo.redes.maxOfOrNull { it.rede.rssiDbm } ?: Int.MIN_VALUE }
-    }
+        }
+
+    // Redes de outros SSIDs (exclui nós da mesma rede) — classificadas e agrupadas por SSID
+    val otherClassificadas =
+        remember(filteredRedes, connectedNetwork, filteredRedes.size) {
+            val connSsid = connectedNetwork?.ssid
+            val filtered =
+                filteredRedes
+                    .filter { it.bssid != connectedNetwork?.bssid }
+                    .filter { rede -> connSsid == null || rede.ssid == null || rede.ssid != connSsid }
+
+            // Classificar cada rede com TopologiaWifiEngine
+            val classificadas =
+                filtered.map { rede ->
+                    RedeClassificada(
+                        rede = rede,
+                        tipo = TipoTopologia.DESCONHECIDO, // TODO: integrar com TopologiaWifiEngine se necessário
+                        confianca = ConfiancaTopologia.BAIXA,
+                        motivo = "",
+                    )
+                }
+
+            // Agrupar por SSID (SSIDs nulos vão para "[Ocultas]")
+            classificadas
+                .groupBy { it.rede.ssid ?: "[Ocultas]" }
+                .map { (ssid, redes) ->
+                    GrupoRedeWifi(
+                        ssid = ssid,
+                        redes = redes.sortedByDescending { it.rede.rssiDbm },
+                    )
+                }.sortedByDescending { grupo -> grupo.redes.maxOfOrNull { it.rede.rssiDbm } ?: Int.MIN_VALUE }
+        }
 
     // Estado para expandir/colapsar SSIDs com múltiplos BSSIDs
     var expandedSsids by remember { mutableStateOf(setOf<String>()) }
@@ -538,7 +578,12 @@ private fun RedesTab(
                     ) {
                         Icon(Icons.Outlined.WifiFind, null, tint = LkColors.error, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(LkSpacing.sm))
-                        Text(msg ?: "Erro ao escanear redes", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Normal, color = LkColors.error)
+                        Text(
+                            msg ?: "Erro ao escanear redes",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Normal,
+                            color = LkColors.error,
+                        )
                     }
                 }
             }
@@ -582,11 +627,12 @@ private fun RedesTab(
                         grupo = grupo,
                         isExpanded = expandedSsids.contains(grupo.ssid),
                         onToggleExpanded = {
-                            expandedSsids = if (expandedSsids.contains(grupo.ssid)) {
-                                expandedSsids - grupo.ssid
-                            } else {
-                                expandedSsids + grupo.ssid
-                            }
+                            expandedSsids =
+                                if (expandedSsids.contains(grupo.ssid)) {
+                                    expandedSsids - grupo.ssid
+                                } else {
+                                    expandedSsids + grupo.ssid
+                                }
                         },
                         onNetworkClick = { rede -> selectedNetwork = rede },
                         topologiaPorBssid = topologiaPorBssid,
@@ -630,7 +676,10 @@ private fun RedesTab(
 }
 
 @Composable
-private fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+private fun SectionLabel(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
     val c = LocalLkTokens.current
     Text(text, modifier = modifier, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.W600, color = c.textTertiary, letterSpacing = 0.8.sp)
 }
@@ -650,12 +699,13 @@ private fun BandFilterRow(
         bands.forEach { band ->
             val active = selected == band
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(if (active) LkColors.accent.copy(alpha = 0.12f) else c.bgSecondary)
-                    .minimumInteractiveComponentSize()
-                    .clickable { onSelect(band) }
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(if (active) LkColors.accent.copy(alpha = 0.12f) else c.bgSecondary)
+                        .minimumInteractiveComponentSize()
+                        .clickable { onSelect(band) }
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -683,11 +733,12 @@ private fun GrupoRedeTree(
 ) {
     val c = LocalLkTokens.current
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .padding(LkSpacing.md),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .padding(LkSpacing.md),
     ) {
         // Raiz: SSID da rede
         Row(
@@ -695,10 +746,11 @@ private fun GrupoRedeTree(
             modifier = Modifier.padding(horizontal = LkSpacing.sm, vertical = LkSpacing.sm),
         ) {
             Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(LkColors.accent.copy(alpha = 0.12f)),
+                modifier =
+                    Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(LkColors.accent.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(Icons.Outlined.Wifi, null, tint = LkColors.accent, modifier = Modifier.size(18.dp))
@@ -711,12 +763,20 @@ private fun GrupoRedeTree(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
                     ) {
-                        Text(ssid, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.W600, color = c.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(
+                            ssid,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.W600,
+                            color = c.textPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                         Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(LkColors.success.copy(alpha = 0.15f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                            modifier =
+                                Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(LkColors.success.copy(alpha = 0.15f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp),
                         ) {
                             Text(
                                 text = "Conectado",
@@ -727,7 +787,14 @@ private fun GrupoRedeTree(
                         }
                     }
                 } else {
-                    Text(ssid, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.W600, color = c.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        ssid,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.W600,
+                        color = c.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
                 val count = nos.size
                 Text(
@@ -745,11 +812,12 @@ private fun GrupoRedeTree(
             val isConnected = no.bssid == connectedBssid
             NoTreeItem(
                 rede = no,
-                label = when {
-                    isConnected -> "Conectado agora"
-                    index == 0 -> "Gateway"
-                    else -> "Nó #$index"
-                },
+                label =
+                    when {
+                        isConnected -> "Conectado agora"
+                        index == 0 -> "Gateway"
+                        else -> "Nó #$index"
+                    },
                 isConnected = isConnected,
                 isLast = index == nos.size - 1,
                 onClick = { onNoClick(no) },
@@ -785,9 +853,10 @@ private fun NoTreeItem(
     val lineColor = c.border
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Conector da árvore: linha vertical + ramificação horizontal
@@ -801,20 +870,22 @@ private fun NoTreeItem(
 
         // Card do nó
         Row(
-            modifier = Modifier
-                .weight(1f)
-                .padding(top = 4.dp, bottom = 4.dp, end = LkSpacing.sm)
-                .clip(RoundedCornerShape(8.dp))
-                .background(if (isConnected) LkColors.accent.copy(alpha = 0.12f) else Color.Transparent)
-                .minimumInteractiveComponentSize()
-            .clickable(onClick = onClick)
-                .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.sm),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .padding(top = 4.dp, bottom = 4.dp, end = LkSpacing.sm)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (isConnected) LkColors.accent.copy(alpha = 0.12f) else Color.Transparent)
+                    .minimumInteractiveComponentSize()
+                    .clickable(onClick = onClick)
+                    .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val bandaVizinha = when {
-                rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
-                else -> BandaWifi.ghz5
-            }
+            val bandaVizinha =
+                when {
+                    rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
+                    else -> BandaWifi.ghz5
+                }
             Icon(
                 imageVector = Icons.Outlined.Wifi,
                 contentDescription = null,
@@ -841,10 +912,11 @@ private fun NoTreeItem(
                     if (isConnected) {
                         Spacer(Modifier.width(LkSpacing.sm))
                         Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(LkColors.success.copy(alpha = 0.2f))
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            modifier =
+                                Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(LkColors.success.copy(alpha = 0.2f))
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
                         ) {
                             Text("✓ Conectado", fontSize = 12.sp, fontWeight = FontWeight.W600, color = LkColors.success)
                         }
@@ -866,10 +938,11 @@ private fun NoTreeItem(
                     Text(signalQuality(rede.rssiDbm, bandaVizinha), style = MaterialTheme.typography.bodySmall, color = signalColor(rede.rssiDbm, bandaVizinha))
                 }
                 if (wifiLinkSnapshot != null) {
-                    val parts = listOfNotNull(
-                        wifiLinkSnapshot.padraoWifi?.takeIf { it.isNotBlank() },
-                        wifiLinkSnapshot.linkSpeedMbps?.let { "$it Mbps" },
-                    )
+                    val parts =
+                        listOfNotNull(
+                            wifiLinkSnapshot.padraoWifi?.takeIf { it.isNotBlank() },
+                            wifiLinkSnapshot.linkSpeedMbps?.let { "$it Mbps" },
+                        )
                     val infoText = parts.joinToString(" · ")
                     if (infoText.isNotEmpty()) {
                         Text(infoText, style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
@@ -901,11 +974,12 @@ private fun OtherNetworkGroupItem(
             val redeClass = grupo.redes[0]
             val rede = redeClass.rede
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .minimumInteractiveComponentSize()
-                    .clickable { onNetworkClick(rede) }
-                    .padding(vertical = 12.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .minimumInteractiveComponentSize()
+                        .clickable { onNetworkClick(rede) }
+                        .padding(vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Outlined.Wifi, null, tint = c.textSecondary, modifier = Modifier.size(22.dp))
@@ -918,7 +992,7 @@ private fun OtherNetworkGroupItem(
                             color = c.textPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
+                            modifier = Modifier.weight(1f, fill = false),
                         )
                         val topologiaIcon = redeClass.tipo.toIconData()
                         if (topologiaIcon != null) {
@@ -941,20 +1015,22 @@ private fun OtherNetworkGroupItem(
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(Modifier.width(LkSpacing.sm))
-                val banda = when {
-                    rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
-                    else -> BandaWifi.ghz5
-                }
+                val banda =
+                    when {
+                        rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
+                        else -> BandaWifi.ghz5
+                    }
                 SignalBars(rssiDbm = rede.rssiDbm, banda = banda)
             }
         } else {
             // Multi-BSSID: cabeçalho com chevron expansível
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .minimumInteractiveComponentSize()
-                    .clickable { onToggleExpanded() }
-                    .padding(vertical = 12.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .minimumInteractiveComponentSize()
+                        .clickable { onToggleExpanded() }
+                        .padding(vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(Icons.Outlined.Wifi, null, tint = c.textSecondary, modifier = Modifier.size(22.dp))
@@ -967,7 +1043,7 @@ private fun OtherNetworkGroupItem(
                             color = c.textPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
+                            modifier = Modifier.weight(1f, fill = false),
                         )
                         Spacer(Modifier.width(LkSpacing.xs))
                         Text(
@@ -976,11 +1052,16 @@ private fun OtherNetworkGroupItem(
                             color = c.textTertiary,
                         )
                     }
-                    val bestSignal = grupo.redes.maxByOrNull { it.rede.rssiDbm }?.rede?.rssiDbm ?: 0
-                    val banda = when {
-                        grupo.redes.any { it.rede.frequenciaMhz < 3000 } -> "2.4GHz"
-                        else -> "5GHz"
-                    }
+                    val bestSignal =
+                        grupo.redes
+                            .maxByOrNull { it.rede.rssiDbm }
+                            ?.rede
+                            ?.rssiDbm ?: 0
+                    val banda =
+                        when {
+                            grupo.redes.any { it.rede.frequenciaMhz < 3000 } -> "2.4GHz"
+                            else -> "5GHz"
+                        }
                     Text(banda, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
                 }
                 Spacer(Modifier.width(LkSpacing.sm))
@@ -991,32 +1072,36 @@ private fun OtherNetworkGroupItem(
                     modifier = Modifier.size(24.dp),
                 )
                 Spacer(Modifier.width(LkSpacing.sm))
-                val bestBanda = when {
-                    grupo.redes.any { it.rede.frequenciaMhz < 3000 } -> BandaWifi.ghz24
-                    else -> BandaWifi.ghz5
-                }
+                val bestBanda =
+                    when {
+                        grupo.redes.any { it.rede.frequenciaMhz < 3000 } -> BandaWifi.ghz24
+                        else -> BandaWifi.ghz5
+                    }
                 SignalBars(rssiDbm = grupo.redes.maxOfOrNull { it.rede.rssiDbm } ?: 0, banda = bestBanda)
             }
 
             // Expandido: lista de nós
             if (isExpanded) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = LkSpacing.lg, top = LkSpacing.sm, bottom = LkSpacing.sm),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(start = LkSpacing.lg, top = LkSpacing.sm, bottom = LkSpacing.sm),
                 ) {
                     grupo.redes.forEach { redeClass ->
                         val rede = redeClass.rede
-                        val banda = when {
-                            rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
-                            else -> BandaWifi.ghz5
-                        }
+                        val banda =
+                            when {
+                                rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
+                                else -> BandaWifi.ghz5
+                            }
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .minimumInteractiveComponentSize()
-                                .clickable { onNetworkClick(rede) }
-                                .padding(vertical = 8.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .minimumInteractiveComponentSize()
+                                    .clickable { onNetworkClick(rede) }
+                                    .padding(vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             val topologiaIcon = redeClass.tipo.toIconData()
@@ -1043,7 +1128,7 @@ private fun OtherNetworkGroupItem(
                                 Text(
                                     signalQuality(rede.rssiDbm, banda),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = signalColor(rede.rssiDbm, banda)
+                                    color = signalColor(rede.rssiDbm, banda),
                                 )
                             }
                             Spacer(Modifier.width(LkSpacing.sm))
@@ -1067,18 +1152,26 @@ private fun NetworkListItem(
     val ssid = rede.ssid
     val isOpen = rede.seguranca == SegurancaWifi.aberta
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .minimumInteractiveComponentSize()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .minimumInteractiveComponentSize()
+                .clickable(onClick = onClick)
+                .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.Outlined.Wifi, null, tint = c.textSecondary, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(LkSpacing.md))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(ssid ?: "Rede oculta", fontWeight = FontWeight.W500, color = c.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                Text(
+                    ssid ?: "Rede oculta",
+                    fontWeight = FontWeight.W500,
+                    color = c.textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
                 val topologiaIcon = tipoTopologia?.toIconData()
                 if (topologiaIcon != null) {
                     Spacer(Modifier.width(LkSpacing.xs))
@@ -1100,22 +1193,27 @@ private fun NetworkListItem(
             modifier = Modifier.size(16.dp),
         )
         Spacer(Modifier.width(LkSpacing.sm))
-        val bandaNetworkListItem = when {
-            rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
-            else -> BandaWifi.ghz5
-        }
+        val bandaNetworkListItem =
+            when {
+                rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
+                else -> BandaWifi.ghz5
+            }
         SignalBars(rssiDbm = rede.rssiDbm, banda = bandaNetworkListItem)
     }
 }
 
 @Composable
-private fun SignalBars(rssiDbm: Int, banda: BandaWifi = BandaWifi.desconhecida) {
-    val bars = when {
-        rssiDbm >= -50 -> 4
-        rssiDbm >= -60 -> 3
-        rssiDbm >= -70 -> 2
-        else -> 1
-    }
+private fun SignalBars(
+    rssiDbm: Int,
+    banda: BandaWifi = BandaWifi.desconhecida,
+) {
+    val bars =
+        when {
+            rssiDbm >= -50 -> 4
+            rssiDbm >= -60 -> 3
+            rssiDbm >= -70 -> 2
+            else -> 1
+        }
     val color = signalColor(rssiDbm, banda)
     val c = LocalLkTokens.current
     Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.Bottom) {
@@ -1153,11 +1251,12 @@ private fun EmptyStateBandaVazia(
     val c = LocalLkTokens.current
     val totalOutras = redesPorFaixa.values.sumOf { it.size }
     val targetBanda = if (redesPorFaixa.size == 1) redesPorFaixa.keys.first() else "Todos"
-    val subtitulo = if (redesPorFaixa.size == 1) {
-        stringResource(R.string.sinal_redes_em_faixa, totalOutras, redesPorFaixa.keys.first())
-    } else {
-        stringResource(R.string.sinal_redes_em_outras_faixas, totalOutras)
-    }
+    val subtitulo =
+        if (redesPorFaixa.size == 1) {
+            stringResource(R.string.sinal_redes_em_faixa, totalOutras, redesPorFaixa.keys.first())
+        } else {
+            stringResource(R.string.sinal_redes_em_outras_faixas, totalOutras)
+        }
 
     Box(Modifier.fillMaxWidth().padding(vertical = 80.dp), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -1177,12 +1276,13 @@ private fun EmptyStateBandaVazia(
             )
             Spacer(Modifier.height(LkSpacing.md))
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(LkColors.accent.copy(alpha = 0.12f))
-                    .minimumInteractiveComponentSize()
-                    .clickable { onTrocarFaixa(targetBanda) }
-                    .padding(horizontal = 20.dp, vertical = 10.dp),
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(LkColors.accent.copy(alpha = 0.12f))
+                        .minimumInteractiveComponentSize()
+                        .clickable { onTrocarFaixa(targetBanda) }
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -1227,10 +1327,11 @@ private fun NetworkDetailSheet(rede: RedeVizinha) {
         }
         Spacer(Modifier.height(LkSpacing.xl))
 
-        val bandaDetail = when {
-            rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
-            else -> BandaWifi.ghz5
-        }
+        val bandaDetail =
+            when {
+                rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
+                else -> BandaWifi.ghz5
+            }
         DetailRow("Sinal", "${rede.rssiDbm} dBm — ${signalQuality(rede.rssiDbm, bandaDetail)}", valueColor = signalColor(rede.rssiDbm, bandaDetail))
         HorizontalDivider(color = c.border, modifier = Modifier.padding(vertical = LkSpacing.sm))
         DetailRow("Banda", rede.banda)
@@ -1251,7 +1352,11 @@ private fun NetworkDetailSheet(rede: RedeVizinha) {
 }
 
 @Composable
-private fun DetailRow(label: String, value: String, valueColor: Color? = null) {
+private fun DetailRow(
+    label: String,
+    value: String,
+    valueColor: Color? = null,
+) {
     val c = LocalLkTokens.current
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
@@ -1284,64 +1389,74 @@ private fun CanalTab(
     var selectedCanal by remember { mutableStateOf<Int?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val bandaCounts = remember(redes) {
-        mapOf(
-            "2.4GHz" to redes.count { it.banda == "2.4GHz" },
-            "5GHz" to redes.count { it.banda == "5GHz" },
-            "6GHz" to redes.count { it.banda == "6GHz" },
-        )
-    }
+    val bandaCounts =
+        remember(redes) {
+            mapOf(
+                "2.4GHz" to redes.count { it.banda == "2.4GHz" },
+                "5GHz" to redes.count { it.banda == "5GHz" },
+                "6GHz" to redes.count { it.banda == "6GHz" },
+            )
+        }
     val redesBanda = remember(redes, selectedBanda) { redes.filter { it.banda == selectedBanda } }
     val canalAtual = remember(connectedNetwork) { connectedNetwork?.canal }
-    val espectro = remember(redesBanda, canalAtual, selectedBanda, connectedNetwork) {
-        WifiChannelDiagnosticEngine.computarEspectro(
-            redes = redesBanda.map {
-                RedeWifiVizinha(
-                    canal = it.canal,
-                    rssiDbm = it.rssiDbm,
-                    frequenciaMhz = it.frequenciaMhz,
-                    ssid = it.ssid,
-                    bssid = it.bssid,
-                )
-            },
-            canalAtual = canalAtual,
-            banda = selectedBanda,
-            seuSSID = connectedNetwork?.ssid,
-        )
-    }
-    val canalOrdenados = remember(espectro) {
-        val dados = espectro.dadosPorCanal
-        val recomendado = dados.filter { it.ehCanalRecomendado }
-        val atual = dados.filter { it.ehCanalAtual && !it.ehCanalRecomendado }
-        val resto = dados.filter { !it.ehCanalAtual && !it.ehCanalRecomendado }
-            .sortedWith(compareBy<DadoCanal> { it.nivel.ordinal }.thenBy { it.count })
-        recomendado + atual + resto
-    }
+    val espectro =
+        remember(redesBanda, canalAtual, selectedBanda, connectedNetwork) {
+            WifiChannelDiagnosticEngine.computarEspectro(
+                redes =
+                    redesBanda.map {
+                        RedeWifiVizinha(
+                            canal = it.canal,
+                            rssiDbm = it.rssiDbm,
+                            frequenciaMhz = it.frequenciaMhz,
+                            ssid = it.ssid,
+                            bssid = it.bssid,
+                        )
+                    },
+                canalAtual = canalAtual,
+                banda = selectedBanda,
+                seuSSID = connectedNetwork?.ssid,
+            )
+        }
+    val canalOrdenados =
+        remember(espectro) {
+            val dados = espectro.dadosPorCanal
+            val recomendado = dados.filter { it.ehCanalRecomendado }
+            val atual = dados.filter { it.ehCanalAtual && !it.ehCanalRecomendado }
+            val resto =
+                dados
+                    .filter { !it.ehCanalAtual && !it.ehCanalRecomendado }
+                    .sortedWith(compareBy<DadoCanal> { it.nivel.ordinal }.thenBy { it.count })
+            recomendado + atual + resto
+        }
     val context = LocalContext.current
-    val textoExplicativo = remember(espectro) {
-        CanalTextGenerator.gerarTexto(
-            snapshot = espectro,
-            strings = CanalStrings(
-                bandaCongestionada = { banda -> context.getString(R.string.canal_banda_congestionada, banda) },
-                bandaQuaseVazia = { banda -> context.getString(R.string.canal_faixa_quase_vazia, banda) },
-                canalAtualCongestionado = { canalAtual, canalRec -> context.getString(R.string.canal_atual_congestionado, canalAtual, canalRec) },
-                canalRecomendadoLivre = { canal, banda -> context.getString(R.string.canal_recomendado_livre, canal, banda) },
-                canalRecomendadoModerado = { canal, banda -> context.getString(R.string.canal_recomendado_moderado, canal, banda) },
-                semDados = { context.getString(R.string.canal_sem_dados) },
-            ),
-        )
-    }
+    val textoExplicativo =
+        remember(espectro) {
+            CanalTextGenerator.gerarTexto(
+                snapshot = espectro,
+                strings =
+                    CanalStrings(
+                        bandaCongestionada = { banda -> context.getString(R.string.canal_banda_congestionada, banda) },
+                        bandaQuaseVazia = { banda -> context.getString(R.string.canal_faixa_quase_vazia, banda) },
+                        canalAtualCongestionado = { canalAtual, canalRec -> context.getString(R.string.canal_atual_congestionado, canalAtual, canalRec) },
+                        canalRecomendadoLivre = { canal, banda -> context.getString(R.string.canal_recomendado_livre, canal, banda) },
+                        canalRecomendadoModerado = { canal, banda -> context.getString(R.string.canal_recomendado_moderado, canal, banda) },
+                        semDados = { context.getString(R.string.canal_sem_dados) },
+                    ),
+            )
+        }
 
     // ── Band steering detection ───────────────────────────────────────────────
-    val mostrarAlertaBandSteering = remember(wifiLinkSnapshot, connectedNetwork, redes) {
-        val freqMhz = wifiLinkSnapshot?.frequenciaMhz
-        if (freqMhz == null || freqMhz >= 3000) return@remember false
-        // Conectado em 2.4 GHz — verificar se existe nó do mesmo SSID em 5 GHz
-        val ssidAtual = connectedNetwork?.ssid ?: wifiLinkSnapshot.ssid
-        ssidAtual != null && redes.any { rede ->
-            rede.ssid == ssidAtual && rede.frequenciaMhz >= 5000
+    val mostrarAlertaBandSteering =
+        remember(wifiLinkSnapshot, connectedNetwork, redes) {
+            val freqMhz = wifiLinkSnapshot?.frequenciaMhz
+            if (freqMhz == null || freqMhz >= 3000) return@remember false
+            // Conectado em 2.4 GHz — verificar se existe nó do mesmo SSID em 5 GHz
+            val ssidAtual = connectedNetwork?.ssid ?: wifiLinkSnapshot.ssid
+            ssidAtual != null &&
+                redes.any { rede ->
+                    rede.ssid == ssidAtual && rede.frequenciaMhz >= 5000
+                }
         }
-    }
 
     if (estado == EstadoScanWifi.idle) {
         CanalIdleState(onRefresh = onRefresh)
@@ -1370,11 +1485,12 @@ private fun CanalTab(
                         val n = bandaCounts[banda] ?: 0
                         val active = selectedBanda == banda
                         Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(if (active) LkColors.accent.copy(alpha = 0.12f) else c.bgSecondary)
-                                .clickable { selectedBanda = banda }
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            modifier =
+                                Modifier
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(if (active) LkColors.accent.copy(alpha = 0.12f) else c.bgSecondary)
+                                    .clickable { selectedBanda = banda }
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
@@ -1395,12 +1511,13 @@ private fun CanalTab(
         if (canalAtualInfo != null) {
             item {
                 Row(
-                    modifier = Modifier
-                        .padding(horizontal = LkSpacing.lg)
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(LkRadius.card))
-                        .background(c.bgCard)
-                        .padding(LkSpacing.lg),
+                    modifier =
+                        Modifier
+                            .padding(horizontal = LkSpacing.lg)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(LkRadius.card))
+                            .background(c.bgCard)
+                            .padding(LkSpacing.lg),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
@@ -1425,16 +1542,18 @@ private fun CanalTab(
                     }
                     if (dadoCanalAtual != null) {
                         val chipColor = congestionColor(dadoCanalAtual.nivel)
-                        val chipLabel = when (dadoCanalAtual.nivel) {
-                            NivelCongestionamento.livre -> "Livre"
-                            NivelCongestionamento.moderado -> "Moderado"
-                            NivelCongestionamento.congestionado -> "Congestionado"
-                        }
+                        val chipLabel =
+                            when (dadoCanalAtual.nivel) {
+                                NivelCongestionamento.livre -> "Livre"
+                                NivelCongestionamento.moderado -> "Moderado"
+                                NivelCongestionamento.congestionado -> "Congestionado"
+                            }
                         Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(chipColor.copy(alpha = 0.12f))
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                            modifier =
+                                Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(chipColor.copy(alpha = 0.12f))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
                         ) {
                             Text(
                                 chipLabel,
@@ -1483,12 +1602,13 @@ private fun CanalTab(
         if (canalAtualParaCard != null && (canalRecParaCard == null || canalRecParaCard == canalAtualParaCard)) {
             item {
                 Row(
-                    modifier = Modifier
-                        .padding(horizontal = LkSpacing.lg)
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(LkRadius.card))
-                        .background(LkColors.success.copy(alpha = 0.08f))
-                        .padding(LkSpacing.lg),
+                    modifier =
+                        Modifier
+                            .padding(horizontal = LkSpacing.lg)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(LkRadius.card))
+                            .background(LkColors.success.copy(alpha = 0.08f))
+                            .padding(LkSpacing.lg),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -1507,10 +1627,10 @@ private fun CanalTab(
                 Spacer(Modifier.height(LkSpacing.lg))
             }
         }
-        if (canalAtualParaCard != null
-            && canalRecParaCard != null
-            && canalRecParaCard != canalAtualParaCard
-            && nivelCanalRec != NivelCongestionamento.congestionado
+        if (canalAtualParaCard != null &&
+            canalRecParaCard != null &&
+            canalRecParaCard != canalAtualParaCard &&
+            nivelCanalRec != NivelCongestionamento.congestionado
         ) {
             item {
                 CanalRecomendadoCard(
@@ -1530,7 +1650,13 @@ private fun CanalTab(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text("CANAL", style = MaterialTheme.typography.labelMedium, color = c.textTertiary, fontWeight = FontWeight.W600, letterSpacing = 0.8.sp)
-                    Text("REDES / SINAL", style = MaterialTheme.typography.labelMedium, color = c.textTertiary, fontWeight = FontWeight.W600, letterSpacing = 0.8.sp)
+                    Text(
+                        "REDES / SINAL",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = c.textTertiary,
+                        fontWeight = FontWeight.W600,
+                        letterSpacing = 0.8.sp,
+                    )
                 }
                 Spacer(Modifier.height(LkSpacing.sm))
             }
@@ -1606,7 +1732,10 @@ private fun CanalIdleState(onRefresh: () -> Unit) {
 }
 
 @Composable
-private fun CanalErroState(erroMensagem: String?, onRefresh: () -> Unit) {
+private fun CanalErroState(
+    erroMensagem: String?,
+    onRefresh: () -> Unit,
+) {
     val c = LocalLkTokens.current
     val context = LocalContext.current
     Box(
@@ -1631,9 +1760,10 @@ private fun CanalErroState(erroMensagem: String?, onRefresh: () -> Unit) {
                     )
                     Spacer(Modifier.height(LkSpacing.lg))
                     FilledTonalButton(onClick = {
-                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                            data = Uri.fromParts("package", context.packageName, null)
-                        }
+                        val intent =
+                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.fromParts("package", context.packageName, null)
+                            }
                         context.startActivity(intent)
                     }) {
                         Text(stringResource(R.string.canal_erro_permissao_botao))
@@ -1746,10 +1876,11 @@ private fun SpectrumChart(espectro: SnapshotEspectroCanal) {
             dados.forEachIndexed { idx, dado ->
                 val barX = leftPx + idx * (barW + gap)
 
-                val barColor = when {
-                    dado.ehCanalAtual -> accentColor
-                    else -> congestionColor(dado.nivel)
-                }
+                val barColor =
+                    when {
+                        dado.ehCanalAtual -> accentColor
+                        else -> congestionColor(dado.nivel)
+                    }
 
                 val rssiDbm = dado.maxRssiDbm
                 if (rssiDbm != null) {
@@ -1771,10 +1902,11 @@ private fun SpectrumChart(espectro: SnapshotEspectroCanal) {
 
                     // Contagem de redes acima da barra
                     if (dado.count > 0) {
-                        val countLayout = textMeasurer.measure(
-                            "${dado.count}",
-                            TextStyle(fontSize = 8.sp, color = barColor, fontWeight = FontWeight.W600),
-                        )
+                        val countLayout =
+                            textMeasurer.measure(
+                                "${dado.count}",
+                                TextStyle(fontSize = 8.sp, color = barColor, fontWeight = FontWeight.W600),
+                            )
                         val countX = barX + barW / 2 - countLayout.size.width / 2
                         val countY = barTop - countLayout.size.height - 2.dp.toPx()
                         if (countY >= 0) drawText(countLayout, topLeft = Offset(countX, countY))
@@ -1790,16 +1922,18 @@ private fun SpectrumChart(espectro: SnapshotEspectroCanal) {
                 // Label do canal no eixo X
                 val xLabelColor = if (dado.ehCanalAtual) accentColor else textTertiary
                 val xLabelWeight = if (dado.ehCanalAtual) FontWeight.Bold else FontWeight.Normal
-                val xLayout = textMeasurer.measure(
-                    "${dado.canal}",
-                    TextStyle(fontSize = 9.sp, color = xLabelColor, fontWeight = xLabelWeight),
-                )
+                val xLayout =
+                    textMeasurer.measure(
+                        "${dado.canal}",
+                        TextStyle(fontSize = 9.sp, color = xLabelColor, fontWeight = xLabelWeight),
+                    )
                 drawText(
                     xLayout,
-                    topLeft = Offset(
-                        barX + barW / 2 - xLayout.size.width / 2,
-                        barAreaH + (xAxisH - xLayout.size.height) / 2,
-                    ),
+                    topLeft =
+                        Offset(
+                            barX + barW / 2 - xLayout.size.width / 2,
+                            barAreaH + (xAxisH - xLayout.size.height) / 2,
+                        ),
                 )
             }
         }
@@ -1807,7 +1941,11 @@ private fun SpectrumChart(espectro: SnapshotEspectroCanal) {
 }
 
 @Composable
-private fun LegendaItem(label: String, cor: Color, c: LkTokens) {
+private fun LegendaItem(
+    label: String,
+    cor: Color,
+    c: LkTokens,
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(8.dp).clip(CircleShape).background(cor))
         Spacer(Modifier.width(4.dp))
@@ -1821,20 +1959,22 @@ private fun LegendaItem(label: String, cor: Color, c: LkTokens) {
 private fun BandSteeringCard() {
     val c = LocalLkTokens.current
     Row(
-        modifier = Modifier
-            .padding(horizontal = LkSpacing.lg)
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .border(1.dp, LkColors.warning.copy(alpha = 0.3f), RoundedCornerShape(LkRadius.card))
-            .background(LkColors.warning.copy(alpha = 0.08f))
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .padding(horizontal = LkSpacing.lg)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .border(1.dp, LkColors.warning.copy(alpha = 0.3f), RoundedCornerShape(LkRadius.card))
+                .background(LkColors.warning.copy(alpha = 0.08f))
+                .padding(LkSpacing.lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(LkColors.warning.copy(alpha = 0.15f)),
+            modifier =
+                Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(LkColors.warning.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -1878,25 +2018,28 @@ private fun CanalRecomendadoCard(
     nivelRecomendado: NivelCongestionamento = NivelCongestionamento.livre,
 ) {
     val c = LocalLkTokens.current
-    val descricao = when (nivelRecomendado) {
-        NivelCongestionamento.livre -> "Seu canal é o $canalAtual. Melhor mudar para o $canalRecomendado, que está livre agora."
-        NivelCongestionamento.moderado -> "Seu canal é o $canalAtual. O canal $canalRecomendado tem menos interferência no momento."
-        NivelCongestionamento.congestionado -> "Seu canal é o $canalAtual e está congestionado. Considere ativar o modo automático no roteador."
-    }
+    val descricao =
+        when (nivelRecomendado) {
+            NivelCongestionamento.livre -> "Seu canal é o $canalAtual. Melhor mudar para o $canalRecomendado, que está livre agora."
+            NivelCongestionamento.moderado -> "Seu canal é o $canalAtual. O canal $canalRecomendado tem menos interferência no momento."
+            NivelCongestionamento.congestionado -> "Seu canal é o $canalAtual e está congestionado. Considere ativar o modo automático no roteador."
+        }
     Row(
-        modifier = Modifier
-            .padding(horizontal = LkSpacing.lg)
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(LkColors.accent.copy(alpha = 0.08f))
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .padding(horizontal = LkSpacing.lg)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(LkColors.accent.copy(alpha = 0.08f))
+                .padding(LkSpacing.lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(LkColors.accent.copy(alpha = 0.12f)),
+            modifier =
+                Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(LkColors.accent.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -1927,7 +2070,11 @@ private fun CanalRecomendadoCard(
 // ─── Recommendation card ──────────────────────────────────────────────────────
 
 @Composable
-private fun RecommendationCard(channel: Int, reason: String, banda: String) {
+private fun RecommendationCard(
+    channel: Int,
+    reason: String,
+    banda: String,
+) {
     val c = LocalLkTokens.current
     Row(
         Modifier
@@ -1964,10 +2111,11 @@ private fun ChannelItem(
     onClick: () -> Unit,
 ) {
     val c = LocalLkTokens.current
-    val corFundo = when {
-        isConnected -> LkColors.accent.copy(alpha = 0.08f)
-        else -> Color.Transparent
-    }
+    val corFundo =
+        when {
+            isConnected -> LkColors.accent.copy(alpha = 0.08f)
+            else -> Color.Transparent
+        }
     val corCongestionamento = congestionColor(dado.nivel)
 
     Row(
@@ -1976,13 +2124,16 @@ private fun ChannelItem(
             .clip(RoundedCornerShape(8.dp))
             .background(corFundo)
             .then(
-                if (isConnected) Modifier.border(
-                    width = 2.dp,
-                    color = LkColors.accent.copy(alpha = 0.4f),
-                    shape = RoundedCornerShape(8.dp),
-                ) else Modifier,
-            )
-            .minimumInteractiveComponentSize()
+                if (isConnected) {
+                    Modifier.border(
+                        width = 2.dp,
+                        color = LkColors.accent.copy(alpha = 0.4f),
+                        shape = RoundedCornerShape(8.dp),
+                    )
+                } else {
+                    Modifier
+                },
+            ).minimumInteractiveComponentSize()
             .clickable(onClick = onClick)
             .padding(horizontal = LkSpacing.lg, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1998,10 +2149,11 @@ private fun ChannelItem(
                 if (isConnected) {
                     Spacer(Modifier.width(8.dp))
                     Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(LkColors.success.copy(alpha = 0.14f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(LkColors.success.copy(alpha = 0.14f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
                     ) {
                         Text("Você está aqui", fontSize = 10.sp, fontWeight = FontWeight.W600, color = LkColors.success)
                     }
@@ -2088,10 +2240,11 @@ private fun MobileSignalCard(
             }
             if (snapshot.tecnologia != null) {
                 Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(LkColors.accent.copy(alpha = 0.12f))
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(LkColors.accent.copy(alpha = 0.12f))
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
                 ) {
                     Text(
                         snapshot.tecnologia ?: "",
@@ -2110,12 +2263,13 @@ private fun MobileSignalCard(
         }
 
         // ── Lógica de qualidade ────────────────────────────────────────────────
-        val (qualidadeLabel, qualidadeCor) = when {
-            rsrp >= -80 -> "Excelente" to LkColors.success
-            rsrp >= -90 -> "Bom" to LkColors.success
-            rsrp >= -100 -> "Regular" to LkColors.warning
-            else -> "Fraco" to LkColors.error
-        }
+        val (qualidadeLabel, qualidadeCor) =
+            when {
+                rsrp >= -80 -> "Excelente" to LkColors.success
+                rsrp >= -90 -> "Bom" to LkColors.success
+                rsrp >= -100 -> "Regular" to LkColors.warning
+                else -> "Fraco" to LkColors.error
+            }
 
         // ── Seção 2 — Gauge semicircular ──────────────────────────────────────
         Box(
@@ -2125,12 +2279,13 @@ private fun MobileSignalCard(
             Canvas(modifier = Modifier.size(200.dp, 110.dp)) {
                 val strokeWidth = 16.dp.toPx()
                 val halfStroke = strokeWidth / 2f
-                val arcRect = androidx.compose.ui.geometry.Rect(
-                    left = halfStroke,
-                    top = halfStroke,
-                    right = size.width - halfStroke,
-                    bottom = size.height * 2 - halfStroke,
-                )
+                val arcRect =
+                    androidx.compose.ui.geometry.Rect(
+                        left = halfStroke,
+                        top = halfStroke,
+                        right = size.width - halfStroke,
+                        bottom = size.height * 2 - halfStroke,
+                    )
                 // Fundo do arco
                 drawArc(
                     color = tokens.border.copy(alpha = 0.3f),
@@ -2139,10 +2294,11 @@ private fun MobileSignalCard(
                     useCenter = false,
                     topLeft = arcRect.topLeft,
                     size = arcRect.size,
-                    style = androidx.compose.ui.graphics.drawscope.Stroke(
-                        width = strokeWidth,
-                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
-                    ),
+                    style =
+                        androidx.compose.ui.graphics.drawscope.Stroke(
+                            width = strokeWidth,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                        ),
                 )
                 // Frente do arco — progresso
                 val progresso = ((rsrp - (-110f)) / ((-70f) - (-110f))).coerceIn(0f, 1f)
@@ -2155,18 +2311,20 @@ private fun MobileSignalCard(
                         useCenter = false,
                         topLeft = arcRect.topLeft,
                         size = arcRect.size,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(
-                            width = strokeWidth,
-                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
-                        ),
+                        style =
+                            androidx.compose.ui.graphics.drawscope.Stroke(
+                                width = strokeWidth,
+                                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                            ),
                     )
                 }
             }
             // Labels sobrepostos abaixo do centro
             Column(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 4.dp),
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
@@ -2206,10 +2364,11 @@ private fun MobileSignalCard(
                 )
             }
             Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .height(40.dp)
-                    .background(tokens.border),
+                modifier =
+                    Modifier
+                        .width(1.dp)
+                        .height(40.dp)
+                        .background(tokens.border),
             )
             Column(
                 modifier = Modifier.weight(1f),
@@ -2226,12 +2385,13 @@ private fun MobileSignalCard(
                 val rsrqRuim = rsrq != null && rsrq < -15
                 val sinrBom = sinr != null && sinr >= 10
                 val sinrRuim = sinr != null && sinr < 0
-                val (estLabel, estCor) = when {
-                    rsrq == null && sinr == null -> "—" to tokens.textTertiary
-                    rsrqRuim || sinrRuim -> "Instável" to LkColors.error
-                    (rsrqBom || sinrBom) && !rsrqRuim && !sinrRuim -> "Estável" to LkColors.success
-                    else -> "Moderada" to LkColors.warning
-                }
+                val (estLabel, estCor) =
+                    when {
+                        rsrq == null && sinr == null -> "—" to tokens.textTertiary
+                        rsrqRuim || sinrRuim -> "Instável" to LkColors.error
+                        (rsrqBom || sinrBom) && !rsrqRuim && !sinrRuim -> "Estável" to LkColors.success
+                        else -> "Moderada" to LkColors.warning
+                    }
                 Text(
                     estLabel,
                     style = MaterialTheme.typography.bodyLarge,
@@ -2242,34 +2402,44 @@ private fun MobileSignalCard(
         }
 
         // ── Seção 4 — Card de diagnóstico ─────────────────────────────────────
-        val (diagIcone, diagCor, diagCausa, diagAcao) = when {
-            rsrp >= -80 -> DiagData(
-                Icons.Outlined.CheckCircle, LkColors.success,
-                "Sinal ótimo",
-                "Você está próximo de uma torre. Ideal para streaming e videochamadas.",
-            )
-            rsrp >= -90 -> DiagData(
-                Icons.Outlined.CheckCircle, LkColors.success,
-                "Sinal bom",
-                "Conexão estável para a maioria das atividades.",
-            )
-            rsrp >= -100 -> DiagData(
-                Icons.Outlined.Warning, LkColors.warning,
-                "Sinal moderado — pode lentidão em picos",
-                "Tente ir para área aberta ou próximo de uma janela.",
-            )
-            else -> DiagData(
-                Icons.Outlined.SignalCellularOff, LkColors.error,
-                "Sinal fraco — cobertura limitada",
-                "Mova-se para um local com mais espaço aberto ou ative o Wi-Fi Calling.",
-            )
-        }
+        val (diagIcone, diagCor, diagCausa, diagAcao) =
+            when {
+                rsrp >= -80 ->
+                    DiagData(
+                        Icons.Outlined.CheckCircle,
+                        LkColors.success,
+                        "Sinal ótimo",
+                        "Você está próximo de uma torre. Ideal para streaming e videochamadas.",
+                    )
+                rsrp >= -90 ->
+                    DiagData(
+                        Icons.Outlined.CheckCircle,
+                        LkColors.success,
+                        "Sinal bom",
+                        "Conexão estável para a maioria das atividades.",
+                    )
+                rsrp >= -100 ->
+                    DiagData(
+                        Icons.Outlined.Warning,
+                        LkColors.warning,
+                        "Sinal moderado — pode lentidão em picos",
+                        "Tente ir para área aberta ou próximo de uma janela.",
+                    )
+                else ->
+                    DiagData(
+                        Icons.Outlined.SignalCellularOff,
+                        LkColors.error,
+                        "Sinal fraco — cobertura limitada",
+                        "Mova-se para um local com mais espaço aberto ou ative o Wi-Fi Calling.",
+                    )
+            }
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(tokens.bgSecondary)
-                .padding(LkSpacing.lg),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(LkRadius.card))
+                    .background(tokens.bgSecondary)
+                    .padding(LkSpacing.lg),
             verticalAlignment = Alignment.Top,
         ) {
             Icon(
@@ -2355,7 +2525,10 @@ private fun EmptyStateMobile(tokens: LkTokens) {
 }
 
 @Composable
-private fun EmptyStateCabo(localIp: String?, tokens: LkTokens) {
+private fun EmptyStateCabo(
+    localIp: String?,
+    tokens: LkTokens,
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(Icons.Outlined.Cable, null, tint = tokens.textTertiary, modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(LkSpacing.md))
@@ -2406,7 +2579,7 @@ private fun ChannelDetailSheet(
     Column(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.lg)
+            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.lg),
     ) {
         Box(
             Modifier
@@ -2423,20 +2596,22 @@ private fun ChannelDetailSheet(
             Spacer(Modifier.width(LkSpacing.sm))
             if (isCurrentChannel) {
                 Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(LkColors.success.copy(alpha = 0.14f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(LkColors.success.copy(alpha = 0.14f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
                     Text("Seu canal", fontSize = 10.sp, fontWeight = FontWeight.W600, color = LkColors.success)
                 }
             }
             if (isRecommended) {
                 Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(LkColors.accent.copy(alpha = 0.14f))
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(LkColors.accent.copy(alpha = 0.14f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
                     Text("Recomendado", fontSize = 10.sp, fontWeight = FontWeight.W600, color = LkColors.accent)
                 }
@@ -2449,10 +2624,11 @@ private fun ChannelDetailSheet(
         if (dado.countProprios > 0) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(LkColors.accent),
+                    modifier =
+                        Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(LkColors.accent),
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
@@ -2467,10 +2643,11 @@ private fun ChannelDetailSheet(
         if (dado.countTerceiros > 0) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(corCongestionamento),
+                    modifier =
+                        Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(corCongestionamento),
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
@@ -2592,12 +2769,13 @@ private fun ChannelDetailSheet(
 private fun LocPermissaoBanner(onClick: () -> Unit) {
     val c = LocalLkTokens.current
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(LkColors.accent.copy(alpha = 0.08f))
-            .clickable(onClick = onClick)
-            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm)
-            .minimumInteractiveComponentSize(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(LkColors.accent.copy(alpha = 0.08f))
+                .clickable(onClick = onClick)
+                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm)
+                .minimumInteractiveComponentSize(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
@@ -2617,14 +2795,18 @@ private fun LocPermissaoBanner(onClick: () -> Unit) {
 }
 
 @Composable
-private fun MovelSemPermissaoBanner(onClick: () -> Unit, tokens: LkTokens) {
+private fun MovelSemPermissaoBanner(
+    onClick: () -> Unit,
+    tokens: LkTokens,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(LkColors.accent.copy(alpha = 0.08f))
-            .clickable(onClick = onClick)
-            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm)
-            .minimumInteractiveComponentSize(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(LkColors.accent.copy(alpha = 0.08f))
+                .clickable(onClick = onClick)
+                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm)
+                .minimumInteractiveComponentSize(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
@@ -2642,5 +2824,3 @@ private fun MovelSemPermissaoBanner(onClick: () -> Unit, tokens: LkTokens) {
         )
     }
 }
-
-

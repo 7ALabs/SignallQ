@@ -37,10 +37,11 @@ fun AppBorderGlowEffect(
     val hueShift by transition.animateFloat(
         initialValue = 0f,
         targetValue = 30f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(3000, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(3000, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
         label = "hue-shift",
     )
 
@@ -52,10 +53,11 @@ fun AppBorderGlowEffect(
         Canvas(modifier = modifier.fillMaxSize()) {
             val stroke = 2.dp.toPx()
             drawRoundRect(
-                brush = Brush.sweepGradient(
-                    colors = listOf(strokeColor, strokeColor.copy(alpha = 0f), strokeColor),
-                    center = Offset(size.width / 2, size.height / 2),
-                ),
+                brush =
+                    Brush.sweepGradient(
+                        colors = listOf(strokeColor, strokeColor.copy(alpha = 0f), strokeColor),
+                        center = Offset(size.width / 2, size.height / 2),
+                    ),
                 topLeft = Offset(stroke / 2, stroke / 2),
                 size = Size(size.width - stroke, size.height - stroke),
                 cornerRadius = CornerRadius(24.dp.toPx()),
@@ -65,19 +67,27 @@ fun AppBorderGlowEffect(
     }
 }
 
-private data class Hsl(val h: Float, val s: Float, val l: Float)
+private data class Hsl(
+    val h: Float,
+    val s: Float,
+    val l: Float,
+)
 
 private fun Color.toHsl(): Hsl {
-    val r = red; val g = green; val b = blue
-    val max = maxOf(r, g, b); val min = minOf(r, g, b)
+    val r = red
+    val g = green
+    val b = blue
+    val max = maxOf(r, g, b)
+    val min = minOf(r, g, b)
     val l = (max + min) / 2f
     if (max == min) return Hsl(0f, 0f, l)
     val d = max - min
     val s = if (l > 0.5f) d / (2f - max - min) else d / (max + min)
-    val h = when (max) {
-        r -> ((g - b) / d + (if (g < b) 6f else 0f)) / 6f
-        g -> ((b - r) / d + 2f) / 6f
-        else -> ((r - g) / d + 4f) / 6f
-    }
+    val h =
+        when (max) {
+            r -> ((g - b) / d + (if (g < b) 6f else 0f)) / 6f
+            g -> ((b - r) / d + 2f) / 6f
+            else -> ((r - g) / d + 4f) / 6f
+        }
     return Hsl(h * 360f, s, l)
 }

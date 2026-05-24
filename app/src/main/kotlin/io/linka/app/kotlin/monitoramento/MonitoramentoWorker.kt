@@ -6,33 +6,35 @@ import android.net.NetworkCapabilities
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.Build
-import timber.log.Timber
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import io.linka.app.kotlin.core.database.CoreDatabaseModulo
 import io.linka.app.kotlin.core.database.MedicaoEntity
 import io.linka.app.kotlin.core.datastore.CoreDatastoreModulo
 import io.linka.app.kotlin.notificacao.LinkaNotificationHelper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.net.HttpURLConnection
 import java.net.InetAddress
 import java.net.URL
 import java.util.UUID
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withContext
 
 internal class MonitoramentoWorker(
     appContext: Context,
     params: WorkerParameters,
 ) : CoroutineWorker(appContext, params) {
-
     private val preferenciasAppRepository by lazy {
         CoreDatastoreModulo.criarPreferenciasAppRepository(appContext)
     }
 
     private enum class RssiMotivo { SemWifi, SemPermissao, Invalido }
 
-    private data class RssiInfo(val rssi: Int?, val motivo: RssiMotivo?)
+    private data class RssiInfo(
+        val rssi: Int?,
+        val motivo: RssiMotivo?,
+    )
 
     override suspend fun doWork(): Result {
         val latencia = medirLatenciaHttp()
@@ -54,30 +56,34 @@ internal class MonitoramentoWorker(
      * Fonte = "monitor" diferencia de medicoes de speedtest completo.
      * downloadMbps/uploadMbps ficam null — o monitor nao mede throughput.
      */
-    private suspend fun persistirMedicaoMonitor(latenciaMs: Long?, rssiDbm: Int?) {
+    private suspend fun persistirMedicaoMonitor(
+        latenciaMs: Long?,
+        rssiDbm: Int?,
+    ) {
         try {
-            val medicao = MedicaoEntity(
-                id = UUID.randomUUID().toString(),
-                timestampEpochMs = System.currentTimeMillis(),
-                connectionType = "monitor",
-                connectionTypeStart = null,
-                connectionTypeEnd = null,
-                contaminado = false,
-                speedtestMode = null,
-                specVersion = null,
-                downloadMbps = null,
-                uploadMbps = null,
-                latencyMs = latenciaMs?.toDouble(),
-                jitterMs = null,
-                perdaPercentual = null,
-                bufferbloatMs = null,
-                packetLossSource = null,
-                vereditoStreaming = null,
-                vereditoGamer = null,
-                vereditoVideoChamada = null,
-                gargaloPrimario = null,
-                fonte = "monitor",
-            )
+            val medicao =
+                MedicaoEntity(
+                    id = UUID.randomUUID().toString(),
+                    timestampEpochMs = System.currentTimeMillis(),
+                    connectionType = "monitor",
+                    connectionTypeStart = null,
+                    connectionTypeEnd = null,
+                    contaminado = false,
+                    speedtestMode = null,
+                    specVersion = null,
+                    downloadMbps = null,
+                    uploadMbps = null,
+                    latencyMs = latenciaMs?.toDouble(),
+                    jitterMs = null,
+                    perdaPercentual = null,
+                    bufferbloatMs = null,
+                    packetLossSource = null,
+                    vereditoStreaming = null,
+                    vereditoGamer = null,
+                    vereditoVideoChamada = null,
+                    gargaloPrimario = null,
+                    fonte = "monitor",
+                )
             withContext(Dispatchers.IO) {
                 CoreDatabaseModulo.criarBanco(applicationContext).medicaoDao().salvar(medicao)
             }
@@ -120,12 +126,13 @@ internal class MonitoramentoWorker(
         // Motivos Invalido e SemPermissao não confirmam ausência de Wi-Fi — são ambíguos.
         // rssi != null (RSSI válido) significa conectado → definitivamente não é "sem Wi-Fi".
         val rssiConfirmaSemWifi = rssiInfo.motivo == RssiMotivo.SemWifi
-        val alertaSemInternetNovo = HisteresiHelper.calcularAlertaSemInternet(
-            latencia,
-            dns,
-            rssiConfirmaSemWifi,
-            alertaSemInternetAnterior,
-        )
+        val alertaSemInternetNovo =
+            HisteresiHelper.calcularAlertaSemInternet(
+                latencia,
+                dns,
+                rssiConfirmaSemWifi,
+                alertaSemInternetAnterior,
+            )
 
         // Ler controles granulares do usuário
         val notifLatenciaAtiva = preferenciasAppRepository.notificacaoLatenciaAtivaFlow.first()
@@ -180,8 +187,8 @@ internal class MonitoramentoWorker(
         return amostras[amostras.size / 2]
     }
 
-    private fun medirDnsResolveTime(): Long? {
-        return try {
+    private fun medirDnsResolveTime(): Long? =
+        try {
             val inicio = System.nanoTime()
             InetAddress.getByName("cloudflare.com")
             val fim = System.nanoTime()
@@ -190,7 +197,6 @@ internal class MonitoramentoWorker(
             Timber.d("Erro ao medir DNS: ${e.message}")
             null
         }
-    }
 
     @Suppress("DEPRECATION")
     private fun medirRssiWifi(): RssiInfo {
@@ -202,8 +208,9 @@ internal class MonitoramentoWorker(
                 if (!caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
                     return RssiInfo(null, RssiMotivo.SemWifi)
                 }
-                val wifiInfo = caps.transportInfo as? WifiInfo
-                    ?: return RssiInfo(null, RssiMotivo.SemPermissao)
+                val wifiInfo =
+                    caps.transportInfo as? WifiInfo
+                        ?: return RssiInfo(null, RssiMotivo.SemPermissao)
                 val rssi = wifiInfo.rssi
                 if (rssi == Integer.MAX_VALUE) RssiInfo(null, RssiMotivo.Invalido) else RssiInfo(rssi, null)
             } else {

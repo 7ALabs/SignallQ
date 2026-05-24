@@ -25,10 +25,11 @@ import io.linka.app.kotlin.ui.LocalLkTokens
 fun OfflineBanner(modifier: Modifier = Modifier) {
     val c = LocalLkTokens.current
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(LkColors.warning.copy(alpha = 0.12f))
-            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .background(LkColors.warning.copy(alpha = 0.12f))
+                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(

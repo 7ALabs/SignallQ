@@ -23,12 +23,13 @@ fun LinkaPulseIcon(
     modifier: Modifier = Modifier,
     size: Dp = 120.dp,
 ) {
-    val glowColor = when (state) {
-        OrbitState.Success -> LkColors.success
-        OrbitState.Warning -> LkColors.warning
-        OrbitState.Critical -> LkColors.error
-        else -> LkColors.accent
-    }
+    val glowColor =
+        when (state) {
+            OrbitState.Success -> LkColors.success
+            OrbitState.Warning -> LkColors.warning
+            OrbitState.Critical -> LkColors.error
+            else -> LkColors.accent
+        }
     val container = size * 2.0f
 
     Box(

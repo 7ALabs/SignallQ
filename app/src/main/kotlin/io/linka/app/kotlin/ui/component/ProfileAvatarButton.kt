@@ -5,7 +5,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -38,23 +37,26 @@ fun ProfileAvatarButton(
 ) {
     val context = LocalContext.current
     val fotoBitmap: ImageBitmap? by produceState<ImageBitmap?>(initialValue = null, key1 = fotoUri) {
-        value = fotoUri?.let { uriStr ->
-            withContext(Dispatchers.IO) {
-                runCatching {
-                    context.contentResolver.openInputStream(uriStr.toUri())
-                        ?.use { stream -> BitmapFactory.decodeStream(stream)?.asImageBitmap() }
-                }.getOrNull()
+        value =
+            fotoUri?.let { uriStr ->
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        context.contentResolver
+                            .openInputStream(uriStr.toUri())
+                            ?.use { stream -> BitmapFactory.decodeStream(stream)?.asImageBitmap() }
+                    }.getOrNull()
+                }
             }
-        }
     }
     val profileBrush = Brush.linearGradient(colors = listOf(LkColors.accent, LkColors.accentBlue))
 
     Box(
-        modifier = modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(brush = profileBrush)
-            .clickable { onClick() },
+        modifier =
+            modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(brush = profileBrush)
+                .clickable { onClick() },
         contentAlignment = Alignment.Center,
     ) {
         val bitmap = fotoBitmap

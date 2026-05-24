@@ -1,6 +1,5 @@
 package io.linka.app.kotlin.pulse
 
-import timber.log.Timber
 import io.linka.app.kotlin.core.database.MedicaoDao
 import io.linka.app.kotlin.core.network.MonitorRede
 import io.linka.app.kotlin.feature.diagnostico.ConnectionType
@@ -11,7 +10,6 @@ import io.linka.app.kotlin.feature.diagnostico.WifiDiagnosticInput
 import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisRepository
 import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisState
 import io.linka.app.kotlin.feature.diagnostico.ai.AiFallbackFactory
-import io.linka.app.kotlin.feature.diagnostico.ai.DiagnosisAiContext
 import io.linka.app.kotlin.feature.diagnostico.ai.DiagnosisAiContextFactory
 import io.linka.app.kotlin.feature.diagnostico.pulse.AiAnalysisEntry
 import io.linka.app.kotlin.feature.diagnostico.pulse.ContextAccumulator
@@ -20,7 +18,6 @@ import io.linka.app.kotlin.feature.diagnostico.pulse.IntelligentDiagnosticSessio
 import io.linka.app.kotlin.feature.diagnostico.pulse.OpcaoResposta
 import io.linka.app.kotlin.feature.diagnostico.pulse.PulseState
 import io.linka.app.kotlin.feature.diagnostico.pulse.QuestionAnswer
-import io.linka.app.kotlin.feature.diagnostico.pulse.QuestionNode
 import io.linka.app.kotlin.feature.diagnostico.pulse.RotatingMessageProvider
 import io.linka.app.kotlin.feature.diagnostico.pulse.SnapshotLinkaPulse
 import io.linka.app.kotlin.feature.speedtest.EstadoExecucaoSpeedtest
@@ -37,6 +34,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import timber.log.Timber
 import java.util.UUID
 
 private const val TAG = "LinkaPulse"
@@ -51,10 +49,11 @@ class LinkaPulseOrchestrator(
     private val questionEngine: DynamicQuestionEngine = DynamicQuestionEngine(),
     private val scope: CoroutineScope,
 ) {
-    private val aiRepository = AiDiagnosisRepository(
-        baseUrl = AI_BASE_URL,
-        isAuthorized = { true },
-    )
+    private val aiRepository =
+        AiDiagnosisRepository(
+            baseUrl = AI_BASE_URL,
+            isAuthorized = { true },
+        )
 
     private val mutableSnapshotFlow = MutableStateFlow(SnapshotLinkaPulse())
     val snapshotFlow: StateFlow<SnapshotLinkaPulse> = mutableSnapshotFlow.asStateFlow()
@@ -75,107 +74,115 @@ class LinkaPulseOrchestrator(
 
         val speedtestResult = runSilentSpeedtest()
         val wifiSnapshot = monitorRede.snapshotFlow.value.wifiLinkSnapshot
-        val connectionType = when (monitorRede.snapshotFlow.value.estadoConexao.name) {
-            "wifi" -> ConnectionType.wifi
-            "movel" -> ConnectionType.mobile
-            else -> ConnectionType.desconhecido
-        }
+        val connectionType =
+            when (monitorRede.snapshotFlow.value.estadoConexao.name) {
+                "wifi" -> ConnectionType.wifi
+                "movel" -> ConnectionType.mobile
+                else -> ConnectionType.desconhecido
+            }
 
         // --- Fase 2: Thinking (engines locais) ---
         emit(PulseState.Thinking)
         iniciarRotacaoMensagens(PulseState.Thinking)
 
-        val internetInput = speedtestResult?.let {
-            InternetDiagnosticInput(
-                downloadMbps = it.downloadMbps,
-                uploadMbps = it.uploadMbps,
-                latencyMs = it.latenciaMs,
-                jitterMs = it.jitterMs,
-                perdaPercentual = it.perdaPercentual,
-                bufferbloatMs = it.bufferbloatMs,
-            )
-        } ?: run {
-            val ultimaMedicao = medicaoDao.observarUltimas(1).first().firstOrNull()
-            ultimaMedicao?.let {
+        val internetInput =
+            speedtestResult?.let {
                 InternetDiagnosticInput(
                     downloadMbps = it.downloadMbps,
                     uploadMbps = it.uploadMbps,
-                    latencyMs = it.latencyMs,
+                    latencyMs = it.latenciaMs,
                     jitterMs = it.jitterMs,
                     perdaPercentual = it.perdaPercentual,
                     bufferbloatMs = it.bufferbloatMs,
                 )
+            } ?: run {
+                val ultimaMedicao = medicaoDao.observarUltimas(1).first().firstOrNull()
+                ultimaMedicao?.let {
+                    InternetDiagnosticInput(
+                        downloadMbps = it.downloadMbps,
+                        uploadMbps = it.uploadMbps,
+                        latencyMs = it.latencyMs,
+                        jitterMs = it.jitterMs,
+                        perdaPercentual = it.perdaPercentual,
+                        bufferbloatMs = it.bufferbloatMs,
+                    )
+                }
             }
-        }
 
-        val wifiInput = wifiSnapshot?.let { ws ->
-            WifiDiagnosticInput(
-                rssiDbm = ws.rssiDbm,
-                linkSpeedMbps = ws.linkSpeedMbps,
-                frequenciaMhz = ws.frequenciaMhz,
-                ssid = ws.ssid,
-            )
-        }
+        val wifiInput =
+            wifiSnapshot?.let { ws ->
+                WifiDiagnosticInput(
+                    rssiDbm = ws.rssiDbm,
+                    linkSpeedMbps = ws.linkSpeedMbps,
+                    frequenciaMhz = ws.frequenciaMhz,
+                    ssid = ws.ssid,
+                )
+            }
 
         withContext(Dispatchers.Default) {
             diagnosticOrchestrator.executar(internetInput, wifiInput)
         }
 
         // Esperar diagnóstico concluir (já é síncrono mas garante o state)
-        val relatorio = withTimeoutOrNull(5_000L) {
-            diagnosticOrchestrator.snapshotFlow.first {
-                it.estado == EstadoDiagnostico.concluido || it.estado == EstadoDiagnostico.erro
-            }.relatorio
-        }
+        val relatorio =
+            withTimeoutOrNull(5_000L) {
+                diagnosticOrchestrator.snapshotFlow
+                    .first {
+                        it.estado == EstadoDiagnostico.concluido || it.estado == EstadoDiagnostico.erro
+                    }.relatorio
+            }
 
         // --- Fase 3: Analyzing (IA) ---
         emit(PulseState.Analyzing)
         cancelarRotacaoMensagens()
         iniciarRotacaoMensagens(PulseState.Analyzing)
 
-        val contextInicial = ContextAccumulator.buildInitial(
-            downloadMbps = speedtestResult?.downloadMbps,
-            uploadMbps = speedtestResult?.uploadMbps,
-            latencyMs = speedtestResult?.latenciaMs,
-            jitterMs = speedtestResult?.jitterMs,
-            lossPercent = speedtestResult?.perdaPercentual,
-            stabilityScore = speedtestResult?.stabilityScore,
-            wifiSsid = wifiSnapshot?.ssid,
-            wifiRssiDbm = wifiSnapshot?.rssiDbm,
-            wifiFrequencyMhz = wifiSnapshot?.frequenciaMhz,
-            report = relatorio,
-        )
+        val contextInicial =
+            ContextAccumulator.buildInitial(
+                downloadMbps = speedtestResult?.downloadMbps,
+                uploadMbps = speedtestResult?.uploadMbps,
+                latencyMs = speedtestResult?.latenciaMs,
+                jitterMs = speedtestResult?.jitterMs,
+                lossPercent = speedtestResult?.perdaPercentual,
+                stabilityScore = speedtestResult?.stabilityScore,
+                wifiSsid = wifiSnapshot?.ssid,
+                wifiRssiDbm = wifiSnapshot?.rssiDbm,
+                wifiFrequencyMhz = wifiSnapshot?.frequenciaMhz,
+                report = relatorio,
+            )
 
-        val aiEntry = callAi(
-            trigger = "initial",
-            report = relatorio,
-            connectionType = connectionType,
-            additionalContext = null,
-        )
+        val aiEntry =
+            callAi(
+                trigger = "initial",
+                report = relatorio,
+                connectionType = connectionType,
+                additionalContext = null,
+            )
 
         // --- Monta sessão com chips iniciais ---
         val chips = questionEngine.getInitialChips(relatorio)
         val pulseState = mapPulseState(relatorio)
 
-        activeSession = IntelligentDiagnosticSession(
-            sessionId = UUID.randomUUID().toString(),
-            createdAt = System.currentTimeMillis(),
-            speedtestDownloadMbps = speedtestResult?.downloadMbps,
-            speedtestUploadMbps = speedtestResult?.uploadMbps,
-            speedtestLatencyMs = speedtestResult?.latenciaMs,
-            speedtestJitterMs = speedtestResult?.jitterMs,
-            speedtestLossPercent = speedtestResult?.perdaPercentual,
-            speedtestStabilityScore = speedtestResult?.stabilityScore,
-            wifiSsid = wifiSnapshot?.ssid,
-            wifiRssiDbm = wifiSnapshot?.rssiDbm,
-            wifiFrequencyMhz = wifiSnapshot?.frequenciaMhz,
-            diagnosticReport = relatorio,
-            questionHistory = emptyList(),
-            pendingQuestion = null,
-            activeChips = chips,
-            analyses = listOf(aiEntry),
-            contextAccumulated = contextInicial,
-        )
+        activeSession =
+            IntelligentDiagnosticSession(
+                sessionId = UUID.randomUUID().toString(),
+                createdAt = System.currentTimeMillis(),
+                speedtestDownloadMbps = speedtestResult?.downloadMbps,
+                speedtestUploadMbps = speedtestResult?.uploadMbps,
+                speedtestLatencyMs = speedtestResult?.latenciaMs,
+                speedtestJitterMs = speedtestResult?.jitterMs,
+                speedtestLossPercent = speedtestResult?.perdaPercentual,
+                speedtestStabilityScore = speedtestResult?.stabilityScore,
+                wifiSsid = wifiSnapshot?.ssid,
+                wifiRssiDbm = wifiSnapshot?.rssiDbm,
+                wifiFrequencyMhz = wifiSnapshot?.frequenciaMhz,
+                diagnosticReport = relatorio,
+                questionHistory = emptyList(),
+                pendingQuestion = null,
+                activeChips = chips,
+                analyses = listOf(aiEntry),
+                contextAccumulated = contextInicial,
+            )
 
         cancelarRotacaoMensagens()
         emitSession(pulseState)
@@ -194,11 +201,12 @@ class LinkaPulseOrchestrator(
             // Chip leva direto a análise complementar
             gerarAnaliseComplementar(session, chip.id, novoContexto)
         } else {
-            activeSession = session.copy(
-                activeChips = emptyList(),
-                pendingQuestion = proximaPergunta,
-                contextAccumulated = novoContexto,
-            )
+            activeSession =
+                session.copy(
+                    activeChips = emptyList(),
+                    pendingQuestion = proximaPergunta,
+                    contextAccumulated = novoContexto,
+                )
             emitSession(mapPulseState(session.diagnosticReport))
         }
     }
@@ -209,22 +217,26 @@ class LinkaPulseOrchestrator(
         Timber.i("responderPergunta qId=${question.id} aId=${opcao.id}")
 
         val novoContexto = ContextAccumulator.appendAnswer(session.contextAccumulated, question, opcao)
-        val novaResposta = QuestionAnswer(
-            questionId = question.id,
-            questionText = question.texto,
-            answerId = opcao.id,
-            answerText = opcao.label,
-            contextContribution = questionEngine.buildContextContribution(question, opcao),
-        )
+        val novaResposta =
+            QuestionAnswer(
+                questionId = question.id,
+                questionText = question.texto,
+                answerId = opcao.id,
+                answerText = opcao.label,
+                contextContribution = questionEngine.buildContextContribution(question, opcao),
+            )
         val novoHistorico = session.questionHistory + novaResposta
 
         // Identificar chipId do fluxo atual (primeiro item do histórico ou chip ativo anterior)
-        val chipId = session.questionHistory.firstOrNull()?.let {
-            // busca chipId original via contexto
-            session.contextAccumulated.lines()
-                .find { line -> line.startsWith("Categoria escolhida:") }
-                ?.substringAfter(": ")?.trim()
-        } ?: opcao.id
+        val chipId =
+            session.questionHistory.firstOrNull()?.let {
+                // busca chipId original via contexto
+                session.contextAccumulated
+                    .lines()
+                    .find { line -> line.startsWith("Categoria escolhida:") }
+                    ?.substringAfter(": ")
+                    ?.trim()
+            } ?: opcao.id
 
         val isLeaf = questionEngine.isLeafAnswer(chipId, opcao.id, session.questionHistory)
         val proximaPergunta = if (isLeaf) null else questionEngine.getNextQuestion(chipId, novoHistorico)
@@ -236,11 +248,12 @@ class LinkaPulseOrchestrator(
                 novoContexto,
             )
         } else {
-            activeSession = session.copy(
-                questionHistory = novoHistorico,
-                pendingQuestion = proximaPergunta,
-                contextAccumulated = novoContexto,
-            )
+            activeSession =
+                session.copy(
+                    questionHistory = novoHistorico,
+                    pendingQuestion = proximaPergunta,
+                    contextAccumulated = novoContexto,
+                )
             emitSession(mapPulseState(session.diagnosticReport))
         }
     }
@@ -253,19 +266,20 @@ class LinkaPulseOrchestrator(
 
     // ---- Internos ----
 
-    private suspend fun runSilentSpeedtest() = try {
-        val connType = monitorRede.snapshotFlow.value.estadoConexao.name
-        executorSpeedtest.executar(
-            modo = ModoSpeedtest.complete,
-            connectionType = connType,
-            connectionTypeProvider = { monitorRede.snapshotFlow.value.estadoConexao.name },
-        )
-        val snap = executorSpeedtest.snapshotFlow.value
-        if (snap.estado == EstadoExecucaoSpeedtest.concluido) snap.resultado else null
-    } catch (t: Throwable) {
-        Timber.w("speedtest silencioso falhou: ${t.message}")
-        null
-    }
+    private suspend fun runSilentSpeedtest() =
+        try {
+            val connType = monitorRede.snapshotFlow.value.estadoConexao.name
+            executorSpeedtest.executar(
+                modo = ModoSpeedtest.complete,
+                connectionType = connType,
+                connectionTypeProvider = { monitorRede.snapshotFlow.value.estadoConexao.name },
+            )
+            val snap = executorSpeedtest.snapshotFlow.value
+            if (snap.estado == EstadoExecucaoSpeedtest.concluido) snap.resultado else null
+        } catch (t: Throwable) {
+            Timber.w("speedtest silencioso falhou: ${t.message}")
+            null
+        }
 
     private suspend fun callAi(
         trigger: String,
@@ -285,29 +299,39 @@ class LinkaPulseOrchestrator(
         // Schema v3 raw: contexto adicional do usuário vai em `feedbackUsuario`
         // (não mais em `limitesDaAnalise`/evidência rotulada). Evidências v3
         // são raw, sem campo `interpretacao`.
-        val ctx = if (additionalContext != null) {
-            baseCtx.copy(feedbackUsuario = additionalContext.take(500))
-        } else baseCtx
+        val ctx =
+            if (additionalContext != null) {
+                baseCtx.copy(feedbackUsuario = additionalContext.take(500))
+            } else {
+                baseCtx
+            }
 
         val genericFallbackText = report.decisao.mensagemUsuario.ifBlank { "Diagnóstico em andamento..." }
 
         // Timeout de segurança: evita travar a UI se o servidor demorar além do esperado.
         // OkHttp readTimeout = 90s; damos margem extra de 5s via coroutine.
-        val state = withTimeoutOrNull(95_000L) {
-            aiRepository.explainDiagnosis(ctx) { AiFallbackFactory.fromLocal(report) }
-        } ?: run {
-            Timber.w("callAi[$trigger] timeout após 95s — usando fallback local")
-            return fallbackEntry(true, genericFallbackText)
-        }
+        val state =
+            withTimeoutOrNull(95_000L) {
+                aiRepository.explainDiagnosis(ctx) { AiFallbackFactory.fromLocal(report) }
+            } ?: run {
+                Timber.w("callAi[$trigger] timeout após 95s — usando fallback local")
+                return fallbackEntry(true, genericFallbackText)
+            }
 
         return when (state) {
             is AiDiagnosisState.success -> {
-                val content = state.result.resumo.ifBlank { state.result.textoLaudo }.ifBlank { genericFallbackText }
+                val content =
+                    state.result.resumo
+                        .ifBlank { state.result.textoLaudo }
+                        .ifBlank { genericFallbackText }
                 Timber.d("callAi[$trigger] success — content length=${content.length}, isFallback=false")
                 fallbackEntry(false, content)
             }
             is AiDiagnosisState.fallback -> {
-                val content = state.result.resumo.ifBlank { state.result.textoLaudo }.ifBlank { genericFallbackText }
+                val content =
+                    state.result.resumo
+                        .ifBlank { state.result.textoLaudo }
+                        .ifBlank { genericFallbackText }
                 Timber.d("callAi[$trigger] fallback — content length=${content.length}, isFallback=true")
                 fallbackEntry(true, content)
             }
@@ -327,63 +351,72 @@ class LinkaPulseOrchestrator(
         cancelarRotacaoMensagens()
         iniciarRotacaoMensagens(PulseState.Analyzing)
 
-        val connectionType = when (monitorRede.snapshotFlow.value.estadoConexao.name) {
-            "wifi" -> ConnectionType.wifi
-            "movel" -> ConnectionType.mobile
-            else -> ConnectionType.desconhecido
-        }
+        val connectionType =
+            when (monitorRede.snapshotFlow.value.estadoConexao.name) {
+                "wifi" -> ConnectionType.wifi
+                "movel" -> ConnectionType.mobile
+                else -> ConnectionType.desconhecido
+            }
 
-        val aiEntry = callAi(
-            trigger = "followup_$chipId",
-            report = session.diagnosticReport,
-            connectionType = connectionType,
-            additionalContext = novoContexto,
-        )
+        val aiEntry =
+            callAi(
+                trigger = "followup_$chipId",
+                report = session.diagnosticReport,
+                connectionType = connectionType,
+                additionalContext = novoContexto,
+            )
 
         val chips = questionEngine.getInitialChips(session.diagnosticReport)
         val novasAnalises = session.analyses + aiEntry
 
-        activeSession = session.copy(
-            pendingQuestion = null,
-            activeChips = chips,
-            analyses = novasAnalises,
-            contextAccumulated = novoContexto,
-        )
+        activeSession =
+            session.copy(
+                pendingQuestion = null,
+                activeChips = chips,
+                analyses = novasAnalises,
+                contextAccumulated = novoContexto,
+            )
 
         cancelarRotacaoMensagens()
         emitSession(mapPulseState(session.diagnosticReport))
     }
 
-    private fun emit(state: PulseState, erro: String? = null) {
-        mutableSnapshotFlow.value = SnapshotLinkaPulse(
-            estado = state,
-            session = activeSession,
-            mensagemAtual = RotatingMessageProvider.first(state),
-            erro = erro,
-        )
+    private fun emit(
+        state: PulseState,
+        erro: String? = null,
+    ) {
+        mutableSnapshotFlow.value =
+            SnapshotLinkaPulse(
+                estado = state,
+                session = activeSession,
+                mensagemAtual = RotatingMessageProvider.first(state),
+                erro = erro,
+            )
     }
 
     private fun emitSession(pulseState: PulseState) {
-        mutableSnapshotFlow.value = SnapshotLinkaPulse(
-            estado = pulseState,
-            session = activeSession,
-            mensagemAtual = RotatingMessageProvider.first(pulseState),
-            erro = null,
-        )
+        mutableSnapshotFlow.value =
+            SnapshotLinkaPulse(
+                estado = pulseState,
+                session = activeSession,
+                mensagemAtual = RotatingMessageProvider.first(pulseState),
+                erro = null,
+            )
     }
 
     private fun iniciarRotacaoMensagens(state: PulseState) {
         messageRotationJob?.cancel()
-        messageRotationJob = scope.launch {
-            var current = RotatingMessageProvider.first(state)
-            while (true) {
-                delay(MESSAGE_ROTATION_INTERVAL_MS)
-                current = RotatingMessageProvider.next(state, current)
-                if (mutableSnapshotFlow.value.estado == state) {
-                    mutableSnapshotFlow.value = mutableSnapshotFlow.value.copy(mensagemAtual = current)
+        messageRotationJob =
+            scope.launch {
+                var current = RotatingMessageProvider.first(state)
+                while (true) {
+                    delay(MESSAGE_ROTATION_INTERVAL_MS)
+                    current = RotatingMessageProvider.next(state, current)
+                    if (mutableSnapshotFlow.value.estado == state) {
+                        mutableSnapshotFlow.value = mutableSnapshotFlow.value.copy(mensagemAtual = current)
+                    }
                 }
             }
-        }
     }
 
     private fun cancelarRotacaoMensagens() {

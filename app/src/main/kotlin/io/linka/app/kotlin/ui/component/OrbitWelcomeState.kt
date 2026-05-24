@@ -15,11 +15,11 @@ import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SignalCellularAlt
 import androidx.compose.material.icons.filled.SportsEsports
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,11 +79,12 @@ private fun IntentRow(
 ) {
     val tokens = LocalLkTokens.current
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .minimumInteractiveComponentSize()
-            .clickable(onClick = onClick)
-            .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .minimumInteractiveComponentSize()
+                .clickable(onClick = onClick)
+                .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(

@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,35 +25,36 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.Speed
+import androidx.compose.material.icons.outlined.NetworkCheck
+import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.SignalCellularAlt
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.Wifi1Bar
 import androidx.compose.material.icons.outlined.Wifi2Bar
 import androidx.compose.material.icons.outlined.WifiOff
-import androidx.compose.material.icons.outlined.Psychology
-import androidx.compose.material.icons.outlined.NetworkCheck
-import io.linka.app.kotlin.FeatureFlags
-import io.linka.app.kotlin.core.network.EstadoConexao
-import io.linka.app.kotlin.core.network.SnapshotRede
-import io.linka.app.kotlin.ui.IspInfo
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -63,6 +65,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -72,32 +75,27 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import io.linka.app.kotlin.ui.component.ProfileAvatarButton
-import io.linka.app.kotlin.ui.component.rememberTopBarAlpha
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.material3.TextButton
+import io.linka.app.kotlin.FeatureFlags
+import io.linka.app.kotlin.core.network.EstadoConexao
+import io.linka.app.kotlin.core.network.SnapshotRede
 import io.linka.app.kotlin.feature.speedtest.EstadoExecucaoSpeedtest
 import io.linka.app.kotlin.feature.speedtest.FaseSpeedtest
 import io.linka.app.kotlin.feature.speedtest.ModoSpeedtest
+import io.linka.app.kotlin.feature.speedtest.ResultadoRodadaTriplo
+import io.linka.app.kotlin.feature.speedtest.SeveridadeBufferbloat
 import io.linka.app.kotlin.feature.speedtest.SnapshotExecucaoSpeedtest
+import io.linka.app.kotlin.ui.IspInfo
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkRadius
 import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
 import io.linka.app.kotlin.ui.LocalLkTokens
-import io.linka.app.kotlin.feature.speedtest.SeveridadeBufferbloat
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.WarningAmber
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.ui.draw.rotate
-import io.linka.app.kotlin.feature.speedtest.ResultadoRodadaTriplo
+import io.linka.app.kotlin.ui.component.ProfileAvatarButton
+import io.linka.app.kotlin.ui.component.rememberTopBarAlpha
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -144,9 +142,10 @@ fun SpeedTestScreen(
                         mostrarDialogCancelar = false
                         onCancelarTeste()
                     },
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                        containerColor = LkColors.error,
-                    ),
+                    colors =
+                        androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = LkColors.error,
+                        ),
                 ) { Text("Interromper") }
             },
             dismissButton = {
@@ -159,16 +158,18 @@ fun SpeedTestScreen(
 
     // Dialog de confirmação de uso de dados móveis — fonte de verdade no ViewModel (Task 4)
     if (speedtestPendenteModoMovel != null) {
-        val titulo = when (speedtestPendenteModoMovel) {
-            ModoSpeedtest.triplo -> "Usar dados móveis para teste triplo?"
-            ModoSpeedtest.complete -> "Usar dados móveis para teste?"
-            else -> "Usar dados móveis para teste?"
-        }
-        val mensagem = when (speedtestPendenteModoMovel) {
-            ModoSpeedtest.triplo -> "Este teste vai usar aproximadamente 30 MB em 3 medições. Você poderá repetir em Wi-Fi depois."
-            ModoSpeedtest.complete -> "Este teste vai usar aproximadamente 25 MB. Você poderá repetir em Wi-Fi depois."
-            else -> "Este teste vai usar aproximadamente 25 MB. Você poderá repetir em Wi-Fi depois."
-        }
+        val titulo =
+            when (speedtestPendenteModoMovel) {
+                ModoSpeedtest.triplo -> "Usar dados móveis para teste triplo?"
+                ModoSpeedtest.complete -> "Usar dados móveis para teste?"
+                else -> "Usar dados móveis para teste?"
+            }
+        val mensagem =
+            when (speedtestPendenteModoMovel) {
+                ModoSpeedtest.triplo -> "Este teste vai usar aproximadamente 30 MB em 3 medições. Você poderá repetir em Wi-Fi depois."
+                ModoSpeedtest.complete -> "Este teste vai usar aproximadamente 25 MB. Você poderá repetir em Wi-Fi depois."
+                else -> "Este teste vai usar aproximadamente 25 MB. Você poderá repetir em Wi-Fi depois."
+            }
         androidx.compose.material3.AlertDialog(
             onDismissRequest = onCancelarSpeedtestMovel,
             title = { Text(titulo) },
@@ -215,11 +216,12 @@ fun SpeedTestScreen(
         },
     ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(scrollState)
-                .padding(horizontal = LkSpacing.lg),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = LkSpacing.lg),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.height(LkSpacing.xxl))
@@ -295,11 +297,12 @@ fun SpeedTestScreen(
             Spacer(Modifier.height(LkSpacing.md))
 
             Text(
-                text = when (modoSelecionado) {
-                    ModoSpeedtest.fast -> "Download e upload · cerca de 15s"
-                    ModoSpeedtest.complete -> "Download, upload, bufferbloat e DNS · cerca de 60s"
-                    ModoSpeedtest.triplo -> "3 medições com intervalo de 10s · média calculada ao final"
-                },
+                text =
+                    when (modoSelecionado) {
+                        ModoSpeedtest.fast -> "Download e upload · cerca de 15s"
+                        ModoSpeedtest.complete -> "Download, upload, bufferbloat e DNS · cerca de 60s"
+                        ModoSpeedtest.triplo -> "3 medições com intervalo de 10s · média calculada ao final"
+                    },
                 style = MaterialTheme.typography.titleSmall,
                 color = c.textSecondary,
                 textAlign = TextAlign.Center,
@@ -343,13 +346,14 @@ fun SpeedTestScreen(
                 Spacer(Modifier.height(LkSpacing.lg))
                 if (planoInternet.isBlank()) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = LkSpacing.sm)
-                            .clip(RoundedCornerShape(LkRadius.card))
-                            .background(c.bgSecondary)
-                            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-                            .padding(LkSpacing.md),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = LkSpacing.sm)
+                                .clip(RoundedCornerShape(LkRadius.card))
+                                .background(c.bgSecondary)
+                                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                                .padding(LkSpacing.md),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Outlined.Info, contentDescription = null, tint = LkColors.accent, modifier = Modifier.size(16.dp))
@@ -362,7 +366,9 @@ fun SpeedTestScreen(
                         }
                         TextButton(
                             onClick = onAbrirAjustes,
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+                            contentPadding =
+                                androidx.compose.foundation.layout
+                                    .PaddingValues(0.dp),
                         ) {
                             Text(
                                 text = "Configurar agora",
@@ -446,36 +452,40 @@ private fun IdleCircle(onIniciarTeste: () -> Unit) {
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
         targetValue = 1.025f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(2000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
         label = "scale",
     )
     val glowAlpha by infiniteTransition.animateFloat(
         initialValue = 0.28f,
         targetValue = 0.46f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(2000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
         label = "glow",
     )
 
     Box(contentAlignment = Alignment.Center) {
         Box(
-            modifier = Modifier
-                .size(220.dp)
-                .background(LkColors.accent.copy(alpha = glowAlpha), CircleShape),
+            modifier =
+                Modifier
+                    .size(220.dp)
+                    .background(LkColors.accent.copy(alpha = glowAlpha), CircleShape),
         )
         Box(
-            modifier = Modifier
-                .size(210.dp)
-                .scale(scale)
-                .clip(CircleShape)
-                .background(LkColors.accent)
-                .semantics { contentDescription = "Iniciar teste de velocidade" }
-                .clickable(onClick = onIniciarTeste),
+            modifier =
+                Modifier
+                    .size(210.dp)
+                    .scale(scale)
+                    .clip(CircleShape)
+                    .background(LkColors.accent)
+                    .semantics { contentDescription = "Iniciar teste de velocidade" }
+                    .clickable(onClick = onIniciarTeste),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -506,12 +516,13 @@ private fun ProgressCircle(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(horizontal = 24.dp),
         ) {
-            val rotulo = when (fase) {
-                FaseSpeedtest.ping -> "PING"
-                FaseSpeedtest.download -> "DOWNLOAD"
-                FaseSpeedtest.upload -> "UPLOAD"
-                else -> ""
-            }
+            val rotulo =
+                when (fase) {
+                    FaseSpeedtest.ping -> "PING"
+                    FaseSpeedtest.download -> "DOWNLOAD"
+                    FaseSpeedtest.upload -> "UPLOAD"
+                    else -> ""
+                }
             if (rotulo.isNotBlank()) {
                 Text(
                     text = rotulo,
@@ -555,13 +566,14 @@ private fun ProgressCircle(
 @Composable
 private fun ConcluidoCircle(onIniciarTeste: () -> Unit) {
     Box(
-        modifier = Modifier
-            .size(210.dp)
-            .clip(CircleShape)
-            .background(LkColors.success.copy(alpha = 0.1f))
-            .border(2.dp, LkColors.success, CircleShape)
-            .semantics { contentDescription = "Teste concluído. Toque para repetir." }
-            .clickable(onClick = onIniciarTeste),
+        modifier =
+            Modifier
+                .size(210.dp)
+                .clip(CircleShape)
+                .background(LkColors.success.copy(alpha = 0.1f))
+                .border(2.dp, LkColors.success, CircleShape)
+                .semantics { contentDescription = "Teste concluído. Toque para repetir." }
+                .clickable(onClick = onIniciarTeste),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -580,13 +592,14 @@ private fun ConcluidoCircle(onIniciarTeste: () -> Unit) {
 @Composable
 private fun ErrorCircle(onTentarNovamente: () -> Unit) {
     Box(
-        modifier = Modifier
-            .size(210.dp)
-            .clip(CircleShape)
-            .background(LkColors.error.copy(alpha = 0.1f))
-            .border(2.dp, LkColors.error, CircleShape)
-            .semantics { contentDescription = "Erro no teste. Toque para tentar novamente." }
-            .clickable(onClick = onTentarNovamente),
+        modifier =
+            Modifier
+                .size(210.dp)
+                .clip(CircleShape)
+                .background(LkColors.error.copy(alpha = 0.1f))
+                .border(2.dp, LkColors.error, CircleShape)
+                .semantics { contentDescription = "Erro no teste. Toque para tentar novamente." }
+                .clickable(onClick = onTentarNovamente),
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -602,36 +615,42 @@ private fun ErrorCircle(onTentarNovamente: () -> Unit) {
     }
 }
 
-private val modoOpcoes = listOf(
-    "Rápido" to ModoSpeedtest.fast,
-    "Completo" to ModoSpeedtest.complete,
-    "Triplo" to ModoSpeedtest.triplo,
-)
+private val modoOpcoes =
+    listOf(
+        "Rápido" to ModoSpeedtest.fast,
+        "Completo" to ModoSpeedtest.complete,
+        "Triplo" to ModoSpeedtest.triplo,
+    )
 
 @Composable
-private fun ModeSelector(modoSelecionado: ModoSpeedtest, onSelect: (ModoSpeedtest) -> Unit) {
+private fun ModeSelector(
+    modoSelecionado: ModoSpeedtest,
+    onSelect: (ModoSpeedtest) -> Unit,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(999.dp))
-            .background(LkColors.accent.copy(alpha = 0.1f))
-            .padding(2.dp)
-            .semantics { contentDescription = "Modo do teste" },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(999.dp))
+                .background(LkColors.accent.copy(alpha = 0.1f))
+                .padding(2.dp)
+                .semantics { contentDescription = "Modo do teste" },
     ) {
         modoOpcoes.forEach { (label, modo) ->
             val selected = modoSelecionado == modo
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(if (selected) LkColors.accent else Color.Transparent)
-                    .clickable { onSelect(modo) }
-                    .padding(vertical = LkSpacing.lg)
-                    .semantics {
-                        role = Role.Tab
-                        this.selected = selected
-                        contentDescription = "$label${if (selected) ", selecionado" else ""}"
-                    },
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(if (selected) LkColors.accent else Color.Transparent)
+                        .clickable { onSelect(modo) }
+                        .padding(vertical = LkSpacing.lg)
+                        .semantics {
+                            role = Role.Tab
+                            this.selected = selected
+                            contentDescription = "$label${if (selected) ", selecionado" else ""}"
+                        },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -653,8 +672,11 @@ private fun CardRqualAnatel(
     downloadMbps: Double?,
     estadoConexao: EstadoConexao,
 ) {
-    val velocidadeContratadaMbps = planoInternet.filter { it.isDigit() }.toIntOrNull()
-        ?.let { if (planoInternet.contains("gbps", ignoreCase = true)) it * 1000 else it }
+    val velocidadeContratadaMbps =
+        planoInternet
+            .filter { it.isDigit() }
+            .toIntOrNull()
+            ?.let { if (planoInternet.contains("gbps", ignoreCase = true)) it * 1000 else it }
 
     // Nao renderiza se contrato nao informado ou invalido
     if (velocidadeContratadaMbps == null || velocidadeContratadaMbps <= 0) return
@@ -671,35 +693,40 @@ private fun CardRqualAnatel(
     val passaVelocidadeNormal = percentual >= 80
 
     // Estado do card
-    val (badgeTexto, badgeCor, textoConclusao) = when {
-        passaVelocidadeNormal -> Triple(
-            "Aprovado",
-            LkColors.success,
-            "Sua internet está dentro do esperado pelo contrato.",
-        )
-        passaMinimoGarantido -> Triple(
-            "Parcial",
-            LkColors.warning,
-            "Velocidade acima do mínimo, mas abaixo do normal. Pode ser variação pontual — faça mais testes para confirmar.",
-        )
-        else -> Triple(
-            "Abaixo do mínimo",
-            LkColors.error,
-            "Se isso se repetir, você tem direito de reclamar com sua operadora.",
-        )
-    }
+    val (badgeTexto, badgeCor, textoConclusao) =
+        when {
+            passaVelocidadeNormal ->
+                Triple(
+                    "Aprovado",
+                    LkColors.success,
+                    "Sua internet está dentro do esperado pelo contrato.",
+                )
+            passaMinimoGarantido ->
+                Triple(
+                    "Parcial",
+                    LkColors.warning,
+                    "Velocidade acima do mínimo, mas abaixo do normal. Pode ser variação pontual — faça mais testes para confirmar.",
+                )
+            else ->
+                Triple(
+                    "Abaixo do mínimo",
+                    LkColors.error,
+                    "Se isso se repetir, você tem direito de reclamar com sua operadora.",
+                )
+        }
 
     val badgeTextColor = if (passaMinimoGarantido && !passaVelocidadeNormal) c.textPrimary else badgeCor
 
     var showTooltip by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.lg),
     ) {
         // Cabecalho: titulo + botao info
         Row(
@@ -730,10 +757,11 @@ private fun CardRqualAnatel(
 
         // Badge de veredicto
         Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(badgeCor.copy(alpha = 0.12f))
-                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
+            modifier =
+                Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(badgeCor.copy(alpha = 0.12f))
+                    .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
         ) {
             Text(
                 text = badgeTexto,
@@ -802,20 +830,22 @@ private fun CardRqualAnatel(
             dragHandle = {},
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = LkSpacing.lg)
-                    .padding(top = LkSpacing.xl, bottom = LkSpacing.xxl),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = LkSpacing.lg)
+                        .padding(top = LkSpacing.xl, bottom = LkSpacing.xxl),
             ) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                     contentAlignment = Alignment.Center,
                 ) {
                     Box(
-                        modifier = Modifier
-                            .width(40.dp)
-                            .height(4.dp)
-                            .background(c.border, RoundedCornerShape(999.dp)),
+                        modifier =
+                            Modifier
+                                .width(40.dp)
+                                .height(4.dp)
+                                .background(c.border, RoundedCornerShape(999.dp)),
                     )
                 }
                 Spacer(Modifier.height(LkSpacing.lg))
@@ -852,13 +882,17 @@ private fun AnatelCriterioRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(20.dp)
-                .clip(CircleShape)
-                .background(
-                    if (passou) LkColors.success.copy(alpha = 0.12f)
-                    else LkColors.error.copy(alpha = 0.12f),
-                ),
+            modifier =
+                Modifier
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (passou) {
+                            LkColors.success.copy(alpha = 0.12f)
+                        } else {
+                            LkColors.error.copy(alpha = 0.12f)
+                        },
+                    ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -891,13 +925,18 @@ private fun CardContextoUso(
     val aprovadoJogos = latenciaMs <= 50.0 && jitterMs <= 20.0
     val aprovadoHomeOffice = downloadMbps >= 5.0 && uploadMbps >= 5.0
 
-    data class UsoItem(val nome: String, val aprovado: Boolean, val descritor: String)
-    val usos = listOf(
-        UsoItem("Videochamada", aprovadoVideochamada, "Pode ter travamentos ou queda de qualidade"),
-        UsoItem("Streaming HD", aprovadoStreaming, "Buffering provável em qualidade alta"),
-        UsoItem("Jogos online", aprovadoJogos, "Latência ou jitter podem causar lag"),
-        UsoItem("Home-office", aprovadoHomeOffice, "Upload insuficiente para ferramentas colaborativas"),
+    data class UsoItem(
+        val nome: String,
+        val aprovado: Boolean,
+        val descritor: String,
     )
+    val usos =
+        listOf(
+            UsoItem("Videochamada", aprovadoVideochamada, "Pode ter travamentos ou queda de qualidade"),
+            UsoItem("Streaming HD", aprovadoStreaming, "Buffering provável em qualidade alta"),
+            UsoItem("Jogos online", aprovadoJogos, "Latência ou jitter podem causar lag"),
+            UsoItem("Home-office", aprovadoHomeOffice, "Upload insuficiente para ferramentas colaborativas"),
+        )
 
     var showTooltip by remember { mutableStateOf(false) }
     if (showTooltip) {
@@ -918,7 +957,9 @@ private fun CardContextoUso(
     androidx.compose.material3.Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(LkRadius.card),
-        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = c.bgCard),
+        colors =
+            androidx.compose.material3.CardDefaults
+                .cardColors(containerColor = c.bgCard),
         border = androidx.compose.foundation.BorderStroke(1.dp, c.border),
     ) {
         Column(modifier = Modifier.padding(LkSpacing.lg)) {
@@ -944,9 +985,10 @@ private fun CardContextoUso(
             Spacer(Modifier.height(LkSpacing.sm))
             usos.forEachIndexed { index, uso ->
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 10.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -1007,9 +1049,10 @@ private fun CardBufferbloat(
         androidx.compose.material3.Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(LkRadius.card),
-            colors = androidx.compose.material3.CardDefaults.cardColors(
-                containerColor = LkColors.success.copy(alpha = 0.08f),
-            ),
+            colors =
+                androidx.compose.material3.CardDefaults.cardColors(
+                    containerColor = LkColors.success.copy(alpha = 0.08f),
+                ),
             border = androidx.compose.foundation.BorderStroke(1.dp, LkColors.success.copy(alpha = 0.20f)),
         ) {
             Row(
@@ -1040,37 +1083,43 @@ private fun CardBufferbloat(
         return
     }
 
-    val badgeLabel = when (severidade) {
-        SeveridadeBufferbloat.mild -> "Leve"
-        SeveridadeBufferbloat.moderate -> "Moderado"
-        SeveridadeBufferbloat.severe -> "Severo"
-        else -> return
-    }
-    val badgeBg = when (severidade) {
-        SeveridadeBufferbloat.mild -> c.bgSecondary
-        SeveridadeBufferbloat.moderate -> LkColors.warning.copy(alpha = 0.12f)
-        else -> LkColors.error.copy(alpha = 0.12f)
-    }
-    val badgeTextColor = when (severidade) {
-        SeveridadeBufferbloat.mild -> c.textSecondary
-        SeveridadeBufferbloat.moderate -> c.textPrimary
-        else -> LkColors.error
-    }
-    val icone = when (severidade) {
-        SeveridadeBufferbloat.mild -> Icons.Outlined.Info
-        SeveridadeBufferbloat.moderate -> Icons.Filled.WarningAmber
-        else -> Icons.Filled.Error
-    }
-    val iconeTint = when (severidade) {
-        SeveridadeBufferbloat.mild -> c.textSecondary
-        SeveridadeBufferbloat.moderate -> LkColors.warning
-        else -> LkColors.error
-    }
-    val texto = when (severidade) {
-        SeveridadeBufferbloat.mild -> "Pequeno atraso detectado sob carga. Em uso normal, provavelmente imperceptível."
-        SeveridadeBufferbloat.moderate -> "Em uso intenso — muitos downloads ou chamadas simultâneas — pode sentir travamentos e aumento de latência."
-        else -> "Atraso alto mesmo com boa velocidade. Chamadas de vídeo e jogos online serão afetados durante qualquer uso da rede."
-    }
+    val badgeLabel =
+        when (severidade) {
+            SeveridadeBufferbloat.mild -> "Leve"
+            SeveridadeBufferbloat.moderate -> "Moderado"
+            SeveridadeBufferbloat.severe -> "Severo"
+            else -> return
+        }
+    val badgeBg =
+        when (severidade) {
+            SeveridadeBufferbloat.mild -> c.bgSecondary
+            SeveridadeBufferbloat.moderate -> LkColors.warning.copy(alpha = 0.12f)
+            else -> LkColors.error.copy(alpha = 0.12f)
+        }
+    val badgeTextColor =
+        when (severidade) {
+            SeveridadeBufferbloat.mild -> c.textSecondary
+            SeveridadeBufferbloat.moderate -> c.textPrimary
+            else -> LkColors.error
+        }
+    val icone =
+        when (severidade) {
+            SeveridadeBufferbloat.mild -> Icons.Outlined.Info
+            SeveridadeBufferbloat.moderate -> Icons.Filled.WarningAmber
+            else -> Icons.Filled.Error
+        }
+    val iconeTint =
+        when (severidade) {
+            SeveridadeBufferbloat.mild -> c.textSecondary
+            SeveridadeBufferbloat.moderate -> LkColors.warning
+            else -> LkColors.error
+        }
+    val texto =
+        when (severidade) {
+            SeveridadeBufferbloat.mild -> "Pequeno atraso detectado sob carga. Em uso normal, provavelmente imperceptível."
+            SeveridadeBufferbloat.moderate -> "Em uso intenso — muitos downloads ou chamadas simultâneas — pode sentir travamentos e aumento de latência."
+            else -> "Atraso alto mesmo com boa velocidade. Chamadas de vídeo e jogos online serão afetados durante qualquer uso da rede."
+        }
 
     var showTooltip by remember { mutableStateOf(false) }
     if (showTooltip) {
@@ -1091,7 +1140,9 @@ private fun CardBufferbloat(
     androidx.compose.material3.Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(LkRadius.card),
-        colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = c.bgCard),
+        colors =
+            androidx.compose.material3.CardDefaults
+                .cardColors(containerColor = c.bgCard),
         border = androidx.compose.foundation.BorderStroke(1.dp, c.border),
     ) {
         Column(modifier = Modifier.padding(LkSpacing.lg)) {
@@ -1116,10 +1167,11 @@ private fun CardBufferbloat(
             }
             Spacer(Modifier.height(LkSpacing.sm))
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(100.dp))
-                    .background(badgeBg)
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(100.dp))
+                        .background(badgeBg)
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(icone, contentDescription = null, tint = iconeTint, modifier = Modifier.size(14.dp))
@@ -1144,19 +1196,26 @@ private fun CardBufferbloat(
 }
 
 @Composable
-private fun IndicadorRodadaTriplo(rodadaAtual: Int, aguardando: Boolean) {
+private fun IndicadorRodadaTriplo(
+    rodadaAtual: Int,
+    aguardando: Boolean,
+) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             repeat(3) { index ->
                 val ativo = index < rodadaAtual
                 Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (ativo) LkColors.accent
-                            else LkColors.accent.copy(alpha = 0.2f),
-                        ),
+                    modifier =
+                        Modifier
+                            .size(8.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (ativo) {
+                                    LkColors.accent
+                                } else {
+                                    LkColors.accent.copy(alpha = 0.2f)
+                                },
+                            ),
                 )
             }
         }
@@ -1170,16 +1229,20 @@ private fun IndicadorRodadaTriplo(rodadaAtual: Int, aguardando: Boolean) {
 }
 
 @Composable
-private fun CardRodadasTriplo(c: LkTokens, rodadas: List<ResultadoRodadaTriplo>) {
+private fun CardRodadasTriplo(
+    c: LkTokens,
+    rodadas: List<ResultadoRodadaTriplo>,
+) {
     var expandido by remember { mutableStateOf(false) }
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .clickable { expandido = !expandido }
-            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .clickable { expandido = !expandido }
+                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -1200,9 +1263,10 @@ private fun CardRodadasTriplo(c: LkTokens, rodadas: List<ResultadoRodadaTriplo>)
             Spacer(Modifier.height(LkSpacing.sm))
             rodadas.forEachIndexed { index, rodada ->
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
@@ -1230,12 +1294,13 @@ private fun LastResultCard(
     label: String = "Último resultado",
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -1263,9 +1328,10 @@ private fun ExploreToolsRow(
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = LkSpacing.sm),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = LkSpacing.sm),
             horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
         ) {
             FerramentaCard(
@@ -1287,9 +1353,10 @@ private fun ExploreToolsRow(
         }
         if (FeatureFlags.DIAGNOSTICO_CHAT) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = LkSpacing.sm),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = LkSpacing.sm),
                 horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
             ) {
                 FerramentaCard(
@@ -1317,21 +1384,22 @@ private fun FerramentaCard(
     habilitado: Boolean = true,
     modificador: Modifier = Modifier,
 ) {
-    val cardModifier = if (habilitado) {
-        modificador
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .clickable { onClick() }
-            .padding(LkSpacing.md)
-    } else {
-        modificador
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard.copy(alpha = 0.5f))
-            .border(1.dp, c.border.copy(alpha = 0.5f), RoundedCornerShape(LkRadius.card))
-            .padding(LkSpacing.md)
-            .graphicsLayer { alpha = 0.5f }
-    }
+    val cardModifier =
+        if (habilitado) {
+            modificador
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .clickable { onClick() }
+                .padding(LkSpacing.md)
+        } else {
+            modificador
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard.copy(alpha = 0.5f))
+                .border(1.dp, c.border.copy(alpha = 0.5f), RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.md)
+                .graphicsLayer { alpha = 0.5f }
+        }
 
     Column(
         modifier = cardModifier,
@@ -1342,9 +1410,10 @@ private fun FerramentaCard(
             imageVector = icon,
             contentDescription = null,
             tint = c.textPrimary,
-            modifier = Modifier
-                .size(32.dp)
-                .padding(bottom = LkSpacing.sm),
+            modifier =
+                Modifier
+                    .size(32.dp)
+                    .padding(bottom = LkSpacing.sm),
         )
         Text(
             text = titulo,
@@ -1372,24 +1441,31 @@ private fun FerramentaCard(
     }
 }
 
-private val toolsEmBreve = listOf(
-    "Ping / Latência" to "Testa o ping para servidores externos",
-)
+private val toolsEmBreve =
+    listOf(
+        "Ping / Latência" to "Testa o ping para servidores externos",
+    )
 
 @Composable
-private fun ExploreToolsSheet(c: LkTokens, onAbrirDnsBenchmark: () -> Unit, onAbrirDiagnostico: () -> Unit) {
+private fun ExploreToolsSheet(
+    c: LkTokens,
+    onAbrirDnsBenchmark: () -> Unit,
+    onAbrirDiagnostico: () -> Unit,
+) {
     Column(modifier = Modifier.padding(bottom = 32.dp)) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = LkSpacing.md, bottom = LkSpacing.lg),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(top = LkSpacing.md, bottom = LkSpacing.lg),
             contentAlignment = Alignment.Center,
         ) {
             Box(
-                modifier = Modifier
-                    .width(40.dp)
-                    .height(4.dp)
-                    .background(c.border, RoundedCornerShape(999.dp)),
+                modifier =
+                    Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .background(c.border, RoundedCornerShape(999.dp)),
             )
         }
 
@@ -1403,10 +1479,11 @@ private fun ExploreToolsSheet(c: LkTokens, onAbrirDnsBenchmark: () -> Unit, onAb
 
         // DNS Benchmark — ativo
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onAbrirDnsBenchmark() }
-                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { onAbrirDnsBenchmark() }
+                    .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -1429,10 +1506,11 @@ private fun ExploreToolsSheet(c: LkTokens, onAbrirDnsBenchmark: () -> Unit, onAb
 
         // Diagnostico Inteligente — ativo
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onAbrirDiagnostico() }
-                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { onAbrirDiagnostico() }
+                    .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -1454,9 +1532,10 @@ private fun ExploreToolsSheet(c: LkTokens, onAbrirDnsBenchmark: () -> Unit, onAb
                 modifier = Modifier.padding(horizontal = LkSpacing.lg),
             )
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -1481,11 +1560,12 @@ private fun StatusCard(
     val wifiSnapshot = snapshotRede.wifiLinkSnapshot
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard),
     ) {
         when {
             estadoConexao == EstadoConexao.wifi && isConnected && wifiSnapshot != null -> {
@@ -1531,11 +1611,12 @@ private fun StatusCard(
     }
 }
 
-private fun wifiSignalIcon(rssiDbm: Int?): ImageVector = when {
-    rssiDbm == null || rssiDbm >= -60 -> Icons.Outlined.Wifi
-    rssiDbm >= -70 -> Icons.Outlined.Wifi2Bar
-    else -> Icons.Outlined.Wifi1Bar
-}
+private fun wifiSignalIcon(rssiDbm: Int?): ImageVector =
+    when {
+        rssiDbm == null || rssiDbm >= -60 -> Icons.Outlined.Wifi
+        rssiDbm >= -70 -> Icons.Outlined.Wifi2Bar
+        else -> Icons.Outlined.Wifi1Bar
+    }
 
 @Composable
 private fun StatusRow(
@@ -1546,9 +1627,10 @@ private fun StatusRow(
     valueColor: Color,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(

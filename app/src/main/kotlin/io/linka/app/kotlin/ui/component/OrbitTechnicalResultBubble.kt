@@ -28,8 +28,11 @@ import io.linka.app.kotlin.ui.LocalLkTokens
 private val BUBBLE_SHAPE = RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 16.dp)
 
 fun IntelligentDiagnosticSession.hasAnyData(): Boolean =
-    speedtestDownloadMbps != null || speedtestUploadMbps != null ||
-        speedtestLatencyMs != null || wifiRssiDbm != null || diagnosticReport != null
+    speedtestDownloadMbps != null ||
+        speedtestUploadMbps != null ||
+        speedtestLatencyMs != null ||
+        wifiRssiDbm != null ||
+        diagnosticReport != null
 
 @Composable
 fun OrbitTechnicalResultBubble(
@@ -39,26 +42,29 @@ fun OrbitTechnicalResultBubble(
     val c = LocalLkTokens.current
     val report = session.diagnosticReport
 
-    val statusColor = when (report?.decisao?.status) {
-        DiagnosticStatus.ok, DiagnosticStatus.info -> LkColors.success
-        DiagnosticStatus.attention -> LkColors.warning
-        DiagnosticStatus.critical -> LkColors.error
-        else -> c.textTertiary
-    }
-    val statusLabel = when (report?.decisao?.status) {
-        DiagnosticStatus.ok, DiagnosticStatus.info -> "Rede OK"
-        DiagnosticStatus.attention -> "Atenção"
-        DiagnosticStatus.critical -> "Problema crítico"
-        else -> "Inconclusivo"
-    }
+    val statusColor =
+        when (report?.decisao?.status) {
+            DiagnosticStatus.ok, DiagnosticStatus.info -> LkColors.success
+            DiagnosticStatus.attention -> LkColors.warning
+            DiagnosticStatus.critical -> LkColors.error
+            else -> c.textTertiary
+        }
+    val statusLabel =
+        when (report?.decisao?.status) {
+            DiagnosticStatus.ok, DiagnosticStatus.info -> "Rede OK"
+            DiagnosticStatus.attention -> "Atenção"
+            DiagnosticStatus.critical -> "Problema crítico"
+            else -> "Inconclusivo"
+        }
 
     Row(modifier = modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .clip(BUBBLE_SHAPE)
-                .background(c.bgCard)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth(0.85f)
+                    .clip(BUBBLE_SHAPE)
+                    .background(c.bgCard)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             // Header
@@ -87,18 +93,20 @@ fun OrbitTechnicalResultBubble(
             ) {
                 if (report != null) {
                     Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(100.dp))
-                            .background(statusColor.copy(alpha = 0.15f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(100.dp))
+                                .background(statusColor.copy(alpha = 0.15f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Box(
-                            modifier = Modifier
-                                .size(4.dp)
-                                .clip(CircleShape)
-                                .background(statusColor),
+                            modifier =
+                                Modifier
+                                    .size(4.dp)
+                                    .clip(CircleShape)
+                                    .background(statusColor),
                         )
                         Text(
                             text = statusLabel,

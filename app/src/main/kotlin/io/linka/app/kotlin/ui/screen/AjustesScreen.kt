@@ -5,7 +5,6 @@ import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.Settings
-import androidx.core.net.toUri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -29,46 +28,44 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Analytics
-import androidx.compose.material.icons.automirrored.outlined.Article
-import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Sensors
-import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.Wifi
-import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material.icons.outlined.Business
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.PhoneAndroid
-import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Router
-import androidx.compose.material.icons.outlined.Security
-import androidx.compose.material.icons.outlined.Shield
+import androidx.compose.material.icons.outlined.Sensors
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.TrendingDown
+import androidx.compose.material.icons.outlined.SignalCellularAlt
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.VerifiedUser
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.outlined.Wifi
+import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -78,10 +75,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -92,8 +87,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -105,9 +100,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import io.linka.app.kotlin.BuildConfig
-import io.linka.app.kotlin.monitoramento.OemKillInfo
 import io.linka.app.kotlin.core.network.EstadoConexao
+import io.linka.app.kotlin.monitoramento.OemKillInfo
 import io.linka.app.kotlin.ui.IspInfo
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkRadius
@@ -137,11 +133,12 @@ fun AjustesScreen(
     onAbrirPerfil: () -> Unit = {},
     onAbrirPrivacidade: () -> Unit = {},
     onAbrirNovidades: () -> Unit = {},
-    dadosMoveis: AjustesDadosMoveisState = AjustesDadosMoveisState(
-        speedtestPermiteHeavyMovel = false,
-        speedtestMbConsumidosMes = 0L,
-        onSetSpeedtestPermiteHeavyMovel = {},
-    ),
+    dadosMoveis: AjustesDadosMoveisState =
+        AjustesDadosMoveisState(
+            speedtestPermiteHeavyMovel = false,
+            speedtestMbConsumidosMes = 0L,
+            onSetSpeedtestPermiteHeavyMovel = {},
+        ),
 ) {
     val c = LocalLkTokens.current
     val context = LocalContext.current
@@ -215,371 +212,379 @@ fun AjustesScreen(
         },
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(c.bgPrimary),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .background(c.bgPrimary),
         ) {
-        // ── HERO CARD ────────────────────────────────────────────────────────────
-        item {
-            val nomeDisplay = nomeUsuario.ifBlank { deviceName.ifBlank { "Meu dispositivo" } }
-            val (subtitulo, isRealData) = buildHeroSubtitle(nomeUsuario, operadora, planoInternet)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = LkSpacing.lg)
-                    .padding(top = LkSpacing.xl, bottom = LkSpacing.lg)
-                    .semantics {
-                        contentDescription = "Perfil de $nomeDisplay. Toque para editar."
-                    }
-                    .clip(RoundedCornerShape(LkRadius.card))
-                    .background(c.bgSecondary)
-                    .clickable { showPerfilSheet = true }
-                    .padding(LkSpacing.lg),
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    UserAvatar(
-                        fotoUri = fotoUriUsuario,
-                        fallbackInitial = nomeUsuario.firstOrNull() ?: deviceName.firstOrNull(),
-                        size = 56.dp,
-                    )
-                    Spacer(Modifier.width(LkSpacing.md))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = nomeDisplay,
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.W600,
-                            color = c.textPrimary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = subtitulo,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (isRealData) c.textSecondary else c.textTertiary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                Icon(
-                    imageVector = Icons.Outlined.Edit,
-                    contentDescription = "Editar perfil",
-                    tint = c.textTertiary,
-                    modifier = Modifier
-                        .size(16.dp)
-                        .align(Alignment.TopEnd),
-                )
-            }
-        }
-
-        // ── MINHA CONEXÃO ────────────────────────────────────────────────────────
-        item { SectionHeader("Minha conexão", c) }
-
-        // Banner de confirmação de ISP auto-detectado
-        if (!ispConfirmado && !ispDetectado.isNullOrBlank() && operadora.isBlank()) {
+            // ── HERO CARD ────────────────────────────────────────────────────────────
             item {
+                val nomeDisplay = nomeUsuario.ifBlank { deviceName.ifBlank { "Meu dispositivo" } }
+                val (subtitulo, isRealData) = buildHeroSubtitle(nomeUsuario, operadora, planoInternet)
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = LkSpacing.lg)
-                        .padding(bottom = LkSpacing.sm)
-                        .clip(RoundedCornerShape(LkRadius.card))
-                        .background(LkColors.accent.copy(alpha = 0.08f))
-                        .border(1.dp, LkColors.accent.copy(alpha = 0.30f), RoundedCornerShape(LkRadius.card))
-                        .padding(LkSpacing.md),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = LkSpacing.lg)
+                            .padding(top = LkSpacing.xl, bottom = LkSpacing.lg)
+                            .semantics {
+                                contentDescription = "Perfil de $nomeDisplay. Toque para editar."
+                            }.clip(RoundedCornerShape(LkRadius.card))
+                            .background(c.bgSecondary)
+                            .clickable { showPerfilSheet = true }
+                            .padding(LkSpacing.lg),
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.Wifi,
-                                contentDescription = null,
-                                tint = LkColors.accent,
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Spacer(Modifier.width(LkSpacing.sm))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        UserAvatar(
+                            fotoUri = fotoUriUsuario,
+                            fallbackInitial = nomeUsuario.firstOrNull() ?: deviceName.firstOrNull(),
+                            size = 56.dp,
+                        )
+                        Spacer(Modifier.width(LkSpacing.md))
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Operadora detectada: $ispDetectado",
-                                style = MaterialTheme.typography.bodySmall,
+                                text = nomeDisplay,
+                                style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.W600,
                                 color = c.textPrimary,
-                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = subtitulo,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (isRealData) c.textSecondary else c.textTertiary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
-                        Text(
-                            text = "Deseja usar como operadora principal?",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = c.textSecondary,
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
-                            Button(
-                                onClick = { onConfirmarIsp(ispDetectado) },
-                                colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
-                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
-                            ) {
-                                Text("Confirmar", style = MaterialTheme.typography.labelMedium)
+                    }
+                    Icon(
+                        imageVector = Icons.Outlined.Edit,
+                        contentDescription = "Editar perfil",
+                        tint = c.textTertiary,
+                        modifier =
+                            Modifier
+                                .size(16.dp)
+                                .align(Alignment.TopEnd),
+                    )
+                }
+            }
+
+            // ── MINHA CONEXÃO ────────────────────────────────────────────────────────
+            item { SectionHeader("Minha conexão", c) }
+
+            // Banner de confirmação de ISP auto-detectado
+            if (!ispConfirmado && !ispDetectado.isNullOrBlank() && operadora.isBlank()) {
+                item {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = LkSpacing.lg)
+                                .padding(bottom = LkSpacing.sm)
+                                .clip(RoundedCornerShape(LkRadius.card))
+                                .background(LkColors.accent.copy(alpha = 0.08f))
+                                .border(1.dp, LkColors.accent.copy(alpha = 0.30f), RoundedCornerShape(LkRadius.card))
+                                .padding(LkSpacing.md),
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Wifi,
+                                    contentDescription = null,
+                                    tint = LkColors.accent,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                                Spacer(Modifier.width(LkSpacing.sm))
+                                Text(
+                                    text = "Operadora detectada: $ispDetectado",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.W600,
+                                    color = c.textPrimary,
+                                    modifier = Modifier.weight(1f),
+                                )
                             }
-                            TextButton(onClick = onDispensarBannerIsp) {
-                                Text("Ignorar", color = c.textTertiary, style = MaterialTheme.typography.labelMedium)
+                            Text(
+                                text = "Deseja usar como operadora principal?",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = c.textSecondary,
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
+                                Button(
+                                    onClick = { onConfirmarIsp(ispDetectado) },
+                                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                                    contentPadding =
+                                        androidx.compose.foundation.layout
+                                            .PaddingValues(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
+                                ) {
+                                    Text("Confirmar", style = MaterialTheme.typography.labelMedium)
+                                }
+                                TextButton(onClick = onDispensarBannerIsp) {
+                                    Text("Ignorar", color = c.textTertiary, style = MaterialTheme.typography.labelMedium)
+                                }
                             }
                         }
                     }
                 }
             }
-        }
 
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics {
-                        contentDescription = "Minha conexão. ${
-                            if (operadora.isNotBlank()) "Operadora: $operadora." else ""
-                        } Toque para editar."
-                    }
-                    .clickable { showProvedorSheet = true }
-                    .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(LkColors.accent.copy(alpha = 0.12f)),
-                    contentAlignment = Alignment.Center,
+            item {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .semantics {
+                                contentDescription = "Minha conexão. ${
+                                    if (operadora.isNotBlank()) "Operadora: $operadora." else ""
+                                } Toque para editar."
+                            }.clickable { showProvedorSheet = true }
+                            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Business,
-                        contentDescription = null,
-                        tint = LkColors.accent,
-                        modifier = Modifier.size(18.dp),
-                    )
-                }
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(
-                        text = "Minha conexão",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = c.textPrimary,
-                    )
-                    val tudo_vazio = operadora.isBlank() && planoInternet.isBlank() && regiao.isBlank() && cidadeNome.isBlank() && estadoUf.isBlank()
-                    if (tudo_vazio) {
-                        Text(
-                            text = "Toque para configurar sua conexão",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = c.textTertiary,
-                        )
-                    } else {
-                        Text(
-                            text = "Operadora: ${if (operadora.isNotBlank()) operadora else "—"}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = c.textSecondary,
-                        )
-                        Text(
-                            text = "Plano: ${if (planoInternet.isNotBlank()) "$planoInternet Mbps" else "—"}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = c.textSecondary,
-                        )
-                        Text(
-                            text = "Local: ${when {
-                                cidadeNome.isNotBlank() && estadoUf.isNotBlank() -> "$cidadeNome, $estadoUf"
-                                regiao.isNotBlank() -> regiao
-                                else -> "—"
-                            }}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = c.textSecondary,
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(LkColors.accent.copy(alpha = 0.12f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Business,
+                            contentDescription = null,
+                            tint = LkColors.accent,
+                            modifier = Modifier.size(18.dp),
                         )
                     }
-                }
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                    contentDescription = "Editar",
-                    tint = c.textTertiary,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-        }
-        item { Spacer(Modifier.height(16.dp)) }
-        // ── APARÊNCIA ────────────────────────────────────────────────────────────
-        item { SectionHeader("Aparência", c) }
-        item {
-            ThemeSelector(
-                selecionado = temaSelecionado,
-                onSelect = onDefinirTemaSelecionado,
-                c = c,
-            )
-        }
-        item { HorizontalDivider(color = c.border, thickness = 1.dp) }
-        item {
-            SettingItem(
-                c = c,
-                icon = Icons.Outlined.Notifications,
-                label = "Notificações",
-                subtitle = "Receba alertas quando sua conexão cair",
-                onClick = {
-                    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                    context.startActivity(intent)
-                },
-            )
-        }
-        item { Spacer(Modifier.height(16.dp)) }
-
-        // ── HISTÓRICO E DADOS ─────────────────────────────────────────────────────
-        item { SectionHeader("Histórico e dados", c) }
-        item {
-            SettingItem(
-                c = c,
-                icon = Icons.Outlined.History,
-                label = "Ver histórico",
-                subtitle = "Suas medições recentes",
-                onClick = onAbrirHistorico,
-            )
-        }
-        item { HorizontalDivider(color = c.border, thickness = 1.dp) }
-        item {
-            SettingItem(
-                c = c,
-                icon = Icons.AutoMirrored.Outlined.Article,
-                label = "Comprovante para a Anatel",
-                subtitle = "Documento com suas medições para registrar reclamação",
-                onClick = onAbrirLaudo,
-            )
-        }
-        item { HorizontalDivider(color = c.border, thickness = 1.dp) }
-        item {
-            SettingItem(
-                c = c,
-                icon = Icons.Outlined.Delete,
-                label = "Gerenciar dados locais",
-                subtitle = "Limpar histórico e preferências",
-                onClick = { showDadosLocaisSheet = true },
-            )
-        }
-        item { Spacer(Modifier.height(16.dp)) }
-
-        // ── INFORMAÇÕES ───────────────────────────────────────────────────────────
-        item { SectionHeader("Informações", c) }
-        item {
-            SettingItem(
-                c = c,
-                icon = Icons.Outlined.Lock,
-                label = "Privacidade e dados",
-                subtitle = "Como seus dados são protegidos",
-                onClick = { onAbrirPrivacidade() },
-            )
-        }
-        item { HorizontalDivider(color = c.border, thickness = 1.dp) }
-        item {
-            SettingItem(
-                c = c,
-                icon = Icons.Outlined.NewReleases,
-                label = "O que há de novo",
-                subtitle = "Confira o que mudou",
-                onClick = { onAbrirNovidades() },
-            )
-        }
-        item { HorizontalDivider(color = c.border, thickness = 1.dp) }
-        item {
-            SettingItem(
-                c = c,
-                icon = Icons.Outlined.VerifiedUser,
-                label = "Diagnóstico do app",
-                subtitle = "Integridade, binários e assinatura",
-                onClick = { showDiagnosticoAppSheet = true },
-            )
-        }
-        item { HorizontalDivider(color = c.border, thickness = 1.dp) }
-        item {
-            SettingItem(
-                c = c,
-                icon = Icons.Outlined.Delete,
-                label = "Redefinir o app",
-                subtitle = "Apaga todos os dados e restaura configurações iniciais",
-                onClick = { showConfirmResetApp = true },
-                tintError = true,
-            )
-        }
-        item { HorizontalDivider(color = c.border, thickness = 1.dp) }
-        item {
-            SettingItem(
-                c = c,
-                icon = Icons.Outlined.Info,
-                label = "Sobre o Linka",
-                subtitle = "v$appVersion · Android · Kotlin",
-                onClick = { showSobreSheet = true },
-            )
-        }
-        item { Spacer(Modifier.height(16.dp)) }
-
-        // ── DADOS MÓVEIS ──────────────────────────────────────────────────────────
-        item { SectionHeader("Dados móveis", c) }
-        item {
-            ToggleItem(
-                c = c,
-                icon = Icons.Outlined.SignalCellularAlt,
-                label = "Sempre permitir testes pesados em dados móveis",
-                subtitle = "Não mostrar aviso para modo Completo e Triplo na próxima vez",
-                checked = speedtestPermiteHeavyMovel,
-                onCheckedChange = onSetSpeedtestPermiteHeavyMovel,
-            )
-        }
-        item { HorizontalDivider(color = c.border, thickness = 1.dp) }
-        item {
-            val mbLabel = if (speedtestMbConsumidosMes > 0L) "$speedtestMbConsumidosMes MB" else "—"
-            InfoRow(c, "Consumo em testes este mês", mbLabel)
-        }
-        item { Spacer(Modifier.height(16.dp)) }
-
-        // ── AVANÇADO (feature-flagged) ────────────────────────────────────────────
-        val showAvancado = BuildConfig.FEATURE_FIBRA_SCREEN || BuildConfig.FEATURE_DNS_SCREEN || BuildConfig.FEATURE_LINKPULSE_ATIVO
-        if (showAvancado) {
-            item { SectionHeader("Avançado", c) }
-            if (BuildConfig.FEATURE_FIBRA_SCREEN) {
-                item {
-                    SettingItem(
-                        c = c,
-                        icon = Icons.Outlined.Router,
-                        label = "Fibra óptica",
-                        subtitle = modemHost ?: "Não configurado",
-                        onClick = { showRoteadorSheet = true },
-                    )
-                }
-            }
-            if (BuildConfig.FEATURE_LINKPULSE_ATIVO) {
-                if (BuildConfig.FEATURE_FIBRA_SCREEN) {
-                    item { HorizontalDivider(color = c.border, thickness = 1.dp) }
-                }
-                item {
-                    SettingItem(
-                        c = c,
-                        icon = Icons.Outlined.Sensors,
-                        label = "Monitoramento passivo",
-                        subtitle = when {
-                            !monitoramentoAtivo -> "Desativado"
-                            OemKillInfo.fabricanteRiscoAlto -> "Ativo · pode ser limitado pelo sistema"
-                            else -> "Ativo"
-                        },
-                        onClick = { showDiagnosticoSheet = true },
-                    )
-                }
-                item { HorizontalDivider(color = c.border, thickness = 1.dp) }
-                item {
-                    SettingItem(
-                        c = c,
-                        icon = Icons.Outlined.Analytics,
-                        label = "Análise avançada",
-                        subtitle = if (analiseAvancada) "Ativa" else "Desativada",
-                        onClick = { showDiagnosticoSheet = true },
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "Minha conexão",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = c.textPrimary,
+                        )
+                        val tudo_vazio = operadora.isBlank() && planoInternet.isBlank() && regiao.isBlank() && cidadeNome.isBlank() && estadoUf.isBlank()
+                        if (tudo_vazio) {
+                            Text(
+                                text = "Toque para configurar sua conexão",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = c.textTertiary,
+                            )
+                        } else {
+                            Text(
+                                text = "Operadora: ${if (operadora.isNotBlank()) operadora else "—"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = c.textSecondary,
+                            )
+                            Text(
+                                text = "Plano: ${if (planoInternet.isNotBlank()) "$planoInternet Mbps" else "—"}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = c.textSecondary,
+                            )
+                            Text(
+                                text = "Local: ${when {
+                                    cidadeNome.isNotBlank() && estadoUf.isNotBlank() -> "$cidadeNome, $estadoUf"
+                                    regiao.isNotBlank() -> regiao
+                                    else -> "—"
+                                }}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = c.textSecondary,
+                            )
+                        }
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        contentDescription = "Editar",
+                        tint = c.textTertiary,
+                        modifier = Modifier.size(16.dp),
                     )
                 }
             }
             item { Spacer(Modifier.height(16.dp)) }
-        }
+            // ── APARÊNCIA ────────────────────────────────────────────────────────────
+            item { SectionHeader("Aparência", c) }
+            item {
+                ThemeSelector(
+                    selecionado = temaSelecionado,
+                    onSelect = onDefinirTemaSelecionado,
+                    c = c,
+                )
+            }
+            item { HorizontalDivider(color = c.border, thickness = 1.dp) }
+            item {
+                SettingItem(
+                    c = c,
+                    icon = Icons.Outlined.Notifications,
+                    label = "Notificações",
+                    subtitle = "Receba alertas quando sua conexão cair",
+                    onClick = {
+                        val intent =
+                            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                                .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                        context.startActivity(intent)
+                    },
+                )
+            }
+            item { Spacer(Modifier.height(16.dp)) }
+
+            // ── HISTÓRICO E DADOS ─────────────────────────────────────────────────────
+            item { SectionHeader("Histórico e dados", c) }
+            item {
+                SettingItem(
+                    c = c,
+                    icon = Icons.Outlined.History,
+                    label = "Ver histórico",
+                    subtitle = "Suas medições recentes",
+                    onClick = onAbrirHistorico,
+                )
+            }
+            item { HorizontalDivider(color = c.border, thickness = 1.dp) }
+            item {
+                SettingItem(
+                    c = c,
+                    icon = Icons.AutoMirrored.Outlined.Article,
+                    label = "Comprovante para a Anatel",
+                    subtitle = "Documento com suas medições para registrar reclamação",
+                    onClick = onAbrirLaudo,
+                )
+            }
+            item { HorizontalDivider(color = c.border, thickness = 1.dp) }
+            item {
+                SettingItem(
+                    c = c,
+                    icon = Icons.Outlined.Delete,
+                    label = "Gerenciar dados locais",
+                    subtitle = "Limpar histórico e preferências",
+                    onClick = { showDadosLocaisSheet = true },
+                )
+            }
+            item { Spacer(Modifier.height(16.dp)) }
+
+            // ── INFORMAÇÕES ───────────────────────────────────────────────────────────
+            item { SectionHeader("Informações", c) }
+            item {
+                SettingItem(
+                    c = c,
+                    icon = Icons.Outlined.Lock,
+                    label = "Privacidade e dados",
+                    subtitle = "Como seus dados são protegidos",
+                    onClick = { onAbrirPrivacidade() },
+                )
+            }
+            item { HorizontalDivider(color = c.border, thickness = 1.dp) }
+            item {
+                SettingItem(
+                    c = c,
+                    icon = Icons.Outlined.NewReleases,
+                    label = "O que há de novo",
+                    subtitle = "Confira o que mudou",
+                    onClick = { onAbrirNovidades() },
+                )
+            }
+            item { HorizontalDivider(color = c.border, thickness = 1.dp) }
+            item {
+                SettingItem(
+                    c = c,
+                    icon = Icons.Outlined.VerifiedUser,
+                    label = "Diagnóstico do app",
+                    subtitle = "Integridade, binários e assinatura",
+                    onClick = { showDiagnosticoAppSheet = true },
+                )
+            }
+            item { HorizontalDivider(color = c.border, thickness = 1.dp) }
+            item {
+                SettingItem(
+                    c = c,
+                    icon = Icons.Outlined.Delete,
+                    label = "Redefinir o app",
+                    subtitle = "Apaga todos os dados e restaura configurações iniciais",
+                    onClick = { showConfirmResetApp = true },
+                    tintError = true,
+                )
+            }
+            item { HorizontalDivider(color = c.border, thickness = 1.dp) }
+            item {
+                SettingItem(
+                    c = c,
+                    icon = Icons.Outlined.Info,
+                    label = "Sobre o Linka",
+                    subtitle = "v$appVersion · Android · Kotlin",
+                    onClick = { showSobreSheet = true },
+                )
+            }
+            item { Spacer(Modifier.height(16.dp)) }
+
+            // ── DADOS MÓVEIS ──────────────────────────────────────────────────────────
+            item { SectionHeader("Dados móveis", c) }
+            item {
+                ToggleItem(
+                    c = c,
+                    icon = Icons.Outlined.SignalCellularAlt,
+                    label = "Sempre permitir testes pesados em dados móveis",
+                    subtitle = "Não mostrar aviso para modo Completo e Triplo na próxima vez",
+                    checked = speedtestPermiteHeavyMovel,
+                    onCheckedChange = onSetSpeedtestPermiteHeavyMovel,
+                )
+            }
+            item { HorizontalDivider(color = c.border, thickness = 1.dp) }
+            item {
+                val mbLabel = if (speedtestMbConsumidosMes > 0L) "$speedtestMbConsumidosMes MB" else "—"
+                InfoRow(c, "Consumo em testes este mês", mbLabel)
+            }
+            item { Spacer(Modifier.height(16.dp)) }
+
+            // ── AVANÇADO (feature-flagged) ────────────────────────────────────────────
+            val showAvancado = BuildConfig.FEATURE_FIBRA_SCREEN || BuildConfig.FEATURE_DNS_SCREEN || BuildConfig.FEATURE_LINKPULSE_ATIVO
+            if (showAvancado) {
+                item { SectionHeader("Avançado", c) }
+                if (BuildConfig.FEATURE_FIBRA_SCREEN) {
+                    item {
+                        SettingItem(
+                            c = c,
+                            icon = Icons.Outlined.Router,
+                            label = "Fibra óptica",
+                            subtitle = modemHost ?: "Não configurado",
+                            onClick = { showRoteadorSheet = true },
+                        )
+                    }
+                }
+                if (BuildConfig.FEATURE_LINKPULSE_ATIVO) {
+                    if (BuildConfig.FEATURE_FIBRA_SCREEN) {
+                        item { HorizontalDivider(color = c.border, thickness = 1.dp) }
+                    }
+                    item {
+                        SettingItem(
+                            c = c,
+                            icon = Icons.Outlined.Sensors,
+                            label = "Monitoramento passivo",
+                            subtitle =
+                                when {
+                                    !monitoramentoAtivo -> "Desativado"
+                                    OemKillInfo.fabricanteRiscoAlto -> "Ativo · pode ser limitado pelo sistema"
+                                    else -> "Ativo"
+                                },
+                            onClick = { showDiagnosticoSheet = true },
+                        )
+                    }
+                    item { HorizontalDivider(color = c.border, thickness = 1.dp) }
+                    item {
+                        SettingItem(
+                            c = c,
+                            icon = Icons.Outlined.Analytics,
+                            label = "Análise avançada",
+                            subtitle = if (analiseAvancada) "Ativa" else "Desativada",
+                            onClick = { showDiagnosticoSheet = true },
+                        )
+                    }
+                }
+                item { Spacer(Modifier.height(16.dp)) }
+            }
 
             item {
                 Spacer(
@@ -708,7 +713,10 @@ fun AjustesScreen(
         ConfirmacaoDialog(
             titulo = "Redefinir o app?",
             mensagem = "Esta ação apagará todos os dados locais: histórico de testes, configurações salvas e preferências. O app voltará ao estado inicial. Esta ação não pode ser desfeita.",
-            onConfirmar = { onResetarApp(); showConfirmResetApp = false },
+            onConfirmar = {
+                onResetarApp()
+                showConfirmResetApp = false
+            },
             onCancelar = { showConfirmResetApp = false },
         )
     }
@@ -720,14 +728,15 @@ private fun CardMonitoramentoExplicativo(
     monitoramentoAtivo: Boolean,
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = LkSpacing.lg)
-            .padding(top = LkSpacing.sm)
-            .clip(RoundedCornerShape(16.dp))
-            .background(c.bgCard)
-            .border(1.dp, c.border, RoundedCornerShape(16.dp))
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = LkSpacing.lg)
+                .padding(top = LkSpacing.sm)
+                .clip(RoundedCornerShape(16.dp))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(16.dp))
+                .padding(LkSpacing.lg),
     ) {
         if (!monitoramentoAtivo) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -809,10 +818,11 @@ private fun CardMonitoramentoExplicativo(
                 Spacer(Modifier.height(LkSpacing.md))
                 Row {
                     Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(LkColors.success.copy(alpha = 0.10f))
-                            .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(LkColors.success.copy(alpha = 0.10f))
+                                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
                     ) {
                         Text(
                             text = "Bateria: Muito baixo",
@@ -822,10 +832,11 @@ private fun CardMonitoramentoExplicativo(
                     }
                     Spacer(Modifier.width(LkSpacing.sm))
                     Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(c.bgSecondary)
-                            .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(c.bgSecondary)
+                                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
                     ) {
                         Text(
                             text = "Dados: ~2 MB/dia",
@@ -843,15 +854,14 @@ private fun buildHeroSubtitle(
     nomeUsuario: String,
     operadora: String,
     planoInternet: String,
-): Pair<String, Boolean> {
-    return when {
+): Pair<String, Boolean> =
+    when {
         nomeUsuario.isBlank() && operadora.isBlank() -> "Toque para configurar seu perfil" to false
         nomeUsuario.isBlank() && operadora.isNotBlank() -> operadora to true
         nomeUsuario.isNotBlank() && operadora.isBlank() -> "Adicione sua operadora" to false
         operadora.isNotBlank() && planoInternet.isNotBlank() -> "$operadora · $planoInternet" to true
         else -> operadora to true
     }
-}
 
 @Composable
 private fun UserAvatar(
@@ -861,20 +871,23 @@ private fun UserAvatar(
     onClick: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
-    val bitmap = remember(fotoUri) {
-        fotoUri?.let { uriStr ->
-            runCatching {
-                context.contentResolver.openInputStream(uriStr.toUri())
-                    ?.use { stream -> BitmapFactory.decodeStream(stream)?.asImageBitmap() }
-            }.getOrNull()
+    val bitmap =
+        remember(fotoUri) {
+            fotoUri?.let { uriStr ->
+                runCatching {
+                    context.contentResolver
+                        .openInputStream(uriStr.toUri())
+                        ?.use { stream -> BitmapFactory.decodeStream(stream)?.asImageBitmap() }
+                }.getOrNull()
+            }
         }
-    }
     Box(
-        modifier = Modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(LkColors.accent.copy(alpha = 0.12f))
-            .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
+        modifier =
+            Modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(LkColors.accent.copy(alpha = 0.12f))
+                .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
         contentAlignment = Alignment.Center,
     ) {
         if (bitmap != null) {
@@ -882,9 +895,10 @@ private fun UserAvatar(
                 bitmap = bitmap,
                 contentDescription = "Foto de perfil",
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape),
             )
         } else {
             Text(
@@ -898,7 +912,10 @@ private fun UserAvatar(
 }
 
 @Composable
-private fun SectionHeader(titulo: String, c: LkTokens) {
+private fun SectionHeader(
+    titulo: String,
+    c: LkTokens,
+) {
     Text(
         text = titulo.uppercase(),
         style = MaterialTheme.typography.labelMedium,
@@ -923,17 +940,19 @@ private fun SettingItem(
     val labelColor = if (tintError) LkColors.error else c.textPrimary
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                .padding(LkSpacing.lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(iconTint.copy(alpha = 0.12f)),
+            modifier =
+                Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(iconTint.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -954,10 +973,11 @@ private fun SettingItem(
 
         if (badge != null) {
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(c.border)
-                    .padding(horizontal = LkSpacing.sm, vertical = 4.dp),
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(c.border)
+                        .padding(horizontal = LkSpacing.sm, vertical = 4.dp),
             ) {
                 Text(badge, fontSize = 10.sp, fontWeight = FontWeight.W600, color = c.textTertiary)
             }
@@ -982,16 +1002,18 @@ private fun ToggleItem(
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(LkSpacing.lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(LkColors.accent.copy(alpha = 0.12f)),
+            modifier =
+                Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(LkColors.accent.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -1013,12 +1035,13 @@ private fun ToggleItem(
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                checkedTrackColor = LkColors.accent,
-                uncheckedThumbColor = c.textTertiary,
-                uncheckedTrackColor = c.border,
-            ),
+            colors =
+                SwitchDefaults.colors(
+                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                    checkedTrackColor = LkColors.accent,
+                    uncheckedThumbColor = c.textTertiary,
+                    uncheckedTrackColor = c.border,
+                ),
         )
     }
 }
@@ -1029,17 +1052,19 @@ private fun ThemeSelector(
     onSelect: (String) -> Unit,
     c: LkTokens,
 ) {
-    val opcoes = listOf(
-        Triple("sistema", "Sistema", Icons.Outlined.Settings),
-        Triple("claro", "Claro", Icons.Outlined.LightMode),
-        Triple("escuro", "Escuro", Icons.Outlined.DarkMode),
-    )
+    val opcoes =
+        listOf(
+            Triple("sistema", "Sistema", Icons.Outlined.Settings),
+            Triple("claro", "Claro", Icons.Outlined.LightMode),
+            Triple("escuro", "Escuro", Icons.Outlined.DarkMode),
+        )
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = LkSpacing.lg)
-            .padding(bottom = LkSpacing.sm),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = LkSpacing.lg)
+                .padding(bottom = LkSpacing.sm),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1048,17 +1073,17 @@ private fun ThemeSelector(
             opcoes.forEach { (valor, label, icone) ->
                 val selecionada = selecionado == valor
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(LkRadius.card))
-                        .background(c.bgCard)
-                        .border(
-                            width = if (selecionada) 2.dp else 1.dp,
-                            color = if (selecionada) LkColors.accent else c.border,
-                            shape = RoundedCornerShape(LkRadius.card),
-                        )
-                        .clickable { onSelect(valor) }
-                        .padding(vertical = LkSpacing.lg),
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(LkRadius.card))
+                            .background(c.bgCard)
+                            .border(
+                                width = if (selecionada) 2.dp else 1.dp,
+                                color = if (selecionada) LkColors.accent else c.border,
+                                shape = RoundedCornerShape(LkRadius.card),
+                            ).clickable { onSelect(valor) }
+                            .padding(vertical = LkSpacing.lg),
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(
@@ -1104,16 +1129,18 @@ internal fun PerfilEditSheet(
     var nomeInput by remember { mutableStateOf(nomeAtual) }
     var fotoUriInput by remember { mutableStateOf(fotoUriAtual) }
 
-    val pickerFoto = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-    ) { uri: Uri? ->
-        if (uri != null) {
-            context.contentResolver.takePersistableUriPermission(
-                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION,
-            )
-            fotoUriInput = uri.toString()
+    val pickerFoto =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent(),
+        ) { uri: Uri? ->
+            if (uri != null) {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+                fotoUriInput = uri.toString()
+            }
         }
-    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1122,22 +1149,24 @@ internal fun PerfilEditSheet(
         containerColor = c.bgSecondary,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = LkSpacing.lg)
-                .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = LkSpacing.lg)
+                    .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
+                    .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
         ) {
             Box(
-                modifier = Modifier
-                    .width(40.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(c.border)
-                    .align(Alignment.CenterHorizontally)
-                    .semantics { contentDescription = "Arrastar para fechar" },
+                modifier =
+                    Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(c.border)
+                        .align(Alignment.CenterHorizontally)
+                        .semantics { contentDescription = "Arrastar para fechar" },
             )
             Spacer(Modifier.height(LkSpacing.sm))
             Text("Meu perfil", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = c.textPrimary)
@@ -1161,15 +1190,16 @@ internal fun PerfilEditSheet(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             )
 
-            val fieldColors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = LkColors.accent,
-                unfocusedBorderColor = c.border,
-                focusedLabelColor = LkColors.accent,
-                unfocusedLabelColor = c.textSecondary,
-                cursorColor = LkColors.accent,
-                focusedTextColor = c.textPrimary,
-                unfocusedTextColor = c.textPrimary,
-            )
+            val fieldColors =
+                OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = LkColors.accent,
+                    unfocusedBorderColor = c.border,
+                    focusedLabelColor = LkColors.accent,
+                    unfocusedLabelColor = c.textSecondary,
+                    cursorColor = LkColors.accent,
+                    focusedTextColor = c.textPrimary,
+                    unfocusedTextColor = c.textPrimary,
+                )
 
             OutlinedTextField(
                 value = nomeInput,
@@ -1183,12 +1213,13 @@ internal fun PerfilEditSheet(
             )
 
             HorizontalDivider(color = c.border)
-            val tipoConexao = when (estadoConexao) {
-                EstadoConexao.wifi -> "Wi-Fi"
-                EstadoConexao.movel -> ispInfo?.isp?.takeIf { it.isNotEmpty() } ?: "Rede móvel"
-                EstadoConexao.ethernet -> "Ethernet"
-                else -> "Sem conexão"
-            }
+            val tipoConexao =
+                when (estadoConexao) {
+                    EstadoConexao.wifi -> "Wi-Fi"
+                    EstadoConexao.movel -> ispInfo?.isp?.takeIf { it.isNotEmpty() } ?: "Rede móvel"
+                    EstadoConexao.ethernet -> "Ethernet"
+                    else -> "Sem conexão"
+                }
             val localizacao = listOfNotNull(ispInfo?.region, ispInfo?.country).joinToString(", ").ifBlank { null }
 
             ispInfo?.isp?.let { InfoRow(c, "Operadora / ISP", it) }
@@ -1230,21 +1261,23 @@ private fun SimpleInfoSheet(
         containerColor = c.bgSecondary,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(top = LkSpacing.md)
-                .padding(bottom = LkSpacing.xxl)
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = LkSpacing.md)
+                    .padding(bottom = LkSpacing.xxl)
+                    .navigationBarsPadding(),
         ) {
             Box(
-                modifier = Modifier
-                    .width(40.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(c.border)
-                    .align(Alignment.CenterHorizontally)
-                    .semantics { contentDescription = "Arrastar para fechar" },
+                modifier =
+                    Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(c.border)
+                        .align(Alignment.CenterHorizontally)
+                        .semantics { contentDescription = "Arrastar para fechar" },
             )
             Spacer(Modifier.height(LkSpacing.md))
             Text(
@@ -1261,11 +1294,16 @@ private fun SimpleInfoSheet(
 }
 
 @Composable
-private fun InfoRow(c: LkTokens, label: String, value: String) {
+private fun InfoRow(
+    c: LkTokens,
+    label: String,
+    value: String,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text = label, style = MaterialTheme.typography.bodyMedium, color = c.textPrimary, modifier = Modifier.weight(1f))
@@ -1277,15 +1315,36 @@ private fun InfoRow(c: LkTokens, label: String, value: String) {
 
 private val cidadesCache = HashMap<String, List<String>>()
 
-private val ESTADOS_BR = listOf(
-    "AC" to "Acre", "AL" to "Alagoas", "AP" to "Amapá", "AM" to "Amazonas",
-    "BA" to "Bahia", "CE" to "Ceará", "DF" to "Distrito Federal", "ES" to "Espírito Santo",
-    "GO" to "Goiás", "MA" to "Maranhão", "MT" to "Mato Grosso", "MS" to "Mato Grosso do Sul",
-    "MG" to "Minas Gerais", "PA" to "Pará", "PB" to "Paraíba", "PR" to "Paraná",
-    "PE" to "Pernambuco", "PI" to "Piauí", "RJ" to "Rio de Janeiro", "RN" to "Rio Grande do Norte",
-    "RS" to "Rio Grande do Sul", "RO" to "Rondônia", "RR" to "Roraima", "SC" to "Santa Catarina",
-    "SP" to "São Paulo", "SE" to "Sergipe", "TO" to "Tocantins",
-)
+private val ESTADOS_BR =
+    listOf(
+        "AC" to "Acre",
+        "AL" to "Alagoas",
+        "AP" to "Amapá",
+        "AM" to "Amazonas",
+        "BA" to "Bahia",
+        "CE" to "Ceará",
+        "DF" to "Distrito Federal",
+        "ES" to "Espírito Santo",
+        "GO" to "Goiás",
+        "MA" to "Maranhão",
+        "MT" to "Mato Grosso",
+        "MS" to "Mato Grosso do Sul",
+        "MG" to "Minas Gerais",
+        "PA" to "Pará",
+        "PB" to "Paraíba",
+        "PR" to "Paraná",
+        "PE" to "Pernambuco",
+        "PI" to "Piauí",
+        "RJ" to "Rio de Janeiro",
+        "RN" to "Rio Grande do Norte",
+        "RS" to "Rio Grande do Sul",
+        "RO" to "Rondônia",
+        "RR" to "Roraima",
+        "SC" to "Santa Catarina",
+        "SP" to "São Paulo",
+        "SE" to "Sergipe",
+        "TO" to "Tocantins",
+    )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1320,18 +1379,19 @@ private fun ProvedorSheet(
             if (cached != null) {
                 cidadesFiltradas = cached
             } else {
-                val fetched = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    runCatching {
-                        val url = "https://servicodados.ibge.gov.br/api/v1/localidades/estados/$estadoUfInput/municipios"
-                        val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                        connection.connectTimeout = 8_000
-                        connection.readTimeout = 8_000
-                        val text = connection.inputStream.bufferedReader().use { it.readText() }
-                        connection.disconnect()
-                        val arr = org.json.JSONArray(text)
-                        (0 until arr.length()).map { arr.getJSONObject(it).getString("nome") }.sorted()
-                    }.getOrElse { emptyList() }
-                }
+                val fetched =
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        runCatching {
+                            val url = "https://servicodados.ibge.gov.br/api/v1/localidades/estados/$estadoUfInput/municipios"
+                            val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                            connection.connectTimeout = 8_000
+                            connection.readTimeout = 8_000
+                            val text = connection.inputStream.bufferedReader().use { it.readText() }
+                            connection.disconnect()
+                            val arr = org.json.JSONArray(text)
+                            (0 until arr.length()).map { arr.getJSONObject(it).getString("nome") }.sorted()
+                        }.getOrElse { emptyList() }
+                    }
                 if (fetched.isNotEmpty()) cidadesCache[estadoUfInput] = fetched
                 cidadesFiltradas = fetched
             }
@@ -1339,22 +1399,39 @@ private fun ProvedorSheet(
         }
     }
 
-    val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = LkColors.accent,
-        unfocusedBorderColor = c.border,
-        focusedLabelColor = LkColors.accent,
-        unfocusedLabelColor = c.textSecondary,
-        cursorColor = LkColors.accent,
-        focusedTextColor = c.textPrimary,
-        unfocusedTextColor = c.textPrimary,
-    )
+    val fieldColors =
+        OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = LkColors.accent,
+            unfocusedBorderColor = c.border,
+            focusedLabelColor = LkColors.accent,
+            unfocusedLabelColor = c.textSecondary,
+            cursorColor = LkColors.accent,
+            focusedTextColor = c.textPrimary,
+            unfocusedTextColor = c.textPrimary,
+        )
 
-    val operadorasDisponiveis = listOf(
-        "Vivo", "Claro", "NET/Claro", "TIM", "Oi", "Sky",
-        "Algar Telecom", "Brisanet", "Desktop", "Copel Telecom", "Surf Telecom",
-        "Unifique", "Vogel", "WDC Networks", "Ligga", "Intelbras", "Vero",
-        "Sercomtel", "Outra / ISP Local",
-    )
+    val operadorasDisponiveis =
+        listOf(
+            "Vivo",
+            "Claro",
+            "NET/Claro",
+            "TIM",
+            "Oi",
+            "Sky",
+            "Algar Telecom",
+            "Brisanet",
+            "Desktop",
+            "Copel Telecom",
+            "Surf Telecom",
+            "Unifique",
+            "Vogel",
+            "WDC Networks",
+            "Ligga",
+            "Intelbras",
+            "Vero",
+            "Sercomtel",
+            "Outra / ISP Local",
+        )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1363,22 +1440,24 @@ private fun ProvedorSheet(
         containerColor = c.bgSecondary,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = LkSpacing.lg)
-                .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = LkSpacing.lg)
+                    .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
+                    .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
         ) {
             Box(
-                modifier = Modifier
-                    .width(40.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(c.border)
-                    .align(Alignment.CenterHorizontally)
-                    .semantics { contentDescription = "Arrastar para fechar" },
+                modifier =
+                    Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(c.border)
+                        .align(Alignment.CenterHorizontally)
+                        .semantics { contentDescription = "Arrastar para fechar" },
             )
             Spacer(Modifier.height(LkSpacing.sm))
             Text("Dados do provedor", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = c.textPrimary)
@@ -1471,10 +1550,14 @@ private fun ProvedorSheet(
             }
 
             // Cidade com autocomplete
-            val cidadesFiltPorQuery = remember(cidadeQuery, cidadesFiltradas) {
-                if (cidadeQuery.length < 2) emptyList()
-                else cidadesFiltradas.filter { it.contains(cidadeQuery, ignoreCase = true) }.take(5)
-            }
+            val cidadesFiltPorQuery =
+                remember(cidadeQuery, cidadesFiltradas) {
+                    if (cidadeQuery.length < 2) {
+                        emptyList()
+                    } else {
+                        cidadesFiltradas.filter { it.contains(cidadeQuery, ignoreCase = true) }.take(5)
+                    }
+                }
             OutlinedTextField(
                 value = cidadeQuery,
                 onValueChange = { v ->
@@ -1485,11 +1568,12 @@ private fun ProvedorSheet(
                 label = { Text("Cidade") },
                 placeholder = {
                     Text(
-                        text = when {
-                            cidadeBuscando -> "Buscando cidades…"
-                            estadoUfInput.isBlank() -> "Selecione um estado primeiro"
-                            else -> "Digite a cidade"
-                        },
+                        text =
+                            when {
+                                cidadeBuscando -> "Buscando cidades…"
+                                estadoUfInput.isBlank() -> "Selecione um estado primeiro"
+                                else -> "Digite a cidade"
+                            },
                         color = c.textTertiary,
                     )
                 },
@@ -1501,19 +1585,24 @@ private fun ProvedorSheet(
             )
             if (showCidadeDropdown && cidadesFiltPorQuery.isNotEmpty()) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(c.bgSecondary)
-                        .border(1.dp, c.border, RoundedCornerShape(8.dp)),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(c.bgSecondary)
+                            .border(1.dp, c.border, RoundedCornerShape(8.dp)),
                 ) {
                     cidadesFiltPorQuery.forEach { cidade ->
                         Text(
                             text = cidade,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { cidadeNomeInput = cidade; cidadeQuery = cidade; showCidadeDropdown = false }
-                                .padding(LkSpacing.md),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        cidadeNomeInput = cidade
+                                        cidadeQuery = cidade
+                                        showCidadeDropdown = false
+                                    }.padding(LkSpacing.md),
                             style = MaterialTheme.typography.bodyMedium,
                             color = c.textPrimary,
                         )
@@ -1524,10 +1613,12 @@ private fun ProvedorSheet(
             Button(
                 onClick = {
                     val finalOperadora = if (operadoraInput == "Outra / ISP Local") customISPInput else operadoraInput
-                    val regiaoCombinada = if (cidadeNomeInput.isNotBlank() && estadoUfInput.isNotBlank())
-                        "$cidadeNomeInput, $estadoUfInput"
-                    else
-                        regiaoAtual
+                    val regiaoCombinada =
+                        if (cidadeNomeInput.isNotBlank() && estadoUfInput.isNotBlank()) {
+                            "$cidadeNomeInput, $estadoUfInput"
+                        } else {
+                            regiaoAtual
+                        }
                     onSalvar(finalOperadora.trim(), planoInput.trim(), regiaoCombinada)
                     if (estadoUfInput.isNotBlank()) onSalvarEstadoCidade(estadoUfInput, cidadeNomeInput.trim())
                 },
@@ -1554,15 +1645,16 @@ private fun PreferenciasSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var limiteInput by remember { mutableStateOf(if (limiteAtual > 0) limiteAtual.toString() else "") }
 
-    val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = LkColors.accent,
-        unfocusedBorderColor = c.border,
-        focusedLabelColor = LkColors.accent,
-        unfocusedLabelColor = c.textSecondary,
-        cursorColor = LkColors.accent,
-        focusedTextColor = c.textPrimary,
-        unfocusedTextColor = c.textPrimary,
-    )
+    val fieldColors =
+        OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = LkColors.accent,
+            unfocusedBorderColor = c.border,
+            focusedLabelColor = LkColors.accent,
+            unfocusedLabelColor = c.textSecondary,
+            cursorColor = LkColors.accent,
+            focusedTextColor = c.textPrimary,
+            unfocusedTextColor = c.textPrimary,
+        )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1571,22 +1663,24 @@ private fun PreferenciasSheet(
         containerColor = c.bgSecondary,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = LkSpacing.lg)
-                .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = LkSpacing.lg)
+                    .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
+                    .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
         ) {
             Box(
-                modifier = Modifier
-                    .width(40.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(c.border)
-                    .align(Alignment.CenterHorizontally)
-                    .semantics { contentDescription = "Arrastar para fechar" },
+                modifier =
+                    Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(c.border)
+                        .align(Alignment.CenterHorizontally)
+                        .semantics { contentDescription = "Arrastar para fechar" },
             )
             Spacer(Modifier.height(LkSpacing.sm))
             Text("Alertas de qualidade", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = c.textPrimary)
@@ -1658,20 +1752,22 @@ private fun DiagnosticoSheet(
         containerColor = c.bgSecondary,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
+                    .navigationBarsPadding(),
         ) {
             Box(
-                modifier = Modifier
-                    .width(40.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(c.border)
-                    .align(Alignment.CenterHorizontally)
-                    .semantics { contentDescription = "Arrastar para fechar" },
+                modifier =
+                    Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(c.border)
+                        .align(Alignment.CenterHorizontally)
+                        .semantics { contentDescription = "Arrastar para fechar" },
             )
             Spacer(Modifier.height(LkSpacing.md))
             Text(
@@ -1695,8 +1791,11 @@ private fun DiagnosticoSheet(
                 subtitle = if (analiseAvancada) "Ativa" else "Desativada · pode aumentar consumo de bateria",
                 checked = analiseAvancada,
                 onCheckedChange = { enabled ->
-                    if (enabled && !analiseAvancada) showConfirmAnalise = true
-                    else if (!enabled) onDefinirAnaliseAvancada(false)
+                    if (enabled && !analiseAvancada) {
+                        showConfirmAnalise = true
+                    } else if (!enabled) {
+                        onDefinirAnaliseAvancada(false)
+                    }
                 },
             )
             HorizontalDivider(color = c.border, thickness = 1.dp)
@@ -1707,8 +1806,11 @@ private fun DiagnosticoSheet(
                 subtitle = if (monitoramentoAtivo) "Ativo · verifica a cada 30 minutos" else "Desativado",
                 checked = monitoramentoAtivo,
                 onCheckedChange = { novoValor ->
-                    if (novoValor) showConfirmMonitoramento = true
-                    else onAtivarMonitoramento(false)
+                    if (novoValor) {
+                        showConfirmMonitoramento = true
+                    } else {
+                        onAtivarMonitoramento(false)
+                    }
                 },
             )
             if (monitoramentoAtivo) {
@@ -1762,9 +1864,10 @@ private fun DiagnosticoSheet(
             if (monitoramentoAtivo && OemKillInfo.fabricanteRiscoAlto) {
                 HorizontalDivider(color = c.border, thickness = 1.dp)
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
                     verticalAlignment = Alignment.Top,
                     horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
                 ) {
@@ -1788,7 +1891,10 @@ private fun DiagnosticoSheet(
         ConfirmacaoDialog(
             titulo = "Ativar análise avançada?",
             mensagem = "Esse recurso pode aumentar o consumo de bateria e dados, especialmente nas próximas janelas de medição.",
-            onConfirmar = { onDefinirAnaliseAvancada(true); showConfirmAnalise = false },
+            onConfirmar = {
+                onDefinirAnaliseAvancada(true)
+                showConfirmAnalise = false
+            },
             onCancelar = { showConfirmAnalise = false },
         )
     }
@@ -1799,7 +1905,10 @@ private fun DiagnosticoSheet(
             mensagem = "O Linka verificará sua conexão periodicamente e enviará uma notificação se detectar lentidão ou instabilidade. Consome dados e bateria de forma mínima.",
             textoBotaoConfirmar = "Ativar",
             textoBotaoCancelar = "Agora não",
-            onConfirmar = { onAtivarMonitoramento(true); showConfirmMonitoramento = false },
+            onConfirmar = {
+                onAtivarMonitoramento(true)
+                showConfirmMonitoramento = false
+            },
             onCancelar = { showConfirmMonitoramento = false },
         )
     }
@@ -1826,22 +1935,24 @@ private fun DadosLocaisSheet(
         containerColor = c.bgSecondary,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = LkSpacing.lg)
-                .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = LkSpacing.lg)
+                    .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
+                    .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
         ) {
             Box(
-                modifier = Modifier
-                    .width(40.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(c.border)
-                    .align(Alignment.CenterHorizontally)
-                    .semantics { contentDescription = "Arrastar para fechar" },
+                modifier =
+                    Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(c.border)
+                        .align(Alignment.CenterHorizontally)
+                        .semantics { contentDescription = "Arrastar para fechar" },
             )
             Spacer(Modifier.height(LkSpacing.sm))
             Text(
@@ -1883,7 +1994,11 @@ private fun DadosLocaisSheet(
         ConfirmacaoDialog(
             titulo = "Limpar histórico?",
             mensagem = "Esta ação removerá todos os testes registrados. Não pode ser desfeita.",
-            onConfirmar = { onLimparHistorico(); showConfirmLimpar = false; onDismiss() },
+            onConfirmar = {
+                onLimparHistorico()
+                showConfirmLimpar = false
+                onDismiss()
+            },
             onCancelar = { showConfirmLimpar = false },
         )
     }
@@ -1892,7 +2007,11 @@ private fun DadosLocaisSheet(
         ConfirmacaoDialog(
             titulo = "Apagar dados locais?",
             mensagem = "Remove configurações salvas e preferências. Esta ação não pode ser desfeita.",
-            onConfirmar = { onApagarDadosLocais(); showConfirmApagar = false; onDismiss() },
+            onConfirmar = {
+                onApagarDadosLocais()
+                showConfirmApagar = false
+                onDismiss()
+            },
             onCancelar = { showConfirmApagar = false },
         )
     }
@@ -1916,20 +2035,22 @@ private fun DiagnosticoAppSheet(
         containerColor = c.bgSecondary,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
+                    .navigationBarsPadding(),
         ) {
             Box(
-                modifier = Modifier
-                    .width(40.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(c.border)
-                    .align(Alignment.CenterHorizontally)
-                    .semantics { contentDescription = "Arrastar para fechar" },
+                modifier =
+                    Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(c.border)
+                        .align(Alignment.CenterHorizontally)
+                        .semantics { contentDescription = "Arrastar para fechar" },
             )
             Spacer(Modifier.height(LkSpacing.md))
             Text(
@@ -1949,10 +2070,11 @@ private fun DiagnosticoAppSheet(
             InfoRow(c, "Assinatura", "Verificada")
             HorizontalDivider(color = c.border, thickness = 1.dp)
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = LkSpacing.lg)
-                    .padding(top = LkSpacing.md),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = LkSpacing.lg)
+                        .padding(top = LkSpacing.md),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
             ) {
@@ -1995,15 +2117,16 @@ private fun RoteadorBottomSheet(
     var permanecerInput by remember { mutableStateOf(modemPermanecerConectado) }
     var showPassword by remember { mutableStateOf(false) }
 
-    val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = LkColors.accent,
-        unfocusedBorderColor = c.border,
-        focusedLabelColor = LkColors.accent,
-        unfocusedLabelColor = c.textSecondary,
-        cursorColor = LkColors.accent,
-        focusedTextColor = c.textPrimary,
-        unfocusedTextColor = c.textPrimary,
-    )
+    val fieldColors =
+        OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = LkColors.accent,
+            unfocusedBorderColor = c.border,
+            focusedLabelColor = LkColors.accent,
+            unfocusedLabelColor = c.textSecondary,
+            cursorColor = LkColors.accent,
+            focusedTextColor = c.textPrimary,
+            unfocusedTextColor = c.textPrimary,
+        )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -2012,22 +2135,24 @@ private fun RoteadorBottomSheet(
         containerColor = c.bgSecondary,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = LkSpacing.lg)
-                .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = LkSpacing.lg)
+                    .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
+                    .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
         ) {
             Box(
-                modifier = Modifier
-                    .width(40.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(c.border)
-                    .align(Alignment.CenterHorizontally)
-                    .semantics { contentDescription = "Arrastar para fechar" },
+                modifier =
+                    Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(c.border)
+                        .align(Alignment.CenterHorizontally)
+                        .semantics { contentDescription = "Arrastar para fechar" },
             )
 
             Spacer(Modifier.height(LkSpacing.sm))
@@ -2040,11 +2165,12 @@ private fun RoteadorBottomSheet(
             )
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(LkRadius.card))
-                    .background(LkColors.accent.copy(alpha = 0.08f))
-                    .padding(LkSpacing.md),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(LkRadius.card))
+                        .background(LkColors.accent.copy(alpha = 0.08f))
+                        .padding(LkSpacing.md),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
@@ -2111,12 +2237,13 @@ private fun RoteadorBottomSheet(
             )
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(LkRadius.card))
-                    .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-                    .background(c.bgCard)
-                    .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(LkRadius.card))
+                        .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                        .background(c.bgCard)
+                        .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
@@ -2135,12 +2262,13 @@ private fun RoteadorBottomSheet(
                 Switch(
                     checked = permanecerInput,
                     onCheckedChange = { permanecerInput = it },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                        checkedTrackColor = LkColors.accent,
-                        uncheckedThumbColor = c.textTertiary,
-                        uncheckedTrackColor = c.border,
-                    ),
+                    colors =
+                        SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                            checkedTrackColor = LkColors.accent,
+                            uncheckedThumbColor = c.textTertiary,
+                            uncheckedTrackColor = c.border,
+                        ),
                 )
             }
 
@@ -2171,7 +2299,3 @@ private fun RoteadorBottomSheet(
         }
     }
 }
-
-
-
-

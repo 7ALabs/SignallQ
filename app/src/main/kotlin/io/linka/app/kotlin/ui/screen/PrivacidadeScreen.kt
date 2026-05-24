@@ -1,8 +1,7 @@
 package io.linka.app.kotlin.ui.screen
 
 import android.content.Intent
-import android.net.Uri
-import androidx.core.net.toUri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -29,14 +28,13 @@ import androidx.compose.material.icons.outlined.ShareLocation
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material.icons.outlined.Wifi
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -48,6 +46,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
@@ -55,9 +54,7 @@ import io.linka.app.kotlin.ui.LocalLkTokens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PrivacidadeScreen(
-    onVoltar: () -> Unit,
-) {
+fun PrivacidadeScreen(onVoltar: () -> Unit) {
     val c = LocalLkTokens.current
     val context = LocalContext.current
 
@@ -87,10 +84,11 @@ fun PrivacidadeScreen(
         },
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .background(c.bgPrimary),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .background(c.bgPrimary),
         ) {
             // ─── O que coletamos ───────────────────────────────────────────
             item {
@@ -176,12 +174,13 @@ fun PrivacidadeScreen(
             }
             item {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = LkSpacing.lg)
-                        .background(color = c.bgSecondary, shape = RoundedCornerShape(12.dp))
-                        .border(width = 1.dp, color = c.border, shape = RoundedCornerShape(12.dp))
-                        .padding(LkSpacing.lg),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = LkSpacing.lg)
+                            .background(color = c.bgSecondary, shape = RoundedCornerShape(12.dp))
+                            .border(width = 1.dp, color = c.border, shape = RoundedCornerShape(12.dp))
+                            .padding(LkSpacing.lg),
                 ) {
                     Text(
                         text = "Todos os dados ficam armazenados localmente no seu dispositivo.\n\nVocê pode apagar tudo a qualquer momento em Configurações → Gerenciar dados locais.",
@@ -200,15 +199,17 @@ fun PrivacidadeScreen(
             item {
                 OutlinedButton(
                     onClick = {
-                        val intent = Intent(Intent.ACTION_SENDTO).apply {
-                            data = "mailto:privacidade@linka.app".toUri()
-                            putExtra(Intent.EXTRA_SUBJECT, "Solicitação de exclusão de dados - Linka")
-                        }
+                        val intent =
+                            Intent(Intent.ACTION_SENDTO).apply {
+                                data = "mailto:privacidade@linka.app".toUri()
+                                putExtra(Intent.EXTRA_SUBJECT, "Solicitação de exclusão de dados - Linka")
+                            }
                         context.startActivity(intent)
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = LkSpacing.lg),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = LkSpacing.lg),
                     border = BorderStroke(width = 1.dp, color = LkColors.error),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = LkColors.error),
                 ) {
@@ -247,25 +248,35 @@ fun PrivacidadeScreen(
 }
 
 @Composable
-private fun SectionHeaderPriv(titulo: String, c: LkTokens) {
+private fun SectionHeaderPriv(
+    titulo: String,
+    c: LkTokens,
+) {
     Text(
         text = titulo.uppercase(),
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.W600,
         color = c.textTertiary,
         letterSpacing = 0.8.sp,
-        modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .padding(top = 8.dp),
+        modifier =
+            Modifier
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .padding(top = 8.dp),
     )
 }
 
 @Composable
-private fun PrivItemRow(c: LkTokens, icon: ImageVector, label: String, desc: String) {
+private fun PrivItemRow(
+    c: LkTokens,
+    icon: ImageVector,
+    label: String,
+    desc: String,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(

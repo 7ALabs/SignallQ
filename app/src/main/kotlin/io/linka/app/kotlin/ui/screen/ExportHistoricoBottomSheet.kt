@@ -51,13 +51,20 @@ import java.util.Locale
 
 // ─── Enums de estado ──────────────────────────────────────────────────────────
 
-enum class PeriodoExport(val label: String, val diasAtras: Int?) {
+enum class PeriodoExport(
+    val label: String,
+    val diasAtras: Int?,
+) {
     SETE_DIAS("7 dias", 7),
     TRINTA_DIAS("30 dias", 30),
     TUDO("Tudo", null),
 }
 
-enum class FormatoExport(val label: String, val extensao: String, val descricao: String) {
+enum class FormatoExport(
+    val label: String,
+    val extensao: String,
+    val descricao: String,
+) {
     CSV("CSV", "csv", "Planilha compatível com Excel e Google Sheets"),
     PDF("PDF", "pdf", "Relatório formatado para impressão"),
 }
@@ -90,9 +97,10 @@ fun ExportHistoricoBottomSheet(
     var exportando by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = LkSpacing.xxl),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(bottom = LkSpacing.xxl),
     ) {
         // ── Drag handle ──
         Box(
@@ -134,10 +142,11 @@ fun ExportHistoricoBottomSheet(
                     selected = periodoSelecionado == periodo,
                     onClick = { if (!exportando) periodoSelecionado = periodo },
                     label = { Text(periodo.label) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
-                        selectedLabelColor = LkColors.accent,
-                    ),
+                    colors =
+                        FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
+                            selectedLabelColor = LkColors.accent,
+                        ),
                 )
             }
         }
@@ -161,10 +170,11 @@ fun ExportHistoricoBottomSheet(
                     selected = formatoSelecionado == formato,
                     onClick = { if (!exportando) formatoSelecionado = formato },
                     label = { Text(formato.label) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
-                        selectedLabelColor = LkColors.accent,
-                    ),
+                    colors =
+                        FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
+                            selectedLabelColor = LkColors.accent,
+                        ),
                 )
             }
         }
@@ -183,32 +193,35 @@ fun ExportHistoricoBottomSheet(
             onClick = {
                 scope.launch {
                     exportando = true
-                    val resultado = executarExport(
-                        context = context,
-                        historico = historico,
-                        periodo = periodoSelecionado,
-                        formato = formatoSelecionado,
-                    )
+                    val resultado =
+                        executarExport(
+                            context = context,
+                            historico = historico,
+                            periodo = periodoSelecionado,
+                            formato = formatoSelecionado,
+                        )
                     exportando = false
 
                     if (resultado != null) {
                         abrirIntentCompartilhamento(context, resultado, formatoSelecionado)
                         onDismiss()
                     } else {
-                        snackbarHostState.showSnackbar(
-                            message = "Não foi possível exportar",
-                            actionLabel = "Tentar novamente",
-                        ).let { result ->
-                            if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
-                                onRetry?.invoke()
+                        snackbarHostState
+                            .showSnackbar(
+                                message = "Não foi possível exportar",
+                                actionLabel = "Tentar novamente",
+                            ).let { result ->
+                                if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                                    onRetry?.invoke()
+                                }
                             }
-                        }
                     }
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = LkSpacing.xl),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = LkSpacing.xl),
             enabled = historico.isNotEmpty() && !exportando,
             shape = RoundedCornerShape(LkRadius.button),
             colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
@@ -224,9 +237,10 @@ fun ExportHistoricoBottomSheet(
         if (exportando) {
             Spacer(Modifier.height(LkSpacing.sm))
             LinearProgressIndicator(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = LkSpacing.xl),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = LkSpacing.xl),
                 color = LkColors.accent,
                 trackColor = c.bgSecondary,
             )
@@ -249,10 +263,11 @@ private suspend fun executarExport(
     val nomeArquivo = "linka_historico_$timestamp.${formato.extensao}"
     val arquivo = File(context.cacheDir, nomeArquivo)
 
-    val sucesso = when (formato) {
-        FormatoExport.CSV -> ExportadorHistoricoCSV().exportar(medicoesParaExportar, arquivo)
-        FormatoExport.PDF -> ExportadorHistoricoPDF().exportar(medicoesParaExportar, arquivo)
-    }
+    val sucesso =
+        when (formato) {
+            FormatoExport.CSV -> ExportadorHistoricoCSV().exportar(medicoesParaExportar, arquivo)
+            FormatoExport.PDF -> ExportadorHistoricoPDF().exportar(medicoesParaExportar, arquivo)
+        }
 
     return if (sucesso) arquivo else null
 }
@@ -266,20 +281,27 @@ private fun filtrarPorPeriodo(
     return historico.filter { it.timestampEpochMs >= cutoff }
 }
 
-private fun abrirIntentCompartilhamento(context: Context, arquivo: File, formato: FormatoExport) {
-    val mimeType = when (formato) {
-        FormatoExport.CSV -> "text/csv"
-        FormatoExport.PDF -> "application/pdf"
-    }
-    val uri = FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.fileprovider",
-        arquivo,
-    )
-    val intent = Intent(Intent.ACTION_SEND).apply {
-        type = mimeType
-        putExtra(Intent.EXTRA_STREAM, uri)
-        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
+private fun abrirIntentCompartilhamento(
+    context: Context,
+    arquivo: File,
+    formato: FormatoExport,
+) {
+    val mimeType =
+        when (formato) {
+            FormatoExport.CSV -> "text/csv"
+            FormatoExport.PDF -> "application/pdf"
+        }
+    val uri =
+        FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            arquivo,
+        )
+    val intent =
+        Intent(Intent.ACTION_SEND).apply {
+            type = mimeType
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
     context.startActivity(Intent.createChooser(intent, "Compartilhar histórico"))
 }

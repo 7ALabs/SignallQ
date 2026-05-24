@@ -11,46 +11,13 @@ ktlint_standard_no-wildcard-imports = disabled
 [app/src/main/kotlin/io/linka/app/kotlin/ui/**/*.kt]
 ktlint_standard_function-naming = disabled
 
-# Pre-existing violations tracked in Issue #29 — disabled to unblock PR #28 (Issue #6)
-# These will be resolved in a separate technical-debt cleanup task
+# Issue #29 — residual manual violations to be fixed in follow-up PR
+# These 4 rules have non-auto-correctable violations that require code changes
 [app/src/main/kotlin/io/linka/app/kotlin/**/*.kt]
 ktlint_standard_property-naming = disabled
 ktlint_standard_max-line-length = disabled
 ktlint_standard_enum-entry-name-case = disabled
 ktlint_standard_no-empty-file = disabled
-ktlint_standard_chain-method-continuation = disabled
-ktlint_standard_multiline-expression-wrapping = disabled
-ktlint_standard_import-ordering = disabled
-ktlint_standard_annotation = disabled
-ktlint_standard_parameter-list-wrapping = disabled
-ktlint_standard_argument-list-wrapping = disabled
-ktlint_standard_if-else-bracing = disabled
-ktlint_standard_function-expression-body = disabled
-ktlint_standard_function-signature = disabled
-ktlint_standard_no-empty-first-line-in-class-body = disabled
-ktlint_standard_spacing-between-declarations-with-annotations = disabled
-ktlint_standard_no-unused-imports = disabled
-ktlint_standard_no-multi-spaces = disabled
-ktlint_standard_statement-wrapping = disabled
-ktlint_standard_condition-wrapping = disabled
-ktlint_standard_binary-expression-wrapping = disabled
-ktlint_standard_enum-wrapping = disabled
-ktlint_standard_no-blank-line-before-rbrace = disabled
-ktlint_standard_no-blank-lines-before-rbrace = disabled
-ktlint_standard_no-consecutive-blank-lines = disabled
-ktlint_standard_indentation = disabled
-ktlint_standard_no-duplicate-imports = disabled
-ktlint_standard_trailing-comma-on-call-site = disabled
-ktlint_standard_trailing-comma-on-declaration-site = disabled
-ktlint_standard_redundant-curly-braces = disabled
-ktlint_standard_wrapping = disabled
-ktlint_standard_if-else-wrapping = disabled
-ktlint_standard_multiline-if-else = disabled
-ktlint_standard_try-catch-finally-spacing = disabled
-ktlint_standard_class-signature = disabled
-ktlint_standard_chain-wrapping = disabled
-ktlint_standard_indent = disabled
-ktlint_standard_string-template-indent = disabled
 
 # Gradle build script pre-existing formatting violations
 [*.gradle.kts]
@@ -58,4 +25,3 @@ ktlint_standard_no-multi-spaces = disabled
 ktlint_standard_chain-method-continuation = disabled
 ktlint_standard_comma-spacing = disabled
 ktlint_standard_multiline-expression-wrapping = disabled
-

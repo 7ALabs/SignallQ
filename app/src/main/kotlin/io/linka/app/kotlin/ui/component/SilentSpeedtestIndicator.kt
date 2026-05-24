@@ -30,10 +30,11 @@ fun SilentSpeedtestIndicator(modifier: Modifier = Modifier) {
     val alpha by transition.animateFloat(
         initialValue = 0.3f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(800),
+                repeatMode = RepeatMode.Reverse,
+            ),
         label = "dot-alpha",
     )
     Row(
@@ -42,11 +43,12 @@ fun SilentSpeedtestIndicator(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(
-            modifier = Modifier
-                .size(6.dp)
-                .clip(CircleShape)
-                .alpha(alpha)
-                .background(LkColors.accent),
+            modifier =
+                Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .alpha(alpha)
+                    .background(LkColors.accent),
         )
         Text("Teste em andamento", style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
     }

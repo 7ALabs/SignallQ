@@ -34,18 +34,20 @@ fun LinkaIaHeader(
 ) {
     val c = LocalLkTokens.current
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Spacer(Modifier.weight(1f))
         if (currentSsid != null) {
             Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(LkColors.accent.copy(alpha = 0.14f))
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(LkColors.accent.copy(alpha = 0.14f))
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(

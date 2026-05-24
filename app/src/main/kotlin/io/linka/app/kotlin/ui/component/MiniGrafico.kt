@@ -25,18 +25,20 @@ fun MiniGrafico(
     val isUl = fase == FaseSpeedtest.upload
     if (!isDl && !isUl) return
 
-    val valores: List<Float> = pontos.mapNotNull { p ->
-        if (isDl) p.dl?.toFloat() else p.ul?.toFloat()
-    }
+    val valores: List<Float> =
+        pontos.mapNotNull { p ->
+            if (isDl) p.dl?.toFloat() else p.ul?.toFloat()
+        }
     if (valores.size < 2) return
 
     val maxVal = valores.max().takeIf { it > 0f } ?: return
 
     Canvas(
-        modifier = Modifier
-            .fillMaxWidth()
-            .widthIn(max = 320.dp)
-            .height(64.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .widthIn(max = 320.dp)
+                .height(64.dp),
     ) {
         val w = size.width
         val h = size.height
@@ -56,11 +58,12 @@ fun MiniGrafico(
         drawPath(
             path = path,
             color = corFase,
-            style = Stroke(
-                width = 2.dp.toPx(),
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round,
-            ),
+            style =
+                Stroke(
+                    width = 2.dp.toPx(),
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round,
+                ),
         )
     }
 }

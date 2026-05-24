@@ -19,17 +19,17 @@ import java.util.Date
 import java.util.Locale
 
 object ResultadoBitmapGenerator {
-
     suspend fun gerarECompartilhar(
         context: Context,
         resultado: ResultadoSpeedtest,
         diagnosticoHeadline: String?,
         diagnosticoStatus: DiagnosticStatus?,
     ) {
-        val uri = withContext(Dispatchers.IO) {
-            val bitmap = gerarBitmap(resultado, diagnosticoHeadline, diagnosticoStatus)
-            salvarEmCache(context, bitmap)
-        }
+        val uri =
+            withContext(Dispatchers.IO) {
+                val bitmap = gerarBitmap(resultado, diagnosticoHeadline, diagnosticoStatus)
+                salvarEmCache(context, bitmap)
+            }
         withContext(Dispatchers.Main) {
             compartilhar(context, uri)
         }
@@ -46,12 +46,13 @@ object ResultadoBitmapGenerator {
         val canvas = Canvas(bitmap)
 
         // Cor de fundo por severidade
-        val bgColor = when (status) {
-            DiagnosticStatus.ok -> Color.argb(38, 34, 197, 94)       // success ~15%
-            DiagnosticStatus.attention -> Color.argb(38, 234, 179, 8) // warning ~15%
-            DiagnosticStatus.critical -> Color.argb(38, 239, 68, 68)  // error ~15%
-            else -> Color.argb(255, 30, 30, 36)                        // neutro escuro
-        }
+        val bgColor =
+            when (status) {
+                DiagnosticStatus.ok -> Color.argb(38, 34, 197, 94) // success ~15%
+                DiagnosticStatus.attention -> Color.argb(38, 234, 179, 8) // warning ~15%
+                DiagnosticStatus.critical -> Color.argb(38, 239, 68, 68) // error ~15%
+                else -> Color.argb(255, 30, 30, 36) // neutro escuro
+            }
         canvas.drawColor(bgColor)
 
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -122,7 +123,10 @@ object ResultadoBitmapGenerator {
         return bitmap
     }
 
-    private fun salvarEmCache(context: Context, bitmap: Bitmap): Uri {
+    private fun salvarEmCache(
+        context: Context,
+        bitmap: Bitmap,
+    ): Uri {
         val shareDir = File(context.cacheDir, "share").also { it.mkdirs() }
         // Limpar PNGs antigos
         shareDir.listFiles()?.forEach { it.delete() }
@@ -131,15 +135,21 @@ object ResultadoBitmapGenerator {
         return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     }
 
-    private fun compartilhar(context: Context, uri: Uri) {
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "image/png"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        context.startActivity(Intent.createChooser(intent, "Compartilhar resultado").also {
-            it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        })
+    private fun compartilhar(
+        context: Context,
+        uri: Uri,
+    ) {
+        val intent =
+            Intent(Intent.ACTION_SEND).apply {
+                type = "image/png"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+        context.startActivity(
+            Intent.createChooser(intent, "Compartilhar resultado").also {
+                it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            },
+        )
     }
 }

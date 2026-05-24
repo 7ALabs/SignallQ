@@ -5,7 +5,6 @@ import io.linka.app.kotlin.feature.diagnostico.pulse.SnapshotLinkaPulse
 import io.linka.app.kotlin.ui.screen.LinkaPulseUiState
 
 object LinkaPulseUiStateMapper {
-
     fun from(snapshot: SnapshotLinkaPulse): LinkaPulseUiState {
         val session = snapshot.session
         val mensagem = snapshot.mensagemAtual ?: ""

@@ -14,11 +14,10 @@ import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.unit.dp
 import io.linka.app.kotlin.feature.diagnostico.pulse.OpcaoResposta
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkSpacing
@@ -44,20 +43,23 @@ fun DiagnosisChipsRow(
             }
             AnimatedVisibility(
                 visible = visible,
-                enter = fadeIn(animationSpec = tween(300)) +
-                    slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(300)),
+                enter =
+                    fadeIn(animationSpec = tween(300)) +
+                        slideInVertically(initialOffsetY = { it / 2 }, animationSpec = tween(300)),
             ) {
                 SuggestionChip(
                     onClick = { onSelect(chip) },
                     label = { Text(chip.label, style = MaterialTheme.typography.labelLarge) },
-                    colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = LkColors.accent.copy(alpha = 0.1f),
-                        labelColor = c.textPrimary,
-                    ),
-                    border = SuggestionChipDefaults.suggestionChipBorder(
-                        enabled = true,
-                        borderColor = LkColors.accent.copy(alpha = 0.3f),
-                    ),
+                    colors =
+                        SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = LkColors.accent.copy(alpha = 0.1f),
+                            labelColor = c.textPrimary,
+                        ),
+                    border =
+                        SuggestionChipDefaults.suggestionChipBorder(
+                            enabled = true,
+                            borderColor = LkColors.accent.copy(alpha = 0.3f),
+                        ),
                 )
             }
         }

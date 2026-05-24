@@ -6,7 +6,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import io.linka.app.kotlin.feature.diagnostico.ai.ModeloIa
 import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LocalLkTokens
@@ -22,9 +21,10 @@ fun AiModelFooter(
     modifier: Modifier = Modifier,
 ) {
     val c = LocalLkTokens.current
-    val text = modeloIa?.nomeExibicao?.takeIf { it.isNotBlank() }
-        ?: modeloIa?.nomeCompletoComercial?.takeIf { it.isNotBlank() }
-        ?: "Linka IA"
+    val text =
+        modeloIa?.nomeExibicao?.takeIf { it.isNotBlank() }
+            ?: modeloIa?.nomeCompletoComercial?.takeIf { it.isNotBlank() }
+            ?: "Linka IA"
 
     Text(
         text = text,

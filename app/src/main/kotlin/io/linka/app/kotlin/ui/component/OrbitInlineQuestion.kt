@@ -17,9 +17,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,11 +66,12 @@ fun OrbitInlineQuestion(
         val tokens = LocalLkTokens.current
         Column {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(BUBBLE_SHAPE)
-                    .background(tokens.bgSecondary)
-                    .padding(horizontal = 16.dp, vertical = LkSpacing.md),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(BUBBLE_SHAPE)
+                        .background(tokens.bgSecondary)
+                        .padding(horizontal = 16.dp, vertical = LkSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
             ) {
                 Text(
@@ -98,14 +99,16 @@ fun OrbitInlineQuestion(
                                 SuggestionChip(
                                     onClick = { onResponder(opcao) },
                                     label = { Text(opcao.label, style = MaterialTheme.typography.labelLarge) },
-                                    colors = SuggestionChipDefaults.suggestionChipColors(
-                                        containerColor = LkColors.accent.copy(alpha = 0.12f),
-                                        labelColor = tokens.textPrimary,
-                                    ),
-                                    border = SuggestionChipDefaults.suggestionChipBorder(
-                                        enabled = true,
-                                        borderColor = LkColors.accent.copy(alpha = 0.4f),
-                                    ),
+                                    colors =
+                                        SuggestionChipDefaults.suggestionChipColors(
+                                            containerColor = LkColors.accent.copy(alpha = 0.12f),
+                                            labelColor = tokens.textPrimary,
+                                        ),
+                                    border =
+                                        SuggestionChipDefaults.suggestionChipBorder(
+                                            enabled = true,
+                                            borderColor = LkColors.accent.copy(alpha = 0.4f),
+                                        ),
                                 )
                             }
                         }

@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.NetworkCheck
@@ -22,14 +22,10 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -54,11 +50,17 @@ import kotlinx.coroutines.launch
 sealed interface PingScreenState {
     data object Idle : PingScreenState
 
-    data class Executando(val progresso: Int) : PingScreenState
+    data class Executando(
+        val progresso: Int,
+    ) : PingScreenState
 
-    data class Resultado(val resultado: PingResultado) : PingScreenState
+    data class Resultado(
+        val resultado: PingResultado,
+    ) : PingScreenState
 
-    data class Erro(val mensagem: String) : PingScreenState
+    data class Erro(
+        val mensagem: String,
+    ) : PingScreenState
 }
 
 class PingScreenViewModel {
@@ -69,9 +71,10 @@ class PingScreenViewModel {
         try {
             mutableStateFlow.value = PingScreenState.Executando(0)
             val executor = PingExecutor()
-            val resultado = executor.executar(count = 20) { progresso ->
-                mutableStateFlow.value = PingScreenState.Executando(progresso)
-            }
+            val resultado =
+                executor.executar(count = 20) { progresso ->
+                    mutableStateFlow.value = PingScreenState.Executando(progresso)
+                }
             mutableStateFlow.value = PingScreenState.Resultado(resultado)
         } catch (e: Exception) {
             mutableStateFlow.value = PingScreenState.Erro(e.message ?: "Erro ao executar ping")
@@ -99,22 +102,25 @@ fun PingScreen(onDismiss: () -> Unit) {
         containerColor = c.bgCard,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp, start = LkSpacing.lg, end = LkSpacing.lg),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp, start = LkSpacing.lg, end = LkSpacing.lg),
         ) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = LkSpacing.md, bottom = LkSpacing.lg),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = LkSpacing.md, bottom = LkSpacing.lg),
                 contentAlignment = Alignment.Center,
             ) {
                 Box(
-                    modifier = Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(c.border),
+                    modifier =
+                        Modifier
+                            .width(40.dp)
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(c.border),
                 )
             }
 
@@ -166,10 +172,11 @@ fun PingScreen(onDismiss: () -> Unit) {
                     )
                     LinearProgressIndicator(
                         progress = { (currentState.progresso / 20f).coerceIn(0f, 1f) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp)),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp)),
                     )
                 }
 
@@ -183,9 +190,10 @@ fun PingScreen(onDismiss: () -> Unit) {
                     )
 
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = LkSpacing.md),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = LkSpacing.md),
                         horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
                     ) {
                         PingMetricCard(
@@ -253,11 +261,12 @@ private fun PingMetricCard(
     modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(LkRadius.card))
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .background(c.bgSecondary)
-            .padding(LkSpacing.md),
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(LkRadius.card))
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .background(c.bgSecondary)
+                .padding(LkSpacing.md),
         contentAlignment = Alignment.Center,
     ) {
         Column(

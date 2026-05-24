@@ -1,9 +1,9 @@
 package io.linka.app.kotlin.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,7 +19,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -33,13 +32,13 @@ import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -50,17 +49,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import io.linka.app.kotlin.ui.ResultadoBitmapGenerator
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -71,15 +69,17 @@ import io.linka.app.kotlin.feature.diagnostico.SnapshotDiagnostico
 import io.linka.app.kotlin.feature.speedtest.ResultadoSpeedtest
 import io.linka.app.kotlin.feature.speedtest.SeveridadeBufferbloat
 import io.linka.app.kotlin.feature.speedtest.VereditoUso
+import io.linka.app.kotlin.ui.BancoOperadoras
+import io.linka.app.kotlin.ui.IspInfo
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkRadius
 import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
 import io.linka.app.kotlin.ui.LocalLkTokens
-import io.linka.app.kotlin.ui.IspInfo
-import io.linka.app.kotlin.ui.BancoOperadoras
+import io.linka.app.kotlin.ui.ResultadoBitmapGenerator
 import io.linka.app.kotlin.ui.component.OperadoraContactCard
 import io.linka.app.kotlin.ui.component.rememberTopBarAlpha
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,39 +101,44 @@ fun ResultadoVelocidadeScreen(
     val decisaoTitulo = decisao?.titulo
     val decisaoMensagem = decisao?.mensagemUsuario
     val decisaoRecomendacao = decisao?.recomendacao
-    val (gradeLetra, gradeCor) = when (decisao?.status) {
-        DiagnosticStatus.ok -> "A" to LkColors.success
-        DiagnosticStatus.info -> "B" to LkColors.accent
-        DiagnosticStatus.attention -> "C" to LkColors.warning
-        DiagnosticStatus.critical -> "D" to LkColors.error
-        DiagnosticStatus.inconclusive, null -> "?" to c.textTertiary
-    }
+    val (gradeLetra, gradeCor) =
+        when (decisao?.status) {
+            DiagnosticStatus.ok -> "A" to LkColors.success
+            DiagnosticStatus.info -> "B" to LkColors.accent
+            DiagnosticStatus.attention -> "C" to LkColors.warning
+            DiagnosticStatus.critical -> "D" to LkColors.error
+            DiagnosticStatus.inconclusive, null -> "?" to c.textTertiary
+        }
 
     var expandida by remember { mutableStateOf(false) }
     var compartilhando by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    val corPerda = when {
-        resultado.perdaPercentual < 1.0 -> LkColors.success
-        resultado.perdaPercentual < 3.0 -> LkColors.warning
-        else -> LkColors.error
-    }
-    val corBloat = when (resultado.severidadeBufferbloat) {
-        SeveridadeBufferbloat.none -> LkColors.success
-        SeveridadeBufferbloat.mild -> LkColors.warning
-        SeveridadeBufferbloat.moderate, SeveridadeBufferbloat.severe -> LkColors.error
-    }
-    val corLatencia = when {
-        resultado.latenciaMs < 20.0 -> LkColors.success
-        resultado.latenciaMs < 60.0 -> LkColors.warning
-        else -> LkColors.error
-    }
-    val corJitter = when {
-        resultado.jitterMs < 10.0 -> LkColors.success
-        resultado.jitterMs < 30.0 -> LkColors.warning
-        else -> LkColors.error
-    }
+    val corPerda =
+        when {
+            resultado.perdaPercentual < 1.0 -> LkColors.success
+            resultado.perdaPercentual < 3.0 -> LkColors.warning
+            else -> LkColors.error
+        }
+    val corBloat =
+        when (resultado.severidadeBufferbloat) {
+            SeveridadeBufferbloat.none -> LkColors.success
+            SeveridadeBufferbloat.mild -> LkColors.warning
+            SeveridadeBufferbloat.moderate, SeveridadeBufferbloat.severe -> LkColors.error
+        }
+    val corLatencia =
+        when {
+            resultado.latenciaMs < 20.0 -> LkColors.success
+            resultado.latenciaMs < 60.0 -> LkColors.warning
+            else -> LkColors.error
+        }
+    val corJitter =
+        when {
+            resultado.jitterMs < 10.0 -> LkColors.success
+            resultado.jitterMs < 30.0 -> LkColors.warning
+            else -> LkColors.error
+        }
 
     Scaffold(
         containerColor = c.bgPrimary,
@@ -151,9 +156,10 @@ fun ResultadoVelocidadeScreen(
                 actions = {
                     if (compartilhando) {
                         CircularProgressIndicator(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .padding(end = 8.dp),
+                            modifier =
+                                Modifier
+                                    .size(24.dp)
+                                    .padding(end = 8.dp),
                             strokeWidth = 2.dp,
                             color = LkColors.accent,
                         )
@@ -183,25 +189,28 @@ fun ResultadoVelocidadeScreen(
         },
     ) { padding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(c.bgPrimary),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(c.bgPrimary),
         ) {
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(scrollState)
-                    .padding(padding)
-                    .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.xxl),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .verticalScroll(scrollState)
+                        .padding(padding)
+                        .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.xxl),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // 1. Grade circle
                 if (gradeLetra != "?") {
                     Box(
-                        modifier = Modifier
-                            .size(120.dp)
-                            .clip(CircleShape)
-                            .background(gradeCor.copy(alpha = 0.15f)),
+                        modifier =
+                            Modifier
+                                .size(120.dp)
+                                .clip(CircleShape)
+                                .background(gradeCor.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -213,10 +222,11 @@ fun ResultadoVelocidadeScreen(
                     }
                 } else {
                     Box(
-                        modifier = Modifier
-                            .size(120.dp)
-                            .clip(CircleShape)
-                            .background(gradeCor.copy(alpha = 0.08f)),
+                        modifier =
+                            Modifier
+                                .size(120.dp)
+                                .clip(CircleShape)
+                                .background(gradeCor.copy(alpha = 0.08f)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -298,11 +308,12 @@ fun ResultadoVelocidadeScreen(
                 if (resultado.uploadNaoDetectado) {
                     Spacer(Modifier.height(LkSpacing.md))
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(LkRadius.card))
-                            .background(LkColors.warning.copy(alpha = 0.12f))
-                            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(LkRadius.card))
+                                .background(LkColors.warning.copy(alpha = 0.12f))
+                                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
@@ -324,11 +335,12 @@ fun ResultadoVelocidadeScreen(
                 if (resultado.contaminado) {
                     Spacer(Modifier.height(LkSpacing.md))
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(LkRadius.card))
-                            .background(LkColors.warning.copy(alpha = 0.12f))
-                            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(LkRadius.card))
+                                .background(LkColors.warning.copy(alpha = 0.12f))
+                                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
@@ -378,11 +390,12 @@ fun ResultadoVelocidadeScreen(
                 )
                 Spacer(Modifier.height(LkSpacing.sm))
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(LkRadius.card))
-                        .background(c.bgSecondary)
-                        .padding(LkSpacing.lg),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(LkRadius.card))
+                            .background(c.bgSecondary)
+                            .padding(LkSpacing.lg),
                 ) {
                     VereditorRow(
                         label = "Streaming",
@@ -417,18 +430,20 @@ fun ResultadoVelocidadeScreen(
                 // 8. NOVO: Card DNS (condicional) (1-D)
                 if (resultado.dnsLatencyMs != null) {
                     Spacer(Modifier.height(LkSpacing.md))
-                    val dnsTexto = buildString {
-                        append("DNS")
-                        val provedor = resultado.dnsProvider ?: resultado.dnsResolverIp
-                        if (!provedor.isNullOrBlank()) append(": $provedor")
-                        append(" · ${resultado.dnsLatencyMs} ms")
-                    }
+                    val dnsTexto =
+                        buildString {
+                            append("DNS")
+                            val provedor = resultado.dnsProvider ?: resultado.dnsResolverIp
+                            if (!provedor.isNullOrBlank()) append(": $provedor")
+                            append(" · ${resultado.dnsLatencyMs} ms")
+                        }
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(LkRadius.card))
-                            .background(c.bgSecondary)
-                            .padding(LkSpacing.lg),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(LkRadius.card))
+                                .background(c.bgSecondary)
+                                .padding(LkSpacing.lg),
                         verticalAlignment = Alignment.Top,
                     ) {
                         Icon(
@@ -450,16 +465,18 @@ fun ResultadoVelocidadeScreen(
                 // 9. NOVO: Seção expandível "Detalhes avançados" (1-E)
                 Spacer(Modifier.height(LkSpacing.md))
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(LkRadius.card))
-                        .background(c.bgSecondary),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(LkRadius.card))
+                            .background(c.bgSecondary),
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { expandida = !expandida }
-                            .padding(LkSpacing.lg),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { expandida = !expandida }
+                                .padding(LkSpacing.lg),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
@@ -472,17 +489,19 @@ fun ResultadoVelocidadeScreen(
                             imageVector = Icons.Outlined.ExpandMore,
                             contentDescription = null,
                             tint = c.textTertiary,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .rotate(if (expandida) 180f else 0f),
+                            modifier =
+                                Modifier
+                                    .size(20.dp)
+                                    .rotate(if (expandida) 180f else 0f),
                         )
                     }
                     AnimatedVisibility(visible = expandida) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = LkSpacing.lg)
-                                .padding(bottom = LkSpacing.lg),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = LkSpacing.lg)
+                                    .padding(bottom = LkSpacing.lg),
                         ) {
                             HorizontalDivider(color = c.border, thickness = 0.5.dp)
                             Spacer(Modifier.height(LkSpacing.md))
@@ -529,10 +548,11 @@ fun ResultadoVelocidadeScreen(
             HorizontalDivider(color = c.border, thickness = 1.dp)
 
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg)
-                    .navigationBarsPadding(),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg)
+                        .navigationBarsPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 if (gemmaAvailable && FeatureFlags.DIAGNOSTICO_CHAT) {
@@ -599,8 +619,20 @@ private fun OrbitSymbolSmall() {
     val color = Color(0xFFFBBF24) // amarelo — indica Gemma
     Canvas(modifier = Modifier.size(16.dp)) {
         val r = size.width * 0.32f
-        drawCircle(color = color.copy(alpha = 0.25f), radius = r * 1.15f, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx()))
-        drawCircle(color = color, radius = r, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5.dp.toPx()))
+        drawCircle(
+            color = color.copy(alpha = 0.25f),
+            radius = r * 1.15f,
+            style =
+                androidx.compose.ui.graphics.drawscope
+                    .Stroke(width = 1.dp.toPx()),
+        )
+        drawCircle(
+            color = color,
+            radius = r,
+            style =
+                androidx.compose.ui.graphics.drawscope
+                    .Stroke(width = 1.5.dp.toPx()),
+        )
         drawCircle(color = color, radius = 2.dp.toPx())
     }
 }
@@ -612,15 +644,17 @@ private fun VereditorRow(
     icon: ImageVector,
     c: LkTokens,
 ) {
-    val (cor, badgeLabel) = when (veredito) {
-        VereditoUso.good -> LkColors.success to "Boa"
-        VereditoUso.acceptable -> LkColors.warning to "Aceitável"
-        VereditoUso.poor -> LkColors.error to "Ruim"
-    }
+    val (cor, badgeLabel) =
+        when (veredito) {
+            VereditoUso.good -> LkColors.success to "Boa"
+            VereditoUso.acceptable -> LkColors.warning to "Aceitável"
+            VereditoUso.poor -> LkColors.error to "Ruim"
+        }
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics { contentDescription = "$label: $badgeLabel" },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .semantics { contentDescription = "$label: $badgeLabel" },
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -637,10 +671,11 @@ private fun VereditorRow(
             modifier = Modifier.weight(1f),
         )
         Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(cor.copy(alpha = 0.15f))
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier =
+                Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(cor.copy(alpha = 0.15f))
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
             Text(
                 text = badgeLabel,
@@ -652,11 +687,16 @@ private fun VereditorRow(
 }
 
 @Composable
-private fun DetalheRow(label: String, valor: String, c: LkTokens) {
+private fun DetalheRow(
+    label: String,
+    valor: String,
+    c: LkTokens,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -683,10 +723,11 @@ private fun MetricCard(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgSecondary)
-            .padding(LkSpacing.lg),
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgSecondary)
+                .padding(LkSpacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
@@ -709,13 +750,17 @@ private fun MetricCard(
 }
 
 @Composable
-private fun RecomendacaoCard(texto: String, c: LkTokens) {
+private fun RecomendacaoCard(
+    texto: String,
+    c: LkTokens,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgSecondary)
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgSecondary)
+                .padding(LkSpacing.lg),
         verticalAlignment = Alignment.Top,
     ) {
         Icon(

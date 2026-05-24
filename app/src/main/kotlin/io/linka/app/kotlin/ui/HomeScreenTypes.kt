@@ -7,7 +7,11 @@ data class HistoryPoint(
 )
 
 enum class ConnectionNodeType {
-    wifiRouter, wifiMesh, wifiExtender, mobile, unknown
+    wifiRouter,
+    wifiMesh,
+    wifiExtender,
+    mobile,
+    unknown,
 }
 
 data class GatewayInfo(

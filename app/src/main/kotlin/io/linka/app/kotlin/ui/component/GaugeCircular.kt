@@ -18,8 +18,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
@@ -134,12 +132,15 @@ fun GaugeCircular(
     }
 }
 
-private fun formatarVelocidade(mbps: Float): String = when {
-    mbps <= 0f -> "—"
-    mbps >= 1000f -> "%.1f".format(mbps / 1000f)
-    mbps >= 100f -> "%.0f".format(mbps)
-    else -> "%.1f".format(mbps)
-}
+private fun formatarVelocidade(mbps: Float): String =
+    when {
+        mbps <= 0f -> "—"
+        mbps >= 1000f -> "%.1f".format(mbps / 1000f)
+        mbps >= 100f -> "%.0f".format(mbps)
+        else -> "%.1f".format(mbps)
+    }
 
-private fun unidadeDisplay(mbps: Float, unidadeBase: String): String =
-    if (mbps >= 1000f) "Gbps" else unidadeBase
+private fun unidadeDisplay(
+    mbps: Float,
+    unidadeBase: String,
+): String = if (mbps >= 1000f) "Gbps" else unidadeBase

@@ -37,12 +37,13 @@ fun OrbitSymbol(
 ) {
     val isActive = state == OrbitState.Collecting || state == OrbitState.Thinking || state == OrbitState.Analyzing
 
-    val glowColor = colorOverride ?: when (state) {
-        OrbitState.Success -> LkColors.success
-        OrbitState.Warning -> LkColors.warning
-        OrbitState.Critical -> LkColors.error
-        else -> LkColors.accent
-    }
+    val glowColor =
+        colorOverride ?: when (state) {
+            OrbitState.Success -> LkColors.success
+            OrbitState.Warning -> LkColors.warning
+            OrbitState.Critical -> LkColors.error
+            else -> LkColors.accent
+        }
 
     val animatedGlowColor by animateColorAsState(
         targetValue = glowColor,
@@ -66,28 +67,31 @@ fun OrbitSymbol(
     val breatheScale by transition.animateFloat(
         initialValue = 0.92f,
         targetValue = 1.04f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(1800, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
         label = "breathe-scale",
     )
     val outerRingAlpha by transition.animateFloat(
         initialValue = 0.2f,
         targetValue = 0.7f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(1800, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
         label = "outer-alpha",
     )
     val satelliteAngle by transition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(4000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(4000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
         label = "satellite-angle",
     )
 

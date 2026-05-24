@@ -51,27 +51,30 @@ fun LinkaPulseScreen(
 ) {
     val c = LocalLkTokens.current
 
-    val pulseState = when (uiState) {
-        is LinkaPulseUiState.Idle -> PulseState.Idle
-        is LinkaPulseUiState.Collecting -> PulseState.Collecting
-        is LinkaPulseUiState.Thinking -> PulseState.Thinking
-        is LinkaPulseUiState.Analyzing -> PulseState.Analyzing
-        is LinkaPulseUiState.AwaitingChipSelection -> PulseState.AwaitingInput
-        is LinkaPulseUiState.AwaitingAnswer -> PulseState.AwaitingInput
-        is LinkaPulseUiState.Result -> uiState.pulseState
-        is LinkaPulseUiState.Erro -> PulseState.Critical
-    }
+    val pulseState =
+        when (uiState) {
+            is LinkaPulseUiState.Idle -> PulseState.Idle
+            is LinkaPulseUiState.Collecting -> PulseState.Collecting
+            is LinkaPulseUiState.Thinking -> PulseState.Thinking
+            is LinkaPulseUiState.Analyzing -> PulseState.Analyzing
+            is LinkaPulseUiState.AwaitingChipSelection -> PulseState.AwaitingInput
+            is LinkaPulseUiState.AwaitingAnswer -> PulseState.AwaitingInput
+            is LinkaPulseUiState.Result -> uiState.pulseState
+            is LinkaPulseUiState.Erro -> PulseState.Critical
+        }
 
-    val isActive = pulseState == PulseState.Collecting ||
-        pulseState == PulseState.Thinking ||
-        pulseState == PulseState.Analyzing
+    val isActive =
+        pulseState == PulseState.Collecting ||
+            pulseState == PulseState.Thinking ||
+            pulseState == PulseState.Analyzing
 
     Box(modifier = Modifier.fillMaxSize().background(c.bgPrimary)) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 24.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.height(48.dp))
@@ -94,10 +97,11 @@ fun LinkaPulseScreen(
                 ) {
                     when (state) {
                         is LinkaPulseUiState.Idle -> IdleContent(onIniciarPulse)
-                        is LinkaPulseUiState.Collecting -> LoadingContent(
-                            mensagem = state.mensagem,
-                            showSpeedtest = true,
-                        )
+                        is LinkaPulseUiState.Collecting ->
+                            LoadingContent(
+                                mensagem = state.mensagem,
+                                showSpeedtest = true,
+                            )
                         is LinkaPulseUiState.Thinking -> LoadingContent(mensagem = state.mensagem)
                         is LinkaPulseUiState.Analyzing -> LoadingContent(mensagem = state.mensagem)
                         is LinkaPulseUiState.AwaitingChipSelection -> {
@@ -165,7 +169,10 @@ private fun IdleContent(onIniciarPulse: () -> Unit) {
 }
 
 @Composable
-private fun LoadingContent(mensagem: String, showSpeedtest: Boolean = false) {
+private fun LoadingContent(
+    mensagem: String,
+    showSpeedtest: Boolean = false,
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(horizontal = 32.dp),
@@ -249,7 +256,10 @@ private fun ResultContent(
 }
 
 @Composable
-private fun ErrorContent(mensagem: String, onIniciarPulse: () -> Unit) {
+private fun ErrorContent(
+    mensagem: String,
+    onIniciarPulse: () -> Unit,
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.padding(horizontal = 32.dp),
@@ -278,16 +288,18 @@ private fun ChipsLabel() {
 
 @Composable
 private fun PulseResultStatusBadge(pulseState: PulseState) {
-    val (color, label) = when (pulseState) {
-        PulseState.Critical -> LkColors.error to "Problemas críticos"
-        PulseState.Warning -> LkColors.warning to "Atenção necessária"
-        else -> LkColors.success to "Tudo OK"
-    }
+    val (color, label) =
+        when (pulseState) {
+            PulseState.Critical -> LkColors.error to "Problemas críticos"
+            PulseState.Warning -> LkColors.warning to "Atenção necessária"
+            else -> LkColors.success to "Tudo OK"
+        }
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(color.copy(alpha = 0.12f))
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(color.copy(alpha = 0.12f))
+                .padding(horizontal = 16.dp, vertical = 6.dp),
     ) {
         Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = color)
     }

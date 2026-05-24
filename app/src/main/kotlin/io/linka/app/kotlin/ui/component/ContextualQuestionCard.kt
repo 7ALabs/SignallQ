@@ -24,7 +24,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.linka.app.kotlin.feature.diagnostico.pulse.OpcaoResposta
 import io.linka.app.kotlin.feature.diagnostico.pulse.QuestionNode
 import io.linka.app.kotlin.ui.LkColors
@@ -49,11 +48,12 @@ fun ContextualQuestionCard(
         modifier = modifier,
     ) { q ->
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.bgCard)
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(LkRadius.card))
+                    .background(c.bgCard)
+                    .padding(16.dp),
         ) {
             Text(
                 q.texto,
@@ -67,14 +67,16 @@ fun ContextualQuestionCard(
                     SuggestionChip(
                         onClick = { onResponder(opcao) },
                         label = { Text(opcao.label, style = MaterialTheme.typography.bodyMedium) },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = LkColors.accent.copy(alpha = 0.08f),
-                            labelColor = c.textPrimary,
-                        ),
-                        border = SuggestionChipDefaults.suggestionChipBorder(
-                            enabled = true,
-                            borderColor = LkColors.accent.copy(alpha = 0.25f),
-                        ),
+                        colors =
+                            SuggestionChipDefaults.suggestionChipColors(
+                                containerColor = LkColors.accent.copy(alpha = 0.08f),
+                                labelColor = c.textPrimary,
+                            ),
+                        border =
+                            SuggestionChipDefaults.suggestionChipBorder(
+                                enabled = true,
+                                borderColor = LkColors.accent.copy(alpha = 0.25f),
+                            ),
                         modifier = Modifier.fillMaxWidth().minimumInteractiveComponentSize(),
                     )
                 }

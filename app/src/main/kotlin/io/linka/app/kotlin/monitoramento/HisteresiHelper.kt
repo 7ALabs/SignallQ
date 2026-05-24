@@ -16,7 +16,6 @@ package io.linka.app.kotlin.monitoramento
  * mantém o estado anterior — sem transição.
  */
 internal object HisteresiHelper {
-
     /**
      * Calcula o novo estado de alerta de latência HTTP.
      *
@@ -24,12 +23,16 @@ internal object HisteresiHelper {
      * @param estadoAnterior Estado de alerta atual.
      * @return Novo estado de alerta.
      */
-    fun calcularAlertaLatencia(latencia: Long?, estadoAnterior: Boolean): Boolean = when {
-        latencia == null -> estadoAnterior   // Doze ou falha de rede: mantém
-        latencia > 400L -> true
-        latencia < 300L -> false
-        else -> estadoAnterior               // zona de histerese [300, 400]: mantém
-    }
+    fun calcularAlertaLatencia(
+        latencia: Long?,
+        estadoAnterior: Boolean,
+    ): Boolean =
+        when {
+            latencia == null -> estadoAnterior // Doze ou falha de rede: mantém
+            latencia > 400L -> true
+            latencia < 300L -> false
+            else -> estadoAnterior // zona de histerese [300, 400]: mantém
+        }
 
     /**
      * Calcula o novo estado de alerta de resolução DNS.
@@ -38,12 +41,16 @@ internal object HisteresiHelper {
      * @param estadoAnterior Estado de alerta atual.
      * @return Novo estado de alerta.
      */
-    fun calcularAlertaDns(dns: Long?, estadoAnterior: Boolean): Boolean = when {
-        dns == null -> estadoAnterior
-        dns > 2500L -> true
-        dns < 1800L -> false
-        else -> estadoAnterior               // zona de histerese [1800, 2500]: mantém
-    }
+    fun calcularAlertaDns(
+        dns: Long?,
+        estadoAnterior: Boolean,
+    ): Boolean =
+        when {
+            dns == null -> estadoAnterior
+            dns > 2500L -> true
+            dns < 1800L -> false
+            else -> estadoAnterior // zona de histerese [1800, 2500]: mantém
+        }
 
     /**
      * Calcula o novo estado de alerta de sinal Wi-Fi (RSSI).
@@ -52,12 +59,16 @@ internal object HisteresiHelper {
      * @param estadoAnterior Estado de alerta atual.
      * @return Novo estado de alerta.
      */
-    fun calcularAlertaRssi(rssi: Int?, estadoAnterior: Boolean): Boolean = when {
-        rssi == null -> estadoAnterior
-        rssi < -75 -> true
-        rssi > -68 -> false
-        else -> estadoAnterior               // zona de histerese [-75, -68]: mantém
-    }
+    fun calcularAlertaRssi(
+        rssi: Int?,
+        estadoAnterior: Boolean,
+    ): Boolean =
+        when {
+            rssi == null -> estadoAnterior
+            rssi < -75 -> true
+            rssi > -68 -> false
+            else -> estadoAnterior // zona de histerese [-75, -68]: mantém
+        }
 
     /**
      * Calcula o novo estado de alerta "sem internet".
@@ -82,7 +93,7 @@ internal object HisteresiHelper {
         return when {
             semConectividade && semWifi -> true
             latencia != null || dns != null -> false
-            else -> estadoAnterior               // estado ambíguo: mantém
+            else -> estadoAnterior // estado ambíguo: mantém
         }
     }
 }

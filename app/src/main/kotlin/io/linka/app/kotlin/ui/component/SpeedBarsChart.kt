@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -32,7 +31,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.linka.app.kotlin.core.database.MedicaoEntity
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkSpacing
@@ -41,7 +39,9 @@ import io.linka.app.kotlin.ui.LocalLkTokens
 
 // ── Filtro de tipo de conexão ──────────────────────────────────────────────────
 
-private enum class FiltroConexao(val label: String) {
+private enum class FiltroConexao(
+    val label: String,
+) {
     TODOS("Todos"),
     WIFI("Wi-Fi"),
     MOVEL("Móvel"),
@@ -81,11 +81,12 @@ private fun SpeedBar(
         Spacer(Modifier.height(2.dp))
         // A barra em si
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height((120 * animatedFraction).coerceAtLeast(2f).dp)
-                .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
-                .background(color),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height((120 * animatedFraction).coerceAtLeast(2f).dp)
+                    .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                    .background(color),
         )
         Spacer(Modifier.height(4.dp))
         // Label de tipo abaixo
@@ -101,23 +102,28 @@ private fun SpeedBar(
 // ── Shimmer placeholder ────────────────────────────────────────────────────────
 
 @Composable
-private fun SpeedBarsShimmer(medicoes: List<MedicaoEntity>, c: LkTokens) {
+private fun SpeedBarsShimmer(
+    medicoes: List<MedicaoEntity>,
+    c: LkTokens,
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = LkSpacing.lg)
-            .height(160.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = LkSpacing.lg)
+                .height(160.dp),
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         repeat(medicoes.size.coerceAtMost(20)) { index ->
             val fakeHeight = listOf(60, 90, 45, 110, 70, 85, 50, 100, 65, 80)[index % 10]
             Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(fakeHeight.dp)
-                    .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
-                    .background(c.border),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .height(fakeHeight.dp)
+                        .clip(RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                        .background(c.border),
             )
         }
     }
@@ -126,16 +132,21 @@ private fun SpeedBarsShimmer(medicoes: List<MedicaoEntity>, c: LkTokens) {
 // ── Estado vazio contextual ────────────────────────────────────────────────────
 
 @Composable
-private fun SpeedBarsEmpty(filtro: FiltroConexao, c: LkTokens) {
-    val mensagem = when (filtro) {
-        FiltroConexao.WIFI -> "Nenhum teste Wi-Fi registrado ainda."
-        FiltroConexao.MOVEL -> "Nenhum teste móvel registrado ainda."
-        FiltroConexao.TODOS -> "Nenhum teste registrado ainda."
-    }
+private fun SpeedBarsEmpty(
+    filtro: FiltroConexao,
+    c: LkTokens,
+) {
+    val mensagem =
+        when (filtro) {
+            FiltroConexao.WIFI -> "Nenhum teste Wi-Fi registrado ainda."
+            FiltroConexao.MOVEL -> "Nenhum teste móvel registrado ainda."
+            FiltroConexao.TODOS -> "Nenhum teste registrado ainda."
+        }
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(100.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -158,33 +169,38 @@ fun SpeedBarsChart(
     val c = LocalLkTokens.current
     var filtroSelecionado by remember { mutableStateOf(FiltroConexao.TODOS) }
 
-    val medicoesFiltradas = remember(medicoes, filtroSelecionado) {
-        val base = when (filtroSelecionado) {
-            FiltroConexao.TODOS -> medicoes
-            FiltroConexao.WIFI -> medicoes.filter { it.connectionType == "wifi" }
-            FiltroConexao.MOVEL -> medicoes.filter { it.connectionType == "cellular" }
+    val medicoesFiltradas =
+        remember(medicoes, filtroSelecionado) {
+            val base =
+                when (filtroSelecionado) {
+                    FiltroConexao.TODOS -> medicoes
+                    FiltroConexao.WIFI -> medicoes.filter { it.connectionType == "wifi" }
+                    FiltroConexao.MOVEL -> medicoes.filter { it.connectionType == "cellular" }
+                }
+            base.takeLast(20)
         }
-        base.takeLast(20)
-    }
 
-    val maxMbps = remember(medicoesFiltradas) {
-        medicoesFiltradas.mapNotNull { it.downloadMbps }.maxOrNull()?.coerceAtLeast(1.0) ?: 1.0
-    }
+    val maxMbps =
+        remember(medicoesFiltradas) {
+            medicoesFiltradas.mapNotNull { it.downloadMbps }.maxOrNull()?.coerceAtLeast(1.0) ?: 1.0
+        }
 
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(c.bgCard)
-            .border(1.dp, c.border, RoundedCornerShape(12.dp))
-            .padding(vertical = LkSpacing.md),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(12.dp))
+                .padding(vertical = LkSpacing.md),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
             // Header
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = LkSpacing.lg),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = LkSpacing.lg),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -219,16 +235,18 @@ fun SpeedBarsChart(
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
-                            selectedLabelColor = LkColors.accent,
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = filtroSelecionado == filtro,
-                            borderColor = c.border,
-                            selectedBorderColor = LkColors.accent,
-                        ),
+                        colors =
+                            FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
+                                selectedLabelColor = LkColors.accent,
+                            ),
+                        border =
+                            FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = filtroSelecionado == filtro,
+                                borderColor = c.border,
+                                selectedBorderColor = LkColors.accent,
+                            ),
                     )
                 }
             }
@@ -239,10 +257,11 @@ fun SpeedBarsChart(
                 medicoesFiltradas.isEmpty() -> SpeedBarsEmpty(filtroSelecionado, c)
                 else -> {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(160.dp)
-                            .padding(horizontal = LkSpacing.lg),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(160.dp)
+                                .padding(horizontal = LkSpacing.lg),
                         verticalAlignment = Alignment.Bottom,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
@@ -283,13 +302,18 @@ fun SpeedBarsChart(
 // ── Helper: ponto de legenda ───────────────────────────────────────────────────
 
 @Composable
-private fun LegendaDot(color: Color, label: String, c: LkTokens) {
+private fun LegendaDot(
+    color: Color,
+    label: String,
+    c: LkTokens,
+) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(RoundedCornerShape(50))
-                .background(color),
+            modifier =
+                Modifier
+                    .size(8.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(color),
         )
         Text(label, style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
     }

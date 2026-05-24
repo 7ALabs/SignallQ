@@ -11,7 +11,6 @@ import io.linka.app.kotlin.MainActivity
 import io.linka.app.kotlin.R
 
 object LinkaNotificationHelper {
-
     private const val CANAL_ID = "linka_monitoramento"
     private const val PREFS_NAME = "linka_notif_cooldown"
     private const val KEY_CONTAGEM_DIA = "contagem_dia"
@@ -24,25 +23,30 @@ object LinkaNotificationHelper {
     private const val ID_SEM_INTERNET = 4
     private const val ID_DISPOSITIVO_NOVO = 5
 
-    private val cooldownMs = mapOf(
-        ID_LATENCIA to 4 * 60 * 60 * 1000L,
-        ID_DNS to 4 * 60 * 60 * 1000L,
-        ID_WIFI_FRACO to 8 * 60 * 60 * 1000L,
-        ID_SEM_INTERNET to 30 * 60 * 1000L,
-        ID_DISPOSITIVO_NOVO to 60 * 60 * 1000L, // 1h entre notificacoes de dispositivo novo
-    )
+    private val cooldownMs =
+        mapOf(
+            ID_LATENCIA to 4 * 60 * 60 * 1000L,
+            ID_DNS to 4 * 60 * 60 * 1000L,
+            ID_WIFI_FRACO to 8 * 60 * 60 * 1000L,
+            ID_SEM_INTERNET to 30 * 60 * 1000L,
+            ID_DISPOSITIVO_NOVO to 60 * 60 * 1000L, // 1h entre notificacoes de dispositivo novo
+        )
 
     fun criarCanais(context: Context) {
-        val canal = NotificationChannel(
-            CANAL_ID,
-            "Monitoramento de rede",
-            NotificationManager.IMPORTANCE_DEFAULT,
-        ).apply { description = "Alertas sobre a qualidade da sua conexão" }
+        val canal =
+            NotificationChannel(
+                CANAL_ID,
+                "Monitoramento de rede",
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply { description = "Alertas sobre a qualidade da sua conexão" }
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(canal)
     }
 
-    fun notificarLatenciaAlta(context: Context, latenciaMs: Long) {
+    fun notificarLatenciaAlta(
+        context: Context,
+        latenciaMs: Long,
+    ) {
         disparar(
             context = context,
             id = ID_LATENCIA,
@@ -51,7 +55,10 @@ object LinkaNotificationHelper {
         )
     }
 
-    fun notificarDnsLento(context: Context, dnsMs: Long) {
+    fun notificarDnsLento(
+        context: Context,
+        dnsMs: Long,
+    ) {
         disparar(
             context = context,
             id = ID_DNS,
@@ -60,7 +67,10 @@ object LinkaNotificationHelper {
         )
     }
 
-    fun notificarWifiFraco(context: Context, rssi: Int) {
+    fun notificarWifiFraco(
+        context: Context,
+        rssi: Int,
+    ) {
         disparar(
             context = context,
             id = ID_WIFI_FRACO,
@@ -78,7 +88,10 @@ object LinkaNotificationHelper {
         )
     }
 
-    fun notificarDispositivoNovo(context: Context, mac: String) {
+    fun notificarDispositivoNovo(
+        context: Context,
+        mac: String,
+    ) {
         disparar(
             context = context,
             id = ID_DISPOSITIVO_NOVO,
@@ -87,7 +100,12 @@ object LinkaNotificationHelper {
         )
     }
 
-    private fun disparar(context: Context, id: Int, titulo: String, corpo: String) {
+    private fun disparar(
+        context: Context,
+        id: Int,
+        titulo: String,
+        corpo: String,
+    ) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val agora = System.currentTimeMillis()
 
@@ -102,27 +120,31 @@ object LinkaNotificationHelper {
         val contagem = if (dataContagem == hoje) prefs.getInt(KEY_CONTAGEM_DIA, 0) else 0
         if (contagem >= MAX_POR_DIA) return
 
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            0,
-            Intent(context, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_SINGLE_TOP },
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
+        val pendingIntent =
+            PendingIntent.getActivity(
+                context,
+                0,
+                Intent(context, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_SINGLE_TOP },
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
 
-        val notificacao = NotificationCompat.Builder(context, CANAL_ID)
-            .setSmallIcon(R.drawable.ic_notification_linka_pulse)
-            .setContentTitle(titulo)
-            .setContentText(corpo)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(corpo))
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-            .addAction(0, "Ver diagnóstico", pendingIntent)
-            .build()
+        val notificacao =
+            NotificationCompat
+                .Builder(context, CANAL_ID)
+                .setSmallIcon(R.drawable.ic_notification_linka_pulse)
+                .setContentTitle(titulo)
+                .setContentText(corpo)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(corpo))
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true)
+                .addAction(0, "Ver diagnóstico", pendingIntent)
+                .build()
 
         try {
             NotificationManagerCompat.from(context).notify(id, notificacao)
-            prefs.edit()
+            prefs
+                .edit()
                 .putLong("ultimo_$id", agora)
                 .putString(KEY_DATA_CONTAGEM, hoje)
                 .putInt(KEY_CONTAGEM_DIA, contagem + 1)

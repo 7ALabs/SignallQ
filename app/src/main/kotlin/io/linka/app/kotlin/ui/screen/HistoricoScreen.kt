@@ -29,10 +29,6 @@ import androidx.compose.material.icons.outlined.TrendingDown
 import androidx.compose.material.icons.outlined.TrendingFlat
 import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.Wifi
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.Role
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -56,15 +52,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import io.linka.app.kotlin.ui.component.ProfileAvatarButton
-import io.linka.app.kotlin.ui.component.rememberTopBarAlpha
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -80,6 +77,9 @@ import io.linka.app.kotlin.ui.LkRadius
 import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
 import io.linka.app.kotlin.ui.LocalLkTokens
+import io.linka.app.kotlin.ui.component.ProfileAvatarButton
+import io.linka.app.kotlin.ui.component.rememberTopBarAlpha
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -94,7 +94,10 @@ private fun qualidadeLabel(m: MedicaoEntity): String {
     }
 }
 
-private fun qualidadeColor(m: MedicaoEntity, c: LkTokens): Color {
+private fun qualidadeColor(
+    m: MedicaoEntity,
+    c: LkTokens,
+): Color {
     val dl = m.downloadMbps ?: return c.textTertiary
     return when {
         dl >= 100 -> LkColors.success
@@ -104,17 +107,19 @@ private fun qualidadeColor(m: MedicaoEntity, c: LkTokens): Color {
     }
 }
 
-private fun networkIcon(m: MedicaoEntity): ImageVector = when (m.connectionType) {
-    "wifi" -> Icons.Outlined.Wifi
-    else -> Icons.Outlined.Speed
-}
+private fun networkIcon(m: MedicaoEntity): ImageVector =
+    when (m.connectionType) {
+        "wifi" -> Icons.Outlined.Wifi
+        else -> Icons.Outlined.Speed
+    }
 
-private fun tipoLabel(m: MedicaoEntity): String = when (m.connectionType) {
-    "wifi" -> "Wi-Fi"
-    "cellular" -> "Celular"
-    "ethernet" -> "Cabo"
-    else -> m.connectionType
-}
+private fun tipoLabel(m: MedicaoEntity): String =
+    when (m.connectionType) {
+        "wifi" -> "Wi-Fi"
+        "cellular" -> "Celular"
+        "ethernet" -> "Cabo"
+        else -> m.connectionType
+    }
 
 private fun formatDate(epochMs: Long): String {
     val cal = Calendar.getInstance().apply { timeInMillis = epochMs }
@@ -147,59 +152,70 @@ private fun formatFullDate(epochMs: Long): String {
 
 private fun mbpsStr(v: Double?): String = v?.let { "%.0f".format(it) } ?: "--"
 
-private fun vereditoLabel(v: String?): String? = when (v) {
-    "good" -> "Bom"
-    "acceptable" -> "Aceitável"
-    "poor" -> "Ruim"
-    null -> null
-    else -> v
-}
+private fun vereditoLabel(v: String?): String? =
+    when (v) {
+        "good" -> "Bom"
+        "acceptable" -> "Aceitável"
+        "poor" -> "Ruim"
+        null -> null
+        else -> v
+    }
 
-private fun gargaloLabel(g: String?): String? = when (g) {
-    null, "none" -> null
-    "download" -> "Download"
-    "upload" -> "Upload"
-    "latency" -> "Latência"
-    "jitter" -> "Oscilação"
-    "packetLoss" -> "Perda de pacotes"
-    "bufferbloat" -> "Bufferbloat"
-    else -> g
-}
+private fun gargaloLabel(g: String?): String? =
+    when (g) {
+        null, "none" -> null
+        "download" -> "Download"
+        "upload" -> "Upload"
+        "latency" -> "Latência"
+        "jitter" -> "Oscilação"
+        "packetLoss" -> "Perda de pacotes"
+        "bufferbloat" -> "Bufferbloat"
+        else -> g
+    }
 
 // ─── Tendência ────────────────────────────────────────────────────────────────
 
 @Composable
-private fun TendenciaCard(resumo: ResumoHistorico, c: LkTokens) {
+private fun TendenciaCard(
+    resumo: ResumoHistorico,
+    c: LkTokens,
+) {
     val tendencia = calcularTendencia(resumo) ?: return
     val (estado, percentual) = tendencia
-    val icon = when (estado) {
-        TendenciaEstado.MELHOROU -> Icons.Outlined.TrendingUp
-        TendenciaEstado.PIOROU -> Icons.Outlined.TrendingDown
-        TendenciaEstado.ESTAVEL -> Icons.Outlined.TrendingFlat
-    }
-    val iconColor = when (estado) {
-        TendenciaEstado.MELHOROU -> LkColors.success
-        TendenciaEstado.PIOROU -> LkColors.error
-        TendenciaEstado.ESTAVEL -> c.textSecondary
-    }
-    val titulo = when (estado) {
-        TendenciaEstado.MELHOROU -> "Download $percentual% acima da sua média"
-        TendenciaEstado.PIOROU -> "Download $percentual% abaixo da sua média"
-        TendenciaEstado.ESTAVEL -> "Velocidade dentro do esperado"
-    }
-    val subtexto = when (estado) {
-        TendenciaEstado.MELHOROU, TendenciaEstado.PIOROU -> "Comparado às últimas 5 medições"
-        TendenciaEstado.ESTAVEL -> "Consistente com as últimas 5 medições"
-    }
-    val semanticDesc = when (estado) {
-        TendenciaEstado.MELHOROU -> "Tendência de velocidade: download $percentual por cento acima da média"
-        TendenciaEstado.PIOROU -> "Tendência de velocidade: download $percentual por cento abaixo da média"
-        TendenciaEstado.ESTAVEL -> "Tendência de velocidade: estável"
-    }
+    val icon =
+        when (estado) {
+            TendenciaEstado.MELHOROU -> Icons.Outlined.TrendingUp
+            TendenciaEstado.PIOROU -> Icons.Outlined.TrendingDown
+            TendenciaEstado.ESTAVEL -> Icons.Outlined.TrendingFlat
+        }
+    val iconColor =
+        when (estado) {
+            TendenciaEstado.MELHOROU -> LkColors.success
+            TendenciaEstado.PIOROU -> LkColors.error
+            TendenciaEstado.ESTAVEL -> c.textSecondary
+        }
+    val titulo =
+        when (estado) {
+            TendenciaEstado.MELHOROU -> "Download $percentual% acima da sua média"
+            TendenciaEstado.PIOROU -> "Download $percentual% abaixo da sua média"
+            TendenciaEstado.ESTAVEL -> "Velocidade dentro do esperado"
+        }
+    val subtexto =
+        when (estado) {
+            TendenciaEstado.MELHOROU, TendenciaEstado.PIOROU -> "Comparado às últimas 5 medições"
+            TendenciaEstado.ESTAVEL -> "Consistente com as últimas 5 medições"
+        }
+    val semanticDesc =
+        when (estado) {
+            TendenciaEstado.MELHOROU -> "Tendência de velocidade: download $percentual por cento acima da média"
+            TendenciaEstado.PIOROU -> "Tendência de velocidade: download $percentual por cento abaixo da média"
+            TendenciaEstado.ESTAVEL -> "Tendência de velocidade: estável"
+        }
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics { contentDescription = semanticDesc },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .semantics { contentDescription = semanticDesc },
         border = BorderStroke(1.dp, c.border),
         colors = CardDefaults.cardColors(containerColor = c.bgCard),
         shape = RoundedCornerShape(LkRadius.card),
@@ -293,12 +309,13 @@ fun HistoricoScreen(
         if (historico.isEmpty()) {
             EmptyHistorico(modifier = Modifier.fillMaxSize().padding(padding), onIniciarTeste = onIniciarTeste)
         } else {
-            val maxValue = remember(historico) {
-                maxOf(
-                    historico.flatMap { listOf(it.downloadMbps ?: 0.0, it.uploadMbps ?: 0.0) }.maxOrNull() ?: 100.0,
-                    100.0,
-                )
-            }
+            val maxValue =
+                remember(historico) {
+                    maxOf(
+                        historico.flatMap { listOf(it.downloadMbps ?: 0.0, it.uploadMbps ?: 0.0) }.maxOrNull() ?: 100.0,
+                        100.0,
+                    )
+                }
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize().padding(padding),
@@ -390,7 +407,10 @@ fun HistoricoScreen(
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun EmptyHistorico(modifier: Modifier = Modifier, onIniciarTeste: () -> Unit = {}) {
+private fun EmptyHistorico(
+    modifier: Modifier = Modifier,
+    onIniciarTeste: () -> Unit = {},
+) {
     val c = LocalLkTokens.current
     Box(modifier, contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -420,19 +440,23 @@ private fun EmptyHistorico(modifier: Modifier = Modifier, onIniciarTeste: () -> 
 // ─── List item ────────────────────────────────────────────────────────────────
 
 @Composable
-private fun HistoricoCard(medicao: MedicaoEntity, maxValue: Double, onClick: () -> Unit) {
+private fun HistoricoCard(
+    medicao: MedicaoEntity,
+    maxValue: Double,
+    onClick: () -> Unit,
+) {
     val c = LocalLkTokens.current
     val dl = medicao.downloadMbps
     val cardDesc = "Medição de ${formatDate(medicao.timestampEpochMs)}, download ${dl?.let { "%.0f".format(it) } ?: "sem dados"} Mbps"
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics {
-                role = Role.Button
-                contentDescription = cardDesc
-            }
-            .clickable(onClick = onClick),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .semantics {
+                    role = Role.Button
+                    contentDescription = cardDesc
+                }.clickable(onClick = onClick),
         shape = RoundedCornerShape(LkRadius.card),
         colors = CardDefaults.cardColors(containerColor = c.bgCard),
         border = BorderStroke(1.dp, c.border),
@@ -483,7 +507,12 @@ private fun HistoricoCard(medicao: MedicaoEntity, maxValue: Double, onClick: () 
 }
 
 @Composable
-private fun SpeedBar(value: Double?, maxValue: Double, color: Color, arrowLabel: String) {
+private fun SpeedBar(
+    value: Double?,
+    maxValue: Double,
+    color: Color,
+    arrowLabel: String,
+) {
     val c = LocalLkTokens.current
     val progress = if (value != null && maxValue > 0) (value / maxValue).coerceIn(0.0, 1.0).toFloat() else 0f
     val valueStr = value?.let { "$arrowLabel ${"%.1f".format(it)} Mbps" } ?: "$arrowLabel -- Mbps"
@@ -491,25 +520,28 @@ private fun SpeedBar(value: Double?, maxValue: Double, color: Color, arrowLabel:
     val barDesc = "$label ${value?.let { "%.1f".format(it) } ?: "sem dados"} Mbps"
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics { contentDescription = barDesc },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .semantics { contentDescription = barDesc },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
         Box(
-            modifier = Modifier
-                .weight(1f)
-                .height(8.dp)
-                .clip(RoundedCornerShape(999.dp))
-                .background(c.bgSecondary),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(c.bgSecondary),
         ) {
             Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(progress)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(color),
+                modifier =
+                    Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(progress)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(color),
             )
         }
         Text(
@@ -525,7 +557,10 @@ private fun SpeedBar(value: Double?, maxValue: Double, color: Color, arrowLabel:
 }
 
 @Composable
-private fun QualityBadge(label: String, color: Color) {
+private fun QualityBadge(
+    label: String,
+    color: Color,
+) {
     Box(
         Modifier
             .clip(RoundedCornerShape(4.dp))
@@ -602,7 +637,13 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
                         label = "Download",
                         modifier = Modifier.weight(1f),
                     )
-                    Box(Modifier.width(1.dp).height(60.dp).background(c.border).align(Alignment.CenterVertically))
+                    Box(
+                        Modifier
+                            .width(1.dp)
+                            .height(60.dp)
+                            .background(c.border)
+                            .align(Alignment.CenterVertically),
+                    )
                     PrimaryMetric(
                         arrow = "↑",
                         arrowColor = LkColors.success,
@@ -684,7 +725,11 @@ private fun PrimaryMetric(
 }
 
 @Composable
-private fun SecondaryMetric(label: String, value: String, modifier: Modifier = Modifier) {
+private fun SecondaryMetric(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
     val c = LocalLkTokens.current
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
@@ -693,7 +738,11 @@ private fun SecondaryMetric(label: String, value: String, modifier: Modifier = M
 }
 
 @Composable
-private fun SheetRow(label: String, value: String, valueColor: Color? = null) {
+private fun SheetRow(
+    label: String,
+    value: String,
+    valueColor: Color? = null,
+) {
     val c = LocalLkTokens.current
     Row(
         Modifier

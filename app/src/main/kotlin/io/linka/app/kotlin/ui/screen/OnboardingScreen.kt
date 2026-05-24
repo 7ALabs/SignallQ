@@ -11,7 +11,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,9 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Smartphone
-import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -82,31 +79,40 @@ fun OnboardingScreen(
     }
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(c.bgPrimary),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(c.bgPrimary),
     ) {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
         ) { pagina ->
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .semantics {
-                        contentDescription = "Página ${pagina + 1} de 3, ${when (pagina) { 0 -> "boas-vindas"; 1 -> "privacidade"; else -> "diagnóstico em cores" }}"
-                    },
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .semantics {
+                            contentDescription =
+                                "Página ${pagina + 1} de 3, ${when (pagina) {
+                                    0 -> "boas-vindas"
+                                    1 -> "privacidade"
+                                    else -> "diagnóstico em cores"
+                                }}"
+                        },
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // Zona ilustração: weight responsivo por altura de tela
-                val pesoIlustracao: Float = when {
-                    alturaTelaDP < 540 -> 0.35f
-                    else -> 0.40f
-                }
+                val pesoIlustracao: Float =
+                    when {
+                        alturaTelaDP < 540 -> 0.35f
+                        else -> 0.40f
+                    }
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(pesoIlustracao),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .weight(pesoIlustracao),
                     contentAlignment = Alignment.Center,
                 ) {
                     when (pagina) {
@@ -118,23 +124,26 @@ fun OnboardingScreen(
 
                 // Zona título + descrição: weight 0.40
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(0.40f)
-                        .padding(horizontal = LkSpacing.xl),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .weight(0.40f)
+                            .padding(horizontal = LkSpacing.xl),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top,
                 ) {
-                    val titulo = when (pagina) {
-                        0 -> "Sua internet explicada em português"
-                        1 -> "Seus dados ficam no seu celular"
-                        else -> "Resultado sempre explicado"
-                    }
-                    val descricao = when (pagina) {
-                        0 -> "Não só os números — o linka analisa sua conexão\ne te diz o que está acontecendo e o que fazer."
-                        1 -> "Medimos sua rede, não rastreamos você. Tudo fica salvo localmente — nenhum dado pessoal sai do seu dispositivo."
-                        else -> "Verde: tudo certo. Amarelo: atenção. Vermelho: problema detectado — e sempre com uma explicação do que fazer a seguir."
-                    }
+                    val titulo =
+                        when (pagina) {
+                            0 -> "Sua internet explicada em português"
+                            1 -> "Seus dados ficam no seu celular"
+                            else -> "Resultado sempre explicado"
+                        }
+                    val descricao =
+                        when (pagina) {
+                            0 -> "Não só os números — o linka analisa sua conexão\ne te diz o que está acontecendo e o que fazer."
+                            1 -> "Medimos sua rede, não rastreamos você. Tudo fica salvo localmente — nenhum dado pessoal sai do seu dispositivo."
+                            else -> "Verde: tudo certo. Amarelo: atenção. Vermelho: problema detectado — e sempre com uma explicação do que fazer a seguir."
+                        }
 
                     Text(
                         text = titulo,
@@ -154,9 +163,10 @@ fun OnboardingScreen(
 
                 // Zona dots: centralizado entre texto e botões
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = LkSpacing.sm),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = LkSpacing.sm),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -166,24 +176,26 @@ fun OnboardingScreen(
                             animationSpec = tween(durationMillis = 200),
                             label = "dot_width_$index",
                         )
-                        val dotDesc = if (index == paginaAtual) {
-                            "Slide ${index + 1} de 3, selecionado"
-                        } else {
-                            "Slide ${index + 1} de 3"
-                        }
+                        val dotDesc =
+                            if (index == paginaAtual) {
+                                "Slide ${index + 1} de 3, selecionado"
+                            } else {
+                                "Slide ${index + 1} de 3"
+                            }
                         Box(
-                            modifier = Modifier
-                                .width(largura)
-                                .height(10.dp)
-                                .background(
-                                    color = if (index == paginaAtual) {
-                                        LkColors.accent
-                                    } else {
-                                        c.textSecondary.copy(alpha = 0.55f)
-                                    },
-                                    shape = CircleShape,
-                                )
-                                .semantics { contentDescription = dotDesc },
+                            modifier =
+                                Modifier
+                                    .width(largura)
+                                    .height(10.dp)
+                                    .background(
+                                        color =
+                                            if (index == paginaAtual) {
+                                                LkColors.accent
+                                            } else {
+                                                c.textSecondary.copy(alpha = 0.55f)
+                                            },
+                                        shape = CircleShape,
+                                    ).semantics { contentDescription = dotDesc },
                         )
                         if (index < TOTAL_SLIDES - 1) {
                             Spacer(Modifier.width(6.dp))
@@ -192,15 +204,17 @@ fun OnboardingScreen(
                 }
 
                 // Zona botões: altura responsiva por altura de tela
-                val alturaZonaBotoes: Dp = when {
-                    alturaTelaDP < 540 -> 56.dp
-                    else -> 80.dp
-                }
+                val alturaZonaBotoes: Dp =
+                    when {
+                        alturaTelaDP < 540 -> 56.dp
+                        else -> 80.dp
+                    }
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(alturaZonaBotoes)
-                        .padding(horizontal = LkSpacing.xl),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(alturaZonaBotoes)
+                            .padding(horizontal = LkSpacing.xl),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -210,9 +224,10 @@ fun OnboardingScreen(
                             onClick = {
                                 scope.launch { pagerState.animateScrollToPage(pagina - 1, animationSpec = tween(200)) }
                             },
-                            modifier = Modifier.semantics {
-                                contentDescription = "Voltar ao slide anterior"
-                            },
+                            modifier =
+                                Modifier.semantics {
+                                    contentDescription = "Voltar ao slide anterior"
+                                },
                             colors = ButtonDefaults.outlinedButtonColors(),
                         ) {
                             Text(
@@ -235,12 +250,14 @@ fun OnboardingScreen(
                         ) {
                             Button(
                                 onClick = onConcluir,
-                                modifier = Modifier.semantics {
-                                    contentDescription = "Começar a usar o app"
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = LkColors.accent,
-                                ),
+                                modifier =
+                                    Modifier.semantics {
+                                        contentDescription = "Começar a usar o app"
+                                    },
+                                colors =
+                                    ButtonDefaults.buttonColors(
+                                        containerColor = LkColors.accent,
+                                    ),
                             ) {
                                 Text(
                                     text = "Começar →",
@@ -254,9 +271,10 @@ fun OnboardingScreen(
                             onClick = {
                                 scope.launch { pagerState.animateScrollToPage(pagina + 1, animationSpec = tween(200)) }
                             },
-                            modifier = Modifier.semantics {
-                                contentDescription = "Próximo slide"
-                            },
+                            modifier =
+                                Modifier.semantics {
+                                    contentDescription = "Próximo slide"
+                                },
                             colors = ButtonDefaults.filledTonalButtonColors(),
                         ) {
                             Text(
@@ -273,17 +291,19 @@ fun OnboardingScreen(
         // Botão Pular: TopEnd overlay, visível apenas nos slides 0 e 1
         if (paginaAtual < TOTAL_SLIDES - 1) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopEnd)
-                    .padding(top = LkSpacing.sm, end = LkSpacing.sm),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopEnd)
+                        .padding(top = LkSpacing.sm, end = LkSpacing.sm),
                 contentAlignment = Alignment.TopEnd,
             ) {
                 TextButton(
                     onClick = onConcluir,
-                    modifier = Modifier.semantics {
-                        contentDescription = "Pular tutorial"
-                    },
+                    modifier =
+                        Modifier.semantics {
+                            contentDescription = "Pular tutorial"
+                        },
                 ) {
                     Text(
                         text = "Pular",
@@ -325,10 +345,11 @@ private fun OnboardingSlide0Visual() {
             )
             Spacer(Modifier.height(4.dp))
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(LkColors.success.copy(alpha = 0.12f))
-                    .padding(horizontal = 10.dp, vertical = 3.dp),
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(LkColors.success.copy(alpha = 0.12f))
+                        .padding(horizontal = 10.dp, vertical = 3.dp),
             ) {
                 Text(
                     "Download",
@@ -344,12 +365,13 @@ private fun OnboardingSlide0Visual() {
 @Composable
 private fun OnboardingSlide1Visual(c: LkTokens) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth(0.75f)
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .padding(LkSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth(0.75f)
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.md),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
@@ -367,10 +389,11 @@ private fun OnboardingSlide1Visual(c: LkTokens) {
             )
             Spacer(Modifier.weight(1f))
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(LkColors.accent.copy(alpha = 0.10f))
-                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(LkColors.accent.copy(alpha = 0.10f))
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
             ) {
                 Text(
                     "Local",
@@ -417,18 +440,20 @@ private fun OnboardingSlide1Visual(c: LkTokens) {
 @Composable
 private fun OnboardingSlide2Visual(c: LkTokens) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth(0.78f)
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .padding(LkSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth(0.78f)
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.md),
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -453,9 +478,10 @@ private fun OnboardingSlide2Visual(c: LkTokens) {
         }
         HorizontalDivider(thickness = 0.5.dp, color = c.border)
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -480,9 +506,10 @@ private fun OnboardingSlide2Visual(c: LkTokens) {
         }
         HorizontalDivider(thickness = 0.5.dp, color = c.border)
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(

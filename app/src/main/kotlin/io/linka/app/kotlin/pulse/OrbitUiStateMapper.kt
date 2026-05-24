@@ -5,7 +5,6 @@ import io.linka.app.kotlin.feature.diagnostico.pulse.SnapshotOrbit
 import io.linka.app.kotlin.ui.screen.OrbitUiState
 
 object OrbitUiStateMapper {
-
     fun from(snapshot: SnapshotOrbit): OrbitUiState {
         val session = snapshot.session
         val mensagem = snapshot.mensagemAtual ?: ""

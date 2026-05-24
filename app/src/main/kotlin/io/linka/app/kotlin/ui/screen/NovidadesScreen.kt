@@ -69,26 +69,31 @@ fun NovidadesScreen(
     LaunchedEffect(tentativa) {
         carregando = true
         erro = false
-        val resultado = withContext(Dispatchers.IO) {
-            runCatching {
-                val text = context.assets.open("changelog.json").bufferedReader().use { it.readText() }
-                val arr = JSONArray(text)
-                val result = mutableListOf<ChangelogEntry>()
-                for (i in 0 until arr.length()) {
-                    val obj = arr.getJSONObject(i)
-                    val itensArr = obj.getJSONArray("itens")
-                    result.add(
-                        ChangelogEntry(
-                            versao = obj.getString("versao"),
-                            data = obj.getString("data"),
-                            titulo = obj.getString("titulo"),
-                            itens = (0 until itensArr.length()).map { itensArr.getString(it) },
-                        ),
-                    )
+        val resultado =
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    val text =
+                        context.assets
+                            .open("changelog.json")
+                            .bufferedReader()
+                            .use { it.readText() }
+                    val arr = JSONArray(text)
+                    val result = mutableListOf<ChangelogEntry>()
+                    for (i in 0 until arr.length()) {
+                        val obj = arr.getJSONObject(i)
+                        val itensArr = obj.getJSONArray("itens")
+                        result.add(
+                            ChangelogEntry(
+                                versao = obj.getString("versao"),
+                                data = obj.getString("data"),
+                                titulo = obj.getString("titulo"),
+                                itens = (0 until itensArr.length()).map { itensArr.getString(it) },
+                            ),
+                        )
+                    }
+                    result
                 }
-                result
             }
-        }
         resultado.fold(
             onSuccess = { entradas = it },
             onFailure = { erro = true },
@@ -152,23 +157,28 @@ fun NovidadesScreen(
 }
 
 @Composable
-private fun ChangelogCard(entrada: ChangelogEntry, c: LkTokens) {
+private fun ChangelogCard(
+    entrada: ChangelogEntry,
+    c: LkTokens,
+) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm)
-            .clip(RoundedCornerShape(16.dp))
-            .background(c.bgSecondary)
-            .border(1.dp, c.border, RoundedCornerShape(16.dp))
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm)
+                .clip(RoundedCornerShape(16.dp))
+                .background(c.bgSecondary)
+                .border(1.dp, c.border, RoundedCornerShape(16.dp))
+                .padding(LkSpacing.lg),
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(LkColors.accent.copy(alpha = 0.10f))
-                        .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(LkColors.accent.copy(alpha = 0.10f))
+                            .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
                 ) {
                     Text(
                         text = entrada.versao,

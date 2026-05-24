@@ -12,13 +12,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.Icon
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,10 +27,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.Color
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkRadius
 import io.linka.app.kotlin.ui.LkSpacing
@@ -44,18 +43,20 @@ fun WifiChannelGuide() {
     var isExpanded by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { isExpanded = !isExpanded },
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { isExpanded = !isExpanded },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -143,10 +144,11 @@ internal fun GuideSection(
         horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
         Box(
-            modifier = Modifier
-                .size(28.dp)
-                .clip(RoundedCornerShape(50))
-                .background(LkColors.accent),
+            modifier =
+                Modifier
+                    .size(28.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(LkColors.accent),
             contentAlignment = Alignment.Center,
         ) {
             Text(
