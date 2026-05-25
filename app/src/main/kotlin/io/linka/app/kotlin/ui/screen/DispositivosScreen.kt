@@ -57,6 +57,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -413,12 +417,16 @@ private fun DispositivoItem(
     val iconFg = iconFgColor(dispositivo.tipoDispositivo, c)
     val icon = iconForTipo(dispositivo.tipoDispositivo)
 
+    val nomeExibicao = apelido?.takeIf { it.isNotBlank() } ?: dispositivo.nomeExibicao
     Box(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .minimumInteractiveComponentSize()
-                .clickable(onClick = onTap)
+                .semantics {
+                    role = Role.Button
+                    contentDescription = nomeExibicao
+                }.clickable(onClick = onTap)
                 .border(
                     width = 0.5.dp,
                     color = c.border.copy(alpha = 0.5f),
@@ -1020,7 +1028,10 @@ private fun LkListRow(
                     .fillMaxWidth()
                     .then(
                         if (onTap != null) {
-                            Modifier.minimumInteractiveComponentSize().clickable(onClick = onTap)
+                            Modifier
+                                .minimumInteractiveComponentSize()
+                                .semantics { role = Role.Button }
+                                .clickable(onClick = onTap)
                         } else {
                             Modifier
                         },

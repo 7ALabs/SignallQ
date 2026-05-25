@@ -21,6 +21,10 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -50,20 +54,24 @@ fun ProfileAvatarButton(
     }
     val profileBrush = Brush.linearGradient(colors = listOf(LkColors.accent, LkColors.accentBlue))
 
+    val descPerfil = if (nomeUsuario.isNotBlank()) "Foto de perfil de $nomeUsuario" else "Foto de perfil"
     Box(
         modifier =
             modifier
                 .size(36.dp)
                 .clip(CircleShape)
                 .background(brush = profileBrush)
-                .clickable { onClick() },
+                .semantics {
+                    role = Role.Button
+                    contentDescription = descPerfil
+                }.clickable { onClick() },
         contentAlignment = Alignment.Center,
     ) {
         val bitmap = fotoBitmap
         if (bitmap != null) {
             Image(
                 bitmap = bitmap,
-                contentDescription = "Foto de perfil",
+                contentDescription = descPerfil,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxWidth().clip(CircleShape),
             )
