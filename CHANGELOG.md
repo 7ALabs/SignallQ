@@ -37,7 +37,24 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - **SpeedTestScreen — Exports e callback:** PingScreen integrada como ModalBottomSheet. Callback `onAbrirPing: () -> Unit` adicionado a `SpeedTestScreen`, gerenciado por `MainViewModel`. Nenhuma breaking change em assinatura existente (todos callbacks opcionais).
 
 ---
+
 ## [Unreleased]
+
+### Added
+
+- **Diagnóstico Inteligente — Redesign completo da tela de resultado:** Nova UI com 5 cards: StatusDiagnosticoCard (escudo + chip pill de status), PrincipalPontoCard (ícone dinâmico por tipo de problema + tip card âmbar), OQueFazerCard (lista de ações + 3 botões de navegação), seção duas colunas de Evidências + Análise por categoria, e ChatCard com SuggestionChips e campo de input pill. Tokens de cor `warningContainer`/`successContainer`/`amberSurface` adicionados ao design system. `WindowInsets.ime` aplicado para campo de input não ser coberto pelo teclado. (#60)
+
+- **Classificação automática de topologia WiFi:** `SinalScreen` agora exibe o tipo de topologia real de cada rede (ROTEADOR, ROTEADOR_MESH, NO_MESH, REPETIDOR) via integração com `TopologiaWifiEngine`. Fallback gracioso para DESCONHECIDO via `runCatching` em caso de falha na classificação. (#40)
+
+- **UptimeNarrativaEngine v2.0 — Detecção de padrões avançados:** Três novos comportamentos de análise de uptime: detecção de padrões horários recorrentes (ex: "toda manhã entre 8h e 9h a conexão cai"), identificação de interrupções longas >30 minutos ordenadas por duração, e cálculo de tendência de qualidade (MELHORANDO/PIORANDO/ESTAVEL) comparando as últimas 24h com as 24h anteriores. (#42)
+
+- **ExportadorHistoricoPDF v2.0 — Layout rico e paginação automática:** PDF agora renderizado via HTML/CSS com `WebView.createPrintDocumentAdapter()` — tabela profissional com cabeçalho colorido e linhas zebradas. Paginação automática elimina truncamento de históricos longos. Timeouts defensivos (10s) em `exportarComWebView` e `PdfPrintHelper` evitam coroutines penduradas. (#41)
+
+### Fixed
+
+- **Acessibilidade TalkBack — Auditoria completa de telas:** Correções em `DispositivosScreen` (DispositivoItem com `role=Button` e contentDescription dinâmica), `LaudoScreen` (link Anatel com `contentDescription`; `LkListRow` recebe role apenas quando interativo), `ResultadoVelocidadeScreen` (toggle "Detalhes avançados" com `stateDescription` dinâmica), e `ProfileAvatarButton` (contentDescription dinâmica com nome do usuário). (#11)
+
+---
 
 ### Added
 
