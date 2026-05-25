@@ -577,6 +577,10 @@ class ExecutorSpeedtestCloudflare : ExecutorSpeedtest {
 
         fun elapsedMs(): Long = (System.nanoTime() - inicioNs) / 1_000_000L
 
+        // Intervalo aumentado para 1000ms (era 300ms) durante o throughput adaptativo:
+        // pings frequentes competem por banda com os workers de upload no mesmo pool HTTP/2,
+        // distorcendo ambas as medições. Amostras a cada 1s ainda são suficientes para
+        // calcular bufferbloat (latência sob carga vs. latência em repouso).
         val pingJob =
             launch {
                 while (System.nanoTime() < stopNs && !mudouRede(redeInicial, connectionTypeProvider) && !cancelFlag.get()) {
@@ -584,7 +588,7 @@ class ExecutorSpeedtestCloudflare : ExecutorSpeedtest {
                     val rtt = medirPing()
                     if (rtt != null) pingsSobCarga.add(rtt)
                     val elapsed = (System.nanoTime() - t0) / 1_000_000L
-                    delay(max(0L, 300L - elapsed))
+                    delay(max(0L, 1_000L - elapsed))
                 }
             }
 
@@ -771,6 +775,10 @@ class ExecutorSpeedtestCloudflare : ExecutorSpeedtest {
 
         repeat(maxStreams) { idx -> spawnWorker(idx) }
 
+        // Intervalo aumentado para 1000ms (era 300ms) durante o throughput:
+        // pings a cada 300ms competem por banda com os workers de transferência no mesmo pool
+        // HTTP/2, distorcendo o throughput e os próprios valores de latência sob carga.
+        // 1 amostra/s ainda é suficiente para calcular bufferbloat com precisão adequada.
         val pingJob =
             launch {
                 while (!stopFlag.get() && System.nanoTime() < stopNs && !mudouRede(redeInicial, connectionTypeProvider) && !cancelFlag.get()) {
@@ -778,7 +786,7 @@ class ExecutorSpeedtestCloudflare : ExecutorSpeedtest {
                     val rtt = medirPing()
                     if (rtt != null) pingsSobCarga.add(rtt)
                     val elapsed = (System.nanoTime() - t0) / 1_000_000L
-                    val waitMs = max(0L, 300L - elapsed)
+                    val waitMs = max(0L, 1_000L - elapsed)
                     delay(waitMs)
                 }
             }
