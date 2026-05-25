@@ -501,12 +501,14 @@ private fun RedesTab(
     // Classificação de topologia para todas as redes visíveis
     val topologiaPorBssid =
         remember(snapshotWifi.redes, connectedNetwork) {
-            val classificadas =
-                TopologiaWifiEngine.classificar(
-                    redes = snapshotWifi.redes,
-                    connectedBssid = connectedNetwork?.bssid,
-                )
-            classificadas.associate { it.rede.bssid to it.tipo }
+            runCatching {
+                val classificadas =
+                    TopologiaWifiEngine.classificar(
+                        redes = snapshotWifi.redes,
+                        connectedBssid = connectedNetwork?.bssid,
+                    )
+                classificadas.associate { it.rede.bssid to it.tipo }
+            }.getOrElse { emptyMap() }
         }
 
     // Nós da mesma rede: conectado na frente + mesmo SSID ordenado por sinal
