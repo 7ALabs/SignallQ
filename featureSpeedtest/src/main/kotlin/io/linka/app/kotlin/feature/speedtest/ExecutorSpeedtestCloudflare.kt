@@ -28,61 +28,72 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
 
-class ExecutorSpeedtestCloudflare : ExecutorSpeedtest {
+class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest {
     private companion object {
         const val logTag = "LinkaSpeedtest"
 
         private const val UA = "Mozilla/5.0 (Linux; Android 14; SM-A256E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
 
-        // Client HTTP/2 para upload e ping — múltiplos streams em uma conexão TCP.
-        val client: OkHttpClient = OkHttpClient.Builder()
-            .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
-            .connectTimeout(5, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
-            .addInterceptor { chain ->
-                chain.proceed(
-                    chain.request().newBuilder()
-                        .header("User-Agent", UA)
-                        .header("Cache-Control", "no-store")
-                        .build(),
-                )
+        // Pool adaptativo: móvel usa menos conexões e keep-alive curto para poupar bateria/dados.
+        // Wi-Fi/fixo usa pool maior para throughput máximo no speedtest.
+        fun criarConnectionPool(isMobile: Boolean): okhttp3.ConnectionPool =
+            if (isMobile) {
+                okhttp3.ConnectionPool(2, 1, TimeUnit.MINUTES)
+            } else {
+                okhttp3.ConnectionPool(8, 5, TimeUnit.MINUTES)
             }
-            .build()
-
-        // Client HTTP/1.1 para download — cada worker usa conexão TCP própria (pool 8),
-        // com headers de contexto de browser para evitar rate-limit 429/403 do Cloudflare
-        // no endpoint /__down (que bloqueia clientes HTTP/2 sem contexto de origem).
-        val downloadClient: OkHttpClient = OkHttpClient.Builder()
-            .protocols(listOf(Protocol.HTTP_1_1))
-            .connectTimeout(5, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
-            .connectionPool(okhttp3.ConnectionPool(8, 60, TimeUnit.SECONDS))
-            .addInterceptor { chain ->
-                chain.proceed(
-                    chain.request().newBuilder()
-                        .header("User-Agent", UA)
-                        .header("Accept", "*/*")
-                        .header("Accept-Language", "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7")
-                        .header("Cache-Control", "no-store")
-                        .header("Origin", "https://speed.cloudflare.com")
-                        .header("Referer", "https://speed.cloudflare.com/")
-                        .header("Sec-Fetch-Dest", "empty")
-                        .header("Sec-Fetch-Mode", "cors")
-                        .header("Sec-Fetch-Site", "same-origin")
-                        .build(),
-                )
-            }
-            .build()
-
-        // Client separado para pings — timeout menor, reusa o mesmo pool H2.
-        val pingClient: OkHttpClient = client.newBuilder()
-            .connectTimeout(4, TimeUnit.SECONDS)
-            .readTimeout(4, TimeUnit.SECONDS)
-            .callTimeout(4, TimeUnit.SECONDS)
-            .build()
     }
+
+    // Client HTTP/2 para upload e ping — múltiplos streams em uma conexão TCP.
+    private val client: OkHttpClient = OkHttpClient.Builder()
+        .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(15, TimeUnit.SECONDS)
+        .writeTimeout(15, TimeUnit.SECONDS)
+        .connectionPool(criarConnectionPool(isMobile))
+        .addInterceptor { chain ->
+            chain.proceed(
+                chain.request().newBuilder()
+                    .header("User-Agent", UA)
+                    .header("Cache-Control", "no-store")
+                    .build(),
+            )
+        }
+        .build()
+
+    // Client HTTP/1.1 para download — cada worker usa conexão TCP própria,
+    // com headers de contexto de browser para evitar rate-limit 429/403 do Cloudflare
+    // no endpoint /__down (que bloqueia clientes HTTP/2 sem contexto de origem).
+    // Pool adaptado ao tipo de rede: móvel=2 conexões, Wi-Fi=8 conexões.
+    private val downloadClient: OkHttpClient = OkHttpClient.Builder()
+        .protocols(listOf(Protocol.HTTP_1_1))
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(15, TimeUnit.SECONDS)
+        .connectionPool(criarConnectionPool(isMobile))
+        .addInterceptor { chain ->
+            chain.proceed(
+                chain.request().newBuilder()
+                    .header("User-Agent", UA)
+                    .header("Accept", "*/*")
+                    .header("Accept-Language", "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7")
+                    .header("Cache-Control", "no-store")
+                    .header("Origin", "https://speed.cloudflare.com")
+                    .header("Referer", "https://speed.cloudflare.com/")
+                    .header("Sec-Fetch-Dest", "empty")
+                    .header("Sec-Fetch-Mode", "cors")
+                    .header("Sec-Fetch-Site", "same-origin")
+                    .build(),
+            )
+        }
+        .build()
+
+    // Client separado para pings — timeout menor, reusa o mesmo pool H2.
+    private val pingClient: OkHttpClient = client.newBuilder()
+        .connectTimeout(4, TimeUnit.SECONDS)
+        .readTimeout(4, TimeUnit.SECONDS)
+        .callTimeout(4, TimeUnit.SECONDS)
+        .build()
 
     private val emExecucao = AtomicBoolean(false)
     private val cancelFlag = AtomicBoolean(false)

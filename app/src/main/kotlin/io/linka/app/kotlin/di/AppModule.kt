@@ -80,7 +80,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideExecutorSpeedtest(): ExecutorSpeedtest = FeatureSpeedtestModulo.criarExecutorSpeedtest()
+    fun provideExecutorSpeedtest(
+        networkCapabilitiesProvider: NetworkCapabilitiesProvider,
+    ): ExecutorSpeedtest = FeatureSpeedtestModulo.criarExecutorSpeedtest(
+        isMobile = networkCapabilitiesProvider.isMeteredNetwork(),
+    )
 
     @Provides
     @Singleton
