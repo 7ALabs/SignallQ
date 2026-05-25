@@ -1,6 +1,7 @@
 package io.linka.app.kotlin.monitoramento
 
 import android.content.Context
+import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
@@ -22,6 +23,7 @@ internal object MonitoramentoScheduler {
         val request =
             PeriodicWorkRequestBuilder<MonitoramentoWorker>(30, TimeUnit.MINUTES)
                 .setConstraints(constraints)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
                 .addTag(WORK_TAG)
                 .build()
 
