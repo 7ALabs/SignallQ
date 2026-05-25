@@ -50,7 +50,7 @@ class MainActivity : ComponentActivity() {
 
     private val solicitacaoPermissaoNotificacao =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-            // Worker agenda mesmo se permissão negada — notificações ficam silenciosas
+            // Worker agenda mesmo se permissao negada — notificacoes ficam silenciosas
             viewModel.atualizarMonitoramento(true)
         }
 
@@ -64,6 +64,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
+            // --- Snapshots de features (ciclos de vida independentes — NAO combinar) ---
             val snapshotRede =
                 viewModel.monitorRede.snapshotFlow
                     .collectAsStateWithLifecycle()
@@ -88,115 +89,62 @@ class MainActivity : ComponentActivity() {
                 viewModel.executorFibra.snapshotFlow
                     .collectAsStateWithLifecycle()
                     .value
+
+            // --- Estado de rede e ISP (atualizam em momentos distintos — NAO combinar) ---
             val localIpUiState = viewModel.localIp.collectAsStateWithLifecycle().value
             val publicIpUiState = viewModel.publicIp.collectAsStateWithLifecycle().value
             val ispInfoUiState = viewModel.ispInfo.collectAsStateWithLifecycle().value
             val gateways = viewModel.gateways.collectAsStateWithLifecycle().value
+            val localizacaoServidorUiState = viewModel.localizacaoServidor.collectAsStateWithLifecycle().value
+
+            // --- Historico ---
             val history = viewModel.history.collectAsStateWithLifecycle().value
             val historico = viewModel.historico.collectAsStateWithLifecycle().value
             val blocoUptime = viewModel.blocoUptime.collectAsStateWithLifecycle().value
             val narrativaUptime = viewModel.narrativaUptime.collectAsStateWithLifecycle().value
-            val localizacaoServidorUiState = viewModel.localizacaoServidor.collectAsStateWithLifecycle().value
-            val modemHost =
-                viewModel.preferenciasAppRepository.modemHostFlow
-                    .collectAsStateWithLifecycle(initialValue = null)
-                    .value
-            val modemUsername =
-                viewModel.preferenciasAppRepository.modemUsernameFlow
-                    .collectAsStateWithLifecycle(initialValue = "userAdmin")
-                    .value
-            val modemPassword =
-                viewModel.preferenciasAppRepository.modemPasswordFlow
-                    .collectAsStateWithLifecycle(initialValue = "")
-                    .value
-            val modemPermanecerConectado =
-                viewModel.preferenciasAppRepository.modemPermanecerConectadoFlow
-                    .collectAsStateWithLifecycle(initialValue = false)
-                    .value
-            val gatewayIpDetectado = gateways.firstOrNull()?.ip
-            val temaSelecionado =
-                viewModel.preferenciasAppRepository.temaSelecionadoFlow
-                    .collectAsStateWithLifecycle(initialValue = "sistema")
-                    .value
-            val analiseAvancada =
-                viewModel.preferenciasAppRepository.analiseAvancadaFlow
-                    .collectAsStateWithLifecycle(initialValue = false)
-                    .value
-            val monitoramentoAtivo =
-                viewModel.preferenciasAppRepository.monitoramentoAtivoFlow
-                    .collectAsStateWithLifecycle(initialValue = false)
-                    .value
-            val notificacaoLatenciaAtiva =
-                viewModel.preferenciasAppRepository.notificacaoLatenciaAtivaFlow
-                    .collectAsStateWithLifecycle(initialValue = true)
-                    .value
-            val notificacaoDnsAtiva =
-                viewModel.preferenciasAppRepository.notificacaoDnsAtivaFlow
-                    .collectAsStateWithLifecycle(initialValue = true)
-                    .value
-            val notificacaoRssiAtiva =
-                viewModel.preferenciasAppRepository.notificacaoRssiAtivaFlow
-                    .collectAsStateWithLifecycle(initialValue = true)
-                    .value
-            val notificacaoSemInternetAtiva =
-                viewModel.preferenciasAppRepository.notificacaoSemInternetAtivaFlow
-                    .collectAsStateWithLifecycle(initialValue = true)
-                    .value
-            val nomeUsuario =
-                viewModel.preferenciasAppRepository.nomeUsuarioFlow
-                    .collectAsStateWithLifecycle(initialValue = "")
-                    .value
-            val fotoUriUsuario =
-                viewModel.preferenciasAppRepository.fotoUriUsuarioFlow
-                    .collectAsStateWithLifecycle(initialValue = null)
-                    .value
-            val operadora =
-                viewModel.preferenciasAppRepository.operadoraFlow
-                    .collectAsStateWithLifecycle(initialValue = "")
-                    .value
-            val planoInternet =
-                viewModel.preferenciasAppRepository.planoInternetFlow
-                    .collectAsStateWithLifecycle(initialValue = "")
-                    .value
-            val regiao =
-                viewModel.preferenciasAppRepository.regiaoFlow
-                    .collectAsStateWithLifecycle(initialValue = "")
-                    .value
-            val estadoUf =
-                viewModel.preferenciasAppRepository.estadoUfFlow
-                    .collectAsStateWithLifecycle(initialValue = "")
-                    .value
-            val cidadeNome =
-                viewModel.preferenciasAppRepository.cidadeNomeFlow
-                    .collectAsStateWithLifecycle(initialValue = "")
-                    .value
-            val ispConfirmado =
-                viewModel.preferenciasAppRepository.ispConfirmadoFlow
-                    .collectAsStateWithLifecycle(initialValue = false)
-                    .value
-            val limiteAlertaMbps =
-                viewModel.preferenciasAppRepository.limiteAlertaMbpsFlow
-                    .collectAsStateWithLifecycle(initialValue = 0)
-                    .value
-            val speedtestPermiteHeavyMovel =
-                viewModel.preferenciasAppRepository.speedtestPermiteHeavyMovel
-                    .collectAsStateWithLifecycle(initialValue = false)
-                    .value
-            val speedtestMbConsumidosMes =
-                viewModel.preferenciasAppRepository.speedtestMbConsumidosMes
-                    .collectAsStateWithLifecycle(initialValue = 0L)
-                    .value
+            val resumoHistorico = viewModel.resumoHistorico.collectAsStateWithLifecycle().value
+
+            // --- Preferencias combinadas (1 subscricao por grupo) ---
+            val preferenciasModem = viewModel.preferenciasModem.collectAsStateWithLifecycle().value
+            val modemHost = preferenciasModem.host
+            val modemUsername = preferenciasModem.username
+            val modemPassword = preferenciasModem.password
+            val modemPermanecerConectado = preferenciasModem.permanecerConectado
+
+            val preferenciasNotificacao = viewModel.preferenciasNotificacao.collectAsStateWithLifecycle().value
+            val notificacaoLatenciaAtiva = preferenciasNotificacao.latenciaAtiva
+            val notificacaoDnsAtiva = preferenciasNotificacao.dnsAtiva
+            val notificacaoRssiAtiva = preferenciasNotificacao.rssiAtiva
+            val notificacaoSemInternetAtiva = preferenciasNotificacao.semInternetAtiva
+
+            val preferenciasUi = viewModel.preferenciasUi.collectAsStateWithLifecycle().value
+            val temaSelecionado = preferenciasUi.temaSelecionado
+            val analiseAvancada = preferenciasUi.analiseAvancada
+
+            val perfilProvedor = viewModel.preferenciasPerfilProvedor.collectAsStateWithLifecycle().value
+            val nomeUsuario = perfilProvedor.nomeUsuario
+            val fotoUriUsuario = perfilProvedor.fotoUriUsuario
+            val operadora = perfilProvedor.operadora
+            val planoInternet = perfilProvedor.planoInternet
+            val regiao = perfilProvedor.regiao
+            val estadoUf = perfilProvedor.estadoUf
+            val cidadeNome = perfilProvedor.cidadeNome
+            val ispConfirmado = perfilProvedor.ispConfirmado
+            val limiteAlertaMbps = perfilProvedor.limiteAlertaMbps
+
+            val speedtestMovel = viewModel.preferenciasSpeedtestMovel.collectAsStateWithLifecycle().value
+            val speedtestPermiteHeavyMovel = speedtestMovel.permiteHeavy
+            val speedtestMbConsumidosMes = speedtestMovel.mbConsumidosMes
+
+            // --- Flows individuais com distinctUntilChanged no ViewModel ---
+            val monitoramentoAtivo = viewModel.monitoramentoAtivo.collectAsStateWithLifecycle().value
+
+            // --- Outros flows de estado ---
             val speedtestPendenteModoMovel =
                 viewModel.speedtestPendenteModoMovel
                     .collectAsStateWithLifecycle()
                     .value
             val apelidos = viewModel.apelidos.collectAsStateWithLifecycle().value
-            val darkTheme =
-                when (temaSelecionado) {
-                    "claro" -> false
-                    "escuro" -> true
-                    else -> isSystemInDarkTheme()
-                }
             val snapshotDiagnostico =
                 viewModel.diagnosticOrchestrator.snapshotFlow
                     .collectAsStateWithLifecycle()
@@ -205,7 +153,14 @@ class MainActivity : ComponentActivity() {
             val movelSnapshot = viewModel.movelSnapshot.collectAsStateWithLifecycle().value
             val gemmaAvailable = viewModel.gemmaAvailable.collectAsStateWithLifecycle().value
             val onboardingConcluido = viewModel.onboardingConcluido.collectAsStateWithLifecycle().value
-            val resumoHistorico = viewModel.resumoHistorico.collectAsStateWithLifecycle().value
+
+            val gatewayIpDetectado = gateways.firstOrNull()?.ip
+            val darkTheme =
+                when (temaSelecionado) {
+                    "claro" -> false
+                    "escuro" -> true
+                    else -> isSystemInDarkTheme()
+                }
 
             val connectedBssid = snapshotRede.wifiLinkSnapshot?.bssid
             val connectedNetwork =

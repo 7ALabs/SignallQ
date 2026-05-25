@@ -56,6 +56,8 @@ import io.linka.app.kotlin.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -133,7 +135,137 @@ class MainViewModel
 
         val gemmaAvailable = MutableStateFlow(false)
 
-        // Speedtest em rede medida — emite o modo aguardando confirmação do usuário, null caso contrário
+        // -------------------------------------------------------------------------
+        // Flows combinados — agrupam preferencias do mesmo dominio para reduzir o
+        // numero de subscricoes na Activity e evitar recomposicoes em cascata.
+        // distinctUntilChanged() em flows que podem oscilar para o mesmo valor.
+        // -------------------------------------------------------------------------
+
+        /** Preferencias de configuracao do modem: 4 flows para 1 subscricao. */
+        val preferenciasModem: StateFlow<PreferenciasModemUiState> by lazy {
+            combine(
+                preferenciasAppRepository.modemHostFlow,
+                preferenciasAppRepository.modemUsernameFlow,
+                preferenciasAppRepository.modemPasswordFlow,
+                preferenciasAppRepository.modemPermanecerConectadoFlow,
+            ) { host, username, password, permanecerConectado ->
+                PreferenciasModemUiState(
+                    host = host,
+                    username = username,
+                    password = password,
+                    permanecerConectado = permanecerConectado,
+                )
+            }.distinctUntilChanged()
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(5_000),
+                    PreferenciasModemUiState(),
+                )
+        }
+
+        /** Controles granulares de notificacao: 4 flows para 1 subscricao. */
+        val preferenciasNotificacao: StateFlow<PreferenciasNotificacaoUiState> by lazy {
+            combine(
+                preferenciasAppRepository.notificacaoLatenciaAtivaFlow,
+                preferenciasAppRepository.notificacaoDnsAtivaFlow,
+                preferenciasAppRepository.notificacaoRssiAtivaFlow,
+                preferenciasAppRepository.notificacaoSemInternetAtivaFlow,
+            ) { latencia, dns, rssi, semInternet ->
+                PreferenciasNotificacaoUiState(
+                    latenciaAtiva = latencia,
+                    dnsAtiva = dns,
+                    rssiAtiva = rssi,
+                    semInternetAtiva = semInternet,
+                )
+            }.distinctUntilChanged()
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(5_000),
+                    PreferenciasNotificacaoUiState(),
+                )
+        }
+
+        /** Preferencias de UI (tema e analise avancada): 2 flows para 1 subscricao. */
+        val preferenciasUi: StateFlow<PreferenciasUiUiState> by lazy {
+            combine(
+                preferenciasAppRepository.temaSelecionadoFlow,
+                preferenciasAppRepository.analiseAvancadaFlow,
+            ) { tema, analise ->
+                PreferenciasUiUiState(temaSelecionado = tema, analiseAvancada = analise)
+            }.distinctUntilChanged()
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(5_000),
+                    PreferenciasUiUiState(),
+                )
+        }
+
+        /**
+         * Dados de perfil do usuario e provedor: 9 flows para 1 subscricao.
+         * Usa combine aninhado para superar o limite de 5 parametros do combine padrao.
+         */
+        val preferenciasPerfilProvedor: StateFlow<PreferenciasPerfilProvedorUiState> by lazy {
+            combine(
+                combine(
+                    preferenciasAppRepository.nomeUsuarioFlow,
+                    preferenciasAppRepository.fotoUriUsuarioFlow,
+                    preferenciasAppRepository.operadoraFlow,
+                    preferenciasAppRepository.planoInternetFlow,
+                ) { nome, foto, op, plano ->
+                    listOf<Any?>(nome, foto, op, plano)
+                },
+                combine(
+                    preferenciasAppRepository.regiaoFlow,
+                    preferenciasAppRepository.estadoUfFlow,
+                    preferenciasAppRepository.cidadeNomeFlow,
+                    preferenciasAppRepository.ispConfirmadoFlow,
+                    preferenciasAppRepository.limiteAlertaMbpsFlow,
+                ) { regiao, uf, cidade, isp, limite ->
+                    listOf<Any?>(regiao, uf, cidade, isp, limite)
+                },
+            ) { primeiro, segundo ->
+                PreferenciasPerfilProvedorUiState(
+                    nomeUsuario = primeiro[0] as String,
+                    fotoUriUsuario = primeiro[1] as String?,
+                    operadora = primeiro[2] as String,
+                    planoInternet = primeiro[3] as String,
+                    regiao = segundo[0] as String,
+                    estadoUf = segundo[1] as String,
+                    cidadeNome = segundo[2] as String,
+                    ispConfirmado = segundo[3] as Boolean,
+                    limiteAlertaMbps = segundo[4] as Int,
+                )
+            }.distinctUntilChanged()
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(5_000),
+                    PreferenciasPerfilProvedorUiState(),
+                )
+        }
+
+        /** Controles de speedtest em rede movel: 2 flows para 1 subscricao. */
+        val preferenciasSpeedtestMovel: StateFlow<PreferenciasSpeedtestMovelUiState> by lazy {
+            combine(
+                preferenciasAppRepository.speedtestPermiteHeavyMovel,
+                preferenciasAppRepository.speedtestMbConsumidosMes,
+            ) { permite, mb ->
+                PreferenciasSpeedtestMovelUiState(permiteHeavy = permite, mbConsumidosMes = mb)
+            }.distinctUntilChanged()
+                .stateIn(
+                    viewModelScope,
+                    SharingStarted.WhileSubscribed(5_000),
+                    PreferenciasSpeedtestMovelUiState(),
+                )
+        }
+
+        /** distinctUntilChanged: toggle boolean que pode oscilar para o mesmo valor. */
+        val monitoramentoAtivo: StateFlow<Boolean> by lazy {
+            preferenciasAppRepository.monitoramentoAtivoFlow
+                .distinctUntilChanged()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+        }
+
+        // Speedtest em rede medida — emite o modo aguardando confirmacao do usuario, null caso contrario
         private val _speedtestPendenteModoMovel = MutableStateFlow<ModoSpeedtest?>(null)
         val speedtestPendenteModoMovel: StateFlow<ModoSpeedtest?> = _speedtestPendenteModoMovel
 
@@ -295,7 +427,7 @@ class MainViewModel
             }
 
             viewModelScope.launch {
-                // Recarrega o grid de uptime quando chegam novas medições.
+                // Recarrega o grid de uptime quando chegam novas medicoes.
                 // observarUltimas(1) serve como trigger — qualquer nova medicao
                 // invalida o cache e gera novamente os 336 blocos.
                 bancoDados.medicaoDao().observarUltimas(1).collect {
@@ -364,8 +496,8 @@ class MainViewModel
             localizacaoServidorColetada = false
             ultimoResultadoPersistidoEpochMs = null
             viewModelScope.launch {
-                // Guarda de rede medida: se móvel, modo pesado e usuário não autorizou,
-                // suspende e aguarda confirmação via dialog (Task 4). Sem dialog agora.
+                // Guarda de rede medida: se movel, modo pesado e usuario nao autorizou,
+                // suspende e aguarda confirmacao via dialog (Task 4). Sem dialog agora.
                 if (modo != ModoSpeedtest.fast && networkCapabilitiesProvider.isMeteredNetwork()) {
                     val permiteHeavy = preferenciasAppRepository.speedtestPermiteHeavyMovel.first()
                     if (!permiteHeavy) {
@@ -382,7 +514,7 @@ class MainViewModel
             }
         }
 
-        /** Chamada pelo dialog de confirmação (Task 4 — Lia) quando usuário aceita usar dados móveis. */
+        /** Chamada pelo dialog de confirmacao (Task 4 — Lia) quando usuario aceita usar dados moveis. */
         fun confirmarSpeedtestEmMovel() {
             val modo = _speedtestPendenteModoMovel.value ?: return
             _speedtestPendenteModoMovel.value = null
@@ -396,19 +528,19 @@ class MainViewModel
             }
         }
 
-        /** Chamada pelo dialog quando o usuário cancela. */
+        /** Chamada pelo dialog quando o usuario cancela. */
         fun cancelarSpeedtestMovel() {
             _speedtestPendenteModoMovel.value = null
         }
 
-        /** Persiste a preferência de permitir testes pesados em rede medida (Task 5). */
+        /** Persiste a preferencia de permitir testes pesados em rede medida (Task 5). */
         fun setSpeedtestPermiteHeavyMovel(valor: Boolean) {
             viewModelScope.launch { preferenciasAppRepository.setSpeedtestPermiteHeavyMovel(valor) }
         }
 
         /**
-         * Acumula MB estimados consumidos no mês corrente.
-         * Reset automático quando o mês muda em relação ao valor salvo em [speedtestMesReferencia].
+         * Acumula MB estimados consumidos no mes corrente.
+         * Reset automatico quando o mes muda em relacao ao valor salvo em [speedtestMesReferencia].
          * Estimativas: fast=10 MB, complete=25 MB, triplo=30 MB.
          */
         private fun acumularMbConsumidos(modo: ModoSpeedtest) {
@@ -423,7 +555,7 @@ class MainViewModel
             val mesAtual = "%04d-%02d".format(cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH) + 1)
             viewModelScope.launch {
                 // NonCancellable garante que a escrita no DataStore completa mesmo se o ViewModel
-                // for destruído entre o .first() e o set — evita race condition de contagem perdida.
+                // for destruido entre o .first() e o set — evita race condition de contagem perdida.
                 withContext(kotlinx.coroutines.NonCancellable) {
                     val mesReferencia = preferenciasAppRepository.speedtestMesReferencia.first()
                     val mbAcumulados =
@@ -450,11 +582,11 @@ class MainViewModel
             if (!diagnosticoDisparado) {
                 diagnosticoDisparado = true
                 viewModelScope.launch {
-                    // Usa o resultado em memória do speedtest como fonte primária.
-                    // O snapshotFlow é atualizado imediatamente quando o speedtest termina.
-                    // O BD é o fallback para sessões sem speedtest novo (ex.: app reaberto).
+                    // Usa o resultado em memoria do speedtest como fonte primaria.
+                    // O snapshotFlow e atualizado imediatamente quando o speedtest termina.
+                    // O BD e o fallback para sessoes sem speedtest novo (ex.: app reaberto).
                     // Ler do BD aqui causava race condition: o save acontece em outra
-                    // coroutine e pode não ter terminado quando este bloco executa.
+                    // coroutine e pode nao ter terminado quando este bloco executa.
                     val internetInput = speedtestResultToInternetInput()
                     val wifiSnapshot = monitorRede.snapshotFlow.value.wifiLinkSnapshot
                     val wifiInput =
@@ -742,7 +874,7 @@ class MainViewModel
             viewModelScope.launch { orbitOrchestrator.iniciarDiagnosticoComResultado(resultado, foco) }
         }
 
-        /** Volta ao intent picker (Idle) sem iniciar diagnóstico. */
+        /** Volta ao intent picker (Idle) sem iniciar diagnostico. */
         fun resetOrbit() {
             orbitOrchestrator.reset()
         }
@@ -755,7 +887,7 @@ class MainViewModel
             viewModelScope.launch { orbitOrchestrator.responderPergunta(opcao) }
         }
 
-        /** Processa mensagem digitada livremente pelo usuário no chat.
+        /** Processa mensagem digitada livremente pelo usuario no chat.
          *  Aplica guard off-topic e incrementa [userTurnCount] apenas se aprovada. */
         fun enviarMensagemTextoOrbit(texto: String) {
             viewModelScope.launch { orbitOrchestrator.enviarMensagemTexto(texto) }
@@ -773,7 +905,7 @@ class MainViewModel
 
             val snapshotRede = monitorRede.snapshotFlow.value
             if (snapshotRede.estadoConexao == EstadoConexao.movel) {
-                gateways.value = listOf(GatewayInfo(ip = null, name = "Antena móvel", type = ConnectionNodeType.Mobile))
+                gateways.value = listOf(GatewayInfo(ip = null, name = "Antena movel", type = ConnectionNodeType.Mobile))
                 return
             }
 
@@ -839,7 +971,7 @@ class MainViewModel
                             country = json.optString("country").ifBlank { null },
                             region = json.optString("regionName").ifBlank { null },
                         )
-                    publicIp.value = if (ip != null) UiState.Success(ip) else UiState.Error("IP indisponível")
+                    publicIp.value = if (ip != null) UiState.Success(ip) else UiState.Error("IP indisponivel")
                     ispInfo.value = UiState.Success(info)
                     if (monitorRede.snapshotFlow.value.estadoConexao == EstadoConexao.movel) {
                         gateways.value =
@@ -848,8 +980,8 @@ class MainViewModel
                             )
                     }
                 } catch (e: Exception) {
-                    publicIp.value = UiState.Error("Falha ao obter IP público")
-                    ispInfo.value = UiState.Error("ISP indisponível")
+                    publicIp.value = UiState.Error("Falha ao obter IP publico")
+                    ispInfo.value = UiState.Error("ISP indisponivel")
                     Timber.w("coletarIspInfo falhou: ${e.message}")
                 }
             }
@@ -866,27 +998,27 @@ class MainViewModel
         }
 
         /**
-         * Coleta TODOS os dados brutos disponíveis no app que possam ajudar a IA a
-         * diagnosticar. Chamada pelo OrbitOrchestrator antes de cada `explainDiagnosis`.
+         * Coleta TODOS os dados brutos disponiveis no app que possam ajudar a IA a
+         * diagnosticar. Chamada pelo OrbitOrchestrator antes de cada explainDiagnosis.
          *
-         * Política: dado que não existe → null (omitido do payload). Não inventa.
-         * NÃO inclui análise local, classificação ou rótulos. Só dados crus.
+         * Politica: dado que nao existe -> null (omitido do payload). Nao inventa.
+         * NAO inclui analise local, classificacao ou rotulos. So dados crus.
          */
         private suspend fun coletarContextoAdicionalIa(): AdditionalAiContext {
             val rede = monitorRede.snapshotFlow.value
             val wifi = rede.wifiLinkSnapshot
             val isp = (ispInfo.value as? UiState.Success)?.data
 
-            // Wi-Fi: BSSID, padrão (Wi-Fi 5/6/...) e link speed
+            // Wi-Fi: BSSID, padrao (Wi-Fi 5/6/...) e link speed
             val wifiBssid = wifi?.bssid
             val wifiPadrao = wifi?.padraoWifi
             val wifiLinkSpeedMbps = wifi?.linkSpeedMbps
 
-            // DNS resolver primário (IP + provedor inferido por hostname/IP)
+            // DNS resolver primario (IP + provedor inferido por hostname/IP)
             val dnsResolverIp = rede.dnsServidores.firstOrNull()
             val dnsResolverProvider = inferirProvedorAtivoDns(rede.privateDnsHostname, rede.dnsServidores)
 
-            // Histórico cru — últimas 5 medições (sem rótulo, só números)
+            // Historico cru — ultimas 5 medicoes (sem rotulo, so numeros)
             val ultimosTestes =
                 try {
                     bancoDados.medicaoDao().observarUltimas(5).first().map { m ->
@@ -924,7 +1056,7 @@ class MainViewModel
                     emptyList()
                 }
 
-            // Dispositivo do usuário
+            // Dispositivo do usuario
             val dispositivos =
                 AiDispositivosInfo(
                     fabricante = android.os.Build.MANUFACTURER,
@@ -939,7 +1071,7 @@ class MainViewModel
             // Telefonia movel: SO populado quando connectionType=mobile (economia
             // de bateria — em Wi-Fi/Ethernet o monitor sequer e iniciado). Quando
             // a permissao READ_PHONE_STATE foi negada, snapshot vai null e a IA
-            // recebe `movel: null` (gracioso).
+            // recebe movel: null (gracioso).
             val movel: AiMovelInfo? =
                 if (rede.estadoConexao == EstadoConexao.movel) {
                     // Garante que o monitor esta rodando — idempotente.
@@ -1038,11 +1170,11 @@ class MainViewModel
                     val cidade = json.optString("city").ifBlank { null }
                     val codigoPais = json.optString("country").ifBlank { null }
                     val local = cidade ?: codigoPais?.let { nomePaisPtBr(it) }
-                    // Se local é nulo (JSON sem city/country), exibe "Cloudflare" sem cidade
+                    // Se local e nulo (JSON sem city/country), exibe "Cloudflare" sem cidade
                     localizacaoServidor.value = UiState.Success(if (local != null) "Cloudflare · $local" else "Cloudflare")
                 } catch (_: Exception) {
-                    // Falha de rede ou parse — expõe o estado de erro para a UI
-                    localizacaoServidor.value = UiState.Error("Servidor indisponível")
+                    // Falha de rede ou parse — expoe o estado de erro para a UI
+                    localizacaoServidor.value = UiState.Error("Servidor indisponivel")
                 }
             }
 
@@ -1052,15 +1184,15 @@ class MainViewModel
                 "US" -> "Estados Unidos"
                 "AR" -> "Argentina"
                 "CL" -> "Chile"
-                "CO" -> "Colômbia"
+                "CO" -> "Colombia"
                 "PE" -> "Peru"
                 "UY" -> "Uruguai"
                 "PT" -> "Portugal"
                 "ES" -> "Espanha"
                 "GB" -> "Reino Unido"
                 "DE" -> "Alemanha"
-                "FR" -> "França"
-                "JP" -> "Japão"
+                "FR" -> "Franca"
+                "JP" -> "Japao"
                 "CN" -> "China"
                 else -> codigo
             }
@@ -1073,16 +1205,16 @@ class MainViewModel
         }
 
         // -------------------------------------------------------------------------
-        // Helper: InternetDiagnosticInput a partir da fonte mais fresca disponível.
+        // Helper: InternetDiagnosticInput a partir da fonte mais fresca disponivel.
         //
-        // Ordem de preferência:
+        // Ordem de preferencia:
         //  1. executorSpeedtest.snapshotFlow.value.resultado — atualizado imediatamente
         //     quando o speedtest termina, sem depender do commit no banco de dados.
-        //  2. bancoDados.medicaoDao().observarUltimas(1) — fallback para sessões onde
-        //     nenhum speedtest foi rodado (ex.: app reaberto com histórico gravado).
+        //  2. bancoDados.medicaoDao().observarUltimas(1) — fallback para sessoes onde
+        //     nenhum speedtest foi rodado (ex.: app reaberto com historico gravado).
         //
         // Ler apenas do BD causava race condition: o save ao BD acontece numa coroutine
-        // separada (observer do snapshotFlow) e pode não ter terminado antes de
+        // separada (observer do snapshotFlow) e pode nao ter terminado antes de
         // iniciarRotinasNaoSpeedtest() / iniciarDiagnostico() rodarem.
         // -------------------------------------------------------------------------
         private suspend fun speedtestResultToInternetInput(): InternetDiagnosticInput? {
@@ -1108,4 +1240,46 @@ class MainViewModel
                 )
             }
         }
+
+        // -------------------------------------------------------------------------
+        // Data classes de UiState agrupado — usadas pelos flows combinados acima.
+        // Imutaveis e comparaveis por valor (data class), permitindo que
+        // distinctUntilChanged() filtre emissoes redundantes corretamente.
+        // -------------------------------------------------------------------------
+
+        data class PreferenciasModemUiState(
+            val host: String? = null,
+            val username: String = "userAdmin",
+            val password: String = "",
+            val permanecerConectado: Boolean = false,
+        )
+
+        data class PreferenciasNotificacaoUiState(
+            val latenciaAtiva: Boolean = true,
+            val dnsAtiva: Boolean = true,
+            val rssiAtiva: Boolean = true,
+            val semInternetAtiva: Boolean = true,
+        )
+
+        data class PreferenciasUiUiState(
+            val temaSelecionado: String = "sistema",
+            val analiseAvancada: Boolean = false,
+        )
+
+        data class PreferenciasPerfilProvedorUiState(
+            val nomeUsuario: String = "",
+            val fotoUriUsuario: String? = null,
+            val operadora: String = "",
+            val planoInternet: String = "",
+            val regiao: String = "",
+            val estadoUf: String = "",
+            val cidadeNome: String = "",
+            val ispConfirmado: Boolean = false,
+            val limiteAlertaMbps: Int = 0,
+        )
+
+        data class PreferenciasSpeedtestMovelUiState(
+            val permiteHeavy: Boolean = false,
+            val mbConsumidosMes: Long = 0L,
+        )
     }
