@@ -102,12 +102,14 @@ fun ResultadoVelocidadeScreen(
     val decisaoMensagem = decisao?.mensagemUsuario
     val decisaoRecomendacao = decisao?.recomendacao
     val (gradeLetra, gradeCor) =
-        when (decisao?.status) {
-            DiagnosticStatus.ok -> "A" to LkColors.success
-            DiagnosticStatus.info -> "B" to LkColors.accent
-            DiagnosticStatus.attention -> "C" to LkColors.warning
-            DiagnosticStatus.critical -> "D" to LkColors.error
-            DiagnosticStatus.inconclusive, null -> "?" to c.textTertiary
+        remember(decisao?.status) {
+            when (decisao?.status) {
+                DiagnosticStatus.ok -> "A" to LkColors.success
+                DiagnosticStatus.info -> "B" to LkColors.accent
+                DiagnosticStatus.attention -> "C" to LkColors.warning
+                DiagnosticStatus.critical -> "D" to LkColors.error
+                DiagnosticStatus.inconclusive, null -> "?" to c.textTertiary
+            }
         }
 
     var expandida by remember { mutableStateOf(false) }
@@ -116,28 +118,36 @@ fun ResultadoVelocidadeScreen(
     val context = LocalContext.current
 
     val corPerda =
-        when {
-            resultado.perdaPercentual < 1.0 -> LkColors.success
-            resultado.perdaPercentual < 3.0 -> LkColors.warning
-            else -> LkColors.error
+        remember(resultado.perdaPercentual) {
+            when {
+                resultado.perdaPercentual < 1.0 -> LkColors.success
+                resultado.perdaPercentual < 3.0 -> LkColors.warning
+                else -> LkColors.error
+            }
         }
     val corBloat =
-        when (resultado.severidadeBufferbloat) {
-            SeveridadeBufferbloat.none -> LkColors.success
-            SeveridadeBufferbloat.mild -> LkColors.warning
-            SeveridadeBufferbloat.moderate, SeveridadeBufferbloat.severe -> LkColors.error
+        remember(resultado.severidadeBufferbloat) {
+            when (resultado.severidadeBufferbloat) {
+                SeveridadeBufferbloat.none -> LkColors.success
+                SeveridadeBufferbloat.mild -> LkColors.warning
+                SeveridadeBufferbloat.moderate, SeveridadeBufferbloat.severe -> LkColors.error
+            }
         }
     val corLatencia =
-        when {
-            resultado.latenciaMs < 20.0 -> LkColors.success
-            resultado.latenciaMs < 60.0 -> LkColors.warning
-            else -> LkColors.error
+        remember(resultado.latenciaMs) {
+            when {
+                resultado.latenciaMs < 20.0 -> LkColors.success
+                resultado.latenciaMs < 60.0 -> LkColors.warning
+                else -> LkColors.error
+            }
         }
     val corJitter =
-        when {
-            resultado.jitterMs < 10.0 -> LkColors.success
-            resultado.jitterMs < 30.0 -> LkColors.warning
-            else -> LkColors.error
+        remember(resultado.jitterMs) {
+            when {
+                resultado.jitterMs < 10.0 -> LkColors.success
+                resultado.jitterMs < 30.0 -> LkColors.warning
+                else -> LkColors.error
+            }
         }
 
     Scaffold(
@@ -431,11 +441,13 @@ fun ResultadoVelocidadeScreen(
                 if (resultado.dnsLatencyMs != null) {
                     Spacer(Modifier.height(LkSpacing.md))
                     val dnsTexto =
-                        buildString {
-                            append("DNS")
-                            val provedor = resultado.dnsProvider ?: resultado.dnsResolverIp
-                            if (!provedor.isNullOrBlank()) append(": $provedor")
-                            append(" · ${resultado.dnsLatencyMs} ms")
+                        remember(resultado.dnsLatencyMs, resultado.dnsProvider, resultado.dnsResolverIp) {
+                            buildString {
+                                append("DNS")
+                                val provedor = resultado.dnsProvider ?: resultado.dnsResolverIp
+                                if (!provedor.isNullOrBlank()) append(": $provedor")
+                                append(" · ${resultado.dnsLatencyMs} ms")
+                            }
                         }
                     Row(
                         modifier =
@@ -537,7 +549,7 @@ fun ResultadoVelocidadeScreen(
                 // 12. OperadoraContactCard — exibido quando o diagnóstico aponta problema no ISP
                 val mostrarContato = decisao?.categoria == "isp"
                 if (mostrarContato) {
-                    val operadora = BancoOperadoras.resolver(ispInfo?.isp)
+                    val operadora = remember(ispInfo?.isp) { BancoOperadoras.resolver(ispInfo?.isp) }
                     Spacer(Modifier.height(LkSpacing.md))
                     OperadoraContactCard(operadora = operadora)
                 }

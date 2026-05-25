@@ -46,6 +46,10 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - **Proteção de dados móveis:** Speedtest detecta rede celular medida e solicita confirmação antes de testes de 25 MB (Completo) ou 30 MB (Triplo). Modo Rápido (10 MB) executa sem aviso.
 - **Preferência de dados móveis:** Novo toggle em Ajustes — "Sempre permitir testes pesados em dados móveis" — desativa o aviso para quem tem plano ilimitado.
 - **Consumo mensal:** Ajustes exibe o total de dados consumidos em testes este mês, com reset automático na virada do mês.
+- **UiState<T> sealed interface e StatefulScreen composable (Issue #12-A):** Novo padrao de state management. Sealed interface `UiState<T>` com estados `Loading`, `Success(data: T)`, `Empty`, `Error`. Composable `StatefulScreen` generico reduz boilerplate.
+- **Migracao de PingScreenState e DiagnosticoScreenState para UiState<T> (Issue #12-B):** Refatoracao para usar `UiState<T>` com ViewModel em Coroutines, substituindo LiveData legacy.
+- **Migracao de localizacaoServidor, localIp, ispInfo e publicIp para UiState<T> (Issue #12-C):** MainViewModel expoe campos de rede como `StateFlow<UiState<T>>`. Catch vazio substituido por `UiState.Error`.
+- **Modifier.expandable() para toggles acessiveis (Issue #11):** Novo modificador com semantica de toggle, role acessivel, contentDescription e feedback tatil. Aplicado a 10 telas/componentes.
 
 ### Changed
 - **Qualidade de código:** Eliminado uso de `!!` (not-null assertion) em código de produção. Substituído por `checkNotNull` com mensagem descritiva, elvis operator e early return conforme o contexto.
