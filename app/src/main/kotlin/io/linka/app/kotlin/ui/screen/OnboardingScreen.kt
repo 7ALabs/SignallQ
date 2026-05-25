@@ -44,12 +44,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import io.linka.app.kotlin.R
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkRadius
 import io.linka.app.kotlin.ui.LkSpacing
@@ -134,15 +136,15 @@ fun OnboardingScreen(
                 ) {
                     val titulo =
                         when (pagina) {
-                            0 -> "Sua internet explicada em português"
-                            1 -> "Seus dados ficam no seu celular"
-                            else -> "Resultado sempre explicado"
+                            0 -> stringResource(R.string.onboarding_slide0_titulo)
+                            1 -> stringResource(R.string.onboarding_slide1_titulo)
+                            else -> stringResource(R.string.onboarding_slide2_titulo)
                         }
                     val descricao =
                         when (pagina) {
-                            0 -> "Não só os números — o linka analisa sua conexão\ne te diz o que está acontecendo e o que fazer."
-                            1 -> "Medimos sua rede, não rastreamos você. Tudo fica salvo localmente — nenhum dado pessoal sai do seu dispositivo."
-                            else -> "Verde: tudo certo. Amarelo: atenção. Vermelho: problema detectado — e sempre com uma explicação do que fazer a seguir."
+                            0 -> stringResource(R.string.onboarding_slide0_descricao)
+                            1 -> stringResource(R.string.onboarding_slide1_descricao)
+                            else -> stringResource(R.string.onboarding_slide2_descricao)
                         }
 
                     Text(
@@ -231,7 +233,7 @@ fun OnboardingScreen(
                             colors = ButtonDefaults.outlinedButtonColors(),
                         ) {
                             Text(
-                                text = "← Anterior",
+                                text = stringResource(R.string.onboarding_btn_anterior),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
@@ -260,7 +262,7 @@ fun OnboardingScreen(
                                     ),
                             ) {
                                 Text(
-                                    text = "Começar →",
+                                    text = stringResource(R.string.onboarding_btn_comecar),
                                     color = LkColors.linkaTextOnDark,
                                     fontWeight = FontWeight.W600,
                                 )
@@ -278,7 +280,7 @@ fun OnboardingScreen(
                             colors = ButtonDefaults.filledTonalButtonColors(),
                         ) {
                             Text(
-                                text = "Próximo →",
+                                text = stringResource(R.string.onboarding_btn_proximo),
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.W600,
                             )
@@ -306,7 +308,7 @@ fun OnboardingScreen(
                         },
                 ) {
                     Text(
-                        text = "Pular",
+                        text = stringResource(R.string.onboarding_btn_pular),
                         color = c.textSecondary,
                         style = MaterialTheme.typography.bodyMedium,
                     )

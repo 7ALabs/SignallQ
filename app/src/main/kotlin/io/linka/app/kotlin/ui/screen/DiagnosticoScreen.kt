@@ -66,6 +66,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -75,6 +76,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.linka.app.kotlin.R
 import io.linka.app.kotlin.feature.diagnostico.ConnectionType
 import io.linka.app.kotlin.feature.diagnostico.DiagnosticInput
 import io.linka.app.kotlin.feature.diagnostico.EstadoDiagnostico
@@ -175,7 +177,7 @@ fun DiagnosticoScreen(
                         )
                         Spacer(Modifier.width(LkSpacing.xs))
                         Text(
-                            "Diagnóstico",
+                            stringResource(R.string.diagnostico_titulo),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.W600,
                             color = c.textPrimary,
@@ -336,7 +338,7 @@ private fun DiagnosticoIdleContent(
                 }
                 Spacer(Modifier.height(LkSpacing.xs))
                 Text(
-                    "Diagnóstico Inteligente\nde Rede com IA",
+                    stringResource(R.string.diagnostico_idle_titulo),
                     style = MaterialTheme.typography.headlineLarge,
                     fontWeight = FontWeight.W800,
                     color = LkColors.linkaTextOnDark,
@@ -344,7 +346,7 @@ private fun DiagnosticoIdleContent(
                     lineHeight = 30.sp,
                 )
                 Text(
-                    "Descubra em segundos por que sua internet está lenta, instável ou com queda de conexão — a IA faz a análise completa por você.",
+                    stringResource(R.string.diagnostico_idle_descricao),
                     style = MaterialTheme.typography.bodyMedium,
                     color = LkColors.linkaTextOnDark.copy(alpha = 0.85f),
                     textAlign = TextAlign.Center,
@@ -363,17 +365,17 @@ private fun DiagnosticoIdleContent(
             verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
         ) {
             Text(
-                "O QUE A IA ANALISA",
+                stringResource(R.string.diagnostico_idle_secao_analisa),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.W700,
                 color = c.textTertiary,
                 letterSpacing = 0.8.sp,
             )
             HorizontalDivider(color = c.border)
-            DiagnosticoFeatureItem("Velocidade de download, upload e latência da rede", c)
-            DiagnosticoFeatureItem("Sinal Wi-Fi, canal e qualidade do roteador", c)
-            DiagnosticoFeatureItem("DNS, fibra óptica e histórico de conexão", c)
-            DiagnosticoFeatureItem("Identifica a causa raiz com relatório personalizado", c)
+            DiagnosticoFeatureItem(stringResource(R.string.diagnostico_feature_1), c)
+            DiagnosticoFeatureItem(stringResource(R.string.diagnostico_feature_2), c)
+            DiagnosticoFeatureItem(stringResource(R.string.diagnostico_feature_3), c)
+            DiagnosticoFeatureItem(stringResource(R.string.diagnostico_feature_4), c)
         }
 
         Spacer(Modifier.height(LkSpacing.sm))
@@ -394,7 +396,7 @@ private fun DiagnosticoIdleContent(
             )
             Spacer(Modifier.width(LkSpacing.sm))
             Text(
-                "Iniciar Diagnóstico",
+                stringResource(R.string.diagnostico_btn_iniciar),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.W600,
             )
@@ -429,11 +431,12 @@ private fun DiagnosticoFeatureItem(
     }
 }
 
-private val ENGINE_STEPS =
+// ENGINE_STEPS agora são resource IDs — resolvidos via stringResource() em DiagnosticoLoadingContent
+private val ENGINE_STEP_RES_IDS =
     listOf(
-        "Coletando velocidade e latência",
-        "Verificando sinal Wi-Fi",
-        "Checando DNS e histórico",
+        R.string.diagnostico_step_1,
+        R.string.diagnostico_step_2,
+        R.string.diagnostico_step_3,
     )
 
 private enum class StepEstado { Pendente, Ativo, Concluido }
@@ -443,13 +446,15 @@ private fun DiagnosticoLoadingContent(
     c: LkTokens,
     isAiPhase: Boolean,
 ) {
+    val engineSteps = ENGINE_STEP_RES_IDS.map { stringResource(it) }
+
     var stepsVisiveis by remember(isAiPhase) {
-        mutableIntStateOf(if (isAiPhase) ENGINE_STEPS.size else 0)
+        mutableIntStateOf(if (isAiPhase) engineSteps.size else 0)
     }
 
     LaunchedEffect(isAiPhase) {
         if (!isAiPhase) {
-            ENGINE_STEPS.indices.forEach { i ->
+            engineSteps.indices.forEach { i ->
                 delay(if (i == 0) 500L else 750L)
                 stepsVisiveis = i + 1
             }
@@ -468,14 +473,14 @@ private fun DiagnosticoLoadingContent(
             verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             Text(
-                if (isAiPhase) "Consultando IA…" else "Analisando sua conexão…",
+                if (isAiPhase) stringResource(R.string.diagnostico_loading_ia) else stringResource(R.string.diagnostico_loading_engines),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.W700,
                 color = c.textPrimary,
             )
             Spacer(Modifier.height(LkSpacing.xl))
 
-            ENGINE_STEPS.forEachIndexed { index, texto ->
+            engineSteps.forEachIndexed { index, texto ->
                 AnimatedVisibility(
                     visible = index < stepsVisiveis,
                     enter = fadeIn(tween(300)) + expandVertically(tween(300)),
@@ -485,12 +490,12 @@ private fun DiagnosticoLoadingContent(
             }
 
             AnimatedVisibility(
-                visible = stepsVisiveis == ENGINE_STEPS.size,
+                visible = stepsVisiveis == engineSteps.size,
                 enter = fadeIn(tween(300)) + expandVertically(tween(300)),
             ) {
                 StepRow(
                     c = c,
-                    texto = "Gerando diagnóstico com IA…",
+                    texto = stringResource(R.string.diagnostico_step_ia),
                     estado = if (isAiPhase) StepEstado.Ativo else StepEstado.Pendente,
                 )
             }
@@ -589,13 +594,13 @@ private fun DiagnosticoErroContent(
                 modifier = Modifier.size(48.dp),
             )
             Text(
-                "Não foi possível diagnosticar",
+                stringResource(R.string.diagnostico_erro_titulo),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.W600,
                 color = c.textPrimary,
             )
             Text(
-                "Verifique se há conexão com a internet e tente novamente.",
+                stringResource(R.string.diagnostico_erro_descricao),
                 style = MaterialTheme.typography.bodyMedium,
                 color = c.textSecondary,
                 textAlign = TextAlign.Center,
@@ -603,7 +608,7 @@ private fun DiagnosticoErroContent(
             )
             Spacer(Modifier.height(LkSpacing.sm))
             OutlinedButton(onClick = onTentar) {
-                Text("Tentar novamente")
+                Text(stringResource(R.string.global_btn_tentar_novamente))
             }
         }
     }
@@ -643,7 +648,7 @@ private fun DiagnosticoResultadoContent(
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     Text(
-                        "Analisar minha conexão",
+                        stringResource(R.string.diagnostico_msg_usuario),
                         modifier =
                             Modifier
                                 .clip(
@@ -752,7 +757,7 @@ private fun AiResultBubble(
                             modifier = Modifier.size(10.dp),
                         )
                         Text(
-                            "Análise local — sem IA",
+                            stringResource(R.string.diagnostico_badge_analise_local),
                             style = MaterialTheme.typography.labelSmall,
                             color = c.textTertiary,
                         )
@@ -793,7 +798,7 @@ private fun AiResultBubble(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                "Análise completa",
+                stringResource(R.string.diagnostico_analise_completa),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.W500,
                 color = c.textSecondary,
@@ -908,7 +913,7 @@ private fun ActionsSimpleList(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
         Text(
-            "O QUE FAZER",
+            stringResource(R.string.diagnostico_secao_o_que_fazer),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.W700,
             color = c.textTertiary,
@@ -974,7 +979,7 @@ private fun AnaliseCompletaContent(
     ) {
         if (result.evidencias.isNotEmpty()) {
             Text(
-                "POR QUE CONCLUÍMOS",
+                stringResource(R.string.diagnostico_secao_por_que),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.W700,
                 color = c.textTertiary,
@@ -1017,7 +1022,7 @@ private fun AnaliseCompletaContent(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
             ) {
-                Text("Confiança:", style = MaterialTheme.typography.labelMedium, color = c.textTertiary)
+                Text(stringResource(R.string.diagnostico_confianca_label), style = MaterialTheme.typography.labelMedium, color = c.textTertiary)
                 ConfiancaBarra(confianca = result.problemaPrincipal.confianca, color = statusColor)
                 Text(
                     "${(result.problemaPrincipal.confianca * 100).toInt()}%",
@@ -1038,7 +1043,7 @@ private fun AnaliseCompletaContent(
         ) {
             Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(LkSpacing.xs))
-            Text("Reanalisar", fontSize = 13.sp)
+            Text(stringResource(R.string.diagnostico_btn_reanalisar), fontSize = 13.sp)
         }
     }
 }

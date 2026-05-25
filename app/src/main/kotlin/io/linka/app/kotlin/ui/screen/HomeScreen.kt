@@ -113,7 +113,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
+import io.linka.app.kotlin.R
 import io.linka.app.kotlin.FeatureFlags
 import io.linka.app.kotlin.core.database.MedicaoEntity
 import io.linka.app.kotlin.core.network.EstadoConexao
@@ -286,7 +288,7 @@ fun HomeScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = Icons.Outlined.Home, contentDescription = null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(LkSpacing.sm))
-                        Text(text = "Home", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
+                        Text(text = stringResource(R.string.home_titulo), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
                     }
                 },
                 navigationIcon = {
@@ -373,12 +375,12 @@ fun HomeScreen(
                             )
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(
-                                    "Conexão compartilhada com vizinhos",
+                                    stringResource(R.string.home_cgnat_titulo),
                                     style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.onSurface,
                                 )
                                 Text(
-                                    "Seu provedor divide o acesso à internet entre vários clientes. Não afeta navegação e streaming, mas pode impactar jogos online e aplicativos de chamada.",
+                                    stringResource(R.string.home_cgnat_descricao),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -399,7 +401,7 @@ fun HomeScreen(
                         ) {
                             Column {
                                 Text(
-                                    "Medições",
+                                    stringResource(R.string.home_medicoes_titulo),
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.W500,
                                     color = c.textPrimary,
@@ -414,7 +416,7 @@ fun HomeScreen(
                             }
                             if (history.isNotEmpty()) {
                                 Text(
-                                    "Ver histórico",
+                                    stringResource(R.string.home_btn_ver_historico),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.W600,
                                     color = LkColors.accent,
@@ -448,13 +450,13 @@ fun HomeScreen(
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
-                                        "Faça um teste para ver o histórico de velocidade aqui.",
+                                        stringResource(R.string.home_medicoes_sem_dados),
                                         style = MaterialTheme.typography.titleSmall,
                                         color = c.textTertiary,
                                         textAlign = TextAlign.Center,
                                     )
                                     TextButton(onClick = onNovoTeste) {
-                                        Text("Fazer teste agora")
+                                        Text(stringResource(R.string.home_btn_fazer_teste_agora))
                                     }
                                 }
                             }
@@ -467,7 +469,7 @@ fun HomeScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
                             contentPadding = PaddingValues(vertical = 14.dp),
                         ) {
-                            Text("Medir velocidade", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600)
+                            Text(stringResource(R.string.home_btn_medir_velocidade), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600)
                         }
                     }
                 }
@@ -570,8 +572,8 @@ private fun NetworkPath(
                 subLabel =
                     when {
                         localIp != null -> localIp
-                        isConectado -> "Buscando..."
-                        else -> "Desconectado"
+                        isConectado -> stringResource(R.string.home_network_buscando)
+                        else -> stringResource(R.string.home_network_desconectado)
                     },
                 subLabelColor = if (hasLocalError) LkColors.error else null,
                 c = c,
@@ -629,7 +631,7 @@ private fun NetworkPath(
                 }
             val internetSubLabel =
                 ispInfo?.ip ?: publicIp
-                    ?: if (hasInternetError) "Sem conexão" else "Conectando..."
+                    ?: if (hasInternetError) stringResource(R.string.home_network_sem_conexao) else stringResource(R.string.home_network_conectando)
             val internetSubColor: Color? =
                 when {
                     hasInternetError -> LkColors.error
@@ -1014,7 +1016,7 @@ private fun SignalQualityRow(
                 Icon(Icons.Outlined.SignalCellularAlt, contentDescription = null, tint = LkColors.success, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = mobileName?.takeIf { it.isNotBlank() } ?: "Rede móvel",
+                    text = mobileName?.takeIf { it.isNotBlank() } ?: stringResource(R.string.home_network_rede_movel),
                     style = MaterialTheme.typography.titleSmall,
                     color = c.textSecondary,
                     modifier = Modifier.weight(1f),
@@ -1022,10 +1024,10 @@ private fun SignalQualityRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Conectado", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = LkColors.success)
+                Text(stringResource(R.string.home_network_conectado), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = LkColors.success)
             }
         }
-        Text("Força do sinal", style = MaterialTheme.typography.labelMedium, color = c.textTertiary)
+        Text(stringResource(R.string.home_network_forca_sinal), style = MaterialTheme.typography.labelMedium, color = c.textTertiary)
     }
 }
 
@@ -1092,7 +1094,7 @@ private fun SignalCard(
                     if (localizacaoDesligada) {
                         val context = LocalContext.current
                         Text(
-                            "Nome da rede indisponível",
+                            stringResource(R.string.home_network_nome_indisponivel),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.W600,
                             color = c.textSecondary,
@@ -1100,7 +1102,7 @@ private fun SignalCard(
                             overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            "Habilitar localização",
+                            stringResource(R.string.home_network_habilitar_localizacao),
                             style = MaterialTheme.typography.bodySmall,
                             color = LkColors.accent,
                             fontWeight = FontWeight.W500,
@@ -1113,7 +1115,7 @@ private fun SignalCard(
                                 },
                         )
                         Text(
-                            "Necessário para ver o nome da rede Wi-Fi",
+                            stringResource(R.string.home_network_localizacao_necessaria),
                             style = MaterialTheme.typography.labelSmall,
                             color = c.textTertiary,
                         )
@@ -1151,14 +1153,14 @@ private fun SignalCard(
                     Text(
                         mobileName?.takeIf {
                             it.isNotBlank()
-                        } ?: "Rede móvel",
+                        } ?: stringResource(R.string.home_network_rede_movel),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.W600,
                         color = c.textPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Text("Dados móveis", style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
+                    Text(stringResource(R.string.home_network_dados_moveis), style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
                 }
             }
             if (isWifi && wifiPct != null) {
@@ -1172,7 +1174,7 @@ private fun SignalCard(
                 Spacer(Modifier.width(LkSpacing.sm))
                 Text("$wifiPct%", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = wifiColor)
             } else if (isMobile) {
-                Text("Conectado", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = LkColors.success)
+                Text(stringResource(R.string.home_network_conectado), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = LkColors.success)
             }
         }
     }
@@ -1213,7 +1215,7 @@ private fun QualidadeShortcutRow(
     c: LkTokens,
     onClick: () -> Unit,
 ) {
-    val subtexto = "Realize o diagnóstico da sua rede com IA"
+    val subtexto = stringResource(R.string.home_shortcut_diagnostico_descricao)
     val subtextoColor = c.textSecondary
 
     Row(
@@ -1239,7 +1241,7 @@ private fun QualidadeShortcutRow(
         }
         Spacer(modifier = Modifier.width(LkSpacing.md))
         Column(modifier = Modifier.weight(1f)) {
-            Text("Diagnóstico Inteligente", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
+            Text(stringResource(R.string.home_shortcut_diagnostico_titulo), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
             Spacer(modifier = Modifier.height(2.dp))
             Text(subtexto, style = MaterialTheme.typography.labelMedium, color = subtextoColor)
         }
@@ -1268,14 +1270,14 @@ private fun ExperienciaDeUsoSection(
     )
     val useCases =
         listOf(
-            UseCase(Icons.Outlined.SportsEsports, "Jogos", 5.0),
-            UseCase(Icons.Outlined.Tv, "Streaming", 3.0),
-            UseCase(Icons.Outlined.Laptop, "Home Office", 2.0, maxLatencia = 150.0, maxJitter = 30.0),
-            UseCase(Icons.Outlined.Videocam, "Chamadas", 1.0, maxLatencia = 100.0, maxJitter = 20.0),
+            UseCase(Icons.Outlined.SportsEsports, stringResource(R.string.home_uso_jogos), 5.0),
+            UseCase(Icons.Outlined.Tv, stringResource(R.string.home_uso_streaming), 3.0),
+            UseCase(Icons.Outlined.Laptop, stringResource(R.string.home_uso_home_office), 2.0, maxLatencia = 150.0, maxJitter = 30.0),
+            UseCase(Icons.Outlined.Videocam, stringResource(R.string.home_uso_chamadas), 1.0, maxLatencia = 100.0, maxJitter = 20.0),
         )
     Column {
         Text(
-            "EXPERIÊNCIA DE USO",
+            stringResource(R.string.home_secao_experiencia),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.W700,
             color = c.textTertiary,
@@ -1292,9 +1294,9 @@ private fun ExperienciaDeUsoSection(
                 badgeLabel =
                     when (vereditoGamer) {
                         null -> "–"
-                        VereditoUso.good -> "OK"
-                        VereditoUso.acceptable -> "Regular"
-                        VereditoUso.poor -> "Ruim"
+                        VereditoUso.good -> stringResource(R.string.home_status_ok)
+                        VereditoUso.acceptable -> stringResource(R.string.home_status_regular)
+                        VereditoUso.poor -> stringResource(R.string.home_status_ruim)
                     }
                 badgeColor =
                     when (vereditoGamer) {
@@ -1318,9 +1320,9 @@ private fun ExperienciaDeUsoSection(
                 badgeLabel =
                     when {
                         downloadMbps == null -> "–"
-                        isInstavel -> "Instável"
-                        downloadOk -> "OK"
-                        else -> "Lento"
+                        isInstavel -> stringResource(R.string.home_status_instavel)
+                        downloadOk -> stringResource(R.string.home_status_ok)
+                        else -> stringResource(R.string.home_status_lento)
                     }
                 badgeColor =
                     when {
@@ -1389,7 +1391,7 @@ private fun WifiFactorsSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Fatores de velocidade do Wi-Fi", fontSize = 15.sp, fontWeight = FontWeight.W600, color = c.textPrimary)
+            Text(stringResource(R.string.home_wifi_fatores_titulo), fontSize = 15.sp, fontWeight = FontWeight.W600, color = c.textPrimary)
             WifiQualityBadge(quality = overall, c = c)
         }
         Spacer(modifier = Modifier.height(LkSpacing.sm))
@@ -1400,21 +1402,21 @@ private fun WifiFactorsSection(
                 network.larguraCanalMhz?.takeIf { it >= 80 }?.let { add("Largura do canal $it MHz") }
             }
         FactorRow(
-            title = "Espectro",
+            title = stringResource(R.string.home_wifi_fator_espectro),
             status = if (spectrumOk) WifiQuality.Excelente else WifiQuality.Razoavel,
             details = spectrumDetails,
             c = c,
         )
         HorizontalDivider(color = c.border, thickness = 1.dp)
         FactorRow(
-            title = "Potencial de rádio",
+            title = stringResource(R.string.home_wifi_fator_radio),
             status = if (radioOk) WifiQuality.Excelente else WifiQuality.Razoavel,
             details = listOf("Sinal ${network.rssiDbm} dBm"),
             c = c,
         )
         HorizontalDivider(color = c.border, thickness = 1.dp)
         FactorRow(
-            title = "Integridade do canal",
+            title = stringResource(R.string.home_wifi_fator_canal),
             status = WifiQuality.Bom,
             details = if (channel > 0) listOf("Canal $channel") else emptyList(),
             c = c,
@@ -1535,7 +1537,7 @@ private fun DeviceInfoSheet(
     ) {
         SheetDragHandle(c)
         Spacer(modifier = Modifier.height(LkSpacing.xl))
-        Text("Meu dispositivo", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.W700, color = c.textPrimary)
+        Text(stringResource(R.string.home_sheet_meu_dispositivo), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.W700, color = c.textPrimary)
         Spacer(modifier = Modifier.height(LkSpacing.lg))
         SheetInfoRow("Modelo", deviceName, c)
         SheetInfoRow("Sistema", "Android", c)
@@ -1631,13 +1633,13 @@ private fun InternetInfoSheet(
     ) {
         SheetDragHandle(c)
         Spacer(modifier = Modifier.height(LkSpacing.xl))
-        Text("Internet", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.W700, color = c.textPrimary)
+        Text(stringResource(R.string.home_sheet_internet), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.W700, color = c.textPrimary)
         Spacer(modifier = Modifier.height(LkSpacing.lg))
         SheetInfoRow("IP Público", ispInfo?.ip ?: publicIp ?: "N/A", c)
         if (isCgNat(ispInfo?.ip ?: publicIp)) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "IP compartilhado com outros clientes do provedor (CG-NAT)",
+                stringResource(R.string.home_sheet_ip_compartilhado),
                 style = MaterialTheme.typography.labelSmall,
                 color = LkColors.warning,
                 modifier = Modifier.padding(bottom = LkSpacing.md),
@@ -1735,7 +1737,7 @@ private fun QualidadePlaceholderSheet(c: LkTokens) {
         }
         Spacer(Modifier.height(20.dp))
         Text(
-            text = "Qualidade da minha internet",
+            text = stringResource(R.string.home_qualidade_titulo),
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = c.textPrimary,
@@ -1743,14 +1745,14 @@ private fun QualidadePlaceholderSheet(c: LkTokens) {
         )
         Spacer(Modifier.height(LkSpacing.sm))
         Text(
-            text = "Em breve",
+            text = stringResource(R.string.home_qualidade_em_breve),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.W600,
             color = LkColors.accent,
         )
         Spacer(Modifier.height(LkSpacing.lg))
         Text(
-            text = "Estamos desenvolvendo uma análise com IA para avaliar automaticamente a qualidade da sua conexão e gerar insights personalizados.",
+            text = stringResource(R.string.home_qualidade_descricao),
             style = MaterialTheme.typography.bodyMedium,
             color = c.textSecondary,
             textAlign = TextAlign.Center,
@@ -1811,7 +1813,7 @@ private fun CellularInfoSheet(
                     color = c.textPrimary,
                 )
                 Text(
-                    text = "Dados móveis",
+                    text = stringResource(R.string.home_network_dados_moveis),
                     style = MaterialTheme.typography.bodySmall,
                     color = c.textTertiary,
                 )
@@ -1850,7 +1852,7 @@ private fun CellularInfoSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Roaming", style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
+                Text(stringResource(R.string.home_sheet_roaming_label), style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
                 Box(
                     modifier =
                         Modifier
@@ -1858,13 +1860,13 @@ private fun CellularInfoSheet(
                             .background(LkColors.warning.copy(alpha = 0.15f))
                             .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
                 ) {
-                    Text("Ativo", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.W600, color = LkColors.warning)
+                    Text(stringResource(R.string.home_sheet_roaming_ativo), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.W600, color = LkColors.warning)
                 }
             }
         }
         if (ip == null && operadora == null && movelSnapshot == null) {
             Text(
-                text = "Informações da rede móvel indisponíveis no momento.",
+                text = stringResource(R.string.home_sheet_movel_indisponivel),
                 style = MaterialTheme.typography.titleSmall,
                 color = c.textTertiary,
                 textAlign = TextAlign.Center,
@@ -1954,8 +1956,8 @@ private fun GamerShortcutCard(
             }
             Spacer(Modifier.width(LkSpacing.md))
             Column(modifier = Modifier.weight(1f)) {
-                Text("Jogar Online", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600, color = c.textPrimary)
-                Text("Análise da conexão para gaming", style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+                Text(stringResource(R.string.home_shortcut_gaming_titulo), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600, color = c.textPrimary)
+                Text(stringResource(R.string.home_shortcut_gaming_descricao), style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.ArrowForwardIos,
@@ -2010,8 +2012,8 @@ private fun GamerSheet(
             }
             Spacer(Modifier.width(12.dp))
             Column {
-                Text("Jogar Online", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.W700, color = c.textPrimary)
-                Text("Análise da conexão para gaming", style = MaterialTheme.typography.titleSmall, color = c.textSecondary)
+                Text(stringResource(R.string.home_shortcut_gaming_titulo), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.W700, color = c.textPrimary)
+                Text(stringResource(R.string.home_shortcut_gaming_descricao), style = MaterialTheme.typography.titleSmall, color = c.textSecondary)
             }
         }
 
@@ -2029,10 +2031,10 @@ private fun GamerSheet(
             ) {
                 Icon(Icons.Outlined.SportsEsports, null, tint = c.textTertiary, modifier = Modifier.size(52.dp))
                 Spacer(Modifier.height(16.dp))
-                Text("Nenhuma medição disponível", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+                Text(stringResource(R.string.home_gamer_sem_medicao), style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Faça um teste de velocidade para ver a análise da sua conexão para gaming.",
+                    stringResource(R.string.home_gamer_sem_medicao_descricao),
                     style = MaterialTheme.typography.titleSmall,
                     color = c.textSecondary,
                     lineHeight = 18.sp,
@@ -2043,7 +2045,7 @@ private fun GamerSheet(
                     onClick = onIrParaTeste,
                     colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Iniciar teste de velocidade") }
+                ) { Text(stringResource(R.string.home_gamer_btn_iniciar_teste)) }
             }
         } else {
             val latV = checkNotNull(lat) { "lat deve ser non-null quando temDados=true" }
@@ -2075,21 +2077,21 @@ private fun GamerSheet(
 
             // Metrics section
             Text(
-                "MÉTRICAS",
+                stringResource(R.string.home_gamer_secao_metricas),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.W700,
                 color = c.textTertiary,
                 letterSpacing = 0.8.sp,
                 modifier = Modifier.padding(start = 20.dp, bottom = 4.dp),
             )
-            GamerMetricRow("Latência", "${latV.roundToInt()} ms", vereditoFromLatency(latV), c)
+            GamerMetricRow(stringResource(R.string.home_gamer_metrica_latencia), "${latV.roundToInt()} ms", vereditoFromLatency(latV), c)
             HorizontalDivider(color = c.border.copy(alpha = 0.5f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 20.dp))
-            GamerMetricRow("Oscilação", "${jitV.roundToInt()} ms", vereditoFromJitter(jitV), c)
+            GamerMetricRow(stringResource(R.string.home_gamer_metrica_oscilacao), "${jitV.roundToInt()} ms", vereditoFromJitter(jitV), c)
             HorizontalDivider(color = c.border.copy(alpha = 0.5f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 20.dp))
-            GamerMetricRow("Perda de pacotes", "%.1f%%".format(lossV), vereditoFromLoss(lossV), c)
+            GamerMetricRow(stringResource(R.string.home_gamer_metrica_perda), "%.1f%%".format(lossV), vereditoFromLoss(lossV), c)
             HorizontalDivider(color = c.border.copy(alpha = 0.5f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 20.dp))
             GamerMetricRow(
-                "Download",
+                stringResource(R.string.home_gamer_metrica_download),
                 "%.0f Mbps".format(dlV),
                 if (dlV >=
                     10
@@ -2104,7 +2106,7 @@ private fun GamerSheet(
             )
             HorizontalDivider(color = c.border.copy(alpha = 0.5f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 20.dp))
             GamerMetricRow(
-                "Upload",
+                stringResource(R.string.home_gamer_metrica_upload),
                 "%.0f Mbps".format(ulV),
                 if (ulV >= 3) {
                     VereditoUso.good
@@ -2121,7 +2123,7 @@ private fun GamerSheet(
 
             // Games table
             Text(
-                "JOGOS",
+                stringResource(R.string.home_gamer_secao_jogos),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.W700,
                 color = c.textTertiary,
@@ -2163,9 +2165,9 @@ private fun GamerVeredictCard(
 ) {
     val (label, desc, cor) =
         when (veredito) {
-            VereditoUso.good -> Triple("ÓTIMO", "Sua conexão é excelente para jogos", LkColors.success)
-            VereditoUso.acceptable -> Triple("BOM", "Sua conexão suporta a maioria dos jogos", LkColors.warning)
-            VereditoUso.poor -> Triple("RUIM", "Problemas que podem afetar a experiência de jogo", LkColors.error)
+            VereditoUso.good -> Triple(stringResource(R.string.home_gamer_veredito_otimo_label), stringResource(R.string.home_gamer_veredito_otimo_desc), LkColors.success)
+            VereditoUso.acceptable -> Triple(stringResource(R.string.home_gamer_veredito_bom_label), stringResource(R.string.home_gamer_veredito_bom_desc), LkColors.warning)
+            VereditoUso.poor -> Triple(stringResource(R.string.home_gamer_veredito_ruim_label), stringResource(R.string.home_gamer_veredito_ruim_desc), LkColors.error)
         }
     Box(
         modifier =
@@ -2228,9 +2230,9 @@ private fun GamerMetricRow(
         ) {
             Text(
                 when (veredito) {
-                    VereditoUso.good -> "OK"
-                    VereditoUso.acceptable -> "Regular"
-                    else -> "Ruim"
+                    VereditoUso.good -> stringResource(R.string.home_status_ok)
+                    VereditoUso.acceptable -> stringResource(R.string.home_status_regular)
+                    else -> stringResource(R.string.home_status_ruim)
                 },
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.W600,
@@ -2255,9 +2257,9 @@ private fun GamerJogoRow(
         }
     val label =
         when (veredito) {
-            VereditoUso.good -> "Ótimo"
-            VereditoUso.acceptable -> "Jogável"
-            else -> "Ruim"
+            VereditoUso.good -> stringResource(R.string.home_gamer_status_otimo)
+            VereditoUso.acceptable -> stringResource(R.string.home_gamer_status_jogavel)
+            else -> stringResource(R.string.home_status_ruim)
         }
     Row(
         modifier =
@@ -2288,10 +2290,10 @@ private fun GargaloGamerNote(
 ) {
     val texto =
         when (gargalo) {
-            GargaloPrimario.latency -> "Principal limitação: Latência alta. Causa atraso nos comandos durante o jogo."
-            GargaloPrimario.packetLoss -> "Principal limitação: Perda de pacotes. Pode causar desconexões e lag repentino."
-            GargaloPrimario.bufferbloat -> "Principal limitação: Bufferbloat. A latência sobe durante transferências paralelas."
-            GargaloPrimario.upload -> "Principal limitação: Upload baixo. Pode afetar jogos que exigem mais envio de dados."
+            GargaloPrimario.latency -> stringResource(R.string.home_gamer_gargalo_latencia)
+            GargaloPrimario.packetLoss -> stringResource(R.string.home_gamer_gargalo_perda)
+            GargaloPrimario.bufferbloat -> stringResource(R.string.home_gamer_gargalo_bufferbloat)
+            GargaloPrimario.upload -> stringResource(R.string.home_gamer_gargalo_upload)
             GargaloPrimario.none -> return
         }
     Row(
@@ -2399,14 +2401,14 @@ private fun OfflineCard(
                     modifier = Modifier.size(20.dp),
                 )
                 Text(
-                    "Sem conexão com a internet",
+                    stringResource(R.string.home_offline_titulo),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.W600,
                     color = c.textPrimary,
                 )
             }
             Text(
-                "Verifique seu roteador ou plano de dados. O teste será iniciado assim que a conexão voltar.",
+                stringResource(R.string.home_offline_descricao),
                 style = MaterialTheme.typography.bodySmall,
                 color = c.textSecondary,
             )
@@ -2415,7 +2417,7 @@ private fun OfflineCard(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !registrado,
             ) {
-                Text(if (registrado) "Aguardando conexão…" else "Testar assim que voltar")
+                Text(if (registrado) stringResource(R.string.home_offline_btn_aguardar) else stringResource(R.string.home_offline_btn_testar_quando_voltar))
             }
         }
     }

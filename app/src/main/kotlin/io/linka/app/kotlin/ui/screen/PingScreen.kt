@@ -31,11 +31,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import io.linka.app.kotlin.R
 import io.linka.app.kotlin.feature.speedtest.PingExecutor
 import io.linka.app.kotlin.feature.speedtest.PingResultado
 import io.linka.app.kotlin.ui.LkColors
@@ -141,7 +143,7 @@ fun PingScreen(onDismiss: () -> Unit) {
                 )
                 Spacer(Modifier.padding(start = LkSpacing.sm))
                 Text(
-                    text = "Teste de Latência",
+                    text = stringResource(R.string.ping_titulo),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = c.textPrimary,
@@ -151,7 +153,7 @@ fun PingScreen(onDismiss: () -> Unit) {
             when (val currentState = state) {
                 UiState.Empty -> {
                     Text(
-                        text = "Mede o tempo de resposta (latência) dos servidores de teste.",
+                        text = stringResource(R.string.ping_descricao),
                         style = MaterialTheme.typography.bodySmall,
                         color = c.textSecondary,
                         modifier = Modifier.padding(bottom = LkSpacing.md),
@@ -164,7 +166,7 @@ fun PingScreen(onDismiss: () -> Unit) {
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Iniciar teste de latência")
+                        Text(stringResource(R.string.ping_btn_iniciar))
                     }
                 }
 
@@ -176,7 +178,7 @@ fun PingScreen(onDismiss: () -> Unit) {
                     when (val data = currentState.data) {
                         is PingUiData.Executando -> {
                             Text(
-                                text = "Coletando amostras... ${data.progresso}/20",
+                                text = stringResource(R.string.ping_coletando_amostras, data.progresso),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = c.textPrimary,
                                 modifier = Modifier.padding(bottom = LkSpacing.md),
@@ -198,7 +200,7 @@ fun PingScreen(onDismiss: () -> Unit) {
                         is PingUiData.Concluido -> {
                             val resultado = data.resultado
                             Text(
-                                text = "Resultados do teste",
+                                text = stringResource(R.string.ping_resultados_titulo),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = c.textSecondary,
                                 modifier = Modifier.padding(bottom = LkSpacing.md),
@@ -213,19 +215,19 @@ fun PingScreen(onDismiss: () -> Unit) {
                             ) {
                                 PingMetricCard(
                                     c = c,
-                                    label = "Latência",
+                                    label = stringResource(R.string.ping_metrica_latencia),
                                     valor = "%.1f ms".format(resultado.latenciaMs),
                                     modifier = Modifier.weight(1f),
                                 )
                                 PingMetricCard(
                                     c = c,
-                                    label = "Jitter",
+                                    label = stringResource(R.string.ping_metrica_jitter),
                                     valor = "%.1f ms".format(resultado.jitterMs),
                                     modifier = Modifier.weight(1f),
                                 )
                                 PingMetricCard(
                                     c = c,
-                                    label = "Perda",
+                                    label = stringResource(R.string.ping_metrica_perda),
                                     valor = "%.0f%%".format(resultado.perdaPercentual),
                                     modifier = Modifier.weight(1f),
                                 )
@@ -240,7 +242,7 @@ fun PingScreen(onDismiss: () -> Unit) {
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Text("Testar novamente")
+                                Text(stringResource(R.string.ping_btn_testar_novamente))
                             }
                         }
                     }
@@ -262,7 +264,7 @@ fun PingScreen(onDismiss: () -> Unit) {
                         },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text("Tentar novamente")
+                        Text(stringResource(R.string.global_btn_tentar_novamente))
                     }
                 }
             }
