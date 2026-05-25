@@ -31,6 +31,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -185,7 +187,11 @@ fun PingScreen(onDismiss: () -> Unit) {
                                     Modifier
                                         .fillMaxWidth()
                                         .height(4.dp)
-                                        .clip(RoundedCornerShape(2.dp)),
+                                        .clip(RoundedCornerShape(2.dp))
+                                        .semantics {
+                                            contentDescription =
+                                                "Medindo latência — ${data.progresso} de 20 amostras coletadas"
+                                        },
                             )
                         }
 

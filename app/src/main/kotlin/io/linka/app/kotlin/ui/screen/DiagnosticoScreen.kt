@@ -66,6 +66,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -506,11 +511,22 @@ private fun StepRow(
         label = "pulse-alpha",
     )
 
+    val estadoDescricao =
+        when (estado) {
+            StepEstado.Concluido -> "concluído"
+            StepEstado.Ativo -> "em andamento"
+            StepEstado.Pendente -> "pendente"
+        }
+
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(vertical = LkSpacing.sm),
+                .padding(vertical = LkSpacing.sm)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "$texto — $estadoDescricao"
+                    stateDescription = estadoDescricao
+                },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
@@ -766,7 +782,12 @@ private fun AiResultBubble(
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
-                    .clickable { onToggleAnalise() }
+                    .semantics {
+                        role = Role.Button
+                        contentDescription =
+                            if (analiseExpandida) "Análise completa — recolher" else "Análise completa — expandir"
+                        stateDescription = if (analiseExpandida) "expandida" else "recolhida"
+                    }.clickable { onToggleAnalise() }
                     .padding(vertical = LkSpacing.md),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
@@ -779,7 +800,7 @@ private fun AiResultBubble(
             )
             Icon(
                 imageVector = Icons.Outlined.ExpandMore,
-                contentDescription = if (analiseExpandida) "Recolher" else "Expandir",
+                contentDescription = null,
                 tint = c.textTertiary,
                 modifier = Modifier.size(18.dp),
             )
@@ -1031,7 +1052,14 @@ private fun ConfiancaBarra(
 ) {
     val totalBlocos = 10
     val blocosCheios = (confianca * totalBlocos).toInt().coerceIn(0, totalBlocos)
-    Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    val percentual = (confianca * 100).toInt()
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        modifier =
+            Modifier.semantics {
+                contentDescription = "Barra de confiança: $percentual%"
+            },
+    ) {
         repeat(totalBlocos) { i ->
             Box(
                 modifier =
