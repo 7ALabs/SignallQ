@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import timber.log.Timber
 import java.net.HttpURLConnection
 import java.net.InetAddress
@@ -26,6 +27,18 @@ internal class MonitoramentoWorker(
     appContext: Context,
     params: WorkerParameters,
 ) : CoroutineWorker(appContext, params) {
+
+    private companion object {
+        /** Timeout total por amostra HTTP (cobre connect + read + overhead de rede). */
+        const val CALL_TIMEOUT_MS = 10_000L
+        /** connectTimeout do HttpURLConnection. */
+        const val CONNECT_TIMEOUT_MS = 5_000L
+        /** readTimeout do HttpURLConnection. */
+        const val READ_TIMEOUT_MS = 5_000L
+        /** Timeout para resolução DNS via InetAddress. */
+        const val DNS_TIMEOUT_MS = 5_000L
+    }
+
     private val preferenciasAppRepository by lazy {
         CoreDatastoreModulo.criarPreferenciasAppRepository(appContext)
     }
@@ -184,21 +197,34 @@ internal class MonitoramentoWorker(
         preferenciasAppRepository.setAlertaSemInternetAtivo(alertaSemInternetNovo)
     }
 
-    private fun medirLatenciaHttp(): Long? {
+    /**
+     * Mede latência HTTP com 3 amostras e retorna a mediana.
+     * Cada amostra tem callTimeout total de 10s (connectTimeout + readTimeout = 5s + 5s,
+     * com withTimeout cobrindo travamentos silenciosos além do readTimeout).
+     * Roda em Dispatchers.IO para não bloquear a thread do worker.
+     */
+    private suspend fun medirLatenciaHttp(): Long? {
         val amostras = mutableListOf<Long>()
         repeat(3) {
             try {
-                val url = URL("https://speed.cloudflare.com/__down?bytes=0")
-                val conexao = url.openConnection() as HttpURLConnection
-                conexao.connectTimeout = 5000
-                conexao.readTimeout = 5000
-                conexao.requestMethod = "GET"
-                val inicio = System.currentTimeMillis()
-                conexao.connect()
-                conexao.responseCode // garante que a conexao foi estabelecida
-                val fim = System.currentTimeMillis()
-                conexao.disconnect()
-                amostras.add(fim - inicio)
+                val amostra = withContext(Dispatchers.IO) {
+                    withTimeout(CALL_TIMEOUT_MS) {
+                        val url = URL("https://speed.cloudflare.com/__down?bytes=0")
+                        val conexao = url.openConnection() as HttpURLConnection
+                        conexao.connectTimeout = CONNECT_TIMEOUT_MS.toInt()
+                        conexao.readTimeout = READ_TIMEOUT_MS.toInt()
+                        conexao.requestMethod = "GET"
+                        val inicio = System.currentTimeMillis()
+                        try {
+                            conexao.connect()
+                            conexao.responseCode // garante que a conexao foi estabelecida
+                            System.currentTimeMillis() - inicio
+                        } finally {
+                            conexao.disconnect()
+                        }
+                    }
+                }
+                amostras.add(amostra)
             } catch (e: Exception) {
                 Timber.d("Erro ao medir latencia HTTP: ${e.message}")
             }
@@ -208,12 +234,22 @@ internal class MonitoramentoWorker(
         return amostras[amostras.size / 2]
     }
 
-    private fun medirDnsResolveTime(): Long? =
+    /**
+     * Mede tempo de resolução DNS com timeout de 5s via withTimeout.
+     * InetAddress.getByName() pode travar indefinidamente em alguns carriers/dispositivos
+     * sem o timeout de coroutine cobrindo o bloqueio de thread.
+     * Roda em Dispatchers.IO pois a chamada é bloqueante.
+     */
+    private suspend fun medirDnsResolveTime(): Long? =
         try {
-            val inicio = System.nanoTime()
-            InetAddress.getByName("cloudflare.com")
-            val fim = System.nanoTime()
-            (fim - inicio) / 1_000_000
+            withContext(Dispatchers.IO) {
+                withTimeout(DNS_TIMEOUT_MS) {
+                    val inicio = System.nanoTime()
+                    InetAddress.getByName("cloudflare.com")
+                    val fim = System.nanoTime()
+                    (fim - inicio) / 1_000_000
+                }
+            }
         } catch (e: Exception) {
             Timber.d("Erro ao medir DNS: ${e.message}")
             null
