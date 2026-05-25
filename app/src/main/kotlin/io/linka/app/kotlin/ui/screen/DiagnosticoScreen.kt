@@ -76,6 +76,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -104,6 +105,7 @@ import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
 import io.linka.app.kotlin.ui.LocalLkTokens
 import io.linka.app.kotlin.ui.state.UiState
+import android.widget.Toast
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -730,7 +732,8 @@ private fun DiagnosticoResultadoContent(
 
             // Rodapé: fonte + botão de reanálise
             item {
-                val horario = SimpleDateFormat("dd/MM HH:mm", Locale.forLanguageTag("pt-BR")).format(Date(result.generatedAt))
+                val sdf = remember { SimpleDateFormat("dd/MM HH:mm", Locale.forLanguageTag("pt-BR")) }
+                val horario = sdf.format(Date(result.generatedAt))
                 val fonteLabel = if (isFallback) "Análise local" else result.modeloIa.nomeExibicao.ifBlank { "Linka IA" }
                 Column(
                     verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
@@ -1212,6 +1215,7 @@ private fun ChatCard(
     chatInput: String,
     onChatInputChange: (String) -> Unit,
 ) {
+    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1283,19 +1287,23 @@ private fun ChatCard(
                 }
             },
             trailingIcon = {
+                val filled = chatInput.isNotBlank()
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
-                    contentDescription = "Enviar",
-                    tint = if (chatInput.isNotBlank()) LkColors.accent else c.textTertiary,
+                    contentDescription = if (filled) "Enviar" else null,
+                    tint = if (filled) LkColors.accent else c.textTertiary,
                     modifier = Modifier
                         .clip(CircleShape)
                         .background(
-                            if (chatInput.isNotBlank())
-                                LkColors.accent.copy(alpha = 0.10f)
-                            else
-                                Color.Transparent
+                            if (filled) LkColors.accent.copy(alpha = 0.10f)
+                            else Color.Transparent
                         )
                         .size(32.dp)
+                        .then(
+                            if (filled) Modifier.clickable {
+                                Toast.makeText(context, "Em breve", Toast.LENGTH_SHORT).show()
+                            } else Modifier
+                        )
                         .padding(LkSpacing.sm),
                 )
             },
