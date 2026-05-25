@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.hilt)
     id("com.google.gms.google-services")
     id("com.google.firebase.appdistribution")
+    alias(libs.plugins.firebaseCrashlyticsPlugin)
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
 }
@@ -221,6 +222,10 @@ dependencies {
     kapt(libs.hilt.compiler)
     implementation(libs.timber)
     implementation(libs.androidx.profileinstaller)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
