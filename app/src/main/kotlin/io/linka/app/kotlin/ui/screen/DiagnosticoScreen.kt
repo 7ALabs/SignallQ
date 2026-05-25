@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -30,14 +31,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Analytics
-import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.DeviceHub
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.NetworkWifi
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.Refresh
+import androidx.compose.material.icons.outlined.Router
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -49,9 +54,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -66,16 +75,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import io.linka.app.kotlin.R
 import io.linka.app.kotlin.feature.diagnostico.ConnectionType
 import io.linka.app.kotlin.feature.diagnostico.DiagnosticInput
@@ -87,12 +98,14 @@ import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisResult
 import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisState
 import io.linka.app.kotlin.feature.diagnostico.ai.AiFallbackFactory
 import io.linka.app.kotlin.feature.diagnostico.ai.DiagnosisAiContextFactory
+import io.linka.app.kotlin.feature.diagnostico.ai.normalizeClassificacaoLabel
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkRadius
 import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
 import io.linka.app.kotlin.ui.LocalLkTokens
 import io.linka.app.kotlin.ui.state.UiState
+import android.widget.Toast
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -614,8 +627,9 @@ private fun DiagnosticoErroContent(
     }
 }
 
-// ─── Tela de resultado ────────────────────────────────────────────────────────
+// ─── Tela de resultado — redesign ────────────────────────────────────────────
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DiagnosticoResultadoContent(
     c: LkTokens,
@@ -625,315 +639,395 @@ private fun DiagnosticoResultadoContent(
     onReanalisar: () -> Unit,
     onAbrirRedes: () -> Unit,
 ) {
-    var analiseExpandida by remember { mutableStateOf(false) }
+    var chatInput by remember { mutableStateOf("") }
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(c.bgPrimary),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(c.bgPrimary)
+            .windowInsetsPadding(WindowInsets.ime),
     ) {
         LazyColumn(
             modifier = Modifier.weight(1f),
-            contentPadding =
-                PaddingValues(
-                    start = LkSpacing.lg,
-                    end = LkSpacing.lg,
-                    top = LkSpacing.md,
-                    bottom = LkSpacing.lg,
-                ),
+            contentPadding = PaddingValues(
+                start = LkSpacing.lg,
+                end = LkSpacing.lg,
+                top = LkSpacing.md,
+                bottom = LkSpacing.lg,
+            ),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
         ) {
-            // Mensagem do usuário (direita)
+            // Card 1 — StatusDiagnosticoCard
             item {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    Text(
-                        stringResource(R.string.diagnostico_msg_usuario),
-                        modifier =
-                            Modifier
-                                .clip(
-                                    RoundedCornerShape(
-                                        topStart = 18.dp,
-                                        topEnd = 4.dp,
-                                        bottomEnd = 18.dp,
-                                        bottomStart = 18.dp,
-                                    ),
-                                ).background(LkColors.accent)
-                                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.W500,
-                        color = LkColors.linkaTextOnDark,
+                StatusDiagnosticoCard(c = c, result = result)
+            }
+
+            // Card 2 — PrincipalPontoCard (só se houver problema principal com descrição)
+            if (result.problemaPrincipal.descricao.isNotBlank()) {
+                item {
+                    PrincipalPontoCard(
+                        c = c,
+                        result = result,
+                        onAbrirRedes = onAbrirRedes,
                     )
                 }
             }
 
-            // Bubble de resposta da IA
+            // Card 3 — OQueFazerCard (só se houver ações)
+            if (result.acoesRecomendadas.isNotEmpty()) {
+                item {
+                    OQueFazerCard(
+                        c = c,
+                        actions = result.acoesRecomendadas,
+                        onAbrirRedes = onAbrirRedes,
+                        onReanalisar = onReanalisar,
+                    )
+                }
+            }
+
+            // Seção duas colunas — Evidências + Análise por categoria
+            val temEvidencias = result.evidencias.isNotEmpty()
+            val classificacao = result.classificacaoTecnica
+            val temClassificacao = listOfNotNull(
+                classificacao.velocidade,
+                classificacao.estabilidade,
+                classificacao.wifi,
+                classificacao.dns,
+                classificacao.fibra,
+            ).any { it.avaliacao?.isNotBlank() == true }
+
+            if (temEvidencias || temClassificacao) {
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                    ) {
+                        if (temEvidencias) {
+                            EvidenciasColuna(
+                                c = c,
+                                evidencias = result.evidencias,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        if (temClassificacao) {
+                            AnaliseCategoriasColuna(
+                                c = c,
+                                classificacao = classificacao,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Card Final — ChatCard
             item {
-                AiResultBubble(
+                ChatCard(
                     c = c,
-                    result = result,
-                    isFallback = isFallback,
-                    input = input,
-                    analiseExpandida = analiseExpandida,
-                    onToggleAnalise = { analiseExpandida = !analiseExpandida },
-                    onReanalisar = onReanalisar,
-                    onAbrirRedes = onAbrirRedes,
+                    perguntasContextuais = result.perguntasContextuais.map { it.pergunta }.take(3),
+                    chatInput = chatInput,
+                    onChatInputChange = { chatInput = it },
                 )
+            }
+
+            // Rodapé: fonte + botão de reanálise
+            item {
+                val sdf = remember { SimpleDateFormat("dd/MM HH:mm", Locale.forLanguageTag("pt-BR")) }
+                val horario = sdf.format(Date(result.generatedAt))
+                val fonteLabel = if (isFallback) "Análise local" else result.modeloIa.nomeExibicao.ifBlank { "Linka IA" }
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        "$fonteLabel · $horario",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = c.textTertiary,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                    )
+                    OutlinedButton(
+                        onClick = onReanalisar,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(LkRadius.button),
+                    ) {
+                        Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(LkSpacing.xs))
+                        Text(stringResource(R.string.diagnostico_btn_reanalisar), fontSize = 13.sp)
+                    }
+                }
             }
         }
     }
 }
 
+// ─── Card 1 — StatusDiagnosticoCard ──────────────────────────────────────────
+
 @Composable
-private fun AiResultBubble(
+private fun StatusDiagnosticoCard(
     c: LkTokens,
     result: AiDiagnosisResult,
-    isFallback: Boolean,
-    input: DiagnosticInput?,
-    analiseExpandida: Boolean,
-    onToggleAnalise: () -> Unit,
-    onReanalisar: () -> Unit,
-    onAbrirRedes: () -> Unit,
 ) {
     val statusColor = statusToColor(result.status, c)
-
-    val bubbleShape =
-        RoundedCornerShape(
-            topStart = 4.dp,
-            topEnd = LkRadius.card,
-            bottomEnd = LkRadius.card,
-            bottomStart = LkRadius.card,
-        )
+    val isAtencao = result.status.lowercase() in setOf("regular", "ruim", "critico")
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(bubbleShape)
-                .background(c.bgCard)
-                .border(1.dp, c.border, bubbleShape)
-                .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(LkRadius.card))
+            .background(c.bgCard)
+            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+            .padding(LkSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
-        // Ícone de IA + badge de fallback (quando aplicável)
         Row(
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
-            verticalAlignment = Alignment.Top,
             modifier = Modifier.fillMaxWidth(),
         ) {
+            // Ícone escudo com fundo circular
             Box(
-                modifier =
-                    Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(LkColors.accent.copy(alpha = 0.10f)),
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(LkColors.accentBlue.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.AutoAwesome,
+                    imageVector = Icons.Outlined.Security,
                     contentDescription = null,
-                    tint = LkColors.accent,
-                    modifier = Modifier.size(14.dp),
+                    tint = LkColors.accentBlue,
+                    modifier = Modifier.size(28.dp),
                 )
             }
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
             ) {
-                if (isFallback) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(c.textTertiary.copy(alpha = 0.10f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Info,
-                            contentDescription = null,
-                            tint = c.textTertiary,
-                            modifier = Modifier.size(10.dp),
-                        )
-                        Text(
-                            stringResource(R.string.diagnostico_badge_analise_local),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = c.textTertiary,
-                        )
-                    }
-                }
+                Text(
+                    result.titulo.ifBlank { "Diagnóstico concluído" },
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = c.textPrimary,
+                    fontSize = 18.sp,
+                )
                 Text(
                     result.textoLaudo.ifBlank { result.resumo },
                     style = MaterialTheme.typography.bodyMedium,
-                    color = c.textPrimary,
-                    lineHeight = 22.sp,
+                    color = c.textSecondary,
+                    lineHeight = 20.sp,
                 )
             }
         }
 
-        MetricsRow(c = c, result = result, input = input, statusColor = statusColor)
-
-        // Lista de ações — sem badges, sem números
-        if (result.acoesRecomendadas.isNotEmpty()) {
-            HorizontalDivider(color = c.border, thickness = 0.5.dp)
-            ActionsSimpleList(c = c, actions = result.acoesRecomendadas, onAbrirRedes = onAbrirRedes)
-        }
-
-        // Header da seção expandível
-        HorizontalDivider(color = c.border, thickness = 0.5.dp)
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .semantics {
-                        role = Role.Button
-                        contentDescription =
-                            if (analiseExpandida) "Análise completa — recolher" else "Análise completa — expandir"
-                        stateDescription = if (analiseExpandida) "expandida" else "recolhida"
-                    }.clickable { onToggleAnalise() }
-                    .padding(vertical = LkSpacing.md),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                stringResource(R.string.diagnostico_analise_completa),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.W500,
-                color = c.textSecondary,
-            )
-            Icon(
-                imageVector = Icons.Outlined.ExpandMore,
-                contentDescription = null,
-                tint = c.textTertiary,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-
-        AnimatedVisibility(
-            visible = analiseExpandida,
-            enter = fadeIn(tween(200)) + expandVertically(tween(200)),
-        ) {
-            AnaliseCompletaContent(
-                c = c,
-                result = result,
-                isFallback = isFallback,
-                statusColor = statusColor,
-                onReanalisar = onReanalisar,
-            )
-        }
-
-        // Rodapé: modelo de IA
-        val rodape =
-            result.modeloIa.textoRodape
-                .removePrefix("Motor de análise: ")
-                .ifBlank { "Linka IA" }
-        Text(
-            rodape,
-            style = MaterialTheme.typography.labelMedium,
-            color = c.textTertiary,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.End,
-        )
-    }
-}
-
-@Composable
-private fun MetricsRow(
-    c: LkTokens,
-    result: AiDiagnosisResult,
-    input: DiagnosticInput?,
-    statusColor: Color,
-) {
-    val download = input?.internet?.downloadMbps
-    val upload = input?.internet?.uploadMbps
-    val latency = input?.internet?.latencyMs
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Row(
-            modifier =
-                Modifier
+        // Chip de status / atenção
+        if (isAtencao) {
+            Row(
+                modifier = Modifier
                     .clip(RoundedCornerShape(100.dp))
-                    .background(statusColor.copy(alpha = 0.10f))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Box(
-                modifier =
-                    Modifier
+                    .border(1.dp, c.onWarningContainer.copy(alpha = 0.5f), RoundedCornerShape(100.dp))
+                    .background(c.warningContainer)
+                    .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+            ) {
+                Box(
+                    modifier = Modifier
                         .size(6.dp)
                         .clip(CircleShape)
                         .background(statusColor),
-            )
-            Text(
-                result.status.replaceFirstChar { it.uppercaseChar() },
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.W600,
-                color = statusColor,
-            )
+                )
+                Text(
+                    when (result.status.lowercase()) {
+                        "critico" -> "Problema crítico"
+                        "ruim" -> "Conexão com problemas"
+                        else -> "Atenção no Wi-Fi"
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.W600,
+                    color = c.onWarningContainer,
+                )
+            }
         }
-        if (download != null) {
-            Text(
-                "↓ ${"%.0f".format(download)} Mbps",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.W600,
-                color = LkColors.phaseDownload,
-            )
+
+        MetricsRow(c = c, result = result, statusColor = statusColor)
+    }
+}
+
+// ─── Card 2 — PrincipalPontoCard ──────────────────────────────────────────────
+
+@Composable
+private fun PrincipalPontoCard(
+    c: LkTokens,
+    result: AiDiagnosisResult,
+    onAbrirRedes: () -> Unit,
+) {
+    val isWifiOuRede = result.problemaPrincipal.tipo.lowercase() in
+        setOf("wifi", "roteador", "canal", "rede", "isp")
+    val tipCard = result.problemaPrincipal.descricao.isNotBlank()
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(LkRadius.card))
+            .background(c.bgCard)
+            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+            .padding(LkSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
+    ) {
+        Text(
+            "Principal ponto encontrado",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = c.textPrimary,
+            fontSize = 16.sp,
+        )
+
+        Row(
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(LkColors.accent.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = iconForProblemaTipo(result.problemaPrincipal.tipo),
+                    contentDescription = null,
+                    tint = LkColors.accent,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+            ) {
+                Text(
+                    result.problemaPrincipal.tipo.replaceFirstChar { it.uppercaseChar() },
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = c.textPrimary,
+                    fontSize = 15.sp,
+                )
+                Text(
+                    result.problemaPrincipal.descricao,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.textSecondary,
+                    lineHeight = 18.sp,
+                )
+            }
         }
-        if (upload != null) {
-            Text(
-                "↑ ${"%.0f".format(upload)} Mbps",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.W600,
-                color = LkColors.phaseUpload,
-            )
+
+        // Tip card âmbar
+        if (tipCard) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = c.amberSurface,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier.padding(LkSpacing.md),
+                    horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Info,
+                        contentDescription = null,
+                        tint = c.onWarningContainer,
+                        modifier = Modifier
+                            .padding(top = 2.dp)
+                            .size(14.dp),
+                    )
+                    Text(
+                        result.resumo.ifBlank { result.problemaPrincipal.descricao },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.onWarningContainer,
+                        lineHeight = 17.sp,
+                    )
+                }
+            }
         }
-        if (latency != null) {
-            Text(
-                "${"%.0f".format(latency)} ms",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.W600,
-                color = LkColors.phaseLatencia,
-            )
+
+        // Link — "Ver dispositivo" para ações de rede/Wi-Fi
+        if (isWifiOuRede) {
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(LkRadius.button))
+                    .clickable(onClick = onAbrirRedes)
+                    .padding(vertical = LkSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+            ) {
+                Text(
+                    "Ver redes Wi-Fi",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LkColors.accent,
+                    fontWeight = FontWeight.W600,
+                )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                    contentDescription = null,
+                    tint = LkColors.accent,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
         }
     }
 }
 
+// ─── Card 3 — OQueFazerCard ────────────────────────────────────────────────────
+
 @Composable
-private fun ActionsSimpleList(
+private fun OQueFazerCard(
     c: LkTokens,
     actions: List<AiAcaoRecomendada>,
     onAbrirRedes: () -> Unit,
+    onReanalisar: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(LkRadius.card))
+            .background(c.bgCard)
+            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+            .padding(LkSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
+    ) {
         Text(
-            stringResource(R.string.diagnostico_secao_o_que_fazer),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.W700,
-            color = c.textTertiary,
-            letterSpacing = 0.5.sp,
+            "O que fazer agora",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = c.textPrimary,
+            fontSize = 16.sp,
         )
-        actions.forEach { acao ->
+
+        // Lista de ações com ícone
+        actions.take(4).forEachIndexed { index, acao ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
                 verticalAlignment = Alignment.Top,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
-                    modifier =
-                        Modifier
-                            .padding(top = 4.dp)
-                            .size(5.dp)
-                            .clip(CircleShape)
-                            .background(LkColors.accent),
-                )
-                Column(modifier = Modifier.weight(1f)) {
+                    modifier = Modifier
+                        .padding(top = 2.dp)
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(LkColors.accent.copy(alpha = 0.10f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = iconForAcaoIndex(index),
+                        contentDescription = null,
+                        tint = LkColors.accent,
+                        modifier = Modifier.size(12.dp),
+                    )
+                }
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         acao.titulo,
                         style = MaterialTheme.typography.titleSmall,
@@ -948,16 +1042,101 @@ private fun ActionsSimpleList(
                             lineHeight = 17.sp,
                         )
                     }
-                    val isRedesAction =
-                        acao.titulo.contains("rede", ignoreCase = true) ||
-                            acao.titulo.contains("canal", ignoreCase = true) ||
-                            acao.titulo.contains("Wi-Fi", ignoreCase = true)
-                    if (isRedesAction) {
-                        TextButton(
-                            onClick = onAbrirRedes,
-                        ) {
-                            Text("Ver redes Wi-Fi →", style = MaterialTheme.typography.bodySmall, color = LkColors.accent)
-                        }
+                }
+            }
+        }
+
+        // Botões de ação rápida
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+        ) {
+            OutlinedButton(
+                onClick = onReanalisar,
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
+                shape = RoundedCornerShape(LkRadius.button),
+            ) {
+                Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(12.dp))
+                Spacer(Modifier.width(LkSpacing.xs))
+                Text("Reanalisar", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            }
+            OutlinedButton(
+                onClick = onAbrirRedes,
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
+                shape = RoundedCornerShape(LkRadius.button),
+            ) {
+                Icon(Icons.Outlined.NetworkWifi, contentDescription = null, modifier = Modifier.size(12.dp))
+                Spacer(Modifier.width(LkSpacing.xs))
+                Text("Wi-Fi", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            }
+            OutlinedButton(
+                onClick = onAbrirRedes,
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
+                shape = RoundedCornerShape(LkRadius.button),
+            ) {
+                Icon(Icons.Outlined.Router, contentDescription = null, modifier = Modifier.size(12.dp))
+                Spacer(Modifier.width(LkSpacing.xs))
+                Text("Redes", style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            }
+        }
+    }
+}
+
+// ─── Seção de duas colunas ─────────────────────────────────────────────────────
+
+@Composable
+private fun EvidenciasColuna(
+    c: LkTokens,
+    evidencias: List<io.linka.app.kotlin.feature.diagnostico.ai.AiEvidenceOut>,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(LkRadius.card))
+            .background(c.bgCard)
+            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+            .padding(LkSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+    ) {
+        Text(
+            "Evidências usadas",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = c.textPrimary,
+            fontSize = 15.sp,
+        )
+        evidencias.take(5).forEach { ev ->
+            Row(
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Icon(
+                    Icons.Outlined.CheckCircle,
+                    contentDescription = null,
+                    tint = LkColors.accent.copy(alpha = 0.7f),
+                    modifier = Modifier
+                        .padding(top = 2.dp)
+                        .size(12.dp),
+                )
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text(
+                        ev.label.substringAfter(":").ifBlank { ev.label },
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.W600,
+                        color = c.textPrimary,
+                        lineHeight = 15.sp,
+                    )
+                    if (ev.valor.isNotBlank()) {
+                        Text(
+                            ev.valor,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = c.textSecondary,
+                            lineHeight = 14.sp,
+                        )
                     }
                 }
             }
@@ -966,171 +1145,246 @@ private fun ActionsSimpleList(
 }
 
 @Composable
-private fun AnaliseCompletaContent(
+private fun AnaliseCategoriasColuna(
     c: LkTokens,
-    result: AiDiagnosisResult,
-    isFallback: Boolean,
-    statusColor: Color,
-    onReanalisar: () -> Unit,
+    classificacao: io.linka.app.kotlin.feature.diagnostico.ai.ClassificacaoTecnica,
+    modifier: Modifier = Modifier,
 ) {
+    val categorias = buildList {
+        classificacao.velocidade?.let { add("Velocidade" to it) }
+        classificacao.estabilidade?.let { add("Estabilidade" to it) }
+        classificacao.wifi?.let { add("Wi-Fi" to it) }
+        classificacao.dns?.let { add("DNS" to it) }
+        classificacao.fibra?.let { add("Fibra" to it) }
+    }.filter { (_, item) -> item.avaliacao?.isNotBlank() == true }
+
     Column(
-        modifier = Modifier.padding(top = LkSpacing.xs),
-        verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
+        modifier = modifier
+            .clip(RoundedCornerShape(LkRadius.card))
+            .background(c.bgCard)
+            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+            .padding(LkSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
-        if (result.evidencias.isNotEmpty()) {
-            Text(
-                stringResource(R.string.diagnostico_secao_por_que),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.W700,
-                color = c.textTertiary,
-                letterSpacing = 0.5.sp,
-            )
-            result.evidencias.forEachIndexed { index, ev ->
-                if (index > 0) HorizontalDivider(color = c.border, thickness = 0.5.dp)
-                EvidenciaItem(c = c, label = ev.label, valor = ev.valor, interpretacao = ev.interpretacao)
-            }
-        }
-
-        if (result.limitesDaAnalise.isNotEmpty()) {
-            if (result.evidencias.isNotEmpty()) HorizontalDivider(color = c.border, thickness = 0.5.dp)
-            result.limitesDaAnalise.forEach { limite ->
-                Row(
-                    verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
-                ) {
-                    Icon(
-                        Icons.Outlined.Info,
-                        contentDescription = null,
-                        tint = c.textTertiary,
-                        modifier =
-                            Modifier
-                                .padding(top = 2.dp)
-                                .size(12.dp),
-                    )
-                    Text(
-                        limite,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = c.textTertiary,
-                        lineHeight = 17.sp,
-                    )
-                }
-            }
-        }
-
-        if (result.problemaPrincipal.confianca > 0.0) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-            ) {
-                Text(stringResource(R.string.diagnostico_confianca_label), style = MaterialTheme.typography.labelMedium, color = c.textTertiary)
-                ConfiancaBarra(confianca = result.problemaPrincipal.confianca, color = statusColor)
-                Text(
-                    "${(result.problemaPrincipal.confianca * 100).toInt()}%",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = c.textTertiary,
-                )
-            }
-        }
-
-        val horario = SimpleDateFormat("dd/MM HH:mm", Locale.forLanguageTag("pt-BR")).format(Date(result.generatedAt))
-        val fonteLabel = if (isFallback) "Análise local" else "Análise IA Cloudflare"
-        Text("$fonteLabel · $horario", style = MaterialTheme.typography.labelMedium, color = c.textTertiary)
-
-        OutlinedButton(
-            onClick = onReanalisar,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(LkRadius.button),
-        ) {
-            Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-            Spacer(Modifier.width(LkSpacing.xs))
-            Text(stringResource(R.string.diagnostico_btn_reanalisar), fontSize = 13.sp)
-        }
-    }
-}
-
-// ─── Componentes internos ─────────────────────────────────────────────────────
-
-@Composable
-private fun ConfiancaBarra(
-    confianca: Double,
-    color: Color,
-) {
-    val totalBlocos = 10
-    val blocosCheios = (confianca * totalBlocos).toInt().coerceIn(0, totalBlocos)
-    val percentual = (confianca * 100).toInt()
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-        modifier =
-            Modifier.semantics {
-                contentDescription = "Barra de confiança: $percentual%"
-            },
-    ) {
-        repeat(totalBlocos) { i ->
-            Box(
-                modifier =
-                    Modifier
-                        .width(14.dp)
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(if (i < blocosCheios) color else color.copy(alpha = 0.15f)),
-            )
-        }
-    }
-}
-
-@Composable
-private fun EvidenciaItem(
-    c: LkTokens,
-    label: String,
-    valor: String,
-    interpretacao: String,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Icon(
-            Icons.Outlined.CheckCircle,
-            contentDescription = null,
-            tint = LkColors.accent.copy(alpha = 0.6f),
-            modifier =
-                Modifier
-                    .padding(top = 2.dp)
-                    .size(16.dp),
+        Text(
+            "Análise por categoria",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = c.textPrimary,
+            fontSize = 15.sp,
         )
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        categorias.forEach { (nome, item) ->
+            val label = normalizeClassificacaoLabel(item.avaliacao)
+            val isBom = item.avaliacao?.lowercase() in setOf("boa", "bom")
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    label,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.W600,
-                    color = c.textPrimary,
+                    nome,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.textSecondary,
+                    modifier = Modifier.weight(1f),
                 )
-                if (valor.isNotBlank()) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(100.dp))
+                        .background(if (isBom) c.successContainer else c.warningContainer)
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                ) {
                     Text(
-                        valor,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.W500,
-                        color = LkColors.accent,
+                        label,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isBom) c.onSuccessContainer else c.onWarningContainer,
+                        fontWeight = FontWeight.W600,
                     )
                 }
-            }
-            if (interpretacao.isNotBlank()) {
-                Text(
-                    interpretacao,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textSecondary,
-                    lineHeight = 17.sp,
-                )
             }
         }
     }
 }
+
+// ─── Card Final — ChatCard ─────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChatCard(
+    c: LkTokens,
+    perguntasContextuais: List<String>,
+    chatInput: String,
+    onChatInputChange: (String) -> Unit,
+) {
+    val context = LocalContext.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(LkRadius.card))
+            .background(c.bgCard)
+            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+            .padding(LkSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
+    ) {
+        Text(
+            "Perguntar sobre este diagnóstico",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = c.textPrimary,
+            fontSize = 16.sp,
+        )
+
+        // Chips de sugestão
+        if (perguntasContextuais.isNotEmpty()) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                perguntasContextuais.take(3).forEach { pergunta ->
+                    SuggestionChip(
+                        onClick = { onChatInputChange(pergunta) },
+                        label = {
+                            Text(
+                                pergunta.take(30).let { if (pergunta.length > 30) "$it..." else it },
+                                style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1,
+                            )
+                        },
+                        colors = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = c.bgSecondary,
+                            labelColor = c.textSecondary,
+                        ),
+                        border = SuggestionChipDefaults.suggestionChipBorder(
+                            enabled = true,
+                            borderColor = c.border,
+                        ),
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+
+        // Campo de texto pill
+        OutlinedTextField(
+            value = chatInput,
+            onValueChange = onChatInputChange,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+                ) {
+                    Icon(
+                        Icons.Outlined.Search,
+                        contentDescription = null,
+                        tint = c.textTertiary,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Text(
+                        "Pergunte sobre sua rede...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.textTertiary,
+                    )
+                }
+            },
+            trailingIcon = {
+                val filled = chatInput.isNotBlank()
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
+                    contentDescription = if (filled) "Enviar" else null,
+                    tint = if (filled) LkColors.accent else c.textTertiary,
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(
+                            if (filled) LkColors.accent.copy(alpha = 0.10f)
+                            else Color.Transparent
+                        )
+                        .size(32.dp)
+                        .then(
+                            if (filled) Modifier.clickable {
+                                Toast.makeText(context, "Em breve", Toast.LENGTH_SHORT).show()
+                            } else Modifier
+                        )
+                        .padding(LkSpacing.sm),
+                )
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(24.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = LkColors.accent,
+                unfocusedBorderColor = c.border,
+                focusedContainerColor = c.bgCard,
+                unfocusedContainerColor = c.bgCard,
+                focusedTextColor = c.textPrimary,
+                unfocusedTextColor = c.textPrimary,
+                cursorColor = LkColors.accent,
+            ),
+        )
+    }
+}
+
+// ─── Helpers internos reutilizados ────────────────────────────────────────────
+
+@Composable
+private fun MetricsRow(
+    c: LkTokens,
+    result: AiDiagnosisResult,
+    statusColor: Color,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .clip(RoundedCornerShape(100.dp))
+                .background(statusColor.copy(alpha = 0.10f))
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(statusColor),
+            )
+            Text(
+                result.status.replaceFirstChar { it.uppercaseChar() },
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.W600,
+                color = statusColor,
+            )
+        }
+        if (result.problemaPrincipal.confianca > 0.0) {
+            Text(
+                "${(result.problemaPrincipal.confianca * 100).toInt()}% confiança",
+                style = MaterialTheme.typography.bodySmall,
+                color = c.textTertiary,
+            )
+        }
+    }
+}
+
+// ─── Helpers de ícone ─────────────────────────────────────────────────────────
+
+private fun iconForProblemaTipo(tipo: String): ImageVector =
+    when (tipo.lowercase()) {
+        "wifi", "canal", "sinal" -> Icons.Outlined.NetworkWifi
+        "roteador", "gateway" -> Icons.Outlined.Router
+        "dispositivo" -> Icons.Outlined.DeviceHub
+        "isp", "operadora" -> Icons.Outlined.Speed
+        else -> Icons.Outlined.Info
+    }
+
+private fun iconForAcaoIndex(index: Int): ImageVector =
+    when (index) {
+        0 -> Icons.Outlined.Router
+        1 -> Icons.Outlined.NetworkWifi
+        2 -> Icons.Outlined.DeviceHub
+        3 -> Icons.Outlined.Refresh
+        else -> Icons.Outlined.CheckCircle
+    }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
