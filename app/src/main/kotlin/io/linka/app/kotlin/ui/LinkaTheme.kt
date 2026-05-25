@@ -36,6 +36,9 @@ object LkColors {
     val phaseDownload = Color(0xFF34D399)
     val phaseUpload = Color(0xFFFBBF24)
 
+    // ── Tokens semânticos de container — seguem o tema (light/dark) ──
+    // Uso: backgrounds de chips e cards de status, nunca hardcodados na UI.
+    // Valores light calibrados para contraste AA com onWarningContainer/onSuccessContainer.
     object Light {
         val bgPrimary = Color(0xFFFFFFFF)
         val bgSecondary = Color(0xFFF3F4F6)
@@ -44,6 +47,13 @@ object LkColors {
         val textSecondary = Color(0xFF6B7280)
         val textTertiary = Color(0xFF9CA3AF)
         val border = Color(0xFFE5E7EB)
+        // warning (âmbar): fundo claro + texto escuro âmbar (contraste >=4.5:1)
+        val warningContainer = Color(0xFFFFF3CD)
+        val onWarningContainer = Color(0xFF7A4E00)
+        val amberSurface = Color(0xFFFFF8E6)
+        // success (verde): fundo claro + texto escuro verde
+        val successContainer = Color(0xFFD1FAE5)
+        val onSuccessContainer = Color(0xFF065F46)
     }
 
     object Dark {
@@ -54,6 +64,13 @@ object LkColors {
         val textSecondary = Color(0xFF9CA3AF)
         val textTertiary = Color(0xFF6B7280)
         val border = Color(0xFF2A2A2A)
+        // warning dark: fundo escuro âmbar + texto âmbar claro
+        val warningContainer = Color(0xFF3D2A00)
+        val onWarningContainer = Color(0xFFFFD97A)
+        val amberSurface = Color(0xFF2E2000)
+        // success dark: fundo escuro verde + texto verde claro
+        val successContainer = Color(0xFF064E3B)
+        val onSuccessContainer = Color(0xFF6EE7B7)
     }
 }
 
@@ -65,6 +82,12 @@ data class LkTokens(
     val textSecondary: Color,
     val textTertiary: Color,
     val border: Color,
+    // ── Tokens semânticos de container ──
+    val warningContainer: Color,
+    val onWarningContainer: Color,
+    val amberSurface: Color,
+    val successContainer: Color,
+    val onSuccessContainer: Color,
 )
 
 val LocalLkTokens =
@@ -77,6 +100,11 @@ val LocalLkTokens =
             textSecondary = LkColors.Light.textSecondary,
             textTertiary = LkColors.Light.textTertiary,
             border = LkColors.Light.border,
+            warningContainer = LkColors.Light.warningContainer,
+            onWarningContainer = LkColors.Light.onWarningContainer,
+            amberSurface = LkColors.Light.amberSurface,
+            successContainer = LkColors.Light.successContainer,
+            onSuccessContainer = LkColors.Light.onSuccessContainer,
         )
     }
 
@@ -135,6 +163,11 @@ fun LinkaTheme(
                 textSecondary = LkColors.Dark.textSecondary,
                 textTertiary = LkColors.Dark.textTertiary,
                 border = LkColors.Dark.border,
+                warningContainer = LkColors.Dark.warningContainer,
+                onWarningContainer = LkColors.Dark.onWarningContainer,
+                amberSurface = LkColors.Dark.amberSurface,
+                successContainer = LkColors.Dark.successContainer,
+                onSuccessContainer = LkColors.Dark.onSuccessContainer,
             )
         } else {
             LkTokens(
@@ -145,6 +178,11 @@ fun LinkaTheme(
                 textSecondary = LkColors.Light.textSecondary,
                 textTertiary = LkColors.Light.textTertiary,
                 border = LkColors.Light.border,
+                warningContainer = LkColors.Light.warningContainer,
+                onWarningContainer = LkColors.Light.onWarningContainer,
+                amberSurface = LkColors.Light.amberSurface,
+                successContainer = LkColors.Light.successContainer,
+                onSuccessContainer = LkColors.Light.onSuccessContainer,
             )
         }
 
