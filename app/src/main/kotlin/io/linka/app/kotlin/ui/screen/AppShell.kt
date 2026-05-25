@@ -133,8 +133,8 @@ fun AppShell(
     snapshotDevices: SnapshotScanDispositivos,
     history: List<HistoryPoint>,
     localIp: UiState<String>,
-    publicIp: String?,
-    ispInfo: IspInfo?,
+    publicIp: UiState<String>,
+    ispInfo: UiState<IspInfo>,
     gateways: List<GatewayInfo>,
     deviceName: String,
     dnsResolverIp: String?,
@@ -219,10 +219,12 @@ fun AppShell(
     speedtestMbConsumidosMes: Long = 0L,
 ) {
     val c = LocalLkTokens.current
-    // Desempacota UiState<String> → String? para as telas filhas que ainda recebem primitivo.
+    // Desempacota UiState<T> → tipos opcionais para as telas filhas que ainda recebem primitivos.
     // Loading e Error resultam em null — as telas exibem fallback textual próprio.
     val localizacaoServidorStr: String? = (localizacaoServidor as? UiState.Success)?.data
     val localIpStr: String? = (localIp as? UiState.Success)?.data
+    val publicIpStr: String? = (publicIp as? UiState.Success)?.data
+    val ispInfoData: IspInfo? = (ispInfo as? UiState.Success)?.data
     var selectedTab by remember { mutableIntStateOf(0) }
     var modoSelecionado by remember { mutableStateOf(ModoSpeedtest.complete) }
     val overlayStack = remember { mutableStateListOf<Overlay>() }
@@ -297,8 +299,8 @@ fun AppShell(
                             history = history,
                             ultimaMedicao = primeiraHistoria,
                             localIp = localIpStr,
-                            publicIp = publicIp,
-                            ispInfo = ispInfo,
+                            publicIp = publicIpStr,
+                            ispInfo = ispInfoData,
                             gateways = gateways,
                             deviceName = deviceName,
                             nomeUsuario = nomeUsuario,
@@ -331,7 +333,7 @@ fun AppShell(
                         SpeedTestScreen(
                             snapshotSpeedtest = snapshotSpeedtest,
                             snapshotRede = snapshotRede,
-                            ispInfo = ispInfo,
+                            ispInfo = ispInfoData,
                             localizacaoServidor = localizacaoServidorStr,
                             modoSelecionado = modoSelecionado,
                             onModoSelecionado = { modoSelecionado = it },
@@ -407,7 +409,7 @@ fun AppShell(
                                     regiao = regiao,
                                     estadoUf = estadoUf,
                                     cidadeNome = cidadeNome,
-                                    ispDetectado = ispInfo?.isp,
+                                    ispDetectado = ispInfoData?.isp,
                                     ispConfirmado = ispConfirmado,
                                     onSalvarDadosProvedor = onSalvarDadosProvedor,
                                     onSalvarEstadoCidade = onSalvarEstadoCidade,
@@ -473,7 +475,7 @@ fun AppShell(
             VelocidadeScreen(
                 snapshot = snapshotSpeedtest,
                 localizacaoServidor = localizacaoServidorStr,
-                ispInfo = ispInfo,
+                ispInfo = ispInfoData,
                 onCancelar = onCancelarTeste,
                 onReiniciar = { onNovoTeste(modoSelecionado) },
                 onVoltar = onCancelarTeste,
@@ -532,7 +534,7 @@ fun AppShell(
                         onIniciarOrbitComResultado(resultado, null)
                         if (Overlay.Chat !in overlayStack) overlayStack.add(Overlay.Chat)
                     },
-                    ispInfo = ispInfo,
+                    ispInfo = ispInfoData,
                 )
             }
         }
@@ -568,7 +570,7 @@ fun AppShell(
                 operadora = operadora,
                 ssid = connectedNetwork?.ssid,
                 ipLocal = localIpStr,
-                ipPublico = publicIp,
+                ipPublico = publicIpStr,
                 onVoltar = { overlayStack.remove(Overlay.Laudo) },
                 velocidadeContratadaMbps = planoInternet.filter { it.isDigit() }.toIntOrNull(),
             )
@@ -625,7 +627,7 @@ fun AppShell(
                 fotoUriAtual = fotoUriUsuario,
                 deviceName = deviceName,
                 appVersion = BuildConfig.VERSION_NAME,
-                ispInfo = ispInfo,
+                ispInfo = ispInfoData,
                 estadoConexao = snapshotRede.estadoConexao,
                 onDismiss = { showPerfilSheet = false },
                 onSalvar = { nome, fotoUri ->

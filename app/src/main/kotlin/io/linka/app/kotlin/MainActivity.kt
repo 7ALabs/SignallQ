@@ -89,8 +89,8 @@ class MainActivity : ComponentActivity() {
                     .collectAsStateWithLifecycle()
                     .value
             val localIpUiState = viewModel.localIp.collectAsStateWithLifecycle().value
-            val publicIp = viewModel.publicIp.collectAsStateWithLifecycle().value
-            val ispInfo = viewModel.ispInfo.collectAsStateWithLifecycle().value
+            val publicIpUiState = viewModel.publicIp.collectAsStateWithLifecycle().value
+            val ispInfoUiState = viewModel.ispInfo.collectAsStateWithLifecycle().value
             val gateways = viewModel.gateways.collectAsStateWithLifecycle().value
             val history = viewModel.history.collectAsStateWithLifecycle().value
             val historico = viewModel.historico.collectAsStateWithLifecycle().value
@@ -229,8 +229,8 @@ class MainActivity : ComponentActivity() {
                         snapshotDiagnostico = snapshotDiagnostico,
                         history = history,
                         localIp = localIpUiState,
-                        publicIp = publicIp,
-                        ispInfo = ispInfo,
+                        publicIp = publicIpUiState,
+                        ispInfo = ispInfoUiState,
                         gateways = gateways,
                         deviceName = Build.MODEL,
                         nomeUsuario = nomeUsuario,

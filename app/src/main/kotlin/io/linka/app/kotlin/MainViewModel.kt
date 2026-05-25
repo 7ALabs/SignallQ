@@ -154,8 +154,8 @@ class MainViewModel
         }
 
         val localIp = MutableStateFlow<UiState<String>>(UiState.Loading)
-        val publicIp = MutableStateFlow<String?>(null)
-        val ispInfo = MutableStateFlow<IspInfo?>(null)
+        val publicIp = MutableStateFlow<UiState<String>>(UiState.Loading)
+        val ispInfo = MutableStateFlow<UiState<IspInfo>>(UiState.Loading)
         val gateways = MutableStateFlow<List<GatewayInfo>>(emptyList())
         val history = MutableStateFlow<List<HistoryPoint>>(emptyList())
         val historico = MutableStateFlow<List<MedicaoEntity>>(emptyList())
@@ -322,8 +322,8 @@ class MainViewModel
                         ispInfoColetada = false
                         gateways.value = emptyList()
                         localIp.value = UiState.Loading
-                        publicIp.value = null
-                        ispInfo.value = null
+                        publicIp.value = UiState.Loading
+                        ispInfo.value = UiState.Loading
                         coletarInfoLocalRede()
                         launch { coletarIspInfo() }
                         ultimoBenchmarkDnsEpochMs = null
@@ -830,9 +830,8 @@ class MainViewModel
                     connection.disconnect()
                     val json = JSONObject(body)
                     val ip = json.optString("query").ifBlank { null }
-                    publicIp.value = ip
                     val operadora = json.optString("isp").ifBlank { null }
-                    ispInfo.value =
+                    val info =
                         IspInfo(
                             ip = ip,
                             isp = operadora,
@@ -840,13 +839,18 @@ class MainViewModel
                             country = json.optString("country").ifBlank { null },
                             region = json.optString("regionName").ifBlank { null },
                         )
+                    publicIp.value = if (ip != null) UiState.Success(ip) else UiState.Error("IP indisponível")
+                    ispInfo.value = UiState.Success(info)
                     if (monitorRede.snapshotFlow.value.estadoConexao == EstadoConexao.movel) {
                         gateways.value =
                             listOf(
                                 GatewayInfo(ip = null, name = operadora ?: "Operadora", type = ConnectionNodeType.Mobile),
                             )
                     }
-                } catch (_: Exception) {
+                } catch (e: Exception) {
+                    publicIp.value = UiState.Error("Falha ao obter IP público")
+                    ispInfo.value = UiState.Error("ISP indisponível")
+                    Timber.w("coletarIspInfo falhou: ${e.message}")
                 }
             }
 
@@ -871,7 +875,7 @@ class MainViewModel
         private suspend fun coletarContextoAdicionalIa(): AdditionalAiContext {
             val rede = monitorRede.snapshotFlow.value
             val wifi = rede.wifiLinkSnapshot
-            val isp = ispInfo.value
+            val isp = (ispInfo.value as? UiState.Success)?.data
 
             // Wi-Fi: BSSID, padrão (Wi-Fi 5/6/...) e link speed
             val wifiBssid = wifi?.bssid
@@ -948,7 +952,7 @@ class MainViewModel
             return AdditionalAiContext(
                 ispNome = isp?.isp,
                 ispAsn = isp?.asn,
-                ipPublico = isp?.ip ?: publicIp.value,
+                ipPublico = isp?.ip ?: (publicIp.value as? UiState.Success)?.data,
                 ipLocal = (localIp.value as? UiState.Success)?.data,
                 pais = isp?.country,
                 regiao = isp?.region,
