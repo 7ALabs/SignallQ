@@ -88,7 +88,7 @@ class MainActivity : ComponentActivity() {
                 viewModel.executorFibra.snapshotFlow
                     .collectAsStateWithLifecycle()
                     .value
-            val localIp = viewModel.localIp.collectAsStateWithLifecycle().value
+            val localIpUiState = viewModel.localIp.collectAsStateWithLifecycle().value
             val publicIp = viewModel.publicIp.collectAsStateWithLifecycle().value
             val ispInfo = viewModel.ispInfo.collectAsStateWithLifecycle().value
             val gateways = viewModel.gateways.collectAsStateWithLifecycle().value
@@ -228,7 +228,7 @@ class MainActivity : ComponentActivity() {
                         snapshotDevices = snapshotDevices,
                         snapshotDiagnostico = snapshotDiagnostico,
                         history = history,
-                        localIp = localIp,
+                        localIp = localIpUiState,
                         publicIp = publicIp,
                         ispInfo = ispInfo,
                         gateways = gateways,

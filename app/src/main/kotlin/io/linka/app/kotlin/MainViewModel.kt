@@ -153,7 +153,7 @@ class MainViewModel
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
         }
 
-        val localIp = MutableStateFlow<String?>(null)
+        val localIp = MutableStateFlow<UiState<String>>(UiState.Loading)
         val publicIp = MutableStateFlow<String?>(null)
         val ispInfo = MutableStateFlow<IspInfo?>(null)
         val gateways = MutableStateFlow<List<GatewayInfo>>(emptyList())
@@ -321,7 +321,7 @@ class MainViewModel
                         infoLocalRedeColetada = false
                         ispInfoColetada = false
                         gateways.value = emptyList()
-                        localIp.value = null
+                        localIp.value = UiState.Loading
                         publicIp.value = null
                         ispInfo.value = null
                         coletarInfoLocalRede()
@@ -765,10 +765,11 @@ class MainViewModel
             val cm = getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val network = cm.activeNetwork ?: return
             val props = cm.getLinkProperties(network) ?: return
-            localIp.value =
+            val ipLocal =
                 props.linkAddresses
                     .mapNotNull { it.address.hostAddress }
                     .firstOrNull { it.contains('.') && !it.startsWith("127.") && !it.startsWith("169.254.") }
+            localIp.value = if (ipLocal != null) UiState.Success(ipLocal) else UiState.Loading
 
             val snapshotRede = monitorRede.snapshotFlow.value
             if (snapshotRede.estadoConexao == EstadoConexao.movel) {
@@ -948,7 +949,7 @@ class MainViewModel
                 ispNome = isp?.isp,
                 ispAsn = isp?.asn,
                 ipPublico = isp?.ip ?: publicIp.value,
-                ipLocal = localIp.value,
+                ipLocal = (localIp.value as? UiState.Success)?.data,
                 pais = isp?.country,
                 regiao = isp?.region,
                 gatewayIp = gateways.value.firstOrNull()?.ip,

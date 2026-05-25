@@ -132,7 +132,7 @@ fun AppShell(
     snapshotDns: SnapshotBenchmarkDns,
     snapshotDevices: SnapshotScanDispositivos,
     history: List<HistoryPoint>,
-    localIp: String?,
+    localIp: UiState<String>,
     publicIp: String?,
     ispInfo: IspInfo?,
     gateways: List<GatewayInfo>,
@@ -222,6 +222,7 @@ fun AppShell(
     // Desempacota UiState<String> → String? para as telas filhas que ainda recebem primitivo.
     // Loading e Error resultam em null — as telas exibem fallback textual próprio.
     val localizacaoServidorStr: String? = (localizacaoServidor as? UiState.Success)?.data
+    val localIpStr: String? = (localIp as? UiState.Success)?.data
     var selectedTab by remember { mutableIntStateOf(0) }
     var modoSelecionado by remember { mutableStateOf(ModoSpeedtest.complete) }
     val overlayStack = remember { mutableStateListOf<Overlay>() }
@@ -295,7 +296,7 @@ fun AppShell(
                             snapshotSpeedtest = snapshotSpeedtest,
                             history = history,
                             ultimaMedicao = primeiraHistoria,
-                            localIp = localIp,
+                            localIp = localIpStr,
                             publicIp = publicIp,
                             ispInfo = ispInfo,
                             gateways = gateways,
@@ -364,7 +365,7 @@ fun AppShell(
                             estadoConexao = snapshotRede.estadoConexao,
                             conectado = snapshotRede.conectado,
                             movelSnapshot = movelSnapshot,
-                            localIp = localIp,
+                            localIp = localIpStr,
                             temPermissaoTelefonia = temPermissaoTelefonia,
                             onSolicitarPermissaoTelefonia = onSolicitarPermissaoTelefonia,
                             temPermissaoLocalizacao = temPermissaoLocalizacao,
@@ -566,7 +567,7 @@ fun AppShell(
                 nomeUsuario = nomeUsuario,
                 operadora = operadora,
                 ssid = connectedNetwork?.ssid,
-                ipLocal = localIp,
+                ipLocal = localIpStr,
                 ipPublico = publicIp,
                 onVoltar = { overlayStack.remove(Overlay.Laudo) },
                 velocidadeContratadaMbps = planoInternet.filter { it.isDigit() }.toIntOrNull(),
