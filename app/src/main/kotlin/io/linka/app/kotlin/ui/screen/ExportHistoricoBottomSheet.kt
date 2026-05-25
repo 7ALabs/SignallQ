@@ -266,7 +266,7 @@ private suspend fun executarExport(
     val sucesso =
         when (formato) {
             FormatoExport.CSV -> ExportadorHistoricoCSV().exportar(medicoesParaExportar, arquivo)
-            FormatoExport.PDF -> ExportadorHistoricoPDF().exportar(medicoesParaExportar, arquivo)
+            FormatoExport.PDF -> ExportadorHistoricoPDF().exportarComWebView(medicoesParaExportar, arquivo, context)
         }
 
     return if (sucesso) arquivo else null
