@@ -1,0 +1,10 @@
+Lio/linka/app/kotlin/LinkaApplication;
+Lio/linka/app/kotlin/MainActivity;
+Lio/linka/app/kotlin/MainViewModel;
+Lio/linka/app/kotlin/navigation/AppNavGraph;
+Lio/linka/app/kotlin/ui/screen/HomeScreen;
+Lio/linka/app/kotlin/ui/screen/AppShell;
+Lio/linka/app/kotlin/ui/screen/OnboardingScreen;
+Lio/linka/app/kotlin/ui/screen/SpeedTestScreen;
+Lio/linka/app/kotlin/ui/screen/DiagnosticoScreen;
+Lio/linka/app/kotlin/ui/screen/VelocidadeScreen;
