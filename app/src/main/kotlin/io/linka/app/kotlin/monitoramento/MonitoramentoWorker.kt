@@ -13,6 +13,7 @@ import io.linka.app.kotlin.core.database.MedicaoEntity
 import io.linka.app.kotlin.core.datastore.CoreDatastoreModulo
 import io.linka.app.kotlin.notificacao.LinkaNotificationHelper
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import timber.log.Timber
@@ -34,6 +35,20 @@ internal class MonitoramentoWorker(
     private data class RssiInfo(
         val rssi: Int?,
         val motivo: RssiMotivo?,
+    )
+
+    private data class EstadosAlertasAnteriores(
+        val latencia: Boolean,
+        val dns: Boolean,
+        val rssi: Boolean,
+        val semInternet: Boolean,
+    )
+
+    private data class ControlesNotificacao(
+        val latencia: Boolean,
+        val dns: Boolean,
+        val rssi: Boolean,
+        val semInternet: Boolean,
     )
 
     override suspend fun doWork(): Result {
@@ -111,11 +126,14 @@ internal class MonitoramentoWorker(
         dns: Long?,
         rssiInfo: RssiInfo,
     ) {
-        // Ler estados anteriores
-        val alertaLatenciaAnterior = preferenciasAppRepository.alertaLatenciaAtivoFlow.first()
-        val alertaDnsAnterior = preferenciasAppRepository.alertaDnsAtivoFlow.first()
-        val alertaRssiAnterior = preferenciasAppRepository.alertaRssiAtivoFlow.first()
-        val alertaSemInternetAnterior = preferenciasAppRepository.alertaSemInternetAtivoFlow.first()
+        // Ler estados anteriores em paralelo
+        val (alertaLatenciaAnterior, alertaDnsAnterior, alertaRssiAnterior, alertaSemInternetAnterior) =
+            combine(
+                preferenciasAppRepository.alertaLatenciaAtivoFlow,
+                preferenciasAppRepository.alertaDnsAtivoFlow,
+                preferenciasAppRepository.alertaRssiAtivoFlow,
+                preferenciasAppRepository.alertaSemInternetAtivoFlow,
+            ) { lat, dns, rssi, sem -> EstadosAlertasAnteriores(lat, dns, rssi, sem) }.first()
 
         // Calcular novos estados com histerese — lógica pura em HisteresiHelper
         val alertaLatenciaNovo = HisteresiHelper.calcularAlertaLatencia(latencia, alertaLatenciaAnterior)
@@ -134,11 +152,14 @@ internal class MonitoramentoWorker(
                 alertaSemInternetAnterior,
             )
 
-        // Ler controles granulares do usuário
-        val notifLatenciaAtiva = preferenciasAppRepository.notificacaoLatenciaAtivaFlow.first()
-        val notifDnsAtiva = preferenciasAppRepository.notificacaoDnsAtivaFlow.first()
-        val notifRssiAtiva = preferenciasAppRepository.notificacaoRssiAtivaFlow.first()
-        val notifSemInternetAtiva = preferenciasAppRepository.notificacaoSemInternetAtivaFlow.first()
+        // Ler controles granulares do usuário em paralelo
+        val (notifLatenciaAtiva, notifDnsAtiva, notifRssiAtiva, notifSemInternetAtiva) =
+            combine(
+                preferenciasAppRepository.notificacaoLatenciaAtivaFlow,
+                preferenciasAppRepository.notificacaoDnsAtivaFlow,
+                preferenciasAppRepository.notificacaoRssiAtivaFlow,
+                preferenciasAppRepository.notificacaoSemInternetAtivaFlow,
+            ) { lat, dns, rssi, sem -> ControlesNotificacao(lat, dns, rssi, sem) }.first()
 
         // Detectar transições e notificar somente em transição ok→alerta
         if (alertaSemInternetNovo && !alertaSemInternetAnterior && notifSemInternetAtiva) {
