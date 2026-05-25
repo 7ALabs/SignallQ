@@ -96,7 +96,7 @@ class MainActivity : ComponentActivity() {
             val historico = viewModel.historico.collectAsStateWithLifecycle().value
             val blocoUptime = viewModel.blocoUptime.collectAsStateWithLifecycle().value
             val narrativaUptime = viewModel.narrativaUptime.collectAsStateWithLifecycle().value
-            val localizacaoServidor = viewModel.localizacaoServidor.collectAsStateWithLifecycle().value
+            val localizacaoServidorUiState = viewModel.localizacaoServidor.collectAsStateWithLifecycle().value
             val modemHost =
                 viewModel.preferenciasAppRepository.modemHostFlow
                     .collectAsStateWithLifecycle(initialValue = null)
@@ -255,7 +255,7 @@ class MainActivity : ComponentActivity() {
                         modemPassword = modemPassword,
                         modemPermanecerConectado = modemPermanecerConectado,
                         gatewayIpDetectado = gatewayIpDetectado,
-                        localizacaoServidor = localizacaoServidor,
+                        localizacaoServidor = localizacaoServidorUiState,
                         onNovoTeste = { modo -> viewModel.reiniciarSuite(modo) },
                         onCancelarTeste = { viewModel.executorSpeedtest.cancelar() },
                         onDispararBenchmarkDns = { viewModel.dispararBenchmarkDns() },

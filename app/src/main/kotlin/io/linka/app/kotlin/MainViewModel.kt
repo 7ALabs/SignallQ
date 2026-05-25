@@ -52,6 +52,7 @@ import io.linka.app.kotlin.ui.GatewayInfo
 import io.linka.app.kotlin.ui.HistoryPoint
 import io.linka.app.kotlin.ui.IspInfo
 import io.linka.app.kotlin.ui.screen.OrbitUiState
+import io.linka.app.kotlin.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -158,7 +159,7 @@ class MainViewModel
         val gateways = MutableStateFlow<List<GatewayInfo>>(emptyList())
         val history = MutableStateFlow<List<HistoryPoint>>(emptyList())
         val historico = MutableStateFlow<List<MedicaoEntity>>(emptyList())
-        val localizacaoServidor = MutableStateFlow<String?>(null)
+        val localizacaoServidor = MutableStateFlow<UiState<String>>(UiState.Loading)
         val blocoUptime = MutableStateFlow<List<BlocoUptime>>(emptyList())
         val narrativaUptime = MutableStateFlow<String>("")
 
@@ -954,7 +955,7 @@ class MainViewModel
                 dnsResolverIp = dnsResolverIp,
                 dnsResolverProvider = dnsResolverProvider,
                 dnsLatenciaMs = null,
-                servidorTesteCidade = localizacaoServidor.value,
+                servidorTesteCidade = (localizacaoServidor.value as? UiState.Success)?.data,
                 ultimosTestesHistorico = ultimosTestes,
                 redesProximas = redesProximas,
                 movel = movel,
@@ -1019,6 +1020,7 @@ class MainViewModel
 
         private suspend fun buscarLocalizacaoServidor() =
             withContext(dispatchers.io) {
+                localizacaoServidor.value = UiState.Loading
                 try {
                     val connection =
                         URL("https://speed.cloudflare.com/meta")
@@ -1032,11 +1034,10 @@ class MainViewModel
                     val codigoPais = json.optString("country").ifBlank { null }
                     val local = cidade ?: codigoPais?.let { nomePaisPtBr(it) }
                     // Se local é nulo (JSON sem city/country), exibe "Cloudflare" sem cidade
-                    // para sair do estado de carregamento indefinido
-                    localizacaoServidor.value = if (local != null) "Cloudflare · $local" else "Cloudflare"
+                    localizacaoServidor.value = UiState.Success(if (local != null) "Cloudflare · $local" else "Cloudflare")
                 } catch (_: Exception) {
-                    // Falha de rede ou parse — exibe "Cloudflare" para não ficar em "Carregando..."
-                    localizacaoServidor.value = "Cloudflare"
+                    // Falha de rede ou parse — expõe o estado de erro para a UI
+                    localizacaoServidor.value = UiState.Error("Servidor indisponível")
                 }
             }
 

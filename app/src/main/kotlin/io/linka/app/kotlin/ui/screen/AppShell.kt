@@ -110,6 +110,7 @@ import io.linka.app.kotlin.ui.LkRadius
 import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
 import io.linka.app.kotlin.ui.LocalLkTokens
+import io.linka.app.kotlin.ui.state.UiState
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
@@ -150,7 +151,7 @@ fun AppShell(
     modemPassword: String,
     modemPermanecerConectado: Boolean,
     gatewayIpDetectado: String?,
-    localizacaoServidor: String?,
+    localizacaoServidor: UiState<String>,
     temaSelecionado: String,
     analiseAvancada: Boolean,
     onNovoTeste: (ModoSpeedtest) -> Unit,
@@ -218,6 +219,9 @@ fun AppShell(
     speedtestMbConsumidosMes: Long = 0L,
 ) {
     val c = LocalLkTokens.current
+    // Desempacota UiState<String> → String? para as telas filhas que ainda recebem primitivo.
+    // Loading e Error resultam em null — as telas exibem fallback textual próprio.
+    val localizacaoServidorStr: String? = (localizacaoServidor as? UiState.Success)?.data
     var selectedTab by remember { mutableIntStateOf(0) }
     var modoSelecionado by remember { mutableStateOf(ModoSpeedtest.complete) }
     val overlayStack = remember { mutableStateListOf<Overlay>() }
@@ -327,7 +331,7 @@ fun AppShell(
                             snapshotSpeedtest = snapshotSpeedtest,
                             snapshotRede = snapshotRede,
                             ispInfo = ispInfo,
-                            localizacaoServidor = localizacaoServidor,
+                            localizacaoServidor = localizacaoServidorStr,
                             modoSelecionado = modoSelecionado,
                             onModoSelecionado = { modoSelecionado = it },
                             onIniciarTeste = { onNovoTeste(modoSelecionado) },
@@ -467,7 +471,7 @@ fun AppShell(
         ) {
             VelocidadeScreen(
                 snapshot = snapshotSpeedtest,
-                localizacaoServidor = localizacaoServidor,
+                localizacaoServidor = localizacaoServidorStr,
                 ispInfo = ispInfo,
                 onCancelar = onCancelarTeste,
                 onReiniciar = { onNovoTeste(modoSelecionado) },
@@ -521,7 +525,7 @@ fun AppShell(
                         selectedTab = 0
                     },
                     onVoltar = { overlayStack.remove(Overlay.ResultadoVelocidade) },
-                    localizacaoServidor = localizacaoServidor,
+                    localizacaoServidor = localizacaoServidorStr,
                     gemmaAvailable = gemmaAvailable,
                     onAbrirChat = {
                         onIniciarOrbitComResultado(resultado, null)
