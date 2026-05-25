@@ -501,12 +501,14 @@ private fun RedesTab(
     // Classificação de topologia para todas as redes visíveis
     val topologiaPorBssid =
         remember(snapshotWifi.redes, connectedNetwork) {
-            val classificadas =
-                TopologiaWifiEngine.classificar(
-                    redes = snapshotWifi.redes,
-                    connectedBssid = connectedNetwork?.bssid,
-                )
-            classificadas.associate { it.rede.bssid to it.tipo }
+            runCatching {
+                val classificadas =
+                    TopologiaWifiEngine.classificar(
+                        redes = snapshotWifi.redes,
+                        connectedBssid = connectedNetwork?.bssid,
+                    )
+                classificadas.associate { it.rede.bssid to it.tipo }
+            }.getOrElse { emptyMap() }
         }
 
     // Nós da mesma rede: conectado na frente + mesmo SSID ordenado por sinal
@@ -532,15 +534,17 @@ private fun RedesTab(
                     .filter { it.bssid != connectedNetwork?.bssid }
                     .filter { rede -> connSsid == null || rede.ssid == null || rede.ssid != connSsid }
 
-            // Classificar cada rede com TopologiaWifiEngine
+            // Classificar via TopologiaWifiEngine; fallback gracioso para lista vazia
             val classificadas =
-                filtered.map { rede ->
-                    RedeClassificada(
-                        rede = rede,
-                        tipo = TipoTopologia.DESCONHECIDO, // TODO: integrar com TopologiaWifiEngine se necessário
-                        confianca = ConfiancaTopologia.BAIXA,
-                        motivo = "",
+                runCatching {
+                    TopologiaWifiEngine.classificar(
+                        redes = filtered,
+                        connectedBssid = connectedNetwork?.bssid,
                     )
+                }.getOrElse {
+                    filtered.map { rede ->
+                        RedeClassificada(rede = rede, tipo = TipoTopologia.DESCONHECIDO, confianca = ConfiancaTopologia.BAIXA, motivo = "")
+                    }
                 }
 
             // Agrupar por SSID (SSIDs nulos vão para "[Ocultas]")
