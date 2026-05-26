@@ -38,7 +38,7 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 
 ---
 
-## [Unreleased]
+## [0.10.0] — 2026-05-26
 
 ### Added
 
