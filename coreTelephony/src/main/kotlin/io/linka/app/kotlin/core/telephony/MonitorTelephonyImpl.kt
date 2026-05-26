@@ -276,17 +276,7 @@ class MonitorTelephonyImpl(
     }
 
     private fun derivarTecnologia(tm: TelephonyManager): String? {
-        // Detecta 5G NSA via reflexao do ServiceState — `nrFrequencyRange` e
-        // `nrState` sao @SystemApi/hidden em varias versoes Android, mas
-        // disponivel em runtime via `serviceState.toString()` que loga "nrState".
-        // Se nao conseguir detectar, NSA cai em "4G" (limitacao documentada).
-        val nrAtivo = serviceState?.let { ss ->
-            runCatching {
-                val str = ss.toString()
-                str.contains("nrState=CONNECTED", ignoreCase = true) ||
-                    str.contains("isNrAvailable=true", ignoreCase = true)
-            }.getOrDefault(false)
-        } ?: false
+        val nrAtivo = serviceState?.let { detectarNrAtivo(it) } ?: false
 
         val dataNetType = runCatching {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -314,6 +304,36 @@ class MonitorTelephonyImpl(
             TelephonyManager.NETWORK_TYPE_IDEN -> "2G"
             else -> null
         }
+    }
+
+    /**
+     * Detecta 5G NSA (LTE com canal NR secundário ativo).
+     *
+     * Abordagem 1 (API 30+): NetworkRegistrationInfo.getNrState() via reflexão.
+     *   getNrState() é @SystemApi — não acessível diretamente, mas presente em runtime.
+     *   Valor 3 = NR_STATE_CONNECTED (constante documentada na AOSP).
+     * Abordagem 2: ServiceState.toString() — fallback cross-OEM para Android 9+.
+     */
+    private fun detectarNrAtivo(ss: ServiceState): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                @Suppress("NewApi")
+                val regList = ss.networkRegistrationInfoList
+                val nrConnected = regList.any { reg ->
+                    runCatching {
+                        reg.javaClass.getMethod("getNrState").invoke(reg) as? Int == 3
+                    }.getOrDefault(false)
+                }
+                if (nrConnected) return true
+            } catch (_: Throwable) {
+                // Fallback abaixo
+            }
+        }
+        return runCatching {
+            val str = ss.toString()
+            str.contains("nrState=CONNECTED", ignoreCase = true) ||
+                str.contains("isNrAvailable=true", ignoreCase = true)
+        }.getOrDefault(false)
     }
 
     private fun parseMccMnc(networkOperator: String?): Pair<String?, String?> {
