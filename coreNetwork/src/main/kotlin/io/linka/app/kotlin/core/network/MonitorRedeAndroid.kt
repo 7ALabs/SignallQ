@@ -9,6 +9,8 @@ import android.net.NetworkCapabilities
 import android.net.TransportInfo
 import android.net.wifi.WifiInfo
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +28,8 @@ class MonitorRedeAndroid(
     override val snapshotFlow: StateFlow<SnapshotRede> = mutableSnapshotFlow.asStateFlow()
 
     private var callbackRegistrado = false
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val runnableRetry = Runnable { if (callbackRegistrado) atualizarSnapshot() }
 
     private val callbackRede = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
@@ -52,6 +56,9 @@ class MonitorRedeAndroid(
             connectivityManager.registerDefaultNetworkCallback(callbackRede)
             callbackRegistrado = true
             atualizarSnapshot()
+            // getNetworkCapabilities() pode retornar null transientemnte logo após o registro;
+            // o retry garante o estado correto caso onAvailable ainda não tenha disparado.
+            mainHandler.postDelayed(runnableRetry, 350)
         } catch (_: SecurityException) {
             mutableSnapshotFlow.value = SnapshotRede.desconectado(System.currentTimeMillis())
         }
@@ -60,6 +67,7 @@ class MonitorRedeAndroid(
     override fun encerrar() {
         if (!callbackRegistrado) return
 
+        mainHandler.removeCallbacks(runnableRetry)
         try {
             connectivityManager.unregisterNetworkCallback(callbackRede)
         } catch (_: Exception) {
