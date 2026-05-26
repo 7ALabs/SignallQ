@@ -5,11 +5,13 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -61,7 +63,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
 
         setContent {
             // --- Snapshots de features (ciclos de vida independentes — NAO combinar) ---
@@ -163,6 +164,20 @@ class MainActivity : ComponentActivity() {
                     "escuro" -> true
                     else -> isSystemInDarkTheme()
                 }
+
+            SideEffect {
+                enableEdgeToEdge(
+                    statusBarStyle =
+                        if (darkTheme) {
+                            SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+                        } else {
+                            SystemBarStyle.light(
+                                android.graphics.Color.TRANSPARENT,
+                                android.graphics.Color.TRANSPARENT,
+                            )
+                        },
+                )
+            }
 
             val connectedBssid = snapshotRede.wifiLinkSnapshot?.bssid
             val connectedNetwork =
