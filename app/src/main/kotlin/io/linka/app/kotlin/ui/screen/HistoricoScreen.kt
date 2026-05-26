@@ -102,11 +102,12 @@ import kotlin.math.roundToInt
 private typealias FiltroTipo = FiltroConexaoHistorico
 
 private val FiltroConexaoHistorico.label: String
-    get() = when (this) {
-        FiltroConexaoHistorico.TODOS -> "Todos"
-        FiltroConexaoHistorico.WIFI -> "Wi-Fi"
-        FiltroConexaoHistorico.MOVEL -> "Rede móvel"
-    }
+    get() =
+        when (this) {
+            FiltroConexaoHistorico.TODOS -> "Todos"
+            FiltroConexaoHistorico.WIFI -> "Wi-Fi"
+            FiltroConexaoHistorico.MOVEL -> "Rede móvel"
+        }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -657,7 +658,8 @@ fun HistoricoScreen(
             operadorasDisponiveis
         } else {
             remember(historico) {
-                historico.filter { it.connectionType == "cellular" }
+                historico
+                    .filter { it.connectionType == "cellular" }
                     .mapNotNull { it.operadoraMovel }
                     .distinct()
                     .sorted()
