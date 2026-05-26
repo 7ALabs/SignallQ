@@ -62,6 +62,7 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - **Tela Sinal em rede móvel exibe RSRP, RSRQ e SINR em cards estruturados com chips de status visual (Ótimo/Bom/Ruim) e ícones (#84)**
 - TopBar da Central de Testes colapsa completamente ao rolar — sem gap vazio no topo (#75)
 - Consumo em testes este mês exibe "0 MB" (não traço) e acumula corretamente mesmo com falha parcial do teste (#94)
+- Label "Análise local" renomeado para "Diagnóstico do dispositivo" — elimina conflito visual com header "Gemma 4" no chat inline (#69)
 
 ---
 

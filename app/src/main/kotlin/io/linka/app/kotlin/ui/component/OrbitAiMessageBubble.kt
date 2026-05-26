@@ -74,7 +74,7 @@ fun OrbitAiMessageBubble(
             !analysis.isFallback && analysis.fullResult?.source?.contains("cloudflare", ignoreCase = true) == true ->
                 "Linka IA · $timeStr"
             !analysis.isFallback && analysis.fullResult?.source == "cache" -> "Linka IA (cache) · $timeStr"
-            else -> "Análise local · $timeStr"
+            else -> "Diagnóstico do dispositivo · $timeStr"
         }
 
     val orbitSymbolState =

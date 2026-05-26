@@ -856,7 +856,7 @@ private fun DiagnosticoResultadoContent(
             item {
                 val sdf = remember { SimpleDateFormat("dd/MM HH:mm", Locale.forLanguageTag("pt-BR")) }
                 val horario = sdf.format(Date(result.generatedAt))
-                val fonteLabel = if (isFallback) "Análise local" else result.modeloIa.nomeExibicao.ifBlank { "Linka IA" }
+                val fonteLabel = if (isFallback) "Diagnóstico do dispositivo" else result.modeloIa.nomeExibicao.ifBlank { "Linka IA" }
                 Column(
                     verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
                     modifier = Modifier.fillMaxWidth(),
