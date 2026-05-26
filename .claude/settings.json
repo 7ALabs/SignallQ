@@ -13,6 +13,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'echo \"$CLAUDE_TOOL_INPUT\" | python3 -c \"import json,sys; d=json.load(sys.stdin); cmd=d.get(\\\"command\\\",\\\"\\\"); exit(0 if any(p in cmd for p in [\\\"git push\\\",\\\"gh pr merge\\\"]) else 1)\" 2>/dev/null && bash \"c:/Projetos/Linka Android/scripts/observe-and-act.sh\" || true'",
+            "timeout": 30
+          }
+        ]
       }
     ]
   }
