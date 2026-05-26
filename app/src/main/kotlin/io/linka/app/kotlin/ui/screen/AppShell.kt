@@ -260,6 +260,7 @@ fun AppShell(
             EstadoExecucaoSpeedtest.executando -> testeAtivo = true
             EstadoExecucaoSpeedtest.concluido -> {
                 if (testeAtivo) {
+                    onIniciarDiagnostico()
                     mostrarConcluido = true
                     delay(400)
                     mostrarConcluido = false
