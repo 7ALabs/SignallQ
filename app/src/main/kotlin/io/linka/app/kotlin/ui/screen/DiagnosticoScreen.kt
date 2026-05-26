@@ -818,6 +818,33 @@ private fun DiagnosticoResultadoContent(
                 }
             }
 
+            // Separador visual antes do chat — distingue diagnóstico local de respostas IA
+            if (chatHistorico.isNotEmpty() || chatCarregando) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = LkSpacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+                    ) {
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = c.border)
+                        Icon(
+                            imageVector = Icons.Outlined.AutoAwesome,
+                            contentDescription = null,
+                            tint = LkColors.accent,
+                            modifier = Modifier.size(14.dp),
+                        )
+                        Text(
+                            text = "Assistente IA",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = c.textTertiary,
+                        )
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = c.border)
+                    }
+                }
+            }
+
             // Mensagens do chat inline
             items(chatHistorico, key = { it.timestamp }) { entry ->
                 DiagChatMensagem(
