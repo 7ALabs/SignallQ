@@ -1,6 +1,7 @@
 package io.linka.app.kotlin
 
 import io.linka.app.kotlin.core.database.MedicaoEntity
+import io.linka.app.kotlin.core.network.EstadoConexao
 import io.linka.app.kotlin.ui.FiltroConexaoHistorico
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -72,7 +73,7 @@ class MainViewModelHistoricoTest {
                     when (fc) {
                         FiltroConexaoHistorico.TODOS -> true
                         FiltroConexaoHistorico.WIFI -> m.connectionType == "wifi"
-                        FiltroConexaoHistorico.MOVEL -> m.connectionType == "cellular"
+                        FiltroConexaoHistorico.MOVEL -> m.connectionType == EstadoConexao.movel.name
                     }
                 }.filter { m -> op == null || m.operadoraMovel == op }
         }.distinctUntilChanged().first()
@@ -80,7 +81,7 @@ class MainViewModelHistoricoTest {
 
     private fun operadorasDisponiveis(lista: List<MedicaoEntity>): List<String> =
         lista
-            .filter { it.connectionType == "cellular" }
+            .filter { it.connectionType == EstadoConexao.movel.name }
             .mapNotNull { it.operadoraMovel?.trim()?.ifBlank { null } }
             .distinct()
             .sorted()
@@ -91,9 +92,9 @@ class MainViewModelHistoricoTest {
         listOf(
             medicao("wifi"),
             medicao("wifi"),
-            medicao("cellular", "Claro"),
-            medicao("cellular", "Vivo"),
-            medicao("cellular", "Claro"),
+            medicao(EstadoConexao.movel.name, "Claro"),
+            medicao(EstadoConexao.movel.name, "Vivo"),
+            medicao(EstadoConexao.movel.name, "Claro"),
         )
 
     // ── testes de historicoFiltrado ────────────────────────────────────────────
@@ -112,7 +113,7 @@ class MainViewModelHistoricoTest {
         runTest {
             val resultado = filtrar(listaCompleta, FiltroConexaoHistorico.MOVEL, null)
             assertTrue(resultado.isNotEmpty())
-            assertTrue(resultado.all { it.connectionType == "cellular" })
+            assertTrue(resultado.all { it.connectionType == EstadoConexao.movel.name })
             assertEquals(3, resultado.size)
         }
 
@@ -151,7 +152,7 @@ class MainViewModelHistoricoTest {
         val lista =
             listOf(
                 medicao("wifi"),
-                medicao("cellular", "Tim"),
+                medicao(EstadoConexao.movel.name, "Tim"),
             )
         val operadoras = operadorasDisponiveis(lista)
         assertEquals(listOf("Tim"), operadoras)
@@ -161,9 +162,9 @@ class MainViewModelHistoricoTest {
     fun `operadorasDisponiveisHistorico ignora operadora nula ou em branco`() {
         val lista =
             listOf(
-                medicao("cellular", null),
-                medicao("cellular", "  "),
-                medicao("cellular", "Nextel"),
+                medicao(EstadoConexao.movel.name, null),
+                medicao(EstadoConexao.movel.name, "  "),
+                medicao(EstadoConexao.movel.name, "Nextel"),
             )
         val operadoras = operadorasDisponiveis(lista)
         assertEquals(listOf("Nextel"), operadoras)
