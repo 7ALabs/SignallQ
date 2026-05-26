@@ -106,6 +106,7 @@ import io.linka.app.kotlin.feature.speedtest.ResultadoSpeedtest
 import io.linka.app.kotlin.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.linka.app.kotlin.feature.wifi.RedeVizinha
 import io.linka.app.kotlin.feature.wifi.SnapshotScanWifi
+import io.linka.app.kotlin.ui.FiltroConexaoHistorico
 import io.linka.app.kotlin.ui.GatewayInfo
 import io.linka.app.kotlin.ui.HistoryPoint
 import io.linka.app.kotlin.ui.IspInfo
@@ -236,6 +237,13 @@ fun AppShell(
     // #82 — Banner Anatel dismissível
     anatelBannerDismissed: Boolean = false,
     onDispensarBannerAnatel: () -> Unit = {},
+    // #95 — Filtros do Historico
+    historicoFiltrado: List<MedicaoEntity> = emptyList(),
+    filtroConexaoHistorico: FiltroConexaoHistorico = FiltroConexaoHistorico.TODOS,
+    onFiltroConexaoHistoricoChange: (FiltroConexaoHistorico) -> Unit = {},
+    filtroOperadoraHistorico: String? = null,
+    onFiltroOperadoraHistoricoChange: (String?) -> Unit = {},
+    operadorasDisponiveisHistorico: List<String> = emptyList(),
 ) {
     val c = LocalLkTokens.current
     // Desempacota UiState<T> → tipos opcionais para as telas filhas que ainda recebem primitivos.
@@ -406,10 +414,10 @@ fun AppShell(
                             onAbrirPerfil = { showPerfilSheet = true },
                             wifiLinkSnapshot = snapshotRede.wifiLinkSnapshot,
                         )
-                    // Tab 3 — Histórico (índice mantido conforme spec)
+                    // Tab 3 — Historico (indice mantido conforme spec)
                     3 ->
                         HistoricoScreen(
-                            historico = historico,
+                            historico = historicoFiltrado,
                             blocoUptime = blocoUptime,
                             narrativaUptime = narrativaUptime,
                             resumoHistorico = resumoHistorico,
@@ -417,6 +425,11 @@ fun AppShell(
                             fotoUri = fotoUriUsuario,
                             onAbrirPerfil = { showPerfilSheet = true },
                             onIniciarTeste = { selectedTab = 1 },
+                            filtroConexao = filtroConexaoHistorico,
+                            onFiltroConexaoChange = onFiltroConexaoHistoricoChange,
+                            filtroOperadora = filtroOperadoraHistorico,
+                            onFiltroOperadoraChange = onFiltroOperadoraHistoricoChange,
+                            operadorasDisponiveis = operadorasDisponiveisHistorico,
                         )
                     // Tab 4 — Ajustes
                     else ->

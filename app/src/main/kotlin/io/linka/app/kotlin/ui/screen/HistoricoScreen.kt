@@ -1,6 +1,7 @@
 package io.linka.app.kotlin.ui.screen
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,12 +35,19 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -56,6 +64,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -72,6 +82,7 @@ import io.linka.app.kotlin.feature.history.BlocoUptime
 import io.linka.app.kotlin.feature.history.ResumoHistorico
 import io.linka.app.kotlin.feature.history.TendenciaEstado
 import io.linka.app.kotlin.feature.history.calcularTendencia
+import io.linka.app.kotlin.ui.FiltroConexaoHistorico
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkRadius
 import io.linka.app.kotlin.ui.LkSpacing
@@ -248,6 +259,11 @@ fun HistoricoScreen(
     fotoUri: String? = null,
     onAbrirPerfil: () -> Unit = {},
     onIniciarTeste: () -> Unit = {},
+    filtroConexao: FiltroConexaoHistorico = FiltroConexaoHistorico.TODOS,
+    onFiltroConexaoChange: (FiltroConexaoHistorico) -> Unit = {},
+    filtroOperadora: String? = null,
+    onFiltroOperadoraChange: (String?) -> Unit = {},
+    operadorasDisponiveis: List<String> = emptyList(),
 ) {
     val c = LocalLkTokens.current
     val scope = rememberCoroutineScope()
@@ -316,13 +332,82 @@ fun HistoricoScreen(
                         100.0,
                     )
                 }
+            val historicoAsc = remember(historico) { historico.reversed() }
+            val mediasCalculadas =
+                remember(historico) {
+                    val dlVals = historico.mapNotNull { it.downloadMbps }
+                    val ulVals = historico.mapNotNull { it.uploadMbps }
+                    val dlMedia = if (dlVals.isNotEmpty()) dlVals.average() else null
+                    val ulMedia = if (ulVals.isNotEmpty()) ulVals.average() else null
+                    Pair(dlMedia, ulMedia)
+                }
+
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(horizontal = LkSpacing.lg, vertical = LkSpacing.lg),
                 verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
             ) {
-                // ── Botão medir agora ──
+                // ── Filtros de conexao ──
+                item(key = "filtros_conexao") {
+                    FiltroConexaoRow(
+                        filtroAtivo = filtroConexao,
+                        onFiltroChange = onFiltroConexaoChange,
+                        filtroOperadora = filtroOperadora,
+                        onFiltroOperadoraChange = onFiltroOperadoraChange,
+                        operadorasDisponiveis = operadorasDisponiveis,
+                        c = c,
+                    )
+                }
+
+                // ── Grafico de linha (condicional: >= 2 medicoes com dados) ──
+                val pontosComDados =
+                    historicoAsc.count { it.downloadMbps != null || it.uploadMbps != null }
+                if (pontosComDados >= 2) {
+                    item(key = "grafico_linha") {
+                        HistoricoLineChart(
+                            medicoes = historicoAsc,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(140.dp),
+                        )
+                    }
+                }
+
+                // ── Cards de media (condicional: >= 1 medicao com dados) ──
+                if (historico.isNotEmpty()) {
+                    item(key = "media_download_upload") {
+                        MediaDownloadUploadRow(
+                            dlMedia = mediasCalculadas.first,
+                            ulMedia = mediasCalculadas.second,
+                            total = historico.size,
+                            c = c,
+                        )
+                    }
+                }
+
+                // ── Mensagem inline quando filtro nao tem resultados ──
+                if (historico.isEmpty() && filtroConexao != FiltroConexaoHistorico.TODOS) {
+                    item(key = "filtro_sem_resultados") {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = LkSpacing.lg),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                "Nenhum teste encontrado para este filtro",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = c.textSecondary,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                }
+
+                // ── Botao medir agora ──
                 item(key = "medir_agora") {
                     Button(
                         onClick = onIniciarTeste,
@@ -339,7 +424,7 @@ fun HistoricoScreen(
                     }
                 }
 
-                // ── TendenciaCard (aparece antes do uptime quando há >= 2 medições) ──
+                // ── TendenciaCard (aparece antes do uptime quando ha >= 2 medicoes) ──
                 resumoHistorico?.let { resumo ->
                     if (resumo.totalMedicoes >= 2) {
                         item(key = "tendencia") {
@@ -400,6 +485,235 @@ fun HistoricoScreen(
                     }
                 },
             )
+        }
+    }
+}
+
+// ─── Grafico de linha ─────────────────────────────────────────────────────────
+
+@Composable
+private fun HistoricoLineChart(
+    medicoes: List<MedicaoEntity>,
+    modifier: Modifier = Modifier,
+) {
+    val accentBlue = LkColors.accentBlue
+    val accent = LkColors.accent
+    Canvas(modifier = modifier) {
+        val dlPairs = medicoes.mapIndexedNotNull { i, m -> m.downloadMbps?.let { i.toFloat() to it.toFloat() } }
+        val ulPairs = medicoes.mapIndexedNotNull { i, m -> m.uploadMbps?.let { i.toFloat() to it.toFloat() } }
+        val allVals = dlPairs.map { it.second } + ulPairs.map { it.second }
+        if (allVals.isEmpty()) return@Canvas
+        val maxY = allVals.max() * 1.2f
+        val n = (medicoes.size - 1).coerceAtLeast(1).toFloat()
+
+        fun toX(idx: Float) = idx / n * size.width
+
+        fun toY(v: Float) = size.height - (v / maxY * size.height)
+
+        fun smoothPath(pts: List<Pair<Float, Float>>): Path {
+            val path = Path()
+            if (pts.isEmpty()) return path
+            path.moveTo(toX(pts[0].first), toY(pts[0].second))
+            for (k in 1 until pts.size) {
+                val prev = pts[k - 1]
+                val curr = pts[k]
+                val cpx = (toX(prev.first) + toX(curr.first)) / 2f
+                path.cubicTo(cpx, toY(prev.second), cpx, toY(curr.second), toX(curr.first), toY(curr.second))
+            }
+            return path
+        }
+
+        if (dlPairs.isNotEmpty()) {
+            val linePath = smoothPath(dlPairs)
+            val fillPath =
+                Path().also {
+                    it.addPath(linePath)
+                    it.lineTo(toX(dlPairs.last().first), size.height)
+                    it.lineTo(toX(dlPairs.first().first), size.height)
+                    it.close()
+                }
+            drawPath(fillPath, accentBlue.copy(alpha = 0.1f))
+            drawPath(
+                linePath,
+                accentBlue,
+                style = Stroke(2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round),
+            )
+        }
+        if (ulPairs.isNotEmpty()) {
+            val linePath = smoothPath(ulPairs)
+            val fillPath =
+                Path().also {
+                    it.addPath(linePath)
+                    it.lineTo(toX(ulPairs.last().first), size.height)
+                    it.lineTo(toX(ulPairs.first().first), size.height)
+                    it.close()
+                }
+            drawPath(fillPath, accent.copy(alpha = 0.07f))
+            drawPath(
+                linePath,
+                accent,
+                style = Stroke(2.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round, join = androidx.compose.ui.graphics.StrokeJoin.Round),
+            )
+        }
+    }
+}
+
+// ─── Cards de media ───────────────────────────────────────────────────────────
+
+@Composable
+private fun MediaDownloadUploadRow(
+    dlMedia: Double?,
+    ulMedia: Double?,
+    total: Int,
+    c: LkTokens,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+    ) {
+        MediaCard(
+            arrow = "↓",
+            label = "Download medio",
+            value = dlMedia?.let { "%.1f".format(it) } ?: "--",
+            subtexto = "$total testes",
+            color = LkColors.accentBlue,
+            modifier = Modifier.weight(1f),
+            c = c,
+        )
+        MediaCard(
+            arrow = "↑",
+            label = "Upload medio",
+            value = ulMedia?.let { "%.1f".format(it) } ?: "--",
+            subtexto = "$total testes",
+            color = LkColors.accent,
+            modifier = Modifier.weight(1f),
+            c = c,
+        )
+    }
+}
+
+@Composable
+private fun MediaCard(
+    arrow: String,
+    label: String,
+    value: String,
+    subtexto: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+    c: LkTokens,
+) {
+    Card(
+        modifier = modifier,
+        border = BorderStroke(1.dp, c.border),
+        colors = CardDefaults.cardColors(containerColor = c.bgCard),
+        shape = RoundedCornerShape(LkRadius.card),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(LkSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+        ) {
+            Text("$arrow $label", style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W700, color = color)
+                Spacer(Modifier.width(4.dp))
+                Text("Mbps", style = MaterialTheme.typography.labelSmall, color = c.textSecondary, modifier = Modifier.padding(bottom = 2.dp))
+            }
+            Text(subtexto, style = MaterialTheme.typography.labelSmall, color = c.textTertiary)
+        }
+    }
+}
+
+// ─── Filtros de conexao ───────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FiltroConexaoRow(
+    filtroAtivo: FiltroConexaoHistorico,
+    onFiltroChange: (FiltroConexaoHistorico) -> Unit,
+    filtroOperadora: String?,
+    onFiltroOperadoraChange: (String?) -> Unit,
+    operadorasDisponiveis: List<String>,
+    c: LkTokens,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+        ) {
+            FiltroConexaoHistorico.entries.forEach { filtro ->
+                val label =
+                    when (filtro) {
+                        FiltroConexaoHistorico.TODOS -> "Todos"
+                        FiltroConexaoHistorico.WIFI -> "Wi-Fi"
+                        FiltroConexaoHistorico.MOVEL -> "Rede movel"
+                    }
+                FilterChip(
+                    selected = filtroAtivo == filtro,
+                    onClick = { onFiltroChange(filtro) },
+                    label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+                    colors =
+                        FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
+                            selectedLabelColor = LkColors.accent,
+                        ),
+                    border =
+                        FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = filtroAtivo == filtro,
+                            selectedBorderColor = LkColors.accent,
+                            borderColor = c.border,
+                        ),
+                )
+            }
+        }
+
+        if (filtroAtivo == FiltroConexaoHistorico.MOVEL && operadorasDisponiveis.isNotEmpty()) {
+            var expandido by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = expandido,
+                onExpandedChange = { expandido = it },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                OutlinedTextField(
+                    value = filtroOperadora ?: "Todas as operadoras",
+                    onValueChange = {},
+                    readOnly = true,
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandido) },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    singleLine = true,
+                    colors =
+                        ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+                            unfocusedBorderColor = c.border,
+                            focusedBorderColor = LkColors.accent,
+                        ),
+                )
+                ExposedDropdownMenu(
+                    expanded = expandido,
+                    onDismissRequest = { expandido = false },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Todas as operadoras", style = MaterialTheme.typography.bodyMedium) },
+                        onClick = {
+                            onFiltroOperadoraChange(null)
+                            expandido = false
+                        },
+                    )
+                    operadorasDisponiveis.forEach { op ->
+                        DropdownMenuItem(
+                            text = { Text(op, style = MaterialTheme.typography.bodyMedium) },
+                            onClick = {
+                                onFiltroOperadoraChange(op)
+                                expandido = false
+                            },
+                        )
+                    }
+                }
+            }
         }
     }
 }
