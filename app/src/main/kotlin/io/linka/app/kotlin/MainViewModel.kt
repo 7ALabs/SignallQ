@@ -55,6 +55,7 @@ import io.linka.app.kotlin.notificacao.LinkaNotificationHelper
 import io.linka.app.kotlin.pulse.OrbitOrchestrator
 import io.linka.app.kotlin.pulse.OrbitUiStateMapper
 import io.linka.app.kotlin.ui.ConnectionNodeType
+import io.linka.app.kotlin.ui.FiltroConexaoHistorico
 import io.linka.app.kotlin.ui.GatewayInfo
 import io.linka.app.kotlin.ui.HistoryPoint
 import io.linka.app.kotlin.ui.IspInfo
@@ -332,6 +333,50 @@ class MainViewModel
         val gateways = MutableStateFlow<List<GatewayInfo>>(emptyList())
         val history = MutableStateFlow<List<HistoryPoint>>(emptyList())
         val historico = MutableStateFlow<List<MedicaoEntity>>(emptyList())
+
+        // ── Filtros do Histórico (#95) ─────────────────────────────────────────
+        private val _filtroConexaoHistorico = MutableStateFlow(FiltroConexaoHistorico.TODOS)
+        val filtroConexaoHistorico: StateFlow<FiltroConexaoHistorico> = _filtroConexaoHistorico
+
+        private val _filtroOperadoraHistorico = MutableStateFlow<String?>(null)
+        val filtroOperadoraHistorico: StateFlow<String?> = _filtroOperadoraHistorico
+
+        val historicoFiltrado: StateFlow<List<MedicaoEntity>> =
+            combine(
+                historico,
+                _filtroConexaoHistorico,
+                _filtroOperadoraHistorico,
+            ) { lista, filtroConexao, filtroOp ->
+                lista
+                    .filter { m ->
+                        when (filtroConexao) {
+                            FiltroConexaoHistorico.TODOS -> true
+                            FiltroConexaoHistorico.WIFI -> m.connectionType == "wifi"
+                            FiltroConexaoHistorico.MOVEL -> m.connectionType == "cellular"
+                        }
+                    }.filter { m -> filtroOp == null || m.operadoraMovel == filtroOp }
+            }.distinctUntilChanged()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+        val operadorasDisponiveisHistorico: StateFlow<List<String>> =
+            historico
+                .map { lista ->
+                    lista
+                        .filter { it.connectionType == "cellular" }
+                        .mapNotNull { it.operadoraMovel?.trim()?.ifBlank { null } }
+                        .distinct()
+                        .sorted()
+                }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+        fun setFiltroConexaoHistorico(filtro: FiltroConexaoHistorico) {
+            _filtroConexaoHistorico.value = filtro
+            if (filtro != FiltroConexaoHistorico.MOVEL) _filtroOperadoraHistorico.value = null
+        }
+
+        fun setFiltroOperadoraHistorico(operadora: String?) {
+            _filtroOperadoraHistorico.value = operadora
+        }
+
         val localizacaoServidor = MutableStateFlow<UiState<String>>(UiState.Loading)
         val blocoUptime = MutableStateFlow<List<BlocoUptime>>(emptyList())
         val narrativaUptime = MutableStateFlow<String>("")
@@ -978,7 +1023,10 @@ class MainViewModel
             }
         }
 
-        fun salvarVelocidadeContratada(downMbps: Int, upMbps: Int) {
+        fun salvarVelocidadeContratada(
+            downMbps: Int,
+            upMbps: Int,
+        ) {
             viewModelScope.launch {
                 preferenciasAppRepository.definirVelocidadeContratadaDownMbps(downMbps)
                 preferenciasAppRepository.definirVelocidadeContratadaUpMbps(upMbps)

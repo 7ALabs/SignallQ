@@ -104,6 +104,11 @@ class MainActivity : ComponentActivity() {
             val blocoUptime = viewModel.blocoUptime.collectAsStateWithLifecycle().value
             val narrativaUptime = viewModel.narrativaUptime.collectAsStateWithLifecycle().value
             val resumoHistorico = viewModel.resumoHistorico.collectAsStateWithLifecycle().value
+            // #95 — Filtros do Historico
+            val historicoFiltrado = viewModel.historicoFiltrado.collectAsStateWithLifecycle().value
+            val filtroConexaoHistorico = viewModel.filtroConexaoHistorico.collectAsStateWithLifecycle().value
+            val filtroOperadoraHistorico = viewModel.filtroOperadoraHistorico.collectAsStateWithLifecycle().value
+            val operadorasDisponiveisHistorico = viewModel.operadorasDisponiveisHistorico.collectAsStateWithLifecycle().value
 
             // --- Preferencias combinadas (1 subscricao por grupo) ---
             val preferenciasModem = viewModel.preferenciasModem.collectAsStateWithLifecycle().value
@@ -318,6 +323,12 @@ class MainActivity : ComponentActivity() {
                         },
                         anatelBannerDismissed = anatelBannerDismissed,
                         onDispensarBannerAnatel = { viewModel.dispensarBannerAnatel() },
+                        historicoFiltrado = historicoFiltrado,
+                        filtroConexaoHistorico = filtroConexaoHistorico,
+                        onFiltroConexaoHistoricoChange = { viewModel.setFiltroConexaoHistorico(it) },
+                        filtroOperadoraHistorico = filtroOperadoraHistorico,
+                        onFiltroOperadoraHistoricoChange = { viewModel.setFiltroOperadoraHistorico(it) },
+                        operadorasDisponiveisHistorico = operadorasDisponiveisHistorico,
                     )
                 } // else onboardingConcluido
             }

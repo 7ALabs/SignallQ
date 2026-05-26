@@ -3,6 +3,7 @@ package io.linka.app.kotlin.ui.screen
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,6 +37,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +47,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -55,9 +60,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -65,6 +76,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.linka.app.kotlin.core.database.MedicaoEntity
@@ -72,6 +84,7 @@ import io.linka.app.kotlin.feature.history.BlocoUptime
 import io.linka.app.kotlin.feature.history.ResumoHistorico
 import io.linka.app.kotlin.feature.history.TendenciaEstado
 import io.linka.app.kotlin.feature.history.calcularTendencia
+import io.linka.app.kotlin.ui.FiltroConexaoHistorico
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkRadius
 import io.linka.app.kotlin.ui.LkSpacing
@@ -81,9 +94,23 @@ import io.linka.app.kotlin.ui.component.ProfileAvatarButton
 import io.linka.app.kotlin.ui.component.rememberTopBarAlpha
 import kotlinx.coroutines.launch
 import java.util.Calendar
+import kotlin.math.abs
+import kotlin.math.roundToInt
+
+// ─── Filtro enum ──────────────────────────────────────────────────────────────
+
+private typealias FiltroTipo = FiltroConexaoHistorico
+
+private val FiltroConexaoHistorico.label: String
+    get() = when (this) {
+        FiltroConexaoHistorico.TODOS -> "Todos"
+        FiltroConexaoHistorico.WIFI -> "Wi-Fi"
+        FiltroConexaoHistorico.MOVEL -> "Rede móvel"
+    }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+@Suppress("unused")
 private fun qualidadeLabel(m: MedicaoEntity): String {
     val dl = m.downloadMbps ?: return "--"
     return when {
@@ -94,6 +121,7 @@ private fun qualidadeLabel(m: MedicaoEntity): String {
     }
 }
 
+@Suppress("unused")
 private fun qualidadeColor(
     m: MedicaoEntity,
     c: LkTokens,
@@ -150,6 +178,7 @@ private fun formatFullDate(epochMs: Long): String {
     return "$d/$mo/$y às $h:$m"
 }
 
+@Suppress("unused")
 private fun mbpsStr(v: Double?): String = v?.let { "%.0f".format(it) } ?: "--"
 
 private fun vereditoLabel(v: String?): String? =
@@ -235,6 +264,356 @@ private fun TendenciaCard(
     }
 }
 
+// ─── Gráfico de linha ─────────────────────────────────────────────────────────
+
+private data class TapLabel(
+    val text: String,
+    val x: Float,
+    val y: Float,
+)
+
+@Composable
+private fun LineChartGrafico(
+    medicoes: List<MedicaoEntity>,
+    c: LkTokens,
+) {
+    if (medicoes.isEmpty()) {
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(160.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "Sem dados para o filtro selecionado",
+                style = MaterialTheme.typography.bodySmall,
+                color = c.textTertiary,
+                textAlign = TextAlign.Center,
+            )
+        }
+        return
+    }
+
+    val ordered = remember(medicoes) { medicoes.sortedBy { it.timestampEpochMs } }
+    val maxMbps =
+        remember(ordered) {
+            ordered
+                .flatMap { listOf(it.downloadMbps ?: 0.0, it.uploadMbps ?: 0.0) }
+                .maxOrNull()
+                ?.coerceAtLeast(1.0) ?: 1.0
+        }
+
+    var tapLabel by remember { mutableStateOf<TapLabel?>(null) }
+
+    val density = LocalDensity.current
+    val chartHeightDp = 160.dp
+    val yAxisWidthDp = 36.dp
+    val dotRadiusDp = 4.dp
+    val tapThresholdDp = 24.dp
+
+    val dlPoints = remember(ordered) { mutableListOf<Pair<Float, Float>>() }
+    val ulPoints = remember(ordered) { mutableListOf<Pair<Float, Float>>() }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Legenda
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = LkSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(LkColors.accent))
+                Text("↓ Download", style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(LkColors.accentBlue))
+                Text("↑ Upload", style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
+            }
+        }
+
+        Spacer(Modifier.height(LkSpacing.xs))
+
+        Box(modifier = Modifier.fillMaxWidth().height(chartHeightDp)) {
+            val yAxisWidthPx = with(density) { yAxisWidthDp.toPx() }
+            val dotRadiusPx = with(density) { dotRadiusDp.toPx() }
+            val tapThresholdPx = with(density) { tapThresholdDp.toPx() }
+            val gridLevels = listOf(0.0, 0.33, 0.67, 1.0)
+
+            androidx.compose.foundation.Canvas(
+                modifier =
+                    Modifier.fillMaxSize().pointerInput(ordered) {
+                        detectTapGestures { tapOffset ->
+                            if (ordered.isEmpty()) return@detectTapGestures
+                            var closestDist = Float.MAX_VALUE
+                            var closestLabel: TapLabel? = null
+                            dlPoints.forEachIndexed { i, (px, py) ->
+                                val dist = abs(tapOffset.x - px) + abs(tapOffset.y - py)
+                                if (dist < closestDist && dist < tapThresholdPx * 2) {
+                                    closestDist = dist
+                                    val v = ordered.getOrNull(i)?.downloadMbps
+                                    if (v != null) closestLabel = TapLabel("↓ ${"%.0f".format(v)} Mbps", px, py)
+                                }
+                            }
+                            ulPoints.forEachIndexed { i, (px, py) ->
+                                val dist = abs(tapOffset.x - px) + abs(tapOffset.y - py)
+                                if (dist < closestDist && dist < tapThresholdPx * 2) {
+                                    closestDist = dist
+                                    val v = ordered.getOrNull(i)?.uploadMbps
+                                    if (v != null) closestLabel = TapLabel("↑ ${"%.0f".format(v)} Mbps", px, py)
+                                }
+                            }
+                            tapLabel = closestLabel
+                        }
+                    },
+            ) {
+                val w = size.width
+                val h = size.height
+                val chartW = w - yAxisWidthPx
+                val n = ordered.size
+                val dashEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 4f))
+                gridLevels.forEach { level ->
+                    val y = h - (level * h).toFloat()
+                    drawLine(
+                        color = c.border,
+                        start = Offset(yAxisWidthPx, y),
+                        end = Offset(w, y),
+                        strokeWidth = 1.dp.toPx(),
+                        pathEffect = dashEffect,
+                    )
+                }
+
+                fun drawPolyline(
+                    values: List<Double?>,
+                    color: Color,
+                    points: MutableList<Pair<Float, Float>>,
+                ) {
+                    points.clear()
+                    val path = Path()
+                    var firstPoint = true
+                    values.forEachIndexed { i, v ->
+                        val x = if (n == 1) yAxisWidthPx + chartW / 2f else yAxisWidthPx + (i.toFloat() / (n - 1)) * chartW
+                        val frac = ((v ?: 0.0) / maxMbps).coerceIn(0.0, 1.0).toFloat()
+                        val y = h - frac * h * 0.85f - h * 0.05f
+                        points.add(Pair(x, y))
+                        if (v != null) {
+                            if (firstPoint) {
+                                path.moveTo(x, y)
+                                firstPoint = false
+                            } else {
+                                path.lineTo(x, y)
+                            }
+                        }
+                    }
+                    drawPath(path = path, color = color, style = Stroke(width = 2.dp.toPx()))
+                    values.forEachIndexed { i, v ->
+                        if (v != null) {
+                            val (px, py) = points[i]
+                            drawCircle(color = color, radius = dotRadiusPx, center = Offset(px, py))
+                        }
+                    }
+                }
+
+                drawPolyline(ordered.map { it.downloadMbps }, LkColors.accent, dlPoints)
+                drawPolyline(ordered.map { it.uploadMbps }, LkColors.accentBlue, ulPoints)
+            }
+
+            // Y-axis labels
+            gridLevels.forEach { level ->
+                val valueMbps = (level * maxMbps).roundToInt()
+                val yFrac = (1.0 - level).toFloat()
+                val yOffsetDp = chartHeightDp * yFrac
+                Text(
+                    text = "$valueMbps",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.textTertiary,
+                    modifier =
+                        Modifier
+                            .align(Alignment.TopStart)
+                            .padding(top = yOffsetDp.coerceAtMost(chartHeightDp - 14.dp)),
+                )
+            }
+
+            // Tap label popup
+            val tl = tapLabel
+            if (tl != null) {
+                with(density) {
+                    Surface(
+                        modifier =
+                            Modifier
+                                .offset {
+                                    IntOffset(
+                                        (tl.x - 40.dp.toPx()).roundToInt().coerceAtLeast(0),
+                                        (tl.y - 32.dp.toPx()).roundToInt().coerceAtLeast(0),
+                                    )
+                                }.clickable { tapLabel = null },
+                        shape = RoundedCornerShape(6.dp),
+                        color = c.bgCard,
+                        shadowElevation = 4.dp,
+                        border = BorderStroke(1.dp, c.border),
+                    ) {
+                        Text(
+                            text = tl.text,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.W600,
+                            color = c.textPrimary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ─── Cards de média ───────────────────────────────────────────────────────────
+
+@Composable
+private fun MediaCards(
+    medicoes: List<MedicaoEntity>,
+    c: LkTokens,
+) {
+    val validas = remember(medicoes) { medicoes.filter { !it.contaminado } }
+    val mediaDl =
+        remember(validas) {
+            val vals = validas.mapNotNull { it.downloadMbps }
+            if (vals.isEmpty()) null else vals.average()
+        }
+    val mediaUl =
+        remember(validas) {
+            val vals = validas.mapNotNull { it.uploadMbps }
+            if (vals.isEmpty()) null else vals.average()
+        }
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+    ) {
+        MediaCard(
+            label = "DOWNLOAD MÉDIO",
+            value = mediaDl?.let { "%.0f Mbps".format(it) } ?: "--",
+            color = LkColors.accent,
+            modifier = Modifier.weight(1f),
+            c = c,
+        )
+        MediaCard(
+            label = "UPLOAD MÉDIO",
+            value = mediaUl?.let { "%.0f Mbps".format(it) } ?: "--",
+            color = LkColors.accentBlue,
+            modifier = Modifier.weight(1f),
+            c = c,
+        )
+    }
+}
+
+@Composable
+private fun MediaCard(
+    label: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+    c: LkTokens,
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = c.bgCard),
+        border = BorderStroke(1.dp, c.border),
+        shape = RoundedCornerShape(LkRadius.card),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(LkSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+        ) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
+            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = color)
+        }
+    }
+}
+
+// ─── Filtros de conexão ───────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FiltrosConexao(
+    filtroSelecionado: FiltroTipo,
+    onFiltroChange: (FiltroTipo) -> Unit,
+    operadorasDisponiveis: List<String>,
+    filtroOperadora: String?,
+    onFiltroOperadoraChange: (String?) -> Unit,
+    c: LkTokens,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
+            FiltroTipo.entries.forEach { filtro ->
+                FilterChip(
+                    selected = filtroSelecionado == filtro,
+                    onClick = { onFiltroChange(filtro) },
+                    label = { Text(filtro.label, style = MaterialTheme.typography.labelSmall) },
+                    colors =
+                        FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
+                            selectedLabelColor = LkColors.accent,
+                        ),
+                    border =
+                        FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = filtroSelecionado == filtro,
+                            borderColor = c.border,
+                            selectedBorderColor = LkColors.accent,
+                        ),
+                )
+            }
+        }
+
+        if (filtroSelecionado == FiltroTipo.MOVEL && operadorasDisponiveis.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
+                FilterChip(
+                    selected = filtroOperadora == null,
+                    onClick = { onFiltroOperadoraChange(null) },
+                    label = { Text("Todas", style = MaterialTheme.typography.labelSmall) },
+                    colors =
+                        FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = LkColors.accentBlue.copy(alpha = 0.15f),
+                            selectedLabelColor = LkColors.accentBlue,
+                        ),
+                    border =
+                        FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = filtroOperadora == null,
+                            borderColor = c.border,
+                            selectedBorderColor = LkColors.accentBlue,
+                        ),
+                )
+                operadorasDisponiveis.forEach { op ->
+                    FilterChip(
+                        selected = filtroOperadora == op,
+                        onClick = { onFiltroOperadoraChange(op) },
+                        label = { Text(op, style = MaterialTheme.typography.labelSmall) },
+                        colors =
+                            FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = LkColors.accentBlue.copy(alpha = 0.15f),
+                                selectedLabelColor = LkColors.accentBlue,
+                            ),
+                        border =
+                            FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = filtroOperadora == op,
+                                borderColor = c.border,
+                                selectedBorderColor = LkColors.accentBlue,
+                            ),
+                    )
+                }
+            }
+        }
+    }
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -248,19 +627,54 @@ fun HistoricoScreen(
     fotoUri: String? = null,
     onAbrirPerfil: () -> Unit = {},
     onIniciarTeste: () -> Unit = {},
+    filtroConexao: FiltroConexaoHistorico? = null,
+    onFiltroConexaoChange: (FiltroConexaoHistorico) -> Unit = {},
+    filtroOperadora: String? = null,
+    onFiltroOperadoraChange: (String?) -> Unit = {},
+    operadorasDisponiveis: List<String> = emptyList(),
 ) {
     val c = LocalLkTokens.current
     val scope = rememberCoroutineScope()
 
-    // ── Estados dos dois sheets exclusivos ──
     var selectedMedicao by remember { mutableStateOf<MedicaoEntity?>(null) }
     var mostrarExport by remember { mutableStateOf(false) }
+
+    // Controlled mode: use external state from AppShell/ViewModel
+    // Uncontrolled mode: use internal session state
+    var filtroConexaoInterno by remember { mutableStateOf(FiltroTipo.TODOS) }
+    var filtroOperadoraInterno by remember { mutableStateOf<String?>(null) }
+    val filtroConexaoAtivo = filtroConexao ?: filtroConexaoInterno
+    val filtroOperadoraAtivo = if (filtroConexao != null) filtroOperadora else filtroOperadoraInterno
 
     val sheetDetalheState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val sheetExportState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
     val topBarAlpha = listState.rememberTopBarAlpha()
+
+    val operadorasDisponiveisAtivas =
+        if (filtroConexao != null) {
+            operadorasDisponiveis
+        } else {
+            remember(historico) {
+                historico.filter { it.connectionType == "cellular" }
+                    .mapNotNull { it.operadoraMovel }
+                    .distinct()
+                    .sorted()
+            }
+        }
+
+    val historicoFiltrado =
+        remember(historico, filtroConexaoAtivo, filtroOperadoraAtivo) {
+            historico
+                .filter { m ->
+                    when (filtroConexaoAtivo) {
+                        FiltroTipo.TODOS -> true
+                        FiltroTipo.WIFI -> m.connectionType == "wifi"
+                        FiltroTipo.MOVEL -> m.connectionType == "cellular"
+                    }
+                }.filter { m -> filtroOperadoraAtivo == null || m.operadoraMovel == filtroOperadoraAtivo }
+        }
 
     Scaffold(
         containerColor = c.bgPrimary,
@@ -276,11 +690,7 @@ fun HistoricoScreen(
                     }
                 },
                 navigationIcon = {
-                    ProfileAvatarButton(
-                        nomeUsuario = nomeUsuario,
-                        fotoUri = fotoUri,
-                        onClick = onAbrirPerfil,
-                    )
+                    ProfileAvatarButton(nomeUsuario = nomeUsuario, fotoUri = fotoUri, onClick = onAbrirPerfil)
                 },
                 actions = {
                     IconButton(
@@ -310,9 +720,9 @@ fun HistoricoScreen(
             EmptyHistorico(modifier = Modifier.fillMaxSize().padding(padding), onIniciarTeste = onIniciarTeste)
         } else {
             val maxValue =
-                remember(historico) {
+                remember(historicoFiltrado) {
                     maxOf(
-                        historico.flatMap { listOf(it.downloadMbps ?: 0.0, it.uploadMbps ?: 0.0) }.maxOrNull() ?: 100.0,
+                        historicoFiltrado.flatMap { listOf(it.downloadMbps ?: 0.0, it.uploadMbps ?: 0.0) }.maxOrNull() ?: 100.0,
                         100.0,
                     )
                 }
@@ -322,7 +732,35 @@ fun HistoricoScreen(
                 contentPadding = PaddingValues(horizontal = LkSpacing.lg, vertical = LkSpacing.lg),
                 verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
             ) {
-                // ── Botão medir agora ──
+                item(key = "grafico_linha") {
+                    LineChartGrafico(medicoes = historicoFiltrado, c = c)
+                }
+                item(key = "media_cards") {
+                    MediaCards(medicoes = historicoFiltrado, c = c)
+                }
+                item(key = "filtros_conexao") {
+                    FiltrosConexao(
+                        filtroSelecionado = filtroConexaoAtivo,
+                        onFiltroChange = { novo ->
+                            if (filtroConexao != null) {
+                                onFiltroConexaoChange(novo)
+                            } else {
+                                filtroConexaoInterno = novo
+                                if (novo != FiltroTipo.MOVEL) filtroOperadoraInterno = null
+                            }
+                        },
+                        operadorasDisponiveis = operadorasDisponiveisAtivas,
+                        filtroOperadora = filtroOperadoraAtivo,
+                        onFiltroOperadoraChange = { op ->
+                            if (filtroConexao != null) {
+                                onFiltroOperadoraChange(op)
+                            } else {
+                                filtroOperadoraInterno = op
+                            }
+                        },
+                        c = c,
+                    )
+                }
                 item(key = "medir_agora") {
                     Button(
                         onClick = onIniciarTeste,
@@ -331,15 +769,9 @@ fun HistoricoScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
                         contentPadding = PaddingValues(vertical = 14.dp),
                     ) {
-                        Text(
-                            "Medir agora",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.W600,
-                        )
+                        Text("Medir agora", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600)
                     }
                 }
-
-                // ── TendenciaCard (aparece antes do uptime quando há >= 2 medições) ──
                 resumoHistorico?.let { resumo ->
                     if (resumo.totalMedicoes >= 2) {
                         item(key = "tendencia") {
@@ -347,8 +779,7 @@ fun HistoricoScreen(
                         }
                     }
                 }
-
-                items(historico, key = { it.id }) { medicao ->
+                items(historicoFiltrado, key = { it.id }) { medicao ->
                     HistoricoCard(
                         medicao = medicao,
                         maxValue = maxValue,
@@ -367,7 +798,6 @@ fun HistoricoScreen(
         }
     }
 
-    // ── Sheet de detalhe de medicao ──
     val sel = selectedMedicao
     if (sel != null) {
         ModalBottomSheet(
@@ -380,7 +810,6 @@ fun HistoricoScreen(
         }
     }
 
-    // ── Sheet de export ──
     if (mostrarExport) {
         ModalBottomSheet(
             onDismissRequest = { mostrarExport = false },
@@ -430,9 +859,7 @@ private fun EmptyHistorico(
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(LkSpacing.lg))
-            Button(onClick = onIniciarTeste) {
-                Text("Fazer primeiro teste")
-            }
+            Button(onClick = onIniciarTeste) { Text("Fazer primeiro teste") }
         }
     }
 }
@@ -465,7 +892,6 @@ private fun HistoricoCard(
             modifier = Modifier.padding(LkSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
         ) {
-            // Header: data + badges + rede
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -489,12 +915,8 @@ private fun HistoricoCard(
                 Spacer(Modifier.width(LkSpacing.xs))
                 Text(tipoLabel(medicao), style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
             }
-
-            // Barras de velocidade
             SpeedBar(value = medicao.downloadMbps, maxValue = maxValue, color = LkColors.accentBlue, arrowLabel = "↓")
             SpeedBar(value = medicao.uploadMbps, maxValue = maxValue, color = LkColors.accent, arrowLabel = "↑")
-
-            // Footer: latência
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.Language, null, tint = c.textTertiary, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(LkSpacing.xs))
@@ -520,10 +942,7 @@ private fun SpeedBar(
     val barDesc = "$label ${value?.let { "%.1f".format(it) } ?: "sem dados"} Mbps"
 
     Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .semantics { contentDescription = barDesc },
+        modifier = Modifier.fillMaxWidth().semantics { contentDescription = barDesc },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
@@ -593,7 +1012,6 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
     ) {
         item {
             Column(Modifier.fillMaxWidth()) {
-                // Drag handle
                 Box(
                     Modifier
                         .padding(vertical = LkSpacing.sm)
@@ -604,8 +1022,6 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
                         .background(c.border),
                 )
                 Spacer(Modifier.height(LkSpacing.sm))
-
-                // Header
                 Text(
                     "Detalhes do teste",
                     modifier = Modifier.padding(horizontal = LkSpacing.xl),
@@ -619,17 +1035,10 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
                     style = MaterialTheme.typography.bodySmall,
                     color = c.textSecondary,
                 )
-
                 Spacer(Modifier.height(LkSpacing.lg))
                 HorizontalDivider(color = c.border)
                 Spacer(Modifier.height(LkSpacing.lg))
-
-                // Primary metrics
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = LkSpacing.xl),
-                ) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = LkSpacing.xl)) {
                     PrimaryMetric(
                         arrow = "↓",
                         arrowColor = LkColors.accent,
@@ -652,25 +1061,16 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
                         modifier = Modifier.weight(1f),
                     )
                 }
-
                 Spacer(Modifier.height(LkSpacing.lg))
-
-                // Secondary metrics
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = LkSpacing.xl),
-                ) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = LkSpacing.xl)) {
                     SecondaryMetric("Latência", latency?.let { "%.0f ms".format(it) } ?: "--", Modifier.weight(1f))
                     SecondaryMetric("Oscilação", jitter?.let { "%.1f ms".format(it) } ?: "--", Modifier.weight(1f))
                     SecondaryMetric("Perda", perda?.let { "%.1f%%".format(it) } ?: "--", Modifier.weight(1f))
                 }
-
                 Spacer(Modifier.height(LkSpacing.lg))
                 HorizontalDivider(color = c.border)
             }
         }
-
         if (medicao.fonte == "orbit") {
             item { SheetRow("Origem", "Orbit (IA)", valueColor = LkColors.accent) }
             item { HorizontalDivider(color = c.border) }
@@ -745,9 +1145,7 @@ private fun SheetRow(
 ) {
     val c = LocalLkTokens.current
     Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg),
+        Modifier.fillMaxWidth().padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {

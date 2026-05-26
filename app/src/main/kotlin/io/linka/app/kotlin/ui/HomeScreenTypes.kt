@@ -1,5 +1,11 @@
 package io.linka.app.kotlin.ui
 
+enum class FiltroConexaoHistorico {
+    TODOS,
+    WIFI,
+    MOVEL,
+}
+
 data class HistoryPoint(
     val timestampEpochMs: Long,
     val downloadMbps: Double?,
