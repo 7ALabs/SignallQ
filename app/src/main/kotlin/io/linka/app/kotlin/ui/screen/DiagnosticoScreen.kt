@@ -12,6 +12,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -748,29 +749,35 @@ private fun DiagnosticoResultadoContent(
         ) {
             // Card 1 — StatusDiagnosticoCard
             item {
-                StatusDiagnosticoCard(c = c, result = result)
+                StaggeredCard(index = 0) {
+                    StatusDiagnosticoCard(c = c, result = result)
+                }
             }
 
             // Card 2 — PrincipalPontoCard (só se houver problema principal com descrição)
             if (result.problemaPrincipal.descricao.isNotBlank()) {
                 item {
-                    PrincipalPontoCard(
-                        c = c,
-                        result = result,
-                        onAbrirRedes = onAbrirRedes,
-                    )
+                    StaggeredCard(index = 1) {
+                        PrincipalPontoCard(
+                            c = c,
+                            result = result,
+                            onAbrirRedes = onAbrirRedes,
+                        )
+                    }
                 }
             }
 
             // Card 3 — OQueFazerCard (só se houver ações)
             if (result.acoesRecomendadas.isNotEmpty()) {
                 item {
-                    OQueFazerCard(
-                        c = c,
-                        actions = result.acoesRecomendadas,
-                        onAbrirRedes = onAbrirRedes,
-                        onReanalisar = onReanalisar,
-                    )
+                    StaggeredCard(index = 2) {
+                        OQueFazerCard(
+                            c = c,
+                            actions = result.acoesRecomendadas,
+                            onAbrirRedes = onAbrirRedes,
+                            onReanalisar = onReanalisar,
+                        )
+                    }
                 }
             }
 
@@ -787,23 +794,25 @@ private fun DiagnosticoResultadoContent(
 
             if (temEvidencias || temClassificacao) {
                 item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-                    ) {
-                        if (temEvidencias) {
-                            EvidenciasColuna(
-                                c = c,
-                                evidencias = result.evidencias,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                        if (temClassificacao) {
-                            AnaliseCategoriasColuna(
-                                c = c,
-                                classificacao = classificacao,
-                                modifier = Modifier.weight(1f),
-                            )
+                    StaggeredCard(index = 3) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                        ) {
+                            if (temEvidencias) {
+                                EvidenciasColuna(
+                                    c = c,
+                                    evidencias = result.evidencias,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            if (temClassificacao) {
+                                AnaliseCategoriasColuna(
+                                    c = c,
+                                    classificacao = classificacao,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
                         }
                     }
                 }
@@ -871,6 +880,23 @@ private fun DiagnosticoResultadoContent(
                 }
             }
         }
+    }
+}
+
+// ─── Animação escalonada de entrada ──────────────────────────────────────────
+
+@Composable
+private fun StaggeredCard(index: Int, content: @Composable () -> Unit) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(index * 120L)
+        visible = true
+    }
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(300)) + slideInVertically(tween(300)) { it / 5 },
+    ) {
+        content()
     }
 }
 
