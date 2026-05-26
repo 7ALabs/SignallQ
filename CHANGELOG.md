@@ -54,6 +54,7 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 
 ### Fixed
 
+- Botão de iniciar teste sempre exibe "Iniciar teste" — removido label "Repetir" do estado concluído (#91)
 - Status bar (bateria, hora, sinal) visível no modo claro — corrigido `enableEdgeToEdge` com `SystemBarStyle` condicional ao tema (#79)
 - **Acessibilidade TalkBack — Auditoria completa de telas:** Correções em `DispositivosScreen` (DispositivoItem com `role=Button` e contentDescription dinâmica), `LaudoScreen` (link Anatel com `contentDescription`; `LkListRow` recebe role apenas quando interativo), `ResultadoVelocidadeScreen` (toggle "Detalhes avançados" com `stateDescription` dinâmica), e `ProfileAvatarButton` (contentDescription dinâmica com nome do usuário). (#11)
 
