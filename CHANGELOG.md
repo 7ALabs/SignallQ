@@ -48,6 +48,8 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 
 - **Classificação automática de topologia WiFi:** `SinalScreen` agora exibe o tipo de topologia real de cada rede (ROTEADOR, ROTEADOR_MESH, NO_MESH, REPETIDOR) via integração com `TopologiaWifiEngine`. Fallback gracioso para DESCONHECIDO via `runCatching` em caso de falha na classificação. (#40)
 
+- **Streaming SSE no chat de diagnóstico:** Texto da IA aparece progressivamente com cursor pulsante em tempo real. Backend via Cloudflare Worker suporta modo SSE com `?stream=true` retornando chunks de dados. `DiagChatEntry` rastreia entradas parciais durante streaming, `AiDiagnosisRepository` implementa `explainDiagnosisStream()` com OkHttp Okio e fallback silencioso, `MainViewModel` atualiza entrada token a token e desativa carregamento no primeiro chunk, `DiagnosticoScreen` renderiza `DiagChatTextoComCursor` com cursor pulsante via `rememberInfiniteTransition`. (#68)
+
 - **UptimeNarrativaEngine v2.0 — Detecção de padrões avançados:** Três novos comportamentos de análise de uptime: detecção de padrões horários recorrentes (ex: "toda manhã entre 8h e 9h a conexão cai"), identificação de interrupções longas >30 minutos ordenadas por duração, e cálculo de tendência de qualidade (MELHORANDO/PIORANDO/ESTAVEL) comparando as últimas 24h com as 24h anteriores. (#42)
 
 - **ExportadorHistoricoPDF v2.0 — Layout rico e paginação automática:** PDF agora renderizado via HTML/CSS com `WebView.createPrintDocumentAdapter()` — tabela profissional com cabeçalho colorido e linhas zebradas. Paginação automática elimina truncamento de históricos longos. Timeouts defensivos (10s) em `exportarComWebView` e `PdfPrintHelper` evitam coroutines penduradas. (#41)

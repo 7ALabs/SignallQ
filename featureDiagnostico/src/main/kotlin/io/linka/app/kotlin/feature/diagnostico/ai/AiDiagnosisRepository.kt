@@ -2,6 +2,9 @@ package io.linka.app.kotlin.feature.diagnostico.ai
 
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -141,6 +144,45 @@ class AiDiagnosisRepository(
             }
         }
     }
+
+    // --------------------------------------------------------------------------
+    // Stream SSE — emite tokens conforme chegam do Worker.
+    // Fallback silencioso se Content-Type nao for text/event-stream.
+    // call.cancel() no finally garante cancelamento ao sair da tela.
+    // --------------------------------------------------------------------------
+    fun explainDiagnosisStream(context: DiagnosisAiContext): Flow<String> = flow {
+        if (!isAuthorized()) return@flow
+
+        val url = baseUrl.trimEnd('/') + "/api/ai/diagnostico-conexao?stream=true"
+        val json = contextToJson(context).toString()
+        val body = json.toRequestBody("application/json; charset=utf-8".toMediaType())
+        val req = Request.Builder().url(url).post(body).build()
+
+        val call = client.newCall(req)
+        try {
+            val resp = call.execute()
+            if (!resp.isSuccessful) return@flow
+            val contentType = resp.header("Content-Type") ?: ""
+            if (!contentType.contains("text/event-stream")) return@flow // fallback silencioso
+
+            val source = resp.body?.source() ?: return@flow
+            while (!source.exhausted()) {
+                val line = source.readUtf8Line() ?: break
+                if (line.startsWith("data: ")) {
+                    val data = line.removePrefix("data: ").trim()
+                    if (data == "[DONE]") break
+                    val token = try {
+                        JSONObject(data).optString("response", "")
+                    } catch (_: Exception) {
+                        ""
+                    }
+                    if (token.isNotEmpty()) emit(token)
+                }
+            }
+        } finally {
+            call.cancel()
+        }
+    }.flowOn(Dispatchers.IO)
 
     // --------------------------------------------------------------------------
     // Parser tolerante: aceita schema v1 e v2.

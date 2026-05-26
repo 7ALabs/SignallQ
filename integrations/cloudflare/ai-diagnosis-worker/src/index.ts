@@ -458,6 +458,40 @@ export default {
       const schemaHint = isChat ? CHAT_SCHEMA_HINT : SCHEMA_HINT;
       console.log("AI diagnosis mode:", isChat ? "chat" : "diagnostic");
 
+      // Modo streaming SSE: ativado via ?stream=true. Retorna ReadableStream com
+      // chunks no formato "data: {\"response\":\"token\"}\n\n" e termina com
+      // "data: [DONE]\n\n". O Workers AI para gemma-7b-it emite este formato
+      // nativamente com stream:true — nao e necessario transformar o stream.
+      // O endpoint sem ?stream=true continua retornando JSON completo (inalterado).
+      const isStream = url.searchParams.get("stream") === "true";
+      if (isStream) {
+        let streamResult: ReadableStream;
+        try {
+          streamResult = await env.AI.run(model, {
+            messages: [
+              { role: "system", content: systemPrompt },
+              {
+                role: "user",
+                content: `Dados do diagnóstico:\n${JSON.stringify(payload)}\n\n${schemaHint}`,
+              },
+            ],
+            max_tokens: 5000,
+            temperature: 0.2,
+            stream: true,
+          }) as ReadableStream;
+        } catch (aiErr: unknown) {
+          const errMsg = aiErr instanceof Error ? aiErr.message : String(aiErr);
+          console.error("env.AI.run stream FAILED, model:", model, "error:", errMsg);
+          return errorResponse("ai_run_failed", 503);
+        }
+        return new Response(streamResult, {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+          },
+        });
+      }
+
       // Nao usamos response_format json_schema do Workers AI nesta versao porque:
       //  - Suporte ainda e instavel/inconsistente para varios modelos do binding [ai];
       //  - Habilitar JSON Mode antes de validacao especifica para Gemma 4 26B

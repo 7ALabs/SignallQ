@@ -8,4 +8,5 @@ data class DiagChatEntry(
     val timestamp: Long = System.currentTimeMillis(),
     val nomeModelo: String? = null,
     val isErro: Boolean = false,
+    val isParcial: Boolean = false,
 )

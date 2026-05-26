@@ -63,6 +63,7 @@ import io.linka.app.kotlin.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -684,59 +685,135 @@ class MainViewModel
                     DiagChatEntry(autor = DiagChatAutor.Usuario, texto = pergunta)
                 _diagChatCarregando.value = true
 
-                try {
-                    val ctx = diagAiContext ?: run {
+                val ctx =
+                    diagAiContext ?: run {
                         val snap = diagnosticOrchestrator.snapshotFlow.value
-                        val relatorio = snap.relatorio ?: return@launch
-                        val connectionType = snap.input?.connectionType
-                            ?: io.linka.app.kotlin.feature.diagnostico.ConnectionType.desconhecido
-                        DiagnosisAiContextFactory.from(relatorio, snap.input, connectionType)
+                        val relatorio =
+                            snap.relatorio ?: run {
+                                _diagChatCarregando.value = false
+                                return@launch
+                            }
+                        val connectionType =
+                            snap.input?.connectionType
+                                ?: io.linka.app.kotlin.feature.diagnostico.ConnectionType.desconhecido
+                        DiagnosisAiContextFactory
+                            .from(relatorio, snap.input, connectionType)
                             .also { diagAiContext = it }
                     }
 
-                    // Inclui histórico recente para dar contexto conversacional ao Worker.
-                    // O Worker detecta feedbackUsuario e muda para modo chat (resposta direta).
-                    val historicoContexto = historicoAtual.takeLast(6).joinToString("\n") { entry ->
-                        if (entry.autor == DiagChatAutor.Usuario) "Usuário: ${entry.texto.take(200)}"
-                        else "IA: ${entry.texto.take(300)}"
+                // Inclui histórico recente para dar contexto conversacional ao Worker.
+                // O Worker detecta feedbackUsuario e muda para modo chat (resposta direta).
+                val historicoContexto =
+                    historicoAtual.takeLast(6).joinToString("\n") { entry ->
+                        if (entry.autor == DiagChatAutor.Usuario) {
+                            "Usuário: ${entry.texto.take(200)}"
+                        } else {
+                            "IA: ${entry.texto.take(300)}"
+                        }
                     }
-                    val feedbackComHistorico = if (historicoContexto.isNotBlank()) {
+                val feedbackComHistorico =
+                    if (historicoContexto.isNotBlank()) {
                         "Histórico:\n$historicoContexto\n\nPergunta atual: $pergunta"
                     } else {
                         pergunta
                     }
-                    val ctxComPergunta = ctx.copy(feedbackUsuario = feedbackComHistorico.take(1000))
-                    val snap = diagnosticOrchestrator.snapshotFlow.value
-                    val relatorio = snap.relatorio
+                val ctxComPergunta = ctx.copy(feedbackUsuario = feedbackComHistorico.take(1000))
+                val snapAtual = diagnosticOrchestrator.snapshotFlow.value
+                val relatorio = snapAtual.relatorio
 
-                    val resultado = if (relatorio != null) {
-                        diagAiRepository.explainDiagnosis(ctxComPergunta) {
-                            AiFallbackFactory.fromLocal(relatorio)
+                // Cria entrada parcial da IA ANTES de receber dados
+                val tsEntradaIa = System.currentTimeMillis()
+                val entradaIa =
+                    DiagChatEntry(
+                        autor = DiagChatAutor.Ia,
+                        texto = "",
+                        nomeModelo = "Linka IA",
+                        isParcial = true,
+                        timestamp = tsEntradaIa,
+                    )
+                _diagChatHistorico.value = _diagChatHistorico.value + entradaIa
+
+                var textoAcumulado = ""
+                var primeiroChunk = true
+
+                try {
+                    diagAiRepository.explainDiagnosisStream(ctxComPergunta).collect { token ->
+                        textoAcumulado += token
+                        if (primeiroChunk) {
+                            _diagChatCarregando.value = false // dots pulsantes somem no 1o chunk
+                            primeiroChunk = false
                         }
+                        _diagChatHistorico.value = _diagChatHistorico.value.dropLast(1) +
+                            entradaIa.copy(texto = textoAcumulado, isParcial = true)
+                    }
+                    // Stream completo — marcar como nao-parcial
+                    if (textoAcumulado.isNotBlank()) {
+                        _diagChatHistorico.value = _diagChatHistorico.value.dropLast(1) +
+                            entradaIa.copy(texto = textoAcumulado, isParcial = false)
                     } else {
-                        AiDiagnosisState.error("sem_relatorio")
-                    }
-
-                    val (textoResposta, nomeModelo, isErro) = when (resultado) {
-                        is AiDiagnosisState.success ->
-                            Triple(
-                                resultado.result.textoLaudo.ifBlank { resultado.result.resumo },
-                                resultado.result.modeloIa.nomeExibicao.ifBlank { "Linka IA" },
-                                false,
+                        // Stream vazio (Worker nao suporta SSE) — fallback para resposta completa
+                        _diagChatHistorico.value = _diagChatHistorico.value.dropLast(1)
+                        val resultado =
+                            if (relatorio != null) {
+                                diagAiRepository.explainDiagnosis(ctxComPergunta) {
+                                    AiFallbackFactory.fromLocal(relatorio)
+                                }
+                            } else {
+                                AiDiagnosisState.error("sem_relatorio")
+                            }
+                        val (textoResposta, nomeModelo, isErro) =
+                            when (resultado) {
+                                is AiDiagnosisState.success ->
+                                    Triple(
+                                        resultado.result.textoLaudo.ifBlank { resultado.result.resumo },
+                                        resultado.result.modeloIa.nomeExibicao
+                                            .ifBlank { "Linka IA" },
+                                        false,
+                                    )
+                                else -> Triple("", null, true)
+                            }
+                        _diagChatHistorico.value = _diagChatHistorico.value +
+                            DiagChatEntry(
+                                autor = DiagChatAutor.Ia,
+                                texto = textoResposta,
+                                nomeModelo = nomeModelo,
+                                isErro = isErro,
                             )
-                        else -> Triple("", null, true)
                     }
-
-                    _diagChatHistorico.value = _diagChatHistorico.value +
-                        DiagChatEntry(
-                            autor = DiagChatAutor.Ia,
-                            texto = textoResposta,
-                            nomeModelo = nomeModelo,
-                            isErro = isErro,
-                        )
                 } catch (e: Exception) {
-                    _diagChatHistorico.value = _diagChatHistorico.value +
-                        DiagChatEntry(autor = DiagChatAutor.Ia, texto = "", isErro = true)
+                    // Fallback: stream falhou — tenta resposta completa via explainDiagnosis()
+                    _diagChatHistorico.value = _diagChatHistorico.value.dropLast(1)
+                    try {
+                        val resultado =
+                            if (relatorio != null) {
+                                diagAiRepository.explainDiagnosis(ctxComPergunta) {
+                                    AiFallbackFactory.fromLocal(relatorio)
+                                }
+                            } else {
+                                AiDiagnosisState.error("sem_relatorio")
+                            }
+                        val (textoResposta, nomeModelo, isErro) =
+                            when (resultado) {
+                                is AiDiagnosisState.success ->
+                                    Triple(
+                                        resultado.result.textoLaudo.ifBlank { resultado.result.resumo },
+                                        resultado.result.modeloIa.nomeExibicao
+                                            .ifBlank { "Linka IA" },
+                                        false,
+                                    )
+                                else -> Triple("", null, true)
+                            }
+                        _diagChatHistorico.value = _diagChatHistorico.value +
+                            DiagChatEntry(
+                                autor = DiagChatAutor.Ia,
+                                texto = textoResposta,
+                                nomeModelo = nomeModelo,
+                                isErro = isErro,
+                            )
+                    } catch (_: Exception) {
+                        _diagChatHistorico.value = _diagChatHistorico.value +
+                            DiagChatEntry(autor = DiagChatAutor.Ia, texto = "", isErro = true)
+                    }
                 } finally {
                     _diagChatCarregando.value = false
                 }

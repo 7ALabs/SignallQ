@@ -1,6 +1,7 @@
 package io.linka.app.kotlin.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.StartOffset
 import androidx.compose.animation.core.animateFloat
@@ -22,9 +23,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -88,17 +91,17 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.ime
 import io.linka.app.kotlin.R
 import io.linka.app.kotlin.feature.diagnostico.ConnectionType
 import io.linka.app.kotlin.feature.diagnostico.DiagnosticInput
@@ -290,12 +293,13 @@ fun DiagnosticoScreen(
                 is UiState.Error -> {
                     val isAiError = uiState.message != "Não foi possível diagnosticar a conexão."
                     if (isAiError) {
-                        val codigoAmigavel = when {
-                            uiState.message.contains("timeout", ignoreCase = true) -> "ERR_TIMEOUT"
-                            uiState.message.contains("503") || uiState.message.contains("504") -> "ERR_SERVIDOR_INDISPONIVEL"
-                            uiState.message.contains("sem_relatorio") -> "ERR_SEM_DADOS"
-                            else -> uiState.message.take(40)
-                        }
+                        val codigoAmigavel =
+                            when {
+                                uiState.message.contains("timeout", ignoreCase = true) -> "ERR_TIMEOUT"
+                                uiState.message.contains("503") || uiState.message.contains("504") -> "ERR_SERVIDOR_INDISPONIVEL"
+                                uiState.message.contains("sem_relatorio") -> "ERR_SEM_DADOS"
+                                else -> uiState.message.take(40)
+                            }
                         var mostrarDetalhes by remember { mutableStateOf(false) }
                         AlertDialog(
                             onDismissRequest = { onAiStateChange(AiDiagnosisState.idle) },
@@ -731,20 +735,22 @@ private fun DiagnosticoResultadoContent(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(c.bgPrimary)
-            .windowInsetsPadding(WindowInsets.ime),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(c.bgPrimary)
+                .windowInsetsPadding(WindowInsets.ime),
     ) {
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(
-                start = LkSpacing.lg,
-                end = LkSpacing.lg,
-                top = LkSpacing.md,
-                bottom = LkSpacing.lg,
-            ),
+            contentPadding =
+                PaddingValues(
+                    start = LkSpacing.lg,
+                    end = LkSpacing.lg,
+                    top = LkSpacing.md,
+                    bottom = LkSpacing.lg,
+                ),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
         ) {
             // Card 1 — StatusDiagnosticoCard
@@ -784,13 +790,14 @@ private fun DiagnosticoResultadoContent(
             // Seção duas colunas — Evidências + Análise por categoria
             val temEvidencias = result.evidencias.isNotEmpty()
             val classificacao = result.classificacaoTecnica
-            val temClassificacao = listOfNotNull(
-                classificacao.velocidade,
-                classificacao.estabilidade,
-                classificacao.wifi,
-                classificacao.dns,
-                classificacao.fibra,
-            ).any { it.avaliacao?.isNotBlank() == true }
+            val temClassificacao =
+                listOfNotNull(
+                    classificacao.velocidade,
+                    classificacao.estabilidade,
+                    classificacao.wifi,
+                    classificacao.dns,
+                    classificacao.fibra,
+                ).any { it.avaliacao?.isNotBlank() == true }
 
             if (temEvidencias || temClassificacao) {
                 item {
@@ -822,9 +829,10 @@ private fun DiagnosticoResultadoContent(
             if (chatHistorico.isNotEmpty() || chatCarregando) {
                 item {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = LkSpacing.xs),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = LkSpacing.xs),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
                     ) {
@@ -851,9 +859,11 @@ private fun DiagnosticoResultadoContent(
                     entry = entry,
                     c = c,
                     onRetry = {
-                        val ultimaPergunta = chatHistorico.lastOrNull {
-                            it.autor == DiagChatAutor.Usuario
-                        }?.texto ?: ""
+                        val ultimaPergunta =
+                            chatHistorico
+                                .lastOrNull {
+                                    it.autor == DiagChatAutor.Usuario
+                                }?.texto ?: ""
                         if (ultimaPergunta.isNotBlank()) onEnviarChat(ultimaPergunta)
                     },
                 )
@@ -913,7 +923,10 @@ private fun DiagnosticoResultadoContent(
 // ─── Animação escalonada de entrada ──────────────────────────────────────────
 
 @Composable
-private fun StaggeredCard(index: Int, content: @Composable () -> Unit) {
+private fun StaggeredCard(
+    index: Int,
+    content: @Composable () -> Unit,
+) {
     var visible by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         delay(index * 120L)
@@ -938,12 +951,13 @@ private fun StatusDiagnosticoCard(
     val isAtencao = result.status.lowercase() in setOf("regular", "ruim", "critico")
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
         Row(
@@ -953,10 +967,11 @@ private fun StatusDiagnosticoCard(
         ) {
             // Ícone escudo com fundo circular
             Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(LkColors.accentBlue.copy(alpha = 0.12f)),
+                modifier =
+                    Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(LkColors.accentBlue.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -989,19 +1004,21 @@ private fun StatusDiagnosticoCard(
         // Chip de status / atenção
         if (isAtencao) {
             Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(100.dp))
-                    .border(1.dp, c.onWarningContainer.copy(alpha = 0.5f), RoundedCornerShape(100.dp))
-                    .background(c.warningContainer)
-                    .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(100.dp))
+                        .border(1.dp, c.onWarningContainer.copy(alpha = 0.5f), RoundedCornerShape(100.dp))
+                        .background(c.warningContainer)
+                        .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(statusColor),
+                    modifier =
+                        Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(statusColor),
                 )
                 Text(
                     when (result.status.lowercase()) {
@@ -1028,17 +1045,19 @@ private fun PrincipalPontoCard(
     result: AiDiagnosisResult,
     onAbrirRedes: () -> Unit,
 ) {
-    val isWifiOuRede = result.problemaPrincipal.tipo.lowercase() in
-        setOf("wifi", "roteador", "canal", "rede", "isp")
+    val isWifiOuRede =
+        result.problemaPrincipal.tipo.lowercase() in
+            setOf("wifi", "roteador", "canal", "rede", "isp")
     val tipCard = result.problemaPrincipal.descricao.isNotBlank()
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
         Text(
@@ -1055,10 +1074,11 @@ private fun PrincipalPontoCard(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(LkColors.accent.copy(alpha = 0.10f)),
+                modifier =
+                    Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(LkColors.accent.copy(alpha = 0.10f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -1104,9 +1124,10 @@ private fun PrincipalPontoCard(
                         imageVector = Icons.Outlined.Info,
                         contentDescription = null,
                         tint = c.onWarningContainer,
-                        modifier = Modifier
-                            .padding(top = 2.dp)
-                            .size(14.dp),
+                        modifier =
+                            Modifier
+                                .padding(top = 2.dp)
+                                .size(14.dp),
                     )
                     Text(
                         result.resumo.ifBlank { result.problemaPrincipal.descricao },
@@ -1121,10 +1142,11 @@ private fun PrincipalPontoCard(
         // Link — "Ver dispositivo" para ações de rede/Wi-Fi
         if (isWifiOuRede) {
             Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(LkRadius.button))
-                    .clickable(onClick = onAbrirRedes)
-                    .padding(vertical = LkSpacing.xs),
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(LkRadius.button))
+                        .clickable(onClick = onAbrirRedes)
+                        .padding(vertical = LkSpacing.xs),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
             ) {
@@ -1155,12 +1177,13 @@ private fun OQueFazerCard(
     onReanalisar: () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
         Text(
@@ -1179,11 +1202,12 @@ private fun OQueFazerCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Box(
-                    modifier = Modifier
-                        .padding(top = 2.dp)
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(LkColors.accent.copy(alpha = 0.10f)),
+                    modifier =
+                        Modifier
+                            .padding(top = 2.dp)
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(LkColors.accent.copy(alpha = 0.10f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -1260,11 +1284,12 @@ private fun EvidenciasColuna(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .padding(LkSpacing.md),
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.md),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
         Text(
@@ -1284,9 +1309,10 @@ private fun EvidenciasColuna(
                     Icons.Outlined.CheckCircle,
                     contentDescription = null,
                     tint = LkColors.accent.copy(alpha = 0.7f),
-                    modifier = Modifier
-                        .padding(top = 2.dp)
-                        .size(12.dp),
+                    modifier =
+                        Modifier
+                            .padding(top = 2.dp)
+                            .size(12.dp),
                 )
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                     Text(
@@ -1316,20 +1342,22 @@ private fun AnaliseCategoriasColuna(
     classificacao: io.linka.app.kotlin.feature.diagnostico.ai.ClassificacaoTecnica,
     modifier: Modifier = Modifier,
 ) {
-    val categorias = buildList {
-        classificacao.velocidade?.let { add("Velocidade" to it) }
-        classificacao.estabilidade?.let { add("Estabilidade" to it) }
-        classificacao.wifi?.let { add("Wi-Fi" to it) }
-        classificacao.dns?.let { add("DNS" to it) }
-        classificacao.fibra?.let { add("Fibra" to it) }
-    }.filter { (_, item) -> item.avaliacao?.isNotBlank() == true }
+    val categorias =
+        buildList {
+            classificacao.velocidade?.let { add("Velocidade" to it) }
+            classificacao.estabilidade?.let { add("Estabilidade" to it) }
+            classificacao.wifi?.let { add("Wi-Fi" to it) }
+            classificacao.dns?.let { add("DNS" to it) }
+            classificacao.fibra?.let { add("Fibra" to it) }
+        }.filter { (_, item) -> item.avaliacao?.isNotBlank() == true }
 
     Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .padding(LkSpacing.md),
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.md),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
         Text(
@@ -1354,10 +1382,11 @@ private fun AnaliseCategoriasColuna(
                     modifier = Modifier.weight(1f),
                 )
                 Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(100.dp))
-                        .background(if (isBom) c.successContainer else c.warningContainer)
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(100.dp))
+                            .background(if (isBom) c.successContainer else c.warningContainer)
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
                 ) {
                     Text(
                         label,
@@ -1385,12 +1414,13 @@ private fun ChatCard(
     limiteAtingido: Boolean = false,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
         Text(
@@ -1420,14 +1450,16 @@ private fun ChatCard(
                                 maxLines = 1,
                             )
                         },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = c.bgSecondary,
-                            labelColor = c.textSecondary,
-                        ),
-                        border = SuggestionChipDefaults.suggestionChipBorder(
-                            enabled = true,
-                            borderColor = c.border,
-                        ),
+                        colors =
+                            SuggestionChipDefaults.suggestionChipColors(
+                                containerColor = c.bgSecondary,
+                                labelColor = c.textSecondary,
+                            ),
+                        border =
+                            SuggestionChipDefaults.suggestionChipBorder(
+                                enabled = true,
+                                borderColor = c.border,
+                            ),
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -1464,34 +1496,37 @@ private fun ChatCard(
                     imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
                     contentDescription = if (filled) "Enviar" else null,
                     tint = if (filled) LkColors.accent else c.textTertiary,
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(
-                            if (filled) LkColors.accent.copy(alpha = 0.10f)
-                            else Color.Transparent,
-                        )
-                        .size(32.dp)
-                        .then(
-                            if (filled) {
-                                Modifier.clickable { onEnviar(chatInput) }
-                            } else {
-                                Modifier
-                            },
-                        )
-                        .padding(LkSpacing.sm),
+                    modifier =
+                        Modifier
+                            .clip(CircleShape)
+                            .background(
+                                if (filled) {
+                                    LkColors.accent.copy(alpha = 0.10f)
+                                } else {
+                                    Color.Transparent
+                                },
+                            ).size(32.dp)
+                            .then(
+                                if (filled) {
+                                    Modifier.clickable { onEnviar(chatInput) }
+                                } else {
+                                    Modifier
+                                },
+                            ).padding(LkSpacing.sm),
                 )
             },
             singleLine = true,
             shape = RoundedCornerShape(24.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = LkColors.accent,
-                unfocusedBorderColor = c.border,
-                focusedContainerColor = c.bgCard,
-                unfocusedContainerColor = c.bgCard,
-                focusedTextColor = c.textPrimary,
-                unfocusedTextColor = c.textPrimary,
-                cursorColor = LkColors.accent,
-            ),
+            colors =
+                OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = LkColors.accent,
+                    unfocusedBorderColor = c.border,
+                    focusedContainerColor = c.bgCard,
+                    unfocusedContainerColor = c.bgCard,
+                    focusedTextColor = c.textPrimary,
+                    unfocusedTextColor = c.textPrimary,
+                    cursorColor = LkColors.accent,
+                ),
         )
 
         if (limiteAtingido) {
@@ -1518,18 +1553,20 @@ private fun MetricsRow(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(100.dp))
-                .background(statusColor.copy(alpha = 0.10f))
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier =
+                Modifier
+                    .clip(RoundedCornerShape(100.dp))
+                    .background(statusColor.copy(alpha = 0.10f))
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .clip(CircleShape)
-                    .background(statusColor),
+                modifier =
+                    Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(statusColor),
             )
             Text(
                 result.status.replaceFirstChar { it.uppercaseChar() },
@@ -1580,18 +1617,19 @@ private fun DiagChatMensagem(
         DiagChatAutor.Usuario -> {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
                 Box(
-                    modifier = Modifier
-                        .widthIn(max = LocalConfiguration.current.screenWidthDp.dp * 0.8f)
-                        .background(
-                            color = LkColors.accent.copy(alpha = 0.12f),
-                            shape = RoundedCornerShape(
-                                topStart = 16.dp,
-                                topEnd = 16.dp,
-                                bottomStart = 16.dp,
-                                bottomEnd = 4.dp,
-                            ),
-                        )
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    modifier =
+                        Modifier
+                            .widthIn(max = LocalConfiguration.current.screenWidthDp.dp * 0.8f)
+                            .background(
+                                color = LkColors.accent.copy(alpha = 0.12f),
+                                shape =
+                                    RoundedCornerShape(
+                                        topStart = 16.dp,
+                                        topEnd = 16.dp,
+                                        bottomStart = 16.dp,
+                                        bottomEnd = 4.dp,
+                                    ),
+                            ).padding(horizontal = 12.dp, vertical = 8.dp),
                 ) {
                     Text(
                         entry.texto,
@@ -1612,9 +1650,10 @@ private fun DiagChatIaBubble(
     onRetry: () -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -1622,9 +1661,10 @@ private fun DiagChatIaBubble(
             imageVector = Icons.Outlined.AutoAwesome,
             contentDescription = null,
             tint = LkColors.accent,
-            modifier = Modifier
-                .size(16.dp)
-                .padding(top = 2.dp),
+            modifier =
+                Modifier
+                    .size(16.dp)
+                    .padding(top = 2.dp),
         )
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
@@ -1634,6 +1674,8 @@ private fun DiagChatIaBubble(
             )
             if (entry.isErro) {
                 DiagChatErroContent(onRetry = onRetry, c = c)
+            } else if (entry.isParcial) {
+                DiagChatTextoComCursor(texto = entry.texto, c = c)
             } else {
                 Text(
                     text = entry.texto,
@@ -1654,24 +1696,27 @@ private fun DiagChatLoadingItem(c: LkTokens) {
         val alpha by infiniteTransition.animateFloat(
             initialValue = 0.3f,
             targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = keyframes {
-                    durationMillis = 900
-                    0.3f at 0
-                    1f at 300
-                    0.3f at 600
-                },
-                initialStartOffset = StartOffset(delayMs),
-            ),
+            animationSpec =
+                infiniteRepeatable(
+                    animation =
+                        keyframes {
+                            durationMillis = 900
+                            0.3f at 0
+                            1f at 300
+                            0.3f at 600
+                        },
+                    initialStartOffset = StartOffset(delayMs),
+                ),
             label = "dot$delayMs",
         )
         return alpha
     }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -1679,9 +1724,10 @@ private fun DiagChatLoadingItem(c: LkTokens) {
             imageVector = Icons.Outlined.AutoAwesome,
             contentDescription = null,
             tint = LkColors.accent,
-            modifier = Modifier
-                .size(16.dp)
-                .padding(top = 2.dp),
+            modifier =
+                Modifier
+                    .size(16.dp)
+                    .padding(top = 2.dp),
         )
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
@@ -1695,12 +1741,13 @@ private fun DiagChatLoadingItem(c: LkTokens) {
             ) {
                 repeat(3) { i ->
                     Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .background(
-                                color = LkColors.accent.copy(alpha = PulseDot(i * 150)),
-                                shape = CircleShape,
-                            ),
+                        modifier =
+                            Modifier
+                                .size(6.dp)
+                                .background(
+                                    color = LkColors.accent.copy(alpha = PulseDot(i * 150)),
+                                    shape = CircleShape,
+                                ),
                     )
                 }
             }
@@ -1709,7 +1756,39 @@ private fun DiagChatLoadingItem(c: LkTokens) {
 }
 
 @Composable
-private fun DiagChatErroContent(onRetry: () -> Unit, c: LkTokens) {
+private fun DiagChatTextoComCursor(
+    texto: String,
+    c: LkTokens,
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "cursor")
+    val cursorAlpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(500, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "cursorAlpha",
+    )
+    Text(
+        text =
+            buildAnnotatedString {
+                append(texto)
+                withStyle(SpanStyle(color = LkColors.accent.copy(alpha = cursorAlpha))) {
+                    append("|")
+                }
+            },
+        style = MaterialTheme.typography.bodyMedium,
+        color = c.textPrimary,
+    )
+}
+
+@Composable
+private fun DiagChatErroContent(
+    onRetry: () -> Unit,
+    c: LkTokens,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
