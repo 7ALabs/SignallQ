@@ -210,7 +210,7 @@ fun HomeScreen(
     if (showDeviceSheet) {
         ModalBottomSheet(
             onDismissRequest = { showDeviceSheet = false },
-            sheetState = rememberModalBottomSheetState(),
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = c.bgSecondary,
         ) {
             DeviceInfoSheet(localIp = localIp, isMobile = !isOnWifi, deviceName = deviceName, connectedNetwork = connectedNetwork, c = c)
@@ -219,7 +219,7 @@ fun HomeScreen(
     showGatewaySheet?.let { gw ->
         ModalBottomSheet(
             onDismissRequest = { showGatewaySheet = null },
-            sheetState = rememberModalBottomSheetState(),
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = c.bgSecondary,
         ) {
             GatewayInfoSheet(
@@ -232,7 +232,7 @@ fun HomeScreen(
     if (showInternetSheet) {
         ModalBottomSheet(
             onDismissRequest = { showInternetSheet = false },
-            sheetState = rememberModalBottomSheetState(),
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = c.bgSecondary,
         ) {
             InternetInfoSheet(

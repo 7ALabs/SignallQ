@@ -97,7 +97,7 @@ class PingScreenViewModel {
 @Composable
 fun PingScreen(onDismiss: () -> Unit) {
     val c = LocalLkTokens.current
-    val sheetState = rememberModalBottomSheetState()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     val viewModel = remember { PingScreenViewModel() }
     val state by viewModel.stateFlow.collectAsState()

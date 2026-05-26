@@ -177,7 +177,7 @@ private fun DispositivosLista(
         }
 
     var deviceEmSheet by remember { mutableStateOf<DispositivoRede?>(null) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     PullToRefreshBox(
         isRefreshing = isLoading,
