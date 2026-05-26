@@ -2262,6 +2262,38 @@ private fun MobileSignalCard(
             }
         }
 
+        // ── Seção 1b — Banda ativa ("você está aqui") ────────────────────────
+        val bandaMovel = snapshot.bandaMovel
+        if (bandaMovel != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.CellTower,
+                    contentDescription = null,
+                    tint = LkColors.accent,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    text = bandaMovel,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.W600,
+                    color = LkColors.accent,
+                )
+                Spacer(Modifier.width(4.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(LkColors.success.copy(alpha = 0.14f))
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                ) {
+                    Text("Você está aqui", fontSize = 10.sp, fontWeight = FontWeight.W600, color = LkColors.success)
+                }
+            }
+        }
+
         // ── Permissão ausente ou sem RSRP ─────────────────────────────────────
         if (!temPermissao || rsrp == null) {
             EmptyStatePermissaoTelefonia(onSolicitarPermissao, tokens)
