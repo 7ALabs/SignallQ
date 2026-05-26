@@ -153,6 +153,8 @@ class MainActivity : ComponentActivity() {
             val movelSnapshot = viewModel.movelSnapshot.collectAsStateWithLifecycle().value
             val gemmaAvailable = viewModel.gemmaAvailable.collectAsStateWithLifecycle().value
             val onboardingConcluido = viewModel.onboardingConcluido.collectAsStateWithLifecycle().value
+            val diagChatHistorico by viewModel.diagChatHistorico.collectAsStateWithLifecycle()
+            val diagChatCarregando by viewModel.diagChatCarregando.collectAsStateWithLifecycle()
 
             val gatewayIpDetectado = gateways.firstOrNull()?.ip
             val darkTheme =
@@ -281,6 +283,11 @@ class MainActivity : ComponentActivity() {
                             viewModel.iniciarOrbitComResultado(resultado, foco)
                         },
                         onEnviarMensagemTexto = { texto -> viewModel.enviarMensagemTextoOrbit(texto) },
+                        diagChatHistorico = diagChatHistorico,
+                        diagChatCarregando = diagChatCarregando,
+                        onEnviarPerguntaDiagnostico = { pergunta ->
+                            viewModel.enviarPerguntaDiagnostico(pergunta)
+                        },
                     )
                 } // else onboardingConcluido
             }

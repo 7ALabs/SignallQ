@@ -2,12 +2,16 @@ package io.linka.app.kotlin.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.StartOffset
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,8 +27,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,6 +40,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.Analytics
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DeviceHub
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -61,6 +69,7 @@ import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -76,6 +85,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -97,6 +107,8 @@ import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisRepository
 import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisResult
 import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisState
 import io.linka.app.kotlin.feature.diagnostico.ai.AiFallbackFactory
+import io.linka.app.kotlin.feature.diagnostico.ai.DiagChatAutor
+import io.linka.app.kotlin.feature.diagnostico.ai.DiagChatEntry
 import io.linka.app.kotlin.feature.diagnostico.ai.DiagnosisAiContextFactory
 import io.linka.app.kotlin.feature.diagnostico.ai.normalizeClassificacaoLabel
 import io.linka.app.kotlin.ui.LkColors
@@ -105,7 +117,6 @@ import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
 import io.linka.app.kotlin.ui.LocalLkTokens
 import io.linka.app.kotlin.ui.state.UiState
-import android.widget.Toast
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -155,6 +166,9 @@ fun DiagnosticoScreen(
     aiState: AiDiagnosisState,
     onAiStateChange: (AiDiagnosisState) -> Unit,
     onVoltar: () -> Unit,
+    chatHistorico: List<DiagChatEntry> = emptyList(),
+    chatCarregando: Boolean = false,
+    onEnviarChat: (String) -> Unit = {},
 ) {
     val c = LocalLkTokens.current
     val scope = rememberCoroutineScope()
@@ -264,6 +278,9 @@ fun DiagnosticoScreen(
                                     }
                                 },
                                 onAbrirRedes = onAbrirRedes,
+                                chatHistorico = chatHistorico,
+                                chatCarregando = chatCarregando,
+                                onEnviarChat = onEnviarChat,
                             )
                     }
                 }
@@ -638,8 +655,19 @@ private fun DiagnosticoResultadoContent(
     input: DiagnosticInput?,
     onReanalisar: () -> Unit,
     onAbrirRedes: () -> Unit,
+    chatHistorico: List<DiagChatEntry> = emptyList(),
+    chatCarregando: Boolean = false,
+    onEnviarChat: (String) -> Unit = {},
 ) {
     var chatInput by remember { mutableStateOf("") }
+    val chipsSomidos = chatHistorico.isNotEmpty()
+    val limiteAtingido = chatHistorico.count { it.autor == DiagChatAutor.Usuario } >= 5
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(chatHistorico.size, chatCarregando) {
+        val totalItems = listState.layoutInfo.totalItemsCount
+        if (totalItems > 0) listState.animateScrollToItem(totalItems - 1)
+    }
 
     Column(
         modifier = Modifier
@@ -648,6 +676,7 @@ private fun DiagnosticoResultadoContent(
             .windowInsetsPadding(WindowInsets.ime),
     ) {
         LazyColumn(
+            state = listState,
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(
                 start = LkSpacing.lg,
@@ -720,6 +749,24 @@ private fun DiagnosticoResultadoContent(
                 }
             }
 
+            // Mensagens do chat inline
+            items(chatHistorico, key = { it.timestamp }) { entry ->
+                DiagChatMensagem(
+                    entry = entry,
+                    c = c,
+                    onRetry = {
+                        val ultimaPergunta = chatHistorico.lastOrNull {
+                            it.autor == DiagChatAutor.Usuario
+                        }?.texto ?: ""
+                        if (ultimaPergunta.isNotBlank()) onEnviarChat(ultimaPergunta)
+                    },
+                )
+            }
+
+            if (chatCarregando) {
+                item { DiagChatLoadingItem(c = c) }
+            }
+
             // Card Final — ChatCard
             item {
                 ChatCard(
@@ -727,6 +774,12 @@ private fun DiagnosticoResultadoContent(
                     perguntasContextuais = result.perguntasContextuais.map { it.pergunta }.take(3),
                     chatInput = chatInput,
                     onChatInputChange = { chatInput = it },
+                    onEnviar = { pergunta ->
+                        onEnviarChat(pergunta)
+                        chatInput = ""
+                    },
+                    chipsSomidos = chipsSomidos,
+                    limiteAtingido = limiteAtingido,
                 )
             }
 
@@ -1214,8 +1267,10 @@ private fun ChatCard(
     perguntasContextuais: List<String>,
     chatInput: String,
     onChatInputChange: (String) -> Unit,
+    onEnviar: (String) -> Unit = {},
+    chipsSomidos: Boolean = false,
+    limiteAtingido: Boolean = false,
 ) {
-    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1233,8 +1288,11 @@ private fun ChatCard(
             fontSize = 16.sp,
         )
 
-        // Chips de sugestão
-        if (perguntasContextuais.isNotEmpty()) {
+        // Chips de sugestão — somem quando há histórico de chat
+        AnimatedVisibility(
+            visible = !chipsSomidos && perguntasContextuais.isNotEmpty(),
+            exit = fadeOut() + shrinkVertically(),
+        ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
                 modifier = Modifier.fillMaxWidth(),
@@ -1268,6 +1326,7 @@ private fun ChatCard(
             value = chatInput,
             onValueChange = onChatInputChange,
             modifier = Modifier.fillMaxWidth(),
+            enabled = !limiteAtingido,
             placeholder = {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1287,7 +1346,7 @@ private fun ChatCard(
                 }
             },
             trailingIcon = {
-                val filled = chatInput.isNotBlank()
+                val filled = chatInput.isNotBlank() && !limiteAtingido
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
                     contentDescription = if (filled) "Enviar" else null,
@@ -1296,13 +1355,15 @@ private fun ChatCard(
                         .clip(CircleShape)
                         .background(
                             if (filled) LkColors.accent.copy(alpha = 0.10f)
-                            else Color.Transparent
+                            else Color.Transparent,
                         )
                         .size(32.dp)
                         .then(
-                            if (filled) Modifier.clickable {
-                                Toast.makeText(context, "Em breve", Toast.LENGTH_SHORT).show()
-                            } else Modifier
+                            if (filled) {
+                                Modifier.clickable { onEnviar(chatInput) }
+                            } else {
+                                Modifier
+                            },
                         )
                         .padding(LkSpacing.sm),
                 )
@@ -1319,6 +1380,14 @@ private fun ChatCard(
                 cursorColor = LkColors.accent,
             ),
         )
+
+        if (limiteAtingido) {
+            Text(
+                "Limite da sessão atingido. Reinicie o diagnóstico para continuar.",
+                style = MaterialTheme.typography.labelSmall,
+                color = c.textTertiary,
+            )
+        }
     }
 }
 
@@ -1385,6 +1454,178 @@ private fun iconForAcaoIndex(index: Int): ImageVector =
         3 -> Icons.Outlined.Refresh
         else -> Icons.Outlined.CheckCircle
     }
+
+// ─── Chat inline composables ──────────────────────────────────────────────────
+
+@Composable
+private fun DiagChatMensagem(
+    entry: DiagChatEntry,
+    c: LkTokens,
+    onRetry: () -> Unit,
+) {
+    when (entry.autor) {
+        DiagChatAutor.Usuario -> {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                Box(
+                    modifier = Modifier
+                        .widthIn(max = LocalConfiguration.current.screenWidthDp.dp * 0.8f)
+                        .background(
+                            color = LkColors.accent.copy(alpha = 0.12f),
+                            shape = RoundedCornerShape(
+                                topStart = 16.dp,
+                                topEnd = 16.dp,
+                                bottomStart = 16.dp,
+                                bottomEnd = 4.dp,
+                            ),
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                ) {
+                    Text(
+                        entry.texto,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.textPrimary,
+                    )
+                }
+            }
+        }
+        DiagChatAutor.Ia -> DiagChatIaBubble(entry = entry, c = c, onRetry = onRetry)
+    }
+}
+
+@Composable
+private fun DiagChatIaBubble(
+    entry: DiagChatEntry,
+    c: LkTokens,
+    onRetry: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.AutoAwesome,
+            contentDescription = null,
+            tint = LkColors.accent,
+            modifier = Modifier
+                .size(16.dp)
+                .padding(top = 2.dp),
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = entry.nomeModelo ?: "Linka IA",
+                style = MaterialTheme.typography.labelSmall,
+                color = c.textTertiary,
+            )
+            if (entry.isErro) {
+                DiagChatErroContent(onRetry = onRetry, c = c)
+            } else {
+                Text(
+                    text = entry.texto,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.textPrimary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DiagChatLoadingItem(c: LkTokens) {
+    val infiniteTransition = rememberInfiniteTransition(label = "diagChatLoading")
+
+    @Composable
+    fun PulseDot(delayMs: Int): Float {
+        val alpha by infiniteTransition.animateFloat(
+            initialValue = 0.3f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = keyframes {
+                    durationMillis = 900
+                    0.3f at 0
+                    1f at 300
+                    0.3f at 600
+                },
+                initialStartOffset = StartOffset(delayMs),
+            ),
+            label = "dot$delayMs",
+        )
+        return alpha
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.AutoAwesome,
+            contentDescription = null,
+            tint = LkColors.accent,
+            modifier = Modifier
+                .size(16.dp)
+                .padding(top = 2.dp),
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                "Linka IA",
+                style = MaterialTheme.typography.labelSmall,
+                color = c.textTertiary,
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                repeat(3) { i ->
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .background(
+                                color = LkColors.accent.copy(alpha = PulseDot(i * 150)),
+                                shape = CircleShape,
+                            ),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DiagChatErroContent(onRetry: () -> Unit, c: LkTokens) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.ErrorOutline,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(14.dp),
+            )
+            Text(
+                "Não consegui responder agora.",
+                style = MaterialTheme.typography.bodySmall,
+                color = c.textSecondary,
+            )
+        }
+        TextButton(
+            onClick = onRetry,
+            contentPadding = PaddingValues(0.dp),
+        ) {
+            Text(
+                "Tentar de novo",
+                style = MaterialTheme.typography.labelSmall,
+                color = LkColors.accent,
+            )
+        }
+    }
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

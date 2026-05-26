@@ -89,6 +89,8 @@ import io.linka.app.kotlin.core.network.SnapshotRede
 import io.linka.app.kotlin.core.telephony.MovelSnapshot
 import io.linka.app.kotlin.feature.devices.SnapshotScanDispositivos
 import io.linka.app.kotlin.feature.diagnostico.SnapshotDiagnostico
+import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisState
+import io.linka.app.kotlin.feature.diagnostico.ai.DiagChatEntry
 import io.linka.app.kotlin.feature.diagnostico.pulse.OpcaoResposta
 import io.linka.app.kotlin.feature.dns.EstadoBenchmarkDns
 import io.linka.app.kotlin.feature.dns.ResultadoBenchmarkDns
@@ -117,6 +119,7 @@ import kotlin.math.roundToInt
 private enum class Overlay {
     Laudo,
     Chat,
+    DiagnosticoInteligente,
     Ping,
     Privacidade,
     Novidades,
@@ -217,6 +220,10 @@ fun AppShell(
     speedtestPermiteHeavyMovel: Boolean = false,
     onSetSpeedtestPermiteHeavyMovel: (Boolean) -> Unit = {},
     speedtestMbConsumidosMes: Long = 0L,
+    // Issue #66 — chat inline DiagnosticoScreen
+    diagChatHistorico: List<DiagChatEntry> = emptyList(),
+    diagChatCarregando: Boolean = false,
+    onEnviarPerguntaDiagnostico: (String) -> Unit = {},
 ) {
     val c = LocalLkTokens.current
     // Desempacota UiState<T> → tipos opcionais para as telas filhas que ainda recebem primitivos.
@@ -230,6 +237,8 @@ fun AppShell(
     val overlayStack = remember { mutableStateListOf<Overlay>() }
     var showDnsSheet by remember { mutableStateOf(false) }
     var showForaDoWifiDialog by remember { mutableStateOf(false) }
+    var diagInteligenteAnaliseSolicitada by remember { mutableStateOf(false) }
+    var diagInteligenteAiState: AiDiagnosisState by remember { mutableStateOf(AiDiagnosisState.idle) }
     var showPerfilSheet by remember { mutableStateOf(false) }
     var testeAtivo by remember { mutableStateOf(false) }
     var mostrarConcluido by remember { mutableStateOf(false) }
@@ -319,12 +328,10 @@ fun AppShell(
                             // NAV-B: Sinal agora é tab 2 — navega por tab em vez de overlay
                             onAbrirRedes = { selectedTab = 2 },
                             onAbrirDiagnostico = {
-                                if (FeatureFlags.DIAGNOSTICO_CHAT) {
-                                    onIniciarOrbit(null)
-                                    if (Overlay.Chat !in overlayStack) overlayStack.add(Overlay.Chat)
-                                } else {
-                                    // fallback: vai para tab Velocidade (comportamento legado DIAGNOSTICO_ITERATIVO)
-                                    selectedTab = 1
+                                diagInteligenteAnaliseSolicitada = true
+                                diagInteligenteAiState = AiDiagnosisState.idle
+                                if (Overlay.DiagnosticoInteligente !in overlayStack) {
+                                    overlayStack.add(Overlay.DiagnosticoInteligente)
                                 }
                             },
                         )
@@ -592,6 +599,26 @@ fun AppShell(
             NovidadesScreen(
                 appVersion = BuildConfig.VERSION_NAME,
                 onVoltar = { overlayStack.remove(Overlay.Novidades) },
+            )
+        }
+
+        AnimatedVisibility(
+            visible = Overlay.DiagnosticoInteligente in overlayStack,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+        ) {
+            DiagnosticoScreen(
+                snapshotDiagnostico = snapshotDiagnostico,
+                onAbrirRedes = { selectedTab = 2 },
+                onIniciarDiagnostico = onIniciarDiagnostico,
+                analiseSolicitada = diagInteligenteAnaliseSolicitada,
+                onAnaliseSolicitadaChange = { diagInteligenteAnaliseSolicitada = it },
+                aiState = diagInteligenteAiState,
+                onAiStateChange = { diagInteligenteAiState = it },
+                onVoltar = { overlayStack.remove(Overlay.DiagnosticoInteligente) },
+                chatHistorico = diagChatHistorico,
+                chatCarregando = diagChatCarregando,
+                onEnviarChat = onEnviarPerguntaDiagnostico,
             )
         }
 

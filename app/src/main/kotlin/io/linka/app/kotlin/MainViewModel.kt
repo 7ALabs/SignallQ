@@ -23,10 +23,17 @@ import io.linka.app.kotlin.feature.diagnostico.FibraDiagnosticInput
 import io.linka.app.kotlin.feature.diagnostico.InternetDiagnosticInput
 import io.linka.app.kotlin.feature.diagnostico.WifiDiagnosticInput
 import io.linka.app.kotlin.feature.diagnostico.ai.AdditionalAiContext
+import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisRepository
+import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisState
 import io.linka.app.kotlin.feature.diagnostico.ai.AiDispositivosInfo
+import io.linka.app.kotlin.feature.diagnostico.ai.AiFallbackFactory
 import io.linka.app.kotlin.feature.diagnostico.ai.AiMovelInfo
 import io.linka.app.kotlin.feature.diagnostico.ai.AiRedeVizinha
 import io.linka.app.kotlin.feature.diagnostico.ai.AiTesteHistorico
+import io.linka.app.kotlin.feature.diagnostico.ai.DiagChatAutor
+import io.linka.app.kotlin.feature.diagnostico.ai.DiagChatEntry
+import io.linka.app.kotlin.feature.diagnostico.ai.DiagnosisAiContext
+import io.linka.app.kotlin.feature.diagnostico.ai.DiagnosisAiContextFactory
 import io.linka.app.kotlin.feature.diagnostico.pulse.OpcaoResposta
 import io.linka.app.kotlin.feature.dns.AvaliadorCoerenciaDns
 import io.linka.app.kotlin.feature.dns.BenchmarkDns
@@ -134,6 +141,22 @@ class MainViewModel
         }
 
         val gemmaAvailable = MutableStateFlow(false)
+
+        // ── DiagChat ──────────────────────────────────────────────────────────────
+        private val _diagChatHistorico = MutableStateFlow<List<DiagChatEntry>>(emptyList())
+        val diagChatHistorico: StateFlow<List<DiagChatEntry>> = _diagChatHistorico
+
+        private val _diagChatCarregando = MutableStateFlow(false)
+        val diagChatCarregando: StateFlow<Boolean> = _diagChatCarregando
+
+        private var diagAiContext: DiagnosisAiContext? = null
+
+        private val diagAiRepository by lazy {
+            AiDiagnosisRepository(
+                baseUrl = "https://linka-ai-diagnosis-worker.giammattey-luiz.workers.dev",
+                isAuthorized = { true },
+            )
+        }
 
         // -------------------------------------------------------------------------
         // Flows combinados — agrupam preferencias do mesmo dominio para reduzir o
@@ -650,7 +673,79 @@ class MainViewModel
             }
         }
 
+        fun enviarPerguntaDiagnostico(pergunta: String) {
+            val historicoAtual = _diagChatHistorico.value
+            val perguntasUsuario = historicoAtual.count { it.autor == DiagChatAutor.Usuario }
+            if (perguntasUsuario >= 5) return
+            if (_diagChatCarregando.value) return
+
+            viewModelScope.launch {
+                _diagChatHistorico.value = historicoAtual +
+                    DiagChatEntry(autor = DiagChatAutor.Usuario, texto = pergunta)
+                _diagChatCarregando.value = true
+
+                try {
+                    val ctx = diagAiContext ?: run {
+                        val snap = diagnosticOrchestrator.snapshotFlow.value
+                        val relatorio = snap.relatorio ?: return@launch
+                        val connectionType = snap.input?.connectionType
+                            ?: io.linka.app.kotlin.feature.diagnostico.ConnectionType.desconhecido
+                        DiagnosisAiContextFactory.from(relatorio, snap.input, connectionType)
+                            .also { diagAiContext = it }
+                    }
+
+                    val ctxComPergunta = ctx.copy(feedbackUsuario = pergunta)
+                    val snap = diagnosticOrchestrator.snapshotFlow.value
+                    val relatorio = snap.relatorio
+
+                    val resultado = if (relatorio != null) {
+                        diagAiRepository.explainDiagnosis(ctxComPergunta) {
+                            AiFallbackFactory.fromLocal(relatorio)
+                        }
+                    } else {
+                        AiDiagnosisState.error("sem_relatorio")
+                    }
+
+                    val (textoResposta, nomeModelo, isErro) = when (resultado) {
+                        is AiDiagnosisState.success ->
+                            Triple(
+                                resultado.result.textoLaudo.ifBlank { resultado.result.resumo },
+                                resultado.result.modeloIa.nomeExibicao.ifBlank { "Linka IA" },
+                                false,
+                            )
+                        is AiDiagnosisState.fallback ->
+                            Triple(
+                                resultado.result.textoLaudo.ifBlank { resultado.result.resumo },
+                                resultado.result.modeloIa.nomeExibicao.ifBlank { "Linka IA" },
+                                false,
+                            )
+                        else -> Triple("", null, true)
+                    }
+
+                    _diagChatHistorico.value = _diagChatHistorico.value +
+                        DiagChatEntry(
+                            autor = DiagChatAutor.Ia,
+                            texto = textoResposta,
+                            nomeModelo = nomeModelo,
+                            isErro = isErro,
+                        )
+                } catch (e: Exception) {
+                    _diagChatHistorico.value = _diagChatHistorico.value +
+                        DiagChatEntry(autor = DiagChatAutor.Ia, texto = "", isErro = true)
+                } finally {
+                    _diagChatCarregando.value = false
+                }
+            }
+        }
+
+        fun limparDiagChat() {
+            _diagChatHistorico.value = emptyList()
+            _diagChatCarregando.value = false
+            diagAiContext = null
+        }
+
         fun iniciarDiagnostico() {
+            limparDiagChat()
             viewModelScope.launch {
                 val internetInput = speedtestResultToInternetInput()
                 val wifiSnapshot = monitorRede.snapshotFlow.value.wifiLinkSnapshot
