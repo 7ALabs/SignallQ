@@ -778,9 +778,17 @@ private fun NetworkPath(
     val estadoConexao = snapshotRede.estadoConexao
     val isConectado = estadoConexao == EstadoConexao.wifi || estadoConexao == EstadoConexao.movel || estadoConexao == EstadoConexao.ethernet
     val hasLocalError = localIp == null && !isConectado
-    val hasInternetError = publicIp == null && ispInfo == null && isConectado && localIp != null
     val loadingLocal = localIp == null && isConectado
-    val loadingInternet = !hasInternetError && publicIp == null && ispInfo == null && localIp != null
+
+    // hasInternetError = transporte ativo + IP local presente + conectividade validada ausente.
+    // Usa snapshotRede.conectado (NET_CAPABILITY_VALIDATED) em vez de "publicIp == null",
+    // porque publicIp nulo pode significar "ainda carregando" — não "sem internet".
+    // Mostrar erro apenas quando o SO confirma que não há internet (captive portal, etc.).
+    val hasInternetError = isConectado && localIp != null && !snapshotRede.conectado
+
+    // loadingInternet = conectado + validado + sem IP/ISP ainda (fetch em andamento).
+    val loadingInternet = isConectado && snapshotRede.conectado && localIp != null &&
+        publicIp == null && ispInfo == null
 
     Row(
         modifier = Modifier.fillMaxWidth(),

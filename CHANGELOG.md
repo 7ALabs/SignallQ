@@ -6,6 +6,14 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 
 ---
 
+## [0.11.3] — 2026-05-27
+
+### Fixed
+
+- **Trilha de rede mostra "sem internet" com internet ativa:** `hasInternetError` usava `publicIp == null && ispInfo == null` como sinal de erro, mas esses valores são nulos também enquanto o fetch do ISP está em andamento — resultando em erro imediato antes mesmo de qualquer requisição completar. `loadingInternet` era logicamente impossível quando conectado (mesmas condições já ativavam `hasInternetError`). Fix: `hasInternetError` agora usa `!snapshotRede.conectado` (`NET_CAPABILITY_VALIDATED`) — erro só aparece quando o SO confirma ausência de internet (captive portal, sem rota). `loadingInternet` agora funciona corretamente enquanto o IP/ISP ainda está sendo buscado.
+
+---
+
 ## [0.11.2] — 2026-05-27
 
 ### Fixed
