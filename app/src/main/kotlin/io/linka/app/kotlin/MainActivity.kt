@@ -198,6 +198,9 @@ class MainActivity : ComponentActivity() {
                 if (!onboardingConcluido) {
                     OnboardingScreen(
                         onConcluir = { viewModel.marcarOnboardingConcluido() },
+                        // #128: solicitar permissões no slide 3 (localização + dispositivos próximos)
+                        onSolicitarPermissaoLocalizacao = { solicitarPermissaoLocalizacaoContextual() },
+                        onSolicitarPermissaoDispositivosProximos = { solicitarPermissaoDispositivosProximosContextual() },
                     )
                 } else {
                     AppShell(
@@ -419,6 +422,21 @@ class MainActivity : ComponentActivity() {
             return
         }
         solicitacaoPermissaoTelefonia.launch(Manifest.permission.READ_PHONE_STATE)
+    }
+
+    // #128: solicitar permissão de dispositivos próximos (NEARBY_WIFI_DEVICES) no onboarding
+    private fun solicitarPermissaoDispositivosProximosContextual() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            val concedida =
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.NEARBY_WIFI_DEVICES,
+                ) == PackageManager.PERMISSION_GRANTED
+            if (!concedida) {
+                solicitacaoPermissaoLocalizacao.launch(Manifest.permission.NEARBY_WIFI_DEVICES)
+            }
+        }
+        // Abaixo do API 33, NEARBY_WIFI_DEVICES não existe — no-op; localização cobre o caso
     }
 
     private fun solicitarPermissaoLocalizacaoContextual() {

@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,9 +27,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.NearMe
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -39,7 +43,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,6 +71,9 @@ private const val TOTAL_SLIDES = 3
 @Composable
 fun OnboardingScreen(
     onConcluir: () -> Unit,
+    // #128: callbacks de permissão para o slide 3
+    onSolicitarPermissaoLocalizacao: () -> Unit = {},
+    onSolicitarPermissaoDispositivosProximos: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val c = LocalLkTokens.current
@@ -72,6 +82,9 @@ fun OnboardingScreen(
     val alturaTelaDP = LocalConfiguration.current.screenHeightDp
     val iconeSizeDp: Dp = if (alturaTelaDP < 540) 64.dp else 88.dp
     val paginaAtual = pagerState.currentPage
+
+    // #128: checkbox de aceite obrigatório no slide 1 (privacidade)
+    var termosAceitos by remember { mutableStateOf(false) }
 
     // Back: slide 0 → consumir sem navegar; slides 1+ → volta ao anterior
     BackHandler {
@@ -89,6 +102,7 @@ fun OnboardingScreen(
         HorizontalPager(
             state = pagerState,
             modifier = Modifier.fillMaxSize(),
+            userScrollEnabled = false, // #128: impede swipe — só navegação via botões
         ) { pagina ->
             Column(
                 modifier =
@@ -98,8 +112,8 @@ fun OnboardingScreen(
                             contentDescription =
                                 "Página ${pagina + 1} de 3, ${when (pagina) {
                                     0 -> "boas-vindas"
-                                    1 -> "privacidade"
-                                    else -> "diagnóstico em cores"
+                                    1 -> "privacidade e termos"
+                                    else -> "permissões"
                                 }}"
                         },
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -107,8 +121,8 @@ fun OnboardingScreen(
                 // Zona ilustração: weight responsivo por altura de tela
                 val pesoIlustracao: Float =
                     when {
-                        alturaTelaDP < 540 -> 0.35f
-                        else -> 0.40f
+                        alturaTelaDP < 540 -> 0.30f
+                        else -> 0.35f
                     }
                 Box(
                     modifier =
@@ -124,12 +138,12 @@ fun OnboardingScreen(
                     }
                 }
 
-                // Zona título + descrição: weight 0.40
+                // Zona título + descrição: weight 0.35
                 Column(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .weight(0.40f)
+                            .weight(0.35f)
                             .padding(horizontal = LkSpacing.xl),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Top,
@@ -161,6 +175,57 @@ fun OnboardingScreen(
                         color = c.textSecondary,
                         textAlign = TextAlign.Center,
                     )
+
+                    // #128: Slide 1 — checkbox de aceite de termos (obrigatório)
+                    if (pagina == 1) {
+                        Spacer(Modifier.height(LkSpacing.lg))
+                        Row(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(LkRadius.card))
+                                    .background(c.bgCard)
+                                    .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                                    .clickable { termosAceitos = !termosAceitos }
+                                    .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm)
+                                    .semantics { contentDescription = "Aceitar termos de uso e política de privacidade" },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(
+                                checked = termosAceitos,
+                                onCheckedChange = { termosAceitos = it },
+                            )
+                            Spacer(Modifier.width(LkSpacing.sm))
+                            Text(
+                                text = "Li e aceito os Termos de Uso e a Política de Privacidade",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = c.textPrimary,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+
+                    // #128: Slide 2 — cards de permissão (localização + dispositivos próximos)
+                    if (pagina == 2) {
+                        Spacer(Modifier.height(LkSpacing.lg))
+                        PermissaoCard(
+                            icon = Icons.Outlined.LocationOn,
+                            titulo = "Localização aproximada / Wi-Fi",
+                            descricao = "Para identificar redes Wi-Fi ao redor e analisar canais",
+                            labelBotao = "Permitir análise de Wi-Fi",
+                            onClick = onSolicitarPermissaoLocalizacao,
+                            c = c,
+                        )
+                        Spacer(Modifier.height(LkSpacing.sm))
+                        PermissaoCard(
+                            icon = Icons.Outlined.NearMe,
+                            titulo = "Dispositivos próximos",
+                            descricao = "Para detectar dispositivos na rede local (opcional)",
+                            labelBotao = "Permitir",
+                            onClick = onSolicitarPermissaoDispositivosProximos,
+                            c = c,
+                        )
+                    }
                 }
 
                 // Zona dots: centralizado entre texto e botões
@@ -205,7 +270,7 @@ fun OnboardingScreen(
                     }
                 }
 
-                // Zona botões: altura responsiva por altura de tela
+                // Zona botões
                 val alturaZonaBotoes: Dp =
                     when {
                         alturaTelaDP < 540 -> 56.dp
@@ -238,12 +303,11 @@ fun OnboardingScreen(
                             )
                         }
                     } else {
-                        // Espaço reservado para manter layout equilibrado
                         Spacer(Modifier.width(1.dp))
                     }
 
-                    // Slide 2: botão "Começar →" com AnimatedVisibility
-                    // Slides 0 e 1: botão "Próximo →"
+                    // Slide 2: botão "Começar →"
+                    // Slides 0 e 1: botão "Próximo →" (slide 1 bloqueado até aceitar termos)
                     if (pagina == TOTAL_SLIDES - 1) {
                         AnimatedVisibility(
                             visible = paginaAtual == TOTAL_SLIDES - 1,
@@ -269,13 +333,16 @@ fun OnboardingScreen(
                             }
                         }
                     } else {
+                        // #128: slide 1 requer checkbox marcado para avançar
+                        val podeAvancar = pagina != 1 || termosAceitos
                         FilledTonalButton(
                             onClick = {
                                 scope.launch { pagerState.animateScrollToPage(pagina + 1, animationSpec = tween(200)) }
                             },
+                            enabled = podeAvancar,
                             modifier =
                                 Modifier.semantics {
-                                    contentDescription = "Próximo slide"
+                                    contentDescription = if (podeAvancar) "Próximo slide" else "Aceite os termos para continuar"
                                 },
                             colors = ButtonDefaults.filledTonalButtonColors(),
                         ) {
@@ -290,8 +357,8 @@ fun OnboardingScreen(
             }
         }
 
-        // Botão Pular: TopEnd overlay, visível apenas nos slides 0 e 1
-        if (paginaAtual < TOTAL_SLIDES - 1) {
+        // Botão Pular: TopEnd overlay, visível apenas no slide 0 (#128: slide 1 requer aceite, não pode pular)
+        if (paginaAtual == 0) {
             Box(
                 modifier =
                     Modifier
@@ -314,6 +381,57 @@ fun OnboardingScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+// ─── Card de permissão para o slide 3 ────────────────────────────────────────
+
+@Composable
+private fun PermissaoCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    titulo: String,
+    descricao: String,
+    labelBotao: String,
+    onClick: () -> Unit,
+    c: LkTokens,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = LkColors.accent,
+            modifier = Modifier.size(24.dp),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = titulo,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.W600,
+                color = c.textPrimary,
+            )
+            Text(
+                text = descricao,
+                style = MaterialTheme.typography.bodySmall,
+                color = c.textSecondary,
+            )
+        }
+        FilledTonalButton(
+            onClick = onClick,
+            colors = ButtonDefaults.filledTonalButtonColors(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = LkSpacing.sm, vertical = 4.dp),
+        ) {
+            Text(text = labelBotao, style = MaterialTheme.typography.labelSmall)
         }
     }
 }

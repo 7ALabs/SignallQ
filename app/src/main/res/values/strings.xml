@@ -78,8 +78,8 @@
     <string name="onboarding_slide0_descricao">Não só os números — o linka analisa sua conexão\ne te diz o que está acontecendo e o que fazer.</string>
     <string name="onboarding_slide1_titulo">Seus dados ficam no seu celular</string>
     <string name="onboarding_slide1_descricao">Medimos sua rede, não rastreamos você. Tudo fica salvo localmente — nenhum dado pessoal sai do seu dispositivo.</string>
-    <string name="onboarding_slide2_titulo">Resultado sempre explicado</string>
-    <string name="onboarding_slide2_descricao">Verde: tudo certo. Amarelo: atenção. Vermelho: problema detectado — e sempre com uma explicação do que fazer a seguir.</string>
+    <string name="onboarding_slide2_titulo">Algumas análises precisam de permissão do Android</string>
+    <string name="onboarding_slide2_descricao">Você pode pular e permitir depois. O app continua útil mesmo sem estas permissões.</string>
     <string name="onboarding_btn_anterior">← Anterior</string>
     <string name="onboarding_btn_proximo">Próximo →</string>
     <string name="onboarding_btn_comecar">Começar →</string>
