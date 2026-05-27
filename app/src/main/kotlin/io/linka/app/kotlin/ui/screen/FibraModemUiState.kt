@@ -9,7 +9,6 @@ import io.linka.app.kotlin.feature.fibra.SnapshotFibra
 import io.linka.app.kotlin.feature.fibra.WanStatus
 
 sealed interface FibraModemUiState {
-
     object SemWifi : FibraModemUiState
 
     object SemCredenciais : FibraModemUiState
@@ -55,8 +54,9 @@ fun mapearSnapshotFibra(
             )
         }
 
-        EstadoFibra.erro -> FibraModemUiState.Erro(
-            chave = snapshot.erroMensagem ?: "fibra.erro_desconhecido",
-        )
+        EstadoFibra.erro ->
+            FibraModemUiState.Erro(
+                chave = snapshot.erroMensagem ?: "fibra.erro_desconhecido",
+            )
     }
 }

@@ -39,7 +39,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -82,34 +81,38 @@ fun FibraModemScreen(
         }
 
         when (uiState) {
-            is FibraModemUiState.SemWifi -> FibraEstadoVazio(
-                icone = Icons.Outlined.WifiOff,
-                titulo = "Análise indisponível",
-                descricao = "A análise do modem só funciona quando você está na rede local (Wi-Fi).",
-                c = c,
-            )
+            is FibraModemUiState.SemWifi ->
+                FibraEstadoVazio(
+                    icone = Icons.Outlined.WifiOff,
+                    titulo = "Análise indisponível",
+                    descricao = "A análise do modem só funciona quando você está na rede local (Wi-Fi).",
+                    c = c,
+                )
 
-            is FibraModemUiState.SemCredenciais -> FibraEstadoVazio(
-                icone = Icons.Outlined.Settings,
-                titulo = "Configure o acesso ao modem",
-                descricao = "Informe o IP, usuário e senha do modem nos ajustes para consultar os dados da fibra.",
-                ctaLabel = "Configurar modem",
-                onCta = onAbrirAjustes,
-                c = c,
-            )
+            is FibraModemUiState.SemCredenciais ->
+                FibraEstadoVazio(
+                    icone = Icons.Outlined.Settings,
+                    titulo = "Configure o acesso ao modem",
+                    descricao = "Informe o IP, usuário e senha do modem nos ajustes para consultar os dados da fibra.",
+                    ctaLabel = "Configurar modem",
+                    onCta = onAbrirAjustes,
+                    c = c,
+                )
 
             is FibraModemUiState.Conectando -> FibraEstadoSkeleton(c = c)
 
-            is FibraModemUiState.Erro -> FibraEstadoErro(
-                onConectar = onConectar,
-                onAbrirAjustes = onAbrirAjustes,
-                c = c,
-            )
+            is FibraModemUiState.Erro ->
+                FibraEstadoErro(
+                    onConectar = onConectar,
+                    onAbrirAjustes = onAbrirAjustes,
+                    c = c,
+                )
 
-            is FibraModemUiState.Concluido -> FibraEstadoConcluido(
-                estado = uiState,
-                c = c,
-            )
+            is FibraModemUiState.Concluido ->
+                FibraEstadoConcluido(
+                    estado = uiState,
+                    c = c,
+                )
         }
     }
 }
@@ -369,13 +372,13 @@ private fun FibraBlocoValores(
             valor = if (gpon.rxPowerDbm != 0.0) "${"%.2f".format(gpon.rxPowerDbm)} dBm" else "--",
             c = c,
         )
-        HorizontalDivider(color = c.divider, thickness = 0.5.dp)
+        HorizontalDivider(color = c.border, thickness = 0.5.dp)
         FibraValorRow(
             label = "TX Power",
             valor = if (gpon.txPowerDbm != 0.0) "${"%.2f".format(gpon.txPowerDbm)} dBm" else "--",
             c = c,
         )
-        HorizontalDivider(color = c.divider, thickness = 0.5.dp)
+        HorizontalDivider(color = c.border, thickness = 0.5.dp)
         FibraValorRow(
             label = "Temperatura",
             valor =
@@ -386,7 +389,7 @@ private fun FibraBlocoValores(
                 },
             c = c,
         )
-        HorizontalDivider(color = c.divider, thickness = 0.5.dp)
+        HorizontalDivider(color = c.border, thickness = 0.5.dp)
         FibraValorRow(
             label = "Status óptico",
             valor = if (gpon.status.isNotBlank()) gpon.status.replaceFirstChar { it.uppercase() } else "--",
@@ -478,7 +481,7 @@ private fun FibraBlocoInterpretacao(
                     fontSize = 13.sp,
                     color = c.textSecondary,
                 )
-                if (recomendacao.isNotBlank()) {
+                if (!recomendacao.isNullOrBlank()) {
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = recomendacao,
