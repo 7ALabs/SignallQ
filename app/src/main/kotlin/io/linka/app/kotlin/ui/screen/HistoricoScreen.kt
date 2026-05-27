@@ -667,16 +667,25 @@ fun HistoricoScreen(
             }
         }
 
+    // Modo controlado: AppShell/ViewModel já pré-filtrou a lista — não re-filtrar aqui,
+    // pois isso causaria double-filter e lista sempre vazia ao selecionar MOVEL.
+    // Modo não-controlado: aplica filtro local (sessão interna sem ViewModel).
     val historicoFiltrado =
         remember(historico, filtroConexaoAtivo, filtroOperadoraAtivo) {
-            historico
-                .filter { m ->
-                    when (filtroConexaoAtivo) {
-                        FiltroTipo.TODOS -> true
-                        FiltroTipo.WIFI -> m.connectionType == "wifi"
-                        FiltroTipo.MOVEL -> m.connectionType == EstadoConexao.movel.name
-                    }
-                }.filter { m -> filtroOperadoraAtivo == null || m.operadoraMovel == filtroOperadoraAtivo }
+            if (filtroConexao != null) {
+                // Modo controlado: lista já vem filtrada do ViewModel.
+                historico
+            } else {
+                // Modo não-controlado: filtra internamente.
+                historico
+                    .filter { m ->
+                        when (filtroConexaoAtivo) {
+                            FiltroTipo.TODOS -> true
+                            FiltroTipo.WIFI -> m.connectionType == "wifi"
+                            FiltroTipo.MOVEL -> m.connectionType == EstadoConexao.movel.name
+                        }
+                    }.filter { m -> filtroOperadoraAtivo == null || m.operadoraMovel == filtroOperadoraAtivo }
+            }
         }
 
     Scaffold(
@@ -719,8 +728,15 @@ fun HistoricoScreen(
             )
         },
     ) { padding ->
-        if (historico.isEmpty()) {
-            EmptyHistorico(modifier = Modifier.fillMaxSize().padding(padding), onIniciarTeste = onIniciarTeste)
+        // Usa historicoFiltrado para o guard: quando filtro MOVEL está ativo e não há
+        // registros móveis, mostra estado vazio correto em vez de LazyColumn com dados quebrados.
+        val listaParaExibir = historicoFiltrado
+        if (listaParaExibir.isEmpty()) {
+            EmptyHistorico(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                onIniciarTeste = onIniciarTeste,
+                filtroAtivo = filtroConexaoAtivo != FiltroTipo.TODOS,
+            )
         } else {
             val maxValue =
                 remember(historicoFiltrado) {
@@ -842,6 +858,7 @@ fun HistoricoScreen(
 private fun EmptyHistorico(
     modifier: Modifier = Modifier,
     onIniciarTeste: () -> Unit = {},
+    filtroAtivo: Boolean = false,
 ) {
     val c = LocalLkTokens.current
     Box(modifier, contentAlignment = Alignment.Center) {
@@ -849,20 +866,26 @@ private fun EmptyHistorico(
             Icon(Icons.Outlined.History, null, tint = c.textTertiary, modifier = Modifier.size(48.dp))
             Spacer(Modifier.height(LkSpacing.lg))
             Text(
-                "Nenhum teste realizado ainda",
+                if (filtroAtivo) "Nenhum teste para este filtro" else "Nenhum teste realizado ainda",
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.W500,
                 color = c.textPrimary,
             )
             Spacer(Modifier.height(LkSpacing.sm))
             Text(
-                "Os resultados dos testes de velocidade\naparecerão aqui.",
+                if (filtroAtivo) {
+                    "Não há medições para o filtro selecionado.\nTente selecionar outro tipo de conexão."
+                } else {
+                    "Os resultados dos testes de velocidade\naparecerão aqui."
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = c.textSecondary,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(LkSpacing.lg))
-            Button(onClick = onIniciarTeste) { Text("Fazer primeiro teste") }
+            Button(onClick = onIniciarTeste) {
+                Text(if (filtroAtivo) "Medir agora" else "Fazer primeiro teste")
+            }
         }
     }
 }

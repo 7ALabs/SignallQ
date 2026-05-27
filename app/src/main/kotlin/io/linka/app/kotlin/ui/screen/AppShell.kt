@@ -292,8 +292,16 @@ fun AppShell(
         }
     }
 
+    // Back em overlay: desfaz último overlay empilhado.
     BackHandler(enabled = overlayStack.isNotEmpty()) {
         overlayStack.removeLastOrNull()
+    }
+
+    // Back na tab Histórico (índice 3): volta para Home em vez de sair do app.
+    // Sem este handler, o back gesture do sistema fecha o app enquanto o usuário está
+    // navegando pelo histórico — comportamento confuso reportado como "trava".
+    BackHandler(enabled = overlayStack.isEmpty() && selectedTab == 3) {
+        selectedTab = 0
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
