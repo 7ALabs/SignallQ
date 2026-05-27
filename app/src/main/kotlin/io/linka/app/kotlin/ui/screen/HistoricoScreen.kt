@@ -80,6 +80,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.linka.app.kotlin.core.database.MedicaoEntity
+import io.linka.app.kotlin.core.network.EstadoConexao
 import io.linka.app.kotlin.feature.history.BlocoUptime
 import io.linka.app.kotlin.feature.history.ResumoHistorico
 import io.linka.app.kotlin.feature.history.TendenciaEstado
@@ -145,7 +146,7 @@ private fun networkIcon(m: MedicaoEntity): ImageVector =
 private fun tipoLabel(m: MedicaoEntity): String =
     when (m.connectionType) {
         "wifi" -> "Wi-Fi"
-        "cellular" -> "Celular"
+        EstadoConexao.movel.name -> "Celular"
         "ethernet" -> "Cabo"
         else -> m.connectionType
     }
@@ -659,7 +660,7 @@ fun HistoricoScreen(
         } else {
             remember(historico) {
                 historico
-                    .filter { it.connectionType == "cellular" }
+                    .filter { it.connectionType == EstadoConexao.movel.name }
                     .mapNotNull { it.operadoraMovel }
                     .distinct()
                     .sorted()
@@ -673,7 +674,7 @@ fun HistoricoScreen(
                     when (filtroConexaoAtivo) {
                         FiltroTipo.TODOS -> true
                         FiltroTipo.WIFI -> m.connectionType == "wifi"
-                        FiltroTipo.MOVEL -> m.connectionType == "cellular"
+                        FiltroTipo.MOVEL -> m.connectionType == EstadoConexao.movel.name
                     }
                 }.filter { m -> filtroOperadoraAtivo == null || m.operadoraMovel == filtroOperadoraAtivo }
         }

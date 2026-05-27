@@ -1249,6 +1249,7 @@ class MainViewModel
                 modo = modo,
                 connectionType = connectionType,
                 connectionTypeProvider = { monitorRede.snapshotFlow.value.estadoConexao.name },
+                tecnologiaProvider = { monitorTelephony.snapshotFlow.value?.tecnologia },
             )
             Timber.i("finalizado modo=${modo.name}")
         }

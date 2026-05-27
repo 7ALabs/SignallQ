@@ -14,6 +14,7 @@ import android.os.Looper
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.concurrent.atomic.AtomicInteger
 
 class MonitorRedeAndroid(
     context: Context,
@@ -34,7 +35,8 @@ class MonitorRedeAndroid(
     // Contador de tentativas aguardando NET_CAPABILITY_VALIDATED.
     // Permite fallback após 1 retry: evita deixar o usuário preso como "desconectado"
     // em captive portal, VPN corporativa ou redes de operadora com proxy.
-    private var tentativasAguardandoValidated = 0
+    // AtomicInteger: acesso concorrente entre main thread (Handler) e thread do ConnectivityManager.
+    private val tentativasAguardandoValidated = AtomicInteger(0)
 
     private val callbackRede = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
@@ -111,19 +113,19 @@ class MonitorRedeAndroid(
         val temValidated = caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
         val conectado = when {
             temInternet && temValidated -> {
-                tentativasAguardandoValidated = 0
+                tentativasAguardandoValidated.set(0)
                 true
             }
             temInternet && !temValidated -> {
                 // VALIDATED ainda não chegou — pode ser Samsung One UI disparando onAvailable cedo,
                 // captive portal, VPN ou proxy de operadora.
-                if (tentativasAguardandoValidated >= 1) {
+                if (tentativasAguardandoValidated.get() >= 1) {
                     // Já esperamos 1 ciclo de retry (600 ms) — fallback: considera conectado
                     // para não travar o usuário. onCapabilitiesChanged vai corrigir se mudar.
-                    tentativasAguardandoValidated = 0
+                    tentativasAguardandoValidated.set(0)
                     true
                 } else {
-                    tentativasAguardandoValidated++
+                    tentativasAguardandoValidated.incrementAndGet()
                     // Agenda retry: onCapabilitiesChanged normalmente chega com VALIDATED em seguida.
                     // Se não chegar, o retry dispara e no próximo ciclo o fallback acima assume.
                     mainHandler.postDelayed(runnableRetry, 600)
@@ -131,7 +133,7 @@ class MonitorRedeAndroid(
                 }
             }
             else -> {
-                tentativasAguardandoValidated = 0
+                tentativasAguardandoValidated.set(0)
                 false
             }
         }

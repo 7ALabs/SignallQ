@@ -26,4 +26,6 @@ data class ResultadoSpeedtest(
     val diagnosticoQualidade: DiagnosticoQualidadeSpeedtest,
     val diagnosticoFases: DiagnosticoFasesSpeedtest,
     val uploadNaoDetectado: Boolean = false,
+    val connectionType: String? = null,
+    val tecnologia: String? = null,
 )

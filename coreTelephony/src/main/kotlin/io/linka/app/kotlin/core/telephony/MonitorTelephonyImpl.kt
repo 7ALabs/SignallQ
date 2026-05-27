@@ -249,9 +249,27 @@ class MonitorTelephonyImpl(
         // em vários OEMs. Se allCellInfo já encontrou um CellInfoNr registrado, isso é
         // evidência direta de NR ativo — forçar "5G NSA" quando derivarTecnologia ficou
         // em "4G" ou null por não conseguir ler nrState.
-        val tecnologiaFinal = when {
+        var tecnologiaFinal = when {
             celulaServidora is CellInfoNr && (tecnologia == "4G" || tecnologia == null) -> "5G NSA"
             else -> tecnologia
+        }
+
+        // Fallback adicional para 5G SA: em devices onde allCellInfo retorna lista vazia
+        // (Samsung Exynos, Xiaomi MIUI 14 sem permissão de localização em API 29+),
+        // celulaServidora fica null e o override via CellInfoNr não acontece.
+        // Se tecnologiaFinal ainda é "4G" mas dataNetworkType == NETWORK_TYPE_NR (20),
+        // forçar "5G SA". Envolto em runCatching pois dataNetworkType pode lançar
+        // SecurityException em devices com MIUI restrito.
+        if (tecnologiaFinal == "4G") {
+            val dnType = runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    @Suppress("MissingPermission") tm.dataNetworkType
+                } else -1
+            }.getOrDefault(-1)
+            if (dnType == TelephonyManager.NETWORK_TYPE_NR) {
+                Log.d(TAG, "Fallback 5G SA via dataNetworkType=NR (allCellInfo vazio ou sem CellInfoNr registrado).")
+                tecnologiaFinal = "5G SA"
+            }
         }
 
         // Se nao conseguiu absolutamente nada significativo, devolve null
@@ -324,11 +342,15 @@ class MonitorTelephonyImpl(
                 val nrConnected = regList.any { reg ->
                     runCatching {
                         reg.javaClass.getMethod("getNrState").invoke(reg) as? Int == 3
-                    }.getOrDefault(false)
+                    }.getOrElse { t ->
+                        Log.d(TAG, "detectarNrAtivo: getNrState() via reflexão falhou em ${reg.javaClass.simpleName} — ativando fallback toString(). Causa: ${t.javaClass.simpleName}: ${t.message}")
+                        false
+                    }
                 }
                 if (nrConnected) return true
-            } catch (_: Throwable) {
-                // Fallback abaixo
+            } catch (t: Throwable) {
+                // networkRegistrationInfoList indisponível ou falha antes de iterar.
+                Log.d(TAG, "detectarNrAtivo: falha ao acessar networkRegistrationInfoList — ativando fallback toString(). Causa: ${t.javaClass.simpleName}: ${t.message}")
             }
         }
         return runCatching {

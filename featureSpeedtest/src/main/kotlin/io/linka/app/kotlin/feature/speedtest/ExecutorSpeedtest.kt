@@ -9,6 +9,7 @@ interface ExecutorSpeedtest {
         modo: ModoSpeedtest = ModoSpeedtest.fast,
         connectionType: String? = null,
         connectionTypeProvider: (() -> String?)? = null,
+        tecnologiaProvider: (() -> String?)? = null,
     )
 
     fun cancelar()

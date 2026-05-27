@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.linka.app.kotlin.core.database.MedicaoEntity
+import io.linka.app.kotlin.core.network.EstadoConexao
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
@@ -175,7 +176,7 @@ fun SpeedBarsChart(
                 when (filtroSelecionado) {
                     FiltroConexao.TODOS -> medicoes
                     FiltroConexao.WIFI -> medicoes.filter { it.connectionType == "wifi" }
-                    FiltroConexao.MOVEL -> medicoes.filter { it.connectionType == "cellular" }
+                    FiltroConexao.MOVEL -> medicoes.filter { it.connectionType == EstadoConexao.movel.name }
                 }
             base.takeLast(20)
         }
@@ -287,7 +288,7 @@ fun SpeedBarsChart(
             }
 
             // Rodapé com aviso de operadora
-            if (!isLoading && medicoesFiltradas.any { it.connectionType == "cellular" }) {
+            if (!isLoading && medicoesFiltradas.any { it.connectionType == EstadoConexao.movel.name }) {
                 Text(
                     text = "Testes móveis identificados pelo tipo de rede.",
                     style = MaterialTheme.typography.labelSmall,

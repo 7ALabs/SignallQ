@@ -124,6 +124,7 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
         modo: ModoSpeedtest,
         connectionType: String?,
         connectionTypeProvider: (() -> String?)?,
+        tecnologiaProvider: (() -> String?)?,
     ) {
         if (!emExecucao.compareAndSet(false, true)) return
         withContext(Dispatchers.IO) {
@@ -140,6 +141,7 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
                     executarModoTriplo(
                         connectionType = connectionType,
                         connectionTypeProvider = connectionTypeProvider,
+                        tecnologiaProvider = tecnologiaProvider,
                     )
                     return@withContext
                 }
@@ -181,6 +183,7 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
                             dns = DnsProbeResult(null, null, null, null),
                             contaminado = true,
                             faseInterrompida = faseInterrompida,
+                            tecnologia = tecnologiaProvider?.invoke(),
                         )
                     registrarDiagnostico(resultadoContaminado)
                     faseAtualInterna = FaseSpeedtest.concluido
@@ -262,6 +265,7 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
                             dns = DnsProbeResult(null, null, null, null),
                             contaminado = true,
                             faseInterrompida = faseInterrompida,
+                            tecnologia = tecnologiaProvider?.invoke(),
                         )
                     registrarDiagnostico(resultadoContaminado)
                     faseAtualInterna = FaseSpeedtest.concluido
@@ -332,6 +336,7 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
                         contaminado = contaminado,
                         faseInterrompida = faseInterrompida,
                         uploadNaoDetectado = uploadNaoDetectado,
+                        tecnologia = tecnologiaProvider?.invoke(),
                     )
 
                 registrarDiagnostico(resultado)
@@ -356,6 +361,7 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
     private suspend fun executarModoTriplo(
         connectionType: String?,
         connectionTypeProvider: (() -> String?)?,
+        tecnologiaProvider: (() -> String?)? = null,
     ) {
         val redeInicial = connectionType
         val config = SpeedtestConfig.fromModo(ModoSpeedtest.triplo)
@@ -519,6 +525,8 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
             connectionTypeStart = connectionType,
             connectionTypeEnd = connectionTypeProvider?.invoke() ?: connectionType,
             contaminado = false,
+            connectionType = connectionType,
+            tecnologia = tecnologiaProvider?.invoke(),
             latenciaMs = latenciaMediana,
             jitterMs = 0.0,
             perdaPercentual = 0.0,
@@ -1102,6 +1110,7 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
         contaminado: Boolean,
         faseInterrompida: String,
         uploadNaoDetectado: Boolean = false,
+        tecnologia: String? = null,
     ): ResultadoSpeedtest {
         val latencyDownload = median(pingDownload)
         val latencyUpload = median(pingUpload)
@@ -1165,6 +1174,8 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
                     dnsErroMensagem = dns.erroMensagem,
                 ),
             uploadNaoDetectado = uploadNaoDetectado,
+            connectionType = redeInicial,
+            tecnologia = tecnologia,
         )
     }
 
