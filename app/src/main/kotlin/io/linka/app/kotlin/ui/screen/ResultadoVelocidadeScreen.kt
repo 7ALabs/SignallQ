@@ -357,6 +357,13 @@ fun ResultadoVelocidadeScreen(
 
                 // 5. NOVO: Chip de contaminação (1-B)
                 if (resultado.contaminado) {
+                    val faseInterrompida = resultado.diagnosticoFases.faseInterrompida
+                    val interrompidoPorRedeMudou = faseInterrompida.contains("redeMudou", ignoreCase = true)
+                    val mensagemContaminacao = if (interrompidoPorRedeMudou) {
+                        "O teste foi interrompido porque a conexão caiu ou mudou durante a medição. Tente novamente quando a rede estabilizar."
+                    } else {
+                        "Resultado pode conter interferência de outros apps"
+                    }
                     Spacer(Modifier.height(LkSpacing.md))
                     Row(
                         modifier =
@@ -375,7 +382,7 @@ fun ResultadoVelocidadeScreen(
                         )
                         Spacer(Modifier.width(LkSpacing.xs))
                         Text(
-                            text = "Resultado pode conter interferência de outros apps",
+                            text = mensagemContaminacao,
                             style = MaterialTheme.typography.bodySmall,
                             color = LkColors.warning,
                         )
