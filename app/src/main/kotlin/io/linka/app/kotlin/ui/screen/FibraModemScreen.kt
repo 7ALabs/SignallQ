@@ -18,16 +18,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ErrorOutline
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.WifiOff
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
@@ -40,7 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -51,11 +50,10 @@ import io.linka.app.kotlin.feature.diagnostico.FibraDiagnosticInput
 import io.linka.app.kotlin.feature.diagnostico.FibraSignalQualityEngine
 import io.linka.app.kotlin.feature.fibra.DeviceInfoFibra
 import io.linka.app.kotlin.feature.fibra.GponStatus
-import io.linka.app.kotlin.feature.fibra.WanStatus
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
-import io.linka.app.kotlin.ui.LinkaTheme
+import io.linka.app.kotlin.ui.LocalLkTokens
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
@@ -66,302 +64,342 @@ fun FibraModemScreen(
     onAbrirAjustes: () -> Unit,
     c: LkTokens,
 ) {
-    val isRefresh = uiState is FibraModemUiState.Conectando
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(c.bgSecondary),
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(c.bgPrimary)
+                .navigationBarsPadding(),
     ) {
-        // LinearProgressIndicator no topo apenas no refresh (Conectando com snapshot anterior)
-        if (isRefresh) {
+        // Loading indicator no topo — visível durante Conectando (refresh)
+        if (uiState is FibraModemUiState.Conectando) {
             LinearProgressIndicator(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter),
+                modifier = Modifier.fillMaxWidth(),
                 color = LkColors.accent,
-                trackColor = c.border,
+                trackColor = c.bgSecondary,
             )
         }
 
         when (uiState) {
-            is FibraModemUiState.SemWifi -> FibraEstadoSemWifi(c = c)
-            is FibraModemUiState.SemCredenciais -> FibraEstadoSemCredenciais(
-                c = c,
-                onAbrirAjustes = onAbrirAjustes,
-            )
-            is FibraModemUiState.Conectando -> FibraEstadoConectando(c = c)
-            is FibraModemUiState.Erro -> FibraEstadoErro(
-                c = c,
-                onTentarNovamente = onConectar,
-                onAbrirAjustes = onAbrirAjustes,
-            )
-            is FibraModemUiState.Concluido -> FibraEstadoConcluido(
-                estado = uiState,
-                c = c,
-            )
+            is FibraModemUiState.SemWifi ->
+                FibraEstadoVazio(
+                    icone = Icons.Outlined.WifiOff,
+                    titulo = "Análise indisponível",
+                    descricao = "A análise do modem só funciona quando você está na rede local (Wi-Fi).",
+                    c = c,
+                )
+
+            is FibraModemUiState.SemCredenciais ->
+                FibraEstadoVazio(
+                    icone = Icons.Outlined.Settings,
+                    titulo = "Configure o acesso ao modem",
+                    descricao = "Informe o IP, usuário e senha do modem nos ajustes para consultar os dados da fibra.",
+                    ctaLabel = "Configurar modem",
+                    onCta = onAbrirAjustes,
+                    c = c,
+                )
+
+            is FibraModemUiState.Conectando -> FibraEstadoSkeleton(c = c)
+
+            is FibraModemUiState.Erro ->
+                FibraEstadoErro(
+                    onConectar = onConectar,
+                    onAbrirAjustes = onAbrirAjustes,
+                    c = c,
+                )
+
+            is FibraModemUiState.Concluido ->
+                FibraEstadoConcluido(
+                    estado = uiState,
+                    c = c,
+                )
         }
     }
 }
 
-// ─── Estado 1: Sem Wi-Fi ──────────────────────────────────────────────────────
+// ─── Estado: sem Wi-Fi / sem credenciais ──────────────────────────────────────
 
 @Composable
-private fun FibraEstadoSemWifi(c: LkTokens) {
-    FibraEstadoVazio(
-        icone = {
-            Icon(
-                imageVector = Icons.Filled.WifiOff,
-                contentDescription = null,
-                tint = c.textTertiary,
-                modifier = Modifier.size(48.dp),
-            )
-        },
-        titulo = "Análise indisponível",
-        texto = "A análise do modem só funciona quando você está na rede local (Wi-Fi).",
-        c = c,
-    )
-}
-
-// ─── Estado 2: Sem Credenciais ────────────────────────────────────────────────
-
-@Composable
-private fun FibraEstadoSemCredenciais(
+private fun FibraEstadoVazio(
+    icone: ImageVector,
+    titulo: String,
+    descricao: String,
+    ctaLabel: String? = null,
+    onCta: (() -> Unit)? = null,
     c: LkTokens,
-    onAbrirAjustes: () -> Unit,
 ) {
-    FibraEstadoVazio(
-        icone = {
-            Icon(
-                imageVector = Icons.Filled.Settings,
-                contentDescription = null,
-                tint = c.textTertiary,
-                modifier = Modifier.size(48.dp),
-            )
-        },
-        titulo = "Configure o acesso ao modem",
-        texto = "Informe o IP, usuário e senha do modem nos ajustes para consultar os dados da fibra.",
-        c = c,
-        cta = {
-            Button(
-                onClick = onAbrirAjustes,
-                colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
-                shape = RoundedCornerShape(LkSpacing.md),
-            ) {
-                Text("Configurar modem", fontSize = 14.sp, color = Color.White)
-            }
-        },
-    )
-}
-
-// ─── Estado 3: Conectando ─────────────────────────────────────────────────────
-
-@Composable
-private fun FibraEstadoConectando(c: LkTokens) {
-    // Skeleton inicial — quando snapshotFibra nunca chegou
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(LkSpacing.xl)
-            .navigationBarsPadding(),
-        verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
-        Spacer(Modifier.height(LkSpacing.xl))
-        FibraSkeletonBloco(c = c, largura = 120.dp, altura = 18.dp)
+        Icon(
+            imageVector = icone,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = c.textTertiary,
+        )
+        Spacer(Modifier.height(LkSpacing.md))
+        Text(
+            text = titulo,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = c.textPrimary,
+        )
         Spacer(Modifier.height(LkSpacing.sm))
-        FibraSkeletonCard(c = c)
-        Spacer(Modifier.height(LkSpacing.sm))
-        FibraSkeletonCard(c = c)
+        Text(
+            text = descricao,
+            fontSize = 14.sp,
+            color = c.textSecondary,
+        )
+        if (ctaLabel != null && onCta != null) {
+            Spacer(Modifier.height(LkSpacing.lg))
+            Button(onClick = onCta) {
+                Text(ctaLabel)
+            }
+        }
     }
 }
 
-// ─── Estado 4: Erro ───────────────────────────────────────────────────────────
+// ─── Estado: erro de conexão ───────────────────────────────────────────────────
 
 @Composable
 private fun FibraEstadoErro(
-    c: LkTokens,
-    onTentarNovamente: () -> Unit,
+    onConectar: () -> Unit,
     onAbrirAjustes: () -> Unit,
+    c: LkTokens,
 ) {
-    FibraEstadoVazio(
-        icone = {
-            Icon(
-                imageVector = Icons.Filled.ErrorOutline,
-                contentDescription = null,
-                tint = LkColors.error,
-                modifier = Modifier.size(48.dp),
-            )
-        },
-        titulo = "Não consegui acessar o modem",
-        texto = "Verifique o IP, o usuário e a senha nas configurações do modem.",
-        c = c,
-        cta = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Button(
-                    onClick = onTentarNovamente,
-                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
-                    shape = RoundedCornerShape(LkSpacing.md),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Tentar novamente", fontSize = 14.sp, color = Color.White)
-                }
-                OutlinedButton(
-                    onClick = onAbrirAjustes,
-                    shape = RoundedCornerShape(LkSpacing.md),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Revisar configurações", fontSize = 14.sp, color = c.textSecondary)
-                }
-            }
-        },
-    )
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.ErrorOutline,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = LkColors.warning,
+        )
+        Spacer(Modifier.height(LkSpacing.md))
+        Text(
+            text = "Não consegui acessar o modem",
+            fontSize = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = c.textPrimary,
+        )
+        Spacer(Modifier.height(LkSpacing.sm))
+        Text(
+            text = "Verifique o IP, o usuário e a senha nas configurações do modem.",
+            fontSize = 14.sp,
+            color = c.textSecondary,
+        )
+        Spacer(Modifier.height(LkSpacing.lg))
+        Button(onClick = onConectar, modifier = Modifier.fillMaxWidth()) {
+            Text("Tentar novamente")
+        }
+        Spacer(Modifier.height(LkSpacing.sm))
+        OutlinedButton(onClick = onAbrirAjustes, modifier = Modifier.fillMaxWidth()) {
+            Text("Revisar configurações")
+        }
+    }
 }
 
-// ─── Estado 5: Concluido ──────────────────────────────────────────────────────
+// ─── Estado: skeleton de carregamento inicial ──────────────────────────────────
+
+@Composable
+private fun FibraEstadoSkeleton(c: LkTokens) {
+    val shimmer by rememberInfiniteTransition(label = "fibra_shimmer").animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(durationMillis = 1200, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+        label = "shimmer_offset",
+    )
+    val shimmerBrush =
+        Brush.linearGradient(
+            colors =
+                listOf(
+                    c.bgSecondary,
+                    c.bgPrimary,
+                    c.bgSecondary,
+                ),
+            start = Offset(shimmer - 300f, 0f),
+            end = Offset(shimmer + 300f, 0f),
+        )
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .padding(top = LkSpacing.lg),
+    ) {
+        repeat(3) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(72.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(shimmerBrush),
+            )
+            Spacer(Modifier.height(LkSpacing.sm))
+        }
+    }
+}
+
+// ─── Estado: concluído ─────────────────────────────────────────────────────────
 
 @Composable
 private fun FibraEstadoConcluido(
     estado: FibraModemUiState.Concluido,
     c: LkTokens,
 ) {
-    // Deriva interpretações localmente a partir do GponStatus — sem importar ViewModel
-    val interpretacoes = remember(estado.gpon) {
-        val input = FibraDiagnosticInput(
-            rxPowerDbm = estado.gpon.rxPowerDbm,
-            txPowerDbm = estado.gpon.txPowerDbm,
-            temperatureCelsius = estado.gpon.temperatureCelsius,
-            isUp = estado.gpon.isUp,
-        )
-        FibraSignalQualityEngine.avaliar(input)
-    }
+    // Derivar interpretações localmente a partir do GponStatus
+    val fibraInput =
+        remember(estado.gpon) {
+            FibraDiagnosticInput(
+                rxPowerDbm = estado.gpon.rxPowerDbm,
+                txPowerDbm = estado.gpon.txPowerDbm,
+                temperatureCelsius = estado.gpon.temperatureCelsius,
+                isUp = estado.gpon.isUp,
+            )
+        }
+    val interpretacoes = remember(fibraInput) { FibraSignalQualityEngine.avaliar(fibraInput) }
 
-    val statusGeral = calcularStatusGeral(interpretacoes, estado.gpon.isUp)
+    // Calcular status geral
+    val statusGeral =
+        when {
+            interpretacoes.any { it.status == DiagnosticStatus.critical } -> StatusGeral.Ruim
+            interpretacoes.any { it.status == DiagnosticStatus.attention } -> StatusGeral.Regular
+            else -> StatusGeral.Boa
+        }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = LkSpacing.xl)
-            .padding(top = LkSpacing.xl, bottom = LkSpacing.xxl)
-            .navigationBarsPadding(),
-        verticalArrangement = Arrangement.spacedBy(LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp)
+                .padding(top = LkSpacing.lg, bottom = LkSpacing.xl),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
-        // ── Topo: chip de status geral ─────────────────────────────────────
-        FibraChipStatusGeral(status = statusGeral, c = c)
+        // Chip de status geral
+        FibraChipStatus(statusGeral = statusGeral, c = c)
 
-        // ── Bloco valores ──────────────────────────────────────────────────
-        FibraBlocoValores(
-            gpon = estado.gpon,
-            deviceInfo = estado.deviceInfo,
-            wan = estado.wan,
-            c = c,
-        )
+        Spacer(Modifier.height(LkSpacing.xs))
 
-        // ── Bloco interpretação ────────────────────────────────────────────
+        // Bloco valores técnicos
+        FibraBlocoValores(gpon = estado.gpon, deviceInfo = estado.deviceInfo, c = c)
+
+        Spacer(Modifier.height(LkSpacing.xs))
+
+        // Bloco interpretação
         if (interpretacoes.isNotEmpty()) {
-            FibraBlocoInterpretacoes(interpretacoes = interpretacoes, c = c)
+            FibraBlocoInterpretacao(interpretacoes = interpretacoes, c = c)
         }
     }
 }
 
 // ─── Chip de status geral ─────────────────────────────────────────────────────
 
+private enum class StatusGeral { Boa, Regular, Ruim }
+
 @Composable
-private fun FibraChipStatusGeral(
-    status: StatusGeral,
+private fun FibraChipStatus(
+    statusGeral: StatusGeral,
     c: LkTokens,
 ) {
-    val (label, cor) = when (status) {
-        StatusGeral.Boa -> "Boa" to LkColors.success
-        StatusGeral.Regular -> "Regular" to LkColors.warning
-        StatusGeral.Ruim -> "Ruim" to LkColors.error
-    }
-
+    val (label, cor) =
+        when (statusGeral) {
+            StatusGeral.Boa -> "Sinal ótimo" to LkColors.success
+            StatusGeral.Regular -> "Sinal regular" to LkColors.warning
+            StatusGeral.Ruim -> "Sinal fraco" to LkColors.error
+        }
     Row(
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(cor.copy(alpha = 0.12f))
+                .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
         Text(
-            "Status da fibra",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.W500,
-            color = c.textSecondary,
+            text = label,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = cor,
         )
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(LkSpacing.sm))
-                .background(cor.copy(alpha = 0.14f))
-                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
-        ) {
-            Text(
-                label,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.W700,
-                color = cor,
-            )
-        }
     }
 }
 
-// ─── Bloco valores GPON ───────────────────────────────────────────────────────
+// ─── Bloco valores ────────────────────────────────────────────────────────────
 
 @Composable
 private fun FibraBlocoValores(
     gpon: GponStatus,
     deviceInfo: DeviceInfoFibra?,
-    wan: WanStatus?,
     c: LkTokens,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(c.bgCard)
-            .padding(LkSpacing.cardContent),
-        verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(c.bgSecondary)
+                .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
     ) {
         Text(
-            "Dados do sinal óptico",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.W600,
+            text = "SINAIS DA FIBRA",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
             color = c.textTertiary,
-            modifier = Modifier.padding(bottom = LkSpacing.xs),
         )
+        Spacer(Modifier.height(4.dp))
 
         FibraValorRow(
             label = "RX Power",
             valor = if (gpon.rxPowerDbm != 0.0) "${"%.2f".format(gpon.rxPowerDbm)} dBm" else "--",
             c = c,
         )
+        HorizontalDivider(color = c.border, thickness = 0.5.dp)
         FibraValorRow(
             label = "TX Power",
             valor = if (gpon.txPowerDbm != 0.0) "${"%.2f".format(gpon.txPowerDbm)} dBm" else "--",
             c = c,
         )
+        HorizontalDivider(color = c.border, thickness = 0.5.dp)
         FibraValorRow(
             label = "Temperatura",
-            valor = if (gpon.temperatureCelsius != 0.0) "${"%.1f".format(gpon.temperatureCelsius)} °C" else "--",
+            valor =
+                if (gpon.temperatureCelsius != 0.0) {
+                    "${"%.1f".format(gpon.temperatureCelsius)} °C"
+                } else {
+                    "--"
+                },
             c = c,
         )
+        HorizontalDivider(color = c.border, thickness = 0.5.dp)
         FibraValorRow(
             label = "Status óptico",
-            valor = if (gpon.isUp) "Ativo" else "Inativo",
-            c = c,
-            valorCor = if (gpon.isUp) LkColors.success else LkColors.error,
-        )
-        FibraValorRow(
-            label = "Modelo",
-            valor = deviceInfo?.model?.ifBlank { null } ?: "--",
+            valor = if (gpon.status.isNotBlank()) gpon.status.replaceFirstChar { it.uppercase() } else "--",
             c = c,
         )
-
-        if (wan != null && wan.connectionType.isNotBlank()) {
+        if (deviceInfo != null) {
+            HorizontalDivider(color = c.border, thickness = 0.5.dp)
             FibraValorRow(
-                label = "Tipo de conexão",
-                valor = wan.connectionType,
+                label = "Modelo",
+                valor = "${deviceInfo.manufacturer} ${deviceInfo.model}".trim().ifBlank { "--" },
                 c = c,
             )
         }
@@ -373,350 +411,148 @@ private fun FibraValorRow(
     label: String,
     valor: String,
     c: LkTokens,
-    valorCor: Color? = null,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
     ) {
+        Text(text = label, fontSize = 14.sp, color = c.textSecondary)
         Text(
-            label,
-            fontSize = 13.sp,
-            color = c.textSecondary,
-            modifier = Modifier.weight(1f),
-        )
-        Spacer(Modifier.width(LkSpacing.sm))
-        Text(
-            valor,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.W600,
-            color = valorCor ?: c.textPrimary,
+            text = valor,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = c.textPrimary,
         )
     }
 }
 
-// ─── Bloco interpretações ─────────────────────────────────────────────────────
+// ─── Bloco interpretação ──────────────────────────────────────────────────────
 
 @Composable
-private fun FibraBlocoInterpretacoes(
+private fun FibraBlocoInterpretacao(
     interpretacoes: List<DiagnosticResult>,
     c: LkTokens,
 ) {
     Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(c.bgSecondary)
+                .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
         Text(
-            "Interpretação do sinal",
-            fontSize = 12.sp,
-            fontWeight = FontWeight.W600,
+            text = "INTERPRETAÇÃO",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
             color = c.textTertiary,
         )
-
+        Spacer(Modifier.height(4.dp))
         interpretacoes.forEach { resultado ->
-            FibraCardInterpretacao(resultado = resultado, c = c)
-        }
-    }
-}
-
-@Composable
-private fun FibraCardInterpretacao(
-    resultado: DiagnosticResult,
-    c: LkTokens,
-) {
-    val cor = when (resultado.status) {
-        DiagnosticStatus.ok -> LkColors.success
-        DiagnosticStatus.attention -> LkColors.warning
-        DiagnosticStatus.critical -> LkColors.error
-        DiagnosticStatus.info -> LkColors.accentBlue
-        DiagnosticStatus.inconclusive -> c.textTertiary
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(cor.copy(alpha = 0.08f))
-            .padding(LkSpacing.md),
-        verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(cor),
-            )
-            Text(
-                resultado.titulo,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.W600,
-                color = cor,
-            )
-        }
-        Text(
-            resultado.mensagemUsuario,
-            fontSize = 12.sp,
-            color = c.textSecondary,
-        )
-        val recomendacao = resultado.recomendacao
-        if (!recomendacao.isNullOrBlank()) {
-            Text(
-                recomendacao,
-                fontSize = 11.sp,
-                color = c.textTertiary,
-            )
-        }
-        val evidencia = resultado.evidencia
-        if (!evidencia.isNullOrBlank()) {
-            Text(
-                evidencia,
-                fontSize = 10.sp,
-                color = c.textTertiary,
-            )
-        }
-    }
-}
-
-// ─── Esqueleto de carregamento ────────────────────────────────────────────────
-
-@Composable
-private fun FibraSkeletonCard(c: LkTokens) {
-    val transition = rememberInfiniteTransition(label = "shimmer_fibra")
-    val translateX by transition.animateFloat(
-        initialValue = -400f,
-        targetValue = 400f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1100, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "shimmer_x_fibra",
-    )
-    val shimmerBrush = Brush.linearGradient(
-        colors = listOf(
-            c.border.copy(alpha = 0.5f),
-            Color.White.copy(alpha = 0.15f),
-            c.border.copy(alpha = 0.5f),
-        ),
-        start = Offset(translateX, 0f),
-        end = Offset(translateX + 400f, 0f),
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(80.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(shimmerBrush),
-    )
-}
-
-@Composable
-private fun FibraSkeletonBloco(
-    c: LkTokens,
-    largura: androidx.compose.ui.unit.Dp,
-    altura: androidx.compose.ui.unit.Dp,
-) {
-    val transition = rememberInfiniteTransition(label = "shimmer_bloco")
-    val translateX by transition.animateFloat(
-        initialValue = -200f,
-        targetValue = 200f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(900, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "shimmer_bloco_x",
-    )
-    val shimmerBrush = Brush.linearGradient(
-        colors = listOf(
-            c.border.copy(alpha = 0.5f),
-            Color.White.copy(alpha = 0.15f),
-            c.border.copy(alpha = 0.5f),
-        ),
-        start = Offset(translateX, 0f),
-        end = Offset(translateX + 200f, 0f),
-    )
-    Box(
-        modifier = Modifier
-            .width(largura)
-            .height(altura)
-            .clip(RoundedCornerShape(6.dp))
-            .background(shimmerBrush),
-    )
-}
-
-// ─── Layout genérico de estado vazio ─────────────────────────────────────────
-
-@Composable
-private fun FibraEstadoVazio(
-    icone: @Composable () -> Unit,
-    titulo: String,
-    texto: String,
-    c: LkTokens,
-    cta: (@Composable () -> Unit)? = null,
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = LkSpacing.xl)
-            .navigationBarsPadding(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
-            modifier = Modifier.padding(bottom = LkSpacing.xxl),
-        ) {
-            icone()
-            Spacer(Modifier.height(LkSpacing.sm))
-            Text(
-                titulo,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.W700,
-                color = c.textPrimary,
-            )
-            Text(
-                texto,
-                fontSize = 13.sp,
-                color = c.textSecondary,
-                modifier = Modifier.padding(horizontal = LkSpacing.lg),
-            )
-            if (cta != null) {
-                Spacer(Modifier.height(LkSpacing.sm))
-                cta()
+            val mensagem = resultado.mensagemUsuario
+            val recomendacao = resultado.recomendacao
+            val corStatus =
+                when (resultado.status) {
+                    DiagnosticStatus.critical -> LkColors.error
+                    DiagnosticStatus.attention -> LkColors.warning
+                    else -> LkColors.success
+                }
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(corStatus.copy(alpha = 0.08f))
+                        .padding(12.dp),
+            ) {
+                Text(
+                    text = resultado.titulo,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = corStatus,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = mensagem,
+                    fontSize = 13.sp,
+                    color = c.textSecondary,
+                )
+                if (!recomendacao.isNullOrBlank()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = recomendacao,
+                        fontSize = 12.sp,
+                        color = c.textTertiary,
+                    )
+                }
             }
         }
     }
 }
 
-// ─── Helpers internos ─────────────────────────────────────────────────────────
+// ─── Previews ─────────────────────────────────────────────────────────────────
 
-private enum class StatusGeral { Boa, Regular, Ruim }
-
-private fun calcularStatusGeral(
-    interpretacoes: List<DiagnosticResult>,
-    isUp: Boolean,
-): StatusGeral {
-    if (!isUp) return StatusGeral.Ruim
-    if (interpretacoes.any { it.status == DiagnosticStatus.critical }) return StatusGeral.Ruim
-    if (interpretacoes.any { it.status == DiagnosticStatus.attention }) return StatusGeral.Regular
-    return StatusGeral.Boa
-}
-
-// ─── Preview ─────────────────────────────────────────────────────────────────
-
-@Preview(showBackground = true, name = "FibraModem — Concluido")
+@Preview(showBackground = true, name = "FibraModem — Concluído")
 @Composable
-private fun PreviewFibraModemConcluido() {
-    LinkaTheme {
-        val tokens = LkTokens(
-            bgPrimary = LkColors.Light.bgPrimary,
-            bgSecondary = LkColors.Light.bgSecondary,
-            bgCard = LkColors.Light.bgCard,
-            textPrimary = LkColors.Light.textPrimary,
-            textSecondary = LkColors.Light.textSecondary,
-            textTertiary = LkColors.Light.textTertiary,
-            border = LkColors.Light.border,
-            warningContainer = LkColors.Light.warningContainer,
-            onWarningContainer = LkColors.Light.onWarningContainer,
-            amberSurface = LkColors.Light.amberSurface,
-            successContainer = LkColors.Light.successContainer,
-            onSuccessContainer = LkColors.Light.onSuccessContainer,
-        )
-        FibraModemScreen(
-            uiState = FibraModemUiState.Concluido(
-                gpon = GponStatus(
-                    status = "up",
-                    mode = "gpon",
-                    rxPowerDbm = -19.5,
-                    txPowerDbm = 2.3,
-                    temperatureCelsius = 48.0,
-                    serial = "ZTEG00000001",
-                    voltageV = 3.3,
-                    laserCurrentMa = 22.0,
-                ),
-                deviceInfo = DeviceInfoFibra(
-                    model = "ZTE F670L",
-                    manufacturer = "ZTE",
-                    serialNumber = "ZTEG00000001",
-                    firmwareVersion = "V1.0.10P6N7",
-                    hardwareVersion = "V1.0",
-                    uptimeSeconds = 86400 * 3 + 3600 * 2,
-                ),
-                wan = WanStatus(
-                    externalIp = "177.x.x.x",
-                    gateway = "200.x.x.1",
-                    primaryDns = "8.8.8.8",
-                    secondaryDns = "8.8.4.4",
-                    vlanId = "110",
-                    interfaceName = "veip0.1",
-                    pppoeConcentrator = "BRAS01",
-                    connectionType = "PPPoE",
-                    connectionUptimeSeconds = 86400 * 3,
-                ),
+private fun PreviewConcluido() {
+    val c = LocalLkTokens.current
+    FibraModemScreen(
+        uiState =
+            FibraModemUiState.Concluido(
+                gpon =
+                    GponStatus(
+                        status = "up",
+                        mode = "GPON",
+                        rxPowerDbm = -20.5,
+                        txPowerDbm = 2.1,
+                        temperatureCelsius = 52.3,
+                        serial = "HWTC1A2B3C4D",
+                        voltageV = 3.3,
+                        laserCurrentMa = 18.4,
+                    ),
+                deviceInfo =
+                    DeviceInfoFibra(
+                        model = "EG8145X6-10",
+                        manufacturer = "Huawei",
+                        serialNumber = "HC9012345",
+                        firmwareVersion = "V6R020C00S280",
+                        hardwareVersion = "VER.B",
+                        uptimeSeconds = 86401,
+                    ),
+                wan = null,
                 ppp = null,
                 interpretacoes = emptyList(),
             ),
-            onConectar = {},
-            onAbrirAjustes = {},
-            c = tokens,
-        )
-    }
+        onConectar = {},
+        onAbrirAjustes = {},
+        c = c,
+    )
 }
 
 @Preview(showBackground = true, name = "FibraModem — Erro")
 @Composable
-private fun PreviewFibraModemErro() {
-    LinkaTheme {
-        val tokens = LkTokens(
-            bgPrimary = LkColors.Light.bgPrimary,
-            bgSecondary = LkColors.Light.bgSecondary,
-            bgCard = LkColors.Light.bgCard,
-            textPrimary = LkColors.Light.textPrimary,
-            textSecondary = LkColors.Light.textSecondary,
-            textTertiary = LkColors.Light.textTertiary,
-            border = LkColors.Light.border,
-            warningContainer = LkColors.Light.warningContainer,
-            onWarningContainer = LkColors.Light.onWarningContainer,
-            amberSurface = LkColors.Light.amberSurface,
-            successContainer = LkColors.Light.successContainer,
-            onSuccessContainer = LkColors.Light.onSuccessContainer,
-        )
-        FibraModemScreen(
-            uiState = FibraModemUiState.Erro("fibra.erro_acesso"),
-            onConectar = {},
-            onAbrirAjustes = {},
-            c = tokens,
-        )
-    }
+private fun PreviewErro() {
+    val c = LocalLkTokens.current
+    FibraModemScreen(
+        uiState = FibraModemUiState.Erro(chave = "fibra.timeout"),
+        onConectar = {},
+        onAbrirAjustes = {},
+        c = c,
+    )
 }
 
-@Preview(showBackground = true, name = "FibraModem — SemWifi")
+@Preview(showBackground = true, name = "FibraModem — Sem Wi-Fi")
 @Composable
-private fun PreviewFibraModemSemWifi() {
-    LinkaTheme {
-        val tokens = LkTokens(
-            bgPrimary = LkColors.Light.bgPrimary,
-            bgSecondary = LkColors.Light.bgSecondary,
-            bgCard = LkColors.Light.bgCard,
-            textPrimary = LkColors.Light.textPrimary,
-            textSecondary = LkColors.Light.textSecondary,
-            textTertiary = LkColors.Light.textTertiary,
-            border = LkColors.Light.border,
-            warningContainer = LkColors.Light.warningContainer,
-            onWarningContainer = LkColors.Light.onWarningContainer,
-            amberSurface = LkColors.Light.amberSurface,
-            successContainer = LkColors.Light.successContainer,
-            onSuccessContainer = LkColors.Light.onSuccessContainer,
-        )
-        FibraModemScreen(
-            uiState = FibraModemUiState.SemWifi,
-            onConectar = {},
-            onAbrirAjustes = {},
-            c = tokens,
-        )
-    }
+private fun PreviewSemWifi() {
+    val c = LocalLkTokens.current
+    FibraModemScreen(
+        uiState = FibraModemUiState.SemWifi,
+        onConectar = {},
+        onAbrirAjustes = {},
+        c = c,
+    )
 }
