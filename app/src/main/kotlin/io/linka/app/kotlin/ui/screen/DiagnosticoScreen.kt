@@ -237,15 +237,39 @@ fun DiagnosticoScreen(
                     .padding(padding),
         ) {
             when (uiState) {
-                UiState.Empty ->
+                UiState.Empty -> {
+                    // Estado 1 — sem dados: nunca houve relatorio gerado (relatorio null + estado idle)
+                    val semDados = snapshotDiagnostico.relatorio == null &&
+                        snapshotDiagnostico.estado == EstadoDiagnostico.idle
+
+                    // TODO #141: aguardando campo `telephonyPermissionGranted: Boolean` no SnapshotDiagnostico
+                    // val semPermissao = !snapshotDiagnostico.telephonyPermissionGranted
+
+                    // TODO #141: aguardando campo `timestampUltimoTeste: Long?` no SnapshotDiagnostico
+                    // val dadosAntigos = snapshotDiagnostico.timestampUltimoTeste?.let {
+                    //     (System.currentTimeMillis() - it) > 24 * 60 * 60 * 1000L
+                    // } ?: false
+
                     DiagnosticoIdleContent(
                         c = c,
+                        semDados = semDados,
+                        // semPermissao = semPermissao,  // TODO #141
+                        // dadosAntigos = dadosAntigos,  // TODO #141
                         onAnalisar = {
                             onAnaliseSolicitadaChange(true)
                             onAiStateChange(AiDiagnosisState.idle)
                             onIniciarDiagnostico()
                         },
+                        onPermitirAnalise = {
+                            // TODO #141: abrir sheet de permissão de telefonia quando campo disponível
+                        },
+                        onAtualizarDiagnostico = {
+                            onAnaliseSolicitadaChange(true)
+                            onAiStateChange(AiDiagnosisState.idle)
+                            onIniciarDiagnostico()
+                        },
                     )
+                }
 
                 UiState.Loading -> {
                     // Nao utilizado — loading com fase usa Success<Carregando>
@@ -390,6 +414,11 @@ private fun resolveUiState(
 private fun DiagnosticoIdleContent(
     c: LkTokens,
     onAnalisar: () -> Unit,
+    semDados: Boolean = false,
+    semPermissao: Boolean = false, // TODO #141: aguardando campo telephonyPermissionGranted no SnapshotDiagnostico
+    dadosAntigos: Boolean = false, // TODO #141: aguardando campo timestampUltimoTeste no SnapshotDiagnostico
+    onPermitirAnalise: () -> Unit = {},
+    onAtualizarDiagnostico: () -> Unit = {},
 ) {
     val gradient =
         remember {
@@ -450,6 +479,44 @@ private fun DiagnosticoIdleContent(
             }
         }
 
+        // Estado 1 — sem dados suficientes
+        if (semDados) {
+            DiagnosticoEstadoEspecialBanner(
+                c = c,
+                icone = Icons.Outlined.Info,
+                iconeTint = LkColors.accent,
+                mensagem = stringResource(R.string.diagnostico_sem_dados_msg),
+                textoBotao = stringResource(R.string.diagnostico_sem_dados_btn),
+                onBotao = onAnalisar,
+            )
+        }
+
+        // Estado 2 — sem permissão de telefonia
+        // TODO #141: habilitar quando campo telephonyPermissionGranted estiver em SnapshotDiagnostico
+        if (semPermissao) {
+            DiagnosticoEstadoEspecialBanner(
+                c = c,
+                icone = Icons.Outlined.Security,
+                iconeTint = LkColors.warning,
+                mensagem = stringResource(R.string.diagnostico_sem_permissao_msg),
+                textoBotao = stringResource(R.string.diagnostico_sem_permissao_btn),
+                onBotao = onPermitirAnalise,
+            )
+        }
+
+        // Estado 3 — dados antigos (último teste > 24h)
+        // TODO #141: habilitar quando campo timestampUltimoTeste estiver em SnapshotDiagnostico
+        if (dadosAntigos) {
+            DiagnosticoEstadoEspecialBanner(
+                c = c,
+                icone = Icons.Outlined.Refresh,
+                iconeTint = c.textSecondary,
+                mensagem = stringResource(R.string.diagnostico_dados_antigos_msg),
+                textoBotao = stringResource(R.string.diagnostico_dados_antigos_btn),
+                onBotao = onAtualizarDiagnostico,
+            )
+        }
+
         Column(
             modifier =
                 Modifier
@@ -498,6 +565,63 @@ private fun DiagnosticoIdleContent(
         }
 
         Spacer(Modifier.height(LkSpacing.lg))
+    }
+}
+
+/**
+ * Banner de estado especial exibido no DiagnosticoIdleContent.
+ * Usado para "sem dados", "sem permissão" e "dados antigos" (#141).
+ */
+@Composable
+private fun DiagnosticoEstadoEspecialBanner(
+    c: LkTokens,
+    icone: ImageVector,
+    iconeTint: Color,
+    mensagem: String,
+    textoBotao: String,
+    onBotao: () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.md),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+    ) {
+        Icon(
+            imageVector = icone,
+            contentDescription = null,
+            tint = iconeTint,
+            modifier = Modifier
+                .size(20.dp)
+                .padding(top = 2.dp),
+        )
+        Column(
+            verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(
+                text = mensagem,
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.textSecondary,
+                lineHeight = 20.sp,
+            )
+            TextButton(
+                onClick = onBotao,
+                contentPadding = PaddingValues(0.dp),
+            ) {
+                Text(
+                    text = textoBotao,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.W600,
+                    color = LkColors.accent,
+                )
+            }
+        }
     }
 }
 

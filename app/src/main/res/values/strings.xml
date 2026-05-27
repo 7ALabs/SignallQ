@@ -65,6 +65,13 @@
     <string name="diagnostico_secao_por_que">POR QUE CONCLUÍMOS</string>
     <string name="diagnostico_confianca_label">Confiança:</string>
     <string name="diagnostico_btn_reanalisar">Reanalisar</string>
+    <!-- Estados especiais do idle (#141) -->
+    <string name="diagnostico_sem_dados_msg">Ainda não há dados suficientes para um diagnóstico confiável.</string>
+    <string name="diagnostico_sem_dados_btn">Fazer teste completo</string>
+    <string name="diagnostico_sem_permissao_msg">Consigo analisar parte da conexão, mas algumas informações dependem de permissão do Android.</string>
+    <string name="diagnostico_sem_permissao_btn">Permitir análise completa</string>
+    <string name="diagnostico_dados_antigos_msg">Este diagnóstico usa dados salvos anteriormente. Faça um novo teste para atualizar.</string>
+    <string name="diagnostico_dados_antigos_btn">Atualizar diagnóstico</string>
 
     <!-- Onboarding screen -->
     <string name="onboarding_slide0_titulo">Sua internet explicada em português</string>
