@@ -60,6 +60,7 @@ class MainActivity : ComponentActivity() {
 
     private var temPermissaoTelefonia by mutableStateOf(false)
     private var temPermissaoLocalizacao by mutableStateOf(false)
+
     // #155/9.3: permissão negada permanentemente (shouldShowRequestPermissionRationale = false E não concedida)
     private var localizacaoBloqueadaPermanentemente by mutableStateOf(false)
 
