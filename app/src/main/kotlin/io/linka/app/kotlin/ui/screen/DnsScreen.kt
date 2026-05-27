@@ -223,7 +223,9 @@ private fun DnsBloco1Atual(
     c: LkTokens,
 ) {
     val dnsIp = snapshotRede.dnsServidores.firstOrNull()
-    val isLoading = dnsIp == null && snapshotRede.dnsServidores.isEmpty()
+
+    // Loading quando ainda não há servidores DNS coletados pelo MonitorRede
+    val isLoading = snapshotRede.dnsServidores.isEmpty()
 
     Box(
         modifier =
