@@ -76,7 +76,7 @@ fun ChatScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "Diagnóstico IA",
+                        text = "Assistente linka",
                         style = MaterialTheme.typography.titleLarge,
                         color = c.textPrimary,
                     )

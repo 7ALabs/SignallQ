@@ -82,7 +82,7 @@ fun OrbitTopBar(
                 androidx.compose.foundation.layout
                     .Spacer(modifier = Modifier.size(LkSpacing.sm))
                 Text(
-                    text = "Diagnóstico IA",
+                    text = "Assistente linka",
                     style = MaterialTheme.typography.titleMedium,
                     color = c.textPrimary,
                 )
