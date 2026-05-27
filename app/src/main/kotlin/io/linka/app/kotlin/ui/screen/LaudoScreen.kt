@@ -177,7 +177,7 @@ fun LaudoScreen(
             val linhasRede =
                 listOfNotNull(
                     ssid?.let { "Wi-Fi (SSID)" to it },
-                    ipLocal?.let { "IP local" to it },
+                    ipLocal?.let { "IP local" to mascaraIpLocal(it) },
                     ipPublico?.let { "IP público" to it },
                     operadora.takeIf { it.isNotBlank() }?.let { "Operadora" to it },
                 )
@@ -461,7 +461,7 @@ private suspend fun gerarECompartilharLaudo(
             val linhasRede =
                 buildList {
                     ssid?.let { add("Wi-Fi (SSID)" to it) }
-                    ipLocal?.let { add("IP local" to it) }
+                    ipLocal?.let { add("IP local" to mascaraIpLocal(it)) }
                     ipPublico?.let { add("IP público" to it) }
                     if (operadora.isNotBlank()) add("Operadora" to operadora)
                 }
@@ -537,4 +537,12 @@ private suspend fun gerarECompartilharLaudo(
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
     context.startActivity(Intent.createChooser(intent, "Compartilhar laudo"))
+}
+
+/** Mascara o último octeto de um IPv4 para proteger dados sensíveis no laudo.
+ * Ex: "192.168.1.100" → "192.168.1.*"
+ * IPs que não seguem o padrão IPv4 são retornados sem alteração. */
+private fun mascaraIpLocal(ip: String): String {
+    val partes = ip.split(".")
+    return if (partes.size == 4) "${partes[0]}.${partes[1]}.${partes[2]}.*" else ip
 }
