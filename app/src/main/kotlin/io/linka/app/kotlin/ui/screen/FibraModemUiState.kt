@@ -9,8 +9,11 @@ import io.linka.app.kotlin.feature.fibra.SnapshotFibra
 import io.linka.app.kotlin.feature.fibra.WanStatus
 
 sealed interface FibraModemUiState {
+
     object SemWifi : FibraModemUiState
+
     object SemCredenciais : FibraModemUiState
+
     object Conectando : FibraModemUiState
 
     data class Concluido(
@@ -21,7 +24,9 @@ sealed interface FibraModemUiState {
         val interpretacoes: List<DiagnosticResult>,
     ) : FibraModemUiState
 
-    data class Erro(val chave: String) : FibraModemUiState
+    data class Erro(
+        val chave: String,
+    ) : FibraModemUiState
 }
 
 fun mapearSnapshotFibra(
