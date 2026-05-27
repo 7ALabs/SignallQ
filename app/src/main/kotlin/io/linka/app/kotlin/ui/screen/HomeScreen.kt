@@ -322,18 +322,15 @@ fun HomeScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.lg),
         ) {
-            // Offline card
+            // Bloco 1 — ConnectionContextCard (Wi-Fi / Móvel / Offline)
             item {
-                AnimatedVisibility(
-                    visible = !snapshotRede.conectado,
-                    enter = fadeIn(tween(250)) + expandVertically(tween(250)),
-                    exit = fadeOut(tween(200)) + shrinkVertically(tween(200)),
-                ) {
-                    OfflineCard(
-                        onTestarQuandoVoltar = onNovoTeste,
-                        context = context,
-                    )
-                }
+                ConnectionContextCard(
+                    snapshotRede = snapshotRede,
+                    movelSnapshot = movelSnapshot,
+                    onMedirVelocidade = onNovoTeste,
+                    onVerHistorico = onAbrirHistorico,
+                    context = context,
+                )
             }
 
             // 1. Caminho da rede
@@ -2605,68 +2602,235 @@ private fun vereditoFromLoss(pct: Double): VereditoUso =
         VereditoUso.poor
     }
 
-// ─── Offline card ─────────────────────────────────────────────────────────────
+// ─── ConnectionContextCard (bloco 1 adaptativo) ───────────────────────────────
 
 @Composable
-private fun OfflineCard(
-    onTestarQuandoVoltar: () -> Unit,
+private fun ConnectionContextCard(
+    snapshotRede: SnapshotRede,
+    movelSnapshot: MovelSnapshot?,
+    onMedirVelocidade: () -> Unit,
+    onVerHistorico: () -> Unit,
     context: Context,
 ) {
     val c = LocalLkTokens.current
-    var registrado by remember { mutableStateOf(false) }
 
-    DisposableEffect(Unit) {
-        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val cb =
-            object : ConnectivityManager.NetworkCallback() {
-                override fun onAvailable(network: Network) {
-                    if (registrado) onTestarQuandoVoltar()
+    when (snapshotRede.estadoConexao) {
+        EstadoConexao.wifi -> {
+            val rssiDbm = snapshotRede.wifiLinkSnapshot?.rssiDbm
+            val wifiPct = rssiDbm?.let { ((it + 90) / 50.0).coerceIn(0.0, 1.0) * 100 }?.roundToInt()
+            val ssid = snapshotRede.wifiLinkSnapshot?.ssid
+                ?.takeIf { it.isNotBlank() }
+                ?: stringResource(R.string.home_context_wifi_ssid_desconhecido)
+            val qualidadeColor = when {
+                wifiPct == null -> LkColors.accent
+                wifiPct >= 70 -> LkColors.success
+                wifiPct >= 40 -> LkColors.warning
+                else -> LkColors.error
+            }
+
+            LinkaCard(c) {
+                Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(LkColors.accent.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Wifi,
+                                contentDescription = null,
+                                tint = LkColors.accent,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        Column {
+                            Text(
+                                stringResource(R.string.home_context_wifi_titulo),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.W600,
+                                color = c.textPrimary,
+                            )
+                            Text(
+                                ssid,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = c.textSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    if (wifiPct != null) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                        ) {
+                            LinearProgressIndicator(
+                                progress = { wifiPct / 100f },
+                                modifier = Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(999.dp)),
+                                color = qualidadeColor,
+                                trackColor = c.border,
+                            )
+                            Text(
+                                "$wifiPct%",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.W600,
+                                color = qualidadeColor,
+                            )
+                        }
+                    }
+                    Button(
+                        onClick = onMedirVelocidade,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(LkRadius.card),
+                        colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                        contentPadding = PaddingValues(vertical = 12.dp),
+                    ) {
+                        Text(
+                            stringResource(R.string.home_btn_medir_velocidade),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.W600,
+                        )
+                    }
                 }
             }
-        cm.registerNetworkCallback(NetworkRequest.Builder().build(), cb)
-        onDispose { cm.unregisterNetworkCallback(cb) }
-    }
+        }
 
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .border(1.dp, LkColors.warning.copy(alpha = 0.50f), RoundedCornerShape(LkRadius.card)),
-        colors = CardDefaults.cardColors(containerColor = LkColors.warning.copy(alpha = 0.08f)),
-        shape = RoundedCornerShape(LkRadius.card),
-    ) {
-        Column(
-            modifier = Modifier.padding(LkSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.WifiOff,
-                    contentDescription = null,
-                    tint = LkColors.warning,
-                    modifier = Modifier.size(20.dp),
-                )
-                Text(
-                    stringResource(R.string.home_offline_titulo),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.W600,
-                    color = c.textPrimary,
-                )
+        EstadoConexao.movel -> {
+            val operadora = movelSnapshot?.operadora
+                ?.takeIf { it.isNotBlank() }
+                ?: stringResource(R.string.home_context_movel_operadora_desconhecida)
+            val tecnologia = movelSnapshot?.tecnologia
+
+            LinkaCard(c) {
+                Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(LkColors.accent.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.SignalCellularAlt,
+                                contentDescription = null,
+                                tint = LkColors.accent,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                        Column {
+                            Text(
+                                stringResource(R.string.home_context_movel_titulo),
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.W600,
+                                color = c.textPrimary,
+                            )
+                            Text(
+                                buildString {
+                                    append(operadora)
+                                    if (tecnologia != null) append(" · $tecnologia")
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = c.textSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    Button(
+                        onClick = onMedirVelocidade,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(LkRadius.card),
+                        colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                        contentPadding = PaddingValues(vertical = 12.dp),
+                    ) {
+                        Text(
+                            stringResource(R.string.home_btn_medir_velocidade),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.W600,
+                        )
+                    }
+                }
             }
-            Text(
-                stringResource(R.string.home_offline_descricao),
-                style = MaterialTheme.typography.bodySmall,
-                color = c.textSecondary,
-            )
-            OutlinedButton(
-                onClick = { registrado = true },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !registrado,
+        }
+
+        else -> {
+            // Offline / desconhecido — comportamento original do OfflineCard
+            var registrado by remember { mutableStateOf(false) }
+
+            DisposableEffect(Unit) {
+                val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+                val cb =
+                    object : ConnectivityManager.NetworkCallback() {
+                        override fun onAvailable(network: Network) {
+                            if (registrado) onMedirVelocidade()
+                        }
+                    }
+                cm.registerNetworkCallback(NetworkRequest.Builder().build(), cb)
+                onDispose { cm.unregisterNetworkCallback(cb) }
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, LkColors.warning.copy(alpha = 0.50f), RoundedCornerShape(LkRadius.card)),
+                colors = CardDefaults.cardColors(containerColor = LkColors.warning.copy(alpha = 0.08f)),
+                shape = RoundedCornerShape(LkRadius.card),
             ) {
-                Text(if (registrado) stringResource(R.string.home_offline_btn_aguardar) else stringResource(R.string.home_offline_btn_testar_quando_voltar))
+                Column(
+                    modifier = Modifier.padding(LkSpacing.lg),
+                    verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.WifiOff,
+                            contentDescription = null,
+                            tint = LkColors.warning,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Text(
+                            stringResource(R.string.home_offline_titulo),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.W600,
+                            color = c.textPrimary,
+                        )
+                    }
+                    Text(
+                        stringResource(R.string.home_offline_descricao),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.textSecondary,
+                    )
+                    OutlinedButton(
+                        onClick = { registrado = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !registrado,
+                    ) {
+                        Text(
+                            if (registrado) {
+                                stringResource(R.string.home_offline_btn_aguardar)
+                            } else {
+                                stringResource(R.string.home_offline_btn_testar_quando_voltar)
+                            },
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = onVerHistorico,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(stringResource(R.string.home_offline_btn_ver_historico))
+                    }
+                }
             }
         }
     }
