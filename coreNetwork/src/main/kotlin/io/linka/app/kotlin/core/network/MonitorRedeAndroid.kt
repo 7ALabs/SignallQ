@@ -38,13 +38,23 @@ class MonitorRedeAndroid(
     // AtomicInteger: acesso concorrente entre main thread (Handler) e thread do ConnectivityManager.
     private val tentativasAguardandoValidated = AtomicInteger(0)
 
+    // Runnable de debounce para transição ao estado desconectado.
+    // onLost pode disparar antes de onAvailable durante handoff Wi-Fi → Mobile (e vice-versa).
+    // Sem debounce, o usuário vê "desconectado" por 1-3 segundos mesmo com internet ativa.
+    private val runnableDesconectado = Runnable { atualizarSnapshot() }
+
     private val callbackRede = object : ConnectivityManager.NetworkCallback() {
         override fun onAvailable(network: Network) {
+            // Cancela debounce de desconexão pendente — a rede voltou antes da janela expirar.
+            mainHandler.removeCallbacks(runnableDesconectado)
             atualizarSnapshot()
         }
 
         override fun onLost(network: Network) {
-            atualizarSnapshot()
+            // Não emite desconectado imediatamente: aguarda 2000ms para ver se onAvailable
+            // chega em seguida (handoff entre redes). Se não chegar, confirma desconexão.
+            mainHandler.removeCallbacks(runnableDesconectado)
+            mainHandler.postDelayed(runnableDesconectado, 2000)
         }
 
         override fun onCapabilitiesChanged(
@@ -75,6 +85,7 @@ class MonitorRedeAndroid(
         if (!callbackRegistrado) return
 
         mainHandler.removeCallbacks(runnableRetry)
+        mainHandler.removeCallbacks(runnableDesconectado)
         try {
             connectivityManager.unregisterNetworkCallback(callbackRede)
         } catch (_: Exception) {
