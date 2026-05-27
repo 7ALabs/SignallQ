@@ -126,6 +126,12 @@
     <string name="home_offline_descricao">Verifique seu roteador ou plano de dados. O teste será iniciado assim que a conexão voltar.</string>
     <string name="home_offline_btn_aguardar">Aguardando conexão…</string>
     <string name="home_offline_btn_testar_quando_voltar">Testar assim que voltar</string>
+    <string name="home_offline_btn_ver_historico">Ver histórico</string>
+    <string name="home_context_wifi_titulo">Você está no Wi-Fi</string>
+    <string name="home_context_wifi_ssid_desconhecido">Rede Wi-Fi</string>
+    <string name="home_context_wifi_qualidade">Qualidade do sinal: %1$d%%</string>
+    <string name="home_context_movel_titulo">Você está nos dados móveis</string>
+    <string name="home_context_movel_operadora_desconhecida">Operadora desconhecida</string>
     <string name="home_gamer_sem_medicao">Nenhuma medição disponível</string>
     <string name="home_gamer_sem_medicao_descricao">Faça um teste de velocidade para ver a análise da sua conexão para gaming.</string>
     <string name="home_gamer_btn_iniciar_teste">Iniciar teste de velocidade</string>
