@@ -56,11 +56,13 @@ import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Laptop
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Public
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.SettingsInputAntenna
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Smartphone
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.Tv
 import androidx.compose.material.icons.outlined.Videocam
@@ -122,6 +124,7 @@ import io.linka.app.kotlin.core.network.EstadoConexao
 import io.linka.app.kotlin.core.network.SnapshotRede
 import io.linka.app.kotlin.core.telephony.MovelSnapshot
 import io.linka.app.kotlin.feature.speedtest.GargaloPrimario
+import io.linka.app.kotlin.feature.speedtest.ModoSpeedtest
 import io.linka.app.kotlin.feature.speedtest.ResultadoSpeedtest
 import io.linka.app.kotlin.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.linka.app.kotlin.feature.speedtest.VereditoUso
@@ -160,7 +163,8 @@ fun HomeScreen(
     onDismissAnatelBanner: () -> Unit,
     onAbrirDns: () -> Unit,
     onAbrirPing: () -> Unit,
-    onNovoTeste: () -> Unit,
+    onIniciarTeste: (ModoSpeedtest) -> Unit,
+    onAbrirUltimoResultado: () -> Unit,
     onAbrirHistorico: () -> Unit,
     onAbrirPerfil: () -> Unit,
     onAbrirRedes: () -> Unit,
@@ -210,6 +214,7 @@ fun HomeScreen(
     var showInternetSheet by remember { mutableStateOf(false) }
     var showCellularSheet by remember { mutableStateOf(false) }
     var showGamerSheet by remember { mutableStateOf(false) }
+    var showMedicaoTipoSheet by remember { mutableStateOf(false) }
 
     if (showDeviceSheet) {
         ModalBottomSheet(
@@ -275,10 +280,21 @@ fun HomeScreen(
                 c = c,
                 onIrParaTeste = {
                     showGamerSheet = false
-                    onNovoTeste()
+                    showMedicaoTipoSheet = true
                 },
             )
         }
+    }
+    if (showMedicaoTipoSheet) {
+        MedicaoTipoSheet(
+            isOnWifi = isOnWifi,
+            onDismiss = { showMedicaoTipoSheet = false },
+            onIniciarTeste = { modo ->
+                showMedicaoTipoSheet = false
+                onIniciarTeste(modo)
+            },
+            c = c,
+        )
     }
 
     val profileBrush = remember { Brush.linearGradient(colors = listOf(LkColors.accent, LkColors.accentBlue)) }
@@ -322,18 +338,19 @@ fun HomeScreen(
                 ),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.lg),
         ) {
-            // Bloco 1 — ConnectionContextCard (Wi-Fi / Móvel / Offline)
+            // Bloco 1 — SignalCard (posição 1, sem botão "Medir velocidade")
             item {
-                ConnectionContextCard(
+                SignalCard(
                     snapshotRede = snapshotRede,
-                    movelSnapshot = movelSnapshot,
-                    onMedirVelocidade = onNovoTeste,
-                    onVerHistorico = onAbrirHistorico,
-                    context = context,
+                    connectedNetwork = connectedNetwork,
+                    mobileName = ispInfo?.isp,
+                    c = c,
+                    onTapWifi = onAbrirRedes,
+                    onTapMobile = { showCellularSheet = true },
                 )
             }
 
-            // 1. Caminho da rede
+            // 2. Caminho da rede
             item {
                 NetworkPath(
                     ispName = ispInfo?.isp,
@@ -439,11 +456,25 @@ fun HomeScreen(
                         val chartHeight = (screenHeightDp * 0.10f).coerceIn(72.dp, 120.dp)
                         val hasChartData = remember(history) { history.any { it.downloadMbps != null || it.uploadMbps != null } }
                         if (hasChartData) {
-                            MiniLineChart(
-                                history = history,
-                                modifier = Modifier.fillMaxWidth().height(chartHeight),
-                                c = c,
-                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(LkRadius.card))
+                                    .clickable { onAbrirUltimoResultado() },
+                            ) {
+                                MiniLineChart(
+                                    history = history,
+                                    modifier = Modifier.fillMaxWidth().height(chartHeight),
+                                    c = c,
+                                )
+                                Spacer(modifier = Modifier.height(LkSpacing.xs))
+                                Text(
+                                    text = "Ver detalhes →",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = LkColors.accent,
+                                    modifier = Modifier.align(Alignment.End),
+                                )
+                            }
                         } else {
                             Box(
                                 modifier = Modifier.fillMaxWidth().height(72.dp),
@@ -456,7 +487,7 @@ fun HomeScreen(
                                         color = c.textTertiary,
                                         textAlign = TextAlign.Center,
                                     )
-                                    TextButton(onClick = onNovoTeste) {
+                                    TextButton(onClick = { showMedicaoTipoSheet = true }) {
                                         Text(stringResource(R.string.home_btn_fazer_teste_agora))
                                     }
                                 }
@@ -464,7 +495,7 @@ fun HomeScreen(
                         }
                         Spacer(modifier = Modifier.height(LkSpacing.lg))
                         Button(
-                            onClick = onNovoTeste,
+                            onClick = { showMedicaoTipoSheet = true },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(LkRadius.card),
                             colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
@@ -511,19 +542,7 @@ fun HomeScreen(
                 )
             }
 
-            // 7. Signal card (WiFi tap → abre tela Redes; mobile → sheet)
-            item {
-                SignalCard(
-                    snapshotRede = snapshotRede,
-                    connectedNetwork = connectedNetwork,
-                    mobileName = ispInfo?.isp,
-                    c = c,
-                    onTapWifi = onAbrirRedes,
-                    onTapMobile = { showCellularSheet = true },
-                )
-            }
-
-            // 8. Jogar Online shortcut
+            // 7. Jogar Online shortcut
             item {
                 GamerShortcutCard(c = c, onClick = { showGamerSheet = true })
             }
@@ -2609,6 +2628,157 @@ private fun vereditoFromLoss(pct: Double): VereditoUso =
     } else {
         VereditoUso.poor
     }
+
+// ─── MedicaoTipoSheet ─────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MedicaoTipoSheet(
+    isOnWifi: Boolean,
+    onDismiss: () -> Unit,
+    onIniciarTeste: (ModoSpeedtest) -> Unit,
+    c: LkTokens,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = c.bgSecondary,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = LkSpacing.lg)
+                .padding(bottom = 32.dp)
+                .navigationBarsPadding(),
+            verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+        ) {
+            Text(
+                "Tipo de medição",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.W700,
+                color = c.textPrimary,
+            )
+            Text(
+                "Escolha como quer medir sua conexão",
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.textSecondary,
+            )
+            Spacer(modifier = Modifier.height(LkSpacing.sm))
+
+            MedicaoOpcaoItem(
+                icon = Icons.Outlined.Speed,
+                titulo = "Rápido",
+                descricao = "Somente download · ~30 seg",
+                badge = null,
+                disponivel = true,
+                c = c,
+                onClick = { onIniciarTeste(ModoSpeedtest.fast) },
+            )
+
+            MedicaoOpcaoItem(
+                icon = Icons.Outlined.Adjust,
+                titulo = "Completo",
+                descricao = "Download e upload · ~90 seg",
+                badge = "Recomendado",
+                badgeColor = LkColors.accent,
+                disponivel = true,
+                c = c,
+                onClick = { onIniciarTeste(ModoSpeedtest.complete) },
+            )
+
+            MedicaoOpcaoItem(
+                icon = Icons.Outlined.Refresh,
+                titulo = "Triplo",
+                descricao = "Média de 3 testes consecutivos · ~3 min",
+                badge = if (!isOnWifi) "Só Wi-Fi" else null,
+                badgeColor = c.textTertiary,
+                disponivel = isOnWifi,
+                c = c,
+                onClick = { onIniciarTeste(ModoSpeedtest.triplo) },
+            )
+
+            Spacer(modifier = Modifier.height(LkSpacing.xs))
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Cancelar", color = c.textSecondary)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MedicaoOpcaoItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    titulo: String,
+    descricao: String,
+    badge: String?,
+    badgeColor: Color = LkColors.accent,
+    disponivel: Boolean,
+    c: LkTokens,
+    onClick: () -> Unit,
+) {
+    val textColor = if (disponivel) c.textPrimary else c.textTertiary
+    val subTextColor = if (disponivel) c.textSecondary else c.textTertiary
+    val iconColor = if (disponivel) LkColors.accent else c.textTertiary
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(LkRadius.card))
+            .then(
+                if (disponivel) Modifier.clickable { onClick() }
+                else Modifier
+            )
+            .padding(LkSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(iconColor.copy(alpha = 0.1f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                titulo,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.W600,
+                color = textColor,
+            )
+            Text(
+                descricao,
+                style = MaterialTheme.typography.bodySmall,
+                color = subTextColor,
+            )
+        }
+        if (badge != null) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(badgeColor.copy(alpha = 0.12f))
+                    .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
+            ) {
+                Text(
+                    badge,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.W600,
+                    color = badgeColor,
+                )
+            }
+        }
+    }
+}
 
 // ─── ConnectionContextCard (bloco 1 adaptativo) ───────────────────────────────
 

@@ -341,11 +341,20 @@ fun AppShell(
                             fotoUriUsuario = fotoUriUsuario,
                             connectedNetwork = connectedNetwork,
                             movelSnapshot = movelSnapshot,
-                            onNovoTeste = {
+                            onIniciarTeste = { modo ->
                                 if (snapshotRede.estadoConexao == EstadoConexao.movel) {
+                                    // AppShell decide: em rede móvel mostra ForaDoWifiDialog
+                                    // O modo fica registrado no modoSelecionado para uso posterior
+                                    modoSelecionado = modo
                                     showForaDoWifiDialog = true
                                 } else {
-                                    selectedTab = 1
+                                    modoSelecionado = modo
+                                    onNovoTeste(modo)
+                                }
+                            },
+                            onAbrirUltimoResultado = {
+                                if (Overlay.ResultadoVelocidade !in overlayStack && snapshotSpeedtest.resultado != null) {
+                                    overlayStack.add(Overlay.ResultadoVelocidade)
                                 }
                             },
                             onAbrirHistorico = { selectedTab = 3 },
@@ -735,7 +744,7 @@ fun AppShell(
             ForaDoWifiDialog(
                 onContinuar = {
                     showForaDoWifiDialog = false
-                    selectedTab = 1
+                    onNovoTeste(modoSelecionado)
                 },
                 onCancelar = { showForaDoWifiDialog = false },
             )
