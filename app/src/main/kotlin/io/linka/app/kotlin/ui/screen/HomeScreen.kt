@@ -430,6 +430,16 @@ fun HomeScreen(
                 }
             }
 
+            // 3. Mini-cards DNS / Ping / Diagnóstico IA (#179)
+            item {
+                MiniCardsRow(
+                    c = c,
+                    onAbrirDns = onAbrirDns,
+                    onAbrirPing = onAbrirPing,
+                    onAbrirDiagnostico = onAbrirDiagnostico,
+                )
+            }
+
             // 2. Medições card
             item {
                 LinkaCard(c) {
