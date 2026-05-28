@@ -1536,9 +1536,11 @@ private fun SignalCard(
                 } else if (isMobile) {
                     val rsrp = movelSnapshot?.rsrpDbm
                     val mobileColor = mobileSignalColor(rsrp)
-                    val mobilePct = rsrp?.let { ((it + 140) / 96.0).coerceIn(0.0, 1.0) * 100 }?.roundToInt() ?: 0
-                    MiniSignalBars(pct = mobilePct, color = mobileColor)
-                    Spacer(Modifier.width(LkSpacing.sm))
+                    if (rsrp != null) {
+                        val mobilePct = ((rsrp + 140) / 96.0).coerceIn(0.0, 1.0) * 100
+                        MiniSignalBars(pct = mobilePct.roundToInt(), color = mobileColor)
+                        Spacer(Modifier.width(LkSpacing.sm))
+                    }
                     Text(
                         mobileSignalQuality(rsrp),
                         style = MaterialTheme.typography.titleSmall,
