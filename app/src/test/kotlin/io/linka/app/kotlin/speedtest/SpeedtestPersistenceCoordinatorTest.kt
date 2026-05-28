@@ -19,7 +19,6 @@ import java.util.UUID
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SpeedtestPersistenceCoordinatorTest {
-
     // =========================================================================
     // Helpers
     // =========================================================================

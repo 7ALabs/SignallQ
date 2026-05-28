@@ -607,17 +607,29 @@ private fun RedesTab(
 
             if (showConnected && connectedNetwork != null) {
                 item {
-                    SectionLabel("MINHA REDE", modifier = Modifier.padding(horizontal = LkSpacing.lg))
-                    Spacer(Modifier.height(LkSpacing.sm))
-                    GrupoRedeTree(
-                        ssid = connectedNetwork.ssid ?: "Rede oculta",
-                        nos = grupoNos,
-                        connectedBssid = connectedNetwork.bssid,
-                        onNoClick = { selectedNetwork = it },
+                    // #176 — label "SUA CONEXÃO"
+                    SectionLabel(
+                        stringResource(R.string.sinal_sua_conexao),
                         modifier = Modifier.padding(horizontal = LkSpacing.lg),
-                        wifiLinkSnapshot = wifiLinkSnapshot,
-                        topologiaPorBssid = topologiaPorBssid,
                     )
+                    Spacer(Modifier.height(LkSpacing.sm))
+                    // #176 — card destacado com fundo successContainer
+                    Box(
+                        modifier =
+                            Modifier
+                                .padding(horizontal = LkSpacing.lg)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(c.successContainer.copy(alpha = 0.45f)),
+                    ) {
+                        GrupoRedeTree(
+                            ssid = connectedNetwork.ssid ?: "Rede oculta",
+                            nos = grupoNos,
+                            connectedBssid = connectedNetwork.bssid,
+                            onNoClick = { selectedNetwork = it },
+                            wifiLinkSnapshot = wifiLinkSnapshot,
+                            topologiaPorBssid = topologiaPorBssid,
+                        )
+                    }
                     Spacer(Modifier.height(LkSpacing.lg))
                 }
             }
@@ -895,7 +907,7 @@ private fun NoTreeItem(
                     else -> BandaWifi.ghz5
                 }
             Icon(
-                imageVector = Icons.Outlined.Wifi,
+                imageVector = if (isConnected) Icons.Outlined.Router else Icons.Outlined.Wifi,
                 contentDescription = null,
                 tint = if (isConnected) LkColors.accent else c.textSecondary,
                 modifier = Modifier.size(18.dp),
@@ -945,6 +957,21 @@ private fun NoTreeItem(
                     Text("  ·  ", style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
                     Text(signalQuality(rede.rssiDbm, bandaVizinha), style = MaterialTheme.typography.bodySmall, color = signalColor(rede.rssiDbm, bandaVizinha))
                 }
+                // #177 — segunda linha: banda, RSSI, canal
+                val canalNo = rede.canal
+                val metaPartsNo =
+                    buildList {
+                        add("Banda: ${rede.banda}")
+                        add("RSSI: ${rede.rssiDbm} dBm")
+                        if (canalNo != null) add("Canal: $canalNo")
+                    }
+                Text(
+                    metaPartsNo.joinToString("  "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.textTertiary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 if (wifiLinkSnapshot != null) {
                     val parts =
                         listOfNotNull(
@@ -1013,7 +1040,21 @@ private fun OtherNetworkGroupItem(
                             )
                         }
                     }
-                    Text(rede.banda, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+                    // #177 — segunda linha: banda, RSSI, canal
+                    val canalSingle = rede.canal
+                    val metaPartsSingle =
+                        buildList {
+                            add("Banda: ${rede.banda}")
+                            add("RSSI: ${rede.rssiDbm} dBm")
+                            if (canalSingle != null) add("Canal: $canalSingle")
+                        }
+                    Text(
+                        metaPartsSingle.joinToString("  "),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = c.textTertiary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
                 Spacer(Modifier.width(LkSpacing.sm))
                 Icon(
@@ -1137,6 +1178,21 @@ private fun OtherNetworkGroupItem(
                                     signalQuality(rede.rssiDbm, banda),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = signalColor(rede.rssiDbm, banda),
+                                )
+                                // #177 — segunda linha: banda, RSSI, canal
+                                val canalMulti = rede.canal
+                                val metaPartsMulti =
+                                    buildList {
+                                        add("Banda: ${rede.banda}")
+                                        add("RSSI: ${rede.rssiDbm} dBm")
+                                        if (canalMulti != null) add("Canal: $canalMulti")
+                                    }
+                                Text(
+                                    metaPartsMulti.joinToString("  "),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = c.textTertiary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                             Spacer(Modifier.width(LkSpacing.sm))

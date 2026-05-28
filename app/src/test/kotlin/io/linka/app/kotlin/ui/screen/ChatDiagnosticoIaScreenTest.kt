@@ -1,16 +1,9 @@
 package io.linka.app.kotlin.ui.screen
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.assertCountEquals
-import io.linka.app.kotlin.feature.diagnostico.chat.StatusSessao
-import io.linka.app.kotlin.feature.diagnostico.chat.SessaoChatDiagnostico
 import io.linka.app.kotlin.ui.LinkaTheme
 import io.linka.app.kotlin.ui.viewmodel.ChatDiagUiState
 import io.linka.app.kotlin.ui.viewmodel.EstadoChatDiagnostico
@@ -35,7 +28,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class ChatDiagnosticoIaScreenTest {
-
     @get:Rule
     val composeRule = createComposeRule()
 
@@ -43,11 +35,12 @@ class ChatDiagnosticoIaScreenTest {
     // Helpers
     // ─────────────────────────────────────────────────────────────────────────
 
-    private fun uiStateBase() = ChatDiagUiState(
-        estado = EstadoChatDiagnostico.Idle,
-        opcoesIniciaisVisiveis = false,
-        drawerAberto = false,
-    )
+    private fun uiStateBase() =
+        ChatDiagUiState(
+            estado = EstadoChatDiagnostico.Idle,
+            opcoesIniciaisVisiveis = false,
+            drawerAberto = false,
+        )
 
     private fun renderScreen(
         uiState: ChatDiagUiState,
@@ -232,23 +225,25 @@ class ChatDiagnosticoIaScreenTest {
 
     @Test
     fun lista_com_mensagens_renderiza_e_nao_exibe_chips_quando_ocultos() {
-        val mensagens = listOf(
-            io.linka.app.kotlin.feature.diagnostico.chat.ChatMensagem(
-                id = "1",
-                sessionId = "s1",
-                papel = io.linka.app.kotlin.feature.diagnostico.chat.PapelChatMensagem.assistente,
-                conteudo = "Olá, sou o Diagnóstico IA.",
-                criadoEmEpochMs = 0L,
-                status = io.linka.app.kotlin.feature.diagnostico.chat.StatusChatMensagem.concluido,
-                isLocal = true,
-            ),
-        )
+        val mensagens =
+            listOf(
+                io.linka.app.kotlin.feature.diagnostico.chat.ChatMensagem(
+                    id = "1",
+                    sessionId = "s1",
+                    papel = io.linka.app.kotlin.feature.diagnostico.chat.PapelChatMensagem.assistente,
+                    conteudo = "Olá, sou o Diagnóstico IA.",
+                    criadoEmEpochMs = 0L,
+                    status = io.linka.app.kotlin.feature.diagnostico.chat.StatusChatMensagem.concluido,
+                    isLocal = true,
+                ),
+            )
 
         renderScreen(
-            uiState = uiStateBase().copy(
-                mensagens = mensagens,
-                opcoesIniciaisVisiveis = false,
-            ),
+            uiState =
+                uiStateBase().copy(
+                    mensagens = mensagens,
+                    opcoesIniciaisVisiveis = false,
+                ),
         )
 
         // A mensagem está na tela

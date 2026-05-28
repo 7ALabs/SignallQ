@@ -31,8 +31,8 @@ import io.linka.app.kotlin.feature.wifi.FeatureWifiModulo
 import io.linka.app.kotlin.feature.wifi.ScannerRedesWifi
 import io.linka.app.kotlin.speedtest.SpeedtestPersistenceCoordinator
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import javax.inject.Qualifier
 import javax.inject.Singleton
 
@@ -114,8 +114,7 @@ object AppModule {
     @Provides
     @Singleton
     @ApplicationScope
-    fun provideApplicationScope(): CoroutineScope =
-        CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    fun provideApplicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     @Provides
     @Singleton
