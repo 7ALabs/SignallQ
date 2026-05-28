@@ -1647,13 +1647,15 @@ private fun StatusCard(
             thickness = 1.dp,
             modifier = Modifier.padding(horizontal = LkSpacing.lg),
         )
-        StatusRow(
-            c = c,
-            icon = Icons.Outlined.Language,
-            label = "Servidor",
-            value = localizacaoServidor ?: "Cloudflare · Carregando...",
-            valueColor = if (localizacaoServidor != null) c.textSecondary else c.textTertiary,
-        )
+        if (!localizacaoServidor.isNullOrBlank()) {
+            StatusRow(
+                c = c,
+                icon = Icons.Outlined.Language,
+                label = "Servidor",
+                value = localizacaoServidor,
+                valueColor = c.textSecondary,
+            )
+        }
     }
 }
 
