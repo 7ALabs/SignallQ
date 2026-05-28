@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -73,7 +72,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.linka.app.kotlin.FeatureFlags
-import io.linka.app.kotlin.feature.diagnostico.DiagnosticStatus
 import io.linka.app.kotlin.feature.diagnostico.SnapshotDiagnostico
 import io.linka.app.kotlin.feature.speedtest.ResultadoSpeedtest
 import io.linka.app.kotlin.feature.speedtest.SeveridadeBufferbloat
@@ -112,17 +110,6 @@ fun ResultadoVelocidadeScreen(
     val decisaoTitulo = decisao?.titulo
     val decisaoMensagem = decisao?.mensagemUsuario
     val decisaoRecomendacao = decisao?.recomendacao
-    val (gradeLetra, gradeCor) =
-        remember(decisao?.status) {
-            when (decisao?.status) {
-                DiagnosticStatus.ok -> "A" to LkColors.success
-                DiagnosticStatus.info -> "B" to LkColors.accent
-                DiagnosticStatus.attention -> "C" to LkColors.warning
-                DiagnosticStatus.critical -> "D" to LkColors.error
-                DiagnosticStatus.inconclusive, null -> "?" to c.textTertiary
-            }
-        }
-
     var expandida by remember { mutableStateOf(false) }
     var compartilhando by remember { mutableStateOf(false) }
     var showGamerSheet by remember { mutableStateOf(false) }
@@ -240,44 +227,7 @@ fun ResultadoVelocidadeScreen(
                         .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.xxl),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // 1. Grade circle
-                if (gradeLetra != "?") {
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(120.dp)
-                                .clip(CircleShape)
-                                .background(gradeCor.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = gradeLetra,
-                            style = MaterialTheme.typography.displayLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = gradeCor,
-                        )
-                    }
-                } else {
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(120.dp)
-                                .clip(CircleShape)
-                                .background(gradeCor.copy(alpha = 0.08f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            text = "Sem dados",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = gradeCor,
-                            textAlign = TextAlign.Center,
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(LkSpacing.xl))
-
-                // 2. Título + mensagem diagnóstico
+                // Título + mensagem diagnóstico
                 Text(
                     text = decisaoTitulo ?: "Resultado do Teste",
                     style = MaterialTheme.typography.headlineMedium,
