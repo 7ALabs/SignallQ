@@ -18,6 +18,7 @@ workManager = "2.10.1"
 junit = "4.13.2"
 androidxJunit = "1.2.1"
 espressoCore = "3.6.1"
+robolectric = "4.13"
 googleServices = "4.4.4"
 firebaseAppDistribution = "5.1.1"
 firebaseBom = "33.1.0"
@@ -53,6 +54,9 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hilt" }
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
