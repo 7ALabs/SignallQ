@@ -8,6 +8,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.linka.app.kotlin.core.database.CoreDatabaseModulo
 import io.linka.app.kotlin.core.database.LinkaDatabase
+import io.linka.app.kotlin.core.database.MedicaoDao
 import io.linka.app.kotlin.core.datastore.PreferenciasAppRepository
 import io.linka.app.kotlin.core.network.CoreNetworkModulo
 import io.linka.app.kotlin.core.network.DefaultDispatcherProvider
@@ -28,7 +29,16 @@ import io.linka.app.kotlin.feature.speedtest.ExecutorSpeedtest
 import io.linka.app.kotlin.feature.speedtest.FeatureSpeedtestModulo
 import io.linka.app.kotlin.feature.wifi.FeatureWifiModulo
 import io.linka.app.kotlin.feature.wifi.ScannerRedesWifi
+import io.linka.app.kotlin.speedtest.SpeedtestPersistenceCoordinator
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Dispatchers
+import javax.inject.Qualifier
 import javax.inject.Singleton
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class ApplicationScope
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -100,4 +110,31 @@ object AppModule {
     fun provideMonitorTelephony(
         @ApplicationContext ctx: Context,
     ): MonitorTelephony = CoreTelephonyModulo.criarMonitorTelephony(ctx)
+
+    @Provides
+    @Singleton
+    @ApplicationScope
+    fun provideApplicationScope(): CoroutineScope =
+        CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    @Provides
+    @Singleton
+    fun provideMedicaoDao(bancoDados: LinkaDatabase): MedicaoDao = bancoDados.medicaoDao()
+
+    @Provides
+    @Singleton
+    fun provideSpeedtestPersistenceCoordinator(
+        executorSpeedtest: ExecutorSpeedtest,
+        medicaoDao: MedicaoDao,
+        monitorTelephony: MonitorTelephony,
+        monitorRede: MonitorRede,
+        @ApplicationScope applicationScope: CoroutineScope,
+    ): SpeedtestPersistenceCoordinator =
+        SpeedtestPersistenceCoordinator(
+            executorSpeedtest = executorSpeedtest,
+            medicaoDao = medicaoDao,
+            monitorTelephony = monitorTelephony,
+            monitorRede = monitorRede,
+            applicationScope = applicationScope,
+        )
 }
