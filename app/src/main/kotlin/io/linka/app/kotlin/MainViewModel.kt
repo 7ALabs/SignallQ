@@ -16,6 +16,7 @@ import io.linka.app.kotlin.core.network.MonitorRede
 import io.linka.app.kotlin.core.network.NetworkCapabilitiesProvider
 import io.linka.app.kotlin.core.permissions.GerenciadorPermissoesRede
 import io.linka.app.kotlin.core.telephony.MonitorTelephony
+import io.linka.app.kotlin.core.telephony.MovelSimSnapshot
 import io.linka.app.kotlin.core.telephony.MovelSnapshot
 import io.linka.app.kotlin.feature.devices.ScannerDispositivos
 import io.linka.app.kotlin.feature.diagnostico.DiagnosticOrchestrator
@@ -110,6 +111,12 @@ class MainViewModel
         private val orientadorConfiguracaoDns by lazy { OrientadorConfiguracaoDns() }
         val diagnosticOrchestrator by lazy { DiagnosticOrchestrator() }
         val movelSnapshot: StateFlow<MovelSnapshot?> get() = monitorTelephony.snapshotFlow
+
+        // #179 Task C — Dual SIM: lista de SIMs ativos, atualizada sempre que o monitor de
+        // telefonia emite novo snapshot (mudanca de rede/sinal). Inicializado com emptyList()
+        // para nao crashar a UI antes da captura. Nao chama startScan() — usa dados cacheados.
+        private val _simsAtivos = MutableStateFlow<List<MovelSimSnapshot>>(emptyList())
+        val simsAtivos: StateFlow<List<MovelSimSnapshot>> = _simsAtivos
         val orbitOrchestrator by lazy {
             OrbitOrchestrator(
                 executorSpeedtest = executorSpeedtest,
@@ -401,6 +408,7 @@ class MainViewModel
 
         init {
             iniciarObservadores()
+            iniciarObservadorSimsAtivos()
         }
 
         private fun iniciarObservadores() {
@@ -513,6 +521,31 @@ class MainViewModel
                         ultimoBenchmarkDnsEpochMs = null
                     }
                     estadoAnterior = estadoAtual
+                }
+            }
+        }
+
+        /**
+         * Atualiza [simsAtivos] com os SIMs atualmente ativos no dispositivo.
+         * Chamado uma vez ao iniciar monitoramento e sempre que o snapshot movel muda.
+         * Seguro: captureSimsAtivos e envolto em runCatching internamente.
+         */
+        private fun atualizarSimsAtivos() {
+            _simsAtivos.value = monitorTelephony.captureSimsAtivos(getApplication())
+        }
+
+        /**
+         * Observa mudancas no snapshot movel para manter [simsAtivos] atualizado.
+         * Roda apenas quando ha snapshot nao-null (rede movel ativa com permissao).
+         * Em Wi-Fi/Ethernet, snapshot vai null e simsAtivos fica com o ultimo valor capturado
+         * — ok pois o CardMovelDualSim nao e exibido fora de rede movel ativa.
+         */
+        private fun iniciarObservadorSimsAtivos() {
+            viewModelScope.launch {
+                monitorTelephony.snapshotFlow.collect { snap ->
+                    if (snap != null) {
+                        atualizarSimsAtivos()
+                    }
                 }
             }
         }
