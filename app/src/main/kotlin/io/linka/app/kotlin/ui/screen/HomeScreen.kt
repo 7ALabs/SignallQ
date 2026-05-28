@@ -310,8 +310,9 @@ fun HomeScreen(
             CenterAlignedTopAppBar(
                 modifier = Modifier.graphicsLayer { alpha = topBarAlpha },
                 title = {
-                    val estaConectado = snapshotRede.estadoConexao == EstadoConexao.wifi ||
-                        snapshotRede.estadoConexao == EstadoConexao.movel
+                    val estaConectado =
+                        snapshotRede.estadoConexao == EstadoConexao.wifi ||
+                            snapshotRede.estadoConexao == EstadoConexao.movel
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Outlined.Home, contentDescription = null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
@@ -528,7 +529,6 @@ fun HomeScreen(
                     }
                 }
             }
-
         }
     }
 }
