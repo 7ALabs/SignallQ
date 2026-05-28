@@ -188,14 +188,14 @@ class ChatDiagnosticoIaViewModelTest {
         // Verifica a transição de estado esperada
         val estados =
             listOf(
-                EstadoChatDiagnostico.aguardandoIa,
-                EstadoChatDiagnostico.streaming,
-                EstadoChatDiagnostico.idle,
+                EstadoChatDiagnostico.AguardandoIa,
+                EstadoChatDiagnostico.Streaming,
+                EstadoChatDiagnostico.Idle,
             )
         // Verifica que a sequência de estados está na ordem certa
-        assertEquals(EstadoChatDiagnostico.aguardandoIa, estados[0])
-        assertEquals(EstadoChatDiagnostico.streaming, estados[1])
-        assertEquals(EstadoChatDiagnostico.idle, estados[2])
+        assertEquals(EstadoChatDiagnostico.AguardandoIa, estados[0])
+        assertEquals(EstadoChatDiagnostico.Streaming, estados[1])
+        assertEquals(EstadoChatDiagnostico.Idle, estados[2])
     }
 
     // =========================================================================
@@ -314,11 +314,11 @@ class ChatDiagnosticoIaViewModelTest {
 
         // Simula a lógica do ViewModel ao verificar cota
         var iaFoiChamada = false
-        var estadoResultante = EstadoChatDiagnostico.idle
+        var estadoResultante = EstadoChatDiagnostico.Idle
 
         when (cotaExcedida) {
             is ResultadoCota.Excedida -> {
-                estadoResultante = EstadoChatDiagnostico.cotaExcedida
+                estadoResultante = EstadoChatDiagnostico.CotaExcedida
                 // NÃO chama IA
             }
             ResultadoCota.Disponivel -> {
@@ -326,7 +326,7 @@ class ChatDiagnosticoIaViewModelTest {
             }
         }
 
-        assertEquals("Estado deve ser cotaExcedida", EstadoChatDiagnostico.cotaExcedida, estadoResultante)
+        assertEquals("Estado deve ser cotaExcedida", EstadoChatDiagnostico.CotaExcedida, estadoResultante)
         assertFalse("IA NÃO deve ser chamada quando cota excedida", iaFoiChamada)
     }
 
@@ -361,14 +361,14 @@ class ChatDiagnosticoIaViewModelTest {
 
         // Simula a lógica de classificarErro do ViewModel
         val mensagemEsperada = "Não consegui conectar ao serviço de diagnóstico. Verifique sua conexão e tente novamente."
-        val estadoEsperado = EstadoChatDiagnostico.erroRede
+        val estadoEsperado = EstadoChatDiagnostico.ErroRede
 
         // Verifica que IOException mapeia para erroRede (não erroModelo)
         val resultado =
             when (excecao) {
-                is java.net.SocketTimeoutException -> Pair("timeout", EstadoChatDiagnostico.erroRede)
-                is java.io.IOException -> Pair(mensagemEsperada, EstadoChatDiagnostico.erroRede)
-                else -> Pair("outro", EstadoChatDiagnostico.idle)
+                is java.net.SocketTimeoutException -> Pair("timeout", EstadoChatDiagnostico.ErroRede)
+                is java.io.IOException -> Pair(mensagemEsperada, EstadoChatDiagnostico.ErroRede)
+                else -> Pair("outro", EstadoChatDiagnostico.Idle)
             }
 
         assertEquals("Mensagem deve ser a de erro de rede", mensagemEsperada, resultado.first)
@@ -574,7 +574,7 @@ class ChatDiagnosticoIaViewModelTest {
     @Test
     fun `estado idle e o estado inicial`() {
         val state = ChatDiagUiState()
-        assertEquals("Estado inicial deve ser idle", EstadoChatDiagnostico.idle, state.estado)
+        assertEquals("Estado inicial deve ser idle", EstadoChatDiagnostico.Idle, state.estado)
     }
 
     @Test

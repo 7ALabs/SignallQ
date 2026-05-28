@@ -114,13 +114,15 @@ fun ChatDiagnosticoIaScreen(
     onCancelarAcaoAtual: () -> Unit,
 ) {
     val tokens = LocalLkTokens.current
-    val drawerState = rememberDrawerState(
-        initialValue = if (uiState.drawerAberto) {
-            androidx.compose.material3.DrawerValue.Open
-        } else {
-            androidx.compose.material3.DrawerValue.Closed
-        },
-    )
+    val drawerState =
+        rememberDrawerState(
+            initialValue =
+                if (uiState.drawerAberto) {
+                    androidx.compose.material3.DrawerValue.Open
+                } else {
+                    androidx.compose.material3.DrawerValue.Closed
+                },
+        )
     val scope = rememberCoroutineScope()
 
     // Sincroniza drawerState com uiState.drawerAberto
@@ -189,17 +191,19 @@ fun ChatDiagnosticoIaScreen(
                             )
                         }
                     },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                    ),
+                    colors =
+                        TopAppBarDefaults.centerAlignedTopAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                        ),
                 )
             },
         ) { innerPadding ->
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .windowInsetsPadding(WindowInsets.ime),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .windowInsetsPadding(WindowInsets.ime),
             ) {
                 // Lista de mensagens
                 ListaMensagens(
@@ -209,7 +213,7 @@ fun ChatDiagnosticoIaScreen(
                 )
 
                 // Footer: input ou banner de cota
-                if (uiState.estado == EstadoChatDiagnostico.cotaExcedida) {
+                if (uiState.estado == EstadoChatDiagnostico.CotaExcedida) {
                     CotaExcedidaBanner(
                         renovacaoEpochMs = uiState.cota?.renovacaoEpochMs,
                     )
@@ -219,12 +223,14 @@ fun ChatDiagnosticoIaScreen(
                         draft = uiState.mensagemEmDigitacao,
                         onDraftChange = onAtualizarDraft,
                         onEnviar = { texto -> onEnviarMensagem(texto) },
-                        enabled = uiState.estado == EstadoChatDiagnostico.idle ||
-                            uiState.estado == EstadoChatDiagnostico.erroModelo ||
-                            uiState.estado == EstadoChatDiagnostico.erroRede,
-                        mostrarPlaceholderAguarde = uiState.estado == EstadoChatDiagnostico.executandoTeste ||
-                            uiState.estado == EstadoChatDiagnostico.aguardandoIa ||
-                            uiState.estado == EstadoChatDiagnostico.streaming,
+                        enabled =
+                            uiState.estado == EstadoChatDiagnostico.Idle ||
+                                uiState.estado == EstadoChatDiagnostico.ErroModelo ||
+                                uiState.estado == EstadoChatDiagnostico.ErroRede,
+                        mostrarPlaceholderAguarde =
+                            uiState.estado == EstadoChatDiagnostico.ExecutandoTeste ||
+                                uiState.estado == EstadoChatDiagnostico.AguardandoIa ||
+                                uiState.estado == EstadoChatDiagnostico.Streaming,
                     )
                 }
             }
@@ -265,10 +271,11 @@ private fun ListaMensagens(
     LazyColumn(
         state = lazyListState,
         modifier = modifier.fillMaxWidth(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-            horizontal = LkSpacing.lg,
-            vertical = LkSpacing.sm,
-        ),
+        contentPadding =
+            androidx.compose.foundation.layout.PaddingValues(
+                horizontal = LkSpacing.lg,
+                vertical = LkSpacing.sm,
+            ),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
     ) {
         items(
@@ -284,9 +291,10 @@ private fun ListaMensagens(
                     if (mensagem.status == StatusChatMensagem.streaming && mensagem.conteudo.isBlank()) {
                         OrbitThinkingBubble(
                             mensagem = "",
-                            modifier = Modifier.semantics {
-                                contentDescription = "Diagnóstico IA está processando"
-                            },
+                            modifier =
+                                Modifier.semantics {
+                                    contentDescription = "Diagnóstico IA está processando"
+                                },
                         )
                     } else {
                         BubbleAssistente(
@@ -303,20 +311,21 @@ private fun ListaMensagens(
         if (uiState.opcoesIniciaisVisiveis) {
             item(key = "opcoes_iniciais_chips") {
                 OpcoesIniciaisChips(
-                    enabled = uiState.estado == EstadoChatDiagnostico.idle,
+                    enabled = uiState.estado == EstadoChatDiagnostico.Idle,
                     onEscolherOpcao = onEscolherOpcao,
                 )
             }
         }
 
         // Indicador de "pensando" enquanto aguarda/streaming com conteúdo
-        if (uiState.estado == EstadoChatDiagnostico.aguardandoIa) {
+        if (uiState.estado == EstadoChatDiagnostico.AguardandoIa) {
             item(key = "thinking_indicator") {
                 OrbitThinkingBubble(
                     mensagem = "",
-                    modifier = Modifier.semantics {
-                        contentDescription = "Diagnóstico IA está processando"
-                    },
+                    modifier =
+                        Modifier.semantics {
+                            contentDescription = "Diagnóstico IA está processando"
+                        },
                 )
             }
         }
@@ -333,60 +342,66 @@ private fun BubbleAssistente(
     isLatest: Boolean,
     tokens: io.linka.app.kotlin.ui.LkTokens,
 ) {
-    val timeStr = remember(mensagem.criadoEmEpochMs) {
-        val cal = Calendar.getInstance().apply { timeInMillis = mensagem.criadoEmEpochMs }
-        "%02d:%02d".format(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE))
-    }
+    val timeStr =
+        remember(mensagem.criadoEmEpochMs) {
+            val cal = Calendar.getInstance().apply { timeInMillis = mensagem.criadoEmEpochMs }
+            "%02d:%02d".format(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE))
+        }
     val sourceLabel = "Diagnóstico IA · $timeStr"
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = LkSpacing.sm),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = LkSpacing.sm),
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
         // Símbolo orbit simples
         Box(
-            modifier = Modifier
-                .padding(top = 2.dp)
-                .size(20.dp)
-                .background(
-                    color = LkColors.accent.copy(alpha = 0.15f),
-                    shape = RoundedCornerShape(999.dp),
-                ),
+            modifier =
+                Modifier
+                    .padding(top = 2.dp)
+                    .size(20.dp)
+                    .background(
+                        color = LkColors.accent.copy(alpha = 0.15f),
+                        shape = RoundedCornerShape(999.dp),
+                    ),
             contentAlignment = Alignment.Center,
         ) {
             Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(
-                        color = LkColors.accent,
-                        shape = RoundedCornerShape(999.dp),
-                    ),
+                modifier =
+                    Modifier
+                        .size(8.dp)
+                        .background(
+                            color = LkColors.accent,
+                            shape = RoundedCornerShape(999.dp),
+                        ),
             )
         }
 
         Box(
-            modifier = Modifier
-                .weight(1f)
-                .background(
-                    color = tokens.bgSecondary,
-                    shape = RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp),
-                )
-                .padding(LkSpacing.md),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .background(
+                        color = tokens.bgSecondary,
+                        shape = RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp),
+                    ).padding(LkSpacing.md),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
             ) {
-                val textStyle = MaterialTheme.typography.bodyMedium.copy(
-                    color = if (mensagem.status == StatusChatMensagem.falhou) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        tokens.textPrimary
-                    },
-                )
+                val textStyle =
+                    MaterialTheme.typography.bodyMedium.copy(
+                        color =
+                            if (mensagem.status == StatusChatMensagem.falhou) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                tokens.textPrimary
+                            },
+                    )
 
                 if (isLatest && mensagem.status == StatusChatMensagem.streaming && mensagem.conteudo.isNotBlank()) {
                     TypewriterText(text = mensagem.conteudo, style = textStyle)
@@ -416,11 +431,12 @@ private data class ChipOpcao(
     val tipo: TipoDiagnostico,
 )
 
-private val CHIPS_OPCOES = listOf(
-    ChipOpcao("Analisar meu último teste", TipoDiagnostico.ultimoTeste),
-    ChipOpcao("Executar novo teste agora", TipoDiagnostico.novoTeste),
-    ChipOpcao("Analisar meu histórico recente", TipoDiagnostico.historico),
-)
+private val CHIPS_OPCOES =
+    listOf(
+        ChipOpcao("Analisar meu último teste", TipoDiagnostico.ultimoTeste),
+        ChipOpcao("Executar novo teste agora", TipoDiagnostico.novoTeste),
+        ChipOpcao("Analisar meu histórico recente", TipoDiagnostico.historico),
+    )
 
 @Composable
 private fun OpcoesIniciaisChips(
@@ -429,30 +445,34 @@ private fun OpcoesIniciaisChips(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.padding(
-            start = 36.dp,
-            end = LkSpacing.lg,
-            top = LkSpacing.sm,
-        ),
+        modifier =
+            modifier.padding(
+                start = 36.dp,
+                end = LkSpacing.lg,
+                top = LkSpacing.sm,
+            ),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
         CHIPS_OPCOES.forEach { chip ->
             androidx.compose.material3.FilledTonalButton(
                 onClick = { onEscolherOpcao(chip.tipo) },
                 enabled = enabled,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .semantics { contentDescription = chip.label },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .semantics { contentDescription = chip.label },
                 shape = RoundedCornerShape(LkRadius.button),
-                colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                ),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    horizontal = LkSpacing.lg,
-                    vertical = LkSpacing.sm,
-                ),
+                colors =
+                    androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    ),
+                contentPadding =
+                    androidx.compose.foundation.layout.PaddingValues(
+                        horizontal = LkSpacing.lg,
+                        vertical = LkSpacing.sm,
+                    ),
             ) {
                 Text(
                     text = chip.label,
@@ -475,21 +495,24 @@ private fun CotaExcedidaBanner(
     modifier: Modifier = Modifier,
 ) {
     val tokens = LocalLkTokens.current
-    val renovacaoTexto = remember(renovacaoEpochMs) {
-        formatarRenovacaoDateTime(renovacaoEpochMs)
-    }
+    val renovacaoTexto =
+        remember(renovacaoEpochMs) {
+            formatarRenovacaoDateTime(renovacaoEpochMs)
+        }
 
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .wrapContentHeight(),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .wrapContentHeight(),
         color = tokens.warningContainer,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
         ) {
             Text(
@@ -510,10 +533,11 @@ private fun CotaExcedidaBanner(
 private fun formatarRenovacaoDateTime(renovacaoEpochMs: Long?): String {
     if (renovacaoEpochMs == null) return "em 24 horas"
     return try {
-        val renovacao = LocalDateTime.ofInstant(
-            Instant.ofEpochMilli(renovacaoEpochMs),
-            ZoneId.systemDefault(),
-        )
+        val renovacao =
+            LocalDateTime.ofInstant(
+                Instant.ofEpochMilli(renovacaoEpochMs),
+                ZoneId.systemDefault(),
+            )
         val agora = LocalDateTime.now(ZoneId.systemDefault())
         val horaFormatada = DateTimeFormatter.ofPattern("HH'h'mm", Locale.forLanguageTag("pt-BR")).format(renovacao)
 
@@ -551,11 +575,12 @@ private fun ChatInputArea(
     }
 
     // Placeholder contextual: muda conforme o estado atual do chat
-    val placeholderAtual = when {
-        mostrarPlaceholderAguarde -> "Aguarde o resultado do teste..."
-        !enabled -> "Aguarde a resposta da IA..."
-        else -> "Pergunte sobre sua conexão, Wi-Fi ou diagnóstico..."
-    }
+    val placeholderAtual =
+        when {
+            mostrarPlaceholderAguarde -> "Aguarde o resultado do teste..."
+            !enabled -> "Aguarde a resposta da IA..."
+            else -> "Pergunte sobre sua conexão, Wi-Fi ou diagnóstico..."
+        }
 
     OrbitInputArea(
         value = textFieldValue,
@@ -603,15 +628,17 @@ private fun DrawerConteudo(
         DrawerCabecalho(onNovaSessao = onNovaSessao)
         HorizontalDivider(color = tokens.border)
 
-        val sessoesOrdenadas = remember(sessoes) {
-            sessoes.sortedByDescending { it.atualizadoEmEpochMs }
-        }
+        val sessoesOrdenadas =
+            remember(sessoes) {
+                sessoes.sortedByDescending { it.atualizadoEmEpochMs }
+            }
 
         if (sessoesOrdenadas.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(LkSpacing.xl),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(LkSpacing.xl),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -645,14 +672,13 @@ private fun DrawerConteudo(
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun DrawerCabecalho(
-    onNovaSessao: () -> Unit,
-) {
+private fun DrawerCabecalho(onNovaSessao: () -> Unit) {
     val tokens = LocalLkTokens.current
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.xl),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.xl),
     ) {
         Text(
             text = "Conversas",
@@ -662,9 +688,10 @@ private fun DrawerCabecalho(
         Spacer(Modifier.height(LkSpacing.md))
         OutlinedButton(
             onClick = onNovaSessao,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
             shape = RoundedCornerShape(LkRadius.button),
         ) {
             Icon(
@@ -699,9 +726,10 @@ private fun SessaoListItem(
     var showDialogApagar by remember { mutableStateOf(false) }
     var showDialogRenomear by remember { mutableStateOf(false) }
 
-    val dataFormatada = remember(sessao.atualizadoEmEpochMs) {
-        formatarDataRelativa(sessao.atualizadoEmEpochMs)
-    }
+    val dataFormatada =
+        remember(sessao.atualizadoEmEpochMs) {
+            formatarDataRelativa(sessao.atualizadoEmEpochMs)
+        }
 
     Box(modifier = Modifier.padding(horizontal = LkSpacing.sm)) {
         NavigationDrawerItem(
@@ -722,14 +750,14 @@ private fun SessaoListItem(
                     )
                 }
             },
-            modifier = Modifier
-                .semantics {
-                    contentDescription = "${sessao.titulo}, $dataFormatada"
-                }
-                .combinedClickable(
-                    onClick = onAbrir,
-                    onLongClick = { showDropdown = true },
-                ),
+            modifier =
+                Modifier
+                    .semantics {
+                        contentDescription = "${sessao.titulo}, $dataFormatada"
+                    }.combinedClickable(
+                        onClick = onAbrir,
+                        onLongClick = { showDropdown = true },
+                    ),
         )
 
         DropdownMenu(
@@ -742,9 +770,10 @@ private fun SessaoListItem(
                     showDropdown = false
                     showDialogRenomear = true
                 },
-                modifier = Modifier.semantics {
-                    contentDescription = "Renomear conversa ${sessao.titulo}"
-                },
+                modifier =
+                    Modifier.semantics {
+                        contentDescription = "Renomear conversa ${sessao.titulo}"
+                    },
             )
             DropdownMenuItem(
                 text = { Text("Apagar") },
@@ -752,9 +781,10 @@ private fun SessaoListItem(
                     showDropdown = false
                     showDialogApagar = true
                 },
-                modifier = Modifier.semantics {
-                    contentDescription = "Apagar conversa ${sessao.titulo}"
-                },
+                modifier =
+                    Modifier.semantics {
+                        contentDescription = "Apagar conversa ${sessao.titulo}"
+                    },
             )
         }
     }
