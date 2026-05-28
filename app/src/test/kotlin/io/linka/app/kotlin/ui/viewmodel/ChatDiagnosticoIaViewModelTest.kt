@@ -475,7 +475,7 @@ class ChatDiagnosticoIaViewModelTest {
     @Test
     fun `titulo derivado de texto longo e truncado com reticencias`() {
         val textoLongo = "Minha internet caiu exatamente às 19h todos os dias durante uma semana inteira"
-        val tituloEsperado = "Minha internet caiu exatamente às 19h t…"
+        val tituloEsperado = "Minha internet caiu exatamente às 19h to…"
 
         val resultado = if (textoLongo.length > 40) {
             textoLongo.take(40).trimEnd() + "…"
