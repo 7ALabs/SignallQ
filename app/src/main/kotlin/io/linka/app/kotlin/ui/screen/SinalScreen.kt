@@ -54,6 +54,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -2543,84 +2544,56 @@ private fun MobileSignalCard(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
-        // ── Seção 1 — Header ──────────────────────────────────────────────────
+        // Hero card: operadora + tecnologia
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(tokens.bgCard)
+                .border(1.dp, tokens.border, RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.lg),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(LkColors.accent.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.SignalCellularAlt,
+                    contentDescription = null,
+                    tint = LkColors.accent,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(Modifier.width(LkSpacing.md))
+            Column {
                 Text(
                     snapshot.operadora ?: "Rede móvel",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.W700,
                     color = tokens.textPrimary,
                 )
-                if (localIp != null) {
-                    Text(
-                        "IP: $localIp",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = tokens.textTertiary,
-                    )
+                val subtitulo = buildString {
+                    append("Rede ${snapshot.tecnologia ?: "móvel"}")
+                    if (snapshot.bandaMovel != null) append(" · ${snapshot.bandaMovel}")
+                    else append(" · disponível")
                 }
-            }
-            if (snapshot.tecnologia != null) {
-                Box(
-                    modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(LkColors.accent.copy(alpha = 0.12f))
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                ) {
-                    Text(
-                        snapshot.tecnologia ?: "",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.W700,
-                        color = LkColors.accent,
-                    )
-                }
-            }
-        }
-
-        // ── Seção 1b — Banda ativa ("você está aqui") ────────────────────────
-        val bandaMovel = snapshot.bandaMovel
-        if (bandaMovel != null) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.CellTower,
-                    contentDescription = null,
-                    tint = LkColors.accent,
-                    modifier = Modifier.size(16.dp),
-                )
                 Text(
-                    text = bandaMovel,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.W600,
-                    color = LkColors.accent,
+                    subtitulo,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = tokens.textSecondary,
                 )
-                Spacer(Modifier.width(4.dp))
-                Box(
-                    modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(LkColors.success.copy(alpha = 0.14f))
-                            .padding(horizontal = 8.dp, vertical = 3.dp),
-                ) {
-                    Text("Você está aqui", fontSize = 10.sp, fontWeight = FontWeight.W600, color = LkColors.success)
-                }
             }
         }
 
-        // ── Permissão ausente ou sem RSRP ─────────────────────────────────────
         if (!temPermissao || rsrp == null) {
             EmptyStatePermissaoTelefonia(onSolicitarPermissao, tokens)
             return@Column
         }
 
-        // ── Lógica de qualidade ────────────────────────────────────────────────
         val (qualidadeLabel, qualidadeCor) =
             when {
                 rsrp >= -80 -> "Excelente" to LkColors.success
@@ -2629,278 +2602,117 @@ private fun MobileSignalCard(
                 else -> "Fraco" to LkColors.error
             }
 
-        // ── Seção 2 — Gauge semicircular ──────────────────────────────────────
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Canvas(modifier = Modifier.size(200.dp, 110.dp)) {
-                val strokeWidth = 16.dp.toPx()
-                val halfStroke = strokeWidth / 2f
-                val arcRect =
-                    androidx.compose.ui.geometry.Rect(
-                        left = halfStroke,
-                        top = halfStroke,
-                        right = size.width - halfStroke,
-                        bottom = size.height * 2 - halfStroke,
-                    )
-                // Fundo do arco
-                drawArc(
-                    color = tokens.border.copy(alpha = 0.3f),
-                    startAngle = 180f,
-                    sweepAngle = 180f,
-                    useCenter = false,
-                    topLeft = arcRect.topLeft,
-                    size = arcRect.size,
-                    style =
-                        androidx.compose.ui.graphics.drawscope.Stroke(
-                            width = strokeWidth,
-                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
-                        ),
-                )
-                // Frente do arco — progresso
-                val progresso = ((rsrp - (-110f)) / ((-70f) - (-110f))).coerceIn(0f, 1f)
-                val sweepProgresso = progresso * 180f
-                if (sweepProgresso > 0f) {
-                    drawArc(
-                        color = qualidadeCor,
-                        startAngle = 180f,
-                        sweepAngle = sweepProgresso,
-                        useCenter = false,
-                        topLeft = arcRect.topLeft,
-                        size = arcRect.size,
-                        style =
-                            androidx.compose.ui.graphics.drawscope.Stroke(
-                                width = strokeWidth,
-                                cap = androidx.compose.ui.graphics.StrokeCap.Round,
-                            ),
-                    )
-                }
-            }
-            // Labels sobrepostos abaixo do centro
-            Column(
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    qualidadeLabel,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.W700,
-                    color = qualidadeCor,
-                )
-                Text(
-                    "$rsrp dBm",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = tokens.textTertiary,
-                )
-            }
-        }
-
-        // ── Seção 3 — Cards estruturados de sinal ────────────────────────────
-        val (rsrpLabel, rsrpCor) = rsrpQualidade(rsrp)
-        MetricaSinalCard(
-            icone = Icons.Outlined.SignalCellularAlt,
-            label = "RSRP — Potência do sinal",
-            value = "$rsrp",
-            unit = "dBm",
-            chipLabel = rsrpLabel,
-            chipCor = rsrpCor,
-            tokens = tokens,
-            modifier = Modifier.fillMaxWidth(),
-        )
-
-        val rsrq = snapshot.rsrqDb
-        val sinr = snapshot.sinrDb
-        if (rsrq != null || sinr != null) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-            ) {
-                if (rsrq != null) {
-                    val (rsrqLabel, rsrqCor) = rsrqQualidade(rsrq)
-                    MetricaSinalCard(
-                        icone = Icons.Outlined.NetworkCheck,
-                        label = "RSRQ",
-                        value = "$rsrq",
-                        unit = "dB",
-                        chipLabel = rsrqLabel,
-                        chipCor = rsrqCor,
-                        tokens = tokens,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                if (sinr != null) {
-                    val (sinrLabel, sinrCor) = sinrQualidade(sinr)
-                    MetricaSinalCard(
-                        icone = Icons.Outlined.GraphicEq,
-                        label = "SINR",
-                        value = "$sinr",
-                        unit = "dB",
-                        chipLabel = sinrLabel,
-                        chipCor = sinrCor,
-                        tokens = tokens,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-        }
-
-        // ── Seção 4 — Card de diagnóstico ─────────────────────────────────────
-        val (diagIcone, diagCor, diagCausa, diagAcao) =
+        val (forcaLabel, forcaDescricao) =
             when {
-                rsrp >= -80 ->
-                    DiagData(
-                        Icons.Outlined.CheckCircle,
-                        LkColors.success,
-                        "Sinal ótimo",
-                        "Você está próximo de uma torre. Ideal para streaming e videochamadas.",
-                    )
-                rsrp >= -100 ->
-                    DiagData(
-                        Icons.Outlined.Warning,
-                        LkColors.warning,
-                        "Sinal bom — conexão estável para a maioria das atividades",
-                        "Tente ir para área aberta ou próximo de uma janela se quiser melhorar.",
-                    )
-                else ->
-                    DiagData(
-                        Icons.Outlined.SignalCellularOff,
-                        LkColors.error,
-                        "Sinal fraco — cobertura limitada",
-                        "Mova-se para um local com mais espaço aberto ou ative o Wi-Fi Calling.",
-                    )
+                rsrp >= -80 -> "Forte" to "Você está próximo de uma torre. Ideal para navegação, streaming e videochamadas sem cortes."
+                rsrp >= -90 -> "Bom" to "Conexão estável para a maioria das atividades. Vídeos e chamadas devem funcionar bem."
+                rsrp >= -100 -> "Médio" to "O sinal está razoável. Pode haver lentidão em vídeos de alta qualidade."
+                else -> "Fraco" to "Cobertura limitada. Tente ir para área aberta ou próximo de uma janela."
             }
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(LkRadius.card))
-                    .background(tokens.bgSecondary)
-                    .padding(LkSpacing.lg),
-            verticalAlignment = Alignment.Top,
-        ) {
-            Icon(
-                imageVector = diagIcone,
-                contentDescription = null,
-                tint = diagCor,
-                modifier = Modifier.size(20.dp),
-            )
-            Spacer(Modifier.width(LkSpacing.sm))
-            Column {
-                Text(
-                    diagCausa,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.W700,
-                    color = tokens.textPrimary,
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    diagAcao,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = tokens.textSecondary,
-                )
+
+        val tecnologiaDescricao =
+            when {
+                snapshot.tecnologia?.contains("5G", ignoreCase = true) == true ->
+                    "Rede 5G — a tecnologia mais rápida disponível hoje."
+                snapshot.tecnologia?.contains("LTE", ignoreCase = true) == true ||
+                    snapshot.tecnologia?.contains("4G", ignoreCase = true) == true ->
+                    "Rede 4G LTE — velocidade boa para streaming e navegação."
+                else -> "Rede ${snapshot.tecnologia ?: "móvel"} — conexão ativa."
             }
-        }
+        val tecnologiaBadge =
+            when {
+                snapshot.tecnologia?.contains("5G", ignoreCase = true) == true -> "Moderna" to LkColors.accent
+                snapshot.tecnologia?.contains("LTE", ignoreCase = true) == true ||
+                    snapshot.tecnologia?.contains("4G", ignoreCase = true) == true -> "Boa" to LkColors.success
+                else -> "Básica" to LkColors.warning
+            }
+
+        val experienciaDescricao =
+            when {
+                rsrp >= -80 -> "Conexão capaz de tudo: vídeo 4K, streaming de jogos, videochamadas e downloads grandes."
+                rsrp >= -90 -> "Adequada para vídeo HD, redes sociais, músicas e navegação sem travamentos."
+                rsrp >= -100 -> "Navegação e mensagens OK. Vídeos podem carregar em qualidade reduzida."
+                else -> "Apenas navegação básica e mensagens. Vídeo e chamadas podem falhar."
+            }
+
+        FriendlyCard(
+            icone = Icons.Outlined.SignalCellularAlt,
+            titulo = "Qualidade do sinal",
+            descricao = "$forcaLabel — $forcaDescricao",
+            badgeLabel = qualidadeLabel,
+            badgeCor = qualidadeCor,
+            iconeCor = qualidadeCor,
+            tokens = tokens,
+        )
+        FriendlyCard(
+            icone = Icons.Outlined.CellTower,
+            titulo = "Tipo de conexão",
+            descricao = tecnologiaDescricao,
+            badgeLabel = tecnologiaBadge.first,
+            badgeCor = tecnologiaBadge.second,
+            iconeCor = LkColors.accent,
+            tokens = tokens,
+        )
+        FriendlyCard(
+            icone = Icons.Outlined.NetworkCheck,
+            titulo = "Sua experiência esperada",
+            descricao = experienciaDescricao,
+            badgeLabel = qualidadeLabel,
+            badgeCor = qualidadeCor,
+            iconeCor = qualidadeCor,
+            tokens = tokens,
+        )
     }
 }
 
-private data class DiagData(
-    val icone: androidx.compose.ui.graphics.vector.ImageVector,
-    val cor: Color,
-    val causa: String,
-    val acao: String,
-)
-
-private fun rsrpQualidade(rsrp: Int): Pair<String, Color> =
-    when {
-        rsrp >= -80 -> "Ótimo" to LkColors.success
-        rsrp >= -100 -> "Bom" to LkColors.warning
-        else -> "Ruim" to LkColors.error
-    }
-
-private fun rsrqQualidade(rsrq: Int): Pair<String, Color> =
-    when {
-        rsrq >= -10 -> "Ótimo" to LkColors.success
-        rsrq >= -15 -> "Bom" to LkColors.warning
-        else -> "Ruim" to LkColors.error
-    }
-
-private fun sinrQualidade(sinr: Int): Pair<String, Color> =
-    when {
-        sinr >= 20 -> "Ótimo" to LkColors.success
-        sinr >= 10 -> "Bom" to LkColors.warning
-        else -> "Ruim" to LkColors.error
-    }
-
 @Composable
-private fun MetricaSinalCard(
+private fun FriendlyCard(
     icone: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    value: String,
-    unit: String,
-    chipLabel: String,
-    chipCor: Color,
+    titulo: String,
+    descricao: String,
+    badgeLabel: String,
+    badgeCor: Color,
+    iconeCor: Color,
     tokens: LkTokens,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier =
-            modifier
-                .clip(RoundedCornerShape(LkRadius.card))
-                .border(1.dp, chipCor.copy(alpha = 0.25f), RoundedCornerShape(LkRadius.card))
-                .background(tokens.bgSecondary)
-                .padding(LkSpacing.lg),
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(LkRadius.card))
+            .background(tokens.bgCard)
+            .border(1.dp, tokens.border, RoundedCornerShape(LkRadius.card))
+            .padding(12.dp),
+        verticalAlignment = Alignment.Top,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(chipCor.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = icone,
-                    contentDescription = null,
-                    tint = chipCor,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
-            Spacer(Modifier.width(LkSpacing.sm))
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(iconeCor.copy(alpha = 0.10f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icone, contentDescription = null, tint = iconeCor, modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(LkSpacing.md))
+        Column(Modifier.weight(1f)) {
+            Text(titulo, fontSize = 12.sp, fontWeight = FontWeight.W600, color = tokens.textPrimary)
+            Spacer(Modifier.height(2.dp))
             Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
+                descricao,
+                fontSize = 11.sp,
                 color = tokens.textSecondary,
+                lineHeight = 15.sp,
             )
         }
-        Spacer(Modifier.height(LkSpacing.sm))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineLarge,
-            color = chipCor,
-        )
-        Text(
-            text = unit,
-            style = MaterialTheme.typography.labelSmall,
-            color = tokens.textTertiary,
-        )
-        Spacer(Modifier.height(LkSpacing.xs))
+        Spacer(Modifier.width(LkSpacing.sm))
         Box(
-            modifier =
-                Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(chipCor.copy(alpha = 0.15f))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(badgeCor.copy(alpha = 0.10f))
+                .padding(horizontal = 8.dp, vertical = 4.dp),
         ) {
-            Text(
-                text = chipLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = chipCor,
-            )
+            Text(badgeLabel, fontSize = 11.sp, fontWeight = FontWeight.W700, color = badgeCor)
         }
     }
 }
@@ -2912,45 +2724,76 @@ private fun EmptyStatePermissaoTelefonia(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
-        Icon(
-            imageVector = Icons.Outlined.SignalCellularAlt,
-            contentDescription = null,
-            tint = tokens.textTertiary,
-            modifier = Modifier.size(48.dp),
-        )
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .clip(CircleShape)
+                .background(LkColors.warning.copy(alpha = 0.10f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.SignalCellularAlt,
+                contentDescription = null,
+                tint = LkColors.warning,
+                modifier = Modifier.size(36.dp),
+            )
+        }
+        Spacer(Modifier.height(LkSpacing.xs))
         Text(
-            "Conectado via rede móvel",
-            style = MaterialTheme.typography.bodyLarge,
+            "Permissão necessária",
+            fontSize = 17.sp,
             fontWeight = FontWeight.W600,
             color = tokens.textPrimary,
         )
         Text(
-            "Para ver informações de sinal (RSRP, RSRQ),\nconceda permissão de leitura telefônica.",
-            style = MaterialTheme.typography.bodyMedium,
+            "Seu aparelho está sem permissão para ler\nas informações de rede móvel.",
+            fontSize = 13.sp,
             color = tokens.textSecondary,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            lineHeight = 19.sp,
         )
         Spacer(Modifier.height(LkSpacing.xs))
-        FilledTonalButton(onClick = onSolicitarPermissao) {
-            Text("Conceder permissão")
+        OutlinedButton(onClick = onSolicitarPermissao) {
+            Text("Permitir leitura do chip", fontSize = 12.sp, fontWeight = FontWeight.W600)
         }
     }
 }
 
 @Composable
 private fun EmptyStateMobile(tokens: LkTokens) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(Icons.Outlined.SignalCellularOff, null, tint = tokens.textTertiary, modifier = Modifier.size(48.dp))
-        Spacer(Modifier.height(LkSpacing.md))
-        Text("Sem chip detectado", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.W600, color = tokens.textPrimary)
-        Spacer(Modifier.height(LkSpacing.sm))
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .clip(CircleShape)
+                .background(LkColors.warning.copy(alpha = 0.10f)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.SignalCellularOff,
+                contentDescription = null,
+                tint = LkColors.warning,
+                modifier = Modifier.size(36.dp),
+            )
+        }
+        Spacer(Modifier.height(LkSpacing.xs))
         Text(
-            "Nenhum chip ativo foi encontrado.\nInsira um SIM para ver informações de rede móvel.",
-            style = MaterialTheme.typography.bodyMedium,
+            "Sem chip detectado",
+            fontSize = 17.sp,
+            fontWeight = FontWeight.W600,
+            color = tokens.textPrimary,
+        )
+        Text(
+            "Seu aparelho está sem chip de celular ou sem\npermissão para ler as informações de rede móvel.",
+            fontSize = 13.sp,
             color = tokens.textSecondary,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            lineHeight = 19.sp,
         )
     }
 }
