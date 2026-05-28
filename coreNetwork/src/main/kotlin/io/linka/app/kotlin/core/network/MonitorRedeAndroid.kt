@@ -8,6 +8,7 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.TransportInfo
 import android.net.wifi.WifiInfo
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -22,6 +23,8 @@ class MonitorRedeAndroid(
     private val applicationContext = context.applicationContext
     private val connectivityManager =
         applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    private val wifiManager =
+        applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
     private val locationManager =
         applicationContext.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 
@@ -174,15 +177,29 @@ class MonitorRedeAndroid(
         )
     }
 
+    @SuppressLint("MissingPermission")
     private fun capturarWifiLinkSnapshot(networkCapabilities: NetworkCapabilities, locationAtivado: Boolean): WifiLinkSnapshot? {
         return try {
             val transportInfo: TransportInfo = networkCapabilities.transportInfo ?: return null
             val wifiInfo = transportInfo as? WifiInfo ?: return null
             val freq = wifiInfo.frequency
+            var ssid = normalizarSsid(wifiInfo.ssid)
             // Quando localização está desativada, o Android retorna 02:00:00:00:00:00 — não é confiável.
-            val bssidConfiavel = if (locationAtivado) bssidValido(wifiInfo.bssid) else null
+            var bssidConfiavel = if (locationAtivado) bssidValido(wifiInfo.bssid) else null
+            // Android 12+: transportInfo retorna SSID/BSSID redigidos sem FLAG_INCLUDE_LOCATION_INFO.
+            // Fallback via WifiManager.connectionInfo que ainda funciona com ACCESS_FINE_LOCATION.
+            if (ssid == null && locationAtivado) {
+                try {
+                    @Suppress("DEPRECATION")
+                    val legacyInfo = wifiManager.connectionInfo
+                    if (legacyInfo != null) {
+                        ssid = normalizarSsid(legacyInfo.ssid)
+                        if (bssidConfiavel == null) bssidConfiavel = bssidValido(legacyInfo.bssid)
+                    }
+                } catch (_: SecurityException) { /* sem permissão — ignora */ }
+            }
             WifiLinkSnapshot(
-                ssid = normalizarSsid(wifiInfo.ssid),
+                ssid = ssid,
                 bssid = bssidConfiavel,
                 rssiDbm = wifiInfo.rssi,
                 linkSpeedMbps = wifiInfo.linkSpeed,

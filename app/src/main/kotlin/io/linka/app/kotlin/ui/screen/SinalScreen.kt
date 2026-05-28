@@ -43,6 +43,7 @@ import androidx.compose.material.icons.outlined.Lan
 import androidx.compose.material.icons.outlined.NetworkCheck
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.SimCard
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.SignalCellularOff
 import androidx.compose.material.icons.outlined.Warning
@@ -390,7 +391,6 @@ fun SinalScreen(
                         simsAtivos = simsAtivos,
                         temPermissaoTelefonia = temPermissaoTelefonia,
                         onSolicitarPermissaoTelefonia = onSolicitarPermissaoTelefonia,
-                        localIp = localIp,
                         tokens = c,
                     )
                 }
@@ -450,7 +450,6 @@ private fun MovelTab(
     simsAtivos: List<MovelSimSnapshot>,
     temPermissaoTelefonia: Boolean,
     onSolicitarPermissaoTelefonia: () -> Unit,
-    localIp: String?,
     tokens: LkTokens,
 ) {
     val c = tokens
@@ -474,32 +473,22 @@ private fun MovelTab(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
-        if (movelSnapshot != null) {
-            MobileSignalCard(
-                snapshot = movelSnapshot,
-                localIp = localIp,
-                temPermissao = temPermissaoTelefonia,
-                onSolicitarPermissao = onSolicitarPermissaoTelefonia,
-                tokens = c,
-            )
-        }
         if (simsAtivos.isNotEmpty()) {
             ChipsAtivosSection(simsAtivos = simsAtivos, tokens = c)
         }
-        // Aviso sobre uso de dados
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(LkColors.warning.copy(alpha = 0.10f))
+                .background(LkColors.accent.copy(alpha = 0.07f))
                 .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
         ) {
             Icon(
-                Icons.Outlined.Warning,
+                Icons.Outlined.Wifi,
                 contentDescription = null,
-                tint = LkColors.warning,
+                tint = LkColors.accent,
                 modifier = Modifier.size(18.dp),
             )
             Text(
@@ -568,6 +557,13 @@ private fun SimCard(
             else -> LkColors.error
         }
     }
+    val descricao = when {
+        sim.isDefaultData && forcaSinal == "Forte" -> "Chamadas e dados estão usando este chip."
+        sim.isDefaultData && forcaSinal == "Médio" -> "Chamadas e dados estão usando este chip. Sinal razoável."
+        sim.isDefaultData -> "Chamadas e dados estão usando este chip. Sinal fraco neste local."
+        forcaSinal == "Fraco" -> "Sinal fraco neste local. Chamadas podem cair ou ficar sem sinal."
+        else -> null
+    }
 
     Column(
         modifier = Modifier
@@ -575,15 +571,16 @@ private fun SimCard(
             .clip(RoundedCornerShape(16.dp))
             .background(tokens.bgCard)
             .border(1.dp, tokens.border, RoundedCornerShape(16.dp))
-            .padding(LkSpacing.md),
+            .padding(LkSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
+        // Header: SIM icon + SIM N + EM USO badge
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                Icons.Outlined.SignalCellularAlt,
+                Icons.Outlined.SimCard,
                 contentDescription = null,
                 tint = LkColors.accent,
                 modifier = Modifier.size(20.dp),
@@ -591,89 +588,95 @@ private fun SimCard(
             Spacer(Modifier.width(LkSpacing.xs))
             Text(
                 "SIM ${sim.simIndex}",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.W700,
-                color = tokens.textPrimary,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.W600,
+                color = tokens.textSecondary,
             )
-            if (sim.operadora != null) {
-                Text(
-                    " · ${sim.operadora}",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = tokens.textSecondary,
-                )
-            }
             Spacer(Modifier.weight(1f))
             if (sim.isDefaultData) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .background(LkColors.accent.copy(alpha = 0.12f))
+                        .background(LkColors.success.copy(alpha = 0.12f))
                         .padding(horizontal = 8.dp, vertical = 3.dp),
                 ) {
                     Text(
                         "EM USO",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.W700,
-                        color = LkColors.accent,
+                        color = LkColors.success,
                     )
                 }
             }
         }
 
-        if (sim.tecnologiaRede != null) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
-            ) {
-                Icon(
-                    Icons.Outlined.CellTower,
-                    contentDescription = null,
-                    tint = tokens.textTertiary,
-                    modifier = Modifier.size(14.dp),
-                )
-                Text(
-                    sim.tecnologiaRede ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.W600,
-                    color = tokens.textPrimary,
-                )
-            }
-        }
+        // Carrier name
+        Text(
+            sim.operadora ?: "Operadora",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.W700,
+            color = tokens.textPrimary,
+        )
 
+        // Network type subtitle
+        Text(
+            "Rede ${sim.tecnologiaRede ?: "móvel"}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = tokens.textSecondary,
+        )
+
+        // Signal and Quality metrics
         if (forcaSinal != null && corForca != null && qualidade != null && corQualidade != null) {
+            Spacer(Modifier.height(LkSpacing.xs))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xl),
             ) {
                 Column {
                     Text(
-                        "Sinal",
+                        "SINAL",
                         style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.W600,
                         color = tokens.textTertiary,
                     )
+                    Spacer(Modifier.height(2.dp))
                     Text(
-                        "$forcaSinal (${sim.rsrpDbm} dBm)",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.W600,
+                        forcaSinal,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.W700,
                         color = corForca,
                     )
                 }
                 Column {
                     Text(
-                        "Qualidade",
+                        "QUALIDADE",
                         style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.W600,
                         color = tokens.textTertiary,
                     )
+                    Spacer(Modifier.height(2.dp))
                     Text(
                         qualidade,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.W600,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.W700,
                         color = corQualidade,
                     )
                 }
             }
         }
 
+        // Contextual description
+        if (descricao != null) {
+            Spacer(Modifier.height(LkSpacing.xs))
+            Text(
+                descricao,
+                style = MaterialTheme.typography.bodySmall,
+                color = tokens.textSecondary,
+                lineHeight = 18.sp,
+            )
+        }
+
+        // Roaming warning
         if (sim.emRoaming) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -863,13 +866,11 @@ private fun RedesTab(
 
             if (showConnected && connectedNetwork != null) {
                 item {
-                    // #176 — label "SUA CONEXÃO"
                     SectionLabel(
                         stringResource(R.string.sinal_sua_conexao),
                         modifier = Modifier.padding(horizontal = LkSpacing.lg),
                     )
                     Spacer(Modifier.height(LkSpacing.sm))
-                    // #176 — card destacado com fundo successContainer
                     Box(
                         modifier =
                             Modifier
@@ -888,12 +889,44 @@ private fun RedesTab(
                     }
                     Spacer(Modifier.height(LkSpacing.lg))
                 }
+            } else if (connectedNetwork != null && selectedBanda != "Todos") {
+                item {
+                    SectionLabel(
+                        stringResource(R.string.sinal_sua_conexao),
+                        modifier = Modifier.padding(horizontal = LkSpacing.lg),
+                    )
+                    Spacer(Modifier.height(LkSpacing.sm))
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = LkSpacing.lg)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(c.bgSecondary)
+                            .border(1.dp, c.border, RoundedCornerShape(12.dp))
+                            .padding(LkSpacing.md),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                    ) {
+                        Icon(
+                            Icons.Outlined.Wifi,
+                            contentDescription = null,
+                            tint = c.textTertiary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Text(
+                            "Conectado em ${connectedNetwork.banda ?: "outra banda"} (${connectedNetwork.ssid ?: "rede"})",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = c.textSecondary,
+                        )
+                    }
+                    Spacer(Modifier.height(LkSpacing.lg))
+                }
             }
 
             if (otherClassificadas.isNotEmpty()) {
                 item {
                     SectionLabel(
-                        if (showConnected) "OUTRAS REDES" else "REDES DISPONÍVEIS",
+                        if (showConnected || (connectedNetwork != null && selectedBanda != "Todos")) "OUTRAS REDES" else "REDES DISPONÍVEIS",
                         modifier = Modifier.padding(horizontal = LkSpacing.lg),
                     )
                     Spacer(Modifier.height(LkSpacing.sm))
@@ -2529,193 +2562,6 @@ private fun LinearProgressBar(fraction: Float, color: Color, modifier: Modifier 
 }
 
 // ─── Empty states: conexão não-Wi-Fi ─────────────────────────────────────────
-
-@Composable
-private fun MobileSignalCard(
-    snapshot: MovelSnapshot,
-    localIp: String?,
-    temPermissao: Boolean,
-    onSolicitarPermissao: () -> Unit,
-    tokens: LkTokens,
-) {
-    val rsrp = snapshot.rsrpDbm
-
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
-    ) {
-        // Hero card: operadora + tecnologia
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(tokens.bgCard)
-                .border(1.dp, tokens.border, RoundedCornerShape(LkRadius.card))
-                .padding(LkSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(LkColors.accent.copy(alpha = 0.10f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Outlined.SignalCellularAlt,
-                    contentDescription = null,
-                    tint = LkColors.accent,
-                    modifier = Modifier.size(22.dp),
-                )
-            }
-            Spacer(Modifier.width(LkSpacing.md))
-            Column {
-                Text(
-                    snapshot.operadora ?: "Rede móvel",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.W700,
-                    color = tokens.textPrimary,
-                )
-                val subtitulo = buildString {
-                    append("Rede ${snapshot.tecnologia ?: "móvel"}")
-                    if (snapshot.bandaMovel != null) append(" · ${snapshot.bandaMovel}")
-                    else append(" · disponível")
-                }
-                Text(
-                    subtitulo,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = tokens.textSecondary,
-                )
-            }
-        }
-
-        if (!temPermissao || rsrp == null) {
-            EmptyStatePermissaoTelefonia(onSolicitarPermissao, tokens)
-            return@Column
-        }
-
-        val (qualidadeLabel, qualidadeCor) =
-            when {
-                rsrp >= -80 -> "Excelente" to LkColors.success
-                rsrp >= -90 -> "Bom" to LkColors.success
-                rsrp >= -100 -> "Regular" to LkColors.warning
-                else -> "Fraco" to LkColors.error
-            }
-
-        val (forcaLabel, forcaDescricao) =
-            when {
-                rsrp >= -80 -> "Forte" to "Você está próximo de uma torre. Ideal para navegação, streaming e videochamadas sem cortes."
-                rsrp >= -90 -> "Bom" to "Conexão estável para a maioria das atividades. Vídeos e chamadas devem funcionar bem."
-                rsrp >= -100 -> "Médio" to "O sinal está razoável. Pode haver lentidão em vídeos de alta qualidade."
-                else -> "Fraco" to "Cobertura limitada. Tente ir para área aberta ou próximo de uma janela."
-            }
-
-        val tecnologiaDescricao =
-            when {
-                snapshot.tecnologia?.contains("5G", ignoreCase = true) == true ->
-                    "Rede 5G — a tecnologia mais rápida disponível hoje."
-                snapshot.tecnologia?.contains("LTE", ignoreCase = true) == true ||
-                    snapshot.tecnologia?.contains("4G", ignoreCase = true) == true ->
-                    "Rede 4G LTE — velocidade boa para streaming e navegação."
-                else -> "Rede ${snapshot.tecnologia ?: "móvel"} — conexão ativa."
-            }
-        val tecnologiaBadge =
-            when {
-                snapshot.tecnologia?.contains("5G", ignoreCase = true) == true -> "Moderna" to LkColors.accent
-                snapshot.tecnologia?.contains("LTE", ignoreCase = true) == true ||
-                    snapshot.tecnologia?.contains("4G", ignoreCase = true) == true -> "Boa" to LkColors.success
-                else -> "Básica" to LkColors.warning
-            }
-
-        val experienciaDescricao =
-            when {
-                rsrp >= -80 -> "Conexão capaz de tudo: vídeo 4K, streaming de jogos, videochamadas e downloads grandes."
-                rsrp >= -90 -> "Adequada para vídeo HD, redes sociais, músicas e navegação sem travamentos."
-                rsrp >= -100 -> "Navegação e mensagens OK. Vídeos podem carregar em qualidade reduzida."
-                else -> "Apenas navegação básica e mensagens. Vídeo e chamadas podem falhar."
-            }
-
-        FriendlyCard(
-            icone = Icons.Outlined.SignalCellularAlt,
-            titulo = "Qualidade do sinal",
-            descricao = "$forcaLabel — $forcaDescricao",
-            badgeLabel = qualidadeLabel,
-            badgeCor = qualidadeCor,
-            iconeCor = qualidadeCor,
-            tokens = tokens,
-        )
-        FriendlyCard(
-            icone = Icons.Outlined.CellTower,
-            titulo = "Tipo de conexão",
-            descricao = tecnologiaDescricao,
-            badgeLabel = tecnologiaBadge.first,
-            badgeCor = tecnologiaBadge.second,
-            iconeCor = LkColors.accent,
-            tokens = tokens,
-        )
-        FriendlyCard(
-            icone = Icons.Outlined.NetworkCheck,
-            titulo = "Sua experiência esperada",
-            descricao = experienciaDescricao,
-            badgeLabel = qualidadeLabel,
-            badgeCor = qualidadeCor,
-            iconeCor = qualidadeCor,
-            tokens = tokens,
-        )
-    }
-}
-
-@Composable
-private fun FriendlyCard(
-    icone: androidx.compose.ui.graphics.vector.ImageVector,
-    titulo: String,
-    descricao: String,
-    badgeLabel: String,
-    badgeCor: Color,
-    iconeCor: Color,
-    tokens: LkTokens,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(tokens.bgCard)
-            .border(1.dp, tokens.border, RoundedCornerShape(LkRadius.card))
-            .padding(12.dp),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(iconeCor.copy(alpha = 0.10f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(icone, contentDescription = null, tint = iconeCor, modifier = Modifier.size(18.dp))
-        }
-        Spacer(Modifier.width(LkSpacing.md))
-        Column(Modifier.weight(1f)) {
-            Text(titulo, fontSize = 12.sp, fontWeight = FontWeight.W600, color = tokens.textPrimary)
-            Spacer(Modifier.height(2.dp))
-            Text(
-                descricao,
-                fontSize = 11.sp,
-                color = tokens.textSecondary,
-                lineHeight = 15.sp,
-            )
-        }
-        Spacer(Modifier.width(LkSpacing.sm))
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(badgeCor.copy(alpha = 0.10f))
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-        ) {
-            Text(badgeLabel, fontSize = 11.sp, fontWeight = FontWeight.W700, color = badgeCor)
-        }
-    }
-}
 
 @Composable
 private fun EmptyStatePermissaoTelefonia(

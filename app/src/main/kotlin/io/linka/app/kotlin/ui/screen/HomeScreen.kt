@@ -553,15 +553,15 @@ fun HomeScreen(
                 item {
                     MobileSignalCard(
                         movelSnapshot = movelSnapshot,
-                        mobileName = ispInfo?.isp,
+                        mobileName = movelSnapshot.operadora,
                         c = c,
                         onTap = { showCellularSheet = true },
                     )
                 }
             }
 
-            // 5. SIM chips compactos (abaixo dos SignalCards)
-            if (simsAtivos.isNotEmpty()) {
+            // 5. SIM chips compactos (abaixo dos SignalCards) — só exibir se dual-SIM
+            if (simsAtivos.size >= 2) {
                 item {
                     CardMovelDualSim(simsAtivos = simsAtivos, c = c)
                 }
