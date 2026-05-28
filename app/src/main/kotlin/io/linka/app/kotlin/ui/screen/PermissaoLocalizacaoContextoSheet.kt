@@ -82,7 +82,9 @@ fun PermissaoLocalizacaoContextoSheet(
             Spacer(Modifier.height(LkSpacing.xl))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(LkSpacing.md),
+                horizontalArrangement =
+                    androidx.compose.foundation.layout.Arrangement
+                        .spacedBy(LkSpacing.md),
             ) {
                 TextButton(
                     onClick = onAgoraNao,

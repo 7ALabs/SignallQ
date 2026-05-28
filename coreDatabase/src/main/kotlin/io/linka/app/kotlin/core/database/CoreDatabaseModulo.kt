@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-
 object CoreDatabaseModulo {
     private val migracao1para2 =
         object : Migration(1, 2) {
@@ -87,6 +86,48 @@ object CoreDatabaseModulo {
             }
         }
 
+    private val migracao9para10 =
+        object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `chat_sessions` (" +
+                        "`id` TEXT NOT NULL, " +
+                        "`titulo` TEXT NOT NULL, " +
+                        "`criadoEmEpochMs` INTEGER NOT NULL, " +
+                        "`atualizadoEmEpochMs` INTEGER NOT NULL, " +
+                        "`status` TEXT NOT NULL, " +
+                        "`tipoDiagnostico` TEXT, " +
+                        "`nomeModelo` TEXT, " +
+                        "`diagnosticoPayloadJson` TEXT, " +
+                        "PRIMARY KEY(`id`))",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_chat_sessions_atualizadoEmEpochMs` " +
+                        "ON `chat_sessions` (`atualizadoEmEpochMs`)",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `chat_messages` (" +
+                        "`id` TEXT NOT NULL, " +
+                        "`sessionId` TEXT NOT NULL, " +
+                        "`role` TEXT NOT NULL, " +
+                        "`content` TEXT NOT NULL, " +
+                        "`createdAtEpochMs` INTEGER NOT NULL, " +
+                        "`status` TEXT NOT NULL, " +
+                        "`metadataJson` TEXT, " +
+                        "PRIMARY KEY(`id`), " +
+                        "FOREIGN KEY(`sessionId`) REFERENCES `chat_sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_chat_messages_sessionId` " +
+                        "ON `chat_messages` (`sessionId`)",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_chat_messages_sessionId_createdAtEpochMs` " +
+                        "ON `chat_messages` (`sessionId`, `createdAtEpochMs`)",
+                )
+            }
+        }
+
     fun criarBanco(context: Context): LinkaDatabase {
         return Room.databaseBuilder(
             context.applicationContext,
@@ -100,6 +141,8 @@ object CoreDatabaseModulo {
             .addMigrations(migracao6para7)
             .addMigrations(migracao7para8)
             .addMigrations(migracao8para9)
+            .addMigrations(migracao9para10)
             .build()
     }
+
 }

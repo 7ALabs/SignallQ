@@ -40,6 +40,8 @@ fun OrbitInputArea(
     hasAiResponse: Boolean = false,
     // T6.3: limite de 5 turnos por sessão — desabilita o input quando atingido
     isLimitReached: Boolean = false,
+    /** Texto do placeholder da TextField. Permite contextualizar o estado atual ao usuário. */
+    placeholder: String = "Pergunte sobre sua conexão, Wi-Fi ou diagnóstico...",
 ) {
     val c = LocalLkTokens.current
     val charCount = value.text.length
@@ -89,7 +91,7 @@ fun OrbitInputArea(
                     maxLines = 6,
                     placeholder = {
                         Text(
-                            if (isLimitReached) "Limite de mensagens atingido" else "Digite sua mensagem",
+                            if (isLimitReached) "Limite de mensagens atingido" else placeholder,
                         )
                     },
                     // T2.4: contador de caracteres como supportingText

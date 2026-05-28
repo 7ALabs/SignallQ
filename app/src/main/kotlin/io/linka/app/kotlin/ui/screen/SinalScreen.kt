@@ -35,12 +35,12 @@ import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.Lan
+import androidx.compose.material.icons.outlined.NetworkCheck
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.GraphicEq
-import androidx.compose.material.icons.outlined.NetworkCheck
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.SignalCellularOff
 import androidx.compose.material.icons.outlined.Warning
@@ -2286,10 +2286,11 @@ private fun MobileSignalCard(
                 )
                 Spacer(Modifier.width(4.dp))
                 Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(LkColors.success.copy(alpha = 0.14f))
-                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(LkColors.success.copy(alpha = 0.14f))
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
                 ) {
                     Text("Você está aqui", fontSize = 10.sp, fontWeight = FontWeight.W600, color = LkColors.success)
                 }

@@ -12,12 +12,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,12 +22,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
@@ -58,8 +52,6 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -91,6 +83,7 @@ import io.linka.app.kotlin.feature.devices.SnapshotScanDispositivos
 import io.linka.app.kotlin.feature.diagnostico.SnapshotDiagnostico
 import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisState
 import io.linka.app.kotlin.feature.diagnostico.ai.DiagChatEntry
+import io.linka.app.kotlin.feature.diagnostico.chat.TipoDiagnostico
 import io.linka.app.kotlin.feature.diagnostico.pulse.OpcaoResposta
 import io.linka.app.kotlin.feature.dns.SnapshotBenchmarkDns
 import io.linka.app.kotlin.feature.fibra.EstadoFibra
@@ -112,12 +105,16 @@ import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
 import io.linka.app.kotlin.ui.LocalLkTokens
 import io.linka.app.kotlin.ui.state.UiState
+import io.linka.app.kotlin.ui.viewmodel.ChatDiagUiState
 import kotlinx.coroutines.delay
 
 private enum class Overlay {
     Laudo,
     Chat,
+
+    /** @deprecated Substituído por [ChatDiagnosticoIa]. Mantido para fallback. Remover na próxima major. */
     DiagnosticoInteligente,
+    ChatDiagnosticoIa,
     Ping,
     Privacidade,
     Novidades,
@@ -240,6 +237,17 @@ fun AppShell(
     filtroOperadoraHistorico: String? = null,
     onFiltroOperadoraHistoricoChange: (String?) -> Unit = {},
     operadorasDisponiveisHistorico: List<String> = emptyList(),
+    // Chat Diagnóstico IA
+    chatDiagUiState: ChatDiagUiState = ChatDiagUiState(),
+    onChatDiagEnviarMensagem: (String) -> Unit = {},
+    onChatDiagAtualizarDraft: (String) -> Unit = {},
+    onChatDiagEscolherOpcao: (TipoDiagnostico) -> Unit = {},
+    onChatDiagAbrirSessao: (String) -> Unit = {},
+    onChatDiagApagarSessao: (String) -> Unit = {},
+    onChatDiagRenomearSessao: (String, String) -> Unit = { _, _ -> },
+    onChatDiagNovaSessao: () -> Unit = {},
+    onChatDiagToggleDrawer: () -> Unit = {},
+    onChatDiagCancelarAcaoAtual: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
     // Desempacota UiState<T> → tipos opcionais para as telas filhas que ainda recebem primitivos.
@@ -368,10 +376,8 @@ fun AppShell(
                                 if (Overlay.Ping !in overlayStack) overlayStack.add(Overlay.Ping)
                             },
                             onAbrirDiagnostico = {
-                                diagInteligenteAnaliseSolicitada = true
-                                diagInteligenteAiState = AiDiagnosisState.idle
-                                if (Overlay.DiagnosticoInteligente !in overlayStack) {
-                                    overlayStack.add(Overlay.DiagnosticoInteligente)
+                                if (Overlay.ChatDiagnosticoIa !in overlayStack) {
+                                    overlayStack.add(Overlay.ChatDiagnosticoIa)
                                 }
                             },
                         )
@@ -586,6 +592,8 @@ fun AppShell(
                     localizacaoServidor = localizacaoServidorStr,
                     gemmaAvailable = gemmaAvailable,
                     onAbrirChat = {
+                        // Fallback: abre DiagnosticoInteligente (legado) a partir do ResultadoVelocidade.
+                        // Fluxo principal usa Overlay.ChatDiagnosticoIa via onAbrirDiagnostico na Home.
                         if (Overlay.DiagnosticoInteligente !in overlayStack) {
                             overlayStack.add(Overlay.DiagnosticoInteligente)
                         }
@@ -651,11 +659,13 @@ fun AppShell(
             )
         }
 
+        @Suppress("DEPRECATION")
         AnimatedVisibility(
             visible = Overlay.DiagnosticoInteligente in overlayStack,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
+            @Suppress("DEPRECATION")
             DiagnosticoScreen(
                 snapshotDiagnostico = snapshotDiagnostico,
                 onAbrirRedes = { selectedTab = 2 },
@@ -671,6 +681,26 @@ fun AppShell(
                 chatHistorico = diagChatHistorico,
                 chatCarregando = diagChatCarregando,
                 onEnviarChat = onEnviarPerguntaDiagnostico,
+            )
+        }
+
+        AnimatedVisibility(
+            visible = Overlay.ChatDiagnosticoIa in overlayStack,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+        ) {
+            ChatDiagnosticoIaScreen(
+                uiState = chatDiagUiState,
+                onVoltar = { overlayStack.remove(Overlay.ChatDiagnosticoIa) },
+                onEnviarMensagem = onChatDiagEnviarMensagem,
+                onAtualizarDraft = onChatDiagAtualizarDraft,
+                onEscolherOpcao = onChatDiagEscolherOpcao,
+                onAbrirSessao = onChatDiagAbrirSessao,
+                onApagarSessao = onChatDiagApagarSessao,
+                onRenomearSessao = onChatDiagRenomearSessao,
+                onNovaSessao = onChatDiagNovaSessao,
+                onToggleDrawer = onChatDiagToggleDrawer,
+                onCancelarAcaoAtual = onChatDiagCancelarAcaoAtual,
             )
         }
 
@@ -848,7 +878,6 @@ private fun ForaDoWifiDialog(
         },
     )
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

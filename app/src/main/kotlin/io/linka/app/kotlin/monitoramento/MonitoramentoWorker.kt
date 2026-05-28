@@ -27,14 +27,16 @@ internal class MonitoramentoWorker(
     appContext: Context,
     params: WorkerParameters,
 ) : CoroutineWorker(appContext, params) {
-
     private companion object {
         /** Timeout total por amostra HTTP (cobre connect + read + overhead de rede). */
         const val CALL_TIMEOUT_MS = 10_000L
+
         /** connectTimeout do HttpURLConnection. */
         const val CONNECT_TIMEOUT_MS = 5_000L
+
         /** readTimeout do HttpURLConnection. */
         const val READ_TIMEOUT_MS = 5_000L
+
         /** Timeout para resolução DNS via InetAddress. */
         const val DNS_TIMEOUT_MS = 5_000L
     }
@@ -207,23 +209,24 @@ internal class MonitoramentoWorker(
         val amostras = mutableListOf<Long>()
         repeat(3) {
             try {
-                val amostra = withContext(Dispatchers.IO) {
-                    withTimeout(CALL_TIMEOUT_MS) {
-                        val url = URL("https://speed.cloudflare.com/__down?bytes=0")
-                        val conexao = url.openConnection() as HttpURLConnection
-                        conexao.connectTimeout = CONNECT_TIMEOUT_MS.toInt()
-                        conexao.readTimeout = READ_TIMEOUT_MS.toInt()
-                        conexao.requestMethod = "GET"
-                        val inicio = System.currentTimeMillis()
-                        try {
-                            conexao.connect()
-                            conexao.responseCode // garante que a conexao foi estabelecida
-                            System.currentTimeMillis() - inicio
-                        } finally {
-                            conexao.disconnect()
+                val amostra =
+                    withContext(Dispatchers.IO) {
+                        withTimeout(CALL_TIMEOUT_MS) {
+                            val url = URL("https://speed.cloudflare.com/__down?bytes=0")
+                            val conexao = url.openConnection() as HttpURLConnection
+                            conexao.connectTimeout = CONNECT_TIMEOUT_MS.toInt()
+                            conexao.readTimeout = READ_TIMEOUT_MS.toInt()
+                            conexao.requestMethod = "GET"
+                            val inicio = System.currentTimeMillis()
+                            try {
+                                conexao.connect()
+                                conexao.responseCode // garante que a conexao foi estabelecida
+                                System.currentTimeMillis() - inicio
+                            } finally {
+                                conexao.disconnect()
+                            }
                         }
                     }
-                }
                 amostras.add(amostra)
             } catch (e: Exception) {
                 Timber.d("Erro ao medir latencia HTTP: ${e.message}")

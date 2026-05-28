@@ -7,17 +7,12 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkRequest
 import android.provider.Settings
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -108,6 +103,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -115,10 +111,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
 import io.linka.app.kotlin.R
-import io.linka.app.kotlin.FeatureFlags
 import io.linka.app.kotlin.core.database.MedicaoEntity
 import io.linka.app.kotlin.core.network.EstadoConexao
 import io.linka.app.kotlin.core.network.SnapshotRede
@@ -308,7 +302,12 @@ fun HomeScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = Icons.Outlined.Home, contentDescription = null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(LkSpacing.sm))
-                        Text(text = stringResource(R.string.home_titulo), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
+                        Text(
+                            text = stringResource(R.string.home_titulo),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.W600,
+                            color = c.textPrimary,
+                        )
                     }
                 },
                 navigationIcon = {
@@ -457,10 +456,11 @@ fun HomeScreen(
                         val hasChartData = remember(history) { history.any { it.downloadMbps != null || it.uploadMbps != null } }
                         if (hasChartData) {
                             Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(LkRadius.card))
-                                    .clickable { onAbrirUltimoResultado() },
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(LkRadius.card))
+                                        .clickable { onAbrirUltimoResultado() },
                             ) {
                                 MiniLineChart(
                                     history = history,
@@ -806,8 +806,12 @@ private fun NetworkPath(
     val hasInternetError = isConectado && localIp != null && !snapshotRede.conectado
 
     // loadingInternet = conectado + validado + sem IP/ISP ainda (fetch em andamento).
-    val loadingInternet = isConectado && snapshotRede.conectado && localIp != null &&
-        publicIp == null && ispInfo == null
+    val loadingInternet =
+        isConectado &&
+            snapshotRede.conectado &&
+            localIp != null &&
+            publicIp == null &&
+            ispInfo == null
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -914,15 +918,19 @@ private fun labelRedeMovel(
     movelSnapshot: MovelSnapshot?,
     fallback: String = "—",
 ): String {
-    val operadora = movelSnapshot?.operadora
-        ?.trim()
-        ?.split(" ")
-        ?.joinToString(" ") { word ->
-            if (word.equals("BR", ignoreCase = true)) ""
-            else word.lowercase().replaceFirstChar { it.uppercaseChar() }
-        }
-        ?.trim()
-        ?.ifBlank { null }
+    val operadora =
+        movelSnapshot
+            ?.operadora
+            ?.trim()
+            ?.split(" ")
+            ?.joinToString(" ") { word ->
+                if (word.equals("BR", ignoreCase = true)) {
+                    ""
+                } else {
+                    word.lowercase().replaceFirstChar { it.uppercaseChar() }
+                }
+            }?.trim()
+            ?.ifBlank { null }
     val tecnologia = movelSnapshot?.tecnologia?.ifBlank { null }
 
     return when {
@@ -1297,7 +1305,12 @@ private fun SignalQualityRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(stringResource(R.string.home_network_conectado), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = LkColors.success)
+                Text(
+                    stringResource(R.string.home_network_conectado),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.W600,
+                    color = LkColors.success,
+                )
             }
         }
         Text(stringResource(R.string.home_network_forca_sinal), style = MaterialTheme.typography.labelMedium, color = c.textTertiary)
@@ -1447,7 +1460,12 @@ private fun SignalCard(
                 Spacer(Modifier.width(LkSpacing.sm))
                 Text("$wifiPct%", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = wifiColor)
             } else if (isMobile) {
-                Text(stringResource(R.string.home_network_conectado), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = LkColors.success)
+                Text(
+                    stringResource(R.string.home_network_conectado),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.W600,
+                    color = LkColors.success,
+                )
             }
         }
     }
@@ -1514,7 +1532,12 @@ private fun QualidadeShortcutRow(
         }
         Spacer(modifier = Modifier.width(LkSpacing.md))
         Column(modifier = Modifier.weight(1f)) {
-            Text(stringResource(R.string.home_shortcut_diagnostico_titulo), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
+            Text(
+                stringResource(R.string.home_shortcut_diagnostico_titulo),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.W600,
+                color = c.textPrimary,
+            )
             Spacer(modifier = Modifier.height(2.dp))
             Text(subtexto, style = MaterialTheme.typography.labelMedium, color = subtextoColor)
         }
@@ -1810,7 +1833,12 @@ private fun DeviceInfoSheet(
     ) {
         SheetDragHandle(c)
         Spacer(modifier = Modifier.height(LkSpacing.xl))
-        Text(stringResource(R.string.home_sheet_meu_dispositivo), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.W700, color = c.textPrimary)
+        Text(
+            stringResource(R.string.home_sheet_meu_dispositivo),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.W700,
+            color = c.textPrimary,
+        )
         Spacer(modifier = Modifier.height(LkSpacing.lg))
         SheetInfoRow("Modelo", deviceName, c)
         SheetInfoRow("Sistema", "Android", c)
@@ -2133,7 +2161,12 @@ private fun CellularInfoSheet(
                             .background(LkColors.warning.copy(alpha = 0.15f))
                             .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
                 ) {
-                    Text(stringResource(R.string.home_sheet_roaming_ativo), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.W600, color = LkColors.warning)
+                    Text(
+                        stringResource(R.string.home_sheet_roaming_ativo),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.W600,
+                        color = LkColors.warning,
+                    )
                 }
             }
         }
@@ -2229,7 +2262,12 @@ private fun GamerShortcutCard(
             }
             Spacer(Modifier.width(LkSpacing.md))
             Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.home_shortcut_gaming_titulo), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600, color = c.textPrimary)
+                Text(
+                    stringResource(R.string.home_shortcut_gaming_titulo),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.W600,
+                    color = c.textPrimary,
+                )
                 Text(stringResource(R.string.home_shortcut_gaming_descricao), style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
             }
             Icon(
@@ -2285,7 +2323,12 @@ private fun GamerSheet(
             }
             Spacer(Modifier.width(12.dp))
             Column {
-                Text(stringResource(R.string.home_shortcut_gaming_titulo), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.W700, color = c.textPrimary)
+                Text(
+                    stringResource(R.string.home_shortcut_gaming_titulo),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.W700,
+                    color = c.textPrimary,
+                )
                 Text(stringResource(R.string.home_shortcut_gaming_descricao), style = MaterialTheme.typography.titleSmall, color = c.textSecondary)
             }
         }
@@ -2438,9 +2481,24 @@ private fun GamerVeredictCard(
 ) {
     val (label, desc, cor) =
         when (veredito) {
-            VereditoUso.good -> Triple(stringResource(R.string.home_gamer_veredito_otimo_label), stringResource(R.string.home_gamer_veredito_otimo_desc), LkColors.success)
-            VereditoUso.acceptable -> Triple(stringResource(R.string.home_gamer_veredito_bom_label), stringResource(R.string.home_gamer_veredito_bom_desc), LkColors.warning)
-            VereditoUso.poor -> Triple(stringResource(R.string.home_gamer_veredito_ruim_label), stringResource(R.string.home_gamer_veredito_ruim_desc), LkColors.error)
+            VereditoUso.good ->
+                Triple(
+                    stringResource(R.string.home_gamer_veredito_otimo_label),
+                    stringResource(R.string.home_gamer_veredito_otimo_desc),
+                    LkColors.success,
+                )
+            VereditoUso.acceptable ->
+                Triple(
+                    stringResource(R.string.home_gamer_veredito_bom_label),
+                    stringResource(R.string.home_gamer_veredito_bom_desc),
+                    LkColors.warning,
+                )
+            VereditoUso.poor ->
+                Triple(
+                    stringResource(R.string.home_gamer_veredito_ruim_label),
+                    stringResource(R.string.home_gamer_veredito_ruim_desc),
+                    LkColors.error,
+                )
         }
     Box(
         modifier =
@@ -2645,11 +2703,12 @@ private fun MedicaoTipoSheet(
         containerColor = c.bgSecondary,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = LkSpacing.lg)
-                .padding(bottom = 32.dp)
-                .navigationBarsPadding(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = LkSpacing.lg)
+                    .padding(bottom = 32.dp)
+                    .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
         ) {
             Text(
@@ -2724,22 +2783,26 @@ private fun MedicaoOpcaoItem(
     val iconColor = if (disponivel) LkColors.accent else c.textTertiary
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .then(
-                if (disponivel) Modifier.clickable { onClick() }
-                else Modifier
-            )
-            .padding(LkSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .then(
+                    if (disponivel) {
+                        Modifier.clickable { onClick() }
+                    } else {
+                        Modifier
+                    },
+                ).padding(LkSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
         Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(iconColor.copy(alpha = 0.1f)),
+            modifier =
+                Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(iconColor.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -2764,10 +2827,11 @@ private fun MedicaoOpcaoItem(
         }
         if (badge != null) {
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(badgeColor.copy(alpha = 0.12f))
-                    .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(badgeColor.copy(alpha = 0.12f))
+                        .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
             ) {
                 Text(
                     badge,
@@ -2796,15 +2860,18 @@ private fun ConnectionContextCard(
         EstadoConexao.wifi -> {
             val rssiDbm = snapshotRede.wifiLinkSnapshot?.rssiDbm
             val wifiPct = rssiDbm?.let { ((it + 90) / 50.0).coerceIn(0.0, 1.0) * 100 }?.roundToInt()
-            val ssid = snapshotRede.wifiLinkSnapshot?.ssid
-                ?.takeIf { it.isNotBlank() }
-                ?: stringResource(R.string.home_context_wifi_ssid_desconhecido)
-            val qualidadeColor = when {
-                wifiPct == null -> LkColors.accent
-                wifiPct >= 70 -> LkColors.success
-                wifiPct >= 40 -> LkColors.warning
-                else -> LkColors.error
-            }
+            val ssid =
+                snapshotRede.wifiLinkSnapshot
+                    ?.ssid
+                    ?.takeIf { it.isNotBlank() }
+                    ?: stringResource(R.string.home_context_wifi_ssid_desconhecido)
+            val qualidadeColor =
+                when {
+                    wifiPct == null -> LkColors.accent
+                    wifiPct >= 70 -> LkColors.success
+                    wifiPct >= 40 -> LkColors.warning
+                    else -> LkColors.error
+                }
 
             LinkaCard(c) {
                 Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
@@ -2813,10 +2880,11 @@ private fun ConnectionContextCard(
                         horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
                     ) {
                         Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(LkColors.accent.copy(alpha = 0.1f)),
+                            modifier =
+                                Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(LkColors.accent.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
@@ -2879,9 +2947,11 @@ private fun ConnectionContextCard(
         }
 
         EstadoConexao.movel -> {
-            val operadora = movelSnapshot?.operadora
-                ?.takeIf { it.isNotBlank() }
-                ?: stringResource(R.string.home_context_movel_operadora_desconhecida)
+            val operadora =
+                movelSnapshot
+                    ?.operadora
+                    ?.takeIf { it.isNotBlank() }
+                    ?: stringResource(R.string.home_context_movel_operadora_desconhecida)
             val tecnologia = movelSnapshot?.tecnologia
 
             LinkaCard(c) {
@@ -2891,10 +2961,11 @@ private fun ConnectionContextCard(
                         horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
                     ) {
                         Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(LkColors.accent.copy(alpha = 0.1f)),
+                            modifier =
+                                Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(LkColors.accent.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
@@ -2957,9 +3028,10 @@ private fun ConnectionContextCard(
             }
 
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, LkColors.warning.copy(alpha = 0.50f), RoundedCornerShape(LkRadius.card)),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, LkColors.warning.copy(alpha = 0.50f), RoundedCornerShape(LkRadius.card)),
                 colors = CardDefaults.cardColors(containerColor = LkColors.warning.copy(alpha = 0.08f)),
                 shape = RoundedCornerShape(LkRadius.card),
             ) {

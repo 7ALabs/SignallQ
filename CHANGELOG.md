@@ -6,6 +6,54 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 
 ---
 
+## [0.12.0] — 2026-05-27
+
+### Added
+
+- **Chat de Diagnóstico IA — nova tela chat-first:** Ao tocar no botão "Diagnóstico" da home, abre direto `ChatDiagnosticoIaScreen` sem tela intermediária. Estilo conversa moderna (Material Design 3) com balões à direita para o usuário e à esquerda para a IA, drawer lateral com histórico de sessões, input fixo acima da bottom nav e tratamento correto de IME. Primeira abertura exibe duas mensagens da IA (boas-vindas + opções) e três chips clicáveis: "Analisar meu último teste", "Executar novo teste agora", "Analisar meu histórico recente". Cada opção dispara fluxo dedicado — última medição via `MedicaoDao.observarUltimas(1)`, novo teste executado em background sem sair do chat com mensagens progressivas a cada fase do speedtest (download → upload → coleta → análise), histórico via `observarUltimas(7)` com mensagem adaptada quando há menos de 7 testes.
+
+- **Streaming SSE de respostas da IA:** Reutiliza `AiDiagnosisRepository.explainDiagnosisStream` com tokens aplicados incrementalmente na bolha da IA. Auto-scroll inteligente — só puxa para o fim quando o usuário já estava no fim, não interrompe leitura de histórico. Nome do modelo exibido vem de `ModeloIa.nomeExibicao` (não hardcoded), com fallback "o modelo de IA".
+
+- **Persistência de sessões via Room v10:** Novas tabelas `chat_sessions` (id, título, criadoEmEpochMs, atualizadoEmEpochMs, status, tipoDiagnostico, nomeModelo, diagnosticoPayloadJson) e `chat_messages` (id, sessionId, role, content, createdAtEpochMs, status, metadataJson) com foreign key `ON DELETE CASCADE`. Drawer lateral permite abrir, apagar (com confirmação) e renomear (dialog com contador 60 chars) sessões anteriores. Título da sessão derivado automaticamente da primeira mensagem do usuário, truncado a 40 chars com reticência.
+
+- **Cota diária com janela rolling 24h:** `CotaIaRepository` em DataStore isolado (`cota_ia`), default 10 análises por ciclo de 24h. Renovação calculada a partir do início do ciclo (não à meia-noite). Quando excedida, input substituído por `CotaExcedidaBanner` com data/hora de renovação formatada em pt-BR (`Locale.forLanguageTag("pt-BR")` + `DateTimeFormatter`) — "amanhã às 14h32", "hoje às 22h15" ou fallback "em 24 horas". Sessões antigas continuam acessíveis para leitura mesmo com cota zerada; nova análise só permitida quando ciclo renovar.
+
+- **Tratamento humanizado de cinco cenários de erro:** Modelo indisponível ("No momento o ${modelo} está indisponível..."), sem rede ("Verifique sua conexão..."), timeout ("A análise demorou mais que o esperado..."), resposta incompleta ("Recebi uma resposta incompleta...") e catch-all. Sem stack trace, sem código HTTP cru. Mensagens viram `ChatMessageEntity` com `role=system`, `status=failed` e `metadataJson.errorCode` preservando o motivo técnico para suporte.
+
+- **Componentes Compose adaptados:** `OrbitAiMessageBubble` ganhou parâmetro `isProgressMessage: Boolean` que suprime métricas, ações e detalhes técnicos para mensagens de progresso do teste. `OrbitInputArea` ganhou parâmetro `placeholder: String` customizável para sinalizar "Aguarde o resultado do teste..." e "Aguarde a resposta da IA..." sem reaproveitar gambiarra de `isLimitReached`. Ambos parâmetros têm default que preserva callers existentes.
+
+### Changed
+
+- **Entry point do botão "Diagnóstico":** Passa a empilhar `Overlay.ChatDiagnosticoIa` em vez de `Overlay.DiagnosticoInteligente`. Bottom nav já oculta durante speedtest reaproveitada — quando o chat dispara um novo teste, a navbar global desaparece pelo mesmo gate. `BackHandler` integrado fecha o overlay.
+
+- **`Locale("pt", "BR")` modernizado para `Locale.forLanguageTag("pt-BR")`** nos componentes do chat (4 ocorrências). Outros call sites do app permanecem como estão para escopo dedicado de migração futura.
+
+### Deprecated
+
+- **`DiagnosticoScreen` (chat inline antigo) marcada como `@Deprecated`:** Mantida no codebase como fallback de emergência via `Overlay.DiagnosticoInteligente` (também deprecado por KDoc, já que Kotlin não honra `@Deprecated` em entries de enum/sealed para warning de uso). Call sites internos do `AppShell` que ainda referenciam o overlay antigo têm `@Suppress("DEPRECATION")` documentando a intencionalidade. Será removida em próxima major.
+
+### Technical
+
+- **Migration Room v9 → v10** com SQL alinhado ao schema gerado pelo Room (`10.json`, identityHash `97f676bb…`). Schema antigo no repositório continha entidades fantasma (`fibra_config`, `movel_chip_config`, `localizacao_config`) sem código correspondente — resíduo de branch nunca mergeada — sobrescrito com schema correto.
+
+- **11 testes unitários para `CotaIaRepository`** (rolling 24h, expiração de ciclo, reset automático, renovação, observabilidade reativa) com clock injetável (`clock: () -> Long = System::currentTimeMillis`) para simular passagem de tempo sem `Thread.sleep`.
+
+- **25 testes unitários para `ChatDiagnosticoIaViewModel`** cobrindo os 3 fluxos de opção inicial, cota excedida pré-chamada, erros de rede/modelo/timeout/resposta incompleta, renomeação automática de sessão e persistência de medição via chat.
+
+- **AndroidTests para `ChatSessionDao` (7 casos), `Migration_9_10` (`MigrationTestHelper`) e `ChatDiagnosticoIaRepository` (19 casos)** compilados e prontos. Execução em device ficou pendente — recomendada antes de release.
+
+- **`ChatDiagnosticoIaViewModel` injetado via `viewModels()` na MainActivity** seguindo padrão do `MainViewModel` (projeto não tem `hilt-navigation-compose` no catálogo). Repositories de chat e cota construídos via `by lazy` recebendo `LinkaDatabase` e `@ApplicationContext`.
+
+### Known Limitations
+
+- **Race condition residual com `MainViewModel`:** Ambos ViewModels observam o mesmo `executorSpeedtest.snapshotFlow`. Guard `ultimoResultadoSpeedtestPersistidoEpochMs` em ambos previne dupla persistência no Room, mas só é seguro enquanto a Screen do chat e a Screen do speedtest não estiverem ativas simultaneamente — o que é garantido pelo overlay stack hoje.
+
+- **`operadoraMovel = null`** em `MedicaoEntity` persistida quando o teste é disparado pelo chat (sem `MonitorTelephony` injetado no novo ViewModel). Documentado para correção em PR de polish.
+
+- **Smoke tests Compose ausentes** — setup Robolectric não configurado no módulo `:app`. Validação visual da Screen depende de teste manual ou device farm.
+
+---
+
 ## [0.11.4] — 2026-05-27
 
 ### Fixed

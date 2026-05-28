@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -40,7 +39,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
@@ -53,11 +51,36 @@ import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
 import io.linka.app.kotlin.ui.LocalLkTokens
 
-private val ESTADOS_BRASILEIROS = listOf(
-    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
-    "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
-    "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
-)
+private val ESTADOS_BRASILEIROS =
+    listOf(
+        "AC",
+        "AL",
+        "AP",
+        "AM",
+        "BA",
+        "CE",
+        "DF",
+        "ES",
+        "GO",
+        "MA",
+        "MT",
+        "MS",
+        "MG",
+        "PA",
+        "PB",
+        "PR",
+        "PE",
+        "PI",
+        "RJ",
+        "RN",
+        "RS",
+        "RO",
+        "RR",
+        "SC",
+        "SP",
+        "SE",
+        "TO",
+    )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -110,9 +133,10 @@ fun MinhaConexaoScreen(
         LazyColumn(
             contentPadding = PaddingValues(LkSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
         ) {
             // Seção: Operadora
             item {
@@ -130,10 +154,11 @@ fun MinhaConexaoScreen(
                         onValueChange = { operadoraEdit = it },
                         label = { Text("Operadora / ISP") },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = LkColors.accent,
-                            focusedLabelColor = LkColors.accent,
-                        ),
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = LkColors.accent,
+                                focusedLabelColor = LkColors.accent,
+                            ),
                         singleLine = true,
                     )
                 }
@@ -149,10 +174,11 @@ fun MinhaConexaoScreen(
                             label = { Text("Download (Mbps)") },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = LkColors.accent,
-                                focusedLabelColor = LkColors.accent,
-                            ),
+                            colors =
+                                OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = LkColors.accent,
+                                    focusedLabelColor = LkColors.accent,
+                                ),
                             singleLine = true,
                         )
                         OutlinedTextField(
@@ -161,10 +187,11 @@ fun MinhaConexaoScreen(
                             label = { Text("Upload (Mbps)") },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = LkColors.accent,
-                                focusedLabelColor = LkColors.accent,
-                            ),
+                            colors =
+                                OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = LkColors.accent,
+                                    focusedLabelColor = LkColors.accent,
+                                ),
                             singleLine = true,
                         )
                     }
@@ -185,10 +212,11 @@ fun MinhaConexaoScreen(
                         onValueChange = { cidadeEdit = it },
                         label = { Text("Cidade") },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = LkColors.accent,
-                            focusedLabelColor = LkColors.accent,
-                        ),
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = LkColors.accent,
+                                focusedLabelColor = LkColors.accent,
+                            ),
                         singleLine = true,
                     )
                 }
@@ -206,9 +234,10 @@ fun MinhaConexaoScreen(
                             upMbpsEdit.toIntOrNull() ?: 0,
                         )
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
                     shape = RoundedCornerShape(LkRadius.button),
                 ) {
@@ -232,11 +261,12 @@ private fun MinhaConexaoSectionCard(
     content: @Composable () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgSecondary)
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgSecondary)
+                .padding(LkSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
         Text(
@@ -257,12 +287,13 @@ private fun MinhaConexaoSugestaoChip(
     c: LkTokens,
 ) {
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(LkColors.accent.copy(alpha = 0.10f))
-            .border(1.dp, LkColors.accent.copy(alpha = 0.30f), RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(LkColors.accent.copy(alpha = 0.10f))
+                .border(1.dp, LkColors.accent.copy(alpha = 0.30f), RoundedCornerShape(8.dp))
+                .clickable(onClick = onClick)
+                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
     ) {
         Text(
             text = label,
@@ -295,13 +326,15 @@ private fun EstadoUfDropdown(
             trailingIcon = {
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(type = MenuAnchorType.PrimaryNotEditable),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = LkColors.accent,
-                focusedLabelColor = LkColors.accent,
-            ),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .menuAnchor(type = MenuAnchorType.PrimaryNotEditable),
+            colors =
+                OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = LkColors.accent,
+                    focusedLabelColor = LkColors.accent,
+                ),
             singleLine = true,
         )
         ExposedDropdownMenu(
@@ -322,9 +355,10 @@ private fun EstadoUfDropdown(
                         onChange(uf)
                         expanded = false
                     },
-                    modifier = Modifier.background(
-                        if (uf == estadoUf) LkColors.accent.copy(alpha = 0.08f) else c.bgSecondary,
-                    ),
+                    modifier =
+                        Modifier.background(
+                            if (uf == estadoUf) LkColors.accent.copy(alpha = 0.08f) else c.bgSecondary,
+                        ),
                 )
             }
         }

@@ -47,13 +47,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -269,8 +269,7 @@ fun LaudoScreen(
                             .semantics {
                                 role = Role.Button
                                 contentDescription = "Registrar reclamação na Anatel"
-                            }
-                            .clickable { uriHandler.openUri("https://www.anatel.gov.br/consumidor") },
+                            }.clickable { uriHandler.openUri("https://www.anatel.gov.br/consumidor") },
                 )
             }
         }

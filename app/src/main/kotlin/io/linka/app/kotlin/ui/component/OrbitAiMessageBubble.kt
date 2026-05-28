@@ -53,6 +53,7 @@ fun OrbitAiMessageBubble(
     isLatest: Boolean,
     modifier: Modifier = Modifier,
     session: IntelligentDiagnosticSession? = null,
+    isProgressMessage: Boolean = false,
 ) {
     val tokens = LocalLkTokens.current
 
@@ -70,11 +71,15 @@ fun OrbitAiMessageBubble(
         }
 
     val sourceLabel =
-        when {
-            !analysis.isFallback && analysis.fullResult?.source?.contains("cloudflare", ignoreCase = true) == true ->
-                "Linka IA · $timeStr"
-            !analysis.isFallback && analysis.fullResult?.source == "cache" -> "Linka IA (cache) · $timeStr"
-            else -> "Diagnóstico do dispositivo · $timeStr"
+        if (isProgressMessage) {
+            "Diagnóstico IA · $timeStr"
+        } else {
+            when {
+                !analysis.isFallback && analysis.fullResult?.source?.contains("cloudflare", ignoreCase = true) == true ->
+                    "Linka IA · $timeStr"
+                !analysis.isFallback && analysis.fullResult?.source == "cache" -> "Linka IA (cache) · $timeStr"
+                else -> "Diagnóstico do dispositivo · $timeStr"
+            }
         }
 
     val orbitSymbolState =
@@ -148,7 +153,7 @@ fun OrbitAiMessageBubble(
                 }
 
                 // Inline metrics — sem card, layout compacto
-                if (session != null && session.hasAnyData()) {
+                if (!isProgressMessage && session != null && session.hasAnyData()) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
@@ -204,12 +209,12 @@ fun OrbitAiMessageBubble(
                 }
 
                 // Ações recomendadas — lista simples de bullets, sem card wrapper
-                if (!actions.isNullOrEmpty()) {
+                if (!isProgressMessage && !actions.isNullOrEmpty()) {
                     BulletActionList(actions = actions)
                 }
 
                 // Detalhes técnicos colapsáveis — sem borda, sem card
-                if (technicalDetails != null) {
+                if (!isProgressMessage && technicalDetails != null) {
                     Row(
                         modifier =
                             Modifier
