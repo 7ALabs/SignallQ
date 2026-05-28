@@ -1207,22 +1207,23 @@ class MainViewModel
             withContext(dispatchers.io) {
                 try {
                     val connection =
-                        URL("https://ip-api.com/json?fields=query,isp,as,country,regionName")
+                        URL("https://ipapi.co/json/")
                             .openConnection() as HttpURLConnection
                     connection.connectTimeout = 6_000
                     connection.readTimeout = 6_000
+                    connection.setRequestProperty("User-Agent", "Linka/1.0")
                     val body = connection.inputStream.bufferedReader().use { it.readText() }
                     connection.disconnect()
                     val json = JSONObject(body)
-                    val ip = json.optString("query").ifBlank { null }
-                    val operadora = json.optString("isp").ifBlank { null }
+                    val ip = json.optString("ip").ifBlank { null }
+                    val operadora = json.optString("org").ifBlank { null }
                     val info =
                         IspInfo(
                             ip = ip,
                             isp = operadora,
-                            asn = json.optString("as").ifBlank { null },
-                            country = json.optString("country").ifBlank { null },
-                            region = json.optString("regionName").ifBlank { null },
+                            asn = json.optString("asn").ifBlank { null },
+                            country = json.optString("country_name").ifBlank { null },
+                            region = json.optString("region").ifBlank { null },
                         )
                     publicIp.value = if (ip != null) UiState.Success(ip) else UiState.Error("IP indisponivel")
                     ispInfo.value = UiState.Success(info)
