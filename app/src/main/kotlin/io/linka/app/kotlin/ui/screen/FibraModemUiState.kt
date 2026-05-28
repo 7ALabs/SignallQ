@@ -43,8 +43,9 @@ fun mapearSnapshotFibra(
         -> FibraModemUiState.Conectando
 
         EstadoFibra.concluido -> {
-            val gpon = snapshot.gpon
-                ?: return FibraModemUiState.Erro("fibra.sem_gpon")
+            val gpon =
+                snapshot.gpon
+                    ?: return FibraModemUiState.Erro("fibra.sem_gpon")
             FibraModemUiState.Concluido(
                 gpon = gpon,
                 deviceInfo = snapshot.deviceInfo,

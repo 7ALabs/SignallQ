@@ -31,8 +31,6 @@ import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.rounded.CellTower
 import androidx.compose.material.icons.rounded.Wifi
-import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -44,6 +42,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -359,11 +359,12 @@ fun ResultadoVelocidadeScreen(
                 if (resultado.contaminado) {
                     val faseInterrompida = resultado.diagnosticoFases.faseInterrompida
                     val interrompidoPorRedeMudou = faseInterrompida.contains("redeMudou", ignoreCase = true)
-                    val mensagemContaminacao = if (interrompidoPorRedeMudou) {
-                        "O teste foi interrompido porque a conexão caiu ou mudou durante a medição. Tente novamente quando a rede estabilizar."
-                    } else {
-                        "Resultado pode conter interferência de outros apps"
-                    }
+                    val mensagemContaminacao =
+                        if (interrompidoPorRedeMudou) {
+                            "O teste foi interrompido porque a conexão caiu ou mudou durante a medição. Tente novamente quando a rede estabilizar."
+                        } else {
+                            "Resultado pode conter interferência de outros apps"
+                        }
                     Spacer(Modifier.height(LkSpacing.md))
                     Row(
                         modifier =

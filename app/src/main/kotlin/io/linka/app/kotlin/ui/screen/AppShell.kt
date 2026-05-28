@@ -12,12 +12,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,12 +22,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
@@ -58,8 +52,6 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -93,7 +85,6 @@ import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisState
 import io.linka.app.kotlin.feature.diagnostico.ai.DiagChatEntry
 import io.linka.app.kotlin.feature.diagnostico.chat.TipoDiagnostico
 import io.linka.app.kotlin.feature.diagnostico.pulse.OpcaoResposta
-import io.linka.app.kotlin.ui.viewmodel.ChatDiagUiState
 import io.linka.app.kotlin.feature.dns.SnapshotBenchmarkDns
 import io.linka.app.kotlin.feature.fibra.EstadoFibra
 import io.linka.app.kotlin.feature.fibra.SnapshotFibra
@@ -114,11 +105,13 @@ import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
 import io.linka.app.kotlin.ui.LocalLkTokens
 import io.linka.app.kotlin.ui.state.UiState
+import io.linka.app.kotlin.ui.viewmodel.ChatDiagUiState
 import kotlinx.coroutines.delay
 
 private enum class Overlay {
     Laudo,
     Chat,
+
     /** @deprecated Substituído por [ChatDiagnosticoIa]. Mantido para fallback. Remover na próxima major. */
     DiagnosticoInteligente,
     ChatDiagnosticoIa,
@@ -885,7 +878,6 @@ private fun ForaDoWifiDialog(
         },
     )
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

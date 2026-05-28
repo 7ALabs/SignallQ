@@ -243,8 +243,9 @@ fun DiagnosticoScreen(
             when (uiState) {
                 UiState.Empty -> {
                     // Estado 1 — sem dados: nunca houve relatorio gerado (relatorio null + estado idle)
-                    val semDados = snapshotDiagnostico.relatorio == null &&
-                        snapshotDiagnostico.estado == EstadoDiagnostico.idle
+                    val semDados =
+                        snapshotDiagnostico.relatorio == null &&
+                            snapshotDiagnostico.estado == EstadoDiagnostico.idle
 
                     // TODO #141: aguardando campo `telephonyPermissionGranted: Boolean` no SnapshotDiagnostico
                     // val semPermissao = !snapshotDiagnostico.telephonyPermissionGranted
@@ -600,9 +601,10 @@ private fun DiagnosticoEstadoEspecialBanner(
             imageVector = icone,
             contentDescription = null,
             tint = iconeTint,
-            modifier = Modifier
-                .size(20.dp)
-                .padding(top = 2.dp),
+            modifier =
+                Modifier
+                    .size(20.dp)
+                    .padding(top = 2.dp),
         )
         Column(
             verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),

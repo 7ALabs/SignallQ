@@ -47,10 +47,12 @@ object LkColors {
         val textSecondary = Color(0xFF6B7280)
         val textTertiary = Color(0xFF9CA3AF)
         val border = Color(0xFFE5E7EB)
+
         // warning (âmbar): fundo claro + texto escuro âmbar (contraste >=4.5:1)
         val warningContainer = Color(0xFFFFF3CD)
         val onWarningContainer = Color(0xFF7A4E00)
         val amberSurface = Color(0xFFFFF8E6)
+
         // success (verde): fundo claro + texto escuro verde
         val successContainer = Color(0xFFD1FAE5)
         val onSuccessContainer = Color(0xFF065F46)
@@ -64,10 +66,12 @@ object LkColors {
         val textSecondary = Color(0xFF9CA3AF)
         val textTertiary = Color(0xFF6B7280)
         val border = Color(0xFF2A2A2A)
+
         // warning dark: fundo escuro âmbar + texto âmbar claro
         val warningContainer = Color(0xFF3D2A00)
         val onWarningContainer = Color(0xFFFFD97A)
         val amberSurface = Color(0xFF2E2000)
+
         // success dark: fundo escuro verde + texto verde claro
         val successContainer = Color(0xFF064E3B)
         val onSuccessContainer = Color(0xFF6EE7B7)
