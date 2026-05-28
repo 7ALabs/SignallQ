@@ -49,6 +49,8 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Laptop
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Refresh
@@ -63,6 +65,8 @@ import androidx.compose.material.icons.outlined.Tv
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WifiOff
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -119,6 +123,7 @@ import io.linka.app.kotlin.R
 import io.linka.app.kotlin.core.database.MedicaoEntity
 import io.linka.app.kotlin.core.network.EstadoConexao
 import io.linka.app.kotlin.core.network.SnapshotRede
+import io.linka.app.kotlin.core.telephony.MovelSimSnapshot
 import io.linka.app.kotlin.core.telephony.MovelSnapshot
 import io.linka.app.kotlin.feature.speedtest.GargaloPrimario
 import io.linka.app.kotlin.feature.speedtest.ModoSpeedtest
@@ -182,6 +187,7 @@ fun HomeScreen(
     fotoUriUsuario: String?,
     connectedNetwork: RedeVizinha?,
     movelSnapshot: MovelSnapshot?,
+    simsAtivos: List<MovelSimSnapshot>,
     anatelBannerDismissed: Boolean,
     onDismissAnatelBanner: () -> Unit,
     onAbrirDns: () -> Unit,
@@ -370,6 +376,13 @@ fun HomeScreen(
                     onTapWifi = onAbrirRedes,
                     onTapMobile = { showCellularSheet = true },
                 )
+            }
+
+            // #179 Task C — CardMovelDualSim: exibido apenas quando ha SIMs ativos
+            if (simsAtivos.isNotEmpty()) {
+                item {
+                    CardMovelDualSim(simsAtivos = simsAtivos, c = c)
+                }
             }
 
             // 2. Caminho da rede
@@ -1338,134 +1351,143 @@ private fun SignalCard(
     val localizacaoDesligada = isWifi && ssidResolvido == null && !snapshotRede.locationAtivado
 
     LinkaCard(c) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clickable { if (isWifi) onTapWifi() else onTapMobile() },
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
+        Column {
+            Row(
                 modifier =
                     Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(LkColors.accent.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center,
+                        .fillMaxWidth()
+                        .clickable { if (isWifi) onTapWifi() else onTapMobile() },
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                val iconContentDesc =
-                    when {
-                        isWifi && localizacaoDesligada -> "Wi-Fi, localização desativada"
-                        isWifi && wifiPct != null -> "Wi-Fi $ssid, sinal $wifiPct%"
-                        isWifi -> "Wi-Fi"
-                        else -> "Rede móvel, ${mobileName ?: "dados móveis"}"
-                    }
-                Icon(
-                    imageVector = if (isWifi) Icons.Outlined.Wifi else Icons.Outlined.SignalCellularAlt,
-                    contentDescription = iconContentDesc,
-                    tint = if (localizacaoDesligada) c.textTertiary else LkColors.accent,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Spacer(Modifier.width(LkSpacing.md))
-            Column(modifier = Modifier.weight(1f)) {
-                if (isWifi) {
-                    if (localizacaoDesligada) {
-                        val context = LocalContext.current
-                        Text(
-                            stringResource(R.string.home_network_nome_indisponivel),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.W600,
-                            color = c.textSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            stringResource(R.string.home_network_habilitar_localizacao),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = LkColors.accent,
-                            fontWeight = FontWeight.W500,
-                            modifier =
-                                Modifier.clickable {
-                                    context.startActivity(
-                                        Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                                    )
-                                },
-                        )
-                        Text(
-                            stringResource(R.string.home_network_localizacao_necessaria),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = c.textTertiary,
-                        )
+                Box(
+                    modifier =
+                        Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(LkColors.accent.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val iconContentDesc =
+                        when {
+                            isWifi && localizacaoDesligada -> "Wi-Fi, localização desativada"
+                            isWifi && wifiPct != null -> "Wi-Fi $ssid, sinal $wifiPct%"
+                            isWifi -> "Wi-Fi"
+                            else -> "Rede móvel, ${mobileName ?: "dados móveis"}"
+                        }
+                    Icon(
+                        imageVector = if (isWifi) Icons.Outlined.Wifi else Icons.Outlined.SignalCellularAlt,
+                        contentDescription = iconContentDesc,
+                        tint = if (localizacaoDesligada) c.textTertiary else LkColors.accent,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Spacer(Modifier.width(LkSpacing.md))
+                Column(modifier = Modifier.weight(1f)) {
+                    if (isWifi) {
+                        if (localizacaoDesligada) {
+                            val context = LocalContext.current
+                            Text(
+                                stringResource(R.string.home_network_nome_indisponivel),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.W600,
+                                color = c.textSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                stringResource(R.string.home_network_habilitar_localizacao),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = LkColors.accent,
+                                fontWeight = FontWeight.W500,
+                                modifier =
+                                    Modifier.clickable {
+                                        context.startActivity(
+                                            Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                        )
+                                    },
+                            )
+                            Text(
+                                stringResource(R.string.home_network_localizacao_necessaria),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = c.textTertiary,
+                            )
+                        } else {
+                            Text(
+                                ssid,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.W600,
+                                color = c.textPrimary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            val linha2 =
+                                buildList {
+                                    wifiLinkSpeed?.let { add("$it Mbps") }
+                                    canal?.let { add("Canal $it") }
+                                    larguraCanalMhz?.let { add("$it MHz") }
+                                }.joinToString(" · ")
+                            if (linha2.isNotEmpty()) {
+                                Text(linha2, style = MaterialTheme.typography.bodySmall, color = c.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                            if (padraoWifi != null) {
+                                val mimo =
+                                    when {
+                                        padraoWifi.contains("be") || padraoWifi.contains("ax") -> "Suporta MU-MIMO"
+                                        padraoWifi.contains("ac") -> "Suporta MU-MIMO"
+                                        padraoWifi.contains("(n)") -> "Suporta MIMO"
+                                        else -> null
+                                    }
+                                val linha3 = if (mimo != null) "$padraoWifi · $mimo" else padraoWifi
+                                Text(linha3, style = MaterialTheme.typography.bodySmall, color = c.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
                     } else {
                         Text(
-                            ssid,
+                            mobileName?.takeIf {
+                                it.isNotBlank()
+                            } ?: stringResource(R.string.home_network_rede_movel),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.W600,
                             color = c.textPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        val linha2 =
-                            buildList {
-                                wifiLinkSpeed?.let { add("$it Mbps") }
-                                canal?.let { add("Canal $it") }
-                                larguraCanalMhz?.let { add("$it MHz") }
-                            }.joinToString(" · ")
-                        if (linha2.isNotEmpty()) {
-                            Text(linha2, style = MaterialTheme.typography.bodySmall, color = c.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                        if (padraoWifi != null) {
-                            val mimo =
-                                when {
-                                    padraoWifi.contains("be") || padraoWifi.contains("ax") -> "Suporta MU-MIMO"
-                                    padraoWifi.contains("ac") -> "Suporta MU-MIMO"
-                                    padraoWifi.contains("(n)") -> "Suporta MIMO"
-                                    else -> null
-                                }
-                            val linha3 = if (mimo != null) "$padraoWifi · $mimo" else padraoWifi
-                            Text(linha3, style = MaterialTheme.typography.bodySmall, color = c.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
+                        Text(stringResource(R.string.home_network_dados_moveis), style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
                     }
-                } else {
+                }
+                if (isWifi && wifiPct != null) {
+                    val wifiColor =
+                        when {
+                            wifiPct >= 70 -> LkColors.success
+                            wifiPct >= 40 -> LkColors.warning
+                            else -> LkColors.error
+                        }
+                    MiniSignalBars(pct = wifiPct, color = wifiColor)
+                    Spacer(Modifier.width(LkSpacing.sm))
+                    Text("$wifiPct%", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = wifiColor)
+                } else if (isMobile) {
                     Text(
-                        mobileName?.takeIf {
-                            it.isNotBlank()
-                        } ?: stringResource(R.string.home_network_rede_movel),
-                        style = MaterialTheme.typography.bodyMedium,
+                        stringResource(R.string.home_network_conectado),
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.W600,
-                        color = c.textPrimary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+                        color = LkColors.success,
                     )
-                    Text(stringResource(R.string.home_network_dados_moveis), style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
                 }
             }
-            if (isWifi && wifiPct != null) {
-                val wifiColor =
-                    when {
-                        wifiPct >= 70 -> LkColors.success
-                        wifiPct >= 40 -> LkColors.warning
-                        else -> LkColors.error
-                    }
-                MiniSignalBars(pct = wifiPct, color = wifiColor)
-                Spacer(Modifier.width(LkSpacing.sm))
-                Text("$wifiPct%", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = wifiColor)
-            } else if (isMobile) {
-                Text(
-                    stringResource(R.string.home_network_conectado),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.W600,
-                    color = LkColors.success,
-                )
+            // ── #179 Task B — Chip de segurança Wi-Fi ────────────────────────
+            // Exibido apenas em Wi-Fi com SSID visivel (localizacao ligada).
+            // Uma nova linha abaixo dos chips existentes, conforme decisao da Lia.
+            if (isWifi && !localizacaoDesligada && connectedNetwork != null) {
+                Spacer(Modifier.height(LkSpacing.sm))
+                ChipSegurancaWifi(seguranca = connectedNetwork.seguranca)
             }
         }
     }
 }
 
 @Composable
-private fun MiniSignalBars(
+internal fun MiniSignalBars(
     pct: Int,
     color: Color,
 ) {
@@ -1487,6 +1509,190 @@ private fun MiniSignalBars(
                     .clip(RoundedCornerShape(1.dp))
                     .background(if (i < active) color else color.copy(alpha = 0.2f)),
             )
+        }
+    }
+}
+
+// ─── #179 Task B — Chip de segurança Wi-Fi ───────────────────────────────────
+
+@Composable
+private fun ChipSegurancaWifi(seguranca: SegurancaWifi) {
+    val isOpen = seguranca == SegurancaWifi.aberta
+    val isWpa3 = seguranca == SegurancaWifi.wpa3
+    val isDesconhecida = seguranca == SegurancaWifi.desconhecida
+
+    val (label, chipContainerColor, chipLabelColor, chipIcon) =
+        when {
+            isWpa3 -> Quadruple(
+                "WPA3",
+                MaterialTheme.colorScheme.tertiaryContainer,
+                MaterialTheme.colorScheme.onTertiaryContainer,
+                Icons.Outlined.Lock,
+            )
+            isOpen -> Quadruple(
+                "Aberta (sem senha)",
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                MaterialTheme.colorScheme.onErrorContainer,
+                Icons.Outlined.LockOpen,
+            )
+            seguranca == SegurancaWifi.wep -> Quadruple(
+                "WEP (inseguro)",
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                MaterialTheme.colorScheme.onErrorContainer,
+                Icons.Outlined.Lock,
+            )
+            isDesconhecida -> Quadruple(
+                "Segurança desconhecida",
+                MaterialTheme.colorScheme.surfaceVariant,
+                MaterialTheme.colorScheme.onSurfaceVariant,
+                Icons.Outlined.Lock,
+            )
+            else -> Quadruple(
+                wifiSecurityLabel(seguranca),
+                MaterialTheme.colorScheme.secondaryContainer,
+                MaterialTheme.colorScheme.onSecondaryContainer,
+                Icons.Outlined.Lock,
+            )
+        }
+
+    AssistChip(
+        onClick = {},
+        label = {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = chipLabelColor,
+            )
+        },
+        leadingIcon = {
+            Icon(
+                imageVector = chipIcon,
+                contentDescription = null,
+                tint = chipLabelColor,
+                modifier = Modifier.size(14.dp),
+            )
+        },
+        colors = AssistChipDefaults.assistChipColors(
+            containerColor = chipContainerColor,
+            labelColor = chipLabelColor,
+            leadingIconContentColor = chipLabelColor,
+        ),
+        border = null,
+    )
+}
+
+// Quadruple helper local — Kotlin nao tem built-in
+private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+
+// ─── #179 Task C — CardMovelDualSim ──────────────────────────────────────────
+
+/**
+ * Card de rede movel para dispositivos com um ou mais SIMs ativos.
+ *
+ * - simsAtivos.isEmpty(): nao renderiza nada.
+ * - simsAtivos.size == 1: um card sem badge de SIM.
+ * - simsAtivos.size >= 2: um card por SIM com badge "SIM 1", "SIM 2".
+ */
+@Composable
+internal fun CardMovelDualSim(
+    simsAtivos: List<MovelSimSnapshot>,
+    c: LkTokens,
+) {
+    if (simsAtivos.isEmpty()) return
+
+    val mostrarBadgeSim = simsAtivos.size >= 2
+
+    Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
+        simsAtivos.forEach { sim ->
+            CardSimUnico(sim = sim, mostrarBadgeSim = mostrarBadgeSim, c = c)
+        }
+    }
+}
+
+@Composable
+private fun CardSimUnico(
+    sim: MovelSimSnapshot,
+    mostrarBadgeSim: Boolean,
+    c: LkTokens,
+) {
+    val rsrpDbm = sim.rsrpDbm
+    val rsrpColor =
+        when {
+            rsrpDbm == null -> c.textTertiary
+            rsrpDbm > -80 -> LkColors.success
+            rsrpDbm > -100 -> LkColors.warning
+            else -> LkColors.error
+        }
+    val rsrpPct =
+        rsrpDbm?.let { ((it + 140) / 96.0).coerceIn(0.0, 1.0) * 100 }?.roundToInt() ?: 0
+
+    LinkaCard(c) {
+        Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+            ) {
+                // Badge SIM N (so em dual SIM)
+                if (mostrarBadgeSim) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(LkColors.accent.copy(alpha = 0.12f))
+                                .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
+                    ) {
+                        Text(
+                            "SIM ${sim.simIndex}",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.W700,
+                            color = LkColors.accent,
+                        )
+                    }
+                }
+
+                // Operadora
+                Text(
+                    text = sim.operadora?.ifBlank { null } ?: "Operadora",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.W600,
+                    color = c.textPrimary,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+
+                // MiniSignalBars com RSRP
+                MiniSignalBars(pct = rsrpPct, color = rsrpColor)
+
+                // Badge Roaming
+                if (sim.emRoaming) {
+                    Spacer(Modifier.width(LkSpacing.xs))
+                    Box(
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(MaterialTheme.colorScheme.errorContainer)
+                                .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
+                    ) {
+                        Text(
+                            "Roaming",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.W600,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
+                }
+            }
+
+            // Tecnologia de rede
+            sim.tecnologiaRede?.let { tech ->
+                Text(
+                    "Rede: $tech",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.textTertiary,
+                )
+            }
         }
     }
 }

@@ -78,6 +78,7 @@ import io.linka.app.kotlin.R
 import io.linka.app.kotlin.core.database.MedicaoEntity
 import io.linka.app.kotlin.core.network.EstadoConexao
 import io.linka.app.kotlin.core.network.SnapshotRede
+import io.linka.app.kotlin.core.telephony.MovelSimSnapshot
 import io.linka.app.kotlin.core.telephony.MovelSnapshot
 import io.linka.app.kotlin.feature.devices.SnapshotScanDispositivos
 import io.linka.app.kotlin.feature.diagnostico.SnapshotDiagnostico
@@ -195,6 +196,7 @@ fun AppShell(
     onIniciarDiagnostico: () -> Unit,
     orbitUiState: OrbitUiState,
     movelSnapshot: MovelSnapshot?,
+    simsAtivos: List<MovelSimSnapshot> = emptyList(),
     temPermissaoTelefonia: Boolean = false,
     onSolicitarPermissaoTelefonia: () -> Unit = {},
     temPermissaoLocalizacao: Boolean = true,
@@ -349,6 +351,7 @@ fun AppShell(
                             fotoUriUsuario = fotoUriUsuario,
                             connectedNetwork = connectedNetwork,
                             movelSnapshot = movelSnapshot,
+                            simsAtivos = simsAtivos,
                             onIniciarTeste = { modo ->
                                 if (snapshotRede.estadoConexao == EstadoConexao.movel) {
                                     // AppShell decide: em rede móvel mostra ForaDoWifiDialog

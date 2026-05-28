@@ -162,6 +162,7 @@ class MainActivity : ComponentActivity() {
                     .value
             val orbitUiState = viewModel.orbitUiStateFlow.collectAsStateWithLifecycle().value
             val movelSnapshot = viewModel.movelSnapshot.collectAsStateWithLifecycle().value
+            val simsAtivos = viewModel.simsAtivos.collectAsStateWithLifecycle().value
             val gemmaAvailable = viewModel.gemmaAvailable.collectAsStateWithLifecycle().value
             val onboardingConcluido = viewModel.onboardingConcluido.collectAsStateWithLifecycle().value
             val diagChatHistorico by viewModel.diagChatHistorico.collectAsStateWithLifecycle()
@@ -302,6 +303,7 @@ class MainActivity : ComponentActivity() {
                         onSolicitarPermissaoLocalizacao = { solicitarPermissaoLocalizacaoContextual() },
                         orbitUiState = orbitUiState,
                         movelSnapshot = movelSnapshot,
+                        simsAtivos = simsAtivos,
                         onIniciarOrbit = { foco ->
                             solicitarPermissaoTelefoniaSeNecessario()
                             viewModel.iniciarOrbit(foco)
