@@ -536,20 +536,31 @@ fun HomeScreen(
                 )
             }
 
-            // 4. SignalCard
-            item {
-                SignalCard(
-                    snapshotRede = snapshotRede,
-                    connectedNetwork = connectedNetwork,
-                    mobileName = ispInfo?.isp,
-                    movelSnapshot = movelSnapshot,
-                    c = c,
-                    onTapWifi = onAbrirRedes,
-                    onTapMobile = { showCellularSheet = true },
-                )
+            // 4a. Wi-Fi SignalCard
+            if (snapshotRede.estadoConexao == EstadoConexao.wifi) {
+                item {
+                    WifiSignalCard(
+                        snapshotRede = snapshotRede,
+                        connectedNetwork = connectedNetwork,
+                        c = c,
+                        onTap = onAbrirRedes,
+                    )
+                }
             }
 
-            // 5. SIM chips compactos (abaixo do SignalCard)
+            // 4b. Mobile SignalCard
+            if (movelSnapshot != null) {
+                item {
+                    MobileSignalCard(
+                        movelSnapshot = movelSnapshot,
+                        mobileName = ispInfo?.isp,
+                        c = c,
+                        onTap = { showCellularSheet = true },
+                    )
+                }
+            }
+
+            // 5. SIM chips compactos (abaixo dos SignalCards)
             if (simsAtivos.isNotEmpty()) {
                 item {
                     CardMovelDualSim(simsAtivos = simsAtivos, c = c)
@@ -1364,175 +1375,110 @@ private fun mobileSignalColor(rsrpDbm: Int?): Color = when {
     else -> LkColors.error
 }
 
-// ─── Signal card (independent item) ──────────────────────────────────────────
+// ─── Wi-Fi signal card ───────────────────────────────────────────────────────
 
 @Composable
-private fun SignalCard(
+private fun WifiSignalCard(
     snapshotRede: SnapshotRede,
     connectedNetwork: RedeVizinha?,
-    mobileName: String?,
-    movelSnapshot: MovelSnapshot?,
     c: LkTokens,
-    onTapWifi: () -> Unit,
-    onTapMobile: () -> Unit,
+    onTap: () -> Unit,
 ) {
-    val isWifi = snapshotRede.estadoConexao == EstadoConexao.wifi
-    val isMobile = snapshotRede.estadoConexao == EstadoConexao.movel
-
-    if (!isWifi && !isMobile) return
-
-    val wifiRssi = if (isWifi) connectedNetwork?.rssiDbm ?: snapshotRede.wifiLinkSnapshot?.rssiDbm else null
+    val wifiRssi = connectedNetwork?.rssiDbm ?: snapshotRede.wifiLinkSnapshot?.rssiDbm
     val wifiPct = wifiRssi?.let { ((it + 90) / 50.0).coerceIn(0.0, 1.0) * 100 }?.roundToInt()
     val ssidResolvido = connectedNetwork?.ssid ?: snapshotRede.wifiLinkSnapshot?.ssid
     val ssid = ssidResolvido ?: "Wi-Fi"
     val freqMhz = connectedNetwork?.frequenciaMhz ?: snapshotRede.wifiLinkSnapshot?.frequenciaMhz
     val wifiLinkSpeed = snapshotRede.wifiLinkSnapshot?.linkSpeedMbps
-    val padraoWifi = snapshotRede.wifiLinkSnapshot?.padraoWifi
     val canal = freqMhz?.let { freqToChannel(it) }?.takeIf { it > 0 }
-    val larguraCanalMhz = connectedNetwork?.larguraCanalMhz
-    val localizacaoDesligada = isWifi && ssidResolvido == null && !snapshotRede.locationAtivado
+    val localizacaoDesligada = ssidResolvido == null && !snapshotRede.locationAtivado
+
+    val iconColor = if (localizacaoDesligada) c.textTertiary
+    else if (wifiRssi != null) wifiSignalColor(wifiRssi)
+    else LkColors.accent
 
     LinkaCard(c) {
         Column {
             Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clickable { if (isWifi) onTapWifi() else onTapMobile() },
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onTap),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val iconColor = if (localizacaoDesligada) {
-                    c.textTertiary
-                } else if (isWifi && wifiRssi != null) {
-                    wifiSignalColor(wifiRssi)
-                } else if (isMobile) {
-                    LkColors.accent
-                } else {
-                    LkColors.accent
-                }
                 Box(
-                    modifier =
-                        Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(iconColor.copy(alpha = 0.10f)),
+                    modifier = Modifier.size(44.dp).clip(CircleShape)
+                        .background(iconColor.copy(alpha = 0.10f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    val iconContentDesc =
-                        when {
-                            isWifi && localizacaoDesligada -> "Wi-Fi, localização desativada"
-                            isWifi && wifiPct != null -> "Wi-Fi $ssid, sinal $wifiPct%"
-                            isWifi -> "Wi-Fi"
-                            else -> "Rede móvel, ${mobileName ?: "dados móveis"}"
-                        }
                     Icon(
-                        imageVector = if (isWifi) Icons.Outlined.Wifi else Icons.Outlined.SignalCellularAlt,
-                        contentDescription = iconContentDesc,
-                        tint = if (localizacaoDesligada) c.textTertiary else iconColor,
+                        Icons.Outlined.Wifi,
+                        contentDescription = if (wifiPct != null) "Wi-Fi $ssid, sinal $wifiPct%" else "Wi-Fi",
+                        tint = iconColor,
                         modifier = Modifier.size(22.dp),
                     )
                 }
                 Spacer(Modifier.width(LkSpacing.md))
                 Column(modifier = Modifier.weight(1f)) {
-                    if (isWifi) {
-                        if (localizacaoDesligada) {
-                            val context = LocalContext.current
-                            Text(
-                                stringResource(R.string.home_network_nome_indisponivel),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.W600,
-                                color = c.textSecondary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                stringResource(R.string.home_network_habilitar_localizacao),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = LkColors.accent,
-                                fontWeight = FontWeight.W500,
-                                modifier =
-                                    Modifier.clickable {
-                                        context.startActivity(
-                                            Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                                        )
-                                    },
-                            )
-                            Text(
-                                stringResource(R.string.home_network_localizacao_necessaria),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = c.textTertiary,
-                            )
-                        } else {
-                            val bandaLabel = when {
-                                freqMhz != null && freqMhz >= 5900 -> "6 GHZ"
-                                freqMhz != null && freqMhz >= 3000 -> "5 GHZ"
-                                freqMhz != null -> "2.4 GHZ"
-                                else -> null
-                            }
-                            if (bandaLabel != null) {
-                                Text(
-                                    "WI-FI · $bandaLabel",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.W600,
-                                    color = c.textTertiary,
-                                    letterSpacing = 0.3.sp,
-                                )
-                            }
-                            Text(
-                                ssid,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.W600,
-                                color = c.textPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            val linha2 =
-                                buildList {
-                                    wifiRssi?.let { add("RSSI $it dBm") }
-                                    canal?.let { add("Canal $it") }
-                                    wifiLinkSpeed?.let { add("$it Mbps") }
-                                }.joinToString(" · ")
-                            if (linha2.isNotEmpty()) {
-                                Text(linha2, style = MaterialTheme.typography.bodySmall, color = c.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                        }
-                    } else {
-                        val tec = movelSnapshot?.tecnologia?.ifBlank { null }
-                        val tecLabel = tec?.uppercase() ?: "LTE"
+                    if (localizacaoDesligada) {
+                        val context = LocalContext.current
                         Text(
-                            "REDE MÓVEL · $tecLabel",
-                            style = MaterialTheme.typography.labelSmall,
+                            stringResource(R.string.home_network_nome_indisponivel),
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.W600,
-                            color = c.textTertiary,
-                            letterSpacing = 0.3.sp,
+                            color = c.textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                         Text(
-                            mobileName?.takeIf {
-                                it.isNotBlank()
-                            } ?: stringResource(R.string.home_network_rede_movel),
+                            stringResource(R.string.home_network_habilitar_localizacao),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = LkColors.accent,
+                            fontWeight = FontWeight.W500,
+                            modifier = Modifier.clickable {
+                                context.startActivity(
+                                    Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                )
+                            },
+                        )
+                        Text(
+                            stringResource(R.string.home_network_localizacao_necessaria),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = c.textTertiary,
+                        )
+                    } else {
+                        val bandaLabel = when {
+                            freqMhz != null && freqMhz >= 5900 -> "6 GHZ"
+                            freqMhz != null && freqMhz >= 3000 -> "5 GHZ"
+                            freqMhz != null -> "2.4 GHZ"
+                            else -> null
+                        }
+                        if (bandaLabel != null) {
+                            Text(
+                                "WI-FI · $bandaLabel",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.W600,
+                                color = c.textTertiary,
+                                letterSpacing = 0.3.sp,
+                            )
+                        }
+                        Text(
+                            ssid,
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.W600,
                             color = c.textPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        val rsrp = movelSnapshot?.rsrpDbm
-                        val infoItems = buildList {
-                            add("Sinal ${mobileSignalQuality(rsrp)}")
-                            rsrp?.let { add("$it dBm") }
-                            tec?.let { add(it) }
+                        val linha2 = buildList {
+                            wifiRssi?.let { add("RSSI $it dBm") }
+                            canal?.let { add("Canal $it") }
+                            wifiLinkSpeed?.let { add("$it Mbps") }
+                        }.joinToString(" · ")
+                        if (linha2.isNotEmpty()) {
+                            Text(linha2, style = MaterialTheme.typography.bodySmall, color = c.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
-                        Text(
-                            infoItems.joinToString(" · "),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = c.textSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
                     }
                 }
-                if (isWifi && wifiRssi != null && wifiPct != null) {
+                if (wifiRssi != null && wifiPct != null) {
                     MiniSignalBars(pct = wifiPct, color = iconColor)
                     Spacer(Modifier.width(LkSpacing.sm))
                     Text(
@@ -1541,29 +1487,85 @@ private fun SignalCard(
                         fontWeight = FontWeight.W600,
                         color = iconColor,
                     )
-                } else if (isMobile) {
-                    val rsrp = movelSnapshot?.rsrpDbm
-                    val mobileColor = mobileSignalColor(rsrp)
-                    if (rsrp != null) {
-                        val mobilePct = ((rsrp + 140) / 96.0).coerceIn(0.0, 1.0) * 100
-                        MiniSignalBars(pct = mobilePct.roundToInt(), color = mobileColor)
-                        Spacer(Modifier.width(LkSpacing.sm))
-                    }
-                    Text(
-                        mobileSignalQuality(rsrp),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.W600,
-                        color = mobileColor,
-                    )
                 }
             }
-            // ── #179 Task B — Chip de segurança Wi-Fi ────────────────────────
-            // Exibido apenas em Wi-Fi com SSID visivel (localizacao ligada).
-            // Uma nova linha abaixo dos chips existentes, conforme decisao da Lia.
-            if (isWifi && !localizacaoDesligada && connectedNetwork != null) {
+            if (!localizacaoDesligada && connectedNetwork != null) {
                 Spacer(Modifier.height(LkSpacing.sm))
                 ChipSegurancaWifi(seguranca = connectedNetwork.seguranca)
             }
+        }
+    }
+}
+
+// ─── Mobile signal card ──────────────────────────────────────────────────────
+
+@Composable
+private fun MobileSignalCard(
+    movelSnapshot: MovelSnapshot,
+    mobileName: String?,
+    c: LkTokens,
+    onTap: () -> Unit,
+) {
+    val tec = movelSnapshot.tecnologia?.ifBlank { null }
+    val tecLabel = tec?.uppercase() ?: "LTE"
+    val rsrp = movelSnapshot.rsrpDbm
+    val mobileColor = mobileSignalColor(rsrp)
+
+    LinkaCard(c) {
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onTap),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier.size(44.dp).clip(CircleShape)
+                    .background(mobileColor.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.SignalCellularAlt,
+                    contentDescription = "Rede móvel, ${mobileName ?: "dados móveis"}",
+                    tint = mobileColor,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
+            Spacer(Modifier.width(LkSpacing.md))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "REDE MÓVEL · $tecLabel",
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.W600,
+                    color = c.textTertiary,
+                    letterSpacing = 0.3.sp,
+                )
+                Text(
+                    mobileName?.takeIf { it.isNotBlank() }
+                        ?: stringResource(R.string.home_network_rede_movel),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.W600,
+                    color = c.textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                val infoItems = buildList {
+                    rsrp?.let { add("RSRP $it dBm") }
+                    movelSnapshot.operadora?.takeIf { it.isNotBlank() }?.let { add(it) }
+                    tec?.let { add(it) }
+                }.joinToString(" · ")
+                if (infoItems.isNotEmpty()) {
+                    Text(infoItems, style = MaterialTheme.typography.bodySmall, color = c.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            if (rsrp != null) {
+                val mobilePct = ((rsrp + 140) / 96.0).coerceIn(0.0, 1.0) * 100
+                MiniSignalBars(pct = mobilePct.roundToInt(), color = mobileColor)
+                Spacer(Modifier.width(LkSpacing.sm))
+            }
+            Text(
+                mobileSignalQuality(rsrp),
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.W600,
+                color = mobileColor,
+            )
         }
     }
 }
@@ -2362,115 +2364,133 @@ private fun CellularInfoSheet(
     movelSnapshot: MovelSnapshot?,
     c: LkTokens,
 ) {
-    val operadora = ispInfo?.isp?.takeIf { it.isNotEmpty() }
+    val operadora = movelSnapshot?.operadora?.takeIf { it.isNotBlank() }
+        ?: ispInfo?.isp?.takeIf { it.isNotEmpty() }
     val ip = ispInfo?.ip ?: publicIp
-    val asn = ispInfo?.asn?.takeIf { it.isNotEmpty() }
-    val countryRegion = listOfNotNull(ispInfo?.country, ispInfo?.region).joinToString(" / ").takeIf { it.isNotEmpty() }
+    val tec = movelSnapshot?.tecnologia?.ifBlank { null }
+    val banda = movelSnapshot?.bandaMovel?.ifBlank { null }
+    val rsrp = movelSnapshot?.rsrpDbm
+    val sinr = movelSnapshot?.sinrDb
+    val mcc = movelSnapshot?.mcc
+    val mnc = movelSnapshot?.mnc
 
-    val signalColor = LkColors.accent
-    val signalBg = LkColors.accent.copy(alpha = 0.1f)
+    val qualityLabel = rsrp?.let { "${mobileSignalQuality(it)} ($it dBm)" }
+    val qualityColor = rsrp?.let { mobileSignalColor(it) }
 
     Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = LkSpacing.xl)
-                .padding(bottom = 32.dp)
-                .navigationBarsPadding(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = LkSpacing.xl)
+            .padding(bottom = 32.dp)
+            .navigationBarsPadding(),
     ) {
         SheetDragHandle(c)
-        Spacer(modifier = Modifier.height(LkSpacing.xl))
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Spacer(Modifier.height(LkSpacing.xl))
+
+        Text(
+            "Rede móvel",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.W700,
+            color = c.textPrimary,
+        )
+        Text(
+            "Detalhes da conexão móvel ativa",
+            fontSize = 13.sp,
+            color = c.textTertiary,
+        )
+
+        Spacer(Modifier.height(LkSpacing.lg))
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.md),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Box(
-                modifier =
-                    Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(LkRadius.button))
-                        .background(signalBg),
+                modifier = Modifier.size(44.dp).clip(CircleShape)
+                    .background(LkColors.accent.copy(alpha = 0.10f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.SignalCellularAlt,
+                    Icons.Outlined.SignalCellularAlt,
                     contentDescription = null,
-                    tint = signalColor,
-                    modifier = Modifier.size(20.dp),
+                    tint = LkColors.accent,
+                    modifier = Modifier.size(22.dp),
                 )
             }
-            Spacer(modifier = Modifier.width(LkSpacing.md))
-            Column {
+            Spacer(Modifier.width(LkSpacing.md))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = operadora ?: "Rede móvel",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.W700,
+                    operadora ?: "Rede móvel",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.W600,
                     color = c.textPrimary,
                 )
+                val heroSub = listOfNotNull(tec, banda?.let { "banda $it" })
+                    .joinToString(" · ").takeIf { it.isNotEmpty() }
+                if (heroSub != null) {
+                    Text(heroSub, fontSize = 12.sp, color = c.textSecondary)
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(LkColors.success.copy(alpha = 0.10f))
+                    .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
+            ) {
                 Text(
-                    text = stringResource(R.string.home_network_dados_moveis),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textTertiary,
+                    "Conectado",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.W700,
+                    color = LkColors.success,
                 )
             }
         }
-        Spacer(modifier = Modifier.height(20.dp))
-        HorizontalDivider(color = c.border, thickness = 1.dp)
-        Spacer(modifier = Modifier.height(LkSpacing.lg))
-        ip?.let { SheetInfoRow("IP Público", it, c) }
+
+        Spacer(Modifier.height(LkSpacing.lg))
+
+        tec?.let { SheetInfoRow("Tecnologia", it, c) }
         operadora?.let { SheetInfoRow("Operadora", it, c) }
-        asn?.let { SheetInfoRow("ASN", it, c) }
-        countryRegion?.let { SheetInfoRow("País / Região", it, c) }
-        movelSnapshot?.tecnologia?.let { SheetInfoRow("Tecnologia", it, c) }
-        movelSnapshot?.bandaMovel?.let { SheetInfoRow("Banda", it, c) }
-        movelSnapshot?.rsrpDbm?.let { rsrp ->
-            val rsrpColor =
-                when {
-                    rsrp > -85 -> LkColors.success
-                    rsrp > -100 -> LkColors.warning
-                    else -> LkColors.error
-                }
-            SheetInfoRow("RSRP", "$rsrp dBm", c, valueColor = rsrpColor)
+        ip?.let { SheetInfoRow("IP público", it, c) }
+        qualityLabel?.let { SheetInfoRow("Qualidade do sinal", it, c, valueColor = qualityColor) }
+        rsrp?.let {
+            val asu = it + 140
+            SheetInfoRow("ASU", "$asu", c)
         }
-        movelSnapshot?.sinrDb?.let { sinr ->
-            val sinrColor =
-                when {
-                    sinr > 10 -> LkColors.success
-                    sinr > 0 -> LkColors.warning
-                    else -> LkColors.error
-                }
-            SheetInfoRow("SINR", "$sinr dB", c, valueColor = sinrColor)
-        }
-        if (movelSnapshot?.roaming == true) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(bottom = LkSpacing.md),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(stringResource(R.string.home_sheet_roaming_label), style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
-                Box(
-                    modifier =
-                        Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(LkColors.warning.copy(alpha = 0.15f))
-                            .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
-                ) {
-                    Text(
-                        stringResource(R.string.home_sheet_roaming_ativo),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.W600,
-                        color = LkColors.warning,
-                    )
-                }
+        sinr?.let { s ->
+            val sinrColor = when {
+                s > 10 -> LkColors.success
+                s > 0 -> LkColors.warning
+                else -> LkColors.error
             }
+            SheetInfoRow("SINR", "$s dB", c, valueColor = sinrColor)
         }
+        SheetInfoRow("Roaming", if (movelSnapshot?.roaming == true) "Sim" else "Não", c,
+            valueColor = if (movelSnapshot?.roaming == true) LkColors.warning else null)
+        if (mcc != null && mnc != null) {
+            SheetInfoRow("MCC / MNC", "$mcc / $mnc", c)
+        }
+
+        Spacer(Modifier.height(LkSpacing.md))
+        Text(
+            "Teste de velocidade pode consumir uma parcela significativa do seu plano de dados.",
+            fontSize = 11.sp,
+            color = c.textTertiary,
+            lineHeight = 15.sp,
+        )
+
         if (ip == null && operadora == null && movelSnapshot == null) {
+            Spacer(Modifier.height(LkSpacing.lg))
             Text(
                 text = stringResource(R.string.home_sheet_movel_indisponivel),
                 style = MaterialTheme.typography.titleSmall,
                 color = c.textTertiary,
                 textAlign = TextAlign.Center,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
             )
         }
     }
