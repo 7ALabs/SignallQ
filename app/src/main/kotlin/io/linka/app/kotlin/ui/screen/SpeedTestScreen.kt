@@ -68,6 +68,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -194,15 +195,24 @@ fun SpeedTestScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Outlined.Speed, contentDescription = null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(LkSpacing.xs))
-                        Text(
-                            text = "Central de testes",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.W600,
-                            color = c.textPrimary,
-                        )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Outlined.Speed, contentDescription = null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(LkSpacing.xs))
+                            Text(
+                                text = "Velocidade",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.W600,
+                                color = c.textPrimary,
+                            )
+                        }
+                        if (planoInternet.isNotEmpty()) {
+                            Text(
+                                text = "Plano contratado: $planoInternet",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = c.textSecondary,
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
@@ -331,6 +341,7 @@ fun SpeedTestScreen(
                     c = c,
                     downloadMbps = resultado.downloadMbps,
                     uploadMbps = resultado.uploadMbps,
+                    latencyMs = resultado.latenciaMs,
                     label = if (modoSelecionado == ModoSpeedtest.triplo) "Média das 3 medições" else "Último resultado",
                     onClick = onAbrirHistorico,
                 )
@@ -630,12 +641,13 @@ private fun ModeSelector(
     modoSelecionado: ModoSpeedtest,
     onSelect: (ModoSpeedtest) -> Unit,
 ) {
+    val c = LocalLkTokens.current
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(999.dp))
-                .background(LkColors.accent.copy(alpha = 0.1f))
+                .background(c.bgSecondary)
                 .padding(2.dp)
                 .semantics { contentDescription = "Modo do teste" },
     ) {
@@ -645,10 +657,11 @@ private fun ModeSelector(
                 modifier =
                     Modifier
                         .weight(1f)
+                        .shadow(elevation = if (selected) 1.dp else 0.dp, shape = RoundedCornerShape(999.dp))
                         .clip(RoundedCornerShape(999.dp))
-                        .background(if (selected) LkColors.accent else Color.Transparent)
+                        .background(if (selected) c.bgPrimary else Color.Transparent)
                         .clickable { onSelect(modo) }
-                        .padding(vertical = LkSpacing.lg)
+                        .padding(vertical = LkSpacing.sm)
                         .semantics {
                             role = Role.Tab
                             this.selected = selected
@@ -660,7 +673,7 @@ private fun ModeSelector(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.W600,
-                    color = if (selected) LkColors.linkaTextOnDark else LkColors.accent,
+                    color = if (selected) c.textPrimary else c.textSecondary,
                 )
             }
         }
@@ -1328,39 +1341,61 @@ private fun LastResultCard(
     c: LkTokens,
     downloadMbps: Double,
     uploadMbps: Double,
+    latencyMs: Double = 0.0,
+    relativeTimestamp: String = "",
     label: String = "Último resultado",
     onClick: () -> Unit = {},
 ) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-                .background(c.bgCard)
-                .clickable(onClick = onClick)
-                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(LkRadius.card))
+            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+            .background(c.bgCard)
+            .clickable(onClick = onClick)
+            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleSmall,
-            color = c.textSecondary,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = "↓ ${"%.0f".format(downloadMbps)} · ↑ ${"%.0f".format(uploadMbps)} Mbps",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.W600,
-            color = LkColors.accent,
-        )
-        Spacer(Modifier.width(LkSpacing.xs))
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-            contentDescription = null,
-            modifier = Modifier.size(12.dp),
-            tint = c.textTertiary,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = label.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.W600,
+                color = c.textTertiary,
+                letterSpacing = 0.4.sp,
+            )
+            if (relativeTimestamp.isNotEmpty()) {
+                Text(
+                    text = relativeTimestamp,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.textTertiary,
+                )
+            }
+        }
+        Spacer(Modifier.height(LkSpacing.md))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(LkSpacing.lg),
+        ) {
+            MetricColumn("Download", "%.1f".format(downloadMbps), "Mbps", LkColors.success, Modifier.weight(1f))
+            MetricColumn("Upload", "%.1f".format(uploadMbps), "Mbps", LkColors.accent, Modifier.weight(1f))
+            MetricColumn("Latência", "%.0f".format(latencyMs), "ms", LkColors.success, Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun MetricColumn(label: String, value: String, unit: String, color: Color, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = LocalLkTokens.current.textTertiary)
+        Spacer(Modifier.height(2.dp))
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(text = value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W700, color = color)
+            Text(text = unit, style = MaterialTheme.typography.labelSmall, color = LocalLkTokens.current.textSecondary)
+        }
     }
 }
 

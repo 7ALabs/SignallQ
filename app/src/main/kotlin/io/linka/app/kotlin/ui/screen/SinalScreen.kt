@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
@@ -254,35 +255,17 @@ fun SinalScreen(
     Scaffold(
         containerColor = c.bgPrimary,
         topBar = {
-            val tituloTopBar =
-                when (conexaoTipo) {
-                    ConexaoTipo.MOBILE -> "Sinal Móvel"
-                    ConexaoTipo.WIFI -> "Redes Wi-Fi"
-                    else -> "Sinal"
-                }
-            val iconeTopBar =
-                when (conexaoTipo) {
-                    ConexaoTipo.MOBILE -> Icons.Outlined.SignalCellularAlt
-                    else -> Icons.Outlined.Wifi
-                }
             CenterAlignedTopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = iconeTopBar,
-                            contentDescription =
-                                if (conexaoTipo ==
-                                    ConexaoTipo.MOBILE
-                                ) {
-                                    "Sinal móvel"
-                                } else {
-                                    "Sinal Wi-Fi"
-                                },
+                            imageVector = Icons.Outlined.CellTower,
+                            contentDescription = "Sinal",
                             tint = c.textPrimary,
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(Modifier.width(LkSpacing.xs))
-                        Text(tituloTopBar, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
+                        Text("Sinal", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
                     }
                 },
                 navigationIcon = {
@@ -296,50 +279,11 @@ fun SinalScreen(
             )
         },
     ) { padding ->
-        if (conexaoTipo != ConexaoTipo.WIFI) {
-            Column(
-                modifier = Modifier.fillMaxSize().padding(padding),
-            ) {
-                if (!conectado) OfflineBanner()
-                Box(
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(horizontal = LkSpacing.xl),
-                    ) {
-                        when (conexaoTipo) {
-                            ConexaoTipo.MOBILE -> {
-                                if (movelSnapshot != null) {
-                                    MobileSignalCard(
-                                        snapshot = movelSnapshot,
-                                        localIp = localIp,
-                                        temPermissao = temPermissaoTelefonia,
-                                        onSolicitarPermissao = onSolicitarPermissaoTelefonia,
-                                        tokens = c,
-                                    )
-                                } else if (!temPermissaoTelefonia && !telefoniaSheetDismissed) {
-                                    MovelSemPermissaoBanner(
-                                        onClick = { showTelefoniaSheet = true },
-                                        tokens = c,
-                                    )
-                                } else if (!temPermissaoTelefonia) {
-                                    EmptyStatePermissaoTelefonia(
-                                        onSolicitarPermissao = onSolicitarPermissaoTelefonia,
-                                        tokens = c,
-                                    )
-                                } else {
-                                    EmptyStateMobile(c)
-                                }
-                            }
-                            ConexaoTipo.CABO -> EmptyStateCabo(localIp, c)
-                            else -> EmptyStateDesconhecido(c)
-                        }
-                    }
-                }
+        // Auto-selecionar tab Móvel quando não estiver em Wi-Fi
+        LaunchedEffect(conexaoTipo) {
+            if (conexaoTipo != ConexaoTipo.WIFI) {
+                selectedTab = 2
             }
-            return@Scaffold
         }
 
         Column(
@@ -348,7 +292,7 @@ fun SinalScreen(
                 .padding(padding),
         ) {
             if (!conectado) OfflineBanner()
-            if (!temPermissaoLocalizacao && !localizacaoSheetDismissed) {
+            if (conexaoTipo == ConexaoTipo.WIFI && !temPermissaoLocalizacao && !localizacaoSheetDismissed) {
                 LocPermissaoBanner(onClick = { showLocalizacaoSheet = true })
             }
 
@@ -384,7 +328,7 @@ fun SinalScreen(
                 containerColor = c.bgPrimary,
                 contentColor = LkColors.accent,
             ) {
-                listOf("Redes", "Canal").forEachIndexed { index, label ->
+                listOf("Wi-Fi", "Canal", "Móvel").forEachIndexed { index, label ->
                     Tab(
                         selected = selectedTab == index,
                         onClick = { selectedTab = index },
@@ -409,22 +353,41 @@ fun SinalScreen(
                 }
             }
             when (selectedTab) {
-                0 ->
-                    RedesTab(
-                        snapshotWifi = snapshotWifi,
-                        connectedNetwork = connectedNetwork,
-                        onRefresh = onRefresh,
-                        wifiLinkSnapshot = wifiLinkSnapshot,
+                0 -> {
+                    if (conexaoTipo == ConexaoTipo.WIFI) {
+                        RedesTab(
+                            snapshotWifi = snapshotWifi,
+                            connectedNetwork = connectedNetwork,
+                            onRefresh = onRefresh,
+                            wifiLinkSnapshot = wifiLinkSnapshot,
+                        )
+                    } else {
+                        WifiEmptyState()
+                    }
+                }
+                1 -> {
+                    if (conexaoTipo == ConexaoTipo.WIFI) {
+                        CanalTab(
+                            redes = snapshotWifi.redes,
+                            connectedNetwork = connectedNetwork,
+                            estado = snapshotWifi.estado,
+                            erroMensagem = snapshotWifi.erroMensagem,
+                            onRefresh = onRefresh,
+                            wifiLinkSnapshot = wifiLinkSnapshot,
+                        )
+                    } else {
+                        WifiEmptyState()
+                    }
+                }
+                else -> {
+                    MovelTab(
+                        movelSnapshot = movelSnapshot,
+                        temPermissaoTelefonia = temPermissaoTelefonia,
+                        onSolicitarPermissaoTelefonia = onSolicitarPermissaoTelefonia,
+                        localIp = localIp,
+                        tokens = c,
                     )
-                else ->
-                    CanalTab(
-                        redes = snapshotWifi.redes,
-                        connectedNetwork = connectedNetwork,
-                        estado = snapshotWifi.estado,
-                        erroMensagem = snapshotWifi.erroMensagem,
-                        onRefresh = onRefresh,
-                        wifiLinkSnapshot = wifiLinkSnapshot,
-                    )
+                }
             }
         }
     }
@@ -468,6 +431,78 @@ fun SinalScreen(
                     showTelefoniaSheet = false
                     telefoniaSheetDismissed = true
                 },
+            )
+        }
+    }
+}
+
+// ─── Tab Móvel ────────────────────────────────────────────────────────────────
+
+@Composable
+private fun MovelTab(
+    movelSnapshot: MovelSnapshot?,
+    temPermissaoTelefonia: Boolean,
+    onSolicitarPermissaoTelefonia: () -> Unit,
+    localIp: String?,
+    tokens: LkTokens,
+) {
+    val c = tokens
+    if (!temPermissaoTelefonia) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            EmptyStatePermissaoTelefonia(
+                onSolicitarPermissao = onSolicitarPermissaoTelefonia,
+                tokens = c,
+            )
+        }
+        return
+    }
+    if (movelSnapshot == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            EmptyStateMobile(c)
+        }
+        return
+    }
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(LkSpacing.lg),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        MobileSignalCard(
+            snapshot = movelSnapshot,
+            localIp = localIp,
+            temPermissao = temPermissaoTelefonia,
+            onSolicitarPermissao = onSolicitarPermissaoTelefonia,
+            tokens = c,
+        )
+    }
+}
+
+// ─── Wi-Fi empty state (quando não está em Wi-Fi) ─────────────────────────────
+
+@Composable
+private fun WifiEmptyState() {
+    val c = LocalLkTokens.current
+    Box(
+        Modifier
+            .fillMaxSize()
+            .padding(LkSpacing.xl),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(Icons.Outlined.Wifi, null, tint = c.textTertiary, modifier = Modifier.size(48.dp))
+            Spacer(Modifier.height(LkSpacing.lg))
+            Text(
+                "Você está usando a internet do chip",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.W600,
+                color = c.textPrimary,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
+            Spacer(Modifier.height(LkSpacing.sm))
+            Text(
+                "O Wi-Fi está desligado ou desconectado. Conecte-se a uma rede Wi-Fi para ver os detalhes.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.textSecondary,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
         }
     }
@@ -619,7 +654,7 @@ private fun RedesTab(
                             Modifier
                                 .padding(horizontal = LkSpacing.lg)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(c.successContainer.copy(alpha = 0.45f)),
+                                .background(LkColors.success.copy(alpha = 0.12f)),
                     ) {
                         GrupoRedeTree(
                             ssid = connectedNetwork.ssid ?: "Rede oculta",
