@@ -197,8 +197,7 @@ fun SpeedTestScreen(
                 title = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Outlined.Speed, contentDescription = null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(LkSpacing.xs))
+                            Icon(imageVector = Icons.Outlined.ExpandMore, contentDescription = null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
                             Text(
                                 text = "Velocidade",
                                 style = MaterialTheme.typography.titleLarge,
@@ -306,21 +305,6 @@ fun SpeedTestScreen(
 
             ModeSelector(modoSelecionado = modoSelecionado, onSelect = onModoSelecionado)
 
-            Spacer(Modifier.height(LkSpacing.md))
-
-            Text(
-                text =
-                    when (modoSelecionado) {
-                        ModoSpeedtest.fast -> "Download e upload · cerca de 15s"
-                        ModoSpeedtest.complete -> "Download, upload, bufferbloat e DNS · cerca de 60s"
-                        ModoSpeedtest.triplo -> "3 medições com intervalo de 10s · média calculada ao final"
-                    },
-                style = MaterialTheme.typography.titleSmall,
-                color = c.textSecondary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = LkSpacing.xl),
-            )
-
             val erroMsg = snapshotSpeedtest.erroMensagem
             if (snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro && erroMsg != null) {
                 Spacer(Modifier.height(LkSpacing.md))
@@ -337,11 +321,21 @@ fun SpeedTestScreen(
 
             val resultado = snapshotSpeedtest.resultado
             if (resultado != null) {
+                val timestampRelativo = remember(resultado.timestampEpochMs) {
+                    val diffMin = ((System.currentTimeMillis() - resultado.timestampEpochMs) / 60_000).toInt()
+                    when {
+                        diffMin < 1 -> "agora"
+                        diffMin < 60 -> "há $diffMin min"
+                        diffMin < 1440 -> "há ${diffMin / 60}h"
+                        else -> "há ${diffMin / 1440}d"
+                    }
+                }
                 LastResultCard(
                     c = c,
                     downloadMbps = resultado.downloadMbps,
                     uploadMbps = resultado.uploadMbps,
                     latencyMs = resultado.latenciaMs,
+                    relativeTimestamp = timestampRelativo,
                     label = if (modoSelecionado == ModoSpeedtest.triplo) "Média das 3 medições" else "Último resultado",
                     onClick = onAbrirHistorico,
                 )
