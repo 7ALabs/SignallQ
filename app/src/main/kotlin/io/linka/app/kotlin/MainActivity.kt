@@ -22,10 +22,12 @@ import io.linka.app.kotlin.core.network.EstadoConexao
 import io.linka.app.kotlin.ui.LinkaTheme
 import io.linka.app.kotlin.ui.screen.AppShell
 import io.linka.app.kotlin.ui.screen.OnboardingScreen
+import io.linka.app.kotlin.ui.viewmodel.ChatDiagnosticoIaViewModel
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
+    private val chatDiagViewModel: ChatDiagnosticoIaViewModel by viewModels()
 
     private val solicitacaoPermissoes =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -166,6 +168,8 @@ class MainActivity : ComponentActivity() {
             val diagChatCarregando by viewModel.diagChatCarregando.collectAsStateWithLifecycle()
             // #82 — Banner Anatel dismissível
             val anatelBannerDismissed = viewModel.anatelBannerDismissed.collectAsStateWithLifecycle().value
+            // Chat Diagnóstico IA
+            val chatDiagUiState by chatDiagViewModel.uiState.collectAsStateWithLifecycle()
 
             val gatewayIpDetectado = gateways.firstOrNull()?.ip
             val darkTheme =
@@ -336,6 +340,17 @@ class MainActivity : ComponentActivity() {
                         filtroOperadoraHistorico = filtroOperadoraHistorico,
                         onFiltroOperadoraHistoricoChange = { viewModel.setFiltroOperadoraHistorico(it) },
                         operadorasDisponiveisHistorico = operadorasDisponiveisHistorico,
+                        // Chat Diagnóstico IA
+                        chatDiagUiState = chatDiagUiState,
+                        onChatDiagEnviarMensagem = chatDiagViewModel::onEnviarMensagem,
+                        onChatDiagAtualizarDraft = chatDiagViewModel::onAtualizarDraft,
+                        onChatDiagEscolherOpcao = chatDiagViewModel::onEscolherOpcao,
+                        onChatDiagAbrirSessao = chatDiagViewModel::onAbrirSessao,
+                        onChatDiagApagarSessao = chatDiagViewModel::onApagarSessao,
+                        onChatDiagRenomearSessao = chatDiagViewModel::onRenomearSessao,
+                        onChatDiagNovaSessao = chatDiagViewModel::onNovaSessao,
+                        onChatDiagToggleDrawer = chatDiagViewModel::onToggleDrawer,
+                        onChatDiagCancelarAcaoAtual = chatDiagViewModel::onCancelarAcaoAtual,
                     )
                 } // else onboardingConcluido
             }

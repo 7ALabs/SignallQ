@@ -91,7 +91,9 @@ import io.linka.app.kotlin.feature.devices.SnapshotScanDispositivos
 import io.linka.app.kotlin.feature.diagnostico.SnapshotDiagnostico
 import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisState
 import io.linka.app.kotlin.feature.diagnostico.ai.DiagChatEntry
+import io.linka.app.kotlin.feature.diagnostico.chat.TipoDiagnostico
 import io.linka.app.kotlin.feature.diagnostico.pulse.OpcaoResposta
+import io.linka.app.kotlin.ui.viewmodel.ChatDiagUiState
 import io.linka.app.kotlin.feature.dns.SnapshotBenchmarkDns
 import io.linka.app.kotlin.feature.fibra.EstadoFibra
 import io.linka.app.kotlin.feature.fibra.SnapshotFibra
@@ -118,6 +120,7 @@ private enum class Overlay {
     Laudo,
     Chat,
     DiagnosticoInteligente,
+    ChatDiagnosticoIa,
     Ping,
     Privacidade,
     Novidades,
@@ -240,6 +243,17 @@ fun AppShell(
     filtroOperadoraHistorico: String? = null,
     onFiltroOperadoraHistoricoChange: (String?) -> Unit = {},
     operadorasDisponiveisHistorico: List<String> = emptyList(),
+    // Chat Diagnóstico IA
+    chatDiagUiState: ChatDiagUiState = ChatDiagUiState(),
+    onChatDiagEnviarMensagem: (String) -> Unit = {},
+    onChatDiagAtualizarDraft: (String) -> Unit = {},
+    onChatDiagEscolherOpcao: (TipoDiagnostico) -> Unit = {},
+    onChatDiagAbrirSessao: (String) -> Unit = {},
+    onChatDiagApagarSessao: (String) -> Unit = {},
+    onChatDiagRenomearSessao: (String, String) -> Unit = { _, _ -> },
+    onChatDiagNovaSessao: () -> Unit = {},
+    onChatDiagToggleDrawer: () -> Unit = {},
+    onChatDiagCancelarAcaoAtual: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
     // Desempacota UiState<T> → tipos opcionais para as telas filhas que ainda recebem primitivos.
@@ -368,10 +382,8 @@ fun AppShell(
                                 if (Overlay.Ping !in overlayStack) overlayStack.add(Overlay.Ping)
                             },
                             onAbrirDiagnostico = {
-                                diagInteligenteAnaliseSolicitada = true
-                                diagInteligenteAiState = AiDiagnosisState.idle
-                                if (Overlay.DiagnosticoInteligente !in overlayStack) {
-                                    overlayStack.add(Overlay.DiagnosticoInteligente)
+                                if (Overlay.ChatDiagnosticoIa !in overlayStack) {
+                                    overlayStack.add(Overlay.ChatDiagnosticoIa)
                                 }
                             },
                         )
@@ -671,6 +683,26 @@ fun AppShell(
                 chatHistorico = diagChatHistorico,
                 chatCarregando = diagChatCarregando,
                 onEnviarChat = onEnviarPerguntaDiagnostico,
+            )
+        }
+
+        AnimatedVisibility(
+            visible = Overlay.ChatDiagnosticoIa in overlayStack,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+        ) {
+            ChatDiagnosticoIaScreen(
+                uiState = chatDiagUiState,
+                onVoltar = { overlayStack.remove(Overlay.ChatDiagnosticoIa) },
+                onEnviarMensagem = onChatDiagEnviarMensagem,
+                onAtualizarDraft = onChatDiagAtualizarDraft,
+                onEscolherOpcao = onChatDiagEscolherOpcao,
+                onAbrirSessao = onChatDiagAbrirSessao,
+                onApagarSessao = onChatDiagApagarSessao,
+                onRenomearSessao = onChatDiagRenomearSessao,
+                onNovaSessao = onChatDiagNovaSessao,
+                onToggleDrawer = onChatDiagToggleDrawer,
+                onCancelarAcaoAtual = onChatDiagCancelarAcaoAtual,
             )
         }
 
