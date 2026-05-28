@@ -445,7 +445,10 @@ class MonitorTelephonyImpl(
      * Abordagem 1 (API 30+): NetworkRegistrationInfo.getNrState() via reflexão.
      *   getNrState() é @SystemApi — não acessível diretamente, mas presente em runtime.
      *   Valor 3 = NR_STATE_CONNECTED (constante documentada na AOSP).
-     * Abordagem 2: ServiceState.toString() — fallback cross-OEM para Android 9+.
+     * Abordagem 2: ServiceState.isNrAvailable() via reflexão (API 29+).
+     *   Presente em AOSP mas não exposta na SDK pública. OEMs como Samsung e Motorola
+     *   que não populam nrState corretamente ainda expõem isNrAvailable=true.
+     * Abordagem 3: ServiceState.toString() — fallback cross-OEM para Android 9+.
      */
     private fun detectarNrAtivo(ss: ServiceState): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -465,6 +468,14 @@ class MonitorTelephonyImpl(
                 // networkRegistrationInfoList indisponível ou falha antes de iterar.
                 Log.d(TAG, "detectarNrAtivo: falha ao acessar networkRegistrationInfoList — ativando fallback toString(). Causa: ${t.javaClass.simpleName}: ${t.message}")
             }
+        }
+        // Tentativa 2: isNrAvailable (API 29+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
+                val method = ss.javaClass.getDeclaredMethod("isNrAvailable")
+                method.isAccessible = true
+                if (method.invoke(ss) == true) return true
+            } catch (_: Exception) { }
         }
         return runCatching {
             val str = ss.toString()
