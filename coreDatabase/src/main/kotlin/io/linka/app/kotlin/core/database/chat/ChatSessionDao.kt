@@ -40,4 +40,8 @@ interface ChatSessionDao {
 
     @Query("SELECT COUNT(*) FROM chat_sessions")
     suspend fun contarSessoes(): Int
+
+    /** Atualiza apenas o campo atualizadoEmEpochMs, sem alterar outros campos. */
+    @Query("UPDATE chat_sessions SET atualizadoEmEpochMs = :atualizadoEmEpochMs WHERE id = :id")
+    suspend fun atualizarAtualizadoEm(id: String, atualizadoEmEpochMs: Long)
 }
