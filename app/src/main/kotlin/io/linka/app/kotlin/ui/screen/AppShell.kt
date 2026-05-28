@@ -599,6 +599,8 @@ fun AppShell(
                         }
                     },
                     ispInfo = ispInfoData,
+                    anatelBannerDismissed = anatelBannerDismissed,
+                    onDismissAnatelBanner = onDispensarBannerAnatel,
                 )
             }
         }

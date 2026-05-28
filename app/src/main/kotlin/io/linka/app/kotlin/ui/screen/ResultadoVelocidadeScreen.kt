@@ -100,6 +100,8 @@ fun ResultadoVelocidadeScreen(
     gemmaAvailable: Boolean = false,
     onAbrirChat: () -> Unit = {},
     ispInfo: IspInfo? = null,
+    anatelBannerDismissed: Boolean = true,
+    onDismissAnatelBanner: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
     val scrollState = rememberScrollState()
@@ -566,7 +568,13 @@ fun ResultadoVelocidadeScreen(
                     )
                 }
 
-                // 11. RecomendacaoCard
+                // 11. Banner Anatel (dismissível) — migrado da Home #171
+                if (!anatelBannerDismissed) {
+                    Spacer(Modifier.height(LkSpacing.md))
+                    AnatelBanner(onDismiss = onDismissAnatelBanner, c = c)
+                }
+
+                // 12. RecomendacaoCard
                 if (decisaoRecomendacao != null) {
                     Spacer(Modifier.height(LkSpacing.xxl))
                     RecomendacaoCard(texto = decisaoRecomendacao, c = c)

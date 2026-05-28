@@ -507,13 +507,6 @@ fun HomeScreen(
                 }
             }
 
-            // 4. Banner Anatel (dismissível) — #82
-            if (!anatelBannerDismissed) {
-                item {
-                    AnatelBanner(onDismiss = onDismissAnatelBanner, c = c)
-                }
-            }
-
             // 5. Atraso extra na conexão (Bufferbloat) — #82
             item {
                 BufferbloatCard(bufferbloatMs = ultimaMedicao?.bufferbloatMs, c = c)
@@ -559,7 +552,7 @@ private fun LinkaCard(
 // ─── #82 AnatelBanner ─────────────────────────────────────────────────────────
 
 @Composable
-private fun AnatelBanner(
+internal fun AnatelBanner(
     onDismiss: () -> Unit,
     c: LkTokens,
 ) {
