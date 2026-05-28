@@ -507,19 +507,6 @@ fun HomeScreen(
                 }
             }
 
-            // 3. O que você consegue fazer (ex-Experiência de Uso) — #82
-            item {
-                LinkaCard(c) {
-                    ExperienciaDeUsoSection(
-                        downloadMbps = effectiveDl,
-                        lat = lat,
-                        jit = jit,
-                        vereditoGamer = vereditoGamer,
-                        c = c,
-                    )
-                }
-            }
-
             // 4. Banner Anatel (dismissível) — #82
             if (!anatelBannerDismissed) {
                 item {
