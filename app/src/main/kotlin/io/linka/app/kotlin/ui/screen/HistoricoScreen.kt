@@ -728,14 +728,14 @@ fun HistoricoScreen(
             )
         },
     ) { padding ->
-        // Usa historicoFiltrado para o guard: quando filtro MOVEL está ativo e não há
-        // registros móveis, mostra estado vazio correto em vez de LazyColumn com dados quebrados.
         val listaParaExibir = historicoFiltrado
-        if (listaParaExibir.isEmpty()) {
+        val filtroAtivo = filtroConexaoAtivo != FiltroTipo.TODOS
+
+        if (listaParaExibir.isEmpty() && !filtroAtivo) {
             EmptyHistorico(
                 modifier = Modifier.fillMaxSize().padding(padding),
                 onIniciarTeste = onIniciarTeste,
-                filtroAtivo = filtroConexaoAtivo != FiltroTipo.TODOS,
+                filtroAtivo = false,
             )
         } else {
             val maxValue =
@@ -751,11 +751,13 @@ fun HistoricoScreen(
                 contentPadding = PaddingValues(horizontal = LkSpacing.lg, vertical = LkSpacing.lg),
                 verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
             ) {
-                item(key = "grafico_linha") {
-                    LineChartGrafico(medicoes = historicoFiltrado, c = c)
-                }
-                item(key = "media_cards") {
-                    MediaCards(medicoes = historicoFiltrado, c = c)
+                if (listaParaExibir.isNotEmpty()) {
+                    item(key = "grafico_linha") {
+                        LineChartGrafico(medicoes = historicoFiltrado, c = c)
+                    }
+                    item(key = "media_cards") {
+                        MediaCards(medicoes = historicoFiltrado, c = c)
+                    }
                 }
                 item(key = "filtros_conexao") {
                     FiltrosConexao(
@@ -780,38 +782,48 @@ fun HistoricoScreen(
                         c = c,
                     )
                 }
-                item(key = "medir_agora") {
-                    Button(
-                        onClick = onIniciarTeste,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(LkRadius.card),
-                        colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
-                        contentPadding = PaddingValues(vertical = 14.dp),
-                    ) {
-                        Text("Medir agora", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600)
+                if (listaParaExibir.isEmpty()) {
+                    item(key = "empty_filtro") {
+                        EmptyHistorico(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = LkSpacing.xxl),
+                            onIniciarTeste = onIniciarTeste,
+                            filtroAtivo = true,
+                        )
                     }
-                }
-                resumoHistorico?.let { resumo ->
-                    if (resumo.totalMedicoes >= 2) {
-                        item(key = "tendencia") {
-                            TendenciaCard(resumo = resumo, c = c)
+                } else {
+                    item(key = "medir_agora") {
+                        Button(
+                            onClick = onIniciarTeste,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(LkRadius.card),
+                            colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                            contentPadding = PaddingValues(vertical = 14.dp),
+                        ) {
+                            Text("Medir agora", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600)
                         }
                     }
-                }
-                items(historicoFiltrado, key = { it.id }) { medicao ->
-                    HistoricoCard(
-                        medicao = medicao,
-                        maxValue = maxValue,
-                        onClick = {
-                            scope.launch {
-                                if (mostrarExport) {
-                                    sheetExportState.hide()
-                                    mostrarExport = false
-                                }
-                                selectedMedicao = medicao
+                    resumoHistorico?.let { resumo ->
+                        if (resumo.totalMedicoes >= 2) {
+                            item(key = "tendencia") {
+                                TendenciaCard(resumo = resumo, c = c)
                             }
-                        },
-                    )
+                        }
+                    }
+                    items(historicoFiltrado, key = { it.id }) { medicao ->
+                        HistoricoCard(
+                            medicao = medicao,
+                            maxValue = maxValue,
+                            onClick = {
+                                scope.launch {
+                                    if (mostrarExport) {
+                                        sheetExportState.hide()
+                                        mostrarExport = false
+                                    }
+                                    selectedMedicao = medicao
+                                }
+                            },
+                        )
+                    }
                 }
             }
         }

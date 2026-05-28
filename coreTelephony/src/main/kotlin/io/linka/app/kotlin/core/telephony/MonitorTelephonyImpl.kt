@@ -16,6 +16,7 @@ import android.telephony.ServiceState
 import android.telephony.SignalStrength
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyCallback
+import android.telephony.TelephonyDisplayInfo
 import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -59,6 +60,7 @@ class MonitorTelephonyImpl(
 
     @Volatile private var sinalAtual: SignalStrength? = null
     @Volatile private var serviceState: ServiceState? = null
+    @Volatile private var overrideNetworkType: Int = 0
     @Volatile private var iniciou = false
 
     // Callbacks API 31+
@@ -111,6 +113,10 @@ class MonitorTelephonyImpl(
             sm.activeSubscriptionInfoList.orEmpty()
         }.getOrElse { return emptyList() }
 
+        val defaultDataSubId = runCatching {
+            SubscriptionManager.getDefaultDataSubscriptionId()
+        }.getOrDefault(SubscriptionManager.INVALID_SUBSCRIPTION_ID)
+
         return sims.mapNotNull { info ->
             runCatching {
                 val subId = info.subscriptionId
@@ -149,6 +155,7 @@ class MonitorTelephonyImpl(
                     tecnologiaRede = tecnologiaRede,
                     rsrpDbm = rsrpDbm,
                     emRoaming = emRoaming,
+                    isDefaultData = subId == defaultDataSubId,
                 )
             }.getOrNull()
         }
@@ -223,7 +230,8 @@ class MonitorTelephonyImpl(
         val cb = object : TelephonyCallback(),
             TelephonyCallback.SignalStrengthsListener,
             TelephonyCallback.ServiceStateListener,
-            TelephonyCallback.CellInfoListener {
+            TelephonyCallback.CellInfoListener,
+            TelephonyCallback.DisplayInfoListener {
 
             override fun onSignalStrengthsChanged(signalStrength: SignalStrength) {
                 sinalAtual = signalStrength
@@ -236,6 +244,11 @@ class MonitorTelephonyImpl(
             }
 
             override fun onCellInfoChanged(cellInfo: MutableList<android.telephony.CellInfo>) {
+                recomputar()
+            }
+
+            override fun onDisplayInfoChanged(telephonyDisplayInfo: TelephonyDisplayInfo) {
+                overrideNetworkType = telephonyDisplayInfo.overrideNetworkType
                 recomputar()
             }
         }
@@ -297,6 +310,17 @@ class MonitorTelephonyImpl(
         val (mcc, mnc) = parseMccMnc(tm.networkOperator)
         val roaming = runCatching { tm.isNetworkRoaming }.getOrNull()
         var tecnologia = derivarTecnologia(tm)
+
+        // Fallback via TelephonyDisplayInfo (API 31+): overrideNetworkType é o mesmo
+        // indicador que o sistema usa para exibir "5G" na barra de status.
+        // Valores >= 3 indicam NR: NR_NSA(3), NR_NSA_MMWAVE(4), NR_ADVANCED(5).
+        if (tecnologia == "4G" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val override = overrideNetworkType
+            if (override >= 3) {
+                Log.d(TAG, "Fallback 5G NSA via TelephonyDisplayInfo.overrideNetworkType=$override")
+                tecnologia = "5G NSA"
+            }
+        }
 
         // Tenta obter CellInfo (LTE ou NR).
         val cellInfos = runCatching { tm.allCellInfo }.getOrNull().orEmpty()

@@ -258,6 +258,7 @@ fun AppShell(
     val localIpStr: String? = (localIp as? UiState.Success)?.data
     val publicIpStr: String? = (publicIp as? UiState.Success)?.data
     val ispInfoData: IspInfo? = (ispInfo as? UiState.Success)?.data
+    val isIspInfoLoading = publicIp is UiState.Loading
     var selectedTab by remember { mutableIntStateOf(0) }
     var modoSelecionado by remember { mutableStateOf(ModoSpeedtest.complete) }
     val overlayStack = remember { mutableStateListOf<Overlay>() }
@@ -345,6 +346,7 @@ fun AppShell(
                             localIp = localIpStr,
                             publicIp = publicIpStr,
                             ispInfo = ispInfoData,
+                            isIspInfoLoading = isIspInfoLoading,
                             gateways = gateways,
                             deviceName = deviceName,
                             nomeUsuario = nomeUsuario,
@@ -424,6 +426,7 @@ fun AppShell(
                             estadoConexao = snapshotRede.estadoConexao,
                             conectado = snapshotRede.conectado,
                             movelSnapshot = movelSnapshot,
+                            simsAtivos = simsAtivos,
                             localIp = localIpStr,
                             temPermissaoTelefonia = temPermissaoTelefonia,
                             onSolicitarPermissaoTelefonia = onSolicitarPermissaoTelefonia,

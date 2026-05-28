@@ -181,6 +181,7 @@ fun HomeScreen(
     localIp: String?,
     publicIp: String?,
     ispInfo: IspInfo?,
+    isIspInfoLoading: Boolean = true,
     gateways: List<GatewayInfo>,
     deviceName: String,
     nomeUsuario: String,
@@ -373,6 +374,7 @@ fun HomeScreen(
                     gateways = gateways,
                     localIp = localIp,
                     publicIp = publicIp,
+                    isIspInfoLoading = isIspInfoLoading,
                     deviceName = deviceName,
                     connectedNetwork = connectedNetwork,
                     ispInfo = ispInfo,
@@ -791,6 +793,7 @@ private fun NetworkPath(
     gateways: List<GatewayInfo>,
     localIp: String?,
     publicIp: String?,
+    isIspInfoLoading: Boolean,
     deviceName: String,
     connectedNetwork: RedeVizinha?,
     ispInfo: IspInfo?,
@@ -812,13 +815,14 @@ private fun NetworkPath(
     // Mostrar erro apenas quando o SO confirma que não há internet (captive portal, etc.).
     val hasInternetError = isConectado && localIp != null && !snapshotRede.conectado
 
-    // loadingInternet = conectado + validado + sem IP/ISP ainda (fetch em andamento).
+    // loadingInternet = conectado + validado + fetch de IP/ISP ainda em andamento.
+    // Usa isIspInfoLoading (UiState.Loading) em vez de null-check — UiState.Error
+    // também produz null após unwrap, mas não significa "ainda carregando".
     val loadingInternet =
         isConectado &&
             snapshotRede.conectado &&
             localIp != null &&
-            publicIp == null &&
-            ispInfo == null
+            isIspInfoLoading
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -892,7 +896,11 @@ private fun NetworkPath(
                 }
             val internetSubLabel =
                 ispInfo?.ip ?: publicIp
-                    ?: if (hasInternetError) stringResource(R.string.home_network_sem_conexao) else stringResource(R.string.home_network_conectando)
+                    ?: when {
+                        hasInternetError -> stringResource(R.string.home_network_sem_conexao)
+                        isIspInfoLoading -> stringResource(R.string.home_network_conectando)
+                        else -> "—"
+                    }
             val internetSubColor: Color? =
                 when {
                     hasInternetError -> LkColors.error

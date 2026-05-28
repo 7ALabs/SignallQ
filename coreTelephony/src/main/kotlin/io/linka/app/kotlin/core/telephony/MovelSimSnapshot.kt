@@ -21,4 +21,5 @@ data class MovelSimSnapshot(
     val tecnologiaRede: String?,
     val rsrpDbm: Int?,
     val emRoaming: Boolean,
+    val isDefaultData: Boolean = false,
 )

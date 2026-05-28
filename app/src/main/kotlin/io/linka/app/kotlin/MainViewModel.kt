@@ -500,13 +500,9 @@ class MainViewModel
                 monitorRede.snapshotFlow.collect { snapshot ->
                     val estadoAtual = snapshot.estadoConexao
                     val ssidAtual = snapshot.wifiLinkSnapshot?.ssid
-                    // Mantem monitor de telefonia ativo apenas em rede movel.
-                    // Evita callbacks de radio desnecessarios em Wi-Fi/Ethernet.
-                    if (estadoAtual == EstadoConexao.movel) {
-                        iniciarMonitorTelefoniaSeMovel()
-                    } else {
-                        monitorTelephony.encerrar()
-                    }
+                    // Mantem monitor de telefonia sempre ativo para exibir info
+                    // de chips na tela de Sinal mesmo quando conectado em Wi-Fi.
+                    iniciarMonitorTelefoniaSempre()
                     if (estadoAnterior != null && estadoAtual != estadoAnterior) {
                         infoLocalRedeColetada = false
                         ispInfoColetada = false
@@ -536,16 +532,13 @@ class MainViewModel
 
         /**
          * Observa mudancas no snapshot movel para manter [simsAtivos] atualizado.
-         * Roda apenas quando ha snapshot nao-null (rede movel ativa com permissao).
-         * Em Wi-Fi/Ethernet, snapshot vai null e simsAtivos fica com o ultimo valor capturado
-         * — ok pois o CardMovelDualSim nao e exibido fora de rede movel ativa.
+         * Atualiza sempre que houver coleta — inclusive em Wi-Fi, pois a tela
+         * de Sinal agora exibe info de chips independentemente do tipo de conexao.
          */
         private fun iniciarObservadorSimsAtivos() {
             viewModelScope.launch {
-                monitorTelephony.snapshotFlow.collect { snap ->
-                    if (snap != null) {
-                        atualizarSimsAtivos()
-                    }
+                monitorTelephony.snapshotFlow.collect {
+                    atualizarSimsAtivos()
                 }
             }
         }
@@ -566,6 +559,14 @@ class MainViewModel
             if (monitorRede.snapshotFlow.value.estadoConexao == EstadoConexao.movel) {
                 monitorTelephony.iniciar()
             }
+        }
+
+        /**
+         * Inicia o monitor de telefonia independentemente do tipo de conexao.
+         * Necessario para exibir info de chips na tela de Sinal em Wi-Fi.
+         */
+        private fun iniciarMonitorTelefoniaSempre() {
+            monitorTelephony.iniciar()
         }
 
         fun reiniciarSuite(modo: ModoSpeedtest) {

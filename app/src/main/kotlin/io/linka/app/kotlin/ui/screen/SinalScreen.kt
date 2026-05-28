@@ -91,6 +91,7 @@ import androidx.compose.ui.unit.sp
 import io.linka.app.kotlin.R
 import io.linka.app.kotlin.core.network.EstadoConexao
 import io.linka.app.kotlin.core.network.WifiLinkSnapshot
+import io.linka.app.kotlin.core.telephony.MovelSimSnapshot
 import io.linka.app.kotlin.core.telephony.MovelSnapshot
 import io.linka.app.kotlin.feature.diagnostico.BandaWifi
 import io.linka.app.kotlin.feature.diagnostico.CanalStrings
@@ -214,6 +215,7 @@ fun SinalScreen(
     estadoConexao: EstadoConexao,
     conectado: Boolean = true,
     movelSnapshot: MovelSnapshot? = null,
+    simsAtivos: List<MovelSimSnapshot> = emptyList(),
     localIp: String? = null,
     temPermissaoTelefonia: Boolean = false,
     onSolicitarPermissaoTelefonia: () -> Unit = {},
@@ -382,6 +384,7 @@ fun SinalScreen(
                 else -> {
                     MovelTab(
                         movelSnapshot = movelSnapshot,
+                        simsAtivos = simsAtivos,
                         temPermissaoTelefonia = temPermissaoTelefonia,
                         onSolicitarPermissaoTelefonia = onSolicitarPermissaoTelefonia,
                         localIp = localIp,
@@ -441,6 +444,7 @@ fun SinalScreen(
 @Composable
 private fun MovelTab(
     movelSnapshot: MovelSnapshot?,
+    simsAtivos: List<MovelSimSnapshot>,
     temPermissaoTelefonia: Boolean,
     onSolicitarPermissaoTelefonia: () -> Unit,
     localIp: String?,
@@ -456,7 +460,7 @@ private fun MovelTab(
         }
         return
     }
-    if (movelSnapshot == null) {
+    if (movelSnapshot == null && simsAtivos.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             EmptyStateMobile(c)
         }
@@ -465,14 +469,226 @@ private fun MovelTab(
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(LkSpacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
-        MobileSignalCard(
-            snapshot = movelSnapshot,
-            localIp = localIp,
-            temPermissao = temPermissaoTelefonia,
-            onSolicitarPermissao = onSolicitarPermissaoTelefonia,
-            tokens = c,
+        if (movelSnapshot != null) {
+            MobileSignalCard(
+                snapshot = movelSnapshot,
+                localIp = localIp,
+                temPermissao = temPermissaoTelefonia,
+                onSolicitarPermissao = onSolicitarPermissaoTelefonia,
+                tokens = c,
+            )
+        }
+        if (simsAtivos.isNotEmpty()) {
+            ChipsAtivosSection(simsAtivos = simsAtivos, tokens = c)
+        }
+        // Aviso sobre uso de dados
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(LkColors.warning.copy(alpha = 0.10f))
+                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+        ) {
+            Icon(
+                Icons.Outlined.Warning,
+                contentDescription = null,
+                tint = LkColors.warning,
+                modifier = Modifier.size(18.dp),
+            )
+            Text(
+                "Testes pelo chip usam dados do seu plano. Prefira o Wi-Fi quando possível.",
+                style = MaterialTheme.typography.bodySmall,
+                color = c.textSecondary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChipsAtivosSection(
+    simsAtivos: List<MovelSimSnapshot>,
+    tokens: LkTokens,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+    ) {
+        Text(
+            "CHIPS ATIVOS",
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.W700,
+            color = tokens.textTertiary,
+            modifier = Modifier.padding(bottom = LkSpacing.xs),
         )
+        simsAtivos.forEach { sim ->
+            SimCard(sim = sim, tokens = tokens)
+        }
+    }
+}
+
+@Composable
+private fun SimCard(
+    sim: MovelSimSnapshot,
+    tokens: LkTokens,
+) {
+    val forcaSinal = sim.rsrpDbm?.let { rsrp ->
+        when {
+            rsrp > -85 -> "Forte"
+            rsrp > -100 -> "Médio"
+            else -> "Fraco"
+        }
+    }
+    val corForca = sim.rsrpDbm?.let { rsrp ->
+        when {
+            rsrp > -85 -> LkColors.success
+            rsrp > -100 -> LkColors.warning
+            else -> LkColors.error
+        }
+    }
+    val qualidade = sim.rsrpDbm?.let { rsrp ->
+        when {
+            rsrp > -80 -> "Excelente"
+            rsrp > -90 -> "Bom"
+            rsrp > -100 -> "Regular"
+            else -> "Ruim"
+        }
+    }
+    val corQualidade = sim.rsrpDbm?.let { rsrp ->
+        when {
+            rsrp > -80 -> LkColors.success
+            rsrp > -90 -> LkColors.accentBlue
+            rsrp > -100 -> LkColors.warning
+            else -> LkColors.error
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(tokens.bgCard)
+            .border(1.dp, tokens.border, RoundedCornerShape(16.dp))
+            .padding(LkSpacing.md),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Outlined.SignalCellularAlt,
+                contentDescription = null,
+                tint = LkColors.accent,
+                modifier = Modifier.size(20.dp),
+            )
+            Spacer(Modifier.width(LkSpacing.xs))
+            Text(
+                "SIM ${sim.simIndex}",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.W700,
+                color = tokens.textPrimary,
+            )
+            if (sim.operadora != null) {
+                Text(
+                    " · ${sim.operadora}",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = tokens.textSecondary,
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            if (sim.isDefaultData) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(LkColors.accent.copy(alpha = 0.12f))
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                ) {
+                    Text(
+                        "EM USO",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.W700,
+                        color = LkColors.accent,
+                    )
+                }
+            }
+        }
+
+        if (sim.tecnologiaRede != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+            ) {
+                Icon(
+                    Icons.Outlined.CellTower,
+                    contentDescription = null,
+                    tint = tokens.textTertiary,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    sim.tecnologiaRede ?: "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.W600,
+                    color = tokens.textPrimary,
+                )
+            }
+        }
+
+        if (forcaSinal != null && corForca != null && qualidade != null && corQualidade != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+            ) {
+                Column {
+                    Text(
+                        "Sinal",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = tokens.textTertiary,
+                    )
+                    Text(
+                        "$forcaSinal (${sim.rsrpDbm} dBm)",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.W600,
+                        color = corForca,
+                    )
+                }
+                Column {
+                    Text(
+                        "Qualidade",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = tokens.textTertiary,
+                    )
+                    Text(
+                        qualidade,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.W600,
+                        color = corQualidade,
+                    )
+                }
+            }
+        }
+
+        if (sim.emRoaming) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+            ) {
+                Icon(
+                    Icons.Outlined.Warning,
+                    contentDescription = null,
+                    tint = LkColors.warning,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    "Roaming internacional",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LkColors.warning,
+                )
+            }
+        }
     }
 }
 
@@ -2716,12 +2932,12 @@ private fun EmptyStatePermissaoTelefonia(
 @Composable
 private fun EmptyStateMobile(tokens: LkTokens) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(Icons.Outlined.SignalCellularAlt, null, tint = tokens.textTertiary, modifier = Modifier.size(48.dp))
+        Icon(Icons.Outlined.SignalCellularOff, null, tint = tokens.textTertiary, modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(LkSpacing.md))
-        Text("Conectado via rede móvel", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.W600, color = tokens.textPrimary)
+        Text("Sem chip detectado", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.W600, color = tokens.textPrimary)
         Spacer(Modifier.height(LkSpacing.sm))
         Text(
-            "Análise de canais Wi-Fi não disponível\nna rede móvel.",
+            "Nenhum chip ativo foi encontrado.\nInsira um SIM para ver informações de rede móvel.",
             style = MaterialTheme.typography.bodyMedium,
             color = tokens.textSecondary,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
