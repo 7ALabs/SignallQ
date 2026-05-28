@@ -489,16 +489,6 @@ fun HomeScreen(
                 }
             }
 
-            // 6. Mini-cards: DNS / Ping / Diagnóstico — #82
-            item {
-                MiniCardsRow(
-                    c = c,
-                    onAbrirDns = onAbrirDns,
-                    onAbrirPing = onAbrirPing,
-                    onAbrirDiagnostico = onAbrirDiagnostico,
-                )
-            }
-
         }
     }
 }
