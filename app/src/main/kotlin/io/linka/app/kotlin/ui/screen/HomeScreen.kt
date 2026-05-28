@@ -507,11 +507,6 @@ fun HomeScreen(
                 }
             }
 
-            // 5. Atraso extra na conexão (Bufferbloat) — #82
-            item {
-                BufferbloatCard(bufferbloatMs = ultimaMedicao?.bufferbloatMs, c = c)
-            }
-
             // 6. Mini-cards: DNS / Ping / Diagnóstico — #82
             item {
                 MiniCardsRow(
@@ -608,7 +603,7 @@ internal fun AnatelBanner(
 // ─── #82 BufferbloatCard ───────────────────────────────────────────────────────
 
 @Composable
-private fun BufferbloatCard(
+internal fun BufferbloatCard(
     bufferbloatMs: Double?,
     c: LkTokens,
 ) {

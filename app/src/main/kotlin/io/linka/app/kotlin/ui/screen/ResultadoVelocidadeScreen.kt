@@ -568,19 +568,23 @@ fun ResultadoVelocidadeScreen(
                     )
                 }
 
-                // 11. Banner Anatel (dismissível) — migrado da Home #171
+                // 11. Card Bufferbloat — migrado da Home #172
+                Spacer(Modifier.height(LkSpacing.md))
+                BufferbloatCard(bufferbloatMs = resultado.bufferbloatMs.takeIf { it > 0.0 }, c = c)
+
+                // 12. Banner Anatel (dismissível) — migrado da Home #171
                 if (!anatelBannerDismissed) {
                     Spacer(Modifier.height(LkSpacing.md))
                     AnatelBanner(onDismiss = onDismissAnatelBanner, c = c)
                 }
 
-                // 12. RecomendacaoCard
+                // 13. RecomendacaoCard
                 if (decisaoRecomendacao != null) {
                     Spacer(Modifier.height(LkSpacing.xxl))
                     RecomendacaoCard(texto = decisaoRecomendacao, c = c)
                 }
 
-                // 12. OperadoraContactCard — exibido quando o diagnóstico aponta problema no ISP
+                // 14. OperadoraContactCard — exibido quando o diagnóstico aponta problema no ISP
                 val mostrarContato = decisao?.categoria == "isp"
                 if (mostrarContato) {
                     val operadora = remember(ispInfo?.isp) { BancoOperadoras.resolver(ispInfo?.isp) }
