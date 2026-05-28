@@ -186,4 +186,10 @@
     <string name="fibra_erro_comunicacao">Não foi possível se comunicar com o modem. Tente novamente em instantes.</string>
     <string name="fibra_erro_sem_rede">Sem conexão com a rede. Verifique o Wi-Fi ou cabo de rede e tente novamente.</string>
     <string name="fibra_erro_generico">Ocorreu um erro inesperado. Tente novamente.</string>
+
+    <!-- Home TopBar contextual (#180) -->
+    <string name="home_topbar_conectado_wifi">Você está conectado em %1$s</string>
+    <string name="home_topbar_conectado_movel">Você está conectado com %1$s</string>
+    <string name="home_topbar_sem_conexao">Sem conexão ativa</string>
+    <string name="sinal_sua_conexao">SUA CONEXÃO</string>
 </resources>

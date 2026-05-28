@@ -106,6 +106,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -136,6 +139,32 @@ import io.linka.app.kotlin.ui.LocalLkTokens
 import io.linka.app.kotlin.ui.component.ProfileAvatarButton
 import io.linka.app.kotlin.ui.component.rememberTopBarAlpha
 import kotlin.math.roundToInt
+
+// ─── TopBar subtitle (#180) ───────────────────────────────────────────────────
+
+private fun topBarSubtitulo(
+    snapshotRede: SnapshotRede,
+    movelSnapshot: MovelSnapshot?,
+): AnnotatedString =
+    buildAnnotatedString {
+        when (snapshotRede.estadoConexao) {
+            EstadoConexao.wifi -> {
+                val ssid = snapshotRede.wifiLinkSnapshot?.ssid?.ifBlank { null } ?: "Wi-Fi"
+                append("Você está conectado em ")
+                pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                append(ssid)
+                pop()
+            }
+            EstadoConexao.movel -> {
+                val operadora = movelSnapshot?.operadora?.ifBlank { null } ?: "Operadora"
+                append("Você está conectado com ")
+                pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                append(operadora)
+                pop()
+            }
+            else -> append("Sem conexão ativa")
+        }
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -281,15 +310,26 @@ fun HomeScreen(
             CenterAlignedTopAppBar(
                 modifier = Modifier.graphicsLayer { alpha = topBarAlpha },
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Outlined.Home, contentDescription = null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(LkSpacing.sm))
-                        Text(
-                            text = stringResource(R.string.home_titulo),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.W600,
-                            color = c.textPrimary,
-                        )
+                    val estaConectado = snapshotRede.estadoConexao == EstadoConexao.wifi ||
+                        snapshotRede.estadoConexao == EstadoConexao.movel
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Outlined.Home, contentDescription = null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(LkSpacing.sm))
+                            Text(
+                                text = stringResource(R.string.home_titulo),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.W600,
+                                color = c.textPrimary,
+                            )
+                        }
+                        if (estaConectado) {
+                            Text(
+                                text = topBarSubtitulo(snapshotRede, movelSnapshot),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = c.textSecondary,
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
