@@ -709,6 +709,7 @@ fun AppShell(
             visible = Overlay.ChatDiagnosticoIa in overlayStack,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.fillMaxSize(),
         ) {
             ChatDiagnosticoIaScreen(
                 uiState = chatDiagUiState,

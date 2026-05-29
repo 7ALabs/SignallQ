@@ -1,5 +1,15 @@
 package io.linka.app.kotlin.ui.screen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.EaseInOut
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -306,6 +316,7 @@ private fun ListaMensagens(
                             mensagem = mensagem,
                             isLatest = isUltima,
                             tokens = tokens,
+                            modeloDisplayName = uiState.modeloDisplayName,
                         )
                     }
                 }
@@ -377,21 +388,19 @@ private fun BubbleAssistente(
     mensagem: ChatMensagem,
     isLatest: Boolean,
     tokens: io.linka.app.kotlin.ui.LkTokens,
+    modeloDisplayName: String = "Qwen3 30B",
 ) {
     val timeStr =
         remember(mensagem.criadoEmEpochMs) {
             val cal = Calendar.getInstance().apply { timeInMillis = mensagem.criadoEmEpochMs }
             "%02d:%02d".format(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE))
         }
-    val sourceLabel = "Diagnóstico IA · $timeStr"
 
-    // Detecta thinking inline no conteúdo
     val isStreaming = mensagem.status == StatusChatMensagem.streaming
     val (thinkingText, responseText) =
         remember(mensagem.conteudo) {
             parseThinkingContent(mensagem.conteudo)
         }
-    // Thinking em andamento: <think> presente mas </think> ainda não chegou
     val isThinkingInProgress =
         isStreaming &&
             mensagem.conteudo.contains("<think>") &&
@@ -401,11 +410,11 @@ private fun BubbleAssistente(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .animateContentSize()
                 .padding(vertical = LkSpacing.sm),
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
-        // Símbolo orbit simples
         Box(
             modifier =
                 Modifier
@@ -434,49 +443,24 @@ private fun BubbleAssistente(
                     .weight(1f)
                     .background(
                         color = tokens.bgSecondary,
-                        shape = RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp),
+                        shape =
+                            RoundedCornerShape(
+                                topStart = 4.dp,
+                                topEnd = 16.dp,
+                                bottomStart = 16.dp,
+                                bottomEnd = 16.dp,
+                            ),
                     ).padding(LkSpacing.md),
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
             ) {
-                // Seção de thinking — só aparece se há conteúdo de thinking
+                // ── Thinking section ──
                 if (isThinkingInProgress) {
-                    Text(
-                        text = "Pensando...",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = tokens.textTertiary,
-                    )
+                    ThinkingInProgressRow(tokens)
                 } else if (thinkingText != null) {
-                    var expanded by remember { mutableStateOf(false) }
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable { expanded = !expanded },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = tokens.textTertiary,
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = "Raciocínio",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = tokens.textTertiary,
-                        )
-                    }
-                    if (expanded) {
-                        Text(
-                            text = thinkingText,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = tokens.textTertiary,
-                        )
-                    }
+                    ThinkingCompletedSection(thinkingText, tokens)
                 }
 
                 val textStyle =
@@ -489,25 +473,112 @@ private fun BubbleAssistente(
                             },
                     )
 
-                // Texto da resposta sem o bloco de thinking
                 val displayText = if (thinkingText != null) responseText else mensagem.conteudo
                 if (displayText.isNotBlank()) {
-                    if (isLatest && isStreaming && displayText.isNotBlank()) {
-                        TypewriterText(text = displayText, style = textStyle)
-                    } else if (isLatest && mensagem.status == StatusChatMensagem.concluido && displayText.length > 500) {
+                    if (isLatest && isStreaming) {
                         TypewriterText(text = displayText, style = textStyle)
                     } else {
                         Text(text = displayText, style = textStyle)
                     }
                 }
 
+                // ── Footer: fonte + modelo ──
                 Spacer(Modifier.height(2.dp))
-                Text(
-                    text = sourceLabel,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = tokens.textTertiary,
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text(
+                        text = "Linka IA · $timeStr",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = tokens.textTertiary,
+                    )
+                    if (mensagem.status == StatusChatMensagem.concluido && !mensagem.isLocal) {
+                        Text(
+                            text = modeloDisplayName,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = tokens.textTertiary.copy(alpha = 0.6f),
+                        )
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun ThinkingInProgressRow(tokens: io.linka.app.kotlin.ui.LkTokens) {
+    val infiniteTransition = rememberInfiniteTransition(label = "thinking-pulse")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(800, easing = EaseInOut),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "pulse-alpha",
+    )
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .size(8.dp)
+                    .background(
+                        color = LkColors.accent.copy(alpha = alpha),
+                        shape = RoundedCornerShape(999.dp),
+                    ),
+        )
+        Text(
+            text = "Pensando...",
+            style = MaterialTheme.typography.labelSmall,
+            color = tokens.textTertiary.copy(alpha = alpha),
+        )
+    }
+}
+
+@Composable
+private fun ThinkingCompletedSection(
+    thinkingText: String,
+    tokens: io.linka.app.kotlin.ui.LkTokens,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val estimatedSeconds = (thinkingText.length / 100).coerceAtLeast(1)
+
+    Column {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Icon(
+                imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = tokens.textTertiary,
+            )
+            Text(
+                text = "Pensou por ${estimatedSeconds}s",
+                style = MaterialTheme.typography.labelSmall,
+                color = tokens.textTertiary,
+            )
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(animationSpec = tween(200)),
+            exit = shrinkVertically(animationSpec = tween(200)),
+        ) {
+            Text(
+                text = thinkingText,
+                style = MaterialTheme.typography.bodySmall,
+                color = tokens.textTertiary,
+                modifier = Modifier.padding(start = 20.dp, top = LkSpacing.xs),
+            )
         }
     }
 }

@@ -17,5 +17,18 @@ Não-negociáveis:
 
 Referência rápida de tokens: ver `.claude/skills/linka-design/HANDOFF_README.md` (tabela completa de cores, espaçamento, raios e tipografia).
 
+## Release Process
+
+Quando o usuário pedir para subir/deploy/publicar no Firebase, seguir OBRIGATORIAMENTE nesta ordem:
+
+1. **Commit** — stage todos os arquivos modificados, commit com mensagem descritiva
+2. **Push** — `git push origin main` para sincronizar GitHub
+3. **Clean build** — `./gradlew clean assembleRelease --no-build-cache` (NUNCA usar cache em release)
+4. **Upload** — `./gradlew appDistributionUploadRelease`
+
+Nunca pular etapas. Nunca fazer assembleRelease sem clean + --no-build-cache antes. O cache do Gradle já causou builds desatualizados no Firebase.
+
+Worker Cloudflare: quando houver mudanças em `integrations/cloudflare/ai-diagnosis-worker/src/`, fazer `npx wrangler deploy` ANTES do commit.
+
 ## Context
 

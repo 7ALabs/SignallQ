@@ -101,6 +101,7 @@ class ChatDiagnosticoIaViewModel
             private const val TAG = "ChatDiagnosticoIaVM"
             private const val AI_BASE_URL =
                 "https://linka-ai-diagnosis-worker.giammattey-luiz.workers.dev"
+            private const val MODELO_DISPLAY_NAME = "Qwen3 30B"
         }
 
         // -------------------------------------------------------------------------
@@ -315,6 +316,7 @@ class ChatDiagnosticoIaViewModel
         // -------------------------------------------------------------------------
 
         init {
+            _uiState.update { it.copy(modeloDisplayName = MODELO_DISPLAY_NAME) }
             iniciarObservadores()
             onNovaSessao()
         }
