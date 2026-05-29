@@ -146,7 +146,10 @@ fun DiagnosticoScreen(
     val scope = rememberCoroutineScope()
 
     var signalSelection by remember { mutableStateOf(DiagSignalSelection()) }
-    var mostrarMensagemConectando by remember { mutableStateOf(false) }
+    var loadingStartTime by remember { mutableStateOf<Long?>(null) }
+    var mostrarMensagemConectando by remember(loadingStartTime) {
+        mutableStateOf(false)
+    }
 
     val aiRepository =
         remember {
@@ -155,13 +158,17 @@ fun DiagnosticoScreen(
 
     LaunchedEffect(aiState) {
         if (aiState is AiDiagnosisState.loading) {
-            mostrarMensagemConectando = false
-            delay(10_000L)
-            if (aiState is AiDiagnosisState.loading) {
-                mostrarMensagemConectando = true
-            }
+            loadingStartTime = System.currentTimeMillis()
         } else {
+            loadingStartTime = null
             mostrarMensagemConectando = false
+        }
+    }
+
+    if (loadingStartTime != null) {
+        LaunchedEffect(loadingStartTime) {
+            delay(10_000L)
+            mostrarMensagemConectando = true
         }
     }
 
