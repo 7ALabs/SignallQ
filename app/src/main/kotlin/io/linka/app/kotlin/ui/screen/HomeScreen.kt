@@ -49,9 +49,9 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Laptop
+import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
-import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Router
@@ -1347,34 +1347,38 @@ private fun SignalQualityRow(
 // ─── Wifi signal helpers ─────────────────────────────────────────────────────
 
 @Composable
-private fun wifiSignalColor(rssiDbm: Int): Color = when {
-    rssiDbm >= -55 -> LkColors.success
-    rssiDbm >= -70 -> LkColors.success
-    rssiDbm >= -80 -> LkColors.warning
-    else -> LkColors.error
-}
+private fun wifiSignalColor(rssiDbm: Int): Color =
+    when {
+        rssiDbm >= -55 -> LkColors.success
+        rssiDbm >= -70 -> LkColors.success
+        rssiDbm >= -80 -> LkColors.warning
+        else -> LkColors.error
+    }
 
-private fun wifiSignalQuality(rssiDbm: Int): String = when {
-    rssiDbm >= -55 -> "Excelente"
-    rssiDbm >= -70 -> "Forte"
-    rssiDbm >= -80 -> "Regular"
-    else -> "Fraco"
-}
+private fun wifiSignalQuality(rssiDbm: Int): String =
+    when {
+        rssiDbm >= -55 -> "Excelente"
+        rssiDbm >= -70 -> "Forte"
+        rssiDbm >= -80 -> "Regular"
+        else -> "Fraco"
+    }
 
-private fun mobileSignalQuality(rsrpDbm: Int?): String = when {
-    rsrpDbm == null -> "Conectado"
-    rsrpDbm > -80 -> "Excelente"
-    rsrpDbm > -90 -> "Bom"
-    rsrpDbm > -100 -> "Regular"
-    else -> "Fraco"
-}
+private fun mobileSignalQuality(rsrpDbm: Int?): String =
+    when {
+        rsrpDbm == null -> "Conectado"
+        rsrpDbm > -80 -> "Excelente"
+        rsrpDbm > -90 -> "Bom"
+        rsrpDbm > -100 -> "Regular"
+        else -> "Fraco"
+    }
 
-private fun mobileSignalColor(rsrpDbm: Int?): Color = when {
-    rsrpDbm == null -> LkColors.accent
-    rsrpDbm > -80 -> LkColors.success
-    rsrpDbm > -100 -> LkColors.warning
-    else -> LkColors.error
-}
+private fun mobileSignalColor(rsrpDbm: Int?): Color =
+    when {
+        rsrpDbm == null -> LkColors.accent
+        rsrpDbm > -80 -> LkColors.success
+        rsrpDbm > -100 -> LkColors.warning
+        else -> LkColors.error
+    }
 
 // ─── Wi-Fi signal card ───────────────────────────────────────────────────────
 
@@ -1394,9 +1398,14 @@ private fun WifiSignalCard(
     val canal = freqMhz?.let { freqToChannel(it) }?.takeIf { it > 0 }
     val localizacaoDesligada = ssidResolvido == null && !snapshotRede.locationAtivado
 
-    val iconColor = if (localizacaoDesligada) c.textTertiary
-    else if (wifiRssi != null) wifiSignalColor(wifiRssi)
-    else LkColors.accent
+    val iconColor =
+        if (localizacaoDesligada) {
+            c.textTertiary
+        } else if (wifiRssi != null) {
+            wifiSignalColor(wifiRssi)
+        } else {
+            LkColors.accent
+        }
 
     LinkaCard(c) {
         Column {
@@ -1405,8 +1414,11 @@ private fun WifiSignalCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
-                    modifier = Modifier.size(44.dp).clip(CircleShape)
-                        .background(iconColor.copy(alpha = 0.10f)),
+                    modifier =
+                        Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(iconColor.copy(alpha = 0.10f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -1433,12 +1445,13 @@ private fun WifiSignalCard(
                             style = MaterialTheme.typography.bodySmall,
                             color = LkColors.accent,
                             fontWeight = FontWeight.W500,
-                            modifier = Modifier.clickable {
-                                context.startActivity(
-                                    Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                                )
-                            },
+                            modifier =
+                                Modifier.clickable {
+                                    context.startActivity(
+                                        Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                                    )
+                                },
                         )
                         Text(
                             stringResource(R.string.home_network_localizacao_necessaria),
@@ -1446,12 +1459,13 @@ private fun WifiSignalCard(
                             color = c.textTertiary,
                         )
                     } else {
-                        val bandaLabel = when {
-                            freqMhz != null && freqMhz >= 5900 -> "6 GHZ"
-                            freqMhz != null && freqMhz >= 3000 -> "5 GHZ"
-                            freqMhz != null -> "2.4 GHZ"
-                            else -> null
-                        }
+                        val bandaLabel =
+                            when {
+                                freqMhz != null && freqMhz >= 5900 -> "6 GHZ"
+                                freqMhz != null && freqMhz >= 3000 -> "5 GHZ"
+                                freqMhz != null -> "2.4 GHZ"
+                                else -> null
+                            }
                         if (bandaLabel != null) {
                             Text(
                                 "WI-FI · $bandaLabel",
@@ -1469,11 +1483,12 @@ private fun WifiSignalCard(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        val linha2 = buildList {
-                            wifiRssi?.let { add("RSSI $it dBm") }
-                            canal?.let { add("Canal $it") }
-                            wifiLinkSpeed?.let { add("$it Mbps") }
-                        }.joinToString(" · ")
+                        val linha2 =
+                            buildList {
+                                wifiRssi?.let { add("RSSI $it dBm") }
+                                canal?.let { add("Canal $it") }
+                                wifiLinkSpeed?.let { add("$it Mbps") }
+                            }.joinToString(" · ")
                         if (linha2.isNotEmpty()) {
                             Text(linha2, style = MaterialTheme.typography.bodySmall, color = c.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
@@ -1518,8 +1533,11 @@ private fun MobileSignalCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier.size(44.dp).clip(CircleShape)
-                    .background(mobileColor.copy(alpha = 0.10f)),
+                modifier =
+                    Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(mobileColor.copy(alpha = 0.10f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -1547,11 +1565,12 @@ private fun MobileSignalCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                val infoItems = buildList {
-                    rsrp?.let { add("RSRP $it dBm") }
-                    movelSnapshot.operadora?.takeIf { it.isNotBlank() }?.let { add(it) }
-                    tec?.let { add(it) }
-                }.joinToString(" · ")
+                val infoItems =
+                    buildList {
+                        rsrp?.let { add("RSRP $it dBm") }
+                        movelSnapshot.operadora?.takeIf { it.isNotBlank() }?.let { add(it) }
+                        tec?.let { add(it) }
+                    }.joinToString(" · ")
                 if (infoItems.isNotEmpty()) {
                     Text(infoItems, style = MaterialTheme.typography.bodySmall, color = c.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -1608,36 +1627,41 @@ private fun ChipSegurancaWifi(seguranca: SegurancaWifi) {
 
     val (label, chipContainerColor, chipLabelColor, chipIcon) =
         when {
-            isWpa3 -> Quadruple(
-                "WPA3",
-                MaterialTheme.colorScheme.tertiaryContainer,
-                MaterialTheme.colorScheme.onTertiaryContainer,
-                Icons.Outlined.Lock,
-            )
-            isOpen -> Quadruple(
-                "Aberta (sem senha)",
-                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                MaterialTheme.colorScheme.onErrorContainer,
-                Icons.Outlined.LockOpen,
-            )
-            seguranca == SegurancaWifi.wep -> Quadruple(
-                "WEP (inseguro)",
-                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
-                MaterialTheme.colorScheme.onErrorContainer,
-                Icons.Outlined.Lock,
-            )
-            isDesconhecida -> Quadruple(
-                "Segurança desconhecida",
-                MaterialTheme.colorScheme.surfaceVariant,
-                MaterialTheme.colorScheme.onSurfaceVariant,
-                Icons.Outlined.Lock,
-            )
-            else -> Quadruple(
-                wifiSecurityLabel(seguranca),
-                MaterialTheme.colorScheme.secondaryContainer,
-                MaterialTheme.colorScheme.onSecondaryContainer,
-                Icons.Outlined.Lock,
-            )
+            isWpa3 ->
+                Quadruple(
+                    "WPA3",
+                    MaterialTheme.colorScheme.tertiaryContainer,
+                    MaterialTheme.colorScheme.onTertiaryContainer,
+                    Icons.Outlined.Lock,
+                )
+            isOpen ->
+                Quadruple(
+                    "Aberta (sem senha)",
+                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                    MaterialTheme.colorScheme.onErrorContainer,
+                    Icons.Outlined.LockOpen,
+                )
+            seguranca == SegurancaWifi.wep ->
+                Quadruple(
+                    "WEP (inseguro)",
+                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                    MaterialTheme.colorScheme.onErrorContainer,
+                    Icons.Outlined.Lock,
+                )
+            isDesconhecida ->
+                Quadruple(
+                    "Segurança desconhecida",
+                    MaterialTheme.colorScheme.surfaceVariant,
+                    MaterialTheme.colorScheme.onSurfaceVariant,
+                    Icons.Outlined.Lock,
+                )
+            else ->
+                Quadruple(
+                    wifiSecurityLabel(seguranca),
+                    MaterialTheme.colorScheme.secondaryContainer,
+                    MaterialTheme.colorScheme.onSecondaryContainer,
+                    Icons.Outlined.Lock,
+                )
         }
 
     AssistChip(
@@ -1657,17 +1681,23 @@ private fun ChipSegurancaWifi(seguranca: SegurancaWifi) {
                 modifier = Modifier.size(14.dp),
             )
         },
-        colors = AssistChipDefaults.assistChipColors(
-            containerColor = chipContainerColor,
-            labelColor = chipLabelColor,
-            leadingIconContentColor = chipLabelColor,
-        ),
+        colors =
+            AssistChipDefaults.assistChipColors(
+                containerColor = chipContainerColor,
+                labelColor = chipLabelColor,
+                leadingIconContentColor = chipLabelColor,
+            ),
         border = null,
     )
 }
 
 // Quadruple helper local — Kotlin nao tem built-in
-private data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+private data class Quadruple<A, B, C, D>(
+    val first: A,
+    val second: B,
+    val third: C,
+    val fourth: D,
+)
 
 // ─── #179 Task C — CardMovelDualSim ──────────────────────────────────────────
 
@@ -1731,10 +1761,11 @@ private fun SimChipCompact(
                 }
                 if (isActive) {
                     Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(LkColors.accent.copy(alpha = 0.12f))
-                            .padding(horizontal = 6.dp, vertical = 1.dp),
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(LkColors.accent.copy(alpha = 0.12f))
+                                .padding(horizontal = 6.dp, vertical = 1.dp),
                     ) {
                         Text(
                             "ATIVO",
@@ -1747,10 +1778,11 @@ private fun SimChipCompact(
                 }
                 if (sim.emRoaming) {
                     Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(MaterialTheme.colorScheme.errorContainer)
-                            .padding(horizontal = 6.dp, vertical = 1.dp),
+                        modifier =
+                            Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(MaterialTheme.colorScheme.errorContainer)
+                                .padding(horizontal = 6.dp, vertical = 1.dp),
                     ) {
                         Text(
                             "R",
@@ -1776,10 +1808,11 @@ private fun SimChipCompact(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                val techText = buildList {
-                    sim.tecnologiaRede?.let { add(it) }
-                    rsrpDbm?.let { add("$it dBm") }
-                }.joinToString(" · ").ifEmpty { "Sem dados" }
+                val techText =
+                    buildList {
+                        sim.tecnologiaRede?.let { add(it) }
+                        rsrpDbm?.let { add("$it dBm") }
+                    }.joinToString(" · ").ifEmpty { "Sem dados" }
                 Text(
                     techText,
                     style = MaterialTheme.typography.labelSmall,
@@ -2366,8 +2399,9 @@ private fun CellularInfoSheet(
     wifiAtivo: Boolean = false,
     c: LkTokens,
 ) {
-    val operadora = movelSnapshot?.operadora?.takeIf { it.isNotBlank() }
-        ?: ispInfo?.isp?.takeIf { it.isNotEmpty() }
+    val operadora =
+        movelSnapshot?.operadora?.takeIf { it.isNotBlank() }
+            ?: ispInfo?.isp?.takeIf { it.isNotEmpty() }
     // IP público via HTTP usa a rede ativa do SO. Android prefere Wi-Fi sobre Móvel,
     // portanto quando Wi-Fi está ativo o IP retornado é da Wi-Fi, não da móvel.
     val ip = if (!wifiAtivo) ispInfo?.ip ?: publicIp else null
@@ -2382,11 +2416,12 @@ private fun CellularInfoSheet(
     val qualityColor = rsrp?.let { mobileSignalColor(it) }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = LkSpacing.xl)
-            .padding(bottom = 32.dp)
-            .navigationBarsPadding(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = LkSpacing.xl)
+                .padding(bottom = 32.dp)
+                .navigationBarsPadding(),
     ) {
         SheetDragHandle(c)
         Spacer(Modifier.height(LkSpacing.xl))
@@ -2406,17 +2441,21 @@ private fun CellularInfoSheet(
         Spacer(Modifier.height(LkSpacing.lg))
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.bgCard)
-                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-                .padding(LkSpacing.md),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(LkRadius.card))
+                    .background(c.bgCard)
+                    .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                    .padding(LkSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier.size(44.dp).clip(CircleShape)
-                    .background(LkColors.accent.copy(alpha = 0.10f)),
+                modifier =
+                    Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(LkColors.accent.copy(alpha = 0.10f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -2434,17 +2473,20 @@ private fun CellularInfoSheet(
                     fontWeight = FontWeight.W600,
                     color = c.textPrimary,
                 )
-                val heroSub = listOfNotNull(tec, banda?.let { "banda $it" })
-                    .joinToString(" · ").takeIf { it.isNotEmpty() }
+                val heroSub =
+                    listOfNotNull(tec, banda?.let { "banda $it" })
+                        .joinToString(" · ")
+                        .takeIf { it.isNotEmpty() }
                 if (heroSub != null) {
                     Text(heroSub, fontSize = 12.sp, color = c.textSecondary)
                 }
             }
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(LkColors.success.copy(alpha = 0.10f))
-                    .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(LkColors.success.copy(alpha = 0.10f))
+                        .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
             ) {
                 Text(
                     "Conectado",
@@ -2466,15 +2508,20 @@ private fun CellularInfoSheet(
             SheetInfoRow("ASU", "$asu", c)
         }
         sinr?.let { s ->
-            val sinrColor = when {
-                s > 10 -> LkColors.success
-                s > 0 -> LkColors.warning
-                else -> LkColors.error
-            }
+            val sinrColor =
+                when {
+                    s > 10 -> LkColors.success
+                    s > 0 -> LkColors.warning
+                    else -> LkColors.error
+                }
             SheetInfoRow("SINR", "$s dB", c, valueColor = sinrColor)
         }
-        SheetInfoRow("Roaming", if (movelSnapshot?.roaming == true) "Sim" else "Não", c,
-            valueColor = if (movelSnapshot?.roaming == true) LkColors.warning else null)
+        SheetInfoRow(
+            "Roaming",
+            if (movelSnapshot?.roaming == true) "Sim" else "Não",
+            c,
+            valueColor = if (movelSnapshot?.roaming == true) LkColors.warning else null,
+        )
         if (mcc != null && mnc != null) {
             SheetInfoRow("MCC / MNC", "$mcc / $mnc", c)
         }

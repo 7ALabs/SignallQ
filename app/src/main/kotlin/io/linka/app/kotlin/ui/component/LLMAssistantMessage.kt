@@ -14,17 +14,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.linka.app.kotlin.ui.LinkaTheme
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkSpacing
-import io.linka.app.kotlin.ui.LinkaTheme
 import io.linka.app.kotlin.ui.LocalLkTokens
 
 @Composable
@@ -43,22 +39,24 @@ fun LLMAssistantMessage(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
-                    .size(7.dp)
-                    .background(
-                        color = LkColors.accent,
-                        shape = RoundedCornerShape(999.dp),
-                    ),
+                modifier =
+                    Modifier
+                        .size(7.dp)
+                        .background(
+                            color = LkColors.accent,
+                            shape = RoundedCornerShape(999.dp),
+                        ),
             )
             Spacer(modifier = Modifier.size(LkSpacing.sm))
             Text(
                 text = "LINKA",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.6.sp,
-                    color = c.textTertiary,
-                ),
+                style =
+                    MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.6.sp,
+                        color = c.textTertiary,
+                    ),
             )
         }
 
@@ -68,11 +66,12 @@ fun LLMAssistantMessage(
 
         Text(
             text = displayText,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontSize = 14.sp,
-                lineHeight = (14 * 1.6).sp,
-                color = c.textPrimary,
-            ),
+            style =
+                MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 14.sp,
+                    lineHeight = (14 * 1.6).sp,
+                    color = c.textPrimary,
+                ),
         )
     }
 }
@@ -82,11 +81,12 @@ fun LLMAssistantMessage(
 private fun LLMAssistantMessagePreview() {
     LinkaTheme {
         LLMAssistantMessage(
-            content = "Sua internet pode ficar lenta à noite por alguns motivos comuns:\n\n" +
-                "1. Horário de pico — muitos vizinhos usando a rede ao mesmo tempo.\n" +
-                "2. Wi-Fi 2.4 GHz cheio — banda congestionada no período noturno.\n" +
-                "3. Atualizações em segundo plano — apps atualizando enquanto você usa.\n\n" +
-                "Tente rodar um teste agora para confirmar.",
+            content =
+                "Sua internet pode ficar lenta à noite por alguns motivos comuns:\n\n" +
+                    "1. Horário de pico — muitos vizinhos usando a rede ao mesmo tempo.\n" +
+                    "2. Wi-Fi 2.4 GHz cheio — banda congestionada no período noturno.\n" +
+                    "3. Atualizações em segundo plano — apps atualizando enquanto você usa.\n\n" +
+                    "Tente rodar um teste agora para confirmar.",
             isStreaming = false,
             modifier = Modifier,
         )

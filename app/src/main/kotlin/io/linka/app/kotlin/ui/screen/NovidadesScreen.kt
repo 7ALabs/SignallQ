@@ -36,7 +36,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -71,23 +70,25 @@ fun NovidadesScreen(
     LaunchedEffect(tentativa) {
         carregando = true
         erro = false
-        val resultado = withContext(Dispatchers.IO) {
-            runCatching {
-                val text = context.assets
-                    .open("changelog.json")
-                    .bufferedReader()
-                    .use { it.readText() }
-                val arr = JSONArray(text)
-                (0 until arr.length()).map { i ->
-                    val obj = arr.getJSONObject(i)
-                    NovidadeItem(
-                        tipo = obj.optString("tipo", "novo"),
-                        titulo = obj.getString("titulo"),
-                        descricao = obj.optString("descricao", ""),
-                    )
+        val resultado =
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    val text =
+                        context.assets
+                            .open("changelog.json")
+                            .bufferedReader()
+                            .use { it.readText() }
+                    val arr = JSONArray(text)
+                    (0 until arr.length()).map { i ->
+                        val obj = arr.getJSONObject(i)
+                        NovidadeItem(
+                            tipo = obj.optString("tipo", "novo"),
+                            titulo = obj.getString("titulo"),
+                            descricao = obj.optString("descricao", ""),
+                        )
+                    }
                 }
             }
-        }
         resultado.fold(
             onSuccess = { itens = it },
             onFailure = { erro = true },
@@ -179,24 +180,27 @@ private fun NovidadeRow(
     item: NovidadeItem,
     c: LkTokens,
 ) {
-    val (badgeLabel, badgeCor) = when (item.tipo) {
-        "novo" -> "NOVO" to LkColors.success
-        "melhoria" -> "MELHORIA" to LkColors.accent
-        "correcao" -> "CORREÇÃO" to LkColors.error
-        else -> item.tipo.uppercase() to c.textTertiary
-    }
+    val (badgeLabel, badgeCor) =
+        when (item.tipo) {
+            "novo" -> "NOVO" to LkColors.success
+            "melhoria" -> "MELHORIA" to LkColors.accent
+            "correcao" -> "CORREÇÃO" to LkColors.error
+            else -> item.tipo.uppercase() to c.textTertiary
+        }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
         verticalAlignment = Alignment.Top,
     ) {
         Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(badgeCor.copy(alpha = 0.12f))
-                .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
+            modifier =
+                Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(badgeCor.copy(alpha = 0.12f))
+                    .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
         ) {
             Text(
                 text = badgeLabel,

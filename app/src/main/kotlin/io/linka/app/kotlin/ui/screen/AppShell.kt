@@ -17,14 +17,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
@@ -40,9 +35,6 @@ import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -66,24 +58,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.linka.app.kotlin.BuildConfig
 import io.linka.app.kotlin.FeatureFlags
-import io.linka.app.kotlin.R
 import io.linka.app.kotlin.core.database.MedicaoEntity
 import io.linka.app.kotlin.core.network.EstadoConexao
 import io.linka.app.kotlin.core.network.SnapshotRede
 import io.linka.app.kotlin.core.telephony.MovelSimSnapshot
 import io.linka.app.kotlin.core.telephony.MovelSnapshot
 import io.linka.app.kotlin.feature.devices.SnapshotScanDispositivos
-import io.linka.app.kotlin.feature.diagnostico.SnapshotDiagnostico
 import io.linka.app.kotlin.feature.diagnostico.ConnectionType
+import io.linka.app.kotlin.feature.diagnostico.SnapshotDiagnostico
 import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisRepository
 import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisState
 import io.linka.app.kotlin.feature.diagnostico.ai.AiMetricasAtuais
@@ -108,8 +97,6 @@ import io.linka.app.kotlin.ui.GatewayInfo
 import io.linka.app.kotlin.ui.HistoryPoint
 import io.linka.app.kotlin.ui.IspInfo
 import io.linka.app.kotlin.ui.LkColors
-import io.linka.app.kotlin.ui.LkRadius
-import io.linka.app.kotlin.ui.LkSpacing
 import io.linka.app.kotlin.ui.LkTokens
 import io.linka.app.kotlin.ui.LocalLkTokens
 import io.linka.app.kotlin.ui.state.UiState
@@ -285,12 +272,13 @@ fun AppShell(
     val llmChatMensagens = remember { mutableStateListOf<ChatMensagem>() }
     var llmIsStreaming by remember { mutableStateOf(false) }
     val llmCoroutineScope = rememberCoroutineScope()
-    val llmAiRepository = remember {
-        AiDiagnosisRepository(
-            baseUrl = "https://linka-ai-diagnosis-worker.giammattey-luiz.workers.dev",
-            isAuthorized = { true },
-        )
-    }
+    val llmAiRepository =
+        remember {
+            AiDiagnosisRepository(
+                baseUrl = "https://linka-ai-diagnosis-worker.giammattey-luiz.workers.dev",
+                isAuthorized = { true },
+            )
+        }
 
     // NAV-D: verifica IA ao entrar na tab Velocidade (índice 1)
     LaunchedEffect(selectedTab) {
@@ -749,7 +737,10 @@ fun AppShell(
                 chips = listOf("Como troco o canal do Wi-Fi?", "Vale a pena 5 GHz?"),
                 onEnviarMensagem = onEnviarMensagem@{ texto ->
                     if (llmIsStreaming) return@onEnviarMensagem
-                    val userMsgId = java.util.UUID.randomUUID().toString()
+                    val userMsgId =
+                        java.util.UUID
+                            .randomUUID()
+                            .toString()
                     llmChatMensagens.add(
                         ChatMensagem(
                             id = userMsgId,
@@ -762,7 +753,10 @@ fun AppShell(
                     )
                     llmChatDraft = ""
 
-                    val aiMsgId = java.util.UUID.randomUUID().toString()
+                    val aiMsgId =
+                        java.util.UUID
+                            .randomUUID()
+                            .toString()
                     llmChatMensagens.add(
                         ChatMensagem(
                             id = aiMsgId,
@@ -778,36 +772,38 @@ fun AppShell(
                     llmCoroutineScope.launch(Dispatchers.IO) {
                         try {
                             val resultado = snapshotSpeedtest.resultado
-                            val contexto = if (resultado != null) {
-                                DiagnosisAiContext(
-                                    generatedAtEpochMs = resultado.timestampEpochMs,
-                                    connectionType = ConnectionType.wifi,
-                                    metricasAtuais = AiMetricasAtuais(
-                                        downloadMbps = resultado.downloadMbps,
-                                        uploadMbps = resultado.uploadMbps,
-                                        latenciaMs = resultado.latenciaMs,
-                                        jitterMs = resultado.jitterMs,
-                                        perdaPacotesPercentual = resultado.perdaPercentual,
-                                        bufferbloatMs = resultado.bufferbloatMs,
-                                        severidadeBufferbloat = resultado.severidadeBufferbloat.name,
-                                        stabilityScore = resultado.stabilityScore,
-                                        peakDownloadMbps = resultado.peakDownloadMbps,
-                                        peakUploadMbps = resultado.peakUploadMbps,
-                                        latencyDownloadMs = resultado.latencyDownloadMs,
-                                        latencyUploadMs = resultado.latencyUploadMs,
-                                        packetLossSource = resultado.packetLossSource,
-                                    ),
-                                    feedbackUsuario = texto,
-                                    evidencias = emptyList(),
-                                )
-                            } else {
-                                DiagnosisAiContext(
-                                    generatedAtEpochMs = System.currentTimeMillis(),
-                                    connectionType = ConnectionType.wifi,
-                                    feedbackUsuario = texto,
-                                    evidencias = emptyList(),
-                                )
-                            }
+                            val contexto =
+                                if (resultado != null) {
+                                    DiagnosisAiContext(
+                                        generatedAtEpochMs = resultado.timestampEpochMs,
+                                        connectionType = ConnectionType.wifi,
+                                        metricasAtuais =
+                                            AiMetricasAtuais(
+                                                downloadMbps = resultado.downloadMbps,
+                                                uploadMbps = resultado.uploadMbps,
+                                                latenciaMs = resultado.latenciaMs,
+                                                jitterMs = resultado.jitterMs,
+                                                perdaPacotesPercentual = resultado.perdaPercentual,
+                                                bufferbloatMs = resultado.bufferbloatMs,
+                                                severidadeBufferbloat = resultado.severidadeBufferbloat.name,
+                                                stabilityScore = resultado.stabilityScore,
+                                                peakDownloadMbps = resultado.peakDownloadMbps,
+                                                peakUploadMbps = resultado.peakUploadMbps,
+                                                latencyDownloadMs = resultado.latencyDownloadMs,
+                                                latencyUploadMs = resultado.latencyUploadMs,
+                                                packetLossSource = resultado.packetLossSource,
+                                            ),
+                                        feedbackUsuario = texto,
+                                        evidencias = emptyList(),
+                                    )
+                                } else {
+                                    DiagnosisAiContext(
+                                        generatedAtEpochMs = System.currentTimeMillis(),
+                                        connectionType = ConnectionType.wifi,
+                                        feedbackUsuario = texto,
+                                        evidencias = emptyList(),
+                                    )
+                                }
 
                             var acumulado = ""
                             llmAiRepository.explainDiagnosisStream(contexto).collect { token ->
@@ -820,18 +816,20 @@ fun AppShell(
 
                             val idx = llmChatMensagens.indexOfFirst { it.id == aiMsgId }
                             if (idx >= 0) {
-                                llmChatMensagens[idx] = llmChatMensagens[idx].copy(
-                                    conteudo = acumulado.ifBlank { "Não recebi uma resposta completa. Tente novamente." },
-                                    status = StatusChatMensagem.concluido,
-                                )
+                                llmChatMensagens[idx] =
+                                    llmChatMensagens[idx].copy(
+                                        conteudo = acumulado.ifBlank { "Não recebi uma resposta completa. Tente novamente." },
+                                        status = StatusChatMensagem.concluido,
+                                    )
                             }
                         } catch (e: Exception) {
                             val idx = llmChatMensagens.indexOfFirst { it.id == aiMsgId }
                             if (idx >= 0) {
-                                llmChatMensagens[idx] = llmChatMensagens[idx].copy(
-                                    conteudo = "Não consegui processar sua pergunta. Tente novamente.",
-                                    status = StatusChatMensagem.concluido,
-                                )
+                                llmChatMensagens[idx] =
+                                    llmChatMensagens[idx].copy(
+                                        conteudo = "Não consegui processar sua pergunta. Tente novamente.",
+                                        status = StatusChatMensagem.concluido,
+                                    )
                             }
                         } finally {
                             llmIsStreaming = false
@@ -1027,4 +1025,3 @@ private fun ForaDoWifiDialog(
         },
     )
 }
-

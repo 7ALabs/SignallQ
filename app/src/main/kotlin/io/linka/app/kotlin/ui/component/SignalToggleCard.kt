@@ -1,6 +1,5 @@
 package io.linka.app.kotlin.ui.component
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,9 +27,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.linka.app.kotlin.ui.LinkaTheme
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LocalLkTokens
-import io.linka.app.kotlin.ui.LinkaTheme
 
 @Composable
 fun SignalToggleCard(
@@ -48,12 +47,13 @@ fun SignalToggleCard(
     val iconColor = if (enabled) LkColors.accent else c.textTertiary
 
     Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(bgColor)
-            .border(1.dp, borderColor, RoundedCornerShape(16.dp))
-            .clickable { onToggle() }
-            .padding(horizontal = 11.dp, vertical = 14.dp),
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(bgColor)
+                .border(1.dp, borderColor, RoundedCornerShape(16.dp))
+                .clickable { onToggle() }
+                .padding(horizontal = 11.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -79,10 +79,11 @@ fun SignalToggleCard(
         Spacer(Modifier.width(12.dp))
         if (enabled) {
             Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .background(LkColors.accent),
+                modifier =
+                    Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .background(LkColors.accent),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -94,10 +95,11 @@ fun SignalToggleCard(
             }
         } else {
             Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .border(1.5.dp, c.border, CircleShape),
+                modifier =
+                    Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .border(1.5.dp, c.border, CircleShape),
             )
         }
     }

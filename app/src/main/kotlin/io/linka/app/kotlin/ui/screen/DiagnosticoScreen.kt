@@ -169,8 +169,9 @@ fun DiagnosticoScreen(
         contentWindowInsets = WindowInsets.systemBars,
         topBar = {
             val uiStateForBar = resolveUiState(snapshotDiagnostico, aiState, analiseSolicitada)
-            val showShare = uiStateForBar is UiState.Success &&
-                (uiStateForBar as UiState.Success).data is DiagnosticoUiData.Resultado
+            val showShare =
+                uiStateForBar is UiState.Success &&
+                    (uiStateForBar as UiState.Success).data is DiagnosticoUiData.Resultado
             CenterAlignedTopAppBar(
                 title = {
                     Text(
@@ -218,14 +219,15 @@ fun DiagnosticoScreen(
                         c = c,
                         selection = signalSelection,
                         onToggle = { area ->
-                            signalSelection = when (area) {
-                                "velocidade" -> signalSelection.copy(velocidade = !signalSelection.velocidade)
-                                "wifi" -> signalSelection.copy(wifiSinal = !signalSelection.wifiSinal)
-                                "latencia" -> signalSelection.copy(latencia = !signalSelection.latencia)
-                                "fibra" -> signalSelection.copy(fibra = !signalSelection.fibra)
-                                "dns" -> signalSelection.copy(dns = !signalSelection.dns)
-                                else -> signalSelection
-                            }
+                            signalSelection =
+                                when (area) {
+                                    "velocidade" -> signalSelection.copy(velocidade = !signalSelection.velocidade)
+                                    "wifi" -> signalSelection.copy(wifiSinal = !signalSelection.wifiSinal)
+                                    "latencia" -> signalSelection.copy(latencia = !signalSelection.latencia)
+                                    "fibra" -> signalSelection.copy(fibra = !signalSelection.fibra)
+                                    "dns" -> signalSelection.copy(dns = !signalSelection.dns)
+                                    else -> signalSelection
+                                }
                         },
                         onDiagnosticar = {
                             onAnaliseSolicitadaChange(true)
@@ -369,10 +371,11 @@ private fun DiagSetupContent(
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 120.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 120.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Intro
@@ -384,9 +387,10 @@ private fun DiagSetupContent(
                     imageVector = Icons.Outlined.AutoAwesome,
                     contentDescription = null,
                     tint = LkColors.accent,
-                    modifier = Modifier
-                        .size(30.dp)
-                        .padding(top = 2.dp),
+                    modifier =
+                        Modifier
+                            .size(30.dp)
+                            .padding(top = 2.dp),
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
@@ -461,26 +465,29 @@ private fun DiagSetupContent(
 
         // Footer fixo
         Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(c.bgPrimary)
-                .border(width = 1.dp, color = c.border, shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp))
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(c.bgPrimary)
+                    .border(width = 1.dp, color = c.border, shape = RoundedCornerShape(topStart = 0.dp, topEnd = 0.dp))
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Button(
                 onClick = onDiagnosticar,
                 enabled = selection.anySelected,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
                 shape = RoundedCornerShape(LkRadius.button),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = LkColors.accent,
-                    disabledContainerColor = LkColors.accent.copy(alpha = 0.4f),
-                ),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = LkColors.accent,
+                        disabledContainerColor = LkColors.accent.copy(alpha = 0.4f),
+                    ),
             ) {
                 Icon(
                     imageVector = Icons.Outlined.AutoAwesome,
@@ -514,14 +521,15 @@ private fun DiagAnalyzingContent(
     selection: DiagSignalSelection,
     isAiPhase: Boolean,
 ) {
-    val steps = buildList {
-        if (selection.velocidade) add("Velocidade medida")
-        if (selection.wifiSinal) add("Wi-Fi e canais lidos")
-        if (selection.latencia) add("Latência sob carga")
-        if (selection.fibra) add("Modem / fibra")
-        if (selection.dns) add("DNS resolvido")
-        add("IA analisando")
-    }
+    val steps =
+        buildList {
+            if (selection.velocidade) add("Velocidade medida")
+            if (selection.wifiSinal) add("Wi-Fi e canais lidos")
+            if (selection.latencia) add("Latência sob carga")
+            if (selection.fibra) add("Modem / fibra")
+            if (selection.dns) add("DNS resolvido")
+            add("IA analisando")
+        }
 
     var completedCount by remember(isAiPhase) {
         mutableIntStateOf(if (isAiPhase) steps.size - 1 else 0)
@@ -543,9 +551,10 @@ private fun DiagAnalyzingContent(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 32.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -590,11 +599,12 @@ private fun DiagAnalyzingContent(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 steps.forEachIndexed { index, label ->
-                    val stepStatus = when {
-                        index < completedCount -> AnalysisStepStatus.Done
-                        index == completedCount -> AnalysisStepStatus.Run
-                        else -> AnalysisStepStatus.Wait
-                    }
+                    val stepStatus =
+                        when {
+                            index < completedCount -> AnalysisStepStatus.Done
+                            index == completedCount -> AnalysisStepStatus.Run
+                            else -> AnalysisStepStatus.Wait
+                        }
                     AnalysisStepRow(c = c, label = label, status = stepStatus)
                 }
             }
@@ -602,9 +612,10 @@ private fun DiagAnalyzingContent(
 
         OnDevicePill(
             dark = false,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 24.dp),
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 24.dp),
         )
     }
 }
@@ -622,19 +633,21 @@ private fun AnalysisStepRow(
         label = "pulse-alpha",
     )
 
-    val statusDesc = when (status) {
-        AnalysisStepStatus.Done -> "concluído"
-        AnalysisStepStatus.Run -> "em andamento"
-        AnalysisStepStatus.Wait -> "pendente"
-    }
+    val statusDesc =
+        when (status) {
+            AnalysisStepStatus.Done -> "concluído"
+            AnalysisStepStatus.Run -> "em andamento"
+            AnalysisStepStatus.Wait -> "pendente"
+        }
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .semantics(mergeDescendants = true) {
-                contentDescription = "$label — $statusDesc"
-                stateDescription = statusDesc
-            },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "$label — $statusDesc"
+                    stateDescription = statusDesc
+                },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
@@ -664,11 +677,12 @@ private fun AnalysisStepRow(
             text = label,
             fontSize = 13.sp,
             fontWeight = if (status == AnalysisStepStatus.Run) FontWeight.W500 else FontWeight.W400,
-            color = when (status) {
-                AnalysisStepStatus.Done -> c.textSecondary
-                AnalysisStepStatus.Run -> c.textPrimary.copy(alpha = pulse)
-                AnalysisStepStatus.Wait -> c.textTertiary
-            },
+            color =
+                when (status) {
+                    AnalysisStepStatus.Done -> c.textSecondary
+                    AnalysisStepStatus.Run -> c.textPrimary.copy(alpha = pulse)
+                    AnalysisStepStatus.Wait -> c.textTertiary
+                },
         )
     }
 }
@@ -696,12 +710,13 @@ private fun DiagResultContent(
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                start = 16.dp,
-                end = 16.dp,
-                top = 4.dp,
-                bottom = 100.dp,
-            ),
+            contentPadding =
+                PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 4.dp,
+                    bottom = 100.dp,
+                ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // 1. Herói
@@ -790,9 +805,10 @@ private fun DiagResultContent(
             onRefresh = onRefazer,
             onContactIsp = onFalarOperadora,
             onAbrirChat = onAbrirChat,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .background(c.bgPrimary),
+            modifier =
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .background(c.bgPrimary),
         )
     }
 }
@@ -805,9 +821,10 @@ private fun DiagnosticoErroContent(
     onTentar: () -> Unit,
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = LkSpacing.xl),
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = LkSpacing.xl),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -843,7 +860,10 @@ private fun DiagnosticoErroContent(
 
 // ─── Helpers de mapeamento de dados ──────────────────────────────────────────
 
-private fun diagStatusToColor(status: String, c: LkTokens): Color =
+private fun diagStatusToColor(
+    status: String,
+    c: LkTokens,
+): Color =
     when (status.lowercase()) {
         "excelente", "bom" -> LkColors.success
         "regular" -> LkColors.warning
@@ -886,14 +906,23 @@ private fun iconForProblemaTipo(tipo: String): ImageVector =
         else -> Icons.Outlined.NetworkWifi
     }
 
-private data class RootCauseEntry(val icon: ImageVector, val title: String, val subtitle: String)
+private data class RootCauseEntry(
+    val icon: ImageVector,
+    val title: String,
+    val subtitle: String,
+)
 
 private fun buildSecondaryRootCauses(result: AiDiagnosisResult): List<RootCauseEntry> {
     val cl = result.classificacaoTecnica
     val tipoLower = result.problemaPrincipal.tipo.lowercase()
     val candidates = mutableListOf<RootCauseEntry>()
 
-    fun addIfBad(avaliacao: String?, label: String, icon: ImageVector, justificativa: String?) {
+    fun addIfBad(
+        avaliacao: String?,
+        label: String,
+        icon: ImageVector,
+        justificativa: String?,
+    ) {
         if (avaliacao?.lowercase() in setOf("ruim", "regular") && !justificativa.isNullOrBlank()) {
             candidates.add(RootCauseEntry(icon, label, justificativa))
         }
@@ -920,7 +949,11 @@ private fun buildSecondaryRootCauses(result: AiDiagnosisResult): List<RootCauseE
 private fun buildImpactItems(result: AiDiagnosisResult): List<ImpactItem> {
     val imp = result.impacto
     return buildList {
-        fun addImpact(icon: ImageVector, label: String, raw: String) {
+        fun addImpact(
+            icon: ImageVector,
+            label: String,
+            raw: String,
+        ) {
             if (raw.isBlank()) return
             val (status, color) = impactoToStatusAndColor(raw)
             add(ImpactItem(icon, label, status, color))
@@ -958,14 +991,15 @@ private fun inferMetricStatus(
     cl: ClassificacaoTecnica,
 ): MetricStatus {
     val lower = label.lowercase()
-    val avaliacao: String? = when {
-        "download" in lower || "upload" in lower || "velocidade" in lower -> cl.velocidade?.avaliacao
-        "wifi" in lower || "rssi" in lower || "sinal" in lower -> cl.wifi?.avaliacao
-        "latencia" in lower || "latência" in lower || "jitter" in lower || "bufferbloat" in lower || "perda" in lower -> cl.estabilidade?.avaliacao
-        "dns" in lower -> cl.dns?.avaliacao
-        "fibra" in lower || "gpon" in lower || "ppp" in lower -> cl.fibra?.avaliacao
-        else -> null
-    }
+    val avaliacao: String? =
+        when {
+            "download" in lower || "upload" in lower || "velocidade" in lower -> cl.velocidade?.avaliacao
+            "wifi" in lower || "rssi" in lower || "sinal" in lower -> cl.wifi?.avaliacao
+            "latencia" in lower || "latência" in lower || "jitter" in lower || "bufferbloat" in lower || "perda" in lower -> cl.estabilidade?.avaliacao
+            "dns" in lower -> cl.dns?.avaliacao
+            "fibra" in lower || "gpon" in lower || "ppp" in lower -> cl.fibra?.avaliacao
+            else -> null
+        }
     return when (avaliacao?.lowercase()) {
         "boa", "bom" -> MetricStatus.OK
         "regular" -> MetricStatus.WARN

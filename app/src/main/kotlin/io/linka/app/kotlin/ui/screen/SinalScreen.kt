@@ -27,8 +27,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
@@ -37,15 +37,13 @@ import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.Lan
-import androidx.compose.material.icons.outlined.NetworkCheck
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.SimCard
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.SignalCellularOff
+import androidx.compose.material.icons.outlined.SimCard
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WifiFind
@@ -55,11 +53,11 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -477,11 +475,12 @@ private fun MovelTab(
             ChipsAtivosSection(simsAtivos = simsAtivos, tokens = c)
         }
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(LkColors.accent.copy(alpha = 0.07f))
-                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(LkColors.accent.copy(alpha = 0.07f))
+                    .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
         ) {
@@ -527,51 +526,57 @@ private fun SimCard(
     sim: MovelSimSnapshot,
     tokens: LkTokens,
 ) {
-    val forcaSinal = sim.rsrpDbm?.let { rsrp ->
-        when {
-            rsrp > -85 -> "Forte"
-            rsrp > -100 -> "Médio"
-            else -> "Fraco"
+    val forcaSinal =
+        sim.rsrpDbm?.let { rsrp ->
+            when {
+                rsrp > -85 -> "Forte"
+                rsrp > -100 -> "Médio"
+                else -> "Fraco"
+            }
         }
-    }
-    val corForca = sim.rsrpDbm?.let { rsrp ->
-        when {
-            rsrp > -85 -> LkColors.success
-            rsrp > -100 -> LkColors.warning
-            else -> LkColors.error
+    val corForca =
+        sim.rsrpDbm?.let { rsrp ->
+            when {
+                rsrp > -85 -> LkColors.success
+                rsrp > -100 -> LkColors.warning
+                else -> LkColors.error
+            }
         }
-    }
-    val qualidade = sim.rsrpDbm?.let { rsrp ->
-        when {
-            rsrp > -80 -> "Excelente"
-            rsrp > -90 -> "Bom"
-            rsrp > -100 -> "Regular"
-            else -> "Ruim"
+    val qualidade =
+        sim.rsrpDbm?.let { rsrp ->
+            when {
+                rsrp > -80 -> "Excelente"
+                rsrp > -90 -> "Bom"
+                rsrp > -100 -> "Regular"
+                else -> "Ruim"
+            }
         }
-    }
-    val corQualidade = sim.rsrpDbm?.let { rsrp ->
-        when {
-            rsrp > -80 -> LkColors.success
-            rsrp > -90 -> LkColors.accentBlue
-            rsrp > -100 -> LkColors.warning
-            else -> LkColors.error
+    val corQualidade =
+        sim.rsrpDbm?.let { rsrp ->
+            when {
+                rsrp > -80 -> LkColors.success
+                rsrp > -90 -> LkColors.accentBlue
+                rsrp > -100 -> LkColors.warning
+                else -> LkColors.error
+            }
         }
-    }
-    val descricao = when {
-        sim.isDefaultData && forcaSinal == "Forte" -> "Chamadas e dados estão usando este chip."
-        sim.isDefaultData && forcaSinal == "Médio" -> "Chamadas e dados estão usando este chip. Sinal razoável."
-        sim.isDefaultData -> "Chamadas e dados estão usando este chip. Sinal fraco neste local."
-        forcaSinal == "Fraco" -> "Sinal fraco neste local. Chamadas podem cair ou ficar sem sinal."
-        else -> null
-    }
+    val descricao =
+        when {
+            sim.isDefaultData && forcaSinal == "Forte" -> "Chamadas e dados estão usando este chip."
+            sim.isDefaultData && forcaSinal == "Médio" -> "Chamadas e dados estão usando este chip. Sinal razoável."
+            sim.isDefaultData -> "Chamadas e dados estão usando este chip. Sinal fraco neste local."
+            forcaSinal == "Fraco" -> "Sinal fraco neste local. Chamadas podem cair ou ficar sem sinal."
+            else -> null
+        }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(tokens.bgCard)
-            .border(1.dp, tokens.border, RoundedCornerShape(16.dp))
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(tokens.bgCard)
+                .border(1.dp, tokens.border, RoundedCornerShape(16.dp))
+                .padding(LkSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
         // Header: SIM icon + SIM N + EM USO badge
@@ -595,10 +600,11 @@ private fun SimCard(
             Spacer(Modifier.weight(1f))
             if (sim.isDefaultData) {
                 Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(LkColors.success.copy(alpha = 0.12f))
-                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                    modifier =
+                        Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(LkColors.success.copy(alpha = 0.12f))
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
                 ) {
                     Text(
                         "EM USO",
@@ -897,13 +903,14 @@ private fun RedesTab(
                     )
                     Spacer(Modifier.height(LkSpacing.sm))
                     Row(
-                        modifier = Modifier
-                            .padding(horizontal = LkSpacing.lg)
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(c.bgSecondary)
-                            .border(1.dp, c.border, RoundedCornerShape(12.dp))
-                            .padding(LkSpacing.md),
+                        modifier =
+                            Modifier
+                                .padding(horizontal = LkSpacing.lg)
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(c.bgSecondary)
+                                .border(1.dp, c.border, RoundedCornerShape(12.dp))
+                                .padding(LkSpacing.md),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
                     ) {
@@ -952,10 +959,11 @@ private fun RedesTab(
                 if (otherClassificadas.size > 5 && !mostrarTodasRedes) {
                     item {
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { mostrarTodasRedes = true }
-                                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clickable { mostrarTodasRedes = true }
+                                    .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
@@ -1768,9 +1776,10 @@ private fun CanalTab(
                 "6GHz" to redes.count { it.banda == "6GHz" },
             )
         }
-    val redesBanda = remember(redes, selectedBanda) {
-        if (selectedBanda == "Todos") redes else redes.filter { it.banda == selectedBanda }
-    }
+    val redesBanda =
+        remember(redes, selectedBanda) {
+            if (selectedBanda == "Todos") redes else redes.filter { it.banda == selectedBanda }
+        }
     val canalAtual = remember(connectedNetwork) { connectedNetwork?.canal }
     val espectro =
         remember(redesBanda, canalAtual, selectedBanda, connectedNetwork) {
@@ -2012,13 +2021,14 @@ private fun CanalTab(
 private fun CanalCongestionadoBanner(dadoCanal: DadoCanal) {
     val c = LocalLkTokens.current
     Row(
-        modifier = Modifier
-            .padding(horizontal = LkSpacing.lg)
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .border(1.dp, LkColors.warning.copy(alpha = 0.3f), RoundedCornerShape(LkRadius.card))
-            .background(LkColors.warning.copy(alpha = 0.08f))
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .padding(horizontal = LkSpacing.lg)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .border(1.dp, LkColors.warning.copy(alpha = 0.3f), RoundedCornerShape(LkRadius.card))
+                .background(LkColors.warning.copy(alpha = 0.08f))
+                .padding(LkSpacing.lg),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
@@ -2151,16 +2161,17 @@ private fun CanalErroState(
 
 // ─── Spectrum chart (Gaussian curves) ────────────────────────────────────────
 
-private val SPECTRUM_COLORS = listOf(
-    Color(0xFF4FC3F7),
-    Color(0xFFAED581),
-    Color(0xFFFFB74D),
-    Color(0xFFBA68C8),
-    Color(0xFFFF8A65),
-    Color(0xFF4DB6AC),
-    Color(0xFFE57373),
-    Color(0xFFF06292),
-)
+private val SPECTRUM_COLORS =
+    listOf(
+        Color(0xFF4FC3F7),
+        Color(0xFFAED581),
+        Color(0xFFFFB74D),
+        Color(0xFFBA68C8),
+        Color(0xFFFF8A65),
+        Color(0xFF4DB6AC),
+        Color(0xFFE57373),
+        Color(0xFFF06292),
+    )
 
 private data class RedeParaEspectro(
     val ssid: String,
@@ -2183,22 +2194,23 @@ private fun SpectrumChart(
     val textTertiary = c.textTertiary
     val textMeasurer = rememberTextMeasurer()
 
-    val redesParaDesenhar = remember(redesRaw, seuSSID) {
-        redesRaw
-            .filter { it.canal != null }
-            .sortedByDescending { it.rssiDbm }
-            .take(20)
-            .mapIndexed { idx, rede ->
-                val isSua = seuSSID != null && rede.ssid == seuSSID
-                RedeParaEspectro(
-                    ssid = rede.ssid ?: "Oculta",
-                    canal = rede.canal!!,
-                    rssiDbm = rede.rssiDbm,
-                    cor = if (isSua) accentColor else SPECTRUM_COLORS[idx % SPECTRUM_COLORS.size],
-                    isSua = isSua,
-                )
-            }
-    }
+    val redesParaDesenhar =
+        remember(redesRaw, seuSSID) {
+            redesRaw
+                .filter { it.canal != null }
+                .sortedByDescending { it.rssiDbm }
+                .take(20)
+                .mapIndexed { idx, rede ->
+                    val isSua = seuSSID != null && rede.ssid == seuSSID
+                    RedeParaEspectro(
+                        ssid = rede.ssid ?: "Oculta",
+                        canal = rede.canal!!,
+                        rssiDbm = rede.rssiDbm,
+                        cor = if (isSua) accentColor else SPECTRUM_COLORS[idx % SPECTRUM_COLORS.size],
+                        isSua = isSua,
+                    )
+                }
+        }
 
     Column(
         Modifier
@@ -2243,6 +2255,7 @@ private fun SpectrumChart(
             }
 
             val range = (canalMax - canalMin).coerceAtLeast(1).toFloat()
+
             fun canalToX(canal: Float): Float = leftPx + ((canal - canalMin + 1f) / (range + 2f)) * chartW
 
             val is24Ghz = canalMin <= 14
@@ -2284,10 +2297,11 @@ private fun SpectrumChart(
                 val isAtual = canal == espectro.canalAtual
                 val xLabelColor = if (isAtual) accentColor else textTertiary
                 val xLabelWeight = if (isAtual) FontWeight.Bold else FontWeight.Normal
-                val xLayout = textMeasurer.measure(
-                    "$canal",
-                    TextStyle(fontSize = 9.sp, color = xLabelColor, fontWeight = xLabelWeight),
-                )
+                val xLayout =
+                    textMeasurer.measure(
+                        "$canal",
+                        TextStyle(fontSize = 9.sp, color = xLabelColor, fontWeight = xLabelWeight),
+                    )
                 drawText(
                     xLayout,
                     topLeft = Offset(x - xLayout.size.width / 2, chartH + (xAxisH - xLayout.size.height) / 2),
@@ -2298,9 +2312,10 @@ private fun SpectrumChart(
         Spacer(Modifier.height(LkSpacing.sm))
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
         ) {
             redesParaDesenhar.take(8).forEach { rede ->
@@ -2488,11 +2503,12 @@ private fun ChannelItem(
 ) {
     val c = LocalLkTokens.current
     val corStatus = congestionColor(dado.nivel)
-    val labelStatus = when (dado.nivel) {
-        NivelCongestionamento.livre -> "Livre"
-        NivelCongestionamento.moderado -> "Moderado"
-        NivelCongestionamento.congestionado -> "Congestionado"
-    }
+    val labelStatus =
+        when (dado.nivel) {
+            NivelCongestionamento.livre -> "Livre"
+            NivelCongestionamento.moderado -> "Moderado"
+            NivelCongestionamento.congestionado -> "Congestionado"
+        }
     val fracaoUso = (dado.count / 8f).coerceIn(0f, 1f)
 
     Row(
@@ -2531,32 +2547,42 @@ private fun ChannelItem(
 }
 
 @Composable
-private fun InlineBadge(label: String, color: Color) {
+private fun InlineBadge(
+    label: String,
+    color: Color,
+) {
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(color.copy(alpha = 0.12f))
-            .padding(horizontal = 6.dp, vertical = 3.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(4.dp))
+                .background(color.copy(alpha = 0.12f))
+                .padding(horizontal = 6.dp, vertical = 3.dp),
     ) {
         Text(label, fontSize = 9.sp, fontWeight = FontWeight.W700, color = color)
     }
 }
 
 @Composable
-private fun LinearProgressBar(fraction: Float, color: Color, modifier: Modifier = Modifier) {
+private fun LinearProgressBar(
+    fraction: Float,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
     val c = LocalLkTokens.current
     Box(
-        modifier = modifier
-            .height(6.dp)
-            .clip(RoundedCornerShape(3.dp))
-            .background(c.bgSecondary),
+        modifier =
+            modifier
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(c.bgSecondary),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(fraction)
-                .clip(RoundedCornerShape(3.dp))
-                .background(color),
+            modifier =
+                Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(fraction)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(color),
         )
     }
 }
@@ -2573,10 +2599,11 @@ private fun EmptyStatePermissaoTelefonia(
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
         Box(
-            modifier = Modifier
-                .size(80.dp)
-                .clip(CircleShape)
-                .background(LkColors.warning.copy(alpha = 0.10f)),
+            modifier =
+                Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(LkColors.warning.copy(alpha = 0.10f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -2614,10 +2641,11 @@ private fun EmptyStateMobile(tokens: LkTokens) {
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
         Box(
-            modifier = Modifier
-                .size(80.dp)
-                .clip(CircleShape)
-                .background(LkColors.warning.copy(alpha = 0.10f)),
+            modifier =
+                Modifier
+                    .size(80.dp)
+                    .clip(CircleShape)
+                    .background(LkColors.warning.copy(alpha = 0.10f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

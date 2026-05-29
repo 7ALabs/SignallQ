@@ -26,8 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LinkaTheme
+import io.linka.app.kotlin.ui.LkColors
 
 @Composable
 fun DiagVerdictHeroCard(
@@ -40,16 +40,18 @@ fun DiagVerdictHeroCard(
     modelName: String? = null,
     modifier: Modifier = Modifier,
 ) {
-    val gradient = Brush.linearGradient(
-        colors = listOf(Color(0xFF1A0B2E), Color(0xFF0D0D1A)),
-    )
+    val gradient =
+        Brush.linearGradient(
+            colors = listOf(Color(0xFF1A0B2E), Color(0xFF0D0D1A)),
+        )
 
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(gradient)
-            .padding(18.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(20.dp))
+                .background(gradient)
+                .padding(18.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -109,16 +111,20 @@ fun DiagVerdictHeroCard(
 }
 
 @Composable
-private fun StatusPill(label: String, color: Color) {
+private fun StatusPill(
+    label: String,
+    color: Color,
+) {
     Text(
         text = label,
         fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
         color = color,
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(color.copy(alpha = 0.15f))
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(color.copy(alpha = 0.15f))
+                .padding(horizontal = 8.dp, vertical = 3.dp),
     )
 }
 

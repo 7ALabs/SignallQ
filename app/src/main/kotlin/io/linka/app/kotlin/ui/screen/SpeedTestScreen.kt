@@ -19,44 +19,25 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.WarningAmber
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.NetworkCheck
-import androidx.compose.material.icons.outlined.Psychology
-import androidx.compose.material.icons.outlined.SignalCellularAlt
-import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.Wifi
-import androidx.compose.material.icons.outlined.Wifi1Bar
-import androidx.compose.material.icons.outlined.Wifi2Bar
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -70,8 +51,6 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -82,14 +61,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.linka.app.kotlin.FeatureFlags
-import io.linka.app.kotlin.core.network.EstadoConexao
 import io.linka.app.kotlin.core.network.SnapshotRede
 import io.linka.app.kotlin.feature.speedtest.EstadoExecucaoSpeedtest
 import io.linka.app.kotlin.feature.speedtest.FaseSpeedtest
 import io.linka.app.kotlin.feature.speedtest.ModoSpeedtest
 import io.linka.app.kotlin.feature.speedtest.ResultadoRodadaTriplo
-import io.linka.app.kotlin.feature.speedtest.SeveridadeBufferbloat
 import io.linka.app.kotlin.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.linka.app.kotlin.ui.IspInfo
 import io.linka.app.kotlin.ui.LkColors
@@ -321,15 +297,16 @@ fun SpeedTestScreen(
 
             val resultado = snapshotSpeedtest.resultado
             if (resultado != null) {
-                val timestampRelativo = remember(resultado.timestampEpochMs) {
-                    val diffMin = ((System.currentTimeMillis() - resultado.timestampEpochMs) / 60_000).toInt()
-                    when {
-                        diffMin < 1 -> "agora"
-                        diffMin < 60 -> "há $diffMin min"
-                        diffMin < 1440 -> "há ${diffMin / 60}h"
-                        else -> "há ${diffMin / 1440}d"
+                val timestampRelativo =
+                    remember(resultado.timestampEpochMs) {
+                        val diffMin = ((System.currentTimeMillis() - resultado.timestampEpochMs) / 60_000).toInt()
+                        when {
+                            diffMin < 1 -> "agora"
+                            diffMin < 60 -> "há $diffMin min"
+                            diffMin < 1440 -> "há ${diffMin / 60}h"
+                            else -> "há ${diffMin / 1440}d"
+                        }
                     }
-                }
                 LastResultCard(
                     c = c,
                     downloadMbps = resultado.downloadMbps,
@@ -604,7 +581,6 @@ private fun ModeSelector(
     }
 }
 
-
 @Composable
 private fun IndicadorRodadaTriplo(
     rodadaAtual: Int,
@@ -736,13 +712,14 @@ private fun LastResultCard(
     onClick: () -> Unit = {},
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .clickable(onClick = onClick)
-            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .clickable(onClick = onClick)
+                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -777,7 +754,13 @@ private fun LastResultCard(
 }
 
 @Composable
-private fun MetricColumn(label: String, value: String, unit: String, color: Color, modifier: Modifier = Modifier) {
+private fun MetricColumn(
+    label: String,
+    value: String,
+    unit: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier = modifier) {
         Text(text = label, style = MaterialTheme.typography.labelSmall, color = LocalLkTokens.current.textTertiary)
         Spacer(Modifier.height(2.dp))
@@ -787,5 +770,3 @@ private fun MetricColumn(label: String, value: String, unit: String, color: Colo
         }
     }
 }
-
-

@@ -27,18 +27,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.linka.app.kotlin.ui.LinkaTheme
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LocalLkTokens
-import io.linka.app.kotlin.ui.LinkaTheme
 
 enum class MetricStatus {
-    OK, WARN, BAD;
+    OK,
+    WARN,
+    BAD,
+    ;
 
-    fun color(): Color = when (this) {
-        OK -> LkColors.success
-        WARN -> LkColors.warning
-        BAD -> LkColors.error
-    }
+    fun color(): Color =
+        when (this) {
+            OK -> LkColors.success
+            WARN -> LkColors.warning
+            BAD -> LkColors.error
+        }
 }
 
 data class MetricItem(
@@ -110,22 +114,27 @@ private fun MetricsGridContent(metrics: List<MetricItem>) {
 }
 
 @Composable
-private fun MetricCell(metric: MetricItem, modifier: Modifier = Modifier) {
+private fun MetricCell(
+    metric: MetricItem,
+    modifier: Modifier = Modifier,
+) {
     val c = LocalLkTokens.current
     val statusColor = metric.status.color()
 
     Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(c.bgSecondary)
-            .padding(horizontal = 11.dp, vertical = 9.dp),
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(c.bgSecondary)
+                .padding(horizontal = 11.dp, vertical = 9.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier = Modifier
-                    .size(7.dp)
-                    .clip(CircleShape)
-                    .background(statusColor),
+                modifier =
+                    Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(statusColor),
             )
             Spacer(Modifier.width(6.dp))
             Text(
@@ -156,14 +165,15 @@ private fun MetricCell(metric: MetricItem, modifier: Modifier = Modifier) {
 private fun DiagMetricsGridExpandedPreview() {
     LinkaTheme {
         DiagMetricsGrid(
-            metrics = listOf(
-                MetricItem("Download", "38.2 Mbps", MetricStatus.BAD, "19% do plano (200)"),
-                MetricItem("Upload", "41.8 Mbps", MetricStatus.OK),
-                MetricItem("Latência ociosa", "22 ms", MetricStatus.OK),
-                MetricItem("Bufferbloat", "+182 ms", MetricStatus.BAD),
-                MetricItem("Wi-Fi RSSI", "−74 dBm", MetricStatus.BAD),
-                MetricItem("Perda de pacotes", "1.4 %", MetricStatus.WARN),
-            ),
+            metrics =
+                listOf(
+                    MetricItem("Download", "38.2 Mbps", MetricStatus.BAD, "19% do plano (200)"),
+                    MetricItem("Upload", "41.8 Mbps", MetricStatus.OK),
+                    MetricItem("Latência ociosa", "22 ms", MetricStatus.OK),
+                    MetricItem("Bufferbloat", "+182 ms", MetricStatus.BAD),
+                    MetricItem("Wi-Fi RSSI", "−74 dBm", MetricStatus.BAD),
+                    MetricItem("Perda de pacotes", "1.4 %", MetricStatus.WARN),
+                ),
             expanded = true,
             onToggleExpand = {},
         )
@@ -175,10 +185,11 @@ private fun DiagMetricsGridExpandedPreview() {
 private fun DiagMetricsGridCollapsedPreview() {
     LinkaTheme {
         DiagMetricsGrid(
-            metrics = listOf(
-                MetricItem("Download", "38.2 Mbps", MetricStatus.BAD, "19% do plano (200)"),
-                MetricItem("Upload", "41.8 Mbps", MetricStatus.OK),
-            ),
+            metrics =
+                listOf(
+                    MetricItem("Download", "38.2 Mbps", MetricStatus.BAD, "19% do plano (200)"),
+                    MetricItem("Upload", "41.8 Mbps", MetricStatus.OK),
+                ),
             expanded = false,
             onToggleExpand = {},
         )

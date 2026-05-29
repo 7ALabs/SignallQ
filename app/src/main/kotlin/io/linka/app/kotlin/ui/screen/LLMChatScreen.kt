@@ -52,9 +52,9 @@ import androidx.compose.ui.unit.sp
 import io.linka.app.kotlin.feature.diagnostico.chat.ChatMensagem
 import io.linka.app.kotlin.feature.diagnostico.chat.PapelChatMensagem
 import io.linka.app.kotlin.feature.diagnostico.chat.StatusChatMensagem
+import io.linka.app.kotlin.ui.LinkaTheme
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LkSpacing
-import io.linka.app.kotlin.ui.LinkaTheme
 import io.linka.app.kotlin.ui.LocalLkTokens
 import io.linka.app.kotlin.ui.component.LLMAssistantMessage
 import io.linka.app.kotlin.ui.component.OrbitUserMessageBubble
@@ -76,10 +76,11 @@ fun LLMChatScreen(
     val c = LocalLkTokens.current
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(c.bgPrimary)
-            .windowInsetsPadding(WindowInsets.ime),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .background(c.bgPrimary)
+                .windowInsetsPadding(WindowInsets.ime),
     ) {
         LLMChatHeader(
             onVoltar = onVoltar,
@@ -121,9 +122,10 @@ private fun LLMChatHeader(
 
     Column {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.sm),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(
@@ -144,10 +146,11 @@ private fun LLMChatHeader(
             ) {
                 Text(
                     text = "Linka",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp,
-                    ),
+                    style =
+                        MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp,
+                        ),
                     color = c.textPrimary,
                 )
                 Spacer(modifier = Modifier.height(2.dp))
@@ -156,20 +159,22 @@ private fun LLMChatHeader(
                     horizontalArrangement = Arrangement.Center,
                 ) {
                     Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .background(
-                                color = LkColors.success,
-                                shape = RoundedCornerShape(999.dp),
-                            ),
+                        modifier =
+                            Modifier
+                                .size(6.dp)
+                                .background(
+                                    color = LkColors.success,
+                                    shape = RoundedCornerShape(999.dp),
+                                ),
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Assistente de conexão",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 11.sp,
-                            color = c.textSecondary,
-                        ),
+                        style =
+                            MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 11.sp,
+                                color = c.textSecondary,
+                            ),
                     )
                 }
             }
@@ -257,19 +262,21 @@ private fun LLMChatChips(
     ) {
         items(chips) { chip ->
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(c.bgSecondary)
-                    .border(1.dp, borderColor, RoundedCornerShape(999.dp))
-                    .clickable { onSelecionarChip(chip) }
-                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                modifier =
+                    Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(c.bgSecondary)
+                        .border(1.dp, borderColor, RoundedCornerShape(999.dp))
+                        .clickable { onSelecionarChip(chip) }
+                        .padding(horizontal = 12.dp, vertical = 7.dp),
             ) {
                 Text(
                     text = chip,
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontSize = 12.sp,
-                        color = c.textSecondary,
-                    ),
+                    style =
+                        MaterialTheme.typography.labelMedium.copy(
+                            fontSize = 12.sp,
+                            color = c.textSecondary,
+                        ),
                 )
             }
         }
@@ -291,37 +298,41 @@ private fun LLMChatInput(
         HorizontalDivider(color = borderColor)
 
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(c.bgSecondary)
-                    .padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(24.dp))
+                        .background(c.bgSecondary)
+                        .padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(modifier = Modifier.weight(1f)) {
                     if (draft.isEmpty()) {
                         Text(
                             text = "Pergunte qualquer coisa…",
-                            style = TextStyle(
-                                fontSize = 14.sp,
-                                color = c.textTertiary,
-                            ),
+                            style =
+                                TextStyle(
+                                    fontSize = 14.sp,
+                                    color = c.textTertiary,
+                                ),
                         )
                     }
                     BasicTextField(
                         value = draft,
                         onValueChange = onAtualizarDraft,
                         modifier = Modifier.fillMaxWidth(),
-                        textStyle = TextStyle(
-                            fontSize = 14.sp,
-                            color = c.textPrimary,
-                        ),
+                        textStyle =
+                            TextStyle(
+                                fontSize = 14.sp,
+                                color = c.textPrimary,
+                            ),
                         cursorBrush = SolidColor(LkColors.accent),
                         maxLines = 6,
                     )
@@ -330,18 +341,18 @@ private fun LLMChatInput(
                 Spacer(modifier = Modifier.width(LkSpacing.sm))
 
                 Box(
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (sendEnabled) LkColors.accent else LkColors.accent.copy(alpha = 0.4f),
-                        )
-                        .clickable(enabled = sendEnabled) {
-                            val text = draft.trim()
-                            if (text.isNotBlank()) {
-                                onEnviarMensagem(text)
-                            }
-                        },
+                    modifier =
+                        Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (sendEnabled) LkColors.accent else LkColors.accent.copy(alpha = 0.4f),
+                            ).clickable(enabled = sendEnabled) {
+                                val text = draft.trim()
+                                if (text.isNotBlank()) {
+                                    onEnviarMensagem(text)
+                                }
+                            },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -355,10 +366,11 @@ private fun LLMChatInput(
 
             Text(
                 text = "A Linka roda no aparelho e pode errar. Confira dados importantes.",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.5.sp,
-                    color = c.textTertiary,
-                ),
+                style =
+                    MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.5.sp,
+                        color = c.textTertiary,
+                    ),
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
@@ -370,36 +382,38 @@ private fun LLMChatInput(
 @Composable
 private fun LLMChatScreenPreview() {
     LinkaTheme {
-        val mensagens = listOf(
-            ChatMensagem(
-                id = UUID.randomUUID().toString(),
-                sessionId = "s1",
-                papel = PapelChatMensagem.assistente,
-                conteudo = "Olá! Como posso ajudar com sua conexão?",
-                criadoEmEpochMs = System.currentTimeMillis(),
-                status = StatusChatMensagem.concluido,
-            ),
-            ChatMensagem(
-                id = UUID.randomUUID().toString(),
-                sessionId = "s1",
-                papel = PapelChatMensagem.usuario,
-                conteudo = "Minha internet fica lenta toda noite. O que pode ser?",
-                criadoEmEpochMs = System.currentTimeMillis(),
-                status = StatusChatMensagem.concluido,
-            ),
-            ChatMensagem(
-                id = UUID.randomUUID().toString(),
-                sessionId = "s1",
-                papel = PapelChatMensagem.assistente,
-                conteudo = "Sua internet pode ficar lenta à noite por alguns motivos comuns:\n\n" +
-                    "1. Horário de pico — muitos vizinhos usando a rede ao mesmo tempo.\n" +
-                    "2. Wi-Fi 2.4 GHz cheio — banda congestionada no período noturno.\n" +
-                    "3. Atualizações em segundo plano — apps baixando enquanto você usa.\n\n" +
-                    "Quer rodar um teste rápido para confirmar?",
-                criadoEmEpochMs = System.currentTimeMillis(),
-                status = StatusChatMensagem.concluido,
-            ),
-        )
+        val mensagens =
+            listOf(
+                ChatMensagem(
+                    id = UUID.randomUUID().toString(),
+                    sessionId = "s1",
+                    papel = PapelChatMensagem.assistente,
+                    conteudo = "Olá! Como posso ajudar com sua conexão?",
+                    criadoEmEpochMs = System.currentTimeMillis(),
+                    status = StatusChatMensagem.concluido,
+                ),
+                ChatMensagem(
+                    id = UUID.randomUUID().toString(),
+                    sessionId = "s1",
+                    papel = PapelChatMensagem.usuario,
+                    conteudo = "Minha internet fica lenta toda noite. O que pode ser?",
+                    criadoEmEpochMs = System.currentTimeMillis(),
+                    status = StatusChatMensagem.concluido,
+                ),
+                ChatMensagem(
+                    id = UUID.randomUUID().toString(),
+                    sessionId = "s1",
+                    papel = PapelChatMensagem.assistente,
+                    conteudo =
+                        "Sua internet pode ficar lenta à noite por alguns motivos comuns:\n\n" +
+                            "1. Horário de pico — muitos vizinhos usando a rede ao mesmo tempo.\n" +
+                            "2. Wi-Fi 2.4 GHz cheio — banda congestionada no período noturno.\n" +
+                            "3. Atualizações em segundo plano — apps baixando enquanto você usa.\n\n" +
+                            "Quer rodar um teste rápido para confirmar?",
+                    criadoEmEpochMs = System.currentTimeMillis(),
+                    status = StatusChatMensagem.concluido,
+                ),
+            )
 
         LLMChatScreen(
             mensagens = mensagens,
@@ -419,24 +433,25 @@ private fun LLMChatScreenPreview() {
 @Composable
 private fun LLMChatScreenStreamingPreview() {
     LinkaTheme {
-        val mensagens = listOf(
-            ChatMensagem(
-                id = UUID.randomUUID().toString(),
-                sessionId = "s1",
-                papel = PapelChatMensagem.usuario,
-                conteudo = "Por que minha internet fica lenta?",
-                criadoEmEpochMs = System.currentTimeMillis(),
-                status = StatusChatMensagem.concluido,
-            ),
-            ChatMensagem(
-                id = UUID.randomUUID().toString(),
-                sessionId = "s1",
-                papel = PapelChatMensagem.assistente,
-                conteudo = "Analisando sua pergunta",
-                criadoEmEpochMs = System.currentTimeMillis(),
-                status = StatusChatMensagem.streaming,
-            ),
-        )
+        val mensagens =
+            listOf(
+                ChatMensagem(
+                    id = UUID.randomUUID().toString(),
+                    sessionId = "s1",
+                    papel = PapelChatMensagem.usuario,
+                    conteudo = "Por que minha internet fica lenta?",
+                    criadoEmEpochMs = System.currentTimeMillis(),
+                    status = StatusChatMensagem.concluido,
+                ),
+                ChatMensagem(
+                    id = UUID.randomUUID().toString(),
+                    sessionId = "s1",
+                    papel = PapelChatMensagem.assistente,
+                    conteudo = "Analisando sua pergunta",
+                    criadoEmEpochMs = System.currentTimeMillis(),
+                    status = StatusChatMensagem.streaming,
+                ),
+            )
 
         LLMChatScreen(
             mensagens = mensagens,

@@ -91,21 +91,24 @@ fun LaudoScreen(
     val relatorio = snapshotDiagnostico.relatorio
     val decisao = relatorio?.decisao
 
-    val dataHora = remember {
-        SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR")).format(Date())
-    }
-    val headerTitulo = buildString {
-        if (nomeUsuario.isNotBlank()) append("$nomeUsuario · ")
-        if (operadora.isNotBlank()) append(operadora)
-        if (velocidadeContratadaMbps != null && velocidadeContratadaMbps > 0) append(" $velocidadeContratadaMbps Mbps")
-    }.ifBlank { "Diagnóstico de rede" }
-    val headerSub = buildString {
-        ssid?.let { append("SSID $it") }
-        ipLocal?.let {
-            if (isNotEmpty()) append(" · ")
-            append(mascaraIpLocal(it))
+    val dataHora =
+        remember {
+            SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR")).format(Date())
         }
-    }
+    val headerTitulo =
+        buildString {
+            if (nomeUsuario.isNotBlank()) append("$nomeUsuario · ")
+            if (operadora.isNotBlank()) append(operadora)
+            if (velocidadeContratadaMbps != null && velocidadeContratadaMbps > 0) append(" $velocidadeContratadaMbps Mbps")
+        }.ifBlank { "Diagnóstico de rede" }
+    val headerSub =
+        buildString {
+            ssid?.let { append("SSID $it") }
+            ipLocal?.let {
+                if (isNotEmpty()) append(" · ")
+                append(mascaraIpLocal(it))
+            }
+        }
 
     Scaffold(
         containerColor = c.bgPrimary,
@@ -177,15 +180,17 @@ fun LaudoScreen(
     ) { padding ->
         LazyColumn(
             state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
-            contentPadding = PaddingValues(
-                start = LkSpacing.lg,
-                end = LkSpacing.lg,
-                top = 0.dp,
-                bottom = LkSpacing.xxl,
-            ),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+            contentPadding =
+                PaddingValues(
+                    start = LkSpacing.lg,
+                    end = LkSpacing.lg,
+                    top = 0.dp,
+                    bottom = LkSpacing.xxl,
+                ),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.lg),
         ) {
             // Header
@@ -322,11 +327,12 @@ private fun LaudoSection(
     content: @Composable () -> Unit,
 ) {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .padding(LkSpacing.lg),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .padding(LkSpacing.lg),
     ) {
         Text(
             titulo,

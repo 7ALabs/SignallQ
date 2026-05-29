@@ -22,9 +22,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CheckCircleOutline
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Refresh
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SignalCellularAlt
-import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -111,7 +109,8 @@ fun FibraModemScreen(
     ) { padding ->
         when (snapshotFibra.estado) {
             EstadoFibra.idle,
-            EstadoFibra.conectando -> {
+            EstadoFibra.conectando,
+            -> {
                 Box(
                     modifier = Modifier.fillMaxSize().padding(padding),
                     contentAlignment = Alignment.Center,
@@ -137,10 +136,11 @@ fun FibraModemScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Box(
-                            modifier = Modifier
-                                .size(80.dp)
-                                .clip(CircleShape)
-                                .background(LkColors.warning.copy(alpha = 0.10f)),
+                            modifier =
+                                Modifier
+                                    .size(80.dp)
+                                    .clip(CircleShape)
+                                    .background(LkColors.warning.copy(alpha = 0.10f)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
@@ -208,51 +208,58 @@ private fun FibraConcluidoContent(
     c: LkTokens,
     modifier: Modifier = Modifier,
 ) {
-    val fibraInput = remember(gpon) {
-        FibraDiagnosticInput(
-            rxPowerDbm = gpon.rxPowerDbm,
-            txPowerDbm = gpon.txPowerDbm,
-            temperatureCelsius = gpon.temperatureCelsius,
-            isUp = gpon.isUp,
-        )
-    }
+    val fibraInput =
+        remember(gpon) {
+            FibraDiagnosticInput(
+                rxPowerDbm = gpon.rxPowerDbm,
+                txPowerDbm = gpon.txPowerDbm,
+                temperatureCelsius = gpon.temperatureCelsius,
+                isUp = gpon.isUp,
+            )
+        }
     val interpretacoes = remember(fibraInput) { FibraSignalQualityEngine.avaliar(fibraInput) }
 
     val temCritico = interpretacoes.any { it.status == DiagnosticStatus.critical }
     val temAtencao = interpretacoes.any { it.status == DiagnosticStatus.attention }
 
-    val (tituloSaude, descSaude, corSaude, badgeLabel) = when {
-        temCritico -> StatusSaude(
-            "Atenção necessária",
-            "Foram identificados problemas na sua conexão de fibra que podem afetar a estabilidade.",
-            LkColors.error,
-            "Problema detectado",
-        )
-        temAtencao -> StatusSaude(
-            "Conexão regular",
-            "Sua internet funciona, mas há pontos que merecem atenção.",
-            LkColors.warning,
-            "Atenção",
-        )
-        else -> StatusSaude(
-            "Conexão saudável",
-            "Sua internet está estável e funcionando bem.",
-            LkColors.success,
-            "Tudo certo",
-        )
-    }
+    val (tituloSaude, descSaude, corSaude, badgeLabel) =
+        when {
+            temCritico ->
+                StatusSaude(
+                    "Atenção necessária",
+                    "Foram identificados problemas na sua conexão de fibra que podem afetar a estabilidade.",
+                    LkColors.error,
+                    "Problema detectado",
+                )
+            temAtencao ->
+                StatusSaude(
+                    "Conexão regular",
+                    "Sua internet funciona, mas há pontos que merecem atenção.",
+                    LkColors.warning,
+                    "Atenção",
+                )
+            else ->
+                StatusSaude(
+                    "Conexão saudável",
+                    "Sua internet está estável e funcionando bem.",
+                    LkColors.success,
+                    "Tudo certo",
+                )
+        }
 
     // Map diagnostics to friendly cards
     val potenciaResult = interpretacoes.find { it.id.startsWith("FIB-02") }
     val ruidoResult = interpretacoes.find { it.id.startsWith("FIB-03") }
-    val conexaoResult = interpretacoes.find { it.id.startsWith("FIB-01") }
-        ?: interpretacoes.find { it.id.startsWith("FIB-04") }
+    val conexaoResult =
+        interpretacoes.find { it.id.startsWith("FIB-01") }
+            ?: interpretacoes.find { it.id.startsWith("FIB-04") }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = LkSpacing.lg),
+        modifier =
+            modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = LkSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
         Spacer(Modifier.height(LkSpacing.xs))
@@ -272,10 +279,11 @@ private fun FibraConcluidoContent(
         )
         // Badge
         Row(
-            modifier = Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(corSaude.copy(alpha = 0.10f))
-                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
+            modifier =
+                Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(corSaude.copy(alpha = 0.10f))
+                    .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
@@ -343,19 +351,21 @@ private fun FibraFriendlyCard(
     c: LkTokens,
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card))
-            .background(c.bgCard)
-            .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-            .padding(LkSpacing.md),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(iconeCor.copy(alpha = 0.10f)),
+            modifier =
+                Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(iconeCor.copy(alpha = 0.10f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(icone, contentDescription = null, tint = iconeCor, modifier = Modifier.size(18.dp))
@@ -367,10 +377,11 @@ private fun FibraFriendlyCard(
         }
         Spacer(Modifier.width(LkSpacing.sm))
         Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(badgeCor.copy(alpha = 0.10f))
-                .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
+            modifier =
+                Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(badgeCor.copy(alpha = 0.10f))
+                    .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
         ) {
             Text(badge, fontSize = 11.sp, fontWeight = FontWeight.W700, color = badgeCor)
         }
@@ -384,32 +395,37 @@ private data class StatusSaude(
     val badge: String,
 )
 
-private fun statusColor(status: DiagnosticStatus): Color = when (status) {
-    DiagnosticStatus.critical -> LkColors.error
-    DiagnosticStatus.attention -> LkColors.warning
-    else -> LkColors.success
-}
+private fun statusColor(status: DiagnosticStatus): Color =
+    when (status) {
+        DiagnosticStatus.critical -> LkColors.error
+        DiagnosticStatus.attention -> LkColors.warning
+        else -> LkColors.success
+    }
 
-private fun friendlyDesc(result: io.linka.app.kotlin.feature.diagnostico.DiagnosticResult): String = when (result.status) {
-    DiagnosticStatus.ok -> "Sinal forte chegando até o modem"
-    DiagnosticStatus.attention -> "Sinal abaixo do ideal"
-    else -> "Sinal muito fraco — pode causar instabilidade"
-}
+private fun friendlyDesc(result: io.linka.app.kotlin.feature.diagnostico.DiagnosticResult): String =
+    when (result.status) {
+        DiagnosticStatus.ok -> "Sinal forte chegando até o modem"
+        DiagnosticStatus.attention -> "Sinal abaixo do ideal"
+        else -> "Sinal muito fraco — pode causar instabilidade"
+    }
 
-private fun friendlyBadge(result: io.linka.app.kotlin.feature.diagnostico.DiagnosticResult): String = when (result.status) {
-    DiagnosticStatus.ok -> "Excelente"
-    DiagnosticStatus.attention -> "Regular"
-    else -> "Fraco"
-}
+private fun friendlyBadge(result: io.linka.app.kotlin.feature.diagnostico.DiagnosticResult): String =
+    when (result.status) {
+        DiagnosticStatus.ok -> "Excelente"
+        DiagnosticStatus.attention -> "Regular"
+        else -> "Fraco"
+    }
 
-private fun friendlyDescRuido(result: io.linka.app.kotlin.feature.diagnostico.DiagnosticResult): String = when (result.status) {
-    DiagnosticStatus.ok -> "Pouca interferência detectada"
-    DiagnosticStatus.attention -> "Interferência moderada"
-    else -> "Interferência alta detectada"
-}
+private fun friendlyDescRuido(result: io.linka.app.kotlin.feature.diagnostico.DiagnosticResult): String =
+    when (result.status) {
+        DiagnosticStatus.ok -> "Pouca interferência detectada"
+        DiagnosticStatus.attention -> "Interferência moderada"
+        else -> "Interferência alta detectada"
+    }
 
-private fun friendlyBadgeRuido(result: io.linka.app.kotlin.feature.diagnostico.DiagnosticResult): String = when (result.status) {
-    DiagnosticStatus.ok -> "Baixo"
-    DiagnosticStatus.attention -> "Moderado"
-    else -> "Alto"
-}
+private fun friendlyBadgeRuido(result: io.linka.app.kotlin.feature.diagnostico.DiagnosticResult): String =
+    when (result.status) {
+        DiagnosticStatus.ok -> "Baixo"
+        DiagnosticStatus.attention -> "Moderado"
+        else -> "Alto"
+    }

@@ -26,9 +26,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.linka.app.kotlin.ui.LinkaTheme
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LocalLkTokens
-import io.linka.app.kotlin.ui.LinkaTheme
 
 data class ImpactItem(
     val icon: ImageVector,
@@ -54,10 +54,11 @@ fun DiagImpactCard(
         )
         Spacer(modifier = Modifier.size(8.dp))
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(c.bgSecondary),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(c.bgSecondary),
         ) {
             items.forEachIndexed { index, item ->
                 ImpactRow(item = item)
@@ -78,9 +79,10 @@ private fun ImpactRow(item: ImpactItem) {
     val c = LocalLkTokens.current
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -101,16 +103,20 @@ private fun ImpactRow(item: ImpactItem) {
 }
 
 @Composable
-private fun StatusBadge(label: String, color: Color) {
+private fun StatusBadge(
+    label: String,
+    color: Color,
+) {
     Text(
         text = label,
         fontSize = 10.sp,
         fontWeight = FontWeight.SemiBold,
         color = color,
-        modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(color.copy(alpha = 0.15f))
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(4.dp))
+                .background(color.copy(alpha = 0.15f))
+                .padding(horizontal = 8.dp, vertical = 3.dp),
     )
 }
 
@@ -119,11 +125,12 @@ private fun StatusBadge(label: String, color: Color) {
 private fun DiagImpactCardPreview() {
     LinkaTheme {
         DiagImpactCard(
-            items = listOf(
-                ImpactItem(Icons.Rounded.PlayCircle, "Streaming / vídeo", "Ok", LkColors.success),
-                ImpactItem(Icons.Rounded.Videocam, "Chamadas de vídeo", "Travando", LkColors.error),
-                ImpactItem(Icons.Rounded.Games, "Jogos online", "Ruim", LkColors.error),
-            ),
+            items =
+                listOf(
+                    ImpactItem(Icons.Rounded.PlayCircle, "Streaming / vídeo", "Ok", LkColors.success),
+                    ImpactItem(Icons.Rounded.Videocam, "Chamadas de vídeo", "Travando", LkColors.error),
+                    ImpactItem(Icons.Rounded.Games, "Jogos online", "Ruim", LkColors.error),
+                ),
         )
     }
 }

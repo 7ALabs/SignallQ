@@ -1,7 +1,6 @@
 package io.linka.app.kotlin.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -692,7 +691,6 @@ private fun ChipTipoRede(
         border = SuggestionChipDefaults.suggestionChipBorder(enabled = true, borderColor = c.border),
     )
 }
-
 
 @Composable
 private fun VereditorRow(

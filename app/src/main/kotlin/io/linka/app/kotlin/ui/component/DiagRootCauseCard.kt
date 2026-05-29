@@ -24,9 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.linka.app.kotlin.ui.LinkaTheme
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LocalLkTokens
-import io.linka.app.kotlin.ui.LinkaTheme
 
 @Composable
 fun DiagRootCauseCard(
@@ -38,19 +38,21 @@ fun DiagRootCauseCard(
     val c = LocalLkTokens.current
 
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(LkColors.error.copy(alpha = 0.05f))
-            .border(1.dp, LkColors.error.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
-            .padding(horizontal = 11.dp, vertical = 14.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(LkColors.error.copy(alpha = 0.05f))
+                .border(1.dp, LkColors.error.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                .padding(horizontal = 11.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(LkColors.error.copy(alpha = 0.1f)),
+            modifier =
+                Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(LkColors.error.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

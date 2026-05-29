@@ -24,9 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.linka.app.kotlin.ui.LinkaTheme
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LocalLkTokens
-import io.linka.app.kotlin.ui.LinkaTheme
 
 @Composable
 fun DiagRecommendationCard(
@@ -41,21 +41,23 @@ fun DiagRecommendationCard(
     val c = LocalLkTokens.current
 
     Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(c.bgCard)
-            .border(1.dp, c.border, RoundedCornerShape(16.dp))
-            .padding(13.dp),
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(c.bgCard)
+                .border(1.dp, c.border, RoundedCornerShape(16.dp))
+                .padding(13.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .background(LkColors.accent),
+                modifier =
+                    Modifier
+                        .size(22.dp)
+                        .clip(CircleShape)
+                        .background(LkColors.accent),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -93,26 +95,31 @@ fun DiagRecommendationCard(
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = LkColors.accent,
-                modifier = Modifier
-                    .padding(start = 32.dp)
-                    .clickable { onStepByStep() },
+                modifier =
+                    Modifier
+                        .padding(start = 32.dp)
+                        .clickable { onStepByStep() },
             )
         }
     }
 }
 
 @Composable
-private fun PriorityPill(label: String, color: Color) {
+private fun PriorityPill(
+    label: String,
+    color: Color,
+) {
     Text(
         text = label,
         fontSize = 9.5.sp,
         fontWeight = FontWeight.Bold,
         color = color,
         letterSpacing = 0.3.sp,
-        modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(color.copy(alpha = 0.1f))
-            .padding(horizontal = 7.dp, vertical = 3.dp),
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(color.copy(alpha = 0.1f))
+                .padding(horizontal = 7.dp, vertical = 3.dp),
     )
 }
 
