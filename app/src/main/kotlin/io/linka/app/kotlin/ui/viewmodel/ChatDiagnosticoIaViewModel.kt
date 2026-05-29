@@ -1,17 +1,22 @@
 package io.linka.app.kotlin.ui.viewmodel
 
 import android.content.Context
+import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.linka.app.kotlin.core.database.LinkaDatabase
-import io.linka.app.kotlin.core.database.MedicaoEntity
+import io.linka.app.kotlin.core.network.EstadoConexao
+import io.linka.app.kotlin.core.network.MonitorRedeAndroid
 import io.linka.app.kotlin.feature.diagnostico.ConnectionType
+import io.linka.app.kotlin.feature.diagnostico.ai.AiContextoRede
 import io.linka.app.kotlin.feature.diagnostico.ai.AiDiagnosisRepository
+import io.linka.app.kotlin.feature.diagnostico.ai.AiDispositivosInfo
 import io.linka.app.kotlin.feature.diagnostico.ai.AiEvidence
 import io.linka.app.kotlin.feature.diagnostico.ai.AiHistoricoResumo
 import io.linka.app.kotlin.feature.diagnostico.ai.AiMetricasAtuais
+import io.linka.app.kotlin.feature.diagnostico.ai.AiRedeInfo
 import io.linka.app.kotlin.feature.diagnostico.ai.AiTesteHistorico
 import io.linka.app.kotlin.feature.diagnostico.ai.DiagnosisAiContext
 import io.linka.app.kotlin.feature.diagnostico.chat.ChatDiagnosticoIaRepository
@@ -113,6 +118,14 @@ class ChatDiagnosticoIaViewModel
             )
         }
 
+        private var monitorRedeInicializado = false
+        private val monitorRede by lazy {
+            MonitorRedeAndroid(context).also {
+                it.iniciar()
+                monitorRedeInicializado = true
+            }
+        }
+
         // -------------------------------------------------------------------------
         // State
         // -------------------------------------------------------------------------
@@ -126,9 +139,164 @@ class ChatDiagnosticoIaViewModel
         // Mensagem placeholder de streaming atual — para atualizar tokens in-place
         private var mensagemStreamingAtual: ChatMensagem? = null
 
+        // Último contexto enviado à IA — reutilizado em follow-ups para que a IA
+        // tenha acesso aos dados de rede mesmo em perguntas livres do usuário.
+        private var ultimoContextoAnalise: DiagnosisAiContext? = null
+
         // Rastreia se a mensagem de download já foi inserida durante o novoTeste
         private var msgDownloadJaInserida = false
         private var msgUploadJaInserida = false
+
+        // -------------------------------------------------------------------------
+        // Lifecycle
+        // -------------------------------------------------------------------------
+
+        override fun onCleared() {
+            super.onCleared()
+            // monitorRede é lazy — encerrar apenas se foi inicializado (evita criar só pra encerrar).
+            if (monitorRedeInicializado) {
+                try { monitorRede.encerrar() } catch (_: Exception) {}
+            }
+        }
+
+        // -------------------------------------------------------------------------
+        // Contexto completo de rede
+        // -------------------------------------------------------------------------
+
+        /**
+         * Coleta o contexto mais completo possível de dados de rede, dispositivo e
+         * histórico de testes para enviar à IA.
+         *
+         * Sempre busca dados frescos do monitorRede + banco. Nenhuma análise local —
+         * apenas dados brutos.
+         */
+        private suspend fun coletarContextoCompleto(): DiagnosisAiContext {
+            val snapshot = monitorRede.snapshotFlow.value
+
+            // ConnectionType
+            val connectionType = when (snapshot.estadoConexao) {
+                EstadoConexao.wifi -> ConnectionType.wifi
+                EstadoConexao.movel -> ConnectionType.mobile
+                EstadoConexao.ethernet -> ConnectionType.ethernet
+                else -> ConnectionType.wifi
+            }
+
+            // Wi-Fi context
+            val wifi = snapshot.wifiLinkSnapshot
+            val contextoRede = AiContextoRede(
+                tipoConexao = connectionType.name,
+                ssid = wifi?.ssid,
+                bssid = wifi?.bssid,
+                rssi = wifi?.rssiDbm,
+                frequenciaMhz = wifi?.frequenciaMhz,
+                linkSpeedMbps = wifi?.linkSpeedMbps,
+                padraoWifi = wifi?.padraoWifi,
+                bandaWifi = wifi?.frequenciaMhz?.let { frequenciaParaBanda(it) },
+                canal = wifi?.frequenciaMhz?.let { frequenciaParaCanal(it) },
+                privateDnsAtivo = snapshot.privateDnsAtivo,
+                privateDnsHostname = snapshot.privateDnsHostname,
+            )
+
+            // DNS / rede info
+            val rede = AiRedeInfo(
+                dnsResolverIp = snapshot.dnsServidores.firstOrNull(),
+            )
+
+            // Dispositivo
+            val dispositivos = AiDispositivosInfo(
+                fabricante = Build.MANUFACTURER,
+                modelo = Build.MODEL,
+                sistema = "Android",
+                versaoSO = Build.VERSION.RELEASE,
+            )
+
+            // Últimos 3 speedtests do banco
+            val ultimasMedicoes = bancoDados.medicaoDao().observarUltimas(3).first()
+            val ultimosTestes = ultimasMedicoes.map { m ->
+                AiTesteHistorico(
+                    timestampEpochMs = m.timestampEpochMs,
+                    downloadMbps = m.downloadMbps,
+                    uploadMbps = m.uploadMbps,
+                    latenciaMs = m.latencyMs,
+                    jitterMs = m.jitterMs,
+                    perdaPercentual = m.perdaPercentual,
+                    connectionType = m.connectionType,
+                )
+            }
+            val historico = ultimosTestes.takeIf { it.isNotEmpty() }?.let {
+                AiHistoricoResumo(ultimosTestes = it)
+            }
+
+            // Métricas atuais: a medição mais recente vira metricasAtuais
+            val medicaoRecente = ultimasMedicoes.firstOrNull()
+            val metricasAtuais = medicaoRecente?.let { m ->
+                AiMetricasAtuais(
+                    downloadMbps = m.downloadMbps,
+                    uploadMbps = m.uploadMbps,
+                    latenciaMs = m.latencyMs,
+                    jitterMs = m.jitterMs,
+                    perdaPacotesPercentual = m.perdaPercentual,
+                    bufferbloatMs = m.bufferbloatMs,
+                )
+            }
+
+            // Evidências brutas da medição mais recente
+            val evidencias = mutableListOf<AiEvidence>()
+            medicaoRecente?.let { m ->
+                m.downloadMbps?.let { evidencias.add(AiEvidence("download", "$it Mbps")) }
+                m.uploadMbps?.let { evidencias.add(AiEvidence("upload", "$it Mbps")) }
+                m.latencyMs?.let { evidencias.add(AiEvidence("latencia", "$it ms")) }
+                m.jitterMs?.let { evidencias.add(AiEvidence("jitter", "$it ms")) }
+                m.perdaPercentual?.let { evidencias.add(AiEvidence("perda_pacotes", "$it%")) }
+            }
+
+            // Tom derivado das métricas
+            val instrucaoTom = calcularInstrucaoTom(metricasAtuais)
+
+            return DiagnosisAiContext(
+                generatedAtEpochMs = System.currentTimeMillis(),
+                connectionType = connectionType,
+                metricasAtuais = metricasAtuais,
+                contextoRede = contextoRede,
+                rede = rede,
+                dispositivos = dispositivos,
+                historico = historico,
+                evidencias = evidencias,
+                instrucaoTom = instrucaoTom,
+            )
+        }
+
+        private fun frequenciaParaCanal(freq: Int): Int? = when {
+            freq in 2412..2484 -> (freq - 2412) / 5 + 1
+            freq in 5170..5825 -> (freq - 5000) / 5
+            freq in 5955..7115 -> (freq - 5955) / 5 + 1
+            else -> null
+        }
+
+        private fun frequenciaParaBanda(freq: Int): String? = when {
+            freq < 5000 -> "2.4 GHz"
+            freq < 5925 -> "5 GHz"
+            freq >= 5925 -> "6 GHz"
+            else -> null
+        }
+
+        /**
+         * Deriva instrução de tom a partir das métricas.
+         * Replica a lógica de DiagnosisAiContextFactory.buildToneInstruction (internal).
+         * Thresholds: jitter > 50ms, perda >= 2%, RTT gateway > 150ms.
+         */
+        private fun calcularInstrucaoTom(metricas: AiMetricasAtuais?): String? {
+            if (metricas == null) return null
+            var badCount = 0
+            if ((metricas.jitterMs ?: 0.0) > 50.0) badCount++
+            if ((metricas.perdaPacotesPercentual ?: 0.0) >= 2.0) badCount++
+            if ((metricas.rttGatewayMs ?: 0) > 150) badCount++
+            return when {
+                badCount >= 2 -> "Detectei..."
+                badCount == 1 -> "Sua conexão está funcionando, mas..."
+                else -> "Tudo dentro do esperado."
+            }
+        }
 
         // -------------------------------------------------------------------------
         // Init
@@ -235,16 +403,38 @@ class ChatDiagnosticoIaViewModel
                     }
                 }
 
-                // Monta contexto para a IA com o feedback do usuário
-                val contexto =
-                    DiagnosisAiContext(
+                // Coleta contexto completo de rede + histórico para o follow-up.
+                // Se o monitorRede ainda não tiver dados (app acabou de abrir), usa
+                // ultimoContextoAnalise como fallback para não perder métricas.
+                val contextoFresh = try {
+                    coletarContextoCompleto().copy(
                         generatedAtEpochMs = System.currentTimeMillis(),
-                        connectionType = ConnectionType.wifi, // sem info de rede aqui — contexto de chat livre
                         feedbackUsuario = texto,
-                        evidencias = emptyList(),
                     )
+                } catch (e: Exception) {
+                    Timber.tag(TAG).w(e, "coletarContextoCompleto falhou no follow-up, usando fallback")
+                    val base = ultimoContextoAnalise
+                    if (base != null) {
+                        base.copy(
+                            generatedAtEpochMs = System.currentTimeMillis(),
+                            feedbackUsuario = texto,
+                        )
+                    } else {
+                        DiagnosisAiContext(
+                            generatedAtEpochMs = System.currentTimeMillis(),
+                            connectionType = ConnectionType.wifi,
+                            feedbackUsuario = texto,
+                            dispositivos = AiDispositivosInfo(
+                                fabricante = Build.MANUFACTURER,
+                                modelo = Build.MODEL,
+                                sistema = "Android",
+                                versaoSO = Build.VERSION.RELEASE,
+                            ),
+                        )
+                    }
+                }
 
-                iniciarAnaliseStreaming(sessaoId = sessaoId, context = contexto, tipo = null)
+                iniciarAnaliseStreaming(sessaoId = sessaoId, context = contextoFresh, tipo = null)
             }
         }
 
@@ -339,7 +529,7 @@ class ChatDiagnosticoIaViewModel
                 return
             }
 
-            val contexto = montarContextoDeMedicao(ultimaMedicao)
+            val contexto = coletarContextoCompleto()
             iniciarAnaliseStreaming(sessaoId = sessaoId, context = contexto, tipo = TipoDiagnostico.ultimoTeste)
         }
 
@@ -456,29 +646,29 @@ class ChatDiagnosticoIaViewModel
                                 chatRepository.salvarMensagem(msg4)
                                 adicionarMensagemAoState(msg4)
 
-                                // Monta contexto e dispara análise IA
-                                val contexto =
-                                    DiagnosisAiContext(
-                                        generatedAtEpochMs = resultado.timestampEpochMs,
-                                        connectionType = ConnectionType.wifi, // fallback sem monitor de rede
-                                        metricasAtuais =
-                                            AiMetricasAtuais(
-                                                downloadMbps = resultado.downloadMbps,
-                                                uploadMbps = resultado.uploadMbps,
-                                                latenciaMs = resultado.latenciaMs,
-                                                jitterMs = resultado.jitterMs,
-                                                perdaPacotesPercentual = resultado.perdaPercentual,
-                                                bufferbloatMs = resultado.bufferbloatMs,
-                                                severidadeBufferbloat = resultado.severidadeBufferbloat.name,
-                                                stabilityScore = resultado.stabilityScore,
-                                                peakDownloadMbps = resultado.peakDownloadMbps,
-                                                peakUploadMbps = resultado.peakUploadMbps,
-                                                latencyDownloadMs = resultado.latencyDownloadMs,
-                                                latencyUploadMs = resultado.latencyUploadMs,
-                                                packetLossSource = resultado.packetLossSource,
-                                            ),
-                                        evidencias = emptyList(),
-                                    )
+                                // Coleta contexto completo de rede e sobrescreve metricasAtuais
+                                // com os dados fresh do speedtest recém concluído (inclui peak,
+                                // stability, bufferbloat que o banco pode ainda não ter persistido).
+                                val metricasFresh = AiMetricasAtuais(
+                                    downloadMbps = resultado.downloadMbps,
+                                    uploadMbps = resultado.uploadMbps,
+                                    latenciaMs = resultado.latenciaMs,
+                                    jitterMs = resultado.jitterMs,
+                                    perdaPacotesPercentual = resultado.perdaPercentual,
+                                    bufferbloatMs = resultado.bufferbloatMs,
+                                    severidadeBufferbloat = resultado.severidadeBufferbloat.name,
+                                    stabilityScore = resultado.stabilityScore,
+                                    peakDownloadMbps = resultado.peakDownloadMbps,
+                                    peakUploadMbps = resultado.peakUploadMbps,
+                                    latencyDownloadMs = resultado.latencyDownloadMs,
+                                    latencyUploadMs = resultado.latencyUploadMs,
+                                    packetLossSource = resultado.packetLossSource,
+                                )
+                                val contexto = coletarContextoCompleto().copy(
+                                    generatedAtEpochMs = resultado.timestampEpochMs,
+                                    metricasAtuais = metricasFresh,
+                                    instrucaoTom = calcularInstrucaoTom(metricasFresh),
+                                )
 
                                 _uiState.update { it.copy(estado = EstadoChatDiagnostico.Idle) }
                                 iniciarAnaliseStreaming(
@@ -564,27 +754,23 @@ class ChatDiagnosticoIaViewModel
             chatRepository.salvarMensagem(msgContagem)
             adicionarMensagemAoState(msgContagem)
 
-            // Monta contexto com histórico — DiagnosisAiContext já tem campo historico com ultimosTestes
-            val ultimosTestes =
-                medicoes.map { m ->
-                    AiTesteHistorico(
-                        timestampEpochMs = m.timestampEpochMs,
-                        downloadMbps = m.downloadMbps,
-                        uploadMbps = m.uploadMbps,
-                        latenciaMs = m.latencyMs,
-                        jitterMs = m.jitterMs,
-                        perdaPercentual = m.perdaPercentual,
-                        connectionType = m.connectionType,
-                    )
-                }
-
-            val contexto =
-                DiagnosisAiContext(
-                    generatedAtEpochMs = System.currentTimeMillis(),
-                    connectionType = ConnectionType.wifi,
-                    historico = AiHistoricoResumo(ultimosTestes = ultimosTestes),
-                    evidencias = emptyList(),
+            // coletarContextoCompleto() já inclui os últimos 3 testes no historico.
+            // Para o modo histórico, enriquecemos o historico com os 7 testes que já
+            // buscamos para exibir a contagem ao usuário.
+            val ultimosTestes7 = medicoes.map { m ->
+                AiTesteHistorico(
+                    timestampEpochMs = m.timestampEpochMs,
+                    downloadMbps = m.downloadMbps,
+                    uploadMbps = m.uploadMbps,
+                    latenciaMs = m.latencyMs,
+                    jitterMs = m.jitterMs,
+                    perdaPercentual = m.perdaPercentual,
+                    connectionType = m.connectionType,
                 )
+            }
+            val contexto = coletarContextoCompleto().copy(
+                historico = AiHistoricoResumo(ultimosTestes = ultimosTestes7),
+            )
 
             iniciarAnaliseStreaming(sessaoId = sessaoId, context = contexto, tipo = TipoDiagnostico.historico)
         }
@@ -609,6 +795,10 @@ class ChatDiagnosticoIaViewModel
             context: DiagnosisAiContext,
             tipo: TipoDiagnostico?,
         ) {
+            if (tipo != null) {
+                ultimoContextoAnalise = context
+            }
+
             // Insere placeholder da resposta da IA
             val placeholder =
                 criarMensagem(
@@ -751,45 +941,6 @@ class ChatDiagnosticoIaViewModel
                         EstadoChatDiagnostico.Idle,
                     )
             }
-        }
-
-        // -------------------------------------------------------------------------
-        // Helpers de contexto
-        // -------------------------------------------------------------------------
-
-        /**
-         * Monta DiagnosisAiContext a partir de uma MedicaoEntity.
-         * Extrai as métricas brutas sem interpretação local — a IA faz a análise.
-         */
-        private fun montarContextoDeMedicao(medicao: MedicaoEntity): DiagnosisAiContext {
-            val connectionType =
-                try {
-                    ConnectionType.valueOf(medicao.connectionType)
-                } catch (_: IllegalArgumentException) {
-                    ConnectionType.wifi
-                }
-
-            val evidencias = mutableListOf<AiEvidence>()
-            medicao.downloadMbps?.let { evidencias.add(AiEvidence("download", "$it Mbps")) }
-            medicao.uploadMbps?.let { evidencias.add(AiEvidence("upload", "$it Mbps")) }
-            medicao.latencyMs?.let { evidencias.add(AiEvidence("latencia", "$it ms")) }
-            medicao.jitterMs?.let { evidencias.add(AiEvidence("jitter", "$it ms")) }
-            medicao.perdaPercentual?.let { evidencias.add(AiEvidence("perda_pacotes", "$it%")) }
-
-            return DiagnosisAiContext(
-                generatedAtEpochMs = medicao.timestampEpochMs,
-                connectionType = connectionType,
-                metricasAtuais =
-                    AiMetricasAtuais(
-                        downloadMbps = medicao.downloadMbps,
-                        uploadMbps = medicao.uploadMbps,
-                        latenciaMs = medicao.latencyMs,
-                        jitterMs = medicao.jitterMs,
-                        perdaPacotesPercentual = medicao.perdaPercentual,
-                        bufferbloatMs = medicao.bufferbloatMs,
-                    ),
-                evidencias = evidencias,
-            )
         }
 
         // -------------------------------------------------------------------------

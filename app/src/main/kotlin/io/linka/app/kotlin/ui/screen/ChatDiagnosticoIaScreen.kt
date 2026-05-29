@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,9 +25,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -162,6 +166,7 @@ fun ChatDiagnosticoIaScreen(
     ) {
         Scaffold(
             containerColor = tokens.bgPrimary,
+            contentWindowInsets = WindowInsets.systemBars,
             topBar = {
                 CenterAlignedTopAppBar(
                     title = {
@@ -193,7 +198,7 @@ fun ChatDiagnosticoIaScreen(
                     },
                     colors =
                         TopAppBarDefaults.centerAlignedTopAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface,
+                            containerColor = tokens.bgPrimary,
                         ),
                 )
             },
@@ -333,6 +338,37 @@ private fun ListaMensagens(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Helper: parseia <think>...</think> do conteúdo da mensagem
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Separa o bloco <think>...</think> do texto de resposta.
+ *
+ * Retorna Pair(thinkingText, responseText):
+ *  - thinkingText: conteúdo dentro do bloco <think>, ou null se não houver.
+ *  - responseText: texto da resposta sem o bloco de thinking.
+ *
+ * Casos especiais:
+ *  - Se <think> existe mas </think> não (thinking ainda em andamento durante
+ *    streaming): thinkingText = conteúdo parcial, responseText = "".
+ */
+private fun parseThinkingContent(text: String): Pair<String?, String> {
+    val thinkStart = text.indexOf("<think>")
+    if (thinkStart == -1) return Pair(null, text)
+
+    val thinkEnd = text.indexOf("</think>", thinkStart)
+    return if (thinkEnd == -1) {
+        // Thinking ainda em andamento (streaming)
+        val partial = text.substring(thinkStart + 7).trim()
+        Pair(partial.ifBlank { null }, "")
+    } else {
+        val thinkContent = text.substring(thinkStart + 7, thinkEnd).trim()
+        val responseContent = (text.substring(0, thinkStart) + text.substring(thinkEnd + 8)).trim()
+        Pair(thinkContent.ifBlank { null }, responseContent)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Bubble da IA — versão simples para ChatMensagem (não AiAnalysisEntry)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -348,6 +384,16 @@ private fun BubbleAssistente(
             "%02d:%02d".format(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE))
         }
     val sourceLabel = "Diagnóstico IA · $timeStr"
+
+    // Detecta thinking inline no conteúdo
+    val isStreaming = mensagem.status == StatusChatMensagem.streaming
+    val (thinkingText, responseText) = remember(mensagem.conteudo) {
+        parseThinkingContent(mensagem.conteudo)
+    }
+    // Thinking em andamento: <think> presente mas </think> ainda não chegou
+    val isThinkingInProgress = isStreaming &&
+        mensagem.conteudo.contains("<think>") &&
+        !mensagem.conteudo.contains("</think>")
 
     Row(
         modifier =
@@ -393,6 +439,43 @@ private fun BubbleAssistente(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
             ) {
+                // Seção de thinking — só aparece se há conteúdo de thinking
+                if (isThinkingInProgress) {
+                    Text(
+                        text = "Pensando...",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = tokens.textTertiary,
+                    )
+                } else if (thinkingText != null) {
+                    var expanded by remember { mutableStateOf(false) }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { expanded = !expanded },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = tokens.textTertiary,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = "Raciocínio",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = tokens.textTertiary,
+                        )
+                    }
+                    if (expanded) {
+                        Text(
+                            text = thinkingText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = tokens.textTertiary,
+                        )
+                    }
+                }
+
                 val textStyle =
                     MaterialTheme.typography.bodyMedium.copy(
                         color =
@@ -403,12 +486,16 @@ private fun BubbleAssistente(
                             },
                     )
 
-                if (isLatest && mensagem.status == StatusChatMensagem.streaming && mensagem.conteudo.isNotBlank()) {
-                    TypewriterText(text = mensagem.conteudo, style = textStyle)
-                } else if (isLatest && mensagem.status == StatusChatMensagem.concluido && mensagem.conteudo.length > 500) {
-                    TypewriterText(text = mensagem.conteudo, style = textStyle)
-                } else {
-                    Text(text = mensagem.conteudo, style = textStyle)
+                // Texto da resposta sem o bloco de thinking
+                val displayText = if (thinkingText != null) responseText else mensagem.conteudo
+                if (displayText.isNotBlank()) {
+                    if (isLatest && isStreaming && displayText.isNotBlank()) {
+                        TypewriterText(text = displayText, style = textStyle)
+                    } else if (isLatest && mensagem.status == StatusChatMensagem.concluido && displayText.length > 500) {
+                        TypewriterText(text = displayText, style = textStyle)
+                    } else {
+                        Text(text = displayText, style = textStyle)
+                    }
                 }
 
                 Spacer(Modifier.height(2.dp))

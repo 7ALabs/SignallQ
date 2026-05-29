@@ -141,8 +141,9 @@ COMPORTAMENTO:
    - Responda em português brasileiro com "você".
    - Não se apresente — o usuário já sabe que está falando com a Linka.
 
-6. Responda exclusivamente em JSON válido seguindo o schema informado. Não use markdown,
-   não explique fora do JSON e não adicione texto antes ou depois.`;
+6. FORMATO DE RESPOSTA depende do modo:
+   - Modo NÃO-streaming (sem ?stream=true): responda exclusivamente em JSON válido seguindo o schema informado. Não use markdown, não explique fora do JSON e não adicione texto antes ou depois.
+   - Modo streaming (?stream=true): responda em TEXTO PURO em português brasileiro. Use markdown leve (negrito, listas numeradas, bullet points). NÃO use JSON, NÃO envolva em blocos de código. Escreva diretamente a resposta útil ao usuário.`;
 
 const CHAT_SCHEMA_HINT = `Schema JSON de retorno (responda APENAS com este formato, sem markdown):
 {
@@ -517,12 +518,12 @@ function extractJson(text: string): string {
 //     data: {"choices":[{"delta":{"content":"token"}}]}
 //     com thinking em: {"choices":[{"delta":{"reasoning_content":"..."}}]}
 //
-// Este transform:
-//  - Detecta o formato automaticamente
-//  - Extrai o token de conteudo real (ignora reasoning_content)
-//  - Re-emite no formato simples {"response":"token"}
-//  - Filtra tokens <think>...</think> inline (caso o modelo use esse formato)
-function createStreamNormalizer(upstream: ReadableStream): ReadableStream {
+// Parâmetro passThinking:
+//  - false (default, modo diagnóstico): ignora reasoning_content e filtra
+//    tags <think>...</think> inline.
+//  - true (modo chat): passa reasoning_content ao cliente envolvido em tags
+//    <think>...</think> e não filtra tags inline.
+function createStreamNormalizer(upstream: ReadableStream, passThinking = false): ReadableStream {
   let insideThink = false;
   let buffer = "";
   let sentDone = false;
@@ -532,6 +533,11 @@ function createStreamNormalizer(upstream: ReadableStream): ReadableStream {
       const reader = upstream.getReader();
       const decoder = new TextDecoder();
       const encoder = new TextEncoder();
+
+      function emit(text: string) {
+        if (!text) return;
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: text })}\n\n`));
+      }
 
       try {
         while (true) {
@@ -562,12 +568,20 @@ function createStreamNormalizer(upstream: ReadableStream): ReadableStream {
             try {
               const parsed = JSON.parse(data);
 
-              // Formato OpenAI: choices[0].delta.content
+              // Formato OpenAI: choices[0].delta
               if (parsed.choices && Array.isArray(parsed.choices) && parsed.choices.length > 0) {
                 const delta = parsed.choices[0]?.delta;
                 if (delta) {
-                  // reasoning_content = thinking tokens — ignorar
-                  if (delta.reasoning_content !== undefined) continue;
+                  if (delta.reasoning_content !== undefined && typeof delta.reasoning_content === "string") {
+                    if (passThinking && delta.reasoning_content) {
+                      // Passa thinking tokens envolvidos em tags para o cliente
+                      emit("<think>");
+                      emit(delta.reasoning_content);
+                      emit("</think>");
+                    }
+                    // Em ambos os modos, não há conteúdo normal neste chunk — próximo
+                    continue;
+                  }
                   token = delta.content ?? "";
                 }
               }
@@ -581,19 +595,21 @@ function createStreamNormalizer(upstream: ReadableStream): ReadableStream {
 
             if (!token) continue;
 
-            // Filtra <think>...</think> inline (fallback para modelos que usam tags)
+            if (passThinking) {
+              // Modo chat: passa tags <think>...</think> inline sem filtrar
+              emit(token);
+              continue;
+            }
+
+            // Modo diagnóstico: filtra <think>...</think> inline
             if (token.includes("<think>")) {
               insideThink = true;
               const before = token.slice(0, token.indexOf("<think>"));
-              if (before) {
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: before })}\n\n`));
-              }
+              emit(before);
               if (token.includes("</think>")) {
                 insideThink = false;
                 const after = token.slice(token.indexOf("</think>") + 8);
-                if (after) {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: after })}\n\n`));
-                }
+                emit(after);
               }
               continue;
             }
@@ -601,14 +617,12 @@ function createStreamNormalizer(upstream: ReadableStream): ReadableStream {
               if (token.includes("</think>")) {
                 insideThink = false;
                 const after = token.slice(token.indexOf("</think>") + 8);
-                if (after) {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: after })}\n\n`));
-                }
+                emit(after);
               }
               continue;
             }
 
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ response: token })}\n\n`));
+            emit(token);
           }
         }
       } catch (err) {
@@ -648,10 +662,17 @@ export default {
       // Modo streaming SSE: ativado via ?stream=true. Retorna ReadableStream com
       // chunks no formato "data: {\"response\":\"token\"}\n\n" e termina com
       // "data: [DONE]\n\n". Workers AI emite este formato nativamente com
-      // stream:true. O stream passa por createThinkingFilterStream para suprimir
+      // stream:true. O stream passa por createStreamNormalizer para suprimir
       // tokens de <think>...</think> que modelos reasoning podem emitir.
+      //
+      // Chat streaming: resposta em texto puro (sem JSON) para exibição direta
+      // na UI de chat. O schema hint é omitido e o prompt instrui texto livre.
       const isStream = url.searchParams.get("stream") === "true";
       if (isStream) {
+        const streamUserContent = isChat
+          ? `Contexto da rede do usuário:\n${JSON.stringify(payload)}\n\nPergunta do usuário: ${(payload as Record<string, unknown>).feedbackUsuario}\n\nResponda em texto puro, direto e prático. Não use JSON.`
+          : `Dados do diagnóstico:\n${JSON.stringify(payload)}\n\n${schemaHint}`;
+
         let streamResult: ReadableStream;
         try {
           streamResult = await env.AI.run(model, {
@@ -659,7 +680,7 @@ export default {
               { role: "system", content: systemPrompt },
               {
                 role: "user",
-                content: `Dados do diagnóstico:\n${JSON.stringify(payload)}\n\n${schemaHint}`,
+                content: streamUserContent,
               },
             ],
             max_tokens: isChat ? 8000 : 5000,
@@ -671,7 +692,7 @@ export default {
           console.error("env.AI.run stream FAILED, model:", model, "error:", errMsg);
           return errorResponse("ai_run_failed", 503);
         }
-        return new Response(createStreamNormalizer(streamResult), {
+        return new Response(createStreamNormalizer(streamResult, isChat), {
           headers: {
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-cache",
