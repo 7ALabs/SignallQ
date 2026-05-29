@@ -87,6 +87,7 @@ import io.linka.app.kotlin.ui.LocalLkTokens
 import io.linka.app.kotlin.ui.ResultadoBitmapGenerator
 import io.linka.app.kotlin.ui.component.OperadoraBottomSheet
 import io.linka.app.kotlin.ui.component.OperadoraContactCard
+import io.linka.app.kotlin.ui.component.OrbitSymbolSmall
 import io.linka.app.kotlin.ui.component.rememberTopBarAlpha
 import kotlinx.coroutines.launch
 
@@ -692,28 +693,6 @@ private fun ChipTipoRede(
     )
 }
 
-@Composable
-private fun OrbitSymbolSmall() {
-    val color = Color(0xFFFBBF24) // amarelo — indica Gemma
-    Canvas(modifier = Modifier.size(16.dp)) {
-        val r = size.width * 0.32f
-        drawCircle(
-            color = color.copy(alpha = 0.25f),
-            radius = r * 1.15f,
-            style =
-                androidx.compose.ui.graphics.drawscope
-                    .Stroke(width = 1.dp.toPx()),
-        )
-        drawCircle(
-            color = color,
-            radius = r,
-            style =
-                androidx.compose.ui.graphics.drawscope
-                    .Stroke(width = 1.5.dp.toPx()),
-        )
-        drawCircle(color = color, radius = 2.dp.toPx())
-    }
-}
 
 @Composable
 private fun VereditorRow(

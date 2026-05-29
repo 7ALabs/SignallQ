@@ -137,6 +137,7 @@ fun DiagnosticoScreen(
     onCompartilhar: () -> Unit = {},
     onRefazer: () -> Unit = {},
     onFalarOperadora: () -> Unit = {},
+    onAbrirChat: () -> Unit = {},
     @Suppress("UNUSED_PARAMETER") chatHistorico: List<DiagChatEntry> = emptyList(),
     @Suppress("UNUSED_PARAMETER") chatCarregando: Boolean = false,
     @Suppress("UNUSED_PARAMETER") onEnviarChat: (String) -> Unit = {},
@@ -258,6 +259,7 @@ fun DiagnosticoScreen(
                                     onRefazer()
                                 },
                                 onFalarOperadora = onFalarOperadora,
+                                onAbrirChat = onAbrirChat,
                             )
                     }
                 }
@@ -680,6 +682,7 @@ private fun DiagResultContent(
     onCompartilhar: () -> Unit,
     onRefazer: () -> Unit,
     onFalarOperadora: () -> Unit,
+    onAbrirChat: () -> Unit,
 ) {
     var metricsExpanded by remember { mutableStateOf(false) }
 
@@ -786,6 +789,7 @@ private fun DiagResultContent(
             onShare = onCompartilhar,
             onRefresh = onRefazer,
             onContactIsp = onFalarOperadora,
+            onAbrirChat = onAbrirChat,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .background(c.bgPrimary),

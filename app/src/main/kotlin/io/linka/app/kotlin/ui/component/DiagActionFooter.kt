@@ -32,12 +32,14 @@ import androidx.compose.ui.unit.sp
 import io.linka.app.kotlin.ui.LkColors
 import io.linka.app.kotlin.ui.LocalLkTokens
 import io.linka.app.kotlin.ui.LinkaTheme
+import io.linka.app.kotlin.ui.component.OrbitSymbolSmall
 
 @Composable
 fun DiagActionFooter(
     onShare: () -> Unit,
     onRefresh: () -> Unit,
     onContactIsp: () -> Unit,
+    onAbrirChat: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val c = LocalLkTokens.current
@@ -49,55 +51,48 @@ fun DiagActionFooter(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Row(
+            OutlinedButton(
+                onClick = onAbrirChat,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                shape = RoundedCornerShape(12.dp),
             ) {
-                Button(
-                    onClick = onShare,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(46.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = LkColors.accent,
-                        contentColor = androidx.compose.ui.graphics.Color.White,
-                    ),
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Share,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.size(6.dp))
-                    Text(
-                        text = "Compartilhar laudo",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-
-                OutlinedButton(
-                    onClick = onRefresh,
-                    modifier = Modifier.size(46.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, c.border),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = c.textSecondary,
-                    ),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Refresh,
-                        contentDescription = "Refazer diagnóstico",
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
+                OrbitSymbolSmall()
+                Spacer(Modifier.size(8.dp))
+                Text(
+                    text = "Tirar dúvidas com a Linka",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = c.textPrimary,
+                )
             }
 
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(8.dp))
+
+            Button(
+                onClick = onRefresh,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = LkColors.accent,
+                    contentColor = androidx.compose.ui.graphics.Color.White,
+                ),
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.size(6.dp))
+                Text(
+                    text = "Refazer teste",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+
+            Spacer(Modifier.height(4.dp))
 
             Text(
                 text = "Falar com a operadora",
@@ -107,7 +102,8 @@ fun DiagActionFooter(
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onContactIsp() },
+                    .clickable { onContactIsp() }
+                    .padding(vertical = 8.dp),
             )
         }
     }

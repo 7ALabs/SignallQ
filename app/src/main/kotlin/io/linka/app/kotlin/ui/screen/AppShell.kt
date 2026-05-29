@@ -703,6 +703,14 @@ fun AppShell(
                     overlayStack.remove(Overlay.DiagnosticoInteligente)
                     onLimparDiagChat()
                 },
+                onRefazer = {
+                    overlayStack.remove(Overlay.DiagnosticoInteligente)
+                },
+                onAbrirChat = {
+                    if (Overlay.LLMChat !in overlayStack) {
+                        overlayStack.add(Overlay.LLMChat)
+                    }
+                },
                 chatHistorico = diagChatHistorico,
                 chatCarregando = diagChatCarregando,
                 onEnviarChat = onEnviarPerguntaDiagnostico,
