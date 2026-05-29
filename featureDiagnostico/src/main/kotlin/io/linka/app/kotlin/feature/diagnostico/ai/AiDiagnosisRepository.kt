@@ -103,7 +103,7 @@ class AiDiagnosisRepository(
         cache[key]?.let { return AiDiagnosisState.success(it.copy(source = "cache")) }
 
         return withContext(Dispatchers.IO) {
-            val result = withTimeoutOrNull(15_000L) {
+            val result = withTimeoutOrNull(40_000L) {
                 try {
                     val url = baseUrl.trimEnd('/') + "/api/ai/diagnostico-conexao"
                     val json = contextToJson(context).toString()

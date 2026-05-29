@@ -146,11 +146,24 @@ fun DiagnosticoScreen(
     val scope = rememberCoroutineScope()
 
     var signalSelection by remember { mutableStateOf(DiagSignalSelection()) }
+    var mostrarMensagemConectando by remember { mutableStateOf(false) }
 
     val aiRepository =
         remember {
             AiDiagnosisRepository(baseUrl = AI_BASE_URL, isAuthorized = { true })
         }
+
+    LaunchedEffect(aiState) {
+        if (aiState is AiDiagnosisState.loading) {
+            mostrarMensagemConectando = false
+            delay(10_000L)
+            if (aiState is AiDiagnosisState.loading) {
+                mostrarMensagemConectando = true
+            }
+        } else {
+            mostrarMensagemConectando = false
+        }
+    }
 
     LaunchedEffect(snapshotDiagnostico.estado, analiseSolicitada) {
         if (!analiseSolicitada) return@LaunchedEffect
@@ -248,6 +261,7 @@ fun DiagnosticoScreen(
                                 c = c,
                                 selection = signalSelection,
                                 isAiPhase = data.fase == DiagnosticoFase.Ia,
+                                mostrarMensagemConectando = mostrarMensagemConectando && data.fase == DiagnosticoFase.Ia,
                             )
 
                         is DiagnosticoUiData.Resultado ->
@@ -523,6 +537,7 @@ private fun DiagAnalyzingContent(
     c: LkTokens,
     selection: DiagSignalSelection,
     isAiPhase: Boolean,
+    mostrarMensagemConectando: Boolean = false,
 ) {
     val steps =
         buildList {
@@ -569,7 +584,7 @@ private fun DiagAnalyzingContent(
             Spacer(Modifier.height(24.dp))
 
             Text(
-                text = "Analisando sua conexão",
+                text = if (mostrarMensagemConectando) "Conectando ao AI..." else "Analisando sua conexão",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = c.textPrimary,
@@ -579,7 +594,10 @@ private fun DiagAnalyzingContent(
             Spacer(Modifier.height(8.dp))
 
             Text(
-                text = "A IA está cruzando os sinais para encontrar o que está limitando você.",
+                text = if (mostrarMensagemConectando)
+                    "O servidor está processando os sinais da sua rede. Isso pode levar alguns segundos."
+                else
+                    "A IA está cruzando os sinais para encontrar o que está limitando você.",
                 fontSize = 12.5.sp,
                 color = c.textSecondary,
                 textAlign = TextAlign.Center,
