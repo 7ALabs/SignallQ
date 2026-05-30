@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="appName">linka app</string>
+    <string name="appName">Veloo</string>
 
     <!-- Canal: textos explicativos dinâmicos (CanalTextGenerator) -->
     <string name="canal_banda_congestionada">Sua faixa %1$s está congestionada. Há muitas redes competindo pelos mesmos canais, o que pode causar interferência e lentidão.</string>
@@ -75,7 +75,7 @@
 
     <!-- Onboarding screen -->
     <string name="onboarding_slide0_titulo">Sua internet explicada em português</string>
-    <string name="onboarding_slide0_descricao">Não só os números — o linka analisa sua conexão\ne te diz o que está acontecendo e o que fazer.</string>
+    <string name="onboarding_slide0_descricao">Não só os números — o Veloo analisa sua conexão\ne te diz o que está acontecendo e o que fazer.</string>
     <string name="onboarding_slide1_titulo">Seus dados ficam no seu celular</string>
     <string name="onboarding_slide1_descricao">Medimos sua rede, não rastreamos você. Tudo fica salvo localmente — nenhum dado pessoal sai do seu dispositivo.</string>
     <string name="onboarding_slide2_titulo">Algumas análises precisam de permissão do Android</string>

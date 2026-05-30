@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "io.linka.app.kotlin.feature.fibra"
+    namespace = "io.veloo.app.feature.fibra"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

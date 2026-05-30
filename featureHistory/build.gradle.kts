@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "io.linka.app.kotlin.feature.history"
+    namespace = "io.veloo.app.feature.history"
     compileSdk = 35 // PrintDocumentAdapter callbacks tornaram-se package-private no SDK 36
 
     defaultConfig {

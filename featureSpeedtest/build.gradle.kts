@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "io.linka.app.kotlin.feature.speedtest"
+    namespace = "io.veloo.app.feature.speedtest"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

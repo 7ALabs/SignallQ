@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "io.linka.app.kotlin.feature.diagnostico"
+    namespace = "io.veloo.app.feature.diagnostico"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

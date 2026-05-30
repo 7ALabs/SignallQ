@@ -1,3 +1,0 @@
-package io.linka.app.kotlin.feature.speedtest
-
-data class PontoAoVivo(val t: Long, val dl: Double? = null, val ul: Double? = null)

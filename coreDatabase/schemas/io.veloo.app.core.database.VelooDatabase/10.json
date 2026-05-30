@@ -1,0 +1,312 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 10,
+    "identityHash": "97f676bb21ecbe72dd371f363270f273",
+    "entities": [
+      {
+        "tableName": "medicao",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `timestampEpochMs` INTEGER NOT NULL, `connectionType` TEXT NOT NULL, `connectionTypeStart` TEXT, `connectionTypeEnd` TEXT, `contaminado` INTEGER NOT NULL, `speedtestMode` TEXT, `specVersion` TEXT, `downloadMbps` REAL, `uploadMbps` REAL, `latencyMs` REAL, `jitterMs` REAL, `perdaPercentual` REAL, `bufferbloatMs` REAL, `packetLossSource` TEXT, `vereditoStreaming` TEXT, `vereditoGamer` TEXT, `vereditoVideoChamada` TEXT, `gargaloPrimario` TEXT, `fonte` TEXT, `operadoraMovel` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "timestampEpochMs",
+            "columnName": "timestampEpochMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "connectionType",
+            "columnName": "connectionType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "connectionTypeStart",
+            "columnName": "connectionTypeStart",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "connectionTypeEnd",
+            "columnName": "connectionTypeEnd",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "contaminado",
+            "columnName": "contaminado",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "speedtestMode",
+            "columnName": "speedtestMode",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "specVersion",
+            "columnName": "specVersion",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "downloadMbps",
+            "columnName": "downloadMbps",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "uploadMbps",
+            "columnName": "uploadMbps",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "latencyMs",
+            "columnName": "latencyMs",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "jitterMs",
+            "columnName": "jitterMs",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "perdaPercentual",
+            "columnName": "perdaPercentual",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "bufferbloatMs",
+            "columnName": "bufferbloatMs",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "packetLossSource",
+            "columnName": "packetLossSource",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vereditoStreaming",
+            "columnName": "vereditoStreaming",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vereditoGamer",
+            "columnName": "vereditoGamer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vereditoVideoChamada",
+            "columnName": "vereditoVideoChamada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "gargaloPrimario",
+            "columnName": "gargaloPrimario",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "fonte",
+            "columnName": "fonte",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "operadoraMovel",
+            "columnName": "operadoraMovel",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "apelido_dispositivo",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`mac` TEXT NOT NULL, `apelido` TEXT, PRIMARY KEY(`mac`))",
+        "fields": [
+          {
+            "fieldPath": "mac",
+            "columnName": "mac",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "apelido",
+            "columnName": "apelido",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "mac"
+          ]
+        }
+      },
+      {
+        "tableName": "chat_sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `titulo` TEXT NOT NULL, `criadoEmEpochMs` INTEGER NOT NULL, `atualizadoEmEpochMs` INTEGER NOT NULL, `status` TEXT NOT NULL, `tipoDiagnostico` TEXT, `nomeModelo` TEXT, `diagnosticoPayloadJson` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "titulo",
+            "columnName": "titulo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "criadoEmEpochMs",
+            "columnName": "criadoEmEpochMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "atualizadoEmEpochMs",
+            "columnName": "atualizadoEmEpochMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipoDiagnostico",
+            "columnName": "tipoDiagnostico",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "nomeModelo",
+            "columnName": "nomeModelo",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "diagnosticoPayloadJson",
+            "columnName": "diagnosticoPayloadJson",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_chat_sessions_atualizadoEmEpochMs",
+            "unique": false,
+            "columnNames": [
+              "atualizadoEmEpochMs"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_chat_sessions_atualizadoEmEpochMs` ON `${TABLE_NAME}` (`atualizadoEmEpochMs`)"
+          }
+        ]
+      },
+      {
+        "tableName": "chat_messages",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `sessionId` TEXT NOT NULL, `role` TEXT NOT NULL, `content` TEXT NOT NULL, `createdAtEpochMs` INTEGER NOT NULL, `status` TEXT NOT NULL, `metadataJson` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`sessionId`) REFERENCES `chat_sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "role",
+            "columnName": "role",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMs",
+            "columnName": "createdAtEpochMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "metadataJson",
+            "columnName": "metadataJson",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_chat_messages_sessionId",
+            "unique": false,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_chat_messages_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          },
+          {
+            "name": "index_chat_messages_sessionId_createdAtEpochMs",
+            "unique": false,
+            "columnNames": [
+              "sessionId",
+              "createdAtEpochMs"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_chat_messages_sessionId_createdAtEpochMs` ON `${TABLE_NAME}` (`sessionId`, `createdAtEpochMs`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "chat_sessions",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "sessionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '97f676bb21ecbe72dd371f363270f273')"
+    ]
+  }
+}

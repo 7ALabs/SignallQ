@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "io.linka.app.kotlin.core.datastore"
+    namespace = "io.veloo.app.core.datastore"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

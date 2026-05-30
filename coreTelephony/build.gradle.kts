@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "io.linka.app.kotlin.core.telephony"
+    namespace = "io.veloo.app.core.telephony"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

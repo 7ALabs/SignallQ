@@ -5,13 +5,34 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
+    <!-- Trail lines (left of the V arrow, semi-transparent purple) -->
     <path
-        android:fillColor="#6C2BFF"
-        android:pathData="M54,45.36 A8.64,8.64 0 1 1 53.999,45.36 Z"/>
+        android:strokeWidth="7.1"
+        android:strokeLineCap="round"
+        android:strokeColor="#CC9D6BFF"
+        android:pathData="M22.4,35.1 L41.3,35.1"/>
+    <path
+        android:strokeWidth="7.1"
+        android:strokeLineCap="round"
+        android:strokeColor="#CC9D6BFF"
+        android:pathData="M22.4,54.0 L36.6,54.0"/>
+    <path
+        android:strokeWidth="7.1"
+        android:strokeLineCap="round"
+        android:strokeColor="#CC9D6BFF"
+        android:pathData="M22.4,72.9 L41.3,72.9"/>
 
+    <!-- V arrow (chevron pointing right) -->
     <path
-        android:fillColor="#6C2BFF"
-        android:fillType="evenOdd"
-        android:pathData="M54,32.4 A21.6,21.6 0 1 1 53.999,32.4 Z M54,36.72 A17.28,17.28 0 1 1 53.999,36.72 Z"/>
+        android:strokeWidth="13.0"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeColor="#6C2BFF"
+        android:pathData="M48.4,25.7 L79.1,54.0 L48.4,82.3"/>
+
+    <!-- Luminous dot at the arrow tip -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M89.9,54.0 A6.1,6.1 0 1,1 89.8,54.0 Z"/>
 
 </vector>

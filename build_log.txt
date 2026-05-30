@@ -1,0 +1,861 @@
+Starting a Gradle Daemon, 1 busy Daemon could not be reused, use --status for details
+Reusing configuration cache.
+> Task :clean
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preReleaseBuild UP-TO-DATE
+> Task :coreDatabase:preBuild UP-TO-DATE
+> Task :coreDatabase:preReleaseBuild UP-TO-DATE
+> Task :coreDatastore:preBuild UP-TO-DATE
+> Task :coreDatastore:preReleaseBuild UP-TO-DATE
+> Task :coreNetwork:preBuild UP-TO-DATE
+> Task :coreNetwork:preReleaseBuild UP-TO-DATE
+> Task :corePermissions:preBuild UP-TO-DATE
+> Task :corePermissions:preReleaseBuild UP-TO-DATE
+> Task :coreTelephony:preBuild UP-TO-DATE
+> Task :coreTelephony:preReleaseBuild UP-TO-DATE
+> Task :featureDevices:preBuild UP-TO-DATE
+> Task :featureDevices:preReleaseBuild UP-TO-DATE
+> Task :featureDiagnostico:preBuild UP-TO-DATE
+> Task :featureDiagnostico:preReleaseBuild UP-TO-DATE
+> Task :featureDns:preBuild UP-TO-DATE
+> Task :featureDns:preReleaseBuild UP-TO-DATE
+> Task :featureFibra:preBuild UP-TO-DATE
+> Task :featureFibra:preReleaseBuild UP-TO-DATE
+> Task :featureHistory:preBuild UP-TO-DATE
+> Task :featureHistory:preReleaseBuild UP-TO-DATE
+> Task :featureHome:preBuild UP-TO-DATE
+> Task :featureHome:preReleaseBuild UP-TO-DATE
+> Task :featureSettings:preBuild UP-TO-DATE
+> Task :featureSettings:preReleaseBuild UP-TO-DATE
+> Task :featureSpeedtest:preBuild UP-TO-DATE
+> Task :featureSpeedtest:preReleaseBuild UP-TO-DATE
+> Task :featureWifi:preBuild UP-TO-DATE
+> Task :featureWifi:preReleaseBuild UP-TO-DATE
+> Task :coreNetwork:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :featureWifi:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :corePermissions:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :coreDatabase:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :coreDatastore:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :featureDiagnostico:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :featureFibra:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :featureHistory:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :coreTelephony:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :featureHome:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :featureDevices:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :featureDns:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :featureSpeedtest:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :featureSettings:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :featureDns:clean
+> Task :featureDevices:clean
+> Task :featureFibra:clean
+> Task :featureHome:clean
+> Task :featureWifi:clean
+> Task :featureDns:prepareReleaseArtProfile UP-TO-DATE
+> Task :featureDevices:prepareReleaseArtProfile UP-TO-DATE
+> Task :featureFibra:prepareReleaseArtProfile UP-TO-DATE
+> Task :featureHome:prepareReleaseArtProfile UP-TO-DATE
+> Task :featureWifi:prepareReleaseArtProfile UP-TO-DATE
+> Task :featureSpeedtest:clean
+> Task :coreNetwork:clean
+> Task :corePermissions:clean
+> Task :coreTelephony:clean
+> Task :featureHistory:clean
+> Task :coreDatabase:clean
+> Task :featureSettings:clean
+> Task :featureWifi:generateReleaseResValues
+> Task :coreDatabase:prepareReleaseArtProfile UP-TO-DATE
+> Task :coreNetwork:prepareReleaseArtProfile UP-TO-DATE
+> Task :corePermissions:prepareReleaseArtProfile UP-TO-DATE
+> Task :coreTelephony:prepareReleaseArtProfile UP-TO-DATE
+> Task :featureHistory:prepareReleaseArtProfile UP-TO-DATE
+> Task :featureSettings:prepareReleaseArtProfile UP-TO-DATE
+> Task :featureSpeedtest:prepareReleaseArtProfile UP-TO-DATE
+> Task :coreNetwork:generateReleaseResValues
+> Task :featureDiagnostico:clean
+> Task :coreDatastore:clean
+> Task :coreNetwork:generateReleaseResources
+> Task :coreDatastore:prepareReleaseArtProfile UP-TO-DATE
+> Task :featureDiagnostico:prepareReleaseArtProfile UP-TO-DATE
+> Task :coreDatastore:mergeReleaseJniLibFolders
+> Task :featureHome:mergeReleaseJniLibFolders
+> Task :featureDevices:mergeReleaseJniLibFolders
+> Task :featureFibra:mergeReleaseJniLibFolders
+> Task :coreNetwork:mergeReleaseJniLibFolders
+> Task :corePermissions:mergeReleaseJniLibFolders
+> Task :featureDns:mergeReleaseJniLibFolders
+> Task :featureHistory:mergeReleaseJniLibFolders
+> Task :featureSpeedtest:mergeReleaseJniLibFolders
+> Task :featureDiagnostico:mergeReleaseJniLibFolders
+> Task :featureSettings:mergeReleaseJniLibFolders
+> Task :featureWifi:mergeReleaseJniLibFolders
+> Task :coreDatabase:mergeReleaseJniLibFolders
+> Task :coreTelephony:mergeReleaseJniLibFolders
+> Task :coreDatastore:mergeReleaseNativeLibs NO-SOURCE
+> Task :featureDevices:mergeReleaseNativeLibs NO-SOURCE
+> Task :coreDatabase:mergeReleaseNativeLibs NO-SOURCE
+> Task :featureHome:mergeReleaseNativeLibs NO-SOURCE
+> Task :coreNetwork:mergeReleaseNativeLibs NO-SOURCE
+> Task :featureHistory:mergeReleaseNativeLibs NO-SOURCE
+> Task :featureWifi:mergeReleaseNativeLibs NO-SOURCE
+> Task :featureSpeedtest:mergeReleaseNativeLibs NO-SOURCE
+> Task :featureDns:mergeReleaseNativeLibs NO-SOURCE
+> Task :featureDiagnostico:mergeReleaseNativeLibs NO-SOURCE
+> Task :featureFibra:mergeReleaseNativeLibs NO-SOURCE
+> Task :coreTelephony:mergeReleaseNativeLibs NO-SOURCE
+> Task :featureSettings:mergeReleaseNativeLibs NO-SOURCE
+> Task :corePermissions:mergeReleaseNativeLibs NO-SOURCE
+> Task :featureHistory:copyReleaseJniLibsProjectOnly
+> Task :featureHome:copyReleaseJniLibsProjectOnly
+> Task :featureFibra:copyReleaseJniLibsProjectOnly
+> Task :featureSpeedtest:copyReleaseJniLibsProjectOnly
+> Task :featureDns:copyReleaseJniLibsProjectOnly
+> Task :featureWifi:copyReleaseJniLibsProjectOnly
+> Task :featureSettings:copyReleaseJniLibsProjectOnly
+> Task :featureDiagnostico:copyReleaseJniLibsProjectOnly
+> Task :coreDatabase:copyReleaseJniLibsProjectOnly
+> Task :featureDevices:copyReleaseJniLibsProjectOnly
+> Task :corePermissions:copyReleaseJniLibsProjectOnly
+> Task :coreDatastore:copyReleaseJniLibsProjectOnly
+> Task :coreNetwork:copyReleaseJniLibsProjectOnly
+> Task :coreTelephony:copyReleaseJniLibsProjectOnly
+> Task :corePermissions:generateReleaseResValues
+> Task :featureWifi:generateReleaseResources
+> Task :coreDatabase:generateReleaseResValues
+> Task :featureDiagnostico:generateReleaseResValues
+> Task :featureFibra:generateReleaseResValues
+> Task :featureHistory:generateReleaseResValues
+> Task :coreDatastore:generateReleaseResValues
+> Task :featureWifi:javaPreCompileRelease
+> Task :featureDiagnostico:javaPreCompileRelease
+> Task :coreNetwork:javaPreCompileRelease
+> Task :featureFibra:javaPreCompileRelease
+> Task :corePermissions:javaPreCompileRelease
+> Task :coreDatastore:javaPreCompileRelease
+> Task :corePermissions:generateReleaseResources
+> Task :featureDiagnostico:generateReleaseResources
+> Task :coreDatabase:generateReleaseResources
+> Task :featureHistory:generateReleaseResources
+> Task :featureFibra:generateReleaseResources
+> Task :coreNetwork:packageReleaseResources
+> Task :featureWifi:packageReleaseResources
+> Task :featureHome:generateReleaseResValues
+> Task :coreDatastore:generateReleaseResources
+> Task :coreTelephony:javaPreCompileRelease
+> Task :coreTelephony:generateReleaseResValues
+> Task :featureDevices:generateReleaseResValues
+> Task :featureHome:javaPreCompileRelease
+> Task :featureHistory:javaPreCompileRelease
+> Task :coreDatabase:javaPreCompileRelease
+> Task :featureDns:generateReleaseResValues
+> Task :featureHome:generateReleaseResources
+> Task :featureSpeedtest:generateReleaseResValues
+> Task :featureDevices:generateReleaseResources
+> Task :corePermissions:packageReleaseResources
+> Task :coreTelephony:generateReleaseResources
+> Task :featureDns:javaPreCompileRelease
+> Task :featureSpeedtest:generateReleaseResources
+> Task :featureDevices:javaPreCompileRelease
+> Task :coreDatastore:packageReleaseResources
+> Task :coreDatabase:packageReleaseResources
+> Task :featureDiagnostico:packageReleaseResources
+> Task :featureSettings:generateReleaseResValues
+> Task :featureSpeedtest:javaPreCompileRelease
+> Task :featureDns:generateReleaseResources
+> Task :featureSettings:javaPreCompileRelease
+> Task :featureFibra:packageReleaseResources
+> Task :featureHome:packageReleaseResources
+> Task :coreTelephony:packageReleaseResources
+> Task :featureHistory:packageReleaseResources
+> Task :featureSettings:generateReleaseResources
+> Task :featureSpeedtest:packageReleaseResources
+> Task :featureDevices:packageReleaseResources
+> Task :featureDns:packageReleaseResources
+> Task :coreDatabase:writeReleaseAarMetadata
+> Task :featureSettings:packageReleaseResources
+> Task :coreDatastore:writeReleaseAarMetadata
+> Task :coreNetwork:writeReleaseAarMetadata
+> Task :corePermissions:writeReleaseAarMetadata
+> Task :coreTelephony:writeReleaseAarMetadata
+> Task :featureDevices:writeReleaseAarMetadata
+> Task :featureDiagnostico:writeReleaseAarMetadata
+> Task :coreTelephony:parseReleaseLocalResources
+> Task :featureWifi:parseReleaseLocalResources
+> Task :featureDevices:parseReleaseLocalResources
+> Task :coreDatastore:parseReleaseLocalResources
+> Task :coreDatabase:parseReleaseLocalResources
+> Task :featureDns:parseReleaseLocalResources
+> Task :featureSettings:parseReleaseLocalResources
+> Task :featureHome:parseReleaseLocalResources
+> Task :coreNetwork:parseReleaseLocalResources
+> Task :featureSpeedtest:parseReleaseLocalResources
+> Task :corePermissions:parseReleaseLocalResources
+> Task :featureFibra:parseReleaseLocalResources
+> Task :featureDiagnostico:parseReleaseLocalResources
+> Task :featureHistory:parseReleaseLocalResources
+> Task :featureDns:writeReleaseAarMetadata
+> Task :featureFibra:writeReleaseAarMetadata
+> Task :featureHistory:writeReleaseAarMetadata
+> Task :featureHome:writeReleaseAarMetadata
+> Task :featureSettings:writeReleaseAarMetadata
+> Task :featureSpeedtest:writeReleaseAarMetadata
+> Task :featureWifi:writeReleaseAarMetadata
+> Task :coreDatabase:extractDeepLinksRelease
+> Task :featureHome:generateReleaseRFile
+> Task :coreTelephony:generateReleaseRFile
+> Task :featureDevices:generateReleaseRFile
+> Task :featureDiagnostico:generateReleaseRFile
+> Task :featureDns:generateReleaseRFile
+> Task :coreDatastore:generateReleaseRFile
+> Task :featureFibra:generateReleaseRFile
+> Task :coreDatabase:generateReleaseRFile
+> Task :corePermissions:generateReleaseRFile
+> Task :featureWifi:generateReleaseRFile
+> Task :featureSpeedtest:generateReleaseRFile
+> Task :coreNetwork:generateReleaseRFile
+> Task :featureSettings:generateReleaseRFile
+> Task :featureHistory:generateReleaseRFile
+> Task :coreNetwork:extractDeepLinksRelease
+> Task :coreDatastore:extractDeepLinksRelease
+> Task :corePermissions:extractDeepLinksRelease
+> Task :coreDatastore:processReleaseManifest
+> Task :coreDatabase:processReleaseManifest
+> Task :coreNetwork:processReleaseManifest
+> Task :corePermissions:processReleaseManifest
+> Task :featureDevices:extractDeepLinksRelease
+> Task :coreTelephony:extractDeepLinksRelease
+> Task :featureDiagnostico:extractDeepLinksRelease
+> Task :featureDns:extractDeepLinksRelease
+> Task :featureDiagnostico:processReleaseManifest
+> Task :featureDevices:processReleaseManifest
+> Task :coreTelephony:processReleaseManifest
+> Task :featureFibra:extractDeepLinksRelease
+> Task :featureHistory:extractDeepLinksRelease
+> Task :featureHome:extractDeepLinksRelease
+> Task :featureDns:processReleaseManifest
+> Task :featureFibra:processReleaseManifest
+> Task :featureSettings:extractDeepLinksRelease
+> Task :featureHistory:processReleaseManifest
+> Task :featureSpeedtest:extractDeepLinksRelease
+> Task :featureHome:processReleaseManifest
+> Task :featureSettings:processReleaseManifest
+> Task :featureWifi:extractDeepLinksRelease
+> Task :featureSpeedtest:processReleaseManifest
+> Task :featureWifi:processReleaseManifest
+> Task :coreNetwork:compileReleaseLibraryResources
+> Task :coreDatabase:compileReleaseLibraryResources
+> Task :coreDatastore:compileReleaseLibraryResources
+> Task :corePermissions:compileReleaseLibraryResources
+> Task :featureDiagnostico:compileReleaseLibraryResources
+> Task :featureDevices:compileReleaseLibraryResources
+> Task :coreTelephony:compileReleaseLibraryResources
+> Task :featureDns:compileReleaseLibraryResources
+> Task :featureFibra:compileReleaseLibraryResources
+> Task :featureHome:compileReleaseLibraryResources
+> Task :featureHistory:compileReleaseLibraryResources
+> Task :featureSpeedtest:compileReleaseLibraryResources
+> Task :featureWifi:compileReleaseLibraryResources
+> Task :featureSettings:compileReleaseLibraryResources
+> Task :coreDatabase:mergeReleaseShaders
+> Task :coreDatabase:compileReleaseShaders NO-SOURCE
+> Task :coreDatabase:generateReleaseAssets UP-TO-DATE
+> Task :coreDatastore:mergeReleaseShaders
+> Task :corePermissions:mergeReleaseShaders
+> Task :coreNetwork:mergeReleaseShaders
+> Task :coreNetwork:compileReleaseShaders NO-SOURCE
+> Task :corePermissions:compileReleaseShaders NO-SOURCE
+> Task :coreDatastore:compileReleaseShaders NO-SOURCE
+> Task :corePermissions:generateReleaseAssets UP-TO-DATE
+> Task :coreNetwork:generateReleaseAssets UP-TO-DATE
+> Task :coreDatastore:generateReleaseAssets UP-TO-DATE
+> Task :coreNetwork:mergeReleaseAssets
+> Task :corePermissions:mergeReleaseAssets
+> Task :coreDatastore:mergeReleaseAssets
+> Task :coreDatabase:mergeReleaseAssets
+> Task :featureDns:mergeReleaseShaders
+> Task :coreTelephony:mergeReleaseShaders
+> Task :featureDevices:mergeReleaseShaders
+> Task :featureDiagnostico:mergeReleaseShaders
+> Task :featureDns:compileReleaseShaders NO-SOURCE
+> Task :coreTelephony:compileReleaseShaders NO-SOURCE
+> Task :featureDiagnostico:compileReleaseShaders NO-SOURCE
+> Task :featureDevices:compileReleaseShaders NO-SOURCE
+> Task :coreTelephony:generateReleaseAssets UP-TO-DATE
+> Task :featureDns:generateReleaseAssets UP-TO-DATE
+> Task :featureDiagnostico:generateReleaseAssets UP-TO-DATE
+> Task :featureDevices:generateReleaseAssets UP-TO-DATE
+> Task :featureDevices:mergeReleaseAssets
+> Task :featureDiagnostico:mergeReleaseAssets
+> Task :featureDns:mergeReleaseAssets
+> Task :coreTelephony:mergeReleaseAssets
+> Task :featureHome:mergeReleaseShaders
+> Task :featureFibra:mergeReleaseShaders
+> Task :featureHistory:mergeReleaseShaders
+> Task :featureSettings:mergeReleaseShaders
+> Task :featureHistory:compileReleaseShaders NO-SOURCE
+> Task :featureSettings:compileReleaseShaders NO-SOURCE
+> Task :featureFibra:compileReleaseShaders NO-SOURCE
+> Task :featureHome:compileReleaseShaders NO-SOURCE
+> Task :featureSettings:generateReleaseAssets UP-TO-DATE
+> Task :featureHome:generateReleaseAssets UP-TO-DATE
+> Task :featureHistory:generateReleaseAssets UP-TO-DATE
+> Task :featureFibra:generateReleaseAssets UP-TO-DATE
+> Task :featureHistory:mergeReleaseAssets
+> Task :featureSettings:mergeReleaseAssets
+> Task :featureFibra:mergeReleaseAssets
+> Task :featureHome:mergeReleaseAssets
+> Task :coreDatabase:prepareLintJarForPublish UP-TO-DATE
+> Task :featureSpeedtest:mergeReleaseShaders
+> Task :featureWifi:mergeReleaseShaders
+> Task :featureSpeedtest:compileReleaseShaders NO-SOURCE
+> Task :featureWifi:compileReleaseShaders NO-SOURCE
+> Task :featureSpeedtest:generateReleaseAssets UP-TO-DATE
+> Task :featureWifi:generateReleaseAssets UP-TO-DATE
+> Task :featureWifi:mergeReleaseAssets
+> Task :featureSpeedtest:mergeReleaseAssets
+> Task :coreDatastore:prepareLintJarForPublish UP-TO-DATE
+> Task :coreNetwork:prepareLintJarForPublish UP-TO-DATE
+> Task :coreDatabase:extractProguardFiles
+> Task :coreDatastore:extractProguardFiles
+> Task :coreNetwork:extractProguardFiles
+> Task :corePermissions:prepareLintJarForPublish UP-TO-DATE
+> Task :coreTelephony:prepareLintJarForPublish UP-TO-DATE
+> Task :featureDevices:prepareLintJarForPublish UP-TO-DATE
+> Task :corePermissions:extractProguardFiles
+> Task :coreTelephony:extractProguardFiles
+> Task :featureDevices:extractProguardFiles
+> Task :featureFibra:prepareLintJarForPublish UP-TO-DATE
+> Task :featureDiagnostico:prepareLintJarForPublish UP-TO-DATE
+> Task :featureDns:prepareLintJarForPublish UP-TO-DATE
+> Task :featureFibra:extractProguardFiles
+> Task :featureDiagnostico:extractProguardFiles
+> Task :featureHistory:prepareLintJarForPublish UP-TO-DATE
+> Task :featureHome:prepareLintJarForPublish UP-TO-DATE
+> Task :featureDns:extractProguardFiles
+> Task :featureHome:extractProguardFiles
+> Task :featureSettings:prepareLintJarForPublish UP-TO-DATE
+> Task :featureHistory:extractProguardFiles
+> Task :featureSpeedtest:prepareLintJarForPublish UP-TO-DATE
+> Task :featureWifi:prepareLintJarForPublish UP-TO-DATE
+> Task :featureSettings:extractProguardFiles
+> Task :featureWifi:stripReleaseDebugSymbols NO-SOURCE
+> Task :featureWifi:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :coreNetwork:stripReleaseDebugSymbols NO-SOURCE
+> Task :featureSpeedtest:extractProguardFiles
+> Task :featureWifi:copyReleaseJniLibsProjectAndLocalJars
+> Task :featureWifi:extractProguardFiles
+> Task :corePermissions:stripReleaseDebugSymbols NO-SOURCE
+> Task :coreNetwork:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :featureDiagnostico:stripReleaseDebugSymbols NO-SOURCE
+> Task :coreNetwork:copyReleaseJniLibsProjectAndLocalJars
+> Task :corePermissions:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :featureDiagnostico:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :featureDiagnostico:copyReleaseJniLibsProjectAndLocalJars
+> Task :featureHistory:stripReleaseDebugSymbols NO-SOURCE
+> Task :coreDatabase:stripReleaseDebugSymbols NO-SOURCE
+> Task :featureHistory:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :corePermissions:copyReleaseJniLibsProjectAndLocalJars
+> Task :coreDatabase:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :coreDatastore:stripReleaseDebugSymbols NO-SOURCE
+> Task :featureHistory:copyReleaseJniLibsProjectAndLocalJars
+> Task :coreDatastore:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :coreDatabase:copyReleaseJniLibsProjectAndLocalJars
+> Task :coreTelephony:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :featureHome:stripReleaseDebugSymbols NO-SOURCE
+> Task :coreTelephony:stripReleaseDebugSymbols NO-SOURCE
+> Task :featureHome:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :featureDevices:stripReleaseDebugSymbols NO-SOURCE
+> Task :coreDatastore:copyReleaseJniLibsProjectAndLocalJars
+> Task :featureHome:copyReleaseJniLibsProjectAndLocalJars
+> Task :featureDns:stripReleaseDebugSymbols NO-SOURCE
+> Task :featureDevices:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :coreTelephony:copyReleaseJniLibsProjectAndLocalJars
+> Task :featureSpeedtest:stripReleaseDebugSymbols NO-SOURCE
+> Task :featureDns:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :featureSpeedtest:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :featureDevices:copyReleaseJniLibsProjectAndLocalJars
+> Task :featureFibra:stripReleaseDebugSymbols NO-SOURCE
+> Task :featureFibra:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :featureDns:copyReleaseJniLibsProjectAndLocalJars
+> Task :featureSettings:stripReleaseDebugSymbols NO-SOURCE
+> Task :featureSpeedtest:copyReleaseJniLibsProjectAndLocalJars
+> Task :featureSettings:extractDeepLinksForAarRelease UP-TO-DATE
+> Task :featureSettings:copyReleaseJniLibsProjectAndLocalJars
+> Task :featureFibra:copyReleaseJniLibsProjectAndLocalJars
+> Task :coreDatastore:writeReleaseLintModelMetadata
+> Task :coreDatabase:writeReleaseLintModelMetadata
+> Task :coreNetwork:writeReleaseLintModelMetadata
+> Task :corePermissions:writeReleaseLintModelMetadata
+> Task :coreTelephony:writeReleaseLintModelMetadata
+> Task :featureDns:writeReleaseLintModelMetadata
+> Task :featureDevices:writeReleaseLintModelMetadata
+> Task :featureFibra:writeReleaseLintModelMetadata
+> Task :featureDiagnostico:writeReleaseLintModelMetadata
+> Task :featureHistory:writeReleaseLintModelMetadata
+> Task :featureHome:writeReleaseLintModelMetadata
+> Task :featureSpeedtest:writeReleaseLintModelMetadata
+> Task :featureSettings:writeReleaseLintModelMetadata
+> Task :featureWifi:writeReleaseLintModelMetadata
+> Task :coreDatabase:mapReleaseSourceSetPaths
+> Task :coreDatastore:mapReleaseSourceSetPaths
+> Task :coreNetwork:mapReleaseSourceSetPaths
+> Task :corePermissions:mapReleaseSourceSetPaths
+> Task :app:clean
+> Task :app:mergeReleaseJniLibFolders
+> Task :coreNetwork:mergeReleaseResources
+> Task :coreDatastore:mergeReleaseResources
+> Task :corePermissions:mergeReleaseResources
+> Task :coreDatabase:mergeReleaseResources
+> Task :app:generateReleaseBuildConfig
+> Task :app:buildKotlinToolingMetadata
+> Task :app:generateReleaseResValues
+> Task :app:injectCrashlyticsMappingFileIdRelease
+> Task :app:processReleaseGoogleServices
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:generateReleaseResources
+> Task :app:mergeReleaseArtProfile
+> Task :app:mergeReleaseNativeLibs
+> Task :app:checkReleaseAarMetadata
+> Task :app:packageReleaseResources
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:expandReleaseL8ArtProfileWildcards
+> Task :app:extractDeepLinksRelease
+> Task :app:createReleaseCompatibleScreenManifests
+
+> Task :app:stripReleaseDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so, libdatastore_shared_counter.so. Run with --info option to learn more.
+
+> Task :app:parseReleaseLocalResources
+> Task :app:extractReleaseNativeSymbolTables
+> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:extractProguardFiles
+> Task :app:mergeReleaseStartupProfile UP-TO-DATE
+> Task :app:mergeReleaseShaders
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:extractReleaseVersionControlInfo
+> Task :app:javaPreCompileRelease
+> Task :app:validateSigningRelease
+> Task :app:writeReleaseAppMetadata
+> Task :app:writeReleaseSigningConfigVersions
+> Task :app:mergeReleaseAssets
+> Task :app:compressReleaseAssets
+> Task :app:processReleaseMainManifest
+> Task :app:collectReleaseDependencies
+> Task :app:sdkReleaseDependencyData
+> Task :app:processReleaseManifest
+> Task :app:processReleaseManifestForPackage
+> Task :featureHome:compileReleaseKotlin
+> Task :featureHome:compileReleaseJavaWithJavac NO-SOURCE
+> Task :coreNetwork:verifyReleaseResources
+> Task :coreDatastore:verifyReleaseResources
+> Task :featureHome:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :featureHome:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureSettings:compileReleaseKotlin
+> Task :featureSettings:compileReleaseJavaWithJavac NO-SOURCE
+> Task :featureSettings:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :featureSettings:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :corePermissions:verifyReleaseResources
+> Task :coreDatabase:verifyReleaseResources
+> Task :featureSettings:bundleLibRuntimeToJarRelease
+> Task :featureHome:bundleLibCompileToJarRelease
+> Task :featureSettings:bundleLibCompileToJarRelease
+> Task :featureSettings:processReleaseJavaRes
+> Task :featureHome:processReleaseJavaRes
+> Task :featureSettings:createFullJarRelease
+> Task :featureHome:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureHome:extractReleaseAnnotations
+> Task :featureHome:bundleLibRuntimeToJarRelease
+> Task :featureSettings:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureSettings:extractReleaseAnnotations
+> Task :corePermissions:compileReleaseKotlin
+> Task :corePermissions:compileReleaseJavaWithJavac NO-SOURCE
+> Task :corePermissions:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :featureHome:createFullJarRelease
+> Task :corePermissions:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :corePermissions:bundleLibRuntimeToJarRelease
+> Task :corePermissions:bundleLibCompileToJarRelease
+> Task :corePermissions:processReleaseJavaRes
+> Task :corePermissions:createFullJarRelease
+> Task :corePermissions:extractReleaseAnnotations
+> Task :corePermissions:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :corePermissions:mergeReleaseJavaResource
+> Task :featureHome:mergeReleaseJavaResource
+> Task :featureSettings:mergeReleaseJavaResource
+> Task :app:mergeReleaseResources
+> Task :featureSettings:syncReleaseLibJars
+> Task :featureHome:syncReleaseLibJars
+> Task :corePermissions:syncReleaseLibJars
+> Task :corePermissions:bundleReleaseLocalLintAar
+> Task :featureHome:bundleReleaseLocalLintAar
+> Task :featureSettings:bundleReleaseLocalLintAar
+> Task :coreNetwork:compileReleaseKotlin
+> Task :coreNetwork:compileReleaseJavaWithJavac NO-SOURCE
+> Task :coreDatabase:kaptGenerateStubsReleaseKotlin
+> Task :coreNetwork:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :coreNetwork:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureSettings:generateReleaseLintModel
+> Task :corePermissions:generateReleaseLintVitalModel
+> Task :featureHome:generateReleaseLintModel
+> Task :corePermissions:generateReleaseLintModel
+> Task :coreNetwork:extractReleaseAnnotations
+> Task :coreNetwork:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :coreNetwork:processReleaseJavaRes
+> Task :coreNetwork:generateReleaseLintModel
+> Task :coreNetwork:bundleLibCompileToJarRelease
+> Task :featureDns:compileReleaseKotlin
+> Task :featureDns:compileReleaseJavaWithJavac NO-SOURCE
+> Task :coreNetwork:mergeReleaseJavaResource
+> Task :featureDns:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :coreNetwork:generateReleaseLintVitalModel
+> Task :featureDns:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :coreNetwork:bundleLibRuntimeToJarRelease
+> Task :featureDns:processReleaseJavaRes
+> Task :coreNetwork:createFullJarRelease
+> Task :featureDns:bundleLibRuntimeToJarRelease
+> Task :featureDns:generateReleaseLintModel
+> Task :featureDns:createFullJarRelease
+> Task :featureDns:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureDns:bundleLibCompileToJarRelease
+> Task :coreNetwork:syncReleaseLibJars
+> Task :featureDns:extractReleaseAnnotations
+> Task :coreNetwork:bundleReleaseLocalLintAar
+> Task :featureDns:mergeReleaseJavaResource
+> Task :featureHome:generateReleaseLintVitalModel
+> Task :featureSettings:generateReleaseLintVitalModel
+> Task :featureDns:generateReleaseLintVitalModel
+> Task :featureDns:syncReleaseLibJars
+> Task :corePermissions:bundleReleaseAar
+> Task :corePermissions:assembleRelease
+> Task :featureDns:bundleReleaseLocalLintAar
+> Task :coreTelephony:mapReleaseSourceSetPaths
+> Task :coreNetwork:bundleReleaseAar
+> Task :coreNetwork:assembleRelease
+> Task :featureDevices:mapReleaseSourceSetPaths
+> Task :featureDiagnostico:mapReleaseSourceSetPaths
+
+> Task :coreTelephony:compileReleaseKotlin
+w: file:///C:/Projetos/Linka%20Android/coreTelephony/src/main/kotlin/io/linka/app/kotlin/core/telephony/MonitorTelephonyImpl.kt:14:8 'class PhoneStateListener : Any' is deprecated. Deprecated in Java.
+w: file:///C:/Projetos/Linka%20Android/coreTelephony/src/main/kotlin/io/linka/app/kotlin/core/telephony/MonitorTelephonyImpl.kt:70:33 'class PhoneStateListener : Any' is deprecated. Deprecated in Java.
+w: file:///C:/Projetos/Linka%20Android/coreTelephony/src/main/kotlin/io/linka/app/kotlin/core/telephony/MonitorTelephonyImpl.kt:292:26 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///C:/Projetos/Linka%20Android/coreTelephony/src/main/kotlin/io/linka/app/kotlin/core/telephony/MonitorTelephonyImpl.kt:297:26 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///C:/Projetos/Linka%20Android/coreTelephony/src/main/kotlin/io/linka/app/kotlin/core/telephony/MonitorTelephonyImpl.kt:302:26 This declaration overrides a deprecated member but is not marked as deprecated itself. Add the '@Deprecated' annotation or suppress the diagnostic.
+w: file:///C:/Projetos/Linka%20Android/coreTelephony/src/main/kotlin/io/linka/app/kotlin/core/telephony/MonitorTelephonyImpl.kt:484:30 'static field NETWORK_TYPE_EVDO_0: Int' is deprecated. Deprecated in Java.
+w: file:///C:/Projetos/Linka%20Android/coreTelephony/src/main/kotlin/io/linka/app/kotlin/core/telephony/MonitorTelephonyImpl.kt:485:30 'static field NETWORK_TYPE_EVDO_A: Int' is deprecated. Deprecated in Java.
+w: file:///C:/Projetos/Linka%20Android/coreTelephony/src/main/kotlin/io/linka/app/kotlin/core/telephony/MonitorTelephonyImpl.kt:486:30 'static field NETWORK_TYPE_EVDO_B: Int' is deprecated. Deprecated in Java.
+w: file:///C:/Projetos/Linka%20Android/coreTelephony/src/main/kotlin/io/linka/app/kotlin/core/telephony/MonitorTelephonyImpl.kt:489:30 'static field NETWORK_TYPE_CDMA: Int' is deprecated. Deprecated in Java.
+w: file:///C:/Projetos/Linka%20Android/coreTelephony/src/main/kotlin/io/linka/app/kotlin/core/telephony/MonitorTelephonyImpl.kt:490:30 'static field NETWORK_TYPE_1xRTT: Int' is deprecated. Deprecated in Java.
+w: file:///C:/Projetos/Linka%20Android/coreTelephony/src/main/kotlin/io/linka/app/kotlin/core/telephony/MonitorTelephonyImpl.kt:491:30 'static field NETWORK_TYPE_IDEN: Int' is deprecated. Deprecated in Java.
+
+> Task :featureFibra:compileReleaseKotlin
+> Task :featureFibra:compileReleaseJavaWithJavac NO-SOURCE
+> Task :featureFibra:bundleLibCompileToJarRelease
+> Task :featureFibra:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :featureFibra:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :coreDatastore:compileReleaseKotlin
+> Task :featureFibra:bundleLibRuntimeToJarRelease
+> Task :coreDatastore:compileReleaseJavaWithJavac NO-SOURCE
+> Task :coreTelephony:compileReleaseJavaWithJavac NO-SOURCE
+> Task :coreDatastore:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :coreDatastore:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :coreTelephony:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :coreTelephony:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :coreDatastore:bundleLibCompileToJarRelease
+> Task :coreTelephony:bundleLibCompileToJarRelease
+> Task :coreTelephony:bundleLibRuntimeToJarRelease
+> Task :coreDatastore:bundleLibRuntimeToJarRelease
+> Task :coreTelephony:processReleaseJavaRes
+> Task :coreDatastore:processReleaseJavaRes
+> Task :coreDatastore:createFullJarRelease
+> Task :featureFibra:processReleaseJavaRes
+> Task :coreTelephony:createFullJarRelease
+> Task :coreDatastore:generateReleaseLintModel
+> Task :featureFibra:createFullJarRelease
+> Task :coreDatastore:extractReleaseAnnotations
+> Task :coreDatastore:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureFibra:generateReleaseLintModel
+> Task :coreTelephony:generateReleaseLintModel
+> Task :coreTelephony:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :coreTelephony:extractReleaseAnnotations
+> Task :coreTelephony:mergeReleaseJavaResource
+> Task :coreDatastore:mergeReleaseJavaResource
+> Task :featureFibra:extractReleaseAnnotations
+> Task :featureFibra:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :coreTelephony:syncReleaseLibJars
+> Task :featureFibra:mergeReleaseJavaResource
+> Task :coreTelephony:bundleReleaseLocalLintAar
+> Task :featureFibra:syncReleaseLibJars
+> Task :featureFibra:bundleReleaseLocalLintAar
+> Task :coreDatastore:generateReleaseLintVitalModel
+> Task :coreDatastore:syncReleaseLibJars
+> Task :featureDevices:compileReleaseKotlin
+> Task :featureDevices:compileReleaseJavaWithJavac NO-SOURCE
+> Task :featureDevices:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :featureDevices:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureDevices:bundleLibCompileToJarRelease
+> Task :coreTelephony:generateReleaseLintVitalModel
+> Task :featureDevices:bundleLibRuntimeToJarRelease
+> Task :coreDatastore:bundleReleaseLocalLintAar
+> Task :featureDevices:extractReleaseAnnotations
+> Task :featureDevices:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureDevices:processReleaseJavaRes
+> Task :featureDevices:generateReleaseLintModel
+> Task :featureDevices:createFullJarRelease
+> Task :featureDevices:generateReleaseLintVitalModel
+> Task :coreDatastore:bundleReleaseAar
+> Task :coreDatastore:assembleRelease
+> Task :featureDevices:mergeReleaseJavaResource
+> Task :coreTelephony:bundleReleaseAar
+> Task :featureFibra:generateReleaseLintVitalModel
+> Task :featureDns:mapReleaseSourceSetPaths
+> Task :featureDns:bundleReleaseAar
+> Task :featureDevices:syncReleaseLibJars
+> Task :featureFibra:bundleReleaseAar
+> Task :featureDevices:bundleReleaseLocalLintAar
+> Task :featureDevices:bundleReleaseAar
+> Task :featureFibra:mapReleaseSourceSetPaths
+> Task :featureHistory:mapReleaseSourceSetPaths
+> Task :featureSpeedtest:compileReleaseKotlin
+> Task :featureSpeedtest:compileReleaseJavaWithJavac NO-SOURCE
+> Task :featureSpeedtest:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :featureSpeedtest:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureSpeedtest:bundleLibCompileToJarRelease
+> Task :featureSpeedtest:bundleLibRuntimeToJarRelease
+> Task :featureSpeedtest:processReleaseJavaRes
+> Task :featureSpeedtest:createFullJarRelease
+> Task :featureSpeedtest:generateReleaseLintModel
+> Task :featureSpeedtest:extractReleaseAnnotations
+> Task :featureDiagnostico:mergeReleaseResources
+> Task :featureSpeedtest:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureSpeedtest:mergeReleaseJavaResource
+> Task :featureSpeedtest:generateReleaseLintVitalModel
+> Task :featureSpeedtest:syncReleaseLibJars
+> Task :featureSpeedtest:bundleReleaseLocalLintAar
+> Task :featureWifi:compileReleaseKotlin
+> Task :featureDevices:mergeReleaseResources
+> Task :featureWifi:compileReleaseJavaWithJavac NO-SOURCE
+> Task :featureWifi:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :featureHome:bundleReleaseAar
+> Task :featureWifi:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureWifi:processReleaseJavaRes
+> Task :featureWifi:generateReleaseLintModel
+> Task :featureWifi:extractReleaseAnnotations
+> Task :featureWifi:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureWifi:bundleLibCompileToJarRelease
+> Task :featureWifi:generateReleaseLintVitalModel
+> Task :featureWifi:mergeReleaseJavaResource
+> Task :featureWifi:bundleLibRuntimeToJarRelease
+> Task :featureWifi:createFullJarRelease
+> Task :featureHome:mapReleaseSourceSetPaths
+> Task :featureWifi:syncReleaseLibJars
+> Task :coreTelephony:mergeReleaseResources
+> Task :featureWifi:bundleReleaseLocalLintAar
+> Task :featureSettings:bundleReleaseAar
+> Task :featureSettings:mapReleaseSourceSetPaths
+> Task :featureSpeedtest:bundleReleaseAar
+> Task :featureSpeedtest:mapReleaseSourceSetPaths
+> Task :featureWifi:bundleReleaseAar
+> Task :featureWifi:mapReleaseSourceSetPaths
+> Task :featureDns:mergeReleaseResources
+> Task :featureFibra:mergeReleaseResources
+> Task :featureHistory:mergeReleaseResources
+> Task :featureHome:mergeReleaseResources
+> Task :featureDevices:verifyReleaseResources
+> Task :featureDevices:assembleRelease
+> Task :featureDiagnostico:verifyReleaseResources
+> Task :featureSettings:mergeReleaseResources
+> Task :coreTelephony:verifyReleaseResources
+> Task :coreTelephony:assembleRelease
+> Task :featureDns:verifyReleaseResources
+> Task :featureDns:assembleRelease
+> Task :featureFibra:verifyReleaseResources
+> Task :featureFibra:assembleRelease
+> Task :coreDatabase:kaptReleaseKotlin
+> Task :featureSpeedtest:mergeReleaseResources
+> Task :featureWifi:mergeReleaseResources
+> Task :featureHome:verifyReleaseResources
+> Task :featureHome:assembleRelease
+> Task :featureSettings:verifyReleaseResources
+> Task :featureSettings:assembleRelease
+> Task :featureHistory:verifyReleaseResources
+> Task :app:processReleaseResources
+> Task :coreDatabase:compileReleaseKotlin
+> Task :coreDatabase:extractReleaseAnnotations
+> Task :featureSpeedtest:verifyReleaseResources
+> Task :featureSpeedtest:assembleRelease
+> Task :featureWifi:verifyReleaseResources
+> Task :featureWifi:assembleRelease
+> Task :app:optimizeReleaseResources
+> Task :featureHome:lintVitalAnalyzeRelease
+> Task :corePermissions:lintVitalAnalyzeRelease
+> Task :featureSettings:lintVitalAnalyzeRelease
+> Task :coreDatabase:compileReleaseJavaWithJavac
+> Task :coreDatabase:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :coreDatabase:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :coreDatabase:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :coreDatabase:bundleLibRuntimeToJarRelease
+> Task :coreDatabase:processReleaseJavaRes
+> Task :coreDatabase:bundleLibCompileToJarRelease
+> Task :coreDatabase:generateReleaseLintModel
+> Task :coreDatabase:createFullJarRelease
+> Task :coreDatabase:generateReleaseLintVitalModel
+> Task :coreDatabase:mergeReleaseJavaResource
+> Task :coreDatabase:syncReleaseLibJars
+> Task :coreDatabase:bundleReleaseLocalLintAar
+> Task :coreDatabase:bundleReleaseAar
+> Task :coreDatabase:assembleRelease
+> Task :featureDns:lintVitalAnalyzeRelease
+> Task :coreNetwork:lintVitalAnalyzeRelease
+> Task :coreTelephony:lintVitalAnalyzeRelease
+> Task :coreDatastore:lintVitalAnalyzeRelease
+
+> Task :featureHistory:compileReleaseKotlin
+w: file:///C:/Projetos/Linka%20Android/featureHistory/src/main/kotlin/io/linka/app/kotlin/feature/history/PdfPrintHelper.kt:1:36 Suppression of error 'INVISIBLE_REFERENCE' might compile and work, but the compiler behavior is UNSPECIFIED and WILL NOT BE PRESERVED. Please report your use case to the Kotlin issue tracker instead: https://kotl.in/issue
+
+> Task :featureHistory:compileReleaseJavaWithJavac NO-SOURCE
+> Task :featureHistory:processReleaseJavaRes
+> Task :featureHistory:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :featureHistory:extractReleaseAnnotations
+> Task :featureHistory:bundleLibCompileToJarRelease
+> Task :featureHistory:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureHistory:generateReleaseLintVitalModel
+> Task :featureHistory:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureHistory:bundleLibRuntimeToJarRelease
+> Task :featureHistory:mergeReleaseJavaResource
+> Task :featureHistory:generateReleaseLintModel
+> Task :featureDevices:lintVitalAnalyzeRelease
+> Task :featureHistory:createFullJarRelease
+> Task :featureHistory:syncReleaseLibJars
+> Task :featureHistory:bundleReleaseLocalLintAar
+> Task :featureHistory:bundleReleaseAar
+> Task :featureHistory:assembleRelease
+> Task :featureWifi:lintVitalAnalyzeRelease
+> Task :featureFibra:lintVitalAnalyzeRelease
+> Task :coreDatabase:lintVitalAnalyzeRelease
+> Task :featureHistory:lintVitalAnalyzeRelease
+> Task :featureSpeedtest:lintVitalAnalyzeRelease
+> Task :featureDiagnostico:compileReleaseKotlin
+> Task :featureDiagnostico:compileReleaseJavaWithJavac NO-SOURCE
+> Task :featureDiagnostico:mergeReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :featureDiagnostico:mergeReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureDiagnostico:exportReleaseConsumerProguardFiles UP-TO-DATE
+> Task :featureDiagnostico:generateReleaseLintModel
+> Task :featureDiagnostico:generateReleaseLintVitalModel
+> Task :featureDiagnostico:processReleaseJavaRes
+> Task :featureDiagnostico:bundleLibCompileToJarRelease
+> Task :featureDiagnostico:bundleLibRuntimeToJarRelease
+> Task :featureDiagnostico:mergeReleaseJavaResource
+> Task :featureDiagnostico:createFullJarRelease
+> Task :featureDiagnostico:extractReleaseAnnotations
+> Task :featureDiagnostico:syncReleaseLibJars
+> Task :featureDiagnostico:bundleReleaseLocalLintAar
+> Task :featureDiagnostico:bundleReleaseAar
+> Task :featureDiagnostico:assembleRelease
+> Task :featureDiagnostico:lintVitalAnalyzeRelease
+> Task :app:kaptGenerateStubsReleaseKotlin
+> Task :app:kaptReleaseKotlin
+
+> Task :app:compileReleaseKotlin
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:19:8 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:22:8 'typealias SnapshotLinkaPulse = SnapshotOrbit' is deprecated. Use SnapshotOrbit.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:58:56 'constructor(estado: OrbitState = ..., session: IntelligentDiagnosticSession? = ..., mensagemAtual: String? = ..., erro: String? = ..., focoDiagnostico: String? = ...): SnapshotOrbit' is deprecated. Use SnapshotOrbit.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:59:33 'typealias SnapshotLinkaPulse = SnapshotOrbit' is deprecated. Use SnapshotOrbit.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:72:14 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:73:33 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:85:14 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:86:33 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:136:14 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:138:33 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:264:37 'constructor(estado: OrbitState = ..., session: IntelligentDiagnosticSession? = ..., mensagemAtual: String? = ..., erro: String? = ..., focoDiagnostico: String? = ...): SnapshotOrbit' is deprecated. Use SnapshotOrbit.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:350:14 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:352:33 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:385:16 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:389:13 'constructor(estado: OrbitState = ..., session: IntelligentDiagnosticSession? = ..., mensagemAtual: String? = ..., erro: String? = ..., focoDiagnostico: String? = ...): SnapshotOrbit' is deprecated. Use SnapshotOrbit.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:397:41 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:399:13 'constructor(estado: OrbitState = ..., session: IntelligentDiagnosticSession? = ..., mensagemAtual: String? = ..., erro: String? = ..., focoDiagnostico: String? = ...): SnapshotOrbit' is deprecated. Use SnapshotOrbit.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:407:48 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:427:99 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:428:36 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:430:34 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:431:34 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseOrchestrator.kt:432:21 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseUiStateMapper.kt:3:8 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseUiStateMapper.kt:4:8 'typealias SnapshotLinkaPulse = SnapshotOrbit' is deprecated. Use SnapshotOrbit.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseUiStateMapper.kt:8:24 'typealias SnapshotLinkaPulse = SnapshotOrbit' is deprecated. Use SnapshotOrbit.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseUiStateMapper.kt:13:13 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseUiStateMapper.kt:14:13 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseUiStateMapper.kt:15:13 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseUiStateMapper.kt:16:13 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseUiStateMapper.kt:17:13 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseUiStateMapper.kt:17:39 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseUiStateMapper.kt:17:59 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseUiStateMapper.kt:17:79 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/pulse/LinkaPulseUiStateMapper.kt:22:40 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/ResultadoBitmapGenerator.kt:117:64 'constructor(p0: String!, p1: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/component/OperadoraContactCard.kt:110:54 'val Icons.Outlined.Chat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.Chat.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/component/OrbitInputArea.kt:127:53 'val Icons.Filled.Send: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Send.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/AjustesScreen.kt:1496:41 'fun Modifier.menuAnchor(): Modifier' is deprecated. Use overload that takes MenuAnchorType and enabled parameters.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/AjustesScreen.kt:1550:41 'fun Modifier.menuAnchor(): Modifier' is deprecated. Use overload that takes MenuAnchorType and enabled parameters.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/HistoricoScreen.kt:218:56 'val Icons.Outlined.TrendingUp: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.TrendingUp.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/HistoricoScreen.kt:219:54 'val Icons.Outlined.TrendingDown: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.TrendingDown.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/HistoricoScreen.kt:220:55 'val Icons.Outlined.TrendingFlat: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Outlined.TrendingFlat.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LLMChatScreen.kt:337:53 'val Icons.Filled.Send: ImageVector' is deprecated. Use the AutoMirrored version at Icons.AutoMirrored.Filled.Send.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LaudoScreen.kt:96:50 'constructor(p0: String!, p1: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LaudoScreen.kt:400:65 'constructor(p0: String!, p1: String!): Locale' is deprecated. Deprecated in Java.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseScreen.kt:33:8 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseScreen.kt:56:42 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseScreen.kt:57:48 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseScreen.kt:58:46 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseScreen.kt:59:47 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseScreen.kt:60:59 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseScreen.kt:61:52 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseScreen.kt:63:42 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseScreen.kt:67:23 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseScreen.kt:68:27 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseScreen.kt:69:27 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseScreen.kt:82:13 'fun LinkaPulseSymbol(state: OrbitState, modifier: Modifier = ..., size: Dp = ...): Unit' is deprecated. Use OrbitSymbol.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseScreen.kt:290:48 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseScreen.kt:293:13 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseScreen.kt:294:13 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseUiState.kt:6:8 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/LinkaPulseUiState.kt:36:25 'typealias PulseState = OrbitState' is deprecated. Use OrbitState.
+w: file:///C:/Projetos/Linka%20Android/app/src/main/kotlin/io/linka/app/kotlin/ui/viewmodel/ChatDiagnosticoIaViewModel.kt:96:9 This annotation is currently applied to the value parameter only, but in the future it will also be applied to field.
+- To opt in to applying to both value parameter and field, add '-Xannotation-default-target=param-property' to your compiler arguments.
+- To keep applying to the value parameter only, use the '@param:' annotation target.
+
+See https://youtrack.jetbrains.com/issue/KT-73255 for more details.
+
+> Task :app:compileReleaseJavaWithJavac
+> Task :app:hiltAggregateDepsRelease
+> Task :app:hiltJavaCompileRelease
+> Task :app:processReleaseJavaRes
+> Task :app:generateReleaseLintVitalReportModel
+> Task :app:mergeReleaseJavaResource
+> Task :app:transformReleaseClassesWithAsm
+> Task :app:mergeReleaseGeneratedProguardFiles
+> Task :app:expandReleaseArtProfileWildcards
+> Task :app:lintVitalAnalyzeRelease
+> Task :app:minifyReleaseWithR8
+> Task :app:lintVitalReportRelease
+> Task :app:lintVitalRelease
+
+> Task :app:uploadCrashlyticsMappingFileRelease
+[CRASHLYTICS LOG INFO] Mapping file uploaded: C:\Projetos\Linka Android\app\build\outputs\mapping\release\mapping.txt
+
+> Task :app:l8DexDesugarLibRelease
+> Task :app:compileReleaseArtProfile
+> Task :app:packageRelease
+> Task :app:assembleRelease
+> Task :app:createReleaseApkListingFileRedirect
+
+[Incubating] Problems report is available at: file:///C:/Projetos/Linka%20Android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 3m 6s
+623 actionable tasks: 538 executed, 85 up-to-date
+Configuration cache entry reused.

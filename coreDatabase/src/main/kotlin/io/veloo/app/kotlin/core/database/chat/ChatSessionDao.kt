@@ -1,0 +1,47 @@
+package io.veloo.app.core.database.chat
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Update
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface ChatSessionDao {
+
+    @Query("SELECT * FROM chat_sessions ORDER BY atualizadoEmEpochMs DESC")
+    fun observarSessoes(): Flow<List<ChatSessionEntity>>
+
+    @Query("SELECT * FROM chat_sessions WHERE id = :id")
+    fun observarSessao(id: String): Flow<ChatSessionEntity?>
+
+    @Query("SELECT * FROM chat_messages WHERE sessionId = :sessionId ORDER BY createdAtEpochMs ASC")
+    fun observarMensagens(sessionId: String): Flow<List<ChatMessageEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun salvarSessao(sessao: ChatSessionEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun salvarMensagem(mensagem: ChatMessageEntity)
+
+    @Update
+    suspend fun atualizarMensagem(mensagem: ChatMessageEntity)
+
+    @Query("DELETE FROM chat_sessions WHERE id = :id")
+    suspend fun apagarSessao(id: String)
+
+    @Query("UPDATE chat_sessions SET titulo = :titulo, atualizadoEmEpochMs = :atualizadoEmEpochMs WHERE id = :id")
+    suspend fun renomearSessao(
+        id: String,
+        titulo: String,
+        atualizadoEmEpochMs: Long,
+    )
+
+    @Query("SELECT COUNT(*) FROM chat_sessions")
+    suspend fun contarSessoes(): Int
+
+    /** Atualiza apenas o campo atualizadoEmEpochMs, sem alterar outros campos. */
+    @Query("UPDATE chat_sessions SET atualizadoEmEpochMs = :atualizadoEmEpochMs WHERE id = :id")
+    suspend fun atualizarAtualizadoEm(id: String, atualizadoEmEpochMs: Long)
+}

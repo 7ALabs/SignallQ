@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "io.linka.app.kotlin.feature.home"
+    namespace = "io.veloo.app.feature.home"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

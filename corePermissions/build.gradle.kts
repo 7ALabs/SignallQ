@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "io.linka.app.kotlin.core.permissions"
+    namespace = "io.veloo.app.core.permissions"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

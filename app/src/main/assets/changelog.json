@@ -1,27 +1,62 @@
 [
   {
     "tipo": "novo",
-    "titulo": "Diagnóstico IA on-device",
-    "descricao": "Conversa com Gemma 4.2B sem sair do aparelho."
+    "titulo": "Teste de velocidade completo",
+    "descricao": "Mede download, upload, latência e jitter em tempo real via Cloudflare. Resultado em segundos, sem anúncios."
   },
   {
     "tipo": "novo",
-    "titulo": "Tab Sinal",
-    "descricao": "Lista de redes próximas com filtro 2.4 / 5 / 6 GHz."
+    "titulo": "Diagnóstico com IA na nuvem",
+    "descricao": "Motor Qwen3 30B interpreta suas métricas e entrega um laudo em linguagem simples: causa provável, impacto por uso e recomendações priorizadas."
   },
   {
-    "tipo": "melhoria",
-    "titulo": "Bufferbloat por fase",
-    "descricao": "Detecção isolada em download e upload."
+    "tipo": "novo",
+    "titulo": "Assistente on-device",
+    "descricao": "Chat com Gemma 4.2B rodando direto no aparelho — sem internet, sem servidor. Tire dúvidas sobre sua conexão sem enviar dados para fora."
   },
   {
-    "tipo": "melhoria",
-    "titulo": "+2 DNS brasileiros",
-    "descricao": "Registro.br e CETIC.br agora no benchmark."
+    "tipo": "novo",
+    "titulo": "Laudo estruturado",
+    "descricao": "Veredito geral da conexão, causa-raiz identificada, impacto em streaming, jogos, videochamadas e trabalho. Recomendações numeradas por prioridade."
   },
   {
-    "tipo": "correcao",
-    "titulo": "TopBar não pisca mais",
-    "descricao": "Alpha animado solta quando o usuário rola."
+    "tipo": "novo",
+    "titulo": "Wi-Fi & Sinal",
+    "descricao": "Lista todas as redes próximas com intensidade de sinal, frequência (2.4 / 5 / 6 GHz) e canal. Identifica interferências e congestionamento."
+  },
+  {
+    "tipo": "novo",
+    "titulo": "Bufferbloat",
+    "descricao": "Detecta latência sob carga em download e upload separadamente — o problema invisível que trava chamadas e jogos mesmo com boa velocidade."
+  },
+  {
+    "tipo": "novo",
+    "titulo": "Benchmark de DNS",
+    "descricao": "Testa múltiplos servidores DNS — incluindo Cloudflare, Google, Quad9, Registro.br e CETIC.br — e mostra qual é mais rápido para você."
+  },
+  {
+    "tipo": "novo",
+    "titulo": "Fibra & Modem GPON",
+    "descricao": "Detecta tipo de conexão e analisa qualidade da fibra óptica. Identifica problemas de óptica, OLT e configuração do modem."
+  },
+  {
+    "tipo": "novo",
+    "titulo": "Rede móvel 4G/5G",
+    "descricao": "Analisa RSRP, RSRQ e SINR com interpretação em linguagem simples. Identifica sinal fraco, interferência e problemas de cobertura da operadora."
+  },
+  {
+    "tipo": "novo",
+    "titulo": "Monitoramento passivo",
+    "descricao": "Verifica a conexão em segundo plano a cada 30 minutos e envia notificação se detectar queda, lentidão ou DNS lento."
+  },
+  {
+    "tipo": "novo",
+    "titulo": "Histórico de medições",
+    "descricao": "Registro de todos os testes anteriores com gráfico de evolução. Compare períodos e identifique padrões de degradação."
+  },
+  {
+    "tipo": "novo",
+    "titulo": "Configuração de provedor",
+    "descricao": "Informe sua operadora, plano e região para que o diagnóstico compare seus resultados com o que foi contratado."
   }
 ]

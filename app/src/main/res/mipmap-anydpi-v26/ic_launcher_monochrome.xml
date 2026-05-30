@@ -5,15 +5,17 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Círculo central: centro 54,54; r=16/100*54=8.64 → topo em 54-8.64=45.36 -->
+    <!-- V arrow (monochrome) -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,45.36 A8.64,8.64 0 1 1 53.999,45.36 Z"/>
+        android:strokeWidth="13.0"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeColor="#FFFFFF"
+        android:pathData="M48.4,25.7 L79.1,54.0 L48.4,82.3"/>
 
-    <!-- Anel: exterior r=21.6 → topo em 32.4; interior r=17.28 → topo em 36.72 -->
+    <!-- Dot at tip -->
     <path
         android:fillColor="#FFFFFF"
-        android:fillType="evenOdd"
-        android:pathData="M54,32.4 A21.6,21.6 0 1 1 53.999,32.4 Z M54,36.72 A17.28,17.28 0 1 1 53.999,36.72 Z"/>
+        android:pathData="M89.9,54.0 A6.1,6.1 0 1,1 89.8,54.0 Z"/>
 
 </vector>

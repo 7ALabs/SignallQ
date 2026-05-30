@@ -1,0 +1,10 @@
+Reusing configuration cache.
+
+> Task :app:appDistributionUploadRelease
+View this release in the Firebase console: https://console.firebase.google.com/project/device-streaming-ef179de4/appdistribution/app/android:io.linka.app.kotlin/releases/0tk7uaffgjjdg?utm_source=gradle
+Share this release with testers who have access: https://appdistribution.firebase.google.com/testerapps/1:620840247394:android:5b4c9ecaa424a20937713b/releases/0tk7uaffgjjdg?utm_source=gradle
+Download the release binary (link expires in 1 hour): https://firebaseappdistribution.googleapis.com/app-binary-downloads/projects/620840247394/apps/1:620840247394:android:5b4c9ecaa424a20937713b/releases/0tk7uaffgjjdg/binaries/db0194eb44494531cb02e8926d32cb49c9bde396714f9223fd1a700dada924a1/app.apk?utm_source=gradle&token=APM0tkIAAAAAahowlqobA6GwtXkQeYZlXeDF1jz_krf_dmOxFto9LAPQ-5y0N3mbTO9knR98K48IWrAceHk4LAMyqvs-v09dTV2ygo642Oz7mPmEeqVlgY6L5wWencGtiAzQzV5vQ_VCAVxHGkHkTbsyu3oe9GJO_jmBDUStKucFS7VQzWZhdYYEeNoqC3hKOLCJ0ohY82M6eENo3w7HdoJTCpthkhT0c60LZKMLqCj8HIn9DhoeT7gO9KoQLUIozmiDiHboFyK7ochdV5LB2kbFEY_vwaIeuFd7Kz64z3TM1y4HTttBx0BDuXNFV39vTptdasfS-poj7MF7aKc42jEd3fQW0aiW69FKRdU
+
+BUILD SUCCESSFUL in 13s
+1 actionable task: 1 executed
+Configuration cache entry reused.

@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "io.linka.app.kotlin.feature.wifi"
+    namespace = "io.veloo.app.feature.wifi"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

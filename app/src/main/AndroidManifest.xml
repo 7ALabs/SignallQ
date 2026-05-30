@@ -17,7 +17,7 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
 
     <application
-        android:name=".LinkaApplication"
+        android:name=".VelooApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -26,7 +26,7 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:theme="@style/Theme.LinkaAndroidKotlin">
+        android:theme="@style/Theme.VelooAndroidKotlin">
 
         <activity
             android:name=".MainActivity"

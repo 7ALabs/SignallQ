@@ -20,11 +20,11 @@ private val keyProperties = Properties().apply {
 }
 
 android {
-    namespace = "io.linka.app.kotlin"
+    namespace = "io.veloo.app"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "io.linka.app.kotlin"
+        applicationId = "io.veloo.app"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = libs.versions.versionCode.get().toInt()
@@ -50,7 +50,7 @@ android {
                 appId = "1:620840247394:android:5b4c9ecaa424a20937713b"
                 artifactType = "APK"
                 testers = "giammattey.luiz@gmail.com"
-                releaseNotes = "Linka ${libs.versions.versionName.get()} (build ${libs.versions.versionCode.get()}) — DEBUG"
+                releaseNotes = "Veloo ${libs.versions.versionName.get()} (build ${libs.versions.versionCode.get()}) — DEBUG"
             }
             // ─── MVP — ativos em debug E release ──────────────────────
             buildConfigField("Boolean", "FEATURE_SPEEDTEST", "true")
@@ -93,7 +93,7 @@ android {
                 appId = "1:620840247394:android:5b4c9ecaa424a20937713b"
                 artifactType = "APK"
                 testers = "giammattey.luiz@gmail.com"
-                releaseNotes = "Linka ${libs.versions.versionName.get()} (build ${libs.versions.versionCode.get()})"
+                releaseNotes = "Veloo ${libs.versions.versionName.get()} (build ${libs.versions.versionCode.get()})"
             }
             isMinifyEnabled = true
             proguardFiles(
