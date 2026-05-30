@@ -27,7 +27,12 @@ Done: notificação verde no Slack + Discord
 - `gh` CLI autenticado (`gh auth status`)
 - Secret `PROJECT_PAT` configurado no repo (para o workflow `auto-move-board.yml`)
 - Webhooks em `.env`: `DISCORD_WEBHOOK_LINKA`, `SLACK_WEBHOOK_LINKA` (ou via MCP)
-- Labels existentes: `type:feature`, `type:bug`, `type:refactor`, `type:infra`, `type:docs`, `status:agent-ready`, `status:in-progress`, `status:waiting-review`, `status:blocked`
+- Labels existentes por categoria:
+  - **Área:** `area:arquitetura`, `area:android`, `area:docs`, `area:scripts`, `area:design-system`, `area:seguranca`, `area:ux`, `area:qualidade`, `area:energia`, `area:performance`, `area:dados`
+  - **Agente:** `agent:claudete`, `agent:camilo`, `agent:claudio`, `agent:gema`, `agent:lia`, `agent:renan`, `agent:marcelo`, `agent:nina`, `agent:taisa`
+  - **Validação:** `needs:bernardo`
+  - **Padrão GitHub:** `bug`, `enhancement`, `documentation`, `duplicate`, `good first issue`, `help wanted`, `invalid`, `question`, `wontfix`
+  - **Nota:** labels `type:*` e `status:*` não existem neste repo. Usar labels `area:*` para classificar tipo de trabalho.
 
 ---
 
@@ -105,6 +110,8 @@ docs/8-atualizar-changelog
 
 Formato: `[tipo]/[N_issue]-[slug-em-portugues-com-hifens]`
 
+> Os prefixos de branch (`feature/`, `bug/`, `refactor/`, `infra/`, `docs/`) são convenções de nomenclatura, não labels do GitHub. As labels no repo usam o esquema `area:*` descrito nos pré-requisitos.
+
 ---
 
 ## Convenção de commits
@@ -132,10 +139,11 @@ bash scripts/agent-handoff.sh [agente] block N "aguardando validação de [espec
 Após receber resposta, retoma com novo handoff apropriado.
 
 **Especialistas disponíveis:**
-- **Otávio** — comportamento em device real, OEM quirks, APIs de sistema (Wi-Fi, permissões, background)
+- **Otávio** — validação de comportamento em device real, OEM quirks, APIs de sistema (Wi-Fi, permissões, background). Para tasks simples, Camilo pode usar a skill `/android-platform-rules` diretamente sem acionar Otávio.
 - **Lia** — validação de UX/UI, estados visuais, microcopy, Material Design 3
-- **Bernardo** — lógica de diagnóstico de rede, thresholds de sinal, CGNAT, GPON
+- **Bernardo** — lógica de diagnóstico de rede, thresholds de sinal, CGNAT, GPON. Label `needs:bernardo` indica que a issue requer validação dele antes de implementar.
 - **Marcelo** — busca em codebase (sempre acionar antes de Read/Grep em agentes Sonnet)
+- **Cláudio** — planejamento técnico, breakdown de tasks (disponível como agente; parte do papel foi absorvido pela Claudete)
 
 ---
 

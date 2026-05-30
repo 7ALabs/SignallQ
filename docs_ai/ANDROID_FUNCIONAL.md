@@ -1,26 +1,24 @@
 # Documentação Funcional — Android Linka
 
-> **[DESATUALIZADO]** Documento gerado para v0.8.1 (2026-05-19). Versão atual: v0.14.4. Reescrita completa pendente — acionar Taisa.
-
 **Público-alvo:** Desenvolvedor humano e agentes de IA
 **Plataforma:** Android exclusivo
-**Última atualização:** 2026-05-19 (v0.8.1 — thresholds Wi-Fi por banda, MetricCards dinâmicos, DNS-03, FibraScreen loading + hint RX, DiagnosticoScreen tipo conexão real, acessibilidade)
+**Última atualização:** 2026-05-30 (v0.15.0 — rebranding Veloo, Chat IA com streaming/thinking, redesign Diagnóstico IA, 5G NSA, redesign UI mockup v2, Ping/Latência, Onboarding com termos)
 **Mantido por:** Taisa
 
 > Este documento responde: "O que o app Android faz, tela por tela, da perspectiva do usuário?"
 > Para arquitetura interna, engines e contratos técnicos, consulte `ANDROID_TECNICO.md`.
-> Fonte de verdade: dados coletados do código real (Marcelo, 2026-05-17).
+> Fonte de verdade: git log + código real. Última coleta: 2026-05-30.
 
 ---
 
-## 1. O que é o Linka
+## 1. O que é o Veloo
 
-O Linka é um app Android nativo de diagnóstico de internet doméstica. Mede velocidade, analisa Wi-Fi, DNS, latência, jitter e perda de pacotes, e entrega diagnóstico assistido por IA com ações práticas para o usuário.
+O Veloo (anteriormente Linka) é um app Android nativo de diagnóstico de internet doméstica. Mede velocidade, analisa Wi-Fi, DNS, latência, jitter e perda de pacotes, e entrega diagnóstico assistido por IA com ações práticas para o usuário.
 
 **Funcionalidades principais:**
 - Teste de velocidade (download, upload, latência, jitter, perda, bufferbloat)
 - Diagnóstico local por engines especializados + IA via Cloudflare Worker
-- Assistente conversacional Orbit (IA)
+- Assistente conversacional IA (Chat IA com streaming e thinking tokens)
 - Scan de redes Wi-Fi vizinhas e análise de topologia
 - Scanner de dispositivos na rede local (ARP, mDNS)
 - Monitoramento passivo em background (WorkManager)
@@ -48,7 +46,7 @@ Verifica-se usando `io.linka.app.kotlin.FeatureFlags` em qualquer tela ou lógic
 |---|---|---|
 | FibraScreen (modem GPON) | `FEATURE_FIBRA_SCREEN` | Ativo (promovido para MVP) |
 | DNS Benchmark | `FEATURE_DNS_SCREEN` | Ativo (promovido para MVP) |
-| Chat Orbit / IA conversacional | `FEATURE_DIAGNOSTICO_CHAT` | Inativo (nova flag, oculto em release) |
+| Chat IA conversacional (LLMChat) | `FEATURE_DIAGNOSTICO_CHAT` | Inativo (oculto em release) |
 | Diagnóstico IA (card + laudo) | `FEATURE_DIAGNOSTICO_IA` | Ativo (independente do chat) |
 
 Consulte `ANDROID_TECNICO.md` seção 9.1 para a lista completa de flags e seus estados.
@@ -385,49 +383,59 @@ Aba de acesso a funcionalidades adicionais. Ícone: `GridView`. Dá acesso a `Aj
 
 **Parâmetros recebidos:** `resultado`, `snapshotDiagnostico`, `ispInfo: IspInfo?`, `onTestarNovamente`, `onIrParaHome`, `onAbrirChat`, `gemmaAvailable`.
 
-### 6.3 DiagnosticoScreen — Diagnóstico Detalhado
+### 6.3 DiagnosticoScreen — Diagnóstico IA com Laudo
 
 **Composable:** `DiagnosticoScreen.kt`
 
 **Trigger:** a partir de `ResultadoVelocidadeScreen` ou via `ExploreToolsRow` no SpeedTest.
 
-**O que o usuário vê:**
+**O que o usuário vê (v0.14.0+):**
+- Laudo gerado por IA com análise da conexão
 - Cards dinâmicos de resultado por engine: ícone, `status badge` (OK / INFO / ATTENTION / CRITICAL), mensagem e recomendação
+- Footer com 3 ações: "Tirar dúvidas" (abre `LLMChatScreen`), "Refazer teste", "Falar com a operadora"
+- Timeout visual com mensagem "Conectando…" durante chamada à IA (v0.14.4)
+- UI de retry quando timeout é atingido (v0.14.4)
 
-**Estados:** Idle / Executando (loader) / Concluído
+**Estados:** Idle / Executando (loader) / Conectando (timeout visual) / Concluído / Timeout (retry)
 
-**Parâmetros recebidos:** `snapshotDiagnostico`, `resultado`, callbacks para iniciar, selecionar chips, enviar contexto.
+**Contexto enviado à IA:** tipo de conexão real (`wifi`, `movel`, `ethernet`). Bug de enviar `wifi` fixo foi corrigido na v0.8.1.
 
-**Contexto enviado à IA (v0.8.1):** o tipo de conexão incluído no contexto enviado ao Worker Cloudflare é o tipo real detectado (`wifi`, `movel`, `ethernet`). Versões anteriores enviavam `wifi` fixo independentemente da conexão ativa.
+**Parâmetros recebidos:** `snapshotDiagnostico`, `resultado`, callbacks para iniciar, selecionar chips, enviar contexto, abrir chat, refazer teste, contato operadora.
 
-### 6.4 ChatScreen — Orbit IA Conversacional
+### 6.4 LLMChatScreen — Chat IA com Streaming
 
-**Composable:** `ChatScreen.kt`
+**Composable:** `LLMChatScreen.kt`
 
-**Flag de controle:** `FEATURE_DIAGNOSTICO_CHAT` — **inativa em release**. O botão "Conversar com IA" e o overlay `ChatScreen` não são exibidos para o usuário final em builds de produção. Visíveis apenas em debug.
+**Flag de controle:** `FEATURE_DIAGNOSTICO_CHAT` — **inativa em release**. Visível apenas em debug.
 
-**Trigger:** botão "Conversar com IA" em `ResultadoVelocidadeScreen` (exibido apenas quando `FEATURE_DIAGNOSTICO_CHAT` está ativo).
+**Trigger:** botão "Tirar dúvidas" no footer da `DiagnosticoScreen` (a partir de v0.14.0) ou botão "Conversar com IA" em `ResultadoVelocidadeScreen`.
 
-**O que o usuário vê:**
-- `OrbitUserMessageBubble`: bolha de mensagem do usuário
-- `OrbitThinkingBubble`: animação de "pensando"
-- `OrbitAiMessageBubble`: resposta da IA em markdown
-- `OrbitInlineQuestion`: chips de resposta rápida
-- `OrbitInputArea`: campo de texto + botão de envio
-- `AiModelFooter`: informação do modelo de IA usado
-- `LinkaIaHeader`: cabeçalho da sessão
+**O que o usuário vê (v0.14.x+):**
+- Bolhas de mensagem do usuário e da IA
+- Seção "Thinking" expansível com animação — exibe tokens de raciocínio da IA quando disponíveis
+- Nome e ícone do modelo de IA no rodapé
+- Operadoras com logo (banco interno de logos por nome de ISP)
+- Follow-up reutiliza contexto da conversa anterior
 
-**API da IA:** `https://linka-ai-diagnosis-worker.giammattey-luiz.workers.dev`
+**API da IA:** Worker Cloudflare — retorna texto puro (não streaming JSON).
 
-**Estados da sessão:** Idle / Thinking / AwaitingInput / Error
+**Estados da sessão:** Idle / Thinking / AwaitingInput / Error / Timeout (com UI de retry)
 
-**Parâmetros recebidos:** `uiState`, `onNavigateBack`, `onIniciarOrbit`, `onResetOrbit`, `onSelecionarChip`, `onResponderPergunta`, `onEnviarMensagemTexto`.
+**Sessão persistida:** `chat_sessions` + `chat_messages` no Room (v10). Cota diária rolling 24h via `CotaDiariaRepository`.
 
 **Ações disponíveis:**
 - Enviar mensagem de texto livre
-- Selecionar chip de resposta
-- Resetar sessão
-- Voltar para `ResultadoVelocidadeScreen`
+- Expandir/recolher seção "Thinking"
+- Retomar conversa (follow-up com contexto)
+- Voltar para tela anterior
+
+### 6.4-legacy ChatDiagnosticoIaScreen (v0.12.0)
+
+**Composable:** `ChatDiagnosticoIaScreen.kt`
+
+Introduzido na v0.12.0 como Chat IA com drawer, chips iniciais e cota diária. Substituído funcionalmente pelo `LLMChatScreen` na v0.14.0 (redesign completo). A flag `FEATURE_DIAGNOSTICO_CHAT` controla ambos os fluxos.
+
+**3 fluxos de diagnóstico suportados:** diagnóstico completo, ping-only, contexto de rede sem speedtest.
 
 ### 6.5 AjustesScreen — Configurações
 
@@ -510,6 +518,8 @@ Aba de acesso a funcionalidades adicionais. Ícone: `GridView`. Dá acesso a `Aj
 **Composable:** `OrbitScreen.kt`
 
 Exibe o símbolo animado de Orbit. Ponto de entrada da experiência de IA conversacional autônoma.
+
+> [VERIFICAR] Verificar se `OrbitScreen` ainda existe e é acessível na v0.15.0, ou se foi substituída pelo fluxo `LLMChatScreen` / `ChatDiagnosticoIaScreen`.
 
 ### 6.9 LinkaPulseScreen
 
@@ -611,27 +621,29 @@ Fluxo de primeiro uso com slides de boas-vindas. Exibido uma única vez.
    OU ResultadoVelocidadeScreen → DiagnosticoScreen
 2. DiagnosticOrchestrator executa engines em sequência
 3. DiagnosticDecisionEngine consolida resultado final
-4. DiagnosticoScreen exibe cards por engine (OK/INFO/ATTENTION/CRITICAL)
-5. [opcional] ChatScreen para diálogo de refinamento com Orbit IA
+4. DiagnosticoScreen exibe laudo + cards por engine (OK/INFO/ATTENTION/CRITICAL)
+5. [opcional] LLMChatScreen para diálogo de refinamento com IA (via "Tirar dúvidas")
 ```
 
 ---
 
-## 10. Fluxo Principal: Orbit IA
+## 10. Fluxo Principal: Chat IA
 
 > **Disponibilidade:** `FEATURE_DIAGNOSTICO_CHAT` — **inativo em release**. Este fluxo está oculto para o usuário final em produção. Visível apenas em builds debug.
 
 ```
-1. ChatScreen iniciada via ResultadoVelocidadeScreen
-2. OrbitOrchestrator orquestra:
-   ├── Coleta dados da rede atual
-   ├── Speedtest silencioso (sem abrir VelocidadeScreen)
-   └── Envio ao Worker Cloudflare (Gemma 4 26B)
-3. ChatScreen exibe resposta em markdown via OrbitAiMessageBubble
-4. DynamicQuestionEngine gera perguntas contextuais
-5. Usuário responde via chips ou texto livre
-6. ContextAccumulator acumula respostas para refinamento
+1. LLMChatScreen iniciada via:
+   - Botão "Tirar dúvidas" no footer da DiagnosticoScreen (v0.14.0+)
+   - Botão "Conversar com IA" em ResultadoVelocidadeScreen
+2. Contexto da rede + resultado do diagnóstico enviado ao Worker Cloudflare
+3. LLMChatScreen exibe resposta em streaming
+   ├── Seção "Thinking" expansível (tokens de raciocínio visíveis)
+   └── Operadora com logo quando identificada
+4. Usuário continua a conversa (follow-up reutiliza contexto)
+5. Sessão persistida em Room (chat_sessions + chat_messages)
 ```
+
+> **Fluxo legado (v0.12.0–v0.13.x):** `ChatDiagnosticoIaScreen` com drawer e chips iniciais. Substituído pelo redesign LLMChat na v0.14.0.
 
 ---
 
@@ -670,7 +682,26 @@ Fluxo de primeiro uso com slides de boas-vindas. Exibido uma única vez.
 | Monitoramento passivo em background | `WorkManager` |
 | Leitura de dados da ONT GPON | HTTP local ao modem |
 | Sinal de dados móveis (RSRP, RSRQ, SINR) | `TelephonyManager` |
+| Detecção 5G NSA via DisplayInfo / SignalStrength | `DisplayInfo`, `SignalStrength` |
 | Gráfico de uptime com medições passivas | Histórico do monitor |
 | Notificações de alerta de rede | `NotificationManager` + background |
 | Permissões contextuais (localização, telefonia) | Runtime permissions Android 6+ |
 | Detecção automática de offline | `ConnectivityManager.NetworkCallback` |
+
+---
+
+## 14. Features Entregues desde v0.8.1
+
+Resumo das principais entregas por versão. Ver `docs_ai/RELEASES.md` para histórico completo.
+
+| Versão | Feature |
+|---|---|
+| v0.9.0 | PingScreen (20 amostras ICMP sobre HTTP/2), ExploreToolsRow (grid visível), DNS BR (Registro.br + CETIC.br) |
+| v0.11.x | Fibra avançada (tela de análise do modem/ONT), DNS benchmark completo, Dispositivos: mascarar MAC, Onboarding com checkbox de termos e cards de permissão, estados vazios humanizados |
+| v0.12.0 | ChatDiagnosticoIaScreen — Chat IA com drawer, chips, cota diária rolling 24h, streaming, Room v10 |
+| v0.13.0 | Redesign mockup v2 (Home, Sinal, SpeedTest, Fibra, Laudo), TopBar contextual com SSID/operadora, chip segurança Wi-Fi, card rede móvel dual SIM, mini-cards na Home, seletor Android/Roteador |
+| v0.13.x | 5G NSA via DisplayInfo + fallback SignalStrength, sheet de rede móvel redesenhada, SSID Android 12+, IP público Wi-Fi→Móvel, ipapi.co (HTTPS) substituindo ip-api.com |
+| v0.14.0 | Redesign Diagnóstico IA: fluxo laudo + LLMChat, footer "Tirar dúvidas / Refazer / Operadora", operadoras com logo |
+| v0.14.2 | Botão IA, sheet operadora e "Refazer teste" em ResultadoVelocidadeScreen |
+| v0.14.4 | Timeout visual "Conectando…" + UI retry no Diagnóstico IA, LLMChatScreen insets/TopBar corretos, thinking expansível |
+| v0.15.0 | Rebranding Linka → Veloo, package name `io.veloo.app`, identidade visual atualizada |

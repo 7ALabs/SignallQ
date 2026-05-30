@@ -1,13 +1,11 @@
 # Documentação Técnica — Android Linka
 
-> **[DESATUALIZADO]** Documento gerado para v0.8.1 (2026-05-19). Versão atual: v0.14.4. Reescrita completa pendente — acionar Taisa.
-
 **Público-alvo:** Desenvolvedor humano e agentes de IA
 **Plataforma:** Android exclusivo — Kotlin, Jetpack Compose, Material Design 3
-**Última atualização:** 2026-05-19 (v0.8.1 — thresholds Wi-Fi por banda, DNS-03, FibraScreen loading dinâmico + hint RX, DiagnosticoScreen tipo conexão real, semântica TalkBack)
+**Última atualização:** 2026-05-30 (v0.15.0 — rebranding Veloo, Hilt DI, Chat IA com streaming, redesign Diagnóstico IA, 5G NSA, compileSdk 36, minSdk 24)
 **Mantido por:** Taisa
 
-> Este documento descreve a arquitetura interna, módulos, camadas de dados, engines de diagnóstico e contratos do app Android Linka.
+> Este documento descreve a arquitetura interna, módulos, camadas de dados, engines de diagnóstico e contratos do app Android Veloo (anteriormente Linka).
 > Fonte de verdade: dados coletados do código real (Marcelo, 2026-05-17).
 > Para funcionalidades da perspectiva do usuário, consulte `ANDROID_FUNCIONAL.md`.
 
@@ -18,21 +16,28 @@
 | Tecnologia | Versão | Função |
 |---|---|---|
 | Kotlin | 2.2.20 | Linguagem principal |
-| Jetpack Compose | plugin 2.2.20 | UI declarativa |
+| Jetpack Compose BOM | 2025.05.01 | UI declarativa (versões gerenciadas pelo BOM) |
 | Material Design 3 | — | Sistema de design |
-| Room | kapt | Persistência local (SQLite) |
-| DataStore Preferences | — | Preferências do usuário |
-| Kotlin Coroutines | — | Operações assíncronas |
-| OkHttp | — | HTTP (speedtest, IA, fibra) |
+| Room | 2.8.4 | Persistência local (SQLite) |
+| DataStore Preferences | 1.1.1 | Preferências do usuário |
+| Kotlin Coroutines | 1.9.0 | Operações assíncronas |
+| OkHttp | 4.12.0 | HTTP (speedtest, IA, fibra) |
+| Hilt | 2.56.2 | Injeção de dependência |
+| Timber | 5.0.1 | Logging |
+| Coil | 3.1.0 | Carregamento de imagens |
+| WorkManager | 2.10.1 | Background tasks |
+| Navigation Compose | 2.8.0 | Navegação |
 | Android Gradle Plugin | 8.11.1 | Build system |
-| compileSdk | 35 | SDK de compilação |
-| minSdk | 28 | Android 9 (Pie) |
-| targetSdk | 35 | Target SDK |
+| compileSdk | 36 | SDK de compilação |
+| minSdk | 24 | Android 7.0 (Nougat) |
+| targetSdk | 36 | Target SDK |
 | JVM target | 17 | Bytecode Java |
 
-**Plugins do módulo `:app`:** `com.android.application 8.11.1`, `kotlin.android 2.2.20`, `kotlin.plugin.compose 2.2.20`, `kapt 2.2.20`
+**Plugins do módulo `:app`:** `com.android.application 8.11.1`, `kotlin.android 2.2.20`, `kotlin.plugin.compose 2.2.20`, `hilt 2.56.2`, `detekt 1.23.7`, `ktlint 12.1.1`, `firebase-crashlytics`
 
-**Injeção de dependência:** manual por construtor. Sem Hilt, sem Koin. Cada módulo expõe um objeto `*Modulo.kt` com funções fábrica estáticas.
+**Injeção de dependência:** Hilt 2.56.2 (migrado de DI manual). Anteriormente cada módulo expunha um objeto `*Modulo.kt` com funções fábrica estáticas — esse padrão foi substituído por Hilt modules.
+
+> **Nota de rebranding:** O app foi renomeado de Linka para Veloo na v0.15.0. Package name: `io.veloo.app`. App ID Firebase: `io.veloo.app`. Documentação anterior pode referenciar "Linka" — tratar como equivalente.
 
 ---
 
@@ -472,13 +477,13 @@ Todos residem em `:app/ui/component/`.
 
 | Parâmetro | Valor |
 |---|---|
-| compileSdk | 35 |
-| minSdk | 28 |
-| targetSdk | 35 |
+| compileSdk | 36 |
+| minSdk | 24 |
+| targetSdk | 36 |
 | JVM target | 17 |
 | AGP | 8.11.1 |
 | Kotlin | 2.2.20 |
-| Compose plugin | 2.2.20 |
+| Compose BOM | 2025.05.01 |
 | rootProject.name | linkaAndroidKotlin |
 | Chaves de assinatura | `key.properties` (gitignored) |
 
@@ -486,13 +491,13 @@ Todos residem em `:app/ui/component/`.
 
 Controle granular de features via flags booleanas em compiletime — definidas em `app/build.gradle.kts` com blocos distintos para debug e release:
 
-**15 flags MVP** (ativas em debug E release): `FEATURE_SPEEDTEST`, `FEATURE_DIAGNOSTICO_LOCAL`, `FEATURE_DIAGNOSTICO_IA`, `FEATURE_WIFI_ANALISE`, `FEATURE_REDE_MOVEL_ANALISE`, `FEATURE_HISTORICO`, `FEATURE_LAUDO_PDF`, `FEATURE_ONBOARDING`, `FEATURE_PERMISSOES_CONTEXTO`, `FEATURE_ESTADO_OFFLINE`, `FEATURE_SETTINGS_MVP`, `FEATURE_PRIVACIDADE_TELA`, `FEATURE_NOVIDADES_TELA`, `FEATURE_FIBRA_SCREEN`, `FEATURE_DNS_SCREEN`
+**Flags MVP** (ativas em debug E release): `FEATURE_SPEEDTEST`, `FEATURE_DIAGNOSTICO_LOCAL`, `FEATURE_DIAGNOSTICO_IA`, `FEATURE_WIFI_ANALISE`, `FEATURE_REDE_MOVEL_ANALISE`, `FEATURE_HISTORICO`, `FEATURE_LAUDO_PDF`, `FEATURE_ONBOARDING`, `FEATURE_PERMISSOES_CONTEXTO`, `FEATURE_ESTADO_OFFLINE`, `FEATURE_SETTINGS_MVP`, `FEATURE_PRIVACIDADE_TELA`, `FEATURE_NOVIDADES_TELA`, `FEATURE_FIBRA_SCREEN`, `FEATURE_DNS_SCREEN`
 
-> `FEATURE_FIBRA_SCREEN` e `FEATURE_DNS_SCREEN` promovidas de pós-MVP para MVP nesta entrega — FibraScreen e DNS Benchmark agora visíveis em release.
+**Flags pós-MVP** (ativas em debug, inativas em release): `FEATURE_DIAGNOSTICO_CHAT`, `FEATURE_LINKPULSE_ATIVO`, `FEATURE_NOTIFICACAO_INLINE`, `FEATURE_WIDGET`, `FEATURE_QUICK_SETTINGS_TILE`, `FEATURE_PROVA_REAL_COMPLETO`, `FEATURE_DIAGNOSTICO_ITERATIVO`, `FEATURE_TRACEROUTE`, `FEATURE_DEVICES_SCREEN_V2`, `FEATURE_TELEPHONY_AVANCADO`, `FEATURE_MAPA_CALOR_WIFI`, `FEATURE_AGENDAMENTO_TESTES`, `FEATURE_LINKPULSE_CHAT`, `FEATURE_LINKASYNC`, `FEATURE_BACKUP_LOCAL`, `FEATURE_CONTRIBUICAO_ANONIMA`, `FEATURE_RATE_US`, `FEATURE_ACESSIBILIDADE`
 
-**18 flags pós-MVP** (ativas em debug, inativas em release): `FEATURE_DIAGNOSTICO_CHAT`, `FEATURE_LINKPULSE_ATIVO`, `FEATURE_NOTIFICACAO_INLINE`, `FEATURE_WIDGET`, `FEATURE_QUICK_SETTINGS_TILE`, `FEATURE_PROVA_REAL_COMPLETO`, `FEATURE_DIAGNOSTICO_ITERATIVO`, `FEATURE_TRACEROUTE`, `FEATURE_DEVICES_SCREEN_V2`, `FEATURE_TELEPHONY_AVANCADO`, `FEATURE_MAPA_CALOR_WIFI`, `FEATURE_AGENDAMENTO_TESTES`, `FEATURE_LINKPULSE_CHAT`, `FEATURE_LINKASYNC`, `FEATURE_BACKUP_LOCAL`, `FEATURE_CONTRIBUICAO_ANONIMA`, `FEATURE_RATE_US`, `FEATURE_ACESSIBILIDADE`
+> `FEATURE_DIAGNOSTICO_CHAT` controla o Chat IA completo (tela `LLMChatScreen` com streaming, thinking tokens, operadoras com logo, follow-up reutilizando contexto). **Inativo em release.** `FEATURE_DIAGNOSTICO_IA` (diagnóstico IA com laudo e timeout visual) é flag independente e **ativa em release**.
 
-> `FEATURE_DIAGNOSTICO_CHAT` é uma flag nova criada nesta entrega. Controla especificamente o botão "Conversar com IA" em `ResultadoVelocidadeScreen` e o overlay `ChatScreen` no `AppShell`. Está **inativa em release** — o chat Orbit está oculto para o usuário final. `FEATURE_DIAGNOSTICO_IA` (card de diagnóstico + laudo IA) permanece como flag independente e ativa (MVP).
+> [VERIFICAR] Estado exato das flags em v0.15.0 — o rebranding pode ter alterado nomes ou adicionado novas flags. Confirmar lendo `FeatureFlags.kt` atual.
 
 **Acesso:** use sempre `FeatureFlags.*` (objeto em `app/src/main/kotlin/io/linka/app/kotlin/FeatureFlags.kt`), nunca `BuildConfig.DEBUG` ou `BuildConfig.FEATURE_*` diretamente nas telas.
 
@@ -637,4 +642,50 @@ Novo diagnóstico para latência DNS entre 51ms e 150ms. Status `info` — não 
 
 - `ModeSelector` (SpeedTestScreen): roles e labels adicionados para leitura por TalkBack.
 - `PathConnector` (HomeScreen): marcado como elemento decorativo — não lido pelo TalkBack.
+
+---
+
+## 15. Mudanças Técnicas — v0.9.0 a v0.15.0
+
+### 15.1 PingExecutor (v0.9.0)
+
+Novo: `io.linka.app.kotlin.feature.speedtest.PingExecutor` — executa 20 amostras ICMP sobre HTTP/2 contra Cloudflare Speed. 1ª amostra descartada (warmup), filtra outliers (≤3× mediana). Retorna `PingResultado(latenciaMs, jitterMs, perdaPercentual, amostras)`.
+
+### 15.2 ExploreToolsRow (v0.9.0)
+
+`ExploreToolsSheet` (bottom sheet) substituída por `ExploreToolsRow` — grid 2×N sempre visível em `SpeedTestScreen`. Inclui cards para DNS Benchmark, Ping/Latência e Diagnóstico Inteligente.
+
+### 15.3 DNS Benchmark — provedores BR (v0.9.0)
+
+Adicionados Registro.br e CETIC.br ao `BenchmarkDnsDoh`. Total: 7 provedores (era 5).
+
+### 15.4 Chat IA — Room v10 e sessões (v0.12.0)
+
+Novas tabelas Room: `chat_sessions` + `chat_messages` (migration v10). Repositories: `ChatRepository`, `CotaDiariaRepository` (cota rolling 24h). `ChatDiagnosticoIaViewModel` com 3 fluxos de diagnóstico, streaming e cota. Tela `ChatDiagnosticoIaScreen` com drawer, chips iniciais e substituição do entry point anterior.
+
+### 15.5 Redesign UI mockup v2 (v0.13.0)
+
+Alinhamento de todas as telas ao mockup v2: Home (cards Wi-Fi e Móvel empilhados), Sinal (aba Móvel redesenhada, empty states), SpeedTest (remoção de mini-cards DNS/PING/DIAGNÓSTICO, migração de cards para aba Velocidade), Fibra, Laudo, Privacidade, Novidades.
+
+### 15.6 5G NSA e sinal móvel (v0.13.x)
+
+Detecção de 5G NSA via `DisplayInfo.isNrAvailable` e fallback via `SignalStrength` em OEMs sem `nrState`. Distinção de 4G vs 4G+ (5G NSA). Sheet de rede móvel redesenhada. Dual SIM: card rede móvel na Home. IP público herdado Wi-Fi→Móvel corrigido. SSID em Android 12+ corrigido. ISP/SIM info corrigido.
+
+### 15.7 Redesign Diagnóstico IA — laudo + LLM (v0.14.0)
+
+`DiagnosticoScreen` redesenhada: fluxo de laudo + assistente LLM (`LLMChatScreen`). Footer com "Tirar dúvidas", "Refazer teste" e "Falar com a operadora". Operadoras com logo. Follow-up reutiliza contexto. Worker chat retorna texto puro. Thinking tokens visíveis em UI expansível.
+
+### 15.8 Timeout visual Diagnóstico IA (v0.14.4)
+
+Timeout visual com mensagem "Conectando…" + UI de retry. `setTimeout` cleanup e estado de UI melhorado em `DiagnosticoScreen`.
+
+### 15.9 LLMChatScreen — insets e TopBar (v0.14.4)
+
+`LLMChatScreen` respeita barra de status e insets do sistema. TopBar Material 3 com Scaffold e insets corretos. Seção "thinking" renderizada como expandível com animação.
+
+### 15.10 Rebranding Linka → Veloo (v0.15.0)
+
+Renomeação de identidade visual, package name e configurações Firebase. App ID: `io.veloo.app`. versionName `0.15.0`, versionCode `44`. Tela de novidades v0.15.0 adicionada.
+
+> [VERIFICAR] Quais componentes e strings internas foram renomeados de Linka para Veloo na v0.15.0 — confirmar escopo real do rebranding no código (package name, strings, resources).
 

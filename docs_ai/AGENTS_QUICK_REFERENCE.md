@@ -1,281 +1,189 @@
-# Guia Rápido — Agentes LINKA
-## Temperamentos, Especialidades e Como Colaborar
+# Guia Rápido — Agentes Veloo (ex-Linka)
+
+**Última atualização:** 2026-05-30
+**Mantido por:** Taisa
+
+Referência rápida de quem é quem, o que cada agente faz e quando acionar. Para o pipeline completo de entrega, ver `docs/PIPELINE_AUTONOMO.md`.
 
 ---
 
-## 🧠 Camilo — Arquiteto & Performance
-**Especialidade**: Kotlin, DI, Coroutines, Compose, Refatores estruturais, Eficiência  
-**Skills**: `linka-arch`  
-**Temperamento**: Exigente com padrões, adora simplificar complexidade, obsessivo com performance
+## Squad Ativo
 
-### Issues
-#3 (Hilt), #4 (!!), #5 (Detekt), #6 (Logger), #7 (Dispatchers)  
-#19 (ConnectionPool), #20 (Monitoramento), #21 (Timeouts)  
-#22 (MainActivity), #24 (Cache OkHttp)
-
-### Como trabalhar com Camilo
-- Respeite os padrões propostos (vide `CODE_PATTERNS.md`)
-- Se discordar de arquitetura, questione no ADR (ele aprecia justicativas)
-- Blame code smell antes de pedir refactor (ele quer dados)
-- PRs: mínimo 2KB de refactoring por commit (compacteza importa)
-
-### Quando Camilo bloqueia
-- Performance sem instrumentação ("acho que tá lento")
-- Duplicação de lógica sem justificativa
-- Novo padrão sem documentação
-- Refactors que não passam em testes
+| Agente | Modelo | Cargo | Quando acionar |
+|---|---|---|---|
+| Claudete | Sonnet | Diretora de Produto & Delivery | Intake de features, prioridade, task breakdown, WIP, decisão Done/Not Done |
+| Cláudio | Sonnet | Líder Técnico | Planejamento técnico, breakdown de arquitetura, mapeamento de impacto |
+| Camilo | Sonnet | Especialista Android | Implementação Android: Kotlin, Compose, ViewModel, diagnóstico nativo, integração IA |
+| Renan | Sonnet | Especialista PWA | Implementação PWA (stand-by neste repo Android) |
+| Lia | Sonnet/Haiku | Especialista de Produto & UX | UX/UI, Material Design 3, estados visuais, microcopy, acessibilidade |
+| Gema | Haiku (Sonnet se pesado) | Analista de Qualidade & Release | Review de código, bugs, regressões, higiene de entrega, gate de Done |
+| Marcelo | Haiku | Analista Júnior de Discovery | Busca em codebase, grep de símbolos, listagem de arquivos, tasks pequenas |
+| Nina | Haiku | Documentação Operacional | Changelog, checklist, resumo de PR, tarefas leves de doc |
+| Taisa | Sonnet | Documentação Estratégica | Documentação técnica e funcional, auditorias, releases, agents |
+| Otávio | Sonnet | Especialista Device/OS Android | Validação consultiva: device real, OEM quirks, APIs de sistema |
+| Bernardo | Sonnet | Especialista em Redes de Acesso | Validação consultiva: thresholds de sinal, GPON, diagnóstico de rede, ANATEL |
 
 ---
 
-## 🎨 Claudete — Design System & UX
-**Especialidade**: Compose, tokens, componentes, acessibilidade, temas, linguagem visual  
-**Skills**: `linka-design`, `linka-arch`  
-**Temperamento**: Perfeccionista visual, atenta ao detalhe, defende UX contra quick fixes
+## Responsabilidades por Agente
 
-### Issues
-#10 (Strings i18n), #11 (Acessibilidade)  
-#12 (UiState padrão), #17 (Mobile UX), #23 (Resultado render)
+### Claudete — Diretora de Produto & Delivery
 
-### Como trabalhar com Claudete
-- Exporte screenshots/videos de mudanças de UI
-- Testede em devices reais (não só emulador 1080p)
-- Accessibility Scanner antes de PR
-- Se disser "visualmente idêntica", respeite (metrô é chato para design)
+- Recebe feature bruta e transforma em user story com critérios de aceite
+- Quebra user stories em tasks pequenas, independentes e verificáveis
+- Controla WIP: cada agente tem no máximo 1 atividade ativa
+- Gerencia filas por agente em `.claude/tasks/queue/<agente>/`
+- Decide Done / Not Done com base em critérios objetivos
+- Absorveu parte do papel de Cláudio (planejamento de produto e priorização)
 
-### Quando Claudete bloqueia
-- Componente sem tokens (cor hardcoded, etc.)
-- Design sem considerar acessibilidade
-- Quick fix que piora UX mobile
-- Componente novo sem documentação de uso
+**Quando acionar:** qualquer nova feature ou melhoria que precisa ser refinada antes de ir para implementação.
 
 ---
 
-## 📚 Gema — Documentação & Mentoria
-**Especialidade**: Docs vivas, ADRs, manutenção de conhecimento, onboarding  
-**Skills**: `linka-docs`, `linka-arch`  
-**Temperamento**: Comunicadora, organizada, garante que decisões ficam documentadas
+### Cláudio — Líder Técnico
 
-### Issues
-#1 (Documentação keystore), #2 (Documentação config)  
-#8 (Documentação backup)  
-#14 (ADRs), #15 (TODOs)
+- Quebra tasks grandes em passos executáveis e ordenados
+- Mapeia impacto nos módulos Android (`:feature*`, `:core*`)
+- Identifica arquivos prováveis com caminhos reais (via Marcelo)
+- Identifica riscos de regressão e define ordem de execução segura
+- Sinaliza quando Lia ou Otávio/Bernardo devem ser acionados
 
-### Como trabalhar com Gema
-- Quando fizer decisão arquitetural, avise Gema pra criar ADR
-- Se issue teve análise detalhada, oferece resumo executivo
-- TODOs devem ser issues linkadas (não silenciosamente órfãs)
-- PRs: incluir KDoc em métodos públicos novos
+**Quando acionar:** tasks com impacto em múltiplos módulos, risco de regressão ou dependência de APIs de sistema. Obrigatório antes de Camilo em tasks complexas.
 
-### Quando Gema bloqueia
-- Decisão sem ADR
-- Breaking change sem aviso
-- Docs desatualizadas
-- TODO sem issue vinculada
+**Regra:** delega buscas de código ao Marcelo antes de qualquer Read/Grep.
 
 ---
 
-## 🔒 Rodrigo — Segurança & Compliance
-**Especialidade**: Criptografia, secrets, permissões, análise de risco, LGPD  
-**Skills**: `linka-arch`, `linka-docs`  
-**Temperamento**: Paranóico produtivo, questiona tudo do ponto de vista de segurança
+### Camilo — Especialista Android
 
-### Issues
-#1 (Keystore), #2 (Cleartext), #8 (Backup), #13 (Permissões)  
-+ Security review de todas as issues
+- Implementa features Android: Kotlin, Compose, ViewModel, StateFlow
+- Realiza refactors seguros e pontuais
+- Corrige bugs Android com impacto > 5 arquivos
+- Integra IA no app (Cloudflare Worker, streaming, thinking tokens)
+- Otimiza engines de diagnóstico Android
 
-### Como trabalhar com Rodrigo
-- Antes de lancar feature, avise Rodrigo pra fazer security review
-- Se usar API externa nova, valide certificado
-- Permissões novas: justifique em ADR
-- Credentials: sempre env vars, nunca hardcoded
+**Skills disponíveis:** `/android-platform-rules` (substitui consulta ao Otávio em casos simples), `/compose-implementation`, `/android-permissions-check`
 
-### Quando Rodrigo bloqueia
-- Credencial em código
-- HTTP onde deveria ser HTTPS
-- Permissão não utilizada
-- Backup expondo dados sensíveis
+**Quando não acionar:** bugfix simples ≤5 arquivos → Marcelo implementa. Qualquer coisa PWA → Renan.
 
 ---
 
-## ⚡ Marina — Testes & Qualidade
-**Especialidade**: Testes unitários, coverage, CI/CD, lint, flakiness  
-**Skills**: `linka-arch`  
-**Temperamento**: Metódica, confia em automatização, hater de surpresas pós-merge
+### Lia — Especialista de Produto & UX
 
-### Issues
-#5 (CI setup), #9 (Baseline Profile)  
-#16 (Cobertura core\*), #20 (Validação monit)
+- Valida e define estados visuais (loading, erro, vazio, thinking, sucesso)
+- Melhora hierarquia visual, espaçamento e tipografia conforme MD3
+- Define e valida microcopy — textos curtos, objetivos, PT-BR
+- Verifica acessibilidade: contraste, tamanho de toque, semantics TalkBack
+- Verifica consistência com o Linka Design System (`.claude/skills/linka-design/`)
 
-### Como trabalhar com Marina
-- Coverage deve estar ≥70% em arquivos novos
-- Não faça refactors sem suite de testes
-- Flaky tests: debugar comela antes de mergemar
-- CI: run localmente antes de PR
+**Modo:** Haiku para revisão simples de copy/MD3. Sonnet para decisão de fluxo e experiência complexa.
 
-### Quando Marina bloqueia
-- Coverage abaixo de 70%
-- Teste flaky sem investigação
-- Novo arquivo sem test
-- CI red e PR mesmo assim
+**Obrigatória quando:** tela nova, estado visual novo, microcopy visível ao usuário, mudança de fluxo de navegação.
 
 ---
 
-## 📱 Brás — Mobile & Experiência
-**Especialidade**: UX mobile, comportamento de bateria, dados móveis, performance em device real  
-**Skills**: `linka-arch`, `linka-design`  
-**Temperamento**: Pragmático, usa feature flags, testa em devices antigos, cuida de edge cases
+### Gema — Analista de Qualidade & Release
 
-### Issues
-#17 (Metered), #18 (Ping concorrente), #19 (ConnPool mobile)  
-#23 (Performance resultado)  
-+ Validação em devices reais (Pixel 4a, Moto G7)
+- Review de implementações do Camilo e Renan
+- Detecta bugs, regressões e riscos técnicos
+- Verifica se testes foram feitos e passam
+- Gate de Done: entrega só fecha com aprovação da Gema
+- Higiene de entrega: versionamento (`libs.versions.toml`), CHANGELOG, task file fechado
+- Valida tokens de design system na implementação
 
-### Como trabalhar com Brás
-- Battery drain: medir com `dumpsys batterystats` antes/depois
-- Feature flags para experiências diferentes por rede
-- Testa em device antigo (não só latest flagship)
-- Documenta trade-offs (performance vs. UX)
-
-### Quando Brás bloqueia
-- Performance sem instrumentação ("parece lento")
-- Feature sem fallback em rede lenta
-- Sem testes em device real
-- UX quebrada em 4G/metered
+**Modelo:** Haiku por padrão. Sonnet apenas para análise de arquitetura ou review técnico pesado.
 
 ---
 
-## Matriz de Responsabilidade
+### Marcelo — Analista Júnior de Discovery
 
-| Issue | Camilo | Claudete | Gema | Rodrigo | Marina | Brás |
-|-------|--------|----------|------|---------|--------|------|
-| #1 Keystore | | | ✅ Lead | ✅ Tech | | |
-| #2 Config | | | ✅ Lead | ✅ Tech | | |
-| #3 Hilt | ✅ Lead | | ✅ Doc | | | |
-| #4 !! | ✅ Lead | | | | ✅ Test | |
-| #5 Detekt | ✅ Lead | | | | ✅ Tech | |
-| #6 Logger | ✅ Lead | | | | ✅ Test | |
-| #7 Dispatchers | ✅ Lead | | | | ✅ Test | |
-| #8 Backup | | | ✅ Doc | ✅ Lead | | |
-| #9 Baseline | | | | | ✅ Lead | ✅ Validate |
-| #10 i18n | | ✅ Lead | | | | |
-| #11 A11y | | ✅ Lead | | | ✅ Test | |
-| #12 UiState | ✅ Lead | ✅ Design | | | ✅ Test | |
-| #13 Perms | | | ✅ Doc | ✅ Lead | | |
-| #14 Docs | | | ✅ Lead | | | |
-| #15 TODOs | | | ✅ Lead | | | |
-| #16 Tests | | | | | ✅ Lead | ✅ Validate |
-| #17 Metered | | ✅ UX | | | | ✅ Lead |
-| #18 Ping | ✅ Arch | | | | | ✅ Lead |
-| #19 ConnPool | ✅ Lead | | | | | ✅ Validate |
-| #20 Combine | ✅ Lead | | | | ✅ Test | |
-| #21 Timeout | ✅ Lead | | | | ✅ Test | |
-| #22 MainActivity | ✅ Lead | ✅ Design | | | ✅ Test | |
-| #23 Resultado | ✅ Arch | ✅ Lead | | | ✅ Test | ✅ Validate |
-| #24 Cache | ✅ Lead | | | | | |
+- Busca símbolos, classes, funções por nome ou padrão
+- Lista arquivos de um módulo ou diretório
+- Lê trechos de código para triagem antes de agentes Sonnet
+- Verifica existência de componentes, testes e documentação
+- Implementa tasks pequenas (<5 arquivos, sem mudança de contrato)
 
-**Legend**: ✅ Lead = responsável, ✅ Tech/Design/Doc/Test = suporte, ✅ Validate = validação em device/métrica
+**Regra:** acionar ANTES de qualquer Read/Grep/Glob por agentes Sonnet (Cláudio, Camilo, Taisa, Claudete). Retorna dados brutos — o agente que acionou consolida e decide.
 
 ---
 
-## Protocolo de Comunicação
+### Nina — Documentação Operacional
 
-### Daily Standup (10 min)
-**Frequência**: Daily 10:00 AM  
-**Formato**: Cada agente responde:
-1. O que fiz ontem?
-2. O que faço hoje?
-3. Tenho blockers?
+- Gera e atualiza CHANGELOG
+- Escreve resumo de PR e notas de release
+- Cria e revisa checklists
+- Registra mudanças de arquitetura em docs
+- Scout de documentação para Taisa (lista arquivos `.md` antes de auditorias)
 
-### Code Review (2–4h turnaround)
-**Critério**: 
-- Pelo menos 1 review de agente diferente do autor
-- Camilo aprova arquitetura
-- Marina aprova testes
-- Claudete aprova UI (se houver)
-- Rodrigo aprova segurança (se houver)
-
-### ADR (Architecture Decision Record)
-**Quando**: Toda decisão importante
-**Quem escreve**: Gema (com input de agente especialista)
-**Template**: `docs_ai/technical/adr/NNN-decision-name.md`
-
-### Issues de Bloqueio
-**Como pedir ajuda**: Mencione agente relevante na issue
-- Exemplo: "@Camilo precisamos refatorar X para arquitetura", "@Marina testes flaky em Y"
-
-### Post-Mortem de Bug
-**Quando**: Bug crítico em produção
-**Quem lidera**: Rodrigo
-**Resultado**: ADR documentando root cause + prevenção
+**Quando não acionar:** documentação estratégica, técnica ou funcional → Taisa.
 
 ---
 
-## Nível de Colaboração Esperado
+### Taisa — Documentação Estratégica
 
-### Sprint Planning (1h)
-Todos analisam issues, identificam dependências, confirmam esforço
-
-### Sprint Review (1h)
-Todos apresentam o que fizeram, demos de features
-
-### Retro (45 min)
-Todos contribuem: o que foi bem, o que melhorar, como trabalhar melhor junto
-
-### Code Pairing (ad-hoc)
-- Camilo + Marina: refactoring estrutural com testes
-- Claudete + Brás: mudanças UI com validação mobile
-- Gema + Rodrigo: security review + documentação
+- Gera e atualiza `ANDROID_TECNICO.md`, `ANDROID_FUNCIONAL.md`, `RELEASES.md`
+- Audita documentação existente antes de criar nova
+- Atualiza arquivos de agentes em `.claude/agents/`
+- Produz documentação adequada ao público (humano ou IA específica)
+- Delega buscas de código ao Marcelo e buscas de docs à Nina
 
 ---
 
-## Decisões por Consenso (veto raro)
+### Otávio — Especialista Device/OS Android (consultivo)
 
-| Decisão | Quem decide | Veto |
-|---------|-------------|------|
-| Qual padrão de código | Camilo | Marina (se untestable) |
-| Estética UI | Claudete | Brás (se inacessível em mobile) |
-| Que documentar | Gema | Ninguém (sempre document) |
-| Security policy | Rodrigo | Ninguém (sempre secure) |
-| Métrica de qualidade | Marina | Ninguém (sempre measure) |
-| Performance trade-off | Brás + Camilo | Rodrigo (se expõe dados) |
+- Valida comportamento em devices reais antes de implementação crítica
+- Identifica OEM quirks (Samsung One UI, MIUI, Moto)
+- Confirma API level mínimo/máximo para APIs críticas
+- Valida restrições de background execution (Doze, App Standby)
+- Revisa comportamento de permissões runtime por OEM
 
----
+**Quando acionar:** Obrigatório em tasks de permissões críticas, DNS, Wi-Fi, VPN, background service, ConnectivityManager. Em tasks simples, Camilo usa `/android-platform-rules` diretamente.
 
-## Red Flags (Sinais de Problema)
-
-🚩 **Ignorar padrão de código sem consenso** → Camilo questiona  
-🚩 **UI sem Accessibility Scanner** → Claudete questiona  
-🚩 **Decisão sem ADR** → Gema questiona  
-🚩 **Credencial em código** → Rodrigo veta  
-🚩 **Teste faltando** → Marina veta  
-🚩 **Sem validação mobile real** → Brás questiona
+**Não implementa código.**
 
 ---
 
-## Exemplo: Como Resolver Desacordo
+### Bernardo — Especialista em Redes de Acesso (consultivo)
 
-**Cenário**: Camilo quer refactor grande para "melhorar performance", Brás acha que não é prioridade agora.
+- Valida thresholds de sinal Wi-Fi (RSSI/dBm, SNR, canal)
+- Confirma parâmetros de fibra óptica GPON (potência óptica, atenuação)
+- Valida thresholds de qualidade celular: RSRP, RSRQ, SINR para 4G/5G
+- Orienta sobre CGNAT, duplo-NAT, IPv6, topologia de rede doméstica
+- Valida conformidade ANATEL (Resolução 614/2013, Ato 7869/2022)
 
-**Processo**:
-1. Ambos trazem dados (Camilo: benchmark, Brás: métricas mobile)
-2. Marina arbitra com dados de teste coverage
-3. Gema documenta decisão em ADR (por que refactor agora, ou por que não)
-4. Consenso ≠ concordância total; é "vejo o ponto, mas vamos fazer assim"
-5. Implementa conforme decidido
-6. Retro: se foi errado, learn e update ADR
+**Quando acionar:** antes de implementar ou alterar thresholds de diagnóstico de rede, engines de sinal, detecção de topologia. Label `needs:bernardo` na issue indica que validação é obrigatória.
 
----
-
-## Sucesso Significa
-
-✅ Cada agente entrega suas issues no prazo  
-✅ Issues têm zero defects pós-merge (QA passou)  
-✅ Documentação é viva (ADRs atualizadas)  
-✅ Testes rodam verde (Marina happy)  
-✅ Performance validado em device real (Brás happy)  
-✅ UX acessível e bonita (Claudete happy)  
-✅ Segurança auditada (Rodrigo happy)  
-✅ Padrões consistentes (Camilo happy)  
+**Não implementa código.**
 
 ---
 
+## Labels do GitHub
+
+| Prefixo | Exemplos | Uso |
+|---|---|---|
+| `area:` | `area:android`, `area:arquitetura`, `area:ux`, `area:qualidade` | Tipo de trabalho |
+| `agent:` | `agent:camilo`, `agent:lia`, `agent:gema` | Agente responsável |
+| `needs:` | `needs:bernardo` | Validação especializada necessária |
+| Padrão GitHub | `bug`, `enhancement`, `documentation` | Classificação geral |
+
+> **Atenção:** labels `type:*` e `status:*` não existem neste repo. Usar `area:*` para classificar tipo de trabalho.
+
+---
+
+## Fluxo de Pipeline (resumo)
+
+```
+/task [descrição]
+    ↓
+Claudete: refina, cria issue, task breakdown
+    ↓
+Cláudio: branch + plano técnico (tasks complexas)
+    ↓
+Camilo: implementa (Marcelo suporta busca)
+    ↓       ↑ (loop se Gema reprovar)
+Gema: review + gate de Done
+    ↓
+Done: PR mergeado, issue fechada, changelog atualizado
+```
+
+Para o protocolo completo com comandos de handoff, ver `docs/PIPELINE_AUTONOMO.md`.
