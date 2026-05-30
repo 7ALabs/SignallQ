@@ -9,6 +9,25 @@
       "client_info": {
         "mobilesdk_app_id": "1:620840247394:android:5b4c9ecaa424a20937713b",
         "android_client_info": {
+          "package_name": "io.linka.app.kotlin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBMLpPbjVRMSqm8SAafl6jFtoON1Hcqbos"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:620840247394:android:0be190e89194bced37713b",
+        "android_client_info": {
           "package_name": "io.veloo.app"
         }
       },

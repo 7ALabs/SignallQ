@@ -47,7 +47,7 @@ android {
     buildTypes {
         debug {
             firebaseAppDistribution {
-                appId = "1:620840247394:android:5b4c9ecaa424a20937713b"
+                appId = "1:620840247394:android:0be190e89194bced37713b"
                 artifactType = "APK"
                 testers = "giammattey.luiz@gmail.com"
                 releaseNotes = "Veloo ${libs.versions.versionName.get()} (build ${libs.versions.versionCode.get()}) — DEBUG"
@@ -90,7 +90,7 @@ android {
         }
         release {
             firebaseAppDistribution {
-                appId = "1:620840247394:android:5b4c9ecaa424a20937713b"
+                appId = "1:620840247394:android:0be190e89194bced37713b"
                 artifactType = "APK"
                 testers = "giammattey.luiz@gmail.com"
                 releaseNotes = "Veloo ${libs.versions.versionName.get()} (build ${libs.versions.versionCode.get()})"
