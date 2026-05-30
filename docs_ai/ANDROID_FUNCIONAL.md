@@ -2,7 +2,7 @@
 
 **Público-alvo:** Desenvolvedor humano e agentes de IA
 **Plataforma:** Android exclusivo
-**Última atualização:** 2026-05-30 (v0.15.0 — rebranding Veloo, Chat IA com streaming/thinking, redesign Diagnóstico IA, 5G NSA, redesign UI mockup v2, Ping/Latência, Onboarding com termos)
+**Última atualização:** 2026-05-30 (v0.15.0 — rebranding Veloo, Chat IA com streaming/thinking, redesign Diagnóstico IA, 5G NSA, redesign UI mockup v2, Ping/Latência, Onboarding com termos; mockups ASCII adicionados a todas as telas principais)
 **Mantido por:** Taisa
 
 > Este documento responde: "O que o app Android faz, tela por tela, da perspectiva do usuário?"
@@ -208,6 +208,45 @@ O app exibe indicadores visuais contextualizados em 5 telas quando o dispositivo
 
 **Composable:** `HomeScreen.kt`
 
+**Mockup (estado conectado em Wi-Fi, com último resultado):**
+
+```text
+╔══════════════════════════════════════╗
+║  StatusBar                           ║
+╠══════════════════════════════════════╣
+║  [Avatar]   Início          [Perfil] ║
+║         Conectado em MinhaRede       ║
+╠══════════════════════════════════════╣
+║                                      ║
+║  [Smartphone]──[Roteador]──[Internet]║
+║   Pixel 8     192.168.1.1  Claro     ║
+║   192.168.1.5    Wi-Fi     177.x.x.x ║
+║                                      ║
+║  ┌────────────────────────────────┐  ║
+║  │ Medições         Última: 15min │  ║
+║  │  ↓ 240 Mbps  ↑ 48 Mbps        │  ║
+║  │  Download    Upload            │  ║
+║  │  ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌ (gráfico)    │  ║
+║  │                    Ver detalhe → │  ║
+║  │ [   Medir velocidade agora   ] │  ║
+║  └────────────────────────────────┘  ║
+║                                      ║
+║  ┌──────┐  ┌──────┐  ┌──────────┐   ║
+║  │ DNS  │  │ Ping │  │Diagnóst. │   ║
+║  └──────┘  └──────┘  └──────────┘   ║
+║                                      ║
+║  ┌────────────────────────────────┐  ║
+║  │ WI-FI · 5 GHZ                 │  ║
+║  │ MinhaRede      RSSI -58 dBm    │  ║
+║  │ Canal 36 · 867 Mbps  Excelente │  ║
+║  │ [WPA2]                         │  ║
+║  └────────────────────────────────┘  ║
+║                                      ║
+╠══════════════════════════════════════╣
+║ [Início] [Veloc] [Sinal][Hist][Mais] ║
+╚══════════════════════════════════════╝
+```
+
 **O que o usuário vê:**
 - **Estado Offline (novo):** `OfflineCard` como primeiro item (se `!conectado`)
   - Ícone WifiOff, texto e botão "Testar assim que voltar"
@@ -230,6 +269,39 @@ O app exibe indicadores visuais contextualizados em 5 telas quando o dispositivo
 ### 5.2 SpeedTestScreen — Aba 1 (Velocidade)
 
 **Composable:** `SpeedTestScreen.kt`
+
+**Mockup (estado executando — fase download):**
+
+```text
+╔══════════════════════════════════════╗
+║  StatusBar                           ║
+╠══════════════════════════════════════╣
+║  [Avatar]   Velocidade               ║
+║       Plano contratado: 300 Mbps     ║
+╠══════════════════════════════════════╣
+║                                      ║
+║          ●───────────────●           ║
+║         /  Medição 1 de 3 \          ║
+║        /                   \         ║
+║       ╭──────────────────────╮       ║
+║      ╭│       DOWNLOAD       │╮      ║
+║      ││                      ││      ║
+║      ││       187.4           ││      ║
+║      ││       Mbps            ││      ║
+║      ╰│                      │╯      ║
+║       ╰──────────────────────╯       ║
+║                                      ║
+║           [Cancelar]                 ║
+║           2.3 MB usados              ║
+║                                      ║
+║  ┌──────────────────────────────┐    ║
+║  │ [Rápido] [Completo] [Triplo] │    ║
+║  └──────────────────────────────┘    ║
+║                                      ║
+╠══════════════════════════════════════╣
+║ [Início] [Veloc] [Sinal][Hist][Mais] ║
+╚══════════════════════════════════════╝
+```
 
 **O que o usuário vê:**
 - `SpeedTestCircle` central animado (gauge)
@@ -259,6 +331,41 @@ O app exibe indicadores visuais contextualizados em 5 telas quando o dispositivo
 ### 5.3 SinalScreen — Aba 2 (Sinal)
 
 **Composable:** `SinalScreen.kt`
+
+**Mockup (modo Wi-Fi, com permissão de localização concedida):**
+
+```text
+╔══════════════════════════════════════╗
+║  StatusBar                           ║
+╠══════════════════════════════════════╣
+║  [Avatar]      Sinal                 ║
+╠══════════════════════════════════════╣
+║                                      ║
+║  [Todas] [2.4GHz] [5GHz] [6GHz]      ║
+║                                      ║
+║  ┌────────────────────────────────┐  ║
+║  │ [Wifi] MinhaRede      Excelente│  ║
+║  │        -58 dBm · Canal 36      │  ║
+║  │        5 GHz · WPA2            │  ║
+║  └────────────────────────────────┘  ║
+║  ┌────────────────────────────────┐  ║
+║  │ [Wifi] VizinhoA       Bom      │  ║
+║  │        -65 dBm · Canal 11      │  ║
+║  │        2.4 GHz · WPA2          │  ║
+║  └────────────────────────────────┘  ║
+║  ┌────────────────────────────────┐  ║
+║  │ [Wifi] OutraRede      Regular  │  ║
+║  │        -74 dBm · Canal 6       │  ║
+║  │        2.4 GHz · WPA3          │  ║
+║  └────────────────────────────────┘  ║
+║                                      ║
+║  ─── Congestionamento de canais ──   ║
+║  [WifiChannelGuide — gráfico canais] ║
+║                                      ║
+╠══════════════════════════════════════╣
+║ [Início] [Veloc] [Sinal][Hist][Mais] ║
+╚══════════════════════════════════════╝
+```
 
 A tela detecta o tipo de conexão ativa e exibe conteúdo adaptado. O comportamento varia por modo.
 
@@ -318,6 +425,43 @@ A classificação de qualidade do sinal distingue a banda da rede. Redes em 5GHz
 
 **Composable:** `HistoricoScreen.kt`
 
+**Mockup (com histórico, filtros e gráfico):**
+
+```text
+╔══════════════════════════════════════╗
+║  StatusBar                           ║
+╠══════════════════════════════════════╣
+║  [Avatar]  Histórico          [Export]║
+╠══════════════════════════════════════╣
+║                                      ║
+║  ● Download  ● Upload (legenda)       ║
+║  ┌────────────────────────────────┐  ║
+║  │  (gráfico de linha 160dp)      │  ║
+║  │   ╭──╮  ╭──────╮              │  ║
+║  │──╯    ╰╯        ╰──           │  ║
+║  └────────────────────────────────┘  ║
+║                                      ║
+║  ┌──────────┐ ┌──────────┐          ║
+║  │↓ Média   │ │↑ Média   │          ║
+║  │ 218 Mbps │ │ 41 Mbps  │          ║
+║  └──────────┘ └──────────┘          ║
+║                                      ║
+║  [Todos] [Wi-Fi] [Rede móvel]        ║
+║                                      ║
+║  ┌────────────────────────────────┐  ║
+║  │[Wifi] Hoje 14:32               │  ║
+║  │  ↓ 240  ↑ 48  Latência 12 ms  │  ║
+║  └────────────────────────────────┘  ║
+║  ┌────────────────────────────────┐  ║
+║  │[Wifi] Hoje 10:15               │  ║
+║  │  ↓ 195  ↑ 42  Latência 18 ms  │  ║
+║  └────────────────────────────────┘  ║
+║                                      ║
+╠══════════════════════════════════════╣
+║ [Início] [Veloc] [Sinal][Hist][Mais] ║
+╚══════════════════════════════════════╝
+```
+
 **O que o usuário vê:**
 - Gráfico de histórico (uptime)
 - Uptime narrative: texto gerado pelo `UptimeNarrativaEngine`
@@ -337,6 +481,40 @@ Aba de acesso a funcionalidades adicionais. Ícone: `GridView`. Dá acesso a `Aj
 
 **Composable:** `VelocidadeScreen.kt`
 
+**Mockup (fase upload em execução):**
+
+```text
+╔══════════════════════════════════════╗
+║  StatusBar                           ║
+╠══════════════════════════════════════╣
+║              Medindo…                ║
+╠══════════════════════════════════════╣
+║                                      ║
+║     São Paulo, SP · Claro Fibra      ║
+║                                      ║
+║          ╭────────────╮              ║
+║        ╭─│   UPLOAD   │─╮            ║
+║       ╭  │            │  ╮           ║
+║       │  │   63.2      │  │           ║
+║       │  │   Mbps      │  │           ║
+║       ╰  │            │  ╯           ║
+║        ╰─│            │─╯            ║
+║          ╰────────────╯              ║
+║                                      ║
+║     ↓ 241.3 Mbps  download concluído ║
+║                                      ║
+║  ┌────────────────────────────────┐  ║
+║  │  (MiniGrafico ao vivo — UL)    │  ║
+║  └────────────────────────────────┘  ║
+║                                      ║
+║   [LATÊNCIA✓] [DOWN✓] [UP ●]         ║
+║   Medindo a velocidade de upload…    ║
+║                                      ║
+║            [Cancelar]                ║
+║                                      ║
+╚══════════════════════════════════════╝
+```
+
 **Trigger:** automático ao iniciar um teste via `SpeedTestScreen`.
 
 **O que o usuário vê:**
@@ -355,6 +533,50 @@ Aba de acesso a funcionalidades adicionais. Ícone: `GridView`. Dá acesso a `Aj
 ### 6.2 ResultadoVelocidadeScreen — Resultado do Teste
 
 **Composable:** `ResultadoVelocidadeScreen.kt`
+
+**Mockup (resultado completo com diagnóstico):**
+
+```text
+╔══════════════════════════════════════╗
+║  StatusBar                           ║
+╠══════════════════════════════════════╣
+║  [←]    Resultado do teste   [Share] ║
+╠══════════════════════════════════════╣
+║                                      ║
+║   Sua internet está funcionando bem  ║
+║   Velocidade dentro do esperado      ║
+║   [WI-FI · 5 GHz]                    ║
+║                                      ║
+║  ┌──────────────┐ ┌──────────────┐   ║
+║  │  Download    │ │  Upload      │   ║
+║  │  240.3 Mbps  │ │  48.1 Mbps   │   ║
+║  └──────────────┘ └──────────────┘   ║
+║  ┌──────────────┐ ┌──────────────┐   ║
+║  │  Latência    │ │  Oscilação   │   ║
+║  │   12 ms      │ │    4 ms      │   ║
+║  └──────────────┘ └──────────────┘   ║
+║  ┌──────────────┐ ┌──────────────┐   ║
+║  │  Perda       │ │  Bufferbloat │   ║
+║  │  0.0 %       │ │   8 ms       │   ║
+║  └──────────────┘ └──────────────┘   ║
+║                                      ║
+║  EXPERIÊNCIA DE USO                  ║
+║  ┌────────────────────────────────┐  ║
+║  │ [Tv]    Streaming      Bom     │  ║
+║  │─────────────────────────────── │  ║
+║  │ [Game]  Gaming         Bom     │  ║
+║  │─────────────────────────────── │  ║
+║  │ [Cam]   Vídeo Chamada  Bom     │  ║
+║  └────────────────────────────────┘  ║
+║                                      ║
+║  DNS: Cloudflare · 8 ms              ║
+║  [Detalhes avançados              ▼] ║
+║                                      ║
+║  [   Testar novamente   ]            ║
+║  [   Ir para o início   ]            ║
+║                                      ║
+╚══════════════════════════════════════╝
+```
 
 **Trigger:** automático após conclusão do teste.
 
@@ -387,6 +609,88 @@ Aba de acesso a funcionalidades adicionais. Ícone: `GridView`. Dá acesso a `Aj
 
 **Composable:** `DiagnosticoScreen.kt`
 
+**Mockup — estado de setup (seleção do que analisar):**
+
+```text
+╔══════════════════════════════════════╗
+║  StatusBar                           ║
+╠══════════════════════════════════════╣
+║  [←]       Diagnóstico IA            ║
+╠══════════════════════════════════════╣
+║                                      ║
+║  [✨] A IA lê os sinais da sua       ║
+║       conexão e entrega diagnóstico. ║
+║       Sem conversa: você escolhe     ║
+║       o que medir, ela interpreta.   ║
+║                                      ║
+║  O QUE ANALISAR                      ║
+║                                      ║
+║  ┌────────────────────────────────┐  ║
+║  │[▦] Velocidade          [ON ●] │  ║
+║  │    Download, upload e estab.   │  ║
+║  └────────────────────────────────┘  ║
+║  ┌────────────────────────────────┐  ║
+║  │[Wifi] Wi-Fi & Sinal    [ON ●] │  ║
+║  │    Potência, canal, congest.   │  ║
+║  └────────────────────────────────┘  ║
+║  ┌────────────────────────────────┐  ║
+║  │[↕] Latência & Bufferbloat [ON]│  ║
+║  └────────────────────────────────┘  ║
+║  ┌────────────────────────────────┐  ║
+║  │[Tower] Modem / Fibra (GPON)   │  ║
+║  └────────────────────────────────┘  ║
+║  ┌────────────────────────────────┐  ║
+║  │[Globe] DNS                    │  ║
+║  └────────────────────────────────┘  ║
+║                                      ║
+╠══════════════════════════════════════╣
+║  [✨  Diagnosticar conexão       ]   ║
+║       Processado no dispositivo      ║
+╚══════════════════════════════════════╝
+```
+
+**Mockup — estado de resultado (laudo IA):**
+
+```text
+╔══════════════════════════════════════╗
+║  StatusBar                           ║
+╠══════════════════════════════════════╣
+║  [←]       Diagnóstico IA   [Share]  ║
+╠══════════════════════════════════════╣
+║                                      ║
+║  ┌────────────────────────────────┐  ║
+║  │ DIAGNÓSTICO IA      BOM        │  ║
+║  │ Sua conexão está performando   │  ║
+║  │ dentro do esperado para o      │  ║
+║  │ plano contratado.              │  ║
+║  │ Confiança Alta · claude-3-5    │  ║
+║  └────────────────────────────────┘  ║
+║                                      ║
+║  CAUSA-RAIZ IDENTIFICADA             ║
+║  ┌────────────────────────────────┐  ║
+║  │ [Wifi] Wi-Fi                   │  ║
+║  │ Canal 36, sem congestionamento │  ║
+║  └────────────────────────────────┘  ║
+║                                      ║
+║  ┌────────────────────────────────┐  ║
+║  │ Impacto no usuário             │  ║
+║  │ Streaming HD: OK               │  ║
+║  │ Gaming: OK                     │  ║
+║  └────────────────────────────────┘  ║
+║                                      ║
+║  O QUE FAZER · EM ORDEM              ║
+║  ┌────────────────────────────────┐  ║
+║  │ 1. Manter canal atual          │  ║
+║  │    Baixa prioridade            │  ║
+║  └────────────────────────────────┘  ║
+║                                      ║
+║  [Métricas da análise           ▼]   ║
+║                                      ║
+╠══════════════════════════════════════╣
+║ [Tirar dúvidas] [Refazer] [Operadora]║
+╚══════════════════════════════════════╝
+```
+
 **Trigger:** a partir de `ResultadoVelocidadeScreen` ou via `ExploreToolsRow` no SpeedTest.
 
 **O que o usuário vê (v0.14.0+):**
@@ -405,6 +709,47 @@ Aba de acesso a funcionalidades adicionais. Ícone: `GridView`. Dá acesso a `Aj
 ### 6.4 LLMChatScreen — Chat IA com Streaming
 
 **Composable:** `LLMChatScreen.kt`
+
+**Mockup (conversa em andamento com thinking expansível):**
+
+```text
+╔══════════════════════════════════════╗
+║  StatusBar                           ║
+╠══════════════════════════════════════╣
+║  [←]          Veloo          [Novo]  ║
+║           ● Assistente de conexão    ║
+╠══════════════════════════════════════╣
+║                                      ║
+║                 ┌──────────────────┐ ║
+║                 │ Minha velocidade │ ║
+║                 │ caiu ontem?      │ ║
+║                 └──────────────────┘ ║
+║  ┌──────────────────────────────┐    ║
+║  │ [Thinking ▼]                 │    ║
+║  │ Analisando os dados de       │    ║
+║  │ velocidade do histórico…     │    ║
+║  └──────────────────────────────┘    ║
+║  ┌──────────────────────────────┐    ║
+║  │ Sim, identifiquei uma queda  │    ║
+║  │ ontem às 19h. Sua velocidade │    ║
+║  │ caiu de 240 para 38 Mbps.    │    ║
+║  │ Isso coincide com horário de │    ║
+║  │ pico da sua operadora.       │    ║
+║  └──────────────────────────────┘    ║
+║                 ┌──────────────────┐ ║
+║                 │ O que eu faço?   │ ║
+║                 └──────────────────┘ ║
+║  ┌──────────────────────────────┐    ║
+║  │ [●●●  digitando…]            │    ║
+║  └──────────────────────────────┘    ║
+║                                      ║
+║  [Chip: Testar agora] [Chip: Ajuda]  ║
+╠══════════════════════════════════════╣
+║  ┌──────────────────────────┐ [Send] ║
+║  │ Digite sua pergunta…     │        ║
+║  └──────────────────────────┘        ║
+╚══════════════════════════════════════╝
+```
 
 **Flag de controle:** `FEATURE_DIAGNOSTICO_CHAT` — **inativa em release**. Visível apenas em debug.
 
@@ -477,6 +822,45 @@ Introduzido na v0.12.0 como Chat IA com drawer, chips iniciais e cota diária. S
 
 **Composable:** `DispositivosScreen.kt`
 
+**Mockup (lista de dispositivos detectados):**
+
+```text
+╔══════════════════════════════════════╗
+║  StatusBar                           ║
+╠══════════════════════════════════════╣
+║        [Devices] Dispositivos        ║
+╠══════════════════════════════════════╣
+║                                      ║
+║  ─── GATEWAY ───                     ║
+║  ┌────────────────────────────────┐  ║
+║  │ [Router] TP-Link AC1750        │  ║
+║  │          192.168.1.1           │  ║
+║  │          AA:BB:CC:DD:EE:FF     │  ║
+║  └────────────────────────────────┘  ║
+║                                      ║
+║  ─── DISPOSITIVOS (4) ───            ║
+║  ┌────────────────────────────────┐  ║
+║  │ [Phone] Pixel 8 (este dispos.) │  ║
+║  │         192.168.1.5            │  ║
+║  └────────────────────────────────┘  ║
+║  ┌────────────────────────────────┐  ║
+║  │ [Laptop] MacBook Pro           │  ║
+║  │          192.168.1.10          │  ║
+║  │          Apple Inc.            │  ║
+║  └────────────────────────────────┘  ║
+║  ┌────────────────────────────────┐  ║
+║  │ [Bulb] Smart TV (apelido)      │  ║
+║  │        192.168.1.22            │  ║
+║  │        Samsung Electronics     │  ║
+║  └────────────────────────────────┘  ║
+║  ┌────────────────────────────────┐  ║
+║  │ [Device] Dispositivo           │  ║
+║  │          192.168.1.31          │  ║
+║  └────────────────────────────────┘  ║
+║                                      ║
+╚══════════════════════════════════════╝
+```
+
 **Acesso:** aba "Mais" (índice 4) — não está mais na TabBar principal.
 
 **O que o usuário vê:**
@@ -492,7 +876,45 @@ Introduzido na v0.12.0 como Chat IA com drawer, chips iniciais e cota diária. S
 
 ### 6.7 FibraScreen — Modem GPON
 
-**Composable:** `FibraScreen.kt`
+**Composable:** `FibraModemScreen.kt`
+
+**Mockup (estado concluído com dados GPON):**
+
+```text
+╔══════════════════════════════════════╗
+║  StatusBar                           ║
+╠══════════════════════════════════════╣
+║ [←]  Sua internet por fibra  [Atual] ║
+║      Modem conectado pela operadora  ║
+╠══════════════════════════════════════╣
+║                                      ║
+║  ─── STATUS GPON ───                 ║
+║  ┌────────────────────────────────┐  ║
+║  │ [Signal] Potência Rx           │  ║
+║  │          -18.5 dBm  Excelente  │  ║
+║  │          Ideal: -8 a -27 dBm   │  ║
+║  └────────────────────────────────┘  ║
+║  ┌────────────────────────────────┐  ║
+║  │ [Signal] Potência Tx           │  ║
+║  │          2.3 dBm               │  ║
+║  └────────────────────────────────┘  ║
+║  ┌──────────────┐ ┌──────────────┐   ║
+║  │ Temperatura  │ │ Corrente     │   ║
+║  │ 42°C         │ │ 6.8 mA       │   ║
+║  └──────────────┘ └──────────────┘   ║
+║                                      ║
+║  ─── STATUS WAN ───                  ║
+║  ┌────────────────────────────────┐  ║
+║  │ IP: 177.xxx.xxx.xxx            │  ║
+║  │ Máscara: 255.255.255.0         │  ║
+║  │ Gateway: 192.168.1.1           │  ║
+║  └────────────────────────────────┘  ║
+║                                      ║
+║  ─── DISPOSITIVO ───                 ║
+║  Nokia G-010G-P · SN: GPON12345      ║
+║                                      ║
+╚══════════════════════════════════════╝
+```
 
 **Flag de controle:** `FEATURE_FIBRA_SCREEN` — **ativa em release** (promovida para MVP nesta entrega). Visível para o usuário final.
 
