@@ -1189,10 +1189,15 @@ class MainViewModel
                 ) {
                     val meshIp = gatewayIps.getOrNull(0)
                     val routerIp = gatewayIps.getOrNull(1)
-                    listOf(
-                        GatewayInfo(ip = meshIp, name = gatewayName, type = gatewayType),
-                        GatewayInfo(ip = routerIp, name = "Roteador", type = ConnectionNodeType.WifiRouter),
-                    )
+                    // O Android normalmente expõe apenas uma rota default (o nó mesh ao qual o
+                    // dispositivo está conectado). O roteador central por trás do mesh não tem IP
+                    // visível, então só criamos o nó "Roteador" quando há de fato um segundo gateway.
+                    buildList {
+                        add(GatewayInfo(ip = meshIp, name = gatewayName, type = gatewayType))
+                        if (routerIp != null) {
+                            add(GatewayInfo(ip = routerIp, name = "Roteador", type = ConnectionNodeType.WifiRouter))
+                        }
+                    }
                 } else {
                     gatewayIps
                         .map { ip ->

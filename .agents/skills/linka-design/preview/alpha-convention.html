@@ -1,0 +1,23 @@
+<!-- @dsCard group="Spacing" -->
+<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:var(--bg-primary);font-family:var(--font-sans);padding:22px 24px;}
+  .cap{font:600 11px/1.3 var(--font-sans);color:var(--text-tertiary);letter-spacing:.3px;text-transform:uppercase;margin-bottom:5px;}
+  .sub{font:400 11px/1.4 var(--font-sans);color:var(--text-secondary);margin-bottom:14px;}
+  .row{display:flex;gap:10px;}
+  .item{flex:1;text-align:center;}
+  .chip{height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font:600 12px/1 var(--font-sans);color:var(--accent);}
+  .lbl{font:600 12px/1.2 var(--font-sans);color:var(--text-primary);margin-top:8px;}
+  .v{font:400 11px/1.3 var(--font-sans);color:var(--text-secondary);}
+</style></head><body>
+  <div class="cap">Convenção de opacidade (sufixo hex)</div>
+  <div class="sub">Cores semânticas aplicadas como tint de fundo de cards, chips e banners.</div>
+  <div class="row">
+    <div class="item"><div class="chip" style="background:rgba(108,43,255,.10)">1A</div><div class="lbl">10%</div><div class="v">tint de card</div></div>
+    <div class="item"><div class="chip" style="background:rgba(108,43,255,.12)">1F</div><div class="lbl">12%</div><div class="v">card conectado</div></div>
+    <div class="item"><div class="chip" style="background:rgba(108,43,255,.15)">26</div><div class="lbl">15%</div><div class="v">seleção</div></div>
+    <div class="item"><div class="chip" style="background:rgba(108,43,255,.20)">33</div><div class="lbl">20%</div><div class="v">hover/state</div></div>
+    <div class="item"><div class="chip" style="background:rgba(108,43,255,.25);border:1px solid rgba(108,43,255,.4)">40</div><div class="lbl">25%</div><div class="v">borda ativa</div></div>
+  </div>
+</body></html>

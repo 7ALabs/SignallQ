@@ -1,0 +1,18 @@
+<!-- @dsCard group="Components" -->
+<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:var(--bg-primary);font-family:var(--font-sans);padding:22px 24px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .m{background:var(--bg-secondary);border-radius:var(--radius-card);padding:16px;}
+  .lbl{font:400 11px/1 var(--font-sans);color:var(--text-tertiary);margin-bottom:7px;}
+  .val{font:700 26px/1 var(--font-sans);}
+  .unit{font:400 12px/1 var(--font-sans);color:var(--text-secondary);margin-left:4px;}
+</style></head><body>
+  <div class="grid">
+    <div class="m"><div class="lbl">Download</div><div class="val" style="color:var(--success)">486.3<span class="unit">Mbps</span></div></div>
+    <div class="m"><div class="lbl">Upload</div><div class="val" style="color:var(--accent)">211.7<span class="unit">Mbps</span></div></div>
+    <div class="m"><div class="lbl">Latência</div><div class="val" style="color:var(--success)">12<span class="unit">ms</span></div></div>
+    <div class="m"><div class="lbl">Oscilação</div><div class="val" style="color:var(--warning)">24<span class="unit">ms</span></div></div>
+  </div>
+</body></html>

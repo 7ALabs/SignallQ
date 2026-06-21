@@ -1,0 +1,28 @@
+<!-- @dsCard group="Components" -->
+<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:var(--bg-primary);font-family:var(--font-sans);padding:22px 24px;}
+  .cap{font:600 11px/1.3 var(--font-sans);color:var(--text-tertiary);letter-spacing:.3px;text-transform:uppercase;margin-bottom:16px;}
+  .row{display:flex;gap:34px;align-items:flex-end;}
+  .item{text-align:center;}
+  .bars{display:flex;align-items:flex-end;gap:4px;height:18px;justify-content:center;}
+  .bars i{width:4px;border-radius:1px;}
+  .q{font:600 12px/1 var(--font-sans);margin-top:9px;}
+</style></head><body>
+  <div class="cap">SignalBars + palavra de qualidade</div>
+  <div class="row">
+    <div class="item">
+      <div class="bars"><i style="height:6px;background:var(--success)"></i><i style="height:9px;background:var(--success)"></i><i style="height:12px;background:var(--success)"></i><i style="height:16px;background:var(--success)"></i></div>
+      <div class="q" style="color:var(--success)">Forte</div>
+    </div>
+    <div class="item">
+      <div class="bars"><i style="height:6px;background:var(--warning)"></i><i style="height:9px;background:var(--warning)"></i><i style="height:12px;background:var(--border)"></i><i style="height:16px;background:var(--border)"></i></div>
+      <div class="q" style="color:var(--warning)">Regular</div>
+    </div>
+    <div class="item">
+      <div class="bars"><i style="height:6px;background:var(--error)"></i><i style="height:9px;background:var(--border)"></i><i style="height:12px;background:var(--border)"></i><i style="height:16px;background:var(--border)"></i></div>
+      <div class="q" style="color:var(--error)">Fraco</div>
+    </div>
+  </div>
+</body></html>

@@ -1,0 +1,19 @@
+<!-- @dsCard group="Components" -->
+<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
+<style>
+  body{margin:0;background:var(--bg-primary);font-family:var(--font-sans);padding:22px 24px;display:flex;flex-direction:column;gap:12px;}
+  .banner{display:flex;align-items:center;gap:10px;border-radius:var(--radius-card);padding:13px 16px;}
+  .warn{background:rgba(245,166,35,.12);}
+  .warn .material-symbols-outlined,.warn .t{color:var(--warning);}
+  .t{font:500 13px/1.4 var(--font-sans);}
+  .material-symbols-outlined{font-size:20px;}
+  .offline{background:var(--bg-secondary);}
+  .offline .material-symbols-outlined{color:var(--text-secondary);}
+  .offline .t{color:var(--text-primary);}
+</style></head><body>
+  <div class="banner warn"><span class="material-symbols-outlined">warning</span><span class="t">Sem conexão — conecte-se a uma rede</span></div>
+  <div class="banner warn"><span class="material-symbols-outlined">info</span><span class="t">Abaixo de 40%: você tem direito a rescisão sem multa (ANATEL).</span></div>
+  <div class="banner offline"><span class="material-symbols-outlined">wifi_off</span><span class="t">Sem conexão de internet · Testar assim que voltar</span></div>
+</body></html>
