@@ -5,7 +5,7 @@ compatibility_date = "2026-06-21"
 [vars]
 ALLOWED_ORIGIN = "https://admin.signallq.app"
 FIREBASE_PROJECT_ID = "device-streaming-ef179de4"
-FIREBASE_GA4_PROPERTY_ID = ""
+FIREBASE_GA4_PROPERTY_ID = "542463828"
 
 # Secrets: npx wrangler secret put ADMIN_SECRET / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY
 
