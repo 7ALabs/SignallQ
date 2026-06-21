@@ -52,9 +52,12 @@ class AiDiagnosisRepository(
             .readTimeout(90, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
             .build(),
+    /** Fonte de tempo injetavel — permite controle deterministico em testes. */
+    internal val clock: () -> Long = System::currentTimeMillis,
 ) {
     companion object {
         private const val TAG = "AiDiagnosisRepository"
+        private const val CACHE_TTL_MS = 5 * 60 * 1000L // 5 minutos
     }
 
     init {
@@ -66,7 +69,9 @@ class AiDiagnosisRepository(
         runCatching { Log.d("SignallQ", "AiDiagnosisRepository criado: hashCode=${hashCode()}") }
     }
 
-    private val cache = ConcurrentHashMap<String, AiDiagnosisResult>()
+    // Pair: (resultado, timestamp de insercao em ms).
+    // internal para permitir injecao direta em testes unitarios do mesmo modulo.
+    internal val cache = ConcurrentHashMap<String, Pair<AiDiagnosisResult, Long>>()
 
     /**
      * Verifica se o worker de IA está acessível.
@@ -109,7 +114,13 @@ class AiDiagnosisRepository(
         if (!isAuthorized()) return AiDiagnosisState.fallback(localFallback())
 
         val key = cacheKey(context)
-        cache[key]?.let { return AiDiagnosisState.success(it.copy(source = "cache")) }
+        cache[key]?.let { (result, timestamp) ->
+            if (clock() - timestamp > CACHE_TTL_MS) {
+                cache.remove(key)
+            } else {
+                return AiDiagnosisState.success(result.copy(source = "cache"))
+            }
+        }
 
         return withContext(Dispatchers.IO) {
             val result = withTimeoutOrNull(40_000L) {
@@ -148,7 +159,7 @@ class AiDiagnosisRepository(
                             ),
                         )
                         Log.d(TAG, "IA respondeu com sucesso: status=${normalized.status} modelo=${normalized.modeloIa.nomeExibicao}")
-                        cache[key] = normalized
+                        cache[key] = Pair(normalized, clock())
                         AiDiagnosisState.success(normalized)
                     }
                 } catch (t: Throwable) {
@@ -599,7 +610,7 @@ class AiDiagnosisRepository(
     // O AI_PROMPT_VERSION garante que respostas geradas com o prompt antigo
     // (schema v1) nao sejam servidas para um cliente esperando schema v2.
     // --------------------------------------------------------------------------
-    private fun cacheKey(ctx: DiagnosisAiContext): String {
+    internal fun cacheKey(ctx: DiagnosisAiContext): String {
         val md = MessageDigest.getInstance("SHA-256")
         md.update(AI_PROMPT_VERSION.toByteArray(Charsets.UTF_8))
         md.update(ctx.toString().toByteArray(Charsets.UTF_8))

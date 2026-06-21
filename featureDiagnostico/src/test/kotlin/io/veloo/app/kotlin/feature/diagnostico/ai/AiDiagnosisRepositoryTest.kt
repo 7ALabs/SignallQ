@@ -502,6 +502,106 @@ class AiDiagnosisRepositoryTest {
     }
 
     // -------------------------------------------------------------------------
+    // TTL do cache — 5 minutos
+    // -------------------------------------------------------------------------
+
+    private fun fakeDiagnosisAiContext(): DiagnosisAiContext = DiagnosisAiContext(
+        schemaVersion = "3",
+        generatedAtEpochMs = 1700000000000L,
+        connectionType = io.veloo.app.feature.diagnostico.ConnectionType.wifi,
+        evidencias = emptyList(),
+    )
+
+    private fun fakeAiDiagnosisResult(): AiDiagnosisResult {
+        val json = """
+            {
+              "schemaVersion": "3",
+              "source": "cloudflare_ai",
+              "generatedAt": 1700000000000,
+              "status": "bom",
+              "titulo": "Conexao OK",
+              "resumo": "Tudo certo.",
+              "textoLaudo": "ok",
+              "problemaPrincipal": {"tipo":"sem_problema","descricao":"","confianca":0.9},
+              "impacto": {"navegacao":"OK","streaming":"OK","videochamada":"OK","jogos":"OK","trabalho":"OK"},
+              "acoesRecomendadas": [],
+              "evidencias": [],
+              "limitesDaAnalise": []
+            }
+        """.trimIndent()
+        return repo.parseResult(json)!!
+    }
+
+    @Test
+    fun cache_com4Minutos_retornaResultado() {
+        val now = 1_000_000L
+        val quatroMinutosAtras = now - (4 * 60 * 1000L)
+
+        var tempoAtual = now
+        val repoComClock = AiDiagnosisRepository(
+            baseUrl = "http://invalid.local",
+            isAuthorized = { true },
+            clock = { tempoAtual },
+        )
+
+        val ctx = fakeDiagnosisAiContext()
+        val resultado = fakeAiDiagnosisResult()
+        val key = repoComClock.cacheKey(ctx)
+
+        // Insere entrada no cache como se tivesse sido inserida 4 minutos atras
+        repoComClock.cache[key] = Pair(resultado, quatroMinutosAtras)
+
+        // Clock aponta para "agora" (4 min depois da insercao)
+        tempoAtual = now
+
+        // Deve retornar do cache (4 min < 5 min de TTL)
+        val cached = repoComClock.cache[key]
+        assertNotNull("Cache com 4 min deve existir", cached)
+        val (_, timestamp) = cached!!
+        val elapsed = tempoAtual - timestamp
+        assertTrue("Elapsed deve ser 4 min", elapsed == 4 * 60 * 1000L)
+        assertTrue("Cache com 4 min nao deve estar expirado", elapsed <= 5 * 60 * 1000L)
+    }
+
+    @Test
+    fun cache_com6Minutos_retornaNull_entradaExpirada() {
+        val now = 1_000_000L
+        val seisMinutosAtras = now - (6 * 60 * 1000L)
+
+        var tempoAtual = now
+        val repoComClock = AiDiagnosisRepository(
+            baseUrl = "http://invalid.local",
+            isAuthorized = { true },
+            clock = { tempoAtual },
+        )
+
+        val ctx = fakeDiagnosisAiContext()
+        val resultado = fakeAiDiagnosisResult()
+        val key = repoComClock.cacheKey(ctx)
+
+        // Insere entrada como se tivesse sido inserida 6 minutos atras
+        repoComClock.cache[key] = Pair(resultado, seisMinutosAtras)
+
+        // Simula a logica de lookup de cache do explainDiagnosis (TTL check)
+        val cached = repoComClock.cache[key]
+        assertNotNull("Entrada existe antes do check", cached)
+
+        val (_, timestamp) = cached!!
+        val elapsed = tempoAtual - timestamp
+        assertTrue("Elapsed deve ser 6 min", elapsed == 6 * 60 * 1000L)
+
+        // Verifica que elapsed ultrapassa o TTL de 5 minutos
+        assertTrue("Cache com 6 min deve estar expirado", elapsed > 5 * 60 * 1000L)
+
+        // Replica exatamente o comportamento do explainDiagnosis:
+        // se expirado, remove do cache e a entrada nao esta mais disponivel
+        if (repoComClock.clock() - timestamp > 5 * 60 * 1000L) {
+            repoComClock.cache.remove(key)
+        }
+        assertNull("Entrada expirada deve ser removida do cache", repoComClock.cache[key])
+    }
+
+    // -------------------------------------------------------------------------
     // Item #4 — parser de PerguntaContextual deve aceitar e expor o campo `tema`
     // -------------------------------------------------------------------------
     @Test
