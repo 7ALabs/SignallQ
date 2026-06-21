@@ -43,6 +43,44 @@ export const adminMetricsService = {
       baseMetrics = mockOverviewProd7d;
     }
 
+    if (!apiClient.isMockEnabled()) {
+      try {
+        const apiPeriod = period === "today" ? "1d" : period;
+        const raw = await apiClient.request<{
+          totalDiagnostics: number;
+          activeSessions: number;
+          avgNetworkScore: number;
+          aiCallsToday: number;
+          aiCostToday: number;
+          aiTokensToday: number;
+        }>("GET", `/admin/metrics/overview?period=${apiPeriod}`);
+
+        const score = raw.avgNetworkScore ?? 0;
+        const verdict = score >= 80 ? "Excelente" : score >= 60 ? "Bom" : score >= 40 ? "Regular" : "Fraco";
+
+        return {
+          ...baseMetrics,
+          diagnosticsCount: {
+            ...baseMetrics.diagnosticsCount,
+            value: raw.totalDiagnostics,
+            trend: { value: raw.activeSessions, changePercentage: 0, type: "neutral" as const, intervalLabel: `${raw.activeSessions} sessões ativas` },
+          },
+          activeUsers: {
+            ...baseMetrics.activeUsers,
+            value: `${score} · ${verdict}`,
+            trend: { value: score, changePercentage: 0, type: score >= 60 ? "up" as const : "down" as const, intervalLabel: "score de rede" },
+          },
+          aiCost: {
+            ...baseMetrics.aiCost,
+            value: `$${(raw.aiCostToday ?? 0).toFixed(6)}`,
+            trend: { value: raw.aiCallsToday, changePercentage: 0, type: "neutral" as const, intervalLabel: `${raw.aiCallsToday} chamadas hoje · ${raw.aiTokensToday} tokens` },
+          },
+        };
+      } catch (e) {
+        console.warn("[adminMetricsService] real API falhou, usando mock", e);
+      }
+    }
+
     // Simulate API fetch delay
     const response = await apiClient.simulateFetch(baseMetrics, filters);
 

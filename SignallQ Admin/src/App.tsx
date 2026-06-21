@@ -45,10 +45,6 @@ export default function App() {
     apiClient.onAuthError(handleLogout);
   }, [handleLogout]);
 
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={handleLogin} />;
-  }
-
   // Hash Routing Synchronizer for a native visual feel
   useEffect(() => {
     const handleHashChange = () => {
@@ -194,6 +190,10 @@ export default function App() {
         };
     }
   }, [currentPath]);
+
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
 
   return (
     <AppLayout

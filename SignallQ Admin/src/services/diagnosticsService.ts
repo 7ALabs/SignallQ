@@ -40,8 +40,50 @@ export const diagnosticsService = {
    * Retrieves paginated or filtered diagnostic histories
    */
   async getDiagnosticSessions(filters: DashboardFilters & { search?: string } = {}): Promise<DiagnosticSession[]> {
+    if (!apiClient.isMockEnabled()) {
+      try {
+        const period = filters.period === "today" ? "1d" : (filters.period ?? "7d");
+        const raw = await apiClient.request<{ sessions: any[] }>(
+          "GET",
+          `/admin/metrics/diagnostics?period=${period}&limit=100`
+        );
+        const mapped: DiagnosticSession[] = (raw.sessions ?? []).map((r: any) => ({
+          id: r.id,
+          timestamp: new Date(r.created_at * 1000).toISOString(),
+          environment: "production" as const,
+          networkType: r.network_type ?? "unknown",
+          deviceModel: "Android",
+          status: r.status ?? "unknown",
+          score: r.score ?? 0,
+          resolved: !!r.resolved,
+          speed: {
+            downloadMbps: r.download_mbps ?? 0,
+            uploadMbps: r.upload_mbps ?? 0,
+            latencyMs: r.latency_ms ?? 0,
+            jitterMs: r.jitter_ms ?? 0,
+            packetLossPercentage: r.packet_loss ?? 0,
+            bufferbloatGrade: r.score >= 80 ? "A" : r.score >= 60 ? "B" : r.score >= 40 ? "C" : "D",
+          },
+          issues: Array.isArray(r.issues) ? r.issues : [],
+          networkStrength: undefined,
+        }));
+
+        let filtered = mapped;
+        if (filters.search) {
+          const q = filters.search.toLowerCase();
+          filtered = filtered.filter(s =>
+            s.id.toLowerCase().includes(q) ||
+            s.networkType.toLowerCase().includes(q)
+          );
+        }
+        return filtered;
+      } catch (e) {
+        console.warn("[diagnosticsService] real API falhou, usando mock", e);
+      }
+    }
+
     const sessions = await apiClient.simulateFetch(mockDiagnosticSessions, filters);
-    
+
     let filtered = sessions;
 
     // Filter by environment (which is a core property inside each diagnostic log session)

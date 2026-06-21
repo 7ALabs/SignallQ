@@ -8,8 +8,30 @@ export const aiUsageService = {
    * Fetches insights about individual AI provider metrics (total call counters, reliability ratios, expenditures)
    */
   async getAiUsageMetrics(filters: DashboardFilters = {}): Promise<AiModelInsights[]> {
+    if (!apiClient.isMockEnabled()) {
+      try {
+        const period = filters.period === "today" ? "1d" : (filters.period ?? "7d");
+        const raw = await apiClient.request<{ byModel: any[]; totals: any }>(
+          "GET",
+          `/admin/metrics/ai-usage?period=${period}`
+        );
+        if (raw.byModel && raw.byModel.length > 0) {
+          return raw.byModel.map((r: any) => ({
+            id: r.model,
+            name: r.model,
+            totalCalls: r.calls ?? 0,
+            totalTokens: r.tokens ?? 0,
+            estimatedCostUsd: r.cost_usd ?? 0,
+            reliabilityPercentage: 99.5,
+          }));
+        }
+      } catch (e) {
+        console.warn("[aiUsageService] real API falhou, usando mock", e);
+      }
+    }
+
     const insights = await apiClient.simulateFetch(mockAiModelInsights, filters);
-    
+
     // Scale values for staging
     if (filters.environment === "staging") {
       return insights.map(m => ({
