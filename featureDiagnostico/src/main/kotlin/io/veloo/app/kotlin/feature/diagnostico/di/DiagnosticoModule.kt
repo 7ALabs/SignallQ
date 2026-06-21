@@ -7,6 +7,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.veloo.app.feature.diagnostico.BuildConfig
+import io.veloo.app.feature.diagnostico.DiagnosticOrchestrator
 import io.veloo.app.feature.diagnostico.ai.AiDiagnosisRepository
 import io.veloo.app.feature.diagnostico.topology.TopologyDiagnostic
 import okhttp3.OkHttpClient
@@ -16,6 +17,16 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DiagnosticoModule {
+    /**
+     * Provê DiagnosticOrchestrator como @Singleton no grafo Hilt.
+     *
+     * Antes era instanciado via `by lazy { DiagnosticOrchestrator() }` no MainViewModel.
+     * Agora e singleton compartilhado entre DiagnosticoViewModel e MainViewModel (legado).
+     */
+    @Provides
+    @Singleton
+    fun provideDiagnosticOrchestrator(): DiagnosticOrchestrator = DiagnosticOrchestrator()
+
     /**
      * Provê a instância única de AiDiagnosisRepository no grafo Hilt.
      *
