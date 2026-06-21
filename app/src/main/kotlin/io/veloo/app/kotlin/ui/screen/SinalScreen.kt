@@ -302,62 +302,13 @@ fun SinalScreen(
                 LocPermissaoBanner(onClick = { showLocalizacaoSheet = true })
             }
 
-            // Calcular congestionamento do canal atual para badge na tab Canal
-            val canalCongestionado =
-                remember(snapshotWifi.redes, connectedNetwork) {
-                    if (connectedNetwork == null) return@remember false
-                    val bandaConectada = connectedNetwork.banda ?: return@remember false
-                    val redesBanda = snapshotWifi.redes.filter { it.banda == bandaConectada }
-                    val espectro =
-                        WifiChannelDiagnosticEngine.computarEspectro(
-                            redes =
-                                redesBanda.map {
-                                    RedeWifiVizinha(
-                                        canal = it.canal,
-                                        rssiDbm = it.rssiDbm,
-                                        frequenciaMhz = it.frequenciaMhz,
-                                        ssid = it.ssid,
-                                        bssid = it.bssid,
-                                    )
-                                },
-                            canalAtual = connectedNetwork.canal,
-                            banda = bandaConectada,
-                            seuSSID = connectedNetwork.ssid,
-                        )
-                    espectro.dadosPorCanal
-                        .firstOrNull { it.ehCanalAtual }
-                        ?.nivel == NivelCongestionamento.congestionado
-                }
-
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = c.bgPrimary,
-                contentColor = LkColors.accent,
-            ) {
-                listOf("Wi-Fi", "Canal", "Móvel").forEachIndexed { index, label ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = {
-                            if (index == 1 && canalCongestionado) {
-                                BadgedBox(badge = { Badge() }) {
-                                    Text(
-                                        label,
-                                        fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.W500,
-                                        color = if (selectedTab == index) LkColors.accent else c.textSecondary,
-                                    )
-                                }
-                            } else {
-                                Text(
-                                    label,
-                                    fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.W500,
-                                    color = if (selectedTab == index) LkColors.accent else c.textSecondary,
-                                )
-                            }
-                        },
-                    )
-                }
-            }
+            SinalTopTabRow(
+                selectedTab = selectedTab,
+                onTabSelected = { selectedTab = it },
+                snapshotWifi = snapshotWifi,
+                connectedNetwork = connectedNetwork,
+                c = c,
+            )
             when (selectedTab) {
                 0 -> {
                     if (conexaoTipo == ConexaoTipo.WIFI) {
@@ -437,6 +388,78 @@ fun SinalScreen(
                 onAgoraNao = {
                     showTelefoniaSheet = false
                     telefoniaSheetDismissed = true
+                },
+            )
+        }
+    }
+}
+
+// ─── SinalTopTabRow ───────────────────────────────────────────────────────────
+
+/**
+ * TabRow da tela Sinal com badge de congestionamento no canal Wi-Fi.
+ * Extraido do corpo principal do SinalScreen para permitir skip de recomposicao
+ * quando apenas o conteudo das tabs muda (e nao os labels/badges).
+ */
+@Composable
+private fun SinalTopTabRow(
+    selectedTab: Int,
+    onTabSelected: (Int) -> Unit,
+    snapshotWifi: SnapshotScanWifi,
+    connectedNetwork: RedeVizinha?,
+    c: LkTokens,
+) {
+    val canalCongestionado =
+        remember(snapshotWifi.redes, connectedNetwork) {
+            if (connectedNetwork == null) return@remember false
+            val bandaConectada = connectedNetwork.banda ?: return@remember false
+            val redesBanda = snapshotWifi.redes.filter { it.banda == bandaConectada }
+            val espectro =
+                WifiChannelDiagnosticEngine.computarEspectro(
+                    redes =
+                        redesBanda.map {
+                            RedeWifiVizinha(
+                                canal = it.canal,
+                                rssiDbm = it.rssiDbm,
+                                frequenciaMhz = it.frequenciaMhz,
+                                ssid = it.ssid,
+                                bssid = it.bssid,
+                            )
+                        },
+                    canalAtual = connectedNetwork.canal,
+                    banda = bandaConectada,
+                    seuSSID = connectedNetwork.ssid,
+                )
+            espectro.dadosPorCanal
+                .firstOrNull { it.ehCanalAtual }
+                ?.nivel == NivelCongestionamento.congestionado
+        }
+
+    TabRow(
+        selectedTabIndex = selectedTab,
+        containerColor = c.bgPrimary,
+        contentColor = LkColors.accent,
+    ) {
+        listOf("Wi-Fi", "Canal", "Móvel").forEachIndexed { index, label ->
+            Tab(
+                selected = selectedTab == index,
+                onClick = { onTabSelected(index) },
+                text = {
+                    if (index == 1 && canalCongestionado) {
+                        BadgedBox(badge = { Badge() }) {
+                            Text(
+                                label,
+                                fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.W500,
+                                color = if (selectedTab == index) LkColors.accent else c.textSecondary,
+                            )
+                        }
+                    } else {
+                        Text(
+                            label,
+                            fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.W500,
+                            color = if (selectedTab == index) LkColors.accent else c.textSecondary,
+                        )
+                    }
                 },
             )
         }
