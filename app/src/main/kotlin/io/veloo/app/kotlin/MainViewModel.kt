@@ -53,7 +53,7 @@ import io.veloo.app.feature.speedtest.ModoSpeedtest
 import io.veloo.app.feature.wifi.ScannerRedesWifi
 import io.veloo.app.monitoramento.MonitoramentoScheduler
 import io.veloo.app.notificacao.SignallQNotificationHelper
-import io.veloo.app.pulse.SignallQOrchestrator
+import io.veloo.app.feature.diagnostico.pulse.SignallQOrchestrator
 import io.veloo.app.pulse.SignallQUiStateMapper
 import io.veloo.app.ui.ConnectionNodeType
 import io.veloo.app.ui.FiltroConexaoHistorico

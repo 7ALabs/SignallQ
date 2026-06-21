@@ -1,4 +1,4 @@
-package io.veloo.app.pulse
+package io.veloo.app.feature.diagnostico.pulse
 
 import io.veloo.app.core.database.MedicaoDao
 import io.veloo.app.core.network.GatewayLatencyMeasurer
@@ -15,17 +15,6 @@ import io.veloo.app.feature.diagnostico.ai.AiDiagnosisRepository
 import io.veloo.app.feature.diagnostico.ai.AiDiagnosisState
 import io.veloo.app.feature.diagnostico.ai.AiFallbackFactory
 import io.veloo.app.feature.diagnostico.ai.DiagnosisAiContextFactory
-import io.veloo.app.feature.diagnostico.pulse.AiAnalysisEntry
-import io.veloo.app.feature.diagnostico.pulse.ContextAccumulator
-import io.veloo.app.feature.diagnostico.pulse.DynamicQuestionEngine
-import io.veloo.app.feature.diagnostico.pulse.IntelligentDiagnosticSession
-import io.veloo.app.feature.diagnostico.pulse.OpcaoResposta
-import io.veloo.app.feature.diagnostico.pulse.SignallQInsightGenerator
-import io.veloo.app.feature.diagnostico.pulse.SignallQState
-import io.veloo.app.feature.diagnostico.pulse.QuestionAnswer
-import io.veloo.app.feature.diagnostico.pulse.ResponseSource
-import io.veloo.app.feature.diagnostico.pulse.RotatingMessageProvider
-import io.veloo.app.feature.diagnostico.pulse.SignallQSnapshot
 import io.veloo.app.feature.speedtest.DiagnosticoFasesSpeedtest
 import io.veloo.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.veloo.app.feature.speedtest.ExecutorSpeedtest
