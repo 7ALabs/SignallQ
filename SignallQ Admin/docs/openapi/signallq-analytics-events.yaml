@@ -1,0 +1,289 @@
+openapi: 3.0.3
+info:
+  title: SignallQ Edge Analytics Ingest API
+  description: Contract specification for analytics events emitted by the Android SDK and edge worker nodes.
+  version: 1.0.0
+servers:
+  - url: https://ingest.signallq.internal/v1
+    description: Production Analytics Raw Event Ingest Gateway
+paths:
+  /analytics/event:
+    post:
+      summary: Send a single unified analytics or lifecycle event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RawTelemetryEvent'
+      responses:
+        '202':
+          description: Event accepted for queuing and stream aggregation
+
+  /analytics/batch:
+    post:
+      summary: Upload a batch array of accumulated offline telemetry records
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/RawTelemetryEvent'
+      responses:
+        '202':
+          description: Batch parsed successfully with size count
+
+  /diagnosis/result:
+    post:
+      summary: Ingest detailed diagnostic sessions completed state
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DiagnosisCompletedEvent'
+      responses:
+        '201':
+          description: Saved diagnostics summary logged successfully
+
+  /ai/usage:
+    post:
+      summary: Ingest serverless AI completions invocation metric
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiUsageEvent'
+      responses:
+        '201':
+          description: Telemetry logged
+
+  /app/error:
+    post:
+      summary: Register local client fatal/nonfatal exceptions or network errors
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppErrorEvent'
+      responses:
+        '201':
+          description: Error registered successfully
+
+components:
+  schemas:
+    RawTelemetryEvent:
+      type: object
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        anonymousUserId:
+          type: string
+        appVersion:
+          type: string
+        eventType:
+          type: string
+      required: [eventId, timestamp, anonymousUserId, appVersion, eventType]
+
+    DiagnosisCompletedEvent:
+      type: object
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        anonymousUserId:
+          type: string
+        sessionId:
+          type: string
+        appVersion:
+          type: string
+        buildNumber:
+          type: integer
+        platform:
+          type: string
+        environment:
+          type: string
+        networkType:
+          type: string
+        operator:
+          type: string
+        country:
+          type: string
+        state:
+          type: string
+        city:
+          type: string
+        score:
+          type: integer
+        confidence:
+          type: number
+        mainIssue:
+          type: string
+        findings:
+          type: array
+          items:
+            type: string
+        downloadMbps:
+          type: number
+        uploadMbps:
+          type: number
+        pingMs:
+          type: number
+        jitterMs:
+          type: number
+        packetLossPercent:
+          type: number
+        bufferbloatLevel:
+          type: string
+        dnsLatencyMs:
+          type: number
+        gatewayLatencyMs:
+          type: number
+        aiProvider:
+          type: string
+        aiModel:
+          type: string
+        tokensInput:
+          type: integer
+        tokensOutput:
+          type: integer
+        aiCostEstimated:
+          type: number
+        diagnosisDurationMs:
+          type: integer
+      required: [eventId, timestamp, anonymousUserId, sessionId, appVersion, score, mainIssue]
+
+    SpeedTestCompletedEvent:
+      type: object
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        anonymousUserId:
+          type: string
+        appVersion:
+          type: string
+        networkType:
+          type: string
+        downloadMbps:
+          type: number
+        uploadMbps:
+          type: number
+        pingMs:
+          type: number
+        jitterMs:
+          type: number
+        packetLossPercent:
+          type: number
+        serverRegion:
+          type: string
+        durationMs:
+          type: integer
+        success:
+          type: boolean
+        failureReason:
+          type: string
+      required: [eventId, timestamp, anonymousUserId, appVersion, networkType, downloadMbps, success]
+
+    AiUsageEvent:
+      type: object
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        provider:
+          type: string
+        model:
+          type: string
+        tokensInput:
+          type: integer
+        tokensOutput:
+          type: integer
+        latencyMs:
+          type: integer
+        costEstimated:
+          type: number
+        success:
+          type: boolean
+        fallbackUsed:
+          type: boolean
+        fallbackReason:
+          type: string
+        jsonValid:
+          type: boolean
+        errorCode:
+          type: string
+      required: [eventId, timestamp, provider, model, tokensInput, tokensOutput, success]
+
+    AppErrorEvent:
+      type: object
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        source:
+          type: string
+        endpoint:
+          type: string
+        appVersion:
+          type: string
+        platform:
+          type: string
+        networkType:
+          type: string
+        provider:
+          type: string
+        severity:
+          type: string
+        errorCode:
+          type: string
+        errorMessage:
+          type: string
+        stackHash:
+          type: string
+        requestId:
+          type: string
+      required: [eventId, timestamp, source, errorMessage, severity]
+
+    AppLifecycleEvent:
+      type: object
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        anonymousUserId:
+          type: string
+        appVersion:
+          type: string
+        platform:
+          type: string
+        eventType:
+          type: string
+        sessionDurationMs:
+          type: integer
+        source:
+          type: string
+      required: [eventId, timestamp, anonymousUserId, eventType]

@@ -1,0 +1,6 @@
+{
+  "name": "SignallQ Admin",
+  "description": "Painel de administração e diagnóstico técnico para conectividade móvel, Wi-fi e IA da plataforma SignallQ.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

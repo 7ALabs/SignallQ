@@ -1,0 +1,185 @@
+openapi: 3.0.3
+info:
+  title: SignallQ Integration Sinks API
+  description: API documenting internal and administrative backend services for crawling or webhooking Firebase Crashlytics, Google Play console datasets, and App Store connections.
+  version: 1.0.0
+servers:
+  - url: https://api.signallq.internal/v1/integrations
+    description: Integrations Gateway
+paths:
+  /firebase/sync:
+    post:
+      summary: Triggers manual backfill crawl of Firebase Crashlytics and Analytics events
+      responses:
+        '200':
+          description: Crawling routine started asynchronously
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncStartedResponse'
+
+  /firebase/status:
+    get:
+      summary: Retrieve Google service accounts auth parameters and connection state
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationMeta'
+
+  /firebase/metrics:
+    get:
+      summary: Retrieve consolidated metrics logged from Crashlytics
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirebaseSummary'
+
+  /google-play/sync:
+    post:
+      summary: Crawls latest installs and production releases from Google Play Console
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncStartedResponse'
+
+  /google-play/status:
+    get:
+      summary: Read Play Console developer credential status
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationMeta'
+
+  /google-play/metrics:
+    get:
+      summary: Read installations, downloads, ratings records parsed from developer API
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GooglePlaySummary'
+
+  /app-store/sync:
+    post:
+      summary: Sync App Store metrics (Planned endpoint - unavailable in active build)
+      responses:
+        '403':
+          description: iOS platform features not active or authorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorPlanned'
+
+  /app-store/status:
+    get:
+      summary: Returns App Store Status
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationMeta'
+
+  /app-store/metrics:
+    get:
+      summary: App Store future summary placeholder
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppStoreSummary'
+
+components:
+  schemas:
+    SyncStartedResponse:
+      type: object
+      properties:
+        jobId:
+          type: string
+        status:
+          type: string
+        startedAt:
+          type: string
+      required: [jobId, status]
+
+    IntegrationMeta:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        status:
+          type: string
+          enum: [connected, mock, attention, planned, disabled]
+        message:
+          type: string
+        platform:
+          type: string
+        lastSyncTimestamp:
+          type: string
+      required: [enabled, status, message, platform]
+
+    ErrorPlanned:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        status:
+          type: string
+      required: [code, message, status]
+
+    FirebaseSummary:
+      type: object
+      properties:
+        activeUsersCount:
+          type: integer
+        sessionsCount:
+          type: integer
+        crashFreeUsersPercent:
+          type: number
+        crashFreeSessionsPercent:
+          type: number
+        crashesCount:
+          type: integer
+        nonFatalsCount:
+          type: integer
+        primaryAppVersion:
+          type: string
+      required: [activeUsersCount, sessionsCount, crashFreeUsersPercent]
+
+    GooglePlaySummary:
+      type: object
+      properties:
+        totalDownloadsCount:
+          type: integer
+        activeInstallsCount:
+          type: integer
+        weeklyUninstallCount:
+          type: integer
+        averageRatingValue:
+          type: number
+        totalReviewsCount:
+          type: integer
+        publishedReleaseStatus:
+          type: string
+      required: [totalDownloadsCount, activeInstallsCount, averageRatingValue]
+
+    AppStoreSummary:
+      type: object
+      properties:
+        planned:
+          type: boolean
+        message:
+          type: string
+      required: [planned, message]

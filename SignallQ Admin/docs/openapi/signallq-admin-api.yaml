@@ -1,0 +1,477 @@
+openapi: 3.0.3
+info:
+  title: SignallQ Admin Console API
+  description: API endpoints for consolidating network telemetry, AI diagnostics, and app store metrics inside the SignallQ Admin dashboard.
+  version: 1.0.0
+servers:
+  - url: https://api.signallq.internal/v1
+    description: Production Admin Server
+paths:
+  /admin/metrics/overview:
+    get:
+      summary: Retrieve standard consolidated dashboard counters
+      parameters:
+        - $ref: '#/components/parameters/Period'
+        - $ref: '#/components/parameters/StartDate'
+        - $ref: '#/components/parameters/EndDate'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/Country'
+        - $ref: '#/components/parameters/State'
+        - $ref: '#/components/parameters/City'
+        - $ref: '#/components/parameters/AppVersion'
+      responses:
+        '200':
+          description: Dynamic overview stats from internal and connected properties
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OverviewMetricsResponse'
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+
+  /admin/metrics/diagnostics:
+    get:
+      summary: Retrieve diagnostics history and analytical summaries
+      parameters:
+        - $ref: '#/components/parameters/Period'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/NetworkType'
+      responses:
+        '200':
+          description: List of telemetry tests and composite summaries
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagnosticsMetricsResponse'
+
+  /admin/metrics/networks:
+    get:
+      summary: Aggregates regarding connection medium, SSID features, and physical attenuation
+      parameters:
+        - $ref: '#/components/parameters/Period'
+        - $ref: '#/components/parameters/Environment'
+      responses:
+        '200':
+          description: Physical parameters and median latencies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkMetricsResponse'
+
+  /admin/metrics/operators:
+    get:
+      summary: Retrieves telecom networks performance grouping (latencies, ISP ratings)
+      parameters:
+        - $ref: '#/components/parameters/Period'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/Operator'
+      responses:
+        '200':
+          description: Operator quality and tests volume
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperatorMetricsResponse'
+
+  /admin/metrics/ai-usage:
+    get:
+      summary: Retrieves telemetry detailing LLM costs, fallbacks, and latencies
+      parameters:
+        - $ref: '#/components/parameters/Period'
+        - $ref: '#/components/parameters/Environment'
+        - $ref: '#/components/parameters/AiProvider'
+      responses:
+        '200':
+          description: Complete token count analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiUsageMetricsResponse'
+
+  /admin/metrics/errors:
+    get:
+      summary: Retrieves error logs from Cloudflare edge tunnels and local SDK exceptions
+      parameters:
+        - $ref: '#/components/parameters/Period'
+        - $ref: '#/components/parameters/Environment'
+      responses:
+        '200':
+          description: Console details listing active error instances
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMetricsResponse'
+
+  /admin/metrics/app-versions:
+    get:
+      summary: Returns deployment history, crash stats from crashlytics and active Google Play Console rollout percentages
+      parameters:
+        - $ref: '#/components/parameters/Period'
+        - $ref: '#/components/parameters/Environment'
+      responses:
+        '200':
+          description: Distribution breakdown by deployment track
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppVersionMetricsResponse'
+
+  /admin/integrations/firebase:
+    get:
+      summary: Retrieves detailed Google Firebase telemetry connection status
+      responses:
+        '200':
+          description: Current sync times and active credential configurations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationStatus'
+
+  /admin/integrations/google-play:
+    get:
+      summary: Retrieves Google Play Developer API authorization state
+      responses:
+        '200':
+          description: Play console credential flags
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationStatus'
+
+  /admin/integrations/app-store:
+    get:
+      summary: App Store Connect future sync endpoint
+      responses:
+        '200':
+          description: Planned state representation for external Apple imports
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationStatus'
+
+  /admin/settings:
+    get:
+      summary: Queries baseline variables configured for edge processing
+      responses:
+        '200':
+          description: Active control parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSettings'
+    patch:
+      summary: Configures control metrics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminSettings'
+      responses:
+        '200':
+          description: Variables configured successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSettings'
+
+components:
+  parameters:
+    Period:
+      name: period
+      in: query
+      schema:
+        type: string
+        enum: [24h, 7d, 30d, 90d]
+      required: false
+    StartDate:
+      name: startDate
+      in: query
+      schema:
+        type: string
+        format: date
+      required: false
+    EndDate:
+      name: endDate
+      in: query
+      schema:
+        type: string
+        format: date
+      required: false
+    Environment:
+      name: environment
+      in: query
+      schema:
+        type: string
+        enum: [production, staging]
+      required: false
+    Country:
+      name: country
+      in: query
+      schema:
+        type: string
+      required: false
+    State:
+      name: state
+      in: query
+      schema:
+        type: string
+      required: false
+    City:
+      name: city
+      in: query
+      schema:
+        type: string
+      required: false
+    AppVersion:
+      name: appVersion
+      in: query
+      schema:
+        type: string
+      required: false
+    NetworkType:
+      name: networkType
+      in: query
+      schema:
+        type: string
+      required: false
+    Operator:
+      name: operator
+      in: query
+      schema:
+        type: string
+      required: false
+    AiProvider:
+      name: aiProvider
+      in: query
+      schema:
+        type: string
+      required: false
+
+  responses:
+    400Error:
+      description: The client specified unresolvable query criteria
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+    401Error:
+      description: Admin session cookies expired or unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: string
+      required: [code, message]
+
+    OverviewMetricsResponse:
+      type: object
+      properties:
+        totalDiagnosticsToday:
+          type: integer
+        activeUsersToday:
+          type: integer
+        estimatedAiCostToday:
+          type: number
+        totalDownloadsToday:
+          type: integer
+        averageCrashFreeUsersRate:
+          type: number
+        liveAppVersionInProduction:
+          type: string
+        activeInstallsCount:
+          type: integer
+      required: [totalDiagnosticsToday, activeUsersToday, estimatedAiCostToday, totalDownloadsToday, averageCrashFreeUsersRate, liveAppVersionInProduction, activeInstallsCount]
+
+    DiagnosticsMetricsResponse:
+      type: object
+      properties:
+        totalTestsCount:
+          type: integer
+        criticalIssuesCount:
+          type: integer
+        attentionIssuesCount:
+          type: integer
+        averageDownloadMbps:
+          type: number
+        averageUploadMbps:
+          type: number
+        averageLatencyMs:
+          type: number
+        averageScore:
+          type: number
+        averageJitterMs:
+          type: number
+        averagePacketLossPercentage:
+          type: number
+      required: [totalTestsCount, criticalIssuesCount, attentionIssuesCount, averageScore]
+
+    NetworkMetricsResponse:
+      type: object
+      properties:
+        wifiAnalysedCount:
+          type: integer
+        cellTowersCount:
+          type: integer
+        physicalBadSignalRate:
+          type: number
+        mediumAverages:
+          type: array
+          items:
+            type: object
+            properties:
+              medium:
+                type: string
+              averageLatency:
+                type: number
+              packetLoss:
+                type: number
+              interference:
+                type: number
+      required: [wifiAnalysedCount, cellTowersCount, physicalBadSignalRate, mediumAverages]
+
+    OperatorMetricsResponse:
+      type: object
+      properties:
+        operators:
+          type: array
+          items:
+            type: object
+            properties:
+              operatorName:
+                type: string
+              testCount:
+                type: integer
+              averageLatencyMs:
+                type: number
+              downloadMbps:
+                type: number
+              uploadMbps:
+                type: number
+      required: [operators]
+
+    AiUsageMetricsResponse:
+      type: object
+      properties:
+        totalTokensConsumed:
+          type: integer
+        accumulatedCostUsd:
+          type: number
+        averageModelLatencyMs:
+          type: number
+        successRatePercentage:
+          type: number
+      required: [totalTokensConsumed, accumulatedCostUsd, averageModelLatencyMs, successRatePercentage]
+
+    ErrorMetricsResponse:
+      type: object
+      properties:
+        errorsArray:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              message:
+                type: string
+              source:
+                type: string
+              count:
+                type: integer
+              affectedUsers:
+                type: integer
+              resolved:
+                type: boolean
+      required: [errorsArray]
+
+    AppVersionMetricsResponse:
+      type: object
+      properties:
+        versions:
+          type: array
+          items:
+            type: object
+            properties:
+              versionCode:
+                type: string
+              buildNumber:
+                type: integer
+              platform:
+                type: string
+              source:
+                type: string
+              activeUsersPercent:
+                type: number
+              successRatePercent:
+                type: number
+              crashesCount:
+                type: integer
+              anrsCount:
+                type: integer
+              diagnosticErrors:
+                type: integer
+              aiErrors:
+                type: integer
+              releaseStatus:
+                type: string
+              rolloutPercentage:
+                type: number
+              releaseDate:
+                type: string
+      required: [versions]
+
+    AdminSettings:
+      type: object
+      properties:
+        selectedDefaultAiModel:
+          type: string
+        aiFallbackEnabled:
+          type: boolean
+        maxTokensPerDiagnostic:
+          type: integer
+        speedtestIntervalSeconds:
+          type: integer
+        androidLogsCollectionEnabled:
+          type: boolean
+        stagingAlertWebhookChannel:
+          type: string
+        productionAlertWebhookChannel:
+          type: string
+        cloudflareWorkerEndpoint:
+          type: string
+      required: [selectedDefaultAiModel, aiFallbackEnabled, maxTokensPerDiagnostic, speedtestIntervalSeconds]
+
+    IntegrationStatus:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        status:
+          type: string
+          enum: [connected, mock, attention, planned, disabled]
+        message:
+          type: string
+        platform:
+          type: string
+        lastSyncTimestamp:
+          type: string
+        eventsImported:
+          type: integer
+        crashesImported:
+          type: integer
+        ratingsImported:
+          type: integer
+      required: [enabled, status, message, platform]
