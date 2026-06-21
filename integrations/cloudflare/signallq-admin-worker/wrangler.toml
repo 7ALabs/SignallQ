@@ -6,11 +6,15 @@ compatibility_date = "2026-06-21"
 [vars]
 ALLOWED_ORIGIN = "https://admin.signallq.app"
 FIREBASE_PROJECT_ID = "device-streaming-ef179de4"
+# GA4 Property ID — diferente do project_id do Firebase.
+# Obter em: Google Analytics → Admin → Property Settings → Property ID
+# Formato: número puro (ex: 123456789)
+FIREBASE_GA4_PROPERTY_ID = ""
 
 # Secrets — configurar via CLI, NUNCA commitar no repo:
 #   npx wrangler secret put ADMIN_SECRET
-#   npx wrangler secret put FIREBASE_CLIENT_EMAIL
-#   npx wrangler secret put FIREBASE_PRIVATE_KEY
+#   npx wrangler secret put FIREBASE_CLIENT_EMAIL   (campo client_email do service account JSON)
+#   npx wrangler secret put FIREBASE_PRIVATE_KEY    (campo private_key do service account JSON)
 
 # D1 — banco edge para sessões de diagnóstico e logs de custo IA
 # Ativar quando o banco for criado:

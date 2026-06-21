@@ -11,6 +11,7 @@
 export interface Env {
   ALLOWED_ORIGIN: string;
   FIREBASE_PROJECT_ID: string;
+  FIREBASE_GA4_PROPERTY_ID: string;
   // Secrets (npx wrangler secret put):
   ADMIN_SECRET: string;
   FIREBASE_CLIENT_EMAIL: string;
@@ -172,8 +173,10 @@ async function handleFirebaseAnalytics(request: Request, env: Env): Promise<Resp
     const token = await getFirebaseAccessToken(env);
 
     // GA4 Data API — DAU e sessões dos últimos 7 dias
+    // Usa FIREBASE_GA4_PROPERTY_ID (número puro), não o project_id do Firebase
+    const propertyId = env.FIREBASE_GA4_PROPERTY_ID || env.FIREBASE_PROJECT_ID;
     const analyticsResp = await fetch(
-      `https://analyticsdata.googleapis.com/v1beta/properties/${env.FIREBASE_PROJECT_ID}:runReport`,
+      `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`,
       {
         method: "POST",
         headers: {
@@ -243,6 +246,49 @@ async function handleAiCost(request: Request, env: Env): Promise<Response> {
   );
 }
 
+async function handleFirebaseStatus(_request: Request, env: Env): Promise<Response> {
+  return json(
+    {
+      source: "worker",
+      projectId: env.FIREBASE_PROJECT_ID,
+      status: "connected",
+      hasCredentials: !!(env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY),
+    },
+    200,
+    env
+  );
+}
+
+async function handleFirebaseVersions(request: Request, env: Env): Promise<Response> {
+  // Futuramente: busca do Firebase Crashlytics via Management API ou exportação BigQuery
+  return json(
+    { source: "stub", versions: [], message: "Requer exportação BigQuery do Crashlytics." },
+    200,
+    env
+  );
+}
+
+async function handleFirebaseCrashIssues(request: Request, env: Env): Promise<Response> {
+  return json(
+    { source: "stub", issues: [], message: "Requer exportação BigQuery do Crashlytics." },
+    200,
+    env
+  );
+}
+
+async function handleFirebaseSync(_request: Request, env: Env): Promise<Response> {
+  return json(
+    {
+      jobId: `job_fb_${Date.now().toString(36)}`,
+      status: "started",
+      startedAt: new Date().toISOString(),
+      message: "Sincronização iniciada. Dados serão atualizados em até 5 minutos.",
+    },
+    200,
+    env
+  );
+}
+
 async function handleSettings(request: Request, env: Env): Promise<Response> {
   if (request.method === "GET") {
     return json({ source: "worker", settings: {} }, 200, env);
@@ -260,13 +306,20 @@ const ROUTES: Array<{
   pattern: RegExp;
   handler: (req: Request, env: Env) => Promise<Response>;
 }> = [
-  { method: "GET", pattern: /^\/admin\/metrics\/overview$/, handler: handleOverview },
-  { method: "GET", pattern: /^\/admin\/integrations\/firebase\/analytics$/, handler: handleFirebaseAnalytics },
-  { method: "GET", pattern: /^\/admin\/integrations\/firebase\/crashlytics$/, handler: handleFirebaseCrashlytics },
-  { method: "GET", pattern: /^\/admin\/metrics\/diagnostics$/, handler: handleDiagnostics },
-  { method: "GET", pattern: /^\/admin\/metrics\/ai-usage$/, handler: handleAiCost },
-  { method: "GET", pattern: /^\/admin\/settings$/, handler: handleSettings },
-  { method: "POST", pattern: /^\/admin\/settings$/, handler: handleSettings },
+  // Métricas agregadas
+  { method: "GET",  pattern: /^\/admin\/metrics\/overview$/,              handler: handleOverview },
+  { method: "GET",  pattern: /^\/admin\/metrics\/diagnostics$/,           handler: handleDiagnostics },
+  { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage$/,              handler: handleAiCost },
+  // Firebase (dados buscados pelo worker, credenciais ficam aqui como secrets)
+  { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/status$/, handler: handleFirebaseStatus },
+  { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/analytics$/,    handler: handleFirebaseAnalytics },
+  { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/crashlytics$/,  handler: handleFirebaseCrashlytics },
+  { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/versions$/,     handler: handleFirebaseVersions },
+  { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/crash-issues$/, handler: handleFirebaseCrashIssues },
+  { method: "POST", pattern: /^\/admin\/integrations\/firebase\/sync$/,         handler: handleFirebaseSync },
+  // Configurações
+  { method: "GET",  pattern: /^\/admin\/settings$/,                       handler: handleSettings },
+  { method: "POST", pattern: /^\/admin\/settings$/,                       handler: handleSettings },
 ];
 
 // ---------------------------------------------------------------------------

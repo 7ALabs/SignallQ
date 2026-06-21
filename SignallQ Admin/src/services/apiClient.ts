@@ -33,6 +33,10 @@ class ApiClient {
       timeoutMs: Number(import.meta.env.VITE_API_TIMEOUT_MS ?? 15000),
       mocksEnabled,
     };
+
+    // Inicializa token do env — evita chamada manual de setToken() em cada página
+    const secret = import.meta.env.VITE_ADMIN_API_SECRET ?? "";
+    if (secret) this.authToken = secret;
   }
 
   public setEnvironment(env: AppEnvironment) {
