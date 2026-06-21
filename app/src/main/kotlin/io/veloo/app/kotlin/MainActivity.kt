@@ -10,6 +10,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -19,6 +21,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import io.veloo.app.core.network.EstadoConexao
+import io.veloo.app.feature.devices.DevicesViewModel
+import io.veloo.app.feature.diagnostico.DiagnosticoViewModel
+import io.veloo.app.feature.speedtest.SpeedtestViewModel
 import io.veloo.app.ui.SignallQTheme
 import io.veloo.app.ui.screen.AppShell
 import io.veloo.app.ui.screen.OnboardingScreen
@@ -28,6 +33,13 @@ import io.veloo.app.ui.viewmodel.ChatDiagnosticoIaViewModel
 class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
     private val chatDiagViewModel: ChatDiagnosticoIaViewModel by viewModels()
+
+    // ViewModels por feature — extraidos do MainViewModel (Passo 6 do plano de migracao).
+    // Fase atual: instanciados e conectados; o MainViewModel ainda contem logica legada
+    // para compatibilidade de build. Cleanup do MainViewModel em PR subsequente.
+    private val devicesViewModel: DevicesViewModel by viewModels()
+    private val speedtestViewModel: SpeedtestViewModel by viewModels()
+    private val diagnosticoViewModel: DiagnosticoViewModel by viewModels()
 
     private val solicitacaoPermissoes =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -68,6 +80,24 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Conecta o SpeedtestViewModel ao MainViewModel: apos cada speedtest, dispara
+        // as rotinas nao-speedtest (scan de dispositivos, diagnostico, etc.).
+        speedtestViewModel.onSpeedtestConcluido = {
+            viewModel.iniciarRotinasNaoSpeedtest()
+        }
+
+        // Assina o SharedFlow de dispositivos novos do DevicesViewModel e exibe notificacao.
+        // A notificacao ocorre no :app (que tem SignallQNotificationHelper) para respeitar
+        // a lei de dependencias: featureDevices nao pode depender de :app.
+        lifecycleScope.launch {
+            devicesViewModel.dispositivosNovos.collect { identificador ->
+                io.veloo.app.notificacao.SignallQNotificationHelper.notificarDispositivoNovo(
+                    this@MainActivity,
+                    identificador,
+                )
+            }
+        }
 
         setContent {
             // --- Snapshots de features (ciclos de vida independentes — NAO combinar) ---
@@ -383,7 +413,9 @@ class MainActivity : ComponentActivity() {
         localizacaoBloqueadaPermanentemente = !temPermissaoLocalizacao &&
             !shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)
         val emWifi = viewModel.monitorRede.snapshotFlow.value.estadoConexao == EstadoConexao.wifi
-        if (emWifi) viewModel.verificarDispositivosNovos(this)
+        // Usa DevicesViewModel para verificar novos dispositivos (etapa A do refactor).
+        // O MainViewModel.verificarDispositivosNovos() ainda existe mas nao e mais chamado aqui.
+        if (emWifi) devicesViewModel.verificarDispositivosNovos()
     }
 
     override fun onStop() {
