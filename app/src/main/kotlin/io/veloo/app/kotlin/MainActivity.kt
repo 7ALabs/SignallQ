@@ -356,6 +356,7 @@ class MainActivity : ComponentActivity() {
                         onChatDiagNovaSessao = chatDiagViewModel::onNovaSessao,
                         onChatDiagToggleDrawer = chatDiagViewModel::onToggleDrawer,
                         onChatDiagCancelarAcaoAtual = chatDiagViewModel::onCancelarAcaoAtual,
+                        aiRepository = viewModel.diagAiRepository,
                     )
                 } // else onboardingConcluido
             }

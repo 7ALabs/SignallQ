@@ -249,6 +249,9 @@ fun AppShell(
     onChatDiagNovaSessao: () -> Unit = {},
     onChatDiagToggleDrawer: () -> Unit = {},
     onChatDiagCancelarAcaoAtual: () -> Unit = {},
+    /** AiDiagnosisRepository injetada pelo Hilt como @Singleton — compartilhada por todos
+     *  os Composables filhos. Evita instancias duplicadas via remember {} em telas. */
+    aiRepository: AiDiagnosisRepository,
 ) {
     val c = LocalLkTokens.current
     // Desempacota UiState<T> → tipos opcionais para as telas filhas que ainda recebem primitivos.
@@ -273,13 +276,8 @@ fun AppShell(
     val llmChatMensagens = remember { mutableStateListOf<ChatMensagem>() }
     var llmIsStreaming by remember { mutableStateOf(false) }
     val llmCoroutineScope = rememberCoroutineScope()
-    val llmAiRepository =
-        remember {
-            AiDiagnosisRepository(
-                baseUrl = "https://linka-ai-diagnosis-worker.giammattey-luiz.workers.dev",
-                isAuthorized = { true },
-            )
-        }
+    // llmAiRepository: alias local para legibilidade — usa a instancia @Singleton injetada.
+    val llmAiRepository = aiRepository
 
     // NAV-D: verifica IA ao entrar na tab Velocidade (índice 1)
     LaunchedEffect(selectedTab) {
@@ -710,6 +708,7 @@ fun AppShell(
                 chatHistorico = diagChatHistorico,
                 chatCarregando = diagChatCarregando,
                 onEnviarChat = onEnviarPerguntaDiagnostico,
+                aiRepository = aiRepository,
             )
         }
 

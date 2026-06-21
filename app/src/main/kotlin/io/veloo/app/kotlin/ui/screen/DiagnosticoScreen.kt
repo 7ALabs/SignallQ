@@ -108,8 +108,6 @@ import io.veloo.app.ui.state.UiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private const val AI_BASE_URL = "https://linka-ai-diagnosis-worker.giammattey-luiz.workers.dev"
-
 enum class DiagnosticoFase { Engines, Ia }
 
 sealed interface DiagnosticoUiData {
@@ -141,6 +139,9 @@ fun DiagnosticoScreen(
     @Suppress("UNUSED_PARAMETER") chatHistorico: List<DiagChatEntry> = emptyList(),
     @Suppress("UNUSED_PARAMETER") chatCarregando: Boolean = false,
     @Suppress("UNUSED_PARAMETER") onEnviarChat: (String) -> Unit = {},
+    /** AiDiagnosisRepository injetada via AppShell — instancia unica do grafo Hilt.
+     *  Nao instancie AiDiagnosisRepository dentro de Composables (regra de negocio fora da UI). */
+    aiRepository: AiDiagnosisRepository,
 ) {
     val c = LocalLkTokens.current
     val scope = rememberCoroutineScope()
@@ -150,11 +151,6 @@ fun DiagnosticoScreen(
     var mostrarMensagemConectando by remember(loadingStartTime) {
         mutableStateOf(false)
     }
-
-    val aiRepository =
-        remember {
-            AiDiagnosisRepository(baseUrl = AI_BASE_URL, isAuthorized = { true })
-        }
 
     LaunchedEffect(aiState) {
         if (aiState is AiDiagnosisState.loading) {
