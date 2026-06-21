@@ -1,0 +1,28 @@
+name = "esquilo-invest-web"
+main = "src/index.ts"
+compatibility_date = "2026-06-21"
+
+# Variáveis públicas (não-sensíveis)
+[vars]
+ALLOWED_ORIGIN = "https://admin.signallq.app"
+FIREBASE_PROJECT_ID = "device-streaming-ef179de4"
+
+# Secrets — configurar via CLI, NUNCA commitar no repo:
+#   npx wrangler secret put ADMIN_SECRET
+#   npx wrangler secret put FIREBASE_CLIENT_EMAIL
+#   npx wrangler secret put FIREBASE_PRIVATE_KEY
+
+# D1 — banco edge para sessões de diagnóstico e logs de custo IA
+# Ativar quando o banco for criado:
+#   npx wrangler d1 create signallq-admin-db
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "signallq-admin-db"
+# database_id = "PREENCHER_APOS_CRIAR"
+
+# KV — cache de métricas agregadas (TTL 5 min)
+# Ativar quando o namespace for criado:
+#   npx wrangler kv namespace create signallq-admin-cache
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "PREENCHER_APOS_CRIAR"

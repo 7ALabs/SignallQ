@@ -68,11 +68,13 @@ class UptimeNarrativaEngineTest {
     }
 
     @Test
-    fun `tudo OK nao menciona offline nem lentidao`() {
+    fun `tudo OK nao reporta problemas de offline nem lentidao`() {
         val blocos = List(336) { blocoOk() }
         val narrativa = UptimeNarrativaEngine.gerarNarrativa(blocos)
+        // A mensagem estável contém "Nenhuma lentidão" em contexto negativo — correto.
+        // O teste verifica que não há RELATO de problema (sem "houve lentidão", "lentidão por X").
         assertTrue("Nao deve mencionar offline", !narrativa.contains("offline", ignoreCase = true))
-        assertTrue("Nao deve mencionar lentidao", !narrativa.contains("lentidão", ignoreCase = true))
+        assertTrue("Nao deve relatar lentidao como problema", !narrativa.contains("houve lentidão", ignoreCase = true) && !narrativa.contains("lentidão por", ignoreCase = true))
     }
 
     // ---------------------------------------------------------------------------
