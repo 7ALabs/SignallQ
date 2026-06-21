@@ -1,0 +1,122 @@
+001122	Cisco Systems
+000000	Xerox
+0001C0	Winnov
+000650	Cisco Systems
+000702	Aselsan
+001B2F	Netgear
+001C10	Cisco-Linksys
+001E8C	ASUS
+002129	Cisco-Linksys
+00226B	Cisco-Linksys
+002369	Cisco-Linksys
+000625	Cisco-Linksys
+001839	Cisco-Linksys
+0002EE	Nokia
+001471	Nokia
+001882	Huawei
+040E3C	Huawei
+009ACD	Huawei
+4C1FCC	Huawei
+48DB50	Huawei
+0026ED	ZTE
+00D0BC	ZTE
+9CD24B	ZTE
+B887D7	ZTE
+6C5940	ZTE
+0002A1	Sagemcom
+5C4979	Sagemcom
+C44202	Sagemcom
+0014A5	Technicolor
+DC5360	Technicolor
+3C36E4	Technicolor
+003048	Mitrastar
+0017FA	Intelbras
+844BF5	Intelbras
+44D437	Intelbras
+50C7BF	TP-Link
+AC84C6	TP-Link
+30DE4B	TP-Link
+F4F26D	TP-Link
+A0F3C1	TP-Link
+B0BE76	TP-Link
+90F652	TP-Link
+D80D17	TP-Link
+1C3BF3	TP-Link
+54A74E	TP-Link
+2002AF	TP-Link
+E8DE27	TP-Link
+00146C	Netgear
+20E52A	Netgear
+841B5E	Netgear
+C43DC7	Netgear
+A021B7	Netgear
+A42B8C	Netgear
+001A92	ASUS
+10BF48	ASUS
+2CFDA1	ASUS
+382C4A	ASUS
+50465D	ASUS
+9C5C8E	ASUS
+AC9E17	ASUS
+001B63	ASUS
+00179A	D-Link
+001CF0	D-Link
+1C7EE5	D-Link
+6C7220	D-Link
+28107B	D-Link
+9094E4	D-Link
+78542E	D-Link
+000B86	Aruba Networks
+001A1E	Aruba Networks
+00246C	Aruba Networks
+002761	Aruba Networks
+00AB13	Aruba Networks
+001392	Ruckus Wireless
+543D37	Ruckus Wireless
+000C42	Mikrotik
+2CC81B	Mikrotik
+4C5E0C	Mikrotik
+6C3B6B	Mikrotik
+744D28	Mikrotik
+B869F4	Mikrotik
+CC2DE0	Mikrotik
+D4CA6D	Mikrotik
+DC2C6E	Mikrotik
+00156D	Ubiquiti
+002722	Ubiquiti
+0418D6	Ubiquiti
+24A43C	Ubiquiti
+44D9E7	Ubiquiti
+687251	Ubiquiti
+788A20	Ubiquiti
+802AA8	Ubiquiti
+DC9FDB	Ubiquiti
+E063DA	Ubiquiti
+F09FC2	Ubiquiti
+546009	Google
+F4F5D8	Google
+48C1AC	Google Nest
+20DFB9	Google
+647C34	Amazon (Eero)
+70E184	Amazon (Eero)
+00FC8B	Amazon (Eero)
+000393	Apple
+001124	Apple
+0017F2	Apple
+0025BC	Apple
+0026BB	Apple
+286C07	Xiaomi
+508F4C	Xiaomi
+7811DC	Xiaomi
+ACC1EE	Xiaomi
+588498	Xiaomi
+00090F	Fortinet
+00900B	Fortinet
+0010DB	Juniper Networks
+00121E	Juniper Networks
+000DB6	Dasan Networks
+000147	Calix
+002673	Fiberhome
+F48E38	Nokia
+3C3786	Nokia
+0024E8	Nokia

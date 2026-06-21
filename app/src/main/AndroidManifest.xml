@@ -15,6 +15,7 @@
          lazy (so quando o usuario faz diagnostico em rede movel pela primeira
          vez) — ver MainActivity.solicitarPermissaoTelefoniaSeNecessario. -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
     <application
         android:name=".SignallQApplication"
