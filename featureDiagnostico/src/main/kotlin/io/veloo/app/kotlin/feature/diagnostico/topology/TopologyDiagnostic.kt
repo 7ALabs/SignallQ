@@ -15,13 +15,15 @@ import io.veloo.app.feature.diagnostico.topology.model.NetworkTopology
 import io.veloo.app.feature.wifi.RedeVizinha
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import okhttp3.OkHttpClient
 
 class TopologyDiagnostic(
     context: Context,
+    httpClient: OkHttpClient,
     private val networks: List<RedeVizinha> = emptyList()
 ) {
     private val gatewayResolver = GatewayResolver(context)
-    private val upnpDiscovery = UpnpIgdDiscovery(context)
+    private val upnpDiscovery = UpnpIgdDiscovery(context, httpClient)
     private val soapClient = UpnpSoapClient()
     private val ouiLookup = OuiVendorLookup.fromAssets(context)
     private val meshDetector = MeshDetector(ouiLookup)
