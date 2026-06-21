@@ -103,6 +103,10 @@ class MainViewModel
         /** AiDiagnosisRepository injetada pelo Hilt como @Singleton (DiagnosticoModule).
          *  Antes era instanciada manualmente via lazy (segunda instancia alem da do Orchestrator). */
         val diagAiRepository: AiDiagnosisRepository,
+        /** DiagnosticOrchestrator injetado pelo Hilt como @Singleton (DiagnosticoModule).
+         *  Antes era instanciado via lazy: `by lazy { DiagnosticOrchestrator() }`.
+         *  Agora e singleton compartilhado com DiagnosticoViewModel. */
+        _diagnosticOrchestrator: DiagnosticOrchestrator,
     ) : AndroidViewModel(application) {
         private companion object {
             const val LOG_TAG = "SignallQSpeedtestSuite"
@@ -113,7 +117,10 @@ class MainViewModel
 
         @Suppress("unused")
         private val orientadorConfiguracaoDns by lazy { OrientadorConfiguracaoDns() }
-        val diagnosticOrchestrator by lazy { DiagnosticOrchestrator() }
+
+        // DiagnosticOrchestrator injetado via Hilt como @Singleton — compartilhado com DiagnosticoViewModel.
+        // O underscore no construtor e convencao para parametros que viram val publico.
+        val diagnosticOrchestrator: DiagnosticOrchestrator = _diagnosticOrchestrator
         val movelSnapshot: StateFlow<MovelSnapshot?> get() = monitorTelephony.snapshotFlow
 
         // #179 Task C — Dual SIM: lista de SIMs ativos, atualizada sempre que o monitor de

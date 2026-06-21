@@ -44,6 +44,7 @@ dependencies {
     implementation(project(":coreDatabase"))
     implementation(project(":coreDatastore"))
     implementation(project(":coreNetwork"))
+    implementation(libs.timber)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)

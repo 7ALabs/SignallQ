@@ -36,6 +36,7 @@ dependencies {
     implementation(project(":coreNetwork"))
     implementation(project(":coreDatastore"))
     implementation(project(":coreTelephony"))
+    implementation(libs.timber)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
