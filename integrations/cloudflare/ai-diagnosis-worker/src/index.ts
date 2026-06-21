@@ -16,6 +16,10 @@
 type Env = {
   AI: any;
   AI_MODEL?: string;
+  // Ingestão de métricas no painel admin (opcional — sem estas vars o worker
+  // continua funcionando normalmente, apenas não reporta ao D1).
+  ADMIN_WORKER_URL?: string;
+  ADMIN_SECRET?: string;
 };
 
 const MAX_BODY_BYTES = 64_000;
@@ -648,11 +652,79 @@ function createStreamNormalizer(upstream: ReadableStream, passThinking = false):
 }
 
 // =============================================================================
+// Ingestão no painel admin
+// Fire-and-forget via ctx.waitUntil — nunca bloqueia nem quebra o diagnóstico.
+// =============================================================================
+
+function generateId(): string {
+  return `diag_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+}
+
+async function ingestToPainel(
+  env: Env,
+  sessionId: string,
+  payload: Record<string, unknown>,
+  parsed: Record<string, unknown>,
+  model: string,
+): Promise<void> {
+  if (!env.ADMIN_WORKER_URL || !env.ADMIN_SECRET) return;
+
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${env.ADMIN_SECRET}`,
+  };
+  const baseUrl = env.ADMIN_WORKER_URL.replace(/\/$/, "");
+  const now = Math.floor(Date.now() / 1000);
+
+  // Extrair métricas do payload (campos que o app Android envia)
+  const metricas = (payload.metricasAtuais ?? {}) as Record<string, unknown>;
+  const networkType = (payload.connectionType as string | undefined)
+    ?? (payload.tipoConexao as string | undefined)
+    ?? "unknown";
+  const status  = (parsed.status  as string | undefined) ?? "unknown";
+  const titulo  = (parsed.titulo  as string | undefined) ?? "";
+  const issues: string[] = titulo ? [titulo] : [];
+
+  const scoreRaw = (parsed.pontuacao ?? parsed.score) as number | undefined;
+  const score    = typeof scoreRaw === "number" ? Math.round(scoreRaw) : null;
+
+  await Promise.allSettled([
+    fetch(`${baseUrl}/ingest/diagnostic`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        id: sessionId,
+        created_at: now,
+        network_type: networkType,
+        status,
+        score,
+        download_mbps:  (metricas.downloadMbps  ?? metricas.download)  as number | null,
+        upload_mbps:    (metricas.uploadMbps    ?? metricas.upload)    as number | null,
+        latency_ms:     (metricas.latenciaMs    ?? metricas.latency)   as number | null,
+        jitter_ms:      (metricas.jitterMs      ?? metricas.jitter)    as number | null,
+        packet_loss:    (metricas.perdaPacotes  ?? metricas.packetLoss) as number | null,
+        issues,
+      }),
+    }),
+    fetch(`${baseUrl}/ingest/ai-usage`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        id: `${sessionId}_ai`,
+        session_id: sessionId,
+        created_at: now,
+        model,
+      }),
+    }),
+  ]);
+}
+
+// =============================================================================
 // Handler
 // =============================================================================
 
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     try {
       const url = new URL(req.url);
       if (url.pathname !== "/api/ai/diagnostico-conexao") return errorResponse("not_found", 404);
@@ -660,6 +732,8 @@ export default {
 
       const payload = await readJsonLimited(req);
       if (payload == null) return errorResponse("payload_invalid", 400);
+
+      const sessionId = generateId();
 
       const model = env.AI_MODEL ?? DEFAULT_MODEL;
       const modelInfo = getCommercialModelInfo(model);
@@ -763,6 +837,11 @@ export default {
       parsed.source = "cloudflare_ai";
       parsed.generatedAt = Date.now();
       parsed.modeloIa = modelInfo;
+
+      // Ingerir métricas no painel admin de forma assíncrona, sem bloquear resposta.
+      ctx.waitUntil(
+        ingestToPainel(env, sessionId, payload as Record<string, unknown>, parsed, model)
+      );
 
       return jsonResponse(parsed);
     } catch (err: unknown) {

@@ -10,6 +10,10 @@ compatibility_date = "2026-05-09"
 # padrao, nem como fallback cloud. Em caso de falha do modelo, o cliente
 # Kotlin usa o fallback local (sem IA externa).
 AI_MODEL = "@cf/qwen/qwen3-30b-a3b-fp8"
+ADMIN_WORKER_URL = "https://signallq-admin.giammattey-luiz.workers.dev"
+
+# ADMIN_SECRET — mesma senha do painel admin:
+#   npx wrangler secret put ADMIN_SECRET --name linka-ai-diagnosis-worker
 
 [ai]
 binding = "AI"
