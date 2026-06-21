@@ -67,6 +67,10 @@ Recuperacao rapida, fatos operacionais, inferencia minima.
 - [AI Flow / Otimização — Deep Dive (`technical/OPTIMIZATION_DEEP_DIVE.md`)](./technical/OPTIMIZATION_DEEP_DIVE.md)
 - [Execution Roadmap (`technical/EXECUTION_ROADMAP.md`)](./technical/EXECUTION_ROADMAP.md)
 
+### Migrations
+
+- [Repositório IA como Singleton via Hilt (`migrations/repositorio-ia-hilt-singleton.md`)](./migrations/repositorio-ia-hilt-singleton.md) — unificação de AiDiagnosisRepository, centralização de URL, Hilt Singleton Component
+
 ### Decisions (ADRs)
 
 - [ADR-001 — Timber Logging (`decisions/ADR-001-timber-logging.md`)](./decisions/ADR-001-timber-logging.md)

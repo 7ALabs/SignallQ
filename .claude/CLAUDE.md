@@ -41,14 +41,17 @@ Worker Cloudflare: quando houver mudanças em `integrations/cloudflare/ai-diagno
 
 **Arquitetura**
 - **15 módulos Gradle**: `app` + core(5): `coreNetwork`, `coreDatabase`, `coreDatastore`, `coreTelephony`, `corePermissions` + feature(9): `featureHome`, `featureSpeedtest`, `featureWifi`, `featureDevices`, `featureDns`, `featureFibra`, `featureDiagnostico`, `featureHistory`, `featureSettings`.
-- DI: **Hilt** (`app/.../di/AppModule.kt`). MVVM + Jetpack Compose; ViewModels `MainViewModel` e `ChatDiagnosticoIaViewModel`; estado via `StateFlow`.
+- DI: **Hilt** (`app/.../di/AppModule.kt` + `featureDiagnostico/.../di/DiagnosticoModule.kt`). MVVM + Jetpack Compose; ViewModels por escopo: `AppViewModel`, `DevicesViewModel`, `SpeedtestViewModel`, `DiagnosticoViewModel` (substituem o antigo `MainViewModel` god-object); estado via `StateFlow`.
+- Features são **independentes entre si** — sem dependência cruzada `:feature*` → `:feature*`. `featureDiagnostico` não depende de `featureWifi` nem `featureWifi`.
 - Persistência: **Room** `SignallQDatabase` (v10; entidades Medicao, ApelidoDispositivo, ChatSession, ChatMessage) + **DataStore** `linkaPreferencias` (nome técnico — manter).
-- Navegação: `AppShell.kt` — bottom bar de **5 abas** (índice 0–4): **Início, Velocidade, Sinal, Histórico, Ajustes**. Diagnóstico/IA, Dispositivos, Fibra, Laudo etc. são **overlays** (`overlayStack`), não abas. `navigation/AppNavGraph.kt` tem constantes legadas que NÃO refletem a nav atual.
+- Navegação: `AppShell.kt` — bottom bar de **5 abas** (índice 0–4): **Início, Velocidade, Sinal, Histórico, Ajustes**. Parâmetros agrupados em `@Stable` data classes. Diagnóstico/IA, Dispositivos, Fibra, Laudo etc. são **overlays** (`overlayStack`), não abas. `navigation/AppNavGraph.kt` tem constantes legadas que NÃO refletem a nav atual.
 - Background: WorkManager `MonitoramentoWorker` (30 min, histerese) + `SignallQNotificationHelper`.
+- HTTP UPnP: `OkHttpClient` `@Named("upnpClient")` provido como `@Singleton` via `AppModule`.
 
 **IA de diagnóstico**
-- App → **worker Cloudflare** (`integrations/cloudflare/ai-diagnosis-worker/`), endpoint `linka-ai-diagnosis-worker...workers.dev` (nome do worker = infra, manter).
-- Modelo padrão: **Qwen3 30B MoE FP8** (`@cf/qwen/qwen3-30b-a3b-fp8`). Fallback local sem IA (`AiFallbackFactory`). Persona = "SignallQ". Chat/Pulse via `SignallQOrchestrator`.
+- App → **worker Cloudflare** (`integrations/cloudflare/ai-diagnosis-worker/`), URL via `BuildConfig.AI_WORKER_URL` (não mais hardcoded). Nome do worker = infra, manter.
+- Modelo padrão: **Qwen3 30B MoE FP8** (`@cf/qwen/qwen3-30b-a3b-fp8`). Fallback local sem IA (`AiFallbackFactory`). Persona = "SignallQ". Chat/Pulse via `SignallQOrchestrator` (vive em `featureDiagnostico/pulse/`).
+- `AiDiagnosisRepository`: `@Singleton` provido por `DiagnosticoModule` (não mais instanciado manualmente em múltiplos pontos).
 
 **Testes**
 - ~37 classes de teste unitário (JUnit4 + Robolectric + coroutines-test + room-testing) em `*/src/test/`; 3 `androidTest` de Room/DAO/migração. Sem androidTest de UI. Rodar: `./gradlew test`. Plano em `tests/`.
