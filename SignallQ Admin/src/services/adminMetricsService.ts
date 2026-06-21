@@ -15,8 +15,6 @@ import {
   RecentAlertItem,
   ProviderUsageItem,
   NetworkDistItem,
-  mockNetworkDistribution,
-  mockOverviewMetrics,
 } from "../mocks/overview.mock";
 import { mockOperatorsList } from "../mocks/errors.mock";
 import { OperatorRecord } from "../types/admin";
@@ -27,12 +25,43 @@ export interface DashboardFilters {
 }
 
 export const adminMetricsService = {
-  /**
-   * Fetches overall aggregated dashboard metrics (Active users, diagnostic totals, latencies, cost)
-   */
   async getOverviewMetrics(filters: DashboardFilters = {}): Promise<OverviewMetricsResponse> {
     const period = filters.period || "7d";
-    const environment = filters.environment || "production";
+
+    if (!apiClient.isMockEnabled()) {
+      const apiPeriod = period === "today" ? "1d" : period;
+      const raw = await apiClient.request<{
+        totalDiagnostics: number;
+        activeSessions: number;
+        avgNetworkScore: number;
+        aiCallsToday: number;
+        aiCostToday: number;
+        aiTokensToday: number;
+      }>("GET", `/admin/metrics/overview?period=${apiPeriod}`);
+
+      const score = raw.avgNetworkScore ?? 0;
+      const verdict = score >= 80 ? "Excelente" : score >= 60 ? "Bom" : score >= 40 ? "Regular" : "Fraco";
+      const base = mockOverviewProd7d;
+
+      return {
+        ...base,
+        diagnosticsCount: {
+          ...base.diagnosticsCount,
+          value: raw.totalDiagnostics,
+          trend: { value: raw.activeSessions, changePercentage: 0, type: "neutral" as const, intervalLabel: `${raw.activeSessions} sessões ativas` },
+        },
+        activeUsers: {
+          ...base.activeUsers,
+          value: `${score} · ${verdict}`,
+          trend: { value: score, changePercentage: 0, type: score >= 60 ? "up" as const : "down" as const, intervalLabel: "score de rede" },
+        },
+        aiCost: {
+          ...base.aiCost,
+          value: `$${(raw.aiCostToday ?? 0).toFixed(6)}`,
+          trend: { value: raw.aiCallsToday, changePercentage: 0, type: "neutral" as const, intervalLabel: `${raw.aiCallsToday} chamadas hoje · ${raw.aiTokensToday} tokens` },
+        },
+      };
+    }
 
     let baseMetrics: OverviewMetricsResponse;
     if (period === "today") {
@@ -43,50 +72,10 @@ export const adminMetricsService = {
       baseMetrics = mockOverviewProd7d;
     }
 
-    if (!apiClient.isMockEnabled()) {
-      try {
-        const apiPeriod = period === "today" ? "1d" : period;
-        const raw = await apiClient.request<{
-          totalDiagnostics: number;
-          activeSessions: number;
-          avgNetworkScore: number;
-          aiCallsToday: number;
-          aiCostToday: number;
-          aiTokensToday: number;
-        }>("GET", `/admin/metrics/overview?period=${apiPeriod}`);
-
-        const score = raw.avgNetworkScore ?? 0;
-        const verdict = score >= 80 ? "Excelente" : score >= 60 ? "Bom" : score >= 40 ? "Regular" : "Fraco";
-
-        return {
-          ...baseMetrics,
-          diagnosticsCount: {
-            ...baseMetrics.diagnosticsCount,
-            value: raw.totalDiagnostics,
-            trend: { value: raw.activeSessions, changePercentage: 0, type: "neutral" as const, intervalLabel: `${raw.activeSessions} sessões ativas` },
-          },
-          activeUsers: {
-            ...baseMetrics.activeUsers,
-            value: `${score} · ${verdict}`,
-            trend: { value: score, changePercentage: 0, type: score >= 60 ? "up" as const : "down" as const, intervalLabel: "score de rede" },
-          },
-          aiCost: {
-            ...baseMetrics.aiCost,
-            value: `$${(raw.aiCostToday ?? 0).toFixed(6)}`,
-            trend: { value: raw.aiCallsToday, changePercentage: 0, type: "neutral" as const, intervalLabel: `${raw.aiCallsToday} chamadas hoje · ${raw.aiTokensToday} tokens` },
-          },
-        };
-      } catch (e) {
-        console.warn("[adminMetricsService] real API falhou, usando mock", e);
-      }
-    }
-
-    // Simulate API fetch delay
     const response = await apiClient.simulateFetch(baseMetrics, filters);
+    const environment = filters.environment || "production";
 
-    // Dynamic filtering for environment
     if (environment === "staging") {
-      // Scale down staging numbers
       return {
         diagnosticsCount: {
           label: response.diagnosticsCount.label,
@@ -105,7 +94,7 @@ export const adminMetricsService = {
         },
         aiCost: {
           label: response.aiCost.label,
-          value: typeof response.aiCost.value === "string" 
+          value: typeof response.aiCost.value === "string"
             ? `R$ ${(parseFloat(response.aiCost.value.replace("R$ ", "").replace(",", ".")) * 0.15).toFixed(2).replace(".", ",")}`
             : Number(response.aiCost.value) * 0.15,
           trend: response.aiCost.trend ? { ...response.aiCost.trend, value: 1.2 } : undefined,
@@ -146,15 +135,13 @@ export const adminMetricsService = {
     return response;
   },
 
-  /**
-   * Fetches network connectivity shares (WIFI, Cellular, Fiber, etc.)
-   */
   async getNetworkInsights(filters: DashboardFilters = {}): Promise<NetworkDistItem[]> {
+    if (!apiClient.isMockEnabled()) return [];
+
     const environment = filters.environment || "production";
     const response = await apiClient.simulateFetch(mockNetworkDistributionList, filters);
 
     if (environment === "staging") {
-      // Provide slightly different proportions for testing staging
       return [
         { name: "Wi-Fi", value: 35, color: "#6C2BFF" },
         { name: "Rede móvel", value: 51, color: "#22C55E" },
@@ -165,23 +152,17 @@ export const adminMetricsService = {
     return response;
   },
 
-  /**
-   * Fetches the diagnostics historical timeline points for chart rendering
-   */
   async getDiagnosticsTimeline(filters: DashboardFilters = {}): Promise<any[]> {
+    if (!apiClient.isMockEnabled()) return [];
+
     const period = filters.period || "7d";
     let baseTimeline: any[] = mockTimeline7d;
-
-    if (period === "today") {
-      baseTimeline = mockTimelineToday;
-    } else if (period === "30d") {
-      baseTimeline = mockTimeline30d;
-    }
+    if (period === "today") baseTimeline = mockTimelineToday;
+    else if (period === "30d") baseTimeline = mockTimeline30d;
 
     const response = await apiClient.simulateFetch(baseTimeline, filters);
 
     if (filters.environment === "staging") {
-      // Scale down numerical counts for staging timeline
       return response.map((item) => ({
         ...item,
         completedDiagnostics: Math.round(item.completedDiagnostics * 0.15),
@@ -193,14 +174,12 @@ export const adminMetricsService = {
     return response;
   },
 
-  /**
-   * Fetches the list of most common network problems
-   */
   async getTopIssues(filters: DashboardFilters = {}): Promise<TopIssueItem[]> {
+    if (!apiClient.isMockEnabled()) return [];
+
     const response = await apiClient.simulateFetch(mockTopIssuesList, filters);
 
     if (filters.environment === "staging") {
-      // Sort or scale differently in staging
       return [
         { id: "issue_3", problem: "DNS lento", count: 48, percentage: 34 },
         { id: "issue_1", problem: "Wi-Fi fraco", count: 42, percentage: 30 },
@@ -213,14 +192,12 @@ export const adminMetricsService = {
     return response;
   },
 
-  /**
-   * Fetches recent active critical/warn log alerts
-   */
   async getRecentAlerts(filters: DashboardFilters = {}): Promise<RecentAlertItem[]> {
+    if (!apiClient.isMockEnabled()) return [];
+
     const response = await apiClient.simulateFetch(mockRecentAlertsList, filters);
 
     if (filters.environment === "staging") {
-      // In staging we might have fewer or different alert counts
       return response.map((alert) => ({
         ...alert,
         count: Math.max(2, Math.round(alert.count * 0.3)),
@@ -230,14 +207,12 @@ export const adminMetricsService = {
     return response;
   },
 
-  /**
-   * Fetches AI provider allocation shares and context totals
-   */
   async getAiProviderUsage(filters: DashboardFilters = {}): Promise<ProviderUsageItem[]> {
+    if (!apiClient.isMockEnabled()) return [];
+
     const response = await apiClient.simulateFetch(mockAiProviderUsageList, filters);
 
     if (filters.environment === "staging") {
-      // Different distribution of LLM calls in staging testing
       return [
         { name: "Gemini Flash", percentage: 70, tokensProcessed: 245000, color: "#6C2BFF" },
         { name: "Cloudflare Qwen", percentage: 25, tokensProcessed: 87500, color: "#38BDF8" },
@@ -248,24 +223,16 @@ export const adminMetricsService = {
     return response;
   },
 
-  /**
-   * Fetches raw physical performance metrics comparing network interfaces (latencies, channel interference, physical attenuation)
-   */
   async getNetworkSpecs(filters: DashboardFilters = {}): Promise<{
-    summaryStats: {
-      wifiCount: number;
-      cellCount: number;
-      attenuationRate: number;
-    };
-    physicalAverages: Array<{
-      medium: string;
-      averageLatency: number;
-      packetLoss: number;
-      interference: number;
-    }>;
+    summaryStats: { wifiCount: number; cellCount: number; attenuationRate: number };
+    physicalAverages: Array<{ medium: string; averageLatency: number; packetLoss: number; interference: number }>;
   }> {
+    if (!apiClient.isMockEnabled()) {
+      return { summaryStats: { wifiCount: 0, cellCount: 0, attenuationRate: 0 }, physicalAverages: [] };
+    }
+
     const isStg = filters.environment === "staging";
-    
+
     const summaryStats = {
       wifiCount: isStg ? 650 : 8120,
       cellCount: isStg ? 45 : 384,
@@ -284,10 +251,9 @@ export const adminMetricsService = {
     return apiClient.simulateFetch({ summaryStats, physicalAverages }, filters);
   },
 
-  /**
-   * Fetches latency and throughput averages from telecom carrier groups
-   */
   async getOperatorMetrics(filters: DashboardFilters = {}): Promise<OperatorRecord[]> {
+    if (!apiClient.isMockEnabled()) return [];
+
     const list = await apiClient.simulateFetch(mockOperatorsList, filters);
 
     if (filters.environment) {

@@ -17,6 +17,13 @@ const readBooleanEnv = (value: string | boolean | undefined, fallback: boolean):
   return fallback;
 };
 
+export class ApiError extends Error {
+  constructor(public readonly code: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 class ApiClient {
   private config: ApiClientConfig;
   private authToken: string | null = null;
@@ -103,10 +110,13 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        throw new Error(`Admin API ${method} ${path} falhou com HTTP ${response.status}`);
+        throw new ApiError(response.status, `HTTP ${response.status}`);
       }
 
       return (await response.json()) as T;
+    } catch (e) {
+      if (e instanceof ApiError) throw e;
+      throw new ApiError(0, "Sem conexão com o servidor");
     } finally {
       window.clearTimeout(timeoutId);
     }

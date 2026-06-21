@@ -26,6 +26,7 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
   triggerRefreshCounter,
 }) => {
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [modelInsights, setModelInsights] = React.useState<AiModelInsights[]>([]);
   const [timelineData, setTimelineData] = React.useState<any[]>([]);
@@ -34,6 +35,7 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
 
   const loadAiStats = React.useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const filters = { environment, period };
       const [insights, dailyCosts, logs, featureAiRes] = await Promise.all([
@@ -78,8 +80,10 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
         }
       ];
       setFeatureAiUsageList(enrichedList);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Failed to sync AI usage insights", e);
+      const code = e?.code;
+      setError(code > 0 ? `Erro: ${code}` : "Sem conexão com o servidor");
     } finally {
       setLoading(false);
     }
@@ -167,6 +171,30 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
 
   if (loading) {
     return <LoadingState message="Recuperando telemetria de tokens, faturas e laudos..." />;
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 border border-red-500/20 bg-[#FF4D4F]/5 rounded-2xl">
+        <h4 className="text-sm font-semibold text-[#FF4D4F] uppercase tracking-wider font-mono">Erro de Telemetria</h4>
+        <p className="text-xs text-neutral-400 mt-2 font-sans">{error}</p>
+        <button
+          onClick={() => { setError(null); loadAiStats(); }}
+          className="mt-4 px-4 py-2 text-xs bg-[#FF4D4F]/10 border border-[#FF4D4F]/20 text-[#FF4D4F] hover:bg-[#FF4D4F]/20 transition-all rounded-xl font-mono"
+        >
+          TENTAR NOVAMENTE
+        </button>
+      </div>
+    );
+  }
+
+  if (modelInsights.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 border border-[#262626] bg-[#111111] rounded-2xl">
+        <h4 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-widest font-mono">Sem dados</h4>
+        <p className="text-xs text-[#9CA3AF] mt-2 font-sans">Nenhuma inferência de IA registrada neste período.</p>
+      </div>
+    );
   }
 
   return (

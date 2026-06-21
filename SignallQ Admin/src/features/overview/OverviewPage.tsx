@@ -76,7 +76,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       } catch (err: any) {
         console.error("Failed to load overview telemetry dashboard:", err);
         if (active) {
-          setError(err?.message || "Ocorreu um erro ao carregar os dados de telemetria");
+          const code = err?.code;
+          setError(code > 0 ? `Erro: ${code}` : "Sem conexão com o servidor");
         }
       } finally {
         if (active) {
@@ -115,7 +116,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
     );
   }
 
-  if (!metrics || timelineData.length === 0) {
+  if (!metrics) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 border border-[#262626] bg-[#111111] rounded-2xl">
         <h4 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-widest font-mono">Nenhum Registro Encontrado</h4>

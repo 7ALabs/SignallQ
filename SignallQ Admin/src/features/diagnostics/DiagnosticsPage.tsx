@@ -35,6 +35,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
   const [selectedAiProvider, setSelectedAiProvider] = React.useState("all");
 
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [sessions, setSessions] = React.useState<DiagnosticSession[]>([]);
   const [selectedSession, setSelectedSession] = React.useState<DiagnosticSession | null>(null);
@@ -54,6 +55,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
 
   const loadSessionsData = React.useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const [sessionsData, summaryResponse] = await Promise.all([
         diagnosticsService.getDiagnosticSessions({
@@ -112,8 +114,10 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
       } else {
         setSelectedSession(null);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch diagnostics sessions:", err);
+      const code = err?.code;
+      setError(code > 0 ? `Erro: ${code}` : "Sem conexão com o servidor");
     } finally {
       setLoading(false);
     }
@@ -255,6 +259,22 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
       {/* 5. Tabela de Sessões de Diagnósticos Recentes (Filtros Avançados) */}
       {loading ? (
         <LoadingState message="Acompanhando logs de conectividade do app Android..." />
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 border border-red-500/20 bg-[#FF4D4F]/5 rounded-2xl">
+          <h4 className="text-sm font-semibold text-[#FF4D4F] uppercase tracking-wider font-mono">Erro de Telemetria</h4>
+          <p className="text-xs text-neutral-400 mt-2 font-sans">{error}</p>
+          <button
+            onClick={() => { setError(null); loadSessionsData(); }}
+            className="mt-4 px-4 py-2 text-xs bg-[#FF4D4F]/10 border border-[#FF4D4F]/20 text-[#FF4D4F] hover:bg-[#FF4D4F]/20 transition-all rounded-xl font-mono"
+          >
+            TENTAR NOVAMENTE
+          </button>
+        </div>
+      ) : sessions.length === 0 ? (
+        <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 border border-[#262626] bg-[#111111] rounded-2xl">
+          <h4 className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-widest font-mono">Sem dados</h4>
+          <p className="text-xs text-[#9CA3AF] mt-2 font-sans">Nenhuma sessão de diagnóstico encontrada neste período.</p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
           {/* Esquerda: Lista de testes físicos */}

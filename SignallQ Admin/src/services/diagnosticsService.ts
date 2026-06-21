@@ -4,10 +4,32 @@ import { DiagnosticSession, DiagnosticsSummary, AggregateRow } from "../types/di
 import { DashboardFilters } from "./adminMetricsService";
 
 export const diagnosticsService = {
-  /**
-   * Evaluates aggregate diagnostics counters (Total, high severity issues, speed averages, issues map)
-   */
   async getDiagnosticsSummary(filters: DashboardFilters = {}): Promise<DiagnosticsSummary> {
+    if (!apiClient.isMockEnabled()) {
+      const period = filters.period === "today" ? "1d" : (filters.period ?? "7d");
+      const raw = await apiClient.request<{
+        totalDiagnostics: number;
+        activeSessions: number;
+        avgNetworkScore: number;
+        aiCallsToday: number;
+        aiCostToday: number;
+        aiTokensToday: number;
+      }>("GET", `/admin/metrics/overview?period=${period}`);
+
+      return {
+        totalTests: raw.totalDiagnostics ?? 0,
+        criticalIssuesCount: 0,
+        attentionIssuesCount: raw.activeSessions ?? 0,
+        averageScore: raw.avgNetworkScore ?? 0,
+        averageDownloadMbps: 0,
+        averageUploadMbps: 0,
+        averageLatencyMs: 0,
+        averageJitterMs: 0,
+        averagePacketLossPercentage: 0,
+        issueDistribution: {},
+      };
+    }
+
     const summary = await apiClient.simulateFetch(mockDiagnosticsSummary, filters);
 
     if (filters.environment === "staging") {
@@ -36,65 +58,54 @@ export const diagnosticsService = {
     return summary;
   },
 
-  /**
-   * Retrieves paginated or filtered diagnostic histories
-   */
   async getDiagnosticSessions(filters: DashboardFilters & { search?: string } = {}): Promise<DiagnosticSession[]> {
     if (!apiClient.isMockEnabled()) {
-      try {
-        const period = filters.period === "today" ? "1d" : (filters.period ?? "7d");
-        const raw = await apiClient.request<{ sessions: any[] }>(
-          "GET",
-          `/admin/metrics/diagnostics?period=${period}&limit=100`
-        );
-        const mapped: DiagnosticSession[] = (raw.sessions ?? []).map((r: any) => ({
-          id: r.id,
-          timestamp: new Date(r.created_at * 1000).toISOString(),
-          environment: "production" as const,
-          networkType: r.network_type ?? "unknown",
-          deviceModel: "Android",
-          status: r.status ?? "unknown",
-          score: r.score ?? 0,
-          resolved: !!r.resolved,
-          speed: {
-            downloadMbps: r.download_mbps ?? 0,
-            uploadMbps: r.upload_mbps ?? 0,
-            latencyMs: r.latency_ms ?? 0,
-            jitterMs: r.jitter_ms ?? 0,
-            packetLossPercentage: r.packet_loss ?? 0,
-            bufferbloatGrade: r.score >= 80 ? "A" : r.score >= 60 ? "B" : r.score >= 40 ? "C" : "D",
-          },
-          issues: Array.isArray(r.issues) ? r.issues : [],
-          networkStrength: undefined,
-        }));
+      const period = filters.period === "today" ? "1d" : (filters.period ?? "7d");
+      const raw = await apiClient.request<{ sessions: any[] }>(
+        "GET",
+        `/admin/metrics/diagnostics?period=${period}&limit=100`
+      );
+      const mapped: DiagnosticSession[] = (raw.sessions ?? []).map((r: any) => ({
+        id: r.id,
+        timestamp: new Date(r.created_at * 1000).toISOString(),
+        environment: "production" as const,
+        networkType: r.network_type ?? "unknown",
+        deviceModel: "Android",
+        status: r.status ?? "unknown",
+        score: r.score ?? 0,
+        resolved: !!r.resolved,
+        speed: {
+          downloadMbps: r.download_mbps ?? 0,
+          uploadMbps: r.upload_mbps ?? 0,
+          latencyMs: r.latency_ms ?? 0,
+          jitterMs: r.jitter_ms ?? 0,
+          packetLossPercentage: r.packet_loss ?? 0,
+          bufferbloatGrade: r.score >= 80 ? "A" : r.score >= 60 ? "B" : r.score >= 40 ? "C" : "D",
+        },
+        issues: Array.isArray(r.issues) ? r.issues : [],
+        networkStrength: undefined,
+      }));
 
-        let filtered = mapped;
-        if (filters.search) {
-          const q = filters.search.toLowerCase();
-          filtered = filtered.filter(s =>
-            s.id.toLowerCase().includes(q) ||
-            s.networkType.toLowerCase().includes(q)
-          );
-        }
-        return filtered;
-      } catch (e) {
-        console.warn("[diagnosticsService] real API falhou, usando mock", e);
+      if (filters.search) {
+        const q = filters.search.toLowerCase();
+        return mapped.filter(s =>
+          s.id.toLowerCase().includes(q) ||
+          s.networkType.toLowerCase().includes(q)
+        );
       }
+      return mapped;
     }
 
     const sessions = await apiClient.simulateFetch(mockDiagnosticSessions, filters);
-
     let filtered = sessions;
 
-    // Filter by environment (which is a core property inside each diagnostic log session)
     if (filters.environment) {
       filtered = filtered.filter(s => s.environment === filters.environment);
     }
 
-    // Filter by query search
     if (filters.search) {
       const q = filters.search.toLowerCase();
-      filtered = filtered.filter(s => 
+      filtered = filtered.filter(s =>
         s.id.toLowerCase().includes(q) ||
         s.deviceModel.toLowerCase().includes(q) ||
         s.networkType.toLowerCase().includes(q) ||
@@ -107,10 +118,9 @@ export const diagnosticsService = {
     return filtered;
   },
 
-  /**
-   * Retrieves fine-grained telemetry summaries segmented by connection interfaces
-   */
   async getAggregateDiagnostics(filters: DashboardFilters = {}): Promise<AggregateRow[]> {
+    if (!apiClient.isMockEnabled()) return [];
+
     const data = await apiClient.simulateFetch(mockAggregateData, filters);
     if (filters.environment === "staging") {
       return data.map(row => ({
@@ -121,9 +131,6 @@ export const diagnosticsService = {
     return data;
   },
 
-  /**
-   * Simulates calling live Cloudflare Worker or backend router to solve a technical issue
-   */
   async triggerReDiagnosis(sessionId: string): Promise<{ success: boolean; message: string; data?: any }> {
     console.log(`[ApiClient Dispatch] Triggering remote diagnosis verification for id: ${sessionId}`);
     await apiClient.request("POST", `/diagnosis/explain`, { sessionId });
