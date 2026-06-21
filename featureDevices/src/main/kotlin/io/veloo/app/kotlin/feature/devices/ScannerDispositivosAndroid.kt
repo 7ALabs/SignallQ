@@ -17,7 +17,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -132,83 +135,122 @@ class ScannerDispositivosAndroid(
                 }
                 publicar(dispositivos.values.toList(), 10)
 
-                if (profundo) {
-                    // 1. Descoberta de hosts via SubnetDevices (ping nativo — funciona sem root)
-                    val hostsDescobertos = descobrirViaSubnetDevices()
-                    Log.d("SignallQDevices", "subnetDevices: ${hostsDescobertos.size} hosts")
-                    hostsDescobertos.forEach { adicionarDispositivo(dispositivos, it) }
-                    publicar(dispositivos.values.toList(), 40)
+                // Mutex protege adicionarDispositivo + publicar — acessados por múltiplas coroutines
+                val mapMutex = Mutex()
 
-                    // 2. ARP legado — complementa para redes que ainda preenchem /proc/net/arp
-                    val arp = coletarViaArpLegado()
-                    Log.d("SignallQDevices", "arp: ${arp.size} dispositivos")
-                    arp.forEach { adicionarDispositivo(dispositivos, it) }
-                    publicar(dispositivos.values.toList(), 50)
-
-                    // 3. mDNS via jmDNS — nomes Bonjour/Avahi com TXT records (coleta concorrente)
-                    val mdns = coletarViaMdnsJmDns()
-                    Log.d("SignallQDevices", "mdns(jmDNS): ${mdns.size} dispositivos")
-                    mdns.forEach { adicionarDispositivo(dispositivos, it) }
-                    publicar(dispositivos.values.toList(), 65)
-
-                    // 4. SSDP/UPnP com fetch de XML de descrição
-                    val ssdp = coletarViaSsdp()
-                    Log.d("SignallQDevices", "ssdp: ${ssdp.size} dispositivos")
-                    ssdp.forEach { adicionarDispositivo(dispositivos, it) }
-                    publicar(dispositivos.values.toList(), 78)
-
-                    // 5. TCP probe — hosts que bloqueiam ICMP mas têm portas abertas
-                    val tcpProbe = coletarViaTcpProbe(gatewayIp, localIp)
-                    Log.d("SignallQDevices", "tcpProbe: ${tcpProbe.size} dispositivos")
-                    tcpProbe.forEach { adicionarDispositivo(dispositivos, it) }
-                    publicar(dispositivos.values.toList(), 90)
-                } else {
-                    // Scan leve: SubnetDevices + ARP legado
-                    val hostsDescobertos = descobrirViaSubnetDevices()
-                    hostsDescobertos.forEach { adicionarDispositivo(dispositivos, it) }
-                    val arp = coletarViaArpLegado()
-                    arp.forEach { adicionarDispositivo(dispositivos, it) }
-                    publicar(dispositivos.values.toList(), 65)
+                /**
+                 * Merge thread-safe: adiciona lista de dispositivos ao mapa compartilhado e publica
+                 * o snapshot parcial imediatamente. Chamado de dentro de cada fase concorrente.
+                 */
+                suspend fun mergeEPublicar(lista: List<DispositivoRede>, progresso: Int, tag: String) {
+                    mapMutex.withLock {
+                        lista.forEach { adicionarDispositivo(dispositivos, it) }
+                        Log.d("SignallQDevices", "$tag: ${lista.size} dispositivos — total ${dispositivos.size}")
+                        publicar(dispositivos.values.toList(), progresso)
+                    }
                 }
 
-                // 6. Enriquecimento: MAC via ARPInfo, OUI lookup, classificação, hostname reverso
+                if (profundo) {
+                    // Fases independentes disparadas em paralelo via coroutineScope.
+                    // Cada fase, ao completar, faz merge+publish sob lock — resultado progressivo.
+                    // Tempo total ≈ max(duração das fases) ≈ 5–8s (antes: soma ~20–40s).
+                    coroutineScope {
+                        // Fase 1 — SubnetDevices (ping nativo): ~2–4s
+                        launch {
+                            val hosts = descobrirViaSubnetDevices()
+                            mergeEPublicar(hosts, 40, "subnetDevices")
+                        }
+
+                        // Fase 2 — ARP legado (/proc/net/arp): barato, instantâneo
+                        launch {
+                            val arp = coletarViaArpLegado()
+                            mergeEPublicar(arp, 45, "arp")
+                        }
+
+                        // Fase 3 — mDNS via jmDNS: janela fixa ~4,5s
+                        launch {
+                            val mdns = coletarViaMdnsJmDns()
+                            mergeEPublicar(mdns, 65, "mdnsJmDns")
+                        }
+
+                        // Fase 4 — SSDP/UPnP + fetch XML: ~1–2s
+                        launch {
+                            val ssdp = coletarViaSsdp()
+                            mergeEPublicar(ssdp, 75, "ssdp")
+                        }
+
+                        // Fase 5 — TCP probe (hosts que bloqueiam ICMP): ~3–5s, Semaphore(50) interno
+                        launch {
+                            val tcp = coletarViaTcpProbe(gatewayIp, localIp)
+                            mergeEPublicar(tcp, 85, "tcpProbe")
+                        }
+                    }
+                    // coroutineScope só retorna quando TODAS as fases terminarem.
+                    // A esse ponto, o mapa já contém o resultado consolidado de todas as fontes.
+                } else {
+                    // Scan leve: SubnetDevices + ARP em paralelo
+                    coroutineScope {
+                        launch {
+                            val hosts = descobrirViaSubnetDevices()
+                            mergeEPublicar(hosts, 50, "subnetDevices")
+                        }
+                        launch {
+                            val arp = coletarViaArpLegado()
+                            mergeEPublicar(arp, 55, "arp")
+                        }
+                    }
+                    mapMutex.withLock { publicar(dispositivos.values.toList(), 65) }
+                }
+
+                // Enriquecimento final: MAC via ARPInfo, OUI lookup, classificação, hostname reverso.
+                // Reverse DNS é lento — roda em paralelo limitado por Semaphore(20),
+                // somente para hosts ainda com nome genérico.
                 val genericosParaResolver = setOf(
                     "Dispositivo não identificado", "Host ativo",
                     "Serviço mDNS", "Dispositivo SSDP",
                 )
-                val dispositivosEnriquecidos = dispositivos.values.map { d ->
-                    val macResolvido: String? = if (d.mac != null) {
-                        d.mac
-                    } else {
-                        val ip = d.ip
-                        if (ip != null) {
-                            try {
-                                val mac: String? = ARPInfo.getMACFromIPAddress(ip)
-                                if (!mac.isNullOrBlank() && mac != "00:00:00:00:00:00") mac else null
-                            } catch (_: Throwable) { null }
-                        } else null
-                    }
-                    // Prioridade de fabricante: manufacturer UPnP(XML) > fabricante mDNS TXT > OUI(MAC)
-                    val fabricanteOui = OuiDatabase.lookupFabricante(macResolvido)
-                    val fabricanteResolvido = d.fabricante ?: fabricanteOui
-                    val tipo = ClassificadorDispositivoRede.classificar(d, fabricanteResolvido)
-                    val hostname = if (d.ip != null && d.fonteNome != "gateway") resolverHostname(d.ip) else null
-                    // Prioridade de nome: fonteNome com alta prioridade já vem enriquecido (ssdpXml/mdnsJmDns)
-                    // Só cai para hostname/fabricante se ainda é genérico
-                    val nomeResolvido = when {
-                        d.fonteNome == "gateway" -> d.nomeExibicao
-                        d.nomeExibicao !in genericosParaResolver -> d.nomeExibicao
-                        hostname != null -> hostname
-                        fabricanteResolvido != null -> fabricanteResolvido
-                        else -> d.ip ?: d.nomeExibicao
-                    }
-                    d.copy(
-                        mac = macResolvido,
-                        fabricante = fabricanteResolvido,
-                        tipoDispositivo = tipo,
-                        nomeExibicao = nomeResolvido,
-                        esteDispositivo = localIp != null && d.ip == localIp,
-                    )
+                val semReverseDns = Semaphore(20)
+                val dispositivosEnriquecidos = coroutineScope {
+                    dispositivos.values.map { d ->
+                        async {
+                            val macResolvido: String? = if (d.mac != null) {
+                                d.mac
+                            } else {
+                                val ip = d.ip
+                                if (ip != null) {
+                                    try {
+                                        val mac: String? = ARPInfo.getMACFromIPAddress(ip)
+                                        if (!mac.isNullOrBlank() && mac != "00:00:00:00:00:00") mac else null
+                                    } catch (_: Throwable) { null }
+                                } else null
+                            }
+                            // Prioridade de fabricante: manufacturer UPnP(XML) > fabricante mDNS TXT > OUI(MAC)
+                            val fabricanteOui = OuiDatabase.lookupFabricante(macResolvido)
+                            val fabricanteResolvido = d.fabricante ?: fabricanteOui
+                            val tipo = ClassificadorDispositivoRede.classificar(d, fabricanteResolvido)
+                            // Reverse DNS: só para genéricos, concorrência limitada a 20
+                            val hostname = if (d.ip != null && d.fonteNome != "gateway" && d.nomeExibicao in genericosParaResolver) {
+                                semReverseDns.acquire()
+                                try { resolverHostname(d.ip) } finally { semReverseDns.release() }
+                            } else null
+                            // Prioridade de nome: fonteNome com alta prioridade já vem enriquecido (ssdpXml/mdnsJmDns)
+                            // Só cai para hostname/fabricante se ainda é genérico
+                            val nomeResolvido = when {
+                                d.fonteNome == "gateway" -> d.nomeExibicao
+                                d.nomeExibicao !in genericosParaResolver -> d.nomeExibicao
+                                hostname != null -> hostname
+                                fabricanteResolvido != null -> fabricanteResolvido
+                                else -> d.ip ?: d.nomeExibicao
+                            }
+                            d.copy(
+                                mac = macResolvido,
+                                fabricante = fabricanteResolvido,
+                                tipoDispositivo = tipo,
+                                nomeExibicao = nomeResolvido,
+                                esteDispositivo = localIp != null && d.ip == localIp,
+                            )
+                        }
+                    }.awaitAll()
                 }
                 Log.d("SignallQDevices", "scan concluido: ${dispositivosEnriquecidos.size} dispositivos")
                 mutableSnapshotFlow.value =

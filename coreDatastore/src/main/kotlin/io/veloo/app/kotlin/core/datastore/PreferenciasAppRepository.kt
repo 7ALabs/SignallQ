@@ -12,6 +12,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
@@ -65,6 +66,13 @@ class PreferenciasAppRepository(
     private val chaveNotificacaoDnsAtiva = booleanPreferencesKey("notificacao_dns_ativa")
     private val chaveNotificacaoRssiAtiva = booleanPreferencesKey("notificacao_rssi_ativa")
     private val chaveNotificacaoSemInternetAtiva = booleanPreferencesKey("notificacao_sem_internet_ativa")
+
+    /**
+     * Conjunto de identidades de dispositivos já vistos na rede, serializado como String CSV.
+     * Usado para detectar dispositivos novos sem MAC (fallback ip+nome) sem poluir a tabela Room.
+     * Formato de cada entrada: "mac:<MAC>" ou "ipnome:<IP>:<nomeNormalizado>".
+     */
+    private val chaveDispositivosConhecidos = stringPreferencesKey("dispositivos_conhecidos_set")
 
     val monitoramentoAtivoFlow: Flow<Boolean> =
         context.dataStore.data.map { it[chaveMonitoramentoAtivo] ?: false }
@@ -158,6 +166,20 @@ class PreferenciasAppRepository(
 
     val alertaSemInternetAtivoFlow: Flow<Boolean> =
         context.dataStore.data.map { it[chaveAlertaSemInternetAtivo] ?: false }
+
+    /** Conjunto persistido de identidades de dispositivos já vistos (leitura pontual, não flow). */
+    suspend fun buscarDispositivosConhecidos(): Set<String> =
+        withContext(ioDispatcher) {
+            val csv = context.dataStore.data.first()[chaveDispositivosConhecidos] ?: ""
+            if (csv.isBlank()) emptySet() else csv.split(",").filter { it.isNotBlank() }.toSet()
+        }
+
+    /** Persiste o conjunto atualizado de identidades conhecidas. */
+    suspend fun salvarDispositivosConhecidos(identidades: Set<String>) {
+        withContext(ioDispatcher) {
+            context.dataStore.edit { it[chaveDispositivosConhecidos] = identidades.joinToString(",") }
+        }
+    }
 
     // Flows de controles granulares do usuário (default: ativo)
     val notificacaoLatenciaAtivaFlow: Flow<Boolean> =

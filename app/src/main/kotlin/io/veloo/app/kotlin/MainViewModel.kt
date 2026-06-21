@@ -1083,41 +1083,85 @@ class MainViewModel
         /**
          * Verifica se ha dispositivos novos na rede e notifica o usuario.
          *
-         * Executa um scan leve (profundo=false) e compara os MACs encontrados
-         * com os MACs ja conhecidos no banco (com ou sem apelido). Novos MACs
-         * sao notificados e registrados silenciosamente para nao repetir a notificacao.
+         * Executa um scan leve (profundo=false) e compara as identidades estáveis dos dispositivos
+         * encontrados com as identidades já conhecidas. Identidade estável:
+         *  - Se houver MAC: "mac:<MAC em lowercase>" → persiste na tabela Room (fluxo original).
+         *  - Sem MAC: "ipnome:<IP>:<nomeNormalizado>" → persiste no DataStore (sem poluir Room).
+         *
+         * LIMITAÇÃO DOCUMENTADA: dispositivos sem MAC têm identidade derivada de ip+nome.
+         * Se o IP mudar por DHCP ou o nome mudar (ex.: reboot muda hostname), o dispositivo
+         * pode ser notificado novamente como "novo". Comportamento aceitável dado que MACs
+         * randomizados no Android 10+ tornam a alternativa (só MAC) pior — detectaria nada.
          *
          * Chamado no onResume da MainActivity — scan leve, sem WorkManager.
          */
         fun verificarDispositivosNovos(context: android.content.Context) {
             viewModelScope.launch(dispatchers.io) {
                 try {
-                    // Scan leve — nao bloqueia UI, resultado rapido via ARP cache
+                    // Scan leve — nao bloqueia UI, resultado rapido via ARP + SubnetDevices
                     scannerDispositivos.iniciarScan(profundo = false)
 
                     val dispositivosAtuais = scannerDispositivos.snapshotFlow.value.dispositivos
-                    val macsConhecidos =
-                        bancoDados
-                            .apelidoDispositivoDao()
-                            .buscarTodos()
-                            .map { it.mac }
-                            .toSet()
 
-                    val novosMACs =
-                        dispositivosAtuais
-                            .mapNotNull { it.mac }
-                            .filter { mac -> mac !in macsConhecidos }
+                    // Identidades conhecidas: MACs do Room + identidades ip+nome do DataStore
+                    val macsConhecidosRoom =
+                        bancoDados.apelidoDispositivoDao().buscarTodos().map { it.mac }.toSet()
+                    val identidadesConhecidas =
+                        preferenciasAppRepository.buscarDispositivosConhecidos().toMutableSet()
 
-                    novosMACs.forEach { mac ->
-                        SignallQNotificationHelper.notificarDispositivoNovo(context, mac)
-                        bancoDados.apelidoDispositivoDao().inserirSilencioso(
-                            ApelidoDispositivoEntity(mac = mac, apelido = null),
-                        )
+                    val novasIdentidades = mutableSetOf<String>()
+
+                    dispositivosAtuais.forEach { dispositivo ->
+                        val identidade = identidadeEstavelDispositivo(dispositivo)
+                        val mac = dispositivo.mac // val local para smart cast cross-module
+                        when {
+                            // Dispositivo com MAC: fluxo original via Room
+                            mac != null -> {
+                                val macNorm = mac.lowercase()
+                                if (macNorm !in macsConhecidosRoom) {
+                                    SignallQNotificationHelper.notificarDispositivoNovo(
+                                        context,
+                                        mac,
+                                    )
+                                    bancoDados.apelidoDispositivoDao().inserirSilencioso(
+                                        ApelidoDispositivoEntity(mac = macNorm, apelido = null),
+                                    )
+                                }
+                            }
+                            // Dispositivo sem MAC: identidade ip+nome via DataStore
+                            identidade != null && identidade !in identidadesConhecidas -> {
+                                SignallQNotificationHelper.notificarDispositivoNovo(
+                                    context,
+                                    dispositivo.ip ?: dispositivo.nomeExibicao,
+                                )
+                                novasIdentidades.add(identidade)
+                            }
+                        }
+                    }
+
+                    // Persiste novas identidades sem MAC de uma só vez (batch)
+                    if (novasIdentidades.isNotEmpty()) {
+                        identidadesConhecidas.addAll(novasIdentidades)
+                        preferenciasAppRepository.salvarDispositivosConhecidos(identidadesConhecidas)
                     }
                 } catch (e: Exception) {
                     Timber.w("verificarDispositivosNovos falhou: ${e.message}")
                 }
             }
+        }
+
+        /**
+         * Retorna uma identidade estável para rastrear dispositivos entre scans.
+         *
+         * - Com MAC disponível: retorna null (o fluxo via Room já cobre esse caso).
+         * - Sem MAC: retorna "ipnome:<IP>:<nome normalizado>" como fallback.
+         *   LIMITAÇÃO: pode gerar falso-novo se IP mudar por DHCP ou nome mudar por reboot.
+         */
+        internal fun identidadeEstavelDispositivo(dispositivo: io.veloo.app.feature.devices.DispositivoRede): String? {
+            if (dispositivo.mac != null) return null // MAC presente → fluxo Room, não precisa de identidade DataStore
+            val ip = dispositivo.ip ?: return null
+            val nome = dispositivo.nomeExibicao.trim().lowercase()
+            return "ipnome:$ip:$nome"
         }
 
         fun refreshSinal() {
