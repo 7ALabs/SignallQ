@@ -47,7 +47,6 @@ import timber.log.Timber
 import java.util.UUID
 
 private const val TAG = "SignallQOrchestrator"
-private const val AI_BASE_URL = "https://linka-ai-diagnosis-worker.giammattey-luiz.workers.dev"
 private const val MESSAGE_ROTATION_INTERVAL_MS = 2500L
 private const val SPEEDTEST_REUSE_WINDOW_MS = 10 * 60 * 1000L
 
@@ -118,12 +117,10 @@ class SignallQOrchestrator(
     /** Provedor de capacidades de rede — usado para forcar modo fast em rede medida
      *  no speedtest silencioso (sem dialog, sem interrompimento do fluxo do SignallQOrchestrator). */
     private val networkCapabilitiesProvider: NetworkCapabilitiesProvider? = null,
+    /** Instancia unica de AiDiagnosisRepository injetada pelo Hilt via DiagnosticoModule.
+     *  Antes desta mudanca era instanciada manualmente aqui (dois caches independentes). */
+    val aiRepository: AiDiagnosisRepository,
 ) {
-    private val aiRepository =
-        AiDiagnosisRepository(
-            baseUrl = AI_BASE_URL,
-            isAuthorized = { true },
-        )
 
     private val mutableSnapshotFlow = MutableStateFlow(SignallQSnapshot())
     val snapshotFlow: StateFlow<SignallQSnapshot> = mutableSnapshotFlow.asStateFlow()
