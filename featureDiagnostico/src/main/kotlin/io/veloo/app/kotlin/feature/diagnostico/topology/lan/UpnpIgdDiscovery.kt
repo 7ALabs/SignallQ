@@ -10,14 +10,10 @@ import okhttp3.Request
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
-import java.util.concurrent.TimeUnit
 
 class UpnpIgdDiscovery(
     context: Context,
-    private val httpClient: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(5, TimeUnit.SECONDS)
-        .readTimeout(5, TimeUnit.SECONDS)
-        .build()
+    private val httpClient: OkHttpClient,
 ) {
     private val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
 

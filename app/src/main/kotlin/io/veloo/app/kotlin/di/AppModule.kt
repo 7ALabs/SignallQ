@@ -33,8 +33,11 @@ import io.veloo.app.speedtest.SpeedtestPersistenceCoordinator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import okhttp3.OkHttpClient
+import javax.inject.Named
 import javax.inject.Qualifier
 import javax.inject.Singleton
+import java.util.concurrent.TimeUnit
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
@@ -78,11 +81,45 @@ object AppModule {
         @ApplicationContext ctx: Context,
     ): GerenciadorPermissoesRede = CorePermissionsModulo.criarGerenciadorPermissoesRede(ctx)
 
+    /**
+     * Cliente HTTP para ScannerDispositivosAndroid (SSDP local).
+     *
+     * Timeout de 2s adequado para descoberta de dispositivos na LAN — redes locais
+     * respondem em <1s. Timeout maior aumentaria o tempo total do scan sem benefício.
+     */
+    @Provides
+    @Singleton
+    @Named("upnpClient")
+    fun provideUpnpOkHttpClient(): OkHttpClient =
+        OkHttpClient.Builder()
+            .connectTimeout(2, TimeUnit.SECONDS)
+            .readTimeout(2, TimeUnit.SECONDS)
+            .writeTimeout(2, TimeUnit.SECONDS)
+            .build()
+
+    /**
+     * Cliente HTTP para UpnpIgdDiscovery (IGD/gateway discovery).
+     *
+     * Timeout de 5s necessário para redes ADSL/4G instáveis onde o roteador pode
+     * demorar mais para responder ao fetch do XML de descrição UPnP. Reduzir este
+     * valor causa regressão em discovery em redes lentas (banda < 5 Mbps ou alta latência).
+     */
+    @Provides
+    @Singleton
+    @Named("upnpIgdClient")
+    fun provideUpnpIgdOkHttpClient(): OkHttpClient =
+        OkHttpClient.Builder()
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
+            .writeTimeout(5, TimeUnit.SECONDS)
+            .build()
+
     @Provides
     @Singleton
     fun provideScannerDispositivos(
         @ApplicationContext ctx: Context,
-    ): ScannerDispositivos = FeatureDevicesModulo.criarScannerDispositivos(ctx)
+        @Named("upnpClient") okHttpClient: OkHttpClient,
+    ): ScannerDispositivos = FeatureDevicesModulo.criarScannerDispositivos(ctx, okHttpClient)
 
     @Provides
     @Singleton

@@ -35,7 +35,6 @@ import java.net.SocketException
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Semaphore
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.jmdns.JmDNS
 import javax.jmdns.ServiceEvent
@@ -71,6 +70,7 @@ import kotlin.math.min
  */
 class ScannerDispositivosAndroid(
     private val context: Context,
+    private val okHttpClient: OkHttpClient,
 ) : ScannerDispositivos {
 
     private val scanEmAndamento = AtomicBoolean(false)
@@ -86,15 +86,6 @@ class ScannerDispositivosAndroid(
         )
 
     override val snapshotFlow: StateFlow<SnapshotScanDispositivos> = mutableSnapshotFlow.asStateFlow()
-
-    /** OkHttpClient compartilhado para fetch de XMLs UPnP — timeout curto. */
-    private val okHttpClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
-            .connectTimeout(1500, TimeUnit.MILLISECONDS)
-            .readTimeout(1500, TimeUnit.MILLISECONDS)
-            .followRedirects(false)
-            .build()
-    }
 
     override suspend fun iniciarScan(profundo: Boolean) {
         withContext(Dispatchers.IO) {
