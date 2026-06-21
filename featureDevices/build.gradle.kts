@@ -1,6 +1,8 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.kapt")
+    alias(libs.plugins.hilt)
 }
 
 android {
@@ -25,8 +27,11 @@ kotlin {
 }
 
 dependencies {
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
     // AndroidNetworkTools — Apache-2.0 — ping nativo sem root + ARP lookup
     // Veja THIRD_PARTY_NOTICES.md para atribuição completa de licença.
     implementation("com.github.stealthcopter:AndroidNetworkTools:0.4.5.3")
@@ -36,6 +41,9 @@ dependencies {
     implementation("org.jmdns:jmdns:3.6.3")
     // OkHttp — Apache-2.0 — fetch do XML de descrição UPnP/SSDP (LOCATION header)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation(project(":coreDatabase"))
+    implementation(project(":coreDatastore"))
+    implementation(project(":coreNetwork"))
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
