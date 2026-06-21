@@ -28,6 +28,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.android)
     implementation(project(":featureFibra"))
+    implementation(project(":featureWifi"))
     implementation(project(":coreDatabase"))
     implementation(project(":coreDatastore"))
     implementation(libs.okhttp)

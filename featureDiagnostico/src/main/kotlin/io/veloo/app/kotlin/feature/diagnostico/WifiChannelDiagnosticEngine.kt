@@ -1,10 +1,18 @@
 package io.veloo.app.feature.diagnostico
 
+import io.veloo.app.feature.wifi.channel.Band
+import io.veloo.app.feature.wifi.channel.ChannelWidth
+import io.veloo.app.feature.wifi.channel.EvalConfig
+import io.veloo.app.feature.wifi.channel.Neighbor
+import io.veloo.app.feature.wifi.channel.evaluateChannels
+import io.veloo.app.feature.wifi.channel.freqToChannel
+
 private const val CAT_WIFI_CANAL = "wifi-canal"
+private const val MIN_REDES_PARA_ANALISE = 6
 
 object WifiChannelDiagnosticEngine {
 
-    private const val MIN_REDENAS_PARA_ANALISE = 6
+    // ── Diagnóstico de congestionamento ────────────────────────────────────────
 
     fun avaliar(
         wifi: WifiDiagnosticInput?,
@@ -25,14 +33,14 @@ object WifiChannelDiagnosticEngine {
             )
         }
 
-        val redes = scan.redes.filter { it.canal != null && it.rssiDbm != null }
-        if (redes.size < MIN_REDENAS_PARA_ANALISE || scan.conectadoCanal == null) {
+        val redesValidas = scan.redes.filter { it.frequenciaMhz != null && it.rssiDbm != null }
+        if (redesValidas.size < MIN_REDES_PARA_ANALISE || scan.conectadoCanal == null) {
             return listOf(
                 DiagnosticResult(
                     id = "WIFI-CANAL-INC-01",
                     titulo = "Scan Insuficiente",
                     status = DiagnosticStatus.inconclusive,
-                    evidencia = "redesValidas=${redes.size} canalAtual=${scan.conectadoCanal ?: "—"}",
+                    evidencia = "redesValidas=${redesValidas.size} canalAtual=${scan.conectadoCanal ?: "—"}",
                     mensagemUsuario = "O scan de redes não tem dados suficientes para avaliar o congestionamento do canal.",
                     recomendacao = "Refaça o scan perto do roteador e aguarde alguns segundos para coletar mais redes.",
                     categoria = CAT_WIFI_CANAL,
@@ -41,25 +49,34 @@ object WifiChannelDiagnosticEngine {
         }
 
         val canalAtual = scan.conectadoCanal
-        val seuSsid = wifi.ssid ?: ""
-        val banda = wifi.banda()
+        val targetBand = wifi.banda().toCoreBand() ?: return emptyList()
+        val neighbors = redesValidas.toNeighbors()
 
-        // Fix 3: usa score ponderado (própria rede = 0.5, vizinho = 1.0) igual ao computarEspectro
-        val scorePorCanal = redes.groupBy { it.canal!! }.mapValues { (_, rs) -> calcularScoreCanal(rs, seuSsid) }
-        val scoreAtual = scorePorCanal[canalAtual] ?: 0.0
+        // Busca o score do canal atual (incluindo canais não-padrão e DFS)
+        val wideConfig = EvalConfig(
+            targetWidth24 = ChannelWidth.W20,
+            targetWidth5 = ChannelWidth.W20,
+            allow24Overlapping = true,
+            avoidDfs = false,
+        )
+        val scoreAtual = evaluateChannels(neighbors, wideConfig)[targetBand]
+            ?.firstOrNull { it.channel == canalAtual }
+            ?.score
+            ?: return emptyList()
 
-        // Fix 1 + Fix 3: em 2.4GHz, só canais padrão {1, 6, 11} são candidatos à recomendação
-        val candidatos = if (banda == BandaWifi.ghz24) {
-            scorePorCanal.filter { it.key in listOf(1, 6, 11) }
-        } else {
-            scorePorCanal
-        }
-        val melhor = candidatos.entries.minByOrNull { it.value }
-        val canalMelhor = melhor?.key
-        val scoreMelhor = melhor?.value ?: 0.0
+        // Busca o melhor canal entre os padrões recomendados
+        val recConfig = EvalConfig(
+            targetWidth24 = ChannelWidth.W20,
+            targetWidth5 = ChannelWidth.W20,
+            allow24Overlapping = false,
+            avoidDfs = true,
+        )
+        val rec = evaluateChannels(neighbors, recConfig)[targetBand]
+            ?.firstOrNull { it.recommended }
+            ?: return emptyList()
 
-        val diferenca = scoreAtual - scoreMelhor
-        val congestionado = diferenca >= 3.0 && scoreAtual >= 4.0
+        // Congestionado se o melhor canal reduz ao menos 50% da interferência atual
+        val congestionado = rec.channel != canalAtual && scoreAtual > 0.0 && rec.score < scoreAtual * 0.5
 
         val resultados = mutableListOf<DiagnosticResult>()
         if (congestionado) {
@@ -68,9 +85,9 @@ object WifiChannelDiagnosticEngine {
                     id = "WIFI-CANAL-01",
                     titulo = "Canal Wi-Fi Congestionado",
                     status = DiagnosticStatus.attention,
-                    evidencia = "canalAtual=$canalAtual scoreCanal=${"%.1f".format(scoreAtual)} melhorCanal=$canalMelhor scoreMelhor=${"%.1f".format(scoreMelhor)}",
+                    evidencia = "canalAtual=$canalAtual scoreAtual=${"%.2e".format(scoreAtual)}mW melhorCanal=${rec.channel} scoreMelhor=${"%.2e".format(rec.score)}mW",
                     mensagemUsuario = "O canal Wi-Fi atual parece congestionado (muitas redes fortes no mesmo canal). Isso pode causar lentidao e instabilidade.",
-                    recomendacao = if (canalMelhor != null && canalMelhor != canalAtual) "Considere trocar o canal Wi-Fi para $canalMelhor (menos ocupado no scan)." else "Considere trocar o canal Wi-Fi para um canal menos ocupado.",
+                    recomendacao = "Considere trocar o canal Wi-Fi para ${rec.channel} (menos interferência espectral).",
                     categoria = CAT_WIFI_CANAL,
                     podeConcluir = false,
                 ),
@@ -88,42 +105,85 @@ object WifiChannelDiagnosticEngine {
         banda: String,
         seuSSID: String? = null,
     ): SnapshotEspectroCanal {
-        val redesValidas = redes.filter { it.canal != null }
-        val porCanal: Map<Int?, List<RedeWifiVizinha>> = redesValidas.groupBy { it.canal }
+        val neighbors = redes.toNeighbors()
+        val targetBand = bandaStringToBand(banda)
 
-        val canaisBase: List<Int> = when (banda) {
-            "2.4GHz" -> (1..13).toList()
-            "5GHz" -> listOf(36, 40, 44, 48, 52, 56, 60, 64, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 149, 153, 157, 161, 165)
-            "6GHz" -> listOf(1, 5, 9, 13, 17, 21, 25, 29, 33, 37, 41, 45, 49, 53, 57, 61, 65, 69, 73, 77, 81, 85, 89, 93)
-            else -> redesValidas.mapNotNull { it.canal }.distinct().sorted()
+        // Config de visualização: W20 por canal, todos os canais incluindo DFS
+        val vizConfig = EvalConfig(
+            targetWidth24 = ChannelWidth.W20,
+            targetWidth5 = ChannelWidth.W20,
+            targetWidth6 = ChannelWidth.W20,
+            allow24Overlapping = true,
+            avoidDfs = false,
+            preferPsc = true,
+        )
+        val vizScores = evaluateChannels(neighbors, vizConfig)
+
+        // Config de recomendação: melhores práticas (sem DFS, sem canais sobrepostos)
+        val recConfig = EvalConfig(
+            targetWidth24 = ChannelWidth.W20,
+            targetWidth5 = ChannelWidth.W20,
+            allow24Overlapping = false,
+            avoidDfs = true,
+        )
+
+        val (recChannel, motivo) = if (targetBand != null) {
+            val rec = evaluateChannels(neighbors, recConfig)[targetBand]?.firstOrNull { it.recommended }
+            if (rec != null) {
+                val m = if (rec.score == 0.0) {
+                    "Canal livre — sem interferência espectral"
+                } else when (targetBand) {
+                    Band.GHZ_24 -> "Menor interferência espectral entre 1, 6 e 11"
+                    else -> "Menor interferência espectral na faixa $banda"
+                }
+                rec.channel to m
+            } else {
+                null to null
+            }
+        } else {
+            null to null
         }
 
-        val (canalRec, motivo) = recomendarCanal(banda, porCanal, seuSSID) ?: (null to null)
-
-        val dadosPorCanal = canaisBase.map { ch ->
-            val redesNoCanal = porCanal[ch] ?: emptyList()
-            val countProprios = redesNoCanal.count { r ->
-                r.ssid != null && seuSSID != null && r.ssid.trim().equals(seuSSID.trim(), ignoreCase = true)
+        val dadosPorCanal = when {
+            targetBand != null -> {
+                (vizScores[targetBand] ?: emptyList()).map { cs ->
+                    DadoCanal(
+                        canal = cs.channel,
+                        count = cs.overlappingAps,
+                        countProprios = 0,
+                        countTerceiros = cs.overlappingAps,
+                        maxRssiDbm = cs.strongestNeighborDbm,
+                        nivel = classificarCongestionamento(cs.overlappingAps),
+                        ehCanalAtual = cs.channel == canalAtual,
+                        ehCanalRecomendado = cs.channel == recChannel,
+                    )
+                }.sortedBy { it.canal }
             }
-            val countTerceiros = redesNoCanal.size - countProprios
-            val count = redesNoCanal.size
-            val maxRssi = redesNoCanal.mapNotNull { it.rssiDbm }.maxOrNull()
-            DadoCanal(
-                canal = ch,
-                count = count,
-                countProprios = countProprios,
-                countTerceiros = countTerceiros,
-                maxRssiDbm = maxRssi,
-                nivel = classificarCongestionamentoPonderado(countProprios, countTerceiros),
-                ehCanalAtual = ch == canalAtual,
-                ehCanalRecomendado = ch == canalRec,
-            )
+            else -> {
+                // "Todos": combina todas as bandas, exibe apenas canais com APs presentes
+                Band.entries.flatMap { b ->
+                    (vizScores[b] ?: emptyList())
+                        .filter { it.overlappingAps > 0 }
+                        .map { cs ->
+                            DadoCanal(
+                                canal = cs.channel,
+                                count = cs.overlappingAps,
+                                countProprios = 0,
+                                countTerceiros = cs.overlappingAps,
+                                maxRssiDbm = cs.strongestNeighborDbm,
+                                nivel = classificarCongestionamento(cs.overlappingAps),
+                                ehCanalAtual = cs.channel == canalAtual,
+                                ehCanalRecomendado = false,
+                            )
+                        }
+                }.sortedBy { it.canal }
+            }
         }
 
         return SnapshotEspectroCanal(
             dadosPorCanal = dadosPorCanal,
             canalAtual = canalAtual,
-            canalRecomendado = canalRec,
+            canalRecomendado = recChannel,
             motivoRecomendacao = motivo,
             banda = banda,
         )
@@ -135,59 +195,35 @@ object WifiChannelDiagnosticEngine {
         else -> NivelCongestionamento.congestionado
     }
 
-    // Fix 3: score ponderado compartilhado entre avaliar() e computarEspectro().
-    // Rede própria vale 0.5 (já sabemos que ela está lá); vizinho vale 1.0 (interferência real).
-    private fun calcularScoreCanal(redes: List<RedeWifiVizinha>, seuSsid: String): Double {
-        return redes.sumOf { rede ->
-            val ePropria = seuSsid.isNotBlank() && rede.ssid?.trim().equals(seuSsid.trim(), ignoreCase = true) == true
-            if (ePropria) 0.5 else 1.0
-        }
+    // ── Helpers internos ───────────────────────────────────────────────────────
+
+    private fun BandaWifi.toCoreBand(): Band? = when (this) {
+        BandaWifi.ghz24 -> Band.GHZ_24
+        BandaWifi.ghz5 -> Band.GHZ_5
+        BandaWifi.desconhecida -> null
     }
 
-    private fun classificarCongestionamentoPonderado(countProprios: Int, countTerceiros: Int): NivelCongestionamento {
-        val scoreTotal = countProprios * 0.5 + countTerceiros * 1.0
-        return when {
-            scoreTotal <= 2.0 -> NivelCongestionamento.livre
-            scoreTotal <= 5.0 -> NivelCongestionamento.moderado
-            else -> NivelCongestionamento.congestionado
-        }
-    }
-
-    private fun recomendarCanal(banda: String, porCanal: Map<Int?, List<RedeWifiVizinha>>, seuSSID: String? = null): Pair<Int, String>? {
-        // Usa calcularScoreCanal (sem threshold de RSSI) — mesma lógica de avaliar() e computarEspectro(),
-        // eliminando a divergência anterior que ignorava redes com RSSI entre -80 e -100 dBm.
-        val counts = porCanal
-            .filterKeys { it != null }
-            .mapKeys { it.key!! }
-            .mapValues { (_, redes) -> calcularScoreCanal(redes, seuSSID ?: "") }
-
-        return when (banda) {
-            "2.4GHz" -> {
-                val best = listOf(1, 6, 11).minByOrNull { counts[it] ?: 0.0 } ?: 1
-                val scoreRec = counts[best] ?: 0.0
-                val motivo = if (scoreRec == 0.0) "Canal livre — sem congestionamento"
-                else "Menor congestionamento entre 1, 6 e 11"
-                Pair(best, motivo)
-            }
-            "5GHz" -> {
-                // Fix 2: priorizar canais não-DFS (36,40,44,48,149,153,157,161,165) — DFS pode perder
-                // conectividade ao detectar radar em roteadores sem suporte ou certificação adequada.
-                val naoDfs = listOf(36, 40, 44, 48, 149, 153, 157, 161, 165)
-                val candidatosNaoDfs = counts.filter { it.key in naoDfs }
-                val candidatosDfs = counts.filter { it.key !in naoDfs }
-                val best = if (candidatosNaoDfs.isNotEmpty()) {
-                    candidatosNaoDfs.minByOrNull { it.value }?.key
-                } else {
-                    candidatosDfs.minByOrNull { it.value }?.key
-                } ?: return null
-                val scoreRec = counts[best] ?: 0.0
-                val ehDfs = best !in naoDfs
-                val sufixoDfs = if (ehDfs) " (DFS)" else ""
-                val motivoScore = if (scoreRec == 0.0) "Canal livre" else "Menor congestionamento"
-                Pair(best, "$motivoScore na faixa 5 GHz — canal $best$sufixoDfs")
-            }
-            else -> null
-        }
+    private fun bandaStringToBand(banda: String): Band? = when (banda) {
+        "2.4GHz" -> Band.GHZ_24
+        "5GHz" -> Band.GHZ_5
+        "6GHz" -> Band.GHZ_6
+        else -> null
     }
 }
 
+// Converte RedeWifiVizinha → Neighbor para o motor de avaliação espectral.
+// Assume W20 porque RedeWifiVizinha não carrega informação de largura de canal.
+private fun List<RedeWifiVizinha>.toNeighbors(): List<Neighbor> = mapNotNull { r ->
+    val freq = r.frequenciaMhz ?: return@mapNotNull null
+    val rssi = r.rssiDbm ?: return@mapNotNull null
+    val (band, _) = freqToChannel(freq) ?: return@mapNotNull null
+    val bssid = r.bssid ?: "synth_${freq}_${rssi}_${r.ssid?.hashCode() ?: 0}"
+    Neighbor(
+        bssid = bssid,
+        band = band,
+        centerFreqMhz = freq,
+        centerFreq1Mhz = null,
+        width = ChannelWidth.W20,
+        rssiDbm = rssi,
+    )
+}

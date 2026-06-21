@@ -107,14 +107,14 @@ class WifiChannelDiagnosticEngineTest {
         assertNotNull("Fix 2: engine não deve retornar null com apenas DFS no scan", snapshot)
     }
 
-    // ── Fix 3: avaliar() usa score ponderado igual ao computarEspectro() ──────
+    // ── Fix 3: avaliar() e computarEspectro() convergem no mesmo diagnóstico ───
 
     @Test
-    fun `fix3 - avaliar usa score ponderado identico ao computarEspectro para mesmo canal`() {
-        // Cenário: canal 1 com 1 rede própria + 4 vizinhos.
-        // Score esperado via calcularScoreCanal: 0.5 + 4 * 1.0 = 4.5
-        // computarEspectro com countProprios=1, countTerceiros=4:
-        //   classificarCongestionamentoPonderado: 1*0.5 + 4*1.0 = 4.5 → moderado
+    fun `fix3 - avaliar detecta congestionamento e computarEspectro classifica moderado`() {
+        // Cenário: canal 1 com 1 rede própria + 4 vizinhos (5 APs sobrepostos → moderado).
+        // Canal 6 vazio → score 0, canal 11 com 1 AP fraco (-90 dBm) → score ≈ 0.
+        // avaliar() deve detectar congestionamento (score canal1 >> score melhor).
+        // computarEspectro() deve classificar canal 1 como moderado (5 APs sobrepostos).
         val ssid = "MinhaRede"
         val wifi = WifiDiagnosticInput(
             rssiDbm = -50,
@@ -152,17 +152,13 @@ class WifiChannelDiagnosticEngineTest {
 
         val dadoCanal1 = snapshot.dadosPorCanal.first { it.canal == 1 }
 
-        // Fix 3: os dois devem convergir — canal 1 com score 4.5 é moderado, não crítico o suficiente
-        // para acionar "congestionado" (requer diferença >= 3.0 E scoreAtual >= 4.0).
-        // Como canal 11 tem score 1.0 (diferença = 4.5 - 1.0 = 3.5 >= 3.0 E 4.5 >= 4.0),
-        // avaliar() deve reportar congestionamento. computarEspectro() deve classificar canal 1 como moderado.
-        // O ponto do Fix 3 é que o MESMO score (4.5) é usado nos dois — não valores divergentes.
+        // Os dois devem convergir: canal 1 congestionado em ambas as visões.
         assertTrue(
-            "Fix 3: avaliar deve detectar congestionamento (score 4.5, diferença 3.5)",
+            "Fix 3: avaliar deve detectar congestionamento (5 APs em canal 1, canal 6 livre)",
             resultadosAvaliar.any { it.id == "WIFI-CANAL-01" },
         )
         assertTrue(
-            "Fix 3: computarEspectro deve classificar canal 1 como moderado (score 4.5)",
+            "Fix 3: computarEspectro deve classificar canal 1 como moderado (5 APs sobrepostos)",
             dadoCanal1.nivel == NivelCongestionamento.moderado,
         )
     }
