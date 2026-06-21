@@ -40,8 +40,6 @@ dependencies {
     kapt(libs.hilt.compiler)
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(project(":featureFibra"))
-    implementation(project(":featureWifi"))
     implementation(project(":featureSpeedtest"))
     implementation(project(":coreDatabase"))
     implementation(project(":coreDatastore"))

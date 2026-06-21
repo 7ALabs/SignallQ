@@ -1,3 +1,4 @@
 package io.veloo.app.feature.fibra
 
-enum class GponSaudeStatus { boa, regular, ruim }
+// Tipo movido para coreNetwork/contracts — mantido aqui como typealias para nao quebrar imports existentes.
+typealias GponSaudeStatus = io.veloo.app.core.network.contracts.fibra.GponSaudeStatus

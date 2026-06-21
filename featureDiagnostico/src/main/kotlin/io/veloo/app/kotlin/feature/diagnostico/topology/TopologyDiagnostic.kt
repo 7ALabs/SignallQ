@@ -12,7 +12,7 @@ import io.veloo.app.feature.diagnostico.topology.lan.UpnpIgdDiscovery
 import io.veloo.app.feature.diagnostico.topology.lan.UpnpSoapClient
 import io.veloo.app.feature.diagnostico.topology.model.DeviceInfo
 import io.veloo.app.feature.diagnostico.topology.model.NetworkTopology
-import io.veloo.app.feature.wifi.RedeVizinha
+import io.veloo.app.core.network.contracts.wifi.RedeVizinha
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import okhttp3.OkHttpClient

@@ -1,7 +1,7 @@
 package io.veloo.app.feature.diagnostico.topology.lan
 
 import io.veloo.app.feature.diagnostico.topology.model.DeviceInfo
-import io.veloo.app.feature.wifi.RedeVizinha
+import io.veloo.app.core.network.contracts.wifi.RedeVizinha
 
 class MeshDetector(private val ouiLookup: OuiVendorLookup) {
 

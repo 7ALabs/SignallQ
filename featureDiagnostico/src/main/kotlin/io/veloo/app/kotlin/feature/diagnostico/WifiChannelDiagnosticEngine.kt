@@ -1,11 +1,11 @@
 package io.veloo.app.feature.diagnostico
 
-import io.veloo.app.feature.wifi.channel.Band
-import io.veloo.app.feature.wifi.channel.ChannelWidth
-import io.veloo.app.feature.wifi.channel.EvalConfig
-import io.veloo.app.feature.wifi.channel.Neighbor
-import io.veloo.app.feature.wifi.channel.evaluateChannels
-import io.veloo.app.feature.wifi.channel.freqToChannel
+import io.veloo.app.core.network.contracts.wifi.channel.Band
+import io.veloo.app.core.network.contracts.wifi.channel.ChannelWidth
+import io.veloo.app.core.network.contracts.wifi.channel.EvalConfig
+import io.veloo.app.core.network.contracts.wifi.channel.Neighbor
+import io.veloo.app.core.network.contracts.wifi.channel.evaluateChannels
+import io.veloo.app.core.network.contracts.wifi.channel.freqToChannel
 
 private const val CAT_WIFI_CANAL = "wifi-canal"
 private const val MIN_REDES_PARA_ANALISE = 6
