@@ -1,0 +1,65 @@
+# SignallQ
+
+App Android de **diagnóstico de conectividade** com IA — analisa Wi-Fi, fibra, rede móvel e dispositivos da rede local e gera laudos com explicações em linguagem natural.
+
+> Identificadores técnicos preservam o nome anterior (`io.veloo.app`, repo `linka-android`, banco `linkaKotlin.db`) — são técnicos, não a marca. A marca é **SignallQ**.
+
+## Stack
+
+- **Android** Kotlin + Jetpack Compose (Material 3), MVVM + `StateFlow`
+- **DI** Hilt · **Persistência** Room (`SignallQDatabase`) + DataStore · **Background** WorkManager (`MonitoramentoWorker`)
+- **IA** Cloudflare Worker (`integrations/cloudflare/ai-diagnosis-worker`), modelo Qwen3 30B MoE FP8, URL via `BuildConfig.AI_WORKER_URL`
+- minSdk 24 · target/compileSdk 36 · JVM 17
+
+## Arquitetura (15 módulos Gradle)
+
+- **app** — shell, navegação (`AppShell.kt`, 5 abas: Início, Velocidade, Sinal, Histórico, Ajustes), DI
+- **core** (5): `coreNetwork`, `coreDatabase`, `coreDatastore`, `coreTelephony`, `corePermissions`
+- **feature** (9): `featureHome`, `featureSpeedtest`, `featureWifi`, `featureDevices`, `featureDns`, `featureFibra`, `featureDiagnostico`, `featureHistory`, `featureSettings`
+
+Features são independentes entre si (sem dependência cruzada `:feature*` → `:feature*`).
+
+## Como rodar localmente
+
+```bash
+# Build de debug
+./gradlew assembleDebug
+
+# Testes unitários
+./gradlew test
+
+# Lint
+./gradlew ktlintCheck detekt
+```
+
+Requer JDK 17+ e o `app/google-services.json` (já versionado).
+
+## Release (resumo)
+
+> Processo completo e obrigatório em [`.claude/CLAUDE.md`](.claude/CLAUDE.md). Nunca rodar `assembleRelease` sem `clean` + `--no-build-cache` (cache já causou build desatualizado no Firebase).
+
+```bash
+git push origin main
+./gradlew clean assembleRelease --no-build-cache
+./gradlew appDistributionUploadRelease
+```
+
+Worker Cloudflare: havendo mudança em `integrations/cloudflare/*/src/`, `npx wrangler deploy` antes do commit.
+
+## CI
+
+`.github/workflows/quality.yml` roda em todo PR/push para `main`: **detekt**, **ktlint**, **testes unitários** e **build debug**.
+
+## Subprojetos no repositório
+
+- `SignallQ Admin/` — painel administrativo (React + Vite + TypeScript)
+- `integrations/cloudflare/ai-diagnosis-worker/` — worker de diagnóstico IA
+- `integrations/cloudflare/signallq-admin-worker/` — worker do painel admin
+
+## Roadmap de lançamento (Play Store — alvo 07/08/2026)
+
+Planejamento de Escopo → Desenvolvimento & Documentação → Firebase Beta Testing → Play Store (Teste Interno) → Preparação para Lançamento → Lançamento. Acompanhamento no Linear (time SignallQ).
+
+## Documentação
+
+Documentação viva para agentes em [`docs_ai/`](docs_ai/README.md). Material histórico em `docs/_archive/` e `docs_ai/_archive/` — não usar como verdade atual.
