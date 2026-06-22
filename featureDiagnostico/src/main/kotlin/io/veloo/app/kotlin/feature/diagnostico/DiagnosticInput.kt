@@ -14,6 +14,7 @@ data class WifiDiagnosticInput(
     val gatewayIp: String? = null,
     val localIp: String? = null,
     val routerType: RouterType? = null,
+    val dispositivosNaRede: Int? = null,
 )
 
 data class InternetDiagnosticInput(
@@ -35,9 +36,9 @@ data class InternetDiagnosticInput(
 )
 
 data class FibraDiagnosticInput(
-    val rxPowerDbm: Double,
-    val txPowerDbm: Double,
-    val temperatureCelsius: Double,
+    val rxPowerDbm: Double? = null,
+    val txPowerDbm: Double? = null,
+    val temperatureCelsius: Double? = null,
     val isUp: Boolean,
 )
 

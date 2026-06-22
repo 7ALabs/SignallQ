@@ -13,9 +13,18 @@
 // O cliente Kotlin permanece consumindo apenas este Worker, nunca env.AI direto.
 // =============================================================================
 
+import {
+  AiProviderRouter,
+  GeminiFlashProvider,
+  QwenCFProvider,
+} from "./providers";
+import type { ProviderResult } from "./providers";
+
 type Env = {
   AI: any;
   AI_MODEL?: string;
+  // Provedor primário de IA (opcional — sem esta var usa Qwen/CF como primário).
+  GEMINI_API_KEY?: string;
   // Ingestão de métricas no painel admin (opcional — sem estas vars o worker
   // continua funcionando normalmente, apenas não reporta ao D1).
   ADMIN_WORKER_URL?: string;
@@ -748,6 +757,13 @@ export default {
       // na resposta exibida ao usuario. Util para auditar qual modelo respondeu.
       console.log("AI diagnosis model:", model);
 
+      // Monta a cadeia de providers: Gemini Flash (se configurado) → Qwen/CF.
+      // Adicionar GEMINI_API_KEY como secret do Worker ativa o provider primário.
+      const providers = [];
+      if (env.GEMINI_API_KEY) providers.push(new GeminiFlashProvider(env.GEMINI_API_KEY));
+      providers.push(new QwenCFProvider(env.AI, model, modelInfo as Record<string, unknown>));
+      const router = new AiProviderRouter(providers);
+
       // Detecta modo chat: quando feedbackUsuario esta presente o cliente envia
       // uma pergunta de follow-up — o Worker muda tom e schema para resposta direta.
       const isChat = !!(payload as Record<string, unknown>).feedbackUsuario;
@@ -771,21 +787,16 @@ export default {
 
         let streamResult: ReadableStream;
         try {
-          streamResult = await env.AI.run(model, {
-            messages: [
-              { role: "system", content: systemPrompt },
-              {
-                role: "user",
-                content: streamUserContent,
-              },
-            ],
-            max_tokens: isChat ? 8000 : 5000,
-            temperature: 0.2,
-            stream: true,
-          }) as ReadableStream;
+          const routerStream = await router.callStream(
+            systemPrompt,
+            streamUserContent,
+            isChat ? 8000 : 5000,
+            0.2,
+          );
+          streamResult = routerStream.stream;
         } catch (aiErr: unknown) {
           const errMsg = aiErr instanceof Error ? aiErr.message : String(aiErr);
-          console.error("env.AI.run stream FAILED, model:", model, "error:", errMsg);
+          console.error("router.callStream FAILED:", errMsg);
           return errorResponse("ai_run_failed", 503);
         }
         return new Response(createStreamNormalizer(streamResult, isChat), {
@@ -800,34 +811,18 @@ export default {
       // o suporte ainda e instavel/inconsistente para varios modelos do binding [ai].
       // Preferimos schema hint forte no prompt + extracao tolerante (extractJson
       // com stripThinkingTokens) + sobrescrita defensiva pos-parse.
-      let aiResult: unknown;
+      let providerResult: ProviderResult;
       try {
-        aiResult = await env.AI.run(model, {
-          messages: [
-            { role: "system", content: systemPrompt },
-            {
-              role: "user",
-              content:
-                `Dados do diagnóstico:\n${JSON.stringify(payload)}\n\n${schemaHint}`,
-            },
-          ],
-          max_tokens: isChat ? 8000 : 5000,
-          temperature: 0.2,
-        });
-        console.log("env.AI.run completed, model:", model, "result type:", typeof aiResult);
+        const userContent = `Dados do diagnóstico:\n${JSON.stringify(payload)}\n\n${schemaHint}`;
+        providerResult = await router.call(systemPrompt, userContent, isChat ? 8000 : 5000, 0.2);
+        console.log("router.call completed, provider:", providerResult.providerId);
       } catch (aiErr: unknown) {
         const errMsg = aiErr instanceof Error ? aiErr.message : String(aiErr);
-        console.error("env.AI.run FAILED, model:", model, "error:", errMsg);
+        console.error("router.call FAILED:", errMsg);
         return errorResponse("ai_run_failed", 503);
       }
 
-      // Extrai texto bruto da resposta da IA. Diferentes modelos no Workers AI
-      // retornam shapes diferentes:
-      //   - Llama: { response: "<texto>" }
-      //   - Gemma 4 26B: { response: { ... } } com choices/text dentro, ou
-      //     ainda { result: { response: "..." } } / { choices: [{...}] }.
-      // Tentamos varios pontos comuns ate achar uma string.
-      const raw: string = extractRawText(aiResult);
+      const raw: string = providerResult.text;
 
       let parsed: Record<string, unknown>;
       try {
@@ -843,11 +838,17 @@ export default {
       parsed.schemaVersion = SCHEMA_VERSION;
       parsed.source = "cloudflare_ai";
       parsed.generatedAt = Date.now();
-      parsed.modeloIa = modelInfo;
+      parsed.modeloIa = providerResult.modeloIa;
 
       // Ingerir métricas no painel admin de forma assíncrona, sem bloquear resposta.
       ctx.waitUntil(
-        ingestToPainel(env, sessionId, payload as Record<string, unknown>, parsed, model)
+        ingestToPainel(
+          env,
+          sessionId,
+          payload as Record<string, unknown>,
+          parsed,
+          providerResult.effectiveModelId,
+        ),
       );
 
       return jsonResponse(parsed);

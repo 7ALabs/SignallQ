@@ -15,6 +15,11 @@ import io.veloo.app.feature.diagnostico.ai.AiDiagnosisRepository
 import io.veloo.app.feature.diagnostico.ai.AiDiagnosisState
 import io.veloo.app.feature.diagnostico.ai.AiFallbackFactory
 import io.veloo.app.feature.diagnostico.ai.DiagnosisAiContextFactory
+import io.veloo.app.feature.diagnostico.ingest.AdminIngestRepository
+import io.veloo.app.feature.diagnostico.ingest.AiUsageIngestPayload
+import io.veloo.app.feature.diagnostico.ingest.DiagnosticIngestPayload
+import io.veloo.app.feature.diagnostico.ingest.frequenciaMhzParaBanda
+import io.veloo.app.feature.diagnostico.ingest.idParaIssueLabel
 import io.veloo.app.feature.speedtest.DiagnosticoFasesSpeedtest
 import io.veloo.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.veloo.app.feature.speedtest.ExecutorSpeedtest
@@ -109,6 +114,8 @@ class SignallQOrchestrator(
     /** Instancia unica de AiDiagnosisRepository injetada pelo Hilt via DiagnosticoModule.
      *  Antes desta mudanca era instanciada manualmente aqui (dois caches independentes). */
     val aiRepository: AiDiagnosisRepository,
+    /** Repositorio de telemetria para o painel admin. Null = ingest desabilitado (testes). */
+    private val adminIngestRepository: AdminIngestRepository? = null,
 ) {
 
     private val mutableSnapshotFlow = MutableStateFlow(SignallQSnapshot())
@@ -266,6 +273,7 @@ class SignallQOrchestrator(
                 connectionType = connectionType,
                 additionalContext = focoDiagnostico,
                 preCollectedExtra = extraContext,
+                ingestSessionId = partialSession.sessionId,
             )
 
         val chips = questionEngine.getInitialChips(relatorio)
@@ -282,6 +290,17 @@ class SignallQOrchestrator(
 
         cancelarRotacaoMensagens()
         emitSession(pulseState)
+
+        // Ingest de diagnostico concluido — fire-and-forget.
+        dispararIngestDiagnostico(
+            sessionId = partialSession.sessionId,
+            connectionType = connectionType,
+            relatorio = relatorio,
+            speedtestResult = resultado,
+            wifiFrequenciaMhz = wifiSnapshot?.frequenciaMhz,
+            movelTecnologia = extraContext.movel?.tecnologia,
+        )
+
         Timber.i("iniciarDiagnosticoComResultado concluído estado=$pulseState")
     }
 
@@ -456,6 +475,7 @@ class SignallQOrchestrator(
                 // O foco escolhido pelo usuário vai como feedbackUsuario no payload.
                 additionalContext = focoDiagnostico,
                 preCollectedExtra = extraContext,
+                ingestSessionId = partialSession.sessionId,
             )
 
         val chips = questionEngine.getInitialChips(relatorio)
@@ -472,6 +492,17 @@ class SignallQOrchestrator(
 
         cancelarRotacaoMensagens()
         emitSession(pulseState)
+
+        // Ingest de diagnostico concluido — fire-and-forget.
+        dispararIngestDiagnostico(
+            sessionId = partialSession.sessionId,
+            connectionType = connectionType,
+            relatorio = relatorio,
+            speedtestResult = speedtestResult,
+            wifiFrequenciaMhz = wifiSnapshot?.frequenciaMhz,
+            movelTecnologia = extraContext.movel?.tecnologia,
+        )
+
         Timber.i("iniciarDiagnostico concluído estado=$pulseState")
     }
 
@@ -775,6 +806,8 @@ class SignallQOrchestrator(
         input: DiagnosticInput? = null,
         /** Contexto adicional pré-coletado. Se null, coleta agora (compatibilidade). */
         preCollectedExtra: AdditionalAiContext? = null,
+        /** Session ID para correlacao no ingest de AI usage. Null = nao faz ingest. */
+        ingestSessionId: String? = null,
     ): AiAnalysisEntry {
         val fallbackEntry = { isFallback: Boolean, text: String, full: io.veloo.app.feature.diagnostico.ai.AiDiagnosisResult? ->
             AiAnalysisEntry(
@@ -839,6 +872,11 @@ class SignallQOrchestrator(
                 decisaoLocalStatus = report.decisao.status.name,
                 localFallback = { AiFallbackFactory.fromLocal(report) },
             )
+
+        // Ingest de AI usage — fire-and-forget, correlaciona com a sessao de diagnostico.
+        if (ingestSessionId != null) {
+            dispararIngestAiUsage(sessionId = ingestSessionId, aiState = state)
+        }
 
         return when (state) {
             is AiDiagnosisState.success ->
@@ -949,6 +987,94 @@ class SignallQOrchestrator(
     private fun cancelarRotacaoMensagens() {
         messageRotationJob?.cancel()
         messageRotationJob = null
+    }
+
+    // ---- Ingest de telemetria (fire-and-forget) ----
+
+    /**
+     * Dispara ingest de diagnostico concluido em background.
+     * Falhas sao silenciosas — nao afetam o usuario.
+     */
+    private fun dispararIngestDiagnostico(
+        sessionId: String,
+        connectionType: ConnectionType,
+        relatorio: io.veloo.app.feature.diagnostico.DiagnosticReport?,
+        speedtestResult: io.veloo.app.feature.speedtest.ResultadoSpeedtest?,
+        /** Frequencia Wi-Fi em MHz — null se movel ou indisponivel (Samsung One UI apos reconexao). */
+        wifiFrequenciaMhz: Int? = null,
+        /** Tecnologia movel ja como string — ex: "5G", "5G NSA", "4G". Null se Wi-Fi ou Xiaomi sem permissao. */
+        movelTecnologia: String? = null,
+    ) {
+        val repo = adminIngestRepository ?: return
+        scope.launch {
+            val status = when {
+                relatorio == null -> "failed"
+                else -> "completed"
+            }
+            // network_type refinado:
+            //  - movel: usa tecnologia direta (ex: "5G", "4G") ou null se indisponivel (Xiaomi quirk)
+            //  - wifi: converte frequencia para banda (ex: "wifi_5GHz") ou "wifi" se frequencia invalida
+            //  - outros: null
+            val networkTypeName: String? = when (connectionType) {
+                ConnectionType.mobile -> movelTecnologia // null e valido — Xiaomi pode nao ter
+                ConnectionType.wifi -> frequenciaMhzParaBanda(wifiFrequenciaMhz) ?: "wifi"
+                else -> null
+            }
+            val issues = relatorio?.let { rep ->
+                (rep.wifiResultados + rep.internetResultados + rep.mobileResultados +
+                    rep.fibraResultados + rep.dnsResultados + rep.historicoResultados +
+                    rep.wifiCanalResultados)
+                    .filter {
+                        it.status == io.veloo.app.feature.diagnostico.DiagnosticStatus.critical ||
+                            it.status == io.veloo.app.feature.diagnostico.DiagnosticStatus.attention
+                    }
+                    .map { idParaIssueLabel(it.id) }
+            } ?: emptyList()
+
+            repo.sendDiagnostic(
+                DiagnosticIngestPayload(
+                    id = sessionId,
+                    networkType = networkTypeName,
+                    status = status,
+                    score = relatorio?.scoreConexao,
+                    downloadMbps = speedtestResult?.downloadMbps?.toFloat(),
+                    uploadMbps = speedtestResult?.uploadMbps?.toFloat(),
+                    latencyMs = speedtestResult?.latenciaMs?.toInt(),
+                    jitterMs = speedtestResult?.jitterMs?.toInt(),
+                    packetLoss = speedtestResult?.perdaPercentual?.toFloat(),
+                    issues = issues,
+                ),
+            )
+        }
+    }
+
+    /**
+     * Dispara ingest de uso de IA em background.
+     * Correlaciona com o diagnostico via [sessionId].
+     * Falhas sao silenciosas.
+     */
+    private fun dispararIngestAiUsage(
+        sessionId: String,
+        aiState: AiDiagnosisState,
+    ) {
+        val repo = adminIngestRepository ?: return
+        if (aiState !is AiDiagnosisState.success) return
+        val result = aiState.result
+        val modelId = result.modeloIa.idInterno.ifBlank {
+            result.modeloIa.nomeExibicao.ifBlank { "unknown" }
+        }
+        scope.launch {
+            repo.sendAiUsage(
+                AiUsageIngestPayload(
+                    id = java.util.UUID.randomUUID().toString(),
+                    model = modelId,
+                    sessionId = sessionId,
+                    promptTokens = result.promptTokens,
+                    completionTokens = result.completionTokens,
+                    totalTokens = result.totalTokens,
+                ),
+            )
+        }
     }
 
     private fun mapSignallQState(report: io.veloo.app.feature.diagnostico.DiagnosticReport?): SignallQState {

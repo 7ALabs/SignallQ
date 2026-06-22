@@ -19,6 +19,17 @@ private val keyProperties = Properties().apply {
     if (keyPropertiesFile.exists()) load(keyPropertiesFile.inputStream())
 }
 
+// Secrets de telemetria — lidos de local.properties em dev (nunca commitados).
+// Em CI/release, injetar via variavel de ambiente: ADMIN_INGEST_KEY=xxx
+private val localPropertiesFile = rootProject.file("local.properties")
+private val localProperties = Properties().apply {
+    if (localPropertiesFile.exists()) load(localPropertiesFile.inputStream())
+}
+private val adminIngestKey: String =
+    localProperties.getProperty("ADMIN_INGEST_KEY")
+        ?: System.getenv("ADMIN_INGEST_KEY")
+        ?: ""
+
 android {
     namespace = "io.veloo.app"
     compileSdk = libs.versions.compileSdk.get().toInt()
@@ -31,6 +42,21 @@ android {
         versionName = libs.versions.versionName.get()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // URL base do signallq-admin-worker. Nao e segredo — apenas infraestrutura.
+        buildConfigField(
+            "String",
+            "ADMIN_INGEST_URL",
+            "\"https://signallq-admin.giammattey-luiz.workers.dev\"",
+        )
+        // Chave de ingest (scope limitado: POST /ingest/* apenas).
+        // Lida de local.properties em dev, variavel de ambiente em CI.
+        // NUNCA commitar o valor real aqui.
+        buildConfigField(
+            "String",
+            "ADMIN_INGEST_KEY",
+            "\"$adminIngestKey\"",
+        )
     }
 
     signingConfigs {

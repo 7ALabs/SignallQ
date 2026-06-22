@@ -36,6 +36,7 @@ import io.veloo.app.feature.diagnostico.ai.DiagChatAutor
 import io.veloo.app.feature.diagnostico.ai.DiagChatEntry
 import io.veloo.app.feature.diagnostico.ai.DiagnosisAiContext
 import io.veloo.app.feature.diagnostico.ai.DiagnosisAiContextFactory
+import io.veloo.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.veloo.app.feature.diagnostico.pulse.OpcaoResposta
 import io.veloo.app.feature.dns.AvaliadorCoerenciaDns
 import io.veloo.app.feature.dns.BenchmarkDns
@@ -107,6 +108,8 @@ class MainViewModel
          *  Antes era instanciado via lazy: `by lazy { DiagnosticOrchestrator() }`.
          *  Agora e singleton compartilhado com DiagnosticoViewModel. */
         _diagnosticOrchestrator: DiagnosticOrchestrator,
+        /** Repositorio de telemetria para o painel admin SignallQ. */
+        private val adminIngestRepository: AdminIngestRepository,
     ) : AndroidViewModel(application) {
         private companion object {
             const val LOG_TAG = "SignallQSpeedtestSuite"
@@ -138,6 +141,7 @@ class MainViewModel
                 additionalContextProvider = { coletarContextoAdicionalIa() },
                 networkCapabilitiesProvider = networkCapabilitiesProvider,
                 aiRepository = diagAiRepository,
+                adminIngestRepository = adminIngestRepository,
             )
         }
         val signallQUiStateFlow by lazy {
@@ -453,6 +457,8 @@ class MainViewModel
                                 rssiDbm = ws.rssiDbm,
                                 linkSpeedMbps = ws.linkSpeedMbps,
                                 frequenciaMhz = ws.frequenciaMhz,
+                                wifiStandard = ws.padraoWifi,
+                                dispositivosNaRede = scannerDispositivos.snapshotFlow.value.dispositivos.size.takeIf { it > 0 },
                             )
                         }
                     diagnosticOrchestrator.executar(internetInput, wifiInput, fibraInput)
@@ -694,6 +700,8 @@ class MainViewModel
                                 rssiDbm = it.rssiDbm,
                                 linkSpeedMbps = it.linkSpeedMbps,
                                 frequenciaMhz = it.frequenciaMhz,
+                                wifiStandard = it.padraoWifi,
+                                dispositivosNaRede = scannerDispositivos.snapshotFlow.value.dispositivos.size.takeIf { size -> size > 0 },
                             )
                         }
                     diagnosticOrchestrator.executar(internetInput, wifiInput)
@@ -919,6 +927,8 @@ class MainViewModel
                             rssiDbm = ws.rssiDbm,
                             linkSpeedMbps = ws.linkSpeedMbps,
                             frequenciaMhz = ws.frequenciaMhz,
+                            wifiStandard = ws.padraoWifi,
+                            dispositivosNaRede = scannerDispositivos.snapshotFlow.value.dispositivos.size.takeIf { it > 0 },
                         )
                     }
                 diagnosticOrchestrator.executar(internetInput, wifiInput)

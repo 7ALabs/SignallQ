@@ -247,6 +247,12 @@ class AiDiagnosisRepository(
             val hipoteses = parseHipoteses(o.optJSONArray("hipotesesDescartadas"))
             val perguntas = parsePerguntas(o.optJSONArray("perguntasContextuais"))
 
+            // Bloco "usage" do Cloudflare Workers AI — ausente em fallback local ou worker antigo.
+            val usageObj = o.optJSONObject("usage")
+            val promptTokens = usageObj?.optInt("prompt_tokens", 0) ?: 0
+            val completionTokens = usageObj?.optInt("completion_tokens", 0) ?: 0
+            val totalTokens = usageObj?.optInt("total_tokens", promptTokens + completionTokens) ?: 0
+
             AiDiagnosisResult(
                 schemaVersion = schemaVersion,
                 source = o.optString("source", "cloudflare_ai"),
@@ -264,6 +270,9 @@ class AiDiagnosisRepository(
                 classificacaoTecnica = classificacao,
                 hipotesesDescartadas = hipoteses,
                 perguntasContextuais = perguntas,
+                promptTokens = promptTokens,
+                completionTokens = completionTokens,
+                totalTokens = totalTokens,
             )
         } catch (_: Throwable) {
             null

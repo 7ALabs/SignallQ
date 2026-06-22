@@ -248,6 +248,11 @@ data class AiDiagnosisResult(
     val classificacaoTecnica: ClassificacaoTecnica = ClassificacaoTecnica(),
     val hipotesesDescartadas: List<HipoteseDescartada> = emptyList(),
     val perguntasContextuais: List<PerguntaContextual> = emptyList(),
+    // Tokens de uso — parseados do bloco "usage" do Cloudflare Workers AI response.
+    // Default 0 se ausentes (worker antigo ou fallback local).
+    val promptTokens: Int = 0,
+    val completionTokens: Int = 0,
+    val totalTokens: Int = 0,
 )
 
 data class AiProblemaPrincipal(

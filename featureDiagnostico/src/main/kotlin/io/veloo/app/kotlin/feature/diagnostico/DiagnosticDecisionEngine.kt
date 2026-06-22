@@ -28,8 +28,10 @@ object DiagnosticDecisionEngine {
         val internetRuim = internetCritico || internetAtencao
         val wifiRuim = !wifiQuality.confiavelParaTeste
         val wifiCritico = wifiQuality.resultados.any { it.status == DiagnosticStatus.critical }
-        val fibraCritica = fibraResultados.any { it.status == DiagnosticStatus.critical }
-        val fibraAtencao = fibraResultados.any { it.status == DiagnosticStatus.attention }
+        val fibraDisponivel = fibraResultados.isNotEmpty() &&
+            fibraResultados.any { it.status != DiagnosticStatus.inconclusive }
+        val fibraCritica = fibraDisponivel && fibraResultados.any { it.status == DiagnosticStatus.critical }
+        val fibraAtencao = fibraDisponivel && fibraResultados.any { it.status == DiagnosticStatus.attention }
 
         val criticoNaoDns =
             internetResultados.any {
@@ -212,6 +214,22 @@ object DiagnosticDecisionEngine {
                 evidencia = "wifiStatus=" + wifiQuality.resultados.map { it.id + ":" + it.status },
                 mensagemUsuario = "A internet está funcionando bem, mas o sinal Wi-Fi merece atenção para evitar problemas futuros.",
                 recomendacao = "Aproxime-se do roteador ou reduza obstáculos entre o dispositivo e o roteador.",
+                categoria = CAT,
+            )
+        }
+
+        // DECISAO-04b-WIFI: Wi-Fi com atenção não-crítica (link speed baixo, muitos dispositivos)
+        // Não cobre sinal fraco — esse caso vai para DECISAO-01 via wifiRuim
+        val wifiTemAtencao = wifiQuality.resultados.any { it.status == DiagnosticStatus.attention }
+        if (wifiTemAtencao && !wifiCritico && !internetRuim && !wifiRuim) {
+            val alertas = wifiQuality.resultados.filter { it.status == DiagnosticStatus.attention }.map { it.id }
+            return DiagnosticResult(
+                id = "DECISAO-04b-WIFI",
+                titulo = "Atenção ao Wi-Fi",
+                status = DiagnosticStatus.attention,
+                evidencia = "wifiAlertas=$alertas",
+                mensagemUsuario = "A internet está funcionando, mas há indicadores do Wi-Fi que merecem atenção e podem afetar a experiência.",
+                recomendacao = "Verifique os itens sinalizados para melhorar a qualidade da conexão Wi-Fi.",
                 categoria = CAT,
             )
         }

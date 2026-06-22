@@ -29,7 +29,7 @@ object FibraSignalQualityEngine {
 
         // RX Power — ITU-T G.984: boa ≥ -23 dBm | regular [-27, -23) | ruim < -27 dBm
         val rx = input.rxPowerDbm
-        if (rx != 0.0) {
+        if (rx != null && rx != 0.0) {
             when (ClassificadorSaudeGpon.classificarRx(rx)) {
                 GponSaudeStatus.ruim -> resultados.add(
                     DiagnosticResult(
@@ -71,7 +71,7 @@ object FibraSignalQualityEngine {
 
         // TX Power — ITU-T G.984: boa [+0.5, +5] dBm | regular [-1, +0.5) | ruim < -1 dBm
         val tx = input.txPowerDbm
-        if (tx != 0.0) {
+        if (tx != null && tx != 0.0) {
             when (ClassificadorSaudeGpon.classificarTx(tx)) {
                 GponSaudeStatus.ruim -> resultados.add(
                     DiagnosticResult(
@@ -130,7 +130,7 @@ object FibraSignalQualityEngine {
 
         // Temperatura — ITU-T G.984: boa < 65 °C | regular [65, 75] | ruim > 75 °C
         val temp = input.temperatureCelsius
-        if (temp != 0.0) {
+        if (temp != null && temp != 0.0) {
             when (ClassificadorSaudeGpon.classificarTemp(temp)) {
                 GponSaudeStatus.ruim -> resultados.add(
                     DiagnosticResult(

@@ -9,8 +9,10 @@ import dagger.hilt.components.SingletonComponent
 import io.veloo.app.feature.diagnostico.BuildConfig
 import io.veloo.app.feature.diagnostico.DiagnosticOrchestrator
 import io.veloo.app.feature.diagnostico.ai.AiDiagnosisRepository
+import io.veloo.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.veloo.app.feature.diagnostico.topology.TopologyDiagnostic
 import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Singleton
 
@@ -58,4 +60,42 @@ object DiagnosticoModule {
         @ApplicationContext ctx: Context,
         @Named("upnpIgdClient") httpClient: OkHttpClient,
     ): TopologyDiagnostic = TopologyDiagnostic(context = ctx, httpClient = httpClient)
+
+    /**
+     * Cliente HTTP dedicado para ingest de telemetria (best-effort, sem retry).
+     *
+     * Timeout curto intencional: ingest e fire-and-forget. Nao queremos bloquear
+     * o fluxo do usuario esperando confirmacao do servidor. Se o worker nao
+     * responder em 10s, desistimos silenciosamente.
+     */
+    @Provides
+    @Singleton
+    @Named("adminIngestClient")
+    fun provideAdminIngestOkHttpClient(): OkHttpClient =
+        OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
+            .writeTimeout(10, TimeUnit.SECONDS)
+            .build()
+
+    /**
+     * Provê AdminIngestRepository — envia telemetria ao signallq-admin-worker.
+     *
+     * Usa ADMIN_INGEST_URL e ADMIN_INGEST_KEY do BuildConfig do modulo app
+     * (passados como parametro pelo grafo Hilt via @Named).
+     *
+     * Chave separada do ADMIN_SECRET: vazar INGEST_KEY nao da acesso de leitura
+     * ao painel. Scope limitado: POST /ingest/ apenas.
+     */
+    @Provides
+    @Singleton
+    fun provideAdminIngestRepository(
+        @Named("adminIngestClient") httpClient: OkHttpClient,
+        @Named("adminIngestUrl") baseUrl: String,
+        @Named("adminIngestKey") ingestKey: String,
+    ): AdminIngestRepository = AdminIngestRepository(
+        baseUrl = baseUrl,
+        ingestKey = ingestKey,
+        client = httpClient,
+    )
 }

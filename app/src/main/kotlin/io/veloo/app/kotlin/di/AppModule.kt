@@ -6,6 +6,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import io.veloo.app.BuildConfig
 import io.veloo.app.core.database.CoreDatabaseModulo
 import io.veloo.app.core.database.SignallQDatabase
 import io.veloo.app.core.database.MedicaoDao
@@ -152,6 +153,25 @@ object AppModule {
     @Singleton
     @ApplicationScope
     fun provideApplicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /**
+     * URL base do signallq-admin-worker para ingest de telemetria.
+     * Vem do BuildConfig — nunca hardcoded aqui.
+     */
+    @Provides
+    @Singleton
+    @Named("adminIngestUrl")
+    fun provideAdminIngestUrl(): String = BuildConfig.ADMIN_INGEST_URL
+
+    /**
+     * Chave de autenticacao para /ingest/ do signallq-admin-worker.
+     * Scope limitado: so pode escrever em /ingest/. Nao e o ADMIN_SECRET do painel.
+     * Vem do BuildConfig — lido de local.properties em dev, CI inject em release.
+     */
+    @Provides
+    @Singleton
+    @Named("adminIngestKey")
+    fun provideAdminIngestKey(): String = BuildConfig.ADMIN_INGEST_KEY
 
     @Provides
     @Singleton

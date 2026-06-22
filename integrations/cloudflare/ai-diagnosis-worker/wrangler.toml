@@ -15,6 +15,10 @@ ADMIN_WORKER_URL = "https://signallq-admin.giammattey-luiz.workers.dev"
 # ADMIN_SECRET — mesma senha do painel admin:
 #   npx wrangler secret put ADMIN_SECRET --name linka-ai-diagnosis-worker
 
+# GEMINI_API_KEY — ativa Gemini 2.0 Flash como provider primário (Qwen/CF fica
+# como fallback automático). Sem esta secret, Qwen/CF é o único provider.
+#   npx wrangler secret put GEMINI_API_KEY --name linka-ai-diagnosis-worker
+
 [ai]
 binding = "AI"
 
