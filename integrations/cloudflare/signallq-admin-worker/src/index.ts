@@ -425,7 +425,35 @@ async function handleFirebaseSync(_req: Request, env: Env): Promise<Response> {
 }
 
 async function handleSettings(request: Request, env: Env): Promise<Response> {
-  return json({ source: "worker", settings: {} }, 200, env);
+  if (request.method === "GET") {
+    const row = await env.DB.prepare(
+      "SELECT value FROM admin_settings WHERE key = 'admin'"
+    ).first<{ value: string }>();
+
+    const settings = row?.value ? (JSON.parse(row.value) as unknown) : {};
+    return json({ source: "d1", settings }, 200, env);
+  }
+
+  if (request.method === "POST") {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return err("body JSON inválido", 400, env);
+    }
+
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return err("body deve ser um objeto JSON", 400, env);
+    }
+
+    await env.DB.prepare(
+      "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES ('admin', ?, ?)"
+    ).bind(JSON.stringify(body), nowSec()).run();
+
+    return json({ ok: true, settings: body }, 200, env);
+  }
+
+  return err("método não suportado", 405, env);
 }
 
 // --- handlers /ingest ---
