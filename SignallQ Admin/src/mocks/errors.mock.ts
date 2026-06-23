@@ -1,5 +1,111 @@
 import { SystemErrorLog, AppVersionDetail, OperatorRecord } from "../types/admin";
 
+export interface InfraAlert {
+  id: string;
+  source: string;
+  message: string;
+  severity: "high" | "medium" | "low";
+  timestamp: string;
+}
+
+export interface AiAlert {
+  id: string;
+  type: "critical" | "warning" | "info";
+  title: string;
+  description: string;
+  timestamp: string;
+}
+
+export const mockInfraAlerts: InfraAlert[] = [
+  {
+    id: "inf_al_01",
+    source: "analytics_db",
+    message: "Analytics DB com latência elevada em horário de pico de telemetria.",
+    severity: "high",
+    timestamp: "Há 12 min"
+  },
+  {
+    id: "inf_al_02",
+    source: "worker",
+    message: "Cloudflare Workers subrequest limit exceeded nas requisições da zona Nordeste.",
+    severity: "high",
+    timestamp: "Há 32 min"
+  },
+  {
+    id: "inf_al_03",
+    source: "android_app",
+    message: "Crash Outbreak: Taxa de crash-free rate sob v1.3.0-beta1 caiu abaixo de 98.4% devido a NullPointerException no scanner de WiFi.",
+    severity: "medium",
+    timestamp: "Há 2 horas"
+  }
+];
+
+export const mockAiAlerts: AiAlert[] = [
+  {
+    id: "al_ai_01",
+    type: "warning",
+    title: "Limite de Custo Mensal 80% Atingido",
+    description: "Os dispêndios agregados das APIs de laudos atingiram $158,40 contra o limite teto operacional de $200,00.",
+    timestamp: "Há 10 min"
+  },
+  {
+    id: "al_ai_02",
+    type: "critical",
+    title: "Anomalia de Latência no Qwen 2.5 Engine",
+    description: "Workers AI registrou pico de 2.4 segundos na resolução de pareceres térmicos na região de Campinas.",
+    timestamp: "Há 1 hora"
+  },
+  {
+    id: "al_ai_03",
+    type: "info",
+    title: "Handover preventivo de DNS ativado",
+    description: "SDK Android migrou de canal local de IA para Gemini 1.5 Flash de forma bem-sucedida após erro de timeout local.",
+    timestamp: "Há 3 horas"
+  }
+];
+
+export interface ErrorMetricSummary {
+  activeErrors: string;
+  events24h: string;
+  impactedUsers: string;
+  mainSources: string;
+}
+
+export interface ErrorByEndpointEntry {
+  name: string;
+  erros: number;
+}
+
+export const mockErrorMetricSummary: Record<"production" | "staging", ErrorMetricSummary> = {
+  production: {
+    activeErrors: "3 ativos",
+    events24h: "551 eventos",
+    impactedUsers: "1.480",
+    mainSources: "Android / AI Gateway",
+  },
+  staging: {
+    activeErrors: "1 ativo",
+    events24h: "34 eventos",
+    impactedUsers: "15",
+    mainSources: "Android / AI Gateway",
+  },
+};
+
+export const mockErrorByEndpoint: Record<"production" | "staging", ErrorByEndpointEntry[]> = {
+  production: [
+    { name: "AI Gateway", erros: 382 },
+    { name: "Android App", erros: 1544 },
+    { name: "Edge Worker", erros: 45 },
+    { name: "Analytics DB", erros: 8 },
+  ],
+  staging: [
+    { name: "AI Gateway", erros: 12 },
+    { name: "Android App", erros: 45 },
+    { name: "Edge Worker", erros: 45 },
+    { name: "Analytics DB", erros: 2 },
+  ],
+};
+
 export const mockSystemErrors: SystemErrorLog[] = [
   {
     id: "err_901aef",

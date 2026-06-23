@@ -80,6 +80,33 @@ export class ProductAnalyticsService {
     }));
   }
 
+  async getTokenUsageSummary(filters?: DashboardFilters): Promise<{
+    totalTokensLabel: string;
+    avgCostPerDiagnosis: string;
+    mainProvider: string;
+    failureRate: string;
+  } | null> {
+    if (!apiClient.isMockEnabled()) return null;
+    await this.delay(200);
+    const multiplier = filters?.period === "1d" ? 0.15 : filters?.period === "30d" ? 4.2 : 1.0;
+    const items = mockFeatureAiUsage.map(ai => ({
+      totalTokens: Math.round(ai.totalTokens * multiplier),
+      aiCalls: Math.round(ai.aiCalls * multiplier),
+      estimatedCost: Number((ai.estimatedCost * multiplier).toFixed(2))
+    }));
+    const totalTokens = items.reduce((s, i) => s + i.totalTokens, 0);
+    const totalCalls = items.reduce((s, i) => s + i.aiCalls, 0);
+    const totalCost = items.reduce((s, i) => s + i.estimatedCost, 0);
+    const costPerDiag = totalCalls > 0 ? (totalCost / totalCalls) * 0.19 : 0; // USD→BRL estimado
+    const tokensM = (totalTokens / 1_000_000).toFixed(1);
+    return {
+      totalTokensLabel: `${tokensM}M tokens`,
+      avgCostPerDiagnosis: `R$ ${costPerDiag.toFixed(3).replace(".", ",")}`,
+      mainProvider: "Google Gemini (100%)",
+      failureRate: "0% (Invalidações: 0)",
+    };
+  }
+
   async getOverviewCards(filters?: DashboardFilters) {
     if (!apiClient.isMockEnabled()) return null;
     await this.delay(200);

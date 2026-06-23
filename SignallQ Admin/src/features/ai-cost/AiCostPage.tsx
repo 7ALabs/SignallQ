@@ -184,7 +184,7 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
         </button>
       </div>
 
-      <AiCostMetricGrid environment={environment} />
+      <AiCostMetricGrid environment={environment} period={period} />
 
       {/* 2. Visual graphs section area */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

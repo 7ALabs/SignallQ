@@ -4,75 +4,7 @@ import { DataTable } from "../../../components/ui/DataTable";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { diagnosticsService } from "../../../services/diagnosticsService";
 import { FeatureComingSoon } from "../../../components/ui/FeatureComingSoon";
-
-export interface AggregateRow {
-  networkType: string;
-  diagnosticsCount: number;
-  avgScore: number;
-  avgDownload: string;
-  avgUpload: string;
-  avgPing: string;
-  avgJitter: string;
-  avgLoss: string;
-  topIssue: string;
-  trend: "up" | "down" | "stable";
-  trendLabel: string;
-}
-
-export const mockAggregateData: AggregateRow[] = [
-  {
-    networkType: "Wi-Fi (Rede Local)",
-    diagnosticsCount: 132840,
-    avgScore: 74,
-    avgDownload: "142 Mbps",
-    avgUpload: "48 Mbps",
-    avgPing: "28 ms",
-    avgJitter: "9 ms",
-    avgLoss: "0.8%",
-    topIssue: "Wi-Fi fraco (31%)",
-    trend: "up",
-    trendLabel: "Aumento de ruído local"
-  },
-  {
-    networkType: "Rede Móvel (Cellular)",
-    diagnosticsCount: 38740,
-    avgScore: 68,
-    avgDownload: "45 Mbps",
-    avgUpload: "12 Mbps",
-    avgPing: "48 ms",
-    avgJitter: "14 ms",
-    avgLoss: "1.5%",
-    topIssue: "Rede móvel congestionada (11%)",
-    trend: "up",
-    trendLabel: "Interferência em horários de pico"
-  },
-  {
-    networkType: "Fibra (Banda Larga)",
-    diagnosticsCount: 11070,
-    avgScore: 92,
-    avgDownload: "480 Mbps",
-    avgUpload: "245 Mbps",
-    avgPing: "8 ms",
-    avgJitter: "1.2 ms",
-    avgLoss: "0.05%",
-    topIssue: "Nenhum detectado (92%)",
-    trend: "stable",
-    trendLabel: "Estabilidade mecânica impecável"
-  },
-  {
-    networkType: "Ethernet Cabeada",
-    diagnosticsCount: 1850,
-    avgScore: 96,
-    avgDownload: "910 Mbps",
-    avgUpload: "880 Mbps",
-    avgPing: "3 ms",
-    avgJitter: "0.4 ms",
-    avgLoss: "0.01%",
-    topIssue: "Gateway lento (7%)",
-    trend: "down",
-    trendLabel: "Melhoria linear"
-  }
-];
+import { AggregateRow } from "../../../types/diagnostics";
 
 interface DiagnosticsAggregateTableProps {
   environment: "production" | "staging";
