@@ -149,7 +149,39 @@ export const adminMetricsService = {
   },
 
   async getNetworkInsights(filters: DashboardFilters = {}): Promise<NetworkDistItem[]> {
-    if (!apiClient.isMockEnabled()) return [];
+    if (!apiClient.isMockEnabled()) {
+      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
+      const period = filters.period || "7d";
+      const apiPeriod = period === "today" ? "1d" : period;
+      // Paleta fixa por nome de tipo de rede — cor não vem do worker (SIG-110).
+      const colorMap: Record<string, string> = {
+        wifi:     "#6C2BFF",
+        mobile:   "#22C55E",
+        cellular: "#22C55E",
+        fiber:    "#38BDF8",
+        ethernet: "#F5A623",
+      };
+      function colorFor(name: string): string {
+        const key = (name ?? "").toLowerCase();
+        for (const [k, c] of Object.entries(colorMap)) {
+          if (key.includes(k)) return c;
+        }
+        return "#6B7280"; // cinza neutro para tipos desconhecidos
+      }
+      try {
+        const raw = await apiClient.request<{ items: Array<{ name: string; value: number }> }>(
+          "GET",
+          `/admin/metrics/network?period=${apiPeriod}`
+        );
+        return (raw.items ?? []).map((item) => ({
+          name:  item.name,
+          value: item.value,
+          color: colorFor(item.name),
+        }));
+      } catch {
+        return [];
+      }
+    }
 
     const environment = filters.environment || "production";
     const response = await apiClient.simulateFetch(mockNetworkDistributionList, filters);
@@ -166,7 +198,27 @@ export const adminMetricsService = {
   },
 
   async getDiagnosticsTimeline(filters: DashboardFilters = {}): Promise<any[]> {
-    if (!apiClient.isMockEnabled()) return [];
+    if (!apiClient.isMockEnabled()) {
+      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
+      const period = filters.period || "7d";
+      const apiPeriod = period === "today" ? "1d" : period;
+      try {
+        const raw = await apiClient.request<{
+          timeline: Array<{ date: string; completedDiagnostics: number; activeUsers: number; criticalAlerts: number }>;
+        }>("GET", `/admin/metrics/timeline?period=${apiPeriod}`);
+        return (raw.timeline ?? []).map((item) => ({
+          // Worker retorna 'date' (YYYY-MM-DD); frontend usa 'timestamp' ou 'date' indistintamente
+          // — mantém ambos para compatibilidade com os tipos TimeSeriesData existentes.
+          timestamp:            item.date,
+          date:                 item.date,
+          completedDiagnostics: item.completedDiagnostics,
+          activeUsers:          item.activeUsers,
+          criticalAlerts:       item.criticalAlerts,
+        }));
+      } catch {
+        return [];
+      }
+    }
 
     const period = filters.period || "7d";
     let baseTimeline: any[] = mockTimeline7d;
@@ -188,7 +240,20 @@ export const adminMetricsService = {
   },
 
   async getTopIssues(filters: DashboardFilters = {}): Promise<TopIssueItem[]> {
-    if (!apiClient.isMockEnabled()) return [];
+    if (!apiClient.isMockEnabled()) {
+      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
+      const period = filters.period || "7d";
+      const apiPeriod = period === "today" ? "1d" : period;
+      try {
+        const raw = await apiClient.request<{ items: TopIssueItem[] }>(
+          "GET",
+          `/admin/metrics/top-issues?period=${apiPeriod}`
+        );
+        return raw.items ?? [];
+      } catch {
+        return [];
+      }
+    }
 
     const response = await apiClient.simulateFetch(mockTopIssuesList, filters);
 
@@ -206,7 +271,20 @@ export const adminMetricsService = {
   },
 
   async getRecentAlerts(filters: DashboardFilters = {}): Promise<RecentAlertItem[]> {
-    if (!apiClient.isMockEnabled()) return [];
+    if (!apiClient.isMockEnabled()) {
+      // Worker retorna [] até SIG-133 (sistema de alertas configuráveis).
+      // Sem baseUrl → retorna [] silenciosamente.
+      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
+      try {
+        const raw = await apiClient.request<{ items: RecentAlertItem[] }>(
+          "GET",
+          "/admin/metrics/alerts"
+        );
+        return raw.items ?? [];
+      } catch {
+        return [];
+      }
+    }
 
     const response = await apiClient.simulateFetch(mockRecentAlertsList, filters);
 
@@ -221,7 +299,34 @@ export const adminMetricsService = {
   },
 
   async getAiProviderUsage(filters: DashboardFilters = {}): Promise<ProviderUsageItem[]> {
-    if (!apiClient.isMockEnabled()) return [];
+    if (!apiClient.isMockEnabled()) {
+      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
+      const period = filters.period || "7d";
+      const apiPeriod = period === "today" ? "1d" : period;
+      // Paleta de cores por provedor — não vem do worker (SIG-110).
+      const providerColors: Record<string, string> = {
+        "Gemini":              "#6C2BFF",
+        "Qwen / Workers AI":   "#38BDF8",
+        "OpenAI GPT":          "#22C55E",
+        "Anthropic Claude":    "#F5A623",
+      };
+      function colorFor(name: string): string {
+        return providerColors[name] ?? "#6B7280";
+      }
+      try {
+        const raw = await apiClient.request<{
+          items: Array<{ name: string; percentage: number; tokensProcessed: number }>;
+        }>("GET", `/admin/metrics/ai-providers?period=${apiPeriod}`);
+        return (raw.items ?? []).map((item) => ({
+          name:            item.name,
+          percentage:      item.percentage,
+          tokensProcessed: item.tokensProcessed,
+          color:           colorFor(item.name),
+        }));
+      } catch {
+        return [];
+      }
+    }
 
     const response = await apiClient.simulateFetch(mockAiProviderUsageList, filters);
 

@@ -182,6 +182,143 @@ async function handleAiCost(request: Request, env: Env): Promise<Response> {
   return json({ source: "d1", period, byModel: rows.results ?? [], totals }, 200, env);
 }
 
+// --- handlers /admin/metrics (SIG-110) ---
+
+async function handleTimeline(request: Request, env: Env): Promise<Response> {
+  const url    = new URL(request.url);
+  const period = url.searchParams.get("period") ?? "7d";
+  const since  = nowSec() - periodToSeconds(period);
+
+  // Agrega diagnostic_sessions por dia (DATE unix→ISO via strftime).
+  // activeUsers: não há user_id na tabela — aproximado por contagem de sessões do dia.
+  // Documentação da aproximação: 1 sessão ≈ 1 usuário único (subestima heavy users,
+  // mas é a melhor proxy disponível sem PII no D1). Ver SIG-110.
+  // criticalAlerts: sessões com status='failed' ou score < 40 (limiar "Fraco").
+  const rows = await env.DB.prepare(
+    `SELECT
+       strftime('%Y-%m-%d', datetime(created_at, 'unixepoch')) AS date,
+       COUNT(*) AS completedDiagnostics,
+       COUNT(*) AS activeUsers,
+       SUM(CASE WHEN status = 'failed' OR (score IS NOT NULL AND score < 40) THEN 1 ELSE 0 END) AS criticalAlerts
+     FROM diagnostic_sessions
+     WHERE created_at >= ?
+     GROUP BY date
+     ORDER BY date ASC`
+  ).bind(since).all();
+
+  const timeline = (rows.results ?? []).map((r: any) => ({
+    date:                 r.date,
+    completedDiagnostics: r.completedDiagnostics ?? 0,
+    activeUsers:          r.activeUsers          ?? 0,
+    criticalAlerts:       r.criticalAlerts        ?? 0,
+  }));
+
+  return json({ source: "d1", period, timeline }, 200, env);
+}
+
+async function handleNetworkInsights(request: Request, env: Env): Promise<Response> {
+  const url    = new URL(request.url);
+  const period = url.searchParams.get("period") ?? "7d";
+  const since  = nowSec() - periodToSeconds(period);
+
+  // Distribui sessões por network_type. Cor não vem do worker — atribuída no frontend.
+  const rows = await env.DB.prepare(
+    `SELECT network_type AS name, COUNT(*) AS value
+     FROM diagnostic_sessions
+     WHERE created_at >= ?
+     GROUP BY network_type
+     ORDER BY value DESC`
+  ).bind(since).all();
+
+  const items = (rows.results ?? []).map((r: any) => ({
+    name:  r.name  ?? "Desconhecido",
+    value: r.value ?? 0,
+  }));
+
+  return json({ source: "d1", period, items }, 200, env);
+}
+
+async function handleTopIssues(request: Request, env: Env): Promise<Response> {
+  const url    = new URL(request.url);
+  const period = url.searchParams.get("period") ?? "7d";
+  const since  = nowSec() - periodToSeconds(period);
+
+  // Busca todas as sessões do período para explodir o array JSON de issues.
+  // D1 não suporta json_each nativamente de forma cross-platform — fazemos no runtime.
+  const rows = await env.DB.prepare(
+    `SELECT issues FROM diagnostic_sessions WHERE created_at >= ?`
+  ).bind(since).all();
+
+  const countMap: Record<string, number> = {};
+  let totalIssues = 0;
+
+  for (const row of (rows.results ?? [])) {
+    let issues: string[] = [];
+    try { issues = JSON.parse((row as any).issues ?? "[]"); } catch { /* ignora linha malformada */ }
+    for (const label of issues) {
+      if (typeof label === "string" && label.trim()) {
+        countMap[label] = (countMap[label] ?? 0) + 1;
+        totalIssues++;
+      }
+    }
+  }
+
+  const sorted = Object.entries(countMap)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 5);
+
+  const items = sorted.map(([problem, count], idx) => ({
+    id:         `issue_${idx + 1}`,
+    problem,
+    count,
+    percentage: totalIssues > 0 ? Math.round((count / totalIssues) * 100) : 0,
+  }));
+
+  return json({ source: "d1", period, items }, 200, env);
+}
+
+async function handleRecentAlerts(_request: Request, env: Env): Promise<Response> {
+  // Sistema completo de alertas será implementado na SIG-133 (alertas configuráveis,
+  // thresholds, canais de notificação). Enquanto isso, retornamos array vazio para
+  // não fabricar dados sem fonte real consistente.
+  return json({ source: "d1", items: [] }, 200, env);
+}
+
+async function handleAiProviders(request: Request, env: Env): Promise<Response> {
+  const url    = new URL(request.url);
+  const period = url.searchParams.get("period") ?? "7d";
+  const since  = nowSec() - periodToSeconds(period);
+
+  const rows = await env.DB.prepare(
+    `SELECT model, SUM(total_tokens) AS tokensProcessed
+     FROM ai_usage
+     WHERE created_at >= ?
+     GROUP BY model
+     ORDER BY tokensProcessed DESC`
+  ).bind(since).all();
+
+  const results = rows.results ?? [];
+  const grandTotal = results.reduce((acc: number, r: any) => acc + (r.tokensProcessed ?? 0), 0);
+
+  // Mapeia model → nome legível do provedor. Cor não vem do worker.
+  function providerName(model: string): string {
+    const m = (model ?? "").toLowerCase();
+    if (m.includes("gemini"))               return "Gemini";
+    if (m.includes("qwen") || m.startsWith("@cf/")) return "Qwen / Workers AI";
+    if (m.includes("gpt"))                  return "OpenAI GPT";
+    if (m.includes("claude"))               return "Anthropic Claude";
+    return model; // fallback: nome técnico do modelo
+  }
+
+  const items = results.map((r: any) => ({
+    name:            providerName(r.model ?? ""),
+    tokensProcessed: r.tokensProcessed ?? 0,
+    percentage:      grandTotal > 0 ? Math.round(((r.tokensProcessed ?? 0) / grandTotal) * 100) : 0,
+  }));
+
+  return json({ source: "d1", period, items }, 200, env);
+}
+
 async function handleFirebaseAnalytics(request: Request, env: Env): Promise<Response> {
   if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
     return json({ source: "no_credentials", activeUsersToday: 0, sessionsToday: 0 }, 200, env);
@@ -343,6 +480,11 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/metrics\/overview$/,                    handler: handleOverview },
   { method: "GET",  pattern: /^\/admin\/metrics\/diagnostics$/,                 handler: handleDiagnostics },
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage$/,                    handler: handleAiCost },
+  { method: "GET",  pattern: /^\/admin\/metrics\/timeline$/,                    handler: handleTimeline },
+  { method: "GET",  pattern: /^\/admin\/metrics\/network$/,                     handler: handleNetworkInsights },
+  { method: "GET",  pattern: /^\/admin\/metrics\/top-issues$/,                  handler: handleTopIssues },
+  { method: "GET",  pattern: /^\/admin\/metrics\/alerts$/,                      handler: handleRecentAlerts },
+  { method: "GET",  pattern: /^\/admin\/metrics\/ai-providers$/,                handler: handleAiProviders },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/status$/,       handler: handleFirebaseStatus },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/analytics$/,    handler: handleFirebaseAnalytics },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/crashlytics$/,  handler: handleFirebaseCrashlytics },
