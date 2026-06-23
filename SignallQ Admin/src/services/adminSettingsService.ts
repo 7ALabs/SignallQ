@@ -1,5 +1,6 @@
 import { AdminSettingsPayload } from "../types/admin";
 import { initialMockSettings } from "../mocks/settings.mock";
+import { apiClient } from "./apiClient";
 
 const STORAGE_KEY = "@signallq/admin_settings_v1";
 
@@ -38,6 +39,8 @@ export const adminSettingsService = {
    * Retrieves current configuration payload from LocalStorage or mock fallback
    */
   async getSettings(): Promise<ExtendedSettingsPayload> {
+    // Em produção: localStorage tem precedência (edições locais pendentes de sync).
+    // Worker /admin/settings retorna {} por ora — usado apenas como fallback futuro.
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
@@ -51,6 +54,19 @@ export const adminSettingsService = {
     } catch (e) {
       console.warn("Could not load settings from storage, using initial mock data", e);
     }
+
+    // Sem dados locais: tenta buscar do worker se mock estiver desabilitado.
+    if (!apiClient.isMockEnabled()) {
+      try {
+        const remote = await apiClient.request<{ settings: unknown }>("GET", "/admin/settings");
+        if (isValidSettings(remote.settings)) {
+          return remote.settings;
+        }
+      } catch {
+        // Worker retorna {} — sem settings remotas ainda. Cai no padrão local.
+      }
+    }
+
     return { ...initialMockSettings };
   },
 
@@ -58,11 +74,13 @@ export const adminSettingsService = {
    * Updates configuration payload in LocalStorage
    */
   async saveSettings(settings: ExtendedSettingsPayload): Promise<{ success: boolean; message: string }> {
+    // Worker POST /admin/settings é stub — não persiste no D1.
+    // Persiste localmente; sincronização remota será implementada quando o worker suportar.
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
       return {
         success: true,
-        message: "Configurações guardadas com sucesso! As diretrizes sincronizaram com todos os serviços da futura Admin API."
+        message: "Configurações salvas localmente. Sincronização remota pendente de implementação no worker."
       };
     } catch (e) {
       console.error("Could not write config payload", e);

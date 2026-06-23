@@ -135,8 +135,15 @@ export const diagnosticsService = {
   },
 
   async triggerReDiagnosis(sessionId: string): Promise<{ success: boolean; message: string; data?: any }> {
+    // A rota /diagnosis/explain não existe no worker atual — endpoint não implementado.
+    // Retorna erro informativo sem fazer chamada HTTP para evitar 404 silencioso.
+    if (!apiClient.isMockEnabled()) {
+      return {
+        success: false,
+        message: `Rediagnóstico remoto não disponível: endpoint não implementado no worker. (sessão: ${sessionId})`
+      };
+    }
     console.log(`[ApiClient Dispatch] Triggering remote diagnosis verification for id: ${sessionId}`);
-    await apiClient.request("POST", `/diagnosis/explain`, { sessionId });
     return {
       success: true,
       message: `Diagnóstico recapturado remoto efetuado com sucesso para a sessão ${sessionId}.`
