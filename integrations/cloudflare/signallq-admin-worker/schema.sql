@@ -30,6 +30,13 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   FOREIGN KEY (session_id) REFERENCES diagnostic_sessions(id)
 );
 
+-- Configurações do painel admin (chave única 'admin')
+CREATE TABLE IF NOT EXISTS admin_settings (
+  key        TEXT    PRIMARY KEY,
+  value      TEXT    NOT NULL,        -- JSON serializado do payload completo
+  updated_at INTEGER NOT NULL         -- Unix timestamp (segundos)
+);
+
 -- Índices para queries frequentes do painel
 CREATE INDEX IF NOT EXISTS idx_sessions_created_at  ON diagnostic_sessions(created_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_network_type ON diagnostic_sessions(network_type);

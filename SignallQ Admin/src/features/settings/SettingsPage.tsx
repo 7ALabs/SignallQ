@@ -7,19 +7,26 @@ import { PrivacySettings } from "./components/PrivacySettings";
 import { IntegrationsSettings } from "./components/IntegrationsSettings";
 import { MonetizationSettings } from "./components/MonetizationSettings";
 import { LoadingState } from "../../components/ui/LoadingState";
-import { Settings, Save, CheckCircle2, RotateCcw, ShieldCheck } from "lucide-react";
+import { Settings, Save, CheckCircle2, RotateCcw, ShieldCheck, AlertTriangle } from "lucide-react";
 
 export const SettingsPage: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [settings, setSettings] = React.useState<ExtendedSettingsPayload | null>(null);
   const [saveStatus, setSaveStatus] = React.useState<string | null>(null);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!saveStatus) return;
     const id = setTimeout(() => setSaveStatus(null), 5000);
     return () => clearTimeout(id);
   }, [saveStatus]);
+
+  React.useEffect(() => {
+    if (!saveError) return;
+    const id = setTimeout(() => setSaveError(null), 8000);
+    return () => clearTimeout(id);
+  }, [saveError]);
 
   React.useEffect(() => {
     async function loadSettings() {
@@ -38,6 +45,7 @@ export const SettingsPage: React.FC = () => {
 
   const handleUpdate = (updates: Partial<ExtendedSettingsPayload>) => {
     setSaveStatus(null);
+    setSaveError(null);
     setSettings((prev) => {
       if (!prev) return null;
       return { ...prev, ...updates };
@@ -50,14 +58,17 @@ export const SettingsPage: React.FC = () => {
 
     setSaving(true);
     setSaveStatus(null);
+    setSaveError(null);
     try {
       const res = await adminSettingsService.saveSettings(settings);
       if (res.success) {
         setSaveStatus(res.message);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Save config failure", err);
-      setSaveStatus(err?.message || "Ocorreu um erro ao guardar as configurações.");
+      setSaveError(
+        err instanceof Error ? err.message : "Falha ao salvar configurações. Tente novamente."
+      );
     } finally {
       setSaving(false);
     }
@@ -67,6 +78,7 @@ export const SettingsPage: React.FC = () => {
     if (window.confirm("Deseja realmente redefinir as configurações para os padrões de fábrica?")) {
       setLoading(true);
       setSaveStatus(null);
+      setSaveError(null);
       try {
         localStorage.removeItem("@signallq/admin_settings_v1");
         const payload = await adminSettingsService.getSettings();
@@ -131,6 +143,13 @@ export const SettingsPage: React.FC = () => {
         <div className="p-3.5 bg-emerald-950/20 border border-emerald-500/20 rounded-xl flex items-center justify-center gap-2 text-emerald-400 text-xs font-mono select-none animate-fade-in text-center">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           <span>{saveStatus}</span>
+        </div>
+      )}
+
+      {saveError && (
+        <div className="p-3.5 bg-red-950/20 border border-red-500/20 rounded-xl flex items-center justify-center gap-2 text-red-400 text-xs font-mono select-none animate-fade-in text-center">
+          <AlertTriangle className="w-4 h-4 text-red-400" />
+          <span>{saveError}</span>
         </div>
       )}
 

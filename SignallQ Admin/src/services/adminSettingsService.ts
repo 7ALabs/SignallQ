@@ -36,34 +36,40 @@ export interface ExtendedSettingsPayload extends AdminSettingsPayload {
 
 export const adminSettingsService = {
   /**
-   * Retrieves current configuration payload from LocalStorage or mock fallback
+   * Carrega configurações. Em produção, o worker D1 é a fonte da verdade.
+   * localStorage funciona como cache de sessão para evitar re-fetch em cada render.
+   * Mock: retorna dados do initialMockSettings.
    */
   async getSettings(): Promise<ExtendedSettingsPayload> {
-    // Em produção: localStorage tem precedência (edições locais pendentes de sync).
-    // Worker /admin/settings retorna {} por ora — usado apenas como fallback futuro.
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed: unknown = JSON.parse(stored);
-        if (isValidSettings(parsed)) {
-          return parsed;
-        }
-        console.warn("Settings schema inválido ou desatualizado — descartando e usando padrões.");
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    } catch (e) {
-      console.warn("Could not load settings from storage, using initial mock data", e);
+    if (apiClient.isMockEnabled()) {
+      return { ...initialMockSettings };
     }
 
-    // Sem dados locais: tenta buscar do worker se mock estiver desabilitado.
-    if (!apiClient.isMockEnabled()) {
+    // Produção: consulta o worker primeiro.
+    try {
+      const remote = await apiClient.request<{ settings: unknown }>("GET", "/admin/settings");
+      if (isValidSettings(remote.settings)) {
+        // Atualiza cache local com o dado remoto autoritativo.
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(remote.settings));
+        } catch {
+          // localStorage indisponível (iframe, privado) — não é bloqueante.
+        }
+        return remote.settings;
+      }
+      // Worker retornou {} (primeira execução) — usa defaults e não grava cache.
+    } catch (e) {
+      console.warn("Falha ao buscar settings do worker — usando cache local ou padrões.", e);
+
+      // Fallback: cache local se o worker estiver inacessível.
       try {
-        const remote = await apiClient.request<{ settings: unknown }>("GET", "/admin/settings");
-        if (isValidSettings(remote.settings)) {
-          return remote.settings;
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed: unknown = JSON.parse(stored);
+          if (isValidSettings(parsed)) return parsed;
         }
       } catch {
-        // Worker retorna {} — sem settings remotas ainda. Cai no padrão local.
+        // cache corrompido — ignora.
       }
     }
 
@@ -71,20 +77,36 @@ export const adminSettingsService = {
   },
 
   /**
-   * Updates configuration payload in LocalStorage
+   * Persiste configurações no worker D1 (produção) ou apenas na memória (mock).
    */
   async saveSettings(settings: ExtendedSettingsPayload): Promise<{ success: boolean; message: string }> {
-    // Worker POST /admin/settings é stub — não persiste no D1.
-    // Persiste localmente; sincronização remota será implementada quando o worker suportar.
+    if (apiClient.isMockEnabled()) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      } catch {
+        // sem-op
+      }
+      return { success: true, message: "Configurações salvas (modo mock)." };
+    }
+
+    // Produção: persiste no D1 via worker.
+    const remote = await apiClient.request<{ ok: boolean; settings: unknown }>(
+      "POST",
+      "/admin/settings",
+      settings as unknown as Record<string, unknown>
+    );
+
+    if (!remote.ok) {
+      throw new Error("Worker retornou ok=false ao salvar configurações.");
+    }
+
+    // Atualiza cache local após confirmação remota.
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-      return {
-        success: true,
-        message: "Configurações salvas localmente. Sincronização remota pendente de implementação no worker."
-      };
-    } catch (e) {
-      console.error("Could not write config payload", e);
-      throw new Error("Falha ao persistir alterações na memória local.");
+    } catch {
+      // sem-op
     }
-  }
+
+    return { success: true, message: "Configurações salvas com sucesso." };
+  },
 };
