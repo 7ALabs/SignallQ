@@ -10,8 +10,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -19,6 +17,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import io.veloo.app.core.network.EstadoConexao
 import io.veloo.app.feature.devices.DevicesViewModel
@@ -27,6 +26,7 @@ import io.veloo.app.ui.SignallQTheme
 import io.veloo.app.ui.screen.AppShell
 import io.veloo.app.ui.screen.OnboardingScreen
 import io.veloo.app.ui.viewmodel.ChatDiagnosticoIaViewModel
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -244,68 +244,74 @@ class MainActivity : ComponentActivity() {
                 } else {
                     AppShell(
                         snapshotRede = snapshotRede,
-                        speedtest = io.veloo.app.ui.screen.AppShellSpeedtestState(
-                            snapshotSpeedtest = snapshotSpeedtest,
-                            speedtestPendenteModoMovel = speedtestPendenteModoMovel,
-                            speedtestPermiteHeavyMovel = speedtestPermiteHeavyMovel,
-                            speedtestMbConsumidosMes = speedtestMbConsumidosMes,
-                            onNovoTeste = { modo -> viewModel.reiniciarSuite(modo) },
-                            onCancelarTeste = { viewModel.executorSpeedtest.cancelar() },
-                            onConfirmarSpeedtestMovel = { viewModel.confirmarSpeedtestEmMovel() },
-                            onCancelarSpeedtestMovel = { viewModel.cancelarSpeedtestMovel() },
-                            onSetSpeedtestPermiteHeavyMovel = { valor -> viewModel.setSpeedtestPermiteHeavyMovel(valor) },
-                        ),
-                        wifi = io.veloo.app.ui.screen.AppShellWifiState(
-                            snapshotWifi = snapshotWifi,
-                            connectedNetwork = connectedNetwork,
-                            snapshotDevices = snapshotDevices,
-                            apelidos = apelidos,
-                            onRefreshDispositivos = { viewModel.refreshDispositivos() },
-                            onRefreshSinal = { viewModel.refreshSinal() },
-                            onSalvarApelido = { mac, apelido -> viewModel.salvarApelido(mac, apelido) },
-                        ),
-                        diagnostico = io.veloo.app.ui.screen.AppShellDiagnosticoState(
-                            snapshotDiagnostico = snapshotDiagnostico,
-                            onIniciarDiagnostico = {
-                                solicitarPermissaoTelefoniaSeNecessario()
-                                viewModel.iniciarDiagnostico()
-                            },
-                            diagChatHistorico = diagChatHistorico,
-                            diagChatCarregando = diagChatCarregando,
-                            onEnviarPerguntaDiagnostico = { pergunta -> viewModel.enviarPerguntaDiagnostico(pergunta) },
-                            onLimparDiagChat = { viewModel.limparDiagChat() },
-                        ),
-                        signallQ = io.veloo.app.ui.screen.AppShellSignallQState(
-                            signallQUiState = signallQUiState,
-                            gemmaAvailable = gemmaAvailable,
-                            operadoraMovel = simsAtivos.firstOrNull { it.isDefaultData }?.operadora
-                                ?: simsAtivos.firstOrNull()?.operadora,
-                            onIniciarSignallQ = { foco ->
-                                solicitarPermissaoTelefoniaSeNecessario()
-                                viewModel.iniciarSignallQ(foco)
-                            },
-                            onResetSignallQ = { viewModel.resetSignallQ() },
-                            onSelecionarChip = { chip -> viewModel.selecionarChipSignallQ(chip) },
-                            onResponderPergunta = { opcao -> viewModel.responderPerguntaSignallQ(opcao) },
-                            onEnviarMensagemTexto = { texto -> viewModel.enviarMensagemTextoSignallQ(texto) },
-                            onVerificarGemma = { viewModel.verificarDisponibilidadeGemma() },
-                            onIniciarSignallQComResultado = { resultado, foco ->
-                                solicitarPermissaoTelefoniaSeNecessario()
-                                viewModel.iniciarSignallQComResultado(resultado, foco)
-                            },
-                        ),
-                        chatDiag = io.veloo.app.ui.screen.AppShellChatDiagState(
-                            chatDiagUiState = chatDiagUiState,
-                            onEnviarMensagem = chatDiagViewModel::onEnviarMensagem,
-                            onAtualizarDraft = chatDiagViewModel::onAtualizarDraft,
-                            onEscolherOpcao = chatDiagViewModel::onEscolherOpcao,
-                            onAbrirSessao = chatDiagViewModel::onAbrirSessao,
-                            onApagarSessao = chatDiagViewModel::onApagarSessao,
-                            onRenomearSessao = chatDiagViewModel::onRenomearSessao,
-                            onNovaSessao = chatDiagViewModel::onNovaSessao,
-                            onToggleDrawer = chatDiagViewModel::onToggleDrawer,
-                            onCancelarAcaoAtual = chatDiagViewModel::onCancelarAcaoAtual,
-                        ),
+                        speedtest =
+                            io.veloo.app.ui.screen.AppShellSpeedtestState(
+                                snapshotSpeedtest = snapshotSpeedtest,
+                                speedtestPendenteModoMovel = speedtestPendenteModoMovel,
+                                speedtestPermiteHeavyMovel = speedtestPermiteHeavyMovel,
+                                speedtestMbConsumidosMes = speedtestMbConsumidosMes,
+                                onNovoTeste = { modo -> viewModel.reiniciarSuite(modo) },
+                                onCancelarTeste = { viewModel.executorSpeedtest.cancelar() },
+                                onConfirmarSpeedtestMovel = { viewModel.confirmarSpeedtestEmMovel() },
+                                onCancelarSpeedtestMovel = { viewModel.cancelarSpeedtestMovel() },
+                                onSetSpeedtestPermiteHeavyMovel = { valor -> viewModel.setSpeedtestPermiteHeavyMovel(valor) },
+                            ),
+                        wifi =
+                            io.veloo.app.ui.screen.AppShellWifiState(
+                                snapshotWifi = snapshotWifi,
+                                connectedNetwork = connectedNetwork,
+                                snapshotDevices = snapshotDevices,
+                                apelidos = apelidos,
+                                onRefreshDispositivos = { viewModel.refreshDispositivos() },
+                                onRefreshSinal = { viewModel.refreshSinal() },
+                                onSalvarApelido = { mac, apelido -> viewModel.salvarApelido(mac, apelido) },
+                            ),
+                        diagnostico =
+                            io.veloo.app.ui.screen.AppShellDiagnosticoState(
+                                snapshotDiagnostico = snapshotDiagnostico,
+                                onIniciarDiagnostico = {
+                                    solicitarPermissaoTelefoniaSeNecessario()
+                                    viewModel.iniciarDiagnostico()
+                                },
+                                diagChatHistorico = diagChatHistorico,
+                                diagChatCarregando = diagChatCarregando,
+                                onEnviarPerguntaDiagnostico = { pergunta -> viewModel.enviarPerguntaDiagnostico(pergunta) },
+                                onLimparDiagChat = { viewModel.limparDiagChat() },
+                            ),
+                        signallQ =
+                            io.veloo.app.ui.screen.AppShellSignallQState(
+                                signallQUiState = signallQUiState,
+                                gemmaAvailable = gemmaAvailable,
+                                operadoraMovel =
+                                    simsAtivos.firstOrNull { it.isDefaultData }?.operadora
+                                        ?: simsAtivos.firstOrNull()?.operadora,
+                                onIniciarSignallQ = { foco ->
+                                    solicitarPermissaoTelefoniaSeNecessario()
+                                    viewModel.iniciarSignallQ(foco)
+                                },
+                                onResetSignallQ = { viewModel.resetSignallQ() },
+                                onSelecionarChip = { chip -> viewModel.selecionarChipSignallQ(chip) },
+                                onResponderPergunta = { opcao -> viewModel.responderPerguntaSignallQ(opcao) },
+                                onEnviarMensagemTexto = { texto -> viewModel.enviarMensagemTextoSignallQ(texto) },
+                                onVerificarGemma = { viewModel.verificarDisponibilidadeGemma() },
+                                onIniciarSignallQComResultado = { resultado, foco ->
+                                    solicitarPermissaoTelefoniaSeNecessario()
+                                    viewModel.iniciarSignallQComResultado(resultado, foco)
+                                },
+                            ),
+                        chatDiag =
+                            io.veloo.app.ui.screen.AppShellChatDiagState(
+                                chatDiagUiState = chatDiagUiState,
+                                onEnviarMensagem = chatDiagViewModel::onEnviarMensagem,
+                                onAtualizarDraft = chatDiagViewModel::onAtualizarDraft,
+                                onEscolherOpcao = chatDiagViewModel::onEscolherOpcao,
+                                onAbrirSessao = chatDiagViewModel::onAbrirSessao,
+                                onApagarSessao = chatDiagViewModel::onApagarSessao,
+                                onRenomearSessao = chatDiagViewModel::onRenomearSessao,
+                                onNovaSessao = chatDiagViewModel::onNovaSessao,
+                                onToggleDrawer = chatDiagViewModel::onToggleDrawer,
+                                onCancelarAcaoAtual = chatDiagViewModel::onCancelarAcaoAtual,
+                            ),
                         snapshotDns = snapshotDns,
                         history = history,
                         localIp = localIpUiState,

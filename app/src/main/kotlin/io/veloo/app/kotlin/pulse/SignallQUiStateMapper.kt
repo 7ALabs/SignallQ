@@ -1,7 +1,7 @@
 package io.veloo.app.pulse
 
-import io.veloo.app.feature.diagnostico.pulse.SignallQState
 import io.veloo.app.feature.diagnostico.pulse.SignallQSnapshot
+import io.veloo.app.feature.diagnostico.pulse.SignallQState
 import io.veloo.app.ui.screen.SignallQUiState
 
 object SignallQUiStateMapper {

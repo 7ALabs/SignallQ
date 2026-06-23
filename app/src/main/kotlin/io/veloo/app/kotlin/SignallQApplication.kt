@@ -12,8 +12,9 @@ import timber.log.Timber
 import javax.inject.Inject
 
 @HiltAndroidApp
-class SignallQApplication : Application(), Configuration.Provider {
-
+class SignallQApplication :
+    Application(),
+    Configuration.Provider {
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
 
@@ -21,9 +22,11 @@ class SignallQApplication : Application(), Configuration.Provider {
     lateinit var speedtestPersistenceCoordinator: SpeedtestPersistenceCoordinator
 
     override val workManagerConfiguration: Configuration
-        get() = Configuration.Builder()
-            .setWorkerFactory(workerFactory)
-            .build()
+        get() =
+            Configuration
+                .Builder()
+                .setWorkerFactory(workerFactory)
+                .build()
 
     override fun onCreate() {
         super.onCreate()

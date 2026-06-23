@@ -8,8 +8,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.veloo.app.BuildConfig
 import io.veloo.app.core.database.CoreDatabaseModulo
-import io.veloo.app.core.database.SignallQDatabase
 import io.veloo.app.core.database.MedicaoDao
+import io.veloo.app.core.database.SignallQDatabase
 import io.veloo.app.core.database.chat.ChatSessionDao
 import io.veloo.app.core.datastore.PreferenciasAppRepository
 import io.veloo.app.core.network.CoreNetworkModulo
@@ -36,10 +36,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import okhttp3.OkHttpClient
+import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Qualifier
 import javax.inject.Singleton
-import java.util.concurrent.TimeUnit
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
@@ -93,7 +93,8 @@ object AppModule {
     @Singleton
     @Named("upnpClient")
     fun provideUpnpOkHttpClient(): OkHttpClient =
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .connectTimeout(2, TimeUnit.SECONDS)
             .readTimeout(2, TimeUnit.SECONDS)
             .writeTimeout(2, TimeUnit.SECONDS)
@@ -110,7 +111,8 @@ object AppModule {
     @Singleton
     @Named("upnpIgdClient")
     fun provideUpnpIgdOkHttpClient(): OkHttpClient =
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(5, TimeUnit.SECONDS)
             .writeTimeout(5, TimeUnit.SECONDS)

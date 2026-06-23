@@ -1,9 +1,9 @@
 package io.veloo.app.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,10 +33,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.ui.SignallQTheme
 import io.veloo.app.ui.LkColors
 import io.veloo.app.ui.LkSpacing
 import io.veloo.app.ui.LocalLkTokens
+import io.veloo.app.ui.SignallQTheme
 
 @Composable
 fun LLMAssistantMessage(

@@ -37,9 +37,9 @@ import io.veloo.app.ui.LocalLkTokens
 import io.veloo.app.ui.component.AppBorderGlowEffect
 import io.veloo.app.ui.component.ContextualQuestionCard
 import io.veloo.app.ui.component.DiagnosisChipsRow
-import io.veloo.app.ui.component.SignallQPulseSymbol
 import io.veloo.app.ui.component.PulseResultCard
 import io.veloo.app.ui.component.RotatingMessageText
+import io.veloo.app.ui.component.SignallQPulseSymbol
 import io.veloo.app.ui.component.SilentSpeedtestIndicator
 
 @Composable

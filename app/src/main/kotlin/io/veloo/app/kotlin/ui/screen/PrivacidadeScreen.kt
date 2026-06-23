@@ -112,7 +112,9 @@ fun PrivacidadeScreen(
                     )
                     Spacer(Modifier.height(LkSpacing.sm))
                     Text(
-                        text = "O SignallQ roda inteiramente no seu aparelho. Resultados são salvos localmente. Nada vai para servidores externos sem você acionar.",
+                        text =
+                            "O SignallQ roda inteiramente no seu aparelho. Resultados são salvos localmente. " +
+                                "Nada vai para servidores externos sem você acionar.",
                         fontSize = 13.sp,
                         color = c.textSecondary,
                         lineHeight = 19.sp,

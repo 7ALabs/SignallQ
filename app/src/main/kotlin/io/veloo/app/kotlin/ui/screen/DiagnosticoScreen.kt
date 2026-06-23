@@ -102,8 +102,8 @@ import io.veloo.app.ui.component.ImpactItem
 import io.veloo.app.ui.component.MetricItem
 import io.veloo.app.ui.component.MetricStatus
 import io.veloo.app.ui.component.OnDevicePill
-import io.veloo.app.ui.component.SignallQSymbol
 import io.veloo.app.ui.component.SignalToggleCard
+import io.veloo.app.ui.component.SignallQSymbol
 import io.veloo.app.ui.state.UiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -597,10 +597,12 @@ private fun DiagAnalyzingContent(
             Spacer(Modifier.height(8.dp))
 
             Text(
-                text = if (mostrarMensagemConectando)
-                    "O servidor está processando os sinais da sua rede. Isso pode levar alguns segundos."
-                else
-                    "A IA está cruzando os sinais para encontrar o que está limitando você.",
+                text =
+                    if (mostrarMensagemConectando) {
+                        "O servidor está processando os sinais da sua rede. Isso pode levar alguns segundos."
+                    } else {
+                        "A IA está cruzando os sinais para encontrar o que está limitando você."
+                    },
                 fontSize = 12.5.sp,
                 color = c.textSecondary,
                 textAlign = TextAlign.Center,

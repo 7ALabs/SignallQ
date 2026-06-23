@@ -8,7 +8,7 @@ ktlint_standard_no-wildcard-imports = disabled
 
 # Composable functions use PascalCase convention per Compose guidelines
 # https://developer.android.com/jetpack/compose/style-guide#naming-composable-functions
-[app/src/main/kotlin/io/linka/app/kotlin/ui/**/*.kt]
+[app/src/main/kotlin/io/veloo/app/kotlin/ui/**/*.kt]
 ktlint_standard_function-naming = disabled
 
 # Issue #29 — residual manual violations to be fixed in this PR

@@ -1,11 +1,11 @@
 package io.veloo.app.ui.screen
 
 import androidx.compose.runtime.Stable
+import io.veloo.app.feature.devices.SnapshotScanDispositivos
 import io.veloo.app.feature.diagnostico.SnapshotDiagnostico
 import io.veloo.app.feature.diagnostico.ai.DiagChatEntry
 import io.veloo.app.feature.diagnostico.chat.TipoDiagnostico
 import io.veloo.app.feature.diagnostico.pulse.OpcaoResposta
-import io.veloo.app.feature.devices.SnapshotScanDispositivos
 import io.veloo.app.feature.speedtest.ModoSpeedtest
 import io.veloo.app.feature.speedtest.ResultadoSpeedtest
 import io.veloo.app.feature.speedtest.SnapshotExecucaoSpeedtest

@@ -40,8 +40,8 @@ import io.veloo.app.feature.diagnostico.DiagnosticStatus
 import io.veloo.app.feature.diagnostico.ai.AiAcaoRecomendada
 import io.veloo.app.feature.diagnostico.pulse.AiAnalysisEntry
 import io.veloo.app.feature.diagnostico.pulse.IntelligentDiagnosticSession
-import io.veloo.app.feature.diagnostico.pulse.SignallQState
 import io.veloo.app.feature.diagnostico.pulse.ResponseSource
+import io.veloo.app.feature.diagnostico.pulse.SignallQState
 import io.veloo.app.ui.LkColors
 import io.veloo.app.ui.LkSpacing
 import io.veloo.app.ui.LocalLkTokens

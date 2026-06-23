@@ -7,8 +7,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.veloo.app.core.database.ApelidoDispositivoEntity
-import io.veloo.app.core.database.SignallQDatabase
 import io.veloo.app.core.database.MedicaoEntity
+import io.veloo.app.core.database.SignallQDatabase
 import io.veloo.app.core.datastore.PreferenciasAppRepository
 import io.veloo.app.core.network.DispatcherProvider
 import io.veloo.app.core.network.EstadoConexao
@@ -38,6 +38,7 @@ import io.veloo.app.feature.diagnostico.ai.DiagnosisAiContext
 import io.veloo.app.feature.diagnostico.ai.DiagnosisAiContextFactory
 import io.veloo.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.veloo.app.feature.diagnostico.pulse.OpcaoResposta
+import io.veloo.app.feature.diagnostico.pulse.SignallQOrchestrator
 import io.veloo.app.feature.dns.AvaliadorCoerenciaDns
 import io.veloo.app.feature.dns.BenchmarkDns
 import io.veloo.app.feature.dns.EstadoBenchmarkDns
@@ -54,7 +55,6 @@ import io.veloo.app.feature.speedtest.ModoSpeedtest
 import io.veloo.app.feature.wifi.ScannerRedesWifi
 import io.veloo.app.monitoramento.MonitoramentoScheduler
 import io.veloo.app.notificacao.SignallQNotificationHelper
-import io.veloo.app.feature.diagnostico.pulse.SignallQOrchestrator
 import io.veloo.app.pulse.SignallQUiStateMapper
 import io.veloo.app.ui.ConnectionNodeType
 import io.veloo.app.ui.FiltroConexaoHistorico
@@ -458,7 +458,9 @@ class MainViewModel
                                 linkSpeedMbps = ws.linkSpeedMbps,
                                 frequenciaMhz = ws.frequenciaMhz,
                                 wifiStandard = ws.padraoWifi,
-                                dispositivosNaRede = scannerDispositivos.snapshotFlow.value.dispositivos.size.takeIf { it > 0 },
+                                dispositivosNaRede =
+                                    scannerDispositivos.snapshotFlow.value.dispositivos.size
+                                        .takeIf { it > 0 },
                             )
                         }
                     diagnosticOrchestrator.executar(internetInput, wifiInput, fibraInput)
@@ -701,7 +703,9 @@ class MainViewModel
                                 linkSpeedMbps = it.linkSpeedMbps,
                                 frequenciaMhz = it.frequenciaMhz,
                                 wifiStandard = it.padraoWifi,
-                                dispositivosNaRede = scannerDispositivos.snapshotFlow.value.dispositivos.size.takeIf { size -> size > 0 },
+                                dispositivosNaRede =
+                                    scannerDispositivos.snapshotFlow.value.dispositivos.size
+                                        .takeIf { size -> size > 0 },
                             )
                         }
                     diagnosticOrchestrator.executar(internetInput, wifiInput)
@@ -928,7 +932,9 @@ class MainViewModel
                             linkSpeedMbps = ws.linkSpeedMbps,
                             frequenciaMhz = ws.frequenciaMhz,
                             wifiStandard = ws.padraoWifi,
-                            dispositivosNaRede = scannerDispositivos.snapshotFlow.value.dispositivos.size.takeIf { it > 0 },
+                            dispositivosNaRede =
+                                scannerDispositivos.snapshotFlow.value.dispositivos.size
+                                    .takeIf { it > 0 },
                         )
                     }
                 diagnosticOrchestrator.executar(internetInput, wifiInput)
@@ -1130,7 +1136,11 @@ class MainViewModel
 
                     // Identidades conhecidas: MACs do Room + identidades ip+nome do DataStore
                     val macsConhecidosRoom =
-                        bancoDados.apelidoDispositivoDao().buscarTodos().map { it.mac }.toSet()
+                        bancoDados
+                            .apelidoDispositivoDao()
+                            .buscarTodos()
+                            .map { it.mac }
+                            .toSet()
                     val identidadesConhecidas =
                         preferenciasAppRepository.buscarDispositivosConhecidos().toMutableSet()
 

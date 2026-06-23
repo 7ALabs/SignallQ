@@ -26,8 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.ui.SignallQTheme
 import io.veloo.app.ui.LkColors
+import io.veloo.app.ui.SignallQTheme
 
 @Composable
 fun DiagVerdictHeroCard(
@@ -134,7 +134,9 @@ private fun DiagVerdictHeroCardPreview() {
     SignallQTheme {
         DiagVerdictHeroCard(
             titulo = "DIAGNÓSTICO IA",
-            veredito = "Seu Wi-Fi chega fraco neste cômodo e a fila de download entope a conexão. É por isso que chamadas travam e páginas demoram — o plano em si está ok.",
+            veredito =
+                "Seu Wi-Fi chega fraco neste cômodo e a fila de download entope a conexão. " +
+                    "É por isso que chamadas travam e páginas demoram — o plano em si está ok.",
             statusLabel = "ATENÇÃO",
             statusColor = LkColors.warning,
             confianca = "Confiança alta",

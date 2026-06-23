@@ -152,6 +152,7 @@ private val darkScheme =
         outline = LkColors.Dark.border,
     )
 
+@Suppress("FunctionNaming")
 @Composable
 fun SignallQTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

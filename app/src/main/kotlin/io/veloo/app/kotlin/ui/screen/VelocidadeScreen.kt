@@ -379,6 +379,7 @@ private fun PillsFase(faseAtual: FaseSpeedtest) {
     }
 }
 
+@Suppress("FunctionNaming")
 @Composable
 private fun ErroContent(
     mensagem: String?,

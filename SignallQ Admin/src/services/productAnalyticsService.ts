@@ -1,16 +1,17 @@
-import { 
-  mockFeatureUsage, 
-  mockScreenNavigation, 
-  mockFeatureCrashes, 
-  mockRetention, 
-  mockFeatureAiUsage 
+import { apiClient } from "./apiClient";
+import {
+  mockFeatureUsage,
+  mockScreenNavigation,
+  mockFeatureCrashes,
+  mockRetention,
+  mockFeatureAiUsage
 } from "../mocks/productAnalytics.mock";
-import { 
-  FeatureUsageMetric, 
-  ScreenNavigationMetric, 
-  FeatureCrashMetric, 
-  RetentionMetric, 
-  FeatureAiUsageMetric 
+import {
+  FeatureUsageMetric,
+  ScreenNavigationMetric,
+  FeatureCrashMetric,
+  RetentionMetric,
+  FeatureAiUsageMetric
 } from "../types/productAnalytics";
 
 export interface DashboardFilters {
@@ -26,6 +27,7 @@ export class ProductAnalyticsService {
   }
 
   async getFeatureUsage(filters?: DashboardFilters): Promise<FeatureUsageMetric[]> {
+    if (!apiClient.isMockEnabled()) return [];
     await this.delay(300);
     // Period scaling simulations:
     const multiplier = filters?.period === "1d" ? 0.1 : filters?.period === "30d" ? 4.5 : 1.0;
@@ -37,6 +39,7 @@ export class ProductAnalyticsService {
   }
 
   async getScreenNavigation(filters?: DashboardFilters): Promise<ScreenNavigationMetric[]> {
+    if (!apiClient.isMockEnabled()) return [];
     await this.delay(300);
     const multiplier = filters?.period === "1d" ? 0.1 : filters?.period === "30d" ? 4.5 : 1.0;
     return mockScreenNavigation.map(s => ({
@@ -47,6 +50,7 @@ export class ProductAnalyticsService {
   }
 
   async getFeatureCrashes(filters?: DashboardFilters): Promise<FeatureCrashMetric[]> {
+    if (!apiClient.isMockEnabled()) return [];
     await this.delay(300);
     // Filter by platform or version simulation
     let result = [...mockFeatureCrashes];
@@ -57,11 +61,13 @@ export class ProductAnalyticsService {
   }
 
   async getRetention(filters?: DashboardFilters): Promise<RetentionMetric[]> {
+    if (!apiClient.isMockEnabled()) return [];
     await this.delay(200);
     return mockRetention;
   }
 
   async getFeatureAiUsage(filters?: DashboardFilters): Promise<FeatureAiUsageMetric[]> {
+    if (!apiClient.isMockEnabled()) return [];
     await this.delay(200);
     const multiplier = filters?.period === "1d" ? 0.15 : filters?.period === "30d" ? 4.2 : 1.0;
     return mockFeatureAiUsage.map(ai => ({
@@ -75,6 +81,7 @@ export class ProductAnalyticsService {
   }
 
   async getOverviewCards(filters?: DashboardFilters) {
+    if (!apiClient.isMockEnabled()) return null;
     await this.delay(200);
     return {
       mostUsedFeature: "SpeedTest",

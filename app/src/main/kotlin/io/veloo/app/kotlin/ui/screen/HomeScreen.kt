@@ -462,11 +462,12 @@ fun HomeScreen(
                         connectedNetwork = connectedNetwork,
                         c = c,
                         onTap = onAbrirRedes,
-                        quantidadeDispositivos = snapshotDispositivos
-                            ?.takeIf { it.estado == io.veloo.app.feature.devices.EstadoScanDispositivos.concluido }
-                            ?.dispositivos
-                            ?.size
-                            ?.takeIf { it > 0 },
+                        quantidadeDispositivos =
+                            snapshotDispositivos
+                                ?.takeIf { it.estado == io.veloo.app.feature.devices.EstadoScanDispositivos.concluido }
+                                ?.dispositivos
+                                ?.size
+                                ?.takeIf { it > 0 },
                         onTapDispositivos = onAbrirDispositivos,
                     )
                 }
@@ -1554,26 +1555,29 @@ private fun WifiSignalCard(
                 ) {
                     ChipSegurancaWifi(seguranca = connectedNetwork.seguranca)
                     if (quantidadeDispositivos != null) {
-                        val labelDispositivos = if (quantidadeDispositivos == 1) {
-                            "1 dispositivo na rede"
-                        } else {
-                            "$quantidadeDispositivos dispositivos na rede"
-                        }
+                        val labelDispositivos =
+                            if (quantidadeDispositivos == 1) {
+                                "1 dispositivo na rede"
+                            } else {
+                                "$quantidadeDispositivos dispositivos na rede"
+                            }
                         AssistChip(
                             onClick = onTapDispositivos,
                             label = { Text(labelDispositivos, style = MaterialTheme.typography.labelSmall) },
                             leadingIcon = {
                                 Icon(Icons.Outlined.DeviceHub, contentDescription = null, modifier = Modifier.size(14.dp))
                             },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = LkColors.accent.copy(alpha = 0.08f),
-                                labelColor = LkColors.accent,
-                                leadingIconContentColor = LkColors.accent,
-                            ),
-                            border = AssistChipDefaults.assistChipBorder(
-                                borderColor = LkColors.accent.copy(alpha = 0.25f),
-                                enabled = true,
-                            ),
+                            colors =
+                                AssistChipDefaults.assistChipColors(
+                                    containerColor = LkColors.accent.copy(alpha = 0.08f),
+                                    labelColor = LkColors.accent,
+                                    leadingIconContentColor = LkColors.accent,
+                                ),
+                            border =
+                                AssistChipDefaults.assistChipBorder(
+                                    borderColor = LkColors.accent.copy(alpha = 0.25f),
+                                    enabled = true,
+                                ),
                         )
                     }
                 }

@@ -16,8 +16,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.ui.SignallQTheme
 import io.veloo.app.ui.LocalLkTokens
+import io.veloo.app.ui.SignallQTheme
 
 @Composable
 fun OnDevicePill(

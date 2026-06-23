@@ -37,7 +37,11 @@ class DeteccaoDispositivoNovoTest {
      * Retorna null quando MAC está disponível (fluxo Room cobre esse caso).
      * Retorna "ipnome:<IP>:<nome>" para dispositivos sem MAC.
      */
-    private fun identidadeEstavel(mac: String?, ip: String?, nome: String): String? {
+    private fun identidadeEstavel(
+        mac: String?,
+        ip: String?,
+        nome: String,
+    ): String? {
         if (mac != null) return null
         val ipVal = ip ?: return null
         return "ipnome:$ipVal:${nome.trim().lowercase()}"
@@ -115,11 +119,12 @@ class DeteccaoDispositivoNovoTest {
     @Test
     fun `identidadeEstavel retorna null quando MAC disponivel`() {
         // Com MAC presente, o fluxo Room cobre o rastreamento — DataStore nao necessario
-        val resultado = identidadeEstavel(
-            mac = "AA:BB:CC:DD:EE:01",
-            ip = "192.168.1.10",
-            nome = "Meu dispositivo",
-        )
+        val resultado =
+            identidadeEstavel(
+                mac = "AA:BB:CC:DD:EE:01",
+                ip = "192.168.1.10",
+                nome = "Meu dispositivo",
+            )
         assertNull("Deve retornar null quando MAC disponivel", resultado)
     }
 

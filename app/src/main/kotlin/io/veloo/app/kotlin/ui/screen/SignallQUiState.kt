@@ -3,8 +3,8 @@ package io.veloo.app.ui.screen
 import io.veloo.app.feature.diagnostico.pulse.AiAnalysisEntry
 import io.veloo.app.feature.diagnostico.pulse.IntelligentDiagnosticSession
 import io.veloo.app.feature.diagnostico.pulse.OpcaoResposta
-import io.veloo.app.feature.diagnostico.pulse.SignallQState
 import io.veloo.app.feature.diagnostico.pulse.QuestionNode
+import io.veloo.app.feature.diagnostico.pulse.SignallQState
 
 sealed interface SignallQUiState {
     data object Idle : SignallQUiState

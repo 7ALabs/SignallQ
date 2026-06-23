@@ -24,20 +24,22 @@ import java.util.concurrent.TimeUnit
  * nao e mais necessario passá-las via inputData.
  */
 internal object AdminSyncScheduler {
-
     private const val WORK_NAME_RETROATIVO = "admin_retroactive_sync"
     private const val WORK_NAME_PERIODICO = "admin_periodic_sync"
 
     fun agendar(context: Context) {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
+        val constraints =
+            Constraints
+                .Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
 
         // One-shot retroativo: roda uma vez com retry exponencial a partir de 30s
-        val retroativoRequest = OneTimeWorkRequestBuilder<AdminSyncWorker>()
-            .setConstraints(constraints)
-            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
-            .build()
+        val retroativoRequest =
+            OneTimeWorkRequestBuilder<AdminSyncWorker>()
+                .setConstraints(constraints)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                .build()
 
         WorkManager.getInstance(context).enqueueUniqueWork(
             WORK_NAME_RETROATIVO,
@@ -46,9 +48,10 @@ internal object AdminSyncScheduler {
         )
 
         // Periodico: a cada 6h, mantem novos registros sincronizados
-        val periodicoRequest = PeriodicWorkRequestBuilder<AdminSyncWorker>(6, TimeUnit.HOURS)
-            .setConstraints(constraints)
-            .build()
+        val periodicoRequest =
+            PeriodicWorkRequestBuilder<AdminSyncWorker>(6, TimeUnit.HOURS)
+                .setConstraints(constraints)
+                .build()
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             WORK_NAME_PERIODICO,

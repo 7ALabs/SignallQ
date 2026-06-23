@@ -34,8 +34,8 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.outlined.Cable
 import androidx.compose.material.icons.outlined.CellTower
-import androidx.compose.material.icons.outlined.DevicesOther
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.DevicesOther
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Hub
@@ -1027,9 +1027,10 @@ private fun RedesTab(
                 Spacer(Modifier.height(LkSpacing.lg))
                 OutlinedButton(
                     onClick = onAbrirDispositivos,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = LkSpacing.lg),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = LkSpacing.lg),
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.DevicesOther,
