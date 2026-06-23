@@ -72,9 +72,11 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         console.error("Failed to load overview telemetry dashboard:", err);
         if (active) {
           const code = err?.code;
-          // 401 é tratado pelo App (handleLogout via onAuthError) — não exibir aqui
-          if (code === 401) return;
-          setError(code > 0 ? `Erro HTTP ${code} — worker indisponível` : "Sem conexão com o worker");
+          if (code === 401) {
+            setError("Erro de autenticação — verifique a configuração do token");
+          } else {
+            setError(code > 0 ? `Erro HTTP ${code} — worker indisponível` : "Sem conexão com o worker");
+          }
         }
       } finally {
         if (active) {
