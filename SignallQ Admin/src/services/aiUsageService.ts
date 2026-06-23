@@ -51,7 +51,35 @@ export const aiUsageService = {
     tokensReceivedM: string;
     successRate: string;
   } | null> {
-    if (!apiClient.isMockEnabled()) return null;
+    if (!apiClient.isMockEnabled()) {
+      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return null;
+      try {
+        const period = filters.period === "today" ? "1d" : (filters.period ?? "7d");
+        const raw = await apiClient.request<{
+          totalCostUsd: number;
+          totalRequests: number;
+          avgCostPerRequest: number;
+          promptTokens: number;
+          completionTokens: number;
+        }>("GET", `/admin/metrics/ai-costs?period=${period}`);
+        const sentM     = (raw.promptTokens     ?? 0) / 1_000_000;
+        const receivedM = (raw.completionTokens  ?? 0) / 1_000_000;
+        const totalReq  = raw.totalRequests ?? 0;
+        const totalCost = raw.totalCostUsd  ?? 0;
+        const avgCost   = raw.avgCostPerRequest ?? 0;
+        return {
+          totalCostUsd:      `$${totalCost.toFixed(2)}`,
+          totalRequests:     totalReq.toLocaleString("pt-BR"),
+          avgCostPerRequest: `$${avgCost.toFixed(4)}`,
+          tokensSentM:       `${sentM.toFixed(1)}M`,
+          tokensReceivedM:   `${receivedM.toFixed(1)}M`,
+          // Sem coluna de status em ai_usage — taxa de sucesso sem fonte real (SIG-125).
+          successRate:       "—",
+        };
+      } catch {
+        return null;
+      }
+    }
 
     const isStg = filters.environment === "staging";
     const scale = isStg ? 0.05 : 1.0;

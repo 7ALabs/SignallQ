@@ -284,6 +284,49 @@ async function handleRecentAlerts(_request: Request, env: Env): Promise<Response
   return json({ source: "d1", items: [] }, 200, env);
 }
 
+async function handleAiCostMetrics(request: Request, env: Env): Promise<Response> {
+  const url    = new URL(request.url);
+  const period = url.searchParams.get("period") ?? "7d";
+  const since  = nowSec() - periodToSeconds(period);
+
+  const row = await env.DB.prepare(
+    `SELECT
+       COUNT(*)             AS totalRequests,
+       SUM(cost_usd)        AS totalCostUsd,
+       SUM(prompt_tokens)   AS promptTokens,
+       SUM(completion_tokens) AS completionTokens,
+       SUM(total_tokens)    AS totalTokens
+     FROM ai_usage
+     WHERE created_at >= ?`
+  ).bind(since).first<{
+    totalRequests: number;
+    totalCostUsd: number | null;
+    promptTokens: number | null;
+    completionTokens: number | null;
+    totalTokens: number | null;
+  }>();
+
+  const totalRequests   = row?.totalRequests     ?? 0;
+  const totalCostUsd    = row?.totalCostUsd       ?? 0;
+  const promptTokens    = row?.promptTokens       ?? 0;
+  const completionTokens = row?.completionTokens  ?? 0;
+  const totalTokens     = row?.totalTokens        ?? 0;
+
+  // avgCostPerRequest: guard contra divisão por zero.
+  const avgCostPerRequest = totalRequests > 0 ? totalCostUsd / totalRequests : 0;
+
+  return json({
+    source: "d1",
+    period,
+    totalCostUsd,
+    totalRequests,
+    avgCostPerRequest,
+    totalTokens,
+    promptTokens,
+    completionTokens,
+  }, 200, env);
+}
+
 async function handleAiProviders(request: Request, env: Env): Promise<Response> {
   const url    = new URL(request.url);
   const period = url.searchParams.get("period") ?? "7d";
@@ -484,6 +527,7 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/metrics\/network$/,                     handler: handleNetworkInsights },
   { method: "GET",  pattern: /^\/admin\/metrics\/top-issues$/,                  handler: handleTopIssues },
   { method: "GET",  pattern: /^\/admin\/metrics\/alerts$/,                      handler: handleRecentAlerts },
+  { method: "GET",  pattern: /^\/admin\/metrics\/ai-costs$/,                    handler: handleAiCostMetrics },
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-providers$/,                handler: handleAiProviders },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/status$/,       handler: handleFirebaseStatus },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/analytics$/,    handler: handleFirebaseAnalytics },
