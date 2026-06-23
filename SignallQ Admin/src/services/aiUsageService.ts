@@ -43,6 +43,38 @@ export const aiUsageService = {
     return apiClient.simulateFetch(mockAiUsageRecords, filters);
   },
 
+  async getAiCostSummary(filters: DashboardFilters = {}): Promise<{
+    totalCostUsd: string;
+    totalRequests: string;
+    avgCostPerRequest: string;
+    tokensSentM: string;
+    tokensReceivedM: string;
+    successRate: string;
+  } | null> {
+    if (!apiClient.isMockEnabled()) return null;
+
+    const isStg = filters.environment === "staging";
+    const scale = isStg ? 0.05 : 1.0;
+
+    const insights = await apiClient.simulateFetch(mockAiModelInsights, filters);
+    const realInsights = insights.filter(i => i.provider !== "local_fallback");
+
+    const totalCost = realInsights.reduce((s, i) => s + i.estimatedCostUsd * scale, 0);
+    const totalCalls = realInsights.reduce((s, i) => s + Math.round(i.totalCalls * scale), 0);
+    const sentM = realInsights.reduce((s, i) => s + Math.round(i.totalTokens * scale * 0.72), 0) / 1_000_000;
+    const receivedM = realInsights.reduce((s, i) => s + Math.round(i.totalTokens * scale * 0.28), 0) / 1_000_000;
+    const avgReliability = realInsights.reduce((s, i) => s + (i.reliabilityPercentage ?? 100), 0) / realInsights.length;
+
+    return {
+      totalCostUsd: `$${totalCost.toFixed(2)}`,
+      totalRequests: totalCalls.toLocaleString("pt-BR"),
+      avgCostPerRequest: `$${totalCalls > 0 ? (totalCost / totalCalls).toFixed(4) : "0.0000"}`,
+      tokensSentM: `${sentM.toFixed(1)}M`,
+      tokensReceivedM: `${receivedM.toFixed(1)}M`,
+      successRate: `${avgReliability.toFixed(1)}%`,
+    };
+  },
+
   async getAiDailyCostsTimeSeries(filters: DashboardFilters = {}) {
     if (!apiClient.isMockEnabled()) return [];
 

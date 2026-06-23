@@ -1,13 +1,24 @@
 import React from "react";
 import { ContextualAdOpportunity } from "../../../types/ads";
-import { Megaphone, Ban, Compass, ShieldOff, AlertCircle } from "lucide-react";
+import { ShieldOff } from "lucide-react";
 import { SectionCard } from "../../../components/ui/SectionCard";
+import { adsIntelligenceService } from "../../../services/adsIntelligenceService";
 
 interface AdsOpportunityPanelProps {
   opportunities: ContextualAdOpportunity[];
 }
 
 export const AdsOpportunityPanel: React.FC<AdsOpportunityPanelProps> = ({ opportunities }) => {
+  const [eligibleTotal, setEligibleTotal] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    let active = true;
+    adsIntelligenceService.getEligibilitySummary().then((data) => {
+      if (active) setEligibleTotal(data?.eligibleTotal ?? null);
+    });
+    return () => { active = false; };
+  }, []);
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "eligible":
@@ -47,7 +58,9 @@ export const AdsOpportunityPanel: React.FC<AdsOpportunityPanelProps> = ({ opport
           </div>
           <div className="bg-zinc-950/40 border border-zinc-900 p-4 rounded-xl">
             <span className="block text-[8px] font-mono text-zinc-500 uppercase">Elegibilidade Geral</span>
-            <div className="text-sm font-bold text-white font-mono mt-1">12.480 diagnósticos</div>
+            <div className="text-sm font-bold text-white font-mono mt-1">
+              {eligibleTotal !== null ? `${eligibleTotal.toLocaleString("pt-BR")} diagnósticos` : "—"}
+            </div>
           </div>
           <div className="bg-zinc-950/40 border border-zinc-900 p-4 rounded-xl">
             <span className="block text-[8px] font-mono text-zinc-500 uppercase">Categoria Relevante</span>

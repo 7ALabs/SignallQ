@@ -25,47 +25,55 @@ export interface DashboardFilters {
 }
 
 export const adminMetricsService = {
-  async getOverviewMetrics(filters: DashboardFilters = {}): Promise<OverviewMetricsResponse> {
+  async getOverviewMetrics(filters: DashboardFilters = {}): Promise<OverviewMetricsResponse | null> {
     const period = filters.period || "7d";
 
     if (!apiClient.isMockEnabled()) {
-      const apiPeriod = period === "today" ? "1d" : period;
-      const raw = await apiClient.request<{
-        totalDiagnostics: number;
-        activeSessions: number;
-        avgNetworkScore: number;
-        aiCallsToday: number;
-        aiCostToday: number;
-        aiTokensToday: number;
-      }>("GET", `/admin/metrics/overview?period=${apiPeriod}`);
+      // Sem baseUrl configurada, retorna null em vez de lançar.
+      if (!(import.meta.env.VITE_ADMIN_API_BASE_URL)) return null;
 
-      const score = raw.avgNetworkScore ?? 0;
-      const verdict = score >= 80 ? "Excelente" : score >= 60 ? "Bom" : score >= 40 ? "Regular" : "Fraco";
+      try {
+        const apiPeriod = period === "today" ? "1d" : period;
+        const raw = await apiClient.request<{
+          totalDiagnostics: number;
+          activeSessions: number;
+          avgNetworkScore: number;
+          aiCallsToday: number;
+          aiCostToday: number;
+          aiTokensToday: number;
+        }>("GET", `/admin/metrics/overview?period=${apiPeriod}`);
 
-      return {
-        diagnosticsCount: {
-          label: "Diagnósticos",
-          value: raw.totalDiagnostics,
-          trend: { value: raw.activeSessions, changePercentage: 0, type: "neutral" as const, intervalLabel: `${raw.activeSessions} sessões ativas` },
-        },
-        activeUsers: {
-          label: "Score de Rede",
-          value: `${score} · ${verdict}`,
-          trend: { value: score, changePercentage: 0, type: score >= 60 ? "up" as const : "down" as const, intervalLabel: "score de rede" },
-        },
-        aiCost: {
-          label: "Custo IA",
-          value: `$${(raw.aiCostToday ?? 0).toFixed(6)}`,
-          trend: { value: raw.aiCallsToday, changePercentage: 0, type: "neutral" as const, intervalLabel: `${raw.aiCallsToday} chamadas hoje · ${raw.aiTokensToday} tokens` },
-        },
-        successRate: null,
-        topProblem: null,
-        mostTestType: null,
-        downloadsToday: null,
-        activeInstalls: null,
-        crashFreeUsers: null,
-        prodVersion: null,
-      };
+        const score = raw.avgNetworkScore ?? 0;
+        const verdict = score >= 80 ? "Excelente" : score >= 60 ? "Bom" : score >= 40 ? "Regular" : "Fraco";
+
+        return {
+          diagnosticsCount: {
+            label: "Diagnósticos",
+            value: raw.totalDiagnostics,
+            trend: { value: raw.activeSessions, changePercentage: 0, type: "neutral" as const, intervalLabel: `${raw.activeSessions} sessões ativas` },
+          },
+          activeUsers: {
+            label: "Score de Rede",
+            value: `${score} · ${verdict}`,
+            trend: { value: score, changePercentage: 0, type: score >= 60 ? "up" as const : "down" as const, intervalLabel: "score de rede" },
+          },
+          aiCost: {
+            label: "Custo IA",
+            value: `$${(raw.aiCostToday ?? 0).toFixed(6)}`,
+            trend: { value: raw.aiCallsToday, changePercentage: 0, type: "neutral" as const, intervalLabel: `${raw.aiCallsToday} chamadas hoje · ${raw.aiTokensToday} tokens` },
+          },
+          successRate: null,
+          topProblem: null,
+          mostTestType: null,
+          downloadsToday: null,
+          activeInstalls: null,
+          crashFreeUsers: null,
+          prodVersion: null,
+        };
+      } catch {
+        // Endpoint indisponível no worker — retorna null para exibir estado "sem dados".
+        return null;
+      }
     }
 
     let baseMetrics: OverviewMetricsResponse;

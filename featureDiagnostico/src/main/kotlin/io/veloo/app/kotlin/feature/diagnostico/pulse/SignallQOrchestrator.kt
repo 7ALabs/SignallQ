@@ -299,6 +299,7 @@ class SignallQOrchestrator(
             speedtestResult = resultado,
             wifiFrequenciaMhz = wifiSnapshot?.frequenciaMhz,
             movelTecnologia = extraContext.movel?.tecnologia,
+            operadoraMovel = extraContext.movel?.operadora,
         )
 
         Timber.i("iniciarDiagnosticoComResultado concluído estado=$pulseState")
@@ -501,6 +502,7 @@ class SignallQOrchestrator(
             speedtestResult = speedtestResult,
             wifiFrequenciaMhz = wifiSnapshot?.frequenciaMhz,
             movelTecnologia = extraContext.movel?.tecnologia,
+            operadoraMovel = extraContext.movel?.operadora,
         )
 
         Timber.i("iniciarDiagnostico concluído estado=$pulseState")
@@ -1004,6 +1006,8 @@ class SignallQOrchestrator(
         wifiFrequenciaMhz: Int? = null,
         /** Tecnologia movel ja como string — ex: "5G", "5G NSA", "4G". Null se Wi-Fi ou Xiaomi sem permissao. */
         movelTecnologia: String? = null,
+        /** Operadora movel identificada — ex: "Claro", "Vivo". Null se Wi-Fi ou indisponivel. */
+        operadoraMovel: String? = null,
     ) {
         val repo = adminIngestRepository ?: return
         scope.launch {
@@ -1043,6 +1047,7 @@ class SignallQOrchestrator(
                     jitterMs = speedtestResult?.jitterMs?.toInt(),
                     packetLoss = speedtestResult?.perdaPercentual?.toFloat(),
                     issues = issues,
+                    operator = operadoraMovel?.takeIf { it.isNotBlank() },
                 ),
             )
         }

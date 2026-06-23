@@ -1,3 +1,4 @@
+import { apiClient } from "./apiClient";
 import { ContextualAdOpportunity, MonetizationSettings } from "../types/ads";
 import { mockAdOpportunities, defaultMonetizationSettings } from "../mocks/adsIntelligence.mock";
 
@@ -9,8 +10,16 @@ export class AdsIntelligenceService {
   }
 
   async getAdOpportunities(): Promise<ContextualAdOpportunity[]> {
+    if (!apiClient.isMockEnabled()) return [];
     await this.delay(200);
     return mockAdOpportunities;
+  }
+
+  async getEligibilitySummary(): Promise<{ eligibleTotal: number } | null> {
+    if (!apiClient.isMockEnabled()) return null;
+    await this.delay(150);
+    const total = mockAdOpportunities.reduce((s, o) => s + o.eligibleDiagnostics, 0);
+    return { eligibleTotal: total };
   }
 
   async getMonetizationSettings(): Promise<MonetizationSettings> {

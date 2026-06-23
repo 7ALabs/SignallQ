@@ -1,29 +1,22 @@
 import React from "react";
 import { ChartCard } from "../../../components/ui/ChartCard";
 import { BarChart } from "../../../components/charts/BarChart";
+import { errorMetricsService } from "../../../services/errorMetricsService";
+import { ErrorByEndpointEntry } from "../../../mocks/errors.mock";
 
 interface ErrorByEndpointChartProps {
   environment: "production" | "staging";
 }
 
 export const ErrorByEndpointChart: React.FC<ErrorByEndpointChartProps> = ({ environment }) => {
-  const isStg = environment === "staging";
+  const [chartData, setChartData] = React.useState<ErrorByEndpointEntry[]>([]);
 
-  const chartData = React.useMemo(() => {
-    if (isStg) {
-      return [
-        { name: "AI Gateway", erros: 12 },
-        { name: "Android App", erros: 45 },
-        { name: "Edge Worker", erros: 45 },
-        { name: "Analytics DB", erros: 2 },
-      ];
-    }
-    return [
-      { name: "AI Gateway", erros: 382 },
-      { name: "Android App", erros: 1544 },
-      { name: "Edge Worker", erros: 45 },
-      { name: "Analytics DB", erros: 8 },
-    ];
+  React.useEffect(() => {
+    let active = true;
+    errorMetricsService.getErrorByEndpoint({ environment }).then((data) => {
+      if (active) setChartData(data);
+    });
+    return () => { active = false; };
   }, [environment]);
 
   return (

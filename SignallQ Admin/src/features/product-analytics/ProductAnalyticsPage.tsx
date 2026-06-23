@@ -131,7 +131,7 @@ export const ProductAnalyticsPage: React.FC<ProductAnalyticsPageProps> = ({
       <RetentionPanel metrics={retention} />
 
       {/* 4. AI Tokens & Resources Consumption */}
-      <FeatureTokenUsagePanel metrics={featureAiUsage} />
+      <FeatureTokenUsagePanel metrics={featureAiUsage} period={period} />
 
       {/* 5. Crashes & Battery Impact list */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

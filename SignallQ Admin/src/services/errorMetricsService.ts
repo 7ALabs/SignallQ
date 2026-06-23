@@ -1,6 +1,7 @@
 import { apiClient } from "./apiClient";
 import { SystemError } from "../types/errors";
 import { DashboardFilters } from "./adminMetricsService";
+import { InfraAlert, AiAlert, ErrorMetricSummary, ErrorByEndpointEntry } from "../mocks/errors.mock";
 
 export const errorMetricsService = {
   /**
@@ -32,6 +33,33 @@ export const errorMetricsService = {
     }
 
     return filtered;
+  },
+
+  async getErrorMetricSummary(filters: DashboardFilters = {}): Promise<ErrorMetricSummary | null> {
+    if (!apiClient.isMockEnabled()) return null;
+    const { mockErrorMetricSummary } = await import("../mocks/errors.mock");
+    const env = (filters.environment === "staging" ? "staging" : "production") as "production" | "staging";
+    return apiClient.simulateFetch(mockErrorMetricSummary[env], filters);
+  },
+
+  async getErrorByEndpoint(filters: DashboardFilters = {}): Promise<ErrorByEndpointEntry[]> {
+    if (!apiClient.isMockEnabled()) return [];
+    const { mockErrorByEndpoint } = await import("../mocks/errors.mock");
+    const env = (filters.environment === "staging" ? "staging" : "production") as "production" | "staging";
+    return apiClient.simulateFetch(mockErrorByEndpoint[env], filters);
+  },
+
+  async getInfraAlerts(_filters: DashboardFilters = {}): Promise<InfraAlert[]> {
+    if (!apiClient.isMockEnabled()) return [];
+    const { mockInfraAlerts } = await import("../mocks/errors.mock");
+    return apiClient.simulateFetch(mockInfraAlerts, _filters);
+  },
+
+  async getAiAlerts(_filters: DashboardFilters = {}): Promise<{ alerts: AiAlert[]; aiCostCeiling: number }> {
+    if (!apiClient.isMockEnabled()) return { alerts: [], aiCostCeiling: 200 };
+    const { mockAiAlerts } = await import("../mocks/errors.mock");
+    const alerts = await apiClient.simulateFetch(mockAiAlerts, _filters);
+    return { alerts, aiCostCeiling: 200 };
   },
 
   /**
