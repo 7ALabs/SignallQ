@@ -8,6 +8,7 @@ export const analyticsService = {
    * Returns active system error metrics from Android SDK, DB pools, or Edge Cloudflare Worker API
    */
   async getErrorMetrics(filters: DashboardFilters = {}): Promise<SystemErrorLog[]> {
+    // Sem endpoint no worker — retorna vazio em produção.
     if (!apiClient.isMockEnabled()) return [];
 
     const list = await apiClient.simulateFetch(mockSystemErrors, filters);
@@ -23,6 +24,7 @@ export const analyticsService = {
    * Returns live app deployment rollouts, codes, release note guidelines, and crash ratios
    */
   async getAppVersionMetrics(filters: { search?: string; environment?: AppEnvironment } = {}): Promise<AppVersionDetail[]> {
+    // Sem endpoint no worker — retorna vazio em produção.
     if (!apiClient.isMockEnabled()) return [];
 
     const list = await apiClient.simulateFetch(mockAppVersions, filters);
