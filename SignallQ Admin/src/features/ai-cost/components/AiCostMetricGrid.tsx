@@ -16,17 +16,22 @@ export const AiCostMetricGrid: React.FC<AiCostMetricGridProps> = ({ environment,
     tokensReceivedM: string;
     successRate: string;
   } | null>(null);
+  const [loaded, setLoaded] = React.useState(false);
 
   React.useEffect(() => {
     let active = true;
+    setLoaded(false);
     const p = (period === "today" ? "1d" : period) as "today" | "7d" | "30d" | undefined;
     aiUsageService.getAiCostSummary({ environment, period: p }).then((data) => {
-      if (active) setSummary(data);
+      if (active) {
+        setSummary(data);
+        setLoaded(true);
+      }
     });
     return () => { active = false; };
   }, [environment, period]);
 
-  if (!summary) {
+  if (!loaded) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {Array.from({ length: 6 }).map((_, idx) => (
@@ -35,6 +40,22 @@ export const AiCostMetricGrid: React.FC<AiCostMetricGridProps> = ({ environment,
       </div>
     );
   }
+
+  if (!summary) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+        {Array.from({ length: 6 }).map((_, idx) => (
+          <div key={idx} className="h-24 bg-zinc-950/40 border border-zinc-900 rounded-xl flex items-center justify-center">
+            <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">Sem dados</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Card de Sucesso API: successRate pode ser "—" quando não há fonte real (SIG-125).
+  // Nesse caso, omite o trend para não exibir valor fabricado.
+  const successRateIsReal = summary.successRate !== "—";
 
   const metrics = [
     {
@@ -65,7 +86,9 @@ export const AiCostMetricGrid: React.FC<AiCostMetricGridProps> = ({ environment,
     {
       label: "Sucesso de Conexão API",
       value: summary.successRate,
-      trend: { value: 0.02, changePercentage: 0.02, type: "up" as const, intervalLabel: "taxa de resiliência" }
+      trend: successRateIsReal
+        ? { value: 0.02, changePercentage: 0.02, type: "up" as const, intervalLabel: "taxa de resiliência" }
+        : undefined,
     }
   ];
 
