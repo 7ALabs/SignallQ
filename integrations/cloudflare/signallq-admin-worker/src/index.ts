@@ -296,6 +296,22 @@ async function handleIngestDiagnostic(request: Request, env: Env): Promise<Respo
   return json({ ok: true, id: p.id }, 201, env);
 }
 
+// Preço por token (USD), por modelo. Ver docs_ai/decisions/ADR-005.
+// Modelos do free tier (Gemini, Qwen/Workers AI) custam 0. Ao adotar um modelo
+// pago, adicione sua tarifa aqui (ex.: "gemini-2.5-pro": 0.0000003).
+const AI_MODEL_RATE_USD: Record<string, number> = {};
+
+function costForModel(model: string, totalTokens: number): number {
+  const key = (model ?? "").toLowerCase();
+  // Free tier: Gemini (Google AI Studio) e Qwen (Cloudflare Workers AI) não têm custo por token.
+  if (key.includes("gemini") || key.includes("qwen") || key.startsWith("@cf/")) return 0;
+  for (const [m, rate] of Object.entries(AI_MODEL_RATE_USD)) {
+    if (key.includes(m)) return totalTokens * rate;
+  }
+  // Modelo sem tarifa cadastrada → 0 (arquitetura atual é 100% free tier).
+  return 0;
+}
+
 async function handleIngestAiUsage(request: Request, env: Env): Promise<Response> {
   let p: any;
   try { p = await request.json(); } catch { return err("invalid JSON", 400, env); }
@@ -304,7 +320,7 @@ async function handleIngestAiUsage(request: Request, env: Env): Promise<Response
   const prompt     = p.prompt_tokens     ?? 0;
   const completion = p.completion_tokens ?? 0;
   const total      = p.total_tokens      ?? (prompt + completion);
-  const cost       = p.cost_usd          ?? total * 0.000000035;
+  const cost       = p.cost_usd          ?? costForModel(p.model, total);
 
   await env.DB.prepare(
     `INSERT OR REPLACE INTO ai_usage
