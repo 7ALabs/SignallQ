@@ -18,9 +18,10 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
-$tomlPath = Join-Path $repoRoot 'gradle\libs.versions.toml'
-$gradlew  = Join-Path $repoRoot 'gradlew.bat'
+$repoRoot    = Resolve-Path (Join-Path $PSScriptRoot '..')
+$androidRoot = Join-Path $repoRoot 'android'
+$tomlPath    = Join-Path $androidRoot 'gradle\libs.versions.toml'
+$gradlew     = Join-Path $androidRoot 'gradlew.bat'
 
 # ── 1. Lê versão do catálogo ──────────────────────────────────────────────────
 if (-not (Test-Path $tomlPath)) {
@@ -42,7 +43,7 @@ Write-Host ""
 
 # ── 2. Executa o build ────────────────────────────────────────────────────────
 Write-Host "▶ Executando: gradlew :app:assembleDebug" -ForegroundColor Yellow
-Push-Location $repoRoot
+Push-Location $androidRoot
 try {
     & $gradlew :app:assembleDebug
     if ($LASTEXITCODE -ne 0) { Write-Error "Gradle falhou com código $LASTEXITCODE" }
@@ -51,14 +52,14 @@ try {
 }
 
 # ── 3. Localiza o APK gerado ──────────────────────────────────────────────────
-$apkSrc = Join-Path $repoRoot 'app\build\outputs\apk\debug\app-debug.apk'
+$apkSrc = Join-Path $androidRoot 'app\build\outputs\apk\debug\app-debug.apk'
 if (-not (Test-Path $apkSrc)) {
     Write-Error "APK não encontrado em $apkSrc — verifique a saída do Gradle."
 }
 
 # ── 4. Copia para pasta oficial com nome padronizado ──────────────────────────
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$destDir  = Join-Path $repoRoot "builds\apk\debug\$versionName"
+$destDir  = Join-Path $androidRoot "builds\apk\debug\$versionName"
 $destFile = Join-Path $destDir "signallq-android-v$versionName+$versionCode-debug-$timestamp.apk"
 
 New-Item -ItemType Directory -Path $destDir -Force | Out-Null

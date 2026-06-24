@@ -23,13 +23,13 @@ Features são independentes entre si (sem dependência cruzada `:feature*` → `
 
 ```bash
 # Build de debug
-./gradlew assembleDebug
+cd android && ./gradlew assembleDebug
 
 # Testes unitários
-./gradlew test
+cd android && ./gradlew test
 
 # Lint
-./gradlew ktlintCheck detekt
+cd android && ./gradlew ktlintCheck detekt
 ```
 
 Requer JDK 17+ e o `app/google-services.json` (já versionado).
@@ -40,8 +40,8 @@ Requer JDK 17+ e o `app/google-services.json` (já versionado).
 
 ```bash
 git push origin main
-./gradlew clean assembleRelease --no-build-cache
-./gradlew appDistributionUploadRelease
+cd android && ./gradlew clean assembleRelease --no-build-cache
+cd android && ./gradlew appDistributionUploadRelease
 ```
 
 Worker Cloudflare: havendo mudança em `integrations/cloudflare/*/src/`, `npx wrangler deploy` antes do commit.

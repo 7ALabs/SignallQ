@@ -18,13 +18,14 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
+$repoRoot    = Resolve-Path (Join-Path $PSScriptRoot '..')
+$androidRoot = Join-Path $repoRoot 'android'
 
 Write-Host "=== Limpeza de Build ===" -ForegroundColor Cyan
 Write-Host ""
 
 # ── 1. Remove app/build/ ──────────────────────────────────────────────────────
-$appBuild = Join-Path $repoRoot 'app\build'
+$appBuild = Join-Path $androidRoot 'app\build'
 if (Test-Path $appBuild) {
     Write-Host "▶ Removendo $appBuild/" -ForegroundColor Yellow
     Remove-Item -Path $appBuild -Recurse -Force
@@ -32,7 +33,7 @@ if (Test-Path $appBuild) {
 }
 
 # ── 2. Remove .gradle/build-cache/ ───────────────────────────────────────────
-$buildCache = Join-Path $repoRoot '.gradle\build-cache'
+$buildCache = Join-Path $androidRoot '.gradle\build-cache'
 if (Test-Path $buildCache) {
     Write-Host "▶ Removendo $buildCache/" -ForegroundColor Yellow
     Remove-Item -Path $buildCache -Recurse -Force

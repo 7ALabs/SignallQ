@@ -130,7 +130,7 @@ try {
 # ── 8. Gradle Wrapper ────────────────────────────────────────────────────────
 Write-Host ""
 Write-Host "🔨 Gradle:" -ForegroundColor Yellow
-$gradlewPath = Join-Path $repoRoot 'gradlew.bat'
+$gradlewPath = Join-Path $repoRoot 'android\gradlew.bat'
 if (Test-Path $gradlewPath) {
     Write-Host "✓ gradlew.bat encontrado" -ForegroundColor Green
     Write-Host "  Path: $gradlewPath"

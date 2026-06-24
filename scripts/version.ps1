@@ -34,8 +34,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
-$tomlPath = Join-Path $repoRoot 'gradle\libs.versions.toml'
+$repoRoot    = Resolve-Path (Join-Path $PSScriptRoot '..')
+$tomlPath    = Join-Path $repoRoot 'android\gradle\libs.versions.toml'
 
 if (-not (Test-Path $tomlPath)) {
     Write-Error "Catálogo não encontrado: $tomlPath"

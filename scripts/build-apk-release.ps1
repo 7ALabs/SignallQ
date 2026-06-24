@@ -20,9 +20,10 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
-$tomlPath = Join-Path $repoRoot 'gradle\libs.versions.toml'
-$gradlew  = Join-Path $repoRoot 'gradlew.bat'
+$repoRoot   = Resolve-Path (Join-Path $PSScriptRoot '..')
+$androidRoot = Join-Path $repoRoot 'android'
+$tomlPath   = Join-Path $androidRoot 'gradle\libs.versions.toml'
+$gradlew    = Join-Path $androidRoot 'gradlew.bat'
 
 # ── 1. Lê versão do catálogo ──────────────────────────────────────────────────
 if (-not (Test-Path $tomlPath)) {
@@ -43,7 +44,7 @@ Write-Host "  versionCode : $versionCode"
 Write-Host ""
 
 # ── 2. Verifica key.properties ────────────────────────────────────────────────
-$keyProps = Join-Path $repoRoot 'key.properties'
+$keyProps = Join-Path $androidRoot 'key.properties'
 $hasSigning = Test-Path $keyProps
 
 if ($hasSigning) {
@@ -58,7 +59,7 @@ if ($hasSigning) {
 
 # ── 3. Executa o build ────────────────────────────────────────────────────────
 Write-Host "▶ Executando: gradlew :app:assembleRelease" -ForegroundColor Yellow
-Push-Location $repoRoot
+Push-Location $androidRoot
 try {
     & $gradlew :app:assembleRelease
     if ($LASTEXITCODE -ne 0) { Write-Error "Gradle falhou com código $LASTEXITCODE" }
@@ -67,14 +68,14 @@ try {
 }
 
 # ── 4. Localiza o APK gerado ──────────────────────────────────────────────────
-$apkSrc = Join-Path $repoRoot 'app\build\outputs\apk\release\app-release.apk'
+$apkSrc = Join-Path $androidRoot 'app\build\outputs\apk\release\app-release.apk'
 if (-not (Test-Path $apkSrc)) {
     Write-Error "APK não encontrado em $apkSrc — verifique a saída do Gradle."
 }
 
 # ── 5. Copia para pasta oficial com nome padronizado ──────────────────────────
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$destDir  = Join-Path $repoRoot "builds\apk\release\$versionName"
+$destDir  = Join-Path $androidRoot "builds\apk\release\$versionName"
 $destFile = Join-Path $destDir "signallq-android-v$versionName+$versionCode-release-$timestamp.apk"
 
 New-Item -ItemType Directory -Path $destDir -Force | Out-Null
