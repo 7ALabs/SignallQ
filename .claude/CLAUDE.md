@@ -5,9 +5,10 @@ Instructions here apply to this project and are shared with team members.
 ## Identidade
 
 - App: **SignallQ** -- diagnostico de conectividade Android.
+- Estrutura: **monorepo** — `android/` (Kotlin), `pwa/` (React/TS), `ios/`, `integrations/` (Cloudflare), `scripts/`, `docs_ai/`.
 - Package/applicationId/namespace: **`io.veloo.app`** -- identificador tecnico, **NAO renomear jamais** (quebra Firebase/assinatura). O veloo aqui e tecnico, nao marca.
 - Marca anterior: Linka -> Veloo -> **SignallQ** (rebrand em 0.16.0).
-- Versao atual: **0.21.0** (versionCode 52), em `gradle/libs.versions.toml`. minSdk 24, target/compileSdk 36, JVM 17.
+- Versao atual: **0.21.0** (versionCode 52), em `android/gradle/libs.versions.toml`. minSdk 24, target/compileSdk 36, JVM 17.
 - Stack: Kotlin, Jetpack Compose, Hilt, Room, DataStore, WorkManager.
 - 15 modulos Gradle: `app` + core(5): `coreNetwork`, `coreDatabase`, `coreDatastore`, `coreTelephony`, `corePermissions` + feature(9): `featureHome`, `featureSpeedtest`, `featureWifi`, `featureDevices`, `featureDns`, `featureFibra`, `featureDiagnostico`, `featureHistory`, `featureSettings`.
 - MVVM + StateFlow, Hilt DI (`AppModule.kt` + `DiagnosticoModule.kt`), Room v10 (`SignallQDatabase`), DataStore `linkaPreferencias`.
@@ -70,8 +71,8 @@ Quando o usuario pedir para subir/deploy/publicar no Firebase, seguir OBRIGATORI
 
 1. **Commit** -- stage todos os arquivos modificados, commit com mensagem descritiva
 2. **Push** -- `git push origin main`
-3. **Clean build** -- `./gradlew clean assembleRelease --no-build-cache` (NUNCA usar cache em release)
-4. **Upload** -- `./gradlew appDistributionUploadRelease`
+3. **Clean build** -- `.\android\gradlew.bat clean assembleRelease --no-build-cache` (NUNCA usar cache em release)
+4. **Upload** -- `.\android\gradlew.bat appDistributionUploadRelease`
 
 Nunca pular etapas. Nunca fazer assembleRelease sem clean + --no-build-cache antes. O cache do Gradle ja causou builds desatualizados no Firebase.
 
@@ -147,34 +148,32 @@ Quando a tarefa for bem delimitada, os agentes operam em piloto automatico:
 
 ## Agentes
 
-**Claudete / PM**
-- Manter Linear limpo, organizar backlog, priorizar, quebrar issues grandes
+Squad enxuto: 6 agentes. Validacao de device/rede e planejamento tecnico viraram skills (`/regras-android`, `/regras-diagnostico-rede`); busca de codigo e documentacao sao nativas/skill (`/gerar-docs`).
+
+**Claudete / PM & Tech Lead**
+- Manter Linear limpo, organizar backlog, priorizar, quebrar issues grandes; planejamento tecnico e decisao de arquitetura (absorveu Claudio)
 - Cuidar de milestones e cycles, decidir fluxo operacional
 - Ferramentas: Linear, Notion, Slack via Linear, Miro, GitHub para PR/release
 
-**Tech Lead (Claudio / Gema)**
-- Validar arquitetura, revisar PRs, definir abordagem tecnica, garantir qualidade
-- Garantir que `io.veloo.app` nao seja alterado
-- Ferramentas: GitHub, Linear para status, Notion para decisoes, Miro para arquitetura
-
-**Dev Agent (Camilo / Renan / Marcelo)**
-- Implementar issues aprovadas, criar branches, abrir PRs, corrigir bugs
-- Atualizar status no Linear
+**Camilo / Dev Android**
+- Implementar Android (Kotlin/Compose), criar branches, abrir PRs, corrigir bugs
 - Ferramentas: GitHub, Linear, Firebase/Cloudflare quando aplicavel
 
-**UX/Design (Lia)**
+**Renan / Dev PWA**
+- Implementar o PWA (React/TS), garantir paridade com Android
+- Ferramentas: GitHub, Linear, Cloudflare
+
+**Felipe / Admin & Dados**
+- Implementar o SignallQ Admin (React/TS) e analise de dados de app
+- Ferramentas: GitHub, Linear, Cloudflare, Firebase
+
+**Lia / UX & Design**
 - Propor fluxos, revisar telas, manter coerencia Material 3 + design system
-- Gerar especificacao que vire issue no Linear
-- Ferramentas: Miro, Notion para doc de design, Linear para execucao
+- Ferramentas: Miro, Notion, Linear
 
-**QA/Review (Gema / Otavio / Bernardo)**
-- Validar criterios de aceite, testar fluxos, apontar regressoes
-- Issue so vai para Done com validacao
-- Ferramentas: Linear, GitHub, Firebase/Crashlytics, Notion para checklist
-
-**Monitoring/Docs (Nina / Taisa)**
-- Documentacao viva, consolidar decisoes, organizar Notion
-- Ferramentas: Notion, Linear, Firebase/Cloudflare, Slack via Linear
+**Gema / QA, Release & Higiene**
+- Validar criterios de aceite, testar fluxos, apontar regressoes, gate de Done, release, higiene e documentacao (absorveu Nina/Taisa)
+- Ferramentas: Linear, GitHub, Firebase/Crashlytics, Notion
 
 ---
 
@@ -186,8 +185,8 @@ Quando a tarefa for bem delimitada, os agentes operam em piloto automatico:
 | Weekly Planning / Grooming | Semanal | Claudete | Cycle pronto no Linear |
 | Cycle Review | Final do cycle | Claudete | Resumo no Linear + Notion executivo |
 | Review de Bloqueios | 2-3x por semana | Claudete | Lista curta com recomendacao para o Luiz |
-| Release Readiness | Por milestone/release | Tech Lead + Claudete | Checklist no Linear/Notion |
-| Docs Sync | Semanal ou por milestone | Nina/Taisa | Notion atualizado |
+| Release Readiness | Por milestone/release | Claudete + Gema | Checklist no Linear/Notion |
+| Docs Sync | Semanal ou por milestone | Gema | Notion atualizado |
 
 Rotinas que NAO devem existir: email diario, automacao Slack fora do Linear, dashboards pagos, Play Console antes de M3.
 
@@ -198,7 +197,7 @@ Rotinas que NAO devem existir: email diario, automacao Slack fora do Linear, das
 > Estado do codigo -- atualizado em 2026-06-23 (v0.21.0).
 
 **Testes**
-- ~37 classes de teste unitario. JUnit4 + Robolectric + coroutines-test + room-testing em `*/src/test/`. 3 androidTest de Room/DAO. Rodar: `./gradlew test`.
+- ~37 classes de teste unitario. JUnit4 + Robolectric + coroutines-test + room-testing em `android/*/src/test/`. 3 androidTest de Room/DAO. Rodar: `.\android\gradlew.bat test`.
 
 **Documentacao**
 - Doc viva em `docs_ai/` (ai/, design-system/, functional/, operations/, technical/). Obsoleto em `docs/_archive/` e `docs_ai/_archive/`. Indice: `docs_ai/README.md`.

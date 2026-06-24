@@ -96,13 +96,13 @@ Capture o número da issue (`.../issues/47` → `N=47`).
 ### A3. Kickoff + handoff
 
 ```bash
-gh issue comment N --repo gmmattey/linka-android --body "**Claudete:** Bug confirmado, pipeline iniciado. Cláudio, é com você — leia a issue e crie a branch."
-bash scripts/agent-handoff.sh claudete ready N "bug criado e refinado — pipeline iniciado" --para claudio
+gh issue comment N --repo gmmattey/linka-android --body "**Claudete:** Bug confirmado, pipeline iniciado. Camilo, é com você — leia a issue e crie a branch."
+bash scripts/agent-handoff.sh claudete ready N "bug criado e refinado — pipeline iniciado" --para camilo
 ```
 
-### A4. Acionar Cláudio (modo bug)
+### A4. Acionar Camilo (modo bug)
 
-> Você é **Cláudio**, Líder Técnico do squad SignallQ. Leia a issue #N em https://github.com/gmmattey/linka-android/issues/N. Bug — modo compacto. Acione Marcelo para mapear arquivos, crie a branch `bug/N-slug` a partir de `origin/main`, poste instrução objetiva na issue (objetivo técnico / arquivos prováveis / critério de aceite) e passe para Camilo. Siga `.claude/agents/claudio.md` seção "Pipeline Autônomo".
+> Você é **Camilo**, Dev Android do squad SignallQ. Leia a issue #N em https://github.com/gmmattey/linka-android/issues/N. Bug — modo compacto. Crie a branch `bug/N-slug` a partir de `origin/main`, mapeie os arquivos prováveis, implemente a correção, abra o PR e acione a Gema para review. Siga `.claude/agents/camilo.md`.
 
 ---
 
@@ -143,13 +143,13 @@ Não usar `gh issue create` no Trilho B.
 
 ### B4. Encaminhar ao squad
 
-A issue entra no fluxo normal do Linear (backlog/triagem/cycle). Acione o agente responsável conforme o tipo (Camilo/Renan para código, Lia para UX, Felipe para Admin, Nina/Taisa para docs) com o identificador `SIG-N` e link da issue.
+A issue entra no fluxo normal do Linear (backlog/triagem/cycle). Acione o agente responsável conforme o tipo (Camilo/Renan para código, Lia para UX, Felipe para Admin, `/gerar-docs` para docs) com o identificador `SIG-N` e link da issue.
 
 ---
 
 ## Nota — adaptação pendente do pipeline autônomo
 
-O maquinário de pipeline autônomo (`scripts/agent-handoff.sh`, agentes Cláudio/Camilo/Nina) lê issues via `gh issue view`. Hoje ele é nativo de **GitHub** — funciona direto no Trilho A (bug). Operar o Trilho B (não-bug) de forma 100% autônoma sobre issues do **Linear** exige adaptar esses agentes/scripts para ler `SIG-N` via Linear MCP. Enquanto isso não for feito, o Trilho B cria a issue no Linear e segue pelo fluxo normal do squad (não pelo automatismo GitHub). Tratar essa adaptação como `Feat` própria no Linear.
+O maquinário de pipeline autônomo (`scripts/agent-handoff.sh`, agente Camilo) lê issues via `gh issue view`. Hoje ele é nativo de **GitHub** — funciona direto no Trilho A (bug). Operar o Trilho B (não-bug) de forma 100% autônoma sobre issues do **Linear** exige adaptar esses agentes/scripts para ler `SIG-N` via Linear MCP. Enquanto isso não for feito, o Trilho B cria a issue no Linear e segue pelo fluxo normal do squad (não pelo automatismo GitHub). Tratar essa adaptação como `Feat` própria no Linear.
 
 ---
 
@@ -157,7 +157,7 @@ O maquinário de pipeline autônomo (`scripts/agent-handoff.sh`, agentes Cláudi
 
 Encerre com uma frase de Claudete em character. Exemplos:
 - `Claudete: SIG-N criada no Linear. Escopo claro, sem espaço para interpretação errada.`
-- `Claudete: Bug #N no ar no GitHub. Cláudio, não deixa a bola cair.`
+- `Claudete: Bug #N no ar no GitHub. Camilo, não deixa a bola cair.`
 
 ---
 

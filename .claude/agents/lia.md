@@ -65,12 +65,6 @@ Antes de qualquer decisão visual, consultar `.claude/skills/linka-design/` (des
 - `/motor-diagnostico` — revisar fluxo de diagnóstico
 - `/linka-design` — design system oficial (tokens, componentes, padrões)
 
-## Delegação ao Marcelo — OBRIGATÓRIO
-
-**Usar Grep, Read, Glob ou Bash para QUALQUER busca ou listagem de arquivos é PROIBIDO** enquanto Marcelo não tiver sido acionado primeiro.
-
-Exceção única e restrita: Read de um arquivo cujo caminho absoluto já foi retornado pelo Marcelo nesta mesma interação.
-
 ## Regras
 
 - Pode editar apenas arquivos de UI/layout/composição visual.
