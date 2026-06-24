@@ -221,8 +221,18 @@ fun AjustesScreen(
         ) {
             // ── HERO CARD ────────────────────────────────────────────────────────────
             item {
-                val nomeDisplay = nomeUsuario.ifBlank { deviceName.ifBlank { "Meu dispositivo" } }
-                val (subtitulo, isRealData) = buildHeroSubtitle(nomeUsuario, operadora, planoInternet)
+                // #224: nome do device não deve ocupar o campo de identidade do usuário
+                val temNome = nomeUsuario.isNotBlank()
+                val nomeDisplay = if (temNome) nomeUsuario else "Adicionar nome"
+                val (subtituloBase, isRealData) = buildHeroSubtitle(nomeUsuario, operadora, planoInternet)
+                // Quando sem nome, mostra device como dado secundário no subtítulo
+                val subtitulo =
+                    if (!temNome && deviceName.isNotBlank()) {
+                        if (isRealData) "$subtituloBase · $deviceName" else deviceName
+                    } else {
+                        subtituloBase
+                    }
+                val subtituloIsRealData = isRealData || (!temNome && deviceName.isNotBlank())
                 Box(
                     modifier =
                         Modifier
@@ -230,7 +240,7 @@ fun AjustesScreen(
                             .padding(horizontal = LkSpacing.lg)
                             .padding(top = LkSpacing.xl, bottom = LkSpacing.lg)
                             .semantics {
-                                contentDescription = "Perfil de $nomeDisplay. Toque para editar."
+                                contentDescription = "Perfil. Toque para editar."
                             }.clip(RoundedCornerShape(LkRadius.card))
                             .background(c.bgSecondary)
                             .clickable { showPerfilSheet = true }
@@ -242,7 +252,7 @@ fun AjustesScreen(
                     ) {
                         UserAvatar(
                             fotoUri = fotoUriUsuario,
-                            fallbackInitial = nomeUsuario.firstOrNull() ?: deviceName.firstOrNull(),
+                            fallbackInitial = nomeUsuario.firstOrNull(),
                             size = 56.dp,
                         )
                         Spacer(Modifier.width(LkSpacing.md))
@@ -251,14 +261,14 @@ fun AjustesScreen(
                                 text = nomeDisplay,
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.W600,
-                                color = c.textPrimary,
+                                color = if (temNome) c.textPrimary else c.textTertiary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
                                 text = subtitulo,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = if (isRealData) c.textSecondary else c.textTertiary,
+                                color = if (subtituloIsRealData) c.textSecondary else c.textTertiary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
