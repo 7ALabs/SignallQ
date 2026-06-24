@@ -9,16 +9,17 @@ import {
   AlertTriangle,
   GitBranch,
   Settings,
-  Database,
-  Cpu,
+  X,
 } from "lucide-react";
-import { NAVIGATION_ITEMS, NavigationItem } from "../../config/navigation";
+import { NAVIGATION_ITEMS } from "../../config/navigation";
 import { AppEnvironment } from "../../types/admin";
 
 interface SidebarProps {
   currentPath: string;
   onNavigate: (path: string) => void;
   environment: AppEnvironment;
+  isOpen?: boolean;
+  onClose?: () => void;
   id?: string;
 }
 
@@ -39,27 +40,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
   currentPath,
   onNavigate,
   environment,
+  isOpen = false,
+  onClose,
   id,
 }) => {
   return (
     <div
       id={id || "sidebar-container"}
-      className="w-[240px] h-screen bg-[#0A0A0D] border-r border-[#262626] flex flex-col justify-between shrink-0 select-none"
+      className={`
+        w-[240px] h-screen bg-[#0A0A0D] border-r border-[#262626] flex flex-col justify-between shrink-0 select-none
+        fixed lg:relative z-50 lg:z-auto
+        transition-transform duration-200 ease-in-out
+        ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+      `}
     >
-      {/* Top Session / Branidng */}
+      {/* Top Session / Branding */}
       <div className="flex flex-col">
         {/* Logo Section */}
-        <div className="p-6 flex items-center gap-3 border-b border-[#262626]">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#6C2BFF] to-[#38BDF8] flex items-center justify-center text-white shadow-lg shadow-[#6C2BFF]/20">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
+        <div className="p-6 flex items-center justify-between border-b border-[#262626]">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#6C2BFF] to-[#38BDF8] flex items-center justify-center text-white shadow-lg shadow-[#6C2BFF]/20">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div>
+              <span className="font-bold text-lg tracking-tight text-white block">
+                SignallQ <span className="text-[#6B7280] font-normal">Admin</span>
+              </span>
+            </div>
           </div>
-          <div>
-            <span className="font-bold text-lg tracking-tight text-white block">
-              SignallQ <span className="text-[#6B7280] font-normal">Admin</span>
-            </span>
-          </div>
+          {/* Close button — mobile only */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="lg:hidden p-1.5 rounded-lg text-[#6B7280] hover:text-white hover:bg-[#18181B] transition-colors"
+              aria-label="Fechar menu"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Environment Status Badge */}
@@ -75,9 +95,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Navigation Menus List */}
         <nav className="px-4 py-2 space-y-1">
           {NAVIGATION_ITEMS.map((item) => {
-            const IconComponent = iconMap[item.iconName];
+            const IconComponent = iconMap[item.iconName as keyof typeof iconMap];
             const isActive = currentPath === item.path;
-            
+
             return (
               <button
                 key={item.path}
@@ -100,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </div>
 
                 {item.badge && (
-                  <span className={`text-[10px] font-mono font-semibold px-2 py-0.2 rounded-md ${
+                  <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md ${
                     item.badgeType === "error"
                       ? "bg-[#FF4D4F]/10 text-[#FF4D4F] border border-[#FF4D4F]/20"
                       : "bg-[#18181B] border border-[#262626] text-[#9CA3AF]"
