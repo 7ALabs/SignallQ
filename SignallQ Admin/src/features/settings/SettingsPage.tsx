@@ -6,6 +6,7 @@ import { DiagnosticPipelineSettings } from "./components/DiagnosticPipelineSetti
 import { PrivacySettings } from "./components/PrivacySettings";
 import { IntegrationsSettings } from "./components/IntegrationsSettings";
 import { MonetizationSettings } from "./components/MonetizationSettings";
+import { FeatureFlagsSettings } from "./components/FeatureFlagsSettings";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { Settings, Save, CheckCircle2, RotateCcw, ShieldCheck, AlertTriangle } from "lucide-react";
 
@@ -162,6 +163,9 @@ export const SettingsPage: React.FC = () => {
         <MonetizationSettings settings={settings} onChange={handleUpdate} />
         <IntegrationsSettings />
       </div>
+
+      {/* SIG-13: Feature Flags — fora do grid 2-col para ocupar largura total */}
+      <FeatureFlagsSettings />
 
       <div className="bg-[#111111]/30 border border-dashed border-[#262626] rounded-2xl p-4 flex items-center gap-2.5 text-[10px] font-mono text-zinc-550 select-none justify-center">
         <ShieldCheck className="w-4 h-4 text-[#22C55E]" />

@@ -276,16 +276,32 @@ export const adminMetricsService = {
 
   async getRecentAlerts(filters: DashboardFilters = {}): Promise<RecentAlertItem[]> {
     if (!apiClient.isMockEnabled()) {
-      // Worker retorna [] até SIG-133 (sistema de alertas configuráveis).
-      // Sem baseUrl → retorna [] silenciosamente.
       if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
       try {
         const envAlerts = filters.environment ?? "production";
-        const raw = await apiClient.request<{ items: RecentAlertItem[] }>(
-          "GET",
-          `/admin/metrics/alerts?environment=${envAlerts}`
-        );
-        return raw.items ?? [];
+        const raw = await apiClient.request<{
+          items: Array<{
+            id: string;
+            type?: string;
+            severity: "critical" | "warning" | "info";
+            title?: string;
+            message: string;
+            created_at: string | number;
+            resolved?: boolean;
+            count?: number;
+          }>;
+        }>("GET", `/admin/metrics/alerts?environment=${envAlerts}`);
+        return (raw.items ?? []).map((r) => ({
+          id:        r.id,
+          source:    r.title ?? r.type ?? "Sistema",
+          message:   r.message,
+          severity:  (r.severity === "info" ? "warning" : r.severity) as "critical" | "warning",
+          _severity: r.severity,
+          timestamp: typeof r.created_at === "number"
+            ? new Date(r.created_at * 1000).toISOString()
+            : r.created_at,
+          count: r.count ?? 1,
+        } as RecentAlertItem & { _severity: string }));
       } catch {
         return [];
       }

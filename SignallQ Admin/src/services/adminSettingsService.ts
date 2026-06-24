@@ -2,6 +2,12 @@ import { AdminSettingsPayload } from "../types/admin";
 import { initialMockSettings } from "../mocks/settings.mock";
 import { apiClient } from "./apiClient";
 
+export interface FeatureFlag {
+  key: string;
+  description: string;
+  enabled: boolean;
+}
+
 const STORAGE_KEY = "@signallq/admin_settings_v1";
 
 const REQUIRED_KEYS: (keyof ExtendedSettingsPayload)[] = [
@@ -74,6 +80,31 @@ export const adminSettingsService = {
     }
 
     return { ...initialMockSettings };
+  },
+
+  async getFeatureFlags(): Promise<FeatureFlag[]> {
+    if (apiClient.isMockEnabled()) {
+      return [
+        { key: "ai_diagnosis_enabled", description: "Ativa o pipeline de diagnóstico por IA", enabled: true },
+        { key: "speedtest_enabled", description: "Habilita o módulo de speed test no app", enabled: true },
+        { key: "fibra_detection", description: "Detecção automática de conexão de fibra óptica", enabled: false },
+        { key: "beta_ui_features", description: "Funcionalidades de UI em fase beta", enabled: false },
+      ];
+    }
+    try {
+      const raw = await apiClient.request<{ flags: FeatureFlag[] }>("GET", "/admin/feature-flags");
+      return raw.flags ?? [];
+    } catch {
+      return [];
+    }
+  },
+
+  async setFeatureFlags(flags: FeatureFlag[]): Promise<{ success: boolean }> {
+    if (apiClient.isMockEnabled()) {
+      return { success: true };
+    }
+    await apiClient.request<{ ok: boolean }>("POST", "/admin/feature-flags", { flags } as unknown as Record<string, unknown>);
+    return { success: true };
   },
 
   /**

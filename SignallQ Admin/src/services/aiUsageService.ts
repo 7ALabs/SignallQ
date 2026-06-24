@@ -52,32 +52,40 @@ export const aiUsageService = {
     tokensSentM: string;
     tokensReceivedM: string;
     successRate: string;
+    reliabilityPercentage: number | null;
   } | null> {
     if (!apiClient.isMockEnabled()) {
       if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return null;
       try {
         const period = filters.period === "today" ? "1d" : (filters.period ?? "7d");
         const env = filters.environment ?? "production";
-        const raw = await apiClient.request<{
-          totalCostUsd: number;
-          totalRequests: number;
-          avgCostPerRequest: number;
-          promptTokens: number;
-          completionTokens: number;
-        }>("GET", `/admin/metrics/ai-costs?environment=${env}&period=${period}`);
-        const sentM     = (raw.promptTokens     ?? 0) / 1_000_000;
-        const receivedM = (raw.completionTokens  ?? 0) / 1_000_000;
-        const totalReq  = raw.totalRequests ?? 0;
-        const totalCost = raw.totalCostUsd  ?? 0;
-        const avgCost   = raw.avgCostPerRequest ?? 0;
+        const [costsRaw, usageRaw] = await Promise.all([
+          apiClient.request<{
+            totalCostUsd: number;
+            totalRequests: number;
+            avgCostPerRequest: number;
+            promptTokens: number;
+            completionTokens: number;
+          }>("GET", `/admin/metrics/ai-costs?environment=${env}&period=${period}`),
+          apiClient.request<{
+            byModel: Array<{ model: string; calls: number; tokens: number; cost_usd: number; reliabilityPercentage?: number }>;
+            totals: { reliabilityPercentage?: number };
+          }>("GET", `/admin/metrics/ai-usage?environment=${env}&period=${period}`).catch(() => null),
+        ]);
+        const sentM     = (costsRaw.promptTokens     ?? 0) / 1_000_000;
+        const receivedM = (costsRaw.completionTokens  ?? 0) / 1_000_000;
+        const totalReq  = costsRaw.totalRequests ?? 0;
+        const totalCost = costsRaw.totalCostUsd  ?? 0;
+        const avgCost   = costsRaw.avgCostPerRequest ?? 0;
+        const reliability = usageRaw?.totals?.reliabilityPercentage ?? null;
         return {
-          totalCostUsd:      `$${totalCost.toFixed(2)}`,
-          totalRequests:     totalReq.toLocaleString("pt-BR"),
-          avgCostPerRequest: `$${avgCost.toFixed(4)}`,
-          tokensSentM:       `${sentM.toFixed(1)}M`,
-          tokensReceivedM:   `${receivedM.toFixed(1)}M`,
-          // Sem coluna de status em ai_usage — taxa de sucesso sem fonte real (SIG-125).
-          successRate:       "—",
+          totalCostUsd:          `$${totalCost.toFixed(2)}`,
+          totalRequests:         totalReq.toLocaleString("pt-BR"),
+          avgCostPerRequest:     `$${avgCost.toFixed(4)}`,
+          tokensSentM:           `${sentM.toFixed(1)}M`,
+          tokensReceivedM:       `${receivedM.toFixed(1)}M`,
+          successRate:           "—",
+          reliabilityPercentage: reliability,
         };
       } catch {
         return null;
@@ -97,12 +105,13 @@ export const aiUsageService = {
     const avgReliability = realInsights.reduce((s, i) => s + (i.reliabilityPercentage ?? 100), 0) / realInsights.length;
 
     return {
-      totalCostUsd: `$${totalCost.toFixed(2)}`,
-      totalRequests: totalCalls.toLocaleString("pt-BR"),
-      avgCostPerRequest: `$${totalCalls > 0 ? (totalCost / totalCalls).toFixed(4) : "0.0000"}`,
-      tokensSentM: `${sentM.toFixed(1)}M`,
-      tokensReceivedM: `${receivedM.toFixed(1)}M`,
-      successRate: `${avgReliability.toFixed(1)}%`,
+      totalCostUsd:          `$${totalCost.toFixed(2)}`,
+      totalRequests:         totalCalls.toLocaleString("pt-BR"),
+      avgCostPerRequest:     `$${totalCalls > 0 ? (totalCost / totalCalls).toFixed(4) : "0.0000"}`,
+      tokensSentM:           `${sentM.toFixed(1)}M`,
+      tokensReceivedM:       `${receivedM.toFixed(1)}M`,
+      successRate:           `${avgReliability.toFixed(1)}%`,
+      reliabilityPercentage: avgReliability,
     };
   },
 
