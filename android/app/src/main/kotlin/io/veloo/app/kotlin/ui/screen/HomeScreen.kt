@@ -530,7 +530,7 @@ private fun CardMedicoes(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column {
+                Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
                     Text(
                         stringResource(R.string.home_medicoes_titulo),
                         fontSize = 15.sp,
@@ -555,7 +555,7 @@ private fun CardMedicoes(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(LkSpacing.md))
+            Spacer(modifier = Modifier.height(LkSpacing.lg))
             if (hasEffectiveResult && effectiveTs != null && effectiveDl != null && effectiveUl != null) {
                 LastResultHero(
                     timestampEpochMs = effectiveTs,
@@ -563,7 +563,7 @@ private fun CardMedicoes(
                     uploadMbps = effectiveUl,
                     c = c,
                 )
-                Spacer(modifier = Modifier.height(LkSpacing.md))
+                Spacer(modifier = Modifier.height(LkSpacing.lg))
             }
             val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
             val chartHeight = (screenHeightDp * 0.10f).coerceIn(72.dp, 120.dp)
@@ -1236,7 +1236,7 @@ private fun HeroSpeed(
                 modifier = Modifier.padding(bottom = 4.dp),
             )
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(LkSpacing.sm))
         Text(label, style = MaterialTheme.typography.labelMedium, color = labelColor)
     }
 }
@@ -1489,7 +1489,10 @@ private fun WifiSignalCard(
                     )
                 }
                 Spacer(Modifier.width(LkSpacing.md))
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
                     if (localizacaoDesligada) {
                         val context = LocalContext.current
                         Text(
@@ -1645,7 +1648,10 @@ private fun MobileSignalCard(
                 )
             }
             Spacer(Modifier.width(LkSpacing.md))
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
                 Text(
                     "REDE MÓVEL · $tecLabel",
                     style = MaterialTheme.typography.labelSmall,
