@@ -1,6 +1,6 @@
 import { AiProvider } from "./ai";
 
-export type AppEnvironment = "production" | "staging";
+export type AppEnvironment = "production" | "staging" | "all";
 
 export interface SystemErrorLog {
   id: string;

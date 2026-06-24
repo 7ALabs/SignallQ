@@ -8,9 +8,10 @@ export const aiUsageService = {
     if (!apiClient.isMockEnabled()) {
       if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return null;
       const period = filters.period === "today" ? "1d" : (filters.period ?? "7d");
+      const env = filters.environment ?? "production";
       const raw = await apiClient.request<{ byModel: any[]; totals: any }>(
         "GET",
-        `/admin/metrics/ai-usage?period=${period}`
+        `/admin/metrics/ai-usage?environment=${env}&period=${period}`
       );
       return (raw.byModel ?? []).map((r: any) => ({
         provider: r.model as import("../types/ai").AiProvider,
@@ -56,13 +57,14 @@ export const aiUsageService = {
       if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return null;
       try {
         const period = filters.period === "today" ? "1d" : (filters.period ?? "7d");
+        const env = filters.environment ?? "production";
         const raw = await apiClient.request<{
           totalCostUsd: number;
           totalRequests: number;
           avgCostPerRequest: number;
           promptTokens: number;
           completionTokens: number;
-        }>("GET", `/admin/metrics/ai-costs?period=${period}`);
+        }>("GET", `/admin/metrics/ai-costs?environment=${env}&period=${period}`);
         const sentM     = (raw.promptTokens     ?? 0) / 1_000_000;
         const receivedM = (raw.completionTokens  ?? 0) / 1_000_000;
         const totalReq  = raw.totalRequests ?? 0;
@@ -110,9 +112,10 @@ export const aiUsageService = {
       if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
       try {
         const days = filters.period === "today" ? 1 : filters.period === "7d" ? 7 : 30;
+        const env = filters.environment ?? "production";
         const raw = await apiClient.request<{ source: string; days: number; series: any[] }>(
           "GET",
-          `/admin/metrics/ai-usage/timeline?days=${days}`
+          `/admin/metrics/ai-usage/timeline?environment=${env}&days=${days}`
         );
         return (raw.series ?? []).map((entry: any) => ({
           date:       entry.date as string,
