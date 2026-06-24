@@ -405,9 +405,9 @@ fun AppShell(
                             fotoUri = fotoUriUsuario,
                             onAbrirPerfil = { showPerfilSheet = true },
                             wifiLinkSnapshot = snapshotRede.wifiLinkSnapshot,
-                            onAbrirDispositivos = {
-                                if (Overlay.Dispositivos !in overlayStack) overlayStack.add(Overlay.Dispositivos)
-                            },
+                            snapshotDispositivos = snapshotDevices,
+                            apelidos = apelidos,
+                            onSalvarApelido = onSalvarApelido,
                         )
                     // Tab 3 — Historico (indice mantido conforme spec)
                     3 ->

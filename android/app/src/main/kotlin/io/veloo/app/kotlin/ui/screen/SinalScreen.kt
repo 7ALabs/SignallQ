@@ -96,6 +96,7 @@ import io.veloo.app.core.network.EstadoConexao
 import io.veloo.app.core.network.WifiLinkSnapshot
 import io.veloo.app.core.telephony.MovelSimSnapshot
 import io.veloo.app.core.telephony.MovelSnapshot
+import io.veloo.app.feature.devices.SnapshotScanDispositivos
 import io.veloo.app.feature.diagnostico.BandaWifi
 import io.veloo.app.feature.diagnostico.CanalStrings
 import io.veloo.app.feature.diagnostico.CanalTextGenerator
@@ -131,7 +132,7 @@ private data class TopologiaIconData(
 
 private fun TipoTopologia.toIconData(): TopologiaIconData? =
     when (this) {
-        TipoTopologia.ROTEADOR -> TopologiaIconData(Icons.Outlined.Router, Color(0xFF9CA3AF)) // cinza neutro
+        TipoTopologia.ROTEADOR -> TopologiaIconData(Icons.Outlined.Router, LkColors.accent)
         TipoTopologia.ROTEADOR_MESH -> TopologiaIconData(Icons.Outlined.Hub, LkColors.accent)
         TipoTopologia.NO_MESH -> TopologiaIconData(Icons.Outlined.Hub, LkColors.accent)
         TipoTopologia.REPETIDOR -> TopologiaIconData(Icons.Outlined.CellTower, LkColors.warning)
@@ -231,7 +232,9 @@ fun SinalScreen(
     fotoUri: String? = null,
     onAbrirPerfil: () -> Unit = {},
     wifiLinkSnapshot: WifiLinkSnapshot? = null,
-    onAbrirDispositivos: () -> Unit = {},
+    snapshotDispositivos: SnapshotScanDispositivos? = null,
+    apelidos: Map<String, String> = emptyMap(),
+    onSalvarApelido: (mac: String, apelido: String) -> Unit = { _, _ -> },
 ) {
     val c = LocalLkTokens.current
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -317,7 +320,6 @@ fun SinalScreen(
                             connectedNetwork = connectedNetwork,
                             onRefresh = onRefresh,
                             wifiLinkSnapshot = wifiLinkSnapshot,
-                            onAbrirDispositivos = onAbrirDispositivos,
                         )
                     } else {
                         WifiEmptyState()
@@ -337,7 +339,7 @@ fun SinalScreen(
                         WifiEmptyState()
                     }
                 }
-                else -> {
+                2 -> {
                     MovelTab(
                         movelSnapshot = movelSnapshot,
                         simsAtivos = simsAtivos,
@@ -345,6 +347,22 @@ fun SinalScreen(
                         onSolicitarPermissaoTelefonia = onSolicitarPermissaoTelefonia,
                         tokens = c,
                     )
+                }
+                else -> {
+                    if (conexaoTipo == ConexaoTipo.WIFI) {
+                        val snap = snapshotDispositivos
+                        if (snap != null) {
+                            DispositivosTabContent(
+                                snapshotDevices = snap,
+                                onRefresh = onRefresh,
+                                apelidos = apelidos,
+                                onSalvarApelido = onSalvarApelido,
+                                c = c,
+                            )
+                        }
+                    } else {
+                        WifiEmptyState()
+                    }
                 }
             }
         }
@@ -440,7 +458,7 @@ private fun SinalTopTabRow(
         containerColor = c.bgPrimary,
         contentColor = LkColors.accent,
     ) {
-        listOf("Wi-Fi", "Canal", "Móvel").forEachIndexed { index, label ->
+        listOf("Wi-Fi", "Canal", "Móvel", "Dispositivos").forEachIndexed { index, label ->
             Tab(
                 selected = selectedTab == index,
                 onClick = { onTabSelected(index) },
@@ -771,7 +789,6 @@ private fun RedesTab(
     connectedNetwork: RedeVizinha?,
     onRefresh: () -> Unit,
     wifiLinkSnapshot: WifiLinkSnapshot? = null,
-    onAbrirDispositivos: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
     var selectedBanda by remember { mutableStateOf("Todos") }
@@ -1028,26 +1045,6 @@ private fun RedesTab(
                 }
             }
 
-            // Botão "Ver dispositivos na rede" — último item, só quando conectado em Wi-Fi (tab já garante isso)
-            item {
-                Spacer(Modifier.height(LkSpacing.lg))
-                OutlinedButton(
-                    onClick = onAbrirDispositivos,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = LkSpacing.lg),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.DevicesOther,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                    )
-                    Spacer(Modifier.width(LkSpacing.sm))
-                    Text("Ver dispositivos na rede")
-                }
-                Spacer(Modifier.height(LkSpacing.md))
-            }
         }
     }
 

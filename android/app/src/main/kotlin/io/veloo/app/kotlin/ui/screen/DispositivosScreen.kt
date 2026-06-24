@@ -168,6 +168,44 @@ fun DispositivosScreen(
 }
 
 // ---------------------------------------------------------------------------
+// Tab content: usada em SinalScreen para aba Dispositivos
+// ---------------------------------------------------------------------------
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DispositivosTabContent(
+    snapshotDevices: SnapshotScanDispositivos,
+    onRefresh: () -> Unit,
+    apelidos: Map<String, String>,
+    onSalvarApelido: (mac: String, apelido: String) -> Unit,
+    c: LkTokens,
+) {
+    val dispositivos = snapshotDevices.dispositivos
+    val isLoading = snapshotDevices.estado == EstadoScanDispositivos.varrendo
+    val erro = snapshotDevices.erroMensagem
+
+    if (dispositivos.isEmpty()) {
+        EmptyStateDispositivos(
+            c = c,
+            isLoading = isLoading,
+            progresso = snapshotDevices.progressoPercentual,
+            erro = erro,
+            onRefresh = onRefresh,
+        )
+    } else {
+        DispositivosLista(
+            c = c,
+            dispositivos = dispositivos,
+            isLoading = isLoading,
+            erro = erro,
+            onRefresh = onRefresh,
+            apelidos = apelidos,
+            onSalvarApelido = onSalvarApelido,
+        )
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Lista principal com pull-to-refresh
 // ---------------------------------------------------------------------------
 
