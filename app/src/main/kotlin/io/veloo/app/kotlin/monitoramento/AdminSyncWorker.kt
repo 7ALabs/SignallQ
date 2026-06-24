@@ -1,12 +1,14 @@
 package io.veloo.app.monitoramento
 
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import io.veloo.app.BuildConfig
 import io.veloo.app.core.database.MedicaoDao
 import io.veloo.app.core.database.chat.ChatSessionDao
 import io.veloo.app.core.datastore.PreferenciasAppRepository
@@ -45,8 +47,15 @@ internal class AdminSyncWorker
         override suspend fun doWork(): Result {
             Log.d(TAG, "Iniciando sync retroativo (tentativa ${runAttemptCount + 1})")
             return try {
-                syncMedicoes()
-                syncChatSessions()
+                val environment = if (BuildConfig.DEBUG) "staging" else "production"
+                val distChannel = getDistributionChannel(applicationContext)
+                val buildType = BuildConfig.BUILD_TYPE
+                val versionCode = BuildConfig.VERSION_CODE
+                val deviceId = runCatching {
+                    preferenciasAppRepository.buscarOuGerarAnonDeviceId()
+                }.getOrDefault("unknown")
+                syncMedicoes(environment, distChannel, buildType, versionCode, deviceId)
+                syncChatSessions(environment, distChannel, buildType, versionCode, deviceId)
                 Log.d(TAG, "Sync retroativo concluido com sucesso")
                 Result.success()
             } catch (e: Exception) {
@@ -55,11 +64,38 @@ internal class AdminSyncWorker
             }
         }
 
+        private fun getDistributionChannel(context: Context): String =
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    val info = context.packageManager.getInstallSourceInfo(context.packageName)
+                    when (info.initiatingPackageName) {
+                        "com.android.vending" -> "play_store"
+                        null -> "sideload"
+                        else -> info.initiatingPackageName ?: "unknown"
+                    }
+                } else {
+                    @Suppress("DEPRECATION")
+                    when (context.packageManager.getInstallerPackageName(context.packageName)) {
+                        "com.android.vending" -> "play_store"
+                        null -> "sideload"
+                        else -> "unknown"
+                    }
+                }
+            } catch (e: Exception) {
+                "unknown"
+            }
+
         /**
          * Sincroniza medicoes nao contaminadas desde o ultimo checkpoint.
          * Atualiza o checkpoint apos cada batch para garantir progresso incremental.
          */
-        private suspend fun syncMedicoes() {
+        private suspend fun syncMedicoes(
+            environment: String,
+            distChannel: String,
+            buildType: String,
+            versionCode: Int,
+            deviceId: String,
+        ) {
             val lastEpoch = preferenciasAppRepository.buscarAdminSyncMedicaoLastEpochMs()
             Log.d(TAG, "syncMedicoes: checkpoint=$lastEpoch")
 
@@ -78,7 +114,15 @@ internal class AdminSyncWorker
 
             pendentes.chunked(BATCH_SIZE).forEach { batch ->
                 batch.forEach { medicao ->
-                    adminIngestRepository.sendDiagnostic(medicao.toIngestPayload())
+                    adminIngestRepository.sendDiagnostic(
+                        medicao.toIngestPayload(
+                            environment = environment,
+                            distChannel = distChannel,
+                            buildType = buildType,
+                            versionCode = versionCode,
+                            deviceId = deviceId,
+                        ),
+                    )
                 }
                 val maxEpoch = batch.maxOf { it.timestampEpochMs }
                 preferenciasAppRepository.salvarAdminSyncMedicaoLastEpochMs(maxEpoch)
@@ -90,7 +134,13 @@ internal class AdminSyncWorker
          * Sincroniza sessoes de chat concluidas (status=completed, nomeModelo != null)
          * desde o ultimo checkpoint.
          */
-        private suspend fun syncChatSessions() {
+        private suspend fun syncChatSessions(
+            environment: String,
+            distChannel: String,
+            buildType: String,
+            versionCode: Int,
+            deviceId: String,
+        ) {
             val lastEpoch = preferenciasAppRepository.buscarAdminSyncChatLastEpochMs()
             Log.d(TAG, "syncChatSessions: checkpoint=$lastEpoch")
 
@@ -105,7 +155,15 @@ internal class AdminSyncWorker
 
             pendentes.chunked(BATCH_SIZE).forEach { batch ->
                 batch.forEach { sessao ->
-                    adminIngestRepository.sendAiUsage(sessao.toIngestPayload())
+                    adminIngestRepository.sendAiUsage(
+                        sessao.toIngestPayload(
+                            environment = environment,
+                            distChannel = distChannel,
+                            buildType = buildType,
+                            versionCode = versionCode,
+                            deviceId = deviceId,
+                        ),
+                    )
                 }
                 val maxEpoch = batch.maxOf { it.criadoEmEpochMs }
                 preferenciasAppRepository.salvarAdminSyncChatLastEpochMs(maxEpoch)

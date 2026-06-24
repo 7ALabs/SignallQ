@@ -22,6 +22,11 @@ android {
             "APP_VERSION",
             "\"${libs.versions.versionName.get()}\"",
         )
+        buildConfigField(
+            "int",
+            "VERSION_CODE",
+            libs.versions.versionCode.get(),
+        )
     }
 
     buildFeatures {

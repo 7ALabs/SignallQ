@@ -119,6 +119,11 @@ class AdminIngestRepository(
         osVersion?.let { o.put("os_version", it) }
         appVersion?.let { o.put("app_version", it) }
         if (aiSummaryReport.isNotBlank()) o.put("ai_summary_report", aiSummaryReport)
+        environment?.let { o.put("environment", it) }
+        distChannel?.let { o.put("dist_channel", it) }
+        buildType?.let { o.put("build_type", it) }
+        versionCode?.let { o.put("version_code", it) }
+        deviceId?.let { o.put("device_id", it) }
         return o
     }
 
@@ -132,6 +137,11 @@ class AdminIngestRepository(
         o.put("completion_tokens", completionTokens)
         o.put("total_tokens", totalTokens)
         costUsd?.let { o.put("cost_usd", it) }
+        environment?.let { o.put("environment", it) }
+        distChannel?.let { o.put("dist_channel", it) }
+        buildType?.let { o.put("build_type", it) }
+        versionCode?.let { o.put("version_code", it) }
+        deviceId?.let { o.put("device_id", it) }
         return o
     }
 }

@@ -78,6 +78,16 @@ data class DiagnosticIngestPayload(
     val appVersion: String? = null,
     /** Resumo gerado pela IA ao final do diagnostico. Vazio se IA nao foi chamada ou falhou. */
     val aiSummaryReport: String = "",
+    /** "production" ou "staging" — derivado de BuildConfig.DEBUG. */
+    val environment: String? = null,
+    /** Canal de distribuicao: "play_store", "sideload" ou "unknown". */
+    val distChannel: String? = null,
+    /** Tipo de build: "release", "debug". */
+    val buildType: String? = null,
+    /** versionCode do app (inteiro). */
+    val versionCode: Int? = null,
+    /** UUID anonimo persistente do dispositivo. Sem PII. */
+    val deviceId: String? = null,
 )
 
 /**
@@ -100,6 +110,16 @@ data class AiUsageIngestPayload(
     val totalTokens: Int = promptTokens + completionTokens,
     /** Custo em USD. Null = worker calcula fallback baseado em tokens. */
     val costUsd: Double? = null,
+    /** "production" ou "staging". */
+    val environment: String? = null,
+    /** Canal de distribuicao: "play_store", "sideload" ou "unknown". */
+    val distChannel: String? = null,
+    /** Tipo de build: "release", "debug". */
+    val buildType: String? = null,
+    /** versionCode do app. */
+    val versionCode: Int? = null,
+    /** UUID anonimo persistente do dispositivo. Sem PII. */
+    val deviceId: String? = null,
 )
 
 // ---------------------------------------------------------------------------
@@ -112,7 +132,13 @@ data class AiUsageIngestPayload(
  * Precondição: chamador DEVE garantir que [MedicaoEntity.contaminado] == false
  * antes de invocar. Esta funcao nao valida — filtragem e responsabilidade do chamador.
  */
-fun MedicaoEntity.toIngestPayload() = DiagnosticIngestPayload(
+fun MedicaoEntity.toIngestPayload(
+    environment: String? = null,
+    distChannel: String? = null,
+    buildType: String? = null,
+    versionCode: Int? = null,
+    deviceId: String? = null,
+) = DiagnosticIngestPayload(
     id = id,
     createdAt = timestampEpochMs / 1000,
     networkType = connectionType,
@@ -126,6 +152,11 @@ fun MedicaoEntity.toIngestPayload() = DiagnosticIngestPayload(
     issues = gargaloPrimario?.takeIf { it.isNotBlank() }
         ?.let { listOf(idParaIssueLabel(it)) } ?: emptyList(),
     operator = operadoraMovel?.takeIf { it.isNotBlank() },
+    environment = environment,
+    distChannel = distChannel,
+    buildType = buildType,
+    versionCode = versionCode,
+    deviceId = deviceId,
 )
 
 /**
@@ -134,7 +165,13 @@ fun MedicaoEntity.toIngestPayload() = DiagnosticIngestPayload(
  * Precondição: chamador DEVE garantir que [ChatSessionEntity.status] == "completed"
  * e [ChatSessionEntity.nomeModelo] != null antes de invocar.
  */
-fun ChatSessionEntity.toIngestPayload() = AiUsageIngestPayload(
+fun ChatSessionEntity.toIngestPayload(
+    environment: String? = null,
+    distChannel: String? = null,
+    buildType: String? = null,
+    versionCode: Int? = null,
+    deviceId: String? = null,
+) = AiUsageIngestPayload(
     id = id,
     model = nomeModelo ?: "unknown",
     sessionId = null,
@@ -143,4 +180,9 @@ fun ChatSessionEntity.toIngestPayload() = AiUsageIngestPayload(
     completionTokens = 0,
     totalTokens = 0,
     costUsd = null,
+    environment = environment,
+    distChannel = distChannel,
+    buildType = buildType,
+    versionCode = versionCode,
+    deviceId = deviceId,
 )

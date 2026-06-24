@@ -77,6 +77,16 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           >
             STAGING
           </button>
+          <button
+            onClick={() => onEnvironmentChange("all")}
+            className={`px-3.5 py-1 text-[11px] font-mono tracking-wider uppercase rounded-lg transition-all duration-200 cursor-pointer ${
+              environment === "all"
+                ? "bg-[#1f1f24] text-white border-[#262626] font-medium"
+                : "text-[#9CA3AF] border-transparent hover:text-white"
+            }`}
+          >
+            TODOS
+          </button>
         </div>
 
         {/* Period Filter Selector */}

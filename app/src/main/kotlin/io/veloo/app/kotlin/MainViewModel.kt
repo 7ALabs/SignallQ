@@ -3,6 +3,7 @@ package io.veloo.app
 import android.app.Application
 import android.content.Context
 import android.net.ConnectivityManager
+import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -121,6 +122,27 @@ class MainViewModel
         @Suppress("unused")
         private val orientadorConfiguracaoDns by lazy { OrientadorConfiguracaoDns() }
 
+        private fun getDistributionChannel(context: Context): String =
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    val info = context.packageManager.getInstallSourceInfo(context.packageName)
+                    when (info.initiatingPackageName) {
+                        "com.android.vending" -> "play_store"
+                        null -> "sideload"
+                        else -> info.initiatingPackageName ?: "unknown"
+                    }
+                } else {
+                    @Suppress("DEPRECATION")
+                    when (context.packageManager.getInstallerPackageName(context.packageName)) {
+                        "com.android.vending" -> "play_store"
+                        null -> "sideload"
+                        else -> "unknown"
+                    }
+                }
+            } catch (e: Exception) {
+                "unknown"
+            }
+
         // DiagnosticOrchestrator injetado via Hilt como @Singleton — compartilhado com DiagnosticoViewModel.
         // O underscore no construtor e convencao para parametros que viram val publico.
         val diagnosticOrchestrator: DiagnosticOrchestrator = _diagnosticOrchestrator
@@ -142,6 +164,8 @@ class MainViewModel
                 networkCapabilitiesProvider = networkCapabilitiesProvider,
                 aiRepository = diagAiRepository,
                 adminIngestRepository = adminIngestRepository,
+                deviceIdProvider = { preferenciasAppRepository.buscarOuGerarAnonDeviceId() },
+                distChannelProvider = { getDistributionChannel(getApplication()) },
             )
         }
         val signallQUiStateFlow by lazy {

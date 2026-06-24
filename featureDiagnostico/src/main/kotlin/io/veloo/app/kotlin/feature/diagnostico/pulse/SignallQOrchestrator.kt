@@ -118,6 +118,10 @@ class SignallQOrchestrator(
     val aiRepository: AiDiagnosisRepository,
     /** Repositorio de telemetria para o painel admin. Null = ingest desabilitado (testes). */
     private val adminIngestRepository: AdminIngestRepository? = null,
+    /** Lambda que retorna o device_id anonimo persistente. Deve vir do DataStore via PreferenciasAppRepository. */
+    private val deviceIdProvider: suspend () -> String = { "unknown" },
+    /** Lambda que retorna o canal de distribuicao ("play_store", "sideload", "unknown"). */
+    private val distChannelProvider: () -> String = { "unknown" },
 ) {
 
     private val mutableSnapshotFlow = MutableStateFlow(SignallQSnapshot())
@@ -1021,6 +1025,8 @@ class SignallQOrchestrator(
                 relatorio == null -> "failed"
                 else -> "completed"
             }
+            val deviceId = runCatching { deviceIdProvider() }.getOrDefault("unknown")
+            val distChannel = runCatching { distChannelProvider() }.getOrDefault("unknown")
             // network_type refinado:
             //  - movel: usa tecnologia direta (ex: "5G", "4G") ou null se indisponivel (Xiaomi quirk)
             //  - wifi: converte frequencia para banda (ex: "wifi_5GHz") ou "wifi" se frequencia invalida
@@ -1058,6 +1064,11 @@ class SignallQOrchestrator(
                     osVersion = "Android ${Build.VERSION.RELEASE}",
                     appVersion = BuildConfig.APP_VERSION,
                     aiSummaryReport = aiSummaryReport,
+                    environment = if (BuildConfig.DEBUG) "staging" else "production",
+                    distChannel = distChannel,
+                    buildType = BuildConfig.BUILD_TYPE,
+                    versionCode = BuildConfig.VERSION_CODE,
+                    deviceId = deviceId,
                 ),
             )
         }
@@ -1079,6 +1090,8 @@ class SignallQOrchestrator(
             result.modeloIa.nomeExibicao.ifBlank { "unknown" }
         }
         scope.launch {
+            val deviceId = runCatching { deviceIdProvider() }.getOrDefault("unknown")
+            val distChannel = runCatching { distChannelProvider() }.getOrDefault("unknown")
             repo.sendAiUsage(
                 AiUsageIngestPayload(
                     id = java.util.UUID.randomUUID().toString(),
@@ -1087,6 +1100,11 @@ class SignallQOrchestrator(
                     promptTokens = result.promptTokens,
                     completionTokens = result.completionTokens,
                     totalTokens = result.totalTokens,
+                    environment = if (BuildConfig.DEBUG) "staging" else "production",
+                    distChannel = distChannel,
+                    buildType = BuildConfig.BUILD_TYPE,
+                    versionCode = BuildConfig.VERSION_CODE,
+                    deviceId = deviceId,
                 ),
             )
         }

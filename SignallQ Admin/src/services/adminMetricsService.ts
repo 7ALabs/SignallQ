@@ -20,7 +20,7 @@ import { mockOperatorsList } from "../mocks/errors.mock";
 import { OperatorRecord } from "../types/admin";
 
 export interface DashboardFilters {
-  environment?: "production" | "staging";
+  environment?: "production" | "staging" | "all";
   period?: "today" | "7d" | "30d" | "custom";
 }
 
@@ -34,6 +34,7 @@ export const adminMetricsService = {
 
       try {
         const apiPeriod = period === "today" ? "1d" : period;
+        const env = filters.environment ?? "production";
         const raw = await apiClient.request<{
           totalDiagnostics: number;
           activeSessions: number;
@@ -41,7 +42,7 @@ export const adminMetricsService = {
           aiCallsToday: number;
           aiCostToday: number;
           aiTokensToday: number;
-        }>("GET", `/admin/metrics/overview?period=${apiPeriod}`);
+        }>("GET", `/admin/metrics/overview?environment=${env}&period=${apiPeriod}`);
 
         const score = raw.avgNetworkScore ?? 0;
         const verdict = score >= 80 ? "Excelente" : score >= 60 ? "Bom" : score >= 40 ? "Regular" : "Fraco";
@@ -153,6 +154,7 @@ export const adminMetricsService = {
       if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
       const period = filters.period || "7d";
       const apiPeriod = period === "today" ? "1d" : period;
+      const envNetwork = filters.environment ?? "production";
       // Paleta fixa por nome de tipo de rede — cor não vem do worker (SIG-110).
       const colorMap: Record<string, string> = {
         wifi:     "#6C2BFF",
@@ -171,7 +173,7 @@ export const adminMetricsService = {
       try {
         const raw = await apiClient.request<{ items: Array<{ name: string; value: number }> }>(
           "GET",
-          `/admin/metrics/network?period=${apiPeriod}`
+          `/admin/metrics/network?environment=${envNetwork}&period=${apiPeriod}`
         );
         return (raw.items ?? []).map((item) => ({
           name:  item.name,
@@ -202,10 +204,11 @@ export const adminMetricsService = {
       if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
       const period = filters.period || "7d";
       const apiPeriod = period === "today" ? "1d" : period;
+      const envTimeline = filters.environment ?? "production";
       try {
         const raw = await apiClient.request<{
           timeline: Array<{ date: string; completedDiagnostics: number; activeUsers: number; criticalAlerts: number }>;
-        }>("GET", `/admin/metrics/timeline?period=${apiPeriod}`);
+        }>("GET", `/admin/metrics/timeline?environment=${envTimeline}&period=${apiPeriod}`);
         return (raw.timeline ?? []).map((item) => ({
           // Worker retorna 'date' (YYYY-MM-DD); frontend usa 'timestamp' ou 'date' indistintamente
           // — mantém ambos para compatibilidade com os tipos TimeSeriesData existentes.
@@ -244,10 +247,11 @@ export const adminMetricsService = {
       if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
       const period = filters.period || "7d";
       const apiPeriod = period === "today" ? "1d" : period;
+      const envTopIssues = filters.environment ?? "production";
       try {
         const raw = await apiClient.request<{ items: TopIssueItem[] }>(
           "GET",
-          `/admin/metrics/top-issues?period=${apiPeriod}`
+          `/admin/metrics/top-issues?environment=${envTopIssues}&period=${apiPeriod}`
         );
         return raw.items ?? [];
       } catch {
@@ -276,9 +280,10 @@ export const adminMetricsService = {
       // Sem baseUrl → retorna [] silenciosamente.
       if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
       try {
+        const envAlerts = filters.environment ?? "production";
         const raw = await apiClient.request<{ items: RecentAlertItem[] }>(
           "GET",
-          "/admin/metrics/alerts"
+          `/admin/metrics/alerts?environment=${envAlerts}`
         );
         return raw.items ?? [];
       } catch {
@@ -303,6 +308,7 @@ export const adminMetricsService = {
       if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
       const period = filters.period || "7d";
       const apiPeriod = period === "today" ? "1d" : period;
+      const envAiProviders = filters.environment ?? "production";
       // Paleta de cores por provedor — não vem do worker (SIG-110).
       const providerColors: Record<string, string> = {
         "Gemini":              "#6C2BFF",
@@ -316,7 +322,7 @@ export const adminMetricsService = {
       try {
         const raw = await apiClient.request<{
           items: Array<{ name: string; percentage: number; tokensProcessed: number }>;
-        }>("GET", `/admin/metrics/ai-providers?period=${apiPeriod}`);
+        }>("GET", `/admin/metrics/ai-providers?environment=${envAiProviders}&period=${apiPeriod}`);
         return (raw.items ?? []).map((item) => ({
           name:            item.name,
           percentage:      item.percentage,
@@ -374,6 +380,7 @@ export const adminMetricsService = {
       if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
 
       const period = filters.period === "today" ? "1d" : (filters.period ?? "30d");
+      const envOperators = filters.environment ?? "production";
       try {
         const raw = await apiClient.request<{ operators: Array<{
           operator: string;
@@ -384,7 +391,7 @@ export const adminMetricsService = {
           avg_latency: number | null;
           completed: number;
           resolved: number;
-        }> }>("GET", `/admin/metrics/operators?period=${period}`);
+        }> }>("GET", `/admin/metrics/operators?environment=${envOperators}&period=${period}`);
 
         return (raw.operators ?? []).map((r, idx) => ({
           id:                             `op_${idx}`,

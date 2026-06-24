@@ -14,6 +14,8 @@ export interface Env {
   FIREBASE_CLIENT_EMAIL: string;
   FIREBASE_PRIVATE_KEY: string;
   DB: D1Database;
+  /** Pepper para hash de senha admin — reservado para SIG-136 (autenticação avançada). */
+  ADMIN_AUTH_PEPPER?: string;
 }
 
 function corsHeaders(env: Env): Record<string, string> {
@@ -60,6 +62,16 @@ function periodToSeconds(period: string): number {
 
 function nowSec(): number {
   return Math.floor(Date.now() / 1000);
+}
+
+/**
+ * Extrai filtro de environment da query string.
+ * ?environment=production → filtra por 'production'
+ * ?environment=all ou ausente → sem filtro (retorna null)
+ */
+function getEnvironmentFilter(url: URL): string | null {
+  const env = url.searchParams.get("environment");
+  return env === "all" || !env ? null : env;
 }
 
 async function getFirebaseAccessToken(env: Env): Promise<string> {
@@ -109,26 +121,31 @@ async function getFirebaseAccessToken(env: Env): Promise<string> {
 // --- handlers /admin ---
 
 async function handleOverview(request: Request, env: Env): Promise<Response> {
-  const url    = new URL(request.url);
-  const period = url.searchParams.get("period") ?? "7d";
-  const since  = nowSec() - periodToSeconds(period);
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "7d";
+  const since     = nowSec() - periodToSeconds(period);
   const todaySince = nowSec() - 86400;
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause    = envFilter ? " AND environment = ?" : "";
+  const envBinds     = envFilter ? [envFilter]            : [];
 
   const [sessions, aiRows] = await Promise.all([
     env.DB.prepare(
       `SELECT COUNT(*) AS total,
               SUM(CASE WHEN resolved=0 THEN 1 ELSE 0 END) AS active,
               AVG(CAST(score AS REAL)) AS avg_score
-       FROM diagnostic_sessions WHERE created_at >= ?`
-    ).bind(since).first<{ total: number; active: number; avg_score: number | null }>(),
+       FROM diagnostic_sessions WHERE created_at >= ?${envClause}`
+    ).bind(since, ...envBinds).first<{ total: number; active: number; avg_score: number | null }>(),
     env.DB.prepare(
       `SELECT COUNT(*) AS calls, SUM(cost_usd) AS cost, SUM(total_tokens) AS tokens
-       FROM ai_usage WHERE created_at >= ?`
-    ).bind(todaySince).first<{ calls: number; cost: number; tokens: number }>(),
+       FROM ai_usage WHERE created_at >= ?${envClause}`
+    ).bind(todaySince, ...envBinds).first<{ calls: number; cost: number; tokens: number }>(),
   ]);
 
   return json({
     source: "d1", period,
+    environment:      envFilter ?? "all",
     totalDiagnostics: sessions?.total ?? 0,
     activeSessions:   sessions?.active ?? 0,
     avgNetworkScore:  sessions?.avg_score ? Math.round(sessions.avg_score) : 0,
@@ -139,52 +156,66 @@ async function handleOverview(request: Request, env: Env): Promise<Response> {
 }
 
 async function handleDiagnostics(request: Request, env: Env): Promise<Response> {
-  const url    = new URL(request.url);
-  const period = url.searchParams.get("period") ?? "7d";
-  const limit  = Math.min(parseInt(url.searchParams.get("limit") ?? "50"), 200);
-  const since  = nowSec() - periodToSeconds(period);
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "7d";
+  const limit     = Math.min(parseInt(url.searchParams.get("limit") ?? "50"), 200);
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? " AND environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]            : [];
 
   const rows = await env.DB.prepare(
     `SELECT id, created_at, network_type, status, score,
             download_mbps, upload_mbps, latency_ms, jitter_ms, packet_loss,
             issues, resolved, operator,
-            device_model, os_version, app_version, ai_summary_report
-     FROM diagnostic_sessions WHERE created_at >= ?
+            device_model, os_version, app_version, ai_summary_report,
+            environment, dist_channel, build_type, version_code, device_id
+     FROM diagnostic_sessions WHERE created_at >= ?${envClause}
      ORDER BY created_at DESC LIMIT ?`
-  ).bind(since, limit).all();
+  ).bind(since, ...envBinds, limit).all();
 
   const sessions = (rows.results ?? []).map((r: any) => ({
-    id:               r.id,
-    created_at:       r.created_at,
-    network_type:     r.network_type,
-    status:           r.status,
-    score:            r.score,
-    download_mbps:    r.download_mbps,
-    upload_mbps:      r.upload_mbps,
-    latency_ms:       r.latency_ms,
-    jitter_ms:        r.jitter_ms,
-    packet_loss:      r.packet_loss,
-    issues:           JSON.parse(r.issues ?? "[]"),
-    resolved:         r.resolved,
-    operator:         r.operator,
-    device_model:     r.device_model     ?? '',
-    os_version:       r.os_version       ?? '',
-    app_version:      r.app_version      ?? '',
+    id:                r.id,
+    created_at:        r.created_at,
+    network_type:      r.network_type,
+    status:            r.status,
+    score:             r.score,
+    download_mbps:     r.download_mbps,
+    upload_mbps:       r.upload_mbps,
+    latency_ms:        r.latency_ms,
+    jitter_ms:         r.jitter_ms,
+    packet_loss:       r.packet_loss,
+    issues:            JSON.parse(r.issues ?? "[]"),
+    resolved:          r.resolved,
+    operator:          r.operator,
+    device_model:      r.device_model      ?? '',
+    os_version:        r.os_version        ?? '',
+    app_version:       r.app_version       ?? '',
     ai_summary_report: r.ai_summary_report ?? '',
+    environment:       r.environment       ?? 'production',
+    dist_channel:      r.dist_channel      ?? '',
+    build_type:        r.build_type        ?? 'release',
+    version_code:      r.version_code      ?? 0,
+    device_id:         r.device_id         ?? '',
   }));
 
-  return json({ source: "d1", period, sessions }, 200, env);
+  return json({ source: "d1", period, environment: envFilter ?? "all", sessions }, 200, env);
 }
 
 async function handleAiCost(request: Request, env: Env): Promise<Response> {
-  const url    = new URL(request.url);
-  const period = url.searchParams.get("period") ?? "7d";
-  const since  = nowSec() - periodToSeconds(period);
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "7d";
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? " AND environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]            : [];
 
   const rows = await env.DB.prepare(
     `SELECT model, COUNT(*) AS calls, SUM(total_tokens) AS tokens, SUM(cost_usd) AS cost_usd
-     FROM ai_usage WHERE created_at >= ? GROUP BY model ORDER BY calls DESC`
-  ).bind(since).all();
+     FROM ai_usage WHERE created_at >= ?${envClause} GROUP BY model ORDER BY calls DESC`
+  ).bind(since, ...envBinds).all();
 
   const totals = (rows.results ?? []).reduce(
     (acc: any, r: any) => ({
@@ -195,15 +226,19 @@ async function handleAiCost(request: Request, env: Env): Promise<Response> {
     { calls: 0, tokens: 0, cost: 0 }
   );
 
-  return json({ source: "d1", period, byModel: rows.results ?? [], totals }, 200, env);
+  return json({ source: "d1", period, environment: envFilter ?? "all", byModel: rows.results ?? [], totals }, 200, env);
 }
 
 // --- handlers /admin/metrics (SIG-110) ---
 
 async function handleTimeline(request: Request, env: Env): Promise<Response> {
-  const url    = new URL(request.url);
-  const period = url.searchParams.get("period") ?? "7d";
-  const since  = nowSec() - periodToSeconds(period);
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "7d";
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? " AND environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]            : [];
 
   // Agrega diagnostic_sessions por dia (DATE unix→ISO via strftime).
   // activeUsers: não há user_id na tabela — aproximado por contagem de sessões do dia.
@@ -217,10 +252,10 @@ async function handleTimeline(request: Request, env: Env): Promise<Response> {
        COUNT(*) AS activeUsers,
        SUM(CASE WHEN status = 'failed' OR (score IS NOT NULL AND score < 40) THEN 1 ELSE 0 END) AS criticalAlerts
      FROM diagnostic_sessions
-     WHERE created_at >= ?
+     WHERE created_at >= ?${envClause}
      GROUP BY date
      ORDER BY date ASC`
-  ).bind(since).all();
+  ).bind(since, ...envBinds).all();
 
   const timeline = (rows.results ?? []).map((r: any) => ({
     date:                 r.date,
@@ -229,41 +264,49 @@ async function handleTimeline(request: Request, env: Env): Promise<Response> {
     criticalAlerts:       r.criticalAlerts        ?? 0,
   }));
 
-  return json({ source: "d1", period, timeline }, 200, env);
+  return json({ source: "d1", period, environment: envFilter ?? "all", timeline }, 200, env);
 }
 
 async function handleNetworkInsights(request: Request, env: Env): Promise<Response> {
-  const url    = new URL(request.url);
-  const period = url.searchParams.get("period") ?? "7d";
-  const since  = nowSec() - periodToSeconds(period);
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "7d";
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? " AND environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]            : [];
 
   // Distribui sessões por network_type. Cor não vem do worker — atribuída no frontend.
   const rows = await env.DB.prepare(
     `SELECT network_type AS name, COUNT(*) AS value
      FROM diagnostic_sessions
-     WHERE created_at >= ?
+     WHERE created_at >= ?${envClause}
      GROUP BY network_type
      ORDER BY value DESC`
-  ).bind(since).all();
+  ).bind(since, ...envBinds).all();
 
   const items = (rows.results ?? []).map((r: any) => ({
     name:  r.name  ?? "Desconhecido",
     value: r.value ?? 0,
   }));
 
-  return json({ source: "d1", period, items }, 200, env);
+  return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
 }
 
 async function handleTopIssues(request: Request, env: Env): Promise<Response> {
-  const url    = new URL(request.url);
-  const period = url.searchParams.get("period") ?? "7d";
-  const since  = nowSec() - periodToSeconds(period);
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "7d";
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? " AND environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]            : [];
 
   // Busca todas as sessões do período para explodir o array JSON de issues.
   // D1 não suporta json_each nativamente de forma cross-platform — fazemos no runtime.
   const rows = await env.DB.prepare(
-    `SELECT issues FROM diagnostic_sessions WHERE created_at >= ?`
-  ).bind(since).all();
+    `SELECT issues FROM diagnostic_sessions WHERE created_at >= ?${envClause}`
+  ).bind(since, ...envBinds).all();
 
   const countMap: Record<string, number> = {};
   let totalIssues = 0;
@@ -290,7 +333,7 @@ async function handleTopIssues(request: Request, env: Env): Promise<Response> {
     percentage: totalIssues > 0 ? Math.round((count / totalIssues) * 100) : 0,
   }));
 
-  return json({ source: "d1", period, items }, 200, env);
+  return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
 }
 
 async function handleRecentAlerts(_request: Request, env: Env): Promise<Response> {
@@ -301,9 +344,13 @@ async function handleRecentAlerts(_request: Request, env: Env): Promise<Response
 }
 
 async function handleAiCostMetrics(request: Request, env: Env): Promise<Response> {
-  const url    = new URL(request.url);
-  const period = url.searchParams.get("period") ?? "7d";
-  const since  = nowSec() - periodToSeconds(period);
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "7d";
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? " AND environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]            : [];
 
   const row = await env.DB.prepare(
     `SELECT
@@ -313,8 +360,8 @@ async function handleAiCostMetrics(request: Request, env: Env): Promise<Response
        SUM(completion_tokens) AS completionTokens,
        SUM(total_tokens)    AS totalTokens
      FROM ai_usage
-     WHERE created_at >= ?`
-  ).bind(since).first<{
+     WHERE created_at >= ?${envClause}`
+  ).bind(since, ...envBinds).first<{
     totalRequests: number;
     totalCostUsd: number | null;
     promptTokens: number | null;
@@ -334,6 +381,7 @@ async function handleAiCostMetrics(request: Request, env: Env): Promise<Response
   return json({
     source: "d1",
     period,
+    environment: envFilter ?? "all",
     totalCostUsd,
     totalRequests,
     avgCostPerRequest,
@@ -354,17 +402,21 @@ function providerName(model: string): string {
 }
 
 async function handleAiProviders(request: Request, env: Env): Promise<Response> {
-  const url    = new URL(request.url);
-  const period = url.searchParams.get("period") ?? "7d";
-  const since  = nowSec() - periodToSeconds(period);
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "7d";
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? " AND environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]            : [];
 
   const rows = await env.DB.prepare(
     `SELECT model, SUM(total_tokens) AS tokensProcessed
      FROM ai_usage
-     WHERE created_at >= ?
+     WHERE created_at >= ?${envClause}
      GROUP BY model
      ORDER BY tokensProcessed DESC`
-  ).bind(since).all();
+  ).bind(since, ...envBinds).all();
 
   const results = rows.results ?? [];
   const grandTotal = results.reduce((acc: number, r: any) => acc + (r.tokensProcessed ?? 0), 0);
@@ -375,13 +427,17 @@ async function handleAiProviders(request: Request, env: Env): Promise<Response> 
     percentage:      grandTotal > 0 ? Math.round(((r.tokensProcessed ?? 0) / grandTotal) * 100) : 0,
   }));
 
-  return json({ source: "d1", period, items }, 200, env);
+  return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
 }
 
 async function handleAiUsageTimeline(request: Request, env: Env): Promise<Response> {
-  const url  = new URL(request.url);
-  const days = Math.min(Math.max(parseInt(url.searchParams.get("days") ?? "30"), 1), 90);
-  const since = nowSec() - days * 86400;
+  const url       = new URL(request.url);
+  const days      = Math.min(Math.max(parseInt(url.searchParams.get("days") ?? "30"), 1), 90);
+  const since     = nowSec() - days * 86400;
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? " AND environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]            : [];
 
   // Agrega total_tokens por dia × provedor (via providerName).
   // strftime converte unix epoch → YYYY-MM-DD (UTC). Ordenado por data asc para plotagem.
@@ -391,10 +447,10 @@ async function handleAiUsageTimeline(request: Request, env: Env): Promise<Respon
        model,
        SUM(total_tokens) AS tokens
      FROM ai_usage
-     WHERE created_at >= ?
+     WHERE created_at >= ?${envClause}
      GROUP BY date, model
      ORDER BY date ASC`
-  ).bind(since).all();
+  ).bind(since, ...envBinds).all();
 
   // Reagrega por data e provedor (múltiplos modelos podem pertencer ao mesmo provedor).
   const byDate = new Map<string, Record<string, number>>();
@@ -409,14 +465,18 @@ async function handleAiUsageTimeline(request: Request, env: Env): Promise<Respon
 
   const series = Array.from(byDate.entries()).map(([date, byProvider]) => ({ date, byProvider }));
 
-  return json({ source: "d1", days, series }, 200, env);
+  return json({ source: "d1", days, environment: envFilter ?? "all", series }, 200, env);
 }
 
 // SIG-139: métricas de diagnóstico agrupadas por operadora.
 async function handleOperators(request: Request, env: Env): Promise<Response> {
-  const url    = new URL(request.url);
-  const period = url.searchParams.get("period") ?? "30d";
-  const since  = nowSec() - periodToSeconds(period);
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "30d";
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? " AND environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]            : [];
 
   const rows = await env.DB.prepare(
     `SELECT
@@ -430,10 +490,10 @@ async function handleOperators(request: Request, env: Env): Promise<Response> {
        SUM(CASE WHEN resolved = 1         THEN 1 ELSE 0 END)   AS resolved
      FROM diagnostic_sessions
      WHERE created_at >= ?
-       AND operator IS NOT NULL AND operator != ''
+       AND operator IS NOT NULL AND operator != ''${envClause}
      GROUP BY operator
      ORDER BY total_diagnostics DESC`
-  ).bind(since).all();
+  ).bind(since, ...envBinds).all();
 
   const operators = (rows.results ?? []).map((r: any) => ({
     operator:          r.operator,
@@ -446,7 +506,7 @@ async function handleOperators(request: Request, env: Env): Promise<Response> {
     resolved:          r.resolved          ?? 0,
   }));
 
-  return json({ source: "d1", period, operators }, 200, env);
+  return json({ source: "d1", period, environment: envFilter ?? "all", operators }, 200, env);
 }
 
 async function handleFirebaseAnalytics(request: Request, env: Env): Promise<Response> {
@@ -604,14 +664,22 @@ async function handleIngestDiagnostic(request: Request, env: Env): Promise<Respo
   const appVersion       = p.app_version       ?? '';
   const aiSummaryReport  = p.ai_summary_report ?? '';
 
+  // SIG-143: campos de contexto de ambiente e dispositivo.
+  const environment = p.environment  ?? 'production';
+  const distChannel = p.dist_channel ?? '';
+  const buildType   = p.build_type   ?? 'release';
+  const versionCode = p.version_code ?? 0;
+  const deviceId    = p.device_id    ?? '';
+
   try {
     await env.DB.prepare(
       `INSERT OR REPLACE INTO diagnostic_sessions
          (id, created_at, network_type, status, score,
           download_mbps, upload_mbps, latency_ms, jitter_ms, packet_loss,
           issues, resolved, operator,
-          device_model, os_version, app_version, ai_summary_report)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)`
+          device_model, os_version, app_version, ai_summary_report,
+          environment, dist_channel, build_type, version_code, device_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       p.id, p.created_at ?? nowSec(),
       p.network_type ?? "unknown", p.status ?? "unknown", p.score ?? null,
@@ -620,6 +688,7 @@ async function handleIngestDiagnostic(request: Request, env: Env): Promise<Respo
       JSON.stringify(p.issues ?? []),
       p.operator ?? null,
       deviceModel, osVersion, appVersion, aiSummaryReport,
+      environment, distChannel, buildType, versionCode, deviceId,
     ).run();
   } catch (e) {
     await logError(env, 'ingest', String(e), e instanceof Error ? e.stack ?? '' : '');
@@ -655,15 +724,21 @@ async function handleIngestAiUsage(request: Request, env: Env): Promise<Response
   const total      = p.total_tokens      ?? (prompt + completion);
   const cost       = p.cost_usd          ?? costForModel(p.model, total);
 
+  // SIG-143: campos de contexto de ambiente.
+  const environment = p.environment  ?? 'production';
+  const versionCode = p.version_code ?? 0;
+
   try {
     await env.DB.prepare(
       `INSERT OR REPLACE INTO ai_usage
          (id, session_id, created_at, model,
-          prompt_tokens, completion_tokens, total_tokens, cost_usd)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          prompt_tokens, completion_tokens, total_tokens, cost_usd,
+          environment, version_code)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       p.id, p.session_id ?? null, p.created_at ?? nowSec(), p.model,
       prompt, completion, total, cost,
+      environment, versionCode,
     ).run();
   } catch (e) {
     await logError(env, 'ai-usage', String(e), e instanceof Error ? e.stack ?? '' : '');

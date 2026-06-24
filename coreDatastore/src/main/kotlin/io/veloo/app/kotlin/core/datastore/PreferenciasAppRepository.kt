@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import java.util.UUID
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -77,6 +78,9 @@ class PreferenciasAppRepository(
     // Sync retroativo para admin worker — checkpoint de progresso por tipo
     private val chaveAdminSyncMedicaoLastEpochMs = longPreferencesKey("admin_sync_medicao_last_epoch_ms")
     private val chaveAdminSyncChatLastEpochMs = longPreferencesKey("admin_sync_chat_last_epoch_ms")
+
+    // Identificador anonimo permanente do dispositivo — UUID gerado na primeira execucao, sem PII
+    private val chaveAnonDeviceId = stringPreferencesKey("anon_device_id")
 
     val monitoramentoAtivoFlow: Flow<Boolean> =
         context.dataStore.data.map { it[chaveMonitoramentoAtivo] ?: false }
@@ -373,6 +377,19 @@ class PreferenciasAppRepository(
             context.dataStore.edit { it[chaveAdminSyncChatLastEpochMs] = epochMs }
         }
     }
+
+    /**
+     * Retorna o device_id anonimo persistente. Gera e salva um UUID na primeira chamada.
+     * Nunca usa ANDROID_ID, IMEI, MAC ou qualquer PII.
+     */
+    suspend fun buscarOuGerarAnonDeviceId(): String =
+        withContext(ioDispatcher) {
+            val existente = context.dataStore.data.first()[chaveAnonDeviceId]
+            if (!existente.isNullOrBlank()) return@withContext existente
+            val novo = UUID.randomUUID().toString()
+            context.dataStore.edit { it[chaveAnonDeviceId] = novo }
+            novo
+        }
 
     suspend fun limparTodasPreferencias() {
         withContext(ioDispatcher) { context.dataStore.edit { it.clear() } }

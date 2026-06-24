@@ -9,6 +9,7 @@ export const errorMetricsService = {
       if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
 
       const period = _filters.period === "today" ? "1d" : (_filters.period ?? "30d");
+      const env = _filters.environment ?? "production";
       try {
         const raw = await apiClient.request<{ errors: Array<{
           id: string;
@@ -18,7 +19,7 @@ export const errorMetricsService = {
           count: number;
           timestamp: string;
           affectedUserCount: number;
-        }> }>("GET", `/admin/metrics/errors?period=${period}`);
+        }> }>("GET", `/admin/metrics/errors?environment=${env}&period=${period}`);
 
         let results = (raw.errors ?? []).map((r): SystemError => ({
           id:               r.id,

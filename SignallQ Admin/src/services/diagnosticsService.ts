@@ -7,6 +7,7 @@ export const diagnosticsService = {
   async getDiagnosticsSummary(filters: DashboardFilters = {}): Promise<DiagnosticsSummary> {
     if (!apiClient.isMockEnabled()) {
       const period = filters.period === "today" ? "1d" : (filters.period ?? "7d");
+      const env = filters.environment ?? "production";
       const raw = await apiClient.request<{
         totalDiagnostics: number;
         activeSessions: number;
@@ -14,7 +15,7 @@ export const diagnosticsService = {
         aiCallsToday: number;
         aiCostToday: number;
         aiTokensToday: number;
-      }>("GET", `/admin/metrics/overview?period=${period}`);
+      }>("GET", `/admin/metrics/overview?environment=${env}&period=${period}`);
 
       return {
         totalTests: raw.totalDiagnostics ?? 0,
@@ -63,9 +64,10 @@ export const diagnosticsService = {
   async getDiagnosticSessions(filters: DashboardFilters & { search?: string } = {}): Promise<DiagnosticSession[]> {
     if (!apiClient.isMockEnabled()) {
       const period = filters.period === "today" ? "1d" : (filters.period ?? "7d");
+      const env = filters.environment ?? "production";
       const raw = await apiClient.request<{ sessions: any[] }>(
         "GET",
-        `/admin/metrics/diagnostics?period=${period}&limit=100`
+        `/admin/metrics/diagnostics?environment=${env}&period=${period}&limit=100`
       );
       const mapped: DiagnosticSession[] = (raw.sessions ?? []).map((r: any) => ({
         id: r.id,
