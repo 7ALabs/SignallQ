@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -37,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -76,14 +78,21 @@ private fun OperadoraLogo(
 ) {
     val cor = corParaId(operadora.id)
     if (operadora.logoUrl != null) {
-        AsyncImage(
-            model = operadora.logoUrl,
-            contentDescription = operadora.nome,
+        Box(
             modifier =
                 Modifier
                     .size(size.dp)
-                    .clip(CircleShape),
-        )
+                    .background(Color.White, RoundedCornerShape(8.dp))
+                    .padding(4.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            AsyncImage(
+                model = operadora.logoUrl,
+                contentDescription = operadora.nome,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     } else {
         Box(
             modifier =
@@ -118,10 +127,13 @@ fun OperadoraBottomSheet(
     val operadoraDetectada = BancoOperadoras.resolver(nomeParaResolver)
 
     val subtituloConexao =
-        if (connectionType?.equals("movel", ignoreCase = true) == true) {
-            "Detectamos sua operadora pela rede móvel. Atendimento oficial."
-        } else {
-            "Detectamos sua operadora pela rede fixa. Atendimento oficial."
+        when {
+            operadoraDetectada != null && connectionType?.equals("movel", ignoreCase = true) == true ->
+                "Detectamos sua operadora pela rede móvel. Atendimento oficial."
+            operadoraDetectada != null ->
+                "Detectamos sua operadora pela rede fixa. Atendimento oficial."
+            else ->
+                "Não foi possível identificar sua operadora automaticamente. Escolha abaixo para ver os canais de atendimento."
         }
 
     val legendaDetectada =
@@ -129,6 +141,9 @@ fun OperadoraBottomSheet(
 
     val outrasOperadoras =
         BancoOperadoras.lista.filter { it.id != operadoraDetectada?.id }
+
+    val outrasNacionais = outrasOperadoras.filter { it.id in idsMajores }
+    val outrasRegionais = outrasOperadoras.filter { it.id !in idsMajores }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -178,52 +193,93 @@ fun OperadoraBottomSheet(
             HorizontalDivider(color = c.border, thickness = 1.dp)
             Spacer(Modifier.height(LkSpacing.lg))
 
-            // Secao operadora detectada
-            Text(
-                text = "SUA OPERADORA",
-                fontWeight = FontWeight.Bold,
-                fontSize = 10.5.sp,
-                letterSpacing = 0.8.sp,
-                color = c.textTertiary,
-            )
-
-            Spacer(Modifier.height(LkSpacing.md))
-
             if (operadoraDetectada != null) {
-                OperadoraDetectadaSection(
-                    operadora = operadoraDetectada,
-                    legenda = legendaDetectada,
-                    onDismiss = onDismiss,
-                )
-            } else {
+                // Seção: operadora detectada
                 Text(
-                    text = "Não foi possível identificar sua operadora automaticamente.",
-                    fontSize = 14.sp,
-                    color = c.textSecondary,
-                )
-            }
-
-            Spacer(Modifier.height(LkSpacing.lg))
-
-            if (outrasOperadoras.isNotEmpty()) {
-                HorizontalDivider(color = c.border, thickness = 1.dp)
-                Spacer(Modifier.height(LkSpacing.lg))
-
-                Text(
-                    text = "NÃO É A SUA? OUTRAS OPERADORAS",
+                    text = "SUA OPERADORA",
                     fontWeight = FontWeight.Bold,
                     fontSize = 10.5.sp,
                     letterSpacing = 0.8.sp,
                     color = c.textTertiary,
                 )
-
                 Spacer(Modifier.height(LkSpacing.md))
+                OperadoraDetectadaSection(
+                    operadora = operadoraDetectada,
+                    legenda = legendaDetectada,
+                    onDismiss = onDismiss,
+                )
+                Spacer(Modifier.height(LkSpacing.lg))
 
-                outrasOperadoras.forEach { op ->
+                // Seção: outras operadoras (só quando há detectada)
+                if (outrasOperadoras.isNotEmpty()) {
+                    HorizontalDivider(color = c.border, thickness = 1.dp)
+                    Spacer(Modifier.height(LkSpacing.lg))
+                    Text(
+                        text = "NÃO É A SUA? OUTRAS OPERADORAS",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.5.sp,
+                        letterSpacing = 0.8.sp,
+                        color = c.textTertiary,
+                    )
+                    Spacer(Modifier.height(LkSpacing.md))
+                    if (outrasNacionais.isNotEmpty()) {
+                        outrasNacionais.forEach { op ->
+                            OutraOperadoraRow(operadora = op)
+                            Spacer(Modifier.height(LkSpacing.sm))
+                        }
+                    }
+                    if (outrasRegionais.isNotEmpty()) {
+                        if (outrasNacionais.isNotEmpty()) {
+                            Spacer(Modifier.height(LkSpacing.xs))
+                            Text(
+                                text = "REGIONAIS",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp,
+                                letterSpacing = 0.6.sp,
+                                color = c.textTertiary,
+                            )
+                            Spacer(Modifier.height(LkSpacing.sm))
+                        }
+                        outrasRegionais.forEach { op ->
+                            OutraOperadoraRow(operadora = op)
+                            Spacer(Modifier.height(LkSpacing.sm))
+                        }
+                    }
+                    Spacer(Modifier.height(LkSpacing.md))
+                }
+            } else {
+                // Seção: nenhuma detectada — mostrar todas com divisão nacional/regional
+                HorizontalDivider(color = c.border, thickness = 1.dp)
+                Spacer(Modifier.height(LkSpacing.lg))
+                Text(
+                    text = "OPERADORAS DISPONÍVEIS",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.5.sp,
+                    letterSpacing = 0.8.sp,
+                    color = c.textTertiary,
+                )
+                Spacer(Modifier.height(LkSpacing.md))
+                val nacionais = BancoOperadoras.lista.filter { it.id in idsMajores }
+                val regionais = BancoOperadoras.lista.filter { it.id !in idsMajores }
+                nacionais.forEach { op ->
                     OutraOperadoraRow(operadora = op)
                     Spacer(Modifier.height(LkSpacing.sm))
                 }
-
+                if (regionais.isNotEmpty()) {
+                    Spacer(Modifier.height(LkSpacing.xs))
+                    Text(
+                        text = "REGIONAIS",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp,
+                        letterSpacing = 0.6.sp,
+                        color = c.textTertiary,
+                    )
+                    Spacer(Modifier.height(LkSpacing.sm))
+                    regionais.forEach { op ->
+                        OutraOperadoraRow(operadora = op)
+                        Spacer(Modifier.height(LkSpacing.sm))
+                    }
+                }
                 Spacer(Modifier.height(LkSpacing.md))
             }
 

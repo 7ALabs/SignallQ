@@ -37,7 +37,7 @@ object BancoOperadoras {
                 "TIM",
                 listOf("tim live", "tim"),
                 sac = "10341",
-                whatsapp = "5541414141414",
+                whatsapp = "41414141414",
                 logoUrl = "https://www.google.com/s2/favicons?domain=tim.com.br&sz=128",
             ),
             ContatoOperadora(
@@ -64,7 +64,7 @@ object BancoOperadoras {
                 "Algar",
                 listOf("algar"),
                 sac = "08009421212",
-                whatsapp = "3499884-0123",
+                whatsapp = "34998840123",
                 logoUrl = "https://www.google.com/s2/favicons?domain=algartelecom.com.br&sz=128",
             ),
             ContatoOperadora(
@@ -100,7 +100,7 @@ object BancoOperadoras {
                 "Ligga",
                 listOf("ligga", "copel telecom"),
                 sac = "08004141810",
-                whatsapp = "08004141810",
+                whatsapp = null,
                 logoUrl = "https://www.google.com/s2/favicons?domain=liggavc.com.br&sz=128",
             ),
             ContatoOperadora(
@@ -118,7 +118,7 @@ object BancoOperadoras {
                 "Giga+ / Sumicity",
                 listOf("giga+", "giga mais", "giga fibra", "sumicity"),
                 sac = "10353",
-                whatsapp = "5522920410350",
+                whatsapp = "22920410350",
                 logoUrl = "https://www.google.com/s2/favicons?domain=sumicity.com.br&sz=128",
             ),
         )
