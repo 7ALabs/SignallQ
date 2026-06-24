@@ -14,7 +14,15 @@ CREATE TABLE IF NOT EXISTS diagnostic_sessions (
   jitter_ms     REAL,
   packet_loss   REAL,
   issues        TEXT    DEFAULT '[]',     -- JSON array de strings
-  resolved      INTEGER NOT NULL DEFAULT 0 -- 0=aberto, 1=resolvido
+  resolved      INTEGER NOT NULL DEFAULT 0, -- 0=aberto, 1=resolvido
+  -- SIG-139: operadora do usuário
+  operator      TEXT    DEFAULT '',
+  -- SIG-143: contexto de ambiente e dispositivo
+  environment   TEXT    DEFAULT 'production', -- production | staging | development
+  dist_channel  TEXT    DEFAULT '',           -- play_store | firebase_app_distribution | sideload
+  build_type    TEXT    DEFAULT 'release',    -- release | debug
+  version_code  INTEGER DEFAULT 0,
+  device_id     TEXT    DEFAULT ''            -- hash anônimo do dispositivo
 );
 
 -- Uso de IA por sessão de diagnóstico
@@ -27,6 +35,9 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   completion_tokens INTEGER NOT NULL DEFAULT 0,
   total_tokens     INTEGER NOT NULL DEFAULT 0,
   cost_usd         REAL    NOT NULL DEFAULT 0,
+  -- SIG-143: contexto de ambiente
+  environment      TEXT    DEFAULT 'production',
+  version_code     INTEGER DEFAULT 0,
   FOREIGN KEY (session_id) REFERENCES diagnostic_sessions(id)
 );
 
@@ -45,10 +56,29 @@ CREATE INDEX IF NOT EXISTS idx_ai_usage_created_at  ON ai_usage(created_at);
 CREATE INDEX IF NOT EXISTS idx_ai_usage_session_id  ON ai_usage(session_id);
 
 -- SIG-138: campos de contexto de dispositivo e laudo IA (migration para D1 existente)
+-- Aplicar via: npx wrangler d1 execute signallq-admin-db --remote --command="ALTER TABLE ..."
+-- (D1/SQLite não suporta IF NOT EXISTS em ALTER TABLE — ignorar erros "column already exists")
 ALTER TABLE diagnostic_sessions ADD COLUMN device_model       TEXT DEFAULT '';
 ALTER TABLE diagnostic_sessions ADD COLUMN os_version         TEXT DEFAULT '';
 ALTER TABLE diagnostic_sessions ADD COLUMN app_version        TEXT DEFAULT '';
 ALTER TABLE diagnostic_sessions ADD COLUMN ai_summary_report  TEXT DEFAULT '';
+
+-- SIG-139: operadora (adicionada manualmente no D1 antes desta migration ser documentada)
+ALTER TABLE diagnostic_sessions ADD COLUMN operator TEXT DEFAULT '';
+
+-- SIG-143: campos de contexto de ambiente e dispositivo
+-- Aplicar via: migrations/001_sig143.sql (npx wrangler d1 execute --file=... --remote)
+ALTER TABLE diagnostic_sessions ADD COLUMN environment  TEXT    DEFAULT 'production';
+ALTER TABLE diagnostic_sessions ADD COLUMN dist_channel TEXT    DEFAULT '';
+ALTER TABLE diagnostic_sessions ADD COLUMN build_type   TEXT    DEFAULT 'release';
+ALTER TABLE diagnostic_sessions ADD COLUMN version_code INTEGER DEFAULT 0;
+ALTER TABLE diagnostic_sessions ADD COLUMN device_id    TEXT    DEFAULT '';
+ALTER TABLE ai_usage            ADD COLUMN environment  TEXT    DEFAULT 'production';
+ALTER TABLE ai_usage            ADD COLUMN version_code INTEGER DEFAULT 0;
+
+-- Índices para filtro por environment (SIG-143)
+CREATE INDEX IF NOT EXISTS idx_sessions_environment ON diagnostic_sessions(environment);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_environment ON ai_usage(environment);
 
 -- SIG-135 Fase A: pipeline de erros do worker
 CREATE TABLE IF NOT EXISTS system_errors (
