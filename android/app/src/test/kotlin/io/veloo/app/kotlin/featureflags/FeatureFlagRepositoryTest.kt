@@ -10,7 +10,6 @@ import org.junit.Test
  * Sem dependencia de rede — o fetch real nao e testado aqui.
  */
 class FeatureFlagRepositoryTest {
-
     // Instancia sem DataStore real — so testa os metodos internos via reflexao
     // ou criando uma subclasse testavel. Usamos FakePrefs para isolar.
     private fun criarRepository(baseUrl: String): FeatureFlagRepository =
@@ -20,25 +19,27 @@ class FeatureFlagRepositoryTest {
         )
 
     @Test
-    fun `lerFlags retorna defaults quando DataStore vazio`() = runTest {
-        val repo = criarRepository("https://worker.dev/ai-diagnosis")
-        val flags = repo.lerFlags()
-        assertTrue(flags["ai_diagnosis_enabled"] == true)
-        assertTrue(flags["speedtest_enabled"] == true)
-        assertTrue(flags["fibra_module_enabled"] == true)
-    }
+    fun `lerFlags retorna defaults quando DataStore vazio`() =
+        runTest {
+            val repo = criarRepository("https://worker.dev/ai-diagnosis")
+            val flags = repo.lerFlags()
+            assertTrue(flags["ai_diagnosis_enabled"] == true)
+            assertTrue(flags["speedtest_enabled"] == true)
+            assertTrue(flags["fibra_module_enabled"] == true)
+        }
 
     @Test
-    fun `lerFlags mescla DataStore com defaults para flags ausentes`() = runTest {
-        val prefs = FakePreferenciasAppRepository()
-        prefs.salvarFeatureFlags(mapOf("ai_diagnosis_enabled" to false))
-        val repo = FeatureFlagRepository("https://worker.dev", prefs)
-        val flags = repo.lerFlags()
-        assertEquals(false, flags["ai_diagnosis_enabled"])
-        // Flags ausentes no DataStore devem vir do default (true)
-        assertEquals(true, flags["speedtest_enabled"])
-        assertEquals(true, flags["fibra_module_enabled"])
-    }
+    fun `lerFlags mescla DataStore com defaults para flags ausentes`() =
+        runTest {
+            val prefs = FakePreferenciasAppRepository()
+            prefs.salvarFeatureFlags(mapOf("ai_diagnosis_enabled" to false))
+            val repo = FeatureFlagRepository("https://worker.dev", prefs)
+            val flags = repo.lerFlags()
+            assertEquals(false, flags["ai_diagnosis_enabled"])
+            // Flags ausentes no DataStore devem vir do default (true)
+            assertEquals(true, flags["speedtest_enabled"])
+            assertEquals(true, flags["fibra_module_enabled"])
+        }
 
     @Test
     fun `buildFlagsUrl remove path ai-diagnosis e adiciona feature-flags`() {

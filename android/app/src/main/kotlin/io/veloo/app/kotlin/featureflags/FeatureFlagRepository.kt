@@ -21,11 +21,12 @@ class FeatureFlagRepository(
 ) {
     companion object {
         private const val TIMEOUT_MS = 8_000
-        private val DEFAULTS = mapOf(
-            "ai_diagnosis_enabled" to true,
-            "speedtest_enabled" to true,
-            "fibra_module_enabled" to true,
-        )
+        private val DEFAULTS =
+            mapOf(
+                "ai_diagnosis_enabled" to true,
+                "speedtest_enabled" to true,
+                "fibra_module_enabled" to true,
+            )
     }
 
     /**
@@ -36,10 +37,11 @@ class FeatureFlagRepository(
         withContext(Dispatchers.IO) {
             try {
                 val url = buildFlagsUrl()
-                val conn = URL(url).openConnection().apply {
-                    connectTimeout = TIMEOUT_MS
-                    readTimeout = TIMEOUT_MS
-                }
+                val conn =
+                    URL(url).openConnection().apply {
+                        connectTimeout = TIMEOUT_MS
+                        readTimeout = TIMEOUT_MS
+                    }
                 val json = conn.getInputStream().bufferedReader().use { it.readText() }
                 val flagsMap = parsarFlags(json)
                 if (flagsMap.isNotEmpty()) {
@@ -61,9 +63,10 @@ class FeatureFlagRepository(
     }
 
     private fun buildFlagsUrl(): String {
-        val base = workerBaseUrl
-            .removeSuffix("/ai-diagnosis")
-            .let { if (it.endsWith("/")) it.dropLast(1) else it }
+        val base =
+            workerBaseUrl
+                .removeSuffix("/ai-diagnosis")
+                .let { if (it.endsWith("/")) it.dropLast(1) else it }
         return "$base/feature-flags"
     }
 

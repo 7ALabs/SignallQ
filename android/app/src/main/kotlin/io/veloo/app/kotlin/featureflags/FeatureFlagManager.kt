@@ -22,25 +22,27 @@ import javax.inject.Singleton
  *   if (featureFlagManager.isAiDiagnosisEnabled()) { ... }
  */
 @Singleton
-class FeatureFlagManager @Inject constructor(
-    private val repository: FeatureFlagRepository,
-) : FeatureFlagProvider {
-    private val _flags = MutableStateFlow<Map<String, Boolean>>(emptyMap())
-    val flags: StateFlow<Map<String, Boolean>> = _flags
+class FeatureFlagManager
+    @Inject
+    constructor(
+        private val repository: FeatureFlagRepository,
+    ) : FeatureFlagProvider {
+        private val _flags = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+        val flags: StateFlow<Map<String, Boolean>> = _flags
 
-    /**
-     * Chamado no startup (SignallQApplication). Carrega cache local
-     * e dispara fetch em background — nunca bloqueia a UI.
-     */
-    fun inicializar(scope: CoroutineScope) {
-        scope.launch {
-            // Carrega do DataStore primeiro (resposta imediata)
-            _flags.value = repository.lerFlags()
-            // Busca do worker e atualiza
-            repository.sincronizarFlags()
-            _flags.value = repository.lerFlags()
+        /**
+         * Chamado no startup (SignallQApplication). Carrega cache local
+         * e dispara fetch em background — nunca bloqueia a UI.
+         */
+        fun inicializar(scope: CoroutineScope) {
+            scope.launch {
+                // Carrega do DataStore primeiro (resposta imediata)
+                _flags.value = repository.lerFlags()
+                // Busca do worker e atualiza
+                repository.sincronizarFlags()
+                _flags.value = repository.lerFlags()
+            }
         }
-    }
 
-    override fun isEnabled(key: String): Boolean = _flags.value[key] ?: true
-}
+        override fun isEnabled(key: String): Boolean = _flags.value[key] ?: true
+    }

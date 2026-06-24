@@ -11,9 +11,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-
 class FeatureFlagManagerTest {
-
     private fun criarManager(flagsSalvas: Map<String, Boolean> = emptyMap()): FeatureFlagManager {
         val prefs = FakePreferenciasAppRepository()
         if (flagsSalvas.isNotEmpty()) {
@@ -31,24 +29,26 @@ class FeatureFlagManagerTest {
     }
 
     @Test
-    fun `isAiDiagnosisEnabled retorna false quando flag desabilitada`() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val testScope = TestScope(dispatcher)
-        val manager = criarManager(mapOf("ai_diagnosis_enabled" to false))
-        manager.inicializar(testScope)
-        advanceUntilIdle()
-        assertFalse(manager.isAiDiagnosisEnabled())
-    }
+    fun `isAiDiagnosisEnabled retorna false quando flag desabilitada`() =
+        runTest {
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            val testScope = TestScope(dispatcher)
+            val manager = criarManager(mapOf("ai_diagnosis_enabled" to false))
+            manager.inicializar(testScope)
+            advanceUntilIdle()
+            assertFalse(manager.isAiDiagnosisEnabled())
+        }
 
     @Test
-    fun `isSpeedtestEnabled retorna true por padrao`() = runTest {
-        val dispatcher = StandardTestDispatcher(testScheduler)
-        val testScope = TestScope(dispatcher)
-        val manager = criarManager()
-        manager.inicializar(testScope)
-        advanceUntilIdle()
-        assertTrue(manager.isSpeedtestEnabled())
-    }
+    fun `isSpeedtestEnabled retorna true por padrao`() =
+        runTest {
+            val dispatcher = StandardTestDispatcher(testScheduler)
+            val testScope = TestScope(dispatcher)
+            val manager = criarManager()
+            manager.inicializar(testScope)
+            advanceUntilIdle()
+            assertTrue(manager.isSpeedtestEnabled())
+        }
 
     @Test
     fun `implementa FeatureFlagProvider`() {
