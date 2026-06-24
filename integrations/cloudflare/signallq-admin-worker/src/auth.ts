@@ -5,20 +5,23 @@ export async function hashPassword(password: string, pepper: string): Promise<st
   const keyMat = await crypto.subtle.importKey('raw', enc.encode(pepper + password), 'PBKDF2', false, ['deriveBits'])
   const salt = crypto.getRandomValues(new Uint8Array(16))
   const hash = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt, iterations: 150000, hash: 'SHA-256' }, keyMat, 256
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, keyMat, 256
   )
   const b64 = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf)))
-  return `pbkdf2$150000$${b64(salt.buffer)}$${b64(hash)}`
+  return `pbkdf2$100000$${b64(salt.buffer)}$${b64(hash)}`
 }
 
 export async function verifyPassword(password: string, storedHash: string, pepper: string): Promise<boolean> {
-  const [, , saltB64, hashB64] = storedHash.split('$')
+  const parts = storedHash.split('$')
+  const iterations = parseInt(parts[1], 10)
+  const saltB64 = parts[2]
+  const hashB64 = parts[3]
   const enc = new TextEncoder()
   const salt = Uint8Array.from(atob(saltB64), c => c.charCodeAt(0))
   const expectedHash = Uint8Array.from(atob(hashB64), c => c.charCodeAt(0))
   const keyMat = await crypto.subtle.importKey('raw', enc.encode(pepper + password), 'PBKDF2', false, ['deriveBits'])
   const computed = new Uint8Array(await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt, iterations: 150000, hash: 'SHA-256' }, keyMat, 256
+    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, keyMat, 256
   ))
   if (computed.length !== expectedHash.length) return false
   let diff = 0

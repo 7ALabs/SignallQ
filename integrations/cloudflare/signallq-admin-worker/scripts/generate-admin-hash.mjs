@@ -12,9 +12,9 @@ if (!email || !password || !pepper) {
 }
 
 const salt = randomBytes(16)
-const hash = pbkdf2Sync(pepper + password, salt, 150000, 32, 'sha256')
+const hash = pbkdf2Sync(pepper + password, salt, 100000, 32, 'sha256')
 const b64 = buf => buf.toString('base64')
-const hashStr = `pbkdf2$150000$${b64(salt)}$${b64(hash)}`
+const hashStr = `pbkdf2$100000$${b64(salt)}$${b64(hash)}`
 const id = randomBytes(16).toString('hex')
 const now = Math.floor(Date.now() / 1000)
 
