@@ -30,42 +30,60 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   children,
   id,
 }) => {
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
+
   // Determine topbar page title dynamically
   const pageTitle = React.useMemo(() => {
     switch (currentPath) {
       case "/overview":
-        return "Visão Geral do Sistema";
+        return "Visão Geral";
       case "/product-analytics":
-        return "Análise de Engajamento & Uso";
+        return "Engajamento & Uso";
       case "/diagnostics":
-        return "Central de Diagnósticos Ativos";
+        return "Diagnósticos";
       case "/networks":
-        return "Análise de Frequências & RF";
+        return "Frequências & RF";
       case "/operators":
-        return "Benchmarks de Conectividade Internacional";
+        return "Benchmarks";
       case "/ai-cost":
-        return "Demonstrativos de Custos de Orçamento IA";
+        return "Custos IA";
       case "/errors":
-        return "Painel de Registro de Crash de Sistema";
+        return "Erros";
       case "/app-versions":
-        return "Monitoramento de Rollouts Android";
+        return "Versões Android";
       case "/settings":
-        return "Parâmetros Técnicos de Configuração";
+        return "Configurações";
       default:
-        return "SignallQ Admin Console";
+        return "SignallQ Admin";
     }
   }, [currentPath]);
+
+  const handleNavigate = React.useCallback((path: string) => {
+    onNavigate(path);
+    setIsMobileSidebarOpen(false);
+  }, [onNavigate]);
 
   return (
     <div
       id={id || "app-layout-root"}
       className="flex w-full h-screen bg-[#08080A] text-[#F3F4F6] overflow-hidden select-none font-sans"
     >
+      {/* Mobile sidebar overlay */}
+      {isMobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* 1. Left Sidebar Navigation Panel */}
       <Sidebar
         currentPath={currentPath}
-        onNavigate={onNavigate}
+        onNavigate={handleNavigate}
         environment={environment}
+        isOpen={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
       />
 
       {/* 2. Main content container */}
@@ -80,10 +98,18 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           onLogout={onLogout}
+          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
         />
 
+        {/* Staging warning banner */}
+        {environment === "staging" && (
+          <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-1.5 text-amber-400 text-xs text-center">
+            Modo Homologacao — dados de staging. Alterne para Producao para ver dados reais.
+          </div>
+        )}
+
         {/* 3. Main scrollable panel */}
-        <main className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#08080A]">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-6 lg:space-y-8 bg-[#08080A]">
           {children}
         </main>
       </div>

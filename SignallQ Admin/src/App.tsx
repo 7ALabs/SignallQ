@@ -23,8 +23,13 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [authChecked, setAuthChecked] = useState<boolean>(false);
   const [currentPath, setCurrentPath] = useState<string>("/overview");
-  const [environment, setEnvironment] = useState<AppEnvironment>("production");
-  const [period, setPeriod] = useState<string>("7d");
+  const [environment, setEnvironment] = useState<AppEnvironment>(() => {
+    const saved = sessionStorage.getItem("signallq_env_filter");
+    return (saved as AppEnvironment) ?? "production";
+  });
+  const [period, setPeriod] = useState<string>(
+    () => sessionStorage.getItem("signallq_period_filter") ?? "7d"
+  );
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [refreshCounter, setRefreshCounter] = useState<number>(0);
 
@@ -87,10 +92,12 @@ export default function App() {
   }, []);
 
   const handleEnvironmentChange = useCallback((env: AppEnvironment) => {
+    sessionStorage.setItem("signallq_env_filter", env);
     setEnvironment(env);
   }, []);
 
   const handlePeriodChange = useCallback((p: string) => {
+    sessionStorage.setItem("signallq_period_filter", p);
     setPeriod(p);
   }, []);
 
