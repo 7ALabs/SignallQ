@@ -384,19 +384,28 @@ fun AjustesScreen(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = c.textSecondary,
                             )
+                            // #225: plano vazio exibe call-to-action em vez de "—"
+                            val planoTexto =
+                                if (planoInternet.isNotBlank()) "$planoInternet Mbps" else "Toque para informar seu plano"
+                            val planoColor = if (planoInternet.isNotBlank()) c.textSecondary else c.textTertiary
                             Text(
-                                text = "Plano: ${if (planoInternet.isNotBlank()) "$planoInternet Mbps" else "—"}",
+                                text = "Plano: $planoTexto",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = c.textSecondary,
+                                color = planoColor,
                             )
-                            Text(
-                                text = "Local: ${when {
+                            // #225: local vazio exibe call-to-action em vez de "—"
+                            val localTexto =
+                                when {
                                     cidadeNome.isNotBlank() && estadoUf.isNotBlank() -> "$cidadeNome, $estadoUf"
                                     regiao.isNotBlank() -> regiao
-                                    else -> "—"
-                                }}",
+                                    else -> "Toque para informar seu local"
+                                }
+                            val localColor =
+                                if (cidadeNome.isNotBlank() || regiao.isNotBlank()) c.textSecondary else c.textTertiary
+                            Text(
+                                text = "Local: $localTexto",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = c.textSecondary,
+                                color = localColor,
                             )
                         }
                     }
