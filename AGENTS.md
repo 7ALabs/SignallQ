@@ -1,24 +1,26 @@
-# SignallQ Android - Guia Para Agentes
+# SignallQ — Guia Para Agentes
 
-Este repositorio agora representa apenas o projeto Android nativo Kotlin.
+Monorepo com plataformas separadas: `android/` (Kotlin nativo), `pwa/` (React/TS), `ios/`, `integrations/` (Cloudflare), `scripts/`, `docs_ai/`.
 
 ## Entrada rapida
 
 1. Leia `docs_ai/README.md` antes de carregar documentos especificos.
-2. Use `settings.gradle.kts` para entender os modulos ativos.
+2. Use `android/settings.gradle.kts` para entender os modulos Android ativos.
 3. Prefira busca por simbolo antes de abrir arquivos grandes.
-4. Nao reintroduza PWA, Flutter legado, APKs gerados, caches, segredos ou dumps temporarios.
+4. Nao reintroduza Flutter legado, APKs gerados, caches, segredos ou dumps temporarios.
 
 ## Escopo dos agentes
 
 - Produto/UX: use `docs_ai/functional/` e `docs_ai/design-system/`.
-- Engenharia: use `docs_ai/technical/`, `settings.gradle.kts` e os modulos `core*`/`feature*`.
+- Engenharia Android: use `docs_ai/technical/`, `android/settings.gradle.kts` e os modulos `android/core*`/`android/feature*`.
+- Engenharia PWA: use `pwa/` (Renan responsavel).
 - QA/Release: use `docs_ai/operations/`, `docs/GuiaReleaseBuild.md` e `scripts/`.
 - Integracoes: use `integrations/`, mantendo dependencias baixadas fora do Git.
 
 ## Regras de trabalho
 
-- Codigo Android fica nos modulos Gradle da raiz.
+- Codigo Android fica nos modulos Gradle em `android/`.
+- Codigo PWA fica em `pwa/`. Codigo do admin panel fica em `SignallQ Admin/`.
 - Documentacao viva fica em `docs_ai/`.
 - Documentacao operacional complementar fica em `docs/`.
 - Scripts versionados ficam em `scripts/`.
@@ -39,11 +41,11 @@ Isso move o card no Project, ajusta labels e notifica Discord + Slack em uma cha
 
 ## Validacao minima
 
-Antes de concluir uma mudanca:
+Antes de concluir uma mudanca Android (rodar da raiz do repo):
 
 ```powershell
-.\gradlew.bat test
-.\gradlew.bat assembleDebug
+.\android\gradlew.bat test
+.\android\gradlew.bat assembleDebug
 ```
 
 Quando precisar gerar APK, use somente:
@@ -56,8 +58,8 @@ Quando precisar gerar APK, use somente:
 ou:
 
 ```powershell
-.\gradlew.bat archiveDebugApk
-.\gradlew.bat archiveReleaseApk
+.\android\gradlew.bat archiveDebugApk
+.\android\gradlew.bat archiveReleaseApk
 ```
 
 Nunca entregue `app-debug.apk` ou `app-release.apk` diretamente. A regra de saida esta em `docs/APK_OUTPUT_POLICY.md`.

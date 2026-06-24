@@ -99,7 +99,12 @@ fun DispositivosScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Outlined.Devices, contentDescription = null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
+                        Icon(
+                            imageVector = Icons.Outlined.Devices,
+                            contentDescription = null,
+                            tint = c.textPrimary,
+                            modifier = Modifier.size(18.dp),
+                        )
                         Spacer(Modifier.width(LkSpacing.xs))
                         Text("Dispositivos na rede", style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
                     }
@@ -178,7 +183,8 @@ private fun DispositivosLista(
     onSalvarApelido: (mac: String, apelido: String) -> Unit,
 ) {
     val gateways = remember(dispositivos) { dispositivos.filter { it.fonteNome == "gateway" } }
-    val aps = remember(dispositivos) { dispositivos.filter { it.fonteNome != "gateway" && it.tipoDispositivo == TipoDispositivo.pontoAcesso } }
+    val aps =
+        remember(dispositivos) { dispositivos.filter { it.fonteNome != "gateway" && it.tipoDispositivo == TipoDispositivo.pontoAcesso } }
     val clientes =
         remember(dispositivos) {
             dispositivos

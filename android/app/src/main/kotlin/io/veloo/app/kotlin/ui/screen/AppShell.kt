@@ -183,7 +183,13 @@ fun AppShell(
     velocidadeContratadaDownMbps: Int = 0,
     velocidadeContratadaUpMbps: Int = 0,
     onSalvarVelocidadeContratada: (downMbps: Int, upMbps: Int) -> Unit = { _, _ -> },
-    onSalvarConexaoDadosCompletos: (operadora: String, estadoUf: String, cidadeNome: String, downMbps: Int, upMbps: Int) -> Unit = { _, _, _, _, _ -> },
+    onSalvarConexaoDadosCompletos: (
+        operadora: String,
+        estadoUf: String,
+        cidadeNome: String,
+        downMbps: Int,
+        upMbps: Int,
+    ) -> Unit = { _, _, _, _, _ -> },
     // #82 — Banner Anatel dismissível
     anatelBannerDismissed: Boolean = false,
     onDispensarBannerAnatel: () -> Unit = {},
@@ -412,7 +418,13 @@ fun AppShell(
                                 }
                             },
                             onAbrirPing = { if (Overlay.Ping !in overlayStack) overlayStack.add(Overlay.Ping) },
-                            onVerResultado = { if (Overlay.ResultadoVelocidade !in overlayStack) overlayStack.add(Overlay.ResultadoVelocidade) },
+                            onVerResultado = {
+                                if (Overlay.ResultadoVelocidade !in
+                                    overlayStack
+                                ) {
+                                    overlayStack.add(Overlay.ResultadoVelocidade)
+                                }
+                            },
                             onAbrirHistorico = { selectedTab = 3 },
                             onAbrirAjustes = { selectedTab = 4 },
                             nomeUsuario = nomeUsuario,

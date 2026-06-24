@@ -51,9 +51,10 @@ internal class AdminSyncWorker
                 val distChannel = getDistributionChannel(applicationContext)
                 val buildType = BuildConfig.BUILD_TYPE
                 val versionCode = BuildConfig.VERSION_CODE
-                val deviceId = runCatching {
-                    preferenciasAppRepository.buscarOuGerarAnonDeviceId()
-                }.getOrDefault("unknown")
+                val deviceId =
+                    runCatching {
+                        preferenciasAppRepository.buscarOuGerarAnonDeviceId()
+                    }.getOrDefault("unknown")
                 syncMedicoes(environment, distChannel, buildType, versionCode, deviceId)
                 syncChatSessions(environment, distChannel, buildType, versionCode, deviceId)
                 Log.d(TAG, "Sync retroativo concluido com sucesso")

@@ -696,7 +696,12 @@ fun HistoricoScreen(
                 modifier = Modifier.graphicsLayer { alpha = topBarAlpha },
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Outlined.History, contentDescription = null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
+                        Icon(
+                            imageVector = Icons.Outlined.History,
+                            contentDescription = null,
+                            tint = c.textPrimary,
+                            modifier = Modifier.size(18.dp),
+                        )
                         Spacer(Modifier.width(LkSpacing.xs))
                         Text("Histórico", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
                     }
@@ -1154,7 +1159,13 @@ private fun PrimaryMetric(
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(arrow, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.W700, color = arrowColor)
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(value, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.W700, color = c.textPrimary, letterSpacing = (-1).sp)
+            Text(
+                value,
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.W700,
+                color = c.textPrimary,
+                letterSpacing = (-1).sp,
+            )
             Spacer(Modifier.width(4.dp))
             Text("Mbps", style = MaterialTheme.typography.bodySmall, color = c.textSecondary, modifier = Modifier.padding(bottom = 5.dp))
         }

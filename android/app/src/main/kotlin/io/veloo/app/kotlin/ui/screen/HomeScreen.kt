@@ -219,7 +219,12 @@ fun HomeScreen(
     val effectiveDl = remember(lastResult, lastHistoryPoint) { lastResult?.downloadMbps ?: lastHistoryPoint?.downloadMbps }
     val effectiveUl = remember(lastResult, lastHistoryPoint) { lastResult?.uploadMbps ?: lastHistoryPoint?.uploadMbps }
     val effectiveTs = remember(lastResult, lastHistoryPoint) { lastResult?.timestampEpochMs ?: lastHistoryPoint?.timestampEpochMs }
-    val hasEffectiveResult = remember(effectiveDl, effectiveUl, effectiveTs) { effectiveDl != null && effectiveUl != null && effectiveTs != null }
+    val hasEffectiveResult =
+        remember(effectiveDl, effectiveUl, effectiveTs) {
+            effectiveDl != null &&
+                effectiveUl != null &&
+                effectiveTs != null
+        }
     val isOnWifi = snapshotRede.estadoConexao == EstadoConexao.wifi
     val ssid = snapshotRede.wifiLinkSnapshot?.ssid
     val linkSpeedMbps = snapshotRede.wifiLinkSnapshot?.linkSpeedMbps
@@ -325,7 +330,12 @@ fun HomeScreen(
                             snapshotRede.estadoConexao == EstadoConexao.movel
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Outlined.Home, contentDescription = null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
+                            Icon(
+                                imageVector = Icons.Outlined.Home,
+                                contentDescription = null,
+                                tint = c.textPrimary,
+                                modifier = Modifier.size(18.dp),
+                            )
                             Spacer(Modifier.width(LkSpacing.sm))
                             Text(
                                 text = stringResource(R.string.home_titulo),
@@ -605,7 +615,11 @@ private fun CardMedicoes(
                 colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
                 contentPadding = PaddingValues(vertical = 14.dp),
             ) {
-                Text(stringResource(R.string.home_btn_medir_velocidade), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600)
+                Text(
+                    stringResource(R.string.home_btn_medir_velocidade),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.W600,
+                )
             }
         }
     }
@@ -1532,7 +1546,13 @@ private fun WifiSignalCard(
                                 wifiLinkSpeed?.let { add("$it Mbps") }
                             }.joinToString(" · ")
                         if (linha2.isNotEmpty()) {
-                            Text(linha2, style = MaterialTheme.typography.bodySmall, color = c.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                linha2,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = c.textSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                     }
                 }
@@ -1645,7 +1665,13 @@ private fun MobileSignalCard(
                         tec?.let { add(it) }
                     }.joinToString(" · ")
                 if (infoItems.isNotEmpty()) {
-                    Text(infoItems, style = MaterialTheme.typography.bodySmall, color = c.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        infoItems,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
             if (rsrp != null) {
@@ -2050,7 +2076,12 @@ private fun ExperienciaDeUsoSection(
                         modifier = Modifier.weight(1f),
                     )
                     Box(
-                        modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(badgeBg).padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
+                        modifier =
+                            Modifier
+                                .clip(
+                                    RoundedCornerShape(999.dp),
+                                ).background(badgeBg)
+                                .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
                     ) {
                         Text(badgeLabel, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.W600, color = badgeColor)
                     }
@@ -2334,7 +2365,12 @@ private fun InternetInfoSheet(
     ) {
         SheetDragHandle(c)
         Spacer(modifier = Modifier.height(LkSpacing.xl))
-        Text(stringResource(R.string.home_sheet_internet), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.W700, color = c.textPrimary)
+        Text(
+            stringResource(R.string.home_sheet_internet),
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.W700,
+            color = c.textPrimary,
+        )
         Spacer(modifier = Modifier.height(LkSpacing.lg))
         SheetInfoRow("IP Público", ispInfo?.ip ?: publicIp ?: "N/A", c)
         if (isCgNat(ispInfo?.ip ?: publicIp)) {
@@ -2703,7 +2739,11 @@ internal fun GamerShortcutCard(
                     fontWeight = FontWeight.W600,
                     color = c.textPrimary,
                 )
-                Text(stringResource(R.string.home_shortcut_gaming_descricao), style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+                Text(
+                    stringResource(R.string.home_shortcut_gaming_descricao),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.textSecondary,
+                )
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.ArrowForwardIos,
@@ -2764,7 +2804,11 @@ internal fun GamerSheet(
                     fontWeight = FontWeight.W700,
                     color = c.textPrimary,
                 )
-                Text(stringResource(R.string.home_shortcut_gaming_descricao), style = MaterialTheme.typography.titleSmall, color = c.textSecondary)
+                Text(
+                    stringResource(R.string.home_shortcut_gaming_descricao),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = c.textSecondary,
+                )
             }
         }
 
@@ -2893,7 +2937,11 @@ internal fun GamerSheet(
             jogos.forEachIndexed { i, (nome, icon, veredito) ->
                 GamerJogoRow(nome = nome, icon = icon, veredito = veredito, c = c)
                 if (i < jogos.lastIndex) {
-                    HorizontalDivider(color = c.border.copy(alpha = 0.5f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 20.dp))
+                    HorizontalDivider(
+                        color = c.border.copy(alpha = 0.5f),
+                        thickness = 0.5.dp,
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                    )
                 }
             }
 

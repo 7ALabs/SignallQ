@@ -960,7 +960,13 @@ private fun RedesTab(
             if (otherClassificadas.isNotEmpty()) {
                 item {
                     SectionLabel(
-                        if (showConnected || (connectedNetwork != null && selectedBanda != "Todos")) "OUTRAS REDES" else "REDES DISPONÍVEIS",
+                        if (showConnected ||
+                            (connectedNetwork != null && selectedBanda != "Todos")
+                        ) {
+                            "OUTRAS REDES"
+                        } else {
+                            "REDES DISPONÍVEIS"
+                        },
                         modifier = Modifier.padding(horizontal = LkSpacing.lg),
                     )
                     Spacer(Modifier.height(LkSpacing.sm))
@@ -1064,7 +1070,14 @@ private fun SectionLabel(
     modifier: Modifier = Modifier,
 ) {
     val c = LocalLkTokens.current
-    Text(text, modifier = modifier, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.W600, color = c.textTertiary, letterSpacing = 0.8.sp)
+    Text(
+        text,
+        modifier = modifier,
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.W600,
+        color = c.textTertiary,
+        letterSpacing = 0.8.sp,
+    )
 }
 
 @Composable
@@ -1318,7 +1331,11 @@ private fun NoTreeItem(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(rede.banda, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
                     Text("  ·  ", style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
-                    Text(signalQuality(rede.rssiDbm, bandaVizinha), style = MaterialTheme.typography.bodySmall, color = signalColor(rede.rssiDbm, bandaVizinha))
+                    Text(
+                        signalQuality(rede.rssiDbm, bandaVizinha),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = signalColor(rede.rssiDbm, bandaVizinha),
+                    )
                 }
                 // #177 — segunda linha: banda, RSSI, canal
                 val canalNo = rede.canal
@@ -1759,7 +1776,11 @@ private fun NetworkDetailSheet(rede: RedeVizinha) {
                 rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
                 else -> BandaWifi.ghz5
             }
-        DetailRow("Sinal", "${rede.rssiDbm} dBm — ${signalQuality(rede.rssiDbm, bandaDetail)}", valueColor = signalColor(rede.rssiDbm, bandaDetail))
+        DetailRow(
+            "Sinal",
+            "${rede.rssiDbm} dBm — ${signalQuality(rede.rssiDbm, bandaDetail)}",
+            valueColor = signalColor(rede.rssiDbm, bandaDetail),
+        )
         HorizontalDivider(color = c.border, modifier = Modifier.padding(vertical = LkSpacing.sm))
         DetailRow("Banda", rede.banda)
         if (channel != null) {
@@ -1867,7 +1888,12 @@ private fun CanalTab(
                     CanalStrings(
                         bandaCongestionada = { banda -> context.getString(R.string.canal_banda_congestionada, banda) },
                         bandaQuaseVazia = { banda -> context.getString(R.string.canal_faixa_quase_vazia, banda) },
-                        canalAtualCongestionado = { canalAtual, canalRec -> context.getString(R.string.canal_atual_congestionado, canalAtual, canalRec) },
+                        canalAtualCongestionado = {
+                                canalAtual,
+                                canalRec,
+                            ->
+                            context.getString(R.string.canal_atual_congestionado, canalAtual, canalRec)
+                        },
                         canalRecomendadoLivre = { canal, banda -> context.getString(R.string.canal_recomendado_livre, canal, banda) },
                         canalRecomendadoModerado = { canal, banda -> context.getString(R.string.canal_recomendado_moderado, canal, banda) },
                         semDados = { context.getString(R.string.canal_sem_dados) },
@@ -2269,7 +2295,12 @@ private fun SpectrumChart(
     ) {
         if (redesParaDesenhar.isEmpty() && dados.isEmpty()) {
             Box(Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
-                Text("Sem redes visíveis", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Normal, color = c.textTertiary)
+                Text(
+                    "Sem redes visíveis",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Normal,
+                    color = c.textTertiary,
+                )
             }
             return@Column
         }
@@ -2535,7 +2566,12 @@ private fun RecommendationCard(
         }
         Spacer(Modifier.width(LkSpacing.md))
         Column {
-            Text("Canal recomendado · $banda", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600, color = c.textPrimary)
+            Text(
+                "Canal recomendado · $banda",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.W600,
+                color = c.textPrimary,
+            )
             Text(reason, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
         }
     }
@@ -2728,7 +2764,12 @@ private fun EmptyStateCabo(
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Icon(Icons.Outlined.Cable, null, tint = tokens.textTertiary, modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(LkSpacing.md))
-        Text("Conectado via cabo (Ethernet)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.W600, color = tokens.textPrimary)
+        Text(
+            "Conectado via cabo (Ethernet)",
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.W600,
+            color = tokens.textPrimary,
+        )
         Spacer(Modifier.height(LkSpacing.sm))
         Text(
             "Análise Wi-Fi não aplicável para\nconexão cabeada.",
@@ -2788,7 +2829,12 @@ private fun ChannelDetailSheet(
         Spacer(Modifier.height(LkSpacing.lg))
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Canal ${dado.canal}", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, color = c.textPrimary)
+            Text(
+                "Canal ${dado.canal}",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = c.textPrimary,
+            )
             Spacer(Modifier.width(LkSpacing.sm))
             if (isCurrentChannel) {
                 Box(
@@ -2856,7 +2902,12 @@ private fun ChannelDetailSheet(
             Spacer(Modifier.height(8.dp))
         }
         if (dado.countProprios == 0 && dado.countTerceiros == 0) {
-            Text("Nenhuma rede neste canal", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Normal, color = c.textSecondary)
+            Text(
+                "Nenhuma rede neste canal",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Normal,
+                color = c.textSecondary,
+            )
             Spacer(Modifier.height(8.dp))
         }
 

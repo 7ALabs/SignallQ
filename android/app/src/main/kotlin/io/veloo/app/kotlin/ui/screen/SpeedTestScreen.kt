@@ -173,7 +173,12 @@ fun SpeedTestScreen(
                 title = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Outlined.ExpandMore, contentDescription = null, tint = c.textPrimary, modifier = Modifier.size(18.dp))
+                            Icon(
+                                imageVector = Icons.Outlined.ExpandMore,
+                                contentDescription = null,
+                                tint = c.textPrimary,
+                                modifier = Modifier.size(18.dp),
+                            )
                             Text(
                                 text = "Velocidade",
                                 style = MaterialTheme.typography.titleLarge,
@@ -499,7 +504,12 @@ private fun ConcluidoCircle(onIniciarTeste: () -> Unit) {
                 modifier = Modifier.size(40.dp),
             )
             Spacer(Modifier.height(4.dp))
-            Text(text = "Iniciar teste", style = MaterialTheme.typography.titleLarge, color = LkColors.success, fontWeight = FontWeight.W600)
+            Text(
+                text = "Iniciar teste",
+                style = MaterialTheme.typography.titleLarge,
+                color = LkColors.success,
+                fontWeight = FontWeight.W600,
+            )
         }
     }
 }
@@ -525,7 +535,12 @@ private fun ErrorCircle(onTentarNovamente: () -> Unit) {
                 modifier = Modifier.size(40.dp),
             )
             Spacer(Modifier.height(4.dp))
-            Text(text = "Tentar novamente", style = MaterialTheme.typography.titleLarge, color = LkColors.error, fontWeight = FontWeight.W600)
+            Text(
+                text = "Tentar novamente",
+                style = MaterialTheme.typography.titleLarge,
+                color = LkColors.error,
+                fontWeight = FontWeight.W600,
+            )
         }
     }
 }
@@ -661,7 +676,9 @@ private fun CardRodadasTriplo(
                         color = c.textSecondary,
                     )
                     Text(
-                        text = "↓ ${"%.0f".format(rodada.downloadMbps)} · ↑ ${"%.0f".format(rodada.uploadMbps)} Mbps · ${rodada.latenciaMs.toInt()} ms",
+                        text = "↓ ${"%.0f".format(
+                            rodada.downloadMbps,
+                        )} · ↑ ${"%.0f".format(rodada.uploadMbps)} Mbps · ${rodada.latenciaMs.toInt()} ms",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.W600,
                         color = LkColors.accent,

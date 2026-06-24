@@ -370,7 +370,8 @@ fun AjustesScreen(
                             fontWeight = FontWeight.Bold,
                             color = c.textPrimary,
                         )
-                        val tudoVazio = operadora.isBlank() && planoInternet.isBlank() && regiao.isBlank() && cidadeNome.isBlank() && estadoUf.isBlank()
+                        val tudoVazio =
+                            operadora.isBlank() && planoInternet.isBlank() && regiao.isBlank() && cidadeNome.isBlank() && estadoUf.isBlank()
                         if (tudoVazio) {
                             Text(
                                 text = "Toque para configurar sua conexão",
@@ -1700,7 +1701,12 @@ private fun PreferenciasSheet(
                         .semantics { contentDescription = "Arrastar para fechar" },
             )
             Spacer(Modifier.height(LkSpacing.sm))
-            Text("Alertas de qualidade", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = c.textPrimary)
+            Text(
+                "Alertas de qualidade",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = c.textPrimary,
+            )
             Text(
                 "Defina um limite mínimo de download. Quando sua conexão ficar abaixo desse valor, o SignallQ pode alertar você.",
                 style = MaterialTheme.typography.titleSmall,

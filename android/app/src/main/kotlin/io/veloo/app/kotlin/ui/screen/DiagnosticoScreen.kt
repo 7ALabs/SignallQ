@@ -1021,7 +1021,9 @@ private fun inferMetricStatus(
         when {
             "download" in lower || "upload" in lower || "velocidade" in lower -> cl.velocidade?.avaliacao
             "wifi" in lower || "rssi" in lower || "sinal" in lower -> cl.wifi?.avaliacao
-            "latencia" in lower || "latência" in lower || "jitter" in lower || "bufferbloat" in lower || "perda" in lower -> cl.estabilidade?.avaliacao
+            "latencia" in lower || "latência" in lower || "jitter" in lower || "bufferbloat" in lower || "perda" in lower ->
+                cl.estabilidade
+                    ?.avaliacao
             "dns" in lower -> cl.dns?.avaliacao
             "fibra" in lower || "gpon" in lower || "ppp" in lower -> cl.fibra?.avaliacao
             else -> null
