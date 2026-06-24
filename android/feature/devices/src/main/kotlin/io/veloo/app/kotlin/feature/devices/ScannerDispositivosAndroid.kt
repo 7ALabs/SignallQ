@@ -513,12 +513,20 @@ class ScannerDispositivosAndroid(
         val txtMf = info.getPropertyString("mf")?.takeIf { it.isNotBlank() }
         val txtManufacturer = info.getPropertyString("manufacturer")?.takeIf { it.isNotBlank() }
 
-        // Prioridade de nome: fn > name > instância > md/ty
+        // hostname mDNS do dispositivo (ex: "Johns-iPhone.local.") — strip sufixo
+        val hostnameLocal = info.server
+            ?.trimEnd('.')
+            ?.removeSuffix(".local")
+            ?.trimEnd('.')
+            ?.takeIf { it.isNotBlank() && !it.startsWith("_") }
+
+        // Prioridade de nome: fn > name > instância > md/ty > hostname mDNS
         val nomeAmigavel = txtFn
             ?: txtName
             ?: info.getName().takeIf { it.isNotBlank() && !it.startsWith("_") }
             ?: txtMd
             ?: txtTy
+            ?: hostnameLocal
             ?: "Serviço mDNS"
 
         val fabricanteMdns = txtManufacturer ?: txtMf

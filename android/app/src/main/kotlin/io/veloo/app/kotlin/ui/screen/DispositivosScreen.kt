@@ -471,16 +471,21 @@ private fun DispositivoItem(
 
             // Nome (apelido tem prioridade se definido) + fabricante
             Column(modifier = Modifier.weight(1f)) {
+                val fabricante = dispositivo.fabricante?.takeIf { it.isNotBlank() }
+                // Quando nomeExibicao é um IP puro (fallback do scanner), preferir fabricante como título
+                val ehIpPuro = dispositivo.nomeExibicao.matches(Regex("""\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"""))
+                val nomeDisplay = apelido?.takeIf { it.isNotBlank() }
+                    ?: if (ehIpPuro) fabricante ?: "Dispositivo"
+                    else dispositivo.nomeExibicao
                 Text(
-                    text = apelido?.takeIf { it.isNotBlank() } ?: dispositivo.nomeExibicao,
+                    text = nomeDisplay,
                     color = c.textPrimary,
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                // Exibe fabricante somente se disponível e não vazio
-                val fabricante = dispositivo.fabricante?.takeIf { it.isNotBlank() }
-                if (fabricante != null) {
+                // Exibe fabricante somente se disponível e não for o próprio título
+                if (fabricante != null && nomeDisplay != fabricante) {
                     Text(
                         text = fabricante,
                         color = c.textTertiary,
