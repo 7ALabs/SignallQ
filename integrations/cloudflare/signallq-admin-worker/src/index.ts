@@ -427,18 +427,30 @@ async function handleNetworkInsights(request: Request, env: Env): Promise<Respon
   const envClause = envFilter ? " AND environment = ?" : "";
   const envBinds  = envFilter ? [envFilter]            : [];
 
-  // Distribui sessões por network_type. Cor não vem do worker — atribuída no frontend.
+  // SIG-132: stats completas por network_type.
+  // Window function SUM(COUNT(*)) OVER() calcula o total no mesmo passo do GROUP BY
+  // (SQLite 3.25+ / D1 suporta). Evita subquery correlacionada com bind duplo.
   const rows = await env.DB.prepare(
-    `SELECT network_type AS name, COUNT(*) AS value
+    `SELECT
+       network_type AS name,
+       COUNT(*) AS count,
+       AVG(CAST(score AS REAL)) AS avg_score,
+       AVG(download_mbps) AS avg_download_mbps,
+       AVG(latency_ms) AS avg_latency_ms,
+       COUNT(*) * 100.0 / SUM(COUNT(*)) OVER() AS percentage
      FROM diagnostic_sessions
      WHERE created_at >= ?${envClause}
      GROUP BY network_type
-     ORDER BY value DESC`
+     ORDER BY count DESC`
   ).bind(since, ...envBinds).all();
 
   const items = (rows.results ?? []).map((r: any) => ({
-    name:  r.name  ?? "Desconhecido",
-    value: r.value ?? 0,
+    name:             r.name             ?? "Desconhecido",
+    count:            r.count            ?? 0,
+    avg_score:        r.avg_score        != null ? Math.round(r.avg_score) : null,
+    avg_download_mbps: r.avg_download_mbps ?? null,
+    avg_latency_ms:   r.avg_latency_ms   != null ? Math.round(r.avg_latency_ms) : null,
+    percentage:       r.percentage       != null ? Math.round(r.percentage * 10) / 10 : 0,
   }));
 
   return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
@@ -487,11 +499,78 @@ async function handleTopIssues(request: Request, env: Env): Promise<Response> {
   return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
 }
 
+// SIG-133: alertas reais baseados em threshold checking contra dados do D1.
 async function handleRecentAlerts(_request: Request, env: Env): Promise<Response> {
-  // Sistema completo de alertas será implementado na SIG-133 (alertas configuráveis,
-  // thresholds, canais de notificação). Enquanto isso, retornamos array vazio para
-  // não fabricar dados sem fonte real consistente.
-  return json({ source: "d1", items: [] }, 200, env);
+  const now        = nowSec();
+  const oneDayAgo  = now - 86400;
+  const oneHourAgo = now - 3600;
+
+  // Thresholds lidos de admin_settings, com defaults conservadores para não gerar falsos positivos.
+  const settingsRow = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'admin'"
+  ).first<{ value: string }>();
+  const settings = settingsRow?.value ? JSON.parse(settingsRow.value) : {};
+  const AI_DAILY_BUDGET  = settings.aiDailyBudgetUsd       ?? 1.0;   // USD
+  const ERROR_THRESHOLD  = settings.errorSpikeThreshold    ?? 10;    // erros/hora
+  const MIN_SCORE        = settings.criticalScoreThreshold ?? 50;    // score médio mínimo
+
+  const alerts: Array<{
+    id: string; type: string; severity: string;
+    title: string; message: string; created_at: number; resolved: boolean;
+  }> = [];
+
+  const [aiCost, recentErrors, scoreRow] = await Promise.all([
+    env.DB.prepare(
+      "SELECT SUM(cost_usd) AS total FROM ai_usage WHERE created_at >= ?"
+    ).bind(oneDayAgo).first<{ total: number | null }>(),
+
+    env.DB.prepare(
+      "SELECT COUNT(*) AS count FROM system_errors WHERE last_seen >= ?"
+    ).bind(oneHourAgo * 1000).first<{ count: number }>(), // last_seen em ms
+
+    env.DB.prepare(
+      `SELECT AVG(CAST(score AS REAL)) AS avg FROM diagnostic_sessions
+       WHERE created_at >= ? AND score IS NOT NULL`
+    ).bind(oneDayAgo).first<{ avg: number | null }>(),
+  ]);
+
+  if ((aiCost?.total ?? 0) > AI_DAILY_BUDGET) {
+    alerts.push({
+      id:         'ai_budget_exceeded',
+      type:       'AI_BUDGET',
+      severity:   'critical',
+      title:      'Orçamento diário de IA excedido',
+      message:    `Custo nas últimas 24h: $${(aiCost?.total ?? 0).toFixed(4)} USD (limite: $${AI_DAILY_BUDGET})`,
+      created_at: now,
+      resolved:   false,
+    });
+  }
+
+  if ((recentErrors?.count ?? 0) > ERROR_THRESHOLD) {
+    alerts.push({
+      id:         'error_spike',
+      type:       'ERROR_SPIKE',
+      severity:   'warning',
+      title:      'Pico de erros detectado',
+      message:    `${recentErrors?.count} erros na última hora (limite: ${ERROR_THRESHOLD})`,
+      created_at: now,
+      resolved:   false,
+    });
+  }
+
+  if (scoreRow?.avg != null && scoreRow.avg < MIN_SCORE) {
+    alerts.push({
+      id:         'low_avg_score',
+      type:       'LOW_SCORE',
+      severity:   'warning',
+      title:      'Qualidade de rede baixa',
+      message:    `Score médio nas últimas 24h: ${Math.round(scoreRow.avg)} (mínimo: ${MIN_SCORE})`,
+      created_at: now,
+      resolved:   false,
+    });
+  }
+
+  return json({ source: "d1", items: alerts }, 200, env);
 }
 
 async function handleAiCostMetrics(request: Request, env: Env): Promise<Response> {
@@ -529,6 +608,16 @@ async function handleAiCostMetrics(request: Request, env: Env): Promise<Response
   // avgCostPerRequest: guard contra divisão por zero.
   const avgCostPerRequest = totalRequests > 0 ? totalCostUsd / totalRequests : 0;
 
+  // SIG-125: reliabilityPercentage — % de chamadas com completion_tokens > 0 (resposta real gerada).
+  const reliabilityRow = await env.DB.prepare(
+    `SELECT COUNT(*) AS total,
+            SUM(CASE WHEN completion_tokens > 0 THEN 1 ELSE 0 END) AS successful
+     FROM ai_usage WHERE created_at >= ?`
+  ).bind(since).first<{ total: number; successful: number }>();
+  const reliabilityPercentage = (reliabilityRow?.total ?? 0) > 0
+    ? Math.round(((reliabilityRow?.successful ?? 0) / reliabilityRow!.total) * 100)
+    : 100;
+
   return json({
     source: "d1",
     period,
@@ -539,6 +628,7 @@ async function handleAiCostMetrics(request: Request, env: Env): Promise<Response
     totalTokens,
     promptTokens,
     completionTokens,
+    reliabilityPercentage,
   }, 200, env);
 }
 
@@ -899,6 +989,53 @@ async function handleIngestAiUsage(request: Request, env: Env): Promise<Response
   return json({ ok: true, id: p.id }, 201, env);
 }
 
+// --- SIG-13: feature flags ---
+
+interface FeatureFlag {
+  key: string;
+  enabled: boolean;
+  scope: 'public' | 'internal';
+  description: string;
+}
+
+function getDefaultFlags(): FeatureFlag[] {
+  return [
+    { key: 'ai_diagnosis_enabled',  enabled: true,  scope: 'public',   description: 'Habilita diagnóstico por IA' },
+    { key: 'speedtest_enabled',     enabled: true,  scope: 'public',   description: 'Habilita speedtest' },
+    { key: 'fibra_module_enabled',  enabled: true,  scope: 'public',   description: 'Habilita módulo fibra' },
+    { key: 'new_ui_diagnostics',    enabled: false, scope: 'internal', description: 'Nova UI de diagnósticos (internal)' },
+  ];
+}
+
+async function handleGetFeatureFlags(_request: Request, env: Env): Promise<Response> {
+  const row = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'feature_flags'"
+  ).first<{ value: string }>();
+  const flags: FeatureFlag[] = row?.value ? JSON.parse(row.value) : getDefaultFlags();
+  return json({ source: "d1", flags }, 200, env);
+}
+
+async function handleSetFeatureFlags(request: Request, env: Env): Promise<Response> {
+  let body: any;
+  try { body = await request.json(); } catch { return err("body JSON inválido", 400, env); }
+  const flags = body.flags ?? body;
+  await env.DB.prepare(
+    "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES ('feature_flags', ?, ?)"
+  ).bind(JSON.stringify(flags), nowSec()).run();
+  return json({ ok: true }, 200, env);
+}
+
+// GET /feature-flags — público, sem auth. Retorna apenas flags com scope='public'.
+// Crítico para o app Android verificar flags sem credenciais de admin.
+async function handlePublicFeatureFlags(_request: Request, env: Env): Promise<Response> {
+  const row = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'feature_flags'"
+  ).first<{ value: string }>();
+  const allFlags: FeatureFlag[] = row?.value ? JSON.parse(row.value) : getDefaultFlags();
+  const publicFlags = allFlags.filter((f) => f.scope === 'public');
+  return json({ flags: publicFlags }, 200, env);
+}
+
 // --- router ---
 
 type Handler = (req: Request, env: Env) => Promise<Response>;
@@ -924,6 +1061,8 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "POST", pattern: /^\/admin\/integrations\/firebase\/sync$/,         handler: handleFirebaseSync },
   { method: "GET",  pattern: /^\/admin\/settings$/,                             handler: handleSettings },
   { method: "POST", pattern: /^\/admin\/settings$/,                             handler: handleSettings },
+  { method: "GET",  pattern: /^\/admin\/feature-flags$/,                        handler: handleGetFeatureFlags },
+  { method: "POST", pattern: /^\/admin\/feature-flags$/,                        handler: handleSetFeatureFlags },
 ];
 
 const INGEST_ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
@@ -941,6 +1080,11 @@ export default {
     if (url.pathname === "/health") {
       if (!authenticate(request, env)) return err("Unauthorized", 401, env);
       return json({ status: "ok", worker: "signallq-admin-worker" }, 200, env);
+    }
+
+    // /feature-flags — público, sem auth. O app Android consome este endpoint sem credenciais.
+    if (url.pathname === '/feature-flags' && request.method === 'GET') {
+      return handlePublicFeatureFlags(request, env);
     }
 
     // Rotas /ingest/* — autenticam com INGEST_KEY (scope limitado, vai no APK).

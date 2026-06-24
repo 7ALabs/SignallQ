@@ -3,6 +3,7 @@ package io.veloo.app.feature.diagnostico
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import io.veloo.app.core.network.FeatureFlagProvider
 import io.veloo.app.feature.diagnostico.ai.AiDiagnosisRepository
 import io.veloo.app.feature.diagnostico.ai.AiDiagnosisState
 import io.veloo.app.feature.diagnostico.ai.AiFallbackFactory
@@ -35,6 +36,7 @@ class DiagnosticoViewModel
     constructor(
         val diagnosticOrchestrator: DiagnosticOrchestrator,
         private val aiRepository: AiDiagnosisRepository,
+        private val featureFlags: FeatureFlagProvider,
     ) : ViewModel() {
         companion object {
             private const val MAX_PERGUNTAS_USUARIO = 5
@@ -81,6 +83,15 @@ class DiagnosticoViewModel
          * Usa streaming SSE quando disponivel, com fallback para resposta completa.
          */
         fun enviarPerguntaDiagnostico(pergunta: String) {
+            if (!featureFlags.isAiDiagnosisEnabled()) {
+                _diagChatHistorico.value = _diagChatHistorico.value +
+                    DiagChatEntry(
+                        autor = DiagChatAutor.Ia,
+                        texto = "Analise por IA temporariamente desabilitada",
+                        isErro = false,
+                    )
+                return
+            }
             val historicoAtual = _diagChatHistorico.value
             val perguntasUsuario = historicoAtual.count { it.autor == DiagChatAutor.Usuario }
             if (perguntasUsuario >= MAX_PERGUNTAS_USUARIO) return

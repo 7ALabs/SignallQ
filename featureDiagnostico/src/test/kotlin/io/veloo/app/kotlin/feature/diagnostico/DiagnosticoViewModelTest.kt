@@ -1,5 +1,6 @@
 package io.veloo.app.feature.diagnostico
 
+import io.veloo.app.core.network.FeatureFlagProvider
 import io.veloo.app.feature.diagnostico.ai.AiDiagnosisRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.Assert.assertEquals
@@ -31,6 +32,9 @@ class DiagnosticoViewModelTest {
                 baseUrl = "https://fake.example.com",
                 isAuthorized = { false },
             ),
+            featureFlags = object : FeatureFlagProvider {
+                override fun isEnabled(key: String): Boolean = true
+            },
         )
     }
 

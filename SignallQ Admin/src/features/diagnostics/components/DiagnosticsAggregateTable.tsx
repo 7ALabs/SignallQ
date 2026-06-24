@@ -3,14 +3,14 @@ import { SectionCard } from "../../../components/ui/SectionCard";
 import { DataTable } from "../../../components/ui/DataTable";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { diagnosticsService } from "../../../services/diagnosticsService";
-import { FeatureComingSoon } from "../../../components/ui/FeatureComingSoon";
 import { AggregateRow } from "../../../types/diagnostics";
 
 interface DiagnosticsAggregateTableProps {
   environment: "production" | "staging";
+  period?: string;
 }
 
-export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps> = ({ environment }) => {
+export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps> = ({ environment, period }) => {
   const [data, setData] = React.useState<AggregateRow[]>([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -19,7 +19,7 @@ export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps>
     const fetchAggregate = async () => {
       setLoading(true);
       try {
-        const result = await diagnosticsService.getAggregateDiagnostics({ environment });
+        const result = await diagnosticsService.getAggregateDiagnostics({ environment, period: period as any });
         if (active) {
           setData(result);
         }
@@ -36,7 +36,7 @@ export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps>
     return () => {
       active = false;
     };
-  }, [environment]);
+  }, [environment, period]);
 
   const columns = [
     {
@@ -48,7 +48,7 @@ export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps>
       )
     },
     {
-      header: "Diagnósticos (Total)",
+      header: "Sessões",
       accessor: (row: AggregateRow) => (
         <span className="font-mono text-zinc-400 font-medium">
           {row.diagnosticsCount.toLocaleString("pt-BR")}
@@ -68,15 +68,15 @@ export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps>
       }
     },
     {
-      header: "Down / Up Médio",
+      header: "Download Médio (Mbps)",
       accessor: (row: AggregateRow) => (
         <span className="font-mono text-[#38BDF8] font-semibold text-[11px]">
-          {row.avgDownload} <span className="text-zinc-650 font-normal">/</span> {row.avgUpload}
+          {row.avgDownload}
         </span>
       )
     },
     {
-      header: "Ping",
+      header: "Latência Média (ms)",
       accessor: (row: AggregateRow) => (
         <span className="font-mono text-zinc-300">
           {row.avgPing}
@@ -84,26 +84,10 @@ export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps>
       )
     },
     {
-      header: "Jitter",
+      header: "% do Total",
       accessor: (row: AggregateRow) => (
-        <span className="font-mono text-zinc-400">
-          {row.avgJitter}
-        </span>
-      )
-    },
-    {
-      header: "Perda",
-      accessor: (row: AggregateRow) => (
-        <span className="font-mono text-[#FF4D4F] font-semibold">
-          {row.avgLoss}
-        </span>
-      )
-    },
-    {
-      header: "Principal Problema Mapeado",
-      accessor: (row: AggregateRow) => (
-        <span className="text-zinc-300 font-sans text-[11px] bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded">
-          {row.topIssue}
+        <span className="font-mono text-zinc-400 text-[11px]">
+          {row.trendLabel}
         </span>
       )
     },
@@ -125,9 +109,6 @@ export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps>
                 <TrendingDown className="w-3.5 h-3.5" /> Tratado
               </span>
             )}
-            <span className="text-[9px] text-zinc-550 max-w-[100px] truncate" title={row.trendLabel}>
-              ({row.trendLabel})
-            </span>
           </div>
         );
       }
@@ -140,20 +121,13 @@ export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps>
       description="Consolidado multivariado de telemetria segmentado pelas interfaces ativas."
       id="diagnostics-aggregate-card"
     >
-      {!loading && data.length === 0 ? (
-        <FeatureComingSoon
-          feature="Diagnósticos Agregados"
-          reason="Requer rota de agregação no worker"
-        />
-      ) : (
-        <DataTable
-          data={data}
-          columns={columns}
-          keyExtractor={(row) => row.networkType}
-          emptyMessage="Nenhuma agregação disponível para estes parâmetros"
-          id="aggregate-table"
-        />
-      )}
+      <DataTable
+        data={data}
+        columns={columns}
+        keyExtractor={(row) => row.networkType}
+        emptyMessage="Sem dados de rede para este período"
+        id="aggregate-table"
+      />
     </SectionCard>
   );
 };

@@ -20,7 +20,7 @@ import kotlinx.coroutines.withContext
 class PreferenciasAppRepository(
     private val context: Context,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-) {
+) : FeatureFlagStore {
     private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "linkaPreferencias")
 
     private val chaveMonitoramentoAtivo = booleanPreferencesKey("monitoramentoAtivo")
@@ -74,6 +74,9 @@ class PreferenciasAppRepository(
      * Formato de cada entrada: "mac:<MAC>" ou "ipnome:<IP>:<nomeNormalizado>".
      */
     private val chaveDispositivosConhecidos = stringPreferencesKey("dispositivos_conhecidos_set")
+
+    // Feature flags remotas — JSON serializado: {"ai_diagnosis_enabled":true,...}
+    private val chaveFeatureFlagsJson = stringPreferencesKey("feature_flags_json")
 
     // Sync retroativo para admin worker — checkpoint de progresso por tipo
     private val chaveAdminSyncMedicaoLastEpochMs = longPreferencesKey("admin_sync_medicao_last_epoch_ms")
@@ -389,6 +392,35 @@ class PreferenciasAppRepository(
             val novo = UUID.randomUUID().toString()
             context.dataStore.edit { it[chaveAnonDeviceId] = novo }
             novo
+        }
+
+    // --- Feature flags remotas ---
+
+    override suspend fun salvarFeatureFlags(flags: Map<String, Boolean>) {
+        withContext(ioDispatcher) {
+            val json = buildString {
+                append("{")
+                flags.entries.joinToString(",") { (k, v) -> "\"$k\":$v" }.also { append(it) }
+                append("}")
+            }
+            context.dataStore.edit { it[chaveFeatureFlagsJson] = json }
+        }
+    }
+
+    override suspend fun buscarFeatureFlags(): Map<String, Boolean> =
+        withContext(ioDispatcher) {
+            val json = context.dataStore.data.first()[chaveFeatureFlagsJson] ?: return@withContext emptyMap()
+            if (json.isBlank()) return@withContext emptyMap<String, Boolean>()
+            try {
+                val result = mutableMapOf<String, Boolean>()
+                json.trim('{', '}').split(",").forEach { pair ->
+                    val (k, v) = pair.split(":").map { it.trim().trim('"') }
+                    result[k] = v.toBooleanStrict()
+                }
+                result
+            } catch (_: Exception) {
+                emptyMap()
+            }
         }
 
     suspend fun limparTodasPreferencias() {

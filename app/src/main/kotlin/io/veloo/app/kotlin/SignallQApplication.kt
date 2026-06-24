@@ -4,10 +4,14 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
+import io.veloo.app.featureflags.FeatureFlagManager
 import io.veloo.app.logging.ReleaseTree
 import io.veloo.app.monitoramento.AdminSyncScheduler
 import io.veloo.app.notificacao.SignallQNotificationHelper
 import io.veloo.app.speedtest.SpeedtestPersistenceCoordinator
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -20,6 +24,9 @@ class SignallQApplication :
 
     @Inject
     lateinit var speedtestPersistenceCoordinator: SpeedtestPersistenceCoordinator
+
+    @Inject
+    lateinit var featureFlagManager: FeatureFlagManager
 
     override val workManagerConfiguration: Configuration
         get() =
@@ -47,5 +54,10 @@ class SignallQApplication :
         // One-shot com KEEP: roda uma vez por instalacao (ou apos crash/wipe), depois so periodico.
         // Nao bloqueia o startup — o WorkManager agenda na proxima oportunidade com rede disponivel.
         AdminSyncScheduler.agendar(this)
+
+        // Sincroniza feature flags do worker em background.
+        // Nao bloqueia o startup — UI usa fallback (todos enabled) ate o fetch completar.
+        val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        featureFlagManager.inicializar(applicationScope)
     }
 }

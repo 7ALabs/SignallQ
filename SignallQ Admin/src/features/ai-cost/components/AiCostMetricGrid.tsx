@@ -15,6 +15,7 @@ export const AiCostMetricGrid: React.FC<AiCostMetricGridProps> = ({ environment,
     tokensSentM: string;
     tokensReceivedM: string;
     successRate: string;
+    reliabilityPercentage: number | null;
   } | null>(null);
   const [loaded, setLoaded] = React.useState(false);
 
@@ -33,8 +34,8 @@ export const AiCostMetricGrid: React.FC<AiCostMetricGridProps> = ({ environment,
 
   if (!loaded) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {Array.from({ length: 6 }).map((_, idx) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
+        {Array.from({ length: 7 }).map((_, idx) => (
           <div key={idx} className="h-24 bg-zinc-950/40 border border-zinc-900 rounded-xl animate-pulse" />
         ))}
       </div>
@@ -43,8 +44,8 @@ export const AiCostMetricGrid: React.FC<AiCostMetricGridProps> = ({ environment,
 
   if (!summary) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        {Array.from({ length: 6 }).map((_, idx) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
+        {Array.from({ length: 7 }).map((_, idx) => (
           <div key={idx} className="h-24 bg-zinc-950/40 border border-zinc-900 rounded-xl flex items-center justify-center">
             <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">Sem dados</span>
           </div>
@@ -53,9 +54,19 @@ export const AiCostMetricGrid: React.FC<AiCostMetricGridProps> = ({ environment,
     );
   }
 
-  // Card de Sucesso API: successRate pode ser "—" quando não há fonte real (SIG-125).
-  // Nesse caso, omite o trend para não exibir valor fabricado.
+  // Card de Sucesso API: successRate pode ser "—" quando não há fonte real.
   const successRateIsReal = summary.successRate !== "—";
+
+  // SIG-125: Confiabilidade IA com veredito semântico.
+  const rel = summary.reliabilityPercentage;
+  const reliabilityValue = rel !== null ? `${rel.toFixed(1)}%` : "--";
+  const reliabilityVerdict =
+    rel === null       ? ""
+    : rel >= 95        ? "Excelente"
+    : rel >= 80        ? "Bom"
+    : rel >= 70        ? "Regular"
+    : "Fraco";
+  const reliabilityDisplay = rel !== null ? `${reliabilityValue} · ${reliabilityVerdict}` : "--";
 
   const metrics = [
     {
@@ -89,11 +100,23 @@ export const AiCostMetricGrid: React.FC<AiCostMetricGridProps> = ({ environment,
       trend: successRateIsReal
         ? { value: 0.02, changePercentage: 0.02, type: "up" as const, intervalLabel: "taxa de resiliência" }
         : undefined,
-    }
+    },
+    {
+      label: "Confiabilidade IA",
+      value: reliabilityDisplay,
+      trend: rel !== null
+        ? {
+            value: rel,
+            changePercentage: rel,
+            type: rel >= 80 ? "up" as const : "down" as const,
+            intervalLabel: rel >= 95 ? "dentro do SLA" : rel >= 70 ? "atenção requerida" : "abaixo do aceitável",
+          }
+        : undefined,
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
       {metrics.map((m, idx) => (
         <MetricCard
           key={idx}

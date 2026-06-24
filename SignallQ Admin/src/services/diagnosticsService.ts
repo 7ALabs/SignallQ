@@ -124,7 +124,38 @@ export const diagnosticsService = {
   },
 
   async getAggregateDiagnostics(filters: DashboardFilters = {}): Promise<AggregateRow[]> {
-    if (!apiClient.isMockEnabled()) return [];
+    if (!apiClient.isMockEnabled()) {
+      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
+      const period = filters.period === "today" ? "1d" : (filters.period ?? "7d");
+      const env = filters.environment ?? "production";
+      try {
+        const raw = await apiClient.request<{
+          items: Array<{
+            name: string;
+            count: number;
+            avg_score: number;
+            avg_download_mbps: number;
+            avg_latency_ms: number;
+            percentage: number;
+          }>;
+        }>("GET", `/admin/metrics/network?environment=${env}&period=${period}`);
+        return (raw.items ?? []).map((r) => ({
+          networkType:      r.name,
+          diagnosticsCount: r.count,
+          avgScore:         Math.round(r.avg_score ?? 0),
+          avgDownload:      `${(r.avg_download_mbps ?? 0).toFixed(1)} Mbps`,
+          avgUpload:        "—",
+          avgPing:          `${Math.round(r.avg_latency_ms ?? 0)} ms`,
+          avgJitter:        "—",
+          avgLoss:          "—",
+          topIssue:         "—",
+          trend:            "stable" as const,
+          trendLabel:       `${r.percentage.toFixed(1)}% do total`,
+        }));
+      } catch {
+        return [];
+      }
+    }
 
     const data = await apiClient.simulateFetch(mockAggregateData, filters);
     if (filters.environment === "staging") {

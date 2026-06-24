@@ -1,11 +1,13 @@
 import React from "react";
-import { AlertList } from "../../../components/ui/AlertList";
 import { RecentAlertItem } from "../../../mocks/overview.mock";
-import { AlertOctagon } from "lucide-react";
-import { FeatureComingSoon } from "../../../components/ui/FeatureComingSoon";
+import { AlertOctagon, AlertCircle, Info, RefreshCw } from "lucide-react";
 
 interface RecentAlertsPanelProps {
   alerts: RecentAlertItem[];
+}
+
+function severityFor(alert: RecentAlertItem & { _severity?: string }) {
+  return alert._severity ?? alert.severity;
 }
 
 export const RecentAlertsPanel: React.FC<RecentAlertsPanelProps> = ({ alerts }) => {
@@ -26,12 +28,49 @@ export const RecentAlertsPanel: React.FC<RecentAlertsPanelProps> = ({ alerts }) 
 
         <div className="max-h-[290px] overflow-y-auto pr-1 space-y-1">
           {alerts.length === 0 ? (
-            <FeatureComingSoon
-              feature="Alertas Recentes"
-              reason="Sistema de alertas não implementado"
-            />
+            <div className="py-8 text-center text-xs text-zinc-500 font-sans border border-dashed border-zinc-800 rounded-xl">
+              Sem alertas ativos
+            </div>
           ) : (
-            <AlertList alerts={alerts} />
+            <div className="space-y-3">
+              {(alerts as Array<RecentAlertItem & { _severity?: string }>).map((alert) => {
+                const sev = severityFor(alert);
+                const isCritical = sev === "critical";
+                const isInfo     = sev === "info";
+                const borderClass = isCritical
+                  ? "border-red-950/70 bg-red-950/10 hover:border-red-900/60"
+                  : isInfo
+                  ? "border-blue-950/70 bg-blue-950/10 hover:border-blue-900/60"
+                  : "border-amber-950/70 bg-amber-950/10 hover:border-amber-900/60";
+                const iconColor = isCritical ? "text-red-400" : isInfo ? "text-blue-400" : "text-amber-400";
+                const Icon = isCritical ? AlertOctagon : isInfo ? Info : AlertCircle;
+
+                return (
+                  <div
+                    key={alert.id}
+                    className={`flex items-start justify-between p-4 rounded-xl border transition-all duration-150 ${borderClass}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${iconColor}`} />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-white font-sans">{alert.source}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-neutral-400 font-mono">
+                            {alert.count}x
+                          </span>
+                        </div>
+                        <p className="text-xs text-neutral-400 mt-1 font-sans leading-relaxed">
+                          {alert.message}
+                        </p>
+                        <span className="text-[10px] text-zinc-500 mt-2 block font-mono">
+                          {new Date(alert.timestamp).toLocaleString("pt-BR")}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>

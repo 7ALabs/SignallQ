@@ -7,6 +7,10 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.veloo.app.BuildConfig
+import io.veloo.app.core.datastore.FeatureFlagStore
+import io.veloo.app.core.network.FeatureFlagProvider
+import io.veloo.app.featureflags.FeatureFlagManager
+import io.veloo.app.featureflags.FeatureFlagRepository
 import io.veloo.app.core.database.CoreDatabaseModulo
 import io.veloo.app.core.database.MedicaoDao
 import io.veloo.app.core.database.SignallQDatabase
@@ -175,6 +179,36 @@ object AppModule {
     @Singleton
     @Named("adminIngestKey")
     fun provideAdminIngestKey(): String = BuildConfig.ADMIN_INGEST_KEY
+
+    /**
+     * Repository para busca e persistencia de feature flags remotas.
+     * URL derivada do AI_WORKER_URL — remove path /ai-diagnosis se presente.
+     */
+    @Provides
+    @Singleton
+    fun provideFeatureFlagRepository(
+        store: FeatureFlagStore,
+    ): FeatureFlagRepository =
+        FeatureFlagRepository(
+            workerBaseUrl = io.veloo.app.feature.diagnostico.BuildConfig.AI_WORKER_URL,
+            prefs = store,
+        )
+
+    /**
+     * Expoe PreferenciasAppRepository como FeatureFlagStore.
+     * Evita criar uma segunda instancia de PreferenciasAppRepository so para flags.
+     */
+    @Provides
+    @Singleton
+    fun provideFeatureFlagStore(prefs: PreferenciasAppRepository): FeatureFlagStore = prefs
+
+    /**
+     * Expoe FeatureFlagManager como FeatureFlagProvider para os modulos feature.
+     * O FeatureFlagManager e @Singleton via @Inject constructor — aqui apenas bind a interface.
+     */
+    @Provides
+    @Singleton
+    fun provideFeatureFlagProvider(manager: FeatureFlagManager): FeatureFlagProvider = manager
 
     @Provides
     @Singleton
