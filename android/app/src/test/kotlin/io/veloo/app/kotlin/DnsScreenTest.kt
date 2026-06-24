@@ -1,7 +1,10 @@
 package io.veloo.app
 
+import io.veloo.app.ui.screen.isDnsIpPrivado
 import io.veloo.app.ui.screen.resolveDnsName
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DnsScreenTest {
@@ -36,13 +39,45 @@ class DnsScreenTest {
     }
 
     @Test
-    fun `resolveDnsName retorna DNS do Provedor para IP desconhecido`() {
-        assertEquals("DNS do Provedor", resolveDnsName("192.168.1.1"))
-        assertEquals("DNS do Provedor", resolveDnsName("10.0.0.1"))
+    fun `resolveDnsName retorna Roteador da rede para IPs privados`() {
+        assertEquals("Roteador da rede", resolveDnsName("192.168.1.1"))
+        assertEquals("Roteador da rede", resolveDnsName("192.168.1.254"))
+        assertEquals("Roteador da rede", resolveDnsName("10.0.0.1"))
+        assertEquals("Roteador da rede", resolveDnsName("172.16.0.1"))
+        assertEquals("Roteador da rede", resolveDnsName("172.31.255.255"))
+        assertEquals("Roteador da rede", resolveDnsName("169.254.1.1"))
+    }
+
+    @Test
+    fun `resolveDnsName retorna DNS do Provedor para IP publico desconhecido`() {
+        assertEquals("DNS do Provedor", resolveDnsName("200.200.200.200"))
+        assertEquals("DNS do Provedor", resolveDnsName("1.2.3.4"))
     }
 
     @Test
     fun `resolveDnsName retorna DNS do Provedor para null`() {
         assertEquals("DNS do Provedor", resolveDnsName(null))
+    }
+
+    @Test
+    fun `isDnsIpPrivado detecta corretamente IPs RFC-1918 e link-local`() {
+        assertTrue(isDnsIpPrivado("192.168.0.1"))
+        assertTrue(isDnsIpPrivado("192.168.1.254"))
+        assertTrue(isDnsIpPrivado("10.0.0.1"))
+        assertTrue(isDnsIpPrivado("10.255.255.255"))
+        assertTrue(isDnsIpPrivado("172.16.0.1"))
+        assertTrue(isDnsIpPrivado("172.31.255.255"))
+        assertTrue(isDnsIpPrivado("169.254.0.1"))
+        assertTrue(isDnsIpPrivado("127.0.0.1"))
+    }
+
+    @Test
+    fun `isDnsIpPrivado retorna false para IPs publicos`() {
+        assertFalse(isDnsIpPrivado("1.1.1.1"))
+        assertFalse(isDnsIpPrivado("8.8.8.8"))
+        assertFalse(isDnsIpPrivado("172.15.255.255"))
+        assertFalse(isDnsIpPrivado("172.32.0.0"))
+        assertFalse(isDnsIpPrivado("192.167.1.1"))
+        assertFalse(isDnsIpPrivado("11.0.0.1"))
     }
 }

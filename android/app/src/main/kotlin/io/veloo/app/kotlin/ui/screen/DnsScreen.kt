@@ -249,19 +249,31 @@ private fun DnsBloco1Atual(
                         }
                     }
 
-                    // latência do DNS atual nos resultados do benchmark
-                    val latenciaAtual =
-                        snapshotDns.resultados
-                            .firstOrNull { it.nomeProvedor == currentDnsName }
-                            ?.tempoMs
-                    if (latenciaAtual != null) {
-                        Text(
-                            "${latenciaAtual.roundToInt()} ms",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.W500,
-                            color = c.textSecondary,
-                        )
+                    // Roteador local: latência local (sub-ms) não é comparável com DNS externos.
+                    // DNS público: exibe latência medida no benchmark.
+                    if (currentDnsName != "Roteador da rede") {
+                        val latenciaAtual =
+                            snapshotDns.resultados
+                                .firstOrNull { it.nomeProvedor == currentDnsName }
+                                ?.tempoMs
+                        if (latenciaAtual != null) {
+                            Text(
+                                "${latenciaAtual.roundToInt()} ms",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.W500,
+                                color = c.textSecondary,
+                            )
+                        }
                     }
+                }
+
+                // Aviso contextual quando o DNS ativo é o roteador local
+                if (currentDnsName == "Roteador da rede") {
+                    Text(
+                        "O roteador repassa as consultas ao DNS real do provedor. A latência local não é comparável com DNS públicos externos.",
+                        fontSize = 11.sp,
+                        color = c.textTertiary,
+                    )
                 }
 
                 if (snapshotRede.privateDnsAtivo) {
@@ -693,8 +705,9 @@ private fun DnsGuideStep(
 
 // Deve estar sincronizado com BenchmarkDnsDoh.mapaIpParaProvedor —
 // qualquer IP adicionado lá precisa ser adicionado aqui também.
-internal fun resolveDnsName(dnsIp: String?): String =
-    when (dnsIp) {
+internal fun resolveDnsName(dnsIp: String?): String {
+    if (dnsIp != null && isDnsIpPrivado(dnsIp)) return "Roteador da rede"
+    return when (dnsIp) {
         "1.1.1.1", "1.0.0.1" -> "Cloudflare"
         "8.8.8.8", "8.8.4.4" -> "Google DNS"
         "9.9.9.9", "149.112.112.112" -> "Quad9"
@@ -704,3 +717,19 @@ internal fun resolveDnsName(dnsIp: String?): String =
         "191.234.170.40" -> "CETIC.br"
         else -> "DNS do Provedor"
     }
+}
+
+// IP RFC-1918, link-local ou loopback — não é um DNS público real.
+internal fun isDnsIpPrivado(ip: String): Boolean {
+    val partes = ip.split(".").mapNotNull { it.toIntOrNull() }
+    if (partes.size != 4) return false
+    val (a, b) = partes
+    return when {
+        a == 10 -> true
+        a == 172 && b in 16..31 -> true
+        a == 192 && b == 168 -> true
+        a == 169 && b == 254 -> true
+        a == 127 -> true
+        else -> false
+    }
+}

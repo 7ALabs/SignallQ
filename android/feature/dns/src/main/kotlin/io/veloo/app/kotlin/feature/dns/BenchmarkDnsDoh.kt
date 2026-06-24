@@ -45,7 +45,9 @@ class BenchmarkDnsDoh : BenchmarkDns {
                 val resultadoSistema = medirSistemaDns(hostConsulta, resolvedoresAtivos, privateDnsHostname)
                 Log.i(TAG, "sistema dns: nome=${resultadoSistema.nomeProvedor} tempo=${resultadoSistema.tempoMs} grade=${resultadoSistema.gradeRapidez} amostras=${resultadoSistema.amostrasMs}")
                 val acumulados = mutableListOf<ResultadoBenchmarkDns>()
-                if (resultadoSistema.tempoMs != null) acumulados.add(resultadoSistema)
+                // IP privado (roteador local) não entra no ranking — latência local não é comparável
+                // a DNS públicos externos. Fica disponível para exibição via nomeProvedor.
+                if (resultadoSistema.tempoMs != null && !resultadoSistema.isGatewayLocal) acumulados.add(resultadoSistema)
                 publicar(EstadoBenchmarkDns.executando, 15, acumulados.sortedBy { it.tempoMs }, null)
 
                 val provedoresPublicos = listOf(
@@ -113,6 +115,7 @@ class BenchmarkDnsDoh : BenchmarkDns {
         }
         val tempo = calcularP50(amostras)
         val nome = inferirNomeSistemaDns(resolvedoresAtivos, privateDnsHostname)
+        val gatewayLocal = nome == "Roteador da rede"
         return ResultadoBenchmarkDns(
             nomeProvedor = nome,
             hostConsulta = hostConsulta,
@@ -122,7 +125,8 @@ class BenchmarkDnsDoh : BenchmarkDns {
             sucessos = amostras.size,
             taxaSucessoPercentual = if (amostras.isEmpty()) 0.0 else (amostras.size.toDouble() / 2.0) * 100.0,
             erroMensagem = if (tempo == null) "semResposta" else null,
-            gradeRapidez = tempo?.let { calcularGrade(it) },
+            gradeRapidez = if (gatewayLocal) null else tempo?.let { calcularGrade(it) },
+            isGatewayLocal = gatewayLocal,
         )
     }
 
@@ -202,9 +206,25 @@ class BenchmarkDnsDoh : BenchmarkDns {
             mapaHostParaProvedor.entries.firstOrNull { h.contains(it.key) }?.value?.let { return it }
         }
         for (ip in resolvedoresAtivos.map { it.trim() }.filter { it.isNotBlank() }) {
+            if (isIpPrivado(ip)) return "Roteador da rede"
             mapaIpParaProvedor[ip]?.let { return it }
         }
         return "DNS do Provedor"
+    }
+
+    // Retorna true para IPs RFC-1918, link-local e loopback — não são DNS públicos reais.
+    private fun isIpPrivado(ip: String): Boolean {
+        val partes = ip.split(".").mapNotNull { it.toIntOrNull() }
+        if (partes.size != 4) return false
+        val (a, b) = partes
+        return when {
+            a == 10 -> true
+            a == 172 && b in 16..31 -> true
+            a == 192 && b == 168 -> true
+            a == 169 && b == 254 -> true  // link-local
+            a == 127 -> true               // loopback
+            else -> false
+        }
     }
 
     private companion object {
