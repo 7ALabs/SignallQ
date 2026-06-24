@@ -16,16 +16,18 @@ plugins {
 }
 
 private val keyPropertiesFile = rootProject.file("key.properties")
-private val keyProperties = Properties().apply {
-    if (keyPropertiesFile.exists()) load(keyPropertiesFile.inputStream())
-}
+private val keyProperties =
+    Properties().apply {
+        if (keyPropertiesFile.exists()) load(keyPropertiesFile.inputStream())
+    }
 
 // Secrets de telemetria — lidos de local.properties em dev (nunca commitados).
 // Em CI/release, injetar via variavel de ambiente: ADMIN_INGEST_KEY=xxx
 private val localPropertiesFile = rootProject.file("local.properties")
-private val localProperties = Properties().apply {
-    if (localPropertiesFile.exists()) load(localPropertiesFile.inputStream())
-}
+private val localProperties =
+    Properties().apply {
+        if (localPropertiesFile.exists()) load(localPropertiesFile.inputStream())
+    }
 private val adminIngestKey: String =
     localProperties.getProperty("ADMIN_INGEST_KEY")
         ?: System.getenv("ADMIN_INGEST_KEY")
