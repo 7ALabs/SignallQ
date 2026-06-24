@@ -34,6 +34,7 @@ Recuperacao rapida, fatos operacionais, inferencia minima.
 - [AI Assistant (`functional/AI_ASSISTANT.md`)](./functional/AI_ASSISTANT.md)
 - [Central de Testes — Guia do Usuário (`functional/CENTRAL_DE_TESTES_USER_GUIDE.md`)](./functional/CENTRAL_DE_TESTES_USER_GUIDE.md)
 - [Settings (`functional/SETTINGS.md`)](./functional/SETTINGS.md)
+- [Feature Flags (`functional/FEATURE_FLAGS.md`)](./functional/FEATURE_FLAGS.md) — toggles remotos, painel admin, Android FeatureFlagManager (SIG-133/125)
 
 ---
 
@@ -89,6 +90,8 @@ Recuperacao rapida, fatos operacionais, inferencia minima.
 - [App Signing (`operations/SIGNING.md`)](./operations/SIGNING.md) — keystore, key.properties, GitHub Secrets
 - [Scripts (`operations/SCRIPTS.md`)](./operations/SCRIPTS.md)
 - [Environments (`operations/ENVIRONMENTS.md`)](./operations/ENVIRONMENTS.md) — doc canonico de ambientes
+- [Admin Auth (`operations/ADMIN_AUTH.md`)](./operations/ADMIN_AUTH.md) — autenticacao propria do painel via D1 (SIG-136)
+- [Admin Panel (`operations/ADMIN_PANEL.md`)](./operations/ADMIN_PANEL.md) — estado real do painel, telas, schema D1, endpoints, etapas manuais do Luiz (SIG-143/136/132/125/133)
 
 ---
 
