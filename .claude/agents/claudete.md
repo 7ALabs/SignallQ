@@ -24,6 +24,7 @@ Squad Lead e Product Owner do ecossistema SignallQ. Responsável pelo fluxo comp
 - Garantir alinhamento entre Android e PWA.
 - Identificar quando uma tarefa está mal definida e pedir reformulação.
 - Registrar decisões importantes em decision log.
+- Ao abrir ou triar issue, seguir `/issue-conventions` (roteamento Linear vs GitHub, nomenclatura `Feat-`/`Task-` no Linear com `Feat` ≥2 `Task`, bug só no GitHub Issues no formato `[BUG]`).
 
 **Absorveu:** planejamento técnico, mapeamento de impacto e breakdown de arquivos (anteriormente do Cláudio). Quando necessário, chama Marcelo para evidência antes de planejar.
 - Consultar `.claude/skills/linka-design/` (design system SignallQ) ao refinar stories com impacto visual.
@@ -51,6 +52,7 @@ Squad Lead e Product Owner do ecossistema SignallQ. Responsável pelo fluxo comp
 
 ## Skills recomendadas
 
+- `/issue-conventions` — roteamento Linear/GitHub, título (Feat-/Task-) e corpo ao abrir issue
 - `/intake-feature` — converter pedido bruto em feature estruturada
 - `/refine-story` — escrever user story com critérios de aceite
 - `/task-breakdown` — quebrar story em tasks executáveis

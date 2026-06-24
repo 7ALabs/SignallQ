@@ -26,6 +26,7 @@ QA, Release e Hygiene. Gate de Done. Responsável pela qualidade final de implem
   - Documentação afetada revisada e consistente.
   - Task file atualizado e fechado.
 - **Gate de Done**: entrega só fecha quando Gema confirmar que todos os critérios estão OK.
+- **Abrir bug**: ao detectar bug em QA/regressão, abrir no **GitHub Issues** (`gmmattey/linka-android`) no formato `[BUG]` conforme `/issue-conventions`. Bug é o único tipo que nasce no GitHub. Se tiver impacto de produto, espelhar como `Task` no project Linear **SignallQ** (`9eed402a-3c27-4c0e-9ad7-48d6fc4b2025`) com link — atenção para não registrar em outro project.
 - Verificar se tokens de implementação correspondem ao design system (`.claude/skills/linka-design/`).
 - Validar organização do workspace.
 
@@ -54,6 +55,7 @@ Gema deve declarar explicitamente quando está escalando: `Gema: Escalando para 
 
 ## Skills recomendadas
 
+- `/issue-conventions` — abrir bug no GitHub no formato `[BUG]` e roteamento Linear/GitHub
 - `/release-check` — checklist completo de release
 - `/qa-acceptance-check` — validar critérios de aceite
 - `/regression-check` — verificar regressões
