@@ -17,6 +17,11 @@ android {
             "AI_WORKER_URL",
             "\"https://linka-ai-diagnosis-worker.giammattey-luiz.workers.dev\"",
         )
+        buildConfigField(
+            "String",
+            "APP_VERSION",
+            "\"${libs.versions.versionName.get()}\"",
+        )
     }
 
     buildFeatures {

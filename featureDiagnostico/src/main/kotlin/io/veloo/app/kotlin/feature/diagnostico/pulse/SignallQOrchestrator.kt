@@ -1,7 +1,7 @@
 package io.veloo.app.feature.diagnostico.pulse
 
 import android.os.Build
-import io.veloo.app.BuildConfig
+import io.veloo.app.feature.diagnostico.BuildConfig
 import io.veloo.app.core.database.MedicaoDao
 import io.veloo.app.core.network.GatewayLatencyMeasurer
 import io.veloo.app.core.network.MonitorRede
@@ -1056,7 +1056,7 @@ class SignallQOrchestrator(
                     operator = operadoraMovel?.takeIf { it.isNotBlank() },
                     deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}",
                     osVersion = "Android ${Build.VERSION.RELEASE}",
-                    appVersion = BuildConfig.VERSION_NAME,
+                    appVersion = BuildConfig.APP_VERSION,
                     aiSummaryReport = aiSummaryReport,
                 ),
             )
