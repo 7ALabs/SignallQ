@@ -921,24 +921,27 @@ private fun NetworkPath(
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 val (icon, _) = nodeDisplay(gw.type)
                 val isMobileNode = gw.type == ConnectionNodeType.Mobile
+                // #221: nó móvel exibe operadora como título e tecnologia como subtítulo
+                val nodeLabel =
+                    if (isMobileNode) {
+                        movelSnapshot?.operadora?.ifBlank { null }
+                            ?: gw.name.takeIf { it != "Antena movel" && it != "Antena móvel" }
+                            ?: "Rede móvel"
+                    } else {
+                        gw.name
+                    }
+                val nodeSubLabel =
+                    if (isMobileNode && gw.ip == null) {
+                        val tec = movelSnapshot?.tecnologia?.ifBlank { null }
+                        if (tec != null) "Rede móvel · $tec" else "Rede móvel"
+                    } else {
+                        gw.ip ?: "—"
+                    }
                 PathNode(
                     icon = icon,
                     iconColor = c.textSecondary,
-                    label = gw.name,
-                    subLabel =
-                        if (isMobileNode && gw.ip == null) {
-                            labelRedeMovel(movelSnapshot)
-                        } else {
-                            gw.ip ?: "—"
-                        },
-                    subLabel2 =
-                        if (isMobileNode && gw.ip == null) {
-                            null
-                        } else if (isMobileNode) {
-                            movelSnapshot?.tecnologia
-                        } else {
-                            null
-                        },
+                    label = nodeLabel,
+                    subLabel = nodeSubLabel,
                     c = c,
                     onTap = { onGatewayTap(gw) },
                 )

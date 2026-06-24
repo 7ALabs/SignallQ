@@ -1272,7 +1272,7 @@ class MainViewModel
 
             val snapshotRede = monitorRede.snapshotFlow.value
             if (snapshotRede.estadoConexao == EstadoConexao.movel) {
-                gateways.value = listOf(GatewayInfo(ip = null, name = "Antena movel", type = ConnectionNodeType.Mobile))
+                gateways.value = listOf(GatewayInfo(ip = null, name = "Rede móvel", type = ConnectionNodeType.Mobile))
                 return
             }
 
