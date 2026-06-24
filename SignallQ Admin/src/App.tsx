@@ -20,26 +20,32 @@ import { SettingsTab } from "./features/settings/SettingsTab";
 import { Sparkles, Activity, AlertTriangle } from "lucide-react";
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
-    () => !!apiClient.getToken()
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [authChecked, setAuthChecked] = useState<boolean>(false);
   const [currentPath, setCurrentPath] = useState<string>("/overview");
   const [environment, setEnvironment] = useState<AppEnvironment>("production");
   const [period, setPeriod] = useState<string>("7d");
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [refreshCounter, setRefreshCounter] = useState<number>(0);
 
-  const handleLogin = useCallback((token: string) => {
-    localStorage.setItem("signallq_admin_token", token);
-    apiClient.setToken(token);
+  const baseUrl = import.meta.env.VITE_ADMIN_API_BASE_URL ?? "";
+
+  // SIG-136: verifica sessão via cookie httpOnly na montagem.
+  useEffect(() => {
+    fetch(`${baseUrl}/admin/auth/me`, { credentials: "include" })
+      .then((r) => setIsAuthenticated(r.ok))
+      .catch(() => setIsAuthenticated(false))
+      .finally(() => setAuthChecked(true));
+  }, [baseUrl]);
+
+  const handleLogin = useCallback(() => {
     setIsAuthenticated(true);
   }, []);
 
   const handleLogout = useCallback(() => {
-    localStorage.removeItem("signallq_admin_token");
-    apiClient.setToken(null);
-    setIsAuthenticated(false);
-  }, []);
+    fetch(`${baseUrl}/admin/auth/logout`, { method: "POST", credentials: "include" })
+      .finally(() => setIsAuthenticated(false));
+  }, [baseUrl]);
 
   useEffect(() => {
     apiClient.onAuthError(handleLogout);
@@ -190,6 +196,15 @@ export default function App() {
         };
     }
   }, [currentPath]);
+
+  // Aguarda verificação inicial para não piscar a tela de login desnecessariamente.
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-[#0D0D1A] flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-[#6C2BFF] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <LoginPage onLogin={handleLogin} />;

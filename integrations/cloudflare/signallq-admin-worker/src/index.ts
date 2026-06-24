@@ -1,21 +1,25 @@
 // SignallQ Admin API Worker
-// /admin/* exige Bearer ADMIN_SECRET (painel web, nao vai no APK).
+// /admin/* exige sessão httpOnly via cookie (SIG-136 — auth própria via D1).
 // /ingest/* exige Bearer INGEST_KEY (chave separada, scope limitado, vai no APK).
+// /health exige Bearer ADMIN_SECRET (retrocompat dev/monitoramento externo).
 // Separar os secrets reduz o blast radius: vazar INGEST_KEY nao da acesso
 // aos dados do admin. INGEST_KEY so pode escrever em /ingest/*.
+
+import { hashPassword, verifyPassword, createSession, validateSession, revokeSession } from './auth'
 
 export interface Env {
   ALLOWED_ORIGIN: string;
   FIREBASE_PROJECT_ID: string;
   FIREBASE_GA4_PROPERTY_ID: string;
+  /** Mantido apenas para /health (retrocompat). NÃO protege mais /admin/*. */
   ADMIN_SECRET: string;
   /** Chave separada para ingest do app Android. Scope: POST /ingest/* apenas. */
   INGEST_KEY: string;
   FIREBASE_CLIENT_EMAIL: string;
   FIREBASE_PRIVATE_KEY: string;
   DB: D1Database;
-  /** Pepper para hash de senha admin — reservado para SIG-136 (autenticação avançada). */
-  ADMIN_AUTH_PEPPER?: string;
+  /** Pepper para PBKDF2 das senhas admin — SIG-136. */
+  ADMIN_AUTH_PEPPER: string;
 }
 
 function corsHeaders(env: Env): Record<string, string> {
@@ -23,6 +27,7 @@ function corsHeaders(env: Env): Record<string, string> {
     "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Environment",
+    "Access-Control-Allow-Credentials": "true",
     "Access-Control-Max-Age": "86400",
   };
 }
@@ -38,6 +43,7 @@ function err(message: string, status: number, env: Env): Response {
   return json({ error: message }, status, env);
 }
 
+/** Mantido apenas para /health (retrocompat). */
 function authenticate(request: Request, env: Env): boolean {
   const auth = request.headers.get("Authorization") ?? "";
   const [scheme, token] = auth.split(" ");
@@ -51,6 +57,151 @@ function authenticateIngest(request: Request, env: Env): boolean {
   if (scheme !== "Bearer") return false;
   // Aceita INGEST_KEY (chave do app) OU ADMIN_SECRET (retrocompat e dev local).
   return token === env.INGEST_KEY || token === env.ADMIN_SECRET;
+}
+
+// --- SIG-136: Auth por sessão ---
+
+function getSessionToken(request: Request): string | null {
+  const cookie = request.headers.get('Cookie') ?? ''
+  const match = cookie.match(/(?:^|;\s*)session=([^;]+)/)
+  return match ? match[1] : null
+}
+
+async function authenticateSession(request: Request, env: Env): Promise<{ userId: string; role: string } | null> {
+  const token = getSessionToken(request)
+  if (!token) return null
+  return validateSession(token, env.DB)
+}
+
+/** Verifica rate limit: > 5 tentativas em 15 min por IP → bloqueado. */
+async function checkRateLimit(ip: string, db: D1Database): Promise<boolean> {
+  const now = Math.floor(Date.now() / 1000)
+  const windowSec = 15 * 60
+  const row = await db.prepare(
+    'SELECT count, window_start FROM auth_rate_limit WHERE ip = ?'
+  ).bind(ip).first<{ count: number; window_start: number }>()
+  if (!row) return false
+  if (now - row.window_start > windowSec) return false
+  return row.count > 5
+}
+
+async function incrementRateLimit(ip: string, db: D1Database): Promise<void> {
+  const now = Math.floor(Date.now() / 1000)
+  const windowSec = 15 * 60
+  const row = await db.prepare(
+    'SELECT count, window_start FROM auth_rate_limit WHERE ip = ?'
+  ).bind(ip).first<{ count: number; window_start: number }>()
+  if (!row || now - row.window_start > windowSec) {
+    await db.prepare(
+      'INSERT OR REPLACE INTO auth_rate_limit (ip, count, window_start) VALUES (?, 1, ?)'
+    ).bind(ip, now).run()
+  } else {
+    await db.prepare(
+      'UPDATE auth_rate_limit SET count = count + 1 WHERE ip = ?'
+    ).bind(ip).run()
+  }
+}
+
+async function handleAuthLogin(request: Request, env: Env): Promise<Response> {
+  const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown'
+  if (await checkRateLimit(ip, env.DB)) {
+    return err('Muitas tentativas. Tente novamente em 15 minutos.', 429, env)
+  }
+
+  let body: { email?: string; password?: string }
+  try { body = await request.json() } catch { return err('body JSON inválido', 400, env) }
+  const { email, password } = body
+  if (!email || !password) return err('email e password obrigatórios', 400, env)
+
+  const user = await env.DB.prepare(
+    'SELECT id, password_hash, role FROM admin_users WHERE email = ? AND active = 1'
+  ).bind(email).first<{ id: string; password_hash: string; role: string }>()
+
+  if (!user || !(await verifyPassword(password, user.password_hash, env.ADMIN_AUTH_PEPPER))) {
+    await incrementRateLimit(ip, env.DB)
+    return err('E-mail ou senha inválidos', 401, env)
+  }
+
+  const token = await createSession(user.id, env.DB)
+  await env.DB.prepare('UPDATE admin_users SET last_login = ? WHERE id = ?')
+    .bind(Math.floor(Date.now() / 1000), user.id).run()
+
+  return new Response(JSON.stringify({ ok: true, role: user.role }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Set-Cookie': `session=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=604800`,
+      ...corsHeaders(env),
+    },
+  })
+}
+
+async function handleAuthLogout(request: Request, env: Env): Promise<Response> {
+  const token = getSessionToken(request)
+  if (token) await revokeSession(token, env.DB)
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Set-Cookie': 'session=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0',
+      ...corsHeaders(env),
+    },
+  })
+}
+
+async function handleAuthMe(request: Request, env: Env): Promise<Response> {
+  const session = await authenticateSession(request, env)
+  if (!session) return err('Unauthorized', 401, env)
+  const user = await env.DB.prepare(
+    'SELECT email, role FROM admin_users WHERE id = ?'
+  ).bind(session.userId).first<{ email: string; role: string }>()
+  if (!user) return err('Unauthorized', 401, env)
+  return json({ email: user.email, role: user.role }, 200, env)
+}
+
+async function handleAuthCreateUser(request: Request, env: Env, session: { userId: string; role: string }): Promise<Response> {
+  if (session.role !== 'admin') return err('Forbidden', 403, env)
+  let body: { email?: string; password?: string }
+  try { body = await request.json() } catch { return err('body JSON inválido', 400, env) }
+  const { email, password } = body
+  if (!email || !password) return err('email e password obrigatórios', 400, env)
+
+  const hash = await hashPassword(password, env.ADMIN_AUTH_PEPPER)
+  const id = crypto.randomUUID()
+  const now = Math.floor(Date.now() / 1000)
+
+  try {
+    await env.DB.prepare(
+      'INSERT INTO admin_users (id, email, password_hash, role, active, created_at) VALUES (?, ?, ?, ?, 1, ?)'
+    ).bind(id, email, hash, 'admin', now).run()
+  } catch (e) {
+    const msg = String(e)
+    if (msg.includes('UNIQUE')) return err('E-mail já cadastrado', 409, env)
+    throw e
+  }
+
+  return json({ ok: true, id }, 201, env)
+}
+
+async function handleAuthChangePassword(request: Request, env: Env, session: { userId: string; role: string }): Promise<Response> {
+  let body: { currentPassword?: string; newPassword?: string }
+  try { body = await request.json() } catch { return err('body JSON inválido', 400, env) }
+  const { currentPassword, newPassword } = body
+  if (!currentPassword || !newPassword) return err('currentPassword e newPassword obrigatórios', 400, env)
+
+  const user = await env.DB.prepare(
+    'SELECT password_hash FROM admin_users WHERE id = ?'
+  ).bind(session.userId).first<{ password_hash: string }>()
+
+  if (!user || !(await verifyPassword(currentPassword, user.password_hash, env.ADMIN_AUTH_PEPPER))) {
+    return err('Senha atual incorreta', 401, env)
+  }
+
+  const hash = await hashPassword(newPassword, env.ADMIN_AUTH_PEPPER)
+  await env.DB.prepare('UPDATE admin_users SET password_hash = ? WHERE id = ?')
+    .bind(hash, session.userId).run()
+
+  return json({ ok: true }, 200, env)
 }
 
 function periodToSeconds(period: string): number {
@@ -369,11 +520,11 @@ async function handleAiCostMetrics(request: Request, env: Env): Promise<Response
     totalTokens: number | null;
   }>();
 
-  const totalRequests   = row?.totalRequests     ?? 0;
-  const totalCostUsd    = row?.totalCostUsd       ?? 0;
-  const promptTokens    = row?.promptTokens       ?? 0;
-  const completionTokens = row?.completionTokens  ?? 0;
-  const totalTokens     = row?.totalTokens        ?? 0;
+  const totalRequests    = row?.totalRequests     ?? 0;
+  const totalCostUsd     = row?.totalCostUsd       ?? 0;
+  const promptTokens     = row?.promptTokens       ?? 0;
+  const completionTokens = row?.completionTokens   ?? 0;
+  const totalTokens      = row?.totalTokens        ?? 0;
 
   // avgCostPerRequest: guard contra divisão por zero.
   const avgCostPerRequest = totalRequests > 0 ? totalCostUsd / totalRequests : 0;
@@ -786,6 +937,7 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders(env) });
     }
     const url = new URL(request.url);
+
     if (url.pathname === "/health") {
       if (!authenticate(request, env)) return err("Unauthorized", 401, env);
       return json({ status: "ok", worker: "signallq-admin-worker" }, 200, env);
@@ -799,8 +951,30 @@ export default {
       }
     }
 
-    // Rotas /admin/* — autenticam com ADMIN_SECRET (painel web, nao vai no APK).
-    if (!authenticate(request, env)) {
+    // SIG-136: rotas de auth — login é a única /admin/* sem sessão prévia.
+    if (url.pathname === '/admin/auth/login' && request.method === 'POST') {
+      return handleAuthLogin(request, env)
+    }
+    if (url.pathname === '/admin/auth/logout' && request.method === 'POST') {
+      return handleAuthLogout(request, env)
+    }
+    if (url.pathname === '/admin/auth/me' && request.method === 'GET') {
+      return handleAuthMe(request, env)
+    }
+    if (url.pathname === '/admin/auth/users' && request.method === 'POST') {
+      const session = await authenticateSession(request, env)
+      if (!session) return err('Unauthorized', 401, env)
+      return handleAuthCreateUser(request, env, session)
+    }
+    if (url.pathname === '/admin/auth/password' && request.method === 'POST') {
+      const session = await authenticateSession(request, env)
+      if (!session) return err('Unauthorized', 401, env)
+      return handleAuthChangePassword(request, env, session)
+    }
+
+    // Rotas /admin/* — autenticam por sessão httpOnly (SIG-136).
+    const session = await authenticateSession(request, env)
+    if (!session) {
       return err("Unauthorized", 401, env);
     }
     for (const route of ROUTES) {
