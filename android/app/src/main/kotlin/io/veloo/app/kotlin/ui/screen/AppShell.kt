@@ -54,7 +54,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,14 +69,7 @@ import io.veloo.app.core.network.EstadoConexao
 import io.veloo.app.core.network.SnapshotRede
 import io.veloo.app.core.telephony.MovelSimSnapshot
 import io.veloo.app.core.telephony.MovelSnapshot
-import io.veloo.app.feature.diagnostico.ConnectionType
 import io.veloo.app.feature.diagnostico.EstadoDiagnostico
-import io.veloo.app.feature.diagnostico.ai.AiDiagnosisRepository
-import io.veloo.app.feature.diagnostico.ai.AiMetricasAtuais
-import io.veloo.app.feature.diagnostico.ai.DiagnosisAiContext
-import io.veloo.app.feature.diagnostico.chat.ChatMensagem
-import io.veloo.app.feature.diagnostico.chat.PapelChatMensagem
-import io.veloo.app.feature.diagnostico.chat.StatusChatMensagem
 import io.veloo.app.feature.dns.SnapshotBenchmarkDns
 import io.veloo.app.feature.fibra.SnapshotFibra
 import io.veloo.app.feature.history.ResumoHistorico
@@ -91,15 +83,10 @@ import io.veloo.app.ui.LkColors
 import io.veloo.app.ui.LkTokens
 import io.veloo.app.ui.LocalLkTokens
 import io.veloo.app.ui.state.UiState
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 private enum class Overlay {
     Laudo,
-    Chat,
-    ChatDiagnosticoIa,
-    LLMChat,
     Ping,
     Privacidade,
     Novidades,
@@ -200,9 +187,6 @@ fun AppShell(
     filtroOperadoraHistorico: String? = null,
     onFiltroOperadoraHistoricoChange: (String?) -> Unit = {},
     operadorasDisponiveisHistorico: List<String> = emptyList(),
-    /** AiDiagnosisRepository injetada pelo Hilt como @Singleton — compartilhada por todos
-     *  os Composables filhos. Evita instancias duplicadas via remember {} em telas. */
-    aiRepository: AiDiagnosisRepository,
 ) {
     // Desempacota os grupos de estado para variaveis locais — mantém compatibilidade com
     // o corpo interno sem precisar propagar o prefixo `speedtest.x` por toda a funcao.
@@ -226,32 +210,9 @@ fun AppShell(
 
     val snapshotDiagnostico = diagnostico.snapshotDiagnostico
     val onIniciarDiagnostico = diagnostico.onIniciarDiagnostico
-    val diagChatHistorico = diagnostico.diagChatHistorico
-    val diagChatCarregando = diagnostico.diagChatCarregando
-    val onEnviarPerguntaDiagnostico = diagnostico.onEnviarPerguntaDiagnostico
-    val onLimparDiagChat = diagnostico.onLimparDiagChat
 
-    val signallQUiState = signallQ.signallQUiState
-    val gemmaAvailable = signallQ.gemmaAvailable
     val operadoraMovel = signallQ.operadoraMovel
-    val onIniciarSignallQ = signallQ.onIniciarSignallQ
-    val onResetSignallQ = signallQ.onResetSignallQ
-    val onSelecionarChip = signallQ.onSelecionarChip
-    val onResponderPergunta = signallQ.onResponderPergunta
-    val onEnviarMensagemTexto = signallQ.onEnviarMensagemTexto
     val onVerificarGemma = signallQ.onVerificarGemma
-    val onIniciarSignallQComResultado = signallQ.onIniciarSignallQComResultado
-
-    val chatDiagUiState = chatDiag.chatDiagUiState
-    val onChatDiagEnviarMensagem = chatDiag.onEnviarMensagem
-    val onChatDiagAtualizarDraft = chatDiag.onAtualizarDraft
-    val onChatDiagEscolherOpcao = chatDiag.onEscolherOpcao
-    val onChatDiagAbrirSessao = chatDiag.onAbrirSessao
-    val onChatDiagApagarSessao = chatDiag.onApagarSessao
-    val onChatDiagRenomearSessao = chatDiag.onRenomearSessao
-    val onChatDiagNovaSessao = chatDiag.onNovaSessao
-    val onChatDiagToggleDrawer = chatDiag.onToggleDrawer
-    val onChatDiagCancelarAcaoAtual = chatDiag.onCancelarAcaoAtual
 
     val c = LocalLkTokens.current
     // Desempacota UiState<T> → tipos opcionais para as telas filhas que ainda recebem primitivos.
@@ -270,13 +231,6 @@ fun AppShell(
     var testeAtivo by remember { mutableStateOf(false) }
     var mostrarConcluido by remember { mutableStateOf(false) }
     val primeiraHistoria = remember(historico) { historico.firstOrNull() }
-    var llmChatDraft by remember { mutableStateOf("") }
-    val llmChatMensagens = remember { mutableStateListOf<ChatMensagem>() }
-    var llmIsStreaming by remember { mutableStateOf(false) }
-    val llmCoroutineScope = rememberCoroutineScope()
-    // llmAiRepository: alias local para legibilidade — usa a instancia @Singleton injetada.
-    val llmAiRepository = aiRepository
-
     // NAV-D: verifica IA ao entrar na tab Velocidade (índice 1)
     LaunchedEffect(selectedTab) {
         if (selectedTab == 1) onVerificarGemma()
@@ -388,8 +342,8 @@ fun AppShell(
                                 if (Overlay.Ping !in overlayStack) overlayStack.add(Overlay.Ping)
                             },
                             onAbrirDiagnostico = {
-                                if (Overlay.ChatDiagnosticoIa !in overlayStack) {
-                                    overlayStack.add(Overlay.ChatDiagnosticoIa)
+                                if (Overlay.Laudo !in overlayStack) {
+                                    overlayStack.add(Overlay.Laudo)
                                 }
                             },
                             snapshotDispositivos = snapshotDevices,
@@ -410,12 +364,6 @@ fun AppShell(
                             onCancelarTeste = onCancelarTeste,
                             onAbrirDnsBenchmark = {
                                 if (FeatureFlags.DNS_SCREEN) showDnsSheet = true
-                            },
-                            onAbrirDiagnostico = {
-                                if (FeatureFlags.DIAGNOSTICO_CHAT) {
-                                    onIniciarSignallQ(null)
-                                    if (Overlay.Chat !in overlayStack) overlayStack.add(Overlay.Chat)
-                                }
                             },
                             onAbrirPing = { if (Overlay.Ping !in overlayStack) overlayStack.add(Overlay.Ping) },
                             onVerResultado = {
@@ -616,36 +564,12 @@ fun AppShell(
                     },
                     onVoltar = { overlayStack.remove(Overlay.ResultadoVelocidade) },
                     localizacaoServidor = localizacaoServidorStr,
-                    onAbrirChat = {
-                        if (Overlay.LLMChat !in overlayStack) {
-                            overlayStack.add(Overlay.LLMChat)
-                        }
-                    },
                     ispInfo = ispInfoData,
                     operadoraMovel = operadoraMovel,
                     anatelBannerDismissed = anatelBannerDismissed,
                     onDismissAnatelBanner = onDispensarBannerAnatel,
                 )
             }
-        }
-
-        AnimatedVisibility(
-            visible = Overlay.Chat in overlayStack && FeatureFlags.DIAGNOSTICO_CHAT,
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-        ) {
-            ChatScreen(
-                uiState = signallQUiState,
-                onNavigateBack = { overlayStack.remove(Overlay.Chat) },
-                onIniciarSignallQ = onIniciarSignallQ,
-                onResetSignallQ = {
-                    onResetSignallQ()
-                    overlayStack.remove(Overlay.Chat)
-                },
-                onSelecionarChip = onSelecionarChip,
-                onResponderPergunta = onResponderPergunta,
-                onEnviarMensagemTexto = onEnviarMensagemTexto,
-            )
         }
 
         AnimatedVisibility(
@@ -686,148 +610,6 @@ fun AppShell(
             NovidadesScreen(
                 appVersion = BuildConfig.VERSION_NAME,
                 onVoltar = { overlayStack.remove(Overlay.Novidades) },
-            )
-        }
-
-        AnimatedVisibility(
-            visible = Overlay.ChatDiagnosticoIa in overlayStack,
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            ChatDiagnosticoIaScreen(
-                uiState = chatDiagUiState,
-                onVoltar = { overlayStack.remove(Overlay.ChatDiagnosticoIa) },
-                onEnviarMensagem = onChatDiagEnviarMensagem,
-                onAtualizarDraft = onChatDiagAtualizarDraft,
-                onEscolherOpcao = onChatDiagEscolherOpcao,
-                onAbrirSessao = onChatDiagAbrirSessao,
-                onApagarSessao = onChatDiagApagarSessao,
-                onRenomearSessao = onChatDiagRenomearSessao,
-                onNovaSessao = onChatDiagNovaSessao,
-                onToggleDrawer = onChatDiagToggleDrawer,
-                onCancelarAcaoAtual = onChatDiagCancelarAcaoAtual,
-            )
-        }
-
-        AnimatedVisibility(
-            visible = Overlay.LLMChat in overlayStack,
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-        ) {
-            LLMChatScreen(
-                mensagens = llmChatMensagens,
-                draft = llmChatDraft,
-                isStreaming = llmIsStreaming,
-                chips = listOf("Como troco o canal do Wi-Fi?", "Vale a pena 5 GHz?"),
-                onEnviarMensagem = onEnviarMensagem@{ texto ->
-                    if (llmIsStreaming) return@onEnviarMensagem
-                    val userMsgId =
-                        java.util.UUID
-                            .randomUUID()
-                            .toString()
-                    llmChatMensagens.add(
-                        ChatMensagem(
-                            id = userMsgId,
-                            sessionId = "llm-session",
-                            papel = PapelChatMensagem.usuario,
-                            conteudo = texto,
-                            criadoEmEpochMs = System.currentTimeMillis(),
-                            status = StatusChatMensagem.concluido,
-                        ),
-                    )
-                    llmChatDraft = ""
-
-                    val aiMsgId =
-                        java.util.UUID
-                            .randomUUID()
-                            .toString()
-                    llmChatMensagens.add(
-                        ChatMensagem(
-                            id = aiMsgId,
-                            sessionId = "llm-session",
-                            papel = PapelChatMensagem.assistente,
-                            conteudo = "",
-                            criadoEmEpochMs = System.currentTimeMillis(),
-                            status = StatusChatMensagem.streaming,
-                        ),
-                    )
-
-                    llmIsStreaming = true
-                    llmCoroutineScope.launch(Dispatchers.IO) {
-                        try {
-                            val resultado = snapshotSpeedtest.resultado
-                            val contexto =
-                                if (resultado != null) {
-                                    DiagnosisAiContext(
-                                        generatedAtEpochMs = resultado.timestampEpochMs,
-                                        connectionType = ConnectionType.wifi,
-                                        metricasAtuais =
-                                            AiMetricasAtuais(
-                                                downloadMbps = resultado.downloadMbps,
-                                                uploadMbps = resultado.uploadMbps,
-                                                latenciaMs = resultado.latenciaMs,
-                                                jitterMs = resultado.jitterMs,
-                                                perdaPacotesPercentual = resultado.perdaPercentual,
-                                                bufferbloatMs = resultado.bufferbloatMs,
-                                                severidadeBufferbloat = resultado.severidadeBufferbloat.name,
-                                                stabilityScore = resultado.stabilityScore,
-                                                peakDownloadMbps = resultado.peakDownloadMbps,
-                                                peakUploadMbps = resultado.peakUploadMbps,
-                                                latencyDownloadMs = resultado.latencyDownloadMs,
-                                                latencyUploadMs = resultado.latencyUploadMs,
-                                                packetLossSource = resultado.packetLossSource,
-                                            ),
-                                        feedbackUsuario = texto,
-                                        evidencias = emptyList(),
-                                    )
-                                } else {
-                                    DiagnosisAiContext(
-                                        generatedAtEpochMs = System.currentTimeMillis(),
-                                        connectionType = ConnectionType.wifi,
-                                        feedbackUsuario = texto,
-                                        evidencias = emptyList(),
-                                    )
-                                }
-
-                            var acumulado = ""
-                            llmAiRepository.explainDiagnosisStream(contexto).collect { token ->
-                                acumulado += token
-                                val idx = llmChatMensagens.indexOfFirst { it.id == aiMsgId }
-                                if (idx >= 0) {
-                                    llmChatMensagens[idx] = llmChatMensagens[idx].copy(conteudo = acumulado)
-                                }
-                            }
-
-                            val idx = llmChatMensagens.indexOfFirst { it.id == aiMsgId }
-                            if (idx >= 0) {
-                                llmChatMensagens[idx] =
-                                    llmChatMensagens[idx].copy(
-                                        conteudo = acumulado.ifBlank { "Não recebi uma resposta completa. Tente novamente." },
-                                        status = StatusChatMensagem.concluido,
-                                    )
-                            }
-                        } catch (e: Exception) {
-                            val idx = llmChatMensagens.indexOfFirst { it.id == aiMsgId }
-                            if (idx >= 0) {
-                                llmChatMensagens[idx] =
-                                    llmChatMensagens[idx].copy(
-                                        conteudo = "Não consegui processar sua pergunta. Tente novamente.",
-                                        status = StatusChatMensagem.concluido,
-                                    )
-                            }
-                        } finally {
-                            llmIsStreaming = false
-                        }
-                    }
-                },
-                onAtualizarDraft = { llmChatDraft = it },
-                onSelecionarChip = { chip -> llmChatDraft = chip },
-                onNovaSessao = {
-                    llmChatMensagens.clear()
-                    llmChatDraft = ""
-                },
-                onVoltar = { overlayStack.remove(Overlay.LLMChat) },
             )
         }
 

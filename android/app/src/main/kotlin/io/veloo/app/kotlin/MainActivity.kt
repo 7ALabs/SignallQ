@@ -399,7 +399,6 @@ class MainActivity : ComponentActivity() {
                         filtroOperadoraHistorico = filtroOperadoraHistorico,
                         onFiltroOperadoraHistoricoChange = { viewModel.setFiltroOperadoraHistorico(it) },
                         operadorasDisponiveisHistorico = operadorasDisponiveisHistorico,
-                        aiRepository = viewModel.diagAiRepository,
                     )
                 } // else onboardingConcluido
             }

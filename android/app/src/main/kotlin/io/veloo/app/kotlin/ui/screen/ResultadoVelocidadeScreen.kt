@@ -40,7 +40,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
@@ -71,7 +70,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.FeatureFlags
 import io.veloo.app.feature.diagnostico.SnapshotDiagnostico
 import io.veloo.app.feature.speedtest.ResultadoSpeedtest
 import io.veloo.app.feature.speedtest.SeveridadeBufferbloat
@@ -86,7 +84,6 @@ import io.veloo.app.ui.LocalLkTokens
 import io.veloo.app.ui.ResultadoBitmapGenerator
 import io.veloo.app.ui.component.OperadoraBottomSheet
 import io.veloo.app.ui.component.OperadoraContactCard
-import io.veloo.app.ui.component.SignallQSymbolSmall
 import io.veloo.app.ui.component.rememberTopBarAlpha
 import kotlinx.coroutines.launch
 
@@ -99,7 +96,6 @@ fun ResultadoVelocidadeScreen(
     onIrParaHome: () -> Unit,
     onVoltar: () -> Unit = {},
     localizacaoServidor: String? = null,
-    onAbrirChat: () -> Unit = {},
     ispInfo: IspInfo? = null,
     operadoraMovel: String? = null,
     anatelBannerDismissed: Boolean = true,
@@ -580,23 +576,6 @@ fun ResultadoVelocidadeScreen(
                         .navigationBarsPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (FeatureFlags.DIAGNOSTICO_CHAT) {
-                    OutlinedButton(
-                        onClick = onAbrirChat,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(LkRadius.button),
-                    ) {
-                        SignallQSymbolSmall()
-                        Spacer(Modifier.width(LkSpacing.sm))
-                        Text(
-                            text = "Tirar dúvidas com o SignallQ",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = c.textPrimary,
-                        )
-                    }
-                    Spacer(Modifier.height(LkSpacing.sm))
-                }
                 Button(
                     onClick = onTestarNovamente,
                     modifier = Modifier.fillMaxWidth(),

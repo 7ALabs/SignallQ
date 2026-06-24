@@ -87,7 +87,6 @@ fun SpeedTestScreen(
     onIniciarTeste: () -> Unit,
     onCancelarTeste: () -> Unit,
     onAbrirDnsBenchmark: () -> Unit,
-    onAbrirDiagnostico: () -> Unit,
     onAbrirPing: () -> Unit = {},
     onVerResultado: () -> Unit = {},
     onAbrirHistorico: () -> Unit = {},
