@@ -26,7 +26,6 @@ export class ApiError extends Error {
 
 class ApiClient {
   private config: ApiClientConfig;
-  private authToken: string | null = null;
   private onAuthErrorCallback?: () => void;
 
   constructor() {
@@ -40,17 +39,6 @@ class ApiClient {
       timeoutMs: Number(import.meta.env.VITE_API_TIMEOUT_MS ?? 15000),
       mocksEnabled,
     };
-
-    // Token: env var (dev) > localStorage (login flow em produção)
-    const envSecret = import.meta.env.VITE_ADMIN_API_SECRET ?? "";
-    const stored = typeof localStorage !== "undefined"
-      ? localStorage.getItem("signallq_admin_token")
-      : null;
-    this.authToken = envSecret || stored || null;
-  }
-
-  public getToken(): string | null {
-    return this.authToken;
   }
 
   public setEnvironment(env: AppEnvironment) {
@@ -67,10 +55,6 @@ class ApiClient {
 
   public isMockEnabled(): boolean {
     return this.config.mocksEnabled;
-  }
-
-  public setToken(token: string | null) {
-    this.authToken = token;
   }
 
   public onAuthError(callback: () => void) {
@@ -95,10 +79,10 @@ class ApiClient {
     try {
       const response = await fetch(`${this.config.baseUrl}${path}`, {
         method,
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           "X-Environment": this.config.environment,
-          ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {}),
           ...headers,
         },
         body: body === undefined ? undefined : JSON.stringify(body),
