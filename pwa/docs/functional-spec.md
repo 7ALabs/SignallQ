@@ -24,6 +24,7 @@ A promessa central não é “medir tudo”. A promessa é explicar, com honesti
 - Histórico inicial deve ser local.
 - IA não pode bloquear o resultado do teste.
 - Falha parcial de métrica não deve inutilizar todo o resultado.
+- Paridade com Android deve seguir `pwa/docs/parity.md`.
 
 ## Escopo funcional por fase
 
@@ -50,18 +51,31 @@ Fora do M0:
 - IA.
 - Worker.
 - D1.
+- DNS benchmark real.
+- Sinal Wi-Fi real.
+- Dispositivos.
+- Fibra/modem.
 
 ### M1 — Core funcional
 
 Inclui:
 
-- SpeedTest web com download e latência.
+- SpeedTest web com download e latência HTTP.
 - Upload apenas se houver endpoint controlado.
 - Jitter se houver amostras suficientes.
 - Diagnóstico local básico.
 - Resultado com recomendações.
 - Histórico local com IndexedDB.
 - Detalhe de teste salvo.
+
+Não inclui:
+
+- DNS benchmark real.
+- RSSI Wi-Fi.
+- Scan de rede.
+- Sinal móvel real.
+- Fibra/modem.
+- Dispositivos conectados.
 
 ### M2 — UX e integração
 
@@ -72,6 +86,7 @@ Inclui:
 - Install prompt quando viável.
 - Diagnóstico IA via Worker, se contrato estiver pronto.
 - Telemetria básica se não comprometer custo e privacidade.
+- Sinal degradado, se fizer sentido: online/offline, tipo estimado de conexão e limitações.
 
 ### M3 — Beta e entrega
 
@@ -109,6 +124,16 @@ Rotas ou estados previstos:
 - Detalhe do teste.
 - Ajustes.
 - Sobre/Privacidade.
+
+Rotas futuras/degradadas:
+
+- Sinal degradado.
+
+Rotas fora do MVP por limitação web:
+
+- Dispositivos.
+- Fibra/modem.
+- DNS benchmark real.
 
 React Router só deve entrar quando houver necessidade real de URLs navegáveis ou compartilhamento.
 
@@ -161,6 +186,7 @@ Servir como ponto de entrada recorrente para novo teste e histórico.
 - Último resultado, se existir.
 - Estado resumido da última conexão.
 - Atalho para histórico.
+- Opcional futuro: status online/offline.
 
 ### Ações
 
@@ -199,9 +225,9 @@ Executar medição web de conexão com feedback visual claro.
 1. Preparando teste.
 2. Medindo latência HTTP.
 3. Medindo download.
-4. Medindo upload, se disponível.
+4. Medindo upload, se endpoint existir.
 5. Calculando estabilidade.
-6. Gerando diagnóstico.
+6. Gerando diagnóstico local.
 
 ### Dados exibidos durante o teste
 
@@ -241,7 +267,7 @@ Resultado disponível.
 ### Critérios de aceite
 
 - Download não pode ser valor fake.
-- Latência deve ser descrita como medição HTTP, não ping real.
+- Latência deve ser descrita como medição HTTP, não ping ICMP real.
 - Upload só aparece como medido se houver endpoint.
 - Erro parcial não deve apagar métricas válidas.
 - Usuário deve entender que o teste está em andamento.
@@ -267,7 +293,7 @@ Explicar o estado da conexão e orientar o usuário.
 - Status geral: bom, atenção, ruim ou desconhecido.
 - Download.
 - Upload, se medido.
-- Latência.
+- Latência HTTP.
 - Jitter, se medido.
 - Estabilidade.
 - Resumo do diagnóstico.
@@ -352,6 +378,7 @@ Informar falha de leitura local e permitir novo teste.
 - Apagar item individual funciona.
 - Limpar histórico inteiro exige confirmação.
 - Modo privado ou falha de IndexedDB não trava o app.
+- Não apresentar histórico local como sincronizado.
 
 ## Tela: Detalhe de Teste
 
@@ -380,6 +407,49 @@ Mostrar o resultado completo de um teste salvo.
 - Deve deixar claro que é um resultado salvo, não medição atual.
 - Deve exibir limitações que afetaram o teste.
 - Não deve mostrar campos técnicos vazios como se fossem medidos.
+
+## Tela futura/degradada: Sinal
+
+### Objetivo
+
+Mostrar apenas informações de conectividade que o browser permite.
+
+### Pode exibir
+
+- Online/offline.
+- Tipo estimado de conexão, quando Network Information API estiver disponível.
+- Aviso de limitação web.
+
+### Não pode exibir
+
+- RSSI.
+- Lista de redes Wi-Fi.
+- Canal/frequência.
+- Interferência.
+- Sinal móvel RSRP/RSRQ/SINR.
+- Dados de SIM/cell ID.
+
+### Status
+
+`degradado`.
+
+## Fora do escopo permanente: Dispositivos
+
+Scan de dispositivos por ARP, mDNS ou SSDP direto no browser é `n/a-browser`.
+
+Não implementar em PWA público.
+
+## Fora do escopo permanente: Fibra/modem
+
+Diagnóstico direto de modem local/fibra é `n/a-browser` para PWA público.
+
+Só seria possível com proxy, extensão ou ambiente controlado. Não entra no MVP.
+
+## Fora do escopo inicial: DNS benchmark real
+
+DNS benchmark real é `n/a-browser` sem proxy dedicado.
+
+Pode haver checagem indireta ou Worker dedicado no futuro, mas não prometer benchmark DNS real no MVP.
 
 ## Tela: Ajustes mínimos
 
@@ -444,15 +514,19 @@ Confirmar ação realizada sem excesso visual.
 
 ## Eventos funcionais futuros
 
-MVP não precisa de telemetria completa, mas os eventos abaixo podem ser planejados:
+MVP não precisa de telemetria completa, mas os eventos abaixo podem ser planejados seguindo `docs_ai/technical/analytics-events.md`:
 
-- teste iniciado;
-- teste concluído;
-- teste falhou;
-- diagnóstico gerado;
-- histórico salvo;
-- histórico apagado;
-- IA indisponível.
+- `app_aberto` com `plataforma: "pwa"`.
+- `speedtest_iniciado`.
+- `speedtest_concluido`.
+- `speedtest_erro`.
+- `diag_iniciado`.
+- `diag_concluido`.
+- `diag_erro`.
+- `ia_laudo_solicitado`.
+- `ia_laudo_recebido`.
+- `ia_laudo_erro`.
+- `historico_tela_aberta`.
 
 Nenhum evento deve enviar dado sensível.
 
@@ -466,4 +540,5 @@ Nenhum evento deve enviar dado sensível.
 - Nenhuma tela promete recurso nativo Android.
 - Falha de IA não bloqueia resultado.
 - Histórico local não é apresentado como sincronizado.
+- Funcionalidade nativa impossível deve ser classificada conforme `parity.md`.
 - Alterações futuras que mudem contrato devem atualizar este documento e a página Funcional no Notion.
