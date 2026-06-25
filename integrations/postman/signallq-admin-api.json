@@ -1,0 +1,782 @@
+{
+  "info": {
+    "name": "SignallQ Admin Worker API",
+    "description": "Collection completa para testes e integração com o Admin Worker da SignallQ",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "signallq-admin-api-v1",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"{{adminEmail}}\", \"password\": \"{{adminPassword}}\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "description": "Autentica um usuário admin. Retorna cookie de sessão httpOnly que o Postman gerencia automaticamente."
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "description": "Retorna dados do usuário autenticado (requer cookie de sessão)."
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"currentPassword\": \"{{adminPassword}}\", \"newPassword\": \"nova_senha\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/auth/password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "auth",
+                "password"
+              ]
+            }
+          },
+          "description": "Altera a senha do usuário autenticado (requer sessão válida)."
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\": \"novo@example.com\", \"password\": \"senha\", \"role\": \"admin\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/auth/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "auth",
+                "users"
+              ]
+            }
+          },
+          "description": "Cria novo usuário admin (requer role admin na sessão)."
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/admin/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "description": "Faz logout e invalida o cookie de sessão."
+        }
+      ],
+      "description": "Endpoints de autenticação via cookie de sessão. Login retorna cookie httpOnly automaticamente gerenciado pelo Postman."
+    },
+    {
+      "name": "Metrics",
+      "item": [
+        {
+          "name": "Overview",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/metrics/overview?environment=production&period=7d",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "metrics",
+                "overview"
+              ],
+              "query": [
+                {
+                  "key": "environment",
+                  "value": "production"
+                },
+                {
+                  "key": "period",
+                  "value": "7d"
+                }
+              ]
+            }
+          },
+          "description": "Visão geral de métricas em período (7 dias default)"
+        },
+        {
+          "name": "Diagnostics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/metrics/diagnostics?environment=production&period=7d",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "metrics",
+                "diagnostics"
+              ],
+              "query": [
+                {
+                  "key": "environment",
+                  "value": "production"
+                },
+                {
+                  "key": "period",
+                  "value": "7d"
+                }
+              ]
+            }
+          },
+          "description": "Estatísticas de diagnósticos executados"
+        },
+        {
+          "name": "AI Usage",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/metrics/ai-usage?environment=production&period=7d",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "metrics",
+                "ai-usage"
+              ],
+              "query": [
+                {
+                  "key": "environment",
+                  "value": "production"
+                },
+                {
+                  "key": "period",
+                  "value": "7d"
+                }
+              ]
+            }
+          },
+          "description": "Ingere dados de uso de IA - tokens, custo, latência"
+        },
+        {
+          "name": "Timeline",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/metrics/timeline?period=7d",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "metrics",
+                "timeline"
+              ],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "7d"
+                }
+              ]
+            }
+          },
+          "description": "Série temporal de métricas agregadas"
+        },
+        {
+          "name": "Network",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/metrics/network?environment=production&period=7d",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "metrics",
+                "network"
+              ],
+              "query": [
+                {
+                  "key": "environment",
+                  "value": "production"
+                },
+                {
+                  "key": "period",
+                  "value": "7d"
+                }
+              ]
+            }
+          },
+          "description": "Métricas de latência e tipo de rede (4G, 5G, WiFi)"
+        },
+        {
+          "name": "Top Issues",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/metrics/top-issues?period=7d",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "metrics",
+                "top-issues"
+              ],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "7d"
+                }
+              ]
+            }
+          },
+          "description": "Principais problemas reportados em diagnósticos"
+        },
+        {
+          "name": "Alerts",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/metrics/alerts",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "metrics",
+                "alerts"
+              ]
+            }
+          },
+          "description": "Alertas ativos - SLA, limites, anomalias"
+        },
+        {
+          "name": "AI Costs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/metrics/ai-costs?period=7d",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "metrics",
+                "ai-costs"
+              ],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "7d"
+                }
+              ]
+            }
+          },
+          "description": "Custo estimado de uso de IA por modelo e provider"
+        },
+        {
+          "name": "AI Providers",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/metrics/ai-providers?period=7d",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "metrics",
+                "ai-providers"
+              ],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "7d"
+                }
+              ]
+            }
+          },
+          "description": "Distribuição de uso por provider (Ollama, OpenAI, etc)"
+        },
+        {
+          "name": "Operators",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/metrics/operators?environment=production&period=7d",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "metrics",
+                "operators"
+              ],
+              "query": [
+                {
+                  "key": "environment",
+                  "value": "production"
+                },
+                {
+                  "key": "period",
+                  "value": "7d"
+                }
+              ]
+            }
+          },
+          "description": "Estatísticas por operadora de rede (Vivo, Tim, Claro)"
+        },
+        {
+          "name": "Errors",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/metrics/errors?environment=production&period=7d",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "metrics",
+                "errors"
+              ],
+              "query": [
+                {
+                  "key": "environment",
+                  "value": "production"
+                },
+                {
+                  "key": "period",
+                  "value": "7d"
+                }
+              ]
+            }
+          },
+          "description": "Erros reportados pelo app, agrupados por tipo"
+        }
+      ],
+      "description": "Endpoints de métricas de diagnostico, IA e operacional (todos requerem cookie de sessão)"
+    },
+    {
+      "name": "Firebase",
+      "item": [
+        {
+          "name": "Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/integrations/firebase/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "integrations",
+                "firebase",
+                "status"
+              ]
+            }
+          },
+          "description": "Status de conexão com Firebase"
+        },
+        {
+          "name": "Analytics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/integrations/firebase/analytics?period=7d",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "integrations",
+                "firebase",
+                "analytics"
+              ],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "7d"
+                }
+              ]
+            }
+          },
+          "description": "Eventos analíticos capturados (sessões, custom)"
+        },
+        {
+          "name": "Crashlytics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/integrations/firebase/crashlytics?period=7d",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "integrations",
+                "firebase",
+                "crashlytics"
+              ],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "7d"
+                }
+              ]
+            }
+          },
+          "description": "Crashes reportados com stack trace"
+        },
+        {
+          "name": "Versions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/integrations/firebase/versions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "integrations",
+                "firebase",
+                "versions"
+              ]
+            }
+          },
+          "description": "Versões do app em uso com contagem de instalações"
+        },
+        {
+          "name": "Crash Issues",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/integrations/firebase/crash-issues",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "integrations",
+                "firebase",
+                "crash-issues"
+              ]
+            }
+          },
+          "description": "Issues de crash abertos agrupados por stack"
+        }
+      ],
+      "description": "Endpoints de integração com Firebase (Analytics, Crashlytics, versões)"
+    },
+    {
+      "name": "Feature Flags",
+      "item": [
+        {
+          "name": "Public Flags",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/feature-flags",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "feature-flags"
+              ]
+            }
+          },
+          "description": "Feature flags públicas (sem autenticação). Usado pelo app."
+        },
+        {
+          "name": "Admin Flags",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/feature-flags",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "feature-flags"
+              ]
+            }
+          },
+          "description": "Todas as feature flags (requer sessão admin)"
+        },
+        {
+          "name": "Update Flags",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"flags\": {\"ai_enabled\": true}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/feature-flags",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "feature-flags"
+              ]
+            }
+          },
+          "description": "Atualiza feature flags (merge com valores existentes)"
+        }
+      ],
+      "description": "Endpoints de feature flags - públicos (sem auth) e admin (requer sessão)"
+    },
+    {
+      "name": "Settings",
+      "item": [
+        {
+          "name": "Get Settings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/admin/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "settings"
+              ]
+            }
+          },
+          "description": "Retorna settings globais da aplicação"
+        },
+        {
+          "name": "Update Settings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"aiModel\": \"qwen2.5-32b\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "settings"
+              ]
+            }
+          },
+          "description": "Atualiza settings globais (requer role admin)"
+        }
+      ],
+      "description": "Endpoints de configuração global do worker (requer sessão admin)"
+    },
+    {
+      "name": "Ingest",
+      "item": [
+        {
+          "name": "Diagnostic",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ingestKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"deviceId\": \"d1\", \"speed\": 45.5}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ingest/diagnostic",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ingest",
+                "diagnostic"
+              ]
+            }
+          },
+          "description": "Ingere dados de diagnóstico do app (requer Bearer INGEST_KEY)"
+        },
+        {
+          "name": "AI Usage",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{ingestKey}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"diagnosticId\": \"d1\", \"tokens\": 256}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/ingest/ai-usage",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "ingest",
+                "ai-usage"
+              ]
+            }
+          },
+          "description": "Ingere dados de uso de IA - tokens, custo, latência"
+        }
+      ],
+      "description": "Endpoints de ingest de dados - requerem Bearer token INGEST_KEY separado"
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminSecret}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "description": "Status de saúde do worker (requer Bearer ADMIN_SECRET)"
+        }
+      ],
+      "description": "Health check do worker com Bearer ADMIN_SECRET"
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://signallq-admin.giammattey-luiz.workers.dev",
+      "type": "string",
+      "description": "URL base"
+    },
+    {
+      "key": "adminEmail",
+      "value": "giammattey.luiz@gmail.com",
+      "type": "string",
+      "description": "Email admin"
+    },
+    {
+      "key": "adminPassword",
+      "value": "",
+      "type": "string",
+      "description": "Senha admin"
+    },
+    {
+      "key": "ingestKey",
+      "value": "",
+      "type": "string",
+      "description": "Bearer INGEST_KEY"
+    },
+    {
+      "key": "adminSecret",
+      "value": "",
+      "type": "string",
+      "description": "Bearer ADMIN_SECRET"
+    }
+  ]
+}

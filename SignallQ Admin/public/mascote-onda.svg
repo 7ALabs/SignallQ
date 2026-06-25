@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120" width="200" height="120">
+  <!-- Onda de sinal -->
+  <path d="M10 60 Q30 20 50 60 Q70 100 90 60 Q110 20 130 60 Q150 100 170 60 Q185 30 195 50"
+        fill="none" stroke="#6C2BFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Rosto simples no pico central -->
+  <circle cx="110" cy="28" r="14" fill="none" stroke="#6C2BFF" stroke-width="4"/>
+  <!-- Olhos -->
+  <circle cx="106" cy="25" r="2.5" fill="#6C2BFF"/>
+  <circle cx="114" cy="25" r="2.5" fill="#6C2BFF"/>
+  <!-- Sorriso -->
+  <path d="M106 31 Q110 35 114 31" fill="none" stroke="#6C2BFF" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
