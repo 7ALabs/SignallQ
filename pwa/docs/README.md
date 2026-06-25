@@ -4,6 +4,16 @@ Documentação operacional do SignallQ PWA.
 
 O Notion guarda contexto, decisões e alinhamento. Esta pasta guarda instruções versionadas junto do código.
 
+## Sincronização Notion
+
+Esta pasta é a transposição versionada das páginas operacionais em:
+
+```text
+SignallQ → SignallQ WebApp → Mapa Notion → /pwa/docs
+```
+
+Estado atual: transposta na branch `codex-pwa-sig-39-docs-operacionais`.
+
 ## Documentos
 
 - `m0-definition-of-done.md` — fundação M0.
@@ -39,6 +49,11 @@ docs_ai/technical/paridade-plataformas.md
 ```
 
 Quando houver dúvida entre copiar comportamento Android ou adaptar para Web, consultar primeiro `parity.md`.
+
+Outros documentos fonte que podem impactar a PWA:
+
+- `docs_ai/technical/admin-api-schema.md`
+- `docs_ai/technical/analytics-events.md`
 
 ## Padrão de branch
 
