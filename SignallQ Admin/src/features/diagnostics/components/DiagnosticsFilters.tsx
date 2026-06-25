@@ -1,5 +1,6 @@
 import React from "react";
-import { Search, RefreshCw, Filter } from "lucide-react";
+import { Search, RefreshCw } from "lucide-react";
+import { DistChannel, BuildType } from "../../../types/diagnostics";
 
 interface DiagnosticsFiltersProps {
   searchText: string;
@@ -18,6 +19,10 @@ interface DiagnosticsFiltersProps {
   onPeriodChange: (period: string) => void;
   selectedEnvironment: "production" | "staging";
   onEnvironmentChange: (env: "production" | "staging") => void;
+  selectedDistChannel: DistChannel | "";
+  onDistChannelChange: (channel: DistChannel | "") => void;
+  selectedBuildType: BuildType | "";
+  onBuildTypeChange: (type: BuildType | "") => void;
   onRefresh: () => void;
   isRefreshing?: boolean;
 }
@@ -39,6 +44,10 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
   onPeriodChange,
   selectedEnvironment,
   onEnvironmentChange,
+  selectedDistChannel,
+  onDistChannelChange,
+  selectedBuildType,
+  onBuildTypeChange,
   onRefresh,
   isRefreshing = false,
 }) => {
@@ -112,7 +121,7 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
       </div>
 
       {/* Advanced filters selectors row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-1 border-t border-[#262626]/40 select-none">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-3 pt-1 border-t border-[#262626]/40 select-none">
         {/* Network Selection */}
         <div className="space-y-1">
           <label className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold block">
@@ -182,6 +191,39 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
             <option value="mobile_congestion_suspected">Rede móvel congestionada</option>
             <option value="gateway_slow">Gateway lento</option>
             <option value="upload_bottleneck">Upload bottleneck</option>
+          </select>
+        </div>
+
+        {/* Distribution Channel */}
+        <div className="space-y-1">
+          <label className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold block">
+            Canal de Dist.
+          </label>
+          <select
+            value={selectedDistChannel}
+            onChange={(e) => onDistChannelChange(e.target.value as DistChannel | "")}
+            className="w-full bg-[#18181B] border border-[#262626] rounded-xl px-3 py-2 text-xs text-zinc-350 focus:outline-none focus:border-[#6C2BFF] cursor-pointer"
+          >
+            <option value="">Todos</option>
+            <option value="firebase_app_distribution">Firebase App Distribution</option>
+            <option value="sideload">APK / Sideload</option>
+            <option value="play_store">Play Store</option>
+          </select>
+        </div>
+
+        {/* Build Type */}
+        <div className="space-y-1">
+          <label className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 font-bold block">
+            Tipo de Build
+          </label>
+          <select
+            value={selectedBuildType}
+            onChange={(e) => onBuildTypeChange(e.target.value as BuildType | "")}
+            className="w-full bg-[#18181B] border border-[#262626] rounded-xl px-3 py-2 text-xs text-zinc-350 focus:outline-none focus:border-[#6C2BFF] cursor-pointer"
+          >
+            <option value="">Todos</option>
+            <option value="release">Release</option>
+            <option value="debug">Debug</option>
           </select>
         </div>
 

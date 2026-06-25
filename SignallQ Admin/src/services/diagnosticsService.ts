@@ -89,6 +89,8 @@ export const diagnosticsService = {
         issues: Array.isArray(r.issues) ? r.issues : [],
         aiStatus: (r.ai_status as DiagnosticSession["aiStatus"]) ?? "none",
         networkStrength: undefined,
+        distChannel: r.dist_channel ?? undefined,
+        buildType: r.build_type ?? undefined,
       }));
 
       if (filters.search) {

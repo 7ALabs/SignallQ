@@ -9,7 +9,7 @@ import { DataTable } from "../../components/ui/DataTable";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { LoadingState } from "../../components/ui/LoadingState";
-import { DiagnosticSession, DiagnosticsSummary } from "../../types/diagnostics";
+import { DiagnosticSession, DiagnosticsSummary, DistChannel, BuildType } from "../../types/diagnostics";
 import { AppEnvironment } from "../../types/admin";
 import { Smartphone, Clock, Server, Sparkles, Zap, Info, ShieldCheck, AlertOctagon } from "lucide-react";
 
@@ -33,6 +33,8 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
   const [selectedScore, setSelectedScore] = React.useState("all");
   const [selectedIssue, setSelectedIssue] = React.useState("all");
   const [selectedAiProvider, setSelectedAiProvider] = React.useState("all");
+  const [selectedDistChannel, setSelectedDistChannel] = React.useState<DistChannel | ("")>("");
+  const [selectedBuildType, setSelectedBuildType] = React.useState<BuildType | ("")>("");
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -108,6 +110,14 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
         });
       }
 
+      if (selectedDistChannel !== "") {
+        filtered = filtered.filter(s => s.distChannel === selectedDistChannel);
+      }
+
+      if (selectedBuildType !== "") {
+        filtered = filtered.filter(s => s.buildType === selectedBuildType);
+      }
+
       setSessions(filtered);
       if (filtered.length > 0) {
         setSelectedSession(filtered[0]);
@@ -121,7 +131,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [localEnv, localPeriod, searchQuery, selectedNetwork, selectedOperator, selectedScore, selectedIssue, selectedAiProvider, triggerRefreshCounter]);
+  }, [localEnv, localPeriod, searchQuery, selectedNetwork, selectedOperator, selectedScore, selectedIssue, selectedAiProvider, selectedDistChannel, selectedBuildType, triggerRefreshCounter]);
 
   React.useEffect(() => {
     loadSessionsData();
@@ -229,6 +239,10 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
         onIssueChange={setSelectedIssue}
         selectedAiProvider={selectedAiProvider}
         onAiProviderChange={setSelectedAiProvider}
+        selectedDistChannel={selectedDistChannel}
+        onDistChannelChange={setSelectedDistChannel}
+        selectedBuildType={selectedBuildType}
+        onBuildTypeChange={setSelectedBuildType}
         selectedPeriod={localPeriod}
         onPeriodChange={setLocalPeriod}
         selectedEnvironment={localEnv}

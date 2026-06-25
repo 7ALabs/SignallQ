@@ -1,5 +1,8 @@
 import { NetworkType, NetworkSpeed, NetworkStrength } from "./network";
 
+export type DistChannel = "play_store" | "firebase_app_distribution" | "sideload";
+export type BuildType = "release" | "debug";
+
 export type DiagnosisIssue =
   | "wifi_signal_weak"
   | "bufferbloat_upload"
@@ -30,6 +33,8 @@ export interface DiagnosticSession {
   }[];
   aiStatus: "pending" | "completed" | "failed" | "none";
   aiSummaryReport?: string;
+  distChannel?: DistChannel;
+  buildType?: BuildType;
 }
 
 export interface DiagnosticsSummary {

@@ -38,7 +38,9 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
       }
     ],
     aiStatus: "completed",
-    aiSummaryReport: "O diagnóstico indica que o dispositivo está conectado à Vivo Brasil via rede móvel com sinal fraco (RSSI -108 dBm) na faixa de 700MHz. Há um gargalo crítico na taxa de upload (1.2 Mbps) associado a uma flutuação considerável de jitter. Recomenda-se desativar o plano de dados em segundo plano ou aproximar-se de uma janela para transicionar para uma portadora de maior frequência (3.5GHz 5G)."
+    aiSummaryReport: "O diagnóstico indica que o dispositivo está conectado à Vivo Brasil via rede móvel com sinal fraco (RSSI -108 dBm) na faixa de 700MHz. Há um gargalo crítico na taxa de upload (1.2 Mbps) associado a uma flutuação considerável de jitter. Recomenda-se desativar o plano de dados em segundo plano ou aproximar-se de uma janela para transicionar para uma portadora de maior frequência (3.5GHz 5G).",
+    distChannel: "firebase_app_distribution",
+    buildType: "release",
   },
   {
     id: "diag_2a9c4e12",
@@ -78,7 +80,9 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
       }
     ],
     aiStatus: "completed",
-    aiSummaryReport: "A conexão local sofre com forte atenuação eletromagnética na banda de 2.4 GHz, potencializada pelo congestionamento do canal 6. A velocidade de download despencou para 4.8 Mbps. Sugere-se forçar a conexão para a rede de 5 GHz do roteador (SSID equivalente) ou realocar o roteador diminuindo barreiras físicas."
+    aiSummaryReport: "A conexão local sofre com forte atenuação eletromagnética na banda de 2.4 GHz, potencializada pelo congestionamento do canal 6. A velocidade de download despencou para 4.8 Mbps. Sugere-se forçar a conexão para a rede de 5 GHz do roteador (SSID equivalente) ou realocar o roteador diminuindo barreiras físicas.",
+    distChannel: "firebase_app_distribution",
+    buildType: "release",
   },
   {
     id: "diag_3ff1a678",
@@ -104,7 +108,9 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
       ssid: "SignallQ_HQ_Optic"
     },
     issues: [],
-    aiStatus: "none"
+    aiStatus: "none",
+    distChannel: "play_store",
+    buildType: "release",
   },
   {
     id: "diag_56a67e10",
@@ -138,7 +144,9 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
       }
     ],
     aiStatus: "completed",
-    aiSummaryReport: "Embora os canais de radiofrequência física estejam operando com ótimo sinal (-58 dBm em 5GHz), o servidor DNS local (192.168.1.1) demorou 122ms para resolver as requisições de teste. Recomendável ajustar o roteador dhcp para servidores públicos confiáveis (Cloudflare 1.1.1.1 ou Google 8.8.8.8) para reduzir gargalos de navegação."
+    aiSummaryReport: "Embora os canais de radiofrequência física estejam operando com ótimo sinal (-58 dBm em 5GHz), o servidor DNS local (192.168.1.1) demorou 122ms para resolver as requisições de teste. Recomendável ajustar o roteador dhcp para servidores públicos confiáveis (Cloudflare 1.1.1.1 ou Google 8.8.8.8) para reduzir gargalos de navegação.",
+    distChannel: "firebase_app_distribution",
+    buildType: "debug",
   },
   {
     id: "diag_bb01c224",
@@ -158,7 +166,9 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
       bufferbloatGrade: "A+",
     },
     issues: [],
-    aiStatus: "none"
+    aiStatus: "none",
+    distChannel: "sideload",
+    buildType: "release",
   },
   {
     id: "diag_901c27df",
@@ -191,7 +201,9 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
       }
     ],
     aiStatus: "failed",
-    aiSummaryReport: "Erro ao gerar diagnóstico inteligente: O fornecedor de IA principal reportou timeout de 15s. Utilizado fallback local limitado."
+    aiSummaryReport: "Erro ao gerar diagnóstico inteligente: O fornecedor de IA principal reportou timeout de 15s. Utilizado fallback local limitado.",
+    distChannel: "firebase_app_distribution",
+    buildType: "release",
   }
 ];
 
