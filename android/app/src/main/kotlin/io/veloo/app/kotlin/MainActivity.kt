@@ -198,6 +198,7 @@ class MainActivity : ComponentActivity() {
             val onboardingConcluido = viewModel.onboardingConcluido.collectAsStateWithLifecycle().value
             val diagChatHistorico by viewModel.diagChatHistorico.collectAsStateWithLifecycle()
             val diagChatCarregando by viewModel.diagChatCarregando.collectAsStateWithLifecycle()
+            val analisadorState by viewModel.analisadorState.collectAsStateWithLifecycle()
             // #82 — Banner Anatel dismissível
             val anatelBannerDismissed = viewModel.anatelBannerDismissed.collectAsStateWithLifecycle().value
             // Chat Diagnóstico IA
@@ -277,6 +278,9 @@ class MainActivity : ComponentActivity() {
                                 diagChatCarregando = diagChatCarregando,
                                 onEnviarPerguntaDiagnostico = { pergunta -> viewModel.enviarPerguntaDiagnostico(pergunta) },
                                 onLimparDiagChat = { viewModel.limparDiagChat() },
+                                analisadorState = analisadorState,
+                                onAnalisarProblema = { problema -> viewModel.analisarProblema(problema) },
+                                onResetarAnalisador = { viewModel.resetarAnalisador() },
                             ),
                         signallQ =
                             io.veloo.app.ui.screen.AppShellSignallQState(

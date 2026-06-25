@@ -210,6 +210,9 @@ fun AppShell(
 
     val snapshotDiagnostico = diagnostico.snapshotDiagnostico
     val onIniciarDiagnostico = diagnostico.onIniciarDiagnostico
+    val analisadorState = diagnostico.analisadorState
+    val onAnalisarProblema = diagnostico.onAnalisarProblema
+    val onResetarAnalisador = diagnostico.onResetarAnalisador
 
     val operadoraMovel = signallQ.operadoraMovel
     val onVerificarGemma = signallQ.onVerificarGemma
@@ -569,6 +572,9 @@ fun AppShell(
                     operadoraMovel = operadoraMovel,
                     anatelBannerDismissed = anatelBannerDismissed,
                     onDismissAnatelBanner = onDispensarBannerAnatel,
+                    analisadorState = analisadorState,
+                    onAnalisarProblema = onAnalisarProblema,
+                    onResetarAnalisador = onResetarAnalisador,
                 )
             }
         }

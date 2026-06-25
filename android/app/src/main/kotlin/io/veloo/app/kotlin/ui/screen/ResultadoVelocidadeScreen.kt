@@ -3,8 +3,11 @@ package io.veloo.app.ui.screen
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,14 +35,19 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.SuggestionChipDefaults
@@ -85,6 +93,7 @@ import io.veloo.app.ui.ResultadoBitmapGenerator
 import io.veloo.app.ui.component.OperadoraBottomSheet
 import io.veloo.app.ui.component.OperadoraContactCard
 import io.veloo.app.ui.component.rememberTopBarAlpha
+import io.veloo.app.ui.screen.AnalisadorState
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -100,6 +109,9 @@ fun ResultadoVelocidadeScreen(
     operadoraMovel: String? = null,
     anatelBannerDismissed: Boolean = true,
     onDismissAnatelBanner: () -> Unit = {},
+    analisadorState: AnalisadorState = AnalisadorState.Inativo,
+    onAnalisarProblema: (String) -> Unit = {},
+    onResetarAnalisador: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
     val scrollState = rememberScrollState()
@@ -563,6 +575,15 @@ fun ResultadoVelocidadeScreen(
                     OperadoraContactCard(operadora = operadora)
                 }
 
+                // 15. Analisador de problema (SIG-113)
+                Spacer(Modifier.height(LkSpacing.xl))
+                AnalisadorProblemaSection(
+                    state = analisadorState,
+                    onAnalisarProblema = onAnalisarProblema,
+                    onResetar = onResetarAnalisador,
+                    c = c,
+                )
+
                 Spacer(Modifier.height(LkSpacing.xl))
             }
 
@@ -810,5 +831,157 @@ private fun RecomendacaoCard(
             color = c.textSecondary,
             lineHeight = 18.sp,
         )
+    }
+}
+
+private val problemasPredefinidos = listOf(
+    "Baixa velocidade",
+    "Quedas constantes",
+    "Travamentos em streaming ou jogos",
+)
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AnalisadorProblemaSection(
+    state: AnalisadorState,
+    onAnalisarProblema: (String) -> Unit,
+    onResetar: () -> Unit,
+    c: LkTokens,
+) {
+    var selecionandoProblema by remember { mutableStateOf(false) }
+
+    // Quando o estado volta para Inativo (após reset), fecha o seletor de chips.
+    if (state is AnalisadorState.Inativo && !selecionandoProblema) {
+        OutlinedButton(
+            onClick = { selecionandoProblema = true },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(LkRadius.button),
+        ) {
+            Text(
+                text = "Analisar meu problema",
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+                color = c.textPrimary,
+            )
+        }
+        return
+    }
+
+    if (state is AnalisadorState.Inativo && selecionandoProblema) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "QUAL É O SEU PROBLEMA?",
+                style = MaterialTheme.typography.labelSmall,
+                color = c.textTertiary,
+                letterSpacing = 1.sp,
+            )
+            Spacer(Modifier.height(LkSpacing.sm))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+            ) {
+                problemasPredefinidos.forEach { problema ->
+                    FilterChip(
+                        selected = false,
+                        onClick = {
+                            selecionandoProblema = false
+                            onAnalisarProblema(problema)
+                        },
+                        label = { Text(text = problema, fontSize = 13.sp) },
+                        colors =
+                            FilterChipDefaults.filterChipColors(
+                                containerColor = c.bgSecondary,
+                                labelColor = c.textPrimary,
+                            ),
+                    )
+                }
+            }
+            Spacer(Modifier.height(LkSpacing.xs))
+            TextButton(onClick = { selecionandoProblema = false }) {
+                Text(text = "Cancelar", color = c.textTertiary, fontSize = 13.sp)
+            }
+        }
+        return
+    }
+
+    when (state) {
+        is AnalisadorState.Analisando -> {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = LkColors.accent,
+                )
+                Text(
+                    text = "Analisando seu problema...",
+                    fontSize = 14.sp,
+                    color = c.textSecondary,
+                )
+            }
+        }
+
+        is AnalisadorState.Resultado -> {
+            val origemLabel = if (state.origem == "ia") "Análise por IA" else "Diagnóstico local"
+            val origemCor = if (state.origem == "ia") LkColors.accent else c.textTertiary
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(LkRadius.card),
+                colors = CardDefaults.cardColors(containerColor = c.bgSecondary),
+            ) {
+                Column(modifier = Modifier.padding(LkSpacing.lg)) {
+                    Text(
+                        text = "DIAGNÓSTICO",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = c.textTertiary,
+                        letterSpacing = 1.sp,
+                    )
+                    Spacer(Modifier.height(LkSpacing.sm))
+                    Text(
+                        text = state.texto,
+                        fontSize = 14.sp,
+                        color = c.textPrimary,
+                        lineHeight = 20.sp,
+                    )
+                    Spacer(Modifier.height(LkSpacing.md))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = origemLabel,
+                            fontSize = 12.sp,
+                            color = origemCor,
+                            fontWeight = FontWeight.Medium,
+                        )
+                        TextButton(onClick = {
+                            selecionandoProblema = false
+                            onResetar()
+                        }) {
+                            Text(text = "Nova análise", color = c.textTertiary, fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        is AnalisadorState.Erro -> {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(text = state.mensagem, fontSize = 13.sp, color = LkColors.error)
+                Spacer(Modifier.height(LkSpacing.xs))
+                TextButton(onClick = {
+                    selecionandoProblema = false
+                    onResetar()
+                }) {
+                    Text(text = "Tentar novamente", color = c.textTertiary, fontSize = 13.sp)
+                }
+            }
+        }
+
+        else -> {}
     }
 }

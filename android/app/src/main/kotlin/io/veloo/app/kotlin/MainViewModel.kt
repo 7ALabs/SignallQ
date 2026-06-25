@@ -62,6 +62,8 @@ import io.veloo.app.ui.FiltroConexaoHistorico
 import io.veloo.app.ui.GatewayInfo
 import io.veloo.app.ui.HistoryPoint
 import io.veloo.app.ui.IspInfo
+import io.veloo.app.speedtest.SpeedtestPersistenceCoordinator
+import io.veloo.app.ui.screen.AnalisadorState
 import io.veloo.app.ui.screen.SignallQUiState
 import io.veloo.app.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -111,6 +113,7 @@ class MainViewModel
         _diagnosticOrchestrator: DiagnosticOrchestrator,
         /** Repositorio de telemetria para o painel admin SignallQ. */
         private val adminIngestRepository: AdminIngestRepository,
+        private val speedtestPersistenceCoordinator: SpeedtestPersistenceCoordinator,
     ) : AndroidViewModel(application) {
         private companion object {
             const val LOG_TAG = "SignallQSpeedtestSuite"
@@ -147,6 +150,9 @@ class MainViewModel
         // O underscore no construtor e convencao para parametros que viram val publico.
         val diagnosticOrchestrator: DiagnosticOrchestrator = _diagnosticOrchestrator
         val movelSnapshot: StateFlow<MovelSnapshot?> get() = monitorTelephony.snapshotFlow
+
+        private val _analisadorState = MutableStateFlow<AnalisadorState>(AnalisadorState.Inativo)
+        val analisadorState: StateFlow<AnalisadorState> = _analisadorState
 
         // #179 Task C — Dual SIM: lista de SIMs ativos, atualizada sempre que o monitor de
         // telefonia emite novo snapshot (mudanca de rede/sinal). Inicializado com emptyList()
@@ -1478,6 +1484,72 @@ class MainViewModel
                 wifiLinkSpeedMbps = wifiLinkSpeedMbps,
                 speedtestExtras = null,
             )
+        }
+
+        fun analisarProblema(problema: String) {
+            val snap = diagnosticOrchestrator.snapshotFlow.value
+            val relatorio = snap.relatorio ?: run {
+                _analisadorState.value = AnalisadorState.Erro("Faça um diagnóstico de rede antes de analisar.")
+                return
+            }
+            _analisadorState.value = AnalisadorState.Analisando
+            viewModelScope.launch {
+                try {
+                    val connectionType =
+                        snap.input?.connectionType
+                            ?: io.veloo.app.feature.diagnostico.ConnectionType.desconhecido
+                    val extra = coletarContextoAdicionalIa()
+                    val ctx =
+                        DiagnosisAiContextFactory.fromRaw(
+                            report = relatorio,
+                            input = snap.input,
+                            connectionType = connectionType,
+                            feedbackUsuario = problema,
+                            ispNome = extra.ispNome,
+                            ispAsn = extra.ispAsn,
+                            ipPublico = extra.ipPublico,
+                            ipLocal = extra.ipLocal,
+                            pais = extra.pais,
+                            regiao = extra.regiao,
+                            gatewayIp = extra.gatewayIp,
+                            dnsResolverIp = extra.dnsResolverIp,
+                            dnsResolverProvider = extra.dnsResolverProvider,
+                            servidorTesteCidade = extra.servidorTesteCidade,
+                            ultimosTestesHistorico = extra.ultimosTestesHistorico,
+                            redesProximas = extra.redesProximas,
+                            movel = extra.movel,
+                            dispositivos = extra.dispositivos,
+                            privateDnsAtivo = extra.privateDnsAtivo,
+                            privateDnsHostname = extra.privateDnsHostname,
+                            wifiLinkBssid = extra.wifiBssid,
+                            wifiPadrao = extra.wifiPadrao,
+                            wifiLinkSpeedMbps = extra.wifiLinkSpeedMbps,
+                        )
+                    val resultado = diagAiRepository.explainDiagnosis(ctx) { AiFallbackFactory.fromLocal(relatorio) }
+                    when (resultado) {
+                        is AiDiagnosisState.success -> {
+                            val texto = resultado.result.textoLaudo.ifBlank { resultado.result.resumo }
+                            _analisadorState.value = AnalisadorState.Resultado(texto, "ia")
+                            speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
+                        }
+                        is AiDiagnosisState.fallback -> {
+                            val texto = resultado.result.textoLaudo.ifBlank { resultado.result.resumo }
+                            _analisadorState.value = AnalisadorState.Resultado(texto, "local")
+                            speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
+                        }
+                        else -> {
+                            _analisadorState.value = AnalisadorState.Erro("Não foi possível analisar o problema agora.")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "analisarProblema falhou")
+                    _analisadorState.value = AnalisadorState.Erro("Erro ao analisar. Tente novamente.")
+                }
+            }
+        }
+
+        fun resetarAnalisador() {
+            _analisadorState.value = AnalisadorState.Inativo
         }
 
         /**

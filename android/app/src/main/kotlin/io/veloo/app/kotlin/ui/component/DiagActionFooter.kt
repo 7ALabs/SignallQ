@@ -49,23 +49,6 @@ fun DiagActionFooter(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            OutlinedButton(
-                onClick = onAbrirChat,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-            ) {
-                SignallQSymbolSmall()
-                Spacer(Modifier.size(8.dp))
-                Text(
-                    text = "Tirar dúvidas com o SignallQ",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = c.textPrimary,
-                )
-            }
-
-            Spacer(Modifier.height(8.dp))
-
             Button(
                 onClick = onRefresh,
                 modifier = Modifier.fillMaxWidth(),

@@ -45,6 +45,13 @@ data class AppShellWifiState(
     val onSalvarApelido: (mac: String, apelido: String) -> Unit,
 )
 
+sealed class AnalisadorState {
+    data object Inativo : AnalisadorState()
+    data object Analisando : AnalisadorState()
+    data class Resultado(val texto: String, val origem: String) : AnalisadorState()
+    data class Erro(val mensagem: String) : AnalisadorState()
+}
+
 /**
  * Agrupa parametros do diagnostico e do chat inline de diagnostico.
  */
@@ -56,6 +63,9 @@ data class AppShellDiagnosticoState(
     val diagChatCarregando: Boolean = false,
     val onEnviarPerguntaDiagnostico: (String) -> Unit = {},
     val onLimparDiagChat: () -> Unit = {},
+    val analisadorState: AnalisadorState = AnalisadorState.Inativo,
+    val onAnalisarProblema: (String) -> Unit = {},
+    val onResetarAnalisador: () -> Unit = {},
 )
 
 /**
