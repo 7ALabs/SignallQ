@@ -1,0 +1,451 @@
+---
+name: gerar-docs
+description: Gera documentação completa e atualizada para o projeto SignallQ — funcional, técnica, testes, fluxos, design, PPT e HTML. Audita documentação existente antes de criar qualquer coisa nova, move obsoleta para .old, diferencia Android Kotlin de PWA, e adequa estilo ao público-alvo (humano ou IA).
+---
+
+Use a **Taisa** para gerar ou atualizar documentação.
+
+$ARGUMENTS
+
+[Invocando Taisa — especialista em documentação]
+
+---
+
+## Passo 1 — Confirmar público-alvo (OBRIGATÓRIO antes de qualquer coisa)
+
+Antes de escrever uma linha, Taisa pergunta:
+
+> "Esta documentação é para **humano** ou para **IA**?
+> Se for para IA, qual? (Codex, ChatGPT/GPT-4, Gemini, Codex/Copilot, outro)"
+
+O estilo de escrita, estrutura e nível de detalhamento dependem diretamente desta resposta. Não pule esse passo.
+
+---
+
+## Passo 2 — Auditoria de documentação existente
+
+Antes de criar qualquer documento, varrer os diretórios relevantes:
+
+```
+docs/
+README.md
+README-*.md
+.Codex/
+CHANGELOG.md
+<módulo>/README.md
+<feature>/docs/
+```
+
+Para cada documento encontrado relacionado ao escopo solicitado:
+
+1. **Ler o documento** completo.
+2. **Comparar com o estado atual** do produto (código, agentes, fluxos, comportamento real).
+3. **Classificar:**
+   - `VÁLIDO` — conteúdo atual, estrutura adequada → reutilizar ou fazer ajuste pontual.
+   - `PARCIAL` — parte do conteúdo válida, parte desatualizada → atualizar.
+   - `OBSOLETO` — conteúdo desatualizado, estrutura incompatível, ou feature removida → arquivar.
+
+### Regra de arquivamento
+
+Quando classificado como `OBSOLETO`:
+1. Criar diretório `.old/` no mesmo local do arquivo (ex: `docs/.old/`).
+2. Renomear o arquivo com sufixo de data: `nome-original.YYYY-MM-DD.old.md`.
+3. Mover para `.old/`.
+4. Gerar documento novo no path original.
+
+```bash
+# Exemplo de arquivamento
+mkdir -p docs/.old
+mv docs/feature-speedtest.md docs/.old/feature-speedtest.2024-01-15.old.md
+```
+
+---
+
+## Passo 3 — Identificar escopo: Android / PWA / Unificado
+
+Avaliar o escopo com base no que foi solicitado e no código real:
+
+| Critério | Escopo |
+|---|---|
+| Depende de API Android, permissão, hardware | Android exclusivo |
+| Depende de browser, Service Worker, Web API | PWA exclusivo |
+| Fluxo de produto com paridade nas duas plataformas | Unificado |
+| Arquitetura de dados compartilhada | Unificado |
+
+**Em documentação unificada**, marcar diferenças com blocos explícitos:
+```
+> **Android:** [comportamento específico]
+> **PWA:** [comportamento específico ou limitação]
+```
+
+---
+
+## Passo 4 — Gerar o documento
+
+### Estrutura padrão por tipo
+
+#### Documentação Funcional
+
+```markdown
+# [Nome da Feature]
+
+**Plataforma:** Android | PWA | Ambas
+**Status:** Em desenvolvimento | Concluída | Planejada
+**Versão:** x.x.x
+**Última atualização:** YYYY-MM-DD
+
+## Visão geral
+[1-3 frases descrevendo o que a feature faz e por que existe]
+
+## Público-alvo
+[Quem usa e em que contexto]
+
+## Fluxo principal
+[Diagrama mermaid ou lista numerada de passos]
+
+## Regras de negócio
+- [Regra 1]
+- [Regra 2]
+
+## Edge cases
+| Cenário | Comportamento esperado |
+|---|---|
+| [caso] | [resultado] |
+
+## Critérios de aceite
+- [ ] [Critério 1]
+- [ ] [Critério 2]
+
+## Diferenças por plataforma
+> **Android:** [diferença]
+> **PWA:** [diferença ou N/A]
+```
+
+#### Documentação Técnica
+
+```markdown
+# [Módulo / Componente / API]
+
+**Plataforma:** Android | PWA | Ambas
+**Módulo:** :[nome-do-modulo]
+**Última atualização:** YYYY-MM-DD
+
+## Responsabilidade
+[O que este módulo faz. Uma ou duas frases.]
+
+## Dependências
+| Dependência | Motivo |
+|---|---|
+| [dep] | [por que existe] |
+
+## Arquitetura
+[Diagrama mermaid ou descrição de camadas]
+
+## Interfaces públicas
+[Funções, classes ou endpoints expostos com assinatura e descrição]
+
+## Decisões de design
+- **[Decisão]:** [por que foi tomada, alternativas consideradas]
+
+## Limitações conhecidas
+- [Limitação 1]
+```
+
+#### Documentação de Testes
+
+```markdown
+# Plano de Testes — [Feature]
+
+**Plataforma:** Android | PWA | Ambas
+**Última atualização:** YYYY-MM-DD
+
+## Cobertura atual
+
+| Área | Android | PWA |
+|---|---|---|
+| [área] | ✅ / ⚠️ / ❌ | ✅ / ⚠️ / ❌ |
+
+## Casos de teste
+
+### [Nome do caso]
+- **Dado:** [pré-condição]
+- **Quando:** [ação]
+- **Então:** [resultado esperado]
+- **Plataforma:** Android | PWA | Ambas
+
+## Cenários de regressão
+[O que nunca pode quebrar]
+
+## O que não está coberto (e por quê)
+- [lacuna]: [motivo]
+```
+
+#### Documentação de Fluxo
+
+```markdown
+# Fluxo — [Nome]
+
+**Plataforma:** Android | PWA | Ambas
+**Última atualização:** YYYY-MM-DD
+
+## Diagrama
+
+```mermaid
+flowchart TD
+    A[Início] --> B[Passo 1]
+    B --> C{Condição}
+    C -->|Sim| D[Resultado A]
+    C -->|Não| E[Resultado B]
+```
+
+## Descrição por passo
+1. **[Passo 1]:** [descrição]
+2. **[Passo 2]:** [descrição]
+
+## Estados possíveis
+| Estado | Trigger | UI |
+|---|---|---|
+| [estado] | [o que causa] | [o que o usuário vê] |
+
+## Integrações
+- [sistema ou módulo que participa do fluxo]
+```
+
+#### Documentação de Design
+
+```markdown
+# Design — [Tela / Componente]
+
+**Plataforma:** Android | PWA | Ambas
+**Última atualização:** YYYY-MM-DD
+
+## Componentes visuais
+
+| Componente | Android | PWA | Token MD3 |
+|---|---|---|---|
+| [comp] | [Composable] | [React comp] | [token] |
+
+## Estados visuais
+| Estado | Trigger | Aparência |
+|---|---|---|
+| loading | [quando] | [descrição ou shimmer] |
+| erro | [quando] | [mensagem + ação] |
+| sucesso | [quando] | [feedback visual] |
+| vazio | [quando] | [empty state] |
+
+## Microcopy
+| Elemento | Texto | Observação |
+|---|---|---|
+| [botão/label] | "[texto exato]" | [contexto] |
+
+## Tokens utilizados
+- Cor primária: `[token]`
+- Tipografia: `[token]`
+- Espaçamento: `[token]`
+```
+
+---
+
+## Passo 5 — Formato HTML (quando solicitado)
+
+Quando o output for um documento HTML:
+
+```html
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>[Título do documento] — SignallQ</title>
+  <style>
+    /* Paleta SignallQ */
+    :root {
+      --color-primary: #1A73E8;
+      --color-surface: #F8F9FA;
+      --color-on-surface: #202124;
+      --color-outline: #DADCE0;
+      --color-accent: #34A853;
+      --font-main: 'Google Sans', 'Roboto', sans-serif;
+      --font-mono: 'Roboto Mono', monospace;
+    }
+    body {
+      font-family: var(--font-main);
+      color: var(--color-on-surface);
+      background: var(--color-surface);
+      margin: 0;
+      display: flex;
+    }
+    nav {
+      width: 240px;
+      min-height: 100vh;
+      background: white;
+      border-right: 1px solid var(--color-outline);
+      padding: 24px 16px;
+      position: sticky;
+      top: 0;
+    }
+    main {
+      flex: 1;
+      padding: 40px 48px;
+      max-width: 900px;
+    }
+    /* ... demais estilos */
+  </style>
+</head>
+<body>
+  <nav><!-- sidebar de navegação --></nav>
+  <main><!-- conteúdo principal --></main>
+</body>
+</html>
+```
+
+Requisitos obrigatórios para HTML:
+- Sidebar de navegação com âncoras internas.
+- Breadcrumbs no topo do conteúdo.
+- Responsivo (collapse de sidebar em telas pequenas).
+- Sem dependências externas de CDN (tudo inline ou assets locais).
+- Dark mode via `prefers-color-scheme`.
+
+---
+
+## Passo 6 — Estrutura PPT (quando solicitado)
+
+Quando o output for uma apresentação:
+
+**Sequência de slides obrigatória:**
+1. **Capa** — título, subtítulo, data, logo SignallQ.
+2. **Problema** — o que motivou esta feature/decisão.
+3. **Solução** — o que foi construído ou proposto.
+4. **Fluxo** — diagrama simplificado do fluxo principal.
+5. **Diferenças Android vs. PWA** — quando aplicável.
+6. **Métricas / Critérios de aceite** — como medir sucesso.
+7. **Riscos e limitações** — o que ainda não está resolvido.
+8. **Próximos passos** — o que vem depois.
+
+**Identidade visual:**
+- Fundo: branco ou cinza muito claro (`#F8F9FA`).
+- Cor primária: `#1A73E8` (cabeçalhos, destaques).
+- Cor de acento: `#34A853` (ícones positivos, marcadores de sucesso).
+- Tipografia: Google Sans (títulos), Roboto (corpo).
+- Sem clipart. Sem degradê. Sem sombra pesada.
+
+Taisa gera o PPT via python-pptx quando o ambiente tiver o pacote disponível, ou entrega a estrutura em markdown para conversão manual.
+
+---
+
+## Passo 7 — Ajuste de estilo por público-alvo
+
+### Para IA — Codex
+- Usar seções delimitadas com `##` e `###`.
+- Regras antes de exemplos.
+- Edge cases como itens separados, não em prosa.
+- Contexto autocontido — não depender de sessão anterior.
+- Preferir tabelas a listas quando houver múltiplos atributos.
+
+### Para IA — ChatGPT / GPT-4
+- Markdown limpo, sem sintaxe avançada.
+- Instruções numeradas.
+- System prompt separado de conteúdo de referência.
+- Exemplos de input/output explícitos.
+
+### Para IA — Gemini
+- Seções bem delimitadas.
+- Tabelas preferidas.
+- Contexto de plataforma explicitado no início de cada seção.
+
+### Para IA — Codex / Copilot
+- Foco em comentários inline e docstrings.
+- Estrutura orientada a código.
+- Convenções de nomenclatura com exemplos.
+
+### Para Humano
+- Linguagem direta, sem jargão desnecessário.
+- Exemplos concretos do produto real.
+- Hierarquia visual clara.
+- Tom profissional e acessível.
+
+---
+
+## Checklist de entrega
+
+Taisa só considera um documento entregue quando:
+
+- [ ] Público-alvo confirmado (humano / IA / qual IA)
+- [ ] Auditoria de docs existentes realizada
+- [ ] Documentação obsoleta movida para `.old/` (quando aplicável)
+- [ ] Escopo definido (Android / PWA / Unificado)
+- [ ] Documento gerado no formato correto para o público
+- [ ] Path de saída informado
+- [ ] Conteúdo ancoragem no código/comportamento real (não inventado)
+- [ ] Edge cases documentados
+- [ ] Diferenças por plataforma marcadas (quando unificado)
+
+---
+
+## Consultas a outros agentes
+
+### Regra de economia de tokens — Haiku primeiro
+
+Antes de acionar qualquer agente Sonnet para coletar contexto, Taisa verifica: **Marcelo ou Nina resolvem?**
+
+Ambos são Haiku. A diferença é o domínio:
+- **Marcelo** → busca em **código** (símbolos, arquivos, módulos, componentes)
+- **Nina** → busca em **documentação** (arquivos `.md`, changelog, índices)
+
+Taisa consolida o que recebe e escreve. Contexto Sonnet fica para decisão e produção.
+
+**Delegar ao Marcelo — buscas em código:**
+
+| Tarefa | Exemplo |
+|---|---|
+| Verificar existência de símbolo | "Existe `SpeedTestViewModel` em `featureSpeedtest/`?" |
+| Listar arquivos de um módulo | "Listar todos os `.kt` em `featureWifi/`" |
+| Verificar se testes existem | "Há arquivo de teste para `DiagnosticoEngine`?" |
+| Ler trecho de código para triagem | "Ler a assinatura pública de `DnsRepository`" |
+
+**Delegar à Nina — buscas em documentação:**
+
+| Tarefa | Exemplo |
+|---|---|
+| Listar docs existentes | "Varrer `docs/` e retornar todos os `.md` com data de modificação" |
+| Ler doc para triagem | "Ler `docs/feature-speedtest.md` e resumir os tópicos cobertos" |
+| Resumir changelog ou commits | "Resumir os últimos 10 commits que tocaram em `featureDns/`" |
+| Montar índice de docs | "Listar todos os `.md` na raiz e em `docs/`" |
+
+**Formatos de delegação:**
+```
+Taisa → Marcelo: [busca em código]
+Retorne: [paths, trechos, existência]
+Contexto: [só o necessário]
+
+Taisa → Nina: [busca em documentação]
+Retorne: [lista, resumo de conteúdo]
+Contexto: [só o necessário]
+```
+
+**Não delegar a nenhum dos dois quando:**
+- A tarefa exige julgamento sobre comportamento correto de uma feature.
+- A leitura é de código complexo com múltiplas camadas de arquitetura.
+- A validação técnica exigiria confirmação de agente especializado de qualquer forma.
+
+### Delegação técnica — quando Haiku não é suficiente
+
+| Lacuna | Consultar |
+|---|---|
+| Comportamento técnico Android | Camilo |
+| Comportamento técnico PWA | Renan |
+| Validação de device real, OEM, API level | Otávio |
+| Decisão de arquitetura, fluxo de dados | Cláudio |
+| Estados visuais, microcopy, MD3 | Lia |
+| Bugs conhecidos, risco documentado | Gema |
+| Direção de produto | Claudete |
+| Busca em código (símbolo, arquivo, módulo) | **Marcelo** |
+| Busca em documentação (md, changelog, índice) | **Nina** |
+
+Formato de consulta técnica:
+```
+Taisa → [Agente]: Preciso documentar [X]. Qual é o comportamento atual de [Y]?
+Contexto: [o mínimo necessário para o agente responder]
+```
+
+[PRÓXIMO: Taisa entrega o documento no path solicitado com checklist de entrega preenchido]

@@ -1,0 +1,22 @@
+<!-- @dsCard group="Colors" -->
+<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:var(--bg-primary);font-family:var(--font-sans);padding:20px;}
+  .row{display:flex;gap:14px;}
+  .sw{flex:1;border-radius:var(--radius-card);overflow:hidden;border:1px solid var(--border);}
+  .chip{height:72px;}
+  .meta{padding:10px 12px 12px;}
+  .name{font:600 14px/1.2 var(--font-sans);color:var(--text-primary);}
+  .hex{font:400 12px/1.4 var(--font-sans);color:var(--text-secondary);margin-top:2px;}
+  .use{font:400 11px/1.35 var(--font-sans);color:var(--text-tertiary);margin-top:6px;}
+</style></head><body>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:var(--success)"></div>
+      <div class="meta"><div class="name">success</div><div class="hex">#22C55E</div><div class="use">Conexão boa · teste OK</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--warning)"></div>
+      <div class="meta"><div class="name">warning</div><div class="hex">#F5A623</div><div class="use">Alerta · monitorar</div></div></div>
+    <div class="sw"><div class="chip" style="background:var(--error)"></div>
+      <div class="meta"><div class="name">error</div><div class="hex">#FF4D4F</div><div class="use">Erro crítico · falha</div></div></div>
+  </div>
+</body></html>
