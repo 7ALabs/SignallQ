@@ -9,6 +9,7 @@ O Notion guarda contexto, decisões e alinhamento. Esta pasta guarda instruçõe
 - `m0-definition-of-done.md` — fundação M0.
 - `architecture.md` — arquitetura operacional.
 - `functional-spec.md` — telas e fluxos.
+- `parity.md` — contrato de paridade Android ↔ PWA.
 - `speedtest-contract.md` — contrato do teste de conexão web.
 - `diagnosis-contract.md` — contrato do diagnóstico.
 - `history-model.md` — histórico local.
@@ -20,13 +21,24 @@ O Notion guarda contexto, decisões e alinhamento. Esta pasta guarda instruçõe
 
 1. `m0-definition-of-done.md`
 2. `architecture.md`
-3. `functional-spec.md`
-4. `speedtest-contract.md`
-5. `diagnosis-contract.md`
-6. `design-system.md`
-7. `release-checklist.md`
-8. `history-model.md`
-9. `decisions.md`
+3. `parity.md`
+4. `functional-spec.md`
+5. `speedtest-contract.md`
+6. `diagnosis-contract.md`
+7. `design-system.md`
+8. `release-checklist.md`
+9. `history-model.md`
+10. `decisions.md`
+
+## Fonte técnica de paridade
+
+O documento `parity.md` deriva do contrato técnico existente em:
+
+```text
+docs_ai/technical/paridade-plataformas.md
+```
+
+Quando houver dúvida entre copiar comportamento Android ou adaptar para Web, consultar primeiro `parity.md`.
 
 ## Padrão de branch
 
