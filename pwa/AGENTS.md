@@ -12,6 +12,24 @@ O SignallQ PWA vive no mesmo repositório do Android, mas deve ser tratado como 
 - Executor principal: Codex local
 - Responsável técnico: Renan
 
+## Squad Farol no Codex
+
+Custom agents do Codex ficam em:
+
+- `pwa/.codex/agents/renan.toml`
+- `pwa/.codex/agents/eitam.toml`
+- `pwa/.codex/agents/henrique.toml`
+
+Skills repo-scoped ficam em:
+
+- `pwa/.agents/skills/regras-pwa/SKILL.md`
+- `pwa/.agents/skills/padroes-react/SKILL.md`
+- `pwa/.agents/skills/linka-design/SKILL.md`
+- `pwa/.agents/skills/checar-release/SKILL.md`
+- `pwa/.agents/skills/paridade-plataformas/SKILL.md`
+
+Use subagents apenas sob demanda. Subagents ajudam em tarefas paralelizáveis, mas consomem mais tokens. Com orçamento apertado, o padrão é execução por agente principal e acionamento explícito dos apoios.
+
 ## Regra principal
 
 Trabalhe somente dentro de `pwa/`, salvo autorização explícita do Luiz/Renan.
@@ -56,13 +74,13 @@ O PWA pode medir ou inferir apenas o que o navegador permitir.
 Permitido/viável:
 
 - download via HTTP;
-- upload via HTTP, se houver endpoint adequado;
+- upload via HTTP quando houver endpoint adequado;
 - latência aproximada via `fetch`/timing;
 - jitter aproximado, se houver amostras suficientes;
-- tipo de conexão quando `navigator.connection` estiver disponível;
 - histórico local com IndexedDB/localStorage;
 - estado online/offline;
-- dados não invasivos de navegador/dispositivo.
+- tipo de conexão via Network Information API quando disponível;
+- informações básicas de navegador/dispositivo sem invasão.
 
 Não prometer no PWA:
 
