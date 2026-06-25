@@ -10,6 +10,23 @@ O diagnóstico não pode inventar o que o navegador não mediu.
 
 O diagnóstico deve ser curto, simples e acionável.
 
+IA é melhoria de laudo, não pré-requisito para entregar resultado.
+
+## Integração IA
+
+A chamada de IA deve passar por Cloudflare Worker intermediário.
+
+Antes de implementar a integração real, validar:
+
+- endpoint correto;
+- schema de request;
+- schema de response;
+- timeout;
+- formato de erro;
+- fallback local.
+
+Não chamar serviço de IA direto do browser.
+
 ## Entrada
 
 ```ts
@@ -85,7 +102,10 @@ Códigos iniciais:
 - `network_type_unavailable`;
 - `packet_loss_not_directly_measured`;
 - `http_latency_not_icmp_ping`;
-- `browser_limited_measurement`.
+- `browser_limited_measurement`;
+- `native_signal_unavailable_on_web`;
+- `native_scan_unavailable_on_web`;
+- `dns_benchmark_unavailable_on_web`.
 
 ## Regras locais mínimas
 
@@ -123,14 +143,6 @@ O diagnóstico deve ter:
 - sem tom alarmista;
 - sem prometer correção garantida.
 
-## IA
-
-IA só entra depois que o payload local estiver normalizado.
-
-O Worker deve receber dados estruturados, não texto solto.
-
-O Worker deve devolver JSON válido ou erro controlado.
-
 ## Fallback
 
 Se a IA falhar:
@@ -147,3 +159,4 @@ Se a IA falhar:
 - Resultado é compreensível para usuário comum.
 - Resposta de IA, quando existir, respeita o contrato.
 - Falha de IA não quebra o fluxo.
+- Limitações web aparecem no diagnóstico quando afetam a conclusão.
