@@ -24,7 +24,7 @@ Skills repo-scoped ficam em:
 
 - `pwa/.agents/skills/regras-pwa/SKILL.md`
 - `pwa/.agents/skills/padroes-react/SKILL.md`
-- `pwa/.agents/skills/linka-design/SKILL.md`
+- `pwa/.agents/skills/signallq-design/SKILL.md`
 - `pwa/.agents/skills/checar-release/SKILL.md`
 - `pwa/.agents/skills/paridade-plataformas/SKILL.md`
 
@@ -134,19 +134,21 @@ Quando algo não puder ser medido, a UI e o diagnóstico devem dizer que não fo
 
 Não trabalhar direto na `main`.
 
-Branches PWA devem seguir, quando possível:
+Branches do Codex para PWA devem começar com `codex` e seguir, quando possível:
 
-`pwa/<sig-id>-<descricao-curta>`
+`codex/pwa/<sig-id>-<descricao-curta>`
 
 Se a ferramenta bloquear `/` no nome da branch, usar:
 
-`pwa-<sig-id>-<descricao-curta>`
+`codex-pwa-<sig-id>-<descricao-curta>`
 
 Exemplos:
 
-- `pwa/sig-39-setup-vite`
-- `pwa/sig-43-speedtest-web`
-- `pwa-sig-39-setup-vite`
+- `codex/pwa/sig-39-setup-vite`
+- `codex/pwa/sig-43-speedtest-web`
+- `codex-pwa-sig-39-setup-vite`
+
+PRs abertos pelo fluxo Codex também devem começar com `Codex PWA —`.
 
 Cada PR deve ser pequeno e focado.
 
@@ -170,7 +172,7 @@ git pull origin main
 Crie uma branch específica para a tarefa:
 
 ```bash
-git checkout -b pwa/<sig-id>-<descricao-curta>
+git checkout -b codex/pwa/<sig-id>-<descricao-curta>
 ```
 
 Se a branch com `/` não for aceita pela ferramenta usada, use a variação com hífen.
