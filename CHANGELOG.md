@@ -10,9 +10,11 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 
 ---
 
-## [Unreleased] — Admin Worker / SIG-13 / SIG-129 / SIG-133
+## [Unreleased] — Admin Worker / SIG-128 / SIG-130 / SIG-13 / SIG-129 / SIG-133
 
 ### Added
+
+- **(sig-128 / sig-130) Firebase Crashlytics + Firebase Sync via BigQuery:** helper `queryBigQuery<T>` com auth OAuth2 via service account existente. Substitui stubs em `handleFirebaseCrashlytics` (crash-free %, crashes 7d), `handleFirebaseCrashIssues` (top 20 issues 30d), `handleFirebaseVersions` (top 10 versões 30d) e `handleFirebaseSync` (valida conectividade BigQuery com session_start do dia anterior). Todos retornam `{ source: "no_data_yet" }` com zeros se as tabelas BigQuery ainda não existirem — sem 500, sem fallback silencioso.
 
 - **(sig-13) Feature flags remotas:** API worker com `GET /admin/feature-flags` (lista da tabela dedicada), `PUT /admin/feature-flags/:key` (update com audit log em `feature_flag_audit`) e `GET /flags` (endpoint público para consumo do Android). Migration `005_sig13.sql` cria tabelas `feature_flags` e `feature_flag_audit` com 6 flags iniciais. Admin Panel ganha aba dedicada `/feature-flags` com toggles otimistas e rollback em caso de erro.
 

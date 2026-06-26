@@ -269,6 +269,52 @@ async function getFirebaseAccessToken(env: Env): Promise<string> {
   return tokenData.access_token;
 }
 
+async function queryBigQuery<T = unknown>(
+  env: Env,
+  query: string
+): Promise<{ rows: T[]; error?: string }> {
+  let token: string;
+  try {
+    token = await getFirebaseAccessToken(env);
+  } catch (e) {
+    return { rows: [], error: `auth_failed: ${String(e)}` };
+  }
+
+  const resp = await fetch(
+    `https://bigquery.googleapis.com/bigquery/v2/projects/${env.FIREBASE_PROJECT_ID}/queries`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query, useLegacySql: false, timeoutMs: 10000 }),
+    }
+  );
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    if (errText.includes("Not found") || errText.includes("notFound")) {
+      return { rows: [], error: "table_not_found" };
+    }
+    return { rows: [], error: `bq_error_${resp.status}: ${errText.slice(0, 200)}` };
+  }
+
+  const data = (await resp.json()) as {
+    rows?: Array<{ f: Array<{ v: string | null }> }>;
+    schema?: { fields: Array<{ name: string }> };
+    jobComplete?: boolean;
+  };
+
+  if (!data.jobComplete || !data.rows || !data.schema) return { rows: [] };
+
+  const fields = data.schema.fields.map((f) => f.name);
+  const rows = data.rows.map((row) => {
+    const obj: Record<string, string | null> = {};
+    row.f.forEach((cell, i) => { obj[fields[i]] = cell.v; });
+    return obj as unknown as T;
+  });
+
+  return { rows };
+}
+
 // --- handlers /admin ---
 
 async function handleOverview(request: Request, env: Env): Promise<Response> {
@@ -903,24 +949,159 @@ async function handleFirebaseStatus(_req: Request, env: Env): Promise<Response> 
 }
 
 async function handleFirebaseCrashlytics(_req: Request, env: Env): Promise<Response> {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return json({ source: "no_credentials", unresolvedCrashes: 0, crashFreeUsersPercentage: 100 }, 200, env);
+  }
+
+  const { rows, error } = await queryBigQuery<{
+    total_crashes: string;
+    affected_users: string;
+    total_users: string;
+  }>(env, `
+    SELECT
+      COUNT(*)                                   AS total_crashes,
+      COUNT(DISTINCT installation_uuid)           AS affected_users,
+      (SELECT COUNT(DISTINCT installation_uuid)
+       FROM \`${env.FIREBASE_PROJECT_ID}.analytics_${env.FIREBASE_GA4_PROPERTY_ID}.events_*\`
+       WHERE _TABLE_SUFFIX >= FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY))
+         AND event_name = 'session_start'
+      )                                          AS total_users
+    FROM \`${env.FIREBASE_PROJECT_ID}.firebase_crashlytics.android_crashes_*\`
+    WHERE _TABLE_SUFFIX >= FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY))
+  `);
+
+  if (error === "table_not_found" || rows.length === 0) {
+    return json({
+      source: "no_data_yet",
+      message: "BigQuery export ativo; dados disponíveis em até 24h do primeiro crash.",
+      unresolvedCrashes: 0,
+      crashFreeUsersPercentage: 100,
+    }, 200, env);
+  }
+  if (error) {
+    await logError(env, 'bigquery-crashlytics', error, '');
+    return json({ source: "error", message: error, unresolvedCrashes: 0, crashFreeUsersPercentage: 100 }, 200, env);
+  }
+
+  const row = rows[0];
+  const totalCrashes  = parseInt(row.total_crashes  ?? "0", 10);
+  const affectedUsers = parseInt(row.affected_users ?? "0", 10);
+  const totalUsers    = parseInt(row.total_users    ?? "1", 10);
+  const crashFreeUsersPercentage = totalUsers > 0
+    ? Math.round(((totalUsers - affectedUsers) / totalUsers) * 10000) / 100
+    : 100;
+
   return json({
-    source: "stub",
-    message: "Crashlytics requer exportacao BigQuery.",
-    unresolvedCrashes: 0,
-    crashFreeUsersPercentage: 100,
+    source: "bigquery",
+    unresolvedCrashes: totalCrashes,
+    affectedUsers,
+    crashFreeUsersPercentage,
   }, 200, env);
 }
 
 async function handleFirebaseVersions(_req: Request, env: Env): Promise<Response> {
-  return json({ source: "stub", versions: [], message: "Requer BigQuery Crashlytics export." }, 200, env);
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return json({ source: "no_credentials", versions: [] }, 200, env);
+  }
+
+  const { rows, error } = await queryBigQuery<{
+    app_version: string;
+    total_crashes: string;
+    affected_users: string;
+  }>(env, `
+    SELECT
+      app_version,
+      COUNT(*)                          AS total_crashes,
+      COUNT(DISTINCT installation_uuid) AS affected_users
+    FROM \`${env.FIREBASE_PROJECT_ID}.firebase_crashlytics.android_crashes_*\`
+    WHERE _TABLE_SUFFIX >= FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY))
+    GROUP BY app_version
+    ORDER BY total_crashes DESC
+    LIMIT 10
+  `);
+
+  if (error === "table_not_found" || !rows.length) {
+    return json({ source: "no_data_yet", versions: [] }, 200, env);
+  }
+  if (error) {
+    await logError(env, 'bigquery-versions', error, '');
+    return json({ source: "error", versions: [] }, 200, env);
+  }
+
+  const versions = rows.map((r) => ({
+    version:       r.app_version ?? "unknown",
+    totalCrashes:  parseInt(r.total_crashes ?? "0", 10),
+    affectedUsers: parseInt(r.affected_users ?? "0", 10),
+  }));
+
+  return json({ source: "bigquery", versions }, 200, env);
 }
 
 async function handleFirebaseCrashIssues(_req: Request, env: Env): Promise<Response> {
-  return json({ source: "stub", issues: [], message: "Requer BigQuery Crashlytics export." }, 200, env);
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return json({ source: "no_credentials", issues: [] }, 200, env);
+  }
+
+  const { rows, error } = await queryBigQuery<{
+    issue_id: string;
+    issue_title: string;
+    total_crashes: string;
+    affected_users: string;
+    last_seen: string;
+  }>(env, `
+    SELECT
+      issue_id,
+      issue_title,
+      COUNT(*)                              AS total_crashes,
+      COUNT(DISTINCT installation_uuid)     AS affected_users,
+      MAX(event_timestamp)                  AS last_seen
+    FROM \`${env.FIREBASE_PROJECT_ID}.firebase_crashlytics.android_crashes_*\`
+    WHERE _TABLE_SUFFIX >= FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY))
+    GROUP BY issue_id, issue_title
+    ORDER BY total_crashes DESC
+    LIMIT 20
+  `);
+
+  if (error === "table_not_found" || !rows.length) {
+    return json({ source: "no_data_yet", issues: [] }, 200, env);
+  }
+  if (error) {
+    await logError(env, 'bigquery-crash-issues', error, '');
+    return json({ source: "error", issues: [] }, 200, env);
+  }
+
+  const issues = rows.map((r) => ({
+    id:            r.issue_id ?? "",
+    title:         r.issue_title ?? "Unknown crash",
+    totalCrashes:  parseInt(r.total_crashes ?? "0", 10),
+    affectedUsers: parseInt(r.affected_users ?? "0", 10),
+    lastSeen:      r.last_seen ? parseInt(r.last_seen, 10) / 1000 : 0,
+  }));
+
+  return json({ source: "bigquery", issues }, 200, env);
 }
 
 async function handleFirebaseSync(_req: Request, env: Env): Promise<Response> {
-  return json({ jobId: `sync_${Date.now().toString(36)}`, status: "started" }, 200, env);
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return json({ source: "no_credentials", ok: false }, 200, env);
+  }
+
+  const { rows, error } = await queryBigQuery<{ sessions: string }>(env, `
+    SELECT COUNT(*) AS sessions
+    FROM \`${env.FIREBASE_PROJECT_ID}.analytics_${env.FIREBASE_GA4_PROPERTY_ID}.events_*\`
+    WHERE _TABLE_SUFFIX >= FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY))
+      AND event_name = 'session_start'
+  `);
+
+  if (error === "table_not_found" || !rows.length) {
+    return json({ ok: false, source: "no_data_yet", sessionsYesterday: 0, syncedAt: nowSec() }, 200, env);
+  }
+  if (error) {
+    return json({ ok: false, source: "error", message: error }, 200, env);
+  }
+
+  const sessions = parseInt(rows[0]?.sessions ?? "0", 10);
+  return json({ ok: true, source: "bigquery", sessionsYesterday: sessions, syncedAt: nowSec() }, 200, env);
 }
 
 async function handleSettings(request: Request, env: Env): Promise<Response> {
