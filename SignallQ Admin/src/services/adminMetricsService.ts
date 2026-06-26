@@ -171,13 +171,16 @@ export const adminMetricsService = {
         return "#6B7280"; // cinza neutro para tipos desconhecidos
       }
       try {
-        const raw = await apiClient.request<{ items: Array<{ name: string; value: number }> }>(
+        const raw = await apiClient.request<{ items: Array<{ name: string; count: number; percentage: number }> }>(
           "GET",
           `/admin/metrics/network?environment=${envNetwork}&period=${apiPeriod}`
         );
+        // O worker retorna `count` (nº de sessões) por tipo de rede; o donut calcula
+        // o percentual a partir do total. Antes mapeava `item.value` (inexistente no
+        // payload), gerando value=undefined e quebrando o render do DonutChart.
         return (raw.items ?? []).map((item) => ({
           name:  item.name,
-          value: item.value,
+          value: item.count ?? 0,
           color: colorFor(item.name),
         }));
       } catch {

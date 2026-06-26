@@ -31,7 +31,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
   }, []);
 
   // Calculate percentage total
-  const total = React.useMemo(() => data.reduce((sum, item) => sum + item.value, 0), [data]);
+  const total = React.useMemo(() => data.reduce((sum, item) => sum + (item.value ?? 0), 0), [data]);
 
   if (!isMounted) {
     return (
@@ -78,7 +78,8 @@ export const DonutChart: React.FC<DonutChartProps> = ({
       {/* Side Legend Tracker */}
       <div className="flex-1 w-full space-y-2 font-sans">
         {data.map((item, idx) => {
-          const itemPercentage = total > 0 ? ((item.value / total) * 100).toFixed(1) : "0.0";
+          const value = item.value ?? 0;
+          const itemPercentage = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
           return (
             <div key={idx} className="flex items-center justify-between text-xs font-sans">
               <div className="flex items-center gap-2">
@@ -86,7 +87,7 @@ export const DonutChart: React.FC<DonutChartProps> = ({
                 <span className="text-neutral-300 font-sans">{item.name}</span>
               </div>
               <div className="flex items-center gap-3 font-mono">
-                <span className="text-zinc-550 font-medium text-[11px]">{item.value.toLocaleString("pt-BR")}</span>
+                <span className="text-zinc-550 font-medium text-[11px]">{value.toLocaleString("pt-BR")}</span>
                 <span className="text-indigo-400 font-semibold text-[11px] w-12 text-right">{itemPercentage}%</span>
               </div>
             </div>

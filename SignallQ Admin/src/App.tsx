@@ -4,6 +4,7 @@ import { PageHeader } from "./components/layout/PageHeader";
 import { AppEnvironment } from "./types/admin";
 import { LoginPage } from "./auth/LoginPage";
 import { apiClient } from "./services/apiClient";
+import { ErrorBoundary } from "./components/ui/ErrorBoundary";
 
 // Tab/Feature Components
 import { OverviewTab } from "./features/overview/OverviewTab";
@@ -254,7 +255,9 @@ export default function App() {
         badge={pageHeaderDetail.badge}
       />
 
-      {/* Structured Switch Rendering the Active tab dynamically */}
+      {/* Structured Switch Rendering the Active tab dynamically.
+          ErrorBoundary com key={currentPath} isola crashes por aba e reseta ao navegar. */}
+      <ErrorBoundary key={currentPath}>
       {currentPath === "/overview" && (
         <OverviewTab
           environment={environment}
@@ -322,6 +325,7 @@ export default function App() {
           onRefreshTrigger={handleRefresh}
         />
       )}
+      </ErrorBoundary>
     </AppLayout>
   );
 }
