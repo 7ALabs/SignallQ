@@ -295,7 +295,7 @@ export const adminMetricsService = {
             resolved?: boolean;
             count?: number;
           }>;
-        }>("GET", `/admin/metrics/alerts?environment=${envAlerts}`);
+        }>("GET", `/admin/alerts`);
         return (raw.items ?? []).map((r) => ({
           id:        r.id,
           source:    r.title ?? r.type ?? "Sistema",

@@ -140,7 +140,37 @@ export const errorMetricsService = {
   },
 
   async getAiAlerts(_filters: DashboardFilters = {}): Promise<{ alerts: AiAlert[]; aiCostCeiling: number }> {
-    if (!apiClient.isMockEnabled()) return { alerts: [], aiCostCeiling: 200 };
+    if (!apiClient.isMockEnabled()) {
+      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return { alerts: [], aiCostCeiling: 200 };
+      try {
+        const raw = await apiClient.request<{
+          items: Array<{
+            id: string;
+            type: string;
+            severity: string;
+            title: string;
+            message: string;
+            created_at: number;
+            timestamp: string;
+            resolved: boolean;
+          }>;
+        }>("GET", "/admin/alerts");
+
+        const alerts: AiAlert[] = (raw.items ?? [])
+          .filter((r) => !r.resolved)
+          .map((r) => ({
+            id:          r.id,
+            type:        (r.severity === "critical" ? "critical" : r.severity === "warning" ? "warning" : "info") as AiAlert["type"],
+            title:       r.title,
+            description: r.message,
+            timestamp:   r.timestamp,
+          }));
+
+        return { alerts, aiCostCeiling: 200 };
+      } catch {
+        return { alerts: [], aiCostCeiling: 200 };
+      }
+    }
     const { mockAiAlerts } = await import("../mocks/errors.mock");
     const alerts = await apiClient.simulateFetch(mockAiAlerts, _filters);
     return { alerts, aiCostCeiling: 200 };
@@ -159,5 +189,22 @@ export const errorMetricsService = {
       success: true,
       message: `Erro de ID ${errorId} marcado como resolvido com sucesso no banco principal.`
     };
+  },
+
+  /**
+   * Resolve um alerta ativo via POST /admin/alerts/:id/resolve.
+   * Disponível em produção (SIG-133).
+   */
+  async resolveAlert(alertId: string): Promise<{ success: boolean; message: string }> {
+    if (!apiClient.isMockEnabled()) {
+      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return { success: false, message: "API não configurada" };
+      try {
+        await apiClient.request<{ ok: boolean }>("POST", `/admin/alerts/${alertId}/resolve`);
+        return { success: true, message: "Alerta resolvido." };
+      } catch {
+        return { success: false, message: "Erro ao resolver alerta." };
+      }
+    }
+    return { success: true, message: `Alerta ${alertId} resolvido (mock).` };
   }
 };

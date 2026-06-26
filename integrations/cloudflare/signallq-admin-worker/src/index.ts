@@ -499,25 +499,67 @@ async function handleTopIssues(request: Request, env: Env): Promise<Response> {
   return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
 }
 
-// SIG-133: alertas reais baseados em threshold checking contra dados do D1.
-async function handleRecentAlerts(_request: Request, env: Env): Promise<Response> {
+// SIG-133: tipos e helpers para alertas persistidos.
+
+interface AlertRow {
+  id: string;
+  type: string;
+  severity: string;
+  title: string;
+  message: string;
+  created_at: number;
+  resolved: number;
+}
+
+interface AlertResponse {
+  id: string;
+  type: string;
+  severity: string;
+  title: string;
+  message: string;
+  created_at: number;
+  timestamp: string;
+  resolved: boolean;
+}
+
+function alertRowToResponse(r: AlertRow): AlertResponse {
+  return {
+    id:         r.id,
+    type:       r.type,
+    severity:   r.severity,
+    title:      r.title,
+    message:    r.message,
+    created_at: r.created_at,
+    timestamp:  new Date(r.created_at * 1000).toISOString(),
+    resolved:   r.resolved === 1,
+  };
+}
+
+/**
+ * Verifica thresholds e persiste alertas candidatos de forma idempotente.
+ * Regras:
+ * - Custo IA > budget diário → critical (requer budget configurado em admin_settings)
+ * - Taxa de erros > threshold/hora → warning (usa system_errors.last_seen)
+ * - Score médio < mínimo → warning
+ *
+ * Idempotência: INSERT OR IGNORE por id determinístico. Se o alerta já existe
+ * e não foi resolvido, não duplica. Se foi resolvido, não reabre
+ * (evita flood de alertas repetidos — operador resolve manualmente).
+ */
+async function generateAndPersistAlerts(env: Env): Promise<void> {
   const now        = nowSec();
   const oneDayAgo  = now - 86400;
   const oneHourAgo = now - 3600;
 
-  // Thresholds lidos de admin_settings, com defaults conservadores para não gerar falsos positivos.
   const settingsRow = await env.DB.prepare(
     "SELECT value FROM admin_settings WHERE key = 'admin'"
   ).first<{ value: string }>();
   const settings = settingsRow?.value ? JSON.parse(settingsRow.value) : {};
-  const AI_DAILY_BUDGET  = settings.aiDailyBudgetUsd       ?? 1.0;   // USD
-  const ERROR_THRESHOLD  = settings.errorSpikeThreshold    ?? 10;    // erros/hora
-  const MIN_SCORE        = settings.criticalScoreThreshold ?? 50;    // score médio mínimo
 
-  const alerts: Array<{
-    id: string; type: string; severity: string;
-    title: string; message: string; created_at: number; resolved: boolean;
-  }> = [];
+  // Budget: se não configurado, não gera alerta de custo (sem fabricar).
+  const AI_DAILY_BUDGET: number | null = settings.aiDailyBudgetUsd ?? null;
+  const ERROR_THRESHOLD  = settings.errorSpikeThreshold    ?? 10;
+  const MIN_SCORE        = settings.criticalScoreThreshold ?? 50;
 
   const [aiCost, recentErrors, scoreRow] = await Promise.all([
     env.DB.prepare(
@@ -526,7 +568,7 @@ async function handleRecentAlerts(_request: Request, env: Env): Promise<Response
 
     env.DB.prepare(
       "SELECT COUNT(*) AS count FROM system_errors WHERE last_seen >= ?"
-    ).bind(oneHourAgo * 1000).first<{ count: number }>(), // last_seen em ms
+    ).bind(oneHourAgo * 1000).first<{ count: number }>(),
 
     env.DB.prepare(
       `SELECT AVG(CAST(score AS REAL)) AS avg FROM diagnostic_sessions
@@ -534,43 +576,89 @@ async function handleRecentAlerts(_request: Request, env: Env): Promise<Response
     ).bind(oneDayAgo).first<{ avg: number | null }>(),
   ]);
 
-  if ((aiCost?.total ?? 0) > AI_DAILY_BUDGET) {
-    alerts.push({
-      id:         'ai_budget_exceeded',
-      type:       'AI_BUDGET',
-      severity:   'critical',
-      title:      'Orçamento diário de IA excedido',
-      message:    `Custo nas últimas 24h: $${(aiCost?.total ?? 0).toFixed(4)} USD (limite: $${AI_DAILY_BUDGET})`,
-      created_at: now,
-      resolved:   false,
+  const candidates: Array<{ id: string; type: string; severity: string; title: string; message: string }> = [];
+
+  // Alerta de custo: só dispara se budget estiver configurado e custo > 0.
+  if (AI_DAILY_BUDGET !== null && (aiCost?.total ?? 0) > AI_DAILY_BUDGET) {
+    candidates.push({
+      id:       'ai_budget_exceeded',
+      type:     'AI_BUDGET',
+      severity: 'critical',
+      title:    'Orçamento diário de IA excedido',
+      message:  `Custo nas últimas 24h: $${(aiCost?.total ?? 0).toFixed(4)} USD (limite: $${AI_DAILY_BUDGET})`,
     });
   }
 
   if ((recentErrors?.count ?? 0) > ERROR_THRESHOLD) {
-    alerts.push({
-      id:         'error_spike',
-      type:       'ERROR_SPIKE',
-      severity:   'warning',
-      title:      'Pico de erros detectado',
-      message:    `${recentErrors?.count} erros na última hora (limite: ${ERROR_THRESHOLD})`,
-      created_at: now,
-      resolved:   false,
+    candidates.push({
+      id:       'error_spike',
+      type:     'ERROR_SPIKE',
+      severity: 'warning',
+      title:    'Pico de erros detectado',
+      message:  `${recentErrors?.count} erros na última hora (limite: ${ERROR_THRESHOLD})`,
     });
   }
 
   if (scoreRow?.avg != null && scoreRow.avg < MIN_SCORE) {
-    alerts.push({
-      id:         'low_avg_score',
-      type:       'LOW_SCORE',
-      severity:   'warning',
-      title:      'Qualidade de rede baixa',
-      message:    `Score médio nas últimas 24h: ${Math.round(scoreRow.avg)} (mínimo: ${MIN_SCORE})`,
-      created_at: now,
-      resolved:   false,
+    candidates.push({
+      id:       'low_avg_score',
+      type:     'LOW_SCORE',
+      severity: 'warning',
+      title:    'Qualidade de rede baixa',
+      message:  `Score médio nas últimas 24h: ${Math.round(scoreRow.avg)} (mínimo: ${MIN_SCORE})`,
     });
   }
 
-  return json({ source: "d1", items: alerts }, 200, env);
+  // Persiste idempotente: INSERT OR IGNORE mantém o alerta original se já existir
+  // (ativo ou resolvido). Não reabre alerta resolvido automaticamente.
+  for (const c of candidates) {
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO alerts (id, type, severity, title, message, created_at, resolved)
+       VALUES (?, ?, ?, ?, ?, ?, 0)`
+    ).bind(c.id, c.type, c.severity, c.title, c.message, now).run();
+  }
+}
+
+// GET /admin/alerts — gera alertas + retorna ativos + histórico recente (24h).
+// Compat: também serve GET /admin/metrics/alerts para o adminMetricsService legado.
+async function handleAlerts(_request: Request, env: Env): Promise<Response> {
+  await generateAndPersistAlerts(env);
+
+  const since = nowSec() - 86400;
+  const rows = await env.DB.prepare(
+    `SELECT id, type, severity, title, message, created_at, resolved
+     FROM alerts
+     WHERE resolved = 0 OR created_at >= ?
+     ORDER BY created_at DESC
+     LIMIT 50`
+  ).bind(since).all<AlertRow>();
+
+  const items = (rows.results ?? []).map(alertRowToResponse);
+  return json({ source: "d1", items }, 200, env);
+}
+
+// POST /admin/alerts/:id/resolve — marca alerta como resolvido.
+async function handleResolveAlert(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  // Extrai o id do path: /admin/alerts/:id/resolve
+  const match = url.pathname.match(/^\/admin\/alerts\/([^/]+)\/resolve$/);
+  if (!match) return err('id inválido', 400, env);
+  const id = match[1];
+
+  const result = await env.DB.prepare(
+    'UPDATE alerts SET resolved = 1 WHERE id = ?'
+  ).bind(id).run();
+
+  if ((result.meta?.changes ?? 0) === 0) {
+    return err('alerta não encontrado', 404, env);
+  }
+
+  return json({ ok: true, id }, 200, env);
+}
+
+// /admin/metrics/alerts — mantido para compatibilidade; delega para handleAlerts.
+async function handleRecentAlerts(request: Request, env: Env): Promise<Response> {
+  return handleAlerts(request, env);
 }
 
 async function handleAiCostMetrics(request: Request, env: Env): Promise<Response> {
@@ -1077,6 +1165,8 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/metrics\/network$/,                     handler: withErrorLogging('metrics', handleNetworkInsights) },
   { method: "GET",  pattern: /^\/admin\/metrics\/top-issues$/,                  handler: withErrorLogging('metrics', handleTopIssues) },
   { method: "GET",  pattern: /^\/admin\/metrics\/alerts$/,                      handler: withErrorLogging('metrics', handleRecentAlerts) },
+  { method: "GET",  pattern: /^\/admin\/alerts$/,                               handler: withErrorLogging('alerts', handleAlerts) },
+  { method: "POST", pattern: /^\/admin\/alerts\/[^/]+\/resolve$/,               handler: withErrorLogging('alerts', handleResolveAlert) },
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-costs$/,                    handler: withErrorLogging('metrics', handleAiCostMetrics) },
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-providers$/,                handler: withErrorLogging('metrics', handleAiProviders) },
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage\/timeline$/,          handler: withErrorLogging('metrics', handleAiUsageTimeline) },
