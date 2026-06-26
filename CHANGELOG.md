@@ -19,6 +19,7 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 - **Admin Panel — `errorMetricsService`:** `getErrorMetricSummary` e `getErrorByEndpoint` derivam dados reais do endpoint `/admin/metrics/errors` em produção (antes retornavam `null`/`[]`).
 - **Admin Worker — Sistema de alertas (SIG-133):** tabela `alerts` no D1 (migration `004_sig133.sql`) com geração idempotente (`INSERT OR IGNORE`) de candidatos por threshold — budget de IA lido de `admin_settings` agregando `ai_usage`, e pico de taxa de erros a partir de `system_errors`. Endpoints `GET /admin/alerts` (ativos + histórico 24h) e `POST /admin/alerts/:id/resolve`, com compat `GET /admin/metrics/alerts`. Sem budget/sem dado → nenhum alerta fabricado.
 - **Admin Panel — `AiAlertsPanel` / `RecentAlertsPanel`:** passam a consumir `/admin/alerts` real, sem dado hardcoded.
+- **Admin Worker — `reliabilityPercentage` por modelo em `/admin/metrics/ai-usage` (SIG-125):** campo calculado como `completion_tokens > 0 / total_calls * 100` (arredondado a 2 casas); retorna `null` por modelo sem registros no período. Frontend (`aiUsageService`) mapeado para consumir o campo real.
 
 ### Notes
 

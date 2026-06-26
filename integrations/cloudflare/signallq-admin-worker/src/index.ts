@@ -363,21 +363,43 @@ async function handleAiCost(request: Request, env: Env): Promise<Response> {
   const envClause = envFilter ? " AND environment = ?" : "";
   const envBinds  = envFilter ? [envFilter]            : [];
 
+  // SIG-125: inclui contagem de chamadas com resposta real (completion_tokens > 0)
+  // para calcular reliabilityPercentage por modelo.
+  // A tabela ai_usage não possui coluna status — o proxy de sucesso adotado é
+  // completion_tokens > 0: a chamada gerou tokens de resposta, portanto foi bem-sucedida.
+  // Mesmo critério usado em handleAiCostMetrics. Com tabela vazia, o campo retorna null.
   const rows = await env.DB.prepare(
-    `SELECT model, COUNT(*) AS calls, SUM(total_tokens) AS tokens, SUM(cost_usd) AS cost_usd
+    `SELECT model,
+            COUNT(*) AS calls,
+            SUM(total_tokens) AS tokens,
+            SUM(cost_usd) AS cost_usd,
+            SUM(CASE WHEN completion_tokens > 0 THEN 1 ELSE 0 END) AS successful_calls
      FROM ai_usage WHERE created_at >= ?${envClause} GROUP BY model ORDER BY calls DESC`
   ).bind(since, ...envBinds).all();
 
-  const totals = (rows.results ?? []).reduce(
+  const byModel = (rows.results ?? []).map((r: any) => {
+    const calls     = r.calls ?? 0;
+    const successful = r.successful_calls ?? 0;
+    return {
+      model:                 r.model,
+      calls,
+      tokens:                r.tokens    ?? 0,
+      cost_usd:              r.cost_usd  ?? 0,
+      // null quando não há registros; valor calculado a 2 casas decimais caso contrário.
+      reliabilityPercentage: calls > 0 ? Math.round((successful / calls) * 10000) / 100 : null,
+    };
+  });
+
+  const totals = byModel.reduce(
     (acc: any, r: any) => ({
-      calls:  acc.calls  + (r.calls  ?? 0),
-      tokens: acc.tokens + (r.tokens ?? 0),
-      cost:   acc.cost   + (r.cost_usd ?? 0),
+      calls:  acc.calls  + r.calls,
+      tokens: acc.tokens + r.tokens,
+      cost:   acc.cost   + r.cost_usd,
     }),
     { calls: 0, tokens: 0, cost: 0 }
   );
 
-  return json({ source: "d1", period, environment: envFilter ?? "all", byModel: rows.results ?? [], totals }, 200, env);
+  return json({ source: "d1", period, environment: envFilter ?? "all", byModel, totals }, 200, env);
 }
 
 // --- handlers /admin/metrics (SIG-110) ---
@@ -700,11 +722,11 @@ async function handleAiCostMetrics(request: Request, env: Env): Promise<Response
   const reliabilityRow = await env.DB.prepare(
     `SELECT COUNT(*) AS total,
             SUM(CASE WHEN completion_tokens > 0 THEN 1 ELSE 0 END) AS successful
-     FROM ai_usage WHERE created_at >= ?`
-  ).bind(since).first<{ total: number; successful: number }>();
+     FROM ai_usage WHERE created_at >= ?${envClause}`
+  ).bind(since, ...envBinds).first<{ total: number; successful: number }>();
   const reliabilityPercentage = (reliabilityRow?.total ?? 0) > 0
     ? Math.round(((reliabilityRow?.successful ?? 0) / reliabilityRow!.total) * 100)
-    : 100;
+    : null;
 
   return json({
     source: "d1",

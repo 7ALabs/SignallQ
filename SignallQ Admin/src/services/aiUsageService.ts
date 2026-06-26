@@ -20,9 +20,9 @@ export const aiUsageService = {
         totalTokens: r.tokens ?? 0,
         averageLatencyMs: 0,
         estimatedCostUsd: r.cost_usd ?? 0,
-        // O worker /admin/metrics/ai-usage não serve taxa de confiabilidade.
-        // Sem fonte real — retornar null em vez de valor hardcoded.
-        reliabilityPercentage: null,
+        // SIG-125: reliabilityPercentage agora vem do worker (completion_tokens > 0 como proxy de sucesso).
+        // null quando o modelo não tem registros no período.
+        reliabilityPercentage: r.reliabilityPercentage ?? null,
       }));
     }
 
@@ -77,7 +77,17 @@ export const aiUsageService = {
         const totalReq  = costsRaw.totalRequests ?? 0;
         const totalCost = costsRaw.totalCostUsd  ?? 0;
         const avgCost   = costsRaw.avgCostPerRequest ?? 0;
-        const reliability = usageRaw?.totals?.reliabilityPercentage ?? null;
+        // SIG-125: reliabilityPercentage geral — média ponderada por chamadas dos modelos.
+        // Exclui modelos sem dados (reliabilityPercentage null) para não inflar a média.
+        const byModelRaw = usageRaw?.byModel ?? [];
+        const modelsWithRel = byModelRaw.filter(m => m.reliabilityPercentage != null);
+        const totalCallsForRel = modelsWithRel.reduce((s, m) => s + (m.calls ?? 0), 0);
+        const reliability: number | null = totalCallsForRel > 0
+          ? Math.round(
+              modelsWithRel.reduce((s, m) => s + (m.reliabilityPercentage! * (m.calls ?? 0)), 0)
+              / totalCallsForRel * 100
+            ) / 100
+          : null;
         return {
           totalCostUsd:          `$${totalCost.toFixed(2)}`,
           totalRequests:         totalReq.toLocaleString("pt-BR"),
