@@ -22,6 +22,12 @@
   --sq-phase-download:  #34D399;
   --sq-phase-upload:    #FBBF24;
 
+  /* Provedores de IA */
+  --sq-provider-cloudflare: #7C3AED;
+  --sq-provider-openai:     #2563EB;
+  --sq-provider-anthropic:  #E040FB;
+  --sq-provider-local:      #71717A;
+
   /* Superfícies (Admin usa dark como padrão) */
   --sq-bg-primary:    #0D0D1A;   /* fundo geral — SignallQ-black */
   --sq-bg-secondary:  #1A1A1A;   /* superfícies secundárias — dark.bg-secondary do DS */

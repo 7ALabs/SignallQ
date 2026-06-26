@@ -2,6 +2,7 @@ import React from "react";
 import { ChartCard } from "../../../components/ui/ChartCard";
 import { DonutChart } from "../../../components/charts/DonutChart";
 import { AiModelInsights } from "../../../types/ai";
+import { SQ_TOKENS } from "../../../config/designTokens";
 
 interface ProviderUsageChartProps {
   insights: AiModelInsights[];
@@ -10,13 +11,13 @@ interface ProviderUsageChartProps {
 export const ProviderUsageChart: React.FC<ProviderUsageChartProps> = ({ insights }) => {
   const chartData = React.useMemo(() => {
     return insights.map((item) => {
-      let color = "#6C2BFF";
-      if (item.provider === "cloudflare_qwen") color = "#Eab308";
-      if (item.provider === "openai") color = "#38BDF8";
-      if (item.provider === "local_fallback") color = "#52525B";
+      let color: string = SQ_TOKENS.accent;
+      if (item.provider === "cloudflare_qwen") color = SQ_TOKENS.providerCloudflare;
+      if (item.provider === "openai")           color = SQ_TOKENS.providerOpenAI;
+      if (item.provider === "local_fallback")   color = SQ_TOKENS.providerLocal;
 
       return {
-        name: item.displayName || item.provider,
+        name:  item.displayName || item.provider,
         value: item.totalCalls,
         color,
       };

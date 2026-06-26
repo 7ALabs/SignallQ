@@ -2,19 +2,19 @@ import React from "react";
 import { ChartCard } from "../../../components/ui/ChartCard";
 import { LineChart } from "../../../components/charts/LineChart";
 import { AiDailyUsage } from "../../../types/ai";
+import { SQ_TOKENS } from "../../../config/designTokens";
 
-// Cores por provedor — design system SignallQ.
-// Gemini: violeta acento (#6C2BFF), Qwen/Workers AI: azul claro (#38BDF8),
-// fallback local: cinza neutro (#6B7280).
+// Cores por provedor — tokens do design system SignallQ.
+// Mantido em sincronia com --sq-provider-* em src/index.css via SQ_TOKENS.
 const PROVIDER_COLORS: Record<string, string> = {
-  "Gemini":             "#6C2BFF",
-  "Qwen / Workers AI":  "#38BDF8",
-  "local_fallback":     "#6B7280",
-  "OpenAI GPT":         "#10B981",
-  "Anthropic Claude":   "#F59E0B",
+  "Gemini":             SQ_TOKENS.accent,
+  "Qwen / Workers AI":  SQ_TOKENS.providerCloudflare,
+  "local_fallback":     SQ_TOKENS.providerLocal,
+  "OpenAI GPT":         SQ_TOKENS.providerOpenAI,
+  "Anthropic Claude":   SQ_TOKENS.providerAnthropic,
 };
 
-const DEFAULT_COLOR = "#9CA3AF";
+const DEFAULT_COLOR = SQ_TOKENS.textSecondary;
 
 interface AiCostTimelineProps {
   timelineData: AiDailyUsage[];
@@ -30,8 +30,18 @@ export const AiCostTimeline: React.FC<AiCostTimelineProps> = ({ timelineData }) 
       >
         <div className="flex items-center justify-center h-[260px] text-center px-4">
           <div>
-            <p className="text-xs font-mono text-zinc-500 uppercase tracking-widest">Sem dados no período</p>
-            <p className="text-[11px] text-zinc-600 mt-1 font-sans">Nenhuma inferência registrada no intervalo selecionado.</p>
+            <p
+              className="text-xs font-mono uppercase tracking-widest"
+              style={{ color: "var(--sq-text-tertiary)" }}
+            >
+              Sem dados no período
+            </p>
+            <p
+              className="text-[11px] mt-1"
+              style={{ color: "var(--sq-text-tertiary)" }}
+            >
+              Nenhuma inferência registrada no intervalo selecionado.
+            </p>
           </div>
         </div>
       </ChartCard>

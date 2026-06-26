@@ -4,9 +4,20 @@ import { DataTable } from "../../../components/ui/DataTable";
 import { Cpu, Server, Layers, HardDrive } from "lucide-react";
 import { AiModelInsights } from "../../../types/ai";
 import { FeatureComingSoon } from "../../../components/ui/FeatureComingSoon";
+import { SQ_TOKENS } from "../../../config/designTokens";
 
 interface ProviderCostTableProps {
   insights: AiModelInsights[];
+}
+
+// Resolve cor e ícone do provider a partir dos tokens do DS.
+function providerMeta(provider: string): { color: string; Icon: React.ElementType } {
+  switch (provider) {
+    case "cloudflare_qwen": return { color: SQ_TOKENS.providerCloudflare, Icon: Server };
+    case "openai":          return { color: SQ_TOKENS.providerOpenAI,      Icon: Layers };
+    case "local_fallback":  return { color: SQ_TOKENS.providerLocal,        Icon: HardDrive };
+    default:                return { color: SQ_TOKENS.accent,               Icon: Cpu };
+  }
 }
 
 export const ProviderCostTable: React.FC<ProviderCostTableProps> = ({ insights }) => {
@@ -14,72 +25,99 @@ export const ProviderCostTable: React.FC<ProviderCostTableProps> = ({ insights }
     {
       header: "Modelo de Borda (LLM)",
       accessor: (row: AiModelInsights) => {
-        let modelIcon = <Cpu className="w-4 h-4 text-purple-400" />;
-        if (row.provider === "cloudflare_qwen") modelIcon = <Server className="w-4 h-4 text-amber-500 animate-pulse" />;
-        if (row.provider === "openai") modelIcon = <Layers className="w-4 h-4 text-blue-400" />;
-        if (row.provider === "local_fallback") modelIcon = <HardDrive className="w-4 h-4 text-zinc-550" />;
-        
+        const { color, Icon } = providerMeta(row.provider);
         return (
-          <div className="flex items-center gap-2.5 font-sans">
-            <span className="p-1.5 bg-zinc-900 border border-zinc-800 rounded-lg">{modelIcon}</span>
+          <div className="flex items-center gap-2.5">
+            <span
+              className="p-1.5 rounded-lg"
+              style={{
+                backgroundColor: "var(--sq-bg-overlay)",
+                border: "1px solid var(--sq-border)",
+              }}
+            >
+              <Icon className="w-4 h-4" style={{ color }} />
+            </span>
             <div>
-              <span className="font-semibold text-white block text-xs">{row.displayName}</span>
-              <span className="font-mono text-[9px] text-zinc-500 uppercase">{row.provider}</span>
+              <span className="font-semibold block text-xs" style={{ color: "var(--sq-text-primary)" }}>
+                {row.displayName}
+              </span>
+              <span className="font-mono text-[9px] uppercase" style={{ color: "var(--sq-text-tertiary)" }}>
+                {row.provider}
+              </span>
             </div>
           </div>
         );
-      }
+      },
     },
     {
       header: "Total de Chamadas",
       accessor: (row: AiModelInsights) => (
-        <span className="font-mono text-zinc-400 text-xs">
+        <span className="font-mono text-xs" style={{ color: "var(--sq-text-secondary)" }}>
           {row.totalCalls.toLocaleString("pt-BR")}
         </span>
-      )
+      ),
     },
     {
       header: "Tokens Consumidos",
       accessor: (row: AiModelInsights) => {
-        if (row.totalTokens === 0) return <span className="font-mono text-zinc-600">-</span>;
+        if (row.totalTokens === 0) return <span className="font-mono" style={{ color: "var(--sq-text-tertiary)" }}>-</span>;
         const millionTokens = (row.totalTokens / 1000000).toFixed(1);
         return (
-          <span className="font-mono text-zinc-300 text-xs">
+          <span className="font-mono text-xs" style={{ color: "var(--sq-text-primary)" }}>
             {row.totalTokens.toLocaleString("pt-BR")}{" "}
-            <span className="text-[10px] text-zinc-500 font-sans">({millionTokens}M)</span>
+            <span className="text-[10px]" style={{ color: "var(--sq-text-tertiary)" }}>({millionTokens}M)</span>
           </span>
         );
-      }
+      },
     },
     {
       header: "Custo Estimado (USD)",
       accessor: (row: AiModelInsights) => {
         const costVal = row.estimatedCostUsd;
-        if (costVal === 0) return <span className="text-[#22C55E] uppercase font-mono text-[10px] bg-emerald-950/20 border border-emerald-500/15 px-2 py-0.5 rounded font-bold">Grátis</span>;
+        if (costVal === 0) {
+          return (
+            <span
+              className="uppercase font-mono text-[10px] px-2 py-0.5 rounded font-bold"
+              style={{
+                color: "var(--sq-success)",
+                backgroundColor: "color-mix(in srgb, var(--sq-success) 10%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--sq-success) 15%, transparent)",
+              }}
+            >
+              Grátis
+            </span>
+          );
+        }
         return (
-          <span className="font-mono text-indigo-400 font-bold text-xs">
-            {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(costVal)}
+          <span className="font-mono font-bold text-xs" style={{ color: "var(--sq-accent)" }}>
+            {new Intl.NumberFormat("en-US", {
+              style: "currency",
+              currency: "USD",
+              minimumFractionDigits: 2,
+            }).format(costVal)}
           </span>
         );
-      }
+      },
     },
     {
       header: "Taxa de Sucesso",
       accessor: (row: AiModelInsights) => {
         if (row.reliabilityPercentage === null) {
-          return (
-            <FeatureComingSoon feature="Taxa de Sucesso" compact />
-          );
+          return <FeatureComingSoon feature="Taxa de Sucesso" compact />;
         }
         const val = row.reliabilityPercentage;
-        const color = val > 99 ? "text-emerald-400" : val > 97 ? "text-amber-500" : "text-red-400";
+        const color = val > 99
+          ? SQ_TOKENS.success
+          : val > 97
+          ? SQ_TOKENS.warning
+          : SQ_TOKENS.error;
         return (
-          <span className={`font-mono font-bold text-xs ${color}`}>
+          <span className="font-mono font-bold text-xs" style={{ color }}>
             {val.toFixed(2)}%
           </span>
         );
-      }
-    }
+      },
+    },
   ];
 
   return (
