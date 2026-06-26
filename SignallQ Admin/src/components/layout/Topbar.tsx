@@ -35,8 +35,8 @@ export const Topbar: React.FC<TopbarProps> = ({
       id={id || "topbar-header"}
       className="h-14 lg:h-16 px-4 lg:px-8 flex items-center justify-between sticky top-0 z-30 select-none"
       style={{
-        borderBottom: "1px solid var(--sq-border)",
-        backgroundColor: "var(--sq-bg-primary)",
+        borderBottom: "1px solid var(--border)",
+        backgroundColor: "var(--bg-base)",
       }}
     >
       {/* Left: hamburger (mobile) + title */}
@@ -47,9 +47,9 @@ export const Topbar: React.FC<TopbarProps> = ({
             onClick={onOpenMobileSidebar}
             className="lg:hidden p-2 rounded-xl transition-colors shrink-0"
             style={{
-              border: "1px solid var(--sq-border)",
-              backgroundColor: "var(--sq-bg-card)",
-              color: "var(--sq-text-secondary)",
+              border: "1px solid var(--border)",
+              backgroundColor: "var(--bg-surface)",
+              color: "var(--text-secondary)",
             }}
             aria-label="Abrir menu"
           >
@@ -60,16 +60,16 @@ export const Topbar: React.FC<TopbarProps> = ({
         {/* Page Title */}
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center gap-2 min-w-0">
-            <h1 className="text-base lg:text-xl font-semibold tracking-tight truncate" style={{ color: "var(--sq-text-primary)" }}>
+            <h1 className="text-[18px] font-semibold tracking-[-0.01em] truncate" style={{ color: "var(--text-primary)" }}>
               {title}
             </h1>
             {environment === "staging" && (
               <span
                 className="shrink-0 px-2 py-0.5 text-[10px] font-mono rounded"
                 style={{
-                  backgroundColor: "color-mix(in srgb, var(--sq-warning) 20%, transparent)",
-                  color: "var(--sq-warning)",
-                  border: "1px solid color-mix(in srgb, var(--sq-warning) 30%, transparent)",
+                  backgroundColor: "color-mix(in srgb, var(--attention) 20%, transparent)",
+                  color: "var(--attention)",
+                  border: "1px solid color-mix(in srgb, var(--attention) 30%, transparent)",
                 }}
               >
                 STAGING
@@ -78,17 +78,17 @@ export const Topbar: React.FC<TopbarProps> = ({
           </div>
           <div
             className="hidden lg:block h-4 w-px"
-            style={{ backgroundColor: "var(--sq-border)" }}
+            style={{ backgroundColor: "var(--border)" }}
           />
           <div
-            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono"
+            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-sans"
             style={{
-              backgroundColor: "var(--sq-bg-card)",
-              border: "1px solid var(--sq-border)",
-              color: "var(--sq-text-secondary)",
+              backgroundColor: "var(--bg-surface)",
+              border: "1px solid var(--border)",
+              color: "var(--text-secondary)",
             }}
           >
-            <Database className="w-3 h-3" style={{ color: "var(--sq-accent)" }} />
+            <Database className="w-3 h-3" style={{ color: "var(--primary)" }} />
             <span>Real-Time Edge Sync</span>
           </div>
         </div>
@@ -100,23 +100,23 @@ export const Topbar: React.FC<TopbarProps> = ({
         <div
           className="flex p-0.5 rounded-xl"
           style={{
-            backgroundColor: "var(--sq-bg-card)",
-            border: "1px solid var(--sq-border)",
+            backgroundColor: "var(--bg-surface)",
+            border: "1px solid var(--border)",
           }}
         >
           {(["production", "staging"] as AppEnvironment[]).map((env) => (
             <button
               key={env}
               onClick={() => onEnvironmentChange(env)}
-              className="px-2.5 lg:px-3 py-1.5 text-[10px] font-mono tracking-wider transition-all rounded-lg cursor-pointer"
+              className="px-2.5 lg:px-3 py-1.5 text-[11px] font-sans tracking-[0.04em] uppercase transition-all rounded-lg cursor-pointer"
               style={
                 environment === env
                   ? {
-                      backgroundColor: "var(--sq-control-active)",
-                      color: "var(--sq-text-primary)",
+                      backgroundColor: "var(--bg-sidebar-active)",
+                      color: "var(--text-primary)",
                       fontWeight: 600,
                     }
-                  : { color: "var(--sq-text-secondary)" }
+                  : { color: "var(--text-secondary)" }
               }
             >
               {env === "production" ? "PROD" : "STG"}
@@ -128,23 +128,23 @@ export const Topbar: React.FC<TopbarProps> = ({
         <div
           className="hidden md:flex items-center gap-0.5 p-0.5 rounded-xl"
           style={{
-            backgroundColor: "var(--sq-bg-card)",
-            border: "1px solid var(--sq-border)",
+            backgroundColor: "var(--bg-surface)",
+            border: "1px solid var(--border)",
           }}
         >
           {PERIOD_FILTERS.map((f) => (
             <button
               key={f.value}
               onClick={() => onPeriodChange(f.value)}
-              className="px-3 py-1.5 text-[11px] rounded-lg transition-colors cursor-pointer"
+              className="px-3 py-1.5 text-[11px] font-sans rounded-lg transition-colors cursor-pointer"
               style={
                 period === f.value
                   ? {
-                      backgroundColor: "var(--sq-control-active)",
-                      color: "var(--sq-text-primary)",
+                      backgroundColor: "var(--bg-sidebar-active)",
+                      color: "var(--text-primary)",
                       fontWeight: 500,
                     }
-                  : { color: "var(--sq-text-secondary)" }
+                  : { color: "var(--text-secondary)" }
               }
             >
               {f.label}
@@ -158,9 +158,9 @@ export const Topbar: React.FC<TopbarProps> = ({
             onClick={onExport}
             className="hidden lg:flex px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer items-center gap-2"
             style={{
-              border: "1px solid var(--sq-border)",
-              backgroundColor: "var(--sq-bg-card)",
-              color: "var(--sq-text-secondary)",
+              border: "1px solid var(--border)",
+              backgroundColor: "var(--bg-surface)",
+              color: "var(--text-secondary)",
             }}
             title="Download CSV database dump"
           >
@@ -176,8 +176,8 @@ export const Topbar: React.FC<TopbarProps> = ({
             disabled={isRefreshing}
             className="p-2 lg:px-4 lg:py-2 rounded-xl text-xs font-semibold text-white transition-all flex items-center gap-2 cursor-pointer disabled:opacity-40"
             style={{
-              backgroundColor: "var(--sq-accent)",
-              boxShadow: "0 4px 12px color-mix(in srgb, var(--sq-accent) 20%, transparent)",
+              backgroundColor: "var(--primary)",
+              boxShadow: "0 4px 12px color-mix(in srgb, var(--primary) 20%, transparent)",
             }}
             title="Sincronizar telemetria"
           >
@@ -192,9 +192,9 @@ export const Topbar: React.FC<TopbarProps> = ({
             onClick={onLogout}
             className="p-2 rounded-xl transition-all cursor-pointer"
             style={{
-              border: "1px solid var(--sq-border)",
-              backgroundColor: "var(--sq-bg-card)",
-              color: "var(--sq-text-tertiary)",
+              border: "1px solid var(--border)",
+              backgroundColor: "var(--bg-surface)",
+              color: "var(--text-tertiary)",
             }}
             title="Sair"
           >

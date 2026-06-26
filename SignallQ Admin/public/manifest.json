@@ -1,9 +1,13 @@
 {
-  "name": "SignallQ Admin",
-  "short_name": "SignallQ Admin",
+  "name": "N7b Console",
+  "short_name": "N7b Console",
+  "description": "Painel administrativo do SignallQ — métricas de produto, diagnósticos e custo de IA.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0D0D1A",
+  "orientation": "any",
+  "lang": "pt-BR",
+  "background_color": "#16161A",
   "theme_color": "#6C2BFF",
   "icons": [
     {

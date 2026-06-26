@@ -20,23 +20,23 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       id={id || `chart-card-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
       className="rounded-2xl p-5 transition-all duration-200"
       style={{
-        backgroundColor: "var(--sq-bg-card)",
-        border: "1px solid var(--sq-border)",
+        backgroundColor: "var(--bg-surface)",
+        border: "1px solid var(--border)",
       }}
     >
       <div
         className="flex items-center justify-between gap-4 pb-4 mb-5 select-none"
-        style={{ borderBottom: "1px solid var(--sq-border)" }}
+        style={{ borderBottom: "1px solid var(--border)" }}
       >
         <div>
           <h4
-            className="text-xs font-semibold font-mono uppercase tracking-wider"
-            style={{ color: "var(--sq-text-secondary)" }}
+            className="text-[11px] font-semibold font-sans uppercase tracking-[0.08em]"
+            style={{ color: "var(--text-secondary)" }}
           >
             {title}
           </h4>
           {description && (
-            <p className="text-[11px] mt-0.5" style={{ color: "var(--sq-text-tertiary)" }}>
+            <p className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>
               {description}
             </p>
           )}

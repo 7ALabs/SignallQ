@@ -38,15 +38,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       case "/overview":
         return "Visão Geral";
       case "/product-analytics":
-        return "Engajamento & Uso";
+        return "Produto & Uso";
       case "/diagnostics":
         return "Diagnósticos";
       case "/networks":
-        return "Frequências & RF";
+        return "Redes & RF";
       case "/operators":
-        return "Benchmarks";
+        return "Operadoras";
       case "/ai-cost":
-        return "Custos IA";
+        return "IA & Custo";
       case "/errors":
         return "Erros";
       case "/app-versions":
@@ -67,7 +67,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     <div
       id={id || "app-layout-root"}
       className="flex w-full h-screen overflow-hidden select-none font-sans"
-      style={{ backgroundColor: "var(--sq-bg-primary)", color: "var(--sq-text-primary)" }}
+      style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}
     >
       {/* Mobile sidebar overlay */}
       {isMobileSidebarOpen && (
@@ -110,7 +110,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         )}
 
         {/* 3. Main scrollable panel */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8 space-y-6 lg:space-y-8" style={{ backgroundColor: "var(--sq-bg-primary)" }}>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 lg:space-y-8" style={{ backgroundColor: "var(--bg-base)" }}>
           {children}
         </main>
       </div>

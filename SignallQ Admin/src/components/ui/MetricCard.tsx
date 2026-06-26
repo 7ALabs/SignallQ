@@ -39,20 +39,20 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
   const trendStyle = isTrendUp
     ? {
-        color: "var(--sq-success)",
-        backgroundColor: "color-mix(in srgb, var(--sq-success) 10%, transparent)",
-        border: "1px solid color-mix(in srgb, var(--sq-success) 20%, transparent)",
+        color: "var(--success)",
+        backgroundColor: "color-mix(in srgb, var(--success) 10%, transparent)",
+        border: "1px solid color-mix(in srgb, var(--success) 20%, transparent)",
       }
     : isTrendDown
     ? {
-        color: "var(--sq-error)",
-        backgroundColor: "color-mix(in srgb, var(--sq-error) 10%, transparent)",
-        border: "1px solid color-mix(in srgb, var(--sq-error) 20%, transparent)",
+        color: "var(--error)",
+        backgroundColor: "color-mix(in srgb, var(--error) 10%, transparent)",
+        border: "1px solid color-mix(in srgb, var(--error) 20%, transparent)",
       }
     : {
-        color: "var(--sq-text-secondary)",
-        backgroundColor: "var(--sq-bg-overlay)",
-        border: "1px solid var(--sq-border)",
+        color: "var(--text-secondary)",
+        backgroundColor: "var(--bg-surface-hover)",
+        border: "1px solid var(--border)",
       };
 
   return (
@@ -60,15 +60,15 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       id={id || `metric-card-${label.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
       className={`relative overflow-hidden rounded-2xl p-5 transition-all duration-200 group ${className}`}
       style={{
-        backgroundColor: "var(--sq-bg-card)",
-        border: "1px solid var(--sq-border)",
+        backgroundColor: "var(--bg-surface)",
+        border: "1px solid var(--border)",
       }}
     >
       {/* Accent glow — leve, no canto superior direito */}
       <div
         className="absolute top-0 right-0 w-24 h-24 rounded-full pointer-events-none transition-all duration-300"
         style={{
-          background: "radial-gradient(circle, color-mix(in srgb, var(--sq-accent) 6%, transparent), transparent)",
+          background: "radial-gradient(circle, color-mix(in srgb, var(--primary) 6%, transparent), transparent)",
           filter: "blur(20px)",
         }}
       />
@@ -77,9 +77,9 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         <span
           className="absolute top-3 right-3 text-[9px] font-mono px-1.5 py-0.5 rounded select-none"
           style={{
-            color: "var(--sq-text-tertiary)",
-            backgroundColor: "var(--sq-bg-primary)",
-            border: "1px solid var(--sq-border-subtle)",
+            color: "var(--text-tertiary)",
+            backgroundColor: "var(--bg-base)",
+            border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)",
           }}
         >
           {source}
@@ -87,20 +87,20 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       )}
 
       <p
-        className="text-[11px] font-mono uppercase tracking-wider select-none"
-        style={{ color: "var(--sq-text-secondary)" }}
+        className="text-[11px] font-sans uppercase tracking-[0.08em] font-semibold select-none"
+        style={{ color: "var(--text-secondary)" }}
       >
         {label}
       </p>
 
       <div className="mt-2.5 flex items-baseline justify-between">
-        <h3 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--sq-text-primary)" }}>
+        <h3 className="text-2xl lg:text-[28px] font-bold tracking-[-0.03em]" style={{ color: "var(--text-primary)" }}>
           {formattedValue}
         </h3>
 
         {trend && (
           <span
-            className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-xs font-mono"
+            className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-sans font-medium"
             style={trendStyle}
           >
             {isTrendUp ? (
@@ -118,7 +118,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       {trend && (
         <span
           className="mt-2 block text-[10px] tracking-wide"
-          style={{ color: "var(--sq-text-tertiary)" }}
+          style={{ color: "var(--text-tertiary)" }}
         >
           {trend.intervalLabel}
         </span>

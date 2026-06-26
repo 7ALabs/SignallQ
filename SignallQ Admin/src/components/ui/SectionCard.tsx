@@ -22,24 +22,24 @@ export const SectionCard: React.FC<SectionCardProps> = ({
       id={id || `section-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
       className={`rounded-2xl overflow-hidden transition-all duration-200 ${className}`}
       style={{
-        backgroundColor: "var(--sq-bg-card)",
-        border: "1px solid var(--sq-border)",
+        backgroundColor: "var(--bg-surface)",
+        border: "1px solid var(--border)",
       }}
     >
       {/* Card Header */}
       <div
         className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-6 py-4 gap-4"
-        style={{ borderBottom: "1px solid var(--sq-border)" }}
+        style={{ borderBottom: "1px solid var(--border)" }}
       >
         <div>
           <h3
-            className="text-sm font-medium tracking-tight"
-            style={{ color: "var(--sq-text-primary)" }}
+            className="text-[14px] font-semibold tracking-[-0.01em]"
+            style={{ color: "var(--text-primary)" }}
           >
             {title}
           </h3>
           {description && (
-            <p className="text-xs mt-1" style={{ color: "var(--sq-text-secondary)" }}>
+            <p className="text-[13px] leading-[1.5] mt-1" style={{ color: "var(--text-secondary)" }}>
               {description}
             </p>
           )}

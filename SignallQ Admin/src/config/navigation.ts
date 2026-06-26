@@ -13,7 +13,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     iconName: "LayoutDashboard",
   },
   {
-    name: "Produto & uso",
+    name: "Produto & Uso",
     path: "/product-analytics",
     iconName: "LineChart",
   },
@@ -25,7 +25,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     badgeType: "info",
   },
   {
-    name: "Análise de Redes",
+    name: "Redes & RF",
     path: "/networks",
     iconName: "Wifi",
   },
@@ -40,14 +40,14 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     iconName: "BrainCircuit",
   },
   {
-    name: "Logs de Erros",
+    name: "Erros",
     path: "/errors",
     iconName: "AlertTriangle",
     badge: "12",
     badgeType: "error",
   },
   {
-    name: "Versões do App",
+    name: "Versões Android",
     path: "/app-versions",
     iconName: "GitBranch",
   },

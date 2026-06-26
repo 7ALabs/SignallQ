@@ -56,8 +56,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}
       style={{
-        backgroundColor: "var(--sq-bg-primary)",
-        borderRight: "1px solid var(--sq-border)",
+        backgroundColor: "var(--bg-sidebar)",
+        borderRight: "1px solid var(--border)",
       }}
     >
       {/* Top Session / Branding */}
@@ -65,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Logo Section */}
         <div
           className="p-6 flex items-center justify-between"
-          style={{ borderBottom: "1px solid var(--sq-border)" }}
+          style={{ borderBottom: "1px solid var(--border)" }}
         >
           <div className="flex items-center gap-3">
             <div
@@ -80,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </svg>
             </div>
             <div>
-              <span className="font-bold text-lg tracking-tight block" style={{ color: "var(--sq-text-primary)" }}>
+              <span className="font-bold text-lg tracking-tight block" style={{ color: "var(--text-primary)" }}>
                 SignallQ <span className="font-normal" style={{ color: "var(--sq-text-tertiary)" }}>Admin</span>
               </span>
             </div>
@@ -90,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={onClose}
               className="lg:hidden p-1.5 rounded-lg transition-colors"
-              style={{ color: "var(--sq-text-tertiary)" }}
+              style={{ color: "var(--text-tertiary)" }}
               aria-label="Fechar menu"
             >
               <X className="w-4 h-4" />
@@ -99,26 +99,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Environment Status Badge */}
-        <div className="px-6 py-4" style={{ backgroundColor: "var(--sq-bg-primary)" }}>
+        <div className="px-6 py-4" style={{ backgroundColor: "var(--bg-sidebar)" }}>
           <div
             className="flex items-center gap-2 px-3 py-1.5 rounded-full w-fit"
             style={{
-              backgroundColor: "var(--sq-bg-overlay)",
-              border: "1px solid var(--sq-border)",
+              backgroundColor: "var(--bg-surface-hover)",
+              border: "1px solid var(--border)",
             }}
           >
             <div
               className="w-2 h-2 rounded-full"
               style={{
-                backgroundColor: environment === "production" ? "var(--sq-success)" : "var(--sq-phase-latency)",
+                backgroundColor: environment === "production" ? "var(--success)" : "var(--sq-phase-latency)",
                 boxShadow: environment === "production"
-                  ? "0 0 8px var(--sq-success)"
+                  ? "0 0 8px var(--success)"
                   : "0 0 8px var(--sq-phase-latency)",
               }}
             />
             <span
-              className="text-[10px] font-semibold uppercase tracking-wider"
-              style={{ color: "var(--sq-text-secondary)" }}
+              className="text-[11px] font-sans font-semibold uppercase tracking-[0.08em]"
+              style={{ color: "var(--text-secondary)" }}
             >
               {environment === "production" ? "Production" : "Staging"}
             </span>
@@ -135,16 +135,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.path}
                 onClick={() => onNavigate(item.path)}
-                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium border transition-all duration-150 select-none cursor-pointer"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-[13px] font-medium border transition-all duration-150 select-none cursor-pointer"
                 style={
                   isActive
                     ? {
-                        backgroundColor: "color-mix(in srgb, var(--sq-accent) 10%, transparent)",
-                        color: "var(--sq-accent)",
-                        borderColor: "color-mix(in srgb, var(--sq-accent) 20%, transparent)",
+                        backgroundColor: "var(--bg-sidebar-active)",
+                        color: "var(--primary)",
+                        borderColor: "transparent",
                       }
                     : {
-                        color: "var(--sq-text-secondary)",
+                        color: "var(--text-secondary)",
                         borderColor: "transparent",
                       }
                 }
@@ -153,7 +153,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {IconComponent && (
                     <IconComponent
                       className="w-4 h-4 shrink-0 transition-colors"
-                      style={{ color: isActive ? "var(--sq-accent)" : "var(--sq-text-secondary)" }}
+                      style={{ color: isActive ? "var(--primary)" : "var(--text-secondary)" }}
                     />
                   )}
                   <span>{item.name}</span>
@@ -161,7 +161,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 {item.badge && (
                   <span
-                    className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md"
+                    className="text-[11px] font-sans font-medium px-2 py-0.5 rounded-md tracking-[0.04em] uppercase"
                     style={
                       item.badgeType === "error"
                         ? {
@@ -186,29 +186,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       {/* Sidebar Footer Info */}
-      <div className="p-4" style={{ borderTop: "1px solid var(--sq-border)" }}>
+      <div className="p-4" style={{ borderTop: "1px solid var(--border)" }}>
         <div
           className="p-3 rounded-xl flex items-center gap-3"
           style={{
-            backgroundColor: "var(--sq-bg-card)",
-            border: "1px solid var(--sq-border)",
+            backgroundColor: "var(--bg-surface)",
+            border: "1px solid var(--border)",
           }}
         >
           <div
             className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-mono"
             style={{
-              backgroundColor: "var(--sq-bg-overlay)",
-              color: "var(--sq-text-secondary)",
-              border: "1px solid var(--sq-border)",
+              backgroundColor: "var(--bg-surface-hover)",
+              color: "var(--text-secondary)",
+              border: "1px solid var(--border)",
             }}
           >
             CF
           </div>
           <div className="min-w-0">
-            <span className="text-[11px] font-semibold block truncate" style={{ color: "var(--sq-text-primary)" }}>
+            <span className="text-[11px] font-semibold block truncate" style={{ color: "var(--text-primary)" }}>
               Cloudflare Gateway
             </span>
-            <span className="text-[10px] font-mono block leading-tight" style={{ color: "var(--sq-success)" }}>
+            <span className="text-[10px] font-mono block leading-tight" style={{ color: "var(--success)" }}>
               ONLINE · EDGE
             </span>
           </div>
