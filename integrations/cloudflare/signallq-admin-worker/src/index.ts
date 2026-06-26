@@ -1309,6 +1309,180 @@ async function handleIngestAiUsage(request: Request, env: Env): Promise<Response
   return json({ ok: true, id: p.id }, 201, env);
 }
 
+// --- SIG-134: analytics de produto ---
+
+async function handleIngestAnalytics(request: Request, env: Env): Promise<Response> {
+  let body: any;
+  try { body = await request.json(); } catch { return err('body JSON inválido', 400, env); }
+
+  const events: any[] = Array.isArray(body.events) ? body.events : [];
+  if (events.length === 0) return json({ ok: true, inserted: 0 }, 200, env);
+  if (events.length > 500) return err('máximo 500 eventos por batch', 400, env);
+
+  const VALID_EVENTS = new Set(['feature_used', 'screen_view', 'session_start', 'feature_crash', 'battery_snapshot']);
+  const now = nowSec();
+
+  const stmts = events
+    .filter((e) => e && VALID_EVENTS.has(e.name))
+    .map((e) =>
+      env.DB.prepare(
+        `INSERT OR IGNORE INTO analytics_events
+           (id, event_name, session_id, created_at, app_version, feature_id, screen_name, error_type, battery_level, battery_charging, environment)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        crypto.randomUUID(),
+        e.name,
+        e.session_id ?? '',
+        typeof e.timestamp === 'number' ? e.timestamp : now,
+        e.app_version ?? '',
+        e.feature_id  ?? '',
+        e.screen_name ?? '',
+        e.error_type  ?? '',
+        typeof e.battery_level    === 'number' ? e.battery_level    : null,
+        typeof e.battery_charging === 'boolean' ? (e.battery_charging ? 1 : 0) : null,
+        e.environment ?? 'production',
+      )
+    );
+
+  if (stmts.length > 0) await env.DB.batch(stmts);
+
+  return json({ ok: true, inserted: stmts.length }, 201, env);
+}
+
+async function handleProductAnalytics(request: Request, env: Env): Promise<Response> {
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get('period') ?? '7d';
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? ' AND environment = ?' : '';
+  const envBinds  = envFilter ? [envFilter]            : [];
+
+  const [featureRows, screenRows, crashRows, totalRows] = await Promise.all([
+    // Uso por feature: contagem total e sessões únicas
+    env.DB.prepare(
+      `SELECT feature_id, COUNT(*) AS usage_count, COUNT(DISTINCT session_id) AS unique_sessions
+       FROM analytics_events
+       WHERE event_name = 'feature_used' AND created_at >= ?${envClause}
+         AND feature_id != ''
+       GROUP BY feature_id ORDER BY usage_count DESC`
+    ).bind(since, ...envBinds).all(),
+
+    // Navegação por tela
+    env.DB.prepare(
+      `SELECT screen_name, COUNT(*) AS views, COUNT(DISTINCT session_id) AS unique_sessions
+       FROM analytics_events
+       WHERE event_name = 'screen_view' AND created_at >= ?${envClause}
+         AND screen_name != ''
+       GROUP BY screen_name ORDER BY views DESC`
+    ).bind(since, ...envBinds).all(),
+
+    // Crashes por feature
+    env.DB.prepare(
+      `SELECT feature_id,
+              COUNT(*) AS crashes,
+              GROUP_CONCAT(DISTINCT app_version) AS affected_versions
+       FROM analytics_events
+       WHERE event_name = 'feature_crash' AND created_at >= ?${envClause}
+         AND feature_id != ''
+       GROUP BY feature_id ORDER BY crashes DESC`
+    ).bind(since, ...envBinds).all(),
+
+    // Total de feature_used para calcular crash rate
+    env.DB.prepare(
+      `SELECT feature_id, COUNT(*) AS total
+       FROM analytics_events
+       WHERE event_name = 'feature_used' AND created_at >= ?${envClause}
+         AND feature_id != ''
+       GROUP BY feature_id`
+    ).bind(since, ...envBinds).all(),
+  ]);
+
+  const usageByFeature = new Map<string, number>(
+    (totalRows.results ?? []).map((r: any) => [r.feature_id, r.total])
+  );
+
+  const feature_usage = (featureRows.results ?? []).map((r: any) => ({
+    feature:        r.feature_id,
+    label:          r.feature_id,
+    usageCount:     r.usage_count   ?? 0,
+    uniqueUsers:    r.unique_sessions ?? 0,
+    completionRate: 0,
+    failureRate:    0,
+    avgDurationMs:  0,
+    trendPercent:   0,
+  }));
+
+  const screen_navigation = (screenRows.results ?? []).map((r: any) => ({
+    screen:              r.screen_name,
+    label:               r.screen_name,
+    views:               r.views           ?? 0,
+    uniqueUsers:         r.unique_sessions  ?? 0,
+    avgTimeOnScreenSec:  0,
+    exitRate:            0,
+    nextMostCommonScreen: null,
+  }));
+
+  const feature_crashes = (crashRows.results ?? []).map((r: any) => {
+    const total   = usageByFeature.get(r.feature_id) ?? 0;
+    const crashes = r.crashes ?? 0;
+    const rate    = total > 0 ? crashes / total : 0;
+    const versions = r.affected_versions
+      ? String(r.affected_versions).split(',').filter(Boolean)
+      : [];
+    return {
+      feature:         r.feature_id,
+      label:           r.feature_id,
+      crashes,
+      nonFatalErrors:  0,
+      anrs:            0,
+      crashRate:       Math.round(rate * 1000) / 10,
+      affectedVersions: versions,
+      severity:        crashes === 0 ? 'ok' : rate > 0.05 ? 'critical' : 'attention',
+    };
+  });
+
+  return json({
+    source: 'd1',
+    period,
+    environment: envFilter ?? 'all',
+    no_data_yet: feature_usage.length === 0 && screen_navigation.length === 0,
+    feature_usage,
+    screen_navigation,
+    feature_crashes,
+  }, 200, env);
+}
+
+async function handleBatteryAnalytics(request: Request, env: Env): Promise<Response> {
+  const url    = new URL(request.url);
+  const period = url.searchParams.get('period') ?? '7d';
+  const since  = nowSec() - periodToSeconds(period);
+
+  const rows = await env.DB.prepare(
+    `SELECT
+       AVG(CAST(battery_level AS REAL)) AS avg_level,
+       SUM(battery_charging) AS charging_count,
+       COUNT(*) AS total
+     FROM analytics_events
+     WHERE event_name = 'battery_snapshot' AND created_at >= ?
+       AND battery_level IS NOT NULL`
+  ).bind(since).first<{ avg_level: number | null; charging_count: number; total: number }>();
+
+  const total = rows?.total ?? 0;
+
+  return json({
+    source:     'd1',
+    period,
+    no_data_yet: total === 0,
+    summary: total === 0 ? null : {
+      avg_battery_level:       rows?.avg_level != null ? Math.round(rows.avg_level) : null,
+      charging_sessions_pct:   rows && total > 0 ? Math.round((rows.charging_count / total) * 100) : 0,
+      total_snapshots:         total,
+    },
+    items: [],
+  }, 200, env);
+}
+
 // --- SIG-13: feature flags ---
 
 interface FeatureFlag {
@@ -1452,6 +1626,8 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/versions$/,     handler: handleFirebaseVersions },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/crash-issues$/, handler: handleFirebaseCrashIssues },
   { method: "POST", pattern: /^\/admin\/integrations\/firebase\/sync$/,         handler: handleFirebaseSync },
+  { method: "GET",  pattern: /^\/admin\/analytics\/product$/,                   handler: withErrorLogging('analytics', handleProductAnalytics) },
+  { method: "GET",  pattern: /^\/admin\/analytics\/battery$/,                   handler: withErrorLogging('analytics', handleBatteryAnalytics) },
   { method: "GET",  pattern: /^\/admin\/settings$/,                             handler: handleSettings },
   { method: "POST", pattern: /^\/admin\/settings$/,                             handler: handleSettings },
   // SIG-13: GET usa nova tabela; POST mantido para compat com adminSettingsService legado.
@@ -1467,6 +1643,7 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
 const INGEST_ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "POST", pattern: /^\/ingest\/diagnostic$/, handler: handleIngestDiagnostic },
   { method: "POST", pattern: /^\/ingest\/ai-usage$/,   handler: handleIngestAiUsage },
+  { method: "POST", pattern: /^\/ingest\/analytics$/,  handler: withErrorLogging('analytics', handleIngestAnalytics) },
 ];
 
 export default {
