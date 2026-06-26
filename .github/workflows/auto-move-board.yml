@@ -37,6 +37,11 @@ jobs:
         id: decide
         env:
           GH_TOKEN: ${{ secrets.PROJECT_PAT }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          ISSUE_LABELS: ${{ toJSON(github.event.issue.labels) }}
+          LABEL_NAME: ${{ github.event.label.name }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
         run: |
           set -e
           EVENT="${{ github.event_name }}"
@@ -48,8 +53,8 @@ jobs:
             NUM="${{ github.event.issue.number }}"
             case "$ACTION" in
               opened|reopened)
-                # Se vier com status:agent-ready → "Pronta para dev"; senão "Triagem"
-                if echo '${{ toJSON(github.event.issue.labels) }}' | grep -q 'status:agent-ready'; then
+                # Se vier com status:agent-ready -> "Pronta para dev"; senao "Triagem"
+                if echo "$ISSUE_LABELS" | grep -q 'status:agent-ready'; then
                   TARGET="$OPT_READY"
                 else
                   TARGET="$OPT_TRIAGEM"
@@ -57,7 +62,7 @@ jobs:
                 ;;
               closed) TARGET="$OPT_DONE" ;;
               labeled|unlabeled)
-                LABEL="${{ github.event.label.name }}"
+                LABEL="$LABEL_NAME"
                 case "$LABEL" in
                   status:agent-ready) [ "$ACTION" = labeled ] && TARGET="$OPT_READY" ;;
                   status:in-progress) [ "$ACTION" = labeled ] && TARGET="$OPT_IN_PROGRESS" ;;
@@ -67,15 +72,13 @@ jobs:
                 ;;
             esac
           elif [ "$EVENT" = "pull_request" ]; then
-            # Extrai número da issue referenciada no corpo/título do PR
-            BODY="${{ github.event.pull_request.body }}"
-            TITLE="${{ github.event.pull_request.title }}"
-            NUM=$(echo "$BODY $TITLE" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
+            # Extrai numero da issue via env vars -- evita injecao de shell com PR body livre
+            NUM=$(printf '%s %s' "$PR_BODY" "$PR_TITLE" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
             if [ -n "$NUM" ]; then
               case "$ACTION" in
                 opened|reopened|ready_for_review) TARGET="$OPT_REVIEW" ;;
                 closed)
-                  if [ "${{ github.event.pull_request.merged }}" = "true" ]; then
+                  if [ "$PR_MERGED" = "true" ]; then
                     TARGET="$OPT_DOCS"
                   fi
                   ;;
