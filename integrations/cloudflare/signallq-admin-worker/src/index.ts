@@ -777,6 +777,7 @@ async function handleFirebaseAnalytics(request: Request, env: Env): Promise<Resp
     const data = await resp.json();
     return json({ source: "firebase_analytics", data }, 200, env);
   } catch (e) {
+    await logError(env, 'firebase', String(e), e instanceof Error ? (e.stack ?? '') : '');
     return json({ source: "error", message: String(e) }, 500, env);
   }
 }
@@ -844,27 +845,53 @@ async function handleSettings(request: Request, env: Env): Promise<Response> {
   return err("método não suportado", 405, env);
 }
 
-// --- SIG-135 Fase A: pipeline de erros via D1 ---
+// --- SIG-129 / SIG-135 Fase A: pipeline de erros via D1 ---
 
-// Fire-and-forget: nunca propaga exceção. Deduplica por (source + message) via id determinístico.
+// djb2: hash determinístico simples, sem dependência externa, adequado para ids de deduplicação.
+function djb2(s: string): string {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h) ^ s.charCodeAt(i);
+    h = h >>> 0; // mantém uint32
+  }
+  return h.toString(16).padStart(8, '0');
+}
+
+// Fire-and-forget: nunca propaga exceção. Deduplica por (source + message) via hash djb2.
 async function logError(env: Env, source: string, message: string, stack = ''): Promise<void> {
   try {
-    const id = btoa(`${source}:${message}`).slice(0, 64);
+    const id = djb2(`${source}:${message}`);
     const now = Date.now();
     await env.DB.prepare(`
       INSERT INTO system_errors (id, source, message, stack_trace, count, first_seen, last_seen)
       VALUES (?, ?, ?, ?, 1, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
-        count      = count + 1,
-        last_seen  = excluded.last_seen,
+        count       = count + 1,
+        last_seen   = excluded.last_seen,
         stack_trace = excluded.stack_trace
     `).bind(id, source, message, stack, now, now).run();
   } catch { /* fire-and-forget — nunca propaga */ }
 }
 
+// Envolve um handler de métricas para capturar exceções sem alterar o comportamento.
+// O handler original mantém seu throw/fallback; o log é adicional.
+function withErrorLogging(source: string, handler: Handler): Handler {
+  return async (req: Request, env: Env): Promise<Response> => {
+    try {
+      return await handler(req, env);
+    } catch (e) {
+      await logError(env, source, String(e), e instanceof Error ? (e.stack ?? '') : '');
+      throw e;
+    }
+  };
+}
+
 async function handleErrors(request: Request, env: Env): Promise<Response> {
   const url    = new URL(request.url);
   const period = url.searchParams.get("period") ?? "30d";
+  // Fase A: o parâmetro ?environment= enviado pelo frontend é IGNORADO aqui.
+  // A tabela system_errors não possui coluna environment — os erros são do worker,
+  // não do app. Filtro por environment entra na Fase B junto com SIG-143.
   // last_seen é em milissegundos (Date.now()), mas periodToSeconds retorna segundos.
   // Multiplicamos por 1000 para ficar na mesma escala.
   const sinceMs = (Date.now()) - periodToSeconds(period) * 1000;
@@ -886,6 +913,8 @@ async function handleErrors(request: Request, env: Env): Promise<Response> {
     first_seen:       r.first_seen,
     last_seen:        r.last_seen,
     timestamp:        new Date(r.last_seen).toISOString(),
+    // O backend não rastreia usuários únicos por erro — sem PII no D1.
+    // Derivar por device_id (já presente em diagnostic_sessions) é Fase B.
     affectedUserCount: 0,
   }));
 
@@ -1041,17 +1070,17 @@ async function handlePublicFeatureFlags(_request: Request, env: Env): Promise<Re
 type Handler = (req: Request, env: Env) => Promise<Response>;
 
 const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
-  { method: "GET",  pattern: /^\/admin\/metrics\/overview$/,                    handler: handleOverview },
-  { method: "GET",  pattern: /^\/admin\/metrics\/diagnostics$/,                 handler: handleDiagnostics },
-  { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage$/,                    handler: handleAiCost },
-  { method: "GET",  pattern: /^\/admin\/metrics\/timeline$/,                    handler: handleTimeline },
-  { method: "GET",  pattern: /^\/admin\/metrics\/network$/,                     handler: handleNetworkInsights },
-  { method: "GET",  pattern: /^\/admin\/metrics\/top-issues$/,                  handler: handleTopIssues },
-  { method: "GET",  pattern: /^\/admin\/metrics\/alerts$/,                      handler: handleRecentAlerts },
-  { method: "GET",  pattern: /^\/admin\/metrics\/ai-costs$/,                    handler: handleAiCostMetrics },
-  { method: "GET",  pattern: /^\/admin\/metrics\/ai-providers$/,                handler: handleAiProviders },
-  { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage\/timeline$/,          handler: handleAiUsageTimeline },
-  { method: "GET",  pattern: /^\/admin\/metrics\/operators$/,                   handler: handleOperators },
+  { method: "GET",  pattern: /^\/admin\/metrics\/overview$/,                    handler: withErrorLogging('metrics', handleOverview) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/diagnostics$/,                 handler: withErrorLogging('metrics', handleDiagnostics) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage$/,                    handler: withErrorLogging('metrics', handleAiCost) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/timeline$/,                    handler: withErrorLogging('metrics', handleTimeline) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/network$/,                     handler: withErrorLogging('metrics', handleNetworkInsights) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/top-issues$/,                  handler: withErrorLogging('metrics', handleTopIssues) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/alerts$/,                      handler: withErrorLogging('metrics', handleRecentAlerts) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/ai-costs$/,                    handler: withErrorLogging('metrics', handleAiCostMetrics) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/ai-providers$/,                handler: withErrorLogging('metrics', handleAiProviders) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage\/timeline$/,          handler: withErrorLogging('metrics', handleAiUsageTimeline) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/operators$/,                   handler: withErrorLogging('metrics', handleOperators) },
   { method: "GET",  pattern: /^\/admin\/metrics\/errors$/,                      handler: handleErrors },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/status$/,       handler: handleFirebaseStatus },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/analytics$/,    handler: handleFirebaseAnalytics },

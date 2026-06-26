@@ -72,14 +72,62 @@ export const errorMetricsService = {
   },
 
   async getErrorMetricSummary(filters: DashboardFilters = {}): Promise<ErrorMetricSummary | null> {
-    if (!apiClient.isMockEnabled()) return null;
+    if (!apiClient.isMockEnabled()) {
+      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return null;
+      try {
+        const period = filters.period === "today" ? "1d" : (filters.period ?? "30d");
+        const env = filters.environment ?? "production";
+        const raw = await apiClient.request<{ errors: Array<{
+          source: string;
+          count: number;
+          timestamp: string;
+        }> }>("GET", `/admin/metrics/errors?environment=${env}&period=${period}`);
+
+        const errors = raw.errors ?? [];
+        const activeErrors = errors.length;
+        const events24h = errors.reduce((sum, e) => sum + (e.count ?? 0), 0);
+        const sources = [...new Set(errors.map(e => e.source))];
+
+        return {
+          activeErrors: String(activeErrors),
+          events24h: String(events24h),
+          // affectedUserCount não é rastreado no D1 (sem PII) — exibe 0
+          impactedUsers: "0",
+          mainSources: sources.slice(0, 3).join(", ") || "—",
+        };
+      } catch {
+        return null;
+      }
+    }
     const { mockErrorMetricSummary } = await import("../mocks/errors.mock");
     const env = (filters.environment === "staging" ? "staging" : "production") as "production" | "staging";
     return apiClient.simulateFetch(mockErrorMetricSummary[env], filters);
   },
 
   async getErrorByEndpoint(filters: DashboardFilters = {}): Promise<ErrorByEndpointEntry[]> {
-    if (!apiClient.isMockEnabled()) return [];
+    if (!apiClient.isMockEnabled()) {
+      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
+      try {
+        const period = filters.period === "today" ? "1d" : (filters.period ?? "30d");
+        const env = filters.environment ?? "production";
+        const raw = await apiClient.request<{ errors: Array<{
+          source: string;
+          count: number;
+        }> }>("GET", `/admin/metrics/errors?environment=${env}&period=${period}`);
+
+        // Agrupa contagens por source para gerar série de barras
+        const bySource: Record<string, number> = {};
+        for (const e of (raw.errors ?? [])) {
+          bySource[e.source] = (bySource[e.source] ?? 0) + (e.count ?? 1);
+        }
+
+        return Object.entries(bySource)
+          .sort(([, a], [, b]) => b - a)
+          .map(([name, erros]) => ({ name, erros }));
+      } catch {
+        return [];
+      }
+    }
     const { mockErrorByEndpoint } = await import("../mocks/errors.mock");
     const env = (filters.environment === "staging" ? "staging" : "production") as "production" | "staging";
     return apiClient.simulateFetch(mockErrorByEndpoint[env], filters);
