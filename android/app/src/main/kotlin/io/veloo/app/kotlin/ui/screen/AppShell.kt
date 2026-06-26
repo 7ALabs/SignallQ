@@ -187,6 +187,7 @@ fun AppShell(
     filtroOperadoraHistorico: String? = null,
     onFiltroOperadoraHistoricoChange: (String?) -> Unit = {},
     operadorasDisponiveisHistorico: List<String> = emptyList(),
+    onScreenView: (screenName: String) -> Unit = {},
 ) {
     // Desempacota os grupos de estado para variaveis locais — mantém compatibilidade com
     // o corpo interno sem precisar propagar o prefixo `speedtest.x` por toda a funcao.
@@ -234,9 +235,12 @@ fun AppShell(
     var testeAtivo by remember { mutableStateOf(false) }
     var mostrarConcluido by remember { mutableStateOf(false) }
     val primeiraHistoria = remember(historico) { historico.firstOrNull() }
+    val tabScreenNames = listOf("home", "speedtest", "sinal_wifi", "historico", "ajustes")
+
     // NAV-D: verifica IA ao entrar na tab Velocidade (índice 1)
     LaunchedEffect(selectedTab) {
         if (selectedTab == 1) onVerificarGemma()
+        tabScreenNames.getOrNull(selectedTab)?.let { onScreenView(it) }
     }
 
     LaunchedEffect(showDnsSheet) {

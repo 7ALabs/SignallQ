@@ -17,7 +17,7 @@ class FeatureFlagManagerTest {
         if (flagsSalvas.isNotEmpty()) {
             kotlinx.coroutines.runBlocking { prefs.salvarFeatureFlags(flagsSalvas) }
         }
-        val repo = FeatureFlagRepository("https://worker.dev", prefs)
+        val repo = FeatureFlagRepository(adminWorkerBaseUrl = "https://worker.dev", prefs = prefs)
         return FeatureFlagManager(repo)
     }
 

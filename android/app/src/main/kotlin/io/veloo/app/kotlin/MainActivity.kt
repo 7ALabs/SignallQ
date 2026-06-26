@@ -16,9 +16,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import io.veloo.app.core.network.AnalyticsTracker
 import io.veloo.app.core.network.EstadoConexao
 import io.veloo.app.feature.devices.DevicesViewModel
 import io.veloo.app.feature.speedtest.SpeedtestViewModel
@@ -27,9 +31,13 @@ import io.veloo.app.ui.screen.AppShell
 import io.veloo.app.ui.screen.OnboardingScreen
 import io.veloo.app.ui.viewmodel.ChatDiagnosticoIaViewModel
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject
+    lateinit var analyticsTracker: AnalyticsTracker
+
     private val viewModel: MainViewModel by viewModels()
     private val chatDiagViewModel: ChatDiagnosticoIaViewModel by viewModels()
 
@@ -82,10 +90,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        analyticsTracker.registrarSessionStart()
+        registrarBatterySnapshotInicial()
+
         // Conecta o SpeedtestViewModel ao MainViewModel: apos cada speedtest, dispara
         // as rotinas nao-speedtest (scan de dispositivos, diagnostico, etc.).
         speedtestViewModel.onSpeedtestConcluido = {
             viewModel.iniciarRotinasNaoSpeedtest()
+            analyticsTracker.registrarFeatureUsada("speedtest")
         }
 
         // Assina o SharedFlow de dispositivos novos do DevicesViewModel e exibe notificacao.
@@ -273,6 +285,7 @@ class MainActivity : ComponentActivity() {
                                 onIniciarDiagnostico = {
                                     solicitarPermissaoTelefoniaSeNecessario()
                                     viewModel.iniciarDiagnostico()
+                                    analyticsTracker.registrarFeatureUsada("diagnostico")
                                 },
                                 diagChatHistorico = diagChatHistorico,
                                 diagChatCarregando = diagChatCarregando,
@@ -403,6 +416,7 @@ class MainActivity : ComponentActivity() {
                         filtroOperadoraHistorico = filtroOperadoraHistorico,
                         onFiltroOperadoraHistoricoChange = { viewModel.setFiltroOperadoraHistorico(it) },
                         operadorasDisponiveisHistorico = operadorasDisponiveisHistorico,
+                        onScreenView = { screenName -> analyticsTracker.registrarScreenView(screenName) },
                     )
                 } // else onboardingConcluido
             }
@@ -440,11 +454,20 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        // Quebra a referencia ciclica: SpeedtestViewModel (escopo de app) retinha
-        // a lambda que capturava o MainViewModel destruido apos rotacao de tela.
-        // Sem esse null, cada rotacao acumulava uma referencia morta ao MainViewModel anterior.
         speedtestViewModel.onSpeedtestConcluido = null
         super.onDestroy()
+    }
+
+    private fun registrarBatterySnapshotInicial() {
+        val intent = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) ?: return
+        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+        if (level < 0 || scale <= 0) return
+        val levelPercent = (level * 100 / scale)
+        val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+        val charging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+            status == BatteryManager.BATTERY_STATUS_FULL
+        analyticsTracker.registrarBatterySnapshot(levelPercent, charging)
     }
 
     private fun verificarEPedirPermissoes() {

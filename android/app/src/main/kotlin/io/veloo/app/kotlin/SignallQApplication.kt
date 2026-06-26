@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
+import io.veloo.app.core.network.AnalyticsTracker
 import io.veloo.app.featureflags.FeatureFlagManager
 import io.veloo.app.logging.ReleaseTree
 import io.veloo.app.monitoramento.AdminSyncScheduler
@@ -28,6 +29,9 @@ class SignallQApplication :
     @Inject
     lateinit var featureFlagManager: FeatureFlagManager
 
+    @Inject
+    lateinit var analyticsTracker: AnalyticsTracker
+
     override val workManagerConfiguration: Configuration
         get() =
             Configuration
@@ -41,7 +45,7 @@ class SignallQApplication :
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         } else {
-            Timber.plant(ReleaseTree())
+            Timber.plant(ReleaseTree(analyticsTracker))
         }
 
         SignallQNotificationHelper.criarCanais(this)

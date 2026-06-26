@@ -1,18 +1,21 @@
 package io.veloo.app.di
 
 import android.content.Context
+import com.google.firebase.analytics.FirebaseAnalytics
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.veloo.app.BuildConfig
+import io.veloo.app.analytics.FirebaseAnalyticsTracker
 import io.veloo.app.core.database.CoreDatabaseModulo
 import io.veloo.app.core.database.MedicaoDao
 import io.veloo.app.core.database.SignallQDatabase
 import io.veloo.app.core.database.chat.ChatSessionDao
 import io.veloo.app.core.datastore.FeatureFlagStore
 import io.veloo.app.core.datastore.PreferenciasAppRepository
+import io.veloo.app.core.network.AnalyticsTracker
 import io.veloo.app.core.network.CoreNetworkModulo
 import io.veloo.app.core.network.DefaultDispatcherProvider
 import io.veloo.app.core.network.DispatcherProvider
@@ -183,13 +186,16 @@ object AppModule {
 
     /**
      * Repository para busca e persistencia de feature flags remotas.
-     * URL derivada do AI_WORKER_URL — remove path /ai-diagnosis se presente.
+     * Usa ADMIN_INGEST_URL como base — o Admin Worker expoe /flags (SIG-13) e /feature-flags (legado).
      */
     @Provides
     @Singleton
-    fun provideFeatureFlagRepository(store: FeatureFlagStore): FeatureFlagRepository =
+    fun provideFeatureFlagRepository(
+        store: FeatureFlagStore,
+        @Named("adminIngestUrl") adminIngestUrl: String,
+    ): FeatureFlagRepository =
         FeatureFlagRepository(
-            workerBaseUrl = io.veloo.app.feature.diagnostico.BuildConfig.AI_WORKER_URL,
+            adminWorkerBaseUrl = adminIngestUrl,
             prefs = store,
         )
 
@@ -208,6 +214,16 @@ object AppModule {
     @Provides
     @Singleton
     fun provideFeatureFlagProvider(manager: FeatureFlagManager): FeatureFlagProvider = manager
+
+    @Provides
+    @Singleton
+    fun provideFirebaseAnalytics(
+        @ApplicationContext ctx: Context,
+    ): FirebaseAnalytics = FirebaseAnalytics.getInstance(ctx)
+
+    @Provides
+    @Singleton
+    fun provideAnalyticsTracker(tracker: FirebaseAnalyticsTracker): AnalyticsTracker = tracker
 
     @Provides
     @Singleton
