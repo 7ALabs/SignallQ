@@ -78,12 +78,13 @@ export const aiUsageService = {
         const totalCost = costsRaw.totalCostUsd  ?? 0;
         const avgCost   = costsRaw.avgCostPerRequest ?? 0;
         // SIG-125: reliabilityPercentage geral — média ponderada por chamadas dos modelos.
-        // totals não carrega o campo; calculamos aqui para evitar segunda query.
+        // Exclui modelos sem dados (reliabilityPercentage null) para não inflar a média.
         const byModelRaw = usageRaw?.byModel ?? [];
-        const totalCallsForRel = byModelRaw.reduce((s, m) => s + (m.calls ?? 0), 0);
+        const modelsWithRel = byModelRaw.filter(m => m.reliabilityPercentage != null);
+        const totalCallsForRel = modelsWithRel.reduce((s, m) => s + (m.calls ?? 0), 0);
         const reliability: number | null = totalCallsForRel > 0
           ? Math.round(
-              byModelRaw.reduce((s, m) => s + (m.reliabilityPercentage ?? 100) * (m.calls ?? 0), 0)
+              modelsWithRel.reduce((s, m) => s + (m.reliabilityPercentage! * (m.calls ?? 0)), 0)
               / totalCallsForRel * 100
             ) / 100
           : null;

@@ -722,11 +722,11 @@ async function handleAiCostMetrics(request: Request, env: Env): Promise<Response
   const reliabilityRow = await env.DB.prepare(
     `SELECT COUNT(*) AS total,
             SUM(CASE WHEN completion_tokens > 0 THEN 1 ELSE 0 END) AS successful
-     FROM ai_usage WHERE created_at >= ?`
-  ).bind(since).first<{ total: number; successful: number }>();
+     FROM ai_usage WHERE created_at >= ?${envClause}`
+  ).bind(since, ...envBinds).first<{ total: number; successful: number }>();
   const reliabilityPercentage = (reliabilityRow?.total ?? 0) > 0
     ? Math.round(((reliabilityRow?.successful ?? 0) / reliabilityRow!.total) * 100)
-    : 100;
+    : null;
 
   return json({
     source: "d1",
