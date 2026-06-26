@@ -56,6 +56,14 @@ VITE_APP_ENV
 
 Enquanto `VITE_ENABLE_MOCKS=true`, os services retornam dados simulados. Com a Admin API pronta, os services devem chamar `apiClient.request<T>()`.
 
+## Deploy e configuração de produção (Cloudflare Pages)
+
+O painel é publicado no projeto Pages `signallq-admin-panel`, conectado ao Git: cada push na `main` dispara um build do CI, que usa o `.env.production` versionado.
+
+`VITE_ADMIN_API_BASE_URL` precisa ser `/api` em produção (definido no `.env.production`). O painel chama `/api/*`, e a Pages Function `functions/api/[[path]].ts` faz proxy para o Admin Worker, deixando o cookie de sessão same-origin. Apontar direto para o Worker (`*.workers.dev`) torna o cookie cross-site e o Chrome o bloqueia: o login retorna 200 mas a sessão não persiste ("entra e volta para o login").
+
+Por isso, `VITE_ADMIN_API_BASE_URL` **não** deve existir como variável de ambiente no dashboard do Pages — variável real sobrescreve o `.env.production` no build do Vite e reintroduz o bug. Removida do ambiente Production em 2026-06-26.
+
 ## Fontes de dados previstas
 
 - SignallQ Analytics: eventos do app e Worker.
