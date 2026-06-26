@@ -46,17 +46,17 @@ export const MonetizationSettings: React.FC<MonetizationSettingsProps> = ({
             id="contextualAdsEnabled"
             checked={settings.contextualAdsEnabled ?? false}
             onChange={(e) => onChange({ contextualAdsEnabled: e.target.checked })}
-            className="mt-0.5 rounded text-[#6C2BFF] bg-[#161619] border-[#262626] focus:ring-[#6C2BFF] cursor-pointer h-4 w-4 shrink-0"
+            className="mt-0.5 rounded text-[var(--primary)] bg-[var(--bg-base)] border-[var(--border)] focus:ring-[var(--primary)] cursor-pointer h-4 w-4 shrink-0"
           />
           <div className="space-y-0.5">
             <label
               htmlFor="contextualAdsEnabled"
-              className="text-white font-bold cursor-pointer flex items-center gap-1.5"
+              className="text-[var(--text-primary)] font-bold cursor-pointer flex items-center gap-1.5"
             >
               <Coins className="w-4 h-4 text-amber-500 shrink-0" />
               <span>Habilitar Veiculação de Anúncios Contextuais (Futuros)</span>
             </label>
-            <span className="text-[10.5px] text-zinc-400 block leading-relaxed">
+            <span className="text-[10.5px] text-[var(--text-secondary)] block leading-relaxed">
               Ativa o escopo de preparação Ad-Hub para que o app envie bandeiras de problemas de rádio no Android e receba ofertas locais (ex: roteador novo quando Wi-Fi acusa canal saturado).
             </span>
           </div>
@@ -64,8 +64,8 @@ export const MonetizationSettings: React.FC<MonetizationSettingsProps> = ({
 
         {/* Categories selector if ads is enabled */}
         <div className="space-y-2">
-          <label className="text-zinc-400 font-bold block">Categorias Permitidas para Monetização</label>
-          <p className="text-[10px] text-zinc-550 leading-relaxed block">
+          <label className="text-[var(--text-secondary)] font-bold block">Categorias Permitidas para Monetização</label>
+          <p className="text-[10px] text-[var(--text-tertiary)] leading-relaxed block">
             Selecione quais segmentos de mercado podem oferecer recomendações aos usuários com base em falhas detectadas síncronas.
           </p>
 
@@ -75,7 +75,7 @@ export const MonetizationSettings: React.FC<MonetizationSettingsProps> = ({
               return (
                 <label
                   key={cat.key}
-                  className="flex items-center gap-3 p-3 bg-[#111115] border border-zinc-900 rounded-xl hover:border-zinc-800 transition-all cursor-pointer select-none"
+                  className="flex items-center gap-3 p-3 bg-[var(--bg-sidebar)] border border-zinc-900 rounded-xl hover:border-zinc-800 transition-all cursor-pointer select-none"
                 >
                   <input
                     type="checkbox"
@@ -84,8 +84,8 @@ export const MonetizationSettings: React.FC<MonetizationSettingsProps> = ({
                     onChange={() => handleToggleCategory(cat.key)}
                     className="rounded text-purple-600 bg-zinc-950 border-zinc-800 focus:ring-purple-500 h-3.5 w-3.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   />
-                  <span className={`text-[11px] font-medium font-sans ${isChecked && settings.contextualAdsEnabled ? "text-purple-300 font-bold" : "text-zinc-400"}`}>
-                    {cat.name} <span className="font-mono text-[9px] text-zinc-600 font-normal">({cat.key})</span>
+                  <span className={`text-[11px] font-medium font-sans ${isChecked && settings.contextualAdsEnabled ? "text-purple-300 font-bold" : "text-[var(--text-secondary)]"}`}>
+                    {cat.name} <span className="font-mono text-[9px] text-[var(--text-tertiary)] font-normal">({cat.key})</span>
                   </span>
                 </label>
               );

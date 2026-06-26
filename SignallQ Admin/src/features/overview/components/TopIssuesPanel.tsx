@@ -26,19 +26,19 @@ export const TopIssuesPanel: React.FC<TopIssuesPanelProps> = ({ issues }) => {
               <div key={item.id || idx} className="space-y-1">
                 <div className="flex justify-between items-center text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded bg-[#18181B] text-[10px] font-mono font-bold flex items-center justify-center border border-[#262626] text-[#9CA3AF]">
+                    <span className="w-5 h-5 rounded bg-[var(--bg-surface)] text-[10px] font-sans font-bold flex items-center justify-center border border-[var(--border)] text-[var(--text-secondary)]">
                       {idx + 1}
                     </span>
-                    <span className="text-white font-medium">{item.problem}</span>
+                    <span className="text-[var(--text-primary)] font-medium">{item.problem}</span>
                   </div>
                   <div className="flex items-center gap-2 font-mono text-[11px]">
-                    <span className="text-[#9CA3AF]">{item.count} varreduras</span>
-                    <span className="text-[#6C2BFF] font-bold w-10 text-right">{item.percentage}%</span>
+                    <span className="text-[var(--text-secondary)]">{item.count} varreduras</span>
+                    <span className="text-[var(--primary)] font-bold w-10 text-right">{item.percentage}%</span>
                   </div>
                 </div>
-                <div className="w-full h-1.5 bg-[#18181B] rounded-full overflow-hidden border border-[#262626]/20">
+                <div className="w-full h-1.5 bg-[var(--bg-surface)] rounded-full overflow-hidden border border-[var(--border)]/20">
                   <div
-                    className="h-full bg-gradient-to-r from-[#6C2BFF] to-[#38BDF8] rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-[var(--primary)] to-[var(--info)] rounded-full transition-all duration-500"
                     style={{ width: `${item.percentage}%` }}
                   />
                 </div>

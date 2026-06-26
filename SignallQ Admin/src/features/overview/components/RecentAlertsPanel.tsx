@@ -1,6 +1,6 @@
 import React from "react";
 import { RecentAlertItem } from "../../../mocks/overview.mock";
-import { AlertOctagon, AlertCircle, Info, RefreshCw } from "lucide-react";
+import { AlertOctagon, AlertCircle, Info } from "lucide-react";
 
 interface RecentAlertsPanelProps {
   alerts: RecentAlertItem[];
@@ -12,23 +12,23 @@ function severityFor(alert: RecentAlertItem & { _severity?: string }) {
 
 export const RecentAlertsPanel: React.FC<RecentAlertsPanelProps> = ({ alerts }) => {
   return (
-    <div className="bg-[#111111] border border-[#262626] rounded-[18px] p-5 hover:border-[#363636] transition-all duration-200 flex flex-col justify-between h-full">
+    <div className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-[18px] p-5 hover:border-[var(--bg-card-hover)] transition-all duration-200 flex flex-col justify-between h-full">
       <div>
-        <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#262626] mb-5 select-none">
+        <div className="flex items-center justify-between gap-4 pb-4 border-b border-[var(--border)] mb-5 select-none">
           <div>
-            <h4 className="text-xs font-semibold font-mono uppercase tracking-wider text-neutral-400">
+            <h4 className="text-xs font-semibold font-sans uppercase tracking-wider text-[var(--text-secondary)]">
               Alertas Recentes
             </h4>
-            <p className="text-[11px] text-zinc-500 font-sans mt-0.5">
+            <p className="text-[11px] text-[var(--text-tertiary)] font-sans mt-0.5">
               Anomalias operacionais e picos de falha de rádio disparados nas últimas horas.
             </p>
           </div>
-          <AlertOctagon className="w-5 h-5 text-[#FF4D4F] shrink-0" />
+          <AlertOctagon className="w-5 h-5 text-[var(--error)] shrink-0" />
         </div>
 
         <div className="max-h-[290px] overflow-y-auto pr-1 space-y-1">
           {alerts.length === 0 ? (
-            <div className="py-8 text-center text-xs text-zinc-500 font-sans border border-dashed border-zinc-800 rounded-xl">
+            <div className="py-8 text-center text-xs text-[var(--text-tertiary)] font-sans border border-dashed border-[var(--border)] rounded-xl">
               Sem alertas ativos
             </div>
           ) : (
@@ -54,15 +54,15 @@ export const RecentAlertsPanel: React.FC<RecentAlertsPanelProps> = ({ alerts }) 
                       <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${iconColor}`} />
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-white font-sans">{alert.source}</span>
-                          <span className="text-[10px] px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-neutral-400 font-mono">
+                          <span className="text-xs font-semibold text-[var(--text-primary)] font-sans">{alert.source}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-[var(--text-secondary)] font-mono">
                             {alert.count}x
                           </span>
                         </div>
-                        <p className="text-xs text-neutral-400 mt-1 font-sans leading-relaxed">
+                        <p className="text-xs text-[var(--text-secondary)] mt-1 font-sans leading-relaxed">
                           {alert.message}
                         </p>
-                        <span className="text-[10px] text-zinc-500 mt-2 block font-mono">
+                        <span className="text-[10px] text-[var(--text-tertiary)] mt-2 block font-mono">
                           {new Date(alert.timestamp).toLocaleString("pt-BR")}
                         </span>
                       </div>

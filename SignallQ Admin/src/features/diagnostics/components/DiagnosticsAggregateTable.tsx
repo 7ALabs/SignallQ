@@ -43,7 +43,7 @@ export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps>
     {
       header: "Tipo de Rede",
       accessor: (row: AggregateRow) => (
-        <span className="font-sans font-semibold text-white uppercase text-xs">
+        <span className="font-sans font-semibold text-[var(--text-primary)] uppercase text-xs">
           {row.networkType}
         </span>
       )
@@ -51,7 +51,7 @@ export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps>
     {
       header: "Sessões",
       accessor: (row: AggregateRow) => (
-        <span className="font-mono text-zinc-400 font-medium">
+        <span className="font-mono text-[var(--text-secondary)] font-medium">
           {row.diagnosticsCount.toLocaleString("pt-BR")}
         </span>
       )
@@ -71,7 +71,7 @@ export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps>
     {
       header: "Download Médio (Mbps)",
       accessor: (row: AggregateRow) => (
-        <span className="font-mono text-[#38BDF8] font-semibold text-[11px]">
+        <span className="font-mono text-[var(--info)] font-semibold text-[11px]">
           {row.avgDownload}
         </span>
       )
@@ -79,7 +79,7 @@ export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps>
     {
       header: "Latência Média (ms)",
       accessor: (row: AggregateRow) => (
-        <span className="font-mono text-zinc-300">
+        <span className="font-mono text-[var(--text-secondary)]">
           {row.avgPing}
         </span>
       )
@@ -87,7 +87,7 @@ export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps>
     {
       header: "% do Total",
       accessor: (row: AggregateRow) => (
-        <span className="font-mono text-zinc-400 text-[11px]">
+        <span className="font-mono text-[var(--text-secondary)] text-[11px]">
           {row.trendLabel}
         </span>
       )
@@ -100,13 +100,13 @@ export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps>
         return (
           <div className="flex items-center gap-1.5 font-mono text-[10px]">
             {isStable ? (
-              <span className="text-zinc-500">─ Estável</span>
+              <span className="text-[var(--text-tertiary)]">─ Estável</span>
             ) : isUp ? (
-              <span className="text-[#FF4D4F] flex items-center gap-0.5">
+              <span className="text-[var(--error)] flex items-center gap-0.5">
                 <TrendingUp className="w-3.5 h-3.5" /> Alerta
               </span>
             ) : (
-              <span className="text-[#22C55E] flex items-center gap-0.5">
+              <span className="text-[var(--success)] flex items-center gap-0.5">
                 <TrendingDown className="w-3.5 h-3.5" /> Tratado
               </span>
             )}

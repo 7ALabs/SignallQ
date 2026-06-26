@@ -1,7 +1,7 @@
 import React from "react";
 import { RetentionMetric } from "../../../types/productAnalytics";
 import { SectionCard } from "../../../components/ui/SectionCard";
-import { UserPlus, Calendar, Clock, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 interface RetentionPanelProps {
   metrics: RetentionMetric[];
@@ -32,7 +32,7 @@ export const RetentionPanel: React.FC<RetentionPanelProps> = ({ metrics }) => {
       <div className="space-y-6">
         <div>
           <div className="flex justify-between items-center mb-1 bg-zinc-950/20 px-3 py-1.5 rounded border border-zinc-900/45">
-            <span className="text-[11px] font-mono text-zinc-440">Filtro Ativo: {m.cohort}</span>
+            <span className="text-[11px] font-sans text-[var(--text-secondary)]">Filtro Ativo: {m.cohort}</span>
             <span className="text-[10px] font-bold text-indigo-400">Tempo Médio Instalado: {m.avgInstalledDays} dias</span>
           </div>
         </div>
@@ -41,26 +41,26 @@ export const RetentionPanel: React.FC<RetentionPanelProps> = ({ metrics }) => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {rates.map((rate, i) => (
             <div key={i} className="p-4 bg-zinc-950/40 border border-zinc-900 rounded-xl flex flex-col justify-between">
-              <span className="text-[10px] font-mono uppercase text-zinc-450 tracking-wider font-semibold">{rate.label}</span>
+              <span className="text-[10px] font-sans uppercase text-[var(--text-tertiary)] tracking-wider font-semibold">{rate.label}</span>
               <div className="my-2.5">
-                <span className="text-xl font-bold font-mono text-white">{rate.val}</span>
+                <span className="text-xl font-bold font-mono text-[var(--text-primary)]">{rate.val}</span>
               </div>
-              <p className="text-[10px] font-sans text-zinc-500 leading-tight">{rate.desc}</p>
+              <p className="text-[10px] font-sans text-[var(--text-tertiary)] leading-tight">{rate.desc}</p>
             </div>
           ))}
         </div>
 
         {/* Insights / warning block details */}
-        <div className="p-4.5 bg-[#111111]/30 border border-dashed border-[#262626] rounded-xl space-y-3">
+        <div className="p-4 bg-[var(--bg-sidebar)]/30 border border-dashed border-[var(--border)] rounded-xl space-y-3">
           <div className="flex items-start gap-2.5">
             <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-            <div className="text-[10px] font-mono text-zinc-450 leading-relaxed space-y-1.5">
-              <p className="text-white font-semibold">Estimativa Operacional de Desinstalação (*)</p>
+            <div className="text-[10px] font-sans text-[var(--text-secondary)] leading-relaxed space-y-1.5">
+              <p className="text-[var(--text-primary)] font-semibold">Estimativa Operacional de Desinstalação (*)</p>
               <p>
-                Os dados de desinstalação são calculados heuristicamente com base nas interações silenciadas do FCM (Firebase Cloud Messaging), 
+                Os dados de desinstalação são calculados heuristicamente com base nas interações silenciadas do FCM (Firebase Cloud Messaging),
                 estatísticas agregadas obtidas na Google Play Developer API e ausência sistemática de telemetria por períodos superiores a 14 dias consecutivo.
               </p>
-              <div className="grid grid-cols-2 gap-2 text-zinc-350 pt-1.5 select-none text-[9px]">
+              <div className="grid grid-cols-2 gap-2 text-[var(--text-secondary)] pt-1.5 select-none text-[9px]">
                 <div>• Versão com maior abandono: <strong className="text-red-400">v0.18.0 (estimada)</strong></div>
                 <div>• Fluxo associado a churn: <strong className="text-red-400 font-semibold uppercase">Diagnóstico guiado (35%)</strong></div>
               </div>

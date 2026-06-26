@@ -21,21 +21,21 @@ export const DiagnosticIntelligencePanel: React.FC<DiagnosticIntelligencePanelPr
   }, [filters]);
 
   return (
-    <div className="bg-[#111111] border border-[#262626] rounded-2xl p-5 shadow-sm">
-      <div className="flex items-center justify-between pb-4 border-b border-[#262626] mb-5 select-none">
+    <div className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+      <div className="flex items-center justify-between pb-4 border-b border-[var(--border)] mb-5 select-none">
         <div>
-          <h4 className="text-xs font-semibold font-mono uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+          <h4 className="text-xs font-semibold font-sans uppercase tracking-wider text-[var(--text-secondary)] flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
             Diagnostic Intelligence (IA Co-Pilot)
           </h4>
-          <p className="text-[11px] text-zinc-500 font-sans mt-0.5">
+          <p className="text-[11px] text-[var(--text-tertiary)] font-sans mt-0.5">
             Mapeamento analítico de regressão identificando anomalias crônicas no parque de dispositivos.
           </p>
         </div>
       </div>
 
       {items.length === 0 ? (
-        <p className="text-xs text-zinc-500 font-mono py-4 text-center">Análise de inteligência indisponível neste ambiente.</p>
+        <p className="text-xs text-[var(--text-tertiary)] font-sans py-4 text-center">Análise de inteligência indisponível neste ambiente.</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           {items.map((item) => {
@@ -47,11 +47,11 @@ export const DiagnosticIntelligencePanel: React.FC<DiagnosticIntelligencePanelPr
               <div
                 key={item.id}
                 onClick={() => onSelectIssue && onSelectIssue(item.problem)}
-                className="bg-[#161619] border border-[#262626] hover:border-zinc-700 p-4 rounded-xl flex flex-col justify-between transition-all duration-200 cursor-pointer group"
+                className="bg-[var(--bg-base)] border border-[var(--border)] hover:border-zinc-700 p-4 rounded-xl flex flex-col justify-between transition-all duration-200 cursor-pointer group"
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="p-1.5 rounded-lg bg-[#212124] border border-[#2d2d31]">
+                    <span className="p-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border)]">
                       {isWifi ? (
                         <Activity className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
                       ) : isMobile ? (
@@ -61,38 +61,38 @@ export const DiagnosticIntelligencePanel: React.FC<DiagnosticIntelligencePanelPr
                       )}
                     </span>
                     <div className="flex items-center gap-1 font-mono text-[9px] font-bold">
-                      <span className={isUp ? "text-[#FF4D4F]" : "text-[#22C55E]"}>
+                      <span className={isUp ? "text-[var(--error)]" : "text-[var(--success)]"}>
                         {item.variation}
                       </span>
                       {isUp ? (
-                        <ArrowUpRight className="w-3 h-3 text-[#FF4D4F]" />
+                        <ArrowUpRight className="w-3 h-3 text-[var(--error)]" />
                       ) : (
-                        <ArrowDownRight className="w-3 h-3 text-[#22C55E]" />
+                        <ArrowDownRight className="w-3 h-3 text-[var(--success)]" />
                       )}
                     </div>
                   </div>
 
                   <div>
-                    <h5 className="font-semibold text-white text-xs group-hover:text-purple-400 transition-colors font-sans">
+                    <h5 className="font-semibold text-[var(--text-primary)] text-xs group-hover:text-purple-400 transition-colors font-sans">
                       {item.problem}
                     </h5>
                     <div className="flex items-baseline gap-1.5 mt-1 select-none">
-                      <span className="text-xl font-bold font-mono text-white leading-none">
+                      <span className="text-xl font-bold font-mono text-[var(--text-primary)] leading-none">
                         {item.occurrence}%
                       </span>
-                      <span className="text-[9px] font-mono text-zinc-500 block">ocorrência</span>
+                      <span className="text-[9px] font-mono text-[var(--text-tertiary)] block">ocorrência</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-[#262626]/50 space-y-2 select-none">
+                <div className="mt-4 pt-3 border-t border-[var(--border)]/50 space-y-2 select-none">
                   <div className="flex justify-between items-center text-[10px] font-mono">
-                    <span className="text-zinc-500">Score Afetado:</span>
-                    <span className="text-[#FF4D4F] font-bold bg-[#FF4D4F]/10 px-1.5 py-0.5 rounded border border-[#FF4D4F]/20">
+                    <span className="text-[var(--text-tertiary)]">Score Afetado:</span>
+                    <span className="text-[var(--error)] font-bold bg-[var(--error)]/10 px-1.5 py-0.5 rounded border border-[var(--error)]/20">
                       {item.scoreAffected}/100
                     </span>
                   </div>
-                  <p className="text-[10px] text-zinc-400 font-sans leading-snug line-clamp-2">
+                  <p className="text-[10px] text-[var(--text-secondary)] font-sans leading-snug line-clamp-2">
                     {item.impact}
                   </p>
                 </div>

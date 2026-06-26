@@ -47,12 +47,12 @@ export const FeatureFlagsSettings: React.FC = () => {
   };
 
   return (
-    <div className="bg-[#111111] border border-[#262626] rounded-2xl p-5 flex flex-col gap-4">
+    <div className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-2xl p-5 flex flex-col gap-4">
       <div>
-        <h4 className="text-xs font-semibold font-mono uppercase tracking-wider text-zinc-300">
+        <h4 className="text-xs font-semibold font-sans uppercase tracking-wider text-[var(--text-secondary)]">
           Feature Flags (Controle de Funcionalidades)
         </h4>
-        <p className="text-[11px] text-zinc-500 font-sans mt-0.5">
+        <p className="text-[11px] text-[var(--text-tertiary)] font-sans mt-0.5">
           Ative ou desative funcionalidades remotamente sem necessidade de novo deploy.
         </p>
       </div>
@@ -64,7 +64,7 @@ export const FeatureFlagsSettings: React.FC = () => {
           ))}
         </div>
       ) : flags.length === 0 ? (
-        <div className="py-8 text-center text-xs text-zinc-500 font-sans border border-dashed border-zinc-800 rounded-xl">
+        <div className="py-8 text-center text-xs text-[var(--text-tertiary)] font-sans border border-dashed border-zinc-800 rounded-xl">
           Nenhuma feature flag configurada
         </div>
       ) : (
@@ -75,11 +75,11 @@ export const FeatureFlagsSettings: React.FC = () => {
               className="flex items-center justify-between gap-4 p-3.5 bg-zinc-950/30 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors"
             >
               <div className="min-w-0">
-                <span className="text-[11px] font-mono text-zinc-200 block truncate">
+                <span className="text-[11px] font-mono text-[var(--text-secondary)] block truncate">
                   {flag.key}
                 </span>
                 {flag.description && (
-                  <span className="text-[10px] text-zinc-500 font-sans block mt-0.5 truncate">
+                  <span className="text-[10px] text-[var(--text-tertiary)] font-sans block mt-0.5 truncate">
                     {flag.description}
                   </span>
                 )}
@@ -91,9 +91,9 @@ export const FeatureFlagsSettings: React.FC = () => {
                 aria-label={`${flag.enabled ? "Desativar" : "Ativar"} ${flag.key}`}
                 className={`
                   relative shrink-0 inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200
-                  focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500
+                  focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]
                   disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed
-                  ${flag.enabled ? "bg-[#6C2BFF]" : "bg-zinc-700"}
+                  ${flag.enabled ? "bg-[var(--primary)]" : "bg-zinc-700"}
                 `}
               >
                 <span
@@ -109,7 +109,7 @@ export const FeatureFlagsSettings: React.FC = () => {
       )}
 
       {saveMsg && (
-        <p className={`text-[10px] font-mono text-center ${saveMsg.ok ? "text-emerald-400" : "text-red-400"}`}>
+        <p className={`text-[10px] font-sans text-center ${saveMsg.ok ? "text-emerald-400" : "text-red-400"}`}>
           {saveMsg.text}
         </p>
       )}

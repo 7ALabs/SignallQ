@@ -75,12 +75,12 @@ export const FeatureFlagsTab: React.FC<Props> = () => {
       {/* Cabeçalho da seção */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-base font-semibold text-zinc-100">Feature Flags</h2>
-          <p className="text-xs text-zinc-500 mt-0.5">
+          <h2 className="text-base font-semibold text-[var(--text-primary)]">Feature Flags</h2>
+          <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
             Controle remoto de telas e funcionalidades
           </p>
         </div>
-        <span className="shrink-0 text-[10px] font-mono text-zinc-500 bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1">
+        <span className="shrink-0 text-[10px] font-mono text-[var(--text-tertiary)] bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1">
           {flags.length} flags
         </span>
       </div>
@@ -96,7 +96,7 @@ export const FeatureFlagsTab: React.FC<Props> = () => {
 
       {/* Empty state */}
       {!loading && flags.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 border border-dashed border-zinc-800 rounded-2xl text-zinc-500">
+        <div className="flex flex-col items-center justify-center py-16 border border-dashed border-zinc-800 rounded-2xl text-[var(--text-tertiary)]">
           <ToggleRight className="w-8 h-8 mb-3 opacity-40" />
           <p className="text-sm">Nenhuma feature flag encontrada</p>
           <p className="text-xs mt-1 opacity-60">Configure flags no worker ou verifique a migration 005_sig13.sql</p>
@@ -109,35 +109,35 @@ export const FeatureFlagsTab: React.FC<Props> = () => {
           {flags.map((flag) => (
             <div
               key={flag.key}
-              className="bg-[#111111] border border-[#262626] rounded-2xl p-4 hover:border-zinc-700 transition-colors"
+              className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-2xl p-4 hover:border-zinc-700 transition-colors"
             >
               <div className="flex items-center justify-between gap-4">
                 {/* Info da flag */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-sm font-semibold text-zinc-100 truncate">
+                    <span className="text-sm font-semibold text-[var(--text-primary)] truncate">
                       {formatFlagKey(flag.key)}
                     </span>
                     <span
-                      className={`shrink-0 text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded-md ${
+                      className={`shrink-0 text-[9px] font-sans uppercase tracking-wider px-1.5 py-0.5 rounded-md ${
                         flag.enabled
                           ? "bg-emerald-950/60 text-emerald-400 border border-emerald-800/40"
-                          : "bg-zinc-900 text-zinc-500 border border-zinc-800"
+                          : "bg-zinc-900 text-[var(--text-tertiary)] border border-zinc-800"
                       }`}
                     >
                       {flag.enabled ? "ativo" : "inativo"}
                     </span>
                   </div>
-                  <p className="text-[11px] text-zinc-400 truncate">{flag.description}</p>
+                  <p className="text-[11px] text-[var(--text-secondary)] truncate">{flag.description}</p>
                   <div className="flex items-center gap-3 mt-1.5">
                     {flag.updatedBy && (
-                      <span className="flex items-center gap-1 text-[10px] text-zinc-600">
+                      <span className="flex items-center gap-1 text-[10px] text-[var(--text-tertiary)]">
                         <User className="w-3 h-3" />
                         {flag.updatedBy}
                       </span>
                     )}
                     {flag.updatedAt > 0 && (
-                      <span className="flex items-center gap-1 text-[10px] text-zinc-600">
+                      <span className="flex items-center gap-1 text-[10px] text-[var(--text-tertiary)]">
                         <Clock className="w-3 h-3" />
                         {formatTimestamp(flag.updatedAt)}
                       </span>
@@ -151,10 +151,10 @@ export const FeatureFlagsTab: React.FC<Props> = () => {
                   onClick={() => handleToggle(flag.key, flag.enabled)}
                   disabled={toggling === flag.key}
                   aria-label={`${flag.enabled ? "Desativar" : "Ativar"} ${formatFlagKey(flag.key)}`}
-                  className="shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6C2BFF] rounded-full disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-opacity"
+                  className="shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] rounded-full disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-opacity"
                 >
                   {flag.enabled ? (
-                    <ToggleRight className="w-8 h-8 text-[#6C2BFF]" />
+                    <ToggleRight className="w-8 h-8 text-[var(--primary)]" />
                   ) : (
                     <ToggleLeft className="w-8 h-8 text-zinc-600" />
                   )}
@@ -163,7 +163,7 @@ export const FeatureFlagsTab: React.FC<Props> = () => {
 
               {/* Erro inline */}
               {errors[flag.key] && (
-                <p className="mt-2 text-[10px] font-mono text-red-400 border-t border-red-900/30 pt-2">
+                <p className="mt-2 text-[10px] font-sans text-red-400 border-t border-red-900/30 pt-2">
                   {errors[flag.key]}
                 </p>
               )}
@@ -173,8 +173,8 @@ export const FeatureFlagsTab: React.FC<Props> = () => {
       )}
 
       {/* Nota de rodapé */}
-      <p className="text-[10px] text-zinc-600 font-mono text-center">
-        Alterações entram em vigor no próximo poll do app · endpoint público: <code className="text-zinc-500">/flags</code>
+      <p className="text-[10px] text-[var(--text-tertiary)] font-sans text-center">
+        Alterações entram em vigor no próximo poll do app · endpoint público: <code className="text-[var(--text-secondary)]">/flags</code>
       </p>
     </div>
   );

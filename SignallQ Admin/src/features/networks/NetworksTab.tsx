@@ -51,7 +51,6 @@ export const NetworksTab: React.FC<NetworksTabProps> = ({
     return <LoadingState message="Buscando performance de antenas celular e canais Wi-Fi..." />;
   }
 
-  // Em produção, getNetworkInsights retorna [] — sem dados reais desta rota.
   const hasData = networkDistribution.length > 0;
 
   if (!hasData) {
@@ -63,7 +62,6 @@ export const NetworksTab: React.FC<NetworksTabProps> = ({
     );
   }
 
-  // Settle server-provided bar charts comparing quality features
   const barData = specs?.physicalAverages || [];
 
   const wifiCount = specs?.summaryStats?.wifiCount ?? 0;
@@ -75,24 +73,24 @@ export const NetworksTab: React.FC<NetworksTabProps> = ({
       {/* Top statistics cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-xl flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center border border-purple-500/20 text-purple-400">
+          <div className="w-10 h-10 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center border border-[var(--primary)]/20 text-[var(--primary)]">
             <Wifi className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-mono text-zinc-500">SSID Coletivos</span>
-            <h4 className="text-sm font-sans font-bold text-white mt-0.5">{wifiCount.toLocaleString("pt-BR")} Redes Analisadas</h4>
-            <span className="text-[10px] text-zinc-400 font-mono">Banda principal de 5GHz (65%)</span>
+            <span className="text-[10px] uppercase font-sans text-[var(--text-tertiary)]">SSID Coletivos</span>
+            <h4 className="text-sm font-sans font-bold text-[var(--text-primary)] mt-0.5">{wifiCount.toLocaleString("pt-BR")} Redes Analisadas</h4>
+            <span className="text-[10px] text-[var(--text-secondary)] font-sans">Banda principal de 5GHz (65%)</span>
           </div>
         </div>
 
         <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-xl flex items-center gap-4">
-          <div className="w-10 h-10 rounded-lg bg-[#22C55E]/10 flex items-center justify-center border border-[#22C55E]/20 text-[#22C55E]">
+          <div className="w-10 h-10 rounded-lg bg-[var(--success)]/10 flex items-center justify-center border border-[var(--success)]/20 text-[var(--success)]">
             <Radio className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-mono text-zinc-500 font-semibold">Towers Celular</span>
-            <h4 className="text-sm font-sans font-bold text-white mt-0.5">{cellCount.toLocaleString("pt-BR")} Estações ERB 4G/5G</h4>
-            <span className="text-[10px] text-zinc-400 font-mono">LTE Band 28 (700MHz) congestivo</span>
+            <span className="text-[10px] uppercase font-sans text-[var(--text-tertiary)] font-semibold">Towers Celular</span>
+            <h4 className="text-sm font-sans font-bold text-[var(--text-primary)] mt-0.5">{cellCount.toLocaleString("pt-BR")} Estações ERB 4G/5G</h4>
+            <span className="text-[10px] text-[var(--text-secondary)] font-sans">LTE Band 28 (700MHz) congestivo</span>
           </div>
         </div>
 
@@ -101,9 +99,9 @@ export const NetworksTab: React.FC<NetworksTabProps> = ({
             <Cpu className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-mono text-zinc-500">Nível Wi-Fi Ruim</span>
-            <h4 className="text-sm font-semibold font-sans text-white mt-0.5">{attenuationRate.toLocaleString("pt-BR")}% Atenuação Física</h4>
-            <span className="text-[10px] text-zinc-400 font-mono">Sinal inferior a -80 dBm</span>
+            <span className="text-[10px] uppercase font-sans text-[var(--text-tertiary)]">Nível Wi-Fi Ruim</span>
+            <h4 className="text-sm font-semibold font-sans text-[var(--text-primary)] mt-0.5">{attenuationRate.toLocaleString("pt-BR")}% Atenuação Física</h4>
+            <span className="text-[10px] text-[var(--text-secondary)] font-sans">Sinal inferior a -80 dBm</span>
           </div>
         </div>
       </div>
@@ -117,7 +115,7 @@ export const NetworksTab: React.FC<NetworksTabProps> = ({
           <BarChart
             data={barData}
             xAxisKey="medium"
-            series={[{ key: "averageLatency", name: "Latência Média (ms)", color: "#38BDF8" }]}
+            series={[{ key: "averageLatency", name: "Latência Média (ms)", color: "var(--info)" }]}
           />
         </ChartCard>
 
@@ -128,15 +126,15 @@ export const NetworksTab: React.FC<NetworksTabProps> = ({
           <BarChart
             data={barData}
             xAxisKey="medium"
-            series={[{ key: "interference", name: "Índice de Ruído local (%)", color: "#F5A623" }]}
+            series={[{ key: "interference", name: "Índice de Ruído local (%)", color: "var(--attention)" }]}
           />
         </ChartCard>
       </div>
 
       {/* Telemetry Breakdown Details */}
       <div className="bg-zinc-950/60 border border-zinc-800/80 rounded-2xl p-6">
-        <h4 className="text-sm font-bold font-sans text-white tracking-wide">Quadro Clínico de Radiofrequência</h4>
-        <p className="text-xs text-neutral-400 mt-1 mb-5">
+        <h4 className="text-sm font-bold font-sans text-[var(--text-primary)] tracking-wide">Quadro Clínico de Radiofrequência</h4>
+        <p className="text-xs text-[var(--text-secondary)] mt-1 mb-5">
           Comportamento esperado da conectividade móvel vs canais residenciais deduzido a partir da telemetria de rede.
         </p>
 
@@ -146,17 +144,17 @@ export const NetworksTab: React.FC<NetworksTabProps> = ({
               <Network className="w-4 h-4" />
               <span>Gargalo de Upload 4G</span>
             </div>
-            <p className="text-zinc-400 leading-relaxed text-[11px]">
+            <p className="text-[var(--text-secondary)] leading-relaxed text-[11px]">
               O upload minguado nas conexões de celular (médias de 2-4 Mbps em 700MHz) limita transações rápidas simultâneas de dados, gerando bufferbloat crítico sob carga.
             </p>
           </div>
 
           <div className="p-4 bg-zinc-900 border border-zinc-850 rounded-xl">
-            <div className="flex items-center gap-2 text-[#22C55E] font-semibold mb-2">
+            <div className="flex items-center gap-2 text-[var(--success)] font-semibold mb-2">
               <Wifi className="w-4 h-4" />
               <span>Saturação 2.4 GHz</span>
             </div>
-            <p className="text-zinc-400 leading-relaxed text-[11px]">
+            <p className="text-[var(--text-secondary)] leading-relaxed text-[11px]">
               O espectro de 2.4 GHz permanece saturado nas grandes metrópoles devido ao auto-overlapping de canais Wi-Fi de terceiros (especialmente canais 1, 6 e 11).
             </p>
           </div>
@@ -166,7 +164,7 @@ export const NetworksTab: React.FC<NetworksTabProps> = ({
               <ZapOff className="w-4 h-4" />
               <span>Bufferbloat Crítico</span>
             </div>
-            <p className="text-zinc-400 leading-relaxed text-[11px]">
+            <p className="text-[var(--text-secondary)] leading-relaxed text-[11px]">
               Durante picos de transmissão simultânea, modens antigos de banda larga ADSL/Cabo incham as filas locais de buffering de rede antes de descartar pacotes, elevando pings de 12ms até 450ms.
             </p>
           </div>

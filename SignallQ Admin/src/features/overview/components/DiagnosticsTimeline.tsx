@@ -47,8 +47,8 @@ export const DiagnosticsTimeline: React.FC<DiagnosticsTimelineProps> = ({ timeli
           data={timelineData}
           xAxisKey="timestamp"
           series={[
-            { key: "completedDiagnostics", name: "Diagnósticos Executados", color: "#6C2BFF" },
-            { key: "activeUsers", name: "Dispositivos Ativos", color: "#38BDF8" },
+            { key: "completedDiagnostics", name: "Diagnósticos Executados", color: "var(--primary)" },
+            { key: "activeUsers", name: "Dispositivos Ativos", color: "var(--info)" },
           ]}
           height={260}
         />

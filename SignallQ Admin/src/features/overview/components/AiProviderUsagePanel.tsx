@@ -22,7 +22,7 @@ export const AiProviderUsagePanel: React.FC<AiProviderUsagePanelProps> = ({ usag
       ) : (
         <div className="space-y-4 py-2">
           {/* Proportional Stacked Color bar */}
-          <div className="w-full h-3 bg-[#18181B] rounded-full overflow-hidden flex border border-[#262626]/20 mb-2">
+          <div className="w-full h-3 bg-[var(--bg-surface)] rounded-full overflow-hidden flex border border-[var(--border)]/20 mb-2">
             {usage.map((item, idx) => (
               <div
                 key={idx}
@@ -47,17 +47,17 @@ export const AiProviderUsagePanel: React.FC<AiProviderUsagePanelProps> = ({ usag
                       style={{ backgroundColor: item.color }}
                     />
                     <div>
-                      <span className="text-white font-medium block">{item.name}</span>
-                      <span className="text-[10px] text-[#9CA3AF] font-mono">
+                      <span className="text-[var(--text-primary)] font-medium block">{item.name}</span>
+                      <span className="text-[10px] text-[var(--text-secondary)] font-mono">
                         {(item.tokensProcessed ?? 0).toLocaleString("pt-BR")} tokens
                       </span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="px-2 py-0.5 rounded bg-[#18181B] border border-[#262626] font-mono text-[10px] text-[#9CA3AF]">
+                    <div className="px-2 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border)] font-mono text-[10px] text-[var(--text-secondary)]">
                       {((item.tokensProcessed ?? 0) / 1000).toFixed(0)}k Tkn
                     </div>
-                    <span className="font-mono text-white font-bold w-10 text-right">
+                    <span className="font-mono text-[var(--text-primary)] font-bold w-10 text-right">
                       {item.percentage}%
                     </span>
                   </div>

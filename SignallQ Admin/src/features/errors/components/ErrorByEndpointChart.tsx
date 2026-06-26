@@ -29,7 +29,7 @@ export const ErrorByEndpointChart: React.FC<ErrorByEndpointChartProps> = ({ envi
       <BarChart
         data={chartData}
         xAxisKey="name"
-        series={[{ key: "erros", name: "Dumps Técnico Detectados", color: "#FF4D4F" }]}
+        series={[{ key: "erros", name: "Dumps Técnico Detectados", color: "var(--error)" }]}
         height={240}
       />
     </ChartCard>

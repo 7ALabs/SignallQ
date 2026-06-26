@@ -20,14 +20,14 @@ export const RecentErrorsTable: React.FC<RecentErrorsTableProps> = ({
     {
       header: "Caso ID",
       accessor: (row: SystemError) => (
-        <span className="font-mono font-bold text-zinc-500">{row.id.replace("err_", "")}</span>
+        <span className="font-mono font-bold text-[var(--text-tertiary)]">{row.id.replace("err_", "")}</span>
       ),
     },
     {
       header: "Componente (Fonte)",
       accessor: (row: SystemError) => {
         let label = "ANDROID SDK";
-        let color = "text-[#38BDF8] bg-[#38BDF8]/10 border-[#38BDF8]/15";
+        let color = "text-[var(--info)] bg-[var(--info)]/10 border-[var(--info)]/15";
         if (row.source === "ai_gateway") {
           label = "AI GATEWAY";
           color = "text-purple-400 bg-purple-950/20 border-purple-500/15";
@@ -39,7 +39,7 @@ export const RecentErrorsTable: React.FC<RecentErrorsTableProps> = ({
           color = "text-emerald-400 bg-emerald-950/20 border-emerald-500/15";
         }
         return (
-          <span className={`px-2 py-0.5 rounded-md font-mono text-[9px] font-bold border ${color}`}>
+          <span className={`px-2 py-0.5 rounded-md font-sans text-[9px] font-bold border ${color}`}>
             {label}
           </span>
         );
@@ -48,7 +48,7 @@ export const RecentErrorsTable: React.FC<RecentErrorsTableProps> = ({
     {
       header: "Mensagem de Erro",
       accessor: (row: SystemError) => (
-        <span className="font-sans font-medium text-white block max-w-[280px] truncate" title={row.message}>
+        <span className="font-sans font-medium text-[var(--text-primary)] block max-w-[280px] truncate" title={row.message}>
           {row.message}
         </span>
       ),
@@ -56,13 +56,13 @@ export const RecentErrorsTable: React.FC<RecentErrorsTableProps> = ({
     {
       header: "Eventos",
       accessor: (row: SystemError) => (
-        <span className="font-mono text-zinc-400 font-semibold">{row.count}</span>
+        <span className="font-mono text-[var(--text-secondary)] font-semibold">{row.count}</span>
       ),
     },
     {
       header: "Usuários Afetados",
       accessor: (row: SystemError) => (
-        <span className="font-mono text-zinc-400 font-semibold">{row.affectedUserCount}</span>
+        <span className="font-mono text-[var(--text-secondary)] font-semibold">{row.affectedUserCount}</span>
       ),
     },
     {
@@ -93,8 +93,8 @@ export const RecentErrorsTable: React.FC<RecentErrorsTableProps> = ({
         onRowClick={onSelectError}
         id="errors-logs-central-table"
       />
-      <div className="mt-4 flex items-center gap-2 text-[10px] text-zinc-400 font-mono select-none">
-        <Info className="w-3.5 h-3.5 text-zinc-550" />
+      <div className="mt-4 flex items-center gap-2 text-[10px] text-[var(--text-secondary)] font-sans select-none">
+        <Info className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
         <span>Clique em qualquer linha acima para inspecionar o stacktrace e emitir comando manual de mitigação/resolução.</span>
       </div>
     </SectionCard>

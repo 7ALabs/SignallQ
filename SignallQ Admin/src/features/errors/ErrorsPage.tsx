@@ -93,7 +93,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
       const res = await errorMetricsService.resolveError(id);
       if (res.success) {
         setStatusMessage(res.message);
-        
+
         // Update local state is resolved
         setErrors(prev => prev.map(e => e.id === id ? { ...e, resolved: true } : e));
         if (selectedError && selectedError.id === id) {
@@ -111,22 +111,22 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
   return (
     <div className="space-y-6">
       {/* 1. Bar of core controls: Search and Filtering */}
-      <div className="bg-[#111111] border border-[#262626] rounded-2xl p-5 space-y-4 shadow-sm select-none">
+      <div className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-2xl p-5 space-y-4 shadow-sm select-none">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Pesquise por mensagem de erro, stack trace, componente ou ID do caso..."
-              className="w-full bg-[#18181B] border border-[#262626] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#6C2BFF]/60 focus:ring-1 focus:ring-[#6C2BFF]/30 transition-all font-sans"
+              className="w-full bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl pl-10 pr-4 py-2.5 text-xs text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--primary)]/60 focus:ring-1 focus:ring-[var(--primary)]/30 transition-all font-sans"
             />
           </div>
 
           <div className="flex items-center gap-3 self-end md:self-auto">
             {/* Env Selector */}
-            <div className="flex bg-[#18181B] p-1 border border-[#262626] rounded-xl text-[10px] font-mono">
+            <div className="flex bg-[var(--bg-surface)] p-1 border border-[var(--border)] rounded-xl text-[10px] font-sans">
               <button
                 type="button"
                 onClick={() => {
@@ -135,8 +135,8 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
                 }}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
                   localEnv === "production"
-                    ? "bg-[#6C2BFF] text-white shadow-sm"
-                    : "text-zinc-400 hover:text-white"
+                    ? "bg-[var(--primary)] text-white shadow-sm"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 PROD
@@ -149,8 +149,8 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
                 }}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
                   localEnv === "staging"
-                    ? "bg-yellow-550 bg-[#Eab308] text-black shadow-sm"
-                    : "text-zinc-400 hover:text-white"
+                    ? "bg-[var(--attention)] text-black shadow-sm"
+                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                 }`}
               >
                 STAGING
@@ -165,7 +165,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
                 setLocalPeriod(targetVal);
                 onPeriodChange(targetVal);
               }}
-              className="bg-[#18181B] border border-[#262626] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#6C2BFF] transition-colors cursor-pointer font-mono font-bold"
+              className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)] transition-colors cursor-pointer font-sans font-bold"
             >
               <option value="today">HOJE</option>
               <option value="7d">7 DIAS</option>
@@ -175,7 +175,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="flex items-center justify-center p-2.5 bg-[#18181B] border border-[#262626] hover:border-zinc-700 active:bg-zinc-900 text-zinc-400 hover:text-white transition-all rounded-xl disabled:opacity-50"
+              className="flex items-center justify-center p-2.5 bg-[var(--bg-surface)] border border-[var(--border)] hover:border-zinc-700 active:bg-zinc-900 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all rounded-xl disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin text-purple-400" : ""}`} />
             </button>
@@ -183,7 +183,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
         </div>
       </div>
 
-      {/* 2. Grid de métricas de erros — dados via D1 (SIG-135 Fase A) */}
+      {/* 2. Grid de métricas de erros */}
       <ErrorMetricGrid environment={localEnv} />
 
       {/* 3. Operational grid layouts */}
@@ -199,7 +199,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
         </div>
       </div>
 
-      {/* 3.5. Agrupamentos e Respostas Operacionais — sem fonte real */}
+      {/* 3.5. Agrupamentos e Respostas Operacionais */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fade-in">
         <div className="lg:col-span-7">
           <FeatureComingSoon
@@ -231,74 +231,74 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
           {/* Right side investigator panel */}
           <div className="xl:col-span-5">
             {selectedError ? (
-              <div className="bg-[#0f0f12] border border-[#262626] rounded-2xl p-6 relative overflow-hidden font-sans">
+              <div className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-2xl p-6 relative overflow-hidden font-sans">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full filter blur-2xl flex items-center justify-center pointer-events-none" />
 
                 {/* Main title casing */}
-                <div className="flex items-start justify-between pb-4 border-b border-[#262626] mb-5 select-none">
+                <div className="flex items-start justify-between pb-4 border-b border-[var(--border)] mb-5 select-none">
                   <div>
-                    <span className="text-[9px] text-[#FF4D4F] font-mono uppercase tracking-widest font-bold">Insvestigador de Exceção</span>
-                    <h5 className="font-bold text-white text-sm font-mono mt-0.5">{selectedError.id}</h5>
+                    <span className="text-[9px] text-[var(--error)] font-sans uppercase tracking-widest font-bold">Investigador de Exceção</span>
+                    <h5 className="font-bold text-[var(--text-primary)] text-sm font-mono mt-0.5">{selectedError.id}</h5>
                   </div>
                   <div className="text-right">
-                    <span className="font-mono text-[9px] text-zinc-500 block">{new Date(selectedError.timestamp).toLocaleDateString("pt-BR")}</span>
-                    <span className="font-mono text-[9px] text-zinc-550 block mt-0.5">{new Date(selectedError.timestamp).toLocaleTimeString("pt-BR")}</span>
+                    <span className="font-mono text-[9px] text-[var(--text-tertiary)] block">{new Date(selectedError.timestamp).toLocaleDateString("pt-BR")}</span>
+                    <span className="font-mono text-[9px] text-[var(--text-tertiary)] block mt-0.5">{new Date(selectedError.timestamp).toLocaleTimeString("pt-BR")}</span>
                   </div>
                 </div>
 
                 {/* Stats layout */}
-                <div className="grid grid-cols-3 gap-2 border-b border-[#262626] pb-4 mb-4 select-none">
-                  <div className="bg-[#161619]/40 border border-[#2d2d31]/30 rounded-xl p-2.5 text-center">
-                    <span className="font-sans text-[8.5px] text-zinc-500 uppercase block">Componente</span>
-                    <span className="text-[10px] font-mono text-zinc-350 font-bold uppercase truncate block mt-0.5">{selectedError.source}</span>
+                <div className="grid grid-cols-3 gap-2 border-b border-[var(--border)] pb-4 mb-4 select-none">
+                  <div className="bg-[var(--bg-base)]/40 border border-[var(--border)]/30 rounded-xl p-2.5 text-center">
+                    <span className="font-sans text-[8.5px] text-[var(--text-tertiary)] uppercase block">Componente</span>
+                    <span className="text-[10px] font-mono text-[var(--text-secondary)] font-bold uppercase truncate block mt-0.5">{selectedError.source}</span>
                   </div>
 
-                  <div className="bg-[#161619]/40 border border-[#2d2d31]/30 rounded-xl p-2.5 text-center">
-                    <span className="font-sans text-[8.5px] text-zinc-500 uppercase block">Dumps brutos</span>
-                    <span className="text-xs font-mono text-[#FF4D4F] font-bold block mt-0.5">{selectedError.count}</span>
+                  <div className="bg-[var(--bg-base)]/40 border border-[var(--border)]/30 rounded-xl p-2.5 text-center">
+                    <span className="font-sans text-[8.5px] text-[var(--text-tertiary)] uppercase block">Dumps brutos</span>
+                    <span className="text-xs font-mono text-[var(--error)] font-bold block mt-0.5">{selectedError.count}</span>
                   </div>
 
-                  <div className="bg-[#161619]/40 border border-[#2d2d31]/30 rounded-xl p-2.5 text-center">
-                    <span className="font-sans text-[8.5px] text-zinc-500 uppercase block">Afetados</span>
-                    <span className="text-xs font-mono text-[#Eab308] font-bold block mt-0.5">{selectedError.affectedUserCount}</span>
+                  <div className="bg-[var(--bg-base)]/40 border border-[var(--border)]/30 rounded-xl p-2.5 text-center">
+                    <span className="font-sans text-[8.5px] text-[var(--text-tertiary)] uppercase block">Afetados</span>
+                    <span className="text-xs font-mono text-[var(--attention)] font-bold block mt-0.5">{selectedError.affectedUserCount}</span>
                   </div>
                 </div>
 
                 {/* Error message detailed */}
                 <div className="space-y-4 font-sans text-xs">
                   <div className="space-y-1">
-                    <div className="text-[9px] text-zinc-550 font-mono uppercase tracking-widest font-bold text-zinc-500">Mensagem do Dump</div>
-                    <p className="text-zinc-200 bg-[#161619] border border-[#262626] p-3 rounded-xl font-mono text-[10.5px] leading-snug">
+                    <div className="text-[9px] text-[var(--text-tertiary)] font-sans uppercase tracking-widest font-bold">Mensagem do Dump</div>
+                    <p className="text-[var(--text-primary)] bg-[var(--bg-base)] border border-[var(--border)] p-3 rounded-xl font-mono text-[10.5px] leading-snug">
                       {selectedError.message}
                     </p>
                   </div>
 
                   {/* Active Stack trace */}
                   <div className="space-y-1">
-                    <div className="text-[9px] text-zinc-550 font-mono uppercase tracking-widest font-bold text-zinc-500 flex items-center gap-1">
-                      <Terminal className="w-3.5 h-3.5 text-[#FF4D4F]" />
+                    <div className="text-[9px] text-[var(--text-tertiary)] font-sans uppercase tracking-widest font-bold flex items-center gap-1">
+                      <Terminal className="w-3.5 h-3.5 text-[var(--error)]" />
                       <span>Trace Back do Sistema</span>
                     </div>
-                    <div className="bg-black text-[#FF4D4F] p-4 rounded-xl font-mono text-[9px] leading-relaxed max-h-48 overflow-y-auto whitespace-pre-wrap selection:bg-[#FF4D4F]/35 selection:text-white">
+                    <div className="bg-black text-[var(--error)] p-4 rounded-xl font-mono text-[9px] leading-relaxed max-h-48 overflow-y-auto whitespace-pre-wrap selection:bg-[var(--error)]/35 selection:text-white">
                       {selectedError.stackTrace}
                     </div>
                   </div>
 
                   {/* Operational resolution actions */}
-                  <div className="pt-4 border-t border-[#262626]">
+                  <div className="pt-4 border-t border-[var(--border)]">
                     <div className="flex items-center justify-between pb-3 select-none">
-                      <div className="flex items-center gap-1 text-xs text-zinc-400">
-                        <Workflow className="w-4 h-4 text-zinc-500 mr-1" />
-                        <span>Resoldor do Caso</span>
+                      <div className="flex items-center gap-1 text-xs text-[var(--text-secondary)]">
+                        <Workflow className="w-4 h-4 text-[var(--text-tertiary)] mr-1" />
+                        <span>Resolvedor do Caso</span>
                       </div>
                       {apiClient.isMockEnabled() ? (
                         <button
                           onClick={() => handleResolve(selectedError.id)}
                           disabled={selectedError.resolved || resolvingId !== null}
-                          className={`flex items-center gap-1.5 px-3.5 py-2 border rounded-xl font-mono text-[10px] font-bold uppercase transition-all select-none cursor-pointer ${
+                          className={`flex items-center gap-1.5 px-3.5 py-2 border rounded-xl font-sans text-[10px] font-bold uppercase transition-all select-none cursor-pointer ${
                             selectedError.resolved
                               ? "bg-emerald-950/20 border-emerald-500/20 text-emerald-400 cursor-not-allowed"
-                              : "bg-[#FF4D4F]/10 border-[#FF4D4F]/20 text-[#FF4D4F] hover:bg-[#FF4D4F]/20"
+                              : "bg-[var(--error)]/10 border-[var(--error)]/20 text-[var(--error)] hover:bg-[var(--error)]/20"
                           }`}
                         >
                           <CheckCircle className="w-3.5 h-3.5" />
@@ -308,7 +308,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
                         <button
                           disabled
                           title="Em Implementação"
-                          className="flex items-center gap-1.5 px-3.5 py-2 border rounded-xl font-mono text-[10px] font-bold uppercase opacity-50 cursor-not-allowed bg-zinc-900/40 border-zinc-700/40 text-zinc-500"
+                          className="flex items-center gap-1.5 px-3.5 py-2 border rounded-xl font-sans text-[10px] font-bold uppercase opacity-50 cursor-not-allowed bg-zinc-900/40 border-zinc-700/40 text-[var(--text-tertiary)]"
                         >
                           <CheckCircle className="w-3.5 h-3.5" />
                           <span>Em Implementação</span>
@@ -317,7 +317,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
                     </div>
 
                     {statusMessage && (
-                      <div className="p-3 bg-zinc-950/80 border border-zinc-850 text-emerald-400 text-[10px] font-mono text-center rounded-xl select-none">
+                      <div className="p-3 bg-zinc-950/80 border border-zinc-850 text-emerald-400 text-[10px] font-sans text-center rounded-xl select-none">
                         {statusMessage}
                       </div>
                     )}
@@ -325,8 +325,8 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="py-20 text-center bg-zinc-950/25 border border-dashed border-[#262626] rounded-2xl p-6 select-none font-sans">
-                <p className="text-xs text-neutral-500">Selecione algum dump técnico ativo no console esquerdo para inspecionar.</p>
+              <div className="py-20 text-center bg-zinc-950/25 border border-dashed border-[var(--border)] rounded-2xl p-6 select-none font-sans">
+                <p className="text-xs text-[var(--text-tertiary)]">Selecione algum dump técnico ativo no console esquerdo para inspecionar.</p>
               </div>
             )}
           </div>
