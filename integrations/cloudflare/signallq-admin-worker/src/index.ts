@@ -889,6 +889,9 @@ function withErrorLogging(source: string, handler: Handler): Handler {
 async function handleErrors(request: Request, env: Env): Promise<Response> {
   const url    = new URL(request.url);
   const period = url.searchParams.get("period") ?? "30d";
+  // Fase A: o parâmetro ?environment= enviado pelo frontend é IGNORADO aqui.
+  // A tabela system_errors não possui coluna environment — os erros são do worker,
+  // não do app. Filtro por environment entra na Fase B junto com SIG-143.
   // last_seen é em milissegundos (Date.now()), mas periodToSeconds retorna segundos.
   // Multiplicamos por 1000 para ficar na mesma escala.
   const sinceMs = (Date.now()) - periodToSeconds(period) * 1000;
@@ -910,6 +913,8 @@ async function handleErrors(request: Request, env: Env): Promise<Response> {
     first_seen:       r.first_seen,
     last_seen:        r.last_seen,
     timestamp:        new Date(r.last_seen).toISOString(),
+    // O backend não rastreia usuários únicos por erro — sem PII no D1.
+    // Derivar por device_id (já presente em diagnostic_sessions) é Fase B.
     affectedUserCount: 0,
   }));
 

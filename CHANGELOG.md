@@ -10,6 +10,21 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 
 ---
 
+## [Unreleased] — Admin Worker / SIG-129
+
+### Added
+
+- **Admin Worker — Pipeline de erros de sistema (SIG-129, Fase A):** tabela `system_errors` no D1 para deduplicar e contabilizar erros do próprio worker. Helper `logError` com hash djb2 determinístico (fire-and-forget, nunca propaga). Wrapper `withErrorLogging` aplicado a todos os handlers `GET /admin/metrics/*`. Handler `handleFirebaseAnalytics` instrumentado diretamente no catch. Endpoint `GET /admin/metrics/errors?period=` retorna erros agrupados por source, ordenados por frequência.
+- **Admin Worker — migration `003_sig129.sql`:** `CREATE TABLE IF NOT EXISTS system_errors` + índice `idx_system_errors_last_seen`.
+- **Admin Panel — `errorMetricsService`:** `getErrorMetricSummary` e `getErrorByEndpoint` derivam dados reais do endpoint `/admin/metrics/errors` em produção (antes retornavam `null`/`[]`).
+
+### Notes
+
+- `affectedUserCount` sempre retorna 0 na Fase A — sem PII no D1. Derivar por `device_id` é Fase B.
+- Filtro `?environment=` ignorado na Fase A (tabela `system_errors` não tem coluna `environment`). Entra na Fase B com SIG-143.
+
+---
+
 ## [0.21.0] — 2026-06-22
 
 ### Added
