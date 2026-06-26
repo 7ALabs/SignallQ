@@ -89,6 +89,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         environment={environment}
         isOpen={isMobileSidebarOpen}
         onClose={() => setIsMobileSidebarOpen(false)}
+        theme={theme}
       />
 
       {/* 2. Main content container */}

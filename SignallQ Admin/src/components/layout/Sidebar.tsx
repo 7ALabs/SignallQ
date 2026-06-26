@@ -1,5 +1,4 @@
 import React from "react";
-import { useTheme } from "../../hooks/useTheme";
 import {
   LayoutDashboard,
   LineChart,
@@ -23,6 +22,7 @@ interface SidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
   id?: string;
+  theme?: "dark" | "light";
 }
 
 // Map strings to Lucide components directly to prevent type issue
@@ -39,21 +39,6 @@ const iconMap = {
   Settings: Settings,
 };
 
-const LogoBrand: React.FC = () => {
-  const { theme } = useTheme();
-  const logoSrc = theme === "dark"
-    ? "/brand/7agents/logo-light.svg"
-    : "/brand/7agents/logo-dark.svg";
-  return (
-    <img
-      src={logoSrc}
-      alt="7Agents Admin Console"
-      className="h-10 w-auto"
-      draggable={false}
-    />
-  );
-};
-
 export const Sidebar: React.FC<SidebarProps> = ({
   currentPath,
   onNavigate,
@@ -61,7 +46,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isOpen = false,
   onClose,
   id,
+  theme = "dark",
 }) => {
+  const logoSrc = theme === "dark"
+    ? "/brand/7agents/logo-light.svg"
+    : "/brand/7agents/logo-dark.svg";
   return (
     <div
       id={id || "sidebar-container"}
@@ -83,7 +72,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="p-6 flex items-center justify-between"
           style={{ borderBottom: "1px solid var(--border)" }}
         >
-          <LogoBrand />
+          <img
+            src={logoSrc}
+            alt="7Agents Admin Console"
+            className="h-10 w-auto"
+            draggable={false}
+          />
           {/* Close button — mobile only */}
           {onClose && (
             <button

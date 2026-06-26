@@ -17,7 +17,7 @@
         var stored = localStorage.getItem("signallq_admin_theme");
         var preferLight = window.matchMedia("(prefers-color-scheme: light)").matches;
         var theme = stored === "dark" || stored === "light" ? stored : (preferLight ? "light" : "dark");
-        if (theme === "light") document.documentElement.setAttribute("data-theme", "light");
+        document.documentElement.setAttribute("data-theme", theme);
       })();
     </script>
     <div id="root"></div>
