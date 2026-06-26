@@ -154,7 +154,14 @@ export default function App() {
           title: "Visão Geral",
           description: "Acompanhe uso, diagnósticos, qualidade da rede e custo de IA em tempo real.",
           badge: (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-950/40 border border-indigo-500/20 text-[#6C2BFF] text-[10px] font-mono rounded-lg">
+            <span
+              className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--sq-accent) 10%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--sq-accent) 20%, transparent)",
+                color: "var(--sq-accent)",
+              }}
+            >
               <Sparkles className="w-3.5 h-3.5" /> Live Engine
             </span>
           ),
@@ -164,7 +171,14 @@ export default function App() {
           title: "Produto & Uso",
           description: "Monitore o engajamento de features, navegação, retenção, métricas de performance e monetização futura.",
           badge: (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-purple-950/40 border border-purple-500/20 text-[#A855F7] text-[10px] font-mono rounded-lg">
+            <span
+              className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--sq-accent) 10%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--sq-accent) 20%, transparent)",
+                color: "var(--sq-accent)",
+              }}
+            >
               <Sparkles className="w-3.5 h-3.5" /> Product Insights
             </span>
           ),
@@ -174,7 +188,14 @@ export default function App() {
           title: "Sessões de Diagnósticos",
           description: "Pesquise por logs brutos, meça o bufferbloat local e emita diagnósticos preditivos baseados em IA.",
           badge: (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-950/40 border border-emerald-500/20 text-emerald-400 text-[10px] font-mono rounded-lg">
+            <span
+              className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--sq-success) 10%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--sq-success) 20%, transparent)",
+                color: "var(--sq-success)",
+              }}
+            >
               <Activity className="w-3.5 h-3.5 animate-pulse" /> Telemetria de Rádio
             </span>
           ),
@@ -202,7 +223,14 @@ export default function App() {
           title: "Logs de Erros",
           description: "Erros do Cloudflare Worker, dumps de depuração do app Android e problemas nas conexões com tabelas de banco Analytics DB.",
           badge: (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 bg-red-950/40 border border-red-500/20 text-red-500 text-[10px] font-mono rounded-lg uppercase">
+            <span
+              className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg uppercase"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--sq-error) 10%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--sq-error) 20%, transparent)",
+                color: "var(--sq-error)",
+              }}
+            >
               <AlertTriangle className="w-3.5 h-3.5" /> Auditoria de Erros
             </span>
           ),
@@ -237,8 +265,14 @@ export default function App() {
   // Aguarda verificação inicial para não piscar a tela de login desnecessariamente.
   if (!authChecked) {
     return (
-      <div className="min-h-screen bg-[#0D0D1A] flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-[#6C2BFF] border-t-transparent rounded-full animate-spin" />
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: "var(--sq-bg-primary)" }}
+      >
+        <div
+          className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+          style={{ borderColor: "var(--sq-accent)", borderTopColor: "transparent" }}
+        />
       </div>
     );
   }

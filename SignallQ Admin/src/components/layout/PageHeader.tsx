@@ -18,17 +18,21 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   return (
     <div
       id={id || `page-header-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
-      className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-zinc-800/60 mb-6 select-none"
+      className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 mb-6 select-none"
+      style={{ borderBottom: "1px solid var(--sq-border)" }}
     >
       <div className="space-y-1">
         <div className="flex items-center gap-2.5">
-          <h2 className="text-xl font-bold font-sans text-white tracking-tight">
+          <h2
+            className="text-xl font-bold tracking-tight"
+            style={{ color: "var(--sq-text-primary)" }}
+          >
             {title}
           </h2>
           {badge}
         </div>
         {description && (
-          <p className="text-xs text-neutral-400 font-sans leading-relaxed">
+          <p className="text-xs leading-relaxed" style={{ color: "var(--sq-text-secondary)" }}>
             {description}
           </p>
         )}

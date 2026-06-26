@@ -20,21 +20,33 @@ export const SectionCard: React.FC<SectionCardProps> = ({
   return (
     <div
       id={id || `section-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
-      className={`bg-[#111111] border border-[#262626] rounded-[18px] overflow-hidden transition-all duration-200 ${className}`}
+      className={`rounded-2xl overflow-hidden transition-all duration-200 ${className}`}
+      style={{
+        backgroundColor: "var(--sq-bg-card)",
+        border: "1px solid var(--sq-border)",
+      }}
     >
       {/* Card Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-6 py-4 border-b border-[#262626] gap-4">
+      <div
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-6 py-4 gap-4"
+        style={{ borderBottom: "1px solid var(--sq-border)" }}
+      >
         <div>
-          <h3 className="text-sm font-medium font-sans text-white tracking-tight">
+          <h3
+            className="text-sm font-medium tracking-tight"
+            style={{ color: "var(--sq-text-primary)" }}
+          >
             {title}
           </h3>
           {description && (
-            <p className="text-xs text-neutral-400 mt-1 font-sans">
+            <p className="text-xs mt-1" style={{ color: "var(--sq-text-secondary)" }}>
               {description}
             </p>
           )}
         </div>
-        {actions && <div className="flex items-center gap-2 self-start sm:self-center">{actions}</div>}
+        {actions && (
+          <div className="flex items-center gap-2 self-start sm:self-center">{actions}</div>
+        )}
       </div>
 
       {/* Card Body */}

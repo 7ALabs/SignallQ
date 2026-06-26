@@ -18,15 +18,25 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   return (
     <div
       id={id || `chart-card-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
-      className="bg-[#111111] border border-[#262626] rounded-[18px] p-5 hover:border-[#363636] transition-all duration-200"
+      className="rounded-2xl p-5 transition-all duration-200"
+      style={{
+        backgroundColor: "var(--sq-bg-card)",
+        border: "1px solid var(--sq-border)",
+      }}
     >
-      <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#262626] mb-5 select-none">
+      <div
+        className="flex items-center justify-between gap-4 pb-4 mb-5 select-none"
+        style={{ borderBottom: "1px solid var(--sq-border)" }}
+      >
         <div>
-          <h4 className="text-xs font-semibold font-mono uppercase tracking-wider text-neutral-400">
+          <h4
+            className="text-xs font-semibold font-mono uppercase tracking-wider"
+            style={{ color: "var(--sq-text-secondary)" }}
+          >
             {title}
           </h4>
           {description && (
-            <p className="text-[11px] text-zinc-500 mt-0.5 font-sans">
+            <p className="text-[11px] mt-0.5" style={{ color: "var(--sq-text-tertiary)" }}>
               {description}
             </p>
           )}
@@ -34,9 +44,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         {actions && <div className="shrink-0">{actions}</div>}
       </div>
 
-      <div className="relative font-sans select-none">
-        {children}
-      </div>
+      <div className="relative select-none">{children}</div>
     </div>
   );
 };

@@ -21,7 +21,6 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   id,
   source,
 }) => {
-  // Format numeric values gracefully
   const formattedValue = React.useMemo(() => {
     if (typeof value === "number") {
       if (format === "usd") {
@@ -35,41 +34,75 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     return value;
   }, [value, format]);
 
-  // Determine trend presentation
   const isTrendUp = trend?.type === "up";
   const isTrendDown = trend?.type === "down";
-  
-  const trendColorClass = isTrendUp
-    ? "text-[#22C55E] bg-[#22C55E]/10 border-[#22C55E]/20"
+
+  const trendStyle = isTrendUp
+    ? {
+        color: "var(--sq-success)",
+        backgroundColor: "color-mix(in srgb, var(--sq-success) 10%, transparent)",
+        border: "1px solid color-mix(in srgb, var(--sq-success) 20%, transparent)",
+      }
     : isTrendDown
-    ? "text-[#FF4D4F] bg-[#FF4D4F]/10 border-[#FF4D4F]/20"
-    : "text-[#9CA3AF] bg-[#18181B] border-[#262626]";
+    ? {
+        color: "var(--sq-error)",
+        backgroundColor: "color-mix(in srgb, var(--sq-error) 10%, transparent)",
+        border: "1px solid color-mix(in srgb, var(--sq-error) 20%, transparent)",
+      }
+    : {
+        color: "var(--sq-text-secondary)",
+        backgroundColor: "var(--sq-bg-overlay)",
+        border: "1px solid var(--sq-border)",
+      };
 
   return (
     <div
       id={id || `metric-card-${label.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
-      className={`relative overflow-hidden bg-[#111111] border border-[#262626] rounded-[18px] p-5 hover:border-[#363636] transition-all duration-200 group ${className}`}
+      className={`relative overflow-hidden rounded-2xl p-5 transition-all duration-200 group ${className}`}
+      style={{
+        backgroundColor: "var(--sq-bg-card)",
+        border: "1px solid var(--sq-border)",
+      }}
     >
-      {/* Background Accent Grid / Glow */}
-      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-500/5 to-transparent rounded-full filter blur-xl group-hover:from-indigo-400/15 transition-all duration-300 pointer-events-none" />
+      {/* Accent glow — leve, no canto superior direito */}
+      <div
+        className="absolute top-0 right-0 w-24 h-24 rounded-full pointer-events-none transition-all duration-300"
+        style={{
+          background: "radial-gradient(circle, color-mix(in srgb, var(--sq-accent) 6%, transparent), transparent)",
+          filter: "blur(20px)",
+        }}
+      />
 
       {source && (
-        <span className="absolute top-3 right-3 text-[9px] font-mono text-zinc-550 bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-900/60 select-none">
+        <span
+          className="absolute top-3 right-3 text-[9px] font-mono px-1.5 py-0.5 rounded select-none"
+          style={{
+            color: "var(--sq-text-tertiary)",
+            backgroundColor: "var(--sq-bg-primary)",
+            border: "1px solid var(--sq-border-subtle)",
+          }}
+        >
           {source}
         </span>
       )}
 
-      <p className="text-[11px] font-mono uppercase tracking-wider text-neutral-400 select-none">
+      <p
+        className="text-[11px] font-mono uppercase tracking-wider select-none"
+        style={{ color: "var(--sq-text-secondary)" }}
+      >
         {label}
       </p>
 
       <div className="mt-2.5 flex items-baseline justify-between">
-        <h3 className="text-2xl font-semibold tracking-tight text-white font-sans">
+        <h3 className="text-2xl font-semibold tracking-tight" style={{ color: "var(--sq-text-primary)" }}>
           {formattedValue}
         </h3>
 
         {trend && (
-          <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-xs font-mono border ${trendColorClass}`}>
+          <span
+            className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-xs font-mono"
+            style={trendStyle}
+          >
             {isTrendUp ? (
               <ArrowUpRight className="w-3.5 h-3.5" />
             ) : isTrendDown ? (
@@ -83,7 +116,10 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       </div>
 
       {trend && (
-        <span className="mt-2 block text-[10px] text-neutral-500 font-sans tracking-wide">
+        <span
+          className="mt-2 block text-[10px] tracking-wide"
+          style={{ color: "var(--sq-text-tertiary)" }}
+        >
           {trend.intervalLabel}
         </span>
       )}

@@ -30,33 +30,43 @@ export const DonutChart: React.FC<DonutChartProps> = ({
     setIsMounted(true);
   }, []);
 
-  // Calculate percentage total
-  const total = React.useMemo(() => data.reduce((sum, item) => sum + (item.value ?? 0), 0), [data]);
+  const total = React.useMemo(
+    () => data.reduce((sum, item) => sum + (item.value ?? 0), 0),
+    [data]
+  );
 
   if (!isMounted) {
     return (
-      <div style={{ height }} className="w-full flex items-center justify-center bg-zinc-950/20 rounded-xl animate-pulse">
-        <span className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase">Processando Grid...</span>
+      <div
+        style={{ height, backgroundColor: "color-mix(in srgb, var(--sq-bg-primary) 20%, transparent)" }}
+        className="w-full flex items-center justify-center rounded-xl animate-pulse"
+      >
+        <span
+          className="text-[10px] font-mono tracking-widest uppercase"
+          style={{ color: "var(--sq-text-tertiary)" }}
+        >
+          Processando Grid...
+        </span>
       </div>
     );
   }
 
   return (
     <div id={id} className="flex flex-col md:flex-row items-center justify-between gap-4 py-2">
-      {/* Circle Container */}
+      {/* Donut */}
       <div style={{ width: "100%", maxWidth: 170, height }}>
         <ResponsiveContainer width="100%" height="100%">
           <RePieChart>
             <Tooltip
               contentStyle={{
-                backgroundColor: "#111111",
-                border: "1px solid #262626",
+                backgroundColor: "var(--sq-bg-card)",
+                border: "1px solid var(--sq-border)",
                 borderRadius: "10px",
-                fontFamily: "Inter, sans-serif",
+                fontFamily: "var(--sq-font-sans)",
                 fontSize: "12px",
-                color: "#F3F4F6",
+                color: "var(--sq-text-primary)",
               }}
-              itemStyle={{ color: "#F3F4F6", fontFamily: "Inter" }}
+              itemStyle={{ color: "var(--sq-text-primary)", fontFamily: "var(--sq-font-sans)" }}
             />
             <Pie
               data={data}
@@ -68,27 +78,34 @@ export const DonutChart: React.FC<DonutChartProps> = ({
               dataKey="value"
             >
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} stroke="#111111" strokeWidth={1} />
+                <Cell key={`cell-${index}`} fill={entry.color} stroke="var(--sq-bg-card)" strokeWidth={1} />
               ))}
             </Pie>
           </RePieChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Side Legend Tracker */}
-      <div className="flex-1 w-full space-y-2 font-sans">
+      {/* Legend */}
+      <div className="flex-1 w-full space-y-2">
         {data.map((item, idx) => {
           const value = item.value ?? 0;
           const itemPercentage = total > 0 ? ((value / total) * 100).toFixed(1) : "0.0";
           return (
-            <div key={idx} className="flex items-center justify-between text-xs font-sans">
+            <div key={idx} className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-md shrink-0" style={{ backgroundColor: item.color }} />
-                <span className="text-neutral-300 font-sans">{item.name}</span>
+                <span style={{ color: "var(--sq-text-primary)" }}>{item.name}</span>
               </div>
               <div className="flex items-center gap-3 font-mono">
-                <span className="text-zinc-550 font-medium text-[11px]">{value.toLocaleString("pt-BR")}</span>
-                <span className="text-indigo-400 font-semibold text-[11px] w-12 text-right">{itemPercentage}%</span>
+                <span className="font-medium text-[11px]" style={{ color: "var(--sq-text-secondary)" }}>
+                  {value.toLocaleString("pt-BR")}
+                </span>
+                <span
+                  className="font-semibold text-[11px] w-12 text-right"
+                  style={{ color: "var(--sq-accent)" }}
+                >
+                  {itemPercentage}%
+                </span>
               </div>
             </div>
           );
