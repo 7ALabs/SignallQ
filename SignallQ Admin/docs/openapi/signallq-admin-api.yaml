@@ -69,6 +69,12 @@ paths:
                   type: string
                   format: password
                   example: "SecureP@ssw0rd"
+            examples:
+              admin_login:
+                summary: Admin user login
+                value:
+                  email: "admin@signallq.com"
+                  password: "SecurePassword123!"
       responses:
         '200':
           description: Login successful
@@ -76,17 +82,14 @@ paths:
             Set-Cookie:
               schema:
                 type: string
-                example: "session=<token>; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=604800"
+                example: "session=eyJhbGc...; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=604800"
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  role:
-                    type: string
-                    enum: ["admin", "viewer"]
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                ok: true
+                role: "admin"
         '400':
           $ref: '#/components/responses/400Error'
         '401':
@@ -244,57 +247,35 @@ paths:
         content:
           application/json:
             schema:
-              oneOf:
-                - type: object
-                  description: Single diagnostic record
-                - type: array
-                  description: Array of diagnostic records (batch size max 50)
-                  items:
-                    type: object
-              properties:
-                id:
-                  type: string
-                created_at:
-                  type: string
-                  format: date-time
-                network_type:
-                  type: string
-                status:
-                  type: string
-                  enum: ["excelente", "bom", "regular", "ruim", "critico"]
-                download_mbps:
-                  type: number
-                upload_mbps:
-                  type: number
-                latency_ms:
-                  type: integer
-                jitter_ms:
-                  type: integer
-                packet_loss:
-                  type: number
-                operator:
-                  type: string
-                device_model:
-                  type: string
-                os_version:
-                  type: string
-                app_version:
-                  type: string
-                environment:
-                  type: string
-                  enum: ["production", "staging"]
+              $ref: '#/components/schemas/DiagnosticSession'
+            examples:
+              single_diagnostic:
+                summary: Single diagnostic from speedtest
+                value:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  created_at: "2026-06-27T15:30:00Z"
+                  network_type: "wifi"
+                  status: "bom"
+                  score: 82
+                  download_mbps: 95.5
+                  upload_mbps: 45.2
+                  latency_ms: 18
+                  jitter_ms: 2
+                  packet_loss: 0
+                  issues: []
+                  operator: "Vivo"
+                  device_model: "Pixel 7"
+                  environment: "production"
       responses:
         '200':
           description: Diagnostics ingested
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  ok:
-                    type: boolean
-                  ingested:
-                    type: integer
+                $ref: '#/components/schemas/IngestResponse'
+              example:
+                ok: true
+                ingested: 1
         '400':
           $ref: '#/components/responses/400Error'
         '401':
@@ -391,19 +372,14 @@ paths:
   /admin/metrics/overview:
     get:
       summary: Retrieve standard consolidated dashboard counters
+      operationId: getOverview
       tags:
         - admin
       security:
         - cookieAuth: []
       parameters:
         - $ref: '#/components/parameters/Period'
-        - $ref: '#/components/parameters/StartDate'
-        - $ref: '#/components/parameters/EndDate'
         - $ref: '#/components/parameters/Environment'
-        - $ref: '#/components/parameters/Country'
-        - $ref: '#/components/parameters/State'
-        - $ref: '#/components/parameters/City'
-        - $ref: '#/components/parameters/AppVersion'
       responses:
         '200':
           description: Dynamic overview stats from internal and connected properties
@@ -411,6 +387,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OverviewMetricsResponse'
+              example:
+                source: "d1"
+                period: "7d"
+                environment: "production"
+                totalDiagnostics: 15420
+                activeSessions: 342
+                avgNetworkScore: 78
+                aiCallsToday: 1205
+                aiCostToday: 12.50
+                aiTokensToday: 450000
+                successRate: 94
+                topProblem: "High Latency"
+                mostTestType: "wifi"
+                mostTestTypePercentage: 62
         '400':
           $ref: '#/components/responses/400Error'
         '401':
@@ -738,7 +728,26 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AlertItem'
+              example:
+                data:
+                  - id: "alert-001"
+                    created_at: "2026-06-27T12:00:00Z"
+                    severity: "critical"
+                    title: "High packet loss detected"
+                    description: "Average packet loss exceeded 5%"
+                    resolved: false
+                pagination:
+                  limit: 50
+                  offset: 0
+                  total: 125
 
   /admin/alerts/{alertId}/resolve:
     post:
@@ -1396,6 +1405,140 @@ components:
         ratingsImported:
           type: integer
       required: [enabled, status, message, platform]
+
+    # Reusable Response Schemas
+    PaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+        pagination:
+          type: object
+          properties:
+            limit:
+              type: integer
+            offset:
+              type: integer
+            total:
+              type: integer
+
+    TimelineDataPoint:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        value:
+          type: number
+        count:
+          type: integer
+
+    MetricWithTrend:
+      type: object
+      properties:
+        current:
+          type: number
+        previous:
+          type: number
+        trend:
+          type: string
+          enum: [up, down, stable]
+        percentChange:
+          type: number
+
+    HealthResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+      required: [ok]
+
+    AuthResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        role:
+          type: string
+          enum: [admin, viewer]
+
+    IngestResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        ingested:
+          type: integer
+          description: Number of records ingested
+
+    DiagnosticSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        network_type:
+          type: string
+          enum: [wifi, cellular, ethernet]
+        status:
+          type: string
+          enum: [excelente, bom, regular, ruim, critico]
+        score:
+          type: integer
+          minimum: 0
+          maximum: 100
+        download_mbps:
+          type: number
+        upload_mbps:
+          type: number
+        latency_ms:
+          type: integer
+        jitter_ms:
+          type: integer
+        packet_loss:
+          type: number
+        issues:
+          type: array
+          items:
+            type: string
+        operator:
+          type: string
+        device_model:
+          type: string
+        environment:
+          type: string
+          enum: [production, staging]
+
+    AlertItem:
+      type: object
+      properties:
+        id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        severity:
+          type: string
+          enum: [critical, high, medium, low]
+        title:
+          type: string
+        description:
+          type: string
+        resolved:
+          type: boolean
+        resolved_at:
+          type: string
+          format: date-time
 
 x-changelog: |
   ## Version History
