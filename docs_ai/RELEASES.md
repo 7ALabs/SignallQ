@@ -1,11 +1,43 @@
 # Histórico de Releases — SignallQ Android
 
-**Mantido por:** Taisa
-**Última atualização:** 2026-06-21 (gerado a partir do git log real)
-**Referência:** `git log --oneline` — commits entre v0.8.1 e v0.16.0
+**Mantido por:** Gema
+**Última atualização:** 2026-06-26
+**Referência:** `git log --oneline` + CHANGELOG.md
 
 > Nota de marca: identificadores técnicos permanecem por compatibilidade de infra —
 > package `io.veloo.app`, repo `gmmattey/linka-android`, worker `linka-ai-diagnosis-worker`.
+
+---
+
+## [Unreleased] — pós-v0.21.0
+
+**Em desenvolvimento / mergeado após 2026-06-22**
+
+- (SIG-128/130) Firebase Crashlytics + BigQuery REST API — sync de crashes e versões
+- (SIG-13) Feature flags remotas com UI de gerenciamento no Admin Panel
+- (SIG-129) Pipeline de erros de sistema no worker com tabela `system_errors`
+- (SIG-133) Alertas de orçamento de IA via D1 com thresholds configuráveis
+- (SIG-125) `reliabilityPercentage` por modelo em `/admin/metrics/ai-usage`
+- (SIG-134) Analytics de produto: D1 + worker + Admin Panel
+- (SIG-12) Compatibilidade Safari iOS 9-10 (iPad 2012)
+- Batch fix de 16 bugs Admin Panel: crashes TypeErrors, guards defensivos, dados mockados (PR #306)
+- Modularização de backend contracts no PWA (SIG-145)
+- Design system PWA em andamento (SIG-41, branch ativa)
+
+---
+
+## v0.21.0 (versionCode 52) — 2026-06-22
+
+**CI, ícone do app e correções do Admin Panel**
+
+- Novo ícone do app: assets em todas as densidades + ícone adaptativo (SIG-7/SIG-8)
+- Play Store asset: `play_store_512.png` adicionado ao repositório
+- `signallq-privacy-worker`: novo worker Cloudflare para conformidade de privacidade
+- CI — Code Quality: workflow `.github/workflows/quality.yml` com Ktlint, Detekt, testes e build APK em cada PR (SIG-28/SIG-37)
+- README.md com stack, arquitetura e instruções de setup
+- Admin Panel: erro 401 Overview agora exibe mensagem clara (SIG-5)
+- Admin Panel: dados mockados em produção eliminados com `VITE_ENABLE_MOCKS=false` (SIG-9)
+- Ktlint: formatação corrigida em ~30 arquivos do módulo `app`
 
 ---
 

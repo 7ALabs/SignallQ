@@ -1,6 +1,6 @@
 # SignallQ Android AI Documentation
 
-**Versao:** v0.16.0 (versionCode 46, release 2026-06-21) | Referencia para agentes de IA no projeto SignallQ Android Kotlin.
+**Versao:** v0.21.0 (versionCode 52, release 2026-06-22) | Docs atualizados: 2026-06-26 | Referencia para agentes de IA no projeto SignallQ Android Kotlin.
 Recuperacao rapida, fatos operacionais, inferencia minima.
 
 > Ponto de entrada obrigatorio antes de carregar qualquer doc especifico.
