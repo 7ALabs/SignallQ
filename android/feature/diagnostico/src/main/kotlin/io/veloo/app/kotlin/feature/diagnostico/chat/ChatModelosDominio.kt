@@ -42,6 +42,11 @@ data class SessaoChatDiagnostico(
     val tipoDiagnostico: TipoDiagnostico? = null,
     val nomeModelo: String? = null,
     val diagnosticoPayloadJson: String? = null,
+    /** UUID da MedicaoEntity correspondente, para correlação no ingest. */
+    val diagnosisId: String? = null,
+    val promptTokens: Int = 0,
+    val completionTokens: Int = 0,
+    val totalTokens: Int = 0,
 )
 
 // =============================================================================
@@ -176,6 +181,10 @@ fun SessaoChatDiagnostico.paraEntity(): ChatSessionEntity {
         tipoDiagnostico = tipoDiagnostico?.paraString(),
         nomeModelo = nomeModelo,
         diagnosticoPayloadJson = diagnosticoPayloadJson,
+        diagnosisId = diagnosisId,
+        promptTokens = promptTokens,
+        completionTokens = completionTokens,
+        totalTokens = totalTokens,
     )
 }
 
@@ -189,5 +198,9 @@ fun ChatSessionEntity.paraDominio(): SessaoChatDiagnostico {
         tipoDiagnostico = tipoDiagnostico.paraTipoDiagnostico(),
         nomeModelo = nomeModelo,
         diagnosticoPayloadJson = diagnosticoPayloadJson,
+        diagnosisId = diagnosisId,
+        promptTokens = promptTokens,
+        completionTokens = completionTokens,
+        totalTokens = totalTokens,
     )
 }

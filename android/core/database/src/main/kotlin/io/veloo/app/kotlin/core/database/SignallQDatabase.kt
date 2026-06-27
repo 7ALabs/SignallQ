@@ -13,7 +13,7 @@ import io.veloo.app.core.database.chat.ChatSessionEntity
         ChatSessionEntity::class,
         ChatMessageEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 abstract class SignallQDatabase : RoomDatabase() {

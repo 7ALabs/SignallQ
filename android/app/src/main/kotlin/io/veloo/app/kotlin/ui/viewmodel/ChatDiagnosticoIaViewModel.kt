@@ -519,6 +519,9 @@ class ChatDiagnosticoIaViewModel
                 return
             }
 
+            // Vincula a sessão ao diagnóstico para correlação no ingest retroativo (SIG-161).
+            chatRepository.atualizarDiagnosisId(sessaoId, ultimaMedicao.id)
+
             val contexto = coletarContextoCompleto()
             iniciarAnaliseStreaming(sessaoId = sessaoId, context = contexto, tipo = TipoDiagnostico.ultimoTeste)
         }
@@ -854,6 +857,20 @@ class ChatDiagnosticoIaViewModel
                 chatRepository.atualizarMensagem(msgConcluida)
                 atualizarMensagemNoState(msgConcluida)
                 mensagemStreamingAtual = null
+
+                // Persiste tokens do AI Worker capturados durante o streaming (SIG-162).
+                val sessaoId = _uiState.value.sessaoAtual?.id
+                val usage = aiRepository.lastStreamUsage
+                if (sessaoId != null && usage != null && usage.totalTokens > 0) {
+                    runCatching {
+                        chatRepository.atualizarTokens(
+                            sessaoId,
+                            usage.promptTokens,
+                            usage.completionTokens,
+                            usage.totalTokens,
+                        )
+                    }
+                }
 
                 // Registra análise na cota SOMENTE após sucesso
                 cotaRepository.registrarAnalise()

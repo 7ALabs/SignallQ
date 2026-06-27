@@ -75,4 +75,7 @@ interface MedicaoDao {
         origem: String?,
         problemas: String?,
     )
+
+    @Query("UPDATE medicao SET score = :score WHERE id = :id")
+    suspend fun atualizarScore(id: String, score: Double)
 }

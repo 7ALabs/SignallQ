@@ -69,6 +69,21 @@ class ChatDiagnosticoIaRepository(
         dao.renomearSessao(id, novoTitulo, System.currentTimeMillis())
     }
 
+    /** Vincula a sessão a um diagnóstico específico para correlação no ingest retroativo. */
+    suspend fun atualizarDiagnosisId(id: String, diagnosisId: String) {
+        dao.atualizarDiagnosisId(id, diagnosisId)
+    }
+
+    /** Persiste os tokens consumidos na chamada ao AI Worker. */
+    suspend fun atualizarTokens(
+        id: String,
+        promptTokens: Int,
+        completionTokens: Int,
+        totalTokens: Int,
+    ) {
+        dao.atualizarTokens(id, promptTokens, completionTokens, totalTokens)
+    }
+
     // -------------------------------------------------------------------------
     // Writes — mensagem
     // -------------------------------------------------------------------------

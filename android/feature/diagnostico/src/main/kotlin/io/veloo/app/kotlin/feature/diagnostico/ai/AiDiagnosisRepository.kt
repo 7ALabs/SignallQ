@@ -74,6 +74,15 @@ class AiDiagnosisRepository(
     internal val cache = ConcurrentHashMap<String, Pair<AiDiagnosisResult, Long>>()
 
     /**
+     * Tokens do último streaming concluído. Atualizado ao processar evento SSE de usage.
+     * Lido pelo ViewModel após o collect do Flow para persistir em ChatSessionEntity.
+     * Thread-safe via @Volatile — escrita única por stream, leitura após collect.
+     */
+    @Volatile
+    var lastStreamUsage: AiStreamUsage? = null
+        private set
+
+    /**
      * Verifica se o worker de IA está acessível.
      * Faz um HEAD request com timeout de 5s. Retorna false em qualquer falha.
      */
@@ -179,6 +188,8 @@ class AiDiagnosisRepository(
     fun explainDiagnosisStream(context: DiagnosisAiContext): Flow<String> = flow {
         if (!isAuthorized()) return@flow
 
+        lastStreamUsage = null
+
         val url = baseUrl.trimEnd('/') + "/api/ai/diagnostico-conexao?stream=true"
         val json = contextToJson(context).toString()
         val body = json.toRequestBody("application/json; charset=utf-8".toMediaType())
@@ -197,12 +208,22 @@ class AiDiagnosisRepository(
                 if (line.startsWith("data: ")) {
                     val data = line.removePrefix("data: ").trim()
                     if (data == "[DONE]") break
-                    val token = try {
-                        JSONObject(data).optString("response", "")
-                    } catch (_: Exception) {
-                        ""
-                    }
-                    if (token.isNotEmpty()) emit(token)
+                    try {
+                        val obj = JSONObject(data)
+                        val token = obj.optString("response", "")
+                        if (token.isNotEmpty()) emit(token)
+                        // Captura uso de tokens quando o worker envia o bloco de usage
+                        // (tipicamente no último evento SSE antes de [DONE]).
+                        val usageObj = obj.optJSONObject("usage")
+                        if (usageObj != null) {
+                            val prompt = usageObj.optInt("prompt_tokens", 0)
+                            val completion = usageObj.optInt("completion_tokens", 0)
+                            val total = usageObj.optInt("total_tokens", prompt + completion)
+                            if (total > 0) {
+                                lastStreamUsage = AiStreamUsage(prompt, completion, total)
+                            }
+                        }
+                    } catch (_: Exception) { /* evento malformado — ignorar */ }
                 }
             }
         } finally {

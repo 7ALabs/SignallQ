@@ -60,4 +60,20 @@ interface ChatSessionDao {
             "ORDER BY criadoEmEpochMs ASC",
     )
     suspend fun buscarCompletasDesde(desde: Long): List<ChatSessionEntity>
+
+    @Query(
+        "UPDATE chat_sessions SET diagnosisId = :diagnosisId WHERE id = :id",
+    )
+    suspend fun atualizarDiagnosisId(id: String, diagnosisId: String)
+
+    @Query(
+        "UPDATE chat_sessions SET promptTokens = :promptTokens, " +
+            "completionTokens = :completionTokens, totalTokens = :totalTokens WHERE id = :id",
+    )
+    suspend fun atualizarTokens(
+        id: String,
+        promptTokens: Int,
+        completionTokens: Int,
+        totalTokens: Int,
+    )
 }

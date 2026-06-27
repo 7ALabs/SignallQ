@@ -137,6 +137,24 @@ object CoreDatabaseModulo {
             }
         }
 
+    /**
+     * SIG-160: score em MedicaoEntity
+     * SIG-163: status em MedicaoEntity (remove hardcode "completed" no ingest)
+     * SIG-161: diagnosisId em ChatSessionEntity (correlação com medicao no ingest)
+     * SIG-162: tokens de IA em ChatSessionEntity
+     */
+    private val migracao11para12 =
+        object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE medicao ADD COLUMN score REAL")
+                db.execSQL("ALTER TABLE medicao ADD COLUMN status TEXT NOT NULL DEFAULT 'completed'")
+                db.execSQL("ALTER TABLE chat_sessions ADD COLUMN diagnosisId TEXT")
+                db.execSQL("ALTER TABLE chat_sessions ADD COLUMN promptTokens INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE chat_sessions ADD COLUMN completionTokens INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE chat_sessions ADD COLUMN totalTokens INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
     fun criarBanco(context: Context): SignallQDatabase {
         return Room.databaseBuilder(
             context.applicationContext,
@@ -152,6 +170,7 @@ object CoreDatabaseModulo {
             .addMigrations(migracao8para9)
             .addMigrations(migracao9para10)
             .addMigrations(migracao10para11)
+            .addMigrations(migracao11para12)
             .build()
     }
 

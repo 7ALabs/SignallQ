@@ -30,4 +30,8 @@ data class MedicaoEntity(
     val diagnosticoTexto: String? = null,
     val diagnosticoOrigem: String? = null,
     val diagnosticoProblemas: String? = null,
+    /** Score 0–100 calculado pelo engine local após o diagnóstico. Null enquanto diagnóstico não foi executado. */
+    val score: Double? = null,
+    /** Status da medição: "completed", "failed", "partial" ou "timeout". */
+    val status: String = "completed",
 )

@@ -87,6 +87,7 @@ class SpeedtestPersistenceCoordinator
                                 vereditoVideoChamada = resultado.diagnosticoQualidade.vereditoVideoChamada.name,
                                 gargaloPrimario = resultado.diagnosticoQualidade.gargaloPrimario.name,
                                 operadoraMovel = monitorTelephony.snapshotFlow.value?.operadora,
+                                status = "completed",
                             ),
                         )
                         ultimaMedicaoId = novoId
@@ -111,7 +112,8 @@ class SpeedtestPersistenceCoordinator
                         val texto = relatorio.decisao.mensagemUsuario.ifBlank { null }
                         val problemas = extrairProblemasRelatorio(relatorio)
                         medicaoDao.atualizarDiagnostico(id, texto, "local", problemas)
-                        Timber.d("SpeedtestPersistenceCoordinator: diagnostico local salvo id=$id")
+                        medicaoDao.atualizarScore(id, relatorio.scoreConexao.toDouble())
+                        Timber.d("SpeedtestPersistenceCoordinator: diagnostico local salvo id=$id score=${relatorio.scoreConexao}")
                     } catch (e: Exception) {
                         Timber.e(e, "SpeedtestPersistenceCoordinator: falha ao salvar diagnostico local")
                     }

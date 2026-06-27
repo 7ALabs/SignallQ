@@ -671,6 +671,21 @@ data class SpeedtestExtras(
 )
 
 // =============================================================================
+// Uso de tokens no streaming
+// =============================================================================
+
+/**
+ * Tokens capturados do evento SSE de usage enviado pelo Cloudflare Workers AI
+ * ao fim do streaming. Populado em [AiDiagnosisRepository.lastStreamUsage]
+ * e lido pelo ViewModel para persistir em [ChatSessionEntity].
+ */
+data class AiStreamUsage(
+    val promptTokens: Int,
+    val completionTokens: Int,
+    val totalTokens: Int,
+)
+
+// =============================================================================
 // Fallback local
 // =============================================================================
 // Quando a IA falha (sem auth, timeout, !2xx, JSON invalido), produzimos um
