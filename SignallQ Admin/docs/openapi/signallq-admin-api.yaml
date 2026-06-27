@@ -2,10 +2,48 @@ openapi: 3.0.3
 info:
   title: SignallQ Admin Console API
   description: API endpoints for consolidating network telemetry, AI diagnostics, and app store metrics inside the SignallQ Admin dashboard.
-  version: 1.0.0
+  version: 2.0.0
+  contact:
+    name: SignallQ Team
+    url: https://signallq.com
+  license:
+    name: Internal
 servers:
-  - url: https://api.signallq.internal/v1
-    description: Production Admin Server
+  - url: https://api.signallq.internal
+    description: Production Admin Server (no /v1 prefix in actual implementation)
+tags:
+  - name: auth
+    description: Authentication and session management
+  - name: ingest
+    description: App data ingestion (Bearer INGEST_KEY)
+  - name: admin
+    description: Admin dashboard endpoints (session-based)
+  - name: health
+    description: Health check (legacy Bearer auth)
+
+x-path-structure: |
+  ## API Structure
+
+  ### Authentication Routes
+  - /auth/* — User authentication and session management
+
+  ### Data Ingestion Routes (App → Backend)
+  - /ingest/* — App measurements and analytics (Bearer INGEST_KEY, write-only)
+
+  ### Admin Dashboard Routes (Dashboard → Backend)
+  - /admin/metrics/* — Analytics and reporting (12+ endpoints)
+  - /admin/alerts/* — Alert management
+  - /admin/analytics/* — Product and device analytics
+  - /admin/integrations/* — External service status (Firebase, Google Play, App Store)
+  - /admin/settings — Configuration management
+  - /admin/feature-flags/* — Feature flag management
+  - /admin/diagnostics/* — AI-powered insights
+
+  ### Health Check
+  - /health — Service health (legacy ADMIN_SECRET)
+
+  **Note**: No /v1 prefix in actual Worker implementation. Use /admin/*, /auth/*, /ingest/* directly.
+
 paths:
   /auth/login:
     post:
@@ -1358,3 +1396,39 @@ components:
         ratingsImported:
           type: integer
       required: [enabled, status, message, platform]
+
+x-changelog: |
+  ## Version History
+
+  ### v2.0.0 (27.06.2026) — SIG-166, SIG-167
+  - **Added**: 22+ missing endpoints (Phase 1 complete)
+    - All /auth/* endpoints (5): login, logout, me, create-user, change-password
+    - All /ingest/* endpoints (3): diagnostic, ai-usage, analytics
+    - All /admin/metrics/* endpoints (12+): ai-costs, ai-providers, ai-usage/timeline, timeline, alerts, top-issues, etc.
+    - All /admin/analytics/* endpoints (2): product, battery
+    - All /admin/integrations/firebase/* endpoints (6): analytics, crashlytics, versions, crash-issues, sync
+    - /admin/diagnostics/intelligence, /admin/alerts/*, /admin/feature-flags/*, /health, PUT /admin/settings
+  - **Added**: Complete authentication documentation (SIG-167)
+    - securitySchemes: cookieAuth (session), bearerAuth (ingest), adminSecretAuth (legacy)
+    - Password hashing: PBKDF2-SHA256 (100k iterations)
+    - Rate limiting: 5 attempts / 15 minutes
+  - **Changed**: version → 2.0.0
+  - **Removed**: /v1 prefix (not in actual implementation; use /admin/*, /auth/*, /ingest/* directly)
+  - **Documented**: Path structure and security model
+
+  ### v1.0.0 (Initial)
+  - 25 basic endpoints
+  - Incomplete auth documentation
+  - Missing 17+ endpoints
+
+x-implementation-notes: |
+  ## Implementation Notes
+
+  - **No version prefix**: Actual Worker uses /admin/*, /auth/*, /ingest/* directly (no /v1)
+  - **Auth**: 3 distinct schemes (session for /admin/*, Bearer for /ingest/*, Bearer legacy for /health)
+  - **Rate limiting**: Applied to /auth/* endpoints only (IP-based, 5 attempts/15min)
+  - **INGEST_KEY scope**: Write-only /ingest/* (cannot read admin data, reduces APK compromise blast radius)
+  - **Database**: D1 (Cloudflare) for admin data, Firebase for analytics
+  - **Async operations**: Some endpoints like /admin/integrations/firebase/sync are fire-and-forget
+  - **Response schemas**: See /components/schemas/ for complete data models
+  - **CORS**: Enabled; credentials allowed via Set-Cookie (httpOnly, Secure, SameSite=None)
