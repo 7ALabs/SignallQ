@@ -138,6 +138,9 @@ fun MedicaoEntity.toIngestPayload(
     buildType: String? = null,
     versionCode: Int? = null,
     deviceId: String? = null,
+    deviceModel: String? = null,
+    osVersion: String? = null,
+    appVersion: String? = null,
 ) = DiagnosticIngestPayload(
     id = id,
     createdAt = timestampEpochMs / 1000,
@@ -152,6 +155,10 @@ fun MedicaoEntity.toIngestPayload(
     issues = gargaloPrimario?.takeIf { it.isNotBlank() }
         ?.let { listOf(idParaIssueLabel(it)) } ?: emptyList(),
     operator = operadoraMovel?.takeIf { it.isNotBlank() },
+    deviceModel = deviceModel,
+    osVersion = osVersion,
+    appVersion = appVersion,
+    aiSummaryReport = diagnosticoTexto.orEmpty(),
     environment = environment,
     distChannel = distChannel,
     buildType = buildType,

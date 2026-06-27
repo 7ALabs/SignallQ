@@ -57,7 +57,10 @@ internal class AdminSyncWorker
                     runCatching {
                         preferenciasAppRepository.buscarOuGerarAnonDeviceId()
                     }.getOrDefault("unknown")
-                syncMedicoes(environment, distChannel, buildType, versionCode, deviceId)
+                val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}"
+                val osVersion = "Android ${Build.VERSION.RELEASE}"
+                val appVersion = BuildConfig.VERSION_NAME
+                syncMedicoes(environment, distChannel, buildType, versionCode, deviceId, deviceModel, osVersion, appVersion)
                 syncChatSessions(environment, distChannel, buildType, versionCode, deviceId)
                 Log.d(TAG, "Sync retroativo concluido com sucesso")
                 Result.success()
@@ -98,6 +101,9 @@ internal class AdminSyncWorker
             buildType: String,
             versionCode: Int,
             deviceId: String,
+            deviceModel: String,
+            osVersion: String,
+            appVersion: String,
         ) {
             val lastEpoch = preferenciasAppRepository.buscarAdminSyncMedicaoLastEpochMs()
             Log.d(TAG, "syncMedicoes: checkpoint=$lastEpoch")
@@ -124,6 +130,9 @@ internal class AdminSyncWorker
                             buildType = buildType,
                             versionCode = versionCode,
                             deviceId = deviceId,
+                            deviceModel = deviceModel,
+                            osVersion = osVersion,
+                            appVersion = appVersion,
                         ),
                     )
                 }
