@@ -52,3 +52,9 @@ tests/prints/TEMP.md
 
 # Índice de memória gerado pelo harness (grande, não versionável)
 memory-index.json
+
+# Design system — artefatos gerados pelo converter (nunca versionar)
+packages/design-system/ds-bundle/
+packages/design-system/.design-sync/.cache/
+packages/design-system/.design-sync/learnings/
+packages/design-system/.design-sync/node_modules/

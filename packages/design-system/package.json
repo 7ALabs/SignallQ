@@ -1,0 +1,32 @@
+{
+  "name": "@signallq/design-system",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "module": "./dist/index.js",
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./styles": "./styles/tokens.css"
+  },
+  "scripts": {
+    "build": "tsup"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "react": "^18",
+    "react-dom": "^18",
+    "tsup": "^8",
+    "typescript": "^5"
+  }
+}

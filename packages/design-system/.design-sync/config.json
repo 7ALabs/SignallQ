@@ -1,0 +1,9 @@
+{
+  "projectId": "e77ea465-291f-4bf5-930c-a267680da04e",
+  "pkg": "@signallq/design-system",
+  "shape": "package",
+  "buildCmd": "npm run build",
+  "cssEntry": "./styles/tokens.css",
+  "runtimeFontPrefixes": ["Roboto"],
+  "readmeHeader": ".design-sync/conventions.md"
+}
