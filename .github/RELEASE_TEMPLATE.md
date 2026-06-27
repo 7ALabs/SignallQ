@@ -5,7 +5,7 @@
 ### Novidades
 -
 
-### Correcoes
+### Correções
 -
 
 ### Melhorias internas
@@ -26,11 +26,11 @@
 
 ## Como instalar (beta)
 
-1. Baixe o APK na secao Assets abaixo
-2. No Android: Configuracoes > Seguranca > Fontes desconhecidas (ou "Instalar apps desconhecidos")
-3. Abra o APK e siga as instrucoes
+1. Baixe o APK na seção Assets abaixo
+2. No Android: Configurações > Segurança > Fontes desconhecidas (ou "Instalar apps desconhecidos")
+3. Abra o APK e siga as instruções
 
-> Distribuicao oficial via Play Store em M3 (previsto 07/08/2026).
+> Distribuição oficial via Play Store em M3 (previsto 07/08/2026).
 
 ## Issues fechadas nesta release
 
