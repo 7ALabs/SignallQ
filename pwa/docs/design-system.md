@@ -1,176 +1,113 @@
-# Design System Operacional
+# SignallQ PWA Design System
 
-## Princípio visual
+## Decisão M0
 
-O SignallQ PWA deve parecer um produto técnico confiável, limpo e simples de usar.
+O Design System oficial da PWA fica centralizado em `src/design-system/`.
 
-Não deve parecer painel velho de roteador.
+A base estrutural é Material Design 3: hierarquia clara, superfícies limpas, estados previsíveis, radius moderado, CTA evidente e linguagem direta.
 
-Não deve parecer dashboard cheio de card inútil.
+O Google Fiber Speed Test serve apenas como inspiração de clareza: tela limpa, espaçamento generoso, número principal grande e ação primária forte. A PWA não copia identidade visual, cores, layout, assets ou marca do Google Fiber.
 
-## Direção
+## Navegação
 
-- Material Design 3 como referência.
-- Mobile-first.
-- Interface clara e leve.
-- Resultado principal entendido em menos de 10 segundos.
-- Pouca ornamentação.
-- Componentes simples.
-- Copy curta em PT-BR.
+A PWA não usa bottom navigation.
 
-## Tokens iniciais
+Bottom navigation fica reservada para o Android nativo. Na PWA, a navegação deve usar:
 
-### Cores
+- header/top navigation;
+- CTA principal;
+- cards contextuais;
+- links ou botões de apoio quando houver necessidade real.
 
-```css
-:root {
-  --sq-color-primary: #6c2bff;
-  --sq-color-primary-contrast: #ffffff;
-  --sq-color-background: #f7f7fb;
-  --sq-color-surface: #ffffff;
-  --sq-color-surface-muted: #f0f0f6;
-  --sq-color-text-primary: #17151f;
-  --sq-color-text-secondary: #5f5a6b;
-  --sq-color-border: #dedbe8;
-  --sq-color-success: #168a4a;
-  --sq-color-warning: #b7791f;
-  --sq-color-danger: #c2413b;
-  --sq-color-info: #2563eb;
-}
-```
+A paridade com Android vem de tokens, componentes, linguagem, classificação de qualidade e fluxo de diagnóstico, não de copiar a estrutura nativa.
 
-### Espaçamento
+## Tokens disponíveis
 
-```css
-:root {
-  --sq-space-1: 4px;
-  --sq-space-2: 8px;
-  --sq-space-3: 12px;
-  --sq-space-4: 16px;
-  --sq-space-5: 24px;
-  --sq-space-6: 32px;
-}
-```
+Arquivos em `src/design-system/tokens/`:
 
-### Radius
+- `colors.ts`: light/dark, `primary`, `onPrimary`, `primaryContainer`, `background`, `surface`, `surfaceVariant`, `outline`, `error`, `success`, `warning`, `info`, `download`, `upload`, `latency`, `stability`, `diagnostic` e `quality`.
+- `typography.ts`: família, tamanhos, pesos e alturas de linha.
+- `spacing.ts`: escala de espaçamento.
+- `radius.ts`: radius de componentes e pill.
+- `elevation.ts`: sombras Material-like discretas.
+- `motion.ts`: durações e easing.
 
-```css
-:root {
-  --sq-radius-sm: 8px;
-  --sq-radius-md: 12px;
-  --sq-radius-lg: 16px;
-  --sq-radius-xl: 24px;
-}
-```
+Temas:
 
-### Tipografia
+- `theme/lightTheme.ts`
+- `theme/darkTheme.ts`
+- `theme/ThemeProvider.tsx`
 
-```css
-:root {
-  --sq-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --sq-font-size-xs: 12px;
-  --sq-font-size-sm: 14px;
-  --sq-font-size-md: 16px;
-  --sq-font-size-lg: 20px;
-  --sq-font-size-xl: 28px;
-}
-```
+O `ThemeProvider` aplica CSS variables. Componentes devem consumir essas variáveis em vez de espalhar cores e espaçamentos hardcoded.
 
-## Componentes mínimos
+## Componentes base
 
-### App Shell
+- `AppShell`: largura máxima, header e área principal.
+- `TopAppBar`: marca, navegação superior e ações.
+- `Button`: CTA primário, secundário, tonal, texto, loading e disabled.
+- `Card`: superfície base, outlined e tonal.
+- `ActionCard`: card clicável/contextual para histórico, diagnóstico e ajustes.
+- `EmptyState`: tela ou bloco vazio.
+- `ErrorState`: erro claro e acionável.
+- `LoadingState`: skeleton simples.
 
-Responsável por:
+## Componentes SignallQ
 
-- largura máxima;
-- background;
-- área principal;
-- navegação base quando existir.
+- `SpeedHeroCard`: destaque principal da tela inicial ou resultado.
+- `MetricTile`: métrica curta com unidade, status e explicação.
+- `QualityBadge`: classificação visual de qualidade.
+- `ConnectionSummaryCard`: resumo principal da conexão.
+- `DiagnosisInsightCard`: insight curto de diagnóstico.
+- `RecommendationList`: ações recomendadas.
+- `NetworkContextCard`: contexto técnico permitido pelo navegador.
 
-### Botão primário
+## Patterns
 
-Uso:
+- `HomeLayout`: primeira tela da PWA, mobile-first, sem bottom bar.
+- `ResultLayout`: resultado com conteúdo principal e apoio lateral.
+- `DiagnosisLayout`: empilhamento de insights e recomendações.
 
-- iniciar teste;
-- refazer teste;
-- ação principal da tela.
+## Quando usar
 
-Regra:
+Use `SpeedHeroCard` para a ação ou resultado principal. Não coloque vários heróis na mesma tela.
 
-- só uma ação primária forte por tela.
+Use `MetricTile` para download, upload, latência, jitter ou estabilidade. Se a métrica não foi medida, mostre `--` ou texto equivalente e explique a limitação.
 
-### Card de métrica
+Use `DiagnosisInsightCard` para uma conclusão curta. Não use para tese longa ou chat livre.
 
-Deve conter:
+Use `RecommendationList` quando houver ações concretas. Evite recomendações genéricas que o app não consegue validar.
 
-- nome da métrica;
-- valor;
-- unidade;
-- status visual;
-- texto curto quando houver limitação.
+Use `NetworkContextCard` para expor limitações do navegador em linguagem simples.
 
-### Badge de status
+## Linguagem de diagnóstico
 
-Estados:
+Boa:
 
-- bom;
-- atenção;
-- ruim;
-- desconhecido.
-
-### Bloco de recomendação
-
-Deve conter:
-
-- título curto;
-- explicação simples;
-- prioridade;
-- categoria.
-
-## Estados obrigatórios
-
-Toda feature visual relevante deve ter:
-
-- carregando;
-- erro;
-- vazio;
-- sucesso.
-
-## Copy
-
-Regras:
-
-- usar “você”;
-- frases curtas;
-- explicar termos técnicos;
-- sem emoji na interface;
-- sem tom alarmista;
-- sem promessa absoluta.
-
-Bom:
-
-“Sua internet está rápida, mas oscilou durante o teste.”
+- "Sua internet está rápida, mas oscilou durante o teste."
+- "Não conseguimos medir o Wi-Fi detalhado no navegador."
+- "A latência foi estimada por uma requisição web, não por ping ICMP."
 
 Ruim:
 
-“Sua conexão apresenta degradação estatística severa com instabilidade na malha.”
+- "Sua conexão apresenta degradação estatística severa com instabilidade na malha."
+- "Detectamos RSSI baixo no Wi-Fi."
+- "O app encontrou todos os dispositivos conectados na rede."
 
-## Regras anti-carnaval
+## Regras de implementação
 
-Não criar card se ele não responder uma pergunta real do usuário.
+- Não criar `BottomNavigation` para a PWA neste M0.
+- Não usar visual gamer, neon ou dashboard poluído.
+- Não criar gráfico pesado sem necessidade de produto.
+- Não transformar a PWA em Android encapsulado.
+- Não implementar Speed Test, DNS, histórico ou diagnóstico IA além do necessário para validar UI de SIG-41.
+- Não inventar métricas; quando o browser não mede, a UI deve dizer isso.
+- Não alterar segredos ou variáveis de ambiente para Design System.
 
-Perguntas que a tela deve responder:
+## Critérios visuais
 
-- minha internet está boa?
-- está lenta ou instável?
-- isso afeta o quê?
-- o que faço agora?
-
-## Critérios de aceite visual
-
-- Funciona bem em 360px de largura.
-- CTA principal aparece sem rolagem excessiva.
-- Resultado geral é o item mais evidente.
-- Métricas técnicas não competem com o diagnóstico.
-- Ausência de métrica é comunicada claramente.
-- A tela não depende de texto longo para ser entendida.
+- Funciona bem em mobile.
+- CTA "Iniciar teste" aparece com destaque.
+- O resultado principal é mais evidente que os detalhes.
+- Velocidade e estabilidade aparecem como conceitos separados.
+- Estados de carregamento, vazio e erro existem como componentes.
+- A tela usa header/top navigation e cards contextuais, sem bottom navigation.
