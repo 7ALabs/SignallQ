@@ -18,6 +18,7 @@ export enum SpeedtestPhase {
   Upload = 'upload',
   Partial = 'partial',
   Complete = 'complete',
+  Partial = 'partial',
   Error = 'error',
   Canceled = 'canceled',
 }

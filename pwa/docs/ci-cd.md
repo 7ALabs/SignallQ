@@ -12,12 +12,12 @@ Esse workflow agora:
 
 - usa `working-directory: pwa`;
 - executa `npm ci`;
+- executa `npm run lint` apenas se o script existir;
 - executa `npm run verify`;
-- tenta preview deploy em PR quando `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` estiverem configurados;
-- tenta production deploy em `main` com `npm run pages:deploy` nas mesmas condicoes;
-- publica `pwa/dist/` como artifact.
+- publica `pwa/dist/` como artifact;
+- tenta preview/deploy no Cloudflare Pages apenas quando `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` estiverem configurados.
 
-O workflow nao tenta rodar pipeline Android.
+O workflow nao tenta rodar pipeline Android. A excecao fora de `pwa/` continua restrita a `.github/workflows/pwa-ci.yml`, autorizada para a entrega do PWA.
 
 ## Projeto Pages
 
@@ -50,9 +50,38 @@ npm run pages:deploy
 
 Detalhes:
 
-- `npm run verify` executa `npm test` e `npm run build`, e o `build` inclui `tsc --noEmit`;
+- `npm run verify` executa `npm run typecheck`, `npm test` e `npm run build`;
 - `npm run pages:deploy` publica `dist` para o projeto `signallq-pwa`;
 - `npm run lint` continua ausente e deve ser tratado como pendencia de infraestrutura, nao como validacao concluida.
+
+## Workflow GitHub Actions
+
+Arquivo:
+
+```text
+.github/workflows/pwa-ci.yml
+```
+
+Gatilhos:
+
+- `pull_request` para `main` quando houver mudanca em `pwa/**` ou no proprio workflow;
+- `push` em `main` quando houver mudanca em `pwa/**` ou no proprio workflow.
+
+Job `Build & Test`:
+
+- `npm ci`;
+- `npm run lint`, somente se o script existir;
+- `npm run verify`;
+- upload de `pwa/dist` como artefato.
+
+Job `Cloudflare Pages Preview/Deploy`:
+
+- roda somente depois da validacao;
+- em PR, publica preview usando a branch do PR quando os secrets existem;
+- em push para `main`, publica o build da branch `main` quando os secrets existem;
+- se os secrets nao existirem, registra skip e nao quebra a validacao basica do PR.
+
+O workflow usa `working-directory: pwa`, nao aciona build Android e chama o script existente `npm run pages:deploy` para manter um unico contrato de deploy.
 
 ## Variaveis e secrets
 
@@ -62,14 +91,14 @@ Variaveis server-side esperadas no Cloudflare Pages:
 - `ADMIN_INGEST_URL` ou `ADMIN_WORKER_URL`
 - `ADMIN_INGEST_KEY`
 
+Secrets esperados no GitHub Actions para deploy:
+
+- `CLOUDFLARE_ACCOUNT_ID`
+- `CLOUDFLARE_API_TOKEN`
+
 Para desenvolvimento local com `wrangler pages dev`, use `.dev.vars`. Esse arquivo nao deve ser versionado.
 
 Variaveis com prefixo `VITE_` sao publicas por definicao e nao devem receber segredo, token, ingest key ou URL privada que dependa de autenticacao.
-
-Secrets esperados no GitHub Actions:
-
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ACCOUNT_ID`
 
 ## Headers e seguranca
 

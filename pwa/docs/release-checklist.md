@@ -120,6 +120,8 @@ Quando aplicável:
 
 - build command definido;
 - output directory definido;
+- workflow PWA restrito a `pwa/**` e `.github/workflows/pwa-ci.yml`;
+- PR valida sem depender de secrets Cloudflare;
 - preview deploy validado;
 - env vars revisadas;
 - secrets fora do client;
