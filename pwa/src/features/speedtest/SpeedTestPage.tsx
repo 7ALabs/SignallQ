@@ -14,6 +14,9 @@ import {
   SpeedHeroCard,
   TopAppBar,
 } from '@/design-system';
+import { requestAiDiagnosis } from '@/features/diagnosis/aiClient';
+import type { AiDiagnosisModelInfo } from '@/features/diagnosis/aiTypes';
+import { buildDiagnosticPayload } from '@/features/diagnosis/aiPayload';
 import { DiagnosisResultPanel } from '@/features/diagnosis/components/DiagnosisResultPanel';
 import { createLocalDiagnosis } from '@/features/diagnosis/localDiagnosis';
 import { HistoryPanel } from '@/features/history/HistoryPanel';
@@ -26,6 +29,8 @@ import { runSpeedTestWeb } from './speedTestRunner';
 import type { SpeedTestProgress, SpeedTestRunStatus } from './speedTestTypes';
 
 const navItems = ['Teste', 'Histórico', 'Limitações'];
+
+type DiagnosisStatus = 'idle' | 'local' | 'loading-ai' | 'ai' | 'fallback';
 
 const phaseLabels: Record<SpeedtestPhase, string> = {
   [SpeedtestPhase.Idle]: 'Aguardando',
@@ -119,6 +124,8 @@ export function SpeedTestPage() {
   });
   const [result, setResult] = useState<SpeedTestResult | null>(null);
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
+  const [diagnosisStatus, setDiagnosisStatus] = useState<DiagnosisStatus>('idle');
+  const [aiModelInfo, setAiModelInfo] = useState<AiDiagnosisModelInfo | null>(null);
   const [history, setHistory] = useState<HistoryState>(() => buildHistoryState([], 'loading'));
 
   const quality = useMemo<SpeedTestQuality>(() => classifySpeedTest(result), [result]);
@@ -182,9 +189,19 @@ export function SpeedTestPage() {
       }
 
       setResult(run.result);
-      const nextDiagnosis = createLocalDiagnosis({ speedTest: run.result });
-      setDiagnosis(nextDiagnosis);
-      await saveResult(run.result, nextDiagnosis);
+      const localDiagnosis = createLocalDiagnosis({ speedTest: run.result });
+      setDiagnosis(localDiagnosis);
+      setDiagnosisStatus('loading-ai');
+      setAiModelInfo(null);
+
+      const ai = await requestAiDiagnosis({
+        localDiagnosis,
+        payload: buildDiagnosticPayload(run.result, run.result.connection.effectiveType ?? 'unknown'),
+      });
+      setDiagnosis(ai.diagnosis);
+      setDiagnosisStatus(ai.source === 'ai' ? 'ai' : 'fallback');
+      setAiModelInfo(ai.source === 'ai' ? ai.modelInfo : null);
+      await saveResult(run.result, ai.diagnosis);
     } catch {
       setProgress({
         phase: SpeedtestPhase.Error,
@@ -227,6 +244,8 @@ export function SpeedTestPage() {
       if (!entry) return;
       setResult(entry.speedTest);
       setDiagnosis(entry.diagnosis);
+      setDiagnosisStatus(entry.diagnosis.source === 'ai' ? 'ai' : entry.diagnosis.source === 'fallback' ? 'fallback' : 'local');
+      setAiModelInfo(null);
       setProgress({
         phase: SpeedtestPhase.Complete,
         status: 'success',
@@ -313,10 +332,24 @@ export function SpeedTestPage() {
         actions={
           <>
             <ActionCard
-              description={`${phaseLabels[progress.phase]}: ${progress.message}`}
-              icon={isRunning ? <RotateCcw size={22} /> : <Gauge size={22} />}
-              meta="Progresso"
-              title={runStatusLabel(progress.status)}
+              description={
+                diagnosisStatus === 'loading-ai'
+                  ? 'Diagnóstico local pronto. Analisando com IA pelo Worker, sem bloquear o resultado.'
+                  : diagnosisStatus === 'fallback'
+                    ? 'A IA não respondeu neste ambiente. O diagnóstico local foi mantido e salvo.'
+                  : aiModelInfo?.textoRodape ?? `${phaseLabels[progress.phase]}: ${progress.message}`
+              }
+              icon={diagnosisStatus === 'loading-ai' ? <BrainCircuit size={22} /> : isRunning ? <RotateCcw size={22} /> : <Gauge size={22} />}
+              meta={diagnosisStatus === 'loading-ai' || diagnosisStatus === 'ai' || diagnosisStatus === 'fallback' ? 'Diagnóstico IA' : 'Progresso'}
+              title={
+                diagnosisStatus === 'loading-ai'
+                  ? 'Analisando'
+                  : diagnosisStatus === 'ai'
+                    ? 'IA aplicada'
+                    : diagnosisStatus === 'fallback'
+                      ? 'Fallback local'
+                      : runStatusLabel(progress.status)
+              }
             />
             <ActionCard
               description={`${history.entries.length} resultado(s) salvo(s) neste navegador.`}
