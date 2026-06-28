@@ -1,0 +1,70 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Decodificar google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
+
+      - name: Decodificar keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/segredos/linka.jks
+
+      - name: Criar key.properties
+        run: |
+          cat > android/key.properties <<PROPS
+          storePassword=${{ secrets.STORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=segredos/linka.jks
+          PROPS
+
+      - name: Permissao gradlew
+        run: chmod +x android/gradlew
+
+      - name: Clean build
+        run: cd android && ./gradlew clean --no-build-cache --no-daemon
+
+      - name: Build APK release
+        run: cd android && ./gradlew assembleRelease --no-build-cache --no-daemon
+        env:
+          ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
+
+      - name: Build AAB release
+        run: cd android && ./gradlew bundleRelease --no-build-cache --no-daemon
+        env:
+          ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
+
+      - name: Extrair versao
+        id: versao
+        run: |
+          NAME=$(grep 'versionName' android/gradle/libs.versions.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+          CODE=$(grep 'versionCode' android/gradle/libs.versions.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+
+      - name: Criar GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "SignallQ v${{ steps.versao.outputs.name }} (build ${{ steps.versao.outputs.code }})"
+          draft: true
+          generate_release_notes: true
+          files: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/bundle/release/*.aab
