@@ -185,6 +185,11 @@ class MainViewModel
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
         }
 
+        val consentimentoLgpd: StateFlow<Boolean?> by lazy {
+            preferenciasAppRepository.consentimentoLgpdFlow
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        }
+
         // #82 — Banner Anatel dismissível
         val anatelBannerDismissed: StateFlow<Boolean> by lazy {
             preferenciasAppRepository.anatelBannerDismissedFlow
@@ -202,6 +207,10 @@ class MainViewModel
 
         fun concluirOnboarding() {
             viewModelScope.launch { preferenciasAppRepository.definirOnboardingConcluido(true) }
+        }
+
+        fun definirConsentimentoLgpd(aceito: Boolean) {
+            viewModelScope.launch { preferenciasAppRepository.definirConsentimentoLgpd(aceito) }
         }
 
         val gemmaAvailable = MutableStateFlow(false)

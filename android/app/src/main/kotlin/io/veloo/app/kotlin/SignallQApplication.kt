@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
 import io.signallq.app.core.datastore.PreferenciasAppRepository
+import com.google.firebase.analytics.FirebaseAnalytics
 import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.featureflags.FeatureFlagManager
 import io.signallq.app.logging.ReleaseTree
@@ -33,6 +34,9 @@ class SignallQApplication :
 
     @Inject
     lateinit var analyticsTracker: AnalyticsTracker
+
+    @Inject
+    lateinit var firebaseAnalytics: FirebaseAnalytics
 
     @Inject
     lateinit var preferenciasAppRepository: PreferenciasAppRepository
@@ -75,5 +79,14 @@ class SignallQApplication :
         // Sincroniza feature flags do worker em background.
         // Nao bloqueia o startup — UI usa fallback (todos enabled) ate o fetch completar.
         featureFlagManager.inicializar(applicationScope)
+
+        // LGPD: desativa coleta Firebase por padrao. Reativa apenas apos consentimento explícito.
+        // setAnalyticsCollectionEnabled sobrevive a reinicializacoes do Firebase SDK.
+        firebaseAnalytics.setAnalyticsCollectionEnabled(false)
+        applicationScope.launch {
+            preferenciasAppRepository.consentimentoLgpdFlow.collect { consentimento ->
+                firebaseAnalytics.setAnalyticsCollectionEnabled(consentimento == true)
+            }
+        }
     }
 }

@@ -28,6 +28,8 @@ class AdminIngestRepository(
     private val baseUrl: String,
     private val ingestKey: String,
     private val client: OkHttpClient,
+    // null-safe: default false garante que sem consentimento nada e enviado
+    private val consentimentoProvider: suspend () -> Boolean = { false },
 ) {
     private val mediaTypeJson = "application/json; charset=utf-8".toMediaType()
 
@@ -36,6 +38,10 @@ class AdminIngestRepository(
      * Nao lanca excecao em nenhum cenario.
      */
     suspend fun sendDiagnostic(payload: DiagnosticIngestPayload) {
+        if (!consentimentoProvider()) {
+            Timber.d("sendDiagnostic ignorado: consentimento LGPD nao concedido")
+            return
+        }
         if (baseUrl.isBlank() || ingestKey.isBlank()) {
             Timber.w("sendDiagnostic ignorado: baseUrl ou ingestKey nao configurados")
             return
@@ -67,6 +73,10 @@ class AdminIngestRepository(
      * Nao lanca excecao em nenhum cenario.
      */
     suspend fun sendAiUsage(payload: AiUsageIngestPayload) {
+        if (!consentimentoProvider()) {
+            Timber.d("sendAiUsage ignorado: consentimento LGPD nao concedido")
+            return
+        }
         if (baseUrl.isBlank() || ingestKey.isBlank()) {
             Timber.w("sendAiUsage ignorado: baseUrl ou ingestKey nao configurados")
             return

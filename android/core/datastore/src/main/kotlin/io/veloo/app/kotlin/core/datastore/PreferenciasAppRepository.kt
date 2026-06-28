@@ -47,6 +47,7 @@ class PreferenciasAppRepository(
     private val chaveUltimaVersaoVista = stringPreferencesKey("ultimaVersaoVista")
 
     private val ONBOARDING_CONCLUIDO = booleanPreferencesKey("onboarding_concluido")
+    private val chaveConsentimentoLgpd = booleanPreferencesKey("consentimento_lgpd")
     private val chaveAnatelBannerDismissed = booleanPreferencesKey("anatelBannerDismissed")
 
     // Velocidade contratada — MinhaConexaoScreen / Laudo (#85)
@@ -167,6 +168,10 @@ class PreferenciasAppRepository(
 
     val anatelBannerDismissedFlow: Flow<Boolean> =
         context.dataStore.data.map { it[chaveAnatelBannerDismissed] ?: false }
+
+    // null = nao respondido, true = aceito, false = recusado
+    val consentimentoLgpdFlow: Flow<Boolean?> =
+        context.dataStore.data.map { it[chaveConsentimentoLgpd] }
 
     val velocidadeContratadaDownMbpsFlow: Flow<Int> =
         context.dataStore.data.map { it[chaveVelocidadeContratadaDownMbps] ?: 0 }
@@ -318,6 +323,13 @@ class PreferenciasAppRepository(
     suspend fun definirAnatelBannerDismissed(dismissed: Boolean) {
         withContext(ioDispatcher) { context.dataStore.edit { it[chaveAnatelBannerDismissed] = dismissed } }
     }
+
+    suspend fun definirConsentimentoLgpd(aceito: Boolean) {
+        withContext(ioDispatcher) { context.dataStore.edit { it[chaveConsentimentoLgpd] = aceito } }
+    }
+
+    suspend fun buscarConsentimentoLgpd(): Boolean? =
+        withContext(ioDispatcher) { context.dataStore.data.first()[chaveConsentimentoLgpd] }
 
     suspend fun definirVelocidadeContratadaDownMbps(mbps: Int) {
         withContext(ioDispatcher) { context.dataStore.edit { it[chaveVelocidadeContratadaDownMbps] = mbps } }

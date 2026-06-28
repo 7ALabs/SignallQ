@@ -27,6 +27,7 @@ import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.feature.devices.DevicesViewModel
 import io.signallq.app.feature.speedtest.SpeedtestViewModel
 import io.signallq.app.ui.SignallQTheme
+import io.signallq.app.ui.component.LgpdConsentDialog
 import io.signallq.app.ui.screen.AppShell
 import io.signallq.app.ui.screen.OnboardingScreen
 import io.signallq.app.ui.viewmodel.ChatDiagnosticoIaViewModel
@@ -208,6 +209,7 @@ class MainActivity : ComponentActivity() {
             val simsAtivos = viewModel.simsAtivos.collectAsStateWithLifecycle().value
             val gemmaAvailable = viewModel.gemmaAvailable.collectAsStateWithLifecycle().value
             val onboardingConcluido = viewModel.onboardingConcluido.collectAsStateWithLifecycle().value
+            val consentimentoLgpd = viewModel.consentimentoLgpd.collectAsStateWithLifecycle().value
             val diagChatHistorico by viewModel.diagChatHistorico.collectAsStateWithLifecycle()
             val diagChatCarregando by viewModel.diagChatCarregando.collectAsStateWithLifecycle()
             val analisadorState by viewModel.analisadorState.collectAsStateWithLifecycle()
@@ -253,6 +255,11 @@ class MainActivity : ComponentActivity() {
                         // #128: solicitar permissões no slide 3 (localização + dispositivos próximos)
                         onSolicitarPermissaoLocalizacao = { solicitarPermissaoLocalizacaoContextual() },
                         onSolicitarPermissaoDispositivosProximos = { solicitarPermissaoDispositivosProximosContextual() },
+                    )
+                } else if (consentimentoLgpd == null) {
+                    LgpdConsentDialog(
+                        onAceitar = { viewModel.definirConsentimentoLgpd(true) },
+                        onRecusar = { viewModel.definirConsentimentoLgpd(false) },
                     )
                 } else {
                     AppShell(
