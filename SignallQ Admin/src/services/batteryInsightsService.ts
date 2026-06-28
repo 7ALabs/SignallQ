@@ -28,7 +28,7 @@ export class BatteryInsightsService {
     try {
       const data = await apiClient.request<BatteryAnalyticsResponse>(
         "GET",
-        "/admin/analytics/battery"
+        "/admin/metrics/analytics/battery"
       );
       if (data.no_data_yet || !data.items?.length) return [];
       return data.items;
