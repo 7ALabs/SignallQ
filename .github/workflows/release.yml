@@ -24,7 +24,7 @@ jobs:
         run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
 
       - name: Decodificar keystore
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/segredos/linka.jks
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/segredos/signallq.jks
 
       - name: Criar key.properties
         run: |
@@ -32,7 +32,7 @@ jobs:
           storePassword=${{ secrets.STORE_PASSWORD }}
           keyPassword=${{ secrets.KEY_PASSWORD }}
           keyAlias=${{ secrets.KEY_ALIAS }}
-          storeFile=segredos/linka.jks
+          storeFile=segredos/signallq.jks
           PROPS
 
       - name: Permissao gradlew
