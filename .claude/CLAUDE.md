@@ -38,6 +38,22 @@ Instructions here apply to this project and are shared with team members.
 **Regra Slack:** o Linear notifica o Slack diretamente. Decisao que surgir no Slack vira issue no Linear ou pagina no Notion. Slack e saida, nao fonte da verdade.
 
 ---
+## Infraestrutura e Contas Legadas
+
+**Firebase — Projeto Novo:**
+- Projeto: `signallq-app` (conta 7Agents)
+- App Android: `io.signallq.app`
+- Analytics: habilitado com LGPD consent gate
+
+**Firebase — Projeto Legado (ABANDONADO):**
+- Projeto: `device-streaming-ef179de4` (conta pessoal do Luiz)
+- App Android: `io.linka.app.kotlin` (package antigo, deprecated)
+- Status: **NÃO É MAIS USADO**
+- Limpeza manual requerida: Luiz deve ir em Firebase Console → projeto `device-streaming-ef179de4` e remover o app Android `io.linka.app.kotlin`, ou arquivar o projeto inteiro se não tiver outros apps.
+- Rastreamento: SIG-220
+
+---
+
 
 ## Milestones
 
@@ -104,7 +120,7 @@ Worker Cloudflare: quando houver mudancas em `integrations/cloudflare/ai-diagnos
 - Exclusao destrutiva
 - Publicacao em loja
 - Uso de conta pessoal/sensivel
-- Mudanca de package (`io.veloo.app` -- nunca)
+- Mudanca de package (`io.signallq.app` -- nunca)
 - Mudanca de marca
 - Alteracao de cronograma principal
 - Cancelamento de entrega relevante
