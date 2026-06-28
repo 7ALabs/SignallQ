@@ -1857,7 +1857,7 @@ export default {
 
     if (url.pathname === "/health") {
       if (!authenticate(request, env)) return err("Unauthorized", 401, env);
-      return json({ status: "ok", worker: "signallq-admin-worker" }, 200, env);
+      return json({ status: "ok", worker: "signallq-admin-worker", timestamp: new Date().toISOString() }, 200, env);
     }
 
     // Endpoints públicos sem auth — o app Android consome sem credenciais.

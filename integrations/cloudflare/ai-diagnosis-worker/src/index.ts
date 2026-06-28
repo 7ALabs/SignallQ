@@ -743,6 +743,11 @@ export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     try {
       const url = new URL(req.url);
+
+      if (url.pathname === "/health" && req.method === "GET") {
+        return jsonResponse({ status: "ok", worker: "ai-diagnosis-worker", timestamp: new Date().toISOString() });
+      }
+
       if (url.pathname !== "/api/ai/diagnostico-conexao") return errorResponse("not_found", 404);
       if (req.method !== "POST") return errorResponse("method_not_allowed", 405);
 
