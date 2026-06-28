@@ -1,7 +1,7 @@
-package io.veloo.app.feature.diagnostico
+﻿package io.signallq.app.feature.diagnostico
 
-import io.veloo.app.core.network.contracts.fibra.ClassificadorSaudeGpon
-import io.veloo.app.core.network.contracts.fibra.GponSaudeStatus
+import io.signallq.app.core.network.contracts.fibra.ClassificadorSaudeGpon
+import io.signallq.app.core.network.contracts.fibra.GponSaudeStatus
 
 private const val CAT = "fibra"
 

@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -6,9 +6,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
-import io.veloo.app.feature.diagnostico.ai.ModeloIa
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LocalLkTokens
+import io.signallq.app.feature.diagnostico.ai.ModeloIa
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LocalLkTokens
 
 /**
  * Rodapé discreto com o nome do motor de análise usado (Gemma/SignallQ IA/local).

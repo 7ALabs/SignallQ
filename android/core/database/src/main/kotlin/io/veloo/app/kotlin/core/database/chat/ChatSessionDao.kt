@@ -1,4 +1,4 @@
-package io.veloo.app.core.database.chat
+﻿package io.signallq.app.core.database.chat
 
 import androidx.room.Dao
 import androidx.room.Insert

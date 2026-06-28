@@ -1,4 +1,4 @@
-package io.veloo.app.feature.history
+﻿package io.signallq.app.feature.history
 
 enum class TendenciaEstado { MELHOROU, PIOROU, ESTAVEL }
 

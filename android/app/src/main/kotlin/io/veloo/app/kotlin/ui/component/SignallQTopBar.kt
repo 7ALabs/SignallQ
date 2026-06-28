@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -15,12 +15,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import io.veloo.app.feature.diagnostico.DiagnosticStatus
-import io.veloo.app.feature.diagnostico.pulse.SignallQState
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LocalLkTokens
-import io.veloo.app.ui.screen.SignallQUiState
+import io.signallq.app.feature.diagnostico.DiagnosticStatus
+import io.signallq.app.feature.diagnostico.pulse.SignallQState
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.screen.SignallQUiState
 
 private data class SignallQTopBarInfo(
     val signallQState: SignallQState,

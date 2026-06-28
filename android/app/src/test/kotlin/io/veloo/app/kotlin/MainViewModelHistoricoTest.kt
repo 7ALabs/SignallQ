@@ -1,8 +1,8 @@
-package io.veloo.app
+﻿package io.signallq.app
 
-import io.veloo.app.core.database.MedicaoEntity
-import io.veloo.app.core.network.EstadoConexao
-import io.veloo.app.ui.FiltroConexaoHistorico
+import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.core.network.EstadoConexao
+import io.signallq.app.ui.FiltroConexaoHistorico
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine

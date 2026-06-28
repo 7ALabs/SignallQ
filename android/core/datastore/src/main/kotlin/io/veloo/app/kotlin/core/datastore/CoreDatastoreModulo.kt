@@ -1,4 +1,4 @@
-package io.veloo.app.core.datastore
+﻿package io.signallq.app.core.datastore
 
 import android.content.Context
 

@@ -1,4 +1,4 @@
-package io.veloo.app.feature.dns
+﻿package io.signallq.app.feature.dns
 
 import kotlinx.coroutines.flow.StateFlow
 

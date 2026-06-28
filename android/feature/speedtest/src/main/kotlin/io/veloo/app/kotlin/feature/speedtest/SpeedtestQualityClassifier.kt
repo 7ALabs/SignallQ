@@ -1,4 +1,4 @@
-package io.veloo.app.feature.speedtest
+﻿package io.signallq.app.feature.speedtest
 
 /**
  * Classificador extraido do ExecutorSpeedtestCloudflare para permitir reuso no diagnostico

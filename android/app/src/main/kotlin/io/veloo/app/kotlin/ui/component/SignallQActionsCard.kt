@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -22,9 +22,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import io.veloo.app.feature.diagnostico.ai.AiAcaoRecomendada
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LocalLkTokens
+import io.signallq.app.feature.diagnostico.ai.AiAcaoRecomendada
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LocalLkTokens
 
 @Composable
 fun SignallQActionsCard(

@@ -1,4 +1,4 @@
-package io.veloo.app
+﻿package io.signallq.app
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -22,14 +22,14 @@ import android.os.BatteryManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
-import io.veloo.app.core.network.AnalyticsTracker
-import io.veloo.app.core.network.EstadoConexao
-import io.veloo.app.feature.devices.DevicesViewModel
-import io.veloo.app.feature.speedtest.SpeedtestViewModel
-import io.veloo.app.ui.SignallQTheme
-import io.veloo.app.ui.screen.AppShell
-import io.veloo.app.ui.screen.OnboardingScreen
-import io.veloo.app.ui.viewmodel.ChatDiagnosticoIaViewModel
+import io.signallq.app.core.network.AnalyticsTracker
+import io.signallq.app.core.network.EstadoConexao
+import io.signallq.app.feature.devices.DevicesViewModel
+import io.signallq.app.feature.speedtest.SpeedtestViewModel
+import io.signallq.app.ui.SignallQTheme
+import io.signallq.app.ui.screen.AppShell
+import io.signallq.app.ui.screen.OnboardingScreen
+import io.signallq.app.ui.viewmodel.ChatDiagnosticoIaViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -105,7 +105,7 @@ class MainActivity : ComponentActivity() {
         // a lei de dependencias: featureDevices nao pode depender de :app.
         lifecycleScope.launch {
             devicesViewModel.dispositivosNovos.collect { identificador ->
-                io.veloo.app.notificacao.SignallQNotificationHelper.notificarDispositivoNovo(
+                io.signallq.app.notificacao.SignallQNotificationHelper.notificarDispositivoNovo(
                     this@MainActivity,
                     identificador,
                 )
@@ -258,7 +258,7 @@ class MainActivity : ComponentActivity() {
                     AppShell(
                         snapshotRede = snapshotRede,
                         speedtest =
-                            io.veloo.app.ui.screen.AppShellSpeedtestState(
+                            io.signallq.app.ui.screen.AppShellSpeedtestState(
                                 snapshotSpeedtest = snapshotSpeedtest,
                                 speedtestPendenteModoMovel = speedtestPendenteModoMovel,
                                 speedtestPermiteHeavyMovel = speedtestPermiteHeavyMovel,
@@ -270,7 +270,7 @@ class MainActivity : ComponentActivity() {
                                 onSetSpeedtestPermiteHeavyMovel = { valor -> viewModel.setSpeedtestPermiteHeavyMovel(valor) },
                             ),
                         wifi =
-                            io.veloo.app.ui.screen.AppShellWifiState(
+                            io.signallq.app.ui.screen.AppShellWifiState(
                                 snapshotWifi = snapshotWifi,
                                 connectedNetwork = connectedNetwork,
                                 snapshotDevices = snapshotDevices,
@@ -280,7 +280,7 @@ class MainActivity : ComponentActivity() {
                                 onSalvarApelido = { mac, apelido -> viewModel.salvarApelido(mac, apelido) },
                             ),
                         diagnostico =
-                            io.veloo.app.ui.screen.AppShellDiagnosticoState(
+                            io.signallq.app.ui.screen.AppShellDiagnosticoState(
                                 snapshotDiagnostico = snapshotDiagnostico,
                                 onIniciarDiagnostico = {
                                     solicitarPermissaoTelefoniaSeNecessario()
@@ -296,7 +296,7 @@ class MainActivity : ComponentActivity() {
                                 onResetarAnalisador = { viewModel.resetarAnalisador() },
                             ),
                         signallQ =
-                            io.veloo.app.ui.screen.AppShellSignallQState(
+                            io.signallq.app.ui.screen.AppShellSignallQState(
                                 signallQUiState = signallQUiState,
                                 gemmaAvailable = gemmaAvailable,
                                 operadoraMovel =
@@ -317,7 +317,7 @@ class MainActivity : ComponentActivity() {
                                 },
                             ),
                         chatDiag =
-                            io.veloo.app.ui.screen.AppShellChatDiagState(
+                            io.signallq.app.ui.screen.AppShellChatDiagState(
                                 chatDiagUiState = chatDiagUiState,
                                 onEnviarMensagem = chatDiagViewModel::onEnviarMensagem,
                                 onAtualizarDraft = chatDiagViewModel::onAtualizarDraft,

@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.lazy.LazyListState

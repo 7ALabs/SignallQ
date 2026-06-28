@@ -111,6 +111,24 @@ Recuperacao rapida, fatos operacionais, inferencia minima.
 - [Pipeline Autônomo (`operations/PIPELINE_AUTONOMO.md`)](./operations/PIPELINE_AUTONOMO.md) — fluxo autônomo de agentes: intake → merge
 - [Workflow Board (`operations/WORKFLOW_BOARD.md`)](./operations/WORKFLOW_BOARD.md) — board de status e fluxo de trabalho
 - [Third Party Notices (`operations/THIRD_PARTY_NOTICES.md`)](./operations/THIRD_PARTY_NOTICES.md)
+- [Manifest Audit (`operations/MANIFEST_AUDIT.md`)](./operations/MANIFEST_AUDIT.md) — auditoria de segurança do AndroidManifest
+- [Infrastructure Costs (`operations/INFRASTRUCTURE_COSTS.md`)](./operations/INFRASTRUCTURE_COSTS.md) — custos estimados por fase
+- [Hotfix Procedure (`operations/HOTFIX_PROCEDURE.md`)](./operations/HOTFIX_PROCEDURE.md) — SLA e fluxo de hotfix
+- [Go/No-Go Checklist (`operations/GO_NOGO_CHECKLIST.md`)](./operations/GO_NOGO_CHECKLIST.md) — checklists por milestone
+- [Rollback Plan (`operations/ROLLBACK_PLAN.md`)](./operations/ROLLBACK_PLAN.md) — procedimento de rollback
+- [Rollout Transition (`operations/ROLLOUT_TRANSITION.md`)](./operations/ROLLOUT_TRANSITION.md) — closed beta → open beta → produção
+- [Hypercare Plan (`operations/HYPERCARE_PLAN.md`)](./operations/HYPERCARE_PLAN.md) — monitoramento 30 dias pós-launch
+- [Beta Criteria (`operations/BETA_CRITERIA.md`)](./operations/BETA_CRITERIA.md) — critérios de entrada/saída beta
+- [Device Test Matrix (`operations/DEVICE_TEST_MATRIX.md`)](./operations/DEVICE_TEST_MATRIX.md) — matriz de dispositivos para QA
+- [Runbook Launch (`operations/RUNBOOK_LAUNCH.md`)](./operations/RUNBOOK_LAUNCH.md) — runbook completo de go-live
+- [Play Store Listing (`operations/PLAY_STORE_LISTING.md`)](./operations/PLAY_STORE_LISTING.md) — descrição e copy para Play Store
+- [FAQ Users (`operations/FAQ_USERS.md`)](./operations/FAQ_USERS.md) — perguntas frequentes para usuários
+- [Dependency Audit (`technical/DEPENDENCY_AUDIT.md`)](./technical/DEPENDENCY_AUDIT.md) — auditoria de dependências e CVEs
+
+### Legal
+
+- [Terms of Use (`legal/TERMS_OF_USE.md`)](./legal/TERMS_OF_USE.md) — termos de uso do app
+- Privacy Policy (`legal/PRIVACY_POLICY.md`) — política de privacidade LGPD (em preparação)
 
 ---
 

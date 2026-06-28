@@ -1,4 +1,4 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -100,18 +100,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
-import io.veloo.app.BuildConfig
-import io.veloo.app.core.network.EstadoConexao
-import io.veloo.app.monitoramento.OemKillInfo
-import io.veloo.app.ui.IspInfo
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkRadius
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LkTokens
-import io.veloo.app.ui.LocalLkTokens
-import io.veloo.app.ui.component.ConfirmacaoDialog
-import io.veloo.app.ui.component.ProfileAvatarButton
+import io.signallq.app.BuildConfig
+import io.signallq.app.R
+import io.signallq.app.core.network.EstadoConexao
+import io.signallq.app.monitoramento.OemKillInfo
+import io.signallq.app.ui.IspInfo
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LkTokens
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.component.ConfirmacaoDialog
+import io.signallq.app.ui.component.ProfileAvatarButton
 
 @SuppressLint("InlinedApi")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -199,7 +201,7 @@ fun AjustesScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text("Configurações", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
+                    Text(stringResource(R.string.ajustes_titulo), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
                 },
                 navigationIcon = {
                     ProfileAvatarButton(
@@ -233,6 +235,7 @@ fun AjustesScreen(
                         subtituloBase
                     }
                 val subtituloIsRealData = isRealData || (!temNome && deviceName.isNotBlank())
+                val cdPerfil = stringResource(R.string.ajustes_cd_perfil)
                 Box(
                     modifier =
                         Modifier
@@ -240,7 +243,7 @@ fun AjustesScreen(
                             .padding(horizontal = LkSpacing.lg)
                             .padding(top = LkSpacing.xl, bottom = LkSpacing.lg)
                             .semantics {
-                                contentDescription = "Perfil. Toque para editar."
+                                contentDescription = cdPerfil
                             }.clip(RoundedCornerShape(LkRadius.card))
                             .background(c.bgSecondary)
                             .clickable { showPerfilSheet = true }
@@ -276,7 +279,7 @@ fun AjustesScreen(
                     }
                     Icon(
                         imageVector = Icons.Outlined.Edit,
-                        contentDescription = "Editar perfil",
+                        contentDescription = stringResource(R.string.ajustes_cd_editar_perfil),
                         tint = c.textTertiary,
                         modifier =
                             Modifier
@@ -287,7 +290,7 @@ fun AjustesScreen(
             }
 
             // ── MINHA CONEXÃO ────────────────────────────────────────────────────────
-            item { SectionHeader("Minha conexão", c) }
+            item { SectionHeader(stringResource(R.string.ajustes_minha_conexao), c) }
 
             // Banner de confirmação de ISP auto-detectado
             if (!ispConfirmado && !ispDetectado.isNullOrBlank() && operadora.isBlank()) {
@@ -313,7 +316,7 @@ fun AjustesScreen(
                                 )
                                 Spacer(Modifier.width(LkSpacing.sm))
                                 Text(
-                                    text = "Operadora detectada: $ispDetectado",
+                                    text = stringResource(R.string.ajustes_operadora_detectada, ispDetectado),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.W600,
                                     color = c.textPrimary,
@@ -321,7 +324,7 @@ fun AjustesScreen(
                                 )
                             }
                             Text(
-                                text = "Deseja usar como operadora principal?",
+                                text = stringResource(R.string.ajustes_usar_operadora),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = c.textSecondary,
                             )
@@ -333,7 +336,7 @@ fun AjustesScreen(
                                         androidx.compose.foundation.layout
                                             .PaddingValues(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
                                 ) {
-                                    Text("Confirmar", style = MaterialTheme.typography.labelMedium)
+                                    Text(stringResource(R.string.ajustes_btn_confirmar), style = MaterialTheme.typography.labelMedium)
                                 }
                                 TextButton(onClick = onDispensarBannerIsp) {
                                     Text("Ignorar", color = c.textTertiary, style = MaterialTheme.typography.labelMedium)

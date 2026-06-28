@@ -1,4 +1,4 @@
-package io.veloo.app.core.network
+﻿package io.signallq.app.core.network
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers

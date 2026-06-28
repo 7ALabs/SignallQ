@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -27,9 +27,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LocalLkTokens
-import io.veloo.app.ui.SignallQTheme
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.SignallQTheme
+import androidx.compose.ui.res.stringResource
+import io.signallq.app.R
 
 enum class MetricStatus {
     OK,
@@ -67,7 +69,7 @@ fun DiagMetricsGrid(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "SINAIS ANALISADOS",
+                text = stringResource(R.string.diag_metrics_sinais),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 color = c.textTertiary,
@@ -75,7 +77,7 @@ fun DiagMetricsGrid(
                 modifier = Modifier.weight(1f),
             )
             Text(
-                text = if (expanded) "recolher ▾" else "expandir ▸",
+                text = if (expanded) stringResource(R.string.diag_metrics_recolher) else stringResource(R.string.diag_metrics_expandir),
                 fontSize = 11.sp,
                 color = c.textTertiary,
                 modifier = Modifier.clickable { onToggleExpand() },

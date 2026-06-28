@@ -1,4 +1,4 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,15 +37,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.veloo.app.R
-import io.veloo.app.feature.speedtest.PingExecutor
-import io.veloo.app.feature.speedtest.PingResultado
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkRadius
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LkTokens
-import io.veloo.app.ui.LocalLkTokens
-import io.veloo.app.ui.state.UiState
+import io.signallq.app.R
+import io.signallq.app.feature.speedtest.PingExecutor
+import io.signallq.app.feature.speedtest.PingResultado
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LkTokens
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

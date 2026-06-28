@@ -1,15 +1,15 @@
-package io.veloo.app.speedtest
+﻿package io.signallq.app.speedtest
 
-import io.veloo.app.core.database.MedicaoDao
-import io.veloo.app.core.database.MedicaoEntity
-import io.veloo.app.core.network.MonitorRede
-import io.veloo.app.core.telephony.MonitorTelephony
-import io.veloo.app.feature.diagnostico.DiagnosticOrchestrator
-import io.veloo.app.feature.diagnostico.DiagnosticReport
-import io.veloo.app.feature.diagnostico.DiagnosticStatus
-import io.veloo.app.feature.diagnostico.EstadoDiagnostico
-import io.veloo.app.feature.speedtest.EstadoExecucaoSpeedtest
-import io.veloo.app.feature.speedtest.ExecutorSpeedtest
+import io.signallq.app.core.database.MedicaoDao
+import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.core.network.MonitorRede
+import io.signallq.app.core.telephony.MonitorTelephony
+import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
+import io.signallq.app.feature.diagnostico.DiagnosticReport
+import io.signallq.app.feature.diagnostico.DiagnosticStatus
+import io.signallq.app.feature.diagnostico.EstadoDiagnostico
+import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
+import io.signallq.app.feature.speedtest.ExecutorSpeedtest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import timber.log.Timber

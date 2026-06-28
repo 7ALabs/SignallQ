@@ -1,4 +1,4 @@
-package io.veloo.app.core.permissions
+﻿package io.signallq.app.core.permissions
 
 interface GerenciadorPermissoesRede {
     fun avaliar(): SnapshotPermissoesRede

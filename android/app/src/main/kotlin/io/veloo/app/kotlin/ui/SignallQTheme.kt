@@ -1,4 +1,4 @@
-package io.veloo.app.ui
+﻿package io.signallq.app.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

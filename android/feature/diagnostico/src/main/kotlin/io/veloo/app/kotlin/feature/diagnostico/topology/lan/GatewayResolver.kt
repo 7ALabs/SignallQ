@@ -1,4 +1,4 @@
-package io.veloo.app.feature.diagnostico.topology.lan
+﻿package io.signallq.app.feature.diagnostico.topology.lan
 
 import android.annotation.SuppressLint
 import android.content.Context

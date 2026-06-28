@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -34,17 +34,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.feature.diagnostico.DiagnosticStatus
-import io.veloo.app.feature.diagnostico.ai.AiAcaoRecomendada
-import io.veloo.app.feature.diagnostico.pulse.AiAnalysisEntry
-import io.veloo.app.feature.diagnostico.pulse.IntelligentDiagnosticSession
-import io.veloo.app.feature.diagnostico.pulse.ResponseSource
-import io.veloo.app.feature.diagnostico.pulse.SignallQState
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LocalLkTokens
+import io.signallq.app.R
+import io.signallq.app.feature.diagnostico.DiagnosticStatus
+import io.signallq.app.feature.diagnostico.ai.AiAcaoRecomendada
+import io.signallq.app.feature.diagnostico.pulse.AiAnalysisEntry
+import io.signallq.app.feature.diagnostico.pulse.IntelligentDiagnosticSession
+import io.signallq.app.feature.diagnostico.pulse.ResponseSource
+import io.signallq.app.feature.diagnostico.pulse.SignallQState
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LocalLkTokens
 import java.util.Calendar
 
 @Composable
@@ -215,10 +219,12 @@ fun SignallQAiMessageBubble(
 
                 // Detalhes técnicos colapsáveis — sem borda, sem card
                 if (!isProgressMessage && technicalDetails != null) {
+                    val detalhesDesc = if (showTechnical) stringResource(R.string.cd_detalhes_tecnicos_expandir) else stringResource(R.string.cd_detalhes_tecnicos_recolher)
                     Row(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
+                                .semantics { contentDescription = detalhesDesc }
                                 .clickable { showTechnical = !showTechnical }
                                 .padding(vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,

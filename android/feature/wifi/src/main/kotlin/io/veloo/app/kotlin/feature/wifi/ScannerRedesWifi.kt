@@ -1,4 +1,4 @@
-package io.veloo.app.feature.wifi
+﻿package io.signallq.app.feature.wifi
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -7,7 +7,7 @@ import android.content.IntentFilter
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.Build
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,7 +17,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 
-private const val TAG = "SignallQWifiScan"
 private const val TIMEOUT_SCAN_MS = 10_000L
 
 class ScannerRedesWifi(context: Context) {
@@ -39,14 +38,14 @@ class ScannerRedesWifi(context: Context) {
                 .sortedByDescending { it.level }
                 .map { it.paraRedeVizinha() }
                 .filter { it.bssid.isNotEmpty() } // Remove entradas com BSSID inválido (placeholder "00:00:00:00:00:00" filtrado em paraRedeVizinha)
-            Log.i(TAG, "scan concluido: ${redes.size} redes banda2=${redes.count { it.frequenciaMhz < 3000 }} banda5=${redes.count { it.frequenciaMhz >= 3000 }}")
+            Timber.i("scan concluido: ${redes.size} redes banda2=${redes.count { it.frequenciaMhz < 3000 }} banda5=${redes.count { it.frequenciaMhz >= 3000 }}")
             mutableSnapshotFlow.value = SnapshotScanWifi(EstadoScanWifi.concluido, redes, null)
         } catch (t: Throwable) {
             val chave = when (t) {
                 is SecurityException -> "semPermissaoLocalizacao"
                 else -> "erroScanWifi"
             }
-            Log.e(TAG, "erro no scan: $chave — ${t.message}", t)
+            Timber.e(t, "erro no scan: $chave — ${t.message}")
             mutableSnapshotFlow.value = SnapshotScanWifi(EstadoScanWifi.erro, emptyList(), chave)
         }
     }

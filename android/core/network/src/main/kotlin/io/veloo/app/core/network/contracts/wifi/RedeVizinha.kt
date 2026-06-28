@@ -1,4 +1,4 @@
-package io.veloo.app.core.network.contracts.wifi
+﻿package io.signallq.app.core.network.contracts.wifi
 
 enum class SegurancaWifi { aberta, wep, wpa, wpa2, wpa3, desconhecida }
 

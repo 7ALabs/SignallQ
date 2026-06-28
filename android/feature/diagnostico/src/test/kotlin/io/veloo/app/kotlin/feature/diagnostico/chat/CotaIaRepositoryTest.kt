@@ -1,4 +1,4 @@
-package io.veloo.app.feature.diagnostico.chat
+﻿package io.signallq.app.feature.diagnostico.chat
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit

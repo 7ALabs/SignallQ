@@ -1,4 +1,4 @@
-package io.veloo.app.feature.wifi
+﻿package io.signallq.app.feature.wifi
 
 enum class EstadoScanWifi { idle, scanning, concluido, erro }
 

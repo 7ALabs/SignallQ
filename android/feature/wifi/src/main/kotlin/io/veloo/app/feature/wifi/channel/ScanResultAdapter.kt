@@ -1,4 +1,4 @@
-package io.veloo.app.feature.wifi.channel
+﻿package io.signallq.app.feature.wifi.channel
 
 import android.net.wifi.ScanResult
 

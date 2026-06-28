@@ -1,6 +1,6 @@
-package io.veloo.app.featureflags
+﻿package io.signallq.app.featureflags
 
-import io.veloo.app.core.datastore.FeatureFlagStore
+import io.signallq.app.core.datastore.FeatureFlagStore
 
 class FakePreferenciasAppRepository : FeatureFlagStore {
     private var flagsMap: Map<String, Boolean> = emptyMap()

@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size

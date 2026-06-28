@@ -1,4 +1,4 @@
-package io.veloo.app.feature.diagnostico
+﻿package io.signallq.app.feature.diagnostico
 
 enum class DiagnosticStatus {
     ok,

@@ -1,7 +1,7 @@
-package io.veloo.app
+﻿package io.signallq.app
 
-import io.veloo.app.feature.wifi.RedeVizinha
-import io.veloo.app.ui.ConnectionNodeType
+import io.signallq.app.feature.wifi.RedeVizinha
+import io.signallq.app.ui.ConnectionNodeType
 
 // Tokens exatos para mesh — suficientemente específicos para match por substring simples.
 private val SSID_MESH_EXATOS = listOf("MESH", "DECO", "EERO", "VELOP")

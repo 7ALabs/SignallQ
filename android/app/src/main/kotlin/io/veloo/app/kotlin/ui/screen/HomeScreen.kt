@@ -1,4 +1,4 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import android.content.Context
 import android.content.Intent
@@ -119,30 +119,30 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
-import io.veloo.app.R
-import io.veloo.app.core.database.MedicaoEntity
-import io.veloo.app.core.network.EstadoConexao
-import io.veloo.app.core.network.SnapshotRede
-import io.veloo.app.core.telephony.MovelSimSnapshot
-import io.veloo.app.core.telephony.MovelSnapshot
-import io.veloo.app.feature.speedtest.GargaloPrimario
-import io.veloo.app.feature.speedtest.ModoSpeedtest
-import io.veloo.app.feature.speedtest.ResultadoSpeedtest
-import io.veloo.app.feature.speedtest.SnapshotExecucaoSpeedtest
-import io.veloo.app.feature.speedtest.VereditoUso
-import io.veloo.app.feature.wifi.RedeVizinha
-import io.veloo.app.feature.wifi.SegurancaWifi
-import io.veloo.app.ui.ConnectionNodeType
-import io.veloo.app.ui.GatewayInfo
-import io.veloo.app.ui.HistoryPoint
-import io.veloo.app.ui.IspInfo
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkRadius
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LkTokens
-import io.veloo.app.ui.LocalLkTokens
-import io.veloo.app.ui.component.ProfileAvatarButton
-import io.veloo.app.ui.component.rememberTopBarAlpha
+import io.signallq.app.R
+import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.core.network.EstadoConexao
+import io.signallq.app.core.network.SnapshotRede
+import io.signallq.app.core.telephony.MovelSimSnapshot
+import io.signallq.app.core.telephony.MovelSnapshot
+import io.signallq.app.feature.speedtest.GargaloPrimario
+import io.signallq.app.feature.speedtest.ModoSpeedtest
+import io.signallq.app.feature.speedtest.ResultadoSpeedtest
+import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
+import io.signallq.app.feature.speedtest.VereditoUso
+import io.signallq.app.feature.wifi.RedeVizinha
+import io.signallq.app.feature.wifi.SegurancaWifi
+import io.signallq.app.ui.ConnectionNodeType
+import io.signallq.app.ui.GatewayInfo
+import io.signallq.app.ui.HistoryPoint
+import io.signallq.app.ui.IspInfo
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LkTokens
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.component.ProfileAvatarButton
+import io.signallq.app.ui.component.rememberTopBarAlpha
 import kotlin.math.roundToInt
 
 // ─── TopBar subtitle (#180) ───────────────────────────────────────────────────
@@ -199,7 +199,7 @@ fun HomeScreen(
     onAbrirPerfil: () -> Unit,
     onAbrirRedes: () -> Unit,
     onAbrirDiagnostico: () -> Unit,
-    snapshotDispositivos: io.veloo.app.feature.devices.SnapshotScanDispositivos? = null,
+    snapshotDispositivos: io.signallq.app.feature.devices.SnapshotScanDispositivos? = null,
     onAbrirDispositivos: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
@@ -474,7 +474,7 @@ fun HomeScreen(
                         onTap = onAbrirRedes,
                         quantidadeDispositivos =
                             snapshotDispositivos
-                                ?.takeIf { it.estado == io.veloo.app.feature.devices.EstadoScanDispositivos.concluido }
+                                ?.takeIf { it.estado == io.signallq.app.feature.devices.EstadoScanDispositivos.concluido }
                                 ?.dispositivos
                                 ?.size
                                 ?.takeIf { it > 0 },

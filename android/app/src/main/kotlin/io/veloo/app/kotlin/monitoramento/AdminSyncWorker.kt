@@ -1,4 +1,4 @@
-package io.veloo.app.monitoramento
+﻿package io.signallq.app.monitoramento
 
 import android.content.Context
 import android.os.Build
@@ -8,12 +8,12 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import io.veloo.app.BuildConfig
-import io.veloo.app.core.database.MedicaoDao
-import io.veloo.app.core.database.chat.ChatSessionDao
-import io.veloo.app.core.datastore.PreferenciasAppRepository
-import io.veloo.app.feature.diagnostico.ingest.AdminIngestRepository
-import io.veloo.app.feature.diagnostico.ingest.toIngestPayload
+import io.signallq.app.BuildConfig
+import io.signallq.app.core.database.MedicaoDao
+import io.signallq.app.core.database.chat.ChatSessionDao
+import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
+import io.signallq.app.feature.diagnostico.ingest.toIngestPayload
 
 /**
  * Worker de sync retroativo de medicoes e sessoes de IA para o signallq-admin-worker.

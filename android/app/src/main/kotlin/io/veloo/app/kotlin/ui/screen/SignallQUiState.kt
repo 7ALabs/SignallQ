@@ -1,10 +1,10 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
-import io.veloo.app.feature.diagnostico.pulse.AiAnalysisEntry
-import io.veloo.app.feature.diagnostico.pulse.IntelligentDiagnosticSession
-import io.veloo.app.feature.diagnostico.pulse.OpcaoResposta
-import io.veloo.app.feature.diagnostico.pulse.QuestionNode
-import io.veloo.app.feature.diagnostico.pulse.SignallQState
+import io.signallq.app.feature.diagnostico.pulse.AiAnalysisEntry
+import io.signallq.app.feature.diagnostico.pulse.IntelligentDiagnosticSession
+import io.signallq.app.feature.diagnostico.pulse.OpcaoResposta
+import io.signallq.app.feature.diagnostico.pulse.QuestionNode
+import io.signallq.app.feature.diagnostico.pulse.SignallQState
 
 sealed interface SignallQUiState {
     data object Idle : SignallQUiState

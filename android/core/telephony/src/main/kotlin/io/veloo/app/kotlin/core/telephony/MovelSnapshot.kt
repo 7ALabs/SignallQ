@@ -1,4 +1,4 @@
-package io.veloo.app.core.telephony
+﻿package io.signallq.app.core.telephony
 
 /**
  * Snapshot bruto da rede movel coletado via TelephonyManager.

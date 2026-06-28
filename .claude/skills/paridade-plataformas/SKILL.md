@@ -14,7 +14,6 @@ $ARGUMENTS
 - Ao revisar se o PWA está prometendo algo que o browser não consegue entregar.
 
 ## Agentes
-- **Marcelo** — lista os arquivos da feature em cada plataforma (passo 1).
 - **Renan** — análise e correção PWA.
 - **Camilo** — análise e correção Android.
 
@@ -26,7 +25,7 @@ Renan não implementa paridade impossível: documenta a limitação com clareza.
 - iOS: `ios/` — ainda não coberto por esta skill. Quando entrar no escopo, replicar o mesmo método tratando o WebKit/Safari iOS e as APIs nativas iOS como uma terceira coluna na tabela delta.
 
 ## Passos
-1. Marcelo lista os arquivos da feature em Android e PWA.
+1. Usar Glob/Grep para listar os arquivos da feature em Android e PWA.
 2. Para cada plataforma, descreva o comportamento atual: tela, lógica relevante, estados.
 3. Preencha o checkpoint de limitações do browser (abaixo) com as APIs específicas desta feature.
 4. Classifique cada funcionalidade segundo os critérios.

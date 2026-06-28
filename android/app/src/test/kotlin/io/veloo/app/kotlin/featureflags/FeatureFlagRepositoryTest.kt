@@ -1,4 +1,4 @@
-package io.veloo.app.featureflags
+﻿package io.signallq.app.featureflags
 
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

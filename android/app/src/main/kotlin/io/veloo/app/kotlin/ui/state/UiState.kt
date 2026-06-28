@@ -1,4 +1,4 @@
-package io.veloo.app.ui.state
+﻿package io.signallq.app.ui.state
 
 /**
  * Estado de UI generico e selado para uso em ViewModels e Composables.

@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -18,10 +18,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import io.veloo.app.feature.diagnostico.pulse.OpcaoResposta
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LocalLkTokens
+import io.signallq.app.feature.diagnostico.pulse.OpcaoResposta
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LocalLkTokens
 import kotlinx.coroutines.delay
 
 @Composable

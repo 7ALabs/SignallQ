@@ -1,4 +1,4 @@
-import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
+﻿import com.google.firebase.appdistribution.gradle.firebaseAppDistribution
 import java.util.Properties
 
 plugins {
@@ -40,13 +40,13 @@ private val adminIngestKey: String =
         ?: ""
 
 android {
-    namespace = "io.veloo.app"
+    namespace = "io.signallq.app"
     compileSdk = libs.versions.compileSdk
         .get()
         .toInt()
 
     defaultConfig {
-        applicationId = "io.veloo.app"
+        applicationId = "io.signallq.app"
         minSdk = libs.versions.minSdk
             .get()
             .toInt()
@@ -90,7 +90,7 @@ android {
     buildTypes {
         debug {
             firebaseAppDistribution {
-                appId = "1:620840247394:android:0be190e89194bced37713b"
+                appId = "1:741421457740:android:a8658a91308fba058fefe9"
                 artifactType = "APK"
                 testers = "giammattey.luiz@gmail.com"
                 releaseNotes = "SignallQ ${libs.versions.versionName.get()} (build ${libs.versions.versionCode.get()}) — DEBUG"
@@ -133,12 +133,13 @@ android {
         }
         release {
             firebaseAppDistribution {
-                appId = "1:620840247394:android:0be190e89194bced37713b"
+                appId = "1:741421457740:android:a8658a91308fba058fefe9"
                 artifactType = "APK"
                 testers = "giammattey.luiz@gmail.com"
                 releaseNotes = "SignallQ ${libs.versions.versionName.get()} (build ${libs.versions.versionCode.get()})"
             }
             isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

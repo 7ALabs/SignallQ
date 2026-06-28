@@ -1,4 +1,4 @@
-package io.veloo.app.feature.diagnostico.pulse
+﻿package io.signallq.app.feature.diagnostico.pulse
 
 data class QuestionNode(
     val id: String,

@@ -1,6 +1,6 @@
-package io.veloo.app.featureflags
+﻿package io.signallq.app.featureflags
 
-import io.veloo.app.core.network.FeatureFlagProvider
+import io.signallq.app.core.network.FeatureFlagProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

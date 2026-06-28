@@ -1,12 +1,12 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import io.veloo.app.ui.SignallQTheme
-import io.veloo.app.ui.viewmodel.ChatDiagUiState
-import io.veloo.app.ui.viewmodel.EstadoChatDiagnostico
+import io.signallq.app.ui.SignallQTheme
+import io.signallq.app.ui.viewmodel.ChatDiagUiState
+import io.signallq.app.ui.viewmodel.EstadoChatDiagnostico
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -47,7 +47,7 @@ class ChatDiagnosticoIaScreenTest {
         onVoltar: () -> Unit = {},
         onEnviarMensagem: (String) -> Unit = {},
         onAtualizarDraft: (String) -> Unit = {},
-        onEscolherOpcao: (io.veloo.app.feature.diagnostico.chat.TipoDiagnostico) -> Unit = {},
+        onEscolherOpcao: (io.signallq.app.feature.diagnostico.chat.TipoDiagnostico) -> Unit = {},
         onAbrirSessao: (String) -> Unit = {},
         onApagarSessao: (String) -> Unit = {},
         onRenomearSessao: (String, String) -> Unit = { _, _ -> },
@@ -227,13 +227,13 @@ class ChatDiagnosticoIaScreenTest {
     fun lista_com_mensagens_renderiza_e_nao_exibe_chips_quando_ocultos() {
         val mensagens =
             listOf(
-                io.veloo.app.feature.diagnostico.chat.ChatMensagem(
+                io.signallq.app.feature.diagnostico.chat.ChatMensagem(
                     id = "1",
                     sessionId = "s1",
-                    papel = io.veloo.app.feature.diagnostico.chat.PapelChatMensagem.assistente,
+                    papel = io.signallq.app.feature.diagnostico.chat.PapelChatMensagem.assistente,
                     conteudo = "Olá, sou o Diagnóstico IA.",
                     criadoEmEpochMs = 0L,
-                    status = io.veloo.app.feature.diagnostico.chat.StatusChatMensagem.concluido,
+                    status = io.signallq.app.feature.diagnostico.chat.StatusChatMensagem.concluido,
                     isLocal = true,
                 ),
             )

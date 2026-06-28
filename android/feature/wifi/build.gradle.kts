@@ -1,10 +1,10 @@
-plugins {
+﻿plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
 }
 
 android {
-    namespace = "io.veloo.app.feature.wifi"
+    namespace = "io.signallq.app.feature.wifi"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
@@ -28,6 +28,7 @@ dependencies {
     implementation(project(":coreNetwork"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.timber)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

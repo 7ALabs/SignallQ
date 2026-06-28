@@ -1,4 +1,4 @@
-package io.veloo.app.feature.diagnostico.ai
+﻿package io.signallq.app.feature.diagnostico.ai
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -508,7 +508,7 @@ class AiDiagnosisRepositoryTest {
     private fun fakeDiagnosisAiContext(): DiagnosisAiContext = DiagnosisAiContext(
         schemaVersion = "3",
         generatedAtEpochMs = 1700000000000L,
-        connectionType = io.veloo.app.feature.diagnostico.ConnectionType.wifi,
+        connectionType = io.signallq.app.feature.diagnostico.ConnectionType.wifi,
         evidencias = emptyList(),
     )
 
@@ -655,7 +655,7 @@ class AiDiagnosisRepositoryTest {
         val ctx = DiagnosisAiContext(
             schemaVersion = "3",
             generatedAtEpochMs = 1700000000000L,
-            connectionType = io.veloo.app.feature.diagnostico.ConnectionType.wifi,
+            connectionType = io.signallq.app.feature.diagnostico.ConnectionType.wifi,
             metricasAtuais = AiMetricasAtuais(
                 downloadMbps = 294.0,
                 uploadMbps = 411.0,

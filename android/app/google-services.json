@@ -1,40 +1,21 @@
 {
   "project_info": {
-    "project_number": "620840247394",
-    "project_id": "device-streaming-ef179de4",
-    "storage_bucket": "device-streaming-ef179de4.firebasestorage.app"
+    "project_number": "741421457740",
+    "project_id": "signallq-app",
+    "storage_bucket": "signallq-app.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:620840247394:android:5b4c9ecaa424a20937713b",
+        "mobilesdk_app_id": "1:741421457740:android:a8658a91308fba058fefe9",
         "android_client_info": {
-          "package_name": "io.linka.app.kotlin"
+          "package_name": "io.signallq.app"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBMLpPbjVRMSqm8SAafl6jFtoON1Hcqbos"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:620840247394:android:0be190e89194bced37713b",
-        "android_client_info": {
-          "package_name": "io.veloo.app"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBMLpPbjVRMSqm8SAafl6jFtoON1Hcqbos"
+          "current_key": "AIzaSyDOrRlfkq6YLo-x4MkJ_x5_Jz7OUmc528c"
         }
       ],
       "services": {

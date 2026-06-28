@@ -1,4 +1,4 @@
-package io.veloo.app.core.network.contracts.wifi.channel
+﻿package io.signallq.app.core.network.contracts.wifi.channel
 
 // Regra 5 — conjunto de canais candidatos (canais de controle) por banda, largura e flags
 fun candidateChannels(

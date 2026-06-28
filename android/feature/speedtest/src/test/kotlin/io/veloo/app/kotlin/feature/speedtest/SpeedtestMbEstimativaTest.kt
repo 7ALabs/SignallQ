@@ -1,6 +1,6 @@
-package io.veloo.app.kotlin.feature.speedtest
+﻿package io.signallq.app.kotlin.feature.speedtest
 
-import io.veloo.app.feature.speedtest.ModoSpeedtest
+import io.signallq.app.feature.speedtest.ModoSpeedtest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

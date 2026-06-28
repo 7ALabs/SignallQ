@@ -8,7 +8,7 @@ Instructions here apply to this project and are shared with team members.
 - Estrutura: **monorepo** — `android/` (Kotlin), `pwa/` (React/TS), `ios/`, `integrations/` (Cloudflare), `scripts/`, `docs_ai/`.
 - Package/applicationId/namespace: **`io.veloo.app`** -- identificador tecnico, **NAO renomear jamais** (quebra Firebase/assinatura). O veloo aqui e tecnico, nao marca.
 - Marca anterior: Linka -> Veloo -> **SignallQ** (rebrand em 0.16.0).
-- Versao atual: **0.21.0** (versionCode 52), em `android/gradle/libs.versions.toml`. minSdk 24, target/compileSdk 36, JVM 17.
+- Versao atual: **0.21.0** (versionCode 52), em `android/gradle/libs.versions.toml`. minSdk 24, targetSdk 36, compileSdk 37, JVM 17.
 - **Android Stack**: Kotlin, Jetpack Compose, Hilt, Room, DataStore, WorkManager.
 - **PWA Stack**: React, TypeScript, Vite, Tailwind CSS (design system SignallQ inspirado em Material 3, não Material Web).
 - 15 modulos Gradle: `app` + core(5): `coreNetwork`, `coreDatabase`, `coreDatastore`, `coreTelephony`, `corePermissions` + feature(9): `featureHome`, `featureSpeedtest`, `featureWifi`, `featureDevices`, `featureDns`, `featureFibra`, `featureDiagnostico`, `featureHistory`, `featureSettings`.

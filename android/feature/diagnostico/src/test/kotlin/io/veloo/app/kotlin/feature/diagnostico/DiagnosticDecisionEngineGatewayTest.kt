@@ -1,4 +1,4 @@
-package io.veloo.app.feature.diagnostico
+﻿package io.signallq.app.feature.diagnostico
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals

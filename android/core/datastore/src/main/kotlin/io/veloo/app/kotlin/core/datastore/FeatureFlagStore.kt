@@ -1,4 +1,4 @@
-package io.veloo.app.core.datastore
+﻿package io.signallq.app.core.datastore
 
 /**
  * Contrato minimo para persistencia de feature flags remotas.

@@ -1,8 +1,8 @@
-package io.veloo.app.feature.diagnostico.ai
+﻿package io.signallq.app.feature.diagnostico.ai
 
-import io.veloo.app.feature.diagnostico.DiagnosticReport
-import io.veloo.app.feature.diagnostico.DiagnosticResult
-import io.veloo.app.feature.diagnostico.DiagnosticStatus
+import io.signallq.app.feature.diagnostico.DiagnosticReport
+import io.signallq.app.feature.diagnostico.DiagnosticResult
+import io.signallq.app.feature.diagnostico.DiagnosticStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

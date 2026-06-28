@@ -1,4 +1,4 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -27,20 +27,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.feature.diagnostico.pulse.OpcaoResposta
-import io.veloo.app.feature.diagnostico.pulse.PulseState
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkRadius
-import io.veloo.app.ui.LocalLkTokens
-import io.veloo.app.ui.component.AppBorderGlowEffect
-import io.veloo.app.ui.component.ContextualQuestionCard
-import io.veloo.app.ui.component.DiagnosisChipsRow
-import io.veloo.app.ui.component.PulseResultCard
-import io.veloo.app.ui.component.RotatingMessageText
-import io.veloo.app.ui.component.SignallQPulseSymbol
-import io.veloo.app.ui.component.SilentSpeedtestIndicator
+import io.signallq.app.R
+import io.signallq.app.feature.diagnostico.pulse.OpcaoResposta
+import io.signallq.app.feature.diagnostico.pulse.PulseState
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.component.AppBorderGlowEffect
+import io.signallq.app.ui.component.ContextualQuestionCard
+import io.signallq.app.ui.component.DiagnosisChipsRow
+import io.signallq.app.ui.component.PulseResultCard
+import io.signallq.app.ui.component.RotatingMessageText
+import io.signallq.app.ui.component.SignallQPulseSymbol
+import io.signallq.app.ui.component.SilentSpeedtestIndicator
 
 @Composable
 fun SignallQPulseScreen(
@@ -163,7 +165,7 @@ private fun IdleContent(onIniciarPulse: () -> Unit) {
             colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
             shape = RoundedCornerShape(LkRadius.button),
         ) {
-            Text("Iniciar diagnóstico", fontWeight = FontWeight.W600)
+            Text(stringResource(R.string.pulse_btn_iniciar), fontWeight = FontWeight.W600)
         }
     }
 }
@@ -187,7 +189,7 @@ private fun LoadingContent(
 
 @Composable
 private fun ChipSelectionContent(
-    analysis: io.veloo.app.feature.diagnostico.pulse.AiAnalysisEntry,
+    analysis: io.signallq.app.feature.diagnostico.pulse.AiAnalysisEntry,
     chips: List<OpcaoResposta>,
     onSelecionarChip: (OpcaoResposta) -> Unit,
 ) {
@@ -250,7 +252,7 @@ private fun ResultContent(
             colors = ButtonDefaults.outlinedButtonColors(contentColor = c.textSecondary),
             shape = RoundedCornerShape(LkRadius.button),
         ) {
-            Text("Novo diagnóstico", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Normal)
+            Text(stringResource(R.string.pulse_btn_novo), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Normal)
         }
     }
 }
@@ -270,7 +272,7 @@ private fun ErrorContent(
             onClick = onIniciarPulse,
             colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
         ) {
-            Text("Tentar novamente")
+            Text(stringResource(R.string.global_btn_tentar_novamente))
         }
     }
 }

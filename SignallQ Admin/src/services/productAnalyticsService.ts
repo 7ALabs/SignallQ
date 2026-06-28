@@ -73,7 +73,7 @@ export class ProductAnalyticsService {
     try {
       return await apiClient.request<ProductAnalyticsResponse>(
         "GET",
-        `/admin/analytics/product${this.buildParams(filters)}`
+        `/admin/metrics/analytics/product${this.buildParams(filters)}`
       );
     } catch {
       return null;

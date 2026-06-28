@@ -1,9 +1,9 @@
-package io.veloo.app
+﻿package io.signallq.app
 
-import io.veloo.app.feature.wifi.RedeVizinha
-import io.veloo.app.feature.wifi.SegurancaWifi
-import io.veloo.app.ui.ConnectionNodeType
-import io.veloo.app.ui.screen.bssidCurto
+import io.signallq.app.feature.wifi.RedeVizinha
+import io.signallq.app.feature.wifi.SegurancaWifi
+import io.signallq.app.ui.ConnectionNodeType
+import io.signallq.app.ui.screen.bssidCurto
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

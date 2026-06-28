@@ -1,4 +1,4 @@
-package io.veloo.app.ui
+﻿package io.signallq.app.ui
 
 data class ContatoOperadora(
     val id: String,

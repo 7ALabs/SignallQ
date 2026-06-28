@@ -1,4 +1,4 @@
-package io.veloo.app.feature.diagnostico
+﻿package io.signallq.app.feature.diagnostico
 
 private const val LIMITE_REDES_QUASE_VAZIA = 5
 

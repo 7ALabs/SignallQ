@@ -1,4 +1,4 @@
-package io.veloo.app.core.network.contracts.wifi.channel
+﻿package io.signallq.app.core.network.contracts.wifi.channel
 
 enum class Band { GHZ_24, GHZ_5, GHZ_6 }
 

@@ -1,6 +1,6 @@
-package io.veloo.app.feature.diagnostico.topology
+﻿package io.signallq.app.feature.diagnostico.topology
 
-import io.veloo.app.feature.diagnostico.topology.lan.UpnpIgdDiscovery
+import io.signallq.app.feature.diagnostico.topology.lan.UpnpIgdDiscovery
 import okhttp3.OkHttpClient
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull

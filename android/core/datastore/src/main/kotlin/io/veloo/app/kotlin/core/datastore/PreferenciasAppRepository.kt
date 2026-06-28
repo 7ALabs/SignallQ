@@ -1,4 +1,4 @@
-package io.veloo.app.core.datastore
+﻿package io.signallq.app.core.datastore
 
 import android.content.Context
 import androidx.datastore.core.DataStore
@@ -22,6 +22,8 @@ class PreferenciasAppRepository(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : FeatureFlagStore {
     private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "linkaPreferencias")
+
+    private val credenciaisModem = CredenciaisModemStore(context)
 
     private val chaveMonitoramentoAtivo = booleanPreferencesKey("monitoramentoAtivo")
     private val chaveModemHost = stringPreferencesKey("modemHost")
@@ -85,17 +87,35 @@ class PreferenciasAppRepository(
     // Identificador anonimo permanente do dispositivo — UUID gerado na primeira execucao, sem PII
     private val chaveAnonDeviceId = stringPreferencesKey("anon_device_id")
 
+    /**
+     * Deve ser chamada uma vez após construção (idealmente no provide do Hilt).
+     * Lê credenciais plaintext do DataStore e migra para o store criptografado.
+     */
+    suspend fun migrarCredenciaisSeNecessario() {
+        withContext(ioDispatcher) {
+            val prefs = context.dataStore.data.first()
+            val userPlain = prefs[chaveModemUsername]
+            val passPlain = prefs[chaveModemPassword]
+
+            val migrou = credenciaisModem.migrarSeNecessario(userPlain, passPlain)
+            if (migrou) {
+                context.dataStore.edit {
+                    it.remove(chaveModemUsername)
+                    it.remove(chaveModemPassword)
+                }
+            }
+        }
+    }
+
     val monitoramentoAtivoFlow: Flow<Boolean> =
         context.dataStore.data.map { it[chaveMonitoramentoAtivo] ?: false }
 
     val modemHostFlow: Flow<String?> =
         context.dataStore.data.map { it[chaveModemHost] }
 
-    val modemUsernameFlow: Flow<String> =
-        context.dataStore.data.map { it[chaveModemUsername] ?: "userAdmin" }
+    val modemUsernameFlow: Flow<String> get() = credenciaisModem.usernameFlow
 
-    val modemPasswordFlow: Flow<String> =
-        context.dataStore.data.map { it[chaveModemPassword] ?: "" }
+    val modemPasswordFlow: Flow<String> get() = credenciaisModem.passwordFlow
 
     val modemPermanecerConectadoFlow: Flow<Boolean> =
         context.dataStore.data.map { it[chaveModemPermanecerConectado] ?: false }
@@ -219,11 +239,11 @@ class PreferenciasAppRepository(
     }
 
     suspend fun definirModemUsername(username: String) {
-        withContext(ioDispatcher) { context.dataStore.edit { it[chaveModemUsername] = username } }
+        withContext(ioDispatcher) { credenciaisModem.salvarUsername(username) }
     }
 
     suspend fun definirModemPassword(password: String) {
-        withContext(ioDispatcher) { context.dataStore.edit { it[chaveModemPassword] = password } }
+        withContext(ioDispatcher) { credenciaisModem.salvarPassword(password) }
     }
 
     suspend fun definirModemPermanecerConectado(permanecer: Boolean) {
@@ -424,6 +444,10 @@ class PreferenciasAppRepository(
         }
 
     suspend fun limparTodasPreferencias() {
-        withContext(ioDispatcher) { context.dataStore.edit { it.clear() } }
+        withContext(ioDispatcher) {
+            context.dataStore.edit { it.clear() }
+            credenciaisModem.salvarUsername(CredenciaisModemStore.DEFAULT_USERNAME)
+            credenciaisModem.salvarPassword(CredenciaisModemStore.DEFAULT_PASSWORD)
+        }
     }
 }

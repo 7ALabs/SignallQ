@@ -1,7 +1,7 @@
-package io.veloo.app.feature.diagnostico.chat
+﻿package io.signallq.app.feature.diagnostico.chat
 
-import io.veloo.app.core.database.chat.ChatMessageEntity
-import io.veloo.app.core.database.chat.ChatSessionEntity
+import io.signallq.app.core.database.chat.ChatMessageEntity
+import io.signallq.app.core.database.chat.ChatSessionEntity
 import org.json.JSONObject
 
 // =============================================================================

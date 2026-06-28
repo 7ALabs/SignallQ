@@ -1,4 +1,4 @@
-package io.veloo.app.ui
+﻿package io.signallq.app.ui
 
 enum class FiltroConexaoHistorico {
     TODOS,

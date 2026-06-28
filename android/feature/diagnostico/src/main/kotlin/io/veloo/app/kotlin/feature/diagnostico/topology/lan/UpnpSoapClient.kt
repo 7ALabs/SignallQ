@@ -1,4 +1,4 @@
-package io.veloo.app.feature.diagnostico.topology.lan
+﻿package io.signallq.app.feature.diagnostico.topology.lan
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

@@ -1,17 +1,17 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import androidx.compose.runtime.Stable
-import io.veloo.app.feature.devices.SnapshotScanDispositivos
-import io.veloo.app.feature.diagnostico.SnapshotDiagnostico
-import io.veloo.app.feature.diagnostico.ai.DiagChatEntry
-import io.veloo.app.feature.diagnostico.chat.TipoDiagnostico
-import io.veloo.app.feature.diagnostico.pulse.OpcaoResposta
-import io.veloo.app.feature.speedtest.ModoSpeedtest
-import io.veloo.app.feature.speedtest.ResultadoSpeedtest
-import io.veloo.app.feature.speedtest.SnapshotExecucaoSpeedtest
-import io.veloo.app.feature.wifi.RedeVizinha
-import io.veloo.app.feature.wifi.SnapshotScanWifi
-import io.veloo.app.ui.viewmodel.ChatDiagUiState
+import io.signallq.app.feature.devices.SnapshotScanDispositivos
+import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
+import io.signallq.app.feature.diagnostico.ai.DiagChatEntry
+import io.signallq.app.feature.diagnostico.chat.TipoDiagnostico
+import io.signallq.app.feature.diagnostico.pulse.OpcaoResposta
+import io.signallq.app.feature.speedtest.ModoSpeedtest
+import io.signallq.app.feature.speedtest.ResultadoSpeedtest
+import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
+import io.signallq.app.feature.wifi.RedeVizinha
+import io.signallq.app.feature.wifi.SnapshotScanWifi
+import io.signallq.app.ui.viewmodel.ChatDiagUiState
 
 /**
  * Agrupa parametros do speedtest para reduzir a assinatura do AppShell.

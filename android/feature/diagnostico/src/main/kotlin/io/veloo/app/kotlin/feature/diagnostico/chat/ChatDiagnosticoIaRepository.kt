@@ -1,6 +1,6 @@
-package io.veloo.app.feature.diagnostico.chat
+﻿package io.signallq.app.feature.diagnostico.chat
 
-import io.veloo.app.core.database.SignallQDatabase
+import io.signallq.app.core.database.SignallQDatabase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.UUID

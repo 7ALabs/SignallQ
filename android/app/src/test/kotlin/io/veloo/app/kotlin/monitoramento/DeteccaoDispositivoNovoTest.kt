@@ -1,6 +1,6 @@
-package io.veloo.app.monitoramento
+﻿package io.signallq.app.monitoramento
 
-import io.veloo.app.core.database.ApelidoDispositivoEntity
+import io.signallq.app.core.database.ApelidoDispositivoEntity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull

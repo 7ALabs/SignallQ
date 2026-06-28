@@ -1,4 +1,4 @@
-package io.veloo.app.feature.devices
+﻿package io.signallq.app.feature.devices
 
 /**
  * Parser de XML de descrição de dispositivo UPnP/DLNA.

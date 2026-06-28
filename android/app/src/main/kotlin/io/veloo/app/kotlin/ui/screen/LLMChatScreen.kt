@@ -1,4 +1,4 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -53,15 +53,15 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.feature.diagnostico.chat.ChatMensagem
-import io.veloo.app.feature.diagnostico.chat.PapelChatMensagem
-import io.veloo.app.feature.diagnostico.chat.StatusChatMensagem
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LocalLkTokens
-import io.veloo.app.ui.SignallQTheme
-import io.veloo.app.ui.component.LLMAssistantMessage
-import io.veloo.app.ui.component.SignallQUserMessageBubble
+import io.signallq.app.feature.diagnostico.chat.ChatMensagem
+import io.signallq.app.feature.diagnostico.chat.PapelChatMensagem
+import io.signallq.app.feature.diagnostico.chat.StatusChatMensagem
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.SignallQTheme
+import io.signallq.app.ui.component.LLMAssistantMessage
+import io.signallq.app.ui.component.SignallQUserMessageBubble
 import java.util.UUID
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -1,4 +1,4 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 data class AjustesPerfilState(
     val nomeUsuario: String,

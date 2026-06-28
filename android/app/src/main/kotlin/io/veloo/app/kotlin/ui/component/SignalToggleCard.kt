@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -23,13 +23,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LocalLkTokens
-import io.veloo.app.ui.SignallQTheme
+import io.signallq.app.R
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.SignallQTheme
 
 @Composable
 fun SignalToggleCard(
@@ -45,6 +51,7 @@ fun SignalToggleCard(
     val bgColor = if (enabled) LkColors.accent.copy(alpha = 0.05f) else Color.White
     val borderColor = if (enabled) LkColors.accent.copy(alpha = 0.25f) else c.border
     val iconColor = if (enabled) LkColors.accent else c.textTertiary
+    val toggleStateDesc = if (enabled) stringResource(R.string.cd_toggle_ativado) else stringResource(R.string.cd_toggle_desativado)
 
     Row(
         modifier =
@@ -52,6 +59,7 @@ fun SignalToggleCard(
                 .clip(RoundedCornerShape(16.dp))
                 .background(bgColor)
                 .border(1.dp, borderColor, RoundedCornerShape(16.dp))
+                .semantics { role = Role.Switch; stateDescription = toggleStateDesc }
                 .clickable { onToggle() }
                 .padding(horizontal = 11.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,

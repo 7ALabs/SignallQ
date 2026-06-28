@@ -1,4 +1,4 @@
-package io.veloo.app.core.database
+﻿package io.signallq.app.core.database
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

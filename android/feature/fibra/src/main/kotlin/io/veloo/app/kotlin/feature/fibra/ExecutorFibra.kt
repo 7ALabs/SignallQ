@@ -1,6 +1,6 @@
-package io.veloo.app.feature.fibra
+﻿package io.signallq.app.feature.fibra
 
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,8 +9,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import java.net.ConnectException
 import java.net.SocketTimeoutException
-
-private const val TAG = "SignallQFibra"
 
 class ExecutorFibra {
     private val mutableSnapshotFlow = MutableStateFlow(
@@ -45,7 +43,7 @@ class ExecutorFibra {
                 val ppp = NokiaModemParser.parsePpp(pppJson)
                 val devInfo = NokiaModemParser.parseDeviceInfo(deviceHtml)
 
-                Log.i(TAG, "executar[${tentativa + 1}]: gpon=${gpon?.status} rx=${gpon?.rxPowerDbm}")
+                Timber.i("executar[${tentativa + 1}]: gpon=${gpon?.status} rx=${gpon?.rxPowerDbm}")
                 mutableSnapshotFlow.value = SnapshotFibra(
                     estado = EstadoFibra.concluido,
                     gpon = gpon,
@@ -57,7 +55,7 @@ class ExecutorFibra {
                 return@withContext
             } catch (t: Throwable) {
                 ultimoErro = t
-                Log.w(TAG, "executar[${tentativa + 1}]: falhou — ${t.message}")
+                Timber.w("executar[${tentativa + 1}]: falhou — ${t.message}")
             }
         }
         val t = ultimoErro ?: return@withContext
@@ -71,7 +69,7 @@ class ExecutorFibra {
                 || t.message?.contains("csrf") == true -> "erroRespostaModemInvalida"
             else -> "erroComunicacaoModem"
         }
-        Log.e(TAG, "executar: $chave após 3 tentativas — ${t.message}", t)
+        Timber.e(t, "executar: $chave após 3 tentativas — ${t.message}")
         mutableSnapshotFlow.value = SnapshotFibra(
             estado = EstadoFibra.erro,
             gpon = null,

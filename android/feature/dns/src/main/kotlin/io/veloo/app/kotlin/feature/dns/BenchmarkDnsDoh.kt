@@ -1,6 +1,6 @@
-package io.veloo.app.feature.dns
+﻿package io.signallq.app.feature.dns
 
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,8 +13,6 @@ import java.net.URLEncoder
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
-
-private const val TAG = "SignallQDnsBenchmark"
 
 class BenchmarkDnsDoh : BenchmarkDns {
     private val executando = AtomicBoolean(false)
@@ -38,12 +36,12 @@ class BenchmarkDnsDoh : BenchmarkDns {
         if (!executando.compareAndSet(false, true)) return
         withContext(Dispatchers.IO) {
             try {
-                Log.i(TAG, "iniciando benchmark DNS host=$hostConsulta resolvedores=$resolvedoresAtivos privateDns=$privateDnsHostname")
+                Timber.i("iniciando benchmark DNS host=$hostConsulta resolvedores=$resolvedoresAtivos privateDns=$privateDnsHostname")
                 publicar(EstadoBenchmarkDns.executando, 5, emptyList(), null)
                 val host = URLEncoder.encode(hostConsulta, Charsets.UTF_8.name())
 
                 val resultadoSistema = medirSistemaDns(hostConsulta, resolvedoresAtivos, privateDnsHostname)
-                Log.i(TAG, "sistema dns: nome=${resultadoSistema.nomeProvedor} tempo=${resultadoSistema.tempoMs} grade=${resultadoSistema.gradeRapidez} amostras=${resultadoSistema.amostrasMs}")
+                Timber.i("sistema dns: nome=${resultadoSistema.nomeProvedor} tempo=${resultadoSistema.tempoMs} grade=${resultadoSistema.gradeRapidez} amostras=${resultadoSistema.amostrasMs}")
                 val acumulados = mutableListOf<ResultadoBenchmarkDns>()
                 // IP privado (roteador local) não entra no ranking — latência local não é comparável
                 // a DNS públicos externos. Fica disponível para exibição via nomeProvedor.
@@ -62,14 +60,14 @@ class BenchmarkDnsDoh : BenchmarkDns {
 
                 provedoresPublicos.forEachIndexed { idx, (nome, url) ->
                     val resultado = medirProvedor(nome, hostConsulta, url)
-                    Log.i(TAG, "provedor $nome: tempo=${resultado.tempoMs} grade=${resultado.gradeRapidez} amostras=${resultado.amostrasMs} erro=${resultado.erroMensagem}")
+                    Timber.i("provedor $nome: tempo=${resultado.tempoMs} grade=${resultado.gradeRapidez} amostras=${resultado.amostrasMs} erro=${resultado.erroMensagem}")
                     if (resultado.tempoMs != null) acumulados.add(resultado)
                     val progresso = 20 + (((idx + 1).toDouble() / provedoresPublicos.size.toDouble()) * 75.0).toInt()
                     publicar(EstadoBenchmarkDns.executando, progresso, acumulados.sortedBy { it.tempoMs }, null)
                 }
 
                 val final = acumulados.sortedBy { it.tempoMs }
-                Log.i(TAG, "benchmark concluido: ${final.size} provedores validos: ${final.map { "${it.nomeProvedor}=${it.tempoMs}ms(${it.gradeRapidez})" }}")
+                Timber.i("benchmark concluido: ${final.size} provedores validos: ${final.map { "${it.nomeProvedor}=${it.tempoMs}ms(${it.gradeRapidez})" }}")
                 publicar(EstadoBenchmarkDns.concluido, 100, final, null)
             } catch (t: Throwable) {
                 publicar(EstadoBenchmarkDns.erro, 100, emptyList(), t.message ?: "erroBenchmarkDns")

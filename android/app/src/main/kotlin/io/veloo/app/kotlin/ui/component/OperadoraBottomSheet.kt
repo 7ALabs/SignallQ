@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import android.content.Intent
 import android.net.Uri
@@ -40,16 +40,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
-import io.veloo.app.ui.BancoOperadoras
-import io.veloo.app.ui.ContatoOperadora
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkRadius
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LocalLkTokens
+import io.signallq.app.ui.BancoOperadoras
+import io.signallq.app.ui.ContatoOperadora
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.R
 
 private val corOperadora: Map<String, Color> =
     mapOf(
@@ -458,7 +460,7 @@ private fun OutraOperadoraRow(operadora: ContatoOperadora) {
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.PhoneAndroid,
-                        contentDescription = "WhatsApp",
+                        contentDescription = stringResource(R.string.cd_abrir_whatsapp),
                         tint = Color.White,
                         modifier = Modifier.size(18.dp),
                     )

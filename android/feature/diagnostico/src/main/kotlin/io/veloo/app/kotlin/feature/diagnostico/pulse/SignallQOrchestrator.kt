@@ -1,33 +1,33 @@
-package io.veloo.app.feature.diagnostico.pulse
+﻿package io.signallq.app.feature.diagnostico.pulse
 
 import android.os.Build
-import io.veloo.app.feature.diagnostico.BuildConfig
-import io.veloo.app.core.database.MedicaoDao
-import io.veloo.app.core.network.GatewayLatencyMeasurer
-import io.veloo.app.core.network.MonitorRede
-import io.veloo.app.core.network.NetworkCapabilitiesProvider
-import io.veloo.app.feature.diagnostico.ConnectionType
-import io.veloo.app.feature.diagnostico.DiagnosticInput
-import io.veloo.app.feature.diagnostico.DiagnosticOrchestrator
-import io.veloo.app.feature.diagnostico.EstadoDiagnostico
-import io.veloo.app.feature.diagnostico.InternetDiagnosticInput
-import io.veloo.app.feature.diagnostico.WifiDiagnosticInput
-import io.veloo.app.feature.diagnostico.ai.AdditionalAiContext
-import io.veloo.app.feature.diagnostico.ai.AiDiagnosisRepository
-import io.veloo.app.feature.diagnostico.ai.AiDiagnosisState
-import io.veloo.app.feature.diagnostico.ai.AiFallbackFactory
-import io.veloo.app.feature.diagnostico.ai.DiagnosisAiContextFactory
-import io.veloo.app.feature.diagnostico.ingest.AdminIngestRepository
-import io.veloo.app.feature.diagnostico.ingest.AiUsageIngestPayload
-import io.veloo.app.feature.diagnostico.ingest.DiagnosticIngestPayload
-import io.veloo.app.feature.diagnostico.ingest.frequenciaMhzParaBanda
-import io.veloo.app.feature.diagnostico.ingest.idParaIssueLabel
-import io.veloo.app.feature.speedtest.DiagnosticoFasesSpeedtest
-import io.veloo.app.feature.speedtest.EstadoExecucaoSpeedtest
-import io.veloo.app.feature.speedtest.ExecutorSpeedtest
-import io.veloo.app.feature.speedtest.ModoSpeedtest
-import io.veloo.app.feature.speedtest.ResultadoSpeedtest
-import io.veloo.app.feature.speedtest.SpeedtestQualityClassifier
+import io.signallq.app.feature.diagnostico.BuildConfig
+import io.signallq.app.core.database.MedicaoDao
+import io.signallq.app.core.network.GatewayLatencyMeasurer
+import io.signallq.app.core.network.MonitorRede
+import io.signallq.app.core.network.NetworkCapabilitiesProvider
+import io.signallq.app.feature.diagnostico.ConnectionType
+import io.signallq.app.feature.diagnostico.DiagnosticInput
+import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
+import io.signallq.app.feature.diagnostico.EstadoDiagnostico
+import io.signallq.app.feature.diagnostico.InternetDiagnosticInput
+import io.signallq.app.feature.diagnostico.WifiDiagnosticInput
+import io.signallq.app.feature.diagnostico.ai.AdditionalAiContext
+import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
+import io.signallq.app.feature.diagnostico.ai.AiDiagnosisState
+import io.signallq.app.feature.diagnostico.ai.AiFallbackFactory
+import io.signallq.app.feature.diagnostico.ai.DiagnosisAiContextFactory
+import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
+import io.signallq.app.feature.diagnostico.ingest.AiUsageIngestPayload
+import io.signallq.app.feature.diagnostico.ingest.DiagnosticIngestPayload
+import io.signallq.app.feature.diagnostico.ingest.frequenciaMhzParaBanda
+import io.signallq.app.feature.diagnostico.ingest.idParaIssueLabel
+import io.signallq.app.feature.speedtest.DiagnosticoFasesSpeedtest
+import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
+import io.signallq.app.feature.speedtest.ExecutorSpeedtest
+import io.signallq.app.feature.speedtest.ModoSpeedtest
+import io.signallq.app.feature.speedtest.ResultadoSpeedtest
+import io.signallq.app.feature.speedtest.SpeedtestQualityClassifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -702,7 +702,7 @@ class SignallQOrchestrator(
             null
         }
 
-    private fun io.veloo.app.core.database.MedicaoEntity.toReusableSpeedtestResult(): ResultadoSpeedtest? {
+    private fun io.signallq.app.core.database.MedicaoEntity.toReusableSpeedtestResult(): ResultadoSpeedtest? {
         val now = System.currentTimeMillis()
         val isRecent = timestampEpochMs >= now - SPEEDTEST_REUSE_WINDOW_MS
         if (!isRecent || contaminado) return null
@@ -810,7 +810,7 @@ class SignallQOrchestrator(
 
     private suspend fun callAi(
         trigger: String,
-        report: io.veloo.app.feature.diagnostico.DiagnosticReport?,
+        report: io.signallq.app.feature.diagnostico.DiagnosticReport?,
         connectionType: ConnectionType,
         additionalContext: String?,
         input: DiagnosticInput? = null,
@@ -819,7 +819,7 @@ class SignallQOrchestrator(
         /** Session ID para correlacao no ingest de AI usage. Null = nao faz ingest. */
         ingestSessionId: String? = null,
     ): AiAnalysisEntry {
-        val fallbackEntry = { isFallback: Boolean, text: String, full: io.veloo.app.feature.diagnostico.ai.AiDiagnosisResult? ->
+        val fallbackEntry = { isFallback: Boolean, text: String, full: io.signallq.app.feature.diagnostico.ai.AiDiagnosisResult? ->
             AiAnalysisEntry(
                 trigger = trigger,
                 content = text,
@@ -1008,8 +1008,8 @@ class SignallQOrchestrator(
     private fun dispararIngestDiagnostico(
         sessionId: String,
         connectionType: ConnectionType,
-        relatorio: io.veloo.app.feature.diagnostico.DiagnosticReport?,
-        speedtestResult: io.veloo.app.feature.speedtest.ResultadoSpeedtest?,
+        relatorio: io.signallq.app.feature.diagnostico.DiagnosticReport?,
+        speedtestResult: io.signallq.app.feature.speedtest.ResultadoSpeedtest?,
         /** Frequencia Wi-Fi em MHz — null se movel ou indisponivel (Samsung One UI apos reconexao). */
         wifiFrequenciaMhz: Int? = null,
         /** Tecnologia movel ja como string — ex: "5G", "5G NSA", "4G". Null se Wi-Fi ou Xiaomi sem permissao. */
@@ -1041,8 +1041,8 @@ class SignallQOrchestrator(
                     rep.fibraResultados + rep.dnsResultados + rep.historicoResultados +
                     rep.wifiCanalResultados)
                     .filter {
-                        it.status == io.veloo.app.feature.diagnostico.DiagnosticStatus.critical ||
-                            it.status == io.veloo.app.feature.diagnostico.DiagnosticStatus.attention
+                        it.status == io.signallq.app.feature.diagnostico.DiagnosticStatus.critical ||
+                            it.status == io.signallq.app.feature.diagnostico.DiagnosticStatus.attention
                     }
                     .map { idParaIssueLabel(it.id) }
             } ?: emptyList()
@@ -1110,7 +1110,7 @@ class SignallQOrchestrator(
         }
     }
 
-    private fun mapSignallQState(report: io.veloo.app.feature.diagnostico.DiagnosticReport?): SignallQState {
+    private fun mapSignallQState(report: io.signallq.app.feature.diagnostico.DiagnosticReport?): SignallQState {
         if (report == null) return SignallQState.AwaitingInput
         return when {
             report.temCritico -> SignallQState.Critical

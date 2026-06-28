@@ -1,4 +1,4 @@
-package io.veloo.app.notificacao
+﻿package io.signallq.app.notificacao
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,8 +8,8 @@ import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import io.veloo.app.MainActivity
-import io.veloo.app.R
+import io.signallq.app.MainActivity
+import io.signallq.app.R
 
 object SignallQNotificationHelper {
     private const val CANAL_ID = "linka_monitoramento"

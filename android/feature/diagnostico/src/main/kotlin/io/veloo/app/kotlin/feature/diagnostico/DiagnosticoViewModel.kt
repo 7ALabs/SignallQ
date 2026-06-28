@@ -1,15 +1,15 @@
-package io.veloo.app.feature.diagnostico
+﻿package io.signallq.app.feature.diagnostico
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.veloo.app.core.network.FeatureFlagProvider
-import io.veloo.app.feature.diagnostico.ai.AiDiagnosisRepository
-import io.veloo.app.feature.diagnostico.ai.AiDiagnosisState
-import io.veloo.app.feature.diagnostico.ai.AiFallbackFactory
-import io.veloo.app.feature.diagnostico.ai.DiagChatAutor
-import io.veloo.app.feature.diagnostico.ai.DiagChatEntry
-import io.veloo.app.feature.diagnostico.ai.DiagnosisAiContextFactory
+import io.signallq.app.core.network.FeatureFlagProvider
+import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
+import io.signallq.app.feature.diagnostico.ai.AiDiagnosisState
+import io.signallq.app.feature.diagnostico.ai.AiFallbackFactory
+import io.signallq.app.feature.diagnostico.ai.DiagChatAutor
+import io.signallq.app.feature.diagnostico.ai.DiagChatEntry
+import io.signallq.app.feature.diagnostico.ai.DiagnosisAiContextFactory
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
@@ -52,7 +52,7 @@ class DiagnosticoViewModel
         private val _diagChatCarregando = MutableStateFlow(false)
         val diagChatCarregando: StateFlow<Boolean> = _diagChatCarregando
 
-        private var diagAiContext: io.veloo.app.feature.diagnostico.ai.DiagnosisAiContext? = null
+        private var diagAiContext: io.signallq.app.feature.diagnostico.ai.DiagnosisAiContext? = null
 
         /**
          * Inicia diagnostico local.

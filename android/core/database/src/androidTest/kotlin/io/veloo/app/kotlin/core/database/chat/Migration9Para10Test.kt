@@ -1,12 +1,12 @@
-package io.veloo.app.core.database.chat
+﻿package io.signallq.app.core.database.chat
 
 import androidx.room.Room
 import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import io.veloo.app.core.database.CoreDatabaseModulo
-import io.veloo.app.core.database.SignallQDatabase
+import io.signallq.app.core.database.CoreDatabaseModulo
+import io.signallq.app.core.database.SignallQDatabase
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

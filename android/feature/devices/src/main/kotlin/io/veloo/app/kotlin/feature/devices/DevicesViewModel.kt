@@ -1,12 +1,12 @@
-package io.veloo.app.feature.devices
+﻿package io.signallq.app.feature.devices
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.veloo.app.core.database.ApelidoDispositivoEntity
-import io.veloo.app.core.database.SignallQDatabase
-import io.veloo.app.core.datastore.PreferenciasAppRepository
-import io.veloo.app.core.network.DispatcherProvider
+import io.signallq.app.core.database.ApelidoDispositivoEntity
+import io.signallq.app.core.database.SignallQDatabase
+import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.core.network.DispatcherProvider
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.SharedFlow

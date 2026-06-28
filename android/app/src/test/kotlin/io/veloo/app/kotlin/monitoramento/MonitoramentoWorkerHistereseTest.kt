@@ -1,4 +1,4 @@
-package io.veloo.app.monitoramento
+﻿package io.signallq.app.monitoramento
 
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

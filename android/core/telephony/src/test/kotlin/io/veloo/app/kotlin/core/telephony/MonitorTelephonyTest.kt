@@ -1,4 +1,4 @@
-package io.veloo.app.core.telephony
+﻿package io.signallq.app.core.telephony
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

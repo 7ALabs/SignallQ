@@ -1,4 +1,4 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
@@ -56,13 +56,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.core.network.SnapshotRede
-import io.veloo.app.feature.dns.EstadoBenchmarkDns
-import io.veloo.app.feature.dns.ResultadoBenchmarkDns
-import io.veloo.app.feature.dns.SnapshotBenchmarkDns
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LkTokens
+import io.signallq.app.core.network.SnapshotRede
+import io.signallq.app.feature.dns.EstadoBenchmarkDns
+import io.signallq.app.feature.dns.ResultadoBenchmarkDns
+import io.signallq.app.feature.dns.SnapshotBenchmarkDns
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LkTokens
 import kotlin.math.roundToInt
 
 // ─── Entry point ──────────────────────────────────────────────────────────────

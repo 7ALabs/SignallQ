@@ -1,6 +1,6 @@
-package io.veloo.app.feature.diagnostico.topology
+﻿package io.signallq.app.feature.diagnostico.topology
 
-import io.veloo.app.feature.diagnostico.topology.internet.GeoIpResolver
+import io.signallq.app.feature.diagnostico.topology.internet.GeoIpResolver
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

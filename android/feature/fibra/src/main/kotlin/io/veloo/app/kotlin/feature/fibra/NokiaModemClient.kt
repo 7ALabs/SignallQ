@@ -1,13 +1,12 @@
-package io.veloo.app.feature.fibra
+﻿package io.signallq.app.feature.fibra
 
 import android.util.Base64
-import android.util.Log
+import timber.log.Timber
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 
-private const val TAG = "SignallQFibra"
 private const val USER_AGENT =
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
@@ -25,12 +24,12 @@ internal class NokiaModemClient(private val host: String) {
 
     @Throws(IOException::class)
     fun login(username: String, password: String) {
-        Log.i(TAG, "login: iniciando em $baseUrl")
+        Timber.i("login: iniciando em $baseUrl")
 
         // Etapa 1: GET página de login para extrair crypto material.
         val loginPage = httpGet("/?t=${System.currentTimeMillis()}&lang=eng")
         val html = loginPage.body
-        Log.i(TAG, "login: page=${html.length} bytes status=${loginPage.statusCode}")
+        Timber.i("login: page=${html.length} bytes status=${loginPage.statusCode}")
 
         val pubKeyBase64 = NokiaModemCrypto.extractPublicKeyBase64(html)
             ?: throw IOException("pubkey nao encontrado na pagina de login")
@@ -39,7 +38,7 @@ internal class NokiaModemClient(private val host: String) {
         val csrfToken = NokiaModemCrypto.extractCsrfToken(html)
             ?: throw IOException("csrf_token nao encontrado na pagina de login")
 
-        Log.i(TAG, "login: pubkey=${pubKeyBase64.length}chars nonce=${nonce.length} token=${csrfToken.length}")
+        Timber.i("login: pubkey=${pubKeyBase64.length}chars nonce=${nonce.length} token=${csrfToken.length}")
 
         // Etapa 2: gerar material criptográfico.
         // aesKey/iv: usados para cifrar o payload interno → ct.
@@ -69,13 +68,13 @@ internal class NokiaModemClient(private val host: String) {
         val ckRaw = NokiaModemCrypto.rsaEncryptPkcs1(pubKeyBase64, "$aesKeyB64 $ivB64")
         val ck = NokiaModemCrypto.base64UrlEscape(ckRaw)
 
-        Log.i(TAG, "login: ct=${ct.length}chars ck=${ck.length}chars")
+        Timber.i("login: ct=${ct.length}chars ck=${ck.length}chars")
 
         // Etapa 3: POST /login.cgi — body contém apenas encrypted=1, ct e ck.
         val postBody = "encrypted=1&ct=$ct&ck=$ck"
         val resp = httpPost("/login.cgi", postBody, loginPage.cookies)
 
-        Log.i(TAG, "login: resposta status=${resp.statusCode} headers=${resp.headers}")
+        Timber.i("login: resposta status=${resp.statusCode} headers=${resp.headers}")
 
         // Extrair sid da resposta (prioridade: X-SID header, depois Set-Cookie).
         val respXSid = resp.headers["x-sid"]?.trim() ?: ""
@@ -88,7 +87,7 @@ internal class NokiaModemClient(private val host: String) {
             lsid = respLsid
             lang = respLang.ifEmpty { "eng" }
             xSid = respSid
-            Log.i(TAG, "login: SUCESSO sid=${sid.take(8)}...")
+            Timber.i("login: SUCESSO sid=${sid.take(8)}...")
             return
         }
 
@@ -100,14 +99,14 @@ internal class NokiaModemClient(private val host: String) {
             "2" -> "token expirado — retry necessario (err_t=2)"
             else -> "login falhou: status=${resp.statusCode} err_t=$errT body=${resp.body.take(200)}"
         }
-        Log.w(TAG, "login: FALHA $mensagem")
+        Timber.w("login: FALHA $mensagem")
         throw IOException(mensagem)
     }
 
     @Throws(IOException::class)
     fun fetchPage(path: String): String {
         val resp = httpGet(path, buildSessionHeaders())
-        Log.i(TAG, "fetchPage: $path status=${resp.statusCode} bytes=${resp.body.length}")
+        Timber.i("fetchPage: $path status=${resp.statusCode} bytes=${resp.body.length}")
         return resp.body
     }
 
@@ -157,7 +156,7 @@ internal class NokiaModemClient(private val host: String) {
             if (resp.statusCode in 301..303 || resp.statusCode == 307 || resp.statusCode == 308) {
                 val location = resp.headers["location"] ?: break
                 currentUrl = if (location.startsWith("http")) location else "$baseUrl$location"
-                Log.i(TAG, "httpGet: redirect ${resp.statusCode} → $currentUrl")
+                Timber.i("httpGet: redirect ${resp.statusCode} → $currentUrl")
                 hops++
                 continue
             }

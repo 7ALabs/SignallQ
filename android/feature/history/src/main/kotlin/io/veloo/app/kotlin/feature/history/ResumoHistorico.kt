@@ -1,4 +1,4 @@
-package io.veloo.app.feature.history
+﻿package io.signallq.app.feature.history
 
 data class ResumoHistorico(
     val totalMedicoes: Int,

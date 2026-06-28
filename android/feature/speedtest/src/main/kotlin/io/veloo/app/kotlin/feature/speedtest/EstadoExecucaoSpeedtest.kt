@@ -1,4 +1,4 @@
-package io.veloo.app.feature.speedtest
+﻿package io.signallq.app.feature.speedtest
 
 enum class EstadoExecucaoSpeedtest {
     idle,

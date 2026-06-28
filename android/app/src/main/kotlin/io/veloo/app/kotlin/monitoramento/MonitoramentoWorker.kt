@@ -1,4 +1,4 @@
-package io.veloo.app.monitoramento
+﻿package io.signallq.app.monitoramento
 
 import android.content.Context
 import android.net.ConnectivityManager
@@ -11,10 +11,10 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
-import io.veloo.app.core.database.MedicaoDao
-import io.veloo.app.core.database.MedicaoEntity
-import io.veloo.app.core.datastore.PreferenciasAppRepository
-import io.veloo.app.notificacao.SignallQNotificationHelper
+import io.signallq.app.core.database.MedicaoDao
+import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.notificacao.SignallQNotificationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first

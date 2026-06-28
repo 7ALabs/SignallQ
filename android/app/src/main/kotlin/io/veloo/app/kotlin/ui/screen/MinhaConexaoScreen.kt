@@ -1,8 +1,11 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,11 +48,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkRadius
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LkTokens
-import io.veloo.app.ui.LocalLkTokens
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LkTokens
+import io.signallq.app.ui.LocalLkTokens
 
 private val ESTADOS_BRASILEIROS =
     listOf(
@@ -292,6 +295,7 @@ private fun MinhaConexaoSugestaoChip(
                 .clip(RoundedCornerShape(8.dp))
                 .background(LkColors.accent.copy(alpha = 0.10f))
                 .border(1.dp, LkColors.accent.copy(alpha = 0.30f), RoundedCornerShape(8.dp))
+                .semantics { role = Role.Button }
                 .clickable(onClick = onClick)
                 .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
     ) {

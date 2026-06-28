@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -22,13 +22,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LocalLkTokens
-import io.veloo.app.ui.SignallQTheme
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.SignallQTheme
 
 data class ImpactItem(
     val icon: ImageVector,
@@ -81,6 +82,7 @@ private fun ImpactRow(item: ImpactItem) {
     Row(
         modifier =
             Modifier
+                .semantics(mergeDescendants = true) {}
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,

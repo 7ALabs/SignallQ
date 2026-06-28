@@ -1,4 +1,4 @@
-package io.veloo.app.feature.history
+﻿package io.signallq.app.feature.history
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -7,7 +7,7 @@ import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import io.veloo.app.core.database.MedicaoEntity
+import io.signallq.app.core.database.MedicaoEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext

@@ -1,4 +1,4 @@
-package io.veloo.app.core.telephony
+﻿package io.signallq.app.core.telephony
 
 /**
  * Snapshot de um SIM fisico ativo capturado via SubscriptionManager.

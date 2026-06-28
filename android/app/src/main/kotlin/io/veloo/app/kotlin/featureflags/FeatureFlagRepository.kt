@@ -1,6 +1,6 @@
-package io.veloo.app.featureflags
+﻿package io.signallq.app.featureflags
 
-import io.veloo.app.core.datastore.FeatureFlagStore
+import io.signallq.app.core.datastore.FeatureFlagStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject

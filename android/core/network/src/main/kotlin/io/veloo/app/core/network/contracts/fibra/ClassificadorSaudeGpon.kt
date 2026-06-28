@@ -1,4 +1,4 @@
-package io.veloo.app.core.network.contracts.fibra
+﻿package io.signallq.app.core.network.contracts.fibra
 
 // Limiares ITU-T G.984 / IEEE 802.3ah
 object ClassificadorSaudeGpon {

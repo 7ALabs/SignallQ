@@ -1,4 +1,4 @@
-package io.veloo.app.feature.diagnostico.chat
+﻿package io.signallq.app.feature.diagnostico.chat
 
 import android.content.Context
 import androidx.datastore.core.DataStore

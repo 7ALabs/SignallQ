@@ -1,4 +1,4 @@
-package io.veloo.app.monitoramento
+﻿package io.signallq.app.monitoramento
 
 /**
  * Lógica pura de histerese para os alertas de monitoramento.

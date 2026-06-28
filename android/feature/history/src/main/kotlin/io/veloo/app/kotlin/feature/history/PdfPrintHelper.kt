@@ -1,6 +1,6 @@
-@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+﻿@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 
-package io.veloo.app.feature.history
+package io.signallq.app.feature.history
 
 import android.os.Bundle
 import android.os.CancellationSignal

@@ -1,6 +1,6 @@
-package io.veloo.app.feature.diagnostico.pulse
+﻿package io.signallq.app.feature.diagnostico.pulse
 
-import io.veloo.app.feature.diagnostico.ai.AiDiagnosisResult
+import io.signallq.app.feature.diagnostico.ai.AiDiagnosisResult
 import java.util.concurrent.atomic.AtomicLong
 
 enum class ResponseSource { INSIGHT, GEMMA, LOCAL }

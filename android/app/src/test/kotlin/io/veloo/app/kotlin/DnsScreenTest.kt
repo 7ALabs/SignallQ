@@ -1,7 +1,7 @@
-package io.veloo.app
+﻿package io.signallq.app
 
-import io.veloo.app.ui.screen.isDnsIpPrivado
-import io.veloo.app.ui.screen.resolveDnsName
+import io.signallq.app.ui.screen.isDnsIpPrivado
+import io.signallq.app.ui.screen.resolveDnsName
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

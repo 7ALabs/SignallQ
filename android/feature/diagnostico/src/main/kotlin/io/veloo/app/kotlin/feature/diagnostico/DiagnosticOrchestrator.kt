@@ -1,11 +1,9 @@
-package io.veloo.app.feature.diagnostico
+﻿package io.signallq.app.feature.diagnostico
 
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-
-private const val TAG = "SignallQDiagnostico"
 
 class DiagnosticOrchestrator {
 
@@ -45,15 +43,13 @@ class DiagnosticOrchestrator {
         enabledAreas: Set<DiagnosticArea> = DiagnosticArea.entries.toSet(),
     ) {
         try {
-            Log.i(
-                TAG,
+            Timber.i(
                 "iniciando diagnostico tipo=${input.connectionType} dl=${input.internet?.downloadMbps} ul=${input.internet?.uploadMbps} lat=${input.internet?.latencyMs} rssi=${input.wifi?.rssiDbm} fibra=${input.fibra?.isUp} dnsMs=${input.dns?.currentDnsLatencyMs}",
             )
 
             val relatorio = DiagnosticRunner.run(input, enabledAreas)
 
-            Log.i(
-                TAG,
+            Timber.i(
                 "diagnostico concluido decisao=${relatorio.decisao.id}(${relatorio.decisao.status}) " +
                     "wifi=${relatorio.wifiResultados.map { "${it.id}:${it.status}" }} " +
                     "internet=${relatorio.internetResultados.map { "${it.id}:${it.status}" }} " +
@@ -70,7 +66,7 @@ class DiagnosticOrchestrator {
                 input = input,
             )
         } catch (t: Throwable) {
-            Log.e(TAG, "erro no diagnostico: ${t.message}", t)
+            Timber.e(t, "erro no diagnostico: ${t.message}")
             mutableSnapshotFlow.value = SnapshotDiagnostico(
                 estado = EstadoDiagnostico.erro,
                 relatorio = null,

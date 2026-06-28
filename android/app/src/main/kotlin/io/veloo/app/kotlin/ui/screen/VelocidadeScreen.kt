@@ -1,4 +1,4 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -49,17 +49,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.R
-import io.veloo.app.feature.speedtest.EstadoExecucaoSpeedtest
-import io.veloo.app.feature.speedtest.FaseSpeedtest
-import io.veloo.app.feature.speedtest.SnapshotExecucaoSpeedtest
-import io.veloo.app.ui.IspInfo
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkRadius
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LocalLkTokens
-import io.veloo.app.ui.component.GaugeCircular
-import io.veloo.app.ui.component.MiniGrafico
+import io.signallq.app.R
+import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
+import io.signallq.app.feature.speedtest.FaseSpeedtest
+import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
+import io.signallq.app.ui.IspInfo
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.component.GaugeCircular
+import io.signallq.app.ui.component.MiniGrafico
 import kotlinx.coroutines.isActive
 import androidx.compose.animation.core.tween as tweenSpec
 

@@ -32,17 +32,34 @@ Antes de gerar APK/AAB de release, fazer deploy do PWA no Cloudflare Pages ou su
 - [ ] APK/AAB assinado com keystore correto (não debug keystore)?
 - [ ] `io.veloo.app` preservado (package/applicationId/namespace nunca renomeados)?
 
-### Qualidade e segurança
+### Qualidade
 - [ ] Testes unitários passando (`.\android\gradlew.bat test`)?
 - [ ] Crash rate do build anterior < 1%?
 - [ ] Sem TODOs críticos não resolvidos no diff?
-- [ ] Nenhuma chave API hardcoded no código?
-- [ ] Dados sensíveis não logados em produção?
+
+### Segurança pré-release
+- [ ] Nenhuma chave API hardcoded no código (grep por `api_key`, `secret`, `password`)?
+- [ ] Dados sensíveis não logados em produção (zero `Log.d`/`Log.w`/`Log.e` diretos — apenas Timber)?
+- [ ] Credenciais em DataStore criptografadas (não plaintext)?
+- [ ] `exported=false` em todos os providers/receivers/services que não precisam ser públicos?
+- [ ] `networkSecurityConfig` não permite cleartext exceto para IPs de gateway LAN?
+- [ ] ProGuard/R8 mapping.txt gerado e disponível para upload no Crashlytics?
+- [ ] Sem dependências com CVE HIGH/CRITICAL conhecidos?
+
+### Observabilidade
+- [ ] Firebase Crashlytics ativo e recebendo crashes do release build?
+- [ ] Firebase Analytics events chegando (verificar DebugView)?
+- [ ] SHA-1/SHA-256 da release keystore registrados no Firebase?
+- [ ] ReleaseTree filtrando logs WARN/ERROR para Crashlytics?
 
 ### Play Store
 - [ ] Screenshots e ícone atualizados se UI mudou?
 - [ ] Descrição da release atualizada?
 - [ ] Política de privacidade atualizada se novos dados coletados?
+- [ ] Data Safety atualizado se tipos de dados coletados mudaram?
+- [ ] AAB gerado (não APK) — `gradlew bundleRelease`?
+- [ ] Release notes escritas (máx. 500 chars PT-BR)?
+- [ ] Consentimento LGPD funcional antes de coletar dados?
 
 ---
 

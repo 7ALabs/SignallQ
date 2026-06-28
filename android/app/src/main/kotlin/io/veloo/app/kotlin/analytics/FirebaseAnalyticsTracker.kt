@@ -1,9 +1,9 @@
-package io.veloo.app.analytics
+﻿package io.signallq.app.analytics
 
 import android.os.Bundle
 import com.google.firebase.analytics.FirebaseAnalytics
-import io.veloo.app.BuildConfig
-import io.veloo.app.core.network.AnalyticsTracker
+import io.signallq.app.BuildConfig
+import io.signallq.app.core.network.AnalyticsTracker
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton

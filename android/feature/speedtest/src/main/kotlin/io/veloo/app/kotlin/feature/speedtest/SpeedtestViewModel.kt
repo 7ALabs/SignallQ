@@ -1,12 +1,12 @@
-package io.veloo.app.feature.speedtest
+﻿package io.signallq.app.feature.speedtest
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.veloo.app.core.datastore.PreferenciasAppRepository
-import io.veloo.app.core.network.MonitorRede
-import io.veloo.app.core.network.NetworkCapabilitiesProvider
-import io.veloo.app.core.telephony.MonitorTelephony
+import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.core.network.MonitorRede
+import io.signallq.app.core.network.NetworkCapabilitiesProvider
+import io.signallq.app.core.telephony.MonitorTelephony
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first

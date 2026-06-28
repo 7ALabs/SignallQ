@@ -1811,7 +1811,12 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-providers$/,                handler: withErrorLogging('metrics', handleAiProviders) },
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage\/timeline$/,          handler: withErrorLogging('metrics', handleAiUsageTimeline) },
   { method: "GET",  pattern: /^\/admin\/metrics\/operators$/,                   handler: withErrorLogging('metrics', handleOperators) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/intelligence$/,                handler: withErrorLogging('metrics', handleDiagnosticsIntelligence) },
   { method: "GET",  pattern: /^\/admin\/diagnostics\/intelligence$/,            handler: withErrorLogging('metrics', handleDiagnosticsIntelligence) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/product$/,          handler: withErrorLogging('analytics', handleProductAnalytics) },
+  { method: "GET",  pattern: /^\/admin\/analytics\/product$/,                   handler: withErrorLogging('analytics', handleProductAnalytics) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/battery$/,          handler: withErrorLogging('analytics', handleBatteryAnalytics) },
+  { method: "GET",  pattern: /^\/admin\/analytics\/battery$/,                   handler: withErrorLogging('analytics', handleBatteryAnalytics) },
   { method: "GET",  pattern: /^\/admin\/metrics\/errors$/,                      handler: handleErrors },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/status$/,       handler: handleFirebaseStatus },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/analytics$/,    handler: handleFirebaseAnalytics },
@@ -1823,7 +1828,6 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/analytics\/battery$/,                   handler: withErrorLogging('analytics', handleBatteryAnalytics) },
   { method: "GET",  pattern: /^\/admin\/settings$/,                             handler: handleSettings },
   { method: "POST", pattern: /^\/admin\/settings$/,                             handler: handleSettings },
-  // SIG-13: GET usa nova tabela; POST mantido para compat com adminSettingsService legado.
   { method: "GET",  pattern: /^\/admin\/feature-flags$/,                        handler: withErrorLogging('feature-flags', handleFeatureFlags) },
   { method: "POST", pattern: /^\/admin\/feature-flags$/,                        handler: handleSetFeatureFlags },
   { method: "PUT",  pattern: /^\/admin\/feature-flags\/[^/]+$/,                 handler: withErrorLogging('feature-flags', async (req, env) => {

@@ -1,3 +1,3 @@
-package io.veloo.app.feature.settings
+﻿package io.signallq.app.feature.settings
 
 object FeatureSettingsModulo

@@ -1,4 +1,4 @@
-package io.veloo.app.feature.wifi
+﻿package io.signallq.app.feature.wifi
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

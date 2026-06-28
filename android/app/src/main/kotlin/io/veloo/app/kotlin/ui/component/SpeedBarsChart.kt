@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -31,12 +31,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.veloo.app.core.database.MedicaoEntity
-import io.veloo.app.core.network.EstadoConexao
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LkTokens
-import io.veloo.app.ui.LocalLkTokens
+import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.core.network.EstadoConexao
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LkTokens
+import io.signallq.app.ui.LocalLkTokens
 
 // ── Filtro de tipo de conexão ──────────────────────────────────────────────────
 

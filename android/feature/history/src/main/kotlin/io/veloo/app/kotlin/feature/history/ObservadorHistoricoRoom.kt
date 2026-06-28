@@ -1,6 +1,6 @@
-package io.veloo.app.feature.history
+﻿package io.signallq.app.feature.history
 
-import io.veloo.app.core.database.MedicaoDao
+import io.signallq.app.core.database.MedicaoDao
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

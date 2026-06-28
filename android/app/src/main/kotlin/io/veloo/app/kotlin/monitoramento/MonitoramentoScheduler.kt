@@ -1,4 +1,4 @@
-package io.veloo.app.monitoramento
+﻿package io.signallq.app.monitoramento
 
 import android.content.Context
 import androidx.work.BackoffPolicy

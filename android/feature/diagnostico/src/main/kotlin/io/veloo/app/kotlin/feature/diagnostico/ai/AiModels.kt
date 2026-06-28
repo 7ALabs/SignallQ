@@ -1,14 +1,14 @@
-package io.veloo.app.feature.diagnostico.ai
+﻿package io.signallq.app.feature.diagnostico.ai
 
-import io.veloo.app.feature.diagnostico.BandaWifi
-import io.veloo.app.feature.diagnostico.ConnectionType
-import io.veloo.app.feature.diagnostico.DiagnosticInput
-import io.veloo.app.feature.diagnostico.DiagnosticReport
-import io.veloo.app.feature.diagnostico.DiagnosticStatus
-import io.veloo.app.feature.diagnostico.HistoricalDiagnosticInput
-import io.veloo.app.feature.diagnostico.InternetDiagnosticInput
-import io.veloo.app.feature.diagnostico.SpeedtestQualityInput
-import io.veloo.app.feature.diagnostico.WifiDiagnosticInput
+import io.signallq.app.feature.diagnostico.BandaWifi
+import io.signallq.app.feature.diagnostico.ConnectionType
+import io.signallq.app.feature.diagnostico.DiagnosticInput
+import io.signallq.app.feature.diagnostico.DiagnosticReport
+import io.signallq.app.feature.diagnostico.DiagnosticStatus
+import io.signallq.app.feature.diagnostico.HistoricalDiagnosticInput
+import io.signallq.app.feature.diagnostico.InternetDiagnosticInput
+import io.signallq.app.feature.diagnostico.SpeedtestQualityInput
+import io.signallq.app.feature.diagnostico.WifiDiagnosticInput
 
 // =============================================================================
 // Schema v2 do payload enviado para o Worker

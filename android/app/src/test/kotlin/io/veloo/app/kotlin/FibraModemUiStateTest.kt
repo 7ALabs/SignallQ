@@ -1,10 +1,10 @@
-package io.veloo.app
+﻿package io.signallq.app
 
-import io.veloo.app.feature.fibra.EstadoFibra
-import io.veloo.app.feature.fibra.GponStatus
-import io.veloo.app.feature.fibra.SnapshotFibra
-import io.veloo.app.ui.screen.FibraModemUiState
-import io.veloo.app.ui.screen.mapearSnapshotFibra
+import io.signallq.app.feature.fibra.EstadoFibra
+import io.signallq.app.feature.fibra.GponStatus
+import io.signallq.app.feature.fibra.SnapshotFibra
+import io.signallq.app.ui.screen.FibraModemUiState
+import io.signallq.app.ui.screen.mapearSnapshotFibra
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

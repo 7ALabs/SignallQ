@@ -1,6 +1,6 @@
-package io.veloo.app.feature.history
+﻿package io.signallq.app.feature.history
 
-import io.veloo.app.core.database.MedicaoDao
+import io.signallq.app.core.database.MedicaoDao
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -81,7 +81,7 @@ class UptimeChartUseCase(
 
     private fun classificarBloco(
         dataHora: LocalDateTime,
-        medicoes: List<io.veloo.app.core.database.MedicaoEntity>,
+        medicoes: List<io.signallq.app.core.database.MedicaoEntity>,
     ): BlocoUptime {
         if (medicoes.isEmpty()) {
             return BlocoUptime(

@@ -1,4 +1,4 @@
-package io.veloo.app.core.network
+﻿package io.signallq.app.core.network
 
 import android.content.Context
 import android.net.ConnectivityManager

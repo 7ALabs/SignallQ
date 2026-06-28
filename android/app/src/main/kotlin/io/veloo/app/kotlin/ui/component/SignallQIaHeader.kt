@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
@@ -20,8 +20,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LocalLkTokens
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LocalLkTokens
 
 /**
  * Cabeçalho minimalista da tela SignallQ IA: chip com o SSID da rede Wi-Fi

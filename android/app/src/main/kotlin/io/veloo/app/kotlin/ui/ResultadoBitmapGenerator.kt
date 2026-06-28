@@ -1,4 +1,4 @@
-package io.veloo.app.ui
+﻿package io.signallq.app.ui
 
 import android.content.Context
 import android.content.Intent
@@ -9,8 +9,8 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import android.net.Uri
 import androidx.core.content.FileProvider
-import io.veloo.app.feature.diagnostico.DiagnosticStatus
-import io.veloo.app.feature.speedtest.ResultadoSpeedtest
+import io.signallq.app.feature.diagnostico.DiagnosticStatus
+import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File

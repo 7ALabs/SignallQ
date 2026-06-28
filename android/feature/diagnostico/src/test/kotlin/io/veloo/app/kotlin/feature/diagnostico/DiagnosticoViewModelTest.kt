@@ -1,7 +1,7 @@
-package io.veloo.app.feature.diagnostico
+﻿package io.signallq.app.feature.diagnostico
 
-import io.veloo.app.core.network.FeatureFlagProvider
-import io.veloo.app.feature.diagnostico.ai.AiDiagnosisRepository
+import io.signallq.app.core.network.FeatureFlagProvider
+import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

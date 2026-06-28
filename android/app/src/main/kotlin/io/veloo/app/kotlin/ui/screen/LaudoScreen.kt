@@ -1,4 +1,4 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import android.content.Context
 import android.content.Intent
@@ -50,15 +50,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
-import io.veloo.app.core.database.MedicaoEntity
-import io.veloo.app.feature.diagnostico.DiagnosticStatus
-import io.veloo.app.feature.diagnostico.SnapshotDiagnostico
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkRadius
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LkTokens
-import io.veloo.app.ui.LocalLkTokens
-import io.veloo.app.ui.component.rememberTopBarAlpha
+import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.feature.diagnostico.DiagnosticStatus
+import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LkTokens
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.component.rememberTopBarAlpha
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

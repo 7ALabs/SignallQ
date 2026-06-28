@@ -1,4 +1,4 @@
-package io.veloo.app.core.network.contracts.wifi.channel
+﻿package io.signallq.app.core.network.contracts.wifi.channel
 
 // Ponto de entrada publico — avalia todos os canais candidatos e retorna ranking por banda
 fun evaluateChannels(

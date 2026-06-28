@@ -1,4 +1,4 @@
-﻿package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.DevicesOther
@@ -67,19 +68,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.core.network.EstadoConexao
-import io.veloo.app.core.network.SnapshotRede
-import io.veloo.app.feature.devices.DispositivoRede
-import io.veloo.app.feature.devices.EstadoScanDispositivos
-import io.veloo.app.feature.devices.SnapshotScanDispositivos
-import io.veloo.app.feature.devices.TipoDispositivo
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkRadius
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LkTokens
-import io.veloo.app.ui.LocalLkTokens
-import io.veloo.app.ui.component.OfflineBanner
-import io.veloo.app.ui.component.SheetDragHandle
+import io.signallq.app.core.network.EstadoConexao
+import io.signallq.app.core.network.SnapshotRede
+import io.signallq.app.feature.devices.DispositivoRede
+import io.signallq.app.feature.devices.EstadoScanDispositivos
+import io.signallq.app.feature.devices.SnapshotScanDispositivos
+import io.signallq.app.feature.devices.TipoDispositivo
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LkTokens
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.component.OfflineBanner
+import io.signallq.app.ui.component.SheetDragHandle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -552,7 +553,7 @@ private fun DispositivoItem(
             )
             Spacer(Modifier.width(4.dp))
             Icon(
-                imageVector = Icons.Outlined.Router, // chevron
+                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 contentDescription = null,
                 tint = c.textTertiary,
                 modifier = Modifier.size(16.dp),

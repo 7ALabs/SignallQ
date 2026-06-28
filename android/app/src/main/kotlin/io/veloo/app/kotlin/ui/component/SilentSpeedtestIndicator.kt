@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -20,8 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LocalLkTokens
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LocalLkTokens
 
 @Composable
 fun SilentSpeedtestIndicator(modifier: Modifier = Modifier) {

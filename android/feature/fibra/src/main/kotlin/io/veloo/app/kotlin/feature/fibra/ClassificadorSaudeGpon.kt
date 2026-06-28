@@ -1,4 +1,4 @@
-package io.veloo.app.feature.fibra
+﻿package io.signallq.app.feature.fibra
 
 // Limiares ITU-T G.984 / IEEE 802.3ah, alinhados com fibra_health_classifier.dart do Flutter.
 object ClassificadorSaudeGpon {

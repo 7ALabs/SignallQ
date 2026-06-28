@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -26,8 +26,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.SignallQTheme
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.SignallQTheme
 
 @Composable
 fun DiagVerdictHeroCard(

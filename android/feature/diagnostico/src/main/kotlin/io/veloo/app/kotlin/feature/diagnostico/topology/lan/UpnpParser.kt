@@ -1,7 +1,7 @@
-package io.veloo.app.feature.diagnostico.topology.lan
+﻿package io.signallq.app.feature.diagnostico.topology.lan
 
-import io.veloo.app.feature.diagnostico.topology.model.SsdpResponse
-import io.veloo.app.feature.diagnostico.topology.model.UpnpDeviceInfo
+import io.signallq.app.feature.diagnostico.topology.model.SsdpResponse
+import io.signallq.app.feature.diagnostico.topology.model.UpnpDeviceInfo
 import org.w3c.dom.Element
 import java.io.ByteArrayInputStream
 import java.net.URL

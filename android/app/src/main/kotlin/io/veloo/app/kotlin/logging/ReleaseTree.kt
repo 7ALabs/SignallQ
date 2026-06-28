@@ -1,10 +1,10 @@
-@file:Suppress("ForbiddenImport") // Usa android.util.Log apenas para constantes de prioridade (Log.WARN), não para logging direto.
+﻿@file:Suppress("ForbiddenImport") // Usa android.util.Log apenas para constantes de prioridade (Log.WARN), não para logging direto.
 
-package io.veloo.app.logging
+package io.signallq.app.logging
 
 import android.util.Log
 import com.google.firebase.crashlytics.FirebaseCrashlytics
-import io.veloo.app.core.network.AnalyticsTracker
+import io.signallq.app.core.network.AnalyticsTracker
 import timber.log.Timber
 
 /**

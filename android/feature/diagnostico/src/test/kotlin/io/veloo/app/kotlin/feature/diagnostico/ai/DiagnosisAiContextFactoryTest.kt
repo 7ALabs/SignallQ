@@ -1,12 +1,12 @@
-package io.veloo.app.feature.diagnostico.ai
+﻿package io.signallq.app.feature.diagnostico.ai
 
-import io.veloo.app.feature.diagnostico.ConnectionType
-import io.veloo.app.feature.diagnostico.DiagnosticInput
-import io.veloo.app.feature.diagnostico.DiagnosticReport
-import io.veloo.app.feature.diagnostico.DiagnosticResult
-import io.veloo.app.feature.diagnostico.DiagnosticStatus
-import io.veloo.app.feature.diagnostico.InternetDiagnosticInput
-import io.veloo.app.feature.diagnostico.WifiDiagnosticInput
+import io.signallq.app.feature.diagnostico.ConnectionType
+import io.signallq.app.feature.diagnostico.DiagnosticInput
+import io.signallq.app.feature.diagnostico.DiagnosticReport
+import io.signallq.app.feature.diagnostico.DiagnosticResult
+import io.signallq.app.feature.diagnostico.DiagnosticStatus
+import io.signallq.app.feature.diagnostico.InternetDiagnosticInput
+import io.signallq.app.feature.diagnostico.WifiDiagnosticInput
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -212,7 +212,7 @@ class DiagnosisAiContextFactoryTest {
         assertEquals(false, ctx.movel?.roaming)
 
         // Serializacao para JSON inclui o bloco com TODOS os campos preenchidos
-        val repo = io.veloo.app.feature.diagnostico.ai.AiDiagnosisRepository(
+        val repo = io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository(
             baseUrl = "http://invalid.local", isAuthorized = { true },
         )
         val json = repo.contextToJson(ctx).toString()
@@ -249,7 +249,7 @@ class DiagnosisAiContextFactoryTest {
         )
 
         assertNull(ctx.movel)
-        val repo = io.veloo.app.feature.diagnostico.ai.AiDiagnosisRepository(
+        val repo = io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository(
             baseUrl = "http://invalid.local", isAuthorized = { true },
         )
         val json = repo.contextToJson(ctx).toString()
@@ -408,7 +408,7 @@ class DiagnosisAiContextFactoryTest {
             movel = null, // como deveria ser sempre em wifi
         )
         assertNull(ctx.movel)
-        val repo = io.veloo.app.feature.diagnostico.ai.AiDiagnosisRepository(
+        val repo = io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository(
             baseUrl = "http://invalid.local", isAuthorized = { true },
         )
         val json = repo.contextToJson(ctx).toString()

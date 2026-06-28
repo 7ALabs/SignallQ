@@ -1,4 +1,4 @@
-package io.veloo.app
+﻿package io.signallq.app
 
 /**
  * Controle de features por build type.

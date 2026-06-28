@@ -1,7 +1,7 @@
-package io.veloo.app.feature.diagnostico.pulse
+﻿package io.signallq.app.feature.diagnostico.pulse
 
-import io.veloo.app.feature.diagnostico.DiagnosticReport
-import io.veloo.app.feature.diagnostico.DiagnosticStatus
+import io.signallq.app.feature.diagnostico.DiagnosticReport
+import io.signallq.app.feature.diagnostico.DiagnosticStatus
 
 object ContextAccumulator {
 

@@ -1,8 +1,8 @@
-package io.veloo.app.feature.wifi.channel
+﻿package io.signallq.app.feature.wifi.channel
 
 // Tipos movidos para coreNetwork/contracts — mantidos aqui como typealias para nao quebrar imports existentes.
-typealias Band = io.veloo.app.core.network.contracts.wifi.channel.Band
-typealias ChannelWidth = io.veloo.app.core.network.contracts.wifi.channel.ChannelWidth
-typealias Neighbor = io.veloo.app.core.network.contracts.wifi.channel.Neighbor
-typealias ChannelScore = io.veloo.app.core.network.contracts.wifi.channel.ChannelScore
-typealias EvalConfig = io.veloo.app.core.network.contracts.wifi.channel.EvalConfig
+typealias Band = io.signallq.app.core.network.contracts.wifi.channel.Band
+typealias ChannelWidth = io.signallq.app.core.network.contracts.wifi.channel.ChannelWidth
+typealias Neighbor = io.signallq.app.core.network.contracts.wifi.channel.Neighbor
+typealias ChannelScore = io.signallq.app.core.network.contracts.wifi.channel.ChannelScore
+typealias EvalConfig = io.signallq.app.core.network.contracts.wifi.channel.EvalConfig

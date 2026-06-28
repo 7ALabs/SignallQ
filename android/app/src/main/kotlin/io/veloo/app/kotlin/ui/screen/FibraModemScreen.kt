@@ -1,4 +1,4 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,18 +43,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.feature.diagnostico.DiagnosticStatus
-import io.veloo.app.feature.diagnostico.FibraDiagnosticInput
-import io.veloo.app.feature.diagnostico.FibraSignalQualityEngine
-import io.veloo.app.feature.fibra.EstadoFibra
-import io.veloo.app.feature.fibra.SnapshotFibra
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkRadius
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LkTokens
-import io.veloo.app.ui.LocalLkTokens
+import io.signallq.app.R
+import io.signallq.app.feature.diagnostico.DiagnosticStatus
+import io.signallq.app.feature.diagnostico.FibraDiagnosticInput
+import io.signallq.app.feature.diagnostico.FibraSignalQualityEngine
+import io.signallq.app.feature.fibra.EstadoFibra
+import io.signallq.app.feature.fibra.SnapshotFibra
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LkTokens
+import io.signallq.app.ui.LocalLkTokens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -145,7 +147,7 @@ fun FibraModemScreen(
                         ) {
                             Icon(
                                 Icons.Outlined.ErrorOutline,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.cd_fibra_erro_icone),
                                 tint = LkColors.warning,
                                 modifier = Modifier.size(36.dp),
                             )
@@ -204,7 +206,7 @@ fun FibraModemScreen(
 
 @Composable
 private fun FibraConcluidoContent(
-    gpon: io.veloo.app.feature.fibra.GponStatus,
+    gpon: io.signallq.app.feature.fibra.GponStatus,
     c: LkTokens,
     modifier: Modifier = Modifier,
 ) {
@@ -402,28 +404,28 @@ private fun statusColor(status: DiagnosticStatus): Color =
         else -> LkColors.success
     }
 
-private fun friendlyDesc(result: io.veloo.app.feature.diagnostico.DiagnosticResult): String =
+private fun friendlyDesc(result: io.signallq.app.feature.diagnostico.DiagnosticResult): String =
     when (result.status) {
         DiagnosticStatus.ok -> "Sinal forte chegando até o modem"
         DiagnosticStatus.attention -> "Sinal abaixo do ideal"
         else -> "Sinal muito fraco — pode causar instabilidade"
     }
 
-private fun friendlyBadge(result: io.veloo.app.feature.diagnostico.DiagnosticResult): String =
+private fun friendlyBadge(result: io.signallq.app.feature.diagnostico.DiagnosticResult): String =
     when (result.status) {
         DiagnosticStatus.ok -> "Excelente"
         DiagnosticStatus.attention -> "Regular"
         else -> "Fraco"
     }
 
-private fun friendlyDescRuido(result: io.veloo.app.feature.diagnostico.DiagnosticResult): String =
+private fun friendlyDescRuido(result: io.signallq.app.feature.diagnostico.DiagnosticResult): String =
     when (result.status) {
         DiagnosticStatus.ok -> "Pouca interferência detectada"
         DiagnosticStatus.attention -> "Interferência moderada"
         else -> "Interferência alta detectada"
     }
 
-private fun friendlyBadgeRuido(result: io.veloo.app.feature.diagnostico.DiagnosticResult): String =
+private fun friendlyBadgeRuido(result: io.signallq.app.feature.diagnostico.DiagnosticResult): String =
     when (result.status) {
         DiagnosticStatus.ok -> "Baixo"
         DiagnosticStatus.attention -> "Moderado"

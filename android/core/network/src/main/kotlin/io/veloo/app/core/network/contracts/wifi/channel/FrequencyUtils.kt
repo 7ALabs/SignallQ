@@ -1,4 +1,4 @@
-package io.veloo.app.core.network.contracts.wifi.channel
+﻿package io.signallq.app.core.network.contracts.wifi.channel
 
 import kotlin.math.max
 import kotlin.math.min

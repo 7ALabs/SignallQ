@@ -1,10 +1,10 @@
-plugins {
+﻿plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
 }
 
 android {
-    namespace = "io.veloo.app.core.datastore"
+    namespace = "io.signallq.app.core.datastore"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
@@ -27,6 +27,7 @@ kotlin {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.security.crypto)
     implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

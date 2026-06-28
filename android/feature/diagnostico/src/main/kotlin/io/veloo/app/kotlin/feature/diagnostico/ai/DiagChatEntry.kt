@@ -1,4 +1,4 @@
-package io.veloo.app.feature.diagnostico.ai
+﻿package io.signallq.app.feature.diagnostico.ai
 
 enum class DiagChatAutor { Usuario, Ia }
 

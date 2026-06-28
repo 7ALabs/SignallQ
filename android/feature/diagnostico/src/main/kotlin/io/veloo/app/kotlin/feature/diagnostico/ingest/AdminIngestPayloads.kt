@@ -1,7 +1,7 @@
-package io.veloo.app.feature.diagnostico.ingest
+﻿package io.signallq.app.feature.diagnostico.ingest
 
-import io.veloo.app.core.database.MedicaoEntity
-import io.veloo.app.core.database.chat.ChatSessionEntity
+import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.core.database.chat.ChatSessionEntity
 
 // ---------------------------------------------------------------------------
 // Utilitarios de serialização — usados por SignallQOrchestrator ao montar payloads.

@@ -1,4 +1,4 @@
-package io.veloo.app.feature.history
+﻿package io.signallq.app.feature.history
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

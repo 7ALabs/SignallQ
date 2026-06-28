@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -21,8 +21,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import io.veloo.app.feature.diagnostico.pulse.SignallQState
-import io.veloo.app.ui.LkColors
+import io.signallq.app.feature.diagnostico.pulse.SignallQState
+import io.signallq.app.ui.LkColors
 import kotlin.math.cos
 import kotlin.math.sin
 

@@ -1,4 +1,4 @@
-package io.veloo.app.navigation
+﻿package io.signallq.app.navigation
 
 object AppNavGraph {
     const val ROTA_INICIAL = "home"

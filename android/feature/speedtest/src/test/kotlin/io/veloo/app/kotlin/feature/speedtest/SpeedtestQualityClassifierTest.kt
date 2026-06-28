@@ -1,4 +1,4 @@
-package io.veloo.app.feature.speedtest
+﻿package io.signallq.app.feature.speedtest
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

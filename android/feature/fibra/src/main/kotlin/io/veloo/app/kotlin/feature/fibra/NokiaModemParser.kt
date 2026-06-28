@@ -1,4 +1,4 @@
-package io.veloo.app.feature.fibra
+﻿package io.signallq.app.feature.fibra
 
 import org.json.JSONObject
 import kotlin.math.floor

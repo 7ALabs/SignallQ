@@ -1,4 +1,4 @@
-package io.veloo.app.feature.dns
+﻿package io.signallq.app.feature.dns
 
 data class ConfiguracaoDnsSugerida(
     val nomeProvedor: String,

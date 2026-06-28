@@ -1,12 +1,12 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
-import io.veloo.app.feature.diagnostico.DiagnosticResult
-import io.veloo.app.feature.fibra.DeviceInfoFibra
-import io.veloo.app.feature.fibra.EstadoFibra
-import io.veloo.app.feature.fibra.GponStatus
-import io.veloo.app.feature.fibra.PppStatus
-import io.veloo.app.feature.fibra.SnapshotFibra
-import io.veloo.app.feature.fibra.WanStatus
+import io.signallq.app.feature.diagnostico.DiagnosticResult
+import io.signallq.app.feature.fibra.DeviceInfoFibra
+import io.signallq.app.feature.fibra.EstadoFibra
+import io.signallq.app.feature.fibra.GponStatus
+import io.signallq.app.feature.fibra.PppStatus
+import io.signallq.app.feature.fibra.SnapshotFibra
+import io.signallq.app.feature.fibra.WanStatus
 
 sealed interface FibraModemUiState {
     object SemWifi : FibraModemUiState

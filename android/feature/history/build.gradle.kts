@@ -1,10 +1,10 @@
-plugins {
+﻿plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
 }
 
 android {
-    namespace = "io.veloo.app.feature.history"
+    namespace = "io.signallq.app.feature.history"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

@@ -1,3 +1,3 @@
-package io.veloo.app.feature.home
+﻿package io.signallq.app.feature.home
 
 object FeatureHomeModulo

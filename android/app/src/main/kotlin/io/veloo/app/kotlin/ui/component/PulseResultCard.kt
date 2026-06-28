@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -31,13 +31,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.feature.diagnostico.pulse.AiAnalysisEntry
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkRadius
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LocalLkTokens
+import io.signallq.app.R
+import io.signallq.app.feature.diagnostico.pulse.AiAnalysisEntry
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LocalLkTokens
 
 @Composable
 fun PulseResultCard(
@@ -50,6 +54,7 @@ fun PulseResultCard(
     val c = LocalLkTokens.current
     var expanded by remember { mutableStateOf(true) }
     val preview = analysis.content.take(120).let { if (analysis.content.length > 120) "$it…" else it }
+    val cardStateDesc = if (expanded) stringResource(R.string.cd_analise_ia_expandida) else stringResource(R.string.cd_analise_ia_recolhida)
 
     Column(
         modifier =
@@ -57,6 +62,7 @@ fun PulseResultCard(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
                 .background(c.bgCard)
+                .semantics { stateDescription = cardStateDesc }
                 .clickable { expanded = !expanded }
                 .padding(LkSpacing.lg),
     ) {

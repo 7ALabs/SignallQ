@@ -1,4 +1,4 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -43,18 +43,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.feature.diagnostico.ai.PerguntaContextual
-import io.veloo.app.feature.diagnostico.pulse.OpcaoResposta
-import io.veloo.app.feature.diagnostico.pulse.ResponseSource
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LocalLkTokens
-import io.veloo.app.ui.component.AiModelFooter
-import io.veloo.app.ui.component.AppBorderGlowEffect
-import io.veloo.app.ui.component.SignallQAiMessageBubble
-import io.veloo.app.ui.component.SignallQInlineQuestion
-import io.veloo.app.ui.component.SignallQInputArea
-import io.veloo.app.ui.component.SignallQThinkingBubble
-import io.veloo.app.ui.component.SignallQUserMessageBubble
+import io.signallq.app.feature.diagnostico.ai.PerguntaContextual
+import io.signallq.app.feature.diagnostico.pulse.OpcaoResposta
+import io.signallq.app.feature.diagnostico.pulse.ResponseSource
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.component.AiModelFooter
+import io.signallq.app.ui.component.AppBorderGlowEffect
+import io.signallq.app.ui.component.SignallQAiMessageBubble
+import io.signallq.app.ui.component.SignallQInlineQuestion
+import io.signallq.app.ui.component.SignallQInputArea
+import io.signallq.app.ui.component.SignallQThinkingBubble
+import io.signallq.app.ui.component.SignallQUserMessageBubble
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

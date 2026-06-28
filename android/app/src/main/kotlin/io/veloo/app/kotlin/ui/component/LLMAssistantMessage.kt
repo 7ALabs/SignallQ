@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -29,14 +29,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LocalLkTokens
-import io.veloo.app.ui.SignallQTheme
+import io.signallq.app.R
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.SignallQTheme
 
 @Composable
 fun LLMAssistantMessage(
@@ -118,16 +124,18 @@ private fun parseThinkingContent(text: String): Pair<String?, String> {
 @Composable
 private fun ThinkingCompletedSection(
     thinkingText: String,
-    c: io.veloo.app.ui.LkTokens,
+    c: io.signallq.app.ui.LkTokens,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val estimatedSeconds = (thinkingText.length / 100).coerceAtLeast(1)
+    val pensouDesc = if (expanded) stringResource(R.string.cd_pensamento_expandido) else stringResource(R.string.cd_pensamento_recolhido)
 
     Column {
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
+                    .semantics { role = Role.Button; contentDescription = pensouDesc }
                     .clickable { expanded = !expanded },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),

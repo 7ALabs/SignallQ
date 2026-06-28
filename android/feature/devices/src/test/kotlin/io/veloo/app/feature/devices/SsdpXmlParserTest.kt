@@ -1,4 +1,4 @@
-package io.veloo.app.feature.devices
+﻿package io.signallq.app.feature.devices
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

@@ -1,8 +1,8 @@
-package io.veloo.app.feature.diagnostico.topology.lan
+﻿package io.signallq.app.feature.diagnostico.topology.lan
 
 import android.content.Context
 import android.net.wifi.WifiManager
-import io.veloo.app.feature.diagnostico.topology.model.UpnpDeviceInfo
+import io.signallq.app.feature.diagnostico.topology.model.UpnpDeviceInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient

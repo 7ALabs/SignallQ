@@ -1,7 +1,7 @@
-package io.veloo.app.feature.wifi
+﻿package io.signallq.app.feature.wifi
 
-import io.veloo.app.core.network.EstadoConexao
-import io.veloo.app.core.network.SnapshotRede
+import io.signallq.app.core.network.EstadoConexao
+import io.signallq.app.core.network.SnapshotRede
 
 class MontarResumoWifiUseCase {
     fun executar(snapshotRede: SnapshotRede): ResumoWifi {

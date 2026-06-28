@@ -1,6 +1,6 @@
-# Plano de Testes — SignallQ Android
+﻿# Plano de Testes — SignallQ Android
 
-> **App:** SignallQ · **Versão:** 0.16.0 (versionCode 46) · **Package:** `io.veloo.app`
+> **App:** SignallQ · **Versão:** 0.16.0 (versionCode 46) · **Package:** `io.signallq.app`
 > **Última atualização do plano:** v3.0 (estado atual do código)
 
 Este documento descreve a estratégia de testes do app Android SignallQ. Cobre os

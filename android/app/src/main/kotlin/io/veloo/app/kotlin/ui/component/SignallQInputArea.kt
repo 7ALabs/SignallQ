@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,9 +21,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
-import io.veloo.app.feature.diagnostico.pulse.OpcaoResposta
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LocalLkTokens
+import io.signallq.app.feature.diagnostico.pulse.OpcaoResposta
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LocalLkTokens
+import androidx.compose.ui.res.stringResource
+import io.signallq.app.R
 
 private const val CHAR_LIMIT = 280
 private const val CHAR_COUNTER_THRESHOLD = 200
@@ -41,8 +43,9 @@ fun SignallQInputArea(
     // T6.3: limite de 5 turnos por sessão — desabilita o input quando atingido
     isLimitReached: Boolean = false,
     /** Texto do placeholder da TextField. Permite contextualizar o estado atual ao usuário. */
-    placeholder: String = "Pergunte sobre sua conexão, Wi-Fi ou diagnóstico...",
+    placeholder: String = "",
 ) {
+    val effectivePlaceholder = placeholder.ifEmpty { stringResource(R.string.signallq_input_placeholder) }
     val c = LocalLkTokens.current
     val charCount = value.text.length
     val isOverLimit = charCount >= CHAR_LIMIT
@@ -91,7 +94,7 @@ fun SignallQInputArea(
                     maxLines = 6,
                     placeholder = {
                         Text(
-                            if (isLimitReached) "Limite de mensagens atingido" else placeholder,
+                            if (isLimitReached) stringResource(R.string.signallq_input_limite_mensagens) else effectivePlaceholder,
                         )
                     },
                     // T2.4: contador de caracteres como supportingText
@@ -101,7 +104,7 @@ fun SignallQInputArea(
                             isLimitReached -> {
                                 {
                                     Text(
-                                        text = "Limite atingido. Inicie um novo diagnóstico para continuar.",
+                                        text = stringResource(R.string.signallq_input_limite),
                                         color = c.textTertiary,
                                         style = MaterialTheme.typography.labelMedium,
                                     )
@@ -125,7 +128,7 @@ fun SignallQInputArea(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Send,
-                        contentDescription = "Enviar mensagem",
+                        contentDescription = stringResource(R.string.signallq_input_enviar),
                     )
                 }
             }

@@ -1,10 +1,10 @@
-package io.veloo.app.core.database
+﻿package io.signallq.app.core.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import io.veloo.app.core.database.chat.ChatMessageEntity
-import io.veloo.app.core.database.chat.ChatSessionDao
-import io.veloo.app.core.database.chat.ChatSessionEntity
+import io.signallq.app.core.database.chat.ChatMessageEntity
+import io.signallq.app.core.database.chat.ChatSessionDao
+import io.signallq.app.core.database.chat.ChatSessionEntity
 
 @Database(
     entities = [

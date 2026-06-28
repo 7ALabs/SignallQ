@@ -41,9 +41,9 @@ Toda auditoria deve comparar tokens implementados contra esta fonte de verdade. 
 
 # Auditoria de Design System
 
-### 1. Mapear tokens existentes (via Marcelo)
+### 1. Mapear tokens existentes
 
-Acionar Marcelo para extrair:
+Usar Glob/Grep para extrair:
 
 **Android:**
 - Definições em `MaterialTheme` e `LocalLkTokens` (cores, tipografia, spacing, shape, elevation)
@@ -199,9 +199,9 @@ Para features com paridade declarada (ver `/paridade-plataformas`):
 
 # Auditoria de Usabilidade
 
-### 8. Mapear arquitetura de informação (via Marcelo)
+### 8. Mapear arquitetura de informação
 
-Acionar Marcelo para listar:
+Usar Glob/Grep para listar:
 
 **Android:** screens registradas na `NavGraph`, destinos de `BottomNavigation`, rotas de `NavController`
 **PWA:** rotas React Router, componentes de navegação, menu principal

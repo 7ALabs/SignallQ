@@ -1,4 +1,4 @@
-package io.veloo.app.core.telephony
+﻿package io.signallq.app.core.telephony
 
 import android.content.Context
 import kotlinx.coroutines.flow.StateFlow

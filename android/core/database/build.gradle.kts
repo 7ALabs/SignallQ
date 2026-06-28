@@ -1,11 +1,11 @@
-plugins {
+﻿plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.kapt")
 }
 
 android {
-    namespace = "io.veloo.app.core.database"
+    namespace = "io.signallq.app.core.database"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

@@ -1,4 +1,4 @@
-package io.veloo.app.feature.diagnostico.topology.model
+﻿package io.signallq.app.feature.diagnostico.topology.model
 
 enum class NatStatus { DIRECT_PUBLIC, CGNAT, DOUBLE_NAT_OR_CGNAT, UNKNOWN }
 

@@ -192,4 +192,203 @@
     <string name="home_topbar_conectado_movel">Você está conectado com %1$s</string>
     <string name="home_topbar_sem_conexao">Sem conexão ativa</string>
     <string name="sinal_sua_conexao">SUA CONEXÃO</string>
+
+    <!-- OnDevicePill -->
+    <string name="signallq_ia_nome">SignallQ IA</string>
+    <string name="on_device_processado">Processado por %1$s</string>
+
+    <!-- DiagRecommendationCard -->
+    <string name="diag_rec_ver_passo">Ver passo a passo</string>
+
+    <!-- DiagMetricsGrid -->
+    <string name="diag_metrics_sinais">SINAIS</string>
+    <string name="diag_metrics_expandir">Expandir</string>
+    <string name="diag_metrics_recolher">Recolher</string>
+
+    <!-- OperadoraContactCard -->
+    <string name="operadora_falar_com">Falar com %1$s</string>
+    <string name="operadora_contact_mencione">Mencione o diagnóstico do SignallQ ao atendente</string>
+    <string name="operadora_ligar_agora">Ligar para %1$s</string>
+    <string name="operadora_contact_whatsapp">Chamar no WhatsApp</string>
+    <string name="operadora_contact_nao_lista">Sua operadora não está na lista</string>
+    <string name="operadora_contact_buscar_anatel">Buscar operadora na Anatel</string>
+
+    <!-- SignallQInputArea -->
+    <string name="signallq_input_placeholder">Pergunte sobre sua conexão…</string>
+    <string name="signallq_input_limite_mensagens">Limite de mensagens atingido</string>
+    <string name="signallq_input_limite">Inicie um novo diagnóstico para continuar</string>
+    <string name="signallq_input_enviar">Enviar</string>
+
+    <!-- Acessibilidade -->
+    <string name="cd_toggle_ativado">Ativado</string>
+    <string name="cd_toggle_desativado">Desativado</string>
+    <string name="cd_detalhes_tecnicos_expandir">Ver detalhes técnicos</string>
+    <string name="cd_detalhes_tecnicos_recolher">Recolher detalhes técnicos</string>
+    <string name="cd_analise_ia_expandida">Análise IA expandida</string>
+    <string name="cd_analise_ia_recolhida">Análise IA recolhida</string>
+    <string name="cd_pensamento_expandido">Recolher raciocínio</string>
+    <string name="cd_pensamento_recolhido">Expandir raciocínio</string>
+    <string name="cd_abrir_whatsapp">Abrir WhatsApp</string>
+    <string name="cd_rede_aberta">Rede aberta</string>
+    <string name="cd_rede_protegida">Rede protegida</string>
+    <string name="cd_recolher_raciocinio">Recolher raciocínio da IA</string>
+    <string name="cd_expandir_raciocinio">Expandir raciocínio da IA</string>
+    <string name="cd_fibra_erro_icone">Ícone de erro</string>
+    <string name="cd_expandir_detalhes_medicoes">Expandir detalhes das medições</string>
+    <string name="cd_recolher_detalhes_medicoes">Recolher detalhes das medições</string>
+
+    <!-- Global: ações comuns (SIG-238) -->
+    <string name="global_btn_cancelar">Cancelar</string>
+    <string name="global_cd_voltar">Voltar</string>
+
+    <!-- AppShell (SIG-238) -->
+    <string name="appshell_sem_wifi">Sem Wi-Fi</string>
+    <string name="appshell_continuar_mesmo_assim">Continuar mesmo assim</string>
+    <string name="appshell_concluido">Concluído</string>
+    <string name="appshell_cd_concluido">Concluído</string>
+
+    <!-- Pulse / SignallQ IA (SIG-238) -->
+    <string name="pulse_btn_iniciar">Iniciar diagnóstico</string>
+    <string name="pulse_btn_novo">Novo diagnóstico</string>
+    <string name="novidades_carregando">Carregando…</string>
+    <string name="chat_assistente_titulo">Assistente SignallQ</string>
+    <string name="chat_limite_atingido">Limite atingido. Inicie um novo diagnóstico.</string>
+
+    <!-- Permissões (SIG-238) -->
+    <string name="permissao_agora_nao">Agora não</string>
+    <string name="permissao_telefonia_conceder">Entendi, conceder</string>
+    <string name="permissao_localizacao_abrir_ajustes">Abrir ajustes do Android</string>
+
+    <!-- Chat Diagnóstico IA (SIG-238) -->
+    <string name="chat_diag_titulo">Diagnóstico IA</string>
+    <string name="chat_diag_voltar">Voltar</string>
+    <string name="chat_diag_historico_conversas">Histórico de conversas</string>
+    <string name="chat_diag_ia_processando">Diagnóstico IA está processando</string>
+    <string name="chat_diag_pensando">Pensando…</string>
+    <string name="chat_diag_pensou_por">Pensou por %1$ds</string>
+    <string name="chat_diag_ia_timestamp">SignallQ IA · %1$s</string>
+    <string name="chat_diag_opcao_ultimo_teste">Analisar meu último teste</string>
+    <string name="chat_diag_opcao_novo_teste">Executar novo teste agora</string>
+    <string name="chat_diag_opcao_historico">Analisar meu histórico recente</string>
+    <string name="chat_diag_limite_atingido">Limite diário atingido</string>
+    <string name="chat_diag_renovacao_msg">Você poderá fazer uma nova análise %1$s.</string>
+    <string name="chat_diag_placeholder_aguarde_teste">Aguarde o resultado do teste…</string>
+    <string name="chat_diag_placeholder_aguarde_ia">Aguarde a resposta da IA…</string>
+    <string name="chat_diag_placeholder_padrao">Pergunte sobre sua conexão, Wi-Fi ou diagnóstico…</string>
+    <string name="chat_diag_nenhuma_conversa">Nenhuma conversa anterior.</string>
+    <string name="chat_diag_conversas">Conversas</string>
+    <string name="chat_diag_nova_conversa">Nova conversa</string>
+    <string name="chat_diag_renomear">Renomear</string>
+    <string name="chat_diag_cd_renomear_conversa">Renomear conversa %1$s</string>
+    <string name="chat_diag_apagar">Apagar</string>
+    <string name="chat_diag_cd_apagar_conversa">Apagar conversa %1$s</string>
+    <string name="chat_diag_apagar_titulo">Apagar conversa?</string>
+    <string name="chat_diag_apagar_mensagem">Esta ação não pode ser desfeita.</string>
+    <string name="chat_diag_cancelar">Cancelar</string>
+    <string name="chat_diag_renomear_conversa">Renomear conversa</string>
+    <string name="chat_diag_nome_conversa">Nome da conversa</string>
+    <string name="chat_diag_salvar">Salvar</string>
+
+    <!-- Sinal (SIG-238) -->
+    <string name="sinal_titulo">Sinal</string>
+    <string name="sinal_nenhuma_rede">Nenhuma rede encontrada</string>
+    <string name="sinal_puxe_atualizar">Puxe para atualizar</string>
+    <string name="sinal_nenhum_canal">Nenhum canal nesta faixa</string>
+    <string name="sinal_permitir_chip">Permitir leitura do chip</string>
+    <string name="sinal_sem_conexao_rede">Sem conexão de rede</string>
+    <string name="sinal_seu_canal">Seu canal</string>
+    <string name="sinal_recomendado">Recomendado</string>
+    <string name="sinal_status">Status</string>
+    <string name="sinal_analise">Análise</string>
+    <string name="sinal_detalhes_tecnicos">Detalhes Técnicos</string>
+    <string name="sinal_ip">IP: %1$s</string>
+
+    <!-- Ajustes (SIG-238) -->
+    <string name="ajustes_titulo">Configurações</string>
+    <string name="ajustes_btn_confirmar">Confirmar</string>
+    <string name="ajustes_btn_ignorar">Ignorar</string>
+    <string name="ajustes_perfil_titulo">Meu perfil</string>
+    <string name="ajustes_perfil_label_nome">Seu nome ou apelido</string>
+    <string name="ajustes_perfil_btn_salvar">Salvar perfil</string>
+    <string name="ajustes_provedor_titulo">Dados do provedor</string>
+    <string name="ajustes_label_operadora">Operadora / ISP</string>
+    <string name="ajustes_placeholder_operadora">Selecione uma operadora</string>
+    <string name="ajustes_label_qual_operadora">Qual operadora / ISP?</string>
+    <string name="ajustes_placeholder_digite_nome">Digite o nome</string>
+    <string name="ajustes_label_velocidade">Velocidade contratada (Mbps)</string>
+    <string name="ajustes_placeholder_ex_100">Ex: 100</string>
+    <string name="ajustes_suffix_mbps">Mbps</string>
+    <string name="ajustes_label_estado">Estado</string>
+    <string name="ajustes_label_cidade">Cidade</string>
+    <string name="ajustes_btn_salvar">Salvar</string>
+    <string name="ajustes_label_minimo_download">Mínimo de download (Mbps)</string>
+    <string name="ajustes_placeholder_ex_50">Ex: 50</string>
+    <string name="ajustes_btn_limpar_historico">Limpar histórico de testes</string>
+    <string name="ajustes_btn_apagar_dados">Apagar dados locais</string>
+    <string name="ajustes_label_ip_modem">Endereço IP do modem</string>
+    <string name="ajustes_label_usuario">Usuário</string>
+    <string name="ajustes_label_senha">Senha</string>
+    <string name="ajustes_btn_conectar_status">Conectar e ver status</string>
+    <string name="ajustes_cd_perfil">Perfil. Toque para editar.</string>
+    <string name="ajustes_cd_editar_perfil">Editar perfil</string>
+    <string name="ajustes_cd_editar">Editar</string>
+    <string name="ajustes_cd_arrastar_fechar">Arrastar para fechar</string>
+    <string name="ajustes_cd_foto_perfil">Foto de perfil</string>
+    <string name="ajustes_menu_notificacoes">Notificações</string>
+    <string name="ajustes_menu_notificacoes_sub">Receba alertas quando sua conexão cair</string>
+    <string name="ajustes_menu_historico">Ver histórico</string>
+    <string name="ajustes_menu_historico_sub">Suas medições recentes</string>
+    <string name="ajustes_menu_comprovante">Comprovante para a Anatel</string>
+    <string name="ajustes_menu_comprovante_sub">Documento com suas medições para registrar reclamação</string>
+    <string name="ajustes_menu_gerenciar_dados">Gerenciar dados locais</string>
+    <string name="ajustes_menu_gerenciar_dados_sub">Limpar histórico e preferências</string>
+    <string name="ajustes_menu_privacidade">Privacidade e dados</string>
+    <string name="ajustes_menu_privacidade_sub">Como seus dados são protegidos</string>
+    <string name="ajustes_menu_novidades">O que há de novo</string>
+    <string name="ajustes_menu_novidades_sub">Confira o que mudou</string>
+    <string name="ajustes_menu_diagnostico_app">Diagnóstico do app</string>
+    <string name="ajustes_menu_diagnostico_app_sub">Integridade, binários e assinatura</string>
+    <string name="ajustes_menu_redefinir">Redefinir o app</string>
+    <string name="ajustes_menu_redefinir_sub">Apaga todos os dados e restaura configurações iniciais</string>
+    <string name="ajustes_menu_sobre">Sobre o SignallQ</string>
+    <string name="ajustes_menu_sobre_sub">v%1$s · Android · Kotlin</string>
+    <string name="ajustes_menu_testes_moveis">Sempre permitir testes pesados em dados móveis</string>
+    <string name="ajustes_menu_testes_moveis_sub">Não mostrar aviso para modo Completo e Triplo na próxima vez</string>
+    <string name="ajustes_menu_fibra">Fibra óptica</string>
+    <string name="ajustes_menu_monitoramento">Monitoramento passivo</string>
+    <string name="ajustes_menu_analise_avancada">Análise avançada</string>
+    <string name="ajustes_operadora_detectada">Operadora detectada: %1$s</string>
+    <string name="ajustes_usar_operadora">Deseja usar como operadora principal?</string>
+    <string name="ajustes_minha_conexao">Minha conexão</string>
+    <string name="ajustes_toque_configurar">Toque para configurar sua conexão</string>
+    <string name="ajustes_operadora_valor">Operadora: %1$s</string>
+    <string name="ajustes_plano_valor">Plano: %1$s</string>
+    <string name="ajustes_local_valor">Local: %1$s</string>
+    <string name="ajustes_monitor_sem_consumo">Sem consumo adicional de bateria ou dados quando desativado</string>
+    <string name="ajustes_monitor_titulo">O que está sendo monitorado</string>
+    <string name="ajustes_monitor_latencia">Latência de rede</string>
+    <string name="ajustes_monitor_dns">Velocidade de DNS</string>
+    <string name="ajustes_monitor_wifi">Sinal Wi-Fi</string>
+    <string name="ajustes_monitor_bateria">Bateria: Muito baixo</string>
+    <string name="ajustes_monitor_dados">Dados: ~2 MB/dia</string>
+    <string name="ajustes_diag_avancado">Diagnóstico avançado</string>
+    <string name="ajustes_diag_avancado_sub">Recursos que aprofundam a análise da sua rede</string>
+    <string name="ajustes_secao_notificacoes">Notificações</string>
+    <string name="ajustes_secao_gerenciar_dados">Gerenciar dados locais</string>
+    <string name="ajustes_dados_aviso">Estas ações são irreversíveis. Os dados serão removidos permanentemente do dispositivo.</string>
+    <string name="ajustes_secao_diag_app">Diagnóstico do app</string>
+    <string name="ajustes_diag_binarios_ok">Binários íntegros · Nenhuma anomalia detectada</string>
+    <string name="ajustes_secao_roteador">Configurações do roteador</string>
+    <string name="ajustes_modem_suportado">Modem suportado</string>
+    <string name="ajustes_modem_modelo">Nokia GPON (série SA / NT)</string>
+    <string name="ajustes_modem_permanecer">Permanecer conectado</string>
+    <string name="ajustes_modem_conectar_auto">Conectar automaticamente ao iniciar o app</string>
+    <string name="ajustes_notif_sem_internet">Sem internet</string>
+    <string name="ajustes_notif_sem_internet_sub">Avisa quando a conexão cair</string>
+    <string name="ajustes_notif_latencia">Latência alta</string>
+    <string name="ajustes_notif_latencia_sub">Avisa quando a rede ficar lenta</string>
+    <string name="ajustes_notif_dns">DNS lento</string>
+    <string name="ajustes_notif_dns_sub">Avisa quando sites e apps demorarem para carregar</string>
+    <string name="ajustes_notif_wifi">Sinal Wi-Fi fraco</string>
+    <string name="ajustes_notif_wifi_sub">Avisa quando o sinal cair abaixo do ideal</string>
 </resources>

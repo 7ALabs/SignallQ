@@ -1,6 +1,6 @@
-package io.veloo.app.feature.diagnostico.topology.correlation
+﻿package io.signallq.app.feature.diagnostico.topology.correlation
 
-import io.veloo.app.feature.diagnostico.topology.model.NatStatus
+import io.signallq.app.feature.diagnostico.topology.model.NatStatus
 
 object NatClassifier {
 

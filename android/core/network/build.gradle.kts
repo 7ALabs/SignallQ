@@ -1,10 +1,10 @@
-plugins {
+﻿plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
 }
 
 android {
-    namespace = "io.veloo.app.core.network"
+    namespace = "io.signallq.app.core.network"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

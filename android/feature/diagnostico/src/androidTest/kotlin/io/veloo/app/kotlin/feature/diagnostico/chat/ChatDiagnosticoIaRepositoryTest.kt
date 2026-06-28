@@ -1,9 +1,9 @@
-package io.veloo.app.feature.diagnostico.chat
+﻿package io.signallq.app.feature.diagnostico.chat
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import io.veloo.app.core.database.SignallQDatabase
+import io.signallq.app.core.database.SignallQDatabase
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After

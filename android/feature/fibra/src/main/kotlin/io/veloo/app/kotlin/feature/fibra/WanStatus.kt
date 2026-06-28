@@ -1,4 +1,4 @@
-package io.veloo.app.feature.fibra
+﻿package io.signallq.app.feature.fibra
 
 data class WanStatus(
     val externalIp: String,

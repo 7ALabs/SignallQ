@@ -1,4 +1,4 @@
-package io.veloo.app.core.permissions
+﻿package io.signallq.app.core.permissions
 
 data class SnapshotPermissoesRede(
     val localizacaoFina: EstadoPermissao,

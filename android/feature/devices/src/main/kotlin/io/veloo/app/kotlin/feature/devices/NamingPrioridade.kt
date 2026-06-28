@@ -1,4 +1,4 @@
-package io.veloo.app.feature.devices
+﻿package io.signallq.app.feature.devices
 
 /**
  * Lógica pura de prioridade/resolução de nome e fabricante de dispositivos de rede.

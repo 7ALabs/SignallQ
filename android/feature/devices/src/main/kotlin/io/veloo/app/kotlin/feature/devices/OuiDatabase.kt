@@ -1,4 +1,4 @@
-package io.veloo.app.feature.devices
+﻿package io.signallq.app.feature.devices
 
 // Base curada de prefixos OUI (primeiros 6 hex do MAC, sem dois pontos, uppercase).
 // Fonte: IEEE OUI registry — ~130 prefixos de maior ocorrência em redes domésticas brasileiras.

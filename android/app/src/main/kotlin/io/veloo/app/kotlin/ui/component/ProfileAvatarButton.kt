@@ -1,4 +1,4 @@
-package io.veloo.app.ui.component
+﻿package io.signallq.app.ui.component
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
@@ -28,7 +28,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import io.veloo.app.ui.LkColors
+import io.signallq.app.ui.LkColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

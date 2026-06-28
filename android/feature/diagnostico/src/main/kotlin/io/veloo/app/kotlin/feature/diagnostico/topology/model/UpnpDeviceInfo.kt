@@ -1,4 +1,4 @@
-package io.veloo.app.feature.diagnostico.topology.model
+﻿package io.signallq.app.feature.diagnostico.topology.model
 
 data class UpnpDeviceInfo(
     val friendlyName: String?,

@@ -1,8 +1,8 @@
-package io.veloo.app.speedtest
+﻿package io.signallq.app.speedtest
 
-import io.veloo.app.core.database.MedicaoEntity
-import io.veloo.app.feature.speedtest.EstadoExecucaoSpeedtest
-import io.veloo.app.feature.speedtest.SnapshotExecucaoSpeedtest
+import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
+import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

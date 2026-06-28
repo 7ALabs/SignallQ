@@ -1,4 +1,4 @@
-package io.veloo.app
+﻿package io.signallq.app
 
 import android.app.Application
 import android.content.Context
@@ -7,65 +7,65 @@ import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import io.veloo.app.core.database.ApelidoDispositivoEntity
-import io.veloo.app.core.database.MedicaoEntity
-import io.veloo.app.core.database.SignallQDatabase
-import io.veloo.app.core.datastore.PreferenciasAppRepository
-import io.veloo.app.core.network.DispatcherProvider
-import io.veloo.app.core.network.EstadoConexao
-import io.veloo.app.core.network.MonitorRede
-import io.veloo.app.core.network.NetworkCapabilitiesProvider
-import io.veloo.app.core.permissions.GerenciadorPermissoesRede
-import io.veloo.app.core.telephony.MonitorTelephony
-import io.veloo.app.core.telephony.MovelSimSnapshot
-import io.veloo.app.core.telephony.MovelSnapshot
-import io.veloo.app.feature.devices.ScannerDispositivos
-import io.veloo.app.feature.devices.SnapshotScanDispositivos
-import io.veloo.app.feature.diagnostico.DiagnosticOrchestrator
-import io.veloo.app.feature.diagnostico.FibraDiagnosticInput
-import io.veloo.app.feature.diagnostico.InternetDiagnosticInput
-import io.veloo.app.feature.diagnostico.WifiDiagnosticInput
-import io.veloo.app.feature.diagnostico.ai.AdditionalAiContext
-import io.veloo.app.feature.diagnostico.ai.AiDiagnosisRepository
-import io.veloo.app.feature.diagnostico.ai.AiDiagnosisState
-import io.veloo.app.feature.diagnostico.ai.AiDispositivosInfo
-import io.veloo.app.feature.diagnostico.ai.AiFallbackFactory
-import io.veloo.app.feature.diagnostico.ai.AiMovelInfo
-import io.veloo.app.feature.diagnostico.ai.AiRedeVizinha
-import io.veloo.app.feature.diagnostico.ai.AiTesteHistorico
-import io.veloo.app.feature.diagnostico.ai.DiagChatAutor
-import io.veloo.app.feature.diagnostico.ai.DiagChatEntry
-import io.veloo.app.feature.diagnostico.ai.DiagnosisAiContext
-import io.veloo.app.feature.diagnostico.ai.DiagnosisAiContextFactory
-import io.veloo.app.feature.diagnostico.ingest.AdminIngestRepository
-import io.veloo.app.feature.diagnostico.pulse.OpcaoResposta
-import io.veloo.app.feature.diagnostico.pulse.SignallQOrchestrator
-import io.veloo.app.feature.dns.AvaliadorCoerenciaDns
-import io.veloo.app.feature.dns.BenchmarkDns
-import io.veloo.app.feature.dns.EstadoBenchmarkDns
-import io.veloo.app.feature.dns.OrientadorConfiguracaoDns
-import io.veloo.app.feature.fibra.EstadoFibra
-import io.veloo.app.feature.fibra.ExecutorFibra
-import io.veloo.app.feature.history.BlocoUptime
-import io.veloo.app.feature.history.ObservadorHistoricoRoom
-import io.veloo.app.feature.history.ResumoHistorico
-import io.veloo.app.feature.history.UptimeChartUseCase
-import io.veloo.app.feature.history.UptimeNarrativaEngine
-import io.veloo.app.feature.speedtest.ExecutorSpeedtest
-import io.veloo.app.feature.speedtest.ModoSpeedtest
-import io.veloo.app.feature.wifi.ScannerRedesWifi
-import io.veloo.app.monitoramento.MonitoramentoScheduler
-import io.veloo.app.notificacao.SignallQNotificationHelper
-import io.veloo.app.pulse.SignallQUiStateMapper
-import io.veloo.app.ui.ConnectionNodeType
-import io.veloo.app.ui.FiltroConexaoHistorico
-import io.veloo.app.ui.GatewayInfo
-import io.veloo.app.ui.HistoryPoint
-import io.veloo.app.ui.IspInfo
-import io.veloo.app.speedtest.SpeedtestPersistenceCoordinator
-import io.veloo.app.ui.screen.AnalisadorState
-import io.veloo.app.ui.screen.SignallQUiState
-import io.veloo.app.ui.state.UiState
+import io.signallq.app.core.database.ApelidoDispositivoEntity
+import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.core.database.SignallQDatabase
+import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.core.network.DispatcherProvider
+import io.signallq.app.core.network.EstadoConexao
+import io.signallq.app.core.network.MonitorRede
+import io.signallq.app.core.network.NetworkCapabilitiesProvider
+import io.signallq.app.core.permissions.GerenciadorPermissoesRede
+import io.signallq.app.core.telephony.MonitorTelephony
+import io.signallq.app.core.telephony.MovelSimSnapshot
+import io.signallq.app.core.telephony.MovelSnapshot
+import io.signallq.app.feature.devices.ScannerDispositivos
+import io.signallq.app.feature.devices.SnapshotScanDispositivos
+import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
+import io.signallq.app.feature.diagnostico.FibraDiagnosticInput
+import io.signallq.app.feature.diagnostico.InternetDiagnosticInput
+import io.signallq.app.feature.diagnostico.WifiDiagnosticInput
+import io.signallq.app.feature.diagnostico.ai.AdditionalAiContext
+import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
+import io.signallq.app.feature.diagnostico.ai.AiDiagnosisState
+import io.signallq.app.feature.diagnostico.ai.AiDispositivosInfo
+import io.signallq.app.feature.diagnostico.ai.AiFallbackFactory
+import io.signallq.app.feature.diagnostico.ai.AiMovelInfo
+import io.signallq.app.feature.diagnostico.ai.AiRedeVizinha
+import io.signallq.app.feature.diagnostico.ai.AiTesteHistorico
+import io.signallq.app.feature.diagnostico.ai.DiagChatAutor
+import io.signallq.app.feature.diagnostico.ai.DiagChatEntry
+import io.signallq.app.feature.diagnostico.ai.DiagnosisAiContext
+import io.signallq.app.feature.diagnostico.ai.DiagnosisAiContextFactory
+import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
+import io.signallq.app.feature.diagnostico.pulse.OpcaoResposta
+import io.signallq.app.feature.diagnostico.pulse.SignallQOrchestrator
+import io.signallq.app.feature.dns.AvaliadorCoerenciaDns
+import io.signallq.app.feature.dns.BenchmarkDns
+import io.signallq.app.feature.dns.EstadoBenchmarkDns
+import io.signallq.app.feature.dns.OrientadorConfiguracaoDns
+import io.signallq.app.feature.fibra.EstadoFibra
+import io.signallq.app.feature.fibra.ExecutorFibra
+import io.signallq.app.feature.history.BlocoUptime
+import io.signallq.app.feature.history.ObservadorHistoricoRoom
+import io.signallq.app.feature.history.ResumoHistorico
+import io.signallq.app.feature.history.UptimeChartUseCase
+import io.signallq.app.feature.history.UptimeNarrativaEngine
+import io.signallq.app.feature.speedtest.ExecutorSpeedtest
+import io.signallq.app.feature.speedtest.ModoSpeedtest
+import io.signallq.app.feature.wifi.ScannerRedesWifi
+import io.signallq.app.monitoramento.MonitoramentoScheduler
+import io.signallq.app.notificacao.SignallQNotificationHelper
+import io.signallq.app.pulse.SignallQUiStateMapper
+import io.signallq.app.ui.ConnectionNodeType
+import io.signallq.app.ui.FiltroConexaoHistorico
+import io.signallq.app.ui.GatewayInfo
+import io.signallq.app.ui.HistoryPoint
+import io.signallq.app.ui.IspInfo
+import io.signallq.app.speedtest.SpeedtestPersistenceCoordinator
+import io.signallq.app.ui.screen.AnalisadorState
+import io.signallq.app.ui.screen.SignallQUiState
+import io.signallq.app.ui.state.UiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -819,7 +819,7 @@ class MainViewModel
                             }
                         val connectionType =
                             snap.input?.connectionType
-                                ?: io.veloo.app.feature.diagnostico.ConnectionType.desconhecido
+                                ?: io.signallq.app.feature.diagnostico.ConnectionType.desconhecido
                         DiagnosisAiContextFactory
                             .from(relatorio, snap.input, connectionType)
                             .also { diagAiContext = it }
@@ -1222,7 +1222,7 @@ class MainViewModel
          * - Sem MAC: retorna "ipnome:<IP>:<nome normalizado>" como fallback.
          *   LIMITAÇÃO: pode gerar falso-novo se IP mudar por DHCP ou nome mudar por reboot.
          */
-        internal fun identidadeEstavelDispositivo(dispositivo: io.veloo.app.feature.devices.DispositivoRede): String? {
+        internal fun identidadeEstavelDispositivo(dispositivo: io.signallq.app.feature.devices.DispositivoRede): String? {
             if (dispositivo.mac != null) return null // MAC presente → fluxo Room, não precisa de identidade DataStore
             val ip = dispositivo.ip ?: return null
             val nome = dispositivo.nomeExibicao.trim().lowercase()
@@ -1241,7 +1241,7 @@ class MainViewModel
         }
 
         fun iniciarSignallQComResultado(
-            resultado: io.veloo.app.feature.speedtest.ResultadoSpeedtest,
+            resultado: io.signallq.app.feature.speedtest.ResultadoSpeedtest,
             foco: String? = null,
         ) {
             viewModelScope.launch { signallQOrchestrator.iniciarDiagnosticoComResultado(resultado, foco) }
@@ -1497,7 +1497,7 @@ class MainViewModel
                 try {
                     val connectionType =
                         snap.input?.connectionType
-                            ?: io.veloo.app.feature.diagnostico.ConnectionType.desconhecido
+                            ?: io.signallq.app.feature.diagnostico.ConnectionType.desconhecido
                     val extra = coletarContextoAdicionalIa()
                     val ctx =
                         DiagnosisAiContextFactory.fromRaw(

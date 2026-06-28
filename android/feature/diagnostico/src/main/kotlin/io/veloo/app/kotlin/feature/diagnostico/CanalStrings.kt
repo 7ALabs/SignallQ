@@ -1,4 +1,4 @@
-package io.veloo.app.feature.diagnostico
+﻿package io.signallq.app.feature.diagnostico
 
 data class CanalStrings(
     val bandaCongestionada: (banda: String) -> String,

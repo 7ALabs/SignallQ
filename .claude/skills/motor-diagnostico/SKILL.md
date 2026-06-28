@@ -8,7 +8,7 @@ Skill consolidada para tudo que envolve o diagnóstico do SignallQ: o motor (eng
 Thresholds de qualidade e padrões técnicos brasileiros: consulte sempre `/regras-diagnostico-rede`. **Não duplicar thresholds aqui.**
 
 Agentes recomendados por fase:
-- **Cláudio** — planeja e mapeia impacto
+- **Claudete** — planeja e mapeia impacto
 - **`/regras-android`** — valida comportamento real em device (DNS, Wi-Fi, NetworkCallback, OEM quirks)
 - **Camilo** — implementa Android
 - **Lia** — valida impacto visual, estados de UI e jornada (modo Sonnet em decisão de produto)
@@ -128,4 +128,4 @@ Ao modificar qualquer parte do fluxo de diagnóstico, revise pela perspectiva do
 ## Limites
 - Esta skill orienta, não implementa. Implementação → Camilo.
 
-[PRÓXIMO: /regras-diagnostico-rede (thresholds) | /regras-android (se domínio crítico) | Cláudio (planejamento) | Camilo (implementação)]
+[PRÓXIMO: /regras-diagnostico-rede (thresholds) | /regras-android (se domínio crítico) | Claudete (planejamento) | Camilo (implementação)]

@@ -1,4 +1,4 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -60,29 +60,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.veloo.app.BuildConfig
-import io.veloo.app.FeatureFlags
-import io.veloo.app.core.database.MedicaoEntity
-import io.veloo.app.core.network.EstadoConexao
-import io.veloo.app.core.network.SnapshotRede
-import io.veloo.app.core.telephony.MovelSimSnapshot
-import io.veloo.app.core.telephony.MovelSnapshot
-import io.veloo.app.feature.diagnostico.EstadoDiagnostico
-import io.veloo.app.feature.dns.SnapshotBenchmarkDns
-import io.veloo.app.feature.fibra.SnapshotFibra
-import io.veloo.app.feature.history.ResumoHistorico
-import io.veloo.app.feature.speedtest.EstadoExecucaoSpeedtest
-import io.veloo.app.feature.speedtest.ModoSpeedtest
-import io.veloo.app.ui.FiltroConexaoHistorico
-import io.veloo.app.ui.GatewayInfo
-import io.veloo.app.ui.HistoryPoint
-import io.veloo.app.ui.IspInfo
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkTokens
-import io.veloo.app.ui.LocalLkTokens
-import io.veloo.app.ui.state.UiState
+import io.signallq.app.BuildConfig
+import io.signallq.app.R
+import io.signallq.app.FeatureFlags
+import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.core.network.EstadoConexao
+import io.signallq.app.core.network.SnapshotRede
+import io.signallq.app.core.telephony.MovelSimSnapshot
+import io.signallq.app.core.telephony.MovelSnapshot
+import io.signallq.app.feature.diagnostico.EstadoDiagnostico
+import io.signallq.app.feature.dns.SnapshotBenchmarkDns
+import io.signallq.app.feature.fibra.SnapshotFibra
+import io.signallq.app.feature.history.ResumoHistorico
+import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
+import io.signallq.app.feature.speedtest.ModoSpeedtest
+import io.signallq.app.ui.FiltroConexaoHistorico
+import io.signallq.app.ui.GatewayInfo
+import io.signallq.app.ui.HistoryPoint
+import io.signallq.app.ui.IspInfo
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkTokens
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.state.UiState
 import kotlinx.coroutines.delay
 
 private enum class Overlay {
@@ -114,7 +116,7 @@ fun AppShell(
     deviceName: String,
     dnsResolverIp: String?,
     historico: List<MedicaoEntity>,
-    blocoUptime: List<io.veloo.app.feature.history.BlocoUptime> = emptyList(),
+    blocoUptime: List<io.signallq.app.feature.history.BlocoUptime> = emptyList(),
     narrativaUptime: String = "",
     resumoHistorico: ResumoHistorico? = null,
     snapshotFibra: SnapshotFibra,
@@ -541,13 +543,13 @@ fun AppShell(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
                         imageVector = Icons.Outlined.CheckCircle,
-                        contentDescription = "Concluído",
+                        contentDescription = stringResource(R.string.appshell_cd_concluido),
                         tint = LkColors.success,
                         modifier = Modifier.size(56.dp),
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Concluído",
+                        text = stringResource(R.string.appshell_concluido),
                         style = MaterialTheme.typography.titleLarge,
                         color = LkColors.success,
                         fontWeight = FontWeight.W600,
@@ -803,7 +805,7 @@ private fun ForaDoWifiDialog(
 ) {
     AlertDialog(
         onDismissRequest = onCancelar,
-        title = { Text("Sem Wi-Fi", fontWeight = FontWeight.W600) },
+        title = { Text(stringResource(R.string.appshell_sem_wifi), fontWeight = FontWeight.W600) },
         text = {
             Text(
                 "Você está usando dados móveis. Fazer um teste de velocidade pode consumir uma quantidade significativa do seu plano de dados.\n\nDeseja continuar mesmo assim?",
@@ -812,11 +814,11 @@ private fun ForaDoWifiDialog(
         },
         confirmButton = {
             TextButton(onClick = onContinuar) {
-                Text("Continuar mesmo assim", color = LkColors.warning)
+                Text(stringResource(R.string.appshell_continuar_mesmo_assim), color = LkColors.warning)
             }
         },
         dismissButton = {
-            TextButton(onClick = onCancelar) { Text("Cancelar") }
+            TextButton(onClick = onCancelar) { Text(stringResource(R.string.global_btn_cancelar)) }
         },
     )
 }

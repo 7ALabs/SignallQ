@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.kapt")
@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "io.veloo.app.feature.devices"
+    namespace = "io.signallq.app.feature.devices"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {

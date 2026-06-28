@@ -1,7 +1,7 @@
-package io.veloo.app.feature.diagnostico.topology
+﻿package io.signallq.app.feature.diagnostico.topology
 
-import io.veloo.app.feature.diagnostico.topology.correlation.NatClassifier
-import io.veloo.app.feature.diagnostico.topology.model.NatStatus
+import io.signallq.app.feature.diagnostico.topology.correlation.NatClassifier
+import io.signallq.app.feature.diagnostico.topology.model.NatStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

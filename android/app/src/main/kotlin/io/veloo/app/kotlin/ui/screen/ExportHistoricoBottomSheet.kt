@@ -1,4 +1,4 @@
-package io.veloo.app.ui.screen
+﻿package io.signallq.app.ui.screen
 
 import android.content.Context
 import android.content.Intent
@@ -36,13 +36,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import io.veloo.app.core.database.MedicaoEntity
-import io.veloo.app.feature.history.ExportadorHistoricoCSV
-import io.veloo.app.feature.history.ExportadorHistoricoPDF
-import io.veloo.app.ui.LkColors
-import io.veloo.app.ui.LkRadius
-import io.veloo.app.ui.LkSpacing
-import io.veloo.app.ui.LocalLkTokens
+import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.feature.history.ExportadorHistoricoCSV
+import io.signallq.app.feature.history.ExportadorHistoricoPDF
+import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
+import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LocalLkTokens
 import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
