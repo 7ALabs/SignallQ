@@ -18,9 +18,10 @@ import { ErrorsTab } from "./features/errors/ErrorsTab";
 import { VersionsTab } from "./features/app-versions/VersionsTab";
 import { SettingsTab } from "./features/settings/SettingsTab";
 import { FeatureFlagsTab } from "./features/feature-flags/FeatureFlagsTab";
+import { SystemHealthTab } from "./features/system-health/SystemHealthTab";
 
 // Lucide accessories
-import { Sparkles, Activity, AlertTriangle } from "lucide-react";
+import { Sparkles, Activity, AlertTriangle, HeartPulse } from "lucide-react";
 
 export default function App() {
   const { theme, toggle: onToggleTheme } = useTheme();
@@ -95,6 +96,7 @@ export default function App() {
         "/errors",
         "/app-versions",
         "/feature-flags",
+        "/system-health",
         "/settings",
       ];
       if (hash && validPaths.includes(hash)) {
@@ -249,6 +251,23 @@ export default function App() {
           description: "Ative ou desative telas e funcionalidades do app remotamente, sem necessidade de novo build.",
           badge: null,
         };
+      case "/system-health":
+        return {
+          title: "Saúde do Sistema",
+          description: "Status dos Workers Cloudflare, D1 Database e alertas de threshold para crash rate e custo de IA.",
+          badge: (
+            <span
+              className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
+              style={{
+                backgroundColor: "color-mix(in srgb, var(--sq-success) 10%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--sq-success) 20%, transparent)",
+                color: "var(--sq-success)",
+              }}
+            >
+              <HeartPulse className="w-3.5 h-3.5" /> System Monitor
+            </span>
+          ),
+        };
       case "/settings":
         return {
           title: "Configurações Técnicas",
@@ -369,6 +388,13 @@ export default function App() {
         />
       )}
       {currentPath === "/feature-flags" && <FeatureFlagsTab />}
+      {currentPath === "/system-health" && (
+        <SystemHealthTab
+          environment={environment}
+          period={period}
+          triggerRefreshCounter={refreshCounter}
+        />
+      )}
       {currentPath === "/settings" && <SettingsTab />}
       </ErrorBoundary>
     </AppLayout>

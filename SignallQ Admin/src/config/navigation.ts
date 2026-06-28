@@ -1,7 +1,7 @@
 export interface NavigationItem {
   name: string;
   path: string;
-  iconName: "LayoutDashboard" | "LineChart" | "Activity" | "Wifi" | "Globe" | "BrainCircuit" | "AlertTriangle" | "GitBranch" | "ToggleRight" | "Settings";
+  iconName: "LayoutDashboard" | "LineChart" | "Activity" | "Wifi" | "Globe" | "BrainCircuit" | "AlertTriangle" | "GitBranch" | "ToggleRight" | "Settings" | "HeartPulse";
   badge?: string;
   badgeType?: "info" | "error" | "warning";
 }
@@ -55,6 +55,11 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     name: "Feature Flags",
     path: "/feature-flags",
     iconName: "ToggleRight",
+  },
+  {
+    name: "Saúde do Sistema",
+    path: "/system-health",
+    iconName: "HeartPulse",
   },
   {
     name: "Configurações",
