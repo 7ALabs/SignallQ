@@ -6,7 +6,7 @@ import android.net.ConnectivityManager
 import android.net.LinkProperties
 import android.net.Network
 import android.net.wifi.WifiManager
-import android.util.Log
+import timber.log.Timber
 import com.stealthcopter.networktools.ARPInfo
 import com.stealthcopter.networktools.SubnetDevices
 import kotlinx.coroutines.Dispatchers
@@ -90,7 +90,7 @@ class ScannerDispositivosAndroid(
     override suspend fun iniciarScan(profundo: Boolean) {
         withContext(Dispatchers.IO) {
             if (!scanEmAndamento.compareAndSet(false, true)) {
-                Log.d("SignallQDevices", "scan ja em andamento, ignorando")
+                Timber.d("scan ja em andamento, ignorando")
                 return@withContext
             }
             try {
@@ -108,10 +108,10 @@ class ScannerDispositivosAndroid(
                 atualizarEstado(EstadoScanDispositivos.varrendo, 5, null)
                 val dispositivos = linkedMapOf<String, DispositivoRede>()
                 val localIp = detectarIpLocal()
-                Log.d("SignallQDevices", "ipLocal=$localIp")
+                Timber.d("ipLocal=$localIp")
 
                 val gatewayIp = detectarGatewayIp()
-                Log.d("SignallQDevices", "gateway=$gatewayIp")
+                Timber.d("gateway=$gatewayIp")
                 if (!gatewayIp.isNullOrBlank()) {
                     adicionarDispositivo(
                         dispositivos,
@@ -136,7 +136,7 @@ class ScannerDispositivosAndroid(
                 suspend fun mergeEPublicar(lista: List<DispositivoRede>, progresso: Int, tag: String) {
                     mapMutex.withLock {
                         lista.forEach { adicionarDispositivo(dispositivos, it) }
-                        Log.d("SignallQDevices", "$tag: ${lista.size} dispositivos — total ${dispositivos.size}")
+                        Timber.d("$tag: ${lista.size} dispositivos — total ${dispositivos.size}")
                         publicar(dispositivos.values.toList(), progresso)
                     }
                 }
@@ -243,7 +243,7 @@ class ScannerDispositivosAndroid(
                         }
                     }.awaitAll()
                 }
-                Log.d("SignallQDevices", "scan concluido: ${dispositivosEnriquecidos.size} dispositivos")
+                Timber.d("scan concluido: ${dispositivosEnriquecidos.size} dispositivos")
                 mutableSnapshotFlow.value =
                     mutableSnapshotFlow.value.copy(
                         estado = EstadoScanDispositivos.concluido,
@@ -252,7 +252,7 @@ class ScannerDispositivosAndroid(
                         erroMensagem = null,
                     )
             } catch (t: Throwable) {
-                Log.e("SignallQDevices", "scan falhou", t)
+                Timber.e(t, "scan falhou")
                 val erroSemantico = when {
                     t is SecurityException -> "semPermissaoLocalizacao"
                     t is SocketException -> "erroRede"
@@ -342,7 +342,7 @@ class ScannerDispositivosAndroid(
                 )
             }
         } catch (_: Throwable) {
-            Log.d("SignallQDevices", "arp: acesso negado a /proc/net/arp (Android 10+, esperado)")
+            Timber.d("arp: acesso negado a /proc/net/arp (Android 10+, esperado)")
             emptyList()
         }
     }
@@ -463,7 +463,7 @@ class ScannerDispositivosAndroid(
                     try {
                         jmdns.addServiceListener(tipo, listener)
                     } catch (e: Throwable) {
-                        Log.d("SignallQDevices", "jmDNS: falha ao registrar listener para $tipo: ${e.message}")
+                        Timber.d("jmDNS: falha ao registrar listener para $tipo: ${e.message}")
                     }
                 }
 
@@ -477,12 +477,12 @@ class ScannerDispositivosAndroid(
                     } catch (_: Throwable) {}
                 }
 
-                Log.d("SignallQDevices", "jmDNS: janela concluída, ${acumulado.size} dispositivos resolvidos")
+                Timber.d("jmDNS: janela concluída, ${acumulado.size} dispositivos resolvidos")
             } finally {
                 try { jmdns.close() } catch (_: Throwable) {}
             }
         } catch (e: Throwable) {
-            Log.e("SignallQDevices", "jmDNS: falha ao criar instância — ROM incompatível? ${e.message}")
+            Timber.e("jmDNS: falha ao criar instância — ROM incompatível? ${e.message}")
             // não derruba o scan — retorna o que conseguiu
         } finally {
             if (multicastLock.isHeld) multicastLock.release()

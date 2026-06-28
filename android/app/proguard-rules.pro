@@ -36,7 +36,7 @@
 # ============================================================
 # Kotlin data classes / serialization via reflection
 # ============================================================
--keepclassmembers class io.linka.app.kotlin.** {
+-keepclassmembers class io.veloo.app.** {
     public <init>(...);
 }
 

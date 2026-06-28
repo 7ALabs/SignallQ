@@ -18,14 +18,12 @@ import android.telephony.SubscriptionManager
 import android.telephony.TelephonyCallback
 import android.telephony.TelephonyDisplayInfo
 import android.telephony.TelephonyManager
-import android.util.Log
+import timber.log.Timber
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.Executors
-
-private const val TAG = "MonitorTelephony"
 
 /**
  * Implementacao Android do MonitorTelephony.
@@ -72,11 +70,11 @@ class MonitorTelephonyImpl(
     override fun iniciar() {
         if (iniciou) return
         if (telephonyManager == null) {
-            Log.w(TAG, "TelephonyManager indisponivel — emulador ou device sem radio.")
+            Timber.w("TelephonyManager indisponivel — emulador ou device sem radio.")
             return
         }
         if (!possuiPermissaoReadPhoneState()) {
-            Log.w(TAG, "READ_PHONE_STATE negada — snapshot ficara null. Solicite a permissao na UI.")
+            Timber.w("READ_PHONE_STATE negada — snapshot ficara null. Solicite a permissao na UI.")
             return
         }
         iniciou = true
@@ -90,10 +88,10 @@ class MonitorTelephonyImpl(
             // Emite um snapshot inicial baseado no estado corrente.
             recomputar()
         } catch (se: SecurityException) {
-            Log.w(TAG, "SecurityException ao registrar telephony callback: ${se.message}")
+            Timber.w("SecurityException ao registrar telephony callback: ${se.message}")
             iniciou = false
         } catch (t: Throwable) {
-            Log.w(TAG, "Falha ao iniciar MonitorTelephony: ${t.message}")
+            Timber.w("Falha ao iniciar MonitorTelephony: ${t.message}")
             iniciou = false
         }
     }
@@ -323,10 +321,10 @@ class MonitorTelephonyImpl(
             mutableSnapshot.value = snap
         } catch (se: SecurityException) {
             // Permissao revogada em runtime — para de tentar.
-            Log.w(TAG, "READ_PHONE_STATE revogada em runtime.")
+            Timber.w("READ_PHONE_STATE revogada em runtime.")
             mutableSnapshot.value = null
         } catch (t: Throwable) {
-            Log.w(TAG, "Falha ao capturar snapshot movel: ${t.message}")
+            Timber.w("Falha ao capturar snapshot movel: ${t.message}")
         }
     }
 
@@ -347,7 +345,7 @@ class MonitorTelephonyImpl(
         if (tecnologia == "4G" && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val override = overrideNetworkType
             if (override >= 3) {
-                Log.d(TAG, "Fallback 5G NSA via TelephonyDisplayInfo.overrideNetworkType=$override")
+                Timber.d("Fallback 5G NSA via TelephonyDisplayInfo.overrideNetworkType=$override")
                 tecnologia = "5G NSA"
             }
         }
@@ -406,7 +404,7 @@ class MonitorTelephonyImpl(
                         ?.any { it is CellSignalStrengthNr } == true
                 }.getOrDefault(false)
                 if (temNrSinal) {
-                    Log.d(TAG, "Fallback 5G NSA via SignalStrength.cellSignalStrengths contém CellSignalStrengthNr.")
+                    Timber.d("Fallback 5G NSA via SignalStrength.cellSignalStrengths contém CellSignalStrengthNr.")
                     tecnologia = "5G NSA"
                 }
             }
@@ -434,7 +432,7 @@ class MonitorTelephonyImpl(
                 } else -1
             }.getOrDefault(-1)
             if (dnType == TelephonyManager.NETWORK_TYPE_NR) {
-                Log.d(TAG, "Fallback 5G SA via dataNetworkType=NR (allCellInfo vazio ou sem CellInfoNr registrado).")
+                Timber.d("Fallback 5G SA via dataNetworkType=NR (allCellInfo vazio ou sem CellInfoNr registrado).")
                 tecnologiaFinal = "5G SA"
             }
         }
@@ -513,14 +511,14 @@ class MonitorTelephonyImpl(
                     runCatching {
                         reg.javaClass.getMethod("getNrState").invoke(reg) as? Int == 3
                     }.getOrElse { t ->
-                        Log.d(TAG, "detectarNrAtivo: getNrState() via reflexão falhou em ${reg.javaClass.simpleName} — ativando fallback toString(). Causa: ${t.javaClass.simpleName}: ${t.message}")
+                        Timber.d("detectarNrAtivo: getNrState() via reflexão falhou em ${reg.javaClass.simpleName} — ativando fallback toString(). Causa: ${t.javaClass.simpleName}: ${t.message}")
                         false
                     }
                 }
                 if (nrConnected) return true
             } catch (t: Throwable) {
                 // networkRegistrationInfoList indisponível ou falha antes de iterar.
-                Log.d(TAG, "detectarNrAtivo: falha ao acessar networkRegistrationInfoList — ativando fallback toString(). Causa: ${t.javaClass.simpleName}: ${t.message}")
+                Timber.d("detectarNrAtivo: falha ao acessar networkRegistrationInfoList — ativando fallback toString(). Causa: ${t.javaClass.simpleName}: ${t.message}")
             }
         }
         // Tentativa 2: isNrAvailable (API 29+)

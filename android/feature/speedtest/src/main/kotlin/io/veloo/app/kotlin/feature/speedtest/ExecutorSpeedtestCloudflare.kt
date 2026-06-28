@@ -1,6 +1,6 @@
 package io.veloo.app.feature.speedtest
 
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -30,8 +30,6 @@ import kotlin.random.Random
 
 class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest {
     private companion object {
-        const val logTag = "SignallQSpeedtest"
-
         private const val UA = "Mozilla/5.0 (Linux; Android 14; SM-A256E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
 
         // Pool adaptativo: móvel usa menos conexões e keep-alive curto para poupar bateria/dados.
@@ -220,8 +218,7 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
                                 downloadInitialStreams = 1,
                                 downloadMaxStreams = 2,
                             )
-                        Log.w(
-                            logTag,
+                        Timber.w(
                             "fallback429 modo=${modo.name} downloadPayload=${configFallback429.downloadPayloadBytes} streams=${configFallback429.downloadInitialStreams}..${configFallback429.downloadMaxStreams}",
                         )
                         try {
@@ -239,7 +236,7 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
                                 msg2.startsWith("download_failed:IllegalStateException:HttpStatus:429") ||
                                     msg2.startsWith("download_failed:IllegalStateException:HttpStatus:403")
                             if (!ehRateLimit2) throw t2
-                            Log.w(logTag, "fallback429 também bloqueado, continuando sem download modo=${modo.name}")
+                            Timber.w("fallback429 também bloqueado, continuando sem download modo=${modo.name}")
                             throughputVazio("download_bloqueado_429")
                         }
                     }
@@ -304,7 +301,7 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
                     for ((idx, backoff) in backoffMs.withIndex()) {
                         delay(backoff)
                         if (cancelFlag.get()) break
-                        Log.w(logTag, "upload=0 retry #${idx + 1} apos ${backoff}ms")
+                        Timber.w("upload=0 retry #${idx + 1} apos ${backoff}ms")
                         val mbpsRetry = executarProbeUpload()
                         if (mbpsRetry > 0.0) {
                             uploadPhase = uploadPhase.copy(
@@ -343,7 +340,7 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
                 faseAtualInterna = FaseSpeedtest.concluido
                 publicar(EstadoExecucaoSpeedtest.concluido, 100, resultado, null)
             } catch (t: Throwable) {
-                Log.e(logTag, "modo=${modo.name} erro=${t.message ?: "desconhecido"}", t)
+                Timber.e(t, "modo=${modo.name} erro=${t.message ?: "desconhecido"}")
                 faseAtualInterna = FaseSpeedtest.idle
                 velocidadeAtualInterna = 0.0
                 publicar(
@@ -575,7 +572,7 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
             ),
         )
 
-        Log.i(logTag, "triplo concluido dl=${downloadMediana} ul=${uploadMediana} lat=${latenciaMediana} rodadas=${rodadas.size}")
+        Timber.i("triplo concluido dl=${downloadMediana} ul=${uploadMediana} lat=${latenciaMediana} rodadas=${rodadas.size}")
         faseAtualInterna = FaseSpeedtest.concluido
         aguardandoProximaRodadaInterna = false
         publicar(EstadoExecucaoSpeedtest.concluido, 100, resultadoTriplo, null)
@@ -1181,8 +1178,7 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
 
     private fun registrarDiagnostico(resultado: ResultadoSpeedtest) {
         val d = resultado.diagnosticoFases
-        Log.i(
-            logTag,
+        Timber.i(
             "modo=${resultado.modo.name} d=${resultado.downloadMbps} u=${resultado.uploadMbps} " +
                 "lat=${resultado.latenciaMs} jit=${resultado.jitterMs} " +
                 "faseInterrompida=${d.faseInterrompida} " +

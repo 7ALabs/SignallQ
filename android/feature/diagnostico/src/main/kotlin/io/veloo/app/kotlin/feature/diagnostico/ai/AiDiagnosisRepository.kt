@@ -1,6 +1,6 @@
 package io.veloo.app.feature.diagnostico.ai
 
-import android.util.Log
+import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
@@ -56,7 +56,6 @@ class AiDiagnosisRepository(
     internal val clock: () -> Long = System::currentTimeMillis,
 ) {
     companion object {
-        private const val TAG = "AiDiagnosisRepository"
         private const val CACHE_TTL_MS = 5 * 60 * 1000L // 5 minutos
     }
 
@@ -64,9 +63,9 @@ class AiDiagnosisRepository(
         // LOG TEMPORARIO — validar que existe apenas UMA instancia (Hilt @Singleton).
         // Se aparecer mais de um hashCode diferente no logcat, a injecao nao esta funcionando.
         // Remover apos validacao em device.
-        // runCatching: android.util.Log nao esta disponivel em testes JVM — nao queremos
+        // runCatching: Timber nao esta plantado em testes JVM — nao queremos
         // que este log de validacao quebre os testes unitarios do repositorio.
-        runCatching { Log.d("SignallQ", "AiDiagnosisRepository criado: hashCode=${hashCode()}") }
+        runCatching { Timber.d("AiDiagnosisRepository criado: hashCode=${hashCode()}") }
     }
 
     // Pair: (resultado, timestamp de insercao em ms).
@@ -146,17 +145,17 @@ class AiDiagnosisRepository(
                     client.newCall(req).execute().use { resp ->
                         if (!resp.isSuccessful) {
                             val errorBody = resp.body?.string()?.take(300) ?: "(vazio)"
-                            Log.w(TAG, "Worker HTTP ${resp.code} — body: $errorBody — ativando fallback local")
+                            Timber.w("Worker HTTP ${resp.code} — body: $errorBody — ativando fallback local")
                             return@use AiDiagnosisState.fallback(localFallback())
                         }
                         val txt = resp.body?.string()
                         if (txt.isNullOrBlank()) {
-                            Log.w(TAG, "Worker retornou body vazio — ativando fallback local")
+                            Timber.w("Worker retornou body vazio — ativando fallback local")
                             return@use AiDiagnosisState.fallback(localFallback())
                         }
                         val parsed = parseResult(txt)
                         if (parsed == null) {
-                            Log.w(TAG, "Falha ao parsear JSON do Worker — ativando fallback local. Body: ${txt.take(200)}")
+                            Timber.w("Falha ao parsear JSON do Worker — ativando fallback local. Body: ${txt.take(200)}")
                             return@use AiDiagnosisState.fallback(localFallback())
                         }
                         val normalized = parsed.copy(
@@ -167,12 +166,12 @@ class AiDiagnosisRepository(
                                 hasSpeedtestData = context.metricasAtuais?.downloadMbps != null,
                             ),
                         )
-                        Log.d(TAG, "IA respondeu com sucesso: status=${normalized.status} modelo=${normalized.modeloIa.nomeExibicao}")
+                        Timber.d("IA respondeu com sucesso: status=${normalized.status} modelo=${normalized.modeloIa.nomeExibicao}")
                         cache[key] = Pair(normalized, clock())
                         AiDiagnosisState.success(normalized)
                     }
                 } catch (t: Throwable) {
-                    Log.e(TAG, "explainDiagnosis falhou: ${t::class.simpleName} — ${t.message}")
+                    Timber.e("explainDiagnosis falhou: ${t::class.simpleName} — ${t.message}")
                     AiDiagnosisState.fallback(localFallback())
                 }
             }

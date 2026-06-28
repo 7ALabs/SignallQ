@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
+import io.veloo.app.core.datastore.PreferenciasAppRepository
 import io.veloo.app.core.network.AnalyticsTracker
 import io.veloo.app.featureflags.FeatureFlagManager
 import io.veloo.app.logging.ReleaseTree
@@ -13,6 +14,7 @@ import io.veloo.app.speedtest.SpeedtestPersistenceCoordinator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -31,6 +33,9 @@ class SignallQApplication :
 
     @Inject
     lateinit var analyticsTracker: AnalyticsTracker
+
+    @Inject
+    lateinit var preferenciasAppRepository: PreferenciasAppRepository
 
     override val workManagerConfiguration: Configuration
         get() =
@@ -59,9 +64,16 @@ class SignallQApplication :
         // Nao bloqueia o startup — o WorkManager agenda na proxima oportunidade com rede disponivel.
         AdminSyncScheduler.agendar(this)
 
+        val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+        // Migra credenciais do modem de plaintext para EncryptedSharedPreferences.
+        // Roda uma vez — nas execucoes seguintes o flag "migrado" curto-circuita.
+        applicationScope.launch(Dispatchers.IO) {
+            preferenciasAppRepository.migrarCredenciaisSeNecessario()
+        }
+
         // Sincroniza feature flags do worker em background.
         // Nao bloqueia o startup — UI usa fallback (todos enabled) ate o fetch completar.
-        val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         featureFlagManager.inicializar(applicationScope)
     }
 }
