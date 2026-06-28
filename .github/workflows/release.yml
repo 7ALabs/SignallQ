@@ -51,6 +51,11 @@ jobs:
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
 
+      - name: Upload mapping.txt para Crashlytics
+        run: cd android && ./gradlew uploadCrashlyticsSymbolFileRelease --no-daemon
+        env:
+          ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
+
       - name: Extrair versao
         id: versao
         run: |

@@ -138,6 +138,11 @@ android {
                 testers = "giammattey.luiz@gmail.com"
                 releaseNotes = "SignallQ ${libs.versions.versionName.get()} (build ${libs.versions.versionCode.get()})"
             }
+            // Upload automático do mapping.txt para Crashlytics acontece como dependência
+            // do bundleRelease/assembleRelease quando mappingFileUploadEnabled = true.
+            firebaseCrashlytics {
+                mappingFileUploadEnabled = true
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
