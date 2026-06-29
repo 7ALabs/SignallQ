@@ -38,10 +38,7 @@ class AdminIngestRepository(
      * Nao lanca excecao em nenhum cenario.
      */
     suspend fun sendDiagnostic(payload: DiagnosticIngestPayload) {
-        if (!consentimentoProvider()) {
-            Timber.d("sendDiagnostic ignorado: consentimento LGPD nao concedido")
-            return
-        }
+        if (!consentimentoProvider()) return
         if (baseUrl.isBlank() || ingestKey.isBlank()) {
             Timber.w("sendDiagnostic ignorado: baseUrl ou ingestKey nao configurados")
             return
@@ -58,8 +55,6 @@ class AdminIngestRepository(
                 client.newCall(req).execute().use { resp ->
                     if (!resp.isSuccessful) {
                         Timber.w("sendDiagnostic HTTP ${resp.code} — id=${payload.id}")
-                    } else {
-                        Timber.d("sendDiagnostic ok — id=${payload.id}")
                     }
                 }
             }
@@ -73,10 +68,7 @@ class AdminIngestRepository(
      * Nao lanca excecao em nenhum cenario.
      */
     suspend fun sendAiUsage(payload: AiUsageIngestPayload) {
-        if (!consentimentoProvider()) {
-            Timber.d("sendAiUsage ignorado: consentimento LGPD nao concedido")
-            return
-        }
+        if (!consentimentoProvider()) return
         if (baseUrl.isBlank() || ingestKey.isBlank()) {
             Timber.w("sendAiUsage ignorado: baseUrl ou ingestKey nao configurados")
             return
@@ -93,8 +85,6 @@ class AdminIngestRepository(
                 client.newCall(req).execute().use { resp ->
                     if (!resp.isSuccessful) {
                         Timber.w("sendAiUsage HTTP ${resp.code} — id=${payload.id}")
-                    } else {
-                        Timber.d("sendAiUsage ok — id=${payload.id} model=${payload.model}")
                     }
                 }
             }

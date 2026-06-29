@@ -74,7 +74,7 @@ internal class NokiaModemClient(private val host: String) {
         val postBody = "encrypted=1&ct=$ct&ck=$ck"
         val resp = httpPost("/login.cgi", postBody, loginPage.cookies)
 
-        Timber.i("login: resposta status=${resp.statusCode} headers=${resp.headers}")
+        Timber.i("login: resposta status=${resp.statusCode}")
 
         // Extrair sid da resposta (prioridade: X-SID header, depois Set-Cookie).
         val respXSid = resp.headers["x-sid"]?.trim() ?: ""

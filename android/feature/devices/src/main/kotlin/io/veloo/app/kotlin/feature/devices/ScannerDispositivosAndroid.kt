@@ -90,7 +90,6 @@ class ScannerDispositivosAndroid(
     override suspend fun iniciarScan(profundo: Boolean) {
         withContext(Dispatchers.IO) {
             if (!scanEmAndamento.compareAndSet(false, true)) {
-                Timber.d("scan ja em andamento, ignorando")
                 return@withContext
             }
             try {
@@ -108,10 +107,8 @@ class ScannerDispositivosAndroid(
                 atualizarEstado(EstadoScanDispositivos.varrendo, 5, null)
                 val dispositivos = linkedMapOf<String, DispositivoRede>()
                 val localIp = detectarIpLocal()
-                Timber.d("ipLocal=$localIp")
 
                 val gatewayIp = detectarGatewayIp()
-                Timber.d("gateway=$gatewayIp")
                 if (!gatewayIp.isNullOrBlank()) {
                     adicionarDispositivo(
                         dispositivos,
@@ -133,10 +130,9 @@ class ScannerDispositivosAndroid(
                  * Merge thread-safe: adiciona lista de dispositivos ao mapa compartilhado e publica
                  * o snapshot parcial imediatamente. Chamado de dentro de cada fase concorrente.
                  */
-                suspend fun mergeEPublicar(lista: List<DispositivoRede>, progresso: Int, tag: String) {
+                suspend fun mergeEPublicar(lista: List<DispositivoRede>, progresso: Int) {
                     mapMutex.withLock {
                         lista.forEach { adicionarDispositivo(dispositivos, it) }
-                        Timber.d("$tag: ${lista.size} dispositivos — total ${dispositivos.size}")
                         publicar(dispositivos.values.toList(), progresso)
                     }
                 }
@@ -149,31 +145,31 @@ class ScannerDispositivosAndroid(
                         // Fase 1 — SubnetDevices (ping nativo): ~2–4s
                         launch {
                             val hosts = descobrirViaSubnetDevices()
-                            mergeEPublicar(hosts, 40, "subnetDevices")
+                            mergeEPublicar(hosts, 40)
                         }
 
                         // Fase 2 — ARP legado (/proc/net/arp): barato, instantâneo
                         launch {
                             val arp = coletarViaArpLegado()
-                            mergeEPublicar(arp, 45, "arp")
+                            mergeEPublicar(arp, 45)
                         }
 
                         // Fase 3 — mDNS via jmDNS: janela fixa ~4,5s
                         launch {
                             val mdns = coletarViaMdnsJmDns()
-                            mergeEPublicar(mdns, 65, "mdnsJmDns")
+                            mergeEPublicar(mdns, 65)
                         }
 
                         // Fase 4 — SSDP/UPnP + fetch XML: ~1–2s
                         launch {
                             val ssdp = coletarViaSsdp()
-                            mergeEPublicar(ssdp, 75, "ssdp")
+                            mergeEPublicar(ssdp, 75)
                         }
 
                         // Fase 5 — TCP probe (hosts que bloqueiam ICMP): ~3–5s, Semaphore(50) interno
                         launch {
                             val tcp = coletarViaTcpProbe(gatewayIp, localIp)
-                            mergeEPublicar(tcp, 85, "tcpProbe")
+                            mergeEPublicar(tcp, 85)
                         }
                     }
                     // coroutineScope só retorna quando TODAS as fases terminarem.
@@ -183,11 +179,11 @@ class ScannerDispositivosAndroid(
                     coroutineScope {
                         launch {
                             val hosts = descobrirViaSubnetDevices()
-                            mergeEPublicar(hosts, 50, "subnetDevices")
+                            mergeEPublicar(hosts, 50)
                         }
                         launch {
                             val arp = coletarViaArpLegado()
-                            mergeEPublicar(arp, 55, "arp")
+                            mergeEPublicar(arp, 55)
                         }
                     }
                     mapMutex.withLock { publicar(dispositivos.values.toList(), 65) }
@@ -243,7 +239,6 @@ class ScannerDispositivosAndroid(
                         }
                     }.awaitAll()
                 }
-                Timber.d("scan concluido: ${dispositivosEnriquecidos.size} dispositivos")
                 mutableSnapshotFlow.value =
                     mutableSnapshotFlow.value.copy(
                         estado = EstadoScanDispositivos.concluido,
@@ -342,7 +337,6 @@ class ScannerDispositivosAndroid(
                 )
             }
         } catch (_: Throwable) {
-            Timber.d("arp: acesso negado a /proc/net/arp (Android 10+, esperado)")
             emptyList()
         }
     }
@@ -462,9 +456,7 @@ class ScannerDispositivosAndroid(
                 for (tipo in tiposServico) {
                     try {
                         jmdns.addServiceListener(tipo, listener)
-                    } catch (e: Throwable) {
-                        Timber.d("jmDNS: falha ao registrar listener para $tipo: ${e.message}")
-                    }
+                    } catch (_: Throwable) {}
                 }
 
                 // Janela única de coleta — todos os tipos respondem em paralelo
@@ -477,7 +469,6 @@ class ScannerDispositivosAndroid(
                     } catch (_: Throwable) {}
                 }
 
-                Timber.d("jmDNS: janela concluída, ${acumulado.size} dispositivos resolvidos")
             } finally {
                 try { jmdns.close() } catch (_: Throwable) {}
             }

@@ -59,15 +59,6 @@ class AiDiagnosisRepository(
         private const val CACHE_TTL_MS = 5 * 60 * 1000L // 5 minutos
     }
 
-    init {
-        // LOG TEMPORARIO — validar que existe apenas UMA instancia (Hilt @Singleton).
-        // Se aparecer mais de um hashCode diferente no logcat, a injecao nao esta funcionando.
-        // Remover apos validacao em device.
-        // runCatching: Timber nao esta plantado em testes JVM — nao queremos
-        // que este log de validacao quebre os testes unitarios do repositorio.
-        runCatching { Timber.d("AiDiagnosisRepository criado: hashCode=${hashCode()}") }
-    }
-
     // Pair: (resultado, timestamp de insercao em ms).
     // internal para permitir injecao direta em testes unitarios do mesmo modulo.
     internal val cache = ConcurrentHashMap<String, Pair<AiDiagnosisResult, Long>>()
@@ -166,7 +157,6 @@ class AiDiagnosisRepository(
                                 hasSpeedtestData = context.metricasAtuais?.downloadMbps != null,
                             ),
                         )
-                        Timber.d("IA respondeu com sucesso: status=${normalized.status} modelo=${normalized.modeloIa.nomeExibicao}")
                         cache[key] = Pair(normalized, clock())
                         AiDiagnosisState.success(normalized)
                     }

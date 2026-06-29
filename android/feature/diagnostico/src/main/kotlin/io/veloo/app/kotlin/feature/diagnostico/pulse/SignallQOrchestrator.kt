@@ -177,7 +177,6 @@ class SignallQOrchestrator(
                     null
                 }
             }
-        Timber.d("RTT gateway=${rttGatewayMs}ms (gatewayIp=${extraContext.gatewayIp})")
 
         val internetInput =
             InternetDiagnosticInput(
@@ -364,7 +363,6 @@ class SignallQOrchestrator(
                     null
                 }
             }
-        Timber.d("RTT gateway=${rttGatewayMs}ms (gatewayIp=${extraContext.gatewayIp})")
 
         val internetInput =
             speedtestResult?.let {
