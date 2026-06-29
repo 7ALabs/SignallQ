@@ -40,6 +40,7 @@ import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Language
@@ -509,6 +510,21 @@ fun AjustesScreen(
                     label = "O que há de novo",
                     subtitle = "Confira o que mudou",
                     onClick = { onAbrirNovidades() },
+                )
+            }
+            item { HorizontalDivider(color = c.border, thickness = 1.dp) }
+            item {
+                SettingItem(
+                    c = c,
+                    icon = Icons.Outlined.Email,
+                    label = "Fale conosco",
+                    subtitle = "Envie uma mensagem para o suporte",
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_SENDTO).apply {
+                            data = Uri.parse("mailto:hello7agents@icloud.com")
+                        }
+                        context.startActivity(intent)
+                    },
                 )
             }
             item { HorizontalDivider(color = c.border, thickness = 1.dp) }
