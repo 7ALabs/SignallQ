@@ -52,8 +52,10 @@ class MainActivity : ComponentActivity() {
     private val speedtestViewModel: SpeedtestViewModel by viewModels()
 
     private val solicitacaoPermissoes =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-            verificarEPedirPermissoes()
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { resultados ->
+            aguardandoRespostaPermissoes = false
+            val todasConcedidas = resultados.values.all { it }
+            if (todasConcedidas) viewModel.iniciarRotinasNaoSpeedtest()
         }
 
     /**
@@ -81,6 +83,7 @@ class MainActivity : ComponentActivity() {
         }
 
     private var jaSolicitouTelefoniaNestaSessao = false
+    private var aguardandoRespostaPermissoes = false
 
     private var temPermissaoTelefonia by mutableStateOf(false)
     private var temPermissaoLocalizacao by mutableStateOf(false)
@@ -478,8 +481,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun verificarEPedirPermissoes() {
+        if (aguardandoRespostaPermissoes) return
         val pendentes = viewModel.gerenciadorPermissoes.listarPermissoesPendentes()
         if (pendentes.isNotEmpty()) {
+            aguardandoRespostaPermissoes = true
             solicitacaoPermissoes.launch(pendentes.toTypedArray())
         } else {
             viewModel.iniciarRotinasNaoSpeedtest()
