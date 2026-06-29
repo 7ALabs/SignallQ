@@ -55,7 +55,10 @@ class SignallQApplication :
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
             // Desabilita coleta de crashes em debug para não poluir dados de produção no Firebase.
-            FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(false)
+            // runCatching: Firebase não é inicializado em testes com Robolectric — evita crash nos 37 unit tests.
+            runCatching {
+                FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(false)
+            }
         } else {
             Timber.plant(ReleaseTree(analyticsTracker))
         }
