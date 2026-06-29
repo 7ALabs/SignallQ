@@ -1,4 +1,4 @@
-# Schema de Eventos GA4 — SignallQ Android
+﻿# Schema de Eventos GA4 — SignallQ Android
 
 > SIG-134 — instrumentação GA4 para alimentar ProductAnalyticsPage no Admin Panel.
 
@@ -43,7 +43,7 @@ Ponto de disparo: `LaunchedEffect(selectedTab)` em `AppShell.kt`, via callback `
 
 ---
 
-### `session_start`
+### `app_session_start`
 
 Disparo: `MainActivity.onCreate()`.
 
@@ -93,7 +93,7 @@ Disparo: `MainActivity.onCreate()`, via `ACTION_BATTERY_CHANGED` (sticky broadca
 
   Pontos de injeção:
   - SignallQApplication (@Inject) → ReleaseTree(analyticsTracker)
-  - MainActivity (@Inject) → session_start, battery_snapshot, screen_view, feature_used
+  - MainActivity (@Inject) → app_session_start, battery_snapshot, screen_view, feature_used
 ```
 
 Os módulos `:feature*` não dependem de Firebase diretamente — se precisarem registrar eventos, receberão `AnalyticsTracker` via Hilt respeitando a lei de dependências (`:feature*` → `:core*` apenas).

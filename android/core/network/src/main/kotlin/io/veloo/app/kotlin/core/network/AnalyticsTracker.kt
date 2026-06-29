@@ -1,4 +1,4 @@
-ï»¿package io.signallq.app.core.network
+package io.signallq.app.core.network
 
 /**
  * Contrato de rastreamento de eventos de analytics.
@@ -6,14 +6,14 @@
  * Implementado por FirebaseAnalyticsTracker (:app).
  * Consumido pelos modulos feature sem dependencia direta de Firebase.
  *
- * Schema de eventos GA4 â€” SIG-134:
+ * Schema de eventos GA4 — SIG-134:
  * - feature_used:     feature_id, session_id, app_version, timestamp
  * - screen_view:      screen_name, session_id, app_version
- * - session_start:    session_id, app_version
+ * - app_session_start:  session_id, app_version
  * - feature_crash:    feature_id, error_type, app_version
  * - battery_snapshot: level, charging, session_id
  *
- * Sem PII â€” session_id e anonimo (UUID por sessao de app).
+ * Sem PII — session_id e anonimo (UUID por sessao de app).
  */
 interface AnalyticsTracker {
     fun registrarFeatureUsada(featureId: String)

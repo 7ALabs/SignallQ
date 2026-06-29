@@ -43,7 +43,7 @@ class FirebaseAnalyticsTracker
         }
 
         override fun registrarSessionStart() {
-            firebaseAnalytics.logEvent("session_start", Bundle().apply {
+            firebaseAnalytics.logEvent("app_session_start", Bundle().apply {
                 putString("session_id", sessionId)
                 putString("app_version", appVersion)
             })

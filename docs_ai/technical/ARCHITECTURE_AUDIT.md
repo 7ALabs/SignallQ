@@ -196,7 +196,7 @@ Auditoria completa da arquitetura SignallQ (v0.21.0) baseada em:
 
 ### Firebase (Google Analytics)
 
-- Events: feature_used, screen_view, session_start, test_completed
+- Events: feature_used, screen_view, app_session_start, test_completed
 - Crashlytics: stack traces + device context
 - **NOT using**: Realtime DB, Firestore, Cloud Storage
 

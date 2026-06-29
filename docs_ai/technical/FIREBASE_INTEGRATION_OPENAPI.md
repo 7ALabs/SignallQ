@@ -136,7 +136,7 @@ SELECT
   (SELECT COUNT(DISTINCT installation_uuid)
    FROM `{PROJECT}.analytics_{GA4_PROPERTY}.events_*`
    WHERE _TABLE_SUFFIX >= FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY))
-     AND event_name = 'session_start'
+     AND event_name = 'app_session_start'
   )                                          AS total_users
 FROM `{PROJECT}.firebase_crashlytics.android_crashes_*`
 WHERE _TABLE_SUFFIX >= FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY))
@@ -286,7 +286,7 @@ LIMIT 20
 SELECT COUNT(*) AS sessions
 FROM `{PROJECT}.analytics_{GA4_PROPERTY}.events_*`
 WHERE _TABLE_SUFFIX >= FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY))
-  AND event_name = 'session_start'
+  AND event_name = 'app_session_start'
 ```
 
 **Note**: Fire-and-forget — returns immediately after query, does not wait for BigQuery result storage.
