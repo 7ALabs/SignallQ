@@ -1,4 +1,4 @@
-﻿package io.signallq.app.ui.component
+package io.signallq.app.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -32,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -65,8 +64,8 @@ fun SignallQAiMessageBubble(
     // INSIGHT/LOCAL → roxo (accent), GEMMA → amarelo (amber)
     val symbolColor =
         when (analysis.source) {
-            ResponseSource.GEMMA -> Color(0xFFFBBF24)
-            ResponseSource.INSIGHT, ResponseSource.LOCAL -> Color(0xFF6C2BFF)
+            ResponseSource.GEMMA -> LkColors.phaseUpload
+            ResponseSource.INSIGHT, ResponseSource.LOCAL -> LkColors.accent
         }
     val timeStr =
         remember(analysis.timestamp) {

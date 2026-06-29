@@ -1,4 +1,4 @@
-﻿package io.signallq.app.ui.component
+package io.signallq.app.ui.component
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -23,6 +23,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -80,7 +84,9 @@ fun DiagMetricsGrid(
                 text = if (expanded) stringResource(R.string.diag_metrics_recolher) else stringResource(R.string.diag_metrics_expandir),
                 fontSize = 11.sp,
                 color = c.textTertiary,
-                modifier = Modifier.clickable { onToggleExpand() },
+                modifier = Modifier
+                    .semantics { role = Role.Button }
+                    .clickable { onToggleExpand() },
             )
         }
 
@@ -123,12 +129,17 @@ private fun MetricCell(
     val c = LocalLkTokens.current
     val statusColor = metric.status.color()
 
+    val cellDesc = buildString {
+        append("${metric.label}: ${metric.value}")
+        metric.note?.let { append(", $it") }
+    }
     Column(
         modifier =
             modifier
                 .clip(RoundedCornerShape(10.dp))
                 .background(c.bgSecondary)
-                .padding(horizontal = 11.dp, vertical = 9.dp),
+                .padding(horizontal = 11.dp, vertical = 9.dp)
+                .semantics(mergeDescendants = true) { contentDescription = cellDesc },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
