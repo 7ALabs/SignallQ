@@ -34,9 +34,11 @@ __pycache__/
 *.apk
 *.aab
 
-# Segredos e certificados locais
-segredos/
-certificados/
+# Segredos e certificados locais (apenas o conteúdo — o diretório é rastreado)
+segredos/*
+!segredos/.gitkeep
+certificados/*
+!certificados/.gitkeep
 
 # Issues locais migradas (mantidas como histórico opcional — descomente para ignorar)
 # .issues/
