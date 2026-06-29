@@ -124,6 +124,22 @@ export interface DiagnosisResult {
   confidence: 'high' | 'medium' | 'low';
 }
 
+export interface HistoryEntry {
+  id: string;
+  createdAt: string;
+  speedTest: SpeedTestResult;
+  diagnosis: DiagnosisResult;
+  appVersion?: string;
+}
+
+export interface HistoryRepository {
+  save(entry: HistoryEntry): Promise<void>;
+  list(): Promise<HistoryEntry[]>;
+  getById(id: string): Promise<HistoryEntry | null>;
+  remove(id: string): Promise<void>;
+  clear(): Promise<void>;
+}
+
 export interface AdminIngestRequest {
   kind: IngestKind;
   payload: Record<string, unknown>;
