@@ -16,6 +16,9 @@ import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.notificacao.SignallQNotificationHelper
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -204,42 +207,47 @@ internal class MonitoramentoWorker
         }
 
         /**
-         * Mede latência HTTP com 3 amostras e retorna a mediana.
+         * Mede latência HTTP com 3 amostras paralelas e retorna a mediana.
+         *
+         * Amostras rodam em paralelo via async/awaitAll para reduzir o tempo total de
+         * wakelock: em vez de ate 30s sequenciais, o worker fica acordado no maximo 10s
+         * (timeout da amostra mais lenta). A mediana continua valida estatisticamente.
+         *
          * Cada amostra tem callTimeout total de 10s (connectTimeout + readTimeout = 5s + 5s,
-         * com withTimeout cobrindo travamentos silenciosos além do readTimeout).
-         * Roda em Dispatchers.IO para não bloquear a thread do worker.
+         * com withTimeout cobrindo travamentos silenciosos alem do readTimeout).
          */
-        private suspend fun medirLatenciaHttp(): Long? {
-            val amostras = mutableListOf<Long>()
-            repeat(3) {
-                try {
-                    val amostra =
-                        withContext(Dispatchers.IO) {
-                            withTimeout(CALL_TIMEOUT_MS) {
-                                val url = URL("https://speed.cloudflare.com/__down?bytes=0")
-                                val conexao = url.openConnection() as HttpURLConnection
-                                conexao.connectTimeout = CONNECT_TIMEOUT_MS.toInt()
-                                conexao.readTimeout = READ_TIMEOUT_MS.toInt()
-                                conexao.requestMethod = "GET"
-                                val inicio = System.currentTimeMillis()
-                                try {
-                                    conexao.connect()
-                                    conexao.responseCode // garante que a conexao foi estabelecida
-                                    System.currentTimeMillis() - inicio
-                                } finally {
-                                    conexao.disconnect()
+        private suspend fun medirLatenciaHttp(): Long? =
+            coroutineScope {
+                val jobs =
+                    (1..3).map {
+                        async(Dispatchers.IO) {
+                            try {
+                                withTimeout(CALL_TIMEOUT_MS) {
+                                    val url = URL("https://speed.cloudflare.com/__down?bytes=0")
+                                    val conexao = url.openConnection() as HttpURLConnection
+                                    conexao.connectTimeout = CONNECT_TIMEOUT_MS.toInt()
+                                    conexao.readTimeout = READ_TIMEOUT_MS.toInt()
+                                    conexao.requestMethod = "GET"
+                                    val inicio = System.currentTimeMillis()
+                                    try {
+                                        conexao.connect()
+                                        conexao.responseCode
+                                        System.currentTimeMillis() - inicio
+                                    } finally {
+                                        conexao.disconnect()
+                                    }
                                 }
+                            } catch (e: Exception) {
+                                Timber.d("Erro ao medir latencia HTTP: ${e.message}")
+                                null
                             }
                         }
-                    amostras.add(amostra)
-                } catch (e: Exception) {
-                    Timber.d("Erro ao medir latencia HTTP: ${e.message}")
-                }
+                    }
+                val amostras = jobs.awaitAll().filterNotNull()
+                if (amostras.isEmpty()) return@coroutineScope null
+                val sorted = amostras.sorted()
+                sorted[sorted.size / 2]
             }
-            if (amostras.isEmpty()) return null
-            amostras.sort()
-            return amostras[amostras.size / 2]
-        }
 
         /**
          * Mede tempo de resolução DNS com timeout de 5s via withTimeout.

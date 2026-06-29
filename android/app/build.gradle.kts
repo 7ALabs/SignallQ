@@ -60,6 +60,10 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // Limita recursos a pt e pt-BR: elimina strings de todas as outras linguas
+        // que vem de dependencias (appcompat, material, etc.). Reducao estimada: 0.5-2 MB.
+        resourceConfigurations += listOf("pt", "pt-rBR")
+
         // URL base do signallq-admin-worker. Nao e segredo — apenas infraestrutura.
         buildConfigField(
             "String",
