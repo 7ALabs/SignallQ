@@ -41,6 +41,14 @@ jobs:
       - name: Permissao gradlew
         run: chmod +x android/gradlew
 
+      - name: Extrair versao
+        id: versao
+        run: |
+          NAME=$(grep 'versionName' android/gradle/libs.versions.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+          CODE=$(grep 'versionCode' android/gradle/libs.versions.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+
       - name: Clean build
         run: cd android && ./gradlew clean --no-build-cache --no-daemon
 
@@ -54,18 +62,17 @@ jobs:
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
 
+      - name: Renomear artefatos
+        run: |
+          cp android/app/build/outputs/bundle/release/app-release.aab \
+             android/app/build/outputs/bundle/release/signallq-${{ steps.versao.outputs.name }}.aab
+          cp android/app/build/outputs/apk/release/app-release.apk \
+             android/app/build/outputs/apk/release/signallq-${{ steps.versao.outputs.name }}.apk
+
       - name: Upload mapping.txt para Crashlytics
         run: cd android && ./gradlew uploadCrashlyticsMappingFileRelease --no-daemon
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
-
-      - name: Extrair versao
-        id: versao
-        run: |
-          NAME=$(grep 'versionName' android/gradle/libs.versions.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
-          CODE=$(grep 'versionCode' android/gradle/libs.versions.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
-          echo "name=$NAME" >> "$GITHUB_OUTPUT"
-          echo "code=$CODE" >> "$GITHUB_OUTPUT"
 
       - name: Criar GitHub Release
         uses: softprops/action-gh-release@v2
@@ -74,5 +81,5 @@ jobs:
           draft: true
           generate_release_notes: true
           files: |
-            android/app/build/outputs/apk/release/*.apk
-            android/app/build/outputs/bundle/release/*.aab
+            android/app/build/outputs/bundle/release/signallq-*.aab
+            android/app/build/outputs/apk/release/signallq-*.apk
