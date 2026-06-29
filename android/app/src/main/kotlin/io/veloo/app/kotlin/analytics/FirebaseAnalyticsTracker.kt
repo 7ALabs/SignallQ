@@ -26,42 +26,63 @@ class FirebaseAnalyticsTracker
         private val appVersion: String = BuildConfig.VERSION_NAME
 
         override fun registrarFeatureUsada(featureId: String) {
-            firebaseAnalytics.logEvent("feature_used", Bundle().apply {
-                putString("feature_id", featureId)
-                putString("session_id", sessionId)
-                putString("app_version", appVersion)
-                putLong("timestamp", System.currentTimeMillis())
-            })
+            firebaseAnalytics.logEvent(
+                "feature_used",
+                Bundle().apply {
+                    putString("feature_id", featureId)
+                    putString("session_id", sessionId)
+                    putString("app_version", appVersion)
+                    putLong("timestamp", System.currentTimeMillis())
+                },
+            )
         }
 
         override fun registrarScreenView(screenName: String) {
-            firebaseAnalytics.logEvent("screen_view", Bundle().apply {
-                putString("screen_name", screenName)
-                putString("session_id", sessionId)
-                putString("app_version", appVersion)
-            })
+            firebaseAnalytics.logEvent(
+                "screen_view",
+                Bundle().apply {
+                    putString("screen_name", screenName)
+                    putString("session_id", sessionId)
+                    putString("app_version", appVersion)
+                },
+            )
         }
 
         override fun registrarSessionStart() {
-            firebaseAnalytics.logEvent("app_session_start", Bundle().apply {
-                putString("session_id", sessionId)
-                putString("app_version", appVersion)
-            })
+            firebaseAnalytics.logEvent(
+                "app_session_start",
+                Bundle().apply {
+                    putString("session_id", sessionId)
+                    putString("app_version", appVersion)
+                },
+            )
         }
 
-        override fun registrarFeatureCrash(featureId: String, errorType: String) {
-            firebaseAnalytics.logEvent("feature_crash", Bundle().apply {
-                putString("feature_id", featureId)
-                putString("error_type", errorType)
-                putString("app_version", appVersion)
-            })
+        override fun registrarFeatureCrash(
+            featureId: String,
+            errorType: String,
+        ) {
+            firebaseAnalytics.logEvent(
+                "feature_crash",
+                Bundle().apply {
+                    putString("feature_id", featureId)
+                    putString("error_type", errorType)
+                    putString("app_version", appVersion)
+                },
+            )
         }
 
-        override fun registrarBatterySnapshot(level: Int, charging: Boolean) {
-            firebaseAnalytics.logEvent("battery_snapshot", Bundle().apply {
-                putInt("level", level)
-                putBoolean("charging", charging)
-                putString("session_id", sessionId)
-            })
+        override fun registrarBatterySnapshot(
+            level: Int,
+            charging: Boolean,
+        ) {
+            firebaseAnalytics.logEvent(
+                "battery_snapshot",
+                Bundle().apply {
+                    putInt("level", level)
+                    putBoolean("charging", charging)
+                    putString("session_id", sessionId)
+                },
+            )
         }
     }

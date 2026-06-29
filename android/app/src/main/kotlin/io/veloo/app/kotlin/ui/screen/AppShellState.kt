@@ -47,9 +47,17 @@ data class AppShellWifiState(
 
 sealed class AnalisadorState {
     data object Inativo : AnalisadorState()
+
     data object Analisando : AnalisadorState()
-    data class Resultado(val texto: String, val origem: String) : AnalisadorState()
-    data class Erro(val mensagem: String) : AnalisadorState()
+
+    data class Resultado(
+        val texto: String,
+        val origem: String,
+    ) : AnalisadorState()
+
+    data class Erro(
+        val mensagem: String,
+    ) : AnalisadorState()
 }
 
 /**

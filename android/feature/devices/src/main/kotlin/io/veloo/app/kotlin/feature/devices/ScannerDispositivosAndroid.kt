@@ -247,6 +247,7 @@ class ScannerDispositivosAndroid(
                         erroMensagem = null,
                     )
             } catch (t: Throwable) {
+                if (t is kotlinx.coroutines.CancellationException) throw t
                 Timber.e(t, "scan falhou")
                 val erroSemantico = when {
                     t is SecurityException -> "semPermissaoLocalizacao"

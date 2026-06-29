@@ -35,7 +35,6 @@ import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.outlined.Cable
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.DevicesOther
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Hub
@@ -77,8 +76,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -86,6 +83,8 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -1046,7 +1045,6 @@ private fun RedesTab(
                     }
                 }
             }
-
         }
     }
 
@@ -1461,8 +1459,7 @@ private fun OtherNetworkGroupItem(
                             val nomeGrupo = if (isOculta) "Redes ocultas" else grupo.ssid
                             contentDescription =
                                 if (isExpanded) "Recolher redes do grupo $nomeGrupo" else "Expandir redes do grupo $nomeGrupo"
-                        }
-                        .clickable { onToggleExpanded() }
+                        }.clickable { onToggleExpanded() }
                         .padding(vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

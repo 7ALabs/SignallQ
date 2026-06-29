@@ -59,8 +59,10 @@ fun SignalToggleCard(
                 .clip(RoundedCornerShape(16.dp))
                 .background(bgColor)
                 .border(1.dp, borderColor, RoundedCornerShape(16.dp))
-                .semantics { role = Role.Switch; stateDescription = toggleStateDesc }
-                .clickable { onToggle() }
+                .semantics {
+                    role = Role.Switch
+                    stateDescription = toggleStateDesc
+                }.clickable { onToggle() }
                 .padding(horizontal = 11.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

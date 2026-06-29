@@ -140,12 +140,13 @@ class SpeedtestPersistenceCoordinator
 
         private fun extrairProblemasRelatorio(relatorio: DiagnosticReport): String? {
             val problemas =
-                (relatorio.wifiResultados +
-                    relatorio.internetResultados +
-                    relatorio.mobileResultados +
-                    relatorio.fibraResultados +
-                    relatorio.dnsResultados)
-                    .filter { it.status == DiagnosticStatus.critical || it.status == DiagnosticStatus.attention }
+                (
+                    relatorio.wifiResultados +
+                        relatorio.internetResultados +
+                        relatorio.mobileResultados +
+                        relatorio.fibraResultados +
+                        relatorio.dnsResultados
+                ).filter { it.status == DiagnosticStatus.critical || it.status == DiagnosticStatus.attention }
                     .map { it.titulo }
                     .distinct()
                     .take(5)
