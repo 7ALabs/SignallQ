@@ -1,4 +1,4 @@
-﻿package io.signallq.app.ui.component
+package io.signallq.app.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -42,7 +44,7 @@ fun DiagVerdictHeroCard(
 ) {
     val gradient =
         Brush.linearGradient(
-            colors = listOf(Color(0xFF1A0B2E), Color(0xFF0D0D1A)),
+            colors = listOf(LkColors.signallQDarkSurface, LkColors.signallQBlack),
         )
 
     Column(
@@ -104,6 +106,7 @@ fun DiagVerdictHeroCard(
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.Medium,
                 color = LkColors.success,
+                modifier = Modifier.semantics { contentDescription = confianca },
             )
             OnDevicePill(dark = true, modelName = modelName)
         }

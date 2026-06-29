@@ -1,16 +1,16 @@
-﻿package io.signallq.app.ui.component
+package io.signallq.app.ui.component
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import io.signallq.app.ui.LkColors
 
 @Composable
 fun SignallQSymbolSmall() {
-    val color = Color(0xFFFBBF24)
+    val color = LkColors.phaseUpload
     Canvas(modifier = Modifier.size(16.dp)) {
         val r = size.width * 0.32f
         drawCircle(

@@ -1,4 +1,4 @@
-﻿package io.signallq.app.ui.screen
+package io.signallq.app.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -782,7 +782,8 @@ private fun MetricCard(
             modifier
                 .clip(RoundedCornerShape(LkRadius.card))
                 .background(c.bgSecondary)
-                .padding(LkSpacing.lg),
+                .padding(LkSpacing.lg)
+                .semantics(mergeDescendants = true) { contentDescription = "$label: $value $unit" },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(

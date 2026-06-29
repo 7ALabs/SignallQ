@@ -1,4 +1,4 @@
-﻿package io.signallq.app.ui.screen
+package io.signallq.app.ui.screen
 
 import android.content.Intent
 import android.net.Uri
@@ -138,7 +138,7 @@ private fun TipoTopologia.toIconData(): TopologiaIconData? =
         TipoTopologia.ROTEADOR_MESH -> TopologiaIconData(Icons.Outlined.Hub, LkColors.accent)
         TipoTopologia.NO_MESH -> TopologiaIconData(Icons.Outlined.Hub, LkColors.accent)
         TipoTopologia.REPETIDOR -> TopologiaIconData(Icons.Outlined.CellTower, LkColors.warning)
-        TipoTopologia.PONTO_DE_ACESSO -> TopologiaIconData(Icons.Outlined.Lan, Color(0xFF9CA3AF)) // cinza neutro
+        TipoTopologia.PONTO_DE_ACESSO -> TopologiaIconData(Icons.Outlined.Lan, LkColors.signallQTextSecondaryOnDark)
         TipoTopologia.DESCONHECIDO -> null
     }
 
