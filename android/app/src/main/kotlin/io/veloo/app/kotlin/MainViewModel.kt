@@ -57,12 +57,12 @@ import io.signallq.app.feature.wifi.ScannerRedesWifi
 import io.signallq.app.monitoramento.MonitoramentoScheduler
 import io.signallq.app.notificacao.SignallQNotificationHelper
 import io.signallq.app.pulse.SignallQUiStateMapper
+import io.signallq.app.speedtest.SpeedtestPersistenceCoordinator
 import io.signallq.app.ui.ConnectionNodeType
 import io.signallq.app.ui.FiltroConexaoHistorico
 import io.signallq.app.ui.GatewayInfo
 import io.signallq.app.ui.HistoryPoint
 import io.signallq.app.ui.IspInfo
-import io.signallq.app.speedtest.SpeedtestPersistenceCoordinator
 import io.signallq.app.ui.screen.AnalisadorState
 import io.signallq.app.ui.screen.SignallQUiState
 import io.signallq.app.ui.state.UiState
@@ -1498,10 +1498,11 @@ class MainViewModel
 
         fun analisarProblema(problema: String) {
             val snap = diagnosticOrchestrator.snapshotFlow.value
-            val relatorio = snap.relatorio ?: run {
-                _analisadorState.value = AnalisadorState.Erro("Faça um diagnóstico de rede antes de analisar.")
-                return
-            }
+            val relatorio =
+                snap.relatorio ?: run {
+                    _analisadorState.value = AnalisadorState.Erro("Faça um diagnóstico de rede antes de analisar.")
+                    return
+                }
             _analisadorState.value = AnalisadorState.Analisando
             viewModelScope.launch {
                 try {

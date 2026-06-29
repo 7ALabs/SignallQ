@@ -11,14 +11,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -38,10 +36,11 @@ fun LgpdConsentDialog(
 ) {
     Dialog(
         onDismissRequest = { /* nao dismissivel — escolha obrigatoria */ },
-        properties = DialogProperties(
-            dismissOnBackPress = false,
-            dismissOnClickOutside = false,
-        ),
+        properties =
+            DialogProperties(
+                dismissOnBackPress = false,
+                dismissOnClickOutside = false,
+            ),
     ) {
         Surface(
             shape = RoundedCornerShape(16.dp),
@@ -49,9 +48,10 @@ fun LgpdConsentDialog(
             tonalElevation = 2.dp,
         ) {
             Column(
-                modifier = Modifier
-                    .padding(24.dp)
-                    .verticalScroll(rememberScrollState()),
+                modifier =
+                    Modifier
+                        .padding(24.dp)
+                        .verticalScroll(rememberScrollState()),
             ) {
                 Text(
                     text = "Dados e privacidade",
@@ -76,12 +76,13 @@ fun LgpdConsentDialog(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                val itens = listOf(
-                    "Eventos de uso de funcionalidades (Firebase Analytics)",
-                    "Resultados anonimos de diagnostico de rede (latencia, perda de pacotes, score)",
-                    "Modelo do dispositivo e versao do Android",
-                    "Versao do app e canal de distribuicao",
-                )
+                val itens =
+                    listOf(
+                        "Eventos de uso de funcionalidades (Firebase Analytics)",
+                        "Resultados anonimos de diagnostico de rede (latencia, perda de pacotes, score)",
+                        "Modelo do dispositivo e versao do Android",
+                        "Versao do app e canal de distribuicao",
+                    )
                 itens.forEach { item ->
                     Text(
                         text = "· $item",

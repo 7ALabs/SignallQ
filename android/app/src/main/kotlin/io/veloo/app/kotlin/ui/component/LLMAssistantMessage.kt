@@ -135,8 +135,10 @@ private fun ThinkingCompletedSection(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .semantics { role = Role.Button; contentDescription = pensouDesc }
-                    .clickable { expanded = !expanded },
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = pensouDesc
+                    }.clickable { expanded = !expanded },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {

@@ -28,6 +28,7 @@ import io.signallq.app.core.telephony.CoreTelephonyModulo
 import io.signallq.app.core.telephony.MonitorTelephony
 import io.signallq.app.feature.devices.FeatureDevicesModulo
 import io.signallq.app.feature.devices.ScannerDispositivos
+import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
 import io.signallq.app.feature.dns.BenchmarkDns
 import io.signallq.app.feature.dns.FeatureDnsModulo
 import io.signallq.app.feature.fibra.ExecutorFibra
@@ -38,7 +39,6 @@ import io.signallq.app.feature.wifi.FeatureWifiModulo
 import io.signallq.app.feature.wifi.ScannerRedesWifi
 import io.signallq.app.featureflags.FeatureFlagManager
 import io.signallq.app.featureflags.FeatureFlagRepository
-import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
 import io.signallq.app.speedtest.SpeedtestPersistenceCoordinator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

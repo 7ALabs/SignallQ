@@ -93,7 +93,6 @@ import io.signallq.app.ui.ResultadoBitmapGenerator
 import io.signallq.app.ui.component.OperadoraBottomSheet
 import io.signallq.app.ui.component.OperadoraContactCard
 import io.signallq.app.ui.component.rememberTopBarAlpha
-import io.signallq.app.ui.screen.AnalisadorState
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -835,11 +834,12 @@ private fun RecomendacaoCard(
     }
 }
 
-private val problemasPredefinidos = listOf(
-    "Baixa velocidade",
-    "Quedas constantes",
-    "Travamentos em streaming ou jogos",
-)
+private val problemasPredefinidos =
+    listOf(
+        "Baixa velocidade",
+        "Quedas constantes",
+        "Travamentos em streaming ou jogos",
+    )
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

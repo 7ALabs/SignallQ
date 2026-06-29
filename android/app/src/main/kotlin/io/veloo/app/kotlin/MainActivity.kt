@@ -1,7 +1,10 @@
 ﻿package io.signallq.app
 
 import android.Manifest
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -16,9 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
-import android.content.Intent
-import android.content.IntentFilter
-import android.os.BatteryManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
@@ -475,8 +475,9 @@ class MainActivity : ComponentActivity() {
         if (level < 0 || scale <= 0) return
         val levelPercent = (level * 100 / scale)
         val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-        val charging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
-            status == BatteryManager.BATTERY_STATUS_FULL
+        val charging =
+            status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                status == BatteryManager.BATTERY_STATUS_FULL
         analyticsTracker.registrarBatterySnapshot(levelPercent, charging)
     }
 

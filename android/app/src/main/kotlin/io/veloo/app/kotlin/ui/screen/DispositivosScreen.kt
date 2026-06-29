@@ -513,9 +513,13 @@ private fun DispositivoItem(
                 val fabricante = dispositivo.fabricante?.takeIf { it.isNotBlank() }
                 // Quando nomeExibicao é um IP puro (fallback do scanner), preferir fabricante como título
                 val ehIpPuro = dispositivo.nomeExibicao.matches(Regex("""\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"""))
-                val nomeDisplay = apelido?.takeIf { it.isNotBlank() }
-                    ?: if (ehIpPuro) fabricante ?: "Dispositivo"
-                    else dispositivo.nomeExibicao
+                val nomeDisplay =
+                    apelido?.takeIf { it.isNotBlank() }
+                        ?: if (ehIpPuro) {
+                            fabricante ?: "Dispositivo"
+                        } else {
+                            dispositivo.nomeExibicao
+                        }
                 Text(
                     text = nomeDisplay,
                     color = c.textPrimary,

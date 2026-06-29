@@ -20,12 +20,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
+import io.signallq.app.R
 import io.signallq.app.feature.diagnostico.pulse.OpcaoResposta
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
-import androidx.compose.ui.res.stringResource
-import io.signallq.app.R
 
 private const val CHAR_LIMIT = 280
 private const val CHAR_COUNTER_THRESHOLD = 200
