@@ -133,7 +133,7 @@ object SignallQNotificationHelper {
         val notificacao =
             NotificationCompat
                 .Builder(context, CANAL_ID)
-                .setSmallIcon(R.drawable.ic_notification_veloo_pulse)
+                .setSmallIcon(R.drawable.ic_notification_signallq)
                 .setContentTitle(titulo)
                 .setContentText(corpo)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(corpo))

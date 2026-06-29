@@ -5,17 +5,13 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- V arrow (monochrome) -->
-    <path
-        android:strokeWidth="13.0"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:strokeColor="#FFFFFF"
-        android:pathData="M48.4,25.7 L79.1,54.0 L48.4,82.3"/>
-
-    <!-- Dot at tip -->
+    <!-- 4 barras de sinal — versão monocromática (Themed Icons Android 13+) -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M89.9,54.0 A6.1,6.1 0 1,1 89.8,54.0 Z"/>
+        android:pathData="
+            M 32,64 H 33 A 4,4 0 0 1 37,68 V 78 A 4,4 0 0 1 33,82 H 32 A 4,4 0 0 1 28,78 V 68 A 4,4 0 0 1 32,64 Z
+            M 46,52 H 47 A 4,4 0 0 1 51,56 V 78 A 4,4 0 0 1 47,82 H 46 A 4,4 0 0 1 42,78 V 56 A 4,4 0 0 1 46,52 Z
+            M 60,40 H 61 A 4,4 0 0 1 65,44 V 78 A 4,4 0 0 1 61,82 H 60 A 4,4 0 0 1 56,78 V 44 A 4,4 0 0 1 60,40 Z
+            M 74,28 H 75 A 4,4 0 0 1 79,32 V 78 A 4,4 0 0 1 75,82 H 74 A 4,4 0 0 1 70,78 V 32 A 4,4 0 0 1 74,28 Z"/>
 
 </vector>
