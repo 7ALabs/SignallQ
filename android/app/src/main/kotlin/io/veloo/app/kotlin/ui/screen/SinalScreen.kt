@@ -2817,6 +2817,7 @@ private fun ChannelDetailSheet(
     Column(
         Modifier
             .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.lg),
     ) {
         Box(
