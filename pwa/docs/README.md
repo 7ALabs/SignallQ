@@ -25,6 +25,10 @@ Estado atual: transposta na branch `codex-pwa-sig-39-docs-operacionais`.
 - `history-model.md` — histórico local.
 - `design-system.md` — design system operacional.
 - `release-checklist.md` — checklist de PR e release.
+- `ci-cd.md` — contrato atual de CI/CD e Pages.
+- `deploy-status.md` — status real de deploy/domínio/Cloudflare.
+- `qa-evidence.md` — evidências locais de QA e Lighthouse.
+- `dns-doh-investigation.md` — conclusão browser-honesta da investigação DoH.
 - `decisions.md` — decisões relevantes.
 - `openapi.yaml` — contrato HTTP das rotas backend PWA em `/api/*`.
 
@@ -38,9 +42,13 @@ Estado atual: transposta na branch `codex-pwa-sig-39-docs-operacionais`.
 6. `diagnosis-contract.md`
 7. `design-system.md`
 8. `release-checklist.md`
-9. `history-model.md`
-10. `decisions.md`
-11. `openapi.yaml`
+9. `ci-cd.md`
+10. `history-model.md`
+11. `deploy-status.md`
+12. `qa-evidence.md`
+13. `dns-doh-investigation.md`
+14. `decisions.md`
+15. `openapi.yaml`
 
 ## Fonte técnica de paridade
 

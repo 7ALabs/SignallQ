@@ -6,6 +6,8 @@ App web progressivo do SignallQ — diagnóstico de conectividade no navegador.
 
 Fundação inicializada em React + TypeScript + Vite. Acompanhe no Linear pelo projeto `SignallQ` com issues marcadas como `area:pwa` (ou equivalente).
 
+Em 2026-06-30, a validação local de release passou com `npm run typecheck`, `npm test`, `npm run build` e `npm run pages:dev`. O script `npm run lint` continua ausente nesta etapa do projeto. O deploy remoto segue bloqueado até existir um projeto Cloudflare Pages `signallq-pwa` na conta autenticada usada pelo Wrangler.
+
 ## Stack
 
 React + TypeScript + Vite + Tailwind CSS + Cloudflare Pages Functions.
@@ -87,6 +89,12 @@ Para build:
 npm run build
 ```
 
+Para validar o pacote local completo:
+
+```powershell
+npm run verify
+```
+
 Para typecheck:
 
 ```powershell
@@ -97,6 +105,12 @@ Para testes automatizados:
 
 ```powershell
 npm test
+```
+
+Para publicar no Cloudflare Pages quando o projeto remoto existir:
+
+```powershell
+npm run pages:deploy
 ```
 
 ## Backend, Swagger e Postman
@@ -129,3 +143,23 @@ Variáveis esperadas no Cloudflare Pages:
 - `ADMIN_INGEST_KEY`
 
 Para desenvolvimento local com `pages:dev`, use `.dev.vars` com os mesmos nomes. Não versione esse arquivo.
+
+## CI/CD e deploy
+
+- Workflow PWA: `.github/workflows/pwa-ci.yml`
+- Validação de PR: `npm ci`, `npm run verify`
+- Preview deploy: tentado em PR quando `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` estiverem configurados
+- Production deploy: tentado em `main` com `npm run pages:deploy`
+- Headers estáticos de segurança: `public/_headers`
+
+Status real em 2026-06-30:
+
+- conta Wrangler autenticada: `Giammattey, Luiz F.`
+- projeto Pages `signallq-pwa`: não encontrado nessa conta
+- consequência: preview, produção, domínio final e HTTPS não puderam ser validados como prontos nesta rodada
+
+Consulte também:
+
+- `docs/ci-cd.md`
+- `docs/deploy-status.md`
+- `docs/qa-evidence.md`

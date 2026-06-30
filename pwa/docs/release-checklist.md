@@ -127,6 +127,7 @@ Quando aplicável:
 
 ## Checklist antes de produção
 
+- Consolidar evidências em `qa-evidence.md` e `deploy-status.md`.
 - Lighthouse rodado.
 - QA Chrome desktop.
 - QA Chrome Android.
