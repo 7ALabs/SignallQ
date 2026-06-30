@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "vite --port=5173 --host=0.0.0.0",
     "pages:dev": "npm run build && wrangler pages dev dist --compatibility-date=2026-06-25",
+    "pages:deploy": "wrangler pages deploy dist --project-name signallq-pwa",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host=0.0.0.0",
     "typecheck": "npm run type-check",
     "type-check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "verify": "npm run test && npm run build"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",
