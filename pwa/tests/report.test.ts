@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
-import { createReportFromHistoryEntry } from '../src/features/report/reportRepository';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { IDBFactory } from 'fake-indexeddb';
+import { createReportFromHistoryEntry, getLocalReport } from '../src/features/report/reportRepository';
+import { historyRepository } from '../src/shared/storage/historyRepository';
 import type { HistoryEntry } from '../shared/contracts';
 
 const entry: HistoryEntry = {
@@ -44,6 +46,15 @@ const entry: HistoryEntry = {
 };
 
 describe('local report', () => {
+  const originalIndexedDb = globalThis.indexedDB;
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    if (originalIndexedDb !== undefined) {
+      vi.stubGlobal('indexedDB', originalIndexedDb);
+    }
+  });
+
   it('creates a local-only report from a saved history entry', () => {
     const report = createReportFromHistoryEntry(entry);
 
@@ -61,5 +72,18 @@ describe('local report', () => {
       'Ações recomendadas',
       'Limitações do laudo web',
     ]);
+  });
+
+  it('resolves reports from local IndexedDB history and returns null for missing ids', async () => {
+    vi.stubGlobal('indexedDB', new IDBFactory());
+
+    await historyRepository.save(entry);
+
+    await expect(getLocalReport('hist_1')).resolves.toMatchObject({
+      id: 'hist_1',
+      localOnly: true,
+      status: 'attention',
+    });
+    await expect(getLocalReport('missing')).resolves.toBeNull();
   });
 });

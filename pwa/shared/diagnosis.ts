@@ -44,15 +44,15 @@ export function buildSummary(
   stability: StabilityClassification,
 ): string {
   if (speed === 'unknown' && stability === 'unknown') {
-    return 'Nao foi possivel medir dados suficientes no navegador. Tente novamente com a conexao ativa.';
+    return 'Não foi possível medir dados suficientes no navegador. Tente novamente com a conexão ativa.';
   }
   if (speed === 'slow') {
-    return 'A velocidade medida esta baixa para usos comuns. Confira se ha outros aparelhos consumindo a rede.';
+    return 'A velocidade medida está baixa para usos comuns. Confira se há outros aparelhos consumindo a rede.';
   }
   if (stability === 'unstable') {
-    return 'A conexao parece instavel pelo teste HTTP. Chamadas de video e jogos podem oscilar.';
+    return 'A conexão parece instável pelo teste HTTP. Chamadas de vídeo e jogos podem oscilar.';
   }
-  return 'A conexao parece adequada no teste web. Algumas metricas nativas nao estao disponiveis no navegador.';
+  return 'A conexão parece adequada no teste web. Algumas métricas nativas não estão disponíveis no navegador.';
 }
 
 export function createLocalDiagnosis(input: DiagnosisInput = {}): DiagnosisResult {
@@ -70,18 +70,18 @@ export function createLocalDiagnosis(input: DiagnosisInput = {}): DiagnosisResul
   const limitations = [
     {
       code: 'http_latency_not_icmp_ping',
-      message: 'A latencia web usa requisicoes HTTP, nao ping ICMP nativo.',
+      message: 'A latência web usa requisições HTTP, não ping ICMP nativo.',
     },
     {
       code: 'browser_limited_measurement',
-      message: 'O navegador nao expoe sinal Wi-Fi real, scan de rede ou metricas de radio.',
+      message: 'O navegador não expõe sinal Wi-Fi real, scan de rede ou métricas de rádio.',
     },
   ];
 
   if (metrics.jitterMs == null) {
     limitations.push({
       code: 'jitter_not_measured',
-      message: 'Jitter depende de amostras suficientes de latencia.',
+      message: 'Jitter depende de amostras suficientes de latência.',
     });
   }
 
@@ -102,7 +102,7 @@ export function createLocalDiagnosis(input: DiagnosisInput = {}): DiagnosisResul
       },
       {
         priority: 2,
-        title: 'Evite downloads durante a medicao',
+        title: 'Evite downloads durante a medição',
         description: 'Outros usos da rede podem alterar o resultado medido pelo navegador.',
         category: 'device',
       },

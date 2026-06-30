@@ -128,6 +128,32 @@ describe('speedtest runner', () => {
     expect(progress).toContain('canceled:canceled');
   });
 
+  it('returns an error result when network probes time out without inventing metrics', async () => {
+    const fetchFn = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      return new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), {
+          once: true,
+        });
+      });
+    });
+
+    const result = await runSpeedTestWeb({
+      fetchFn,
+      latencySampleCount: 2,
+      timeoutMs: 1,
+      uploadRetryCount: 1,
+    });
+
+    if (!result.result) throw new Error('expected error result');
+
+    expect(result.status).toBe('error');
+    expect(result.errorMessage).toBe('speedtest_failed');
+    expect(result.result.download.mbps).toBeNull();
+    expect(result.result.upload.mbps).toBeNull();
+    expect(result.result.latency.ms).toBeNull();
+    expect(result.result.availability.failedRequests).toBe(4);
+  });
+
   it('retries upload before returning a partial result', async () => {
     let currentTime = 0;
     let uploadAttempts = 0;

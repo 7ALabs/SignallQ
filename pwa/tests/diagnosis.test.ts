@@ -39,9 +39,9 @@ describe('diagnosis module', () => {
   });
 
   it('keeps summaries short and actionable', () => {
-    expect(buildSummary('unknown', 'unknown')).toContain('Nao foi possivel medir');
-    expect(buildSummary('slow', 'stable')).toContain('velocidade medida esta baixa');
-    expect(buildSummary('fast', 'unstable')).toContain('instavel');
+    expect(buildSummary('unknown', 'unknown')).toContain('Não foi possível medir');
+    expect(buildSummary('slow', 'stable')).toContain('velocidade medida está baixa');
+    expect(buildSummary('fast', 'unstable')).toContain('instável');
   });
 
   it('proxies AI diagnosis through the configured worker with no-store response', async () => {

@@ -44,21 +44,42 @@ const speedtest: SpeedTestResult = {
 describe('diagnosis AI payload', () => {
   it('maps the full PWA speedtest contract to the current worker payload without native-only fields', () => {
     expect(buildDiagnosticPayload(speedtest, '4g')).toEqual({
+      browserContext: {
+        browser: {},
+        connection: { source: 'unavailable' },
+        limitations: ['http_latency_not_icmp_ping'],
+        unavailableNativeSignals: [
+          'ssid',
+          'bssid',
+          'wifi_rssi',
+          'wifi_channel',
+          'nearby_networks',
+          'cell_tower_id',
+          'telephony_signal',
+          'icmp_ping',
+          'system_dns',
+        ],
+      },
       connectionType: '4g',
       metricasAtuais: {
         downloadMbps: 8,
+        jitterMs: 4,
         latenciaMs: 20,
+        perceivedLossPercent: 0,
         uploadMbps: 4,
       },
       schemaVersion: 'pwa_foundation_v1',
       source: 'pwa',
+      speedTest: speedtest,
     });
   });
 
   it('keeps absent metrics as null instead of inventing native data', () => {
     expect(buildDiagnosticPayload(null, 'offline').metricasAtuais).toEqual({
       downloadMbps: null,
+      jitterMs: null,
       latenciaMs: null,
+      perceivedLossPercent: null,
       uploadMbps: null,
     });
   });

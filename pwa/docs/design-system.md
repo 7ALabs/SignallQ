@@ -6,13 +6,31 @@ O Design System oficial da PWA fica centralizado em `src/design-system/`.
 
 A base estrutural é Material Design 3: hierarquia clara, superfícies limpas, estados previsíveis, radius moderado, CTA evidente e linguagem direta.
 
+## Fonte final SIG-48
+
+A revisão UX da SIG-48 usa como referência final o pacote local informado por Luiz:
+
+`C:\Users\luizg\Downloads\SignallQ Design System (1).zip`
+
+Esse pacote contém a biblioteca `@signallq/design-system@0.1.0`, com tokens, componentes de referência, telas e assets de marca. A PWA adapta o visual e os padrões, mas não copia recursos nativos impossíveis no navegador.
+
+Regras visuais finalizadas:
+
+- Accent único: `#6C2BFF`.
+- Status semânticos: verde para bom, âmbar para atenção, vermelho para crítico.
+- Cards flat: fundo branco, borda hairline, radius `16px`, sem sombra.
+- Grid base: 4/8/12/16/24/32px.
+- Tipografia: Roboto, PT-BR, sentence case e overlines curtas.
+- Métrica técnica deve vir com veredito humano quando houver medição real.
+- Telas Android do pacote são referência de linguagem visual; PWA mantém rotas web simples e não usa bottom navigation literal.
+
 O Google Fiber Speed Test serve apenas como inspiração de clareza: tela limpa, espaçamento generoso, número principal grande e ação primária forte. A PWA não copia identidade visual, cores, layout, assets ou marca do Google Fiber.
 
 ## Navegação
 
-A PWA não usa bottom navigation.
+A PWA não usa bottom navigation literal do Android.
 
-Bottom navigation fica reservada para o Android nativo. Na PWA, a navegação deve usar:
+Bottom navigation fica reservada para o Android nativo e para previews do design system. Na PWA, a navegação deve usar:
 
 - header/top navigation;
 - CTA principal;
@@ -29,7 +47,7 @@ Arquivos em `src/design-system/tokens/`:
 - `typography.ts`: família, tamanhos, pesos e alturas de linha.
 - `spacing.ts`: escala de espaçamento.
 - `radius.ts`: radius de componentes e pill.
-- `elevation.ts`: sombras Material-like discretas.
+- `elevation.ts`: mantém tokens por compatibilidade, mas o tema final usa cards flat sem sombra.
 - `motion.ts`: durações e easing.
 
 Temas:

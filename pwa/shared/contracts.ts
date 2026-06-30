@@ -97,6 +97,15 @@ export interface DiagnosticPayload {
     downloadMbps: number | null;
     uploadMbps: number | null;
     latenciaMs: number | null;
+    jitterMs?: number | null;
+    perceivedLossPercent?: number | null;
+  };
+  speedTest?: SpeedTestResult;
+  browserContext?: {
+    connection: BrowserConnectionInfo;
+    browser: BrowserInfo;
+    limitations: string[];
+    unavailableNativeSignals: string[];
   };
 }
 
@@ -122,6 +131,22 @@ export interface DiagnosisResult {
   actions: RecommendedAction[];
   limitations: Array<{ code: string; message: string }>;
   confidence: 'high' | 'medium' | 'low';
+}
+
+export interface HistoryEntry {
+  id: string;
+  createdAt: string;
+  speedTest: SpeedTestResult;
+  diagnosis: DiagnosisResult;
+  appVersion?: string;
+}
+
+export interface HistoryRepository {
+  save(entry: HistoryEntry): Promise<void>;
+  list(): Promise<HistoryEntry[]>;
+  getById(id: string): Promise<HistoryEntry | null>;
+  remove(id: string): Promise<void>;
+  clear(): Promise<void>;
 }
 
 export interface AdminIngestRequest {

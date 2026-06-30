@@ -16,8 +16,10 @@ export enum SpeedtestPhase {
   Latency = 'latency',
   Download = 'download',
   Upload = 'upload',
+  Partial = 'partial',
   Complete = 'complete',
   Error = 'error',
+  Canceled = 'canceled',
 }
 
 export interface ConnectionSnapshot {

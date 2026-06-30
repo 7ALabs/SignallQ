@@ -17,13 +17,24 @@ function qualityLabel(value: DiagnosisResult['quality']): string {
   }
 }
 
+function sourceLabel(value: DiagnosisResult['source']): string {
+  switch (value) {
+    case 'ai':
+      return 'IA';
+    case 'fallback':
+      return 'local de contingência';
+    case 'local':
+      return 'local';
+  }
+}
+
 export function DiagnosisResultPanel({ diagnosis }: DiagnosisResultPanelProps) {
   if (!diagnosis) return null;
 
   return (
     <section className="diagnosis-panel" aria-label="Resultado do diagnóstico">
       <div>
-        <p className="overline">Diagnóstico {diagnosis.source}</p>
+        <p className="overline">Diagnóstico {sourceLabel(diagnosis.source)}</p>
         <h3>{qualityLabel(diagnosis.quality)}</h3>
         <p>{diagnosis.summary}</p>
       </div>

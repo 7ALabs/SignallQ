@@ -6,6 +6,7 @@ interface HistoryPanelProps {
   onCopyReportLink: (id: string) => void;
   onOpenReport: (id: string) => void;
   onRemove: (id: string) => void;
+  onStartTest?: () => void;
   state: HistoryState;
 }
 
@@ -17,7 +18,20 @@ function formatDate(value: string): string {
 }
 
 function formatMbps(value: number | null): string {
-  return value == null ? 'N/A' : `${value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} Mbps`;
+  return value == null ? 'Não medido' : `${value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} Mbps`;
+}
+
+function qualityLabel(value: HistoryEntry['diagnosis']['quality']): string {
+  switch (value) {
+    case 'good':
+      return 'Boa';
+    case 'attention':
+      return 'Atenção';
+    case 'bad':
+      return 'Ruim';
+    case 'unknown':
+      return 'Inconclusiva';
+  }
 }
 
 function renderEntry(
@@ -43,7 +57,7 @@ function renderEntry(
         </div>
         <div>
           <dt>Qualidade</dt>
-          <dd>{entry.diagnosis.quality}</dd>
+          <dd>{qualityLabel(entry.diagnosis.quality)}</dd>
         </div>
       </dl>
       <div className="history-entry__actions">
@@ -61,7 +75,7 @@ function renderEntry(
   );
 }
 
-export function HistoryPanel({ onClear, onCopyReportLink, onOpenReport, onRemove, state }: HistoryPanelProps) {
+export function HistoryPanel({ onClear, onCopyReportLink, onOpenReport, onRemove, onStartTest, state }: HistoryPanelProps) {
   return (
     <section className="history-panel" aria-label="Histórico local">
       <div className="history-panel__header">
@@ -75,10 +89,28 @@ export function HistoryPanel({ onClear, onCopyReportLink, onOpenReport, onRemove
         </button>
       </div>
 
-      {state.status === 'loading' ? <p className="history-panel__message">Carregando histórico...</p> : null}
-      {state.status === 'error' ? <p className="history-panel__message">Histórico indisponível: {state.error}</p> : null}
+      {state.status === 'loading' ? <p aria-live="polite" className="history-panel__message">Carregando histórico local...</p> : null}
+      {state.status === 'error' ? (
+        <div className="history-panel__message history-panel__message--error" role="alert">
+          <strong>Histórico indisponível</strong>
+          <p>{state.error}</p>
+          {onStartTest ? (
+            <button className="text-button" type="button" onClick={onStartTest}>
+              Fazer novo teste
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {state.status === 'empty' || (state.status === 'idle' && state.entries.length === 0) ? (
-        <p className="history-panel__message">Nenhuma medição salva ainda.</p>
+        <div className="history-panel__message">
+          <strong>Nenhuma medição salva ainda</strong>
+          <p>Faça um teste para criar o primeiro laudo local neste navegador.</p>
+          {onStartTest ? (
+            <button className="text-button" type="button" onClick={onStartTest}>
+              Iniciar teste
+            </button>
+          ) : null}
+        </div>
       ) : null}
       {state.entries.length > 0 ? (
         <div className="history-panel__list">
