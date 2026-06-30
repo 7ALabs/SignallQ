@@ -28,10 +28,11 @@ import { historyRepository } from '@/shared/storage/historyRepository';
 
 const navItems = ['Visão geral', 'Resultados', 'Ajustes'];
 
-type AppRoute = { kind: 'home' } | { kind: 'report'; reportId: string };
+type AppRoute = { kind: 'history' } | { kind: 'home' } | { kind: 'report'; reportId: string };
 
 function readRoute(): AppRoute {
   const hash = window.location.hash.replace(/^#/, '');
+  if (hash === '/historico') return { kind: 'history' };
   const reportMatch = hash.match(/^\/laudo\/([^/?#]+)$/);
   if (reportMatch?.[1]) {
     return { kind: 'report', reportId: decodeURIComponent(reportMatch[1]) };
@@ -242,6 +243,10 @@ export function App() {
     window.location.hash = `/laudo/${id}`;
   };
 
+  const openHistory = () => {
+    window.location.hash = '/historico';
+  };
+
   const goHome = () => {
     window.location.hash = '/';
   };
@@ -284,6 +289,31 @@ export function App() {
             onCopyLink={copyCurrentReportLink}
             report={report}
             reportId={route.reportId}
+          />
+        </AppShell>
+      </ThemeProvider>
+    );
+  }
+
+  if (route.kind === 'history') {
+    return (
+      <ThemeProvider mode="light">
+        <AppShell
+          header={
+            <TopAppBar
+              actions={<Button variant="text" onClick={goHome}>Voltar</Button>}
+              navItems={navItems}
+              subtitle="Histórico local"
+              title="SignallQ"
+            />
+          }
+        >
+          <HistoryPanel
+            onClear={clearHistory}
+            onCopyReportLink={copyReportLink}
+            onOpenReport={openReport}
+            onRemove={removeHistoryEntry}
+            state={historyState}
           />
         </AppShell>
       </ThemeProvider>
@@ -392,6 +422,7 @@ export function App() {
                 description={`${historyState.entries.length} medição(ões) salvas neste navegador.`}
                 icon={<History size={22} />}
                 meta="Histórico"
+                onClick={openHistory}
                 title="Resultados anteriores"
               />
               <ActionCard

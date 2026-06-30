@@ -344,6 +344,22 @@
   color: var(--sq-color-primary);
 }
 
+.sq-action-card__button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--sq-color-outline);
+  border-radius: var(--sq-radius-pill);
+  background: var(--sq-color-surface);
+  color: var(--sq-color-primary);
+  cursor: pointer;
+}
+
+.sq-action-card__button:hover {
+  background: var(--sq-color-primary-container);
+}
+
 .sq-insight-card {
   border-color: var(--sq-color-info);
 }
