@@ -1,62 +1,70 @@
 import { describe, expect, it } from 'vitest';
-import { requestAiDiagnosis } from '../src/features/diagnosis/aiClient';
-import type { DiagnosisResult, DiagnosticPayload } from '../shared/contracts';
+import { createDiagnosisWithAiFallback } from '../src/features/diagnosis/aiClient';
+import type { SpeedTestResult } from '../shared/contracts';
 
-const localDiagnosis: DiagnosisResult = {
-  actions: [
-    {
-      category: 'retry',
-      description: 'Repita o teste.',
-      priority: 1,
-      title: 'Testar novamente',
-    },
-  ],
-  confidence: 'medium',
-  generatedAt: '2026-06-28T00:00:00.000Z',
-  id: 'diag_local',
-  limitations: [{ code: 'http_latency_not_icmp_ping', message: 'Latência HTTP.' }],
-  quality: 'attention',
-  source: 'local',
-  speed: 'ok',
-  stability: 'stable',
-  summary: 'Diagnóstico local.',
-};
-
-const payload: DiagnosticPayload = {
-  connectionType: '4g',
-  metricasAtuais: {
-    downloadMbps: 20,
-    latenciaMs: 30,
-    uploadMbps: 5,
+const speedTest: SpeedTestResult = {
+  availability: {
+    failedRequests: 0,
+    perceivedLossPercent: 0,
+    status: 'inferred',
+    totalRequests: 12,
   },
-  schemaVersion: 'pwa_foundation_v1',
-  source: 'pwa',
+  browser: {},
+  connection: { effectiveType: '4g', source: 'unavailable' },
+  download: {
+    bytes: 1_000_000,
+    durationMs: 1000,
+    mbps: 20,
+    samples: 1,
+    status: 'measured',
+  },
+  id: 'speed_test_ai',
+  jitter: {
+    ms: 4,
+    samples: 10,
+    status: 'measured',
+  },
+  latency: {
+    method: 'http_timing',
+    ms: 30,
+    samples: 10,
+    status: 'measured',
+  },
+  limitations: ['http_latency_not_icmp_ping'],
+  measuredAt: '2026-06-28T00:00:00.000Z',
+  upload: {
+    bytes: 500_000,
+    durationMs: 1000,
+    mbps: 5,
+    samples: 1,
+    status: 'measured',
+  },
 };
 
 describe('AI diagnosis client', () => {
-  it('normalizes the worker response to the PWA diagnosis contract', async () => {
+  it('returns AI diagnosis when the worker responds with the expected contract', async () => {
     const fetchFn: typeof fetch = async () =>
       Response.json({
-        status: 'bom',
-        resumo: 'Sua conexão está boa para uso comum.',
-        classificacaoTecnica: {
-          velocidade: { avaliacao: 'boa' },
-          estabilidade: { avaliacao: 'boa' },
-        },
-        problemaPrincipal: { confianca: 0.82 },
-        acoesRecomendadas: [
+        actions: [
           {
-            titulo: 'Mantenha o teste salvo',
-            descricao: 'Use este resultado como referência.',
-            prioridade: 'media',
-            tipo: 'observacao',
+            category: 'retry',
+            description: 'Use este resultado como referência.',
+            priority: 1,
+            title: 'Mantenha o teste salvo',
           },
         ],
-        limitesDaAnalise: ['Sem RSSI no navegador.'],
-        modeloIa: { textoRodape: 'Motor de análise: SignallQ IA' },
+        confidence: 'high',
+        generatedAt: '2026-06-28T00:00:00.000Z',
+        id: 'diag_ai',
+        limitations: [],
+        quality: 'good',
+        source: 'ai',
+        speed: 'fast',
+        stability: 'stable',
+        summary: 'Sua conexão está boa para uso comum.',
       });
 
-    const result = await requestAiDiagnosis({ fetchFn, localDiagnosis, payload });
+    const result = await createDiagnosisWithAiFallback(speedTest, { fetchFn });
 
     expect(result.source).toBe('ai');
     expect(result.diagnosis).toMatchObject({
@@ -66,13 +74,12 @@ describe('AI diagnosis client', () => {
       stability: 'stable',
       summary: 'Sua conexão está boa para uso comum.',
     });
-    expect(result.diagnosis.actions[0]).toMatchObject({ priority: 2, title: 'Mantenha o teste salvo' });
   });
 
   it('returns a fallback diagnosis when the worker is unavailable', async () => {
     const fetchFn: typeof fetch = async () => Response.json({ error: 'AI_WORKER_URL não configurada' }, { status: 503 });
 
-    const result = await requestAiDiagnosis({ fetchFn, localDiagnosis, payload });
+    const result = await createDiagnosisWithAiFallback(speedTest, { fetchFn });
 
     expect(result.source).toBe('fallback');
     expect(result.diagnosis.source).toBe('fallback');

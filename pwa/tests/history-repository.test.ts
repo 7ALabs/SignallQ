@@ -109,4 +109,4 @@ describe('history repository', () => {
     await repository.clear();
     await expect(repository.list()).resolves.toEqual([]);
   });
-}
+});
