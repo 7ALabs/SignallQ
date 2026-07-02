@@ -468,6 +468,9 @@ private fun SinalTopTabRow(
                         BadgedBox(badge = { Badge() }) {
                             Text(
                                 label,
+                                fontSize = 13.sp,
+                                maxLines = 1,
+                                softWrap = false,
                                 fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.W500,
                                 color = if (selectedTab == index) LkColors.accent else c.textSecondary,
                             )
@@ -475,6 +478,9 @@ private fun SinalTopTabRow(
                     } else {
                         Text(
                             label,
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            softWrap = false,
                             fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.W500,
                             color = if (selectedTab == index) LkColors.accent else c.textSecondary,
                         )
@@ -1125,6 +1131,11 @@ private fun GrupoRedeTree(
     topologiaPorBssid: Map<String, TipoTopologia> = emptyMap(),
 ) {
     val c = LocalLkTokens.current
+    // Roteador dual-band único: mesmo OUI e cada banda aparecendo uma só vez
+    val ehDualBandUnico =
+        nos.size > 1 &&
+            nos.map { it.oui.uppercase() }.toSet().size <= 1 &&
+            nos.map { it.banda }.let { it.size == it.toSet().size }
     Column(
         modifier =
             modifier
@@ -1163,6 +1174,7 @@ private fun GrupoRedeTree(
                             color = c.textPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
                         )
                         Box(
                             modifier =
@@ -1176,6 +1188,8 @@ private fun GrupoRedeTree(
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.W600,
                                 color = LkColors.success,
+                                maxLines = 1,
+                                softWrap = false,
                             )
                         }
                     }
@@ -1191,7 +1205,11 @@ private fun GrupoRedeTree(
                 }
                 val count = nos.size
                 Text(
-                    "$count nó${if (count != 1) "s" else ""} detectado${if (count != 1) "s" else ""}",
+                    if (ehDualBandUnico) {
+                        "Roteador dual-band"
+                    } else {
+                        "$count nó${if (count != 1) "s" else ""} detectado${if (count != 1) "s" else ""}"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = c.textTertiary,
                 )
@@ -1208,6 +1226,7 @@ private fun GrupoRedeTree(
                 label =
                     when {
                         isConnected -> "Conectado agora"
+                        ehDualBandUnico -> "Mesma rede · ${no.banda}"
                         index == 0 -> "Gateway"
                         else -> "Nó #$index"
                     },
@@ -1220,7 +1239,7 @@ private fun GrupoRedeTree(
         }
 
         // Aviso de estimativa quando há mais de um nó
-        if (nos.size > 1) {
+        if (nos.size > 1 && !ehDualBandUnico) {
             Spacer(Modifier.height(LkSpacing.sm))
             Text(
                 "* Gateway estimado pelo sinal mais forte",

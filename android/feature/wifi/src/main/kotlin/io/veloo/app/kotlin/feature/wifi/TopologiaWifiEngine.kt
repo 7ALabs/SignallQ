@@ -50,8 +50,16 @@ object TopologiaWifiEngine {
         // Caso 3: Múltiplas redes com mesmo SSID
         if (redesMesmoSsid.size > 1) {
             return if (todosOuiIguais) {
-                // Mesmo OUI → sistema mesh (marca própria)
-                RedeClassificada(rede, TipoTopologia.NO_MESH, ConfiancaTopologia.MEDIA, "Múltiplos BSSIDs, mesmo OUI — sistema mesh provável")
+                // Mesmo OUI: distinguir roteador dual/tri-band único de sistema mesh.
+                // Um AP físico único expõe cada banda uma vez (2.4/5/6 GHz sem repetição);
+                // mesh de verdade repete bandas entre nós.
+                val bandas = redesMesmoSsid.map { it.banda }
+                val semBandaRepetida = bandas.size == bandas.toSet().size
+                if (semBandaRepetida) {
+                    RedeClassificada(rede, TipoTopologia.ROTEADOR, ConfiancaTopologia.MEDIA, "Mesmo AP em bandas distintas — roteador dual-band")
+                } else {
+                    RedeClassificada(rede, TipoTopologia.NO_MESH, ConfiancaTopologia.MEDIA, "Múltiplos BSSIDs, mesmo OUI — sistema mesh provável")
+                }
             } else {
                 // OUIs diferentes → repetidor
                 // O mais forte (maior RSSI) é provavelmente o roteador principal
