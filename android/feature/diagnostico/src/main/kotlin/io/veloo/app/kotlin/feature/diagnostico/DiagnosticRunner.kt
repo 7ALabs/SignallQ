@@ -73,7 +73,7 @@ object DiagnosticRunner {
 
         val recomendacoes = RecommendationEngine.recomendar(input = input, achados = achados)
 
-        return DiagnosticReport(
+        val reportParcial = DiagnosticReport(
             wifiResultados = wifiQuality.resultados,
             internetResultados = internetResultados,
             mobileResultados = mobileResultados,
@@ -90,6 +90,13 @@ object DiagnosticRunner {
             perfisUsoSpeedtest = input.internet?.qualidadeUso,
             geradoEmMs = System.currentTimeMillis(),
         )
+
+        val scoreResultado = ScoreEngine.calcular(
+            tipo = ScoreEvidenceBuilder.tipoConexao(input),
+            evidencias = ScoreEvidenceBuilder.construir(input, reportParcial),
+        )
+
+        return reportParcial.copy(scoreEngineResultado = scoreResultado)
     }
 
     private const val CAT_REDE = "rede"

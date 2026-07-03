@@ -26,6 +26,12 @@ data class DiagnosticReport(
      *  `motor-diagnostico`. Aditivo: pode ter zero, uma ou várias simultâneas. */
     val recomendacoes: List<DiagnosticResult> = emptyList(),
     val perfisUsoSpeedtest: SpeedtestQualityInput? = null,
+    /** Resultado do [ScoreEngine] (SIG-288) — pontuacao ponderada por dimensao,
+     *  com reponderacao automatica quando falta dado confiavel. Nulo quando o
+     *  [DiagnosticRunner] nao recebeu [DiagnosticInput] suficiente para calcular
+     *  nenhuma dimensao; nesse caso [scoreConexao] cai para a tabela legada baseada
+     *  em [decisao].status. */
+    val scoreEngineResultado: ScoreResult? = null,
     val geradoEmMs: Long,
 ) {
     private val todos: List<DiagnosticResult>
@@ -43,11 +49,14 @@ data class DiagnosticReport(
     val temCritico: Boolean get() = todos.any { it.status == DiagnosticStatus.critical }
     val temAtencao: Boolean get() = todos.any { it.status == DiagnosticStatus.attention }
 
-    // Score 0–100 derivado do status da decisão final.
-    // ok=90, info=75, attention=65/55, critical=25/15, inconclusive=50.
+    // Score 0–100. Preferencialmente calculado pelo ScoreEngine (SIG-288), que pondera
+    // por dimensao (estabilidade/wifi/velocidade/dns/historico/fibra/sinal movel) em vez
+    // de derivar so do status categorico da decisao final. Cai para a tabela legada
+    // (ok=90, info=75, attention=65/55, critical=25/15, inconclusive=50) quando o
+    // ScoreEngine nao teve nenhuma dimensao com dado disponivel.
     val scoreConexao: Int
         get() =
-            when (decisao.status) {
+            scoreEngineResultado?.score ?: when (decisao.status) {
                 DiagnosticStatus.ok -> 90
                 DiagnosticStatus.info -> 75
                 DiagnosticStatus.attention -> if (decisao.podeConcluir) 55 else 65
