@@ -95,6 +95,9 @@ Nota: a posição Y de "Medir agora" e dos filtros muda conforme o filtro de ope
 | (scroll) "Gerenciar dados locais" | 461 | ~610 pós-scroll |
 | (scroll) "Fale conosco" | 461 | ~955 pós-scroll |
 | (scroll) "Sobre o SignallQ" | 461 | ~1420 pós-scroll |
+| (scroll, seção AVANÇADO) "Fibra óptica" | 461 | ~1550 pós-scroll | **Dead click confirmado com rede ativa** (issue #384) |
+
+Nota: "Fibra óptica" só aparece após rolar Ajustes até o fim, seção "AVANÇADO" (abaixo de "Consumo em testes este mês"). Fácil de não notar em testes rápidos — não é um atalho da Home nem do Diagnóstico.
 
 ## Armadilhas identificadas nesta sessão
 
