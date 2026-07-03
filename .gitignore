@@ -19,6 +19,8 @@ key.properties
 *.keystore
 *.crt
 *.key
+play-service-account*.json
+play-publisher*.json
 .env
 .env.*
 !.env.example
