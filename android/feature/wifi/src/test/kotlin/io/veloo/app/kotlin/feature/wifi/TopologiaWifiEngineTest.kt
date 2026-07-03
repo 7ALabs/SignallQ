@@ -15,11 +15,12 @@ class TopologiaWifiEngineTest {
         bssid: String = "AA:BB:CC:DD:EE:FF",
         rssiDbm: Int = -60,
         oui: String = "",
+        frequenciaMhz: Int = 2412,
     ) = RedeVizinha(
         ssid = ssid,
         bssid = bssid,
         rssiDbm = rssiDbm,
-        frequenciaMhz = 2412,
+        frequenciaMhz = frequenciaMhz,
         seguranca = SegurancaWifi.wpa2,
         larguraCanalMhz = 20,
         oui = oui,
@@ -79,6 +80,42 @@ class TopologiaWifiEngineTest {
         assertEquals(1, resultado.size)
         assertEquals(TipoTopologia.NO_MESH, resultado.first().tipo)
         assertEquals(ConfiancaTopologia.ALTA, resultado.first().confianca)
+    }
+
+    // ----------------------------------------------------------------
+    // Teste 3b — roteador dual-band único (mesmo SSID/OUI, 2.4 + 5 GHz) → ROTEADOR, não mesh
+    // ----------------------------------------------------------------
+
+    @Test
+    fun `classificar dual-band do mesmo AP nao retorna mesh`() {
+        val oui = "AABBCC"
+        val redes = listOf(
+            rede(ssid = "CasaDual", bssid = "AA:BB:CC:00:00:01", oui = oui, frequenciaMhz = 2412),
+            rede(ssid = "CasaDual", bssid = "AA:BB:CC:00:00:02", oui = oui, frequenciaMhz = 5180),
+        )
+
+        val resultado = TopologiaWifiEngine.classificar(redes = redes, connectedBssid = null)
+
+        assertEquals(2, resultado.size)
+        assertTrue(resultado.all { it.tipo == TipoTopologia.ROTEADOR })
+    }
+
+    // ----------------------------------------------------------------
+    // Teste 3c — mesh real (mesmo OUI, banda repetida entre nós) → NO_MESH
+    // ----------------------------------------------------------------
+
+    @Test
+    fun `classificar mesmo OUI com banda repetida retorna NO_MESH`() {
+        val oui = "AABBCC"
+        val redes = listOf(
+            rede(ssid = "CasaMesh", bssid = "AA:BB:CC:00:00:01", oui = oui, frequenciaMhz = 2412),
+            rede(ssid = "CasaMesh", bssid = "AA:BB:CC:00:00:02", oui = oui, frequenciaMhz = 2412),
+        )
+
+        val resultado = TopologiaWifiEngine.classificar(redes = redes, connectedBssid = null)
+
+        assertEquals(2, resultado.size)
+        assertTrue(resultado.all { it.tipo == TipoTopologia.NO_MESH })
     }
 
     // ----------------------------------------------------------------
