@@ -46,6 +46,8 @@ object RecommendationEngine {
         recomendarFibraComProblema(input)?.let { recomendacoes += it }
         recomendarRedeMovelFraca(input)?.let { recomendacoes += it }
         recomendarPerdaDePacotes(input)?.let { recomendacoes += it }
+        recomendarDevicePresetGaming(input)?.let { recomendacoes += it }
+        recomendarUpgradeRoteadorRecorrente(input)?.let { recomendacoes += it }
         recomendarScoreGeral(achados, recomendacoes)?.let { recomendacoes += it }
 
         return recomendacoes
@@ -425,16 +427,107 @@ object RecommendationEngine {
     }
 
     // -------------------------------------------------------------------------
+    // 13. Preset de device para jogos (SIG-290, GameReadinessClassifier)
+    // -------------------------------------------------------------------------
+    // Mostrar: quando alguma das 3 categorias de prontidao para jogos (aba 10) NAO
+    // esta "Bom" — texto condicional por device. Device automatico (o proprio
+    // Android/iPhone rodando o app) usa os dados JA coletados (Wi-Fi/RSSI). Os
+    // demais presets (PS5/PS4, Xbox, PC, Switch) sao texto condicional, acionados
+    // apenas quando o usuario respondeu a pergunta "qual jogo/console voce mais
+    // usa" (arvore "qual_jogo_device", DynamicQuestionEngine) — sem esse dado, nao
+    // ha base para citar um device que o app nao mediu.
+    // NAO mostrar: todas as 3 categorias "Bom" (nada a recomendar).
+    private fun recomendarDevicePresetGaming(input: DiagnosticInput): DiagnosticResult? {
+        val readiness = GameReadinessClassifier.classificarTodos(input)
+        val comProblema = readiness.filter {
+            it.status == GameReadinessClassifier.ReadinessStatus.Atencao ||
+                it.status == GameReadinessClassifier.ReadinessStatus.Ruim
+        }
+        if (comProblema.isEmpty()) return null
+
+        val critico = comProblema.any { it.status == GameReadinessClassifier.ReadinessStatus.Ruim }
+        val dicaDevice = dicaPresetDevice(input.deviceGamingSelecionado)
+        val categorias = comProblema.joinToString(", ") { it.categoria.labelCurto() }
+
+        return DiagnosticResult(
+            id = "REC-13",
+            titulo = "Ajustes recomendados para jogar melhor",
+            status = if (critico) DiagnosticStatus.critical else DiagnosticStatus.attention,
+            evidencia = "categoriasComProblema=$categorias device=${input.deviceGamingSelecionado ?: "auto(android/iphone)"}",
+            mensagemUsuario = "Sua conexão não está no ponto ideal para $categorias no momento.",
+            recomendacao = dicaDevice,
+            categoria = CAT,
+        )
+    }
+
+    private fun GameReadinessClassifier.Categoria.labelCurto(): String = when (this) {
+        GameReadinessClassifier.Categoria.FPS_COMPETITIVO -> "FPS competitivo"
+        GameReadinessClassifier.Categoria.CLOUD_GAMING -> "cloud gaming"
+        GameReadinessClassifier.Categoria.MOBILE_COMPETITIVO -> "mobile competitivo"
+    }
+
+    // Device presets (aba 10): dado/checklist plugado aqui, sem engine nova. Cada
+    // preset cita o sinal proprio que o documento associa aquele device. "mobile"
+    // e o unico automatico de verdade (dados ja vem do proprio Android rodando o
+    // app); os demais sao texto condicional so quando o usuario seleciona o device
+    // manualmente na arvore "qual_jogo_device".
+    private fun dicaPresetDevice(device: String?): String = when (device) {
+        "playstation" -> "No PS5/PS4: prefira cabo Ethernet quando possível; se usar Wi-Fi, fique perto do roteador em 5GHz. Verifique o tipo de NAT em Configurações > Rede — NAT tipo 3 prejudica partidas com outros jogadores."
+        "xbox" -> "No Xbox: verifique o tipo de NAT em Configurações > Rede — NAT Restrito ou Estrito prejudica matchmaking e chat. Ative UPnP no roteador se disponível, ou configure port forwarding manual."
+        "pc" -> "No PC: atualize o driver da placa de Wi-Fi, desative o modo de economia de energia do adaptador de rede e feche downloads/updates em segundo plano (Steam, Windows Update) antes de jogar."
+        "switch" -> "No Nintendo Switch: o Wi-Fi do console é mais limitado — fique o mais próximo possível do roteador, de preferência com linha de visada direta."
+        "mobile", null -> "No celular: jogue perto do roteador em 5GHz, evite a alternância automática entre Wi-Fi e rede móvel e ative o modo de economia de bateria só depois de jogar."
+        else -> "Priorize a rede 5GHz perto do roteador, reduza downloads em segundo plano e evite Wi-Fi fraco."
+    }
+
+    // -------------------------------------------------------------------------
+    // 14. Upgrade de roteador/mesh/Wi-Fi 6E — SOMENTE com recorrencia
+    // -------------------------------------------------------------------------
+    // Mostrar: achado de Wi-Fi/canal congestionado/roteador limitado JA recorrente
+    // no historico (mesma infraestrutura 7d/30d do HistoricalDegradationEngine —
+    // input.historico.degradationDetected). NUNCA no primeiro teste isolado, mesmo
+    // que o teste atual esteja ruim — recomendacao de compra exige padrao repetido.
+    private fun recomendarUpgradeRoteadorRecorrente(input: DiagnosticInput): DiagnosticResult? {
+        val historico = input.historico ?: return null
+        if (historico.degradationDetected != true) return null
+
+        val wifi = input.wifi ?: return null
+        val banda = wifi.banda()
+        val rssiFraco = when (banda) {
+            BandaWifi.ghz24 -> (wifi.rssiDbm ?: 0) < -60
+            BandaWifi.ghz5 -> (wifi.rssiDbm ?: 0) < -65
+            BandaWifi.desconhecida -> (wifi.rssiDbm ?: 0) < -60
+        }
+        val linkBaixo = (wifi.linkSpeedMbps ?: Int.MAX_VALUE) < 144
+        val problemaWifiRecorrente = rssiFraco || linkBaixo || banda == BandaWifi.ghz24
+        if (!problemaWifiRecorrente) return null
+
+        return DiagnosticResult(
+            id = "REC-14",
+            titulo = "Considere trocar o roteador",
+            status = DiagnosticStatus.info,
+            evidencia = "degradacaoRecorrente=true banda=$banda rssi=${wifi.rssiDbm ?: "—"}dBm linkSpeed=${wifi.linkSpeedMbps ?: "—"}Mbps degradacaoPercent=${historico.degradationPercent ?: "—"}",
+            mensagemUsuario = "O problema de Wi-Fi vem se repetindo nos últimos testes, não é algo pontual de hoje.",
+            recomendacao = "Considere um roteador Wi-Fi 6E ou um sistema mesh — equipamentos mais recentes lidam melhor com múltiplos dispositivos e ambientes congestionados que o roteador atual parece não estar suportando bem.",
+            categoria = CAT,
+        )
+    }
+
+    // -------------------------------------------------------------------------
     // 12. Score geral
     // -------------------------------------------------------------------------
     // Recomendacao-resumo quando multiplos fatores convergem: principal + pelo
     // menos 2 outras recomendacoes/achados relevantes (nao-ok) no mesmo diagnostico.
+    // REC-13/REC-14 (gaming, SIG-290) ficam FORA da contagem: sao derivados dos
+    // mesmos numeros que ja geraram outras recomendacoes (ex.: bufferbloat alto ja
+    // conta via REC-05) — contar de novo inflaria "fatores" artificialmente.
     private fun recomendarScoreGeral(
         achados: FindingResult,
         recomendacoesGeradas: List<DiagnosticResult>,
     ): DiagnosticResult? {
         val fatoresRelevantes = recomendacoesGeradas.count {
-            it.status == DiagnosticStatus.attention || it.status == DiagnosticStatus.critical
+            it.id !in setOf("REC-13", "REC-14") &&
+                (it.status == DiagnosticStatus.attention || it.status == DiagnosticStatus.critical)
         } + achados.secundarios.count {
             it.status == DiagnosticStatus.attention || it.status == DiagnosticStatus.critical
         }

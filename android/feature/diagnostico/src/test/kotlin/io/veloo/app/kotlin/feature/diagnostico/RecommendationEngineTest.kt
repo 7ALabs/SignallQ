@@ -463,6 +463,88 @@ class RecommendationEngineTest {
     }
 
     // -------------------------------------------------------------------------
+    // 13. Preset de device para jogos (SIG-290)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `situacao 13 - mostra recomendacao de device quando fps competitivo esta ruim`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.wifi,
+            wifi = WifiDiagnosticInput(rssiDbm = -50, linkSpeedMbps = 300, frequenciaMhz = 5200),
+            internet = InternetDiagnosticInput(
+                downloadMbps = 100.0, uploadMbps = 20.0, latencyMs = 150.0, jitterMs = 5.0, perdaPercentual = 0.0,
+            ),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        assertTrue(r.any { it.id == "REC-13" })
+    }
+
+    @Test
+    fun `situacao 13 - usa dica especifica do xbox quando device selecionado`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.wifi,
+            wifi = WifiDiagnosticInput(rssiDbm = -50, linkSpeedMbps = 300, frequenciaMhz = 5200),
+            internet = InternetDiagnosticInput(
+                downloadMbps = 100.0, uploadMbps = 20.0, latencyMs = 150.0, jitterMs = 5.0, perdaPercentual = 0.0,
+            ),
+            deviceGamingSelecionado = "xbox",
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val rec = r.first { it.id == "REC-13" }
+        assertTrue(rec.recomendacao?.contains("NAT", ignoreCase = true) == true)
+    }
+
+    @Test
+    fun `situacao 13 - nao mostra quando as 3 categorias de jogos estao boas`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.wifi,
+            wifi = WifiDiagnosticInput(rssiDbm = -50, linkSpeedMbps = 300, frequenciaMhz = 5200),
+            internet = InternetDiagnosticInput(
+                downloadMbps = 100.0, uploadMbps = 20.0, latencyMs = 20.0, jitterMs = 5.0, perdaPercentual = 0.0,
+                bufferbloatMs = 10.0,
+            ),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        assertFalse(r.any { it.id == "REC-13" })
+    }
+
+    // -------------------------------------------------------------------------
+    // 14. Upgrade de roteador/mesh — somente com recorrencia
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `situacao 14 - mostra upgrade de roteador quando wifi fraco recorrente no historico`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.wifi,
+            wifi = WifiDiagnosticInput(rssiDbm = -78, linkSpeedMbps = 30, frequenciaMhz = 2437),
+            historico = HistoricalDiagnosticInput(degradationDetected = true, degradationPercent = 35.0),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        assertTrue(r.any { it.id == "REC-14" })
+    }
+
+    @Test
+    fun `situacao 14 - nao mostra upgrade no primeiro teste isolado sem historico de degradacao`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.wifi,
+            wifi = WifiDiagnosticInput(rssiDbm = -78, linkSpeedMbps = 30, frequenciaMhz = 2437),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        assertFalse(r.any { it.id == "REC-14" })
+    }
+
+    @Test
+    fun `situacao 14 - nao mostra upgrade quando historico existe mas sem degradacao detectada`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.wifi,
+            wifi = WifiDiagnosticInput(rssiDbm = -78, linkSpeedMbps = 30, frequenciaMhz = 2437),
+            historico = HistoricalDiagnosticInput(degradationDetected = false),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        assertFalse(r.any { it.id == "REC-14" })
+    }
+
+    // -------------------------------------------------------------------------
     // Sanidade: sem input nenhum, engine nao quebra e nao gera recomendacoes
     // -------------------------------------------------------------------------
 
