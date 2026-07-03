@@ -34,3 +34,6 @@ Trilha default: `alpha` (teste fechado). Override com `-PplayTrack=`.
 
 Versão publicada vem de `libs.versions.toml` (`versionCode` / `versionName`).
 Subir o `versionCode` antes de cada envio — a Play rejeita code repetido.
+
+Release notes públicas (o que aparece na ficha da Play e no corpo do GitHub
+Release): ver `app/src/main/play/release-notes/pt-BR/`.
