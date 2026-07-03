@@ -79,6 +79,7 @@ import io.signallq.app.feature.diagnostico.ConnectionType
 import io.signallq.app.feature.diagnostico.DiagSignalSelection
 import io.signallq.app.feature.diagnostico.DiagnosticReport
 import io.signallq.app.feature.diagnostico.EstadoDiagnostico
+import io.signallq.app.feature.diagnostico.GameReadinessClassifier
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.diagnostico.UsageProfileClassifier
 import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
@@ -1028,23 +1029,28 @@ private fun buildSecondaryRootCauses(result: AiDiagnosisResult): List<RootCauseE
  * Sem [report] (fluxo de teste sem snapshot completo), cai para o texto legado da
  * IA para nao quebrar telas existentes.
  */
-private fun buildImpactItems(report: DiagnosticReport?, result: AiDiagnosisResult): List<ImpactItem> {
+private fun buildImpactItems(
+    report: DiagnosticReport?,
+    result: AiDiagnosisResult,
+): List<ImpactItem> {
     if (report == null || report.perfisUso.isEmpty()) return buildImpactItemsLegado(result)
 
-    val iconePorPerfil = mapOf(
-        UsageProfileClassifier.Perfil.NAVEGACAO to Icons.Outlined.Language,
-        UsageProfileClassifier.Perfil.STREAMING to Icons.Outlined.BarChart,
-        UsageProfileClassifier.Perfil.VIDEOCHAMADA to Icons.Outlined.NetworkWifi,
-        UsageProfileClassifier.Perfil.JOGOS to Icons.Outlined.Speed,
-        UsageProfileClassifier.Perfil.TRABALHO to Icons.Outlined.Refresh,
-    )
-    val labelPorPerfil = mapOf(
-        UsageProfileClassifier.Perfil.NAVEGACAO to "Navegação",
-        UsageProfileClassifier.Perfil.STREAMING to "Streaming",
-        UsageProfileClassifier.Perfil.VIDEOCHAMADA to "Videochamadas",
-        UsageProfileClassifier.Perfil.JOGOS to "Jogos",
-        UsageProfileClassifier.Perfil.TRABALHO to "Trabalho remoto",
-    )
+    val iconePorPerfil =
+        mapOf(
+            UsageProfileClassifier.Perfil.NAVEGACAO to Icons.Outlined.Language,
+            UsageProfileClassifier.Perfil.STREAMING to Icons.Outlined.BarChart,
+            UsageProfileClassifier.Perfil.VIDEOCHAMADA to Icons.Outlined.NetworkWifi,
+            UsageProfileClassifier.Perfil.JOGOS to Icons.Outlined.Speed,
+            UsageProfileClassifier.Perfil.TRABALHO to Icons.Outlined.Refresh,
+        )
+    val labelPorPerfil =
+        mapOf(
+            UsageProfileClassifier.Perfil.NAVEGACAO to "Navegação",
+            UsageProfileClassifier.Perfil.STREAMING to "Streaming",
+            UsageProfileClassifier.Perfil.VIDEOCHAMADA to "Videochamadas",
+            UsageProfileClassifier.Perfil.JOGOS to "Jogos",
+            UsageProfileClassifier.Perfil.TRABALHO to "Trabalho remoto",
+        )
 
     return report.perfisUso.mapNotNull { perfil ->
         val status = perfil.status ?: return@mapNotNull null
@@ -1054,9 +1060,45 @@ private fun buildImpactItems(report: DiagnosticReport?, result: AiDiagnosisResul
             label = labelPorPerfil.getValue(perfil.perfil),
             status = label,
             statusColor = color,
+            detalhes =
+                if (perfil.perfil == UsageProfileClassifier.Perfil.JOGOS) {
+                    buildGameReadinessDetalhes(report)
+                } else {
+                    null
+                },
         )
     }
 }
+
+/**
+ * Texto do "ver detalhes" do card Jogos (SIG-290) — categoria de jogo
+ * detectada/selecionada + recomendacao do [GameReadinessClassifier]/device
+ * preset. Reaproveita [DiagnosticReport.gameReadiness], ja calculado pelo
+ * [io.signallq.app.feature.diagnostico.DiagnosticRunner] a partir do mesmo
+ * [io.signallq.app.feature.diagnostico.DiagnosticInput] — sem recalcular na UI.
+ */
+private fun buildGameReadinessDetalhes(report: DiagnosticReport): String? {
+    if (report.gameReadiness.isEmpty()) return null
+    return report.gameReadiness.joinToString("\n\n") { categoria ->
+        val titulo = categoria.categoria.labelDetalhado()
+        val statusTexto = categoria.status?.let { it.name } ?: "Sem dados"
+        buildString {
+            append("$titulo · $statusTexto\n")
+            append(categoria.motivo)
+            categoria.recomendacao?.let { rec ->
+                append("\n")
+                append(rec)
+            }
+        }
+    }
+}
+
+private fun GameReadinessClassifier.Categoria.labelDetalhado(): String =
+    when (this) {
+        GameReadinessClassifier.Categoria.FPS_COMPETITIVO -> "FPS competitivo"
+        GameReadinessClassifier.Categoria.CLOUD_GAMING -> "Cloud gaming"
+        GameReadinessClassifier.Categoria.MOBILE_COMPETITIVO -> "Mobile competitivo"
+    }
 
 private fun usageStatusToLabelAndColor(status: UsageProfileClassifier.UsageProfileStatus): Pair<String, Color> =
     when (status) {

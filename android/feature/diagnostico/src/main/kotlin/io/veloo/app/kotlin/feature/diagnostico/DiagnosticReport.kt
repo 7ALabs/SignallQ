@@ -38,6 +38,11 @@ data class DiagnosticReport(
      *  [DiagnosticRunner] nao recebeu [DiagnosticInput] (nunca deve acontecer em
      *  producao — [DiagnosticRunner.run] sempre calcula a partir do input recebido). */
     val perfisUso: List<UsageProfileClassifier.UsageProfileResult> = emptyList(),
+    /** Prontidao para jogos por categoria (SIG-290), calculada localmente pelo
+     *  [GameReadinessClassifier]. Usado pelo "ver detalhes" do card Jogos em vez de
+     *  recalcular na UI. Vazio quando o [DiagnosticRunner] nao recebeu [DiagnosticInput]
+     *  (nunca deve acontecer em producao). */
+    val gameReadiness: List<GameReadinessClassifier.GameReadinessResult> = emptyList(),
     val geradoEmMs: Long,
 ) {
     private val todos: List<DiagnosticResult>

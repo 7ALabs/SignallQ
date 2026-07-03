@@ -541,7 +541,7 @@ private suspend fun gerarECompartilharLaudo(
             var y = 55f
 
             // Cabeçalho
-            canvas.drawText("LINKA — Laudo Técnico", margem, y, paintTitulo)
+            canvas.drawText("SignallQ — Laudo Técnico", margem, y, paintTitulo)
             y += 18f
             canvas.drawText("Diagnóstico de rede doméstica", margem, y, paintSubtitulo)
             y += 14f
@@ -656,7 +656,7 @@ private suspend fun gerarECompartilharLaudo(
 
             // Rodapé
             canvas.drawLine(margem, 800f, 595f - margem, 800f, paintLinha)
-            canvas.drawText("Gerado pelo app LINKA", margem, 818f, paintFooter)
+            canvas.drawText("Gerado pelo app SignallQ", margem, 818f, paintFooter)
 
             document.finishPage(page)
 

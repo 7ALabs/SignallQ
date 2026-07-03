@@ -89,6 +89,7 @@ object DiagnosticRunner {
             recomendacoes = recomendacoes,
             perfisUsoSpeedtest = input.internet?.qualidadeUso,
             perfisUso = UsageProfileClassifier.classificarTodos(input),
+            gameReadiness = GameReadinessClassifier.classificarTodos(input),
             geradoEmMs = System.currentTimeMillis(),
         )
 
