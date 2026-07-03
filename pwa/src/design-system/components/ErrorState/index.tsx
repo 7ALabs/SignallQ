@@ -1,6 +1,6 @@
-import { AlertTriangle } from 'lucide-react';
 import { Button } from '../Button';
 import { Card } from '../Card';
+import { Icon } from '../Icon';
 
 export interface ErrorStateProps {
   actionLabel?: string;
@@ -13,7 +13,7 @@ export function ErrorState({ actionLabel, description, onAction, title }: ErrorS
   return (
     <Card className="sq-state-card sq-state-card--error" variant="outlined">
       <div className="sq-state-card__icon">
-        <AlertTriangle aria-hidden="true" size={22} />
+        <Icon name="error" size={22} />
       </div>
       <h3>{title}</h3>
       <p>{description}</p>

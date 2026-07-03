@@ -1,5 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
+@import './tokens.css';
 @import '../design-system/styles.css';
 
 * {
@@ -14,9 +14,9 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: var(--sq-color-background);
-  color: var(--sq-color-on-surface);
-  font-family: var(--sq-font-family);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
 }
 
 button,
@@ -28,6 +28,6 @@ select {
 
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--sq-color-primary) 34%, transparent);
+  outline: 3px solid color-mix(in srgb, var(--accent) 34%, transparent);
   outline-offset: 3px;
 }

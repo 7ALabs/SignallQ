@@ -1,6 +1,6 @@
-import { ArrowRight } from 'lucide-react';
 import { ReactNode } from 'react';
 import { Card } from '../Card';
+import { Icon } from '../Icon';
 
 export interface ActionCardProps {
   action?: ReactNode;
@@ -16,10 +16,10 @@ export function ActionCard({ action, description, icon, meta, onClick, title }: 
     action ??
     (onClick ? (
       <button className="sq-action-card__button" type="button" onClick={onClick} aria-label={`Abrir ${title}`}>
-        <ArrowRight aria-hidden="true" size={20} />
+        <Icon name="chevron_right" size={20} />
       </button>
     ) : (
-      <ArrowRight aria-hidden="true" size={20} />
+      <Icon name="chevron_right" size={20} />
     ));
 
   return (

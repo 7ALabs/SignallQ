@@ -3,7 +3,7 @@ import { ButtonHTMLAttributes, ReactNode } from 'react';
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: ReactNode;
   isLoading?: boolean;
-  variant?: 'primary' | 'secondary' | 'tonal' | 'text';
+  variant?: 'primary' | 'secondary' | 'tonal' | 'text' | 'outline' | 'danger-outline';
 }
 
 export function Button({ children, className = '', icon, isLoading = false, variant = 'primary', ...props }: ButtonProps) {

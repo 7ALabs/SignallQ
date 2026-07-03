@@ -1,20 +1,30 @@
-import { CheckCircle2 } from 'lucide-react';
 import { Card } from '../Card';
+import { Icon } from '../Icon';
 
-export interface RecommendationListProps {
-  items: string[];
+export interface RecommendationListItem {
+  description: string;
+  icon: string;
+  iconColor?: 'accent' | 'success';
   title: string;
 }
 
-export function RecommendationList({ items, title }: RecommendationListProps) {
+export interface RecommendationListProps {
+  items: RecommendationListItem[];
+  title?: string;
+}
+
+export function RecommendationList({ items, title = 'Recomendações' }: RecommendationListProps) {
   return (
     <Card className="sq-recommendation-list" variant="surface">
-      <h3>{title}</h3>
+      <span className="overline">{title}</span>
       <ul>
         {items.map((item) => (
-          <li key={item}>
-            <CheckCircle2 aria-hidden="true" size={18} />
-            <span>{item}</span>
+          <li key={item.title}>
+            <Icon name={item.icon} size={19} style={{ color: item.iconColor === 'success' ? 'var(--success)' : 'var(--accent)' }} />
+            <div>
+              <strong>{item.title}</strong>
+              <span>{item.description}</span>
+            </div>
           </li>
         ))}
       </ul>
