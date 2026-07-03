@@ -74,12 +74,26 @@ jobs:
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
 
+      - name: Ler release notes públicas
+        id: notas
+        run: |
+          NOTAS_FILE="android/app/src/main/play/release-notes/pt-BR/default.txt"
+          if [ -f "$NOTAS_FILE" ]; then
+            {
+              echo "corpo<<NOTASEOF"
+              cat "$NOTAS_FILE"
+              echo "NOTASEOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "corpo=Ver CHANGELOG interno." >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Criar GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "SignallQ v${{ steps.versao.outputs.name }} (build ${{ steps.versao.outputs.code }})"
+          body: ${{ steps.notas.outputs.corpo }}
           draft: true
-          generate_release_notes: true
           files: |
             android/app/build/outputs/bundle/release/signallq-*.aab
             android/app/build/outputs/apk/release/signallq-*.apk
