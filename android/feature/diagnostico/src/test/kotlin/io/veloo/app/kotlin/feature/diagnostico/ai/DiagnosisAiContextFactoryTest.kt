@@ -62,7 +62,7 @@ class DiagnosisAiContextFactoryTest {
 
         val ctx = DiagnosisAiContextFactory.from(fakeReport(), input, ConnectionType.wifi)
 
-        assertEquals("4", ctx.schemaVersion)
+        assertEquals("5", ctx.schemaVersion)
         assertNotNull(ctx.metricasAtuais)
         assertEquals(294.0, ctx.metricasAtuais!!.downloadMbps!!, 0.01)
         assertEquals(411.0, ctx.metricasAtuais!!.uploadMbps!!, 0.01)
@@ -158,12 +158,12 @@ class DiagnosisAiContextFactoryTest {
         assertNull(ctx.metricasAtuais)
         assertNull(ctx.contextoRede)
         assertNull(ctx.historico)
-        assertEquals("4", ctx.schemaVersion)
+        assertEquals("5", ctx.schemaVersion)
     }
 
     @Test
-    fun aiPromptVersion_constante_atualizadaParaV4Guided() {
-        assertEquals("diagnostico_v4_guided", AI_PROMPT_VERSION)
+    fun aiPromptVersion_constante_atualizadaParaV5LocalPrimary() {
+        assertEquals("diagnostico_v5_local_primary", AI_PROMPT_VERSION)
         assertTrue(AI_PROMPT_VERSION.startsWith("diagnostico_"))
     }
 

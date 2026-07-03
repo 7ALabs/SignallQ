@@ -493,12 +493,13 @@ class AiDiagnosisRepositoryTest {
     }
 
     // -------------------------------------------------------------------------
-    // AI_PROMPT_VERSION — bump para "diagnostico_v2_gemma4" garante invalidacao
-    // de respostas antigas geradas com Llama/prompt v2 anterior.
+    // AI_PROMPT_VERSION — bump para "diagnostico_v5_local_primary" (SIG-282)
+    // garante invalidacao de caches gerados com o prompt v4 anterior, quando
+    // achadosLocais ainda chegava vazio/ausente na pratica.
     // -------------------------------------------------------------------------
     @Test
-    fun aiPromptVersion_estaBumpadoParaV4Guided_invalidaCachesAntigos() {
-        assertEquals("diagnostico_v4_guided", AI_PROMPT_VERSION)
+    fun aiPromptVersion_estaBumpadoParaV5LocalPrimary_invalidaCachesAntigos() {
+        assertEquals("diagnostico_v5_local_primary", AI_PROMPT_VERSION)
     }
 
     // -------------------------------------------------------------------------
@@ -506,7 +507,7 @@ class AiDiagnosisRepositoryTest {
     // -------------------------------------------------------------------------
 
     private fun fakeDiagnosisAiContext(): DiagnosisAiContext = DiagnosisAiContext(
-        schemaVersion = "3",
+        schemaVersion = "5",
         generatedAtEpochMs = 1700000000000L,
         connectionType = io.signallq.app.feature.diagnostico.ConnectionType.wifi,
         evidencias = emptyList(),
@@ -648,12 +649,13 @@ class AiDiagnosisRepositoryTest {
     }
 
     // -------------------------------------------------------------------------
-    // Item #7 — payload v3 NÃO deve conter campos de análise prévia
+    // Item #7 — payload v5 (schema raw atual, SIG-282) NÃO deve conter campos
+    // de análise prévia — regra herdada do payload v3 e nunca revertida.
     // -------------------------------------------------------------------------
     @Test
-    fun contextToJson_v3_naoContemAnalisePrevia() {
+    fun contextToJson_v5_naoContemAnalisePrevia() {
         val ctx = DiagnosisAiContext(
-            schemaVersion = "3",
+            schemaVersion = "5",
             generatedAtEpochMs = 1700000000000L,
             connectionType = io.signallq.app.feature.diagnostico.ConnectionType.wifi,
             metricasAtuais = AiMetricasAtuais(
@@ -668,7 +670,7 @@ class AiDiagnosisRepositoryTest {
         )
         val json = repo.contextToJson(ctx).toString()
         // schemaVersion correto
-        assertTrue(json.contains("\"schemaVersion\":\"3\""))
+        assertTrue(json.contains("\"schemaVersion\":\"5\""))
         // Campos de análise prévia NÃO podem aparecer
         assertFalse("decisaoStatus removido", json.contains("decisaoStatus"))
         assertFalse("decisaoTitulo removido", json.contains("decisaoTitulo"))
@@ -694,7 +696,7 @@ class AiDiagnosisRepositoryTest {
     @Test
     fun contextToJson_serializaAchadosLocaisERttGateway() {
         val ctx = DiagnosisAiContext(
-            schemaVersion = "4",
+            schemaVersion = "5",
             generatedAtEpochMs = 1700000000000L,
             connectionType = io.signallq.app.feature.diagnostico.ConnectionType.wifi,
             metricasAtuais = AiMetricasAtuais(
@@ -725,7 +727,7 @@ class AiDiagnosisRepositoryTest {
     @Test
     fun contextToJson_achadosLocaisNull_naoSerializaCampo() {
         val ctx = DiagnosisAiContext(
-            schemaVersion = "4",
+            schemaVersion = "5",
             generatedAtEpochMs = 1700000000000L,
             connectionType = io.signallq.app.feature.diagnostico.ConnectionType.wifi,
             achadosLocais = null,
