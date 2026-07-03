@@ -32,6 +32,12 @@ data class DiagnosticReport(
      *  nenhuma dimensao; nesse caso [scoreConexao] cai para a tabela legada baseada
      *  em [decisao].status. */
     val scoreEngineResultado: ScoreResult? = null,
+    /** Perfis de uso (SIG-289) — Navegacao/Streaming/Jogos/Videochamada/Trabalho,
+     *  calculados localmente pelo [UsageProfileClassifier]. Substitui o antigo
+     *  `result.impacto.*` (texto livre decidido pela IA). Vazio quando o
+     *  [DiagnosticRunner] nao recebeu [DiagnosticInput] (nunca deve acontecer em
+     *  producao — [DiagnosticRunner.run] sempre calcula a partir do input recebido). */
+    val perfisUso: List<UsageProfileClassifier.UsageProfileResult> = emptyList(),
     val geradoEmMs: Long,
 ) {
     private val todos: List<DiagnosticResult>

@@ -88,6 +88,7 @@ object DiagnosticRunner {
             dadosAusentes = achados.dadosAusentes,
             recomendacoes = recomendacoes,
             perfisUsoSpeedtest = input.internet?.qualidadeUso,
+            perfisUso = UsageProfileClassifier.classificarTodos(input),
             geradoEmMs = System.currentTimeMillis(),
         )
 
