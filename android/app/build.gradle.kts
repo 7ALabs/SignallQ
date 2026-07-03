@@ -13,6 +13,7 @@ plugins {
     id("com.google.firebase.crashlytics")
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.play.publisher)
 }
 
 configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
@@ -38,6 +39,21 @@ private val adminIngestKey: String =
     localProperties.getProperty("ADMIN_INGEST_KEY")
         ?: System.getenv("ADMIN_INGEST_KEY")
         ?: ""
+
+// Publicacao na Play Console (gradle-play-publisher).
+// Service account JSON lida de key.properties (playServiceAccountFile) ou env
+// PLAY_SERVICE_ACCOUNT_JSON_FILE. NUNCA commitar o arquivo de credencial.
+// Trilha configuravel via -PplayTrack=... (default: alpha = teste fechado).
+play {
+    val serviceAccountPath =
+        (keyProperties["playServiceAccountFile"] as String?)
+            ?: System.getenv("PLAY_SERVICE_ACCOUNT_JSON_FILE")
+    if (serviceAccountPath != null) {
+        serviceAccountCredentials.set(rootProject.file(serviceAccountPath))
+    }
+    track.set(providers.gradleProperty("playTrack").orElse("alpha").get())
+    defaultToAppBundles.set(true)
+}
 
 android {
     namespace = "io.signallq.app"
