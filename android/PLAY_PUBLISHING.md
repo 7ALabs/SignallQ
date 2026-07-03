@@ -35,5 +35,19 @@ Trilha default: `alpha` (teste fechado). Override com `-PplayTrack=`.
 Versão publicada vem de `libs.versions.toml` (`versionCode` / `versionName`).
 Subir o `versionCode` antes de cada envio — a Play rejeita code repetido.
 
-Release notes públicas (o que aparece na ficha da Play e no corpo do GitHub
-Release): ver `app/src/main/play/release-notes/pt-BR/`.
+## Release notes públicas
+
+Ficam em `app/src/main/play/release-notes/pt-BR/default.txt` (lidas
+automaticamente pelo gradle-play-publisher no `publishReleaseBundle` e também
+reaproveitadas como corpo do GitHub Release pelo workflow `release.yml`).
+
+Regras para escrever a nota de cada versão:
+
+- Limite de 500 caracteres (limite da Play Console).
+- Português, tom direto, foco no que o usuário ganha — não é changelog técnico.
+- **Proibido**: nomes de marca antiga (Veloo/Linka), menção a Firebase App
+  Distribution, "beta", "teste fechado", nomes internos de squad/agente,
+  números de issue/PR.
+- O histórico técnico completo (com marca antiga, PRs, issues) continua só no
+  `CHANGELOG.md` — nunca copiar trechos dele direto para cá.
+- Atualizar este arquivo a cada bump de versão, antes de criar a tag.

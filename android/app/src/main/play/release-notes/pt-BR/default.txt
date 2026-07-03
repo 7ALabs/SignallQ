@@ -1,0 +1,1 @@
+Primeira versão do SignallQ: diagnóstico de conexão, análise de rede e explicações simples para entender a qualidade da sua internet.
