@@ -83,3 +83,12 @@ jobs:
           files: |
             android/app/build/outputs/bundle/release/signallq-*.aab
             android/app/build/outputs/apk/release/signallq-*.apk
+
+      # Publica o AAB assinado na Play Console. Trilha via PLAY_TRACK (default: alpha/teste fechado).
+      # Requer o app criado na Play e um primeiro upload manual na trilha (a API nao cria o app do zero).
+      # Roda por ultimo: uma falha aqui nao invalida o GitHub Release nem os artefatos ja gerados.
+      - name: Publicar na Play Console
+        run: cd android && ./gradlew publishReleaseBundle --no-daemon -PplayTrack=${{ vars.PLAY_TRACK || 'alpha' }}
+        env:
+          ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
