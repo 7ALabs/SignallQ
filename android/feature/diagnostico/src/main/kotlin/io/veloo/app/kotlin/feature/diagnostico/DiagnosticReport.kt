@@ -10,6 +10,17 @@ data class DiagnosticReport(
     val wifiCanalResultados: List<DiagnosticResult> = emptyList(),
     val redeResultados: List<DiagnosticResult> = emptyList(),
     val decisao: DiagnosticResult,
+    /** Achados secundários produzidos pelo [FindingEngine] — causas independentes
+     *  detectadas junto do achado principal ([decisao]). Vazio quando só há um
+     *  achado (comportamento equivalente ao engine antigo, que reportava só um). */
+    val achadosSecundarios: List<DiagnosticResult> = emptyList(),
+    /** Hipóteses avaliadas pelo [FindingEngine] cujo gatilho bateu mas foram
+     *  suprimidas por evidência mais forte da mesma causa raiz (ex.: DNS crítico
+     *  quando fibra também está crítica). Ver [FindingEngine] para o critério. */
+    val hipotesesDescartadas: List<DiagnosticResult> = emptyList(),
+    /** Fontes de dado ausentes que, se disponíveis, poderiam refinar o diagnóstico
+     *  (ex.: "rttGateway", "fibra"). */
+    val dadosAusentes: List<String> = emptyList(),
     val perfisUsoSpeedtest: SpeedtestQualityInput? = null,
     val geradoEmMs: Long,
 ) {

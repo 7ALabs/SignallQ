@@ -62,8 +62,8 @@ object DiagnosticRunner {
             }
         val redeResultados = avaliarNat(input.natStatus)
 
-        val decisao =
-            DiagnosticDecisionEngine.decidir(
+        val achados =
+            FindingEngine.analisar(
                 internetResultados = internetResultados + mobileResultados + dnsResultados + historicoResultados + wifiCanalResultados + redeResultados,
                 wifiQuality = wifiQuality,
                 fibraResultados = fibraResultados,
@@ -80,7 +80,10 @@ object DiagnosticRunner {
             historicoResultados = historicoResultados,
             wifiCanalResultados = wifiCanalResultados,
             redeResultados = redeResultados,
-            decisao = decisao,
+            decisao = achados.principal,
+            achadosSecundarios = achados.secundarios,
+            hipotesesDescartadas = achados.hipotesesDescartadas,
+            dadosAusentes = achados.dadosAusentes,
             perfisUsoSpeedtest = input.internet?.qualidadeUso,
             geradoEmMs = System.currentTimeMillis(),
         )
