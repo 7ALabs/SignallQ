@@ -1,23 +1,11 @@
 import type { DiagnosisInput, DiagnosisResult, SpeedTestResult } from '@shared/contracts';
 import { buildDiagnosticPayload } from './aiPayload';
+import { isAiWorkerResponse, mapAiWorkerResponseToDiagnosis } from './aiResponseMapper';
 import type { AiDiagnosisClientOptions, AiDiagnosisOutcome } from './aiTypes';
 import { createLocalDiagnosis } from './localDiagnosis';
 
 const DEFAULT_AI_ENDPOINT = '/api/ai/diagnostico-conexao';
 const DEFAULT_TIMEOUT_MS = 10_000;
-
-function isDiagnosisResult(value: unknown): value is DiagnosisResult {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as Partial<DiagnosisResult>;
-  return (
-    typeof candidate.id === 'string' &&
-    typeof candidate.generatedAt === 'string' &&
-    typeof candidate.summary === 'string' &&
-    (candidate.source === 'ai' || candidate.source === 'local' || candidate.source === 'fallback') &&
-    Array.isArray(candidate.actions) &&
-    Array.isArray(candidate.limitations)
-  );
-}
 
 function createFallbackDiagnosis(input: DiagnosisInput, errorMessage: string): DiagnosisResult {
   const fallback = createLocalDiagnosis(input);
@@ -58,11 +46,13 @@ async function postAiDiagnosis(
       throw new Error(error || 'Diagnóstico IA indisponível.');
     }
 
-    if (!isDiagnosisResult(data)) {
+    // Contrato real do ai-diagnosis-worker (compartilhado com o Android) — não
+    // o contrato de UI `DiagnosisResult`. Ver aiResponseMapper.ts.
+    if (!isAiWorkerResponse(data)) {
       throw new Error('Resposta IA fora do contrato esperado.');
     }
 
-    return { ...data, source: 'ai' };
+    return mapAiWorkerResponseToDiagnosis(data);
   } finally {
     clearTimeout(timeoutId);
   }

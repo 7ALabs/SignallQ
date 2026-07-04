@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createDiagnosisWithAiFallback } from '../src/features/diagnosis/aiClient';
-import type { DiagnosisResult, SpeedTestResult } from '../shared/contracts';
+import type { AiWorkerResponseRaw } from '../src/features/diagnosis/aiResponseMapper';
+import type { SpeedTestResult } from '../shared/contracts';
 
 const speedTest: SpeedTestResult = {
   availability: {
@@ -46,25 +47,35 @@ const speedTest: SpeedTestResult = {
   },
 };
 
-const aiDiagnosis: DiagnosisResult = {
-  actions: [],
-  confidence: 'high',
-  generatedAt: '2026-06-29T00:00:01.000Z',
-  id: 'diag_ai',
-  limitations: [],
-  quality: 'attention',
-  source: 'ai',
-  speed: 'slow',
-  stability: 'stable',
-  summary: 'Resumo IA curto.',
+// Contrato REAL do ai-diagnosis-worker (mesmo Worker consumido pelo Android —
+// ver integrations/cloudflare/ai-diagnosis-worker/src/index.ts). Não confundir
+// com o contrato de UI `DiagnosisResult` do PWA — é o aiResponseMapper que
+// traduz um formato para o outro.
+const workerResponse: AiWorkerResponseRaw = {
+  acoesRecomendadas: [
+    { descricao: 'Repita o teste perto do roteador.', prioridade: 'media', tipo: 'validacao_local', titulo: 'Testar mais perto do roteador' },
+  ],
+  classificacaoTecnica: {
+    estabilidade: { avaliacao: 'boa', justificativa: 'Jitter de 4 ms.' },
+    velocidade: { avaliacao: 'ruim', justificativa: 'Download de 8 Mbps.' },
+  },
+  generatedAt: 1751155200000,
+  limitesDaAnalise: ['Latência medida via HTTP, não ICMP.'],
+  problemaPrincipal: { confianca: 0.8, descricao: 'Download abaixo do esperado.', tipo: 'velocidade' },
+  resumo: 'Resumo IA curto.',
+  schemaVersion: '2',
+  source: 'cloudflare_ai',
+  status: 'regular',
+  textoLaudo: 'Laudo completo da IA.',
+  titulo: 'Velocidade abaixo do contratado',
 };
 
 describe('diagnosis AI client', () => {
-  it('posts a structured PWA payload and returns AI diagnosis when the worker responds', async () => {
+  it('posts a structured PWA payload and maps the real worker schema into DiagnosisResult', async () => {
     let requestBody: unknown = null;
     const fetchFn = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       requestBody = JSON.parse(String(init?.body));
-      return Response.json(aiDiagnosis);
+      return Response.json(workerResponse);
     });
 
     const outcome = await createDiagnosisWithAiFallback(speedTest, {
@@ -74,6 +85,14 @@ describe('diagnosis AI client', () => {
 
     expect(outcome.source).toBe('ai');
     expect(outcome.diagnosis.source).toBe('ai');
+    expect(outcome.diagnosis).toMatchObject({
+      confidence: 'high',
+      quality: 'attention',
+      source: 'ai',
+      speed: 'slow',
+      stability: 'stable',
+      summary: 'Resumo IA curto.',
+    });
     expect(requestBody).toMatchObject({
       browserContext: {
         unavailableNativeSignals: expect.arrayContaining(['wifi_rssi', 'icmp_ping', 'system_dns']),

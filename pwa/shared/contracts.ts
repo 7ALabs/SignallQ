@@ -114,7 +114,9 @@ export interface DiagnosticPayload {
     uploadMbps: number | null;
     latenciaMs: number | null;
     jitterMs?: number | null;
-    perceivedLossPercent?: number | null;
+    /** Nome alinhado ao payload do Android (`perdaPacotesPercentual`) — o Worker
+     *  de IA e o prompt tratam este campo pelo mesmo nome nas duas plataformas. */
+    perdaPacotesPercentual?: number | null;
   };
   speedTest?: SpeedTestResult;
   browserContext?: {
