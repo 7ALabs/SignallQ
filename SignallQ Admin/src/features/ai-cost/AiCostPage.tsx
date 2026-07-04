@@ -68,22 +68,24 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
 
   const tableColumns = [
     {
-      header: "Pedido ID",
+      header: "ID da execução",
       accessor: (row: AiUsageRecord) => (
-        <span className="font-mono text-zinc-400 font-semibold">{row.id.replace("ai_req_", "")}</span>
+        <span className="font-mono text-zinc-400 font-semibold">{row.id.slice(0, 8)}</span>
       ),
     },
     {
-      header: "Modelo Selecionado",
-      accessor: (row: AiUsageRecord) => {
-        let text = "Google Gemini";
-        if (row.modelSelected === "cloudflare_qwen") text = "Workers AI Qwen";
-        if (row.modelSelected === "openai") text = "OpenAI GPT-4o";
-        if (row.modelSelected === "local_fallback") text = "Fallback Off";
-        return (
-          <span className="font-sans font-medium text-white text-xs">{text}</span>
-        );
-      },
+      header: "Modelo",
+      accessor: (row: AiUsageRecord) => (
+        <span className="font-sans font-medium text-white text-xs" title={row.model}>{row.provider}</span>
+      ),
+    },
+    {
+      header: "Diagnóstico associado",
+      accessor: (row: AiUsageRecord) => row.diagnosisId ? (
+        <span className="font-mono text-zinc-400">{row.diagnosisId.slice(0, 8)}</span>
+      ) : (
+        <span className="font-mono text-zinc-550">—</span>
+      ),
     },
     {
       header: "Tokens (Prompt / Comp.)",
@@ -110,28 +112,23 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
       },
     },
     {
-      header: "Latência",
+      header: "Status",
       accessor: (row: AiUsageRecord) => (
-        <span className="font-mono text-zinc-305">
-          {row.latencySec.toFixed(2)}s
-        </span>
+        <StatusBadge
+          status={row.status === "success" ? "ok" : "critical"}
+          customLabel={row.status === "success" ? "SUCESSO" : "ERRO"}
+        />
       ),
     },
     {
-      header: "Status",
-      accessor: (row: AiUsageRecord) => {
-        const severity = row.status === "success" 
-          ? "ok" 
-          : row.status === "cached" 
-          ? "attention" 
-          : "critical";
-        return (
-          <StatusBadge
-            status={severity}
-            customLabel={row.status.toUpperCase()}
-          />
-        );
-      },
+      header: "Erro",
+      accessor: (row: AiUsageRecord) => row.errorMessage ? (
+        <span className="text-xs" style={{ color: "var(--sq-error)" }} title={row.errorMessage}>
+          {row.errorMessage.length > 40 ? `${row.errorMessage.slice(0, 40)}…` : row.errorMessage}
+        </span>
+      ) : (
+        <span className="font-mono text-zinc-550">—</span>
+      ),
     },
   ];
 

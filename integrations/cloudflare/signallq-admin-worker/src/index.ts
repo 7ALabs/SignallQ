@@ -978,6 +978,51 @@ async function handleAiUsageTimeline(request: Request, env: Env): Promise<Respon
   return json({ source: "d1", days, environment: envFilter ?? "all", series }, 200, env);
 }
 
+// GH#421: histórico de execuções reais de IA — cada linha vem direto de `ai_usage`,
+// correlacionada com `diagnostic_sessions` quando `session_id` existe. Sem invenção
+// de latência: o schema não registra esse campo hoje (ver docs/architecture/data-architecture.md).
+async function handleAiUsageRecords(request: Request, env: Env): Promise<Response> {
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "7d";
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+  const limit     = Math.min(Math.max(parseInt(url.searchParams.get("limit") ?? "100"), 1), 500);
+
+  const envClause = envFilter ? " AND au.environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]               : [];
+
+  const rows = await env.DB.prepare(
+    `SELECT
+       au.id, au.session_id, au.created_at, au.model,
+       au.prompt_tokens, au.completion_tokens, au.cost_usd,
+       au.status, au.error_message, au.environment,
+       ds.id AS diag_id
+     FROM ai_usage au
+     LEFT JOIN diagnostic_sessions ds ON ds.id = au.session_id
+     WHERE au.created_at >= ?${envClause}
+     ORDER BY au.created_at DESC
+     LIMIT ?`
+  ).bind(since, ...envBinds, limit).all();
+
+  const records = (rows.results ?? []).map((r: any) => ({
+    id:               r.id,
+    timestamp:        new Date((r.created_at ?? 0) * 1000).toISOString(),
+    model:            r.model ?? "",
+    provider:         providerName(r.model ?? ""),
+    promptTokens:     r.prompt_tokens     ?? 0,
+    completionTokens: r.completion_tokens ?? 0,
+    costUsd:          r.cost_usd ?? 0,
+    // status/error_message podem não existir ainda em registros anteriores à migration
+    // 009_gh421 — default 'success' documentado na própria coluna (DEFAULT 'success').
+    status:           r.status === "error" ? "error" : "success",
+    errorMessage:     r.error_message || null,
+    diagnosisId:      r.diag_id ?? null,
+    environment:      r.environment ?? "production",
+  }));
+
+  return json({ source: "d1", period, environment: envFilter ?? "all", records }, 200, env);
+}
+
 // SIG-139: métricas de diagnóstico agrupadas por operadora.
 async function handleOperators(request: Request, env: Env): Promise<Response> {
   const url       = new URL(request.url);
@@ -1121,6 +1166,116 @@ async function handleFirebaseStatus(_req: Request, env: Env): Promise<Response> 
     hasCredentials: !!(env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY),
     ga4PropertyConfigured: !!env.FIREBASE_GA4_PROPERTY_ID,
   }, 200, env);
+}
+
+// --- GH#417 / GH#425: saúde do sistema com verificação real de cada dependência ---
+
+interface HealthCheckResult {
+  status: "ok" | "error" | "not_configured" | "idle";
+  latencyMs?: number;
+  message?: string;
+}
+
+async function checkD1Health(env: Env): Promise<HealthCheckResult> {
+  const start = Date.now();
+  try {
+    await env.DB.prepare("SELECT 1 AS ok").first();
+    return { status: "ok", latencyMs: Date.now() - start };
+  } catch (e) {
+    return { status: "error", latencyMs: Date.now() - start, message: String(e) };
+  }
+}
+
+async function checkFirebaseCredentialsHealth(env: Env): Promise<HealthCheckResult> {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return { status: "not_configured", message: "FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY não configurados." };
+  }
+  const start = Date.now();
+  try {
+    await getFirebaseAccessToken(env);
+    return { status: "ok", latencyMs: Date.now() - start };
+  } catch (e) {
+    return { status: "error", latencyMs: Date.now() - start, message: String(e) };
+  }
+}
+
+async function checkBigQueryHealth(env: Env, firebaseOk: boolean): Promise<HealthCheckResult> {
+  if (!firebaseOk) {
+    return { status: "not_configured", message: "Requer credenciais Firebase válidas para autenticar no BigQuery." };
+  }
+  const start = Date.now();
+  const { error } = await queryBigQuery(env, "SELECT 1 AS ok");
+  if (error) return { status: "error", latencyMs: Date.now() - start, message: error };
+  return { status: "ok", latencyMs: Date.now() - start };
+}
+
+interface IngestHealthResult extends HealthCheckResult {
+  keyConfigured: boolean;
+  lastSuccessAt: string | null;
+}
+
+async function checkIngestHealth(env: Env): Promise<IngestHealthResult> {
+  const keyConfigured = !!env.INGEST_KEY;
+  if (!keyConfigured) {
+    return { status: "not_configured", keyConfigured: false, lastSuccessAt: null, message: "INGEST_KEY não configurada." };
+  }
+
+  const row = await env.DB.prepare(
+    "SELECT MAX(created_at) AS last FROM diagnostic_sessions"
+  ).first<{ last: number | null }>();
+  const lastSuccessAt = row?.last ? new Date(row.last * 1000).toISOString() : null;
+
+  // Sem ingest nas últimas 48h é sinal de app parado de enviar dados, não necessariamente erro,
+  // mas o painel não deve mostrar "ok" silencioso quando não há evidência de atividade recente.
+  const idleThresholdMs = 48 * 60 * 60 * 1000;
+  const isIdle = !lastSuccessAt || Date.now() - new Date(lastSuccessAt).getTime() > idleThresholdMs;
+
+  return {
+    status: isIdle ? "idle" : "ok",
+    keyConfigured: true,
+    lastSuccessAt,
+    message: isIdle ? "Nenhum ingest de diagnóstico recebido nas últimas 48h." : undefined,
+  };
+}
+
+async function handleSystemHealth(_req: Request, env: Env): Promise<Response> {
+  const d1 = await checkD1Health(env);
+  const firebaseCredentials = await checkFirebaseCredentialsHealth(env);
+  const bigQuery = await checkBigQueryHealth(env, firebaseCredentials.status === "ok");
+  const ingest = await checkIngestHealth(env);
+
+  const lastErrorRow = await env.DB.prepare(
+    "SELECT source, message, last_seen FROM system_errors ORDER BY last_seen DESC LIMIT 1"
+  ).first<{ source: string; message: string; last_seen: number }>();
+  const lastFailure = lastErrorRow
+    ? {
+        source: lastErrorRow.source,
+        message: lastErrorRow.message,
+        timestamp: new Date(lastErrorRow.last_seen).toISOString(),
+      }
+    : null;
+
+  const lastSuccess = ingest.lastSuccessAt
+    ? { source: "ingest", timestamp: ingest.lastSuccessAt }
+    : null;
+
+  return json(
+    {
+      source: "worker",
+      timestamp: new Date().toISOString(),
+      checks: {
+        worker: { status: "ok" as const },
+        d1,
+        firebaseCredentials,
+        bigQuery,
+        ingest,
+      },
+      lastFailure,
+      lastSuccess,
+    },
+    200,
+    env
+  );
 }
 
 async function handleFirebaseCrashlytics(_req: Request, env: Env): Promise<Response> {
@@ -1484,17 +1639,25 @@ async function handleIngestAiUsage(request: Request, env: Env): Promise<Response
   const buildType   = p.build_type   ?? 'release';
   const deviceId    = p.device_id    ?? '';
 
+  // GH#421: status/erro da execução. Default 'success' porque o app hoje só
+  // envia ai_usage ao final de uma chamada concluída (sem retry/erro reportado
+  // ainda) — quando o Android passar a enviar falhas, o valor real prevalece.
+  const status       = p.status === 'error' ? 'error' : 'success';
+  const errorMessage = p.error_message ?? p.error ?? '';
+
   try {
     await env.DB.prepare(
       `INSERT OR REPLACE INTO ai_usage
          (id, session_id, created_at, model,
           prompt_tokens, completion_tokens, total_tokens, cost_usd,
-          environment, version_code, dist_channel, build_type, device_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          environment, version_code, dist_channel, build_type, device_id,
+          status, error_message)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       p.id, p.session_id ?? null, p.created_at ?? nowSec(), p.model,
       prompt, completion, total, cost,
       environment, versionCode, distChannel, buildType, deviceId,
+      status, errorMessage,
     ).run();
   } catch (e) {
     await logError(env, 'ai-usage', String(e), e instanceof Error ? e.stack ?? '' : '');
@@ -1714,24 +1877,6 @@ function getDefaultFlags(): FeatureFlag[] {
   ];
 }
 
-async function handleGetFeatureFlags(_request: Request, env: Env): Promise<Response> {
-  const row = await env.DB.prepare(
-    "SELECT value FROM admin_settings WHERE key = 'feature_flags'"
-  ).first<{ value: string }>();
-  const flags: FeatureFlag[] = row?.value ? JSON.parse(row.value) : getDefaultFlags();
-  return json({ source: "d1", flags }, 200, env);
-}
-
-async function handleSetFeatureFlags(request: Request, env: Env): Promise<Response> {
-  let body: any;
-  try { body = await request.json(); } catch { return err("body JSON inválido", 400, env); }
-  const flags = body.flags ?? body;
-  await env.DB.prepare(
-    "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES ('feature_flags', ?, ?)"
-  ).bind(JSON.stringify(flags), nowSec()).run();
-  return json({ ok: true }, 200, env);
-}
-
 // GET /feature-flags — público, sem auth. Retorna apenas flags com scope='public'.
 // Crítico para o app Android verificar flags sem credenciais de admin.
 async function handlePublicFeatureFlags(_request: Request, env: Env): Promise<Response> {
@@ -1832,6 +1977,7 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-costs$/,                    handler: withErrorLogging('metrics', handleAiCostMetrics) },
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-providers$/,                handler: withErrorLogging('metrics', handleAiProviders) },
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage\/timeline$/,          handler: withErrorLogging('metrics', handleAiUsageTimeline) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage\/records$/,          handler: withErrorLogging('metrics', handleAiUsageRecords) },
   { method: "GET",  pattern: /^\/admin\/metrics\/operators$/,                   handler: withErrorLogging('metrics', handleOperators) },
   { method: "GET",  pattern: /^\/admin\/metrics\/intelligence$/,                handler: withErrorLogging('metrics', handleDiagnosticsIntelligence) },
   { method: "GET",  pattern: /^\/admin\/diagnostics\/intelligence$/,            handler: withErrorLogging('metrics', handleDiagnosticsIntelligence) },
@@ -1840,6 +1986,7 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/battery$/,          handler: withErrorLogging('analytics', handleBatteryAnalytics) },
   { method: "GET",  pattern: /^\/admin\/analytics\/battery$/,                   handler: withErrorLogging('analytics', handleBatteryAnalytics) },
   { method: "GET",  pattern: /^\/admin\/metrics\/errors$/,                      handler: handleErrors },
+  { method: "GET",  pattern: /^\/admin\/system-health$/,                        handler: withErrorLogging('system-health', handleSystemHealth) },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/status$/,       handler: handleFirebaseStatus },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/analytics$/,    handler: handleFirebaseAnalytics },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/crashlytics$/,  handler: handleFirebaseCrashlytics },
@@ -1851,7 +1998,6 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/settings$/,                             handler: handleSettings },
   { method: "POST", pattern: /^\/admin\/settings$/,                             handler: handleSettings },
   { method: "GET",  pattern: /^\/admin\/feature-flags$/,                        handler: withErrorLogging('feature-flags', handleFeatureFlags) },
-  { method: "POST", pattern: /^\/admin\/feature-flags$/,                        handler: handleSetFeatureFlags },
   { method: "PUT",  pattern: /^\/admin\/feature-flags\/[^/]+$/,                 handler: withErrorLogging('feature-flags', async (req, env) => {
       const session = await authenticateSession(req, env);
       if (!session) return err('Unauthorized', 401, env);

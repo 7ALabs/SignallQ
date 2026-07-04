@@ -531,6 +531,46 @@ Série temporal de tokens por provedor por dia.
 
 ---
 
+### GET /admin/metrics/ai-usage/records
+
+Histórico de execuções individuais de IA (GH#421) — cada item é uma linha real
+de `ai_usage`, correlacionada com `diagnostic_sessions` via `session_id` quando
+existir. Substitui a tabela mockada/vazia da aba "IA & Custo".
+
+**Parâmetros:** `period` (padrão `7d`), `environment`, `limit` (1–500, padrão 100)
+
+**Response 200:**
+```json
+{
+  "source": "d1",
+  "period": "7d",
+  "environment": "production",
+  "records": [
+    {
+      "id": "a1b2c3d4-...",
+      "timestamp": "2026-07-04T13:20:05.000Z",
+      "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "provider": "Qwen / Workers AI",
+      "promptTokens": 812,
+      "completionTokens": 305,
+      "costUsd": 0,
+      "status": "success",
+      "errorMessage": null,
+      "diagnosisId": "diag_8f3d1e90",
+      "environment": "production"
+    }
+  ]
+}
+```
+
+Sem campo de latência: o schema de `ai_usage` não registra tempo de resposta —
+não é inventado no worker nem no frontend. `status`/`errorMessage` dependem da
+migration `009_gh421.sql`; registros anteriores a ela assumem `status: "success"`
+(default da coluna), já que o app hoje só grava `ai_usage` ao final de uma
+chamada concluída.
+
+---
+
 ### GET /admin/metrics/operators
 
 Métricas de diagnóstico agrupadas por operadora de telecomunicações.
@@ -590,6 +630,45 @@ Erros de sistema dedupliciados, ordenados por frequência.
 ```
 
 **Nota:** `first_seen` e `last_seen` são Unix em **milissegundos** (Date.now()). O campo `timestamp` é derivado de `last_seen` convertido para ISO 8601.
+
+---
+
+### GET /admin/system-health
+
+Saúde do sistema com verificação real de cada dependência — GH#425. Substitui os placeholders
+que existiam na aba "Saúde do Sistema" (workers mockados, D1 sempre "connected", sem checagem
+de Firebase/BigQuery/ingest).
+
+**Parâmetros:** nenhum.
+
+**Response 200:**
+```json
+{
+  "source": "worker",
+  "timestamp": "2026-07-04T12:00:00.000Z",
+  "checks": {
+    "worker": { "status": "ok" },
+    "d1": { "status": "ok", "latencyMs": 12 },
+    "firebaseCredentials": { "status": "ok", "latencyMs": 180 },
+    "bigQuery": { "status": "not_configured", "message": "Requer credenciais Firebase válidas para autenticar no BigQuery." },
+    "ingest": { "status": "ok", "keyConfigured": true, "lastSuccessAt": "2026-07-04T11:20:00.000Z" }
+  },
+  "lastFailure": { "source": "bigquery-crashlytics", "message": "table_not_found", "timestamp": "2026-07-04T06:00:00.000Z" },
+  "lastSuccess": { "source": "ingest", "timestamp": "2026-07-04T11:20:00.000Z" }
+}
+```
+
+| Campo | Descrição |
+|---|---|
+| `checks.worker` | Sempre `ok` se o worker respondeu — o próprio fato de gerar esta resposta prova que o worker está de pé |
+| `checks.d1` | Executa `SELECT 1` real no D1. `latencyMs` medido no worker |
+| `checks.firebaseCredentials` | Gera um JWT real e troca por access token OAuth2 (`getFirebaseAccessToken`). `not_configured` se `FIREBASE_CLIENT_EMAIL`/`FIREBASE_PRIVATE_KEY` ausentes |
+| `checks.bigQuery` | Roda `SELECT 1 AS ok` no BigQuery via API real. `not_configured` se as credenciais Firebase não passaram no check anterior |
+| `checks.ingest` | `keyConfigured` reflete se `INGEST_KEY` está definida. `lastSuccessAt` é o `MAX(created_at)` de `diagnostic_sessions` — status `idle` se não houver ingest nas últimas 48h |
+| `lastFailure` | Última linha de `system_errors` por `last_seen DESC` (pode ser `null`) |
+| `lastSuccess` | Baseado no `ingest.lastSuccessAt` (pode ser `null` se nunca houve ingest) |
+
+**Status possíveis:** `ok`, `error`, `not_configured`, `idle`. Nenhum é tratado como "sempre verde" no frontend — `not_configured` e `idle` são estados legítimos e exibidos como tal.
 
 ---
 
@@ -799,11 +878,16 @@ Persiste um registro de uso de IA. Autenticação: `Authorization: Bearer <INGES
   "total_tokens": 1700,
   "cost_usd": 0.0,
   "environment": "production",
-  "version_code": 52
+  "version_code": 52,
+  "status": "success",
+  "error_message": ""
 }
 ```
 
 **Campos obrigatórios:** `id`, `model`. `cost_usd` é calculado pelo worker se ausente (via `costForModel()`).
+**GH#421:** `status` (`"success"` | `"error"`, default `"success"`) e `error_message`/`error`
+(opcional) — permite ao painel auditar falhas de inferência por execução, não só
+custo agregado. Requer migration `009_gh421.sql` para as colunas existirem no D1.
 
 **Response 201:**
 ```json
@@ -889,6 +973,8 @@ Todos os erros seguem o schema:
 | `cost_usd` | REAL | Custo calculado pelo worker |
 | `environment` | TEXT | — |
 | `version_code` | INTEGER | — |
+| `status` | TEXT | `success` \| `error`. Default `success` (GH#421, migration `009_gh421.sql`) |
+| `error_message` | TEXT | Mensagem de erro quando `status = 'error'`; vazio caso contrário |
 
 ### Tabela `admin_settings`
 
