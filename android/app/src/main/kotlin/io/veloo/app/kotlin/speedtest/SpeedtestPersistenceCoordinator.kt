@@ -110,11 +110,12 @@ class SpeedtestPersistenceCoordinator
                                 vereditoGamer = resultado.diagnosticoQualidade.vereditoGamer.name,
                                 vereditoVideoChamada = resultado.diagnosticoQualidade.vereditoVideoChamada.name,
                                 gargaloPrimario = resultado.diagnosticoQualidade.gargaloPrimario.name,
-                                operadoraMovel = resolverOperadorPersistencia(
-                                    estadoConexao = monitorRede.snapshotFlow.value.estadoConexao,
-                                    operadoraMovelDetectada = monitorTelephony.snapshotFlow.value?.operadora,
-                                    ispWifiDetectado = ispInfoCache.ultimoIspNome,
-                                ),
+                                operadoraMovel =
+                                    resolverOperadorPersistencia(
+                                        estadoConexao = monitorRede.snapshotFlow.value.estadoConexao,
+                                        operadoraMovelDetectada = monitorTelephony.snapshotFlow.value?.operadora,
+                                        ispWifiDetectado = ispInfoCache.ultimoIspNome,
+                                    ),
                                 status = "completed",
                             ),
                         )
