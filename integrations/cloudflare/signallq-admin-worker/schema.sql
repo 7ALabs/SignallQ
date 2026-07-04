@@ -94,7 +94,7 @@ CREATE INDEX IF NOT EXISTS idx_system_errors_last_seen ON system_errors(last_see
 
 -- GH#422: fluxo operacional de erros — resolução real (responsável, data,
 -- observação) e diferenciação de origem (app | backend | ia | integration).
--- Aplicar via: migrations/009_gh422.sql (npx wrangler d1 execute --file=... --remote)
+-- Aplicar via: migrations/010_gh422.sql (npx wrangler d1 execute --file=... --remote)
 ALTER TABLE system_errors ADD COLUMN category       TEXT    NOT NULL DEFAULT 'backend';
 ALTER TABLE system_errors ADD COLUMN resolved       INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE system_errors ADD COLUMN resolved_by    TEXT    DEFAULT '';
