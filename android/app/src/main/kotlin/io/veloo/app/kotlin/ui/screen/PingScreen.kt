@@ -199,12 +199,25 @@ fun PingScreen(onDismiss: () -> Unit) {
 
                         is PingUiData.Concluido -> {
                             val resultado = data.resultado
-                            Text(
-                                text = stringResource(R.string.ping_resultados_titulo),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = c.textSecondary,
-                                modifier = Modifier.padding(bottom = LkSpacing.md),
-                            )
+                            // #380: 100% de perda não é uma medição válida — é falha de teste.
+                            // "0,0 ms" sem destaque parecia o melhor resultado possível.
+                            val falhaTotal = resultado.perdaPercentual >= 100.0
+
+                            if (falhaTotal) {
+                                Text(
+                                    text = stringResource(R.string.ping_falha_perda_total),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = LkColors.error,
+                                    modifier = Modifier.padding(bottom = LkSpacing.md),
+                                )
+                            } else {
+                                Text(
+                                    text = stringResource(R.string.ping_resultados_titulo),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = c.textSecondary,
+                                    modifier = Modifier.padding(bottom = LkSpacing.md),
+                                )
+                            }
 
                             Row(
                                 modifier =
@@ -216,19 +229,22 @@ fun PingScreen(onDismiss: () -> Unit) {
                                 PingMetricCard(
                                     c = c,
                                     label = stringResource(R.string.ping_metrica_latencia),
-                                    valor = "%.1f ms".format(resultado.latenciaMs),
+                                    valor = if (falhaTotal) "—" else "%.1f ms".format(resultado.latenciaMs),
+                                    destacarErro = falhaTotal,
                                     modifier = Modifier.weight(1f),
                                 )
                                 PingMetricCard(
                                     c = c,
                                     label = stringResource(R.string.ping_metrica_jitter),
-                                    valor = "%.1f ms".format(resultado.jitterMs),
+                                    valor = if (falhaTotal) "—" else "%.1f ms".format(resultado.jitterMs),
+                                    destacarErro = falhaTotal,
                                     modifier = Modifier.weight(1f),
                                 )
                                 PingMetricCard(
                                     c = c,
                                     label = stringResource(R.string.ping_metrica_perda),
                                     valor = "%.0f%%".format(resultado.perdaPercentual),
+                                    destacarErro = falhaTotal,
                                     modifier = Modifier.weight(1f),
                                 )
                             }
@@ -277,14 +293,15 @@ private fun PingMetricCard(
     c: LkTokens,
     label: String,
     valor: String,
+    destacarErro: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Box(
         modifier =
             modifier
                 .clip(RoundedCornerShape(LkRadius.card))
-                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-                .background(c.bgSecondary)
+                .border(1.dp, if (destacarErro) LkColors.error else c.border, RoundedCornerShape(LkRadius.card))
+                .background(if (destacarErro) LkColors.error.copy(alpha = 0.08f) else c.bgSecondary)
                 .padding(LkSpacing.md),
         contentAlignment = Alignment.Center,
     ) {
@@ -301,7 +318,7 @@ private fun PingMetricCard(
                 text = valor,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = c.textPrimary,
+                color = if (destacarErro) LkColors.error else c.textPrimary,
                 textAlign = TextAlign.Center,
             )
         }

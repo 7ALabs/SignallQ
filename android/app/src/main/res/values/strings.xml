@@ -39,6 +39,7 @@
     <string name="ping_metrica_jitter">Jitter</string>
     <string name="ping_metrica_perda">Perda</string>
     <string name="ping_btn_testar_novamente">Testar novamente</string>
+    <string name="ping_falha_perda_total">Não foi possível medir a latência — nenhuma resposta da rede.</string>
 
     <!-- Diagnóstico screen -->
     <string name="diagnostico_titulo">Diagnóstico</string>

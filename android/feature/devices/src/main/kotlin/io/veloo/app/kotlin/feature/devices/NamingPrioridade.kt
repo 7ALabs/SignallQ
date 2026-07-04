@@ -15,7 +15,7 @@
  * Nomes "genéricos" (lista [NOMES_GENERICOS]) são ignorados e tratados como null
  * na resolução de prioridade.
  */
-internal object NamingPrioridade {
+object NamingPrioridade {
 
     /** Nomes que não carregam informação útil — tratados como ausentes na priorização. */
     val NOMES_GENERICOS = setOf(
@@ -66,5 +66,47 @@ internal object NamingPrioridade {
         return fabricanteUpnpXml?.takeIf { it.isNotBlank() }
             ?: fabricanteMdns?.takeIf { it.isNotBlank() }
             ?: fabricanteOui?.takeIf { it.isNotBlank() }
+    }
+
+    /**
+     * Rótulo de fallback quando não há hostname/nome resolvido para o dispositivo.
+     *
+     * Usado como ÚLTIMO recurso, depois que mDNS/SSDP/reverse-DNS já tiveram chance
+     * real de resolver o nome (ver [ScannerDispositivosAndroid.iniciarScan]). NÃO resolve
+     * NetBIOS — pilha de protocolo à parte (NBNS/UDP porta 137), ausência total de
+     * tentativa de implementação, não bug em código existente; ver nota no topo deste
+     * arquivo e em [ScannerDispositivosAndroid] linha do enriquecimento final.
+     *
+     * Usa apenas o fabricante já inferido via OUI do MAC — quando disponível,
+     * "Dispositivo <Fabricante>" (ex.: "Dispositivo Samsung"); sem fabricante, "Dispositivo".
+     */
+    fun rotuloFallbackGenerico(fabricante: String?): String {
+        val f = fabricante?.takeIf { it.isNotBlank() }
+        return if (f != null) "Dispositivo $f" else "Dispositivo"
+    }
+
+    /** [android.os.Build.MANUFACTURER] vem em lowercase (ex: "samsung") — capitaliza para exibição. */
+    fun capitalizarFabricante(manufacturer: String?): String? =
+        manufacturer?.trim()?.takeIf { it.isNotBlank() }
+            ?.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.ROOT) else it.toString() }
+
+    /**
+     * Nome de exibição para o próprio aparelho ("Este aparelho"): "<Fabricante> <Modelo>"
+     * quando ambos disponíveis (ex.: "Samsung SM-A256E"), caindo para o que estiver
+     * disponível. Usado para não depender de descoberta de rede no próprio device —
+     * o app já sabe quem ele é via [android.os.Build].
+     *
+     * @param modelo tipicamente [android.os.Build.MODEL]
+     * @param fabricante tipicamente [capitalizarFabricante] de [android.os.Build.MANUFACTURER]
+     */
+    fun nomeAmigavelDoDevice(modelo: String?, fabricante: String?): String {
+        val m = modelo?.trim()?.takeIf { it.isNotBlank() }
+        val f = fabricante?.trim()?.takeIf { it.isNotBlank() }
+        return when {
+            f != null && m != null && !m.startsWith(f, ignoreCase = true) -> "$f $m"
+            m != null -> m
+            f != null -> f
+            else -> "Este aparelho"
+        }
     }
 }
