@@ -67,4 +67,17 @@ class BancoOperadorasTest {
         val resultado = BancoOperadoras.resolver("Giga+ Fibra Sumicity")
         assertEquals("giga_mais", resultado?.id)
     }
+
+    @Test
+    fun `todas as operadoras do catalogo possuem site oficial preenchido`() {
+        BancoOperadoras.lista.forEach { operadora ->
+            assertEquals(true, operadora.site.startsWith("https://"))
+        }
+    }
+
+    @Test
+    fun `operadora identificada resolve com site oficial correto`() {
+        val resultado = BancoOperadoras.resolver("Vivo")
+        assertEquals("https://www.vivo.com.br", resultado?.site)
+    }
 }
