@@ -633,6 +633,45 @@ Erros de sistema dedupliciados, ordenados por frequência.
 
 ---
 
+### GET /admin/system-health
+
+Saúde do sistema com verificação real de cada dependência — GH#425. Substitui os placeholders
+que existiam na aba "Saúde do Sistema" (workers mockados, D1 sempre "connected", sem checagem
+de Firebase/BigQuery/ingest).
+
+**Parâmetros:** nenhum.
+
+**Response 200:**
+```json
+{
+  "source": "worker",
+  "timestamp": "2026-07-04T12:00:00.000Z",
+  "checks": {
+    "worker": { "status": "ok" },
+    "d1": { "status": "ok", "latencyMs": 12 },
+    "firebaseCredentials": { "status": "ok", "latencyMs": 180 },
+    "bigQuery": { "status": "not_configured", "message": "Requer credenciais Firebase válidas para autenticar no BigQuery." },
+    "ingest": { "status": "ok", "keyConfigured": true, "lastSuccessAt": "2026-07-04T11:20:00.000Z" }
+  },
+  "lastFailure": { "source": "bigquery-crashlytics", "message": "table_not_found", "timestamp": "2026-07-04T06:00:00.000Z" },
+  "lastSuccess": { "source": "ingest", "timestamp": "2026-07-04T11:20:00.000Z" }
+}
+```
+
+| Campo | Descrição |
+|---|---|
+| `checks.worker` | Sempre `ok` se o worker respondeu — o próprio fato de gerar esta resposta prova que o worker está de pé |
+| `checks.d1` | Executa `SELECT 1` real no D1. `latencyMs` medido no worker |
+| `checks.firebaseCredentials` | Gera um JWT real e troca por access token OAuth2 (`getFirebaseAccessToken`). `not_configured` se `FIREBASE_CLIENT_EMAIL`/`FIREBASE_PRIVATE_KEY` ausentes |
+| `checks.bigQuery` | Roda `SELECT 1 AS ok` no BigQuery via API real. `not_configured` se as credenciais Firebase não passaram no check anterior |
+| `checks.ingest` | `keyConfigured` reflete se `INGEST_KEY` está definida. `lastSuccessAt` é o `MAX(created_at)` de `diagnostic_sessions` — status `idle` se não houver ingest nas últimas 48h |
+| `lastFailure` | Última linha de `system_errors` por `last_seen DESC` (pode ser `null`) |
+| `lastSuccess` | Baseado no `ingest.lastSuccessAt` (pode ser `null` se nunca houve ingest) |
+
+**Status possíveis:** `ok`, `error`, `not_configured`, `idle`. Nenhum é tratado como "sempre verde" no frontend — `not_configured` e `idle` são estados legítimos e exibidos como tal.
+
+---
+
 ## Endpoints de integração Firebase (`/admin/integrations/firebase/*`)
 
 ### GET /admin/integrations/firebase/status

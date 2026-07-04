@@ -1164,6 +1164,116 @@ async function handleFirebaseStatus(_req: Request, env: Env): Promise<Response> 
   }, 200, env);
 }
 
+// --- GH#417 / GH#425: saúde do sistema com verificação real de cada dependência ---
+
+interface HealthCheckResult {
+  status: "ok" | "error" | "not_configured" | "idle";
+  latencyMs?: number;
+  message?: string;
+}
+
+async function checkD1Health(env: Env): Promise<HealthCheckResult> {
+  const start = Date.now();
+  try {
+    await env.DB.prepare("SELECT 1 AS ok").first();
+    return { status: "ok", latencyMs: Date.now() - start };
+  } catch (e) {
+    return { status: "error", latencyMs: Date.now() - start, message: String(e) };
+  }
+}
+
+async function checkFirebaseCredentialsHealth(env: Env): Promise<HealthCheckResult> {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return { status: "not_configured", message: "FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY não configurados." };
+  }
+  const start = Date.now();
+  try {
+    await getFirebaseAccessToken(env);
+    return { status: "ok", latencyMs: Date.now() - start };
+  } catch (e) {
+    return { status: "error", latencyMs: Date.now() - start, message: String(e) };
+  }
+}
+
+async function checkBigQueryHealth(env: Env, firebaseOk: boolean): Promise<HealthCheckResult> {
+  if (!firebaseOk) {
+    return { status: "not_configured", message: "Requer credenciais Firebase válidas para autenticar no BigQuery." };
+  }
+  const start = Date.now();
+  const { error } = await queryBigQuery(env, "SELECT 1 AS ok");
+  if (error) return { status: "error", latencyMs: Date.now() - start, message: error };
+  return { status: "ok", latencyMs: Date.now() - start };
+}
+
+interface IngestHealthResult extends HealthCheckResult {
+  keyConfigured: boolean;
+  lastSuccessAt: string | null;
+}
+
+async function checkIngestHealth(env: Env): Promise<IngestHealthResult> {
+  const keyConfigured = !!env.INGEST_KEY;
+  if (!keyConfigured) {
+    return { status: "not_configured", keyConfigured: false, lastSuccessAt: null, message: "INGEST_KEY não configurada." };
+  }
+
+  const row = await env.DB.prepare(
+    "SELECT MAX(created_at) AS last FROM diagnostic_sessions"
+  ).first<{ last: number | null }>();
+  const lastSuccessAt = row?.last ? new Date(row.last * 1000).toISOString() : null;
+
+  // Sem ingest nas últimas 48h é sinal de app parado de enviar dados, não necessariamente erro,
+  // mas o painel não deve mostrar "ok" silencioso quando não há evidência de atividade recente.
+  const idleThresholdMs = 48 * 60 * 60 * 1000;
+  const isIdle = !lastSuccessAt || Date.now() - new Date(lastSuccessAt).getTime() > idleThresholdMs;
+
+  return {
+    status: isIdle ? "idle" : "ok",
+    keyConfigured: true,
+    lastSuccessAt,
+    message: isIdle ? "Nenhum ingest de diagnóstico recebido nas últimas 48h." : undefined,
+  };
+}
+
+async function handleSystemHealth(_req: Request, env: Env): Promise<Response> {
+  const d1 = await checkD1Health(env);
+  const firebaseCredentials = await checkFirebaseCredentialsHealth(env);
+  const bigQuery = await checkBigQueryHealth(env, firebaseCredentials.status === "ok");
+  const ingest = await checkIngestHealth(env);
+
+  const lastErrorRow = await env.DB.prepare(
+    "SELECT source, message, last_seen FROM system_errors ORDER BY last_seen DESC LIMIT 1"
+  ).first<{ source: string; message: string; last_seen: number }>();
+  const lastFailure = lastErrorRow
+    ? {
+        source: lastErrorRow.source,
+        message: lastErrorRow.message,
+        timestamp: new Date(lastErrorRow.last_seen).toISOString(),
+      }
+    : null;
+
+  const lastSuccess = ingest.lastSuccessAt
+    ? { source: "ingest", timestamp: ingest.lastSuccessAt }
+    : null;
+
+  return json(
+    {
+      source: "worker",
+      timestamp: new Date().toISOString(),
+      checks: {
+        worker: { status: "ok" as const },
+        d1,
+        firebaseCredentials,
+        bigQuery,
+        ingest,
+      },
+      lastFailure,
+      lastSuccess,
+    },
+    200,
+    env
+  );
+}
+
 async function handleFirebaseCrashlytics(_req: Request, env: Env): Promise<Response> {
   if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
     return json({ source: "no_credentials", unresolvedCrashes: 0, crashFreeUsersPercentage: 100 }, 200, env);
@@ -1872,6 +1982,7 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/battery$/,          handler: withErrorLogging('analytics', handleBatteryAnalytics) },
   { method: "GET",  pattern: /^\/admin\/analytics\/battery$/,                   handler: withErrorLogging('analytics', handleBatteryAnalytics) },
   { method: "GET",  pattern: /^\/admin\/metrics\/errors$/,                      handler: handleErrors },
+  { method: "GET",  pattern: /^\/admin\/system-health$/,                        handler: withErrorLogging('system-health', handleSystemHealth) },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/status$/,       handler: handleFirebaseStatus },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/analytics$/,    handler: handleFirebaseAnalytics },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/crashlytics$/,  handler: handleFirebaseCrashlytics },
