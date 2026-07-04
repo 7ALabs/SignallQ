@@ -310,7 +310,9 @@ class SignallQOrchestrator(
             speedtestResult = resultado,
             wifiFrequenciaMhz = wifiSnapshot?.frequenciaMhz,
             movelTecnologia = extraContext.movel?.tecnologia,
-            operadoraMovel = extraContext.movel?.operadora,
+            // GH#412: movel.operadora e null em Wi-Fi — cai para o ISP ja
+            // identificado (normalizado pelo catalogo de operadoras).
+            operadoraMovel = extraContext.movel?.operadora ?: extraContext.ispOperadoraDetectada,
             aiSummaryReport = if (!aiEntry.isFallback) aiEntry.content else "",
         )
 
@@ -515,7 +517,9 @@ class SignallQOrchestrator(
             speedtestResult = speedtestResult,
             wifiFrequenciaMhz = wifiSnapshot?.frequenciaMhz,
             movelTecnologia = extraContext.movel?.tecnologia,
-            operadoraMovel = extraContext.movel?.operadora,
+            // GH#412: movel.operadora e null em Wi-Fi — cai para o ISP ja
+            // identificado (normalizado pelo catalogo de operadoras).
+            operadoraMovel = extraContext.movel?.operadora ?: extraContext.ispOperadoraDetectada,
             aiSummaryReport = if (!aiEntry.isFallback) aiEntry.content else "",
         )
 
@@ -1039,7 +1043,8 @@ class SignallQOrchestrator(
         wifiFrequenciaMhz: Int? = null,
         /** Tecnologia movel ja como string — ex: "5G", "5G NSA", "4G". Null se Wi-Fi ou Xiaomi sem permissao. */
         movelTecnologia: String? = null,
-        /** Operadora movel identificada — ex: "Claro", "Vivo". Null se Wi-Fi ou indisponivel. */
+        /** Operadora movel OU provedor Wi-Fi identificado — ex: "Claro", "Vivo".
+         *  Null apenas se realmente indisponivel (GH#412). */
         operadoraMovel: String? = null,
         /** Resumo gerado pela IA. Vazio se IA nao foi chamada ou falhou. */
         aiSummaryReport: String = "",

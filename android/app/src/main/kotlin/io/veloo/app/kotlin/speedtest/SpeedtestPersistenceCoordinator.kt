@@ -2,6 +2,7 @@
 
 import io.signallq.app.core.database.MedicaoDao
 import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.telephony.MonitorTelephony
 import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
@@ -10,6 +11,8 @@ import io.signallq.app.feature.diagnostico.DiagnosticStatus
 import io.signallq.app.feature.diagnostico.EstadoDiagnostico
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.ExecutorSpeedtest
+import io.signallq.app.network.IspInfoCache
+import io.signallq.app.ui.BancoOperadoras
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -18,10 +21,30 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
+ * Resolve o valor a persistir no campo `operadoraMovel` da [MedicaoEntity].
+ *
+ * Rede movel: usa a operadora do SIM ([MonitorTelephony]). Wi-Fi: usa o ISP
+ * publico ja resolvido ([IspInfoCache]), normalizado pelo catalogo
+ * [BancoOperadoras] quando reconhecido — caso contrario mantem o nome cru do
+ * ISP (GH#412: antes o campo saia sempre null em testes via Wi-Fi).
+ */
+internal fun resolverOperadorPersistencia(
+    estadoConexao: EstadoConexao,
+    operadoraMovelDetectada: String?,
+    ispWifiDetectado: String?,
+): String? =
+    when (estadoConexao) {
+        EstadoConexao.movel -> operadoraMovelDetectada
+        EstadoConexao.wifi -> ispWifiDetectado?.let { raw -> BancoOperadoras.resolver(raw)?.nome ?: raw }
+        else -> null
+    }
+
+/**
  * Responsável único por persistir resultados do speedtest no Room.
  *
  * Observa [ExecutorSpeedtest.snapshotFlow], detecta estado concluído, monta a
- * [MedicaoEntity] completa (com operadoraMovel via [MonitorTelephony]) e salva.
+ * [MedicaoEntity] completa (com operadoraMovel via [MonitorTelephony] em rede
+ * móvel, ou via [IspInfoCache] + [BancoOperadoras] em Wi-Fi — GH#412) e salva.
  *
  * Também observa [DiagnosticOrchestrator.snapshotFlow]: quando o diagnóstico local
  * é concluído após um speedtest, atualiza o registro com o texto do diagnóstico e
@@ -40,6 +63,7 @@ class SpeedtestPersistenceCoordinator
         private val monitorTelephony: MonitorTelephony,
         private val monitorRede: MonitorRede,
         private val diagnosticOrchestrator: DiagnosticOrchestrator,
+        private val ispInfoCache: IspInfoCache,
         private val applicationScope: CoroutineScope,
     ) {
         private var ultimoResultadoPersistidoEpochMs: Long? = null
@@ -86,7 +110,12 @@ class SpeedtestPersistenceCoordinator
                                 vereditoGamer = resultado.diagnosticoQualidade.vereditoGamer.name,
                                 vereditoVideoChamada = resultado.diagnosticoQualidade.vereditoVideoChamada.name,
                                 gargaloPrimario = resultado.diagnosticoQualidade.gargaloPrimario.name,
-                                operadoraMovel = monitorTelephony.snapshotFlow.value?.operadora,
+                                operadoraMovel =
+                                    resolverOperadorPersistencia(
+                                        estadoConexao = monitorRede.snapshotFlow.value.estadoConexao,
+                                        operadoraMovelDetectada = monitorTelephony.snapshotFlow.value?.operadora,
+                                        ispWifiDetectado = ispInfoCache.ultimoIspNome,
+                                    ),
                                 status = "completed",
                             ),
                         )
