@@ -24,6 +24,8 @@ export interface DiagnosticSession {
   timestamp: string; // ISO string
   networkType: NetworkType;
   environment: "production" | "staging";
+  operator?: string; // operadora móvel/ISP identificada (coluna `operator` em diagnostic_sessions)
+  score: number; // score 0-100 calculado pelo engine local (coluna `score`)
   speed: NetworkSpeed;
   networkStrength?: NetworkStrength;
   issues: {

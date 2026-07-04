@@ -32,7 +32,8 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
   const [selectedOperator, setSelectedOperator] = React.useState("all");
   const [selectedScore, setSelectedScore] = React.useState("all");
   const [selectedIssue, setSelectedIssue] = React.useState("all");
-  const [selectedAiProvider, setSelectedAiProvider] = React.useState("all");
+  const [selectedVersion, setSelectedVersion] = React.useState("all");
+  const [availableVersions, setAvailableVersions] = React.useState<string[]>([]);
   const [selectedDistChannel, setSelectedDistChannel] = React.useState<DistChannel | ("")>("");
   const [selectedBuildType, setSelectedBuildType] = React.useState<BuildType | ("")>("");
 
@@ -73,6 +74,11 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
 
       setSummary(summaryResponse);
 
+      // Opções de versão disponíveis vêm do conjunto completo retornado pela API,
+      // antes de qualquer filtro local — senão o próprio filtro de versão se auto-restringe.
+      const versions = Array.from(new Set(sessionsData.map(s => s.appVersion).filter(Boolean))).sort();
+      setAvailableVersions(versions);
+
       // Filter with local parameters
       let filtered = sessionsData;
 
@@ -82,16 +88,15 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
 
       if (selectedOperator !== "all") {
         filtered = filtered.filter(s =>
-          s.networkStrength?.carrierName?.toLowerCase().includes(selectedOperator.toLowerCase())
+          s.operator?.toLowerCase().includes(selectedOperator.toLowerCase())
         );
       }
 
       if (selectedScore !== "all") {
         filtered = filtered.filter(s => {
-          const score = s.networkStrength?.signalQualityPercentage || 80; // defaults to 80
-          if (selectedScore === "poor") return score < 60;
-          if (selectedScore === "medium") return score >= 60 && score <= 80;
-          return score > 80;
+          if (selectedScore === "poor") return s.score < 60;
+          if (selectedScore === "medium") return s.score >= 60 && s.score <= 80;
+          return s.score > 80;
         });
       }
 
@@ -101,13 +106,8 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
         );
       }
 
-      if (selectedAiProvider !== "all") {
-        // Mock matching provider based on status
-        filtered = filtered.filter(s => {
-          if (selectedAiProvider === "gemini_flash") return s.aiStatus === "completed";
-          if (selectedAiProvider === "local_fallback") return s.aiStatus === "failed";
-          return true;
-        });
+      if (selectedVersion !== "all") {
+        filtered = filtered.filter(s => s.appVersion === selectedVersion);
       }
 
       if (selectedDistChannel !== "") {
@@ -131,7 +131,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [localEnv, localPeriod, searchQuery, selectedNetwork, selectedOperator, selectedScore, selectedIssue, selectedAiProvider, selectedDistChannel, selectedBuildType, triggerRefreshCounter]);
+  }, [localEnv, localPeriod, searchQuery, selectedNetwork, selectedOperator, selectedScore, selectedIssue, selectedVersion, selectedDistChannel, selectedBuildType, triggerRefreshCounter]);
 
   React.useEffect(() => {
     loadSessionsData();
@@ -149,18 +149,17 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
     setStatusMessage(null);
     try {
       const res = await diagnosticsService.triggerReDiagnosis(id);
-      if (res.success) {
-        setStatusMessage(res.message);
+      // res.message já explica o motivo (implementado ou não) — mostrar sempre,
+      // não só no caminho de sucesso, senão o clique falha silenciosamente em produção.
+      setStatusMessage(res.message);
 
-        // Simutate updating report in local UI state
-        if (selectedSession && selectedSession.id === id) {
-          setSelectedSession({
-            ...selectedSession,
-            aiStatus: "completed",
-            aiSummaryReport: "Ajuste e recalculado efetuado com sucesso via Gemini 1.5 Flash. O robô reavaliou que as flutuações eletromagnéticas de radiofrequência local foram dirimidas de forma parcial, mantendo apenas latência leve no DNS local.",
-            issues: selectedSession.issues.map(i => ({ ...i, severity: "attention" })),
-          });
-        }
+      if (res.success && selectedSession && selectedSession.id === id) {
+        setSelectedSession({
+          ...selectedSession,
+          aiStatus: "completed",
+          aiSummaryReport: "Ajuste e recalculado efetuado com sucesso via Gemini 1.5 Flash. O robô reavaliou que as flutuações eletromagnéticas de radiofrequência local foram dirimidas de forma parcial, mantendo apenas latência leve no DNS local.",
+          issues: selectedSession.issues.map(i => ({ ...i, severity: "attention" })),
+        });
       }
     } catch (e) {
       console.error("Critical connection failure with remote router", e);
@@ -188,7 +187,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
       accessor: (row: DiagnosticSession) => {
         const details = row.networkStrength?.ssid
           ? `SSID: ${row.networkStrength.ssid}`
-          : row.networkStrength?.carrierName || "-";
+          : row.operator || "-";
         return (
           <div>
             <span className="font-sans text-[11px] text-[var(--text-secondary)] block uppercase font-bold">{row.networkType}</span>
@@ -237,8 +236,9 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
         onScoreChange={setSelectedScore}
         selectedIssue={selectedIssue}
         onIssueChange={setSelectedIssue}
-        selectedAiProvider={selectedAiProvider}
-        onAiProviderChange={setSelectedAiProvider}
+        selectedVersion={selectedVersion}
+        onVersionChange={setSelectedVersion}
+        availableVersions={availableVersions}
         selectedDistChannel={selectedDistChannel}
         onDistChannelChange={setSelectedDistChannel}
         selectedBuildType={selectedBuildType}
@@ -350,6 +350,18 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
                       <span>{selectedSession.osVersion} • app {selectedSession.appVersion}</span>
                     </p>
                   </div>
+                  {selectedSession.operator && (
+                    <div>
+                      <div className="text-[10px] text-[var(--text-tertiary)] font-sans uppercase tracking-wider">Operadora</div>
+                      <p className="font-semibold text-[var(--text-primary)] mt-0.5">{selectedSession.operator}</p>
+                    </div>
+                  )}
+                  <div>
+                    <div className="text-[10px] text-[var(--text-tertiary)] font-sans uppercase tracking-wider">Score da Sessão</div>
+                    <p className={`font-semibold mt-0.5 ${selectedSession.score >= 80 ? "text-emerald-400" : selectedSession.score >= 60 ? "text-amber-500" : "text-red-400"}`}>
+                      {selectedSession.score}/100
+                    </p>
+                  </div>
                 </div>
 
                 {/* Physical metrics metrics table */}
@@ -421,6 +433,12 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
                         <div>
                           <div className="text-[var(--text-tertiary)] text-[9px] font-sans">Banda frequência</div>
                           <div className="font-semibold text-[var(--text-secondary)] mt-0.5">{selectedSession.networkStrength.frequencyBandGhz} GHz</div>
+                        </div>
+                      )}
+                      {selectedSession.networkStrength.wifiStandard && (
+                        <div>
+                          <div className="text-[var(--text-tertiary)] text-[9px] font-sans">Padrão Wi-Fi</div>
+                          <div className="font-semibold text-[var(--text-secondary)] mt-0.5 uppercase">802.11{selectedSession.networkStrength.wifiStandard}</div>
                         </div>
                       )}
                     </div>

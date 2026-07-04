@@ -8,6 +8,7 @@ export interface NetworkStrength {
   frequencyBandGhz?: number; // e.g. 2.4, 5.0, or LTE band
   channel?: number;
   ssid?: string;
+  wifiStandard?: string; // e.g. "n", "ac", "ax" (coluna `padrao_wifi`)
 }
 
 export interface NetworkSpeed {

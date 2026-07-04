@@ -14,8 +14,9 @@ interface DiagnosticsFiltersProps {
   onScoreChange: (score: string) => void;
   selectedIssue: string;
   onIssueChange: (issue: string) => void;
-  selectedAiProvider: string;
-  onAiProviderChange: (provider: string) => void;
+  selectedVersion: string;
+  onVersionChange: (version: string) => void;
+  availableVersions: string[];
   selectedPeriod: string;
   onPeriodChange: (period: string) => void;
   selectedEnvironment: AppEnvironment;
@@ -39,8 +40,9 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
   onScoreChange,
   selectedIssue,
   onIssueChange,
-  selectedAiProvider,
-  onAiProviderChange,
+  selectedVersion,
+  onVersionChange,
+  availableVersions,
   selectedPeriod,
   onPeriodChange,
   selectedEnvironment,
@@ -228,21 +230,20 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
           </select>
         </div>
 
-        {/* AI Provider */}
+        {/* App Version */}
         <div className="space-y-1 col-span-2 sm:col-span-1 lg:col-span-2">
           <label className="text-[10px] font-sans uppercase tracking-wider text-[var(--text-tertiary)] font-bold block">
-            Provedor IA Laudos
+            Versão do App
           </label>
           <select
-            value={selectedAiProvider}
-            onChange={(e) => onAiProviderChange(e.target.value)}
+            value={selectedVersion}
+            onChange={(e) => onVersionChange(e.target.value)}
             className="w-full bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl px-3 py-2 text-xs text-[var(--text-secondary)] focus:outline-none focus:border-[var(--primary)] cursor-pointer"
           >
-            <option value="all">Todos os provedores</option>
-            <option value="gemini_flash">Gemini 1.5 Flash</option>
-            <option value="cloudflare_qwen">Qwen 2.5 Edge</option>
-            <option value="openai">OpenAI GPT-4o Mini</option>
-            <option value="local_fallback">Fallback local</option>
+            <option value="all">Todas as versões</option>
+            {availableVersions.map((v) => (
+              <option key={v} value={v}>{v}</option>
+            ))}
           </select>
         </div>
       </div>
