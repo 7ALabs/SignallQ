@@ -1,6 +1,7 @@
 import React from "react";
 import { CheckCircle, XCircle, MinusCircle, Clock } from "lucide-react";
 import { HealthStatus } from "../../../services/systemHealthService";
+import { alpha } from "../../../utils/color";
 
 interface IntegrationCheckRowProps {
   label: string;
@@ -47,7 +48,7 @@ export const IntegrationCheckRow: React.FC<IntegrationCheckRowProps> = ({
       className="flex items-start gap-3 p-3.5 rounded-xl"
       style={{
         backgroundColor: "var(--bg-surface-hover)",
-        border: `1px solid color-mix(in srgb, ${meta.color} 20%, transparent)`,
+        border: `1px solid ${alpha(meta.color, 20)}`,
       }}
     >
       <div className="mt-0.5 shrink-0" style={{ color: meta.color }}>
@@ -62,8 +63,8 @@ export const IntegrationCheckRow: React.FC<IntegrationCheckRowProps> = ({
             className="text-[10px] font-sans font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0"
             style={{
               color: meta.color,
-              backgroundColor: `color-mix(in srgb, ${meta.color} 12%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${meta.color} 25%, transparent)`,
+              backgroundColor: alpha(meta.color, 12),
+              border: `1px solid ${alpha(meta.color, 25)}`,
             }}
           >
             {meta.label}

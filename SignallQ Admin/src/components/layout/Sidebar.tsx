@@ -1,4 +1,5 @@
 import React from "react";
+import { alpha } from "../../utils/color";
 import {
   LayoutDashboard,
   LineChart,
@@ -169,9 +170,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         style={
                           item.badgeType === "error"
                             ? {
-                                backgroundColor: "color-mix(in srgb, var(--sq-error) 10%, transparent)",
+                                backgroundColor: alpha("var(--sq-error)", 10),
                                 color: "var(--sq-error)",
-                                border: "1px solid color-mix(in srgb, var(--sq-error) 20%, transparent)",
+                                border: `1px solid ${alpha("var(--sq-error)", 20)}`,
                               }
                             : {
                                 backgroundColor: "var(--sq-bg-overlay)",

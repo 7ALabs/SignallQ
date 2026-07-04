@@ -2,6 +2,7 @@ import React from "react";
 import { RefreshCw, Download, Database, LogOut, Menu } from "lucide-react";
 import { AppEnvironment } from "../../types/admin";
 import { PERIOD_FILTERS } from "../../config/constants";
+import { alpha } from "../../utils/color";
 
 interface TopbarProps {
   title: string;
@@ -71,9 +72,9 @@ export const Topbar: React.FC<TopbarProps> = ({
               <span
                 className="shrink-0 px-2 py-0.5 text-[10px] font-mono rounded"
                 style={{
-                  backgroundColor: "color-mix(in srgb, var(--attention) 20%, transparent)",
+                  backgroundColor: alpha("var(--attention)", 20),
                   color: "var(--attention)",
-                  border: "1px solid color-mix(in srgb, var(--attention) 30%, transparent)",
+                  border: `1px solid ${alpha("var(--attention)", 30)}`,
                 }}
               >
                 STAGING
@@ -181,7 +182,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             className="p-2 min-w-[44px] min-h-[44px] lg:px-4 lg:py-2 lg:min-w-0 lg:min-h-0 rounded-xl text-xs font-semibold text-white transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40"
             style={{
               backgroundColor: "var(--primary)",
-              boxShadow: "0 4px 12px color-mix(in srgb, var(--primary) 20%, transparent)",
+              boxShadow: `0 4px 12px ${alpha("var(--primary)", 20)}`,
             }}
             title="Sincronizar telemetria"
           >

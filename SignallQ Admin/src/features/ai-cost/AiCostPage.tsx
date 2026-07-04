@@ -1,5 +1,6 @@
 import React from "react";
 import { aiUsageService } from "../../services/aiUsageService";
+import { alpha } from "../../utils/color";
 import { AiCostMetricGrid } from "./components/AiCostMetricGrid";
 import { ProviderCostTable } from "./components/ProviderCostTable";
 import { AiCostTimeline } from "./components/AiCostTimeline";
@@ -141,8 +142,8 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
       <div
         className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 rounded-[8px]"
         style={{
-          border: "1px solid color-mix(in srgb, var(--sq-error) 20%, transparent)",
-          backgroundColor: "color-mix(in srgb, var(--sq-error) 5%, transparent)",
+          border: `1px solid ${alpha("var(--sq-error)", 20)}`,
+          backgroundColor: alpha("var(--sq-error)", 5),
         }}
       >
         <h4 className="text-sm font-semibold uppercase tracking-wider font-mono" style={{ color: "var(--sq-error)" }}>
@@ -153,8 +154,8 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
           onClick={() => { setError(null); loadAiStats(); }}
           className="mt-4 px-4 py-2 text-xs transition-all rounded-xl font-mono"
           style={{
-            backgroundColor: "color-mix(in srgb, var(--sq-error) 10%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--sq-error) 20%, transparent)",
+            backgroundColor: alpha("var(--sq-error)", 10),
+            border: `1px solid ${alpha("var(--sq-error)", 20)}`,
             color: "var(--sq-error)",
           }}
         >

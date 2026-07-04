@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { alpha } from "../utils/color";
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -75,7 +76,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           className="rounded-[8px] p-6"
           style={{
             backgroundColor: "var(--sq-bg-elevated)",
-            border: "1px solid color-mix(in srgb, white 8%, transparent)",
+            border: `1px solid ${alpha("white", 8)}`,
           }}
         >
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -96,15 +97,15 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 className="w-full rounded-xl px-4 py-3 text-sm transition-colors focus:outline-none"
                 style={{
                   backgroundColor: "var(--sq-bg-primary)",
-                  border: "1px solid color-mix(in srgb, white 10%, transparent)",
+                  border: `1px solid ${alpha("white", 10)}`,
                   color: "var(--sq-text-primary)",
                 }}
                 onFocus={(e) => {
-                  e.currentTarget.style.borderColor = "color-mix(in srgb, var(--sq-accent) 60%, transparent)";
-                  e.currentTarget.style.boxShadow = "0 0 0 2px color-mix(in srgb, var(--sq-accent) 15%, transparent)";
+                  e.currentTarget.style.borderColor = alpha("var(--sq-accent)", 60);
+                  e.currentTarget.style.boxShadow = `0 0 0 2px ${alpha("var(--sq-accent)", 15)}`;
                 }}
                 onBlur={(e) => {
-                  e.currentTarget.style.borderColor = "color-mix(in srgb, white 10%, transparent)";
+                  e.currentTarget.style.borderColor = alpha("white", 10);
                   e.currentTarget.style.boxShadow = "";
                 }}
               />
@@ -126,15 +127,15 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 className="w-full rounded-xl px-4 py-3 text-sm transition-colors focus:outline-none"
                 style={{
                   backgroundColor: "var(--sq-bg-primary)",
-                  border: "1px solid color-mix(in srgb, white 10%, transparent)",
+                  border: `1px solid ${alpha("white", 10)}`,
                   color: "var(--sq-text-primary)",
                 }}
                 onFocus={(e) => {
-                  e.currentTarget.style.borderColor = "color-mix(in srgb, var(--sq-accent) 60%, transparent)";
-                  e.currentTarget.style.boxShadow = "0 0 0 2px color-mix(in srgb, var(--sq-accent) 15%, transparent)";
+                  e.currentTarget.style.borderColor = alpha("var(--sq-accent)", 60);
+                  e.currentTarget.style.boxShadow = `0 0 0 2px ${alpha("var(--sq-accent)", 15)}`;
                 }}
                 onBlur={(e) => {
-                  e.currentTarget.style.borderColor = "color-mix(in srgb, white 10%, transparent)";
+                  e.currentTarget.style.borderColor = alpha("white", 10);
                   e.currentTarget.style.boxShadow = "";
                 }}
               />
@@ -145,8 +146,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 className="text-xs rounded-lg px-3 py-2"
                 style={{
                   color: "var(--sq-error)",
-                  backgroundColor: "color-mix(in srgb, var(--sq-error) 10%, transparent)",
-                  border: "1px solid color-mix(in srgb, var(--sq-error) 20%, transparent)",
+                  backgroundColor: alpha("var(--sq-error)", 10),
+                  border: `1px solid ${alpha("var(--sq-error)", 20)}`,
                 }}
               >
                 {error}

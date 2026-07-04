@@ -87,6 +87,10 @@
   --sq-bg-elevated:     var(--bg-surface);
   --sq-bg-overlay:      var(--bg-surface-hover);
   --sq-border:          var(--border);
+  /* SIG-12: color-mix() nao existe em Safari < 16.2 (iPad 2012 roda no maximo
+     Safari 9/10) -- fallback rgba() primeiro, cascade ignora o color-mix()
+     invalido em navegadores antigos e mantem o fallback. */
+  --sq-border-subtle:   rgba(38, 38, 38, 0.6);
   --sq-border-subtle:   color-mix(in srgb, var(--border) 60%, transparent);
 
   --sq-text-primary:    var(--text-primary);
@@ -161,6 +165,8 @@
   --sq-bg-elevated:     var(--bg-surface);
   --sq-bg-overlay:      var(--bg-surface-hover);
   --sq-border:          var(--border);
+  /* SIG-12: fallback rgba() para Safari < 16.2 (ver comentario em :root) */
+  --sq-border-subtle:   rgba(220, 220, 220, 0.6);
   --sq-border-subtle:   color-mix(in srgb, var(--border) 60%, transparent);
   --sq-text-primary:    var(--text-primary);
   --sq-text-secondary:  var(--text-secondary);
@@ -196,6 +202,8 @@
     --sq-bg-elevated:     var(--bg-surface);
     --sq-bg-overlay:      var(--bg-surface-hover);
     --sq-border:          var(--border);
+    /* SIG-12: fallback rgba() para Safari < 16.2 (ver comentario em :root) */
+    --sq-border-subtle:   rgba(220, 220, 220, 0.6);
     --sq-border-subtle:   color-mix(in srgb, var(--border) 60%, transparent);
     --sq-text-primary:    var(--text-primary);
     --sq-text-secondary:  var(--text-secondary);
