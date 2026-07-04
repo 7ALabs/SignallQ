@@ -9,6 +9,14 @@
 - `clean-build.ps1`: remove outputs/cache locais sem apagar `builds/apk/`.
 - `pre-commit-android.sh`: Git pre-commit hook para validar versionamento, changelog e higiene antes de commitar mudanças no Android.
 
+## Claude Code Hooks
+
+### observe-and-act.sh
+
+Hook `PostToolUse` (matcher `Bash`) registrado em `.claude/settings.json`, roda após `git push` ou `gh pr merge`. Escaneia `.kt` alterados desde o merge-base com `main` e grava violações conhecidas (string técnica em `Text()`, `LazyColumn` aninhado, Toast técnico, TODO/FIXME em produção, cor hardcoded sem token) em `.claude/agent-observations/<ano-mes>/obs-<data>-staticcheck.md`.
+
+Sem LLM, sem Slack, sem GitHub — só log local. Não abre issue automaticamente (removido em 2026-07-04: criava issues sem supervisão a cada push).
+
 ## Git Hooks
 
 ### pre-commit-android.sh
