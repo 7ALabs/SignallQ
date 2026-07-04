@@ -126,6 +126,13 @@ object BancoOperadoras {
     fun resolver(ispNome: String?): ContatoOperadora? {
         if (ispNome.isNullOrBlank()) return null
         val normalizado = ispNome.lowercase().trim()
-        return lista.firstOrNull { op -> op.detectarPor.any { termo -> normalizado.contains(termo) } }
+        return lista.firstOrNull { op ->
+            op.detectarPor.any { termo ->
+                // Match por palavra inteira (\b) — evita que termos curtos como "oi" sejam
+                // capturados como substring de outro nome (ex.: "oi" dentro de "nio"/"condomínio").
+                // Ver GH#411: operadora "Oi" era exibida como "Nio" por causa de contains() puro.
+                Regex("\\b${Regex.escape(termo)}\\b").containsMatchIn(normalizado)
+            }
+        }
     }
 }
