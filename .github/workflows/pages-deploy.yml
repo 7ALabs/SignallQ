@@ -29,19 +29,23 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      VITE_ADMIN_API_BASE_URL: ${{ secrets.VITE_ADMIN_API_BASE_URL }}
       VITE_ENABLE_MOCKS: 'false'
     steps:
       - uses: actions/checkout@v4
 
+      # NAO definir VITE_ADMIN_API_BASE_URL aqui: "SignallQ Admin/.env.production"
+      # ja fixa o valor correto (/api, same-origin via Pages Function proxy).
+      # Uma env var externa sobrescreve o .env.production no build do Vite e
+      # reintroduz o bug de cookie cross-site que quebra o login (ver comentario
+      # no proprio .env.production).
       - name: Check required secrets
         id: gate
         run: |
-          if [ -n "$CLOUDFLARE_ACCOUNT_ID" ] && [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$VITE_ADMIN_API_BASE_URL" ]; then
+          if [ -n "$CLOUDFLARE_ACCOUNT_ID" ] && [ -n "$CLOUDFLARE_API_TOKEN" ]; then
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           else
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "Faltam secrets (CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN / VITE_ADMIN_API_BASE_URL); pulando build+deploy do pacote unificado."
+            echo "Faltam secrets (CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN); pulando build+deploy do pacote unificado."
           fi
 
       - name: Setup Node.js
