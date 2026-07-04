@@ -683,6 +683,51 @@ Métricas de diagnóstico agrupadas por operadora de telecomunicações.
 
 ---
 
+### GET /admin/metrics/app-versions
+
+Sessões de diagnóstico agrupadas por versão do app, build e canal de distribuição —
+fonte real para a aba "Versões" do painel (GH#423). Não depende de Firebase/BigQuery:
+usa apenas colunas já ingeridas em `diagnostic_sessions`.
+
+**Parâmetros:** `period` (padrão `30d`), `environment`
+
+**Response 200:**
+```json
+{
+  "source": "d1",
+  "period": "30d",
+  "environment": "production",
+  "versions": [
+    {
+      "appVersion": "0.21.0",
+      "versionCode": 52,
+      "distChannel": "play_store",
+      "buildType": "release",
+      "sessions": 842,
+      "avgScore": 74,
+      "firstSeen": 1751500800,
+      "lastSeen": 1751932800
+    }
+  ],
+  "productionVersion": { "appVersion": "0.21.0", "versionCode": 52, "distChannel": "play_store", "...": "..." }
+}
+```
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `versions[].appVersion` | string | `app_version` do D1 |
+| `versions[].versionCode` | integer\|null | `version_code` do D1 |
+| `versions[].distChannel` | string | `play_store` \| `firebase_app_distribution` \| `sideload` \| `unknown` |
+| `versions[].buildType` | string | `release` \| `debug` \| `unknown` |
+| `versions[].sessions` | integer | Total de sessões da combinação versão+canal+build no período |
+| `versions[].avgScore` | integer\|null | Score médio das sessões |
+| `versions[].firstSeen` / `lastSeen` | integer | Unix timestamp em segundos |
+| `productionVersion` | object\|null | Entrada de `versions[]` com `distChannel: "play_store"` mais recente (fallback: qualquer canal) — usada como "versão em produção" |
+
+**Crash rate por versão:** não vem desta rota. O frontend cruza esta lista com `GET /admin/integrations/firebase/versions` (crashes por `appVersion`, exige credenciais Firebase); quando o Firebase não está configurado, o painel exibe explicitamente "Não configurado" em vez de omitir ou zerar o dado.
+
+---
+
 ### GET /admin/metrics/errors
 
 Erros de sistema dedupliciados, ordenados por frequência.
@@ -780,20 +825,40 @@ Faz chamada real à GA4 Data API quando credenciais estão configuradas. Retorna
 
 ### GET /admin/integrations/firebase/crashlytics
 
-Stub — requer exportação BigQuery.
+Consulta real ao BigQuery (export do Crashlytics) quando há credenciais. `source` indica o estado:
+
+| `source` | Significado |
+|---|---|
+| `no_credentials` | `FIREBASE_CLIENT_EMAIL`/`FIREBASE_PRIVATE_KEY` ausentes no worker |
+| `no_data_yet` | Export do BigQuery ativo mas sem linhas (tabela ainda não existe ou sem crash no período) |
+| `bigquery` | Dados reais |
+| `error` | Erro na query — logado em `system_errors` |
 
 ```json
 {
-  "source": "stub",
-  "message": "Crashlytics requer exportacao BigQuery.",
-  "unresolvedCrashes": 0,
-  "crashFreeUsersPercentage": 100
+  "source": "bigquery",
+  "unresolvedCrashes": 4,
+  "affectedUsers": 3,
+  "crashFreeUsersPercentage": 99.6
 }
 ```
 
+**Nota:** o frontend (`firebaseAdapter.ts`) trata `no_credentials`, `no_data_yet` e `error` como "dado indisponível" (`null`) — nunca exibe zero como se fosse dado real.
+
 ### GET /admin/integrations/firebase/versions
 
-Stub — requer BigQuery Crashlytics export.
+Total de crashes por `app_version` via BigQuery, mesmos estados de `source` da rota acima.
+
+```json
+{
+  "source": "bigquery",
+  "versions": [
+    { "app_version": "0.21.0", "total_crashes": 12, "affected_users": 8 }
+  ]
+}
+```
+
+**Limitação:** não cruza com `version_code`/`dist_channel` do D1 — junte com `GET /admin/metrics/app-versions` no frontend para exibir versão + canal + crashes juntos (feito em `VersionsTab.tsx`).
 
 ### POST /admin/integrations/firebase/sync
 
@@ -1086,14 +1151,13 @@ Os endpoints abaixo são necessários para completar o painel mas **ainda não e
 
 | Endpoint | Motivo | Bloqueio |
 |---|---|---|
-| `GET /admin/metrics/app-versions` | Histórico de versões com crash stats | Requer exportação BigQuery do Crashlytics |
 | `GET /admin/metrics/diagnostics/:id` | Detalhe de uma sessão específica | Worker só tem listagem, sem endpoint de detalhe individual |
 | `POST /admin/errors/:id/resolve` | Marcar erro como resolvido | Retorna `{ success: false, message: "Em implementação" }` |
 | `POST /diagnosis/explain` | Rediagnóstico remoto | Retorna `{ success: false }` com mensagem informativa |
-| `GET /admin/integrations/firebase/crashlytics` | Dados reais de crashes | Requer BigQuery export — retorna stub |
-| `GET /admin/integrations/firebase/versions` | Versões com crash rate | Requer BigQuery export — retorna stub |
 | `GET /admin/integrations/google-play` | Status Play Console | Não integrado — apenas no OpenAPI spec |
 | `GET /admin/integrations/app-store` | Status App Store Connect | Planejado para iOS (futuro) |
+
+**Nota (GH#423):** `GET /admin/metrics/app-versions`, `GET /admin/integrations/firebase/crashlytics` e `GET /admin/integrations/firebase/versions` já existem no worker (ver seções acima) — retiradas desta tabela. A aba "Versões" do painel usa o primeiro para versão/canal/sessões reais (D1) e o segundo para crash rate real quando o Firebase está configurado.
 
 ---
 

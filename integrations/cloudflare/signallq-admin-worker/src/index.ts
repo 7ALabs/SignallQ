@@ -1077,6 +1077,57 @@ async function handleOperators(request: Request, env: Env): Promise<Response> {
   return json({ source: "d1", period, environment: envFilter ?? "all", operators }, 200, env);
 }
 
+// GH#423: agregação real de sessões por versão de app — versão em produção, canal de
+// distribuição e dados por release, direto do D1 (não depende de BigQuery/Crashlytics).
+async function handleAppVersions(request: Request, env: Env): Promise<Response> {
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "30d";
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? " AND environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]            : [];
+
+  const rows = await env.DB.prepare(
+    `SELECT
+       app_version,
+       version_code,
+       dist_channel,
+       build_type,
+       COUNT(*)          AS sessions,
+       AVG(score)        AS avg_score,
+       MIN(created_at)   AS first_seen,
+       MAX(created_at)   AS last_seen
+     FROM diagnostic_sessions
+     WHERE created_at >= ?
+       AND app_version IS NOT NULL AND app_version != ''${envClause}
+     GROUP BY app_version, version_code, dist_channel, build_type
+     ORDER BY version_code DESC, last_seen DESC`
+  ).bind(since, ...envBinds).all();
+
+  const versions = (rows.results ?? []).map((r: any) => ({
+    appVersion:  r.app_version,
+    versionCode: r.version_code ?? null,
+    distChannel: r.dist_channel || "unknown",
+    buildType:   r.build_type   || "unknown",
+    sessions:    r.sessions     ?? 0,
+    avgScore:    r.avg_score != null ? Math.round(r.avg_score) : null,
+    firstSeen:   r.first_seen  ?? null,
+    lastSeen:    r.last_seen   ?? null,
+  }));
+
+  // "Versão em produção": build mais recente visto no canal play_store; sem sessões
+  // desse canal ainda (ex.: só beta interno), cai para a versão mais recente disponível.
+  const productionVersion =
+    versions.find((v: (typeof versions)[number]) => v.distChannel === "play_store") ?? versions[0] ?? null;
+
+  return json(
+    { source: "d1", period, environment: envFilter ?? "all", versions, productionVersion },
+    200,
+    env
+  );
+}
+
 // Gap 6 (SIG-164): Diagnostic Intelligence Panel — agrega padrões por tipo de problema.
 // Retorna os tipos de issue mais comuns, frequência relativa e score médio por tipo.
 async function handleDiagnosticsIntelligence(request: Request, env: Env): Promise<Response> {
@@ -2213,6 +2264,7 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage\/timeline$/,          handler: withErrorLogging('metrics', handleAiUsageTimeline) },
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage\/records$/,          handler: withErrorLogging('metrics', handleAiUsageRecords) },
   { method: "GET",  pattern: /^\/admin\/metrics\/operators$/,                   handler: withErrorLogging('metrics', handleOperators) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/app-versions$/,                handler: withErrorLogging('metrics', handleAppVersions) },
   { method: "GET",  pattern: /^\/admin\/metrics\/intelligence$/,                handler: withErrorLogging('metrics', handleDiagnosticsIntelligence) },
   { method: "GET",  pattern: /^\/admin\/diagnostics\/intelligence$/,            handler: withErrorLogging('metrics', handleDiagnosticsIntelligence) },
   { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/product$/,          handler: withErrorLogging('analytics', handleProductAnalytics) },
