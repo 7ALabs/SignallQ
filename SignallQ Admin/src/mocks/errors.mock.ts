@@ -111,6 +111,7 @@ export const mockSystemErrors: SystemErrorLog[] = [
     id: "err_901aef",
     timestamp: "2026-06-21T10:28:44-07:00",
     source: "ai_gateway",
+    category: "ia",
     message: "HTTP 504 Gateway Timeout while contacting Gemini API",
     stackTrace: "Error: Gateway Timeout\n  at fetchWithRetry (src/services/aiGroup.ts:241:18)\n  at processDiagnosis (src/workers/analytics.ts:54:12)",
     count: 382,
@@ -122,6 +123,7 @@ export const mockSystemErrors: SystemErrorLog[] = [
     id: "err_302b1f",
     timestamp: "2026-06-21T09:41:05-07:00",
     source: "android_app",
+    category: "app",
     message: "android.net.wifi.WifiManager.getConnectionInfo() returns NullPointerException",
     stackTrace: "java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.String android.net.wifi.WifiInfo.getSSID()' on a null object reference\n  at com.signallq.app.diag.WifiScanner.scan(WifiScanner.kt:144)\n  at com.signallq.app.Service.runDiagnosis(WorkerService.kt:82)",
     count: 124,
@@ -133,6 +135,7 @@ export const mockSystemErrors: SystemErrorLog[] = [
     id: "err_bc2191",
     timestamp: "2026-06-21T08:52:19-07:00",
     source: "worker",
+    category: "backend",
     message: "Cloudflare Worker subrequest limit exceeded: 50 active HTTP subrequests limit during peak latency",
     stackTrace: "WorkerError: subrequest limit exceeded\n  at async handleRequest (index.js:144)\n  at async fetch (index.js:12)",
     count: 45,
@@ -144,23 +147,31 @@ export const mockSystemErrors: SystemErrorLog[] = [
     id: "err_dcb291",
     timestamp: "2026-06-21T04:12:00-07:00",
     source: "analytics_db",
+    category: "integration",
     message: "FATAL: remaining connection slots are reserved for non-replication superuser connections",
     stackTrace: "AnalyticsDbError: ingestion latency exceeded\n  at Client.connect (node_modules/banco de analytics/lib/client.js:188)\n  at Pool.query (node_modules/banco de analytics/lib/pool.js:45)",
     count: 8,
     environment: "production",
     resolved: true,
     affectedUserCount: 41,
+    resolvedBy: "felipe@signallq.io",
+    resolvedAt: "2026-06-21T09:10:00-07:00",
+    resolutionNote: "Pool de conexões da Analytics DB redimensionado; sem recorrência em 48h.",
   },
   {
     id: "err_726b1a",
     timestamp: "2026-06-20T21:30:14-07:00",
     source: "android_app",
+    category: "app",
     message: "SecurityException: Location permission denied for speedtest cellular ping mapping",
     stackTrace: "java.lang.SecurityException: \"gps\" location provider requires ACCESS_FINE_LOCATION permission.\n  at android.os.Parcel.createExceptionOrNull(Parcel.java:3057)\n  at android.os.Parcel.createException(Parcel.java:3041)",
     count: 1420,
     environment: "production",
     resolved: true,
     affectedUserCount: 1102,
+    resolvedBy: "camilo@signallq.io",
+    resolvedAt: "2026-06-21T08:00:00-07:00",
+    resolutionNote: "Corrigido no app v0.18.2 — permissão de localização agora é solicitada antes do ping cellular.",
   }
 ];
 
@@ -258,7 +269,7 @@ export const mockOperatorsList: OperatorRecord[] = [
     averageUploadMbps: 28.2,
     averageLatencyMs: 38,
     packetLossAverage: 0.15,
-    customerSatisfactionPercentage: 88,
+    averageScorePercentage: 88,
   },
   {
     id: "op_vivo_m",
@@ -270,7 +281,7 @@ export const mockOperatorsList: OperatorRecord[] = [
     averageUploadMbps: 32.4,
     averageLatencyMs: 34,
     packetLossAverage: 0.12,
-    customerSatisfactionPercentage: 90,
+    averageScorePercentage: 90,
   },
   {
     id: "op_tim_m",
@@ -282,7 +293,7 @@ export const mockOperatorsList: OperatorRecord[] = [
     averageUploadMbps: 24.1,
     averageLatencyMs: 42,
     packetLossAverage: 0.22,
-    customerSatisfactionPercentage: 85,
+    averageScorePercentage: 85,
   },
   {
     id: "op_claro_f",
@@ -294,7 +305,7 @@ export const mockOperatorsList: OperatorRecord[] = [
     averageUploadMbps: 188.4,
     averageLatencyMs: 12,
     packetLossAverage: 0.05,
-    customerSatisfactionPercentage: 92,
+    averageScorePercentage: 92,
   },
   {
     id: "op_vivo_f",
@@ -306,7 +317,7 @@ export const mockOperatorsList: OperatorRecord[] = [
     averageUploadMbps: 384.2,
     averageLatencyMs: 8,
     packetLossAverage: 0.02,
-    customerSatisfactionPercentage: 96,
+    averageScorePercentage: 96,
   },
   {
     id: "op_desktop_f",
@@ -318,6 +329,6 @@ export const mockOperatorsList: OperatorRecord[] = [
     averageUploadMbps: 154.9,
     averageLatencyMs: 15,
     packetLossAverage: 0.08,
-    customerSatisfactionPercentage: 87,
+    averageScorePercentage: 87,
   }
 ];

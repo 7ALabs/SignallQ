@@ -3,7 +3,6 @@
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.component.ResponsiveActionsRow
 
 @Composable
 fun PermissaoTelefoniaContextoSheet(
@@ -82,21 +82,18 @@ fun PermissaoTelefoniaContextoSheet(
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(LkSpacing.xl))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement =
-                androidx.compose.foundation.layout.Arrangement
-                    .spacedBy(LkSpacing.md),
-        ) {
-            TextButton(
-                onClick = onAgoraNao,
-                modifier = Modifier.weight(1f),
-            ) { Text("Agora não", color = c.textSecondary) }
-            Button(
-                onClick = onConceder,
-                modifier = Modifier.weight(1f),
-            ) { Text("Entendi, conceder") }
-        }
+        ResponsiveActionsRow(
+            secondary = { m ->
+                TextButton(onClick = onAgoraNao, modifier = m) {
+                    Text("Agora não", color = c.textSecondary)
+                }
+            },
+            primary = { m ->
+                Button(onClick = onConceder, modifier = m) {
+                    Text("Entendi, conceder")
+                }
+            },
+        )
         Spacer(Modifier.height(LkSpacing.md))
     }
 }

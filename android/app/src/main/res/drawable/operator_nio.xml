@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="24dp"
+    android:height="8dp"
+    android:viewportWidth="90"
+    android:viewportHeight="30">
+    <path android:pathData="M49.0027 5.2251C49.0027 2.39464 46.6712 0.100098 43.7951 0.100098C40.919 0.100098 38.5874 2.39464 38.5874 5.2251V24.7751C38.5874 27.6056 40.919 29.9001 43.7951 29.9001C46.6712 29.9001 49.0027 27.6056 49.0027 24.7751V5.2251Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="43.7951"
+                android:startY="0.100098"
+                android:endX="43.7951"
+                android:endY="29.9001">
+                <item android:offset="0" android:color="#0039FF00"/>
+                <item android:offset="1" android:color="#FF39FF00"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:fillColor="#FF32E000"
+        android:pathData="M55.0378 15.0071C55.0378 6.09461 61.6862 0.114258 72.5769 0.114258C83.4677 0.114258 89.9455 6.03747 89.9455 15.0071C89.9455 23.9768 83.5257 29.9 72.5769 29.9C61.6282 29.9 55.0378 23.9196 55.0378 15.0071ZM72.5769 25.3857C79.3977 25.3857 83.2953 21.0428 83.2953 15.0071C83.2953 8.97139 79.3977 4.62854 72.5769 4.62854C65.7562 4.62854 61.6862 8.91604 61.6862 15.0071C61.6862 21.0982 65.8705 25.3857 72.5769 25.3857Z"/>
+    <path
+        android:fillColor="#FF32E000"
+        android:pathData="M43.7951 10.3679C46.6712 10.3679 49.0027 8.07338 49.0027 5.24292C49.0027 2.41246 46.6712 0.11792 43.7951 0.11792C40.919 0.11792 38.5874 2.41246 38.5874 5.24292C38.5874 8.07338 40.919 10.3679 43.7951 10.3679Z"/>
+    <path
+        android:fillColor="#FF32E000"
+        android:pathData="M18.8565 0.114258C12.7924 0.114258 8.98186 2.33211 6.81896 4.91068V0.79104H0.0544434V29.2785H6.81896V14.3303C6.81896 8.40711 10.8309 4.96604 16.7934 4.96604C22.2387 4.96604 25.0476 7.78568 25.0476 13.4268V29.2785H31.8121V12.1303C31.8121 4.40175 27.3411 0.114258 18.8583 0.114258H18.8565Z"/>
+</vector>

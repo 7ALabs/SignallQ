@@ -1,3 +1,4 @@
+import type { AdminDiagnosticPayload } from '@shared/contracts';
 import { createLocalDiagnosis } from '@shared/diagnosis';
 import { calculateJitterMs, calculateMbps } from '@shared/speedtest-metrics';
 import { DiagnosticPayload, SpeedtestResult } from '@/types/network';
@@ -144,7 +145,7 @@ export async function requestDiagnosisWithFallback(
   return response;
 }
 
-export function sendAdminDiagnostic(payload: Record<string, unknown>): Promise<ApiResponse<{ ok: boolean; id: string }>> {
+export function sendAdminDiagnostic(payload: AdminDiagnosticPayload): Promise<ApiResponse<{ ok: boolean; id: string }>> {
   return requestJson('/api/admin/ingest', {
     method: 'POST',
     body: JSON.stringify({ kind: 'diagnostic', payload }),

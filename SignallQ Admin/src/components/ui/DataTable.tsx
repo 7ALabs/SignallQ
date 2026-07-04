@@ -1,4 +1,5 @@
 import React from "react";
+import { alpha } from "../../utils/color";
 
 export interface DataTableColumn<T> {
   header: string;
@@ -70,7 +71,7 @@ export function DataTable<T>({
                   className={`transition-colors ${onRowClick ? "cursor-pointer" : ""} ${rowClassName}`}
                   style={{ borderTop: "1px solid var(--sq-border-subtle)" }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLTableRowElement).style.backgroundColor = "color-mix(in srgb, var(--sq-bg-overlay) 50%, transparent)";
+                    (e.currentTarget as HTMLTableRowElement).style.backgroundColor = alpha("var(--sq-bg-overlay)", 50);
                   }}
                   onMouseLeave={(e) => {
                     (e.currentTarget as HTMLTableRowElement).style.backgroundColor = "";

@@ -199,12 +199,13 @@ export const mockFeatureCrashes: FeatureCrashMetric[] = [
 
 export const mockRetention: RetentionMetric[] = [
   {
-    cohort: "Cohort Geral (Últimos 30d)",
-    day1: 0.68,
-    day7: 0.32,
-    day30: 0.14,
+    cohort: "Cohort geral (30d)",
+    cohortSize: 4120,
+    day1: 68,
+    day7: 32,
+    day30: 14,
     avgInstalledDays: 18.4,
-    uninstallRate: 0.28
+    uninstallRate: 28
   }
 ];
 

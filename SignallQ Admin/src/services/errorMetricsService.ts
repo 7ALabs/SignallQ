@@ -14,23 +14,32 @@ export const errorMetricsService = {
         const raw = await apiClient.request<{ errors: Array<{
           id: string;
           source: string;
+          category?: string;
           message: string;
           stackTrace: string;
           count: number;
           timestamp: string;
           affectedUserCount: number;
+          resolved?: boolean;
+          resolvedBy?: string;
+          resolvedAt?: string | null;
+          resolutionNote?: string;
         }> }>("GET", `/admin/metrics/errors?environment=${env}&period=${period}`);
 
         let results = (raw.errors ?? []).map((r): SystemError => ({
           id:               r.id,
           timestamp:        r.timestamp,
           source:           r.source,
+          category:         (r.category as SystemError["category"]) ?? "backend",
           message:          r.message,
           stackTrace:       r.stackTrace ?? '',
           count:            r.count      ?? 1,
           environment:      "production",
-          resolved:         false,
+          resolved:         r.resolved ?? false,
           affectedUserCount: r.affectedUserCount ?? 0,
+          resolvedBy:       r.resolvedBy ?? '',
+          resolvedAt:       r.resolvedAt ?? null,
+          resolutionNote:   r.resolutionNote ?? '',
         }));
 
         if (_filters.search) {
@@ -177,17 +186,35 @@ export const errorMetricsService = {
   },
 
   /**
-   * Simulates resolving an active system outage or error code in the control panel.
-   * A rota /errors/resolve não existe no worker — retorna resposta estática em produção.
+   * Resolve um erro do sistema (worker/backend/IA/integração ou erro real do
+   * app) via POST /admin/errors/:id/resolve (GH#422). O responsável é derivado
+   * da sessão autenticada no worker; aqui só enviamos a observação opcional.
    */
-  async resolveError(errorId: string): Promise<{ success: boolean; message: string }> {
+  async resolveError(errorId: string, note?: string): Promise<{ success: boolean; message: string; resolvedBy?: string; resolvedAt?: string }> {
     if (!apiClient.isMockEnabled()) {
-      return { success: false, message: "Em implementação" };
+      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return { success: false, message: "API não configurada" };
+      try {
+        const res = await apiClient.request<{ ok: boolean; id: string; resolvedBy: string; resolvedAt: string }>(
+          "POST",
+          `/admin/errors/${encodeURIComponent(errorId)}/resolve`,
+          { note: note ?? '' }
+        );
+        return {
+          success: true,
+          message: `Erro ${errorId} marcado como resolvido por ${res.resolvedBy}.`,
+          resolvedBy: res.resolvedBy,
+          resolvedAt: res.resolvedAt,
+        };
+      } catch {
+        return { success: false, message: "Falha ao comunicar resolução com o worker." };
+      }
     }
     console.log(`[ApiClient Dispatch] Triggering remote error resolution for id: ${errorId}`);
     return {
       success: true,
-      message: `Erro de ID ${errorId} marcado como resolvido com sucesso no banco principal.`
+      message: `Erro de ID ${errorId} marcado como resolvido com sucesso no banco principal.`,
+      resolvedBy: "voce@signallq.io",
+      resolvedAt: new Date().toISOString(),
     };
   },
 

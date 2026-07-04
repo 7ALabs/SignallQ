@@ -1,4 +1,5 @@
 import React from "react";
+import { alpha } from "../../utils/color";
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -32,8 +33,8 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         <div
           className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 rounded-[8px]"
           style={{
-            border: "1px solid color-mix(in srgb, var(--sq-error) 20%, transparent)",
-            backgroundColor: "color-mix(in srgb, var(--sq-error) 5%, transparent)",
+            border: `1px solid ${alpha("var(--sq-error)", 20)}`,
+            backgroundColor: alpha("var(--sq-error)", 5),
           }}
         >
           <h4
@@ -52,8 +53,8 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             onClick={this.handleReset}
             className="mt-4 px-4 py-2 text-xs rounded-xl font-mono transition-all"
             style={{
-              backgroundColor: "color-mix(in srgb, var(--sq-error) 10%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--sq-error) 20%, transparent)",
+              backgroundColor: alpha("var(--sq-error)", 10),
+              border: `1px solid ${alpha("var(--sq-error)", 20)}`,
               color: "var(--sq-error)",
             }}
           >

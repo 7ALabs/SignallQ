@@ -212,6 +212,8 @@
     <string name="operadora_contact_mencione">Mencione o diagnóstico do SignallQ ao atendente</string>
     <string name="operadora_ligar_agora">Ligar para %1$s</string>
     <string name="operadora_contact_whatsapp">Chamar no WhatsApp</string>
+    <string name="operadora_contact_site">Visitar site oficial</string>
+    <string name="operadora_contact_playstore">Abrir app na Play Store</string>
     <string name="operadora_contact_nao_lista">Sua operadora não está na lista</string>
     <string name="operadora_contact_buscar_anatel">Buscar operadora na Anatel</string>
 

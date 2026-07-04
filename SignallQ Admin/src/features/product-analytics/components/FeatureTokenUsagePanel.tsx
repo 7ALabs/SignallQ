@@ -1,6 +1,6 @@
 import React from "react";
 import { FeatureAiUsageMetric } from "../../../types/productAnalytics";
-import { Cpu, Radio, Info } from "lucide-react";
+import { Cpu, Info } from "lucide-react";
 import { SectionCard } from "../../../components/ui/SectionCard";
 import { productAnalyticsService } from "../../../services/productAnalyticsService";
 
@@ -29,7 +29,7 @@ export const FeatureTokenUsagePanel: React.FC<FeatureTokenUsagePanelProps> = ({ 
   return (
     <SectionCard
       title="Consumo de IA e Unidades de Computação por Função"
-      description="Rastreamento operacional de tokens consumidos, custos de inferência da API e eficácia do fallback local de modelos."
+      description="Rastreamento operacional de tokens consumidos e custos de inferência da API, por feature."
     >
       <div className="space-y-6">
 
@@ -113,40 +113,6 @@ export const FeatureTokenUsagePanel: React.FC<FeatureTokenUsagePanelProps> = ({ 
                   </div>
                 </div>
               ))}
-
-              {/* Offline Fallback */}
-              <div className="p-4 bg-zinc-950/20 border border-dashed border-zinc-900 rounded-xl space-y-3 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-bold text-zinc-400 font-sans">Fallback Local (On-device)</span>
-                    <Radio className="w-3.5 h-3.5 text-zinc-500" />
-                  </div>
-
-                  <div className="h-1 bg-zinc-900 w-full rounded overflow-hidden mb-3">
-                    <div className="bg-zinc-700 h-full rounded w-1/12" />
-                  </div>
-
-                  <div className="space-y-1.5 text-[10px] font-mono text-zinc-500">
-                    <div className="flex justify-between">
-                      <span>Ajustes Efetuados:</span>
-                      <strong>410 instâncias</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Tokens Remotos:</span>
-                      <span>0 tokens (100% offline)</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Mecanismo:</span>
-                      <span>Análise Rígida Regex</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t border-dashed border-zinc-900 pt-2.5 flex items-center justify-between text-[11px] font-bold text-zinc-500">
-                  <span>Custo Adic. API</span>
-                  <span className="font-mono">R$ 0,00</span>
-                </div>
-              </div>
             </div>
           </div>
         )}

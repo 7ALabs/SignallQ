@@ -46,6 +46,29 @@ export const RecentErrorsTable: React.FC<RecentErrorsTableProps> = ({
       },
     },
     {
+      header: "Categoria",
+      accessor: (row: SystemError) => {
+        const category = row.category ?? "backend";
+        const labels: Record<string, string> = {
+          app: "APP",
+          backend: "BACKEND",
+          ia: "IA",
+          integration: "INTEGRAÇÃO",
+        };
+        const colors: Record<string, string> = {
+          app: "text-emerald-400 bg-emerald-950/20 border-emerald-500/15",
+          backend: "text-amber-400 bg-amber-950/25 border-amber-500/15",
+          ia: "text-[var(--text-secondary)] bg-[var(--bg-surface-muted)] border-[var(--border)]",
+          integration: "text-[var(--info)] bg-[var(--info)]/10 border-[var(--info)]/15",
+        };
+        return (
+          <span className={`px-2 py-0.5 rounded-md font-sans text-[9px] font-bold border ${colors[category] ?? colors.backend}`}>
+            {labels[category] ?? category.toUpperCase()}
+          </span>
+        );
+      },
+    },
+    {
       header: "Mensagem de Erro",
       accessor: (row: SystemError) => (
         <span className="font-sans font-medium text-[var(--text-primary)] block max-w-[280px] truncate" title={row.message}>

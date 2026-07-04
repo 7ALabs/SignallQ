@@ -1,0 +1,68 @@
+name: Cloudflare Pages Deploy (signallq)
+
+# GH#443 / SIG-52: builda e publica o projeto unico Cloudflare Pages
+# `signallq`, que serve o WebApp SignallQ sob /app e o Console Admin sob
+# /console. Ver deploy/pages/README.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pwa/**'
+      - 'SignallQ Admin/**'
+      - 'deploy/pages/**'
+      - '.github/workflows/pages-deploy.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-deploy-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build unified /app + /console
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      VITE_ADMIN_API_BASE_URL: ${{ secrets.VITE_ADMIN_API_BASE_URL }}
+      VITE_ENABLE_MOCKS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required secrets
+        id: gate
+        run: |
+          if [ -n "$CLOUDFLARE_ACCOUNT_ID" ] && [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$VITE_ADMIN_API_BASE_URL" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Faltam secrets (CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN / VITE_ADMIN_API_BASE_URL); pulando build+deploy do pacote unificado."
+          fi
+
+      - name: Setup Node.js
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install PWA dependencies
+        if: steps.gate.outputs.enabled == 'true'
+        working-directory: pwa
+        run: npm ci
+
+      - name: Install Console dependencies
+        if: steps.gate.outputs.enabled == 'true'
+        working-directory: "SignallQ Admin"
+        run: npm ci
+
+      - name: Build unified Pages output
+        if: steps.gate.outputs.enabled == 'true'
+        run: node deploy/pages/build.mjs
+
+      - name: Deploy to Cloudflare Pages (project signallq)
+        if: steps.gate.outputs.enabled == 'true'
+        run: npx wrangler pages deploy deploy/pages/dist --project-name signallq

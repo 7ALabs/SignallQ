@@ -23,6 +23,7 @@ interface PageData {
   featureCrashes: FeatureCrashMetric[];
   retention: RetentionMetric[];
   aiUsage: FeatureAiUsageMetric[];
+  sessionDuration: Awaited<ReturnType<typeof productAnalyticsService.getSessionDuration>>;
 }
 
 export const ProductAnalyticsPage: React.FC<ProductAnalyticsPageProps> = ({
@@ -42,7 +43,7 @@ export const ProductAnalyticsPage: React.FC<ProductAnalyticsPageProps> = ({
       environment: environment === "all" ? undefined : environment,
     };
     try {
-      const [overview, featureUsage, screenNavigation, featureCrashes, retention, aiUsage] =
+      const [overview, featureUsage, screenNavigation, featureCrashes, retention, aiUsage, sessionDuration] =
         await Promise.all([
           productAnalyticsService.getOverviewCards(filters),
           productAnalyticsService.getFeatureUsage(filters),
@@ -50,8 +51,9 @@ export const ProductAnalyticsPage: React.FC<ProductAnalyticsPageProps> = ({
           productAnalyticsService.getFeatureCrashes(filters),
           productAnalyticsService.getRetention(filters),
           productAnalyticsService.getFeatureAiUsage(filters),
+          productAnalyticsService.getSessionDuration(filters),
         ]);
-      setData({ overview, featureUsage, screenNavigation, featureCrashes, retention, aiUsage });
+      setData({ overview, featureUsage, screenNavigation, featureCrashes, retention, aiUsage, sessionDuration });
     } catch (e) {
       setError("Falha ao carregar dados de produto.");
     } finally {
@@ -113,8 +115,8 @@ export const ProductAnalyticsPage: React.FC<ProductAnalyticsPageProps> = ({
         <FeatureCrashTable metrics={data.featureCrashes} />
       )}
 
-      {data && data.retention.length > 0 && (
-        <RetentionPanel metrics={data.retention} />
+      {data && (data.retention.length > 0 || data.sessionDuration) && (
+        <RetentionPanel metrics={data.retention} sessionDuration={data.sessionDuration} />
       )}
 
       {data && data.aiUsage.length > 0 && (

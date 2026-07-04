@@ -48,9 +48,15 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
     return <LoadingState message="Recuperando benchmarks de operadoras no repositório de analytics..." />;
   }
 
+  const noData = (
+    <span className="font-mono text-[var(--text-tertiary)]" title="Sem medição suficiente no período">
+      —
+    </span>
+  );
+
   const tableColumns = [
     {
-      header: "Operadora CO",
+      header: "Operadora",
       accessor: (row: OperatorRecord) => (
         <div className="flex items-center gap-2">
           <Globe className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
@@ -59,12 +65,15 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
       ),
     },
     {
-      header: "Tipo Físico",
-      accessor: (row: OperatorRecord) => (
-        <span className="uppercase text-[10px] font-sans bg-zinc-900 border border-zinc-800 text-[var(--text-secondary)] px-2 py-0.5 rounded">
-          {row.type}
-        </span>
-      ),
+      header: "Tipo de Rede Dominante",
+      accessor: (row: OperatorRecord) =>
+        row.type ? (
+          <span className="uppercase text-[10px] font-sans bg-zinc-900 border border-zinc-800 text-[var(--text-secondary)] px-2 py-0.5 rounded">
+            {row.type}
+          </span>
+        ) : (
+          <span className="text-[10px] font-sans text-[var(--text-tertiary)] italic">Sem dado</span>
+        ),
     },
     {
       header: "Testes Consolidados",
@@ -74,39 +83,48 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
     },
     {
       header: "Download Médio",
-      accessor: (row: OperatorRecord) => (
-        <span className="font-mono text-[var(--info)] font-bold">
-          {row.averageDownloadMbps} <span className="text-[10px] text-[var(--text-tertiary)] font-normal">Mbps</span>
-        </span>
-      ),
+      accessor: (row: OperatorRecord) =>
+        row.averageDownloadMbps != null ? (
+          <span className="font-mono text-[var(--info)] font-bold">
+            {row.averageDownloadMbps} <span className="text-[10px] text-[var(--text-tertiary)] font-normal">Mbps</span>
+          </span>
+        ) : noData,
     },
     {
       header: "Upload Médio",
-      accessor: (row: OperatorRecord) => (
-        <span className="font-mono text-indigo-400">
-          {row.averageUploadMbps} <span className="text-[10px] text-[var(--text-tertiary)] font-normal">Mbps</span>
-        </span>
-      ),
+      accessor: (row: OperatorRecord) =>
+        row.averageUploadMbps != null ? (
+          <span className="font-mono text-indigo-400">
+            {row.averageUploadMbps} <span className="text-[10px] text-[var(--text-tertiary)] font-normal">Mbps</span>
+          </span>
+        ) : noData,
     },
     {
       header: "Latência Média",
-      accessor: (row: OperatorRecord) => (
-        <span className="font-mono text-[var(--text-primary)]">{row.averageLatencyMs} ms</span>
-      ),
+      accessor: (row: OperatorRecord) =>
+        row.averageLatencyMs != null ? (
+          <span className="font-mono text-[var(--text-primary)]">{row.averageLatencyMs} ms</span>
+        ) : noData,
     },
     {
       header: "Perda de Pacote",
-      accessor: (row: OperatorRecord) => (
-        <span className="font-mono text-[var(--text-secondary)]">{row.packetLossAverage}%</span>
-      ),
+      accessor: (row: OperatorRecord) =>
+        row.packetLossAverage != null ? (
+          <span className="font-mono text-[var(--text-secondary)]">{row.packetLossAverage}%</span>
+        ) : noData,
     },
     {
-      header: "Aprovamento",
-      accessor: (row: OperatorRecord) => (
-        <span className="font-mono text-[var(--success)] font-semibold">{row.customerSatisfactionPercentage}%</span>
-      ),
+      header: "Score Médio de Diagnóstico",
+      accessor: (row: OperatorRecord) =>
+        row.averageScorePercentage != null ? (
+          <span className="font-mono text-[var(--success)] font-semibold">{row.averageScorePercentage}%</span>
+        ) : noData,
     },
   ];
+
+  const latencyLeader = operators
+    .filter((op) => op.averageLatencyMs != null)
+    .sort((a, b) => (a.averageLatencyMs as number) - (b.averageLatencyMs as number))[0];
 
   return (
     <div className="space-y-6">
@@ -124,13 +142,13 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
         </ChartCard>
 
         <ChartCard
-          title="Índice de Qualidade Percebido por Telecom"
-          description="Estatística baseada no feedback estruturado do app Android e laudo de IA final (0 a 100%)."
+          title="Score Médio de Diagnóstico por Operadora"
+          description="Score calculado pelo engine local do app (0 a 100), agregado por operadora. Não é pesquisa de satisfação — essa fonte de dado não existe hoje."
         >
           <BarChart
             data={operators}
             xAxisKey="name"
-            series={[{ key: "customerSatisfactionPercentage", name: "Satisfação (%)", color: "var(--success)" }]}
+            series={[{ key: "averageScorePercentage", name: "Score médio", color: "var(--success)" }]}
           />
         </ChartCard>
       </div>
@@ -141,10 +159,14 @@ export const OperatorsTab: React.FC<OperatorsTabProps> = ({
         description="Agregado de latências de rádio e perdas de pacotes das operadoras atuantes no território brasileiro."
         id="operators-main-card"
         actions={
-          <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] bg-[var(--bg-surface-muted)] border border-[var(--border)] px-3 py-1 rounded-xl">
-            <Award className="w-3.5 h-3.5" />
-            <span className="font-semibold">Vivo Fibra Líder em Latência (8ms)</span>
-          </div>
+          latencyLeader ? (
+            <div className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] bg-[var(--bg-surface-muted)] border border-[var(--border)] px-3 py-1 rounded-xl">
+              <Award className="w-3.5 h-3.5" />
+              <span className="font-semibold">
+                {latencyLeader.name} líder em latência ({latencyLeader.averageLatencyMs}ms)
+              </span>
+            </div>
+          ) : undefined
         }
       >
         <DataTable

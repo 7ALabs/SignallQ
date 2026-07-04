@@ -3,6 +3,13 @@ import React from "react";
 interface PageHeaderProps {
   title: string;
   description?: string;
+  /**
+   * SIG-294: legenda curta indicando de onde vem o dado desta tela (ex.: "D1
+   * (diagnostic_sessions) via signallq-admin-worker"). Nenhuma tela operacional
+   * deve deixar implícita a origem do número exibido — ver
+   * `SignallQ Admin/docs/architecture/data-architecture.md`.
+   */
+  dataSource?: string;
   badge?: React.ReactNode;
   actions?: React.ReactNode;
   id?: string;
@@ -11,6 +18,7 @@ interface PageHeaderProps {
 export const PageHeader: React.FC<PageHeaderProps> = ({
   title,
   description,
+  dataSource,
   badge,
   actions,
   id,
@@ -34,6 +42,14 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         {description && (
           <p className="text-xs leading-relaxed" style={{ color: "var(--sq-text-secondary)" }}>
             {description}
+          </p>
+        )}
+        {dataSource && (
+          <p
+            className="text-[10px] font-mono uppercase tracking-[0.04em]"
+            style={{ color: "var(--sq-text-tertiary, var(--sq-text-secondary))" }}
+          >
+            Fonte de dados · {dataSource}
           </p>
         )}
       </div>

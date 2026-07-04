@@ -150,16 +150,26 @@ export async function getFirebaseAppVersions(
     return result;
   }
 
-  const raw = await apiClient.request<StubWorkerResponse>(
-    "GET",
-    `/admin/integrations/firebase/versions${buildQuery(filters)}`
-  );
+  const raw = await apiClient.request<{
+    source: string;
+    versions: Array<{ version: string; totalCrashes: number; affectedUsers: number }>;
+  }>("GET", `/admin/integrations/firebase/versions${buildQuery(filters)}`);
 
-  if (raw.source === "stub") {
+  // "no_credentials" (Firebase não configurado) e "no_data_yet" (export do BigQuery
+  // ainda sem linhas) não têm dado real — o painel deve exibir "não configurado",
+  // nunca fabricar números. O worker nunca retorna "stub" nesta rota (era um bug
+  // deste adapter — ele nunca detectava a ausência de credenciais).
+  if (raw.source === "no_credentials" || raw.source === "no_data_yet" || raw.source === "error") {
     return NOT_AVAILABLE;
   }
 
-  return raw as unknown as FirebaseAppVersionCrashStats[];
+  return (raw.versions ?? []).map((v): FirebaseAppVersionCrashStats => ({
+    appVersion: v.version,
+    crashCount: v.totalCrashes ?? 0,
+    nonFatalCount: 0, // worker não separa fatal/não-fatal por versão ainda.
+    crashFreeUsersPercentage: 100, // worker não calcula base de usuários por versão ainda.
+    status: (v.totalCrashes ?? 0) > 100 ? "critical" : (v.totalCrashes ?? 0) > 20 ? "unstable" : "stable",
+  }));
 }
 
 export async function getFirebaseCrashIssues(

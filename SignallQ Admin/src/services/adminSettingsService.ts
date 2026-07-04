@@ -2,24 +2,12 @@ import { AdminSettingsPayload } from "../types/admin";
 import { initialMockSettings } from "../mocks/settings.mock";
 import { apiClient } from "./apiClient";
 
-export interface FeatureFlag {
-  key: string;
-  description: string;
-  enabled: boolean;
-}
-
 const STORAGE_KEY = "@signallq/admin_settings_v1";
 
 const REQUIRED_KEYS: (keyof ExtendedSettingsPayload)[] = [
-  "monthlyBudgetUsd",
-  "budgetAction",
-  "anonymizeIp",
-  "retentionDays",
-  "firebaseAnalyticsEnabled",
-  "maxAiTokensUserDaily",
-  "maxSpeedTestDataDailyMb",
-  "contextualAdsEnabled",
-  "contextualAdsCategories",
+  "aiDailyBudgetUsd",
+  "errorSpikeThreshold",
+  "criticalScoreThreshold",
 ];
 
 function isValidSettings(obj: unknown): obj is ExtendedSettingsPayload {
@@ -27,31 +15,36 @@ function isValidSettings(obj: unknown): obj is ExtendedSettingsPayload {
   return REQUIRED_KEYS.every((key) => key in (obj as object));
 }
 
-export interface ExtendedSettingsPayload extends AdminSettingsPayload {
-  monthlyBudgetUsd: number;
-  budgetAction: "block" | "alert" | "throttle";
-  anonymizeIp: boolean;
-  retentionDays: number;
-  // Advanced behavior & monetization properties
-  firebaseAnalyticsEnabled: boolean;
-  maxAiTokensUserDaily: number;
-  maxSpeedTestDataDailyMb: number;
-  contextualAdsEnabled: boolean;
-  contextualAdsCategories: string[];
-}
+// Mantido como alias por compatibilidade de import — o contrato de settings
+// hoje é só o AdminSettingsPayload (GH#426 removeu os campos decorativos).
+export type ExtendedSettingsPayload = AdminSettingsPayload;
+
+// GH#416: defaults operacionais reais do worker (mesmos fallbacks usados em
+// GET /admin/metrics/alerts quando a tabela `admin_settings` ainda está vazia —
+// ver AI_DAILY_BUDGET/ERROR_THRESHOLD/MIN_SCORE em index.ts).
+// Não é dado simulado — é o que o worker efetivamente aplica na primeira execução.
+// GH#426: contrato reduzido aos 3 campos com consumidor real (ver types/admin.ts).
+const defaultAdminSettings: ExtendedSettingsPayload = {
+  aiDailyBudgetUsd: 1.0,
+  errorSpikeThreshold: 10,
+  criticalScoreThreshold: 50,
+};
 
 export const adminSettingsService = {
   /**
    * Carrega configurações. Em produção, o worker D1 é a fonte da verdade.
-   * localStorage funciona como cache de sessão para evitar re-fetch em cada render.
+   * localStorage funciona como cache de sessão para evitar re-fetch em cada render,
+   * usado apenas quando o worker é inalcançável (dado real previamente obtido).
    * Mock: retorna dados do initialMockSettings.
+   *
+   * GH#416: nunca retorna dado mockado/fictício em produção. Se o worker falhar e
+   * não houver cache real, propaga o erro — a UI deve exibir estado de "sem dados".
    */
   async getSettings(): Promise<ExtendedSettingsPayload> {
     if (apiClient.isMockEnabled()) {
       return { ...initialMockSettings };
     }
 
-    // Produção: consulta o worker primeiro.
     try {
       const remote = await apiClient.request<{ settings: unknown }>("GET", "/admin/settings");
       if (isValidSettings(remote.settings)) {
@@ -63,11 +56,12 @@ export const adminSettingsService = {
         }
         return remote.settings;
       }
-      // Worker retornou {} (primeira execução) — usa defaults e não grava cache.
+      // Worker respondeu, mas a tabela ainda está vazia (primeira execução real).
+      return { ...defaultAdminSettings };
     } catch (e) {
-      console.warn("Falha ao buscar settings do worker — usando cache local ou padrões.", e);
+      console.warn("Falha ao buscar settings do worker — tentando cache local.", e);
 
-      // Fallback: cache local se o worker estiver inacessível.
+      // Fallback: cache local (dado real já obtido antes) se o worker estiver inacessível.
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
@@ -77,34 +71,10 @@ export const adminSettingsService = {
       } catch {
         // cache corrompido — ignora.
       }
-    }
 
-    return { ...initialMockSettings };
-  },
-
-  async getFeatureFlags(): Promise<FeatureFlag[]> {
-    if (apiClient.isMockEnabled()) {
-      return [
-        { key: "ai_diagnosis_enabled", description: "Ativa o pipeline de diagnóstico por IA", enabled: true },
-        { key: "speedtest_enabled", description: "Habilita o módulo de speed test no app", enabled: true },
-        { key: "fibra_detection", description: "Detecção automática de conexão de fibra óptica", enabled: false },
-        { key: "beta_ui_features", description: "Funcionalidades de UI em fase beta", enabled: false },
-      ];
+      // Sem worker e sem cache real: não inventa configuração. A UI decide o estado.
+      throw e;
     }
-    try {
-      const raw = await apiClient.request<{ flags: FeatureFlag[] }>("GET", "/admin/feature-flags");
-      return raw.flags ?? [];
-    } catch {
-      return [];
-    }
-  },
-
-  async setFeatureFlags(flags: FeatureFlag[]): Promise<{ success: boolean }> {
-    if (apiClient.isMockEnabled()) {
-      return { success: true };
-    }
-    await apiClient.request<{ ok: boolean }>("POST", "/admin/feature-flags", { flags } as unknown as Record<string, unknown>);
-    return { success: true };
   },
 
   /**

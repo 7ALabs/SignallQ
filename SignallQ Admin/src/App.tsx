@@ -6,6 +6,7 @@ import { AppEnvironment } from "./types/admin";
 import { LoginPage } from "./auth/LoginPage";
 import { apiClient } from "./services/apiClient";
 import { ErrorBoundary } from "./components/ui/ErrorBoundary";
+import { alpha } from "./utils/color";
 
 // Tab/Feature Components
 import { OverviewTab } from "./features/overview/OverviewTab";
@@ -157,12 +158,13 @@ export default function App() {
         return {
           title: "Visão Geral",
           description: "Acompanhe uso, diagnósticos, qualidade da rede e custo de IA em tempo real.",
+          dataSource: "D1 (diagnostic_sessions, ai_usage, alerts) via signallq-admin-worker",
           badge: (
             <span
               className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--sq-accent) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--sq-accent) 20%, transparent)",
+                backgroundColor: alpha("var(--sq-accent)", 10),
+                border: `1px solid ${alpha("var(--sq-accent)", 20)}`,
                 color: "var(--sq-accent)",
               }}
             >
@@ -174,12 +176,13 @@ export default function App() {
         return {
           title: "Produto & Uso",
           description: "Monitore o engajamento de features, navegação, retenção, métricas de performance e monetização futura.",
+          dataSource: "D1 (analytics_events) via signallq-admin-worker — ingest Android pendente (GH#417)",
           badge: (
             <span
               className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--sq-accent) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--sq-accent) 20%, transparent)",
+                backgroundColor: alpha("var(--sq-accent)", 10),
+                border: `1px solid ${alpha("var(--sq-accent)", 20)}`,
                 color: "var(--sq-accent)",
               }}
             >
@@ -191,12 +194,13 @@ export default function App() {
         return {
           title: "Sessões de Diagnósticos",
           description: "Pesquise por logs brutos, meça o bufferbloat local e emita diagnósticos preditivos baseados em IA.",
+          dataSource: "D1 (diagnostic_sessions) via signallq-admin-worker",
           badge: (
             <span
               className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--sq-success) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--sq-success) 20%, transparent)",
+                backgroundColor: alpha("var(--sq-success)", 10),
+                border: `1px solid ${alpha("var(--sq-success)", 20)}`,
                 color: "var(--sq-success)",
               }}
             >
@@ -208,30 +212,34 @@ export default function App() {
         return {
           title: "Análise de Redes",
           description: "Visibilidade agregada sobre frequências celulares de rádio, canais Wi-Fi residenciais e gateways atenuados.",
+          dataSource: "D1 (diagnostic_sessions agregado por network_type) via signallq-admin-worker",
           badge: null,
         };
       case "/operators":
         return {
           title: "Benchmarks de Operadoras",
           description: "Análise comparativa das latências e perdas de pacotes entre as principais operadoras de telecomunicações do Brasil.",
+          dataSource: "D1 (diagnostic_sessions agregado por operator) via signallq-admin-worker",
           badge: null,
         };
       case "/ai-cost":
         return {
           title: "IA & Custo de Telemetria",
           description: "Demonstrativos de tokens processados, custos previstos da API do Gemini e tempos médios de resposta de pareceres.",
+          dataSource: "D1 (ai_usage) via signallq-admin-worker",
           badge: null,
         };
       case "/errors":
         return {
           title: "Logs de Erros",
           description: "Erros do Cloudflare Worker, dumps de depuração do app Android e problemas nas conexões com tabelas de banco Analytics DB.",
+          dataSource: "D1 (system_errors) via signallq-admin-worker",
           badge: (
             <span
               className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg uppercase"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--sq-error) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--sq-error) 20%, transparent)",
+                backgroundColor: alpha("var(--sq-error)", 10),
+                border: `1px solid ${alpha("var(--sq-error)", 20)}`,
                 color: "var(--sq-error)",
               }}
             >
@@ -243,24 +251,27 @@ export default function App() {
         return {
           title: "Versões do App",
           description: "Lista de builds Android transmitindo métricas e status de distribuição de novas atualizações via Play Store.",
+          dataSource: "BigQuery (export Firebase Crashlytics) via signallq-admin-worker",
           badge: null,
         };
       case "/feature-flags":
         return {
           title: "Feature Flags",
           description: "Ative ou desative telas e funcionalidades do app remotamente, sem necessidade de novo build.",
+          dataSource: "D1 (feature_flags, feature_flag_audit) via signallq-admin-worker",
           badge: null,
         };
       case "/system-health":
         return {
           title: "Saúde do Sistema",
           description: "Status dos Workers Cloudflare, D1 Database e alertas de threshold para crash rate e custo de IA.",
+          dataSource: "D1 + Firebase + BigQuery — checagem de conectividade via signallq-admin-worker",
           badge: (
             <span
               className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--sq-success) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--sq-success) 20%, transparent)",
+                backgroundColor: alpha("var(--sq-success)", 10),
+                border: `1px solid ${alpha("var(--sq-success)", 20)}`,
                 color: "var(--sq-success)",
               }}
             >
@@ -272,6 +283,7 @@ export default function App() {
         return {
           title: "Configurações Técnicas",
           description: "Ajustes de model gateway, limiares de canais de rádio, webhooks de alerta e pontos de sincronização de dados.",
+          dataSource: "D1 (admin_settings) via signallq-admin-worker",
           badge: null,
         };
       default:
@@ -320,6 +332,7 @@ export default function App() {
       <PageHeader
         title={pageHeaderDetail.title}
         description={pageHeaderDetail.description}
+        dataSource={pageHeaderDetail.dataSource}
         badge={pageHeaderDetail.badge}
       />
 

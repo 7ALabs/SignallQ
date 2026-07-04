@@ -5,39 +5,44 @@ import { AlertCircle } from "lucide-react";
 
 interface RetentionPanelProps {
   metrics: RetentionMetric[];
+  sessionDuration?: { avgDurationMs: number | null; sessionCount: number } | null;
 }
 
-export const RetentionPanel: React.FC<RetentionPanelProps> = ({ metrics }) => {
-  const m = metrics[0] || {
-    cohort: "Cohort Geral (Últimos 30d)",
-    day1: 0.68,
-    day7: 0.32,
-    day30: 0.14,
-    avgInstalledDays: 18.4,
-    uninstallRate: 0.28
-  };
+const pct = (v: number | null | undefined): string => (v == null ? "—" : `${v.toFixed(0)}%`);
+
+const formatDuration = (ms: number | null | undefined): string => {
+  if (ms == null) return "—";
+  const totalSec = Math.round(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return min > 0 ? `${min}m ${sec}s` : `${sec}s`;
+};
+
+export const RetentionPanel: React.FC<RetentionPanelProps> = ({ metrics, sessionDuration }) => {
+  const m = metrics[0];
 
   const rates = [
-    { label: "Retenção D1", val: `${(m.day1 * 100).toFixed(0)}%`, desc: "Primeiro dia de abertura" },
-    { label: "Retenção D7", val: `${(m.day7 * 100).toFixed(0)}%`, desc: "Engajamento recorrente semanal" },
-    { label: "Retenção D30", val: `${(m.day30 * 100).toFixed(0)}%`, desc: "Uso prolongado mensal" },
-    { label: "Taxa de Desinstalação", val: `${(m.uninstallRate * 100).toFixed(0)}%`, desc: "Evasão de instalados *" }
+    { label: "Retenção D1", val: pct(m?.day1), desc: "Retorno no dia seguinte ao primeiro evento" },
+    { label: "Retenção D7", val: pct(m?.day7), desc: "Retorno na primeira semana" },
+    { label: "Retenção D30", val: pct(m?.day30), desc: "Retorno no primeiro mês" },
+    { label: "Tempo Médio de Sessão", val: formatDuration(sessionDuration?.avgDurationMs), desc: `${sessionDuration?.sessionCount ?? 0} sessões no período` }
   ];
 
   return (
     <SectionCard
-      title="Retenção de Usuários & Tempo de Vida útil (LTV)"
-      description="Taxas de permanência ativa e estimativas de exclusão de usuários na base móvel recorrente."
+      title="Retenção de Usuários & Tempo de Sessão"
+      description="Coorte de dispositivos por primeiro evento visto (device_id anônimo) e duração média de sessão."
     >
       <div className="space-y-6">
-        <div>
+        {m && (
           <div className="flex justify-between items-center mb-1 bg-zinc-950/20 px-3 py-1.5 rounded border border-zinc-900/45">
             <span className="text-[11px] font-sans text-[var(--text-secondary)]">Filtro Ativo: {m.cohort}</span>
-            <span className="text-[10px] font-bold text-indigo-400">Tempo Médio Instalado: {m.avgInstalledDays} dias</span>
+            <span className="text-[10px] font-bold text-indigo-400">
+              Cohort: {m.cohortSize ?? 0} dispositivos · Tempo médio ativo: {m.avgInstalledDays != null ? `${m.avgInstalledDays} dias` : "—"}
+            </span>
           </div>
-        </div>
+        )}
 
-        {/* Dynamic cohort bars */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {rates.map((rate, i) => (
             <div key={i} className="p-4 bg-zinc-950/40 border border-zinc-900 rounded-xl flex flex-col justify-between">
@@ -50,23 +55,25 @@ export const RetentionPanel: React.FC<RetentionPanelProps> = ({ metrics }) => {
           ))}
         </div>
 
-        {/* Insights / warning block details */}
-        <div className="p-4 bg-[var(--bg-sidebar)]/30 border border-dashed border-[var(--border)] rounded-xl space-y-3">
-          <div className="flex items-start gap-2.5">
-            <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-            <div className="text-[10px] font-sans text-[var(--text-secondary)] leading-relaxed space-y-1.5">
-              <p className="text-[var(--text-primary)] font-semibold">Estimativa Operacional de Desinstalação (*)</p>
-              <p>
-                Os dados de desinstalação são calculados heuristicamente com base nas interações silenciadas do FCM (Firebase Cloud Messaging),
-                estatísticas agregadas obtidas na Google Play Developer API e ausência sistemática de telemetria por períodos superiores a 14 dias consecutivo.
-              </p>
-              <div className="grid grid-cols-2 gap-2 text-[var(--text-secondary)] pt-1.5 select-none text-[9px]">
-                <div>• Versão com maior abandono: <strong className="text-red-400">v0.18.0 (estimada)</strong></div>
-                <div>• Fluxo associado a churn: <strong className="text-red-400 font-semibold uppercase">Diagnóstico guiado (35%)</strong></div>
+        {m && (
+          <div className="p-4 bg-[var(--bg-sidebar)]/30 border border-dashed border-[var(--border)] rounded-xl space-y-2">
+            <div className="flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <div className="text-[10px] font-sans text-[var(--text-secondary)] leading-relaxed space-y-1.5">
+                <p className="text-[var(--text-primary)] font-semibold">
+                  Proxy de inatividade: {pct(m.uninstallRate)}
+                </p>
+                <p>
+                  % de dispositivos do cohort sem nenhum evento registrado nos últimos 14 dias.
+                  Isto é um proxy de inatividade calculado a partir da telemetria — não é confirmação
+                  de desinstalação real (isso exigiria integração com Play Console, não implementada).
+                  Causas específicas de abandono (versão, fluxo) não são atribuíveis com os dados
+                  disponíveis hoje.
+                </p>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </SectionCard>
   );

@@ -55,6 +55,17 @@ interface ProductAnalyticsResponse {
     affectedVersions: string[];
     severity: "ok" | "attention" | "critical";
   }>;
+  avg_session_duration_ms: number | null;
+  session_count: number;
+  retention: Array<{
+    cohort: string;
+    cohortSize: number;
+    day1: number | null;
+    day7: number | null;
+    day30: number | null;
+    avgInstalledDays: number | null;
+    uninstallRate: number | null;
+  }>;
 }
 
 export class ProductAnalyticsService {
@@ -132,8 +143,22 @@ export class ProductAnalyticsService {
       await this.delay(200);
       return mockRetention;
     }
-    // Retenção requer análise de coorte — não disponível com dados atuais de analytics_events.
-    return [];
+
+    const data = await this.fetchProductAnalytics(filters);
+    if (!data || data.no_data_yet) return [];
+    return data.retention as RetentionMetric[];
+  }
+
+  async getSessionDuration(filters?: DashboardFilters): Promise<{ avgDurationMs: number | null; sessionCount: number } | null> {
+    if (apiClient.isMockEnabled()) {
+      await this.delay(150);
+      const multiplier = filters?.period === "1d" ? 0.1 : filters?.period === "30d" ? 4.5 : 1.0;
+      return { avgDurationMs: 187_000, sessionCount: Math.round(6200 * multiplier) };
+    }
+
+    const data = await this.fetchProductAnalytics(filters);
+    if (!data || data.no_data_yet) return null;
+    return { avgDurationMs: data.avg_session_duration_ms, sessionCount: data.session_count };
   }
 
   async getFeatureAiUsage(filters?: DashboardFilters): Promise<FeatureAiUsageMetric[]> {
@@ -149,7 +174,12 @@ export class ProductAnalyticsService {
         estimatedCost: Number((ai.estimatedCost * multiplier).toFixed(2))
       }));
     }
-    // Uso de IA por feature vem de ai_usage cruzado com feature — endpoint separado futuro.
+    // Associação IA <-> feature exigiria um identificador de sessão compartilhado entre
+    // `ai_usage.session_id` (hoje referencia diagnostic_sessions.id) e `analytics_events.session_id`
+    // (sessão de app/tela) — esses dois IDs não são a mesma entidade hoje. Cruzar por session_id
+    // produziria associação incorreta. Gap documentado em
+    // SignallQ Admin/docs/architecture/data-architecture.md — requer decisão de contrato (Android)
+    // antes de implementar o endpoint. Ver GH#418 follow-up.
     return [];
   }
 

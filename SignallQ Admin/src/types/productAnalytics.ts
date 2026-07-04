@@ -74,11 +74,15 @@ export interface FeatureCrashMetric {
 
 export interface RetentionMetric {
   cohort: string;
-  day1: number;
-  day7: number;
-  day30: number;
-  avgInstalledDays: number;
-  uninstallRate: number;
+  cohortSize?: number;
+  // null = cohort ainda sem dispositivos com tempo suficiente decorrido para essa janela
+  // (ex.: day30 fica null enquanto nenhum device_id tem 30 dias de histórico).
+  day1: number | null;
+  day7: number | null;
+  day30: number | null;
+  avgInstalledDays: number | null;
+  // Proxy de inatividade (sem evento nos últimos 14 dias), não confirmação de desinstalação real.
+  uninstallRate: number | null;
 }
 
 export interface FeatureAiUsageMetric {

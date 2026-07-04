@@ -76,10 +76,6 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Limita recursos a pt e pt-BR: elimina strings de todas as outras linguas
-        // que vem de dependencias (appcompat, material, etc.). Reducao estimada: 0.5-2 MB.
-        resourceConfigurations += listOf("pt", "pt-rBR")
-
         // URL base do signallq-admin-worker. Nao e segredo — apenas infraestrutura.
         buildConfigField(
             "String",
@@ -224,6 +220,13 @@ android {
         abi { enableSplit = true }
     }
 
+    // Limita recursos a pt e pt-BR: elimina strings de todas as outras linguas
+    // que vem de dependencias (appcompat, material, etc.). Reducao estimada: 0.5-2 MB.
+    // Substitui defaultConfig.resourceConfigurations (deprecated no AGP 9).
+    androidResources {
+        localeFilters += listOf("pt", "pt-rBR")
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -307,8 +310,7 @@ dependencies {
     ksp(libs.hilt.work.compiler)
     implementation(libs.timber)
     implementation(libs.androidx.profileinstaller)
-    implementation(libs.coil.compose)
-    implementation(libs.coil.network.okhttp)
+    implementation(libs.okhttp)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
@@ -317,6 +319,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
+    testImplementation(libs.mockk)
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
     debugImplementation(libs.compose.ui.test.manifest)

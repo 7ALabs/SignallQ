@@ -22,7 +22,7 @@ export function buildDiagnosticPayload(
       downloadMbps: speedtest?.download.mbps ?? null,
       jitterMs: speedtest?.jitter.ms ?? null,
       latenciaMs: speedtest?.latency.ms ?? null,
-      perceivedLossPercent: speedtest?.availability.perceivedLossPercent ?? null,
+      perdaPacotesPercentual: speedtest?.availability.perceivedLossPercent ?? null,
       uploadMbps: speedtest?.upload.mbps ?? null,
     },
     schemaVersion: 'pwa_foundation_v1',

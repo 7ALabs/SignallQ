@@ -67,6 +67,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -1536,7 +1537,7 @@ private fun ProvedorSheet(
                     label = { Text("Operadora / ISP") },
                     placeholder = { Text("Selecione uma operadora", color = c.textTertiary) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProvedorDropdown) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    modifier = Modifier.menuAnchor(type = MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                     singleLine = true,
                     colors = fieldColors,
                     shape = RoundedCornerShape(8.dp),
@@ -1590,7 +1591,7 @@ private fun ProvedorSheet(
                     readOnly = true,
                     label = { Text("Estado") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showEstadoDropdown) },
-                    modifier = Modifier.menuAnchor().fillMaxWidth(),
+                    modifier = Modifier.menuAnchor(type = MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
                     colors = fieldColors,
                     shape = RoundedCornerShape(8.dp),
                 )

@@ -29,7 +29,8 @@ export function TopAppBar({
 }: TopAppBarProps) {
   const brand = (
     <div className="sq-top-app-bar__brand">
-      <img alt="" className="sq-top-app-bar__mark" src="/logo-signallq.svg" />
+      {/* GH#443: caminho relativo ao BASE_URL — o PWA pode ser servido em /app */}
+      <img alt="" className="sq-top-app-bar__mark" src={`${import.meta.env.BASE_URL}logo-signallq.svg`} />
       <span className="sq-top-app-bar__wordmark">
         Signall<span className="sq-top-app-bar__wordmark-accent">Q</span>
       </span>

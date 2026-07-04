@@ -22,6 +22,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.feature.devices.DevicesViewModel
@@ -38,6 +39,9 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
     @Inject
     lateinit var analyticsTracker: AnalyticsTracker
+
+    @Inject
+    lateinit var analyticsHelper: AnalyticsHelper
 
     private val viewModel: MainViewModel by viewModels()
     private val chatDiagViewModel: ChatDiagnosticoIaViewModel by viewModels()
@@ -96,6 +100,8 @@ class MainActivity : ComponentActivity() {
 
         analyticsTracker.registrarSessionStart()
         registrarBatterySnapshotInicial()
+        val estadoConexaoInicial = viewModel.monitorRede.snapshotFlow.value.estadoConexao
+        analyticsHelper.registrarAppAberto(tipoConexao = estadoConexaoInicial.paraTipoConexaoAnalytics())
 
         // Conecta o SpeedtestViewModel ao MainViewModel: apos cada speedtest, dispara
         // as rotinas nao-speedtest (scan de dispositivos, diagnostico, etc.).
@@ -286,7 +292,10 @@ class MainActivity : ComponentActivity() {
                                 snapshotDevices = snapshotDevices,
                                 apelidos = apelidos,
                                 onRefreshDispositivos = { viewModel.refreshDispositivos() },
-                                onRefreshSinal = { viewModel.refreshSinal() },
+                                onRefreshSinal = {
+                                    viewModel.refreshSinal()
+                                    analyticsTracker.registrarFeatureUsada("wifi")
+                                },
                                 onSalvarApelido = { mac, apelido -> viewModel.salvarApelido(mac, apelido) },
                             ),
                         diagnostico =
@@ -367,8 +376,14 @@ class MainActivity : ComponentActivity() {
                         modemPermanecerConectado = modemPermanecerConectado,
                         gatewayIpDetectado = gatewayIpDetectado,
                         localizacaoServidor = localizacaoServidorUiState,
-                        onDispararBenchmarkDns = { viewModel.dispararBenchmarkDns() },
-                        onReconectarFibra = { host, user, pass -> viewModel.reconectarFibra(host, user, pass) },
+                        onDispararBenchmarkDns = {
+                            viewModel.dispararBenchmarkDns()
+                            analyticsTracker.registrarFeatureUsada("dns")
+                        },
+                        onReconectarFibra = { host, user, pass ->
+                            viewModel.reconectarFibra(host, user, pass)
+                            analyticsTracker.registrarFeatureUsada("fibra")
+                        },
                         onSalvarConfiguracaoModem = { host, user, pass, perm ->
                             viewModel.salvarConfiguracaoModem(host, user, pass, perm)
                         },
@@ -422,9 +437,15 @@ class MainActivity : ComponentActivity() {
                         onDispensarBannerAnatel = { viewModel.dispensarBannerAnatel() },
                         historicoFiltrado = historicoFiltrado,
                         filtroConexaoHistorico = filtroConexaoHistorico,
-                        onFiltroConexaoHistoricoChange = { viewModel.setFiltroConexaoHistorico(it) },
+                        onFiltroConexaoHistoricoChange = {
+                            viewModel.setFiltroConexaoHistorico(it)
+                            analyticsTracker.registrarFeatureUsada("historico")
+                        },
                         filtroOperadoraHistorico = filtroOperadoraHistorico,
-                        onFiltroOperadoraHistoricoChange = { viewModel.setFiltroOperadoraHistorico(it) },
+                        onFiltroOperadoraHistoricoChange = {
+                            viewModel.setFiltroOperadoraHistorico(it)
+                            analyticsTracker.registrarFeatureUsada("historico")
+                        },
                         operadorasDisponiveisHistorico = operadorasDisponiveisHistorico,
                         onScreenView = { screenName -> analyticsTracker.registrarScreenView(screenName) },
                     )
@@ -560,6 +581,11 @@ class MainActivity : ComponentActivity() {
         }
         // Abaixo do API 33, NEARBY_WIFI_DEVICES não existe — no-op; localização cobre o caso
     }
+
+    // Analytics (SIG-155): EstadoConexao.movel vira "mobile" no schema do funil.
+    // Os demais nomes (wifi/ethernet/desconectado/desconhecido) ja batem com o schema.
+    private fun EstadoConexao.paraTipoConexaoAnalytics(): String =
+        if (this == EstadoConexao.movel) "mobile" else name
 
     private fun solicitarPermissaoLocalizacaoContextual() {
         val concedida =

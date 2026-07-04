@@ -1,19 +1,15 @@
 import React from "react";
 import { adminSettingsService, ExtendedSettingsPayload } from "../../services/adminSettingsService";
-import { AiProviderSettings } from "./components/AiProviderSettings";
 import { CostLimitSettings } from "./components/CostLimitSettings";
-import { DiagnosticPipelineSettings } from "./components/DiagnosticPipelineSettings";
-import { PrivacySettings } from "./components/PrivacySettings";
 import { IntegrationsSettings } from "./components/IntegrationsSettings";
-import { MonetizationSettings } from "./components/MonetizationSettings";
-import { FeatureFlagsSettings } from "./components/FeatureFlagsSettings";
 import { LoadingState } from "../../components/ui/LoadingState";
-import { Settings, Save, CheckCircle2, RotateCcw, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Settings, Save, CheckCircle2, RotateCcw, ShieldCheck, AlertTriangle, ToggleRight } from "lucide-react";
 
 export const SettingsPage: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [settings, setSettings] = React.useState<ExtendedSettingsPayload | null>(null);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
   const [saveStatus, setSaveStatus] = React.useState<string | null>(null);
   const [saveError, setSaveError] = React.useState<string | null>(null);
 
@@ -29,20 +25,27 @@ export const SettingsPage: React.FC = () => {
     return () => clearTimeout(id);
   }, [saveError]);
 
-  React.useEffect(() => {
-    async function loadSettings() {
-      setLoading(true);
-      try {
-        const payload = await adminSettingsService.getSettings();
-        setSettings(payload);
-      } catch (e) {
-        console.error("Failed to load settings payload", e);
-      } finally {
-        setLoading(false);
-      }
+  const loadSettings = React.useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const payload = await adminSettingsService.getSettings();
+      setSettings(payload);
+    } catch (e) {
+      console.error("Failed to load settings payload", e);
+      // GH#416: sem dado real (worker fora do ar e sem cache) — não mostra dado inventado.
+      setSettings(null);
+      setLoadError(
+        e instanceof Error ? e.message : "Não foi possível carregar as configurações da Admin API."
+      );
+    } finally {
+      setLoading(false);
     }
-    loadSettings();
   }, []);
+
+  React.useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const handleUpdate = (updates: Partial<ExtendedSettingsPayload>) => {
     setSaveStatus(null);
@@ -77,19 +80,11 @@ export const SettingsPage: React.FC = () => {
 
   const handleReset = async () => {
     if (window.confirm("Deseja realmente redefinir as configurações para os padrões de fábrica?")) {
-      setLoading(true);
       setSaveStatus(null);
       setSaveError(null);
-      try {
-        localStorage.removeItem("@signallq/admin_settings_v1");
-        const payload = await adminSettingsService.getSettings();
-        setSettings(payload);
-        setSaveStatus("Configurações originais redefinidas com sucesso!");
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
+      localStorage.removeItem("@signallq/admin_settings_v1");
+      await loadSettings();
+      setSaveStatus("Configurações originais redefinidas com sucesso!");
     }
   };
 
@@ -99,8 +94,17 @@ export const SettingsPage: React.FC = () => {
 
   if (!settings) {
     return (
-      <div className="py-20 text-center select-none">
-        <p className="text-sm text-[var(--text-tertiary)]">Erro crítico ao processar o arquivo de configurações persistent.</p>
+      <div className="py-20 text-center select-none space-y-3">
+        <p className="text-sm text-[var(--text-tertiary)]">
+          {loadError ?? "Sem dados: não foi possível carregar as configurações."}
+        </p>
+        <button
+          type="button"
+          onClick={() => loadSettings()}
+          className="text-xs text-[var(--primary)] hover:underline cursor-pointer"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }
@@ -113,7 +117,7 @@ export const SettingsPage: React.FC = () => {
           <Settings className="w-5 h-5 text-[var(--text-secondary)]" />
           <div>
             <h4 className="text-xs font-semibold font-sans text-[var(--text-secondary)] uppercase">Centro Operacional de Parâmetros</h4>
-            <p className="text-[10px] text-[var(--text-tertiary)] font-sans mt-0.5">Defina quotas, timeouts e destinos do pipeline de diagnósticos de RF.</p>
+            <p className="text-[10px] text-[var(--text-tertiary)] font-sans mt-0.5">Ajustes que efetivamente alteram o comportamento do worker de alertas ou de feature flags (GH#426).</p>
           </div>
         </div>
 
@@ -156,16 +160,29 @@ export const SettingsPage: React.FC = () => {
 
       {/* Grid configuration panels layouts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 font-sans text-xs">
-        <AiProviderSettings settings={settings} onChange={handleUpdate} />
         <CostLimitSettings settings={settings} onChange={handleUpdate} />
-        <DiagnosticPipelineSettings settings={settings} onChange={handleUpdate} />
-        <PrivacySettings settings={settings} onChange={handleUpdate} />
-        <MonetizationSettings settings={settings} onChange={handleUpdate} />
         <IntegrationsSettings />
       </div>
 
-      {/* SIG-13: Feature Flags — fora do grid 2-col para ocupar largura total */}
-      <FeatureFlagsSettings />
+      {/* GH#424: feature flags têm página dedicada própria (/feature-flags), fonte única de
+          escrita real (PUT /admin/feature-flags/:key na tabela feature_flags consumida pelo
+          Android via GET /flags). Duplicar o toggle aqui em Settings levava a um segundo
+          caminho de escrita que gravava num blob legado sem efeito no app — removido. */}
+      <a
+        href="#/feature-flags"
+        className="flex items-center justify-between gap-4 bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-[8px] p-5 hover:border-zinc-700 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <ToggleRight className="w-5 h-5 text-[var(--primary)]" />
+          <div>
+            <h4 className="text-xs font-semibold font-sans text-[var(--text-secondary)] uppercase">Feature Flags</h4>
+            <p className="text-[10px] text-[var(--text-tertiary)] font-sans mt-0.5">
+              Controle remoto de funcionalidades do app — página dedicada, efeito real no Android.
+            </p>
+          </div>
+        </div>
+        <span className="text-[10px] font-sans text-[var(--primary)] shrink-0">Abrir →</span>
+      </a>
 
       <div className="bg-[var(--bg-sidebar)]/30 border border-dashed border-[var(--border)] rounded-[8px] p-4 flex items-center gap-2.5 text-[10px] font-sans text-[var(--text-tertiary)] select-none justify-center">
         <ShieldCheck className="w-4 h-4 text-[var(--success)]" />

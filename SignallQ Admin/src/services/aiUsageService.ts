@@ -40,8 +40,35 @@ export const aiUsageService = {
     return insights;
   },
 
+  /** Histórico de execuções reais de IA (GH#421) — cada item vem de uma linha de `ai_usage`. */
   async getAiUsageRecords(filters: DashboardFilters = {}): Promise<AiUsageRecord[]> {
-    if (!apiClient.isMockEnabled()) return [];
+    if (!apiClient.isMockEnabled()) {
+      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
+      try {
+        const period = filters.period === "today" ? "1d" : (filters.period ?? "7d");
+        const env = filters.environment ?? "production";
+        const raw = await apiClient.request<{ records: any[] }>(
+          "GET",
+          `/admin/metrics/ai-usage/records?environment=${env}&period=${period}`
+        );
+        return (raw.records ?? []).map((r: any) => ({
+          id: r.id,
+          timestamp: r.timestamp,
+          model: r.model ?? "",
+          provider: r.provider ?? r.model ?? "",
+          promptTokens: r.promptTokens ?? 0,
+          completionTokens: r.completionTokens ?? 0,
+          costUsd: r.costUsd ?? 0,
+          status: r.status === "error" ? "error" : "success",
+          errorMessage: r.errorMessage || null,
+          diagnosisId: r.diagnosisId ?? null,
+          environment: r.environment ?? env,
+        }));
+      } catch (e) {
+        console.error("Failed to load AI usage records", e);
+        return [];
+      }
+    }
     return apiClient.simulateFetch(mockAiUsageRecords, filters);
   },
 

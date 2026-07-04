@@ -1,6 +1,6 @@
 import React from "react";
 import { Search, RefreshCw } from "lucide-react";
-import { DistChannel, BuildType } from "../../../types/diagnostics";
+import { DistChannel, BuildType, DataPlatform } from "../../../types/diagnostics";
 import { AppEnvironment } from "../../../types/admin";
 
 interface DiagnosticsFiltersProps {
@@ -14,8 +14,9 @@ interface DiagnosticsFiltersProps {
   onScoreChange: (score: string) => void;
   selectedIssue: string;
   onIssueChange: (issue: string) => void;
-  selectedAiProvider: string;
-  onAiProviderChange: (provider: string) => void;
+  selectedVersion: string;
+  onVersionChange: (version: string) => void;
+  availableVersions: string[];
   selectedPeriod: string;
   onPeriodChange: (period: string) => void;
   selectedEnvironment: AppEnvironment;
@@ -24,6 +25,8 @@ interface DiagnosticsFiltersProps {
   onDistChannelChange: (channel: DistChannel | "") => void;
   selectedBuildType: BuildType | "";
   onBuildTypeChange: (type: BuildType | "") => void;
+  selectedPlatform: DataPlatform | "";
+  onPlatformChange: (platform: DataPlatform | "") => void;
   onRefresh: () => void;
   isRefreshing?: boolean;
 }
@@ -39,8 +42,9 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
   onScoreChange,
   selectedIssue,
   onIssueChange,
-  selectedAiProvider,
-  onAiProviderChange,
+  selectedVersion,
+  onVersionChange,
+  availableVersions,
   selectedPeriod,
   onPeriodChange,
   selectedEnvironment,
@@ -49,6 +53,8 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
   onDistChannelChange,
   selectedBuildType,
   onBuildTypeChange,
+  selectedPlatform,
+  onPlatformChange,
   onRefresh,
   isRefreshing = false,
 }) => {
@@ -122,7 +128,7 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
       </div>
 
       {/* Advanced filters selectors row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-3 pt-1 border-t border-[var(--border)]/40 select-none">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3 pt-1 border-t border-[var(--border)]/40 select-none">
         {/* Network Selection */}
         <div className="space-y-1">
           <label className="text-[10px] font-sans uppercase tracking-wider text-[var(--text-tertiary)] font-bold block">
@@ -195,6 +201,22 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
           </select>
         </div>
 
+        {/* Origem do dado (GH#442) */}
+        <div className="space-y-1">
+          <label className="text-[10px] font-sans uppercase tracking-wider text-[var(--text-tertiary)] font-bold block">
+            Origem
+          </label>
+          <select
+            value={selectedPlatform}
+            onChange={(e) => onPlatformChange(e.target.value as DataPlatform | "")}
+            className="w-full bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl px-3 py-2 text-xs text-[var(--text-secondary)] focus:outline-none focus:border-[var(--primary)] cursor-pointer"
+          >
+            <option value="">Todas</option>
+            <option value="android">Android</option>
+            <option value="web">WebApp</option>
+          </select>
+        </div>
+
         {/* Distribution Channel */}
         <div className="space-y-1">
           <label className="text-[10px] font-sans uppercase tracking-wider text-[var(--text-tertiary)] font-bold block">
@@ -228,21 +250,20 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
           </select>
         </div>
 
-        {/* AI Provider */}
+        {/* App Version */}
         <div className="space-y-1 col-span-2 sm:col-span-1 lg:col-span-2">
           <label className="text-[10px] font-sans uppercase tracking-wider text-[var(--text-tertiary)] font-bold block">
-            Provedor IA Laudos
+            Versão do App
           </label>
           <select
-            value={selectedAiProvider}
-            onChange={(e) => onAiProviderChange(e.target.value)}
+            value={selectedVersion}
+            onChange={(e) => onVersionChange(e.target.value)}
             className="w-full bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl px-3 py-2 text-xs text-[var(--text-secondary)] focus:outline-none focus:border-[var(--primary)] cursor-pointer"
           >
-            <option value="all">Todos os provedores</option>
-            <option value="gemini_flash">Gemini 1.5 Flash</option>
-            <option value="cloudflare_qwen">Qwen 2.5 Edge</option>
-            <option value="openai">OpenAI GPT-4o Mini</option>
-            <option value="local_fallback">Fallback local</option>
+            <option value="all">Todas as versões</option>
+            {availableVersions.map((v) => (
+              <option key={v} value={v}>{v}</option>
+            ))}
           </select>
         </div>
       </div>

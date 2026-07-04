@@ -11,6 +11,8 @@ createRoot(document.getElementById('root')!).render(
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+    // GH#443: registra relativo ao BASE_URL (ex.: /app/) para funcionar tanto
+    // no domínio dedicado quanto sob o subpath /app do Cloudflare Pages.
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => undefined);
   });
 }

@@ -2,6 +2,9 @@ import { NetworkType, NetworkSpeed, NetworkStrength } from "./network";
 
 export type DistChannel = "play_store" | "firebase_app_distribution" | "sideload";
 export type BuildType = "release" | "debug";
+// GH#442: origem do dado. Android ainda nao envia este campo (default no worker
+// e' 'android' para preservar dado historico) — so o PWA envia 'web' hoje.
+export type DataPlatform = "android" | "web";
 
 export type DiagnosisIssue =
   | "wifi_signal_weak"
@@ -24,6 +27,8 @@ export interface DiagnosticSession {
   timestamp: string; // ISO string
   networkType: NetworkType;
   environment: "production" | "staging";
+  operator?: string; // operadora móvel/ISP identificada (coluna `operator` em diagnostic_sessions)
+  score: number; // score 0-100 calculado pelo engine local (coluna `score`)
   speed: NetworkSpeed;
   networkStrength?: NetworkStrength;
   issues: {
@@ -35,6 +40,7 @@ export interface DiagnosticSession {
   aiSummaryReport?: string;
   distChannel?: DistChannel;
   buildType?: BuildType;
+  platform?: DataPlatform;
 }
 
 export interface DiagnosticsSummary {

@@ -4,6 +4,7 @@ import { DataTable } from "../../../components/ui/DataTable";
 import { Cpu, Server, Layers, HardDrive } from "lucide-react";
 import { AiModelInsights } from "../../../types/ai";
 import { formatCurrency } from "../../../utils/format";
+import { alpha } from "../../../utils/color";
 import { FeatureComingSoon } from "../../../components/ui/FeatureComingSoon";
 import { SQ_TOKENS } from "../../../config/designTokens";
 
@@ -81,8 +82,8 @@ export const ProviderCostTable: React.FC<ProviderCostTableProps> = ({ insights }
               className="uppercase font-mono text-[10px] px-2 py-0.5 rounded font-bold"
               style={{
                 color: "var(--sq-success)",
-                backgroundColor: "color-mix(in srgb, var(--sq-success) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--sq-success) 15%, transparent)",
+                backgroundColor: alpha("var(--sq-success)", 10),
+                border: `1px solid ${alpha("var(--sq-success)", 15)}`,
               }}
             >
               Grátis

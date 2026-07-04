@@ -1,5 +1,6 @@
 import React from "react";
 import { Construction } from "lucide-react";
+import { alpha } from "../../utils/color";
 
 interface FeatureComingSoonProps {
   feature: string;
@@ -24,7 +25,7 @@ export const FeatureComingSoon: React.FC<FeatureComingSoonProps> = ({
           <span
             className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider"
             style={{
-              background: "color-mix(in srgb, var(--border) 40%, transparent)",
+              background: alpha("var(--border)", 40),
               color: "var(--text-tertiary)",
               border: "1px solid var(--border)",
             }}

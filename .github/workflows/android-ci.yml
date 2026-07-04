@@ -3,24 +3,36 @@ name: Android CI
 on:
   push:
     branches: [main]
-    paths:
-      - 'android/**'
-      - '.github/workflows/android-ci.yml'
   pull_request:
     branches: [main]
-    paths:
-      - 'android/**'
-      - '.github/workflows/android-ci.yml'
 
 jobs:
+  changes:
+    name: Detect Android changes
+    runs-on: ubuntu-latest
+    outputs:
+      android: ${{ steps.filter.outputs.android }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            android:
+              - 'android/**'
+              - '.github/workflows/android-ci.yml'
+
   unit-tests:
     name: Unit Tests
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.android == 'true'
 
       - name: Setup JDK 17
+        if: needs.changes.outputs.android == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -28,10 +40,11 @@ jobs:
           cache: gradle
 
       - name: Run unit tests
+        if: needs.changes.outputs.android == 'true'
         run: cd android && ./gradlew test
 
       - name: Upload test reports
-        if: always()
+        if: always() && needs.changes.outputs.android == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-reports
@@ -40,12 +53,15 @@ jobs:
 
   ktlint:
     name: Ktlint
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.android == 'true'
 
       - name: Setup JDK 17
+        if: needs.changes.outputs.android == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -53,16 +69,20 @@ jobs:
           cache: gradle
 
       - name: Run ktlint check
+        if: needs.changes.outputs.android == 'true'
         run: cd android && ./gradlew ktlintCheck
 
   detekt:
     name: Detekt
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.android == 'true'
 
       - name: Setup JDK 17
+        if: needs.changes.outputs.android == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -70,16 +90,20 @@ jobs:
           cache: gradle
 
       - name: Run Detekt
+        if: needs.changes.outputs.android == 'true'
         run: cd android && ./gradlew detekt
 
   build-debug:
     name: Build Debug APK
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.android == 'true'
 
       - name: Setup JDK 17
+        if: needs.changes.outputs.android == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -87,10 +111,11 @@ jobs:
           cache: gradle
 
       - name: Assemble debug APK
+        if: needs.changes.outputs.android == 'true'
         run: cd android && ./gradlew assembleDebug
 
       - name: Upload debug APK
-        if: always()
+        if: always() && needs.changes.outputs.android == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: debug-apk

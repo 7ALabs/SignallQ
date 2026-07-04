@@ -1,8 +1,23 @@
 # Deploy Status
 
-Data da verificacao: 2026-06-30
+Data da verificacao: 2026-06-30 (atualizado 2026-07-04, GH#443/SIG-52)
 
-## Resumo
+## Atualizacao 2026-07-04
+
+A decisao de arquitetura mudou: o PWA nao vai mais ter um projeto Cloudflare
+Pages isolado (`signallq-pwa`, que nunca chegou a existir — ver evidencias
+abaixo). Ele passa a ser publicado sob `/app` no mesmo projeto `signallq`
+que tambem serve o Console Admin sob `/console` (GH#443, decisao ja tomada
+na issue). Ver `deploy/pages/README.md` para o pipeline completo.
+
+O bloqueio de producao (criar o projeto `signallq` na conta Cloudflare
+correta e configurar dominio/HTTPS) continua existindo e agora e rastreado
+como pendencia de infraestrutura de conta, nao de codigo — o codigo deste
+PR (base path, manifest, service worker, `_redirects`/`_headers`, script de
+build unificado, workflow condicional) ja esta pronto para quando o projeto
+existir.
+
+## Resumo (estado anterior a esta mudanca, mantido como historico)
 
 O SignallQ PWA esta pronto para validacao local e para CI de PR, mas ainda nao pode ser considerado pronto para producao no Cloudflare Pages porque o projeto remoto `signallq-pwa` nao existe na conta autenticada usada nesta rodada.
 
@@ -34,9 +49,16 @@ O SignallQ PWA esta pronto para validacao local e para CI de PR, mas ainda nao p
 
 Hoje o bloqueio nao esta no codigo PWA nem no CLI do Wrangler. O bloqueio esta no alinhamento entre a configuracao versionada do repo e a conta/projeto Cloudflare que deveria hospedar `signallq-pwa`.
 
-## Proximo passo recomendado
+## Proximo passo recomendado (substitui o anterior — ver GH#443/SIG-52)
 
-1. Confirmar com Luiz/Renan qual conta Cloudflare deve conter o PWA.
-2. Criar ou conectar o projeto `signallq-pwa` nessa conta.
-3. Reexecutar `npm run pages:deploy`.
-4. Validar URL final, HTTPS, headers reais e rollback.
+1. Criar o projeto Cloudflare Pages `signallq` (nao `signallq-pwa`) na conta
+   correta — via dashboard ou `wrangler pages project create signallq`.
+2. Configurar as variaveis de ambiente de build necessarias (`AI_WORKER_URL`,
+   `ADMIN_INGEST_URL`/`ADMIN_WORKER_URL`, `ADMIN_INGEST_KEY` para o PWA;
+   `VITE_ADMIN_API_BASE_URL` para o Console — ver `deploy/pages/README.md`).
+3. Rodar `node deploy/pages/build.mjs` (ou deixar o `pages-deploy.yml`
+   automatizar isso) e publicar com
+   `npx wrangler pages deploy deploy/pages/dist --project-name signallq`.
+4. Validar `/app`, `/console`, redirect da raiz, HTTPS, headers reais e
+   rollback.
+5. So depois disso faz sentido seguir com dominio custom/HSTS de SIG-52.

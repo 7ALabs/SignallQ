@@ -92,6 +92,17 @@ CREATE TABLE IF NOT EXISTS system_errors (
 );
 CREATE INDEX IF NOT EXISTS idx_system_errors_last_seen ON system_errors(last_seen);
 
+-- GH#422: fluxo operacional de erros — resolução real (responsável, data,
+-- observação) e diferenciação de origem (app | backend | ia | integration).
+-- Aplicar via: migrations/010_gh422.sql (npx wrangler d1 execute --file=... --remote)
+ALTER TABLE system_errors ADD COLUMN category       TEXT    NOT NULL DEFAULT 'backend';
+ALTER TABLE system_errors ADD COLUMN resolved       INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE system_errors ADD COLUMN resolved_by    TEXT    DEFAULT '';
+ALTER TABLE system_errors ADD COLUMN resolved_at    INTEGER DEFAULT 0;
+ALTER TABLE system_errors ADD COLUMN resolution_note TEXT   DEFAULT '';
+CREATE INDEX IF NOT EXISTS idx_system_errors_resolved ON system_errors(resolved);
+CREATE INDEX IF NOT EXISTS idx_system_errors_category ON system_errors(category);
+
 -- SIG-136: Auth própria via D1 — usuários admin, sessões httpOnly, rate limiting
 CREATE TABLE IF NOT EXISTS admin_users (
   id            TEXT    PRIMARY KEY,
@@ -119,3 +130,28 @@ CREATE TABLE IF NOT EXISTS auth_rate_limit (
   count        INTEGER NOT NULL DEFAULT 0,
   window_start INTEGER NOT NULL
 );
+
+-- GH#417: analytics_events precisa do mesmo contexto de ambiente/dispositivo
+-- que diagnostic_sessions e ai_usage já têm — sem isso não dá pra calcular
+-- retenção (D1/D7/D30) nem segmentar por versão/canal/build.
+-- Aplicar via: migrations/008_gh417.sql (npx wrangler d1 execute --file=... --remote)
+ALTER TABLE analytics_events ADD COLUMN device_id    TEXT    DEFAULT '';
+ALTER TABLE analytics_events ADD COLUMN version_code INTEGER DEFAULT 0;
+ALTER TABLE analytics_events ADD COLUMN dist_channel TEXT    DEFAULT '';
+ALTER TABLE analytics_events ADD COLUMN build_type   TEXT    DEFAULT 'release';
+ALTER TABLE analytics_events ADD COLUMN duration_ms  INTEGER DEFAULT NULL; -- só em session_end
+CREATE INDEX IF NOT EXISTS idx_analytics_device_id ON analytics_events(device_id);
+
+-- GH#421: histórico de IA precisa auditar status/erro de cada execução —
+-- ai_usage não tinha essas colunas, só tokens/custo agregado.
+-- Aplicar via: migrations/009_gh421.sql (npx wrangler d1 execute --file=... --remote)
+ALTER TABLE ai_usage ADD COLUMN status        TEXT DEFAULT 'success';
+ALTER TABLE ai_usage ADD COLUMN error_message TEXT DEFAULT '';
+
+-- GH#442: diferenciar origem do dado (Android vs WebApp/PWA). Default 'android'
+-- preserva a semântica de todo o dado histórico (pré-existente ao ingest do PWA).
+-- Aplicar via: migrations/011_gh442.sql (npx wrangler d1 execute --file=... --remote)
+ALTER TABLE diagnostic_sessions ADD COLUMN platform TEXT DEFAULT 'android';
+ALTER TABLE ai_usage            ADD COLUMN platform TEXT DEFAULT 'android';
+ALTER TABLE analytics_events    ADD COLUMN platform TEXT DEFAULT 'android';
+CREATE INDEX IF NOT EXISTS idx_sessions_platform ON diagnostic_sessions(platform);

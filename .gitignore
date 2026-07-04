@@ -67,5 +67,8 @@ packages/design-system/dist/
 packages/design-system/package-lock.json
 integrations/cloudflare/signallq-admin-worker/dist/
 
+# GH#443: build unificado do projeto Cloudflare Pages "signallq" (/app + /console)
+deploy/pages/dist/
+
 # Claude Code runtime lock files
 **/.claude/scheduled_tasks.lock

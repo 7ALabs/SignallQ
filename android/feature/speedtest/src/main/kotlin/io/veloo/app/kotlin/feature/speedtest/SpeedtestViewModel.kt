@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.network.NetworkCapabilitiesProvider
 import io.signallq.app.core.telephony.MonitorTelephony
@@ -40,6 +41,8 @@ class SpeedtestViewModel
         private val monitorRede: MonitorRede,
         private val networkCapabilitiesProvider: NetworkCapabilitiesProvider,
         private val monitorTelefony: MonitorTelephony,
+        /** Funil principal de engajamento (SIG-155) — speedtest_iniciado/speedtest_concluido. */
+        private val analyticsHelper: AnalyticsHelper,
     ) : ViewModel() {
         private companion object {
             const val LOG_TAG = "SpeedtestViewModel"
@@ -108,6 +111,11 @@ class SpeedtestViewModel
         private suspend fun executarSpeedtest(modo: ModoSpeedtest) {
             val connectionType = monitorRede.snapshotFlow.value.estadoConexao.name
             Timber.i("$LOG_TAG: iniciando modo=${modo.name} connectionType=$connectionType")
+            analyticsHelper.registrarSpeedtestIniciado(
+                modo = modo.name,
+                tipoConexao = mapTipoConexaoParaAnalytics(connectionType),
+            )
+            val inicioMs = System.currentTimeMillis()
             executorSpeedtest.executar(
                 modo = modo,
                 connectionType = connectionType,
@@ -115,7 +123,48 @@ class SpeedtestViewModel
                 tecnologiaProvider = { monitorTelefony.snapshotFlow.value?.tecnologia },
             )
             Timber.i("$LOG_TAG: finalizado modo=${modo.name}")
+            registrarSpeedtestConcluidoSeDisponivel(modo, System.currentTimeMillis() - inicioMs)
         }
+
+        /**
+         * Dispara speedtest_concluido (SIG-155) a partir do resultado que acabou de
+         * ficar disponivel em [ExecutorSpeedtest.snapshotFlow]. No-op se, por qualquer
+         * motivo, o snapshot nao estiver em estado concluido com resultado (ex.: erro).
+         */
+        private fun registrarSpeedtestConcluidoSeDisponivel(
+            modo: ModoSpeedtest,
+            duracaoMs: Long,
+        ) {
+            val snapshot = executorSpeedtest.snapshotFlow.value
+            if (snapshot.estado != EstadoExecucaoSpeedtest.concluido) return
+            val resultado = snapshot.resultado ?: return
+            analyticsHelper.registrarSpeedtestConcluido(
+                modo = modo.name,
+                tipoConexaoInicio = resultado.connectionTypeStart?.let(::mapTipoConexaoParaAnalytics) ?: "desconhecido",
+                tipoConexaoFim = resultado.connectionTypeEnd?.let(::mapTipoConexaoParaAnalytics),
+                downloadMbps = resultado.downloadMbps,
+                uploadMbps = resultado.uploadMbps,
+                latenciaMs = resultado.latenciaMs,
+                jitterMs = resultado.jitterMs,
+                perdaPct = resultado.perdaPercentual,
+                bufferbloatMs = resultado.bufferbloatMs,
+                severidadeBufferbloat = mapSeveridadeBufferbloatParaAnalytics(resultado.severidadeBufferbloat),
+                stabilityScore = resultado.stabilityScore,
+                contaminado = resultado.contaminado,
+                duracaoMs = duracaoMs,
+            )
+        }
+
+        // EstadoConexao.name usa "movel"; o schema de analytics usa "mobile".
+        private fun mapTipoConexaoParaAnalytics(raw: String): String = if (raw == "movel") "mobile" else raw
+
+        private fun mapSeveridadeBufferbloatParaAnalytics(severidade: SeveridadeBufferbloat): String =
+            when (severidade) {
+                SeveridadeBufferbloat.none -> "nenhum"
+                SeveridadeBufferbloat.mild -> "leve"
+                SeveridadeBufferbloat.moderate -> "moderado"
+                SeveridadeBufferbloat.severe -> "severo"
+            }
 
         /**
          * Acumula MB estimados consumidos no mes corrente.

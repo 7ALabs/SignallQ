@@ -1,6 +1,6 @@
 # Admin API — Schema de Contratos
 
-**Última atualização:** 2026-06-24
+**Última atualização:** 2026-07-04 (GH#426 — contrato de settings reduzido aos campos com consumidor real)
 **Versão do worker:** 1.x (Cloudflare Worker — `signallq-admin-worker`)
 **Base URL (produção):** `https://signallq-admin-worker.veloo.workers.dev`
 **Configurada no frontend via:** `VITE_ADMIN_API_BASE_URL`
@@ -531,6 +531,127 @@ Série temporal de tokens por provedor por dia.
 
 ---
 
+### GET /admin/metrics/ai-usage/records
+
+Histórico de execuções individuais de IA (GH#421) — cada item é uma linha real
+de `ai_usage`, correlacionada com `diagnostic_sessions` via `session_id` quando
+existir. Substitui a tabela mockada/vazia da aba "IA & Custo".
+
+**Parâmetros:** `period` (padrão `7d`), `environment`, `limit` (1–500, padrão 100)
+
+**Response 200:**
+```json
+{
+  "source": "d1",
+  "period": "7d",
+  "environment": "production",
+  "records": [
+    {
+      "id": "a1b2c3d4-...",
+      "timestamp": "2026-07-04T13:20:05.000Z",
+      "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "provider": "Qwen / Workers AI",
+      "promptTokens": 812,
+      "completionTokens": 305,
+      "costUsd": 0,
+      "status": "success",
+      "errorMessage": null,
+      "diagnosisId": "diag_8f3d1e90",
+      "environment": "production"
+    }
+  ]
+}
+```
+
+Sem campo de latência: o schema de `ai_usage` não registra tempo de resposta —
+não é inventado no worker nem no frontend. `status`/`errorMessage` dependem da
+migration `009_gh421.sql`; registros anteriores a ela assumem `status: "success"`
+(default da coluna), já que o app hoje só grava `ai_usage` ao final de uma
+chamada concluída.
+
+---
+
+### GET /admin/analytics/product
+
+Métricas de uso de produto (Produto & Uso, GH#418). Também aceita o prefixo
+`/admin/metrics/analytics/product` (compatibilidade). Fonte: `analytics_events`
+(alimentada por `POST /ingest/analytics` — ver seção de ingest).
+
+**Parâmetros:** `period` (padrão `7d`), `environment`
+
+**Response 200:**
+```json
+{
+  "source": "d1",
+  "period": "7d",
+  "environment": "production",
+  "no_data_yet": false,
+  "feature_usage": [
+    { "feature": "speedtest", "label": "speedtest", "usageCount": 1240, "uniqueUsers": 380,
+      "completionRate": 0, "failureRate": 0, "avgDurationMs": 0, "trendPercent": 0 }
+  ],
+  "screen_navigation": [
+    { "screen": "home", "label": "home", "views": 4200, "uniqueUsers": 900,
+      "avgTimeOnScreenSec": 0, "exitRate": 0, "nextMostCommonScreen": null }
+  ],
+  "feature_crashes": [
+    { "feature": "devices_scan", "label": "devices_scan", "crashes": 3, "nonFatalErrors": 0,
+      "anrs": 0, "crashRate": 1.2, "affectedVersions": ["0.21.0"], "severity": "attention" }
+  ],
+  "avg_session_duration_ms": 187000,
+  "session_count": 640,
+  "retention": [
+    { "cohort": "Cohort geral (7d)", "cohortSize": 320,
+      "day1": 42.5, "day7": 18.0, "day30": null,
+      "avgInstalledDays": 6.2, "uninstallRate": 11.4 }
+  ]
+}
+```
+
+| Campo | Descrição |
+|---|---|
+| `feature_usage[].completionRate`, `failureRate`, `avgDurationMs`, `trendPercent` | Ainda **não computados** — sempre `0`. Exigiriam eventos `feature_started`/`feature_completed`/`feature_failed` distintos de `feature_used`, que o app não emite hoje |
+| `screen_navigation[].avgTimeOnScreenSec`, `exitRate`, `nextMostCommonScreen` | Idem — não computados, sempre `0`/`null` |
+| `avg_session_duration_ms` | Média real de `duration_ms` dos eventos `session_end` no período. `null` se não houver nenhum evento `session_end` com duração no período |
+| `session_count` | Total de eventos `session_end` com `duration_ms` no período |
+| `retention[].day1`/`day7`/`day30` | % de dispositivos (`device_id`) que retornaram na respectiva janela após o primeiro evento visto. `null` quando nenhum dispositivo do cohort ainda tem dias suficientes decorridos para aquela janela |
+| `retention[].uninstallRate` | Proxy de inatividade: % de dispositivos sem nenhum evento nos últimos 14 dias. **Não é confirmação de desinstalação** (exigiria Play Console, não integrado) |
+| `retention[].avgInstalledDays` | Média de dias entre o primeiro e o último evento observado por dispositivo (span de atividade observado, não "tempo até desinstalar") |
+
+**Gap conhecido (não resolvido nesta correção):** associação de uso de IA por
+feature (`GET /admin/analytics/product` não inclui `feature_ai_usage`). Exigiria
+um identificador de sessão compartilhado entre `analytics_events.session_id`
+(sessão de app) e `ai_usage.session_id` (hoje referencia `diagnostic_sessions.id`)
+— são espaços de ID diferentes hoje, cruzá-los produziria associação incorreta.
+Ver `SignallQ Admin/docs/architecture/data-architecture.md` (seção Gaps) para o
+contrato necessário antes de implementar.
+
+---
+
+### GET /admin/analytics/battery
+
+Snapshot agregado de nível de bateria. Também aceita
+`/admin/metrics/analytics/battery`.
+
+**Parâmetros:** `period` (padrão `7d`)
+
+**Response 200:**
+```json
+{
+  "source": "d1",
+  "period": "7d",
+  "no_data_yet": false,
+  "summary": {
+    "avg_battery_level": 62,
+    "charging_sessions_pct": 18,
+    "total_snapshots": 940
+  },
+  "items": []
+}
+```
+
+---
+
 ### GET /admin/metrics/operators
 
 Métricas de diagnóstico agrupadas por operadora de telecomunicações.
@@ -559,6 +680,51 @@ Métricas de diagnóstico agrupadas por operadora de telecomunicações.
 ```
 
 **Nota:** sessões sem operadora (`operator = ''`) são excluídas desta query.
+
+---
+
+### GET /admin/metrics/app-versions
+
+Sessões de diagnóstico agrupadas por versão do app, build e canal de distribuição —
+fonte real para a aba "Versões" do painel (GH#423). Não depende de Firebase/BigQuery:
+usa apenas colunas já ingeridas em `diagnostic_sessions`.
+
+**Parâmetros:** `period` (padrão `30d`), `environment`
+
+**Response 200:**
+```json
+{
+  "source": "d1",
+  "period": "30d",
+  "environment": "production",
+  "versions": [
+    {
+      "appVersion": "0.21.0",
+      "versionCode": 52,
+      "distChannel": "play_store",
+      "buildType": "release",
+      "sessions": 842,
+      "avgScore": 74,
+      "firstSeen": 1751500800,
+      "lastSeen": 1751932800
+    }
+  ],
+  "productionVersion": { "appVersion": "0.21.0", "versionCode": 52, "distChannel": "play_store", "...": "..." }
+}
+```
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `versions[].appVersion` | string | `app_version` do D1 |
+| `versions[].versionCode` | integer\|null | `version_code` do D1 |
+| `versions[].distChannel` | string | `play_store` \| `firebase_app_distribution` \| `sideload` \| `unknown` |
+| `versions[].buildType` | string | `release` \| `debug` \| `unknown` |
+| `versions[].sessions` | integer | Total de sessões da combinação versão+canal+build no período |
+| `versions[].avgScore` | integer\|null | Score médio das sessões |
+| `versions[].firstSeen` / `lastSeen` | integer | Unix timestamp em segundos |
+| `productionVersion` | object\|null | Entrada de `versions[]` com `distChannel: "play_store"` mais recente (fallback: qualquer canal) — usada como "versão em produção" |
+
+**Crash rate por versão:** não vem desta rota. O frontend cruza esta lista com `GET /admin/integrations/firebase/versions` (crashes por `appVersion`, exige credenciais Firebase); quando o Firebase não está configurado, o painel exibe explicitamente "Não configurado" em vez de omitir ou zerar o dado.
 
 ---
 
@@ -593,6 +759,45 @@ Erros de sistema dedupliciados, ordenados por frequência.
 
 ---
 
+### GET /admin/system-health
+
+Saúde do sistema com verificação real de cada dependência — GH#425. Substitui os placeholders
+que existiam na aba "Saúde do Sistema" (workers mockados, D1 sempre "connected", sem checagem
+de Firebase/BigQuery/ingest).
+
+**Parâmetros:** nenhum.
+
+**Response 200:**
+```json
+{
+  "source": "worker",
+  "timestamp": "2026-07-04T12:00:00.000Z",
+  "checks": {
+    "worker": { "status": "ok" },
+    "d1": { "status": "ok", "latencyMs": 12 },
+    "firebaseCredentials": { "status": "ok", "latencyMs": 180 },
+    "bigQuery": { "status": "not_configured", "message": "Requer credenciais Firebase válidas para autenticar no BigQuery." },
+    "ingest": { "status": "ok", "keyConfigured": true, "lastSuccessAt": "2026-07-04T11:20:00.000Z" }
+  },
+  "lastFailure": { "source": "bigquery-crashlytics", "message": "table_not_found", "timestamp": "2026-07-04T06:00:00.000Z" },
+  "lastSuccess": { "source": "ingest", "timestamp": "2026-07-04T11:20:00.000Z" }
+}
+```
+
+| Campo | Descrição |
+|---|---|
+| `checks.worker` | Sempre `ok` se o worker respondeu — o próprio fato de gerar esta resposta prova que o worker está de pé |
+| `checks.d1` | Executa `SELECT 1` real no D1. `latencyMs` medido no worker |
+| `checks.firebaseCredentials` | Gera um JWT real e troca por access token OAuth2 (`getFirebaseAccessToken`). `not_configured` se `FIREBASE_CLIENT_EMAIL`/`FIREBASE_PRIVATE_KEY` ausentes |
+| `checks.bigQuery` | Roda `SELECT 1 AS ok` no BigQuery via API real. `not_configured` se as credenciais Firebase não passaram no check anterior |
+| `checks.ingest` | `keyConfigured` reflete se `INGEST_KEY` está definida. `lastSuccessAt` é o `MAX(created_at)` de `diagnostic_sessions` — status `idle` se não houver ingest nas últimas 48h |
+| `lastFailure` | Última linha de `system_errors` por `last_seen DESC` (pode ser `null`) |
+| `lastSuccess` | Baseado no `ingest.lastSuccessAt` (pode ser `null` se nunca houve ingest) |
+
+**Status possíveis:** `ok`, `error`, `not_configured`, `idle`. Nenhum é tratado como "sempre verde" no frontend — `not_configured` e `idle` são estados legítimos e exibidos como tal.
+
+---
+
 ## Endpoints de integração Firebase (`/admin/integrations/firebase/*`)
 
 ### GET /admin/integrations/firebase/status
@@ -620,20 +825,40 @@ Faz chamada real à GA4 Data API quando credenciais estão configuradas. Retorna
 
 ### GET /admin/integrations/firebase/crashlytics
 
-Stub — requer exportação BigQuery.
+Consulta real ao BigQuery (export do Crashlytics) quando há credenciais. `source` indica o estado:
+
+| `source` | Significado |
+|---|---|
+| `no_credentials` | `FIREBASE_CLIENT_EMAIL`/`FIREBASE_PRIVATE_KEY` ausentes no worker |
+| `no_data_yet` | Export do BigQuery ativo mas sem linhas (tabela ainda não existe ou sem crash no período) |
+| `bigquery` | Dados reais |
+| `error` | Erro na query — logado em `system_errors` |
 
 ```json
 {
-  "source": "stub",
-  "message": "Crashlytics requer exportacao BigQuery.",
-  "unresolvedCrashes": 0,
-  "crashFreeUsersPercentage": 100
+  "source": "bigquery",
+  "unresolvedCrashes": 4,
+  "affectedUsers": 3,
+  "crashFreeUsersPercentage": 99.6
 }
 ```
 
+**Nota:** o frontend (`firebaseAdapter.ts`) trata `no_credentials`, `no_data_yet` e `error` como "dado indisponível" (`null`) — nunca exibe zero como se fosse dado real.
+
 ### GET /admin/integrations/firebase/versions
 
-Stub — requer BigQuery Crashlytics export.
+Total de crashes por `app_version` via BigQuery, mesmos estados de `source` da rota acima.
+
+```json
+{
+  "source": "bigquery",
+  "versions": [
+    { "app_version": "0.21.0", "total_crashes": 12, "affected_users": 8 }
+  ]
+}
+```
+
+**Limitação:** não cruza com `version_code`/`dist_channel` do D1 — junte com `GET /admin/metrics/app-versions` no frontend para exibir versão + canal + crashes juntos (feito em `VersionsTab.tsx`).
 
 ### POST /admin/integrations/firebase/sync
 
@@ -654,28 +879,21 @@ Inicia job de sincronização. Resposta imediata (fire-and-forget).
 
 Retorna as configurações salvas no D1 (tabela `admin_settings`, chave `'admin'`). Retorna `{}` se nunca configurado.
 
+**GH#426:** o contrato de settings foi reduzido aos únicos três campos com consumidor real
+no worker (lidos em `GET /admin/metrics/alerts`). Os demais campos que existiam antes
+(`selectedDefaultAiModel`, `aiFallbackEnabled`, `maxTokensPerDiagnostic`, `speedtestIntervalSeconds`,
+`androidLogsCollectionEnabled`, `stagingAlertWebhookUrl`, `productionAlertWebhookUrl`,
+`cloudflareWorkerEndpoint`, `monthlyBudgetUsd`, `budgetAction`, `anonymizeIp`, `retentionDays`,
+`firebaseAnalyticsEnabled`, `maxAiTokensUserDaily`, `maxSpeedTestDataDailyMb`,
+`contextualAdsEnabled`, `contextualAdsCategories`) eram persistidos no D1 mas nunca lidos por
+nenhum código do worker ou do app — foram removidos da UI e do contrato do frontend. Reintroduzir
+qualquer um deles exige, no mesmo PR, o código que efetivamente os consome.
+
 **Response 200:**
 ```json
 {
   "source": "d1",
   "settings": {
-    "selectedDefaultAiModel": "@cf/qwen/qwen3-30b-a3b-fp8-fast",
-    "aiFallbackEnabled": true,
-    "maxTokensPerDiagnostic": 4096,
-    "speedtestIntervalSeconds": 1800,
-    "androidLogsCollectionEnabled": true,
-    "stagingAlertWebhookUrl": "",
-    "productionAlertWebhookUrl": "",
-    "cloudflareWorkerEndpoint": "https://...",
-    "monthlyBudgetUsd": 10.0,
-    "budgetAction": "alert",
-    "anonymizeIp": true,
-    "retentionDays": 90,
-    "firebaseAnalyticsEnabled": true,
-    "maxAiTokensUserDaily": 50000,
-    "maxSpeedTestDataDailyMb": 500,
-    "contextualAdsEnabled": false,
-    "contextualAdsCategories": [],
     "aiDailyBudgetUsd": 1.0,
     "errorSpikeThreshold": 10,
     "criticalScoreThreshold": 50
@@ -683,17 +901,25 @@ Retorna as configurações salvas no D1 (tabela `admin_settings`, chave `'admin'
 }
 ```
 
+| Campo | Tipo | Consumidor real | Descrição |
+|---|---|---|---|
+| `aiDailyBudgetUsd` | number | `GET /admin/metrics/alerts` (`AI_DAILY_BUDGET`) | Custo de IA (USD) nas últimas 24h acima do qual dispara alerta crítico `AI_BUDGET` |
+| `errorSpikeThreshold` | integer | `GET /admin/metrics/alerts` (`ERROR_THRESHOLD`) | Erros na última hora acima do qual dispara alerta `ERROR_SPIKE` |
+| `criticalScoreThreshold` | integer (0-100) | `GET /admin/metrics/alerts` (`MIN_SCORE`) | Score médio nas últimas 24h abaixo do qual dispara alerta `LOW_SCORE` |
+
 ### POST /admin/settings
 
 Persiste o objeto completo de settings no D1. Substitui o registro anterior (`INSERT OR REPLACE`).
+Valida `aiDailyBudgetUsd` (número ≥ 0), `errorSpikeThreshold` (inteiro ≥ 1) e `criticalScoreThreshold`
+(inteiro entre 0 e 100) quando presentes no body — `400` caso contrário.
 
-**Request:** objeto JSON com qualquer subconjunto de campos do schema acima.
+**Request:** objeto JSON com qualquer subconjunto dos três campos do schema acima.
 
 **Response 200:**
 ```json
 {
   "ok": true,
-  "settings": { ... }
+  "settings": { "aiDailyBudgetUsd": 1.0, "errorSpikeThreshold": 10, "criticalScoreThreshold": 50 }
 }
 ```
 
@@ -799,11 +1025,16 @@ Persiste um registro de uso de IA. Autenticação: `Authorization: Bearer <INGES
   "total_tokens": 1700,
   "cost_usd": 0.0,
   "environment": "production",
-  "version_code": 52
+  "version_code": 52,
+  "status": "success",
+  "error_message": ""
 }
 ```
 
 **Campos obrigatórios:** `id`, `model`. `cost_usd` é calculado pelo worker se ausente (via `costForModel()`).
+**GH#421:** `status` (`"success"` | `"error"`, default `"success"`) e `error_message`/`error`
+(opcional) — permite ao painel auditar falhas de inferência por execução, não só
+custo agregado. Requer migration `009_gh421.sql` para as colunas existirem no D1.
 
 **Response 201:**
 ```json
@@ -889,6 +1120,8 @@ Todos os erros seguem o schema:
 | `cost_usd` | REAL | Custo calculado pelo worker |
 | `environment` | TEXT | — |
 | `version_code` | INTEGER | — |
+| `status` | TEXT | `success` \| `error`. Default `success` (GH#421, migration `009_gh421.sql`) |
+| `error_message` | TEXT | Mensagem de erro quando `status = 'error'`; vazio caso contrário |
 
 ### Tabela `admin_settings`
 
@@ -918,14 +1151,13 @@ Os endpoints abaixo são necessários para completar o painel mas **ainda não e
 
 | Endpoint | Motivo | Bloqueio |
 |---|---|---|
-| `GET /admin/metrics/app-versions` | Histórico de versões com crash stats | Requer exportação BigQuery do Crashlytics |
 | `GET /admin/metrics/diagnostics/:id` | Detalhe de uma sessão específica | Worker só tem listagem, sem endpoint de detalhe individual |
 | `POST /admin/errors/:id/resolve` | Marcar erro como resolvido | Retorna `{ success: false, message: "Em implementação" }` |
 | `POST /diagnosis/explain` | Rediagnóstico remoto | Retorna `{ success: false }` com mensagem informativa |
-| `GET /admin/integrations/firebase/crashlytics` | Dados reais de crashes | Requer BigQuery export — retorna stub |
-| `GET /admin/integrations/firebase/versions` | Versões com crash rate | Requer BigQuery export — retorna stub |
 | `GET /admin/integrations/google-play` | Status Play Console | Não integrado — apenas no OpenAPI spec |
 | `GET /admin/integrations/app-store` | Status App Store Connect | Planejado para iOS (futuro) |
+
+**Nota (GH#423):** `GET /admin/metrics/app-versions`, `GET /admin/integrations/firebase/crashlytics` e `GET /admin/integrations/firebase/versions` já existem no worker (ver seções acima) — retiradas desta tabela. A aba "Versões" do painel usa o primeiro para versão/canal/sessões reais (D1) e o segundo para crash rate real quando o Firebase está configurado.
 
 ---
 

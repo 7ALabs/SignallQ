@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="18dp"
+    android:height="18dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+    <path android:pathData="M3.94165 26.8407C3.94165 39.9517 15.2202 47.8495 28.9997 47.8495C41.5929 47.8495 51.2416 38.8743 51.2416 31.6142C51.2416 24.8034 46.8854 21.5186 41.2381 17.8364C36.1605 14.5266 32.2849 7.30664 21.8422 7.30664C10.1097 7.30664 3.94165 17.8596 3.94165 26.8407Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="39.8307"
+                android:startY="14.9438"
+                android:endX="11.8128"
+                android:endY="42.9617">
+                <item android:offset="0" android:color="#FF009E0B"/>
+                <item android:offset="0.1205" android:color="#FF04A00B"/>
+                <item android:offset="0.2454" android:color="#FF11A40A"/>
+                <item android:offset="0.3724" android:color="#FF25AC09"/>
+                <item android:offset="0.5008" android:color="#FF43B708"/>
+                <item android:offset="0.6304" android:color="#FF68C607"/>
+                <item android:offset="0.761" android:color="#FF96D705"/>
+                <item android:offset="0.8898" android:color="#FFCBEB02"/>
+                <item android:offset="1" android:color="#FFFFFF00"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M35.5055 22.0191C36.8501 22.0191 37.9338 20.9299 37.9338 19.5878C37.9338 18.2495 36.8501 17.1611 35.5055 17.1611C34.1667 17.1611 33.0813 18.2495 33.0813 19.5878C33.0809 20.9299 34.1663 22.0191 35.5055 22.0191ZM35.5367 23.8182C34.1722 23.8182 33.0611 27.0658 33.0611 31.0707C33.0611 35.0769 34.1722 38.322 35.5367 38.322C36.9025 38.322 38.009 35.0764 38.009 31.0707C38.009 27.0658 36.9025 23.8182 35.5367 23.8182ZM24.5082 23.8102C20.4417 23.8102 17.7375 27.0287 17.7375 31.0627C17.7375 35.103 20.4417 38.3169 24.5082 38.3169C28.5642 38.3169 31.2653 35.103 31.2653 31.0627C31.2653 27.0287 28.5642 23.8102 24.5082 23.8102ZM24.5082 34.8982C22.6432 34.8982 21.6111 32.983 21.6111 31.0399C21.6111 29.0997 22.6432 27.2377 24.5082 27.2377C26.3664 27.2377 27.3965 29.1002 27.3965 31.0399C27.3965 32.9826 26.3664 34.8982 24.5082 34.8982Z"/>
+</vector>

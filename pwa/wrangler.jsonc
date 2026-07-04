@@ -1,4 +1,9 @@
 {
+  // GH#443: producao passou a ser o projeto unico "signallq" (ver
+  // deploy/pages/), que serve este app sob /app. Este arquivo continua
+  // existindo para `wrangler pages dev`/`pages:deploy` locais standalone
+  // (preview isolado do PWA, sem o Console) — nao e mais o alvo de deploy
+  // de producao.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "signallq-pwa",
   "compatibility_date": "2026-06-25",

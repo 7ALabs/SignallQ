@@ -1,6 +1,5 @@
 import React from "react";
 import { errorMetricsService } from "../../services/errorMetricsService";
-import { apiClient } from "../../services/apiClient";
 import { RecentErrorsTable } from "./components/RecentErrorsTable";
 import { ErrorMetricGrid } from "./components/ErrorMetricGrid";
 import { ErrorByEndpointChart } from "./components/ErrorByEndpointChart";
@@ -43,6 +42,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
   // Resolution states
   const [resolvingId, setResolvingId] = React.useState<string | null>(null);
   const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
+  const [resolutionNoteDraft, setResolutionNoteDraft] = React.useState("");
 
   // Sync prop changes
   React.useEffect(() => {
@@ -90,15 +90,25 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
     setResolvingId(id);
     setStatusMessage(null);
     try {
-      const res = await errorMetricsService.resolveError(id);
+      const res = await errorMetricsService.resolveError(id, resolutionNoteDraft);
       if (res.success) {
         setStatusMessage(res.message);
 
-        // Update local state is resolved
-        setErrors(prev => prev.map(e => e.id === id ? { ...e, resolved: true } : e));
+        // Atualiza estado local: erro resolvido some da lista de ativos
+        // (mesmo comportamento do worker, que já filtra resolved=0 por padrão).
+        setErrors(prev => prev.filter(e => e.id !== id));
         if (selectedError && selectedError.id === id) {
-          setSelectedError({ ...selectedError, resolved: true });
+          setSelectedError({
+            ...selectedError,
+            resolved: true,
+            resolvedBy: res.resolvedBy ?? selectedError.resolvedBy,
+            resolvedAt: res.resolvedAt ?? selectedError.resolvedAt,
+            resolutionNote: resolutionNoteDraft,
+          });
         }
+        setResolutionNoteDraft("");
+      } else {
+        setStatusMessage(res.message);
       }
     } catch (err) {
       console.error("Failed to resolve error", err);
@@ -224,7 +234,11 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
             <RecentErrorsTable
               errors={errors}
               selectedError={selectedError}
-              onSelectError={(row) => setSelectedError(row)}
+              onSelectError={(row) => {
+                setSelectedError(row);
+                setResolutionNoteDraft("");
+                setStatusMessage(null);
+              }}
             />
           </div>
 
@@ -247,10 +261,15 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
                 </div>
 
                 {/* Stats layout */}
-                <div className="grid grid-cols-3 gap-2 border-b border-[var(--border)] pb-4 mb-4 select-none">
+                <div className="grid grid-cols-4 gap-2 border-b border-[var(--border)] pb-4 mb-4 select-none">
                   <div className="bg-[var(--bg-base)]/40 border border-[var(--border)]/30 rounded-xl p-2.5 text-center">
                     <span className="font-sans text-[8.5px] text-[var(--text-tertiary)] uppercase block">Componente</span>
                     <span className="text-[10px] font-mono text-[var(--text-secondary)] font-bold uppercase truncate block mt-0.5">{selectedError.source}</span>
+                  </div>
+
+                  <div className="bg-[var(--bg-base)]/40 border border-[var(--border)]/30 rounded-xl p-2.5 text-center">
+                    <span className="font-sans text-[8.5px] text-[var(--text-tertiary)] uppercase block">Categoria</span>
+                    <span className="text-[10px] font-mono text-[var(--text-secondary)] font-bold uppercase truncate block mt-0.5">{selectedError.category ?? "backend"}</span>
                   </div>
 
                   <div className="bg-[var(--bg-base)]/40 border border-[var(--border)]/30 rounded-xl p-2.5 text-center">
@@ -286,38 +305,51 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
 
                   {/* Operational resolution actions */}
                   <div className="pt-4 border-t border-[var(--border)]">
-                    <div className="flex items-center justify-between pb-3 select-none">
-                      <div className="flex items-center gap-1 text-xs text-[var(--text-secondary)]">
-                        <Workflow className="w-4 h-4 text-[var(--text-tertiary)] mr-1" />
-                        <span>Resolvedor do Caso</span>
-                      </div>
-                      {apiClient.isMockEnabled() ? (
-                        <button
-                          onClick={() => handleResolve(selectedError.id)}
-                          disabled={selectedError.resolved || resolvingId !== null}
-                          className={`flex items-center gap-1.5 px-3.5 py-2 border rounded-xl font-sans text-[10px] font-bold uppercase transition-all select-none cursor-pointer ${
-                            selectedError.resolved
-                              ? "bg-emerald-950/20 border-emerald-500/20 text-emerald-400 cursor-not-allowed"
-                              : "bg-[var(--error)]/10 border-[var(--error)]/20 text-[var(--error)] hover:bg-[var(--error)]/20"
-                          }`}
-                        >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          <span>{selectedError.resolved ? "Resolvido no Cluster" : resolvingId ? "Disparando..." : "Marcar Resolvido"}</span>
-                        </button>
-                      ) : (
-                        <button
-                          disabled
-                          title="Em Implementação"
-                          className="flex items-center gap-1.5 px-3.5 py-2 border rounded-xl font-sans text-[10px] font-bold uppercase opacity-50 cursor-not-allowed bg-zinc-900/40 border-zinc-700/40 text-[var(--text-tertiary)]"
-                        >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                          <span>Em Implementação</span>
-                        </button>
-                      )}
+                    <div className="flex items-center gap-1 text-xs text-[var(--text-secondary)] pb-3 select-none">
+                      <Workflow className="w-4 h-4 text-[var(--text-tertiary)] mr-1" />
+                      <span>Resolvedor do Caso</span>
                     </div>
 
+                    {selectedError.resolved ? (
+                      <div className="p-3 bg-emerald-950/15 border border-emerald-500/20 rounded-xl space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-emerald-400 text-[10px] font-sans font-bold uppercase">
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          <span>Resolvido</span>
+                        </div>
+                        <p className="text-[10px] font-sans text-[var(--text-secondary)]">
+                          Responsável: <span className="font-bold text-[var(--text-primary)]">{selectedError.resolvedBy || "—"}</span>
+                          {selectedError.resolvedAt && (
+                            <> · {new Date(selectedError.resolvedAt).toLocaleString("pt-BR")}</>
+                          )}
+                        </p>
+                        {selectedError.resolutionNote && (
+                          <p className="text-[10px] font-sans text-[var(--text-tertiary)] italic">
+                            "{selectedError.resolutionNote}"
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <textarea
+                          value={resolutionNoteDraft}
+                          onChange={(e) => setResolutionNoteDraft(e.target.value)}
+                          placeholder="Observação da resolução (opcional) — o que foi feito para tratar este erro."
+                          rows={2}
+                          className="w-full bg-[var(--bg-base)] border border-[var(--border)] rounded-xl p-2.5 text-[10.5px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--primary)]/60 resize-none font-sans"
+                        />
+                        <button
+                          onClick={() => handleResolve(selectedError.id)}
+                          disabled={resolvingId !== null}
+                          className="w-full flex items-center justify-center gap-1.5 px-3.5 py-2 border rounded-xl font-sans text-[10px] font-bold uppercase transition-all select-none cursor-pointer bg-[var(--error)]/10 border-[var(--error)]/20 text-[var(--error)] hover:bg-[var(--error)]/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" />
+                          <span>{resolvingId ? "Disparando..." : "Marcar Resolvido"}</span>
+                        </button>
+                      </div>
+                    )}
+
                     {statusMessage && (
-                      <div className="p-3 bg-zinc-950/80 border border-zinc-850 text-emerald-400 text-[10px] font-sans text-center rounded-xl select-none">
+                      <div className="mt-3 p-3 bg-zinc-950/80 border border-zinc-850 text-emerald-400 text-[10px] font-sans text-center rounded-xl select-none">
                         {statusMessage}
                       </div>
                     )}

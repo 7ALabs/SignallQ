@@ -114,7 +114,9 @@ export interface DiagnosticPayload {
     uploadMbps: number | null;
     latenciaMs: number | null;
     jitterMs?: number | null;
-    perceivedLossPercent?: number | null;
+    /** Nome alinhado ao payload do Android (`perdaPacotesPercentual`) — o Worker
+     *  de IA e o prompt tratam este campo pelo mesmo nome nas duas plataformas. */
+    perdaPacotesPercentual?: number | null;
   };
   speedTest?: SpeedTestResult;
   browserContext?: {
@@ -170,6 +172,9 @@ export interface AdminIngestRequest {
   payload: Record<string, unknown>;
 }
 
+/** Origem do dado no SignallQ Console (GH#442). Android nao envia ainda — default no worker. */
+export type AdminIngestPlatform = 'android' | 'web';
+
 export interface AdminDiagnosticPayload {
   id: string;
   created_at?: number;
@@ -188,6 +193,7 @@ export interface AdminDiagnosticPayload {
   version_code?: number;
   device_id?: string;
   ai_summary_report?: string;
+  platform?: AdminIngestPlatform;
 }
 
 export interface AdminAiUsagePayload {
@@ -201,4 +207,5 @@ export interface AdminAiUsagePayload {
   cost_usd?: number;
   environment?: string;
   version_code?: number;
+  platform?: AdminIngestPlatform;
 }

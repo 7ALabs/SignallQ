@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DiagnosisResult, HistoryEntry, SpeedTestResult } from '@shared/contracts';
 import { ThemeProvider } from '@/design-system';
+import { buildAdminDiagnosticPayload } from '@/features/diagnosis/adminIngestPayload';
 import { createDiagnosisWithAiFallback } from '@/features/diagnosis/aiClient';
 import { AboutScreen } from '@/features/about/AboutScreen';
 import { HistoryPanel } from '@/features/history/HistoryPanel';
@@ -17,6 +18,7 @@ import { SettingsPanel } from '@/features/settings/SettingsPanel';
 import { runSpeedTestWeb } from '@/features/speedtest/speedTestRunner';
 import { SpeedTestScreen } from '@/features/speedtest/SpeedTestScreen';
 import type { SpeedTestProgress, SpeedTestRunStatus } from '@/features/speedtest/speedTestTypes';
+import { sendAdminDiagnostic } from '@/services/api';
 import { InstallPromptBanner } from '@/shared/components/InstallPromptBanner';
 import {
   type BeforeInstallPromptEvent,
@@ -233,6 +235,11 @@ export function App() {
       };
       await historyRepository.save(entry);
       await refreshHistory();
+
+      // GH#441: fire-and-forget — nao bloqueia a navegacao nem falha o teste
+      // se o Console estiver fora do ar (mesma postura fire-and-forget do Android).
+      void sendAdminDiagnostic(buildAdminDiagnosticPayload(run.result, diagnosisOutcome.diagnosis));
+
       setInstallPromptIsEligible(true);
       window.location.hash = '/resultado';
     } catch (error) {

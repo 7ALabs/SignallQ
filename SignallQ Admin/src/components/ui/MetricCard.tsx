@@ -1,6 +1,7 @@
 import React from "react";
 import { ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
 import { MetricTrend } from "../../types/metrics";
+import { alpha } from "../../utils/color";
 
 interface MetricCardProps {
   label: string;
@@ -40,14 +41,14 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   const trendStyle = isTrendUp
     ? {
         color: "var(--success)",
-        backgroundColor: "color-mix(in srgb, var(--success) 10%, transparent)",
-        border: "1px solid color-mix(in srgb, var(--success) 20%, transparent)",
+        backgroundColor: alpha("var(--success)", 10),
+        border: `1px solid ${alpha("var(--success)", 20)}`,
       }
     : isTrendDown
     ? {
         color: "var(--error)",
-        backgroundColor: "color-mix(in srgb, var(--error) 10%, transparent)",
-        border: "1px solid color-mix(in srgb, var(--error) 20%, transparent)",
+        backgroundColor: alpha("var(--error)", 10),
+        border: `1px solid ${alpha("var(--error)", 20)}`,
       }
     : {
         color: "var(--text-secondary)",
@@ -68,7 +69,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       <div
         className="absolute top-0 right-0 w-24 h-24 rounded-full pointer-events-none transition-all duration-300"
         style={{
-          background: "radial-gradient(circle, color-mix(in srgb, var(--primary) 6%, transparent), transparent)",
+          background: `radial-gradient(circle, ${alpha("var(--primary)", 6)}, transparent)`,
           filter: "blur(20px)",
         }}
       />
@@ -79,7 +80,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           style={{
             color: "var(--text-tertiary)",
             backgroundColor: "var(--bg-base)",
-            border: "1px solid color-mix(in srgb, var(--border) 60%, transparent)",
+            border: `1px solid ${alpha("var(--border)", 60)}`,
           }}
         >
           {source}

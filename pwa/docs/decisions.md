@@ -164,6 +164,24 @@ Qualquer envio futuro para Admin API precisa de Worker intermediário, token ef�
 
 Eventos futuros do PWA devem usar `snake_case`, sem PII, com `plataforma: "pwa"`.
 
+### Atualização — 04/07/2026 (GH#441/GH#442)
+
+O contrato ficou seguro e documentado (`SignallQ Admin/docs/architecture/data-architecture.md`,
+SIG-295) e o proxy server-side (`pwa/functions/api/admin/ingest.ts`, já existia
+mas nunca era chamado pela UI) cumpre exatamente a condição desta ADR: o
+`ADMIN_INGEST_KEY` vive só na Cloudflare Pages Function, nunca no bundle do
+navegador. O PWA agora chama `POST /api/admin/ingest` (`kind: "diagnostic"`)
+ao final de cada teste (`pwa/src/App.tsx` → `sendAdminDiagnostic`), corrigindo
+GH#441 (dados do WebApp não apareciam no Console). Cada payload leva
+`platform: "web"` (campo em inglês, para bater com o contrato já existente
+`environment`/`dist_channel`/`build_type` em `AdminDiagnosticPayload` — não
+`plataforma: "pwa"` como um rascunho anterior desta ADR sugeria) para permitir
+diferenciar Android vs. WebApp no Console (GH#442). Envio é fire-and-forget,
+sem retry/fila local — mesma postura hoje aceita no Android (ver gap 1 de
+`data-architecture.md`). Analytics de produto (`analytics_events`) e uso de IA
+(`ai_usage`) continuam fora do MVP do PWA — o diagnóstico por IA chama o AI
+Worker direto, sem persistir em `ai_usage`.
+
 ## ADR-008 — DNS benchmark real fora do MVP PWA
 
 Data: 25/06/2026

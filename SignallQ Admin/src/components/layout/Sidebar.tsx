@@ -1,4 +1,5 @@
 import React from "react";
+import { alpha } from "../../utils/color";
 import {
   LayoutDashboard,
   LineChart,
@@ -13,7 +14,7 @@ import {
   HeartPulse,
   X,
 } from "lucide-react";
-import { NAVIGATION_ITEMS } from "../../config/navigation";
+import { NAVIGATION_SECTIONS } from "../../config/navigation";
 import { AppEnvironment } from "../../types/admin";
 
 interface SidebarProps {
@@ -50,9 +51,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   id,
   theme = "dark",
 }) => {
+  // GH#443: caminho relativo ao BASE_URL — o Console pode ser servido em /console
   const logoSrc = theme === "dark"
-    ? "/brand/7agents/logo-light.svg"
-    : "/brand/7agents/logo-dark.svg";
+    ? `${import.meta.env.BASE_URL}brand/7agents/logo-light.svg`
+    : `${import.meta.env.BASE_URL}brand/7agents/logo-dark.svg`;
   return (
     <div
       id={id || "sidebar-container"}
@@ -120,63 +122,73 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* Navigation Menus List */}
-        <nav className="px-4 py-2 space-y-1">
-          {NAVIGATION_ITEMS.map((item) => {
-            const IconComponent = iconMap[item.iconName as keyof typeof iconMap];
-            const isActive = currentPath === item.path;
-
-            return (
-              <button
-                key={item.path}
-                onClick={() => onNavigate(item.path)}
-                className="w-full flex items-center justify-between px-3 py-2 min-h-[44px] rounded-xl text-[13px] font-medium border transition-all duration-150 select-none cursor-pointer"
-                style={
-                  isActive
-                    ? {
-                        backgroundColor: "var(--bg-sidebar-active)",
-                        color: "var(--primary)",
-                        borderColor: "transparent",
-                      }
-                    : {
-                        color: "var(--text-secondary)",
-                        borderColor: "transparent",
-                      }
-                }
+        {/* Navigation Menus List — agrupada por proveniência de dado (SIG-294) */}
+        <nav className="px-4 py-2 space-y-4">
+          {NAVIGATION_SECTIONS.map((section) => (
+            <div key={section.label} className="space-y-1">
+              <div
+                className="px-3 pt-2 pb-1 text-[10px] font-sans font-semibold uppercase tracking-[0.08em] select-none"
+                style={{ color: "var(--text-tertiary)" }}
               >
-                <div className="flex items-center gap-3">
-                  {IconComponent && (
-                    <IconComponent
-                      className="w-4 h-4 shrink-0 transition-colors"
-                      style={{ color: isActive ? "var(--primary)" : "var(--text-secondary)" }}
-                    />
-                  )}
-                  <span>{item.name}</span>
-                </div>
+                {section.label}
+              </div>
+              {section.items.map((item) => {
+                const IconComponent = iconMap[item.iconName as keyof typeof iconMap];
+                const isActive = currentPath === item.path;
 
-                {item.badge && (
-                  <span
-                    className="text-[11px] font-sans font-medium px-2 py-0.5 rounded-md tracking-[0.04em] uppercase"
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => onNavigate(item.path)}
+                    className="w-full flex items-center justify-between px-3 py-2 min-h-[44px] rounded-xl text-[13px] font-medium border transition-all duration-150 select-none cursor-pointer"
                     style={
-                      item.badgeType === "error"
+                      isActive
                         ? {
-                            backgroundColor: "color-mix(in srgb, var(--sq-error) 10%, transparent)",
-                            color: "var(--sq-error)",
-                            border: "1px solid color-mix(in srgb, var(--sq-error) 20%, transparent)",
+                            backgroundColor: "var(--bg-sidebar-active)",
+                            color: "var(--primary)",
+                            borderColor: "transparent",
                           }
                         : {
-                            backgroundColor: "var(--sq-bg-overlay)",
-                            border: "1px solid var(--sq-border)",
-                            color: "var(--sq-text-secondary)",
+                            color: "var(--text-secondary)",
+                            borderColor: "transparent",
                           }
                     }
                   >
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+                    <div className="flex items-center gap-3">
+                      {IconComponent && (
+                        <IconComponent
+                          className="w-4 h-4 shrink-0 transition-colors"
+                          style={{ color: isActive ? "var(--primary)" : "var(--text-secondary)" }}
+                        />
+                      )}
+                      <span>{item.name}</span>
+                    </div>
+
+                    {item.badge && (
+                      <span
+                        className="text-[11px] font-sans font-medium px-2 py-0.5 rounded-md tracking-[0.04em] uppercase"
+                        style={
+                          item.badgeType === "error"
+                            ? {
+                                backgroundColor: alpha("var(--sq-error)", 10),
+                                color: "var(--sq-error)",
+                                border: `1px solid ${alpha("var(--sq-error)", 20)}`,
+                              }
+                            : {
+                                backgroundColor: "var(--sq-bg-overlay)",
+                                border: "1px solid var(--sq-border)",
+                                color: "var(--sq-text-secondary)",
+                              }
+                        }
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
       </div>
 
