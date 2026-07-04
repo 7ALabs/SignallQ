@@ -3,6 +3,7 @@
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,6 +16,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -120,6 +123,63 @@ fun OperadoraContactCard(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.W600,
                         color = LkColors.success,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(LkSpacing.sm))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        val intent =
+                            Intent(Intent.ACTION_VIEW).apply {
+                                data = Uri.parse(operadora.site)
+                            }
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(LkRadius.button),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Language,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = c.textPrimary,
+                    )
+                    Spacer(Modifier.width(LkSpacing.xs))
+                    Text(
+                        text = stringResource(R.string.operadora_contact_site),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.W600,
+                        color = c.textPrimary,
+                    )
+                }
+                OutlinedButton(
+                    onClick = {
+                        val intent =
+                            Intent(Intent.ACTION_VIEW).apply {
+                                data = Uri.parse("market://search?q=${operadora.grupo}")
+                            }
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(LkRadius.button),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.PhoneAndroid,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = c.textPrimary,
+                    )
+                    Spacer(Modifier.width(LkSpacing.xs))
+                    Text(
+                        text = stringResource(R.string.operadora_contact_playstore),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.W600,
+                        color = c.textPrimary,
                     )
                 }
             }
