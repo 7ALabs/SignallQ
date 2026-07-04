@@ -26,7 +26,7 @@ describe('diagnosis module', () => {
     const diagnosis = createLocalDiagnosis({
       speedTest: {
         latencyMs: 30,
-        downloadMbps: 20,
+        downloadMbps: 30,
         uploadMbps: 5,
         measuredAt: '2026-06-26T00:00:00.000Z',
       },
@@ -36,6 +36,36 @@ describe('diagnosis module', () => {
     expect(diagnosis.speed).toBe('ok');
     expect(diagnosis.confidence).toBe('medium');
     expect(diagnosis.limitations.some((limitation) => limitation.code === 'jitter_not_measured')).toBe(true);
+  });
+
+  it('treats 30 Mbps as a healthy connection like Android (old 10-50 Mbps PWA-only band no longer forces attention)', () => {
+    const diagnosis = createLocalDiagnosis({
+      speedTest: {
+        latencyMs: 20,
+        jitterMs: 4,
+        downloadMbps: 30,
+        uploadMbps: 10,
+        measuredAt: '2026-06-26T00:00:00.000Z',
+      },
+    });
+
+    expect(diagnosis.speed).toBe('ok');
+    expect(diagnosis.quality).toBe('good');
+  });
+
+  it('flags quality as bad when upload is zero, matching Android IN-NORMAL-04Z', () => {
+    const diagnosis = createLocalDiagnosis({
+      speedTest: {
+        latencyMs: 20,
+        jitterMs: 4,
+        downloadMbps: 50,
+        uploadMbps: 0,
+        measuredAt: '2026-06-26T00:00:00.000Z',
+      },
+    });
+
+    expect(diagnosis.quality).toBe('bad');
+    expect(diagnosis.summary).toContain('upload medido foi 0 Mbps');
   });
 
   it('keeps summaries short and actionable', () => {
