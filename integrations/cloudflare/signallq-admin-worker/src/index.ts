@@ -1710,24 +1710,6 @@ function getDefaultFlags(): FeatureFlag[] {
   ];
 }
 
-async function handleGetFeatureFlags(_request: Request, env: Env): Promise<Response> {
-  const row = await env.DB.prepare(
-    "SELECT value FROM admin_settings WHERE key = 'feature_flags'"
-  ).first<{ value: string }>();
-  const flags: FeatureFlag[] = row?.value ? JSON.parse(row.value) : getDefaultFlags();
-  return json({ source: "d1", flags }, 200, env);
-}
-
-async function handleSetFeatureFlags(request: Request, env: Env): Promise<Response> {
-  let body: any;
-  try { body = await request.json(); } catch { return err("body JSON inválido", 400, env); }
-  const flags = body.flags ?? body;
-  await env.DB.prepare(
-    "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES ('feature_flags', ?, ?)"
-  ).bind(JSON.stringify(flags), nowSec()).run();
-  return json({ ok: true }, 200, env);
-}
-
 // GET /feature-flags — público, sem auth. Retorna apenas flags com scope='public'.
 // Crítico para o app Android verificar flags sem credenciais de admin.
 async function handlePublicFeatureFlags(_request: Request, env: Env): Promise<Response> {
@@ -1847,7 +1829,6 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/settings$/,                             handler: handleSettings },
   { method: "POST", pattern: /^\/admin\/settings$/,                             handler: handleSettings },
   { method: "GET",  pattern: /^\/admin\/feature-flags$/,                        handler: withErrorLogging('feature-flags', handleFeatureFlags) },
-  { method: "POST", pattern: /^\/admin\/feature-flags$/,                        handler: handleSetFeatureFlags },
   { method: "PUT",  pattern: /^\/admin\/feature-flags\/[^/]+$/,                 handler: withErrorLogging('feature-flags', async (req, env) => {
       const session = await authenticateSession(req, env);
       if (!session) return err('Unauthorized', 401, env);
