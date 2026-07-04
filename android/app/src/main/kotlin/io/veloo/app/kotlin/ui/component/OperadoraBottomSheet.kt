@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -37,80 +36,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.compose.AsyncImage
 import io.signallq.app.R
 import io.signallq.app.ui.BancoOperadoras
 import io.signallq.app.ui.ContatoOperadora
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
 
-private val corOperadora: Map<String, Color> =
-    mapOf(
-        "vivo_fibra" to Color(0xFF660099),
-        "claro_net" to Color(0xFFED1C24),
-        "tim_live" to Color(0xFF003D8F),
-        "oi_fibra" to Color(0xFFFF8C00),
-        "nio" to Color(0xFF00B4D8),
-        "algar" to Color(0xFF0066CC),
-        "unifique" to Color(0xFF00A651),
-        "brisanet" to Color(0xFFFF6600),
-        "desktop" to Color(0xFF1E3A5F),
-        "ligga" to Color(0xFF8BC53F),
-        "vero" to Color(0xFF7B2D8E),
-        "giga_mais" to Color(0xFF00AEEF),
-    )
-
 private val idsMajores = listOf("vivo_fibra", "claro_net", "tim_live", "oi_fibra")
-
-private fun corParaId(id: String): Color = corOperadora[id] ?: LkColors.accent
-
-@Composable
-private fun OperadoraLogo(
-    operadora: ContatoOperadora,
-    size: Int = 40,
-) {
-    val cor = corParaId(operadora.id)
-    if (operadora.logoUrl != null) {
-        Box(
-            modifier =
-                Modifier
-                    .size(size.dp)
-                    .background(Color.White, RoundedCornerShape(8.dp))
-                    .padding(4.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            AsyncImage(
-                model = operadora.logoUrl,
-                contentDescription = operadora.nome,
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-    } else {
-        Box(
-            modifier =
-                Modifier
-                    .size(size.dp)
-                    .background(cor, CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = operadora.nome.first().uppercase(),
-                color = Color.White,
-                fontWeight = FontWeight.Bold,
-                fontSize = (size * 0.45).sp,
-            )
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -314,7 +252,7 @@ private fun OperadoraDetectadaSection(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            OperadoraLogo(operadora = operadora, size = 40)
+            OperadoraBadge(operadora = operadora, size = 40.dp)
             Spacer(Modifier.width(LkSpacing.md))
             Column {
                 Text(
@@ -417,7 +355,7 @@ private fun OutraOperadoraRow(operadora: ContatoOperadora) {
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        OperadoraLogo(operadora = operadora, size = 36)
+        OperadoraBadge(operadora = operadora, size = 36.dp)
 
         Spacer(Modifier.width(LkSpacing.md))
 
