@@ -11,6 +11,7 @@ import io.signallq.app.core.database.ApelidoDispositivoEntity
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.database.SignallQDatabase
 import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.DispatcherProvider
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.MonitorRede
@@ -134,6 +135,9 @@ class MainViewModel
          *  Usado para classificar NAT/CGNAT (SIG-279) — disparado uma unica vez por
          *  sessao dentro de [iniciarRotinasNaoSpeedtest], mesmo padrao de coletarIspInfo. */
         private val topologyDiagnostic: TopologyDiagnostic,
+        /** Funil principal de engajamento (SIG-155) — repassado ao SignallQOrchestrator
+         *  para os eventos ia_laudo_solicitado/ia_laudo_recebido. */
+        private val analyticsHelper: AnalyticsHelper,
     ) : AndroidViewModel(application) {
         private companion object {
             const val LOG_TAG = "SignallQSpeedtestSuite"
@@ -194,6 +198,7 @@ class MainViewModel
                 distChannelProvider = { getDistributionChannel(getApplication()) },
                 // SIG-282: IA so dispara automaticamente com o toggle "Analise avancada" ligado.
                 analiseAvancadaProvider = { preferenciasAppRepository.analiseAvancadaFlow.first() },
+                analyticsHelper = analyticsHelper,
             )
         }
         val signallQUiStateFlow by lazy {

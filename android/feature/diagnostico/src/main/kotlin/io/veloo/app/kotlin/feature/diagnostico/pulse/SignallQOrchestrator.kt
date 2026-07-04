@@ -3,15 +3,18 @@
 import android.os.Build
 import io.signallq.app.feature.diagnostico.BuildConfig
 import io.signallq.app.core.database.MedicaoDao
+import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.GatewayLatencyMeasurer
 import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.network.NetworkCapabilitiesProvider
+import io.signallq.app.core.network.NoOpAnalyticsHelper
 import io.signallq.app.feature.diagnostico.ConnectionType
 import io.signallq.app.feature.diagnostico.DiagnosticInput
 import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
 import io.signallq.app.feature.diagnostico.EstadoDiagnostico
 import io.signallq.app.feature.diagnostico.InternetDiagnosticInput
 import io.signallq.app.feature.diagnostico.WifiDiagnosticInput
+import io.signallq.app.feature.diagnostico.ai.AI_PROMPT_VERSION
 import io.signallq.app.feature.diagnostico.ai.AdditionalAiContext
 import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
 import io.signallq.app.feature.diagnostico.ai.AiDiagnosisState
@@ -127,6 +130,11 @@ class SignallQOrchestrator(
      *  (ex.: testes existentes que nao testam o toggle). Quando false, [callAi]
      *  pula a chamada de rede e devolve o resultado do motor local direto. */
     private val analiseAvancadaProvider: suspend () -> Boolean = { true },
+    /** Funil principal de engajamento (SIG-155) — ia_laudo_solicitado/ia_laudo_recebido.
+     *  Disparado apenas nos triggers "initial"/"initial_from_result" (o laudo automatico
+     *  do funil) — perguntas de acompanhamento (chips/texto livre) NAO contam como um
+     *  novo passo do funil, sao conversa complementar sobre o mesmo laudo. */
+    private val analyticsHelper: AnalyticsHelper = NoOpAnalyticsHelper,
 ) {
 
     private val mutableSnapshotFlow = MutableStateFlow(SignallQSnapshot())
@@ -903,6 +911,19 @@ class SignallQOrchestrator(
                 speedtestExtras = extra.speedtestExtras,
             )
 
+        // Funil principal (SIG-155): so o laudo inicial conta como passo do funil —
+        // followups/chips sao conversa complementar sobre o mesmo laudo.
+        val ehPassoDoFunil = trigger == "initial" || trigger == "initial_from_result"
+        if (ehPassoDoFunil) {
+            analyticsHelper.registrarIaLaudoSolicitado(
+                schemaVersion = ctx.schemaVersion,
+                promptVersion = AI_PROMPT_VERSION,
+                statusDiagLocal = report.decisao.status.name,
+                temFeedbackUsuario = !additionalContext.isNullOrBlank(),
+            )
+        }
+
+        val tsAntesChamada = System.currentTimeMillis()
         val state =
             aiRepository.explainDiagnosis(
                 context = ctx,
@@ -911,6 +932,40 @@ class SignallQOrchestrator(
                 decisaoLocalStatus = report.decisao.status.name,
                 localFallback = { AiFallbackFactory.fromLocal(report) },
             )
+        val latenciaMs = System.currentTimeMillis() - tsAntesChamada
+
+        if (ehPassoDoFunil) {
+            when (state) {
+                is AiDiagnosisState.success ->
+                    analyticsHelper.registrarIaLaudoRecebido(
+                        schemaVersion = state.result.schemaVersion,
+                        promptVersion = AI_PROMPT_VERSION,
+                        statusIa = state.result.status,
+                        source = "cloud",
+                        modeloIa = state.result.modeloIa.familia.ifBlank { null },
+                        promptTokens = state.result.promptTokens.toLong(),
+                        completionTokens = state.result.completionTokens.toLong(),
+                        totalTokens = state.result.totalTokens.toLong(),
+                        latenciaMs = latenciaMs,
+                    )
+                is AiDiagnosisState.fallback ->
+                    analyticsHelper.registrarIaLaudoRecebido(
+                        schemaVersion = state.result.schemaVersion,
+                        promptVersion = AI_PROMPT_VERSION,
+                        statusIa = state.result.status,
+                        source = "local",
+                        latenciaMs = latenciaMs,
+                    )
+                else ->
+                    analyticsHelper.registrarIaLaudoRecebido(
+                        schemaVersion = ctx.schemaVersion,
+                        promptVersion = AI_PROMPT_VERSION,
+                        statusIa = "inconclusivo",
+                        source = "local",
+                        latenciaMs = latenciaMs,
+                    )
+            }
+        }
 
         // Ingest de AI usage — fire-and-forget, correlaciona com a sessao de diagnostico.
         if (ingestSessionId != null) {

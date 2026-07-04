@@ -1,19 +1,27 @@
 # Contrato de Eventos — Firebase Analytics
 
-**Última atualização:** 2026-06-24
+**Última atualização:** 2026-07-04 (SIG-155)
 **Property ID:** 542463828 (Firebase Analytics — Android)
-**Status de implementação:** nenhum evento instrumentado. Contrato define o schema esperado.
+**Status de implementação:** funil principal (7 eventos, ver seção "Funil
+principal") instrumentado via `AnalyticsHelper` (SIG-155). Eventos do schema
+SIG-134 (`feature_used`, `screen_view`, `app_session_start`, `feature_crash`,
+`battery_snapshot`) instrumentados à parte via `AnalyticsTracker` — ver
+`docs_ai/technical/analytics-events-schema.md`. Os demais eventos deste
+contrato (`onboarding_concluido`, `speedtest_erro`, `diag_erro`,
+`ia_laudo_erro`, `ia_chat_mensagem_enviada`, `wifi_*`, `historico_*`, `dns_*`,
+`fibra_*`, `dispositivos_*`, `ajustes_*`) **ainda não instrumentados**.
 
 ---
 
 ## Estado atual
 
-Busca realizada em `android/feature/*/src/**/*.kt` e `pwa/src/**/*` pelos
-padrões `logEvent`, `FirebaseAnalytics`, `analytics.log` e equivalentes.
-
-- **Android:** dependência `firebase-analytics-ktx` declarada em
-  `android/gradle/libs.versions.toml` (linha 71), mas sem nenhuma chamada
-  `logEvent` em nenhum módulo feature ou app.
+- **Android — funil principal (SIG-155):** instrumentado via `AnalyticsHelper`
+  — interface em `core/network` (`AnalyticsHelper.kt`), implementação
+  `FirebaseAnalyticsHelper` em `:app`, injetada via Hilt (`AppModule`). Distinto
+  do `AnalyticsTracker` (SIG-134/`feature_used`) — ambos coexistem e
+  compartilham a mesma instância de `FirebaseAnalytics`, mas com APIs públicas
+  separadas. Ver seção "Funil principal" para os pontos exatos de disparo.
+- **Android — demais eventos deste contrato:** ainda não instrumentados.
 - **PWA:** Firebase não inicializado. Nenhum tracking presente.
 
 O contrato abaixo define os eventos que **devem ser implementados**, derivados
@@ -62,7 +70,7 @@ atualização deste arquivo no mesmo PR.
 
 ## Eventos — Ciclo de vida do app
 
-### `app_aberto`
+### `app_aberto` — implementado (SIG-155)
 
 Disparado na primeira abertura de sessão (complementa o automático `app_open`
 do Firebase, mas com contexto de versão).
@@ -76,6 +84,15 @@ do Firebase, mas com contexto de versão).
 
 **Tela:** qualquer (disparado no `MainActivity.onCreate`)
 **Plataforma:** Android
+
+**Nota de implementação:** `tipo_conexao` é lido de `MonitorRede.snapshotFlow`
+no instante do `onCreate` — antes de `iniciarMonitorRede()` (chamado só em
+`onStart`), então pode vir com o valor default do monitor (`desconhecido`) em
+vez do estado real de conexão em alguns lançamentos. `primeira_abertura` **não
+está implementado** neste PR — exigiria decidir a fonte de verdade (o app já
+usa `onboardingConcluidoFlow` para um propósito diferente); ficou de fora para
+não inventar heurística sem revisão. Rastrear como follow-up se for relevante
+para a análise de funil.
 
 ---
 
@@ -93,28 +110,39 @@ do Firebase, mas com contexto de versão).
 
 ## Eventos — Speedtest
 
-### `speedtest_iniciado`
+### `speedtest_iniciado` — implementado (SIG-155)
 
 Disparado quando o usuário toca "Iniciar teste" ou o teste silencioso começa.
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `modo` | String | Sim | `"completo"` \| `"silencioso"` — de `ModoSpeedtest` |
-| `tipo_conexao` | String | Sim | `"wifi"` \| `"mobile"` |
+| `modo` | String | Sim | `"fast"` \| `"complete"` \| `"triplo"` — de `ModoSpeedtest.name` |
+| `tipo_conexao` | String | Sim | `"wifi"` \| `"mobile"` \| `"ethernet"` \| `"desconectado"` \| `"desconhecido"` |
 | `versao_app` | String | Sim | |
 
-**Tela:** `SpeedTestScreen` / `MonitoramentoWorker`
+**Tela:** `SpeedTestScreen` (via `SpeedtestViewModel.reiniciarSuite` /
+`confirmarSpeedtestEmMovel`)
 **Plataforma:** Android
+
+**Nota de implementação:** o valor de `modo` foi corrigido em relação à versão
+anterior deste contrato — `ModoSpeedtest` no código é `fast`/`complete`/`triplo`,
+não `"completo"`/`"silencioso"`. O teste silencioso disparado pelo
+`SignallQOrchestrator` (fluxo guiado de IA) **não passa por este ponto de
+instrumentação** — só o speedtest explícito iniciado pelo usuário via
+`SpeedtestViewModel` é contado no funil, para manter o par
+`speedtest_iniciado`/`speedtest_concluido` sempre correlacionado por sessão de
+UI (evita eventos `concluido` órfãos de testes automáticos em background).
 
 ---
 
-### `speedtest_concluido`
+### `speedtest_concluido` — implementado (SIG-155)
 
-Disparado quando `ResultadoSpeedtest` é persistido com sucesso.
+Disparado quando o `ResultadoSpeedtest` da execução atual (via
+`SpeedtestViewModel`) fica disponível em `ExecutorSpeedtest.snapshotFlow`.
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `modo` | String | Sim | `"completo"` \| `"silencioso"` |
+| `modo` | String | Sim | `"fast"` \| `"complete"` \| `"triplo"` |
 | `tipo_conexao_inicio` | String | Sim | Tipo de conexão no início do teste |
 | `tipo_conexao_fim` | String | Não | Tipo de conexão ao final (pode ter mudado) |
 | `download_mbps` | Double | Sim | Velocidade de download |
@@ -129,8 +157,16 @@ Disparado quando `ResultadoSpeedtest` é persistido com sucesso.
 | `duracao_ms` | Long | Não | Duração total do teste em ms |
 | `versao_app` | String | Sim | |
 
-**Tela:** `ResultadoVelocidadeScreen`
+**Tela:** `SpeedTestScreen` (via `SpeedtestViewModel`, não mais
+`ResultadoVelocidadeScreen`/`SpeedtestPersistenceCoordinator`)
 **Plataforma:** Android
+
+**Nota de implementação:** disparado no `SpeedtestViewModel` (mesmo ViewModel
+de `speedtest_iniciado`), imediatamente após `ExecutorSpeedtest.executar()`
+retornar — e não em `SpeedtestPersistenceCoordinator` (que persiste no Room de
+forma global, inclusive testes silenciosos do fluxo de IA). Isso mantém o
+funil correlacionado por sessão de UI: só speedtests explicitamente iniciados
+pelo usuário entram no funil `speedtest_iniciado → speedtest_concluido`.
 
 ---
 
@@ -150,25 +186,34 @@ Disparado quando `ResultadoSpeedtest` é persistido com sucesso.
 
 ## Eventos — Diagnóstico de rede
 
-### `diag_iniciado`
+### `diag_iniciado` — implementado (SIG-155)
 
 Disparado no início de `DiagnosticOrchestrator.executar()`.
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `tipo_conexao` | String | Sim | `"wifi"` \| `"mobile"` \| `"ethernet"` \| `"desconhecido"` |
-| `areas_habilitadas` | String | Não | CSV das áreas ativas: `"internet,wifi,dns"` |
+| `tipo_conexao` | String | Sim | `"wifi"` \| `"mobile"` \| `"ethernet"` \| `"desconectado"` \| `"desconhecido"` |
+| `areas_habilitadas` | String | Não | CSV das áreas ativas (`DiagnosticArea.name.lowercase()`): ex. `"velocidade,wifi_sinal,dns"` |
 | `tem_speedtest` | Boolean | Sim | `true` se o diagnóstico recebeu `InternetDiagnosticInput` |
 | `versao_app` | String | Sim | |
 
 **Tela:** `DiagnosticoScreen`
 **Plataforma:** Android
 
+**Nota de implementação:** instrumentado dentro de `DiagnosticOrchestrator`
+(não em cada ViewModel chamador) — é o único ponto de entrada compartilhado por
+todos os fluxos de diagnóstico (`MainViewModel.iniciarDiagnostico()` e
+`SignallQOrchestrator`), evitando duplicar a chamada em múltiplos call sites.
+Os valores reais de `areas_habilitadas` vêm do enum `DiagnosticArea`
+(`VELOCIDADE`, `WIFI_SINAL`, `LATENCIA`, `FIBRA`, `DNS`), diferente do exemplo
+genérico da versão anterior deste contrato.
+
 ---
 
-### `diag_concluido`
+### `diag_concluido` — implementado (SIG-155)
 
-Disparado quando `EstadoDiagnostico.concluido` é emitido.
+Disparado quando `DiagnosticOrchestrator.executar()` conclui com sucesso
+(equivalente a `EstadoDiagnostico.concluido` sendo emitido).
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
@@ -183,6 +228,10 @@ Disparado quando `EstadoDiagnostico.concluido` é emitido.
 
 **Tela:** `DiagnosticoScreen`
 **Plataforma:** Android
+
+**Nota de implementação:** não disparado no branch de erro (`catch`) de
+`DiagnosticOrchestrator.executar()` — só no caminho de sucesso, como o nome do
+evento indica. Não existe `diag_erro` implementado ainda (ver seção abaixo).
 
 ---
 
@@ -201,42 +250,64 @@ Disparado quando `EstadoDiagnostico.concluido` é emitido.
 
 ## Eventos — IA / Laudo
 
-### `ia_laudo_solicitado`
+### `ia_laudo_solicitado` — implementado (SIG-155)
 
-Disparado quando o app envia o payload ao Worker (`AiDiagnosisRepository`).
+Disparado quando o app envia o payload ao Worker (`AiDiagnosisRepository`),
+apenas para o laudo **inicial** do funil (triggers `"initial"` e
+`"initial_from_result"` do `SignallQOrchestrator`).
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `schema_version` | String | Sim | Ex.: `"4"` — de `DiagnosisAiContext.schemaVersion` |
-| `prompt_version` | String | Sim | Ex.: `"diagnostico_v4_guided"` — de `AI_PROMPT_VERSION` |
-| `status_diag_local` | String | Sim | Status do engine local antes de chamar a IA |
-| `tem_feedback_usuario` | Boolean | Sim | `true` se o usuário digitou texto livre |
+| `schema_version` | String | Sim | Ex.: `"5"` — de `DiagnosisAiContext.schemaVersion` |
+| `prompt_version` | String | Sim | Ex.: `"diagnostico_v5_local_primary"` — de `AI_PROMPT_VERSION` |
+| `status_diag_local` | String | Sim | Status do engine local antes de chamar a IA (`DiagnosticStatus.name`) |
+| `tem_feedback_usuario` | Boolean | Sim | `true` se havia foco/texto do usuário associado a este laudo |
 | `versao_app` | String | Sim | |
 
-**Tela:** `DiagnosticoScreen` / `ChatDiagnosticoIaScreen`
+**Tela:** `SignallQPulseScreen` / `LaudoScreen` (via `SignallQOrchestrator.callAi`)
 **Plataforma:** Android
+
+**Nota de implementação:** perguntas de acompanhamento no chat (chips, texto
+livre digitado após o laudo inicial, trigger `"followup_*"`/`"typed_message"`)
+**não** disparam este evento — são conversa complementar sobre o mesmo laudo,
+não um novo passo do funil. Também não dispara quando o toggle "Análise
+avançada" (SIG-282) está desligado, porque nesse caso a IA nunca é chamada
+(motor local decide sozinho). O chat separado `ChatDiagnosticoIaScreen`
+(`DiagnosticoViewModel.enviarPerguntaDiagnostico`) também não está
+instrumentado — é o evento `ia_chat_mensagem_enviada` (ainda não
+implementado), não o funil principal.
 
 ---
 
-### `ia_laudo_recebido`
+### `ia_laudo_recebido` — implementado (SIG-155)
 
-Disparado quando `AiDiagnosisResult` é parseado com sucesso.
+Disparado quando o resultado da chamada a `AiDiagnosisRepository.explainDiagnosis`
+fica disponível (sucesso via IA, fallback local, ou timeout) — sempre pareado
+com um `ia_laudo_solicitado` da mesma chamada.
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
 | `schema_version` | String | Sim | |
 | `prompt_version` | String | Sim | |
-| `status_ia` | String | Sim | Status retornado pela IA: `"bom"` \| `"regular"` \| `"critico"` \| `"inconclusivo"` |
-| `source` | String | Sim | `"cloud"` \| `"local"` (fallback) |
-| `modelo_ia` | String | Não | Família do modelo: ex. `"gemma-4"` — sem revelar ID interno completo |
+| `status_ia` | String | Sim | Status normalizado retornado (`AiDiagnosisResult.status`, sem remapeamento) |
+| `source` | String | Sim | `"cloud"` \| `"local"` (fallback ou timeout) |
+| `modelo_ia` | String | Não | Família do modelo (`ModeloIa.familia`) — sem revelar `idInterno` |
 | `prompt_tokens` | Long | Não | Tokens de entrada consumidos |
 | `completion_tokens` | Long | Não | Tokens de saída gerados |
 | `total_tokens` | Long | Não | Total de tokens da requisição |
 | `latencia_ms` | Long | Não | Tempo entre envio e recebimento da resposta |
 | `versao_app` | String | Sim | |
 
-**Tela:** `LaudoScreen`
+**Tela:** `SignallQPulseScreen` / `LaudoScreen`
 **Plataforma:** Android
+
+**Nota de implementação:** `status_ia` envia o valor exato de
+`AiDiagnosisResult.status` (pode ser `"excelente"`, `"bom"`, `"regular"`,
+`"ruim"`, `"critico"` ou `"inconclusivo"` — o motor de normalização
+(`AiDiagnosisRepository.normalizeStatus`) aceita esse conjunto mais amplo do
+que os 4 valores originalmente documentados aqui; a tabela foi ajustada para
+refletir a implementação real). `latencia_ms` mede o tempo em volta da chamada
+`explainDiagnosis` (inclui cache hit, chamada de rede ou fallback local).
 
 ---
 
@@ -254,6 +325,11 @@ Disparado quando a chamada ao Worker falha e o fallback local é ativado.
 
 **Tela:** `DiagnosticoScreen`
 **Plataforma:** Android
+
+**Nota:** não implementado neste PR. O caso de fallback local já é capturado
+como `source: "local"` em `ia_laudo_recebido` (ver acima) — este evento
+separado adicionaria detalhe sobre a causa específica da falha, mas exigiria
+propagar o tipo de erro de `AiDiagnosisRepository` (hoje só loga via Timber).
 
 ---
 
@@ -399,7 +475,7 @@ Disparado quando o scan de canais Wi-Fi retorna resultados.
 
 ---
 
-## Funil principal
+## Funil principal — implementado (SIG-155)
 
 A sequência de eventos abaixo define o funil de engajamento central do SignallQ.
 Use esta ordem para análise de drop-off no Firebase:
@@ -417,6 +493,25 @@ app_aberto
 Drop entre `speedtest_concluido` e `diag_iniciado`: usuário não quis analisar.
 Drop em `ia_laudo_solicitado` sem `ia_laudo_recebido`: falha de rede ou Worker.
 
+Todos os 7 eventos estão instrumentados via `AnalyticsHelper`
+(`core/network/AnalyticsHelper.kt` + `FirebaseAnalyticsHelper` em `:app`,
+injetado via Hilt em `AppModule`). Pontos de disparo:
+
+| Evento | Classe | Método |
+|---|---|---|
+| `app_aberto` | `MainActivity` | `onCreate` |
+| `speedtest_iniciado` | `SpeedtestViewModel` | `executarSpeedtest` (antes de `ExecutorSpeedtest.executar`) |
+| `speedtest_concluido` | `SpeedtestViewModel` | `executarSpeedtest` (após `ExecutorSpeedtest.executar`, via `registrarSpeedtestConcluidoSeDisponivel`) |
+| `diag_iniciado` | `DiagnosticOrchestrator` | `executar(input, enabledAreas)` |
+| `diag_concluido` | `DiagnosticOrchestrator` | `executar(input, enabledAreas)` (caminho de sucesso) |
+| `ia_laudo_solicitado` | `SignallQOrchestrator` | `callAi` (antes de `AiDiagnosisRepository.explainDiagnosis`, triggers `initial`/`initial_from_result`) |
+| `ia_laudo_recebido` | `SignallQOrchestrator` | `callAi` (após `explainDiagnosis`, mesmos triggers) |
+
+Testes unitários do `FirebaseAnalyticsHelper` em
+`app/src/test/kotlin/io/veloo/app/kotlin/analytics/FirebaseAnalyticsHelperTest.kt`
+(MockK + Robolectric, cobrem os 7 eventos e omissão correta de parâmetros
+opcionais nulos).
+
 ---
 
 ## Como manter
@@ -433,10 +528,10 @@ Checklist ao implementar um novo evento:
 - [ ] Este arquivo atualizado com o novo evento e seus parâmetros
 - [ ] Se o evento integra o funil principal, a seção "Funil principal" foi revisada
 
-Ponto de implementação no Android: injetar `FirebaseAnalytics` via Hilt no
-ViewModel da tela correspondente. Criar um `AnalyticsHelper` em `core/` para
-centralizar as chamadas e evitar duplicação. Não chamar `logEvent` diretamente
-em Composables.
+Ponto de implementação no Android: injetar `AnalyticsHelper` (funil principal,
+SIG-155) ou `AnalyticsTracker` (schema SIG-134) via Hilt no ViewModel ou classe
+de domínio correspondente — nunca `FirebaseAnalytics` diretamente. Não chamar
+`logEvent` diretamente em Composables.
 
 ---
 

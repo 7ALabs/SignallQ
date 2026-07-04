@@ -22,6 +22,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.feature.devices.DevicesViewModel
@@ -38,6 +39,9 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
     @Inject
     lateinit var analyticsTracker: AnalyticsTracker
+
+    @Inject
+    lateinit var analyticsHelper: AnalyticsHelper
 
     private val viewModel: MainViewModel by viewModels()
     private val chatDiagViewModel: ChatDiagnosticoIaViewModel by viewModels()
@@ -96,6 +100,8 @@ class MainActivity : ComponentActivity() {
 
         analyticsTracker.registrarSessionStart()
         registrarBatterySnapshotInicial()
+        val estadoConexaoInicial = viewModel.monitorRede.snapshotFlow.value.estadoConexao
+        analyticsHelper.registrarAppAberto(tipoConexao = estadoConexaoInicial.paraTipoConexaoAnalytics())
 
         // Conecta o SpeedtestViewModel ao MainViewModel: apos cada speedtest, dispara
         // as rotinas nao-speedtest (scan de dispositivos, diagnostico, etc.).
@@ -575,6 +581,11 @@ class MainActivity : ComponentActivity() {
         }
         // Abaixo do API 33, NEARBY_WIFI_DEVICES não existe — no-op; localização cobre o caso
     }
+
+    // Analytics (SIG-155): EstadoConexao.movel vira "mobile" no schema do funil.
+    // Os demais nomes (wifi/ethernet/desconectado/desconhecido) ja batem com o schema.
+    private fun EstadoConexao.paraTipoConexaoAnalytics(): String =
+        if (this == EstadoConexao.movel) "mobile" else name
 
     private fun solicitarPermissaoLocalizacaoContextual() {
         val concedida =

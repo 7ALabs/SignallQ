@@ -10,6 +10,7 @@ import io.signallq.app.feature.diagnostico.BuildConfig
 import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
 import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
 import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.topology.TopologyDiagnostic
 import okhttp3.OkHttpClient
@@ -28,7 +29,8 @@ object DiagnosticoModule {
      */
     @Provides
     @Singleton
-    fun provideDiagnosticOrchestrator(): DiagnosticOrchestrator = DiagnosticOrchestrator()
+    fun provideDiagnosticOrchestrator(analyticsHelper: AnalyticsHelper): DiagnosticOrchestrator =
+        DiagnosticOrchestrator(analyticsHelper)
 
     /**
      * Provê a instância única de AiDiagnosisRepository no grafo Hilt.

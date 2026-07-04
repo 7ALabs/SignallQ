@@ -8,6 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.signallq.app.BuildConfig
+import io.signallq.app.analytics.FirebaseAnalyticsHelper
 import io.signallq.app.analytics.FirebaseAnalyticsTracker
 import io.signallq.app.core.database.CoreDatabaseModulo
 import io.signallq.app.core.database.MedicaoDao
@@ -15,6 +16,7 @@ import io.signallq.app.core.database.SignallQDatabase
 import io.signallq.app.core.database.chat.ChatSessionDao
 import io.signallq.app.core.datastore.FeatureFlagStore
 import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.CoreNetworkModulo
 import io.signallq.app.core.network.DefaultDispatcherProvider
@@ -225,6 +227,15 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAnalyticsTracker(tracker: FirebaseAnalyticsTracker): AnalyticsTracker = tracker
+
+    /**
+     * AnalyticsHelper (SIG-155) — funil principal de engajamento. Distinto do
+     * AnalyticsTracker (SIG-134/feature_used) acima; ambos compartilham a mesma
+     * instancia de FirebaseAnalytics provida logo abaixo.
+     */
+    @Provides
+    @Singleton
+    fun provideAnalyticsHelper(helper: FirebaseAnalyticsHelper): AnalyticsHelper = helper
 
     @Provides
     @Singleton
