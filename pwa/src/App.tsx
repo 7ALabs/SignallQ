@@ -1,29 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Activity, BrainCircuit, Clock3, Gauge, History, RotateCcw, Settings } from 'lucide-react';
 import type { DiagnosisResult, HistoryEntry, SpeedTestResult } from '@shared/contracts';
-import {
-  ActionCard,
-  AppShell,
-  Button,
-  ConnectionSummaryCard,
-  DiagnosisInsightCard,
-  HomeLayout,
-  MetricTile,
-  NetworkContextCard,
-  RecommendationList,
-  SpeedHeroCard,
-  ThemeProvider,
-  TopAppBar,
-} from '@/design-system';
+import { ThemeProvider } from '@/design-system';
 import { createDiagnosisWithAiFallback } from '@/features/diagnosis/aiClient';
-import { DiagnosisResultPanel } from '@/features/diagnosis/components/DiagnosisResultPanel';
+import { AboutScreen } from '@/features/about/AboutScreen';
 import { HistoryPanel } from '@/features/history/HistoryPanel';
 import type { HistoryState } from '@/features/history/historyTypes';
+import { TestDetailScreen } from '@/features/history/TestDetailScreen';
+import { HomeScreen } from '@/features/home/HomeScreen';
+import type { HomeScreenLatestResult } from '@/features/home/HomeScreen';
+import { LandingScreen } from '@/features/landing/LandingScreen';
 import { getLocalReport } from '@/features/report/reportRepository';
 import { ReportPage } from '@/features/report/ReportPage';
 import type { Report } from '@/features/report/reportTypes';
+import { ResultScreen } from '@/features/result/ResultScreen';
 import { SettingsPanel } from '@/features/settings/SettingsPanel';
 import { runSpeedTestWeb } from '@/features/speedtest/speedTestRunner';
+import { SpeedTestScreen } from '@/features/speedtest/SpeedTestScreen';
 import type { SpeedTestProgress, SpeedTestRunStatus } from '@/features/speedtest/speedTestTypes';
 import { InstallPromptBanner } from '@/shared/components/InstallPromptBanner';
 import {
@@ -34,102 +26,52 @@ import {
   requestNativeInstallPrompt,
 } from '@/shared/pwa/installPrompt';
 import { historyRepository } from '@/shared/storage/historyRepository';
-import { preferencesRepository } from '@/shared/storage/preferencesRepository';
+import { preferencesRepository, type ThemePreference } from '@/shared/storage/preferencesRepository';
 
-const navItems = [
-  { href: '#/', label: 'Início' },
-  { href: '#/historico', label: 'Histórico' },
-  { href: '#/ajustes', label: 'Ajustes' },
-];
+export type AppRoute =
+  | { kind: 'landing' }
+  | { kind: 'home' }
+  | { kind: 'speedtest' }
+  | { kind: 'result' }
+  | { kind: 'history' }
+  | { kind: 'testDetail'; entryId: string }
+  | { kind: 'settings' }
+  | { kind: 'about' }
+  | { kind: 'report'; reportId: string };
 
-type AppRoute = { kind: 'history' } | { kind: 'home' } | { kind: 'report'; reportId: string } | { kind: 'settings' };
-
-function readRoute(): AppRoute {
+export function readRoute(): AppRoute {
   const hash = window.location.hash.replace(/^#/, '');
+  if (hash === '/home') return { kind: 'home' };
+  if (hash === '/teste') return { kind: 'speedtest' };
+  if (hash === '/resultado') return { kind: 'result' };
   if (hash === '/historico') return { kind: 'history' };
   if (hash === '/ajustes') return { kind: 'settings' };
+  if (hash === '/sobre') return { kind: 'about' };
+  const testDetailMatch = hash.match(/^\/teste\/([^/?#]+)$/);
+  if (testDetailMatch?.[1]) {
+    return { kind: 'testDetail', entryId: decodeURIComponent(testDetailMatch[1]) };
+  }
   const reportMatch = hash.match(/^\/laudo\/([^/?#]+)$/);
   if (reportMatch?.[1]) {
     return { kind: 'report', reportId: decodeURIComponent(reportMatch[1]) };
   }
-  return { kind: 'home' };
+  return { kind: 'landing' };
 }
 
-function formatMetric(value: number | null, maximumFractionDigits = 1): string {
-  return value == null ? '--' : value.toLocaleString('pt-BR', { maximumFractionDigits });
-}
-
-function qualityLevel(quality: DiagnosisResult['quality']): 'good' | 'fair' | 'poor' | 'unknown' {
-  switch (quality) {
-    case 'good':
-      return 'good';
-    case 'attention':
-      return 'fair';
-    case 'bad':
-      return 'poor';
-    case 'unknown':
-      return 'unknown';
-  }
-}
-
-function qualityLabel(quality: DiagnosisResult['quality'] | null): string {
-  switch (quality) {
-    case 'good':
-      return 'Conexão boa';
-    case 'attention':
-      return 'Atenção';
-    case 'bad':
-      return 'Conexão ruim';
-    case 'unknown':
-      return 'Inconclusivo';
-    default:
-      return 'Aguardando teste';
-  }
-}
-
-function stabilityLabel(stability: DiagnosisResult['stability']): string {
-  switch (stability) {
-    case 'stable':
-      return 'estável';
-    case 'unstable':
-      return 'instável';
-    case 'unknown':
-      return 'não medida';
-  }
-}
-
-function metricStatus(
-  value: number | null,
-  warningThreshold: number,
-  criticalThreshold: number,
-  inverse = false,
-): 'good' | 'warning' | 'critical' | 'neutral' {
-  if (value == null) return 'neutral';
-  if (inverse) {
-    if (value >= criticalThreshold) return 'critical';
-    if (value >= warningThreshold) return 'warning';
-    return 'good';
-  }
-  if (value <= criticalThreshold) return 'critical';
-  if (value <= warningThreshold) return 'warning';
-  return 'good';
-}
-
-function phaseLabel(progress: SpeedTestProgress | null, status: SpeedTestRunStatus): string {
-  if (progress) return progress.message;
-  if (status === 'idle') return 'Pronto para medir pelo navegador.';
-  if (status === 'success') return 'Teste concluído.';
-  if (status === 'partial') return 'Teste parcial concluído.';
-  if (status === 'canceled') return 'Teste cancelado.';
-  if (status === 'error') return 'Não foi possível medir a conexão.';
-  return 'Medição em andamento.';
+/** Reabertura do PWA instalado: usuário com histórico salvo não deve cair no onboarding (landing). */
+export function shouldRedirectRecurringUserToHome(params: {
+  hash: string;
+  historyStatus: HistoryState['status'];
+  historyEntryCount: number;
+}): boolean {
+  const hasExplicitHash = params.hash.replace(/^#/, '') !== '';
+  return !hasExplicitHash && params.historyStatus === 'ready' && params.historyEntryCount > 0;
 }
 
 export function App() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
-  const [diagnosisStatus, setDiagnosisStatus] = useState<'idle' | 'loading' | 'ready' | 'fallback' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [historyState, setHistoryState] = useState<HistoryState>({ entries: [], error: null, status: 'idle' });
   const [installPromptDismissed, setInstallPromptDismissed] = useState(
@@ -144,6 +86,7 @@ export function App() {
   const [route, setRoute] = useState<AppRoute>(() => readRoute());
   const [result, setResult] = useState<SpeedTestResult | null>(null);
   const [status, setStatus] = useState<SpeedTestRunStatus>('idle');
+  const [themeMode, setThemeModeState] = useState<ThemePreference>(() => preferencesRepository.getThemePreference());
 
   const refreshHistory = useCallback(async () => {
     setHistoryState((current) => ({ ...current, error: null, status: 'loading' }));
@@ -163,6 +106,17 @@ export function App() {
     void refreshHistory();
     return () => abortControllerRef.current?.abort();
   }, [refreshHistory]);
+
+  useEffect(() => {
+    const shouldRedirect = shouldRedirectRecurringUserToHome({
+      hash: window.location.hash,
+      historyEntryCount: historyState.entries.length,
+      historyStatus: historyState.status,
+    });
+    if (shouldRedirect) {
+      window.location.hash = '/home';
+    }
+  }, [historyState]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setInstallPromptIsEligible(true), 45_000);
@@ -205,16 +159,50 @@ export function App() {
     };
   }, [route]);
 
+  useEffect(() => {
+    if (route.kind === 'result' && !result) {
+      window.location.hash = '/home';
+      return;
+    }
+    if (route.kind === 'testDetail' && historyState.status !== 'loading' && !historyState.entries.some((entry) => entry.id === route.entryId)) {
+      window.location.hash = '/historico';
+    }
+  }, [route, result, historyState]);
+
+  const goLanding = () => {
+    window.location.hash = '/';
+  };
+
+  const goHome = () => {
+    window.location.hash = '/home';
+  };
+
+  const openHistory = () => {
+    window.location.hash = '/historico';
+  };
+
+  const openSettings = () => {
+    window.location.hash = '/ajustes';
+  };
+
+  const goAbout = () => {
+    window.location.hash = '/sobre';
+  };
+
+  const openTestDetail = (id: string) => {
+    window.location.hash = `/teste/${encodeURIComponent(id)}`;
+  };
+
   const startTest = async () => {
     abortControllerRef.current?.abort();
     const abortController = new AbortController();
     abortControllerRef.current = abortController;
     setDiagnosis(null);
-    setDiagnosisStatus('idle');
     setErrorMessage(null);
     setProgress(null);
     setResult(null);
     setStatus('running');
+    window.location.hash = '/teste';
 
     try {
       const run = await runSpeedTestWeb({
@@ -223,15 +211,16 @@ export function App() {
       });
 
       setStatus(run.status);
-      if (run.status === 'canceled') return;
+      if (run.status === 'canceled') {
+        goHome();
+        return;
+      }
 
       setResult(run.result);
       if (run.errorMessage) setErrorMessage('Não foi possível concluir todas as medições.');
 
-      setDiagnosisStatus('loading');
       const diagnosisOutcome = await createDiagnosisWithAiFallback(run.result);
       setDiagnosis(diagnosisOutcome.diagnosis);
-      setDiagnosisStatus(diagnosisOutcome.source === 'ai' ? 'ready' : 'fallback');
       if (diagnosisOutcome.source === 'fallback') {
         setErrorMessage(`Análise avançada indisponível: ${diagnosisOutcome.errorMessage}`);
       }
@@ -245,10 +234,11 @@ export function App() {
       await historyRepository.save(entry);
       await refreshHistory();
       setInstallPromptIsEligible(true);
+      window.location.hash = '/resultado';
     } catch (error) {
       setStatus('error');
-      setDiagnosisStatus('error');
       setErrorMessage(error instanceof Error ? error.message : 'Falha inesperada durante o teste.');
+      goHome();
     } finally {
       if (abortControllerRef.current === abortController) {
         abortControllerRef.current = null;
@@ -279,20 +269,9 @@ export function App() {
     if (route.kind === 'report') await copyReportLink(route.reportId);
   };
 
-  const openReport = (id: string) => {
-    window.location.hash = `/laudo/${id}`;
-  };
-
-  const openHistory = () => {
-    window.location.hash = '/historico';
-  };
-
-  const openSettings = () => {
-    window.location.hash = '/ajustes';
-  };
-
-  const goHome = () => {
-    window.location.hash = '/';
+  const setThemeMode = (mode: ThemePreference) => {
+    setThemeModeState(mode);
+    preferencesRepository.setThemePreference(mode);
   };
 
   const dismissInstallPrompt = () => {
@@ -313,281 +292,140 @@ export function App() {
     }
   };
 
-  const isRunning = status === 'running';
   const installEnvironment = getInstallEnvironment({ hasNativePrompt: deferredInstallPrompt != null });
   const shouldShowInstallPrompt = canShowInstallPromptBanner({
     dismissed: installPromptDismissed,
     eligible: installPromptIsEligible,
-    isDiagnosisLoading: diagnosisStatus === 'loading',
+    isDiagnosisLoading: false,
     isHomeRoute: route.kind === 'home',
-    isRunning,
+    isRunning: status === 'running',
     isStandalone: installEnvironment.isStandalone,
   });
-  const currentQuality = diagnosis?.quality ?? null;
-  const downloadMbps = result?.download.mbps ?? null;
-  const uploadMbps = result?.upload.mbps ?? null;
-  const latencyMs = result?.latency.ms ?? null;
-  const jitterMs = result?.jitter.ms ?? null;
-  const perceivedLoss = result?.availability.perceivedLossPercent ?? null;
-  const diagnosisActionDescription =
-    diagnosisStatus === 'loading'
-      ? 'Gerando análise avançada com fallback local preparado.'
-      : diagnosisStatus === 'ready'
-        ? 'Diagnóstico IA gerado a partir do payload web medido.'
-        : diagnosisStatus === 'fallback'
-          ? 'Diagnóstico local usado porque a análise avançada não respondeu.'
-          : diagnosis
-            ? 'Diagnóstico gerado a partir do resultado medido.'
-            : 'Resumo simples e acionável após o teste.';
 
-  if (route.kind === 'report') {
+  const installBanner = shouldShowInstallPrompt ? (
+    <InstallPromptBanner
+      environment={installEnvironment}
+      isPrompting={installPromptIsPrompting}
+      onDismiss={dismissInstallPrompt}
+      onInstall={requestInstallPrompt}
+    />
+  ) : null;
+
+  if (route.kind === 'landing') {
     return (
-      <ThemeProvider mode="light">
-        <AppShell
-          header={
-            <TopAppBar
-              activeHref="#/historico"
-              actions={<Button variant="text" onClick={goHome}>Voltar</Button>}
-              navItems={navItems}
-              subtitle="Laudo local"
-              title="SignallQ"
-            />
-          }
-        >
-          <ReportPage
-            error={reportError}
-            isLoading={reportIsLoading}
-            onBack={goHome}
-            onCopyLink={copyCurrentReportLink}
-            report={report}
-            reportId={route.reportId}
-          />
-        </AppShell>
+      <ThemeProvider mode={themeMode}>
+        <LandingScreen onOpenAbout={goAbout} onStartTest={startTest} />
+      </ThemeProvider>
+    );
+  }
+
+  if (route.kind === 'speedtest') {
+    return (
+      <ThemeProvider mode={themeMode}>
+        <SpeedTestScreen onCancel={cancelTest} progress={progress} status={status} />
+      </ThemeProvider>
+    );
+  }
+
+  if (route.kind === 'result') {
+    if (!result) return null;
+    return (
+      <ThemeProvider mode={themeMode}>
+        <ResultScreen diagnosis={diagnosis} onCopyLink={() => void copyReportLink(result.id)} onRetry={startTest} result={result} />
       </ThemeProvider>
     );
   }
 
   if (route.kind === 'history') {
     return (
-      <ThemeProvider mode="light">
-        <AppShell
-          header={
-            <TopAppBar
-              activeHref="#/historico"
-              actions={<Button variant="text" onClick={goHome}>Voltar</Button>}
-              navItems={navItems}
-              subtitle="Histórico local"
-              title="SignallQ"
-            />
-          }
-        >
-          <HistoryPanel
-            onClear={clearHistory}
-            onCopyReportLink={copyReportLink}
-            onOpenReport={openReport}
-            onRemove={removeHistoryEntry}
-            onStartTest={goHome}
-            state={historyState}
-          />
-        </AppShell>
+      <ThemeProvider mode={themeMode}>
+        {installBanner}
+        <HistoryPanel onBack={goHome} onClear={clearHistory} onOpenEntry={openTestDetail} onStartTest={startTest} state={historyState} />
       </ThemeProvider>
     );
+  }
+
+  if (route.kind === 'testDetail') {
+    const entry = historyState.entries.find((item) => item.id === route.entryId);
+    if (entry) {
+      return (
+        <ThemeProvider mode={themeMode}>
+          <TestDetailScreen
+            entry={entry}
+            onBack={openHistory}
+            onRemove={() => void removeHistoryEntry(entry.id).then(openHistory)}
+            onRetry={startTest}
+          />
+        </ThemeProvider>
+      );
+    }
+    return null;
   }
 
   if (route.kind === 'settings') {
     return (
-      <ThemeProvider mode="light">
-        <AppShell
-          header={
-            <TopAppBar
-              activeHref="#/ajustes"
-              actions={<Button variant="text" onClick={goHome}>Voltar</Button>}
-              navItems={navItems}
-              subtitle="Privacidade e limites"
-              title="SignallQ"
-            />
-          }
-        >
-          <SettingsPanel historyCount={historyState.entries.length} onClearHistory={clearHistory} onGoHome={goHome} />
-        </AppShell>
+      <ThemeProvider mode={themeMode}>
+        <SettingsPanel
+          historyCount={historyState.entries.length}
+          onBack={goHome}
+          onClearHistory={clearHistory}
+          onOpenAbout={goAbout}
+          setThemeMode={setThemeMode}
+          themeMode={themeMode}
+        />
       </ThemeProvider>
     );
   }
 
-  return (
-    <ThemeProvider mode="light">
-      <AppShell
-        header={
-          <TopAppBar
-            activeHref="#/"
-            actions={<Button variant="text" onClick={openSettings}>Privacidade</Button>}
-            navItems={navItems}
-            subtitle="Piloto M1"
-            title="SignallQ"
-          />
-        }
-      >
-        {shouldShowInstallPrompt ? (
-          <InstallPromptBanner
-            environment={installEnvironment}
-            isPrompting={installPromptIsPrompting}
-            onDismiss={dismissInstallPrompt}
-            onInstall={requestInstallPrompt}
-          />
-        ) : null}
-        <HomeLayout
-          hero={
-            <SpeedHeroCard
-              action={
-                <div className="sq-speed-actions">
-                  <Button icon={<Gauge size={18} />} isLoading={isRunning} onClick={startTest}>
-                    Iniciar teste
-                  </Button>
-                  {isRunning ? (
-                    <Button icon={<RotateCcw size={18} />} variant="tonal" onClick={cancelTest}>
-                      Cancelar
-                    </Button>
-                  ) : null}
-                </div>
-              }
-              caption={phaseLabel(progress, status)}
-              downloadLabel={result ? 'Download medido via HTTP' : 'Download ainda não medido'}
-              qualityLabel={qualityLabel(currentQuality)}
-              stabilityLabel={diagnosis ? `Estabilidade: ${stabilityLabel(diagnosis.stability)}` : 'Estabilidade por latência e jitter HTTP'}
-              title="Meça velocidade e estabilidade sem inventar sinal nativo"
-              value={formatMetric(downloadMbps)}
-            />
-          }
-          summary={
-            <ConnectionSummaryCard
-              description={
-                diagnosis?.summary ??
-                'O teste usa endpoints HTTP controlados para download, upload, latência e jitter aproximado. Ping ICMP, RSSI e scan Wi-Fi não existem no browser.'
-              }
-              quality={currentQuality ? qualityLevel(currentQuality) : 'unknown'}
-              qualityLabel={qualityLabel(currentQuality)}
-              title={result ? 'Resultado do teste web' : 'Pronto para medir neste navegador'}
-            />
-          }
-          metrics={
-            <>
-              <MetricTile
-                helperText={
-                  result?.download.status === 'measured'
-                    ? `${result.download.bytes.toLocaleString('pt-BR')} bytes recebidos.`
-                    : 'Medição HTTP controlada.'
-                }
-                icon={<Gauge size={22} />}
-                label="Download"
-                status={metricStatus(downloadMbps, 10, 3)}
-                unit="Mbps"
-                value={formatMetric(downloadMbps)}
-              />
-              <MetricTile
-                helperText={
-                  result?.upload.status === 'not_available' ? 'Endpoint de upload indisponível.' : 'POST para endpoint controlado.'
-                }
-                icon={<Activity size={22} />}
-                label="Upload"
-                status={metricStatus(uploadMbps, 5, 1)}
-                unit="Mbps"
-                value={formatMetric(uploadMbps)}
-              />
-              <MetricTile
-                helperText="Aproximação via fetch/timing do navegador."
-                icon={<Clock3 size={22} />}
-                label="Latência HTTP"
-                status={metricStatus(latencyMs, 80, 150, true)}
-                unit="ms"
-                value={formatMetric(latencyMs, 0)}
-              />
-              <MetricTile
-                helperText="Variação entre amostras de latência HTTP."
-                icon={<Activity size={22} />}
-                label="Jitter"
-                status={metricStatus(jitterMs, 20, 40, true)}
-                unit="ms"
-                value={formatMetric(jitterMs, 0)}
-              />
-              <MetricTile
-                helperText="Inferência por falhas/timeouts HTTP, não perda real de pacote."
-                icon={<Activity size={22} />}
-                label="Falhas percebidas"
-                status={metricStatus(perceivedLoss, 5, 20, true)}
-                unit="%"
-                value={formatMetric(perceivedLoss)}
-              />
-            </>
-          }
-          actions={
-            <>
-              <ActionCard
-                description={`${historyState.entries.length} medição(ões) salvas neste navegador.`}
-                icon={<History size={22} />}
-                meta="Histórico"
-                onClick={openHistory}
-                title="Resultados anteriores"
-              />
-              <ActionCard
-                description={diagnosisActionDescription}
-                icon={<BrainCircuit size={22} />}
-                meta="Diagnóstico"
-                title="Análise da conexão"
-              />
-              <ActionCard
-                description="Preferências web sem transformar a PWA em Android encapsulado."
-                icon={<Settings size={22} />}
-                meta="Ajustes"
-                onClick={openSettings}
-                title="Configuração da PWA"
-              />
-            </>
-          }
-          insights={
-            <>
-              <DiagnosisInsightCard
-                body={
-                  diagnosisStatus === 'loading'
-                    ? 'A PWA está tentando a análise avançada. Se ela não responder, o diagnóstico local mantém o resultado utilizável.'
-                    : errorMessage ??
-                      'Quando uma métrica não puder ser medida no navegador, a interface deve mostrar essa limitação em vez de preencher valor falso.'
-                }
-                title="Sem métrica inventada"
-                tone={errorMessage || diagnosisStatus === 'fallback' ? 'warning' : 'info'}
-              />
-              <div className="sq-diagnosis-layout">
-                <DiagnosisResultPanel diagnosis={diagnosis} />
-                <NetworkContextCard
-                  items={[
-                    { label: 'Tipo de conexão', value: result?.connection.effectiveType ?? 'Quando disponível' },
-                    { label: 'Wi-Fi detalhado', value: 'Indisponível na web' },
-                    { label: 'Amostras de latência', value: result ? String(result.latency.samples) : 'Aguardando teste' },
-                  ]}
-                  title="Contexto do navegador"
-                />
-                <RecommendationList
-                  items={
-                    diagnosis?.actions.slice(0, 3).map((action) => action.description) ?? [
-                      'Comece pelo teste principal antes de abrir detalhes.',
-                      'Leia velocidade e estabilidade como sinais separados.',
-                      'Use diagnóstico curto, claro e sem jargão desnecessário.',
-                    ]
-                  }
-                  title="Ações recomendadas"
-                />
-              </div>
-              <HistoryPanel
-                onClear={clearHistory}
-                onCopyReportLink={copyReportLink}
-                onOpenReport={openReport}
-                onRemove={removeHistoryEntry}
-                onStartTest={goHome}
-                state={historyState}
-              />
-            </>
-          }
+  if (route.kind === 'about') {
+    return (
+      <ThemeProvider mode={themeMode}>
+        <AboutScreen onBack={goHome} />
+      </ThemeProvider>
+    );
+  }
+
+  if (route.kind === 'report') {
+    return (
+      <ThemeProvider mode={themeMode}>
+        <ReportPage
+          error={reportError}
+          isLoading={reportIsLoading}
+          onBack={goHome}
+          onCopyLink={copyCurrentReportLink}
+          report={report}
+          reportId={route.reportId}
         />
-      </AppShell>
+      </ThemeProvider>
+    );
+  }
+
+  const latest: HomeScreenLatestResult | null = (() => {
+    const source = result && diagnosis ? { createdAt: new Date().toISOString(), diagnosis, speedTest: result } : historyState.entries[0];
+    if (!source) return null;
+    const level = source.diagnosis.quality === 'good' ? 'good' : source.diagnosis.quality === 'attention' ? 'fair' : source.diagnosis.quality === 'bad' ? 'poor' : 'unknown';
+    const label = source.diagnosis.quality === 'good' ? 'Bom' : source.diagnosis.quality === 'attention' ? 'Atenção' : source.diagnosis.quality === 'bad' ? 'Ruim' : 'Inconclusivo';
+    return {
+      dateLabel: new Date(source.createdAt).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      downloadLabel: source.speedTest.download.mbps != null ? `${source.speedTest.download.mbps.toFixed(0)} Mbps` : '--',
+      latencyLabel: source.speedTest.latency.ms != null ? `${source.speedTest.latency.ms} ms` : '--',
+      qualityLabel: label,
+      qualityLevel: level,
+      uploadLabel: source.speedTest.upload.mbps != null ? `${source.speedTest.upload.mbps.toFixed(0)} Mbps` : '--',
+    };
+  })();
+
+  return (
+    <ThemeProvider mode={themeMode}>
+      {installBanner}
+      <HomeScreen
+        historyCount={historyState.entries.length}
+        latest={latest}
+        onOpenAbout={goAbout}
+        onOpenHistory={openHistory}
+        onOpenSettings={openSettings}
+        onStartTest={startTest}
+      />
     </ThemeProvider>
   );
 }

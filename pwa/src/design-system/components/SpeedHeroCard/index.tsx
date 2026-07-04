@@ -1,6 +1,6 @@
-import { Gauge } from 'lucide-react';
 import { ReactNode } from 'react';
 import { Card } from '../Card';
+import { Icon } from '../Icon';
 import { QualityBadge } from '../QualityBadge';
 
 export interface SpeedHeroCardProps {
@@ -31,7 +31,7 @@ export function SpeedHeroCard({
           <p>{caption}</p>
         </div>
         <div className="sq-speed-hero-card__metric" aria-label={downloadLabel}>
-          <Gauge aria-hidden="true" size={28} />
+          <Icon name="speed" size={28} />
           <strong>{value}</strong>
           <span>{downloadLabel}</span>
         </div>

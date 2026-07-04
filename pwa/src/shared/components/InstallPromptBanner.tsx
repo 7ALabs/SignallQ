@@ -1,5 +1,4 @@
-import { Download, Share2, X } from 'lucide-react';
-import { Button } from '@/design-system';
+import { Button, Icon } from '@/design-system';
 import type { InstallEnvironment } from '@/shared/pwa/installPrompt';
 
 export interface InstallPromptBannerProps {
@@ -18,7 +17,7 @@ export function InstallPromptBanner({ environment, isPrompting, onDismiss, onIns
   return (
     <aside aria-label="Instalação do PWA" className="install-prompt-banner">
       <div className="install-prompt-banner__icon" aria-hidden="true">
-        {environment.support === 'ios_manual' ? <Share2 size={20} /> : <Download size={20} />}
+        {environment.support === 'ios_manual' ? <Icon name="ios_share" size={20} /> : <Icon name="install_mobile" size={20} />}
       </div>
       <div>
         <h2>{title}</h2>
@@ -31,7 +30,7 @@ export function InstallPromptBanner({ environment, isPrompting, onDismiss, onIns
           </Button>
         ) : null}
         <button aria-label="Dispensar instalação" className="install-prompt-banner__dismiss" type="button" onClick={onDismiss}>
-          <X size={18} />
+          <Icon name="close" size={18} />
         </button>
       </div>
     </aside>
