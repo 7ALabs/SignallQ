@@ -72,6 +72,7 @@ import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.feature.devices.DispositivoRede
 import io.signallq.app.feature.devices.EstadoScanDispositivos
+import io.signallq.app.feature.devices.NamingPrioridade
 import io.signallq.app.feature.devices.SnapshotScanDispositivos
 import io.signallq.app.feature.devices.TipoDispositivo
 import io.signallq.app.ui.LkColors
@@ -516,7 +517,7 @@ private fun DispositivoItem(
                 val nomeDisplay =
                     apelido?.takeIf { it.isNotBlank() }
                         ?: if (ehIpPuro) {
-                            fabricante ?: "Dispositivo"
+                            NamingPrioridade.rotuloFallbackGenerico(fabricante)
                         } else {
                             dispositivo.nomeExibicao
                         }

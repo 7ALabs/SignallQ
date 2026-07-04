@@ -115,6 +115,9 @@ class MonitorTelephonyImpl(
             SubscriptionManager.getDefaultDataSubscriptionId()
         }.getOrDefault(SubscriptionManager.INVALID_SUBSCRIPTION_ID)
 
+        val radioDesligadoGlobal = (serviceState ?: runCatching { telephonyManager?.serviceState }.getOrNull())
+            ?.state == ServiceState.STATE_POWER_OFF
+
         return sims.mapNotNull { info ->
             runCatching {
                 val subId = info.subscriptionId
@@ -131,20 +134,25 @@ class MonitorTelephonyImpl(
 
                 val tecnologiaRede = runCatching { derivarTecnologiaSim(tmSub) }.getOrNull()
 
-                // RSRP via allCellInfo do TM do sub — pode retornar vazio em alguns OEMs
-                val rsrpDbm = runCatching {
-                    val cellInfos = tmSub.allCellInfo.orEmpty()
-                    val servidora = cellInfos.firstOrNull { it.isRegistered }
-                    when (servidora) {
-                        is CellInfoLte -> servidora.cellSignalStrength.rsrp.takeIf { it != Int.MAX_VALUE }
-                        is CellInfoNr -> {
-                            val s = servidora.cellSignalStrength as? CellSignalStrengthNr
-                            s?.csiRsrp?.takeIf { it != Int.MAX_VALUE }
-                                ?: s?.ssRsrp?.takeIf { it != Int.MAX_VALUE }
+                // RSRP via allCellInfo do TM do sub — pode retornar vazio em alguns OEMs.
+                // Se o radio esta desligado (modo aviao), nao ha medicao real possivel.
+                val rsrpDbm = if (radioDesligadoGlobal) {
+                    null
+                } else {
+                    runCatching {
+                        val cellInfos = tmSub.allCellInfo.orEmpty()
+                        val servidora = cellInfos.firstOrNull { it.isRegistered }
+                        when (servidora) {
+                            is CellInfoLte -> servidora.cellSignalStrength.rsrp.takeIf { it != Int.MAX_VALUE }
+                            is CellInfoNr -> {
+                                val s = servidora.cellSignalStrength as? CellSignalStrengthNr
+                                s?.csiRsrp?.takeIf { it != Int.MAX_VALUE }
+                                    ?: s?.ssRsrp?.takeIf { it != Int.MAX_VALUE }
+                            }
+                            else -> null
                         }
-                        else -> null
-                    }
-                }.getOrNull()
+                    }.getOrNull()
+                }
 
                 MovelSimSnapshot(
                     subId = subId,
@@ -154,6 +162,7 @@ class MonitorTelephonyImpl(
                     rsrpDbm = rsrpDbm,
                     emRoaming = emRoaming,
                     isDefaultData = subId == defaultDataSubId,
+                    radioDesligado = radioDesligadoGlobal,
                 )
             }.getOrNull()
         }
@@ -331,6 +340,31 @@ class MonitorTelephonyImpl(
     @SuppressLint("MissingPermission")
     @Suppress("DEPRECATION")
     private fun capturarSnapshot(tm: TelephonyManager): MovelSnapshot? {
+        // Radio desligado (modo aviao): SIM continua READY mas nao ha medicao real
+        // possivel. ServiceState.STATE_POWER_OFF e o indicador oficial documentado
+        // pelo AOSP para esse estado — nao usar RSRP/qualidade quando presente.
+        // Usa o campo cacheado do callback quando disponivel; cai para leitura direta
+        // de tm.serviceState no primeiro snapshot (antes do callback assincrono chegar).
+        val estadoServico = serviceState ?: runCatching { tm.serviceState }.getOrNull()
+        if (estadoServico?.state == ServiceState.STATE_POWER_OFF) {
+            return MovelSnapshot(
+                operadora = null,
+                tecnologia = null,
+                rsrpDbm = null,
+                rsrqDb = null,
+                sinrDb = null,
+                ecnoDb = null,
+                bandaMovel = null,
+                cellId = null,
+                mcc = null,
+                mnc = null,
+                tac = null,
+                roaming = null,
+                radioDesligado = true,
+                timestampMs = System.currentTimeMillis(),
+            )
+        }
+
         // Se nao tem SIM ativa, simState != READY tipicamente.
         if (tm.simState != TelephonyManager.SIM_STATE_READY) return null
 

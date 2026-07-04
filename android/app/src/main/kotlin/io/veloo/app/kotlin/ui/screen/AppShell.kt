@@ -285,6 +285,12 @@ fun AppShell(
         selectedTab = 0
     }
 
+    // #374: tela de erro do speedtest (overlay VelocidadeScreen) não tinha BackHandler
+    // próprio — o back físico do sistema saía direto do app em vez de descartar o erro.
+    BackHandler(enabled = snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro) {
+        onCancelarTeste()
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             containerColor = c.bgPrimary,

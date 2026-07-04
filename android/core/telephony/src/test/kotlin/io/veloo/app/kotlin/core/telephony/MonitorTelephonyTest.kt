@@ -57,4 +57,28 @@ class MonitorTelephonyTest {
         assertEquals("TIM", fake.snapshotFlow.value?.operadora)
         assertEquals("4G", fake.snapshotFlow.value?.tecnologia)
     }
+
+    @Test
+    fun snapshot_radioDesligado_naoTemMetricasDeSinal() {
+        // #393 — em modo aviao o radio esta desligado: nao deve haver
+        // RSRP/tecnologia/operadora, apenas o flag explicito.
+        val snap = MovelSnapshot(
+            operadora = null, tecnologia = null, rsrpDbm = null, rsrqDb = null,
+            sinrDb = null, ecnoDb = null, bandaMovel = null, cellId = null,
+            mcc = null, mnc = null, tac = null, roaming = null,
+            radioDesligado = true, timestampMs = 1L,
+        )
+        assertNull(snap.rsrpDbm)
+        assertEquals(true, snap.radioDesligado)
+    }
+
+    @Test
+    fun snapshot_radioDesligado_padraoFalse() {
+        val snap = MovelSnapshot(
+            operadora = "Vivo", tecnologia = "4G", rsrpDbm = -90, rsrqDb = -10,
+            sinrDb = 5, ecnoDb = null, bandaMovel = null, cellId = null,
+            mcc = null, mnc = null, tac = null, roaming = false, timestampMs = 1L,
+        )
+        assertEquals(false, snap.radioDesligado)
+    }
 }

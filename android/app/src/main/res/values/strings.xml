@@ -39,6 +39,7 @@
     <string name="ping_metrica_jitter">Jitter</string>
     <string name="ping_metrica_perda">Perda</string>
     <string name="ping_btn_testar_novamente">Testar novamente</string>
+    <string name="ping_falha_perda_total">Não foi possível medir a latência — nenhuma resposta da rede.</string>
 
     <!-- Diagnóstico screen -->
     <string name="diagnostico_titulo">Diagnóstico</string>
@@ -122,6 +123,7 @@
     <string name="home_sheet_meu_dispositivo">Meu dispositivo</string>
     <string name="home_sheet_internet">Internet</string>
     <string name="home_sheet_ip_compartilhado">IP compartilhado com outros clientes do provedor (CG-NAT)</string>
+    <string name="home_sheet_asn_explicacao">Identifica a rede do seu provedor na internet</string>
     <string name="home_offline_titulo">Sem conexão com a internet</string>
     <string name="home_offline_descricao">Sem conexão com a internet. Algumas análises dependem de conexão ativa. Os últimos dados salvos continuam disponíveis no histórico.</string>
     <string name="home_offline_btn_aguardar">Aguardando conexão…</string>
@@ -304,7 +306,7 @@
     <string name="sinal_ip">IP: %1$s</string>
 
     <!-- Ajustes (SIG-238) -->
-    <string name="ajustes_titulo">Configurações</string>
+    <string name="ajustes_titulo">Ajustes</string>
     <string name="ajustes_btn_confirmar">Confirmar</string>
     <string name="ajustes_btn_ignorar">Ignorar</string>
     <string name="ajustes_perfil_titulo">Meu perfil</string>

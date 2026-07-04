@@ -1821,7 +1821,13 @@ class MainViewModel
             super.onCleared()
             observadorHistorico.cancel()
             monitorRede.encerrar()
-            bancoDados.close()
+            // bancoDados e injetado como @Singleton (Hilt) — compartilhado com
+            // SpeedtestPersistenceCoordinator e outros ViewModels, e vive por todo
+            // o processo do app. Fecha-lo aqui derrubava o Room pra sempre assim que
+            // este ViewModel era destruido (ex.: recriacao de Activity), causando
+            // falha silenciosa de persistencia em qualquer insert/query subsequente
+            // (issues #388/#389/#390 — Historico vazio, grafico da Home preso no
+            // placeholder e diagnostico "Inconclusivo" mesmo com teste completo).
         }
 
         // -------------------------------------------------------------------------

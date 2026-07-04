@@ -32,6 +32,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.Cable
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -47,8 +48,6 @@ import androidx.compose.material.icons.outlined.SimCard
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WifiFind
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -465,7 +464,10 @@ private fun SinalTopTabRow(
                 onClick = { onTabSelected(index) },
                 text = {
                     if (index == 1 && canalCongestionado) {
-                        BadgedBox(badge = { Badge() }) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        ) {
                             Text(
                                 label,
                                 fontSize = 13.sp,
@@ -473,6 +475,12 @@ private fun SinalTopTabRow(
                                 softWrap = false,
                                 fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.W500,
                                 color = if (selectedTab == index) LkColors.accent else c.textSecondary,
+                            )
+                            Icon(
+                                imageVector = Icons.Outlined.Warning,
+                                contentDescription = "Canal congestionado",
+                                tint = LkColors.warning,
+                                modifier = Modifier.size(12.dp),
                             )
                         }
                     } else {
@@ -676,14 +684,35 @@ private fun SimCard(
         )
 
         // Network type subtitle
-        Text(
-            "Rede ${sim.tecnologiaRede ?: "móvel"}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = tokens.textSecondary,
-        )
+        if (!sim.radioDesligado) {
+            Text(
+                "Rede ${sim.tecnologiaRede ?: "móvel"}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = tokens.textSecondary,
+            )
+        }
 
-        // Signal and Quality metrics
-        if (forcaSinal != null && corForca != null && qualidade != null && corQualidade != null) {
+        if (sim.radioDesligado) {
+            Spacer(Modifier.height(LkSpacing.xs))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+            ) {
+                Icon(
+                    Icons.Outlined.AirplanemodeActive,
+                    contentDescription = null,
+                    tint = tokens.textTertiary,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    "Modo avião ativado · Rádio desligado",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.W600,
+                    color = tokens.textSecondary,
+                )
+            }
+        } else if (forcaSinal != null && corForca != null && qualidade != null && corQualidade != null) {
+            // Signal and Quality metrics
             Spacer(Modifier.height(LkSpacing.xs))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -723,7 +752,7 @@ private fun SimCard(
         }
 
         // Contextual description
-        if (descricao != null) {
+        if (!sim.radioDesligado && descricao != null) {
             Spacer(Modifier.height(LkSpacing.xs))
             Text(
                 descricao,
