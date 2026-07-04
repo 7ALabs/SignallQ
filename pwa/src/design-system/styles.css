@@ -1887,14 +1887,33 @@
 
   .sq-landing__cta,
   .sq-home-screen__cta {
-    width: 172px;
-    height: 172px;
+    width: 140px;
+    height: 140px;
+    margin-top: var(--space-sm);
     font-size: 17px;
   }
 
   .sq-home-screen__cta {
-    width: 176px;
-    height: 176px;
+    width: 144px;
+    height: 144px;
+  }
+
+  .sq-landing {
+    padding-top: var(--space-xl);
+  }
+
+  .sq-landing__server-pill,
+  .sq-home-screen__server-pill {
+    margin-top: var(--space-sm);
+  }
+
+  .sq-landing__hint,
+  .sq-home-screen__hint {
+    margin-top: var(--space-xs);
+  }
+
+  .sq-landing__benefits {
+    margin-top: var(--space-sm);
   }
 }
 

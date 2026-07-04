@@ -28,7 +28,7 @@ import {
 import { historyRepository } from '@/shared/storage/historyRepository';
 import { preferencesRepository, type ThemePreference } from '@/shared/storage/preferencesRepository';
 
-type AppRoute =
+export type AppRoute =
   | { kind: 'landing' }
   | { kind: 'home' }
   | { kind: 'speedtest' }
@@ -39,7 +39,7 @@ type AppRoute =
   | { kind: 'about' }
   | { kind: 'report'; reportId: string };
 
-function readRoute(): AppRoute {
+export function readRoute(): AppRoute {
   const hash = window.location.hash.replace(/^#/, '');
   if (hash === '/home') return { kind: 'home' };
   if (hash === '/teste') return { kind: 'speedtest' };
@@ -56,6 +56,16 @@ function readRoute(): AppRoute {
     return { kind: 'report', reportId: decodeURIComponent(reportMatch[1]) };
   }
   return { kind: 'landing' };
+}
+
+/** Reabertura do PWA instalado: usuário com histórico salvo não deve cair no onboarding (landing). */
+export function shouldRedirectRecurringUserToHome(params: {
+  hash: string;
+  historyStatus: HistoryState['status'];
+  historyEntryCount: number;
+}): boolean {
+  const hasExplicitHash = params.hash.replace(/^#/, '') !== '';
+  return !hasExplicitHash && params.historyStatus === 'ready' && params.historyEntryCount > 0;
 }
 
 export function App() {
@@ -96,6 +106,17 @@ export function App() {
     void refreshHistory();
     return () => abortControllerRef.current?.abort();
   }, [refreshHistory]);
+
+  useEffect(() => {
+    const shouldRedirect = shouldRedirectRecurringUserToHome({
+      hash: window.location.hash,
+      historyEntryCount: historyState.entries.length,
+      historyStatus: historyState.status,
+    });
+    if (shouldRedirect) {
+      window.location.hash = '/home';
+    }
+  }, [historyState]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setInstallPromptIsEligible(true), 45_000);
