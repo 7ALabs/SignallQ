@@ -39,6 +39,7 @@ import io.signallq.app.feature.wifi.FeatureWifiModulo
 import io.signallq.app.feature.wifi.ScannerRedesWifi
 import io.signallq.app.featureflags.FeatureFlagManager
 import io.signallq.app.featureflags.FeatureFlagRepository
+import io.signallq.app.network.IspInfoCache
 import io.signallq.app.speedtest.SpeedtestPersistenceCoordinator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -241,6 +242,7 @@ object AppModule {
         monitorTelephony: MonitorTelephony,
         monitorRede: MonitorRede,
         diagnosticOrchestrator: DiagnosticOrchestrator,
+        ispInfoCache: IspInfoCache,
         @ApplicationScope applicationScope: CoroutineScope,
     ): SpeedtestPersistenceCoordinator =
         SpeedtestPersistenceCoordinator(
@@ -249,6 +251,7 @@ object AppModule {
             monitorTelephony = monitorTelephony,
             monitorRede = monitorRede,
             diagnosticOrchestrator = diagnosticOrchestrator,
+            ispInfoCache = ispInfoCache,
             applicationScope = applicationScope,
         )
 }

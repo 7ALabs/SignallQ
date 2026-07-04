@@ -645,6 +645,11 @@ object DiagnosisAiContextFactory {
  */
 data class AdditionalAiContext(
     val ispNome: String? = null,
+    /** ISP normalizado pelo catalogo de operadoras (ex: "Vivo") quando reconhecido,
+     *  ou [ispNome] cru quando o provedor nao esta no catalogo. Usado para
+     *  preencher o campo `operator` do ingest de diagnostico quando a conexao
+     *  e Wi-Fi (movel usa [AiMovelInfo.operadora]) — GH#412. */
+    val ispOperadoraDetectada: String? = null,
     val ispAsn: String? = null,
     val ipPublico: String? = null,
     val ipLocal: String? = null,

@@ -1,6 +1,7 @@
 ﻿package io.signallq.app.speedtest
 
 import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -256,6 +257,68 @@ class SpeedtestPersistenceCoordinatorTest {
             "Deve haver exatamente 1 salvamento via coordinator (ViewModel não salva mais)",
             1,
             contagemSalvamentos,
+        )
+    }
+
+    // =========================================================================
+    // Caso 8: resolverOperadorPersistencia — GH#412 (operadora/ISP via Wi-Fi)
+    // =========================================================================
+
+    @Test
+    fun `resolverOperadorPersistencia usa operadora movel quando conexao e movel`() {
+        val resultado =
+            resolverOperadorPersistencia(
+                estadoConexao = EstadoConexao.movel,
+                operadoraMovelDetectada = "Claro",
+                ispWifiDetectado = "ISP QUE NAO DEVERIA SER USADO",
+            )
+
+        assertEquals("Claro", resultado)
+    }
+
+    @Test
+    fun `resolverOperadorPersistencia usa ISP catalogado quando conexao e wifi`() {
+        val resultado =
+            resolverOperadorPersistencia(
+                estadoConexao = EstadoConexao.wifi,
+                operadoraMovelDetectada = null,
+                ispWifiDetectado = "TELEFONICA BRASIL S.A",
+            )
+
+        assertEquals("Vivo", resultado)
+    }
+
+    @Test
+    fun `resolverOperadorPersistencia usa ISP cru quando nao reconhecido pelo catalogo`() {
+        val resultado =
+            resolverOperadorPersistencia(
+                estadoConexao = EstadoConexao.wifi,
+                operadoraMovelDetectada = null,
+                ispWifiDetectado = "NC BRASIL TELECOM E SERVICOS LTDA- ME",
+            )
+
+        assertEquals("NC BRASIL TELECOM E SERVICOS LTDA- ME", resultado)
+    }
+
+    @Test
+    fun `resolverOperadorPersistencia retorna null quando wifi sem ISP detectado`() {
+        val resultado =
+            resolverOperadorPersistencia(
+                estadoConexao = EstadoConexao.wifi,
+                operadoraMovelDetectada = null,
+                ispWifiDetectado = null,
+            )
+
+        assertNull(resultado)
+    }
+
+    @Test
+    fun `resolverOperadorPersistencia retorna null para ethernet e desconhecido`() {
+        assertNull(
+            resolverOperadorPersistencia(EstadoConexao.ethernet, "Claro", "TELEFONICA BRASIL S.A"),
+        )
+        assertNull(
+            resolverOperadorPersistencia(EstadoConexao.desconhecido, "Claro", "TELEFONICA BRASIL S.A"),
         )
     }
 }

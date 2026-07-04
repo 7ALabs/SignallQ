@@ -66,9 +66,11 @@ import io.signallq.app.feature.speedtest.ExecutorSpeedtest
 import io.signallq.app.feature.speedtest.ModoSpeedtest
 import io.signallq.app.feature.wifi.ScannerRedesWifi
 import io.signallq.app.monitoramento.MonitoramentoScheduler
+import io.signallq.app.network.IspInfoCache
 import io.signallq.app.notificacao.SignallQNotificationHelper
 import io.signallq.app.pulse.SignallQUiStateMapper
 import io.signallq.app.speedtest.SpeedtestPersistenceCoordinator
+import io.signallq.app.ui.BancoOperadoras
 import io.signallq.app.ui.ConnectionNodeType
 import io.signallq.app.ui.FiltroConexaoHistorico
 import io.signallq.app.ui.GatewayInfo
@@ -125,6 +127,9 @@ class MainViewModel
         /** Repositorio de telemetria para o painel admin SignallQ. */
         private val adminIngestRepository: AdminIngestRepository,
         private val speedtestPersistenceCoordinator: SpeedtestPersistenceCoordinator,
+        /** Cache compartilhado do ultimo ISP resolvido — permite que o
+         *  SpeedtestPersistenceCoordinator envie o provedor Wi-Fi ao ingest (GH#412). */
+        private val ispInfoCache: IspInfoCache,
         /** TopologyDiagnostic injetado pelo Hilt como @Singleton (DiagnosticoModule).
          *  Usado para classificar NAT/CGNAT (SIG-279) — disparado uma unica vez por
          *  sessao dentro de [iniciarRotinasNaoSpeedtest], mesmo padrao de coletarIspInfo. */
@@ -1520,6 +1525,7 @@ class MainViewModel
                         )
                     publicIp.value = if (ip != null) UiState.Success(ip) else UiState.Error("IP indisponivel")
                     ispInfo.value = UiState.Success(info)
+                    ispInfoCache.atualizar(operadora)
                     if (monitorRede.snapshotFlow.value.estadoConexao == EstadoConexao.movel) {
                         gateways.value =
                             listOf(
@@ -1634,6 +1640,7 @@ class MainViewModel
 
             return AdditionalAiContext(
                 ispNome = isp?.isp,
+                ispOperadoraDetectada = isp?.isp?.let { raw -> BancoOperadoras.resolver(raw)?.nome ?: raw },
                 ispAsn = isp?.asn,
                 ipPublico = isp?.ip ?: (publicIp.value as? UiState.Success)?.data,
                 ipLocal = (localIp.value as? UiState.Success)?.data,
