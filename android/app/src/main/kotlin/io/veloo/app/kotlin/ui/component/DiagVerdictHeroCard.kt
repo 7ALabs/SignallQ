@@ -106,8 +106,12 @@ fun DiagVerdictHeroCard(
                 fontSize = 11.5.sp,
                 fontWeight = FontWeight.Medium,
                 color = LkColors.success,
-                modifier = Modifier.semantics { contentDescription = confianca },
+                modifier =
+                    Modifier
+                        .weight(1f, fill = false)
+                        .semantics { contentDescription = confianca },
             )
+            Spacer(Modifier.width(8.dp))
             OnDevicePill(dark = true, modelName = modelName)
         }
     }
@@ -134,6 +138,40 @@ private fun StatusPill(
 @Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 private fun DiagVerdictHeroCardPreview() {
+    SignallQTheme {
+        DiagVerdictHeroCard(
+            titulo = "DIAGNÓSTICO IA",
+            veredito =
+                "Seu Wi-Fi chega fraco neste cômodo e a fila de download entope a conexão. " +
+                    "É por isso que chamadas travam e páginas demoram — o plano em si está ok.",
+            statusLabel = "ATENÇÃO",
+            statusColor = LkColors.warning,
+            confianca = "Confiança alta",
+        )
+    }
+}
+
+// GH#409: previews com fontScale ampliado para validar que o card nao quebra
+// (texto cortado, pill sobreposta) com fonte grande do sistema.
+@Preview(name = "Font scale 150%", fontScale = 1.5f, showBackground = true)
+@Composable
+private fun DiagVerdictHeroCardFontScale150Preview() {
+    SignallQTheme {
+        DiagVerdictHeroCard(
+            titulo = "DIAGNÓSTICO IA",
+            veredito =
+                "Seu Wi-Fi chega fraco neste cômodo e a fila de download entope a conexão. " +
+                    "É por isso que chamadas travam e páginas demoram — o plano em si está ok.",
+            statusLabel = "ATENÇÃO",
+            statusColor = LkColors.warning,
+            confianca = "Confiança alta",
+        )
+    }
+}
+
+@Preview(name = "Font scale 200%", fontScale = 2.0f, showBackground = true)
+@Composable
+private fun DiagVerdictHeroCardFontScale200Preview() {
     SignallQTheme {
         DiagVerdictHeroCard(
             titulo = "DIAGNÓSTICO IA",

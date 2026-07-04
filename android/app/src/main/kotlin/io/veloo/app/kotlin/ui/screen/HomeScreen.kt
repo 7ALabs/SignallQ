@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -589,7 +590,7 @@ private fun CardMedicoes(
                 }
             } else {
                 Box(
-                    modifier = Modifier.fillMaxWidth().height(72.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -842,7 +843,8 @@ private fun MiniCard(
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.W600,
                 color = c.textPrimary,
-                maxLines = 1,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }
