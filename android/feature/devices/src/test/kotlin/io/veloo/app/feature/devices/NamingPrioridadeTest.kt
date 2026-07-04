@@ -55,4 +55,47 @@ class NamingPrioridadeTest {
     fun `rotuloFallbackGenerico com fabricante em branco retorna Dispositivo generico`() {
         assertEquals("Dispositivo", NamingPrioridade.rotuloFallbackGenerico("   "))
     }
+
+    @Test
+    fun `capitalizarFabricante capitaliza primeira letra de manufacturer lowercase`() {
+        assertEquals("Samsung", NamingPrioridade.capitalizarFabricante("samsung"))
+        assertEquals("Xiaomi", NamingPrioridade.capitalizarFabricante("xiaomi"))
+    }
+
+    @Test
+    fun `capitalizarFabricante retorna null para manufacturer nulo ou em branco`() {
+        assertEquals(null, NamingPrioridade.capitalizarFabricante(null))
+        assertEquals(null, NamingPrioridade.capitalizarFabricante("   "))
+    }
+
+    @Test
+    fun `nomeAmigavelDoDevice combina fabricante e modelo quando modelo nao repete fabricante`() {
+        assertEquals(
+            "Samsung SM-A256E",
+            NamingPrioridade.nomeAmigavelDoDevice(modelo = "SM-A256E", fabricante = "Samsung"),
+        )
+    }
+
+    @Test
+    fun `nomeAmigavelDoDevice nao duplica fabricante quando modelo ja comeca com ele`() {
+        assertEquals(
+            "Samsung Galaxy S23",
+            NamingPrioridade.nomeAmigavelDoDevice(modelo = "Samsung Galaxy S23", fabricante = "Samsung"),
+        )
+    }
+
+    @Test
+    fun `nomeAmigavelDoDevice usa so o modelo quando fabricante ausente`() {
+        assertEquals("SM-A256E", NamingPrioridade.nomeAmigavelDoDevice(modelo = "SM-A256E", fabricante = null))
+    }
+
+    @Test
+    fun `nomeAmigavelDoDevice usa so o fabricante quando modelo ausente`() {
+        assertEquals("Samsung", NamingPrioridade.nomeAmigavelDoDevice(modelo = null, fabricante = "Samsung"))
+    }
+
+    @Test
+    fun `nomeAmigavelDoDevice cai para Este aparelho quando ambos ausentes`() {
+        assertEquals("Este aparelho", NamingPrioridade.nomeAmigavelDoDevice(modelo = null, fabricante = null))
+    }
 }
