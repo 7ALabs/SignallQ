@@ -20,6 +20,19 @@ import { mockOperatorsList } from "../mocks/errors.mock";
 import { AppEnvironment, OperatorRecord } from "../types/admin";
 import { SQ_TOKENS } from "../config/designTokens";
 
+// GH#427: métricas por network_type — todas derivadas de colunas reais de
+// diagnostic_sessions (ver "SignallQ Admin/docs/architecture/data-architecture.md").
+export interface NetworkTypeStat {
+  name: string;
+  count: number;
+  avgScore: number | null;
+  avgDownloadMbps: number | null;
+  avgUploadMbps: number | null;
+  avgLatencyMs: number | null;
+  avgJitterMs: number | null;
+  avgPacketLoss: number | null;
+}
+
 export interface DashboardFilters {
   environment?: AppEnvironment;
   // period é string: o seletor global do App usa string e os services tratam
@@ -385,32 +398,53 @@ export const adminMetricsService = {
     return response;
   },
 
-  async getNetworkSpecs(filters: DashboardFilters = {}): Promise<{
-    summaryStats: { wifiCount: number; cellCount: number; attenuationRate: number };
-    physicalAverages: Array<{ medium: string; averageLatency: number; packetLoss: number; interference: number }>;
-  }> {
+  // GH#427: substitui getNetworkSpecs (dados 100% inventados — contagem de
+  // "torres"/"SSIDs" e índice de "interferência" que o app nunca mede). Consome
+  // o mesmo endpoint real do donut (/admin/metrics/network), mas expõe os campos
+  // agregados por network_type que o Worker calcula a partir de colunas reais de
+  // diagnostic_sessions (download/upload/latência/jitter/perda de pacote/score).
+  async getNetworkTypeStats(filters: DashboardFilters = {}): Promise<NetworkTypeStat[]> {
     if (!apiClient.isMockEnabled()) {
-      return { summaryStats: { wifiCount: 0, cellCount: 0, attenuationRate: 0 }, physicalAverages: [] };
+      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return [];
+      const period = filters.period || "7d";
+      const apiPeriod = period === "today" ? "1d" : period;
+      const envNetwork = filters.environment ?? "production";
+      try {
+        const raw = await apiClient.request<{
+          items: Array<{
+            name: string;
+            count: number;
+            avg_score: number | null;
+            avg_download_mbps: number | null;
+            avg_upload_mbps: number | null;
+            avg_latency_ms: number | null;
+            avg_jitter_ms: number | null;
+            avg_packet_loss: number | null;
+          }>;
+        }>("GET", `/admin/metrics/network?environment=${envNetwork}&period=${apiPeriod}`);
+        return (raw.items ?? []).map((item) => ({
+          name:            item.name,
+          count:           item.count ?? 0,
+          avgScore:        item.avg_score ?? null,
+          avgDownloadMbps: item.avg_download_mbps ?? null,
+          avgUploadMbps:   item.avg_upload_mbps ?? null,
+          avgLatencyMs:    item.avg_latency_ms ?? null,
+          avgJitterMs:     item.avg_jitter_ms ?? null,
+          avgPacketLoss:   item.avg_packet_loss ?? null,
+        }));
+      } catch {
+        return [];
+      }
     }
 
     const isStg = filters.environment === "staging";
-
-    const summaryStats = {
-      wifiCount: isStg ? 650 : 8120,
-      cellCount: isStg ? 45 : 384,
-      attenuationRate: isStg ? 16.8 : 14.1,
-    };
-
-    const physicalAverages = [
-      { medium: "Wi-Fi 2.4G", averageLatency: isStg ? 49 : 45, packetLoss: isStg ? 2.1 : 1.8, interference: isStg ? 82 : 78 },
-      { medium: "Wi-Fi 5G", averageLatency: isStg ? 17 : 14, packetLoss: isStg ? 0.6 : 0.5, interference: isStg ? 25 : 22 },
-      { medium: "Rede Móvel 4G", averageLatency: isStg ? 58 : 52, packetLoss: isStg ? 2.5 : 2.1, interference: isStg ? 59 : 54 },
-      { medium: "Rede Móvel 5G", averageLatency: isStg ? 32 : 28, packetLoss: isStg ? 1.0 : 0.8, interference: isStg ? 12 : 10 },
-      { medium: "Fibra Optica", averageLatency: isStg ? 5 : 4, packetLoss: 0.05, interference: 1 },
-      { medium: "Ethernet Cabo", averageLatency: isStg ? 3 : 2, packetLoss: 0.01, interference: 0 },
+    const mock: NetworkTypeStat[] = [
+      { name: "Wi-Fi",      count: isStg ? 210 : 1840, avgScore: isStg ? 78 : 81, avgDownloadMbps: isStg ? 62.4 : 74.8,  avgUploadMbps: isStg ? 18.1 : 21.6, avgLatencyMs: isStg ? 24 : 19, avgJitterMs: isStg ? 6.2 : 4.8,  avgPacketLoss: isStg ? 1.1 : 0.7 },
+      { name: "Rede móvel", count: isStg ? 96  : 640,  avgScore: isStg ? 64 : 68, avgDownloadMbps: isStg ? 28.9 : 33.5,  avgUploadMbps: isStg ? 8.4  : 9.7,  avgLatencyMs: isStg ? 58 : 49, avgJitterMs: isStg ? 14.3 : 11.5, avgPacketLoss: isStg ? 2.8 : 2.1 },
+      { name: "Fibra",      count: isStg ? 28  : 205,  avgScore: isStg ? 91 : 93, avgDownloadMbps: isStg ? 210.5 : 265.2, avgUploadMbps: isStg ? 98.3 : 112.6, avgLatencyMs: isStg ? 9 : 6,  avgJitterMs: isStg ? 1.4 : 0.9,  avgPacketLoss: isStg ? 0.1 : 0.05 },
+      { name: "Ethernet",   count: isStg ? 5   : 34,   avgScore: isStg ? 95 : 96, avgDownloadMbps: isStg ? 320.1 : 401.7, avgUploadMbps: isStg ? 180.4 : 220.9, avgLatencyMs: isStg ? 4 : 3, avgJitterMs: isStg ? 0.6 : 0.4,  avgPacketLoss: isStg ? 0.03 : 0.02 },
     ];
-
-    return apiClient.simulateFetch({ summaryStats, physicalAverages }, filters);
+    return apiClient.simulateFetch(mock, filters);
   },
 
   async getOperatorMetrics(filters: DashboardFilters = {}): Promise<OperatorRecord[]> {

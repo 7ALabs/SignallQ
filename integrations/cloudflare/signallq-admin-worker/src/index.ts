@@ -546,13 +546,20 @@ async function handleNetworkInsights(request: Request, env: Env): Promise<Respon
   // SIG-132: stats completas por network_type.
   // Window function SUM(COUNT(*)) OVER() calcula o total no mesmo passo do GROUP BY
   // (SQLite 3.25+ / D1 suporta). Evita subquery correlacionada com bind duplo.
+  // GH#427: adicionado jitter/packet_loss/upload por network_type — únicas métricas
+  // físicas que o Android realmente coleta em diagnostic_sessions (ver
+  // "SignallQ Admin/docs/architecture/data-architecture.md"). Nada de contagem de
+  // torres/SSID ou índice de interferência — o app não mede isso.
   const rows = await env.DB.prepare(
     `SELECT
        network_type AS name,
        COUNT(*) AS count,
        AVG(CAST(score AS REAL)) AS avg_score,
        AVG(download_mbps) AS avg_download_mbps,
+       AVG(upload_mbps) AS avg_upload_mbps,
        AVG(latency_ms) AS avg_latency_ms,
+       AVG(jitter_ms) AS avg_jitter_ms,
+       AVG(packet_loss) AS avg_packet_loss,
        COUNT(*) * 100.0 / SUM(COUNT(*)) OVER() AS percentage
      FROM diagnostic_sessions
      WHERE created_at >= ?${envClause}
@@ -560,13 +567,18 @@ async function handleNetworkInsights(request: Request, env: Env): Promise<Respon
      ORDER BY count DESC`
   ).bind(since, ...envBinds).all();
 
+  const round1 = (v: number | null) => v != null ? Math.round(v * 10) / 10 : null;
+
   const items = (rows.results ?? []).map((r: any) => ({
-    name:             r.name             ?? "Desconhecido",
-    count:            r.count            ?? 0,
-    avg_score:        r.avg_score        != null ? Math.round(r.avg_score) : null,
-    avg_download_mbps: r.avg_download_mbps ?? null,
-    avg_latency_ms:   r.avg_latency_ms   != null ? Math.round(r.avg_latency_ms) : null,
-    percentage:       r.percentage       != null ? Math.round(r.percentage * 10) / 10 : 0,
+    name:              r.name              ?? "Desconhecido",
+    count:             r.count             ?? 0,
+    avg_score:         r.avg_score         != null ? Math.round(r.avg_score) : null,
+    avg_download_mbps: round1(r.avg_download_mbps),
+    avg_upload_mbps:   round1(r.avg_upload_mbps),
+    avg_latency_ms:    r.avg_latency_ms    != null ? Math.round(r.avg_latency_ms) : null,
+    avg_jitter_ms:     round1(r.avg_jitter_ms),
+    avg_packet_loss:   round1(r.avg_packet_loss),
+    percentage:        r.percentage        != null ? Math.round(r.percentage * 10) / 10 : 0,
   }));
 
   return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);

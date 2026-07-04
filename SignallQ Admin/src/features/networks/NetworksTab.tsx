@@ -1,9 +1,9 @@
 import React from "react";
-import { adminMetricsService } from "../../services/adminMetricsService";
+import { adminMetricsService, NetworkTypeStat } from "../../services/adminMetricsService";
 import { ChartCard } from "../../components/ui/ChartCard";
 import { BarChart } from "../../components/charts/BarChart";
 import { LoadingState } from "../../components/ui/LoadingState";
-import { Wifi, Radio, Cpu, Network, ZapOff } from "lucide-react";
+import { Wifi, Radio } from "lucide-react";
 import { AppEnvironment } from "../../types/admin";
 
 interface NetworksTabProps {
@@ -12,28 +12,26 @@ interface NetworksTabProps {
   triggerRefreshCounter: number;
 }
 
+// GH#427: cada indicador nesta aba vem de diagnostic_sessions agregada por
+// network_type (GET /admin/metrics/network, ver PageHeader "Fonte de dados" e
+// data-architecture.md). Não exibir contagem de torres/SSIDs, banda Wi-Fi
+// específica (2.4G/5G) ou índice de "interferência" — o Android não coleta
+// nenhum desses campos hoje.
 export const NetworksTab: React.FC<NetworksTabProps> = ({
   environment,
   period,
   triggerRefreshCounter,
 }) => {
   const [loading, setLoading] = React.useState(true);
-  const [networkDistribution, setNetworkDistribution] = React.useState<any[]>([]);
-  const [specs, setSpecs] = React.useState<any>(null);
+  const [networkStats, setNetworkStats] = React.useState<NetworkTypeStat[]>([]);
 
   React.useEffect(() => {
     let active = true;
     async function loadData() {
       setLoading(true);
       try {
-        const [distData, specsData] = await Promise.all([
-          adminMetricsService.getNetworkInsights({ environment, period }),
-          adminMetricsService.getNetworkSpecs({ environment, period })
-        ]);
-        if (active) {
-          setNetworkDistribution(distData);
-          setSpecs(specsData);
-        }
+        const stats = await adminMetricsService.getNetworkTypeStats({ environment, period });
+        if (active) setNetworkStats(stats);
       } catch (e) {
         console.error(e);
       } finally {
@@ -47,27 +45,33 @@ export const NetworksTab: React.FC<NetworksTabProps> = ({
   }, [environment, period, triggerRefreshCounter]);
 
   if (loading) {
-    return <LoadingState message="Buscando performance de antenas celular e canais Wi-Fi..." />;
+    return <LoadingState message="Agregando diagnóstico por tipo de rede..." />;
   }
 
-  const barData = specs?.physicalAverages || [];
+  const wifiStat = networkStats.find((s) => s.name.toLowerCase().includes("wi"));
+  const mobileStat = networkStats.find((s) => {
+    const n = s.name.toLowerCase();
+    return n.includes("móvel") || n.includes("movel") || n.includes("mobile") || n.includes("4g") || n.includes("5g") || n.includes("cellular");
+  });
 
-  const wifiCount = specs?.summaryStats?.wifiCount ?? 0;
-  const cellCount = specs?.summaryStats?.cellCount ?? 0;
-  const attenuationRate = specs?.summaryStats?.attenuationRate ?? 0;
+  const fmt = (v: number | null, suffix = "") => (v == null ? "sem dados" : `${v.toLocaleString("pt-BR")}${suffix}`);
 
   return (
     <div className="space-y-6">
-      {/* Top statistics cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Cards com métricas reais por tipo de rede — sem dados, mostra "sem dados" */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="p-5 rounded-xl flex items-center gap-4" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
           <div className="w-10 h-10 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center border border-[var(--primary)]/20 text-[var(--primary)]">
             <Wifi className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-sans text-[var(--text-tertiary)]">SSID Coletivos</span>
-            <h4 className="text-sm font-sans font-bold text-[var(--text-primary)] mt-0.5">{wifiCount.toLocaleString("pt-BR")} Redes Analisadas</h4>
-            <span className="text-[10px] text-[var(--text-secondary)] font-sans">Banda principal de 5GHz (65%)</span>
+            <span className="text-[10px] uppercase font-sans text-[var(--text-tertiary)]">Wi-Fi</span>
+            <h4 className="text-sm font-sans font-bold text-[var(--text-primary)] mt-0.5">
+              {(wifiStat?.count ?? 0).toLocaleString("pt-BR")} diagnósticos no período
+            </h4>
+            <span className="text-[10px] text-[var(--text-secondary)] font-sans">
+              Score médio {fmt(wifiStat?.avgScore ?? null)} · latência média {fmt(wifiStat?.avgLatencyMs ?? null, " ms")}
+            </span>
           </div>
         </div>
 
@@ -76,87 +80,41 @@ export const NetworksTab: React.FC<NetworksTabProps> = ({
             <Radio className="w-5 h-5" />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-sans text-[var(--text-tertiary)] font-semibold">Towers Celular</span>
-            <h4 className="text-sm font-sans font-bold text-[var(--text-primary)] mt-0.5">{cellCount.toLocaleString("pt-BR")} Estações ERB 4G/5G</h4>
-            <span className="text-[10px] text-[var(--text-secondary)] font-sans">LTE Band 28 (700MHz) congestivo</span>
-          </div>
-        </div>
-
-        <div className="p-5 rounded-xl flex items-center gap-4" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
-          <div className="w-10 h-10 rounded-lg bg-sky-500/10 flex items-center justify-center border border-sky-500/20 text-sky-400">
-            <Cpu className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] uppercase font-sans text-[var(--text-tertiary)]">Nível Wi-Fi Ruim</span>
-            <h4 className="text-sm font-semibold font-sans text-[var(--text-primary)] mt-0.5">{attenuationRate.toLocaleString("pt-BR")}% Atenuação Física</h4>
-            <span className="text-[10px] text-[var(--text-secondary)] font-sans">Sinal inferior a -80 dBm</span>
+            <span className="text-[10px] uppercase font-sans text-[var(--text-tertiary)] font-semibold">Rede móvel</span>
+            <h4 className="text-sm font-sans font-bold text-[var(--text-primary)] mt-0.5">
+              {(mobileStat?.count ?? 0).toLocaleString("pt-BR")} diagnósticos no período
+            </h4>
+            <span className="text-[10px] text-[var(--text-secondary)] font-sans">
+              Score médio {fmt(mobileStat?.avgScore ?? null)} · latência média {fmt(mobileStat?.avgLatencyMs ?? null, " ms")}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Grid comparing latency and packet loss metrics */}
+      {/* Latência e perda de pacote por tipo de rede — únicas métricas físicas
+          que diagnostic_sessions realmente registra por network_type. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard
-          title="Latência Média de Gateway por Meio Físico"
-          description="Atraso do primeiro de salto (Rádio) local até o servidor DNS de borda em milissegundos."
+          title="Latência média por tipo de rede"
+          description="Média de latency_ms reportada pelo app, agrupada por network_type, no período selecionado."
         >
           <BarChart
-            data={barData}
-            xAxisKey="medium"
-            series={[{ key: "averageLatency", name: "Latência Média (ms)", color: "var(--info)" }]}
+            data={networkStats}
+            xAxisKey="name"
+            series={[{ key: "avgLatencyMs", name: "Latência média (ms)", color: "var(--info)" }]}
           />
         </ChartCard>
 
         <ChartCard
-          title="Taxa Percentual de Interferência & Ruído de RF"
-          description="Estatística consolidada calculada a partir de flutuações de canais locais saturados."
+          title="Perda de pacote média por tipo de rede"
+          description="Média de packet_loss reportada pelo app, agrupada por network_type, no período selecionado."
         >
           <BarChart
-            data={barData}
-            xAxisKey="medium"
-            series={[{ key: "interference", name: "Índice de Ruído local (%)", color: "var(--attention)" }]}
+            data={networkStats}
+            xAxisKey="name"
+            series={[{ key: "avgPacketLoss", name: "Perda de pacote (%)", color: "var(--attention)" }]}
           />
         </ChartCard>
-      </div>
-
-      {/* Telemetry Breakdown Details */}
-      <div className="rounded-[8px] p-6" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
-        <h4 className="text-sm font-bold font-sans text-[var(--text-primary)] tracking-wide">Quadro Clínico de Radiofrequência</h4>
-        <p className="text-xs text-[var(--text-secondary)] mt-1 mb-5">
-          Comportamento esperado da conectividade móvel vs canais residenciais deduzido a partir da telemetria de rede.
-        </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans text-xs">
-          <div className="p-4 rounded-xl" style={{ background: "var(--bg-surface-muted)", border: "1px solid var(--border)" }}>
-            <div className="flex items-center gap-2 text-indigo-400 font-semibold mb-2">
-              <Network className="w-4 h-4" />
-              <span>Gargalo de Upload 4G</span>
-            </div>
-            <p className="text-[var(--text-secondary)] leading-relaxed text-[11px]">
-              O upload minguado nas conexões de celular (médias de 2-4 Mbps em 700MHz) limita transações rápidas simultâneas de dados, gerando bufferbloat crítico sob carga.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-xl" style={{ background: "var(--bg-surface-muted)", border: "1px solid var(--border)" }}>
-            <div className="flex items-center gap-2 text-[var(--success)] font-semibold mb-2">
-              <Wifi className="w-4 h-4" />
-              <span>Saturação 2.4 GHz</span>
-            </div>
-            <p className="text-[var(--text-secondary)] leading-relaxed text-[11px]">
-              O espectro de 2.4 GHz permanece saturado nas grandes metrópoles devido ao auto-overlapping de canais Wi-Fi de terceiros (especialmente canais 1, 6 e 11).
-            </p>
-          </div>
-
-          <div className="p-4 rounded-xl" style={{ background: "var(--bg-surface-muted)", border: "1px solid var(--border)" }}>
-            <div className="flex items-center gap-2 text-amber-400 font-semibold mb-2">
-              <ZapOff className="w-4 h-4" />
-              <span>Bufferbloat Crítico</span>
-            </div>
-            <p className="text-[var(--text-secondary)] leading-relaxed text-[11px]">
-              Durante picos de transmissão simultânea, modens antigos de banda larga ADSL/Cabo incham as filas locais de buffering de rede antes de descartar pacotes, elevando pings de 12ms até 450ms.
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );
