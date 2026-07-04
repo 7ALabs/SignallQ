@@ -98,6 +98,29 @@ Worker Cloudflare: quando houver mudancas em `integrations/cloudflare/ai-diagnos
 
 ---
 
+## Disciplina de Branches e PRs
+
+Motivo: em 2026-07-04 uma auditoria encontrou 69+ branches locais acumuladas (worktrees orfas, branches mergeadas nunca apagadas, trabalho commitado mas nunca pushado, PRs nunca abertas). Isso NAO pode se repetir. Todo agente (Camilo, Renan, Felipe, Lia via Miro/handoff, Gema, Claudete) segue esta disciplina sem excecao:
+
+**Ao terminar qualquer trabalho em uma branch (mesmo pequeno, mesmo WIP):**
+1. Commitar (nunca deixar mudanca sem commit ao encerrar a sessao/tarefa).
+2. Fazer `git push -u origin <branch>` imediatamente apos o commit -- nunca deixar trabalho so local.
+3. Se o trabalho esta pronto: abrir PR na hora (pequeno/medio nao precisa aprovacao previa, conforme `Autonomia dos Agentes`).
+4. Se o trabalho NAO esta pronto (WIP, bloqueado, pausado): push mesmo assim, e registrar o motivo no titulo do commit ou numa task/issue -- branch local sem push e a causa raiz do problema.
+
+**Ao finalizar uma worktree (fim de sessao de agente paralelo, fim de task):**
+1. Verificar `git status` -- se houver mudanca nao commitada, commitar e dar push ANTES de remover a worktree.
+2. Nunca rodar `git worktree remove --force` sem antes confirmar que nao ha `git status` sujo (a menos que o conteudo ja esteja confirmado identico a main).
+3. Apagar a branch local (`git branch -d`) so depois do push confirmado, e so se ja estiver mergeada OU explicitamente abandonada por decisao registrada.
+
+**PR aberta que fica esquecida:**
+- PR sem review/merge por mais de 7 dias -- Claudete cobra na Review de Bloqueios.
+- Branch com commits mas sem PR aberta ha mais de 3 dias -- abrir PR (mesmo rascunho) em vez de deixar so local/remota sem review.
+
+**Higiene periodica:** rodar a skill `higiene` (secao Branches e worktrees) pelo menos uma vez por semana ou sempre que houver uso de worktrees em paralelo. Antes de apagar qualquer branch nao obviamente mergeada, verificar por diff direto (`git diff main..branch`) se o conteudo ja esta em main por outro caminho -- nunca decidir por nome ou por suposicao.
+
+---
+
 ## Autonomia dos Agentes
 
 ### Pode fazer sem aprovacao do Luiz
