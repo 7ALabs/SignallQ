@@ -304,7 +304,7 @@
     <string name="sinal_ip">IP: %1$s</string>
 
     <!-- Ajustes (SIG-238) -->
-    <string name="ajustes_titulo">Configurações</string>
+    <string name="ajustes_titulo">Ajustes</string>
     <string name="ajustes_btn_confirmar">Confirmar</string>
     <string name="ajustes_btn_ignorar">Ignorar</string>
     <string name="ajustes_perfil_titulo">Meu perfil</string>

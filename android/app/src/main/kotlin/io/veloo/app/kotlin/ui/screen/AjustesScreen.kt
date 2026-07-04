@@ -685,11 +685,7 @@ fun AjustesScreen(
             HorizontalDivider(color = c.border, thickness = 1.dp)
             InfoRow(c, "Plataforma", "Android · Kotlin + Compose")
             HorizontalDivider(color = c.border, thickness = 1.dp)
-            InfoRow(c, "Central de medição", "Cloudflare speed.cf.com")
-            HorizontalDivider(color = c.border, thickness = 1.dp)
             InfoRow(c, "Desenvolvido por", "Equipe SignallQ")
-            HorizontalDivider(color = c.border, thickness = 1.dp)
-            InfoRow(c, "Código", "Kotlin · Jetpack Compose")
             HorizontalDivider(color = c.border, thickness = 1.dp)
             InfoRow(c, "Suporte", "suporte@signallq.app")
         }
