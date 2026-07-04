@@ -531,6 +531,46 @@ Série temporal de tokens por provedor por dia.
 
 ---
 
+### GET /admin/metrics/ai-usage/records
+
+Histórico de execuções individuais de IA (GH#421) — cada item é uma linha real
+de `ai_usage`, correlacionada com `diagnostic_sessions` via `session_id` quando
+existir. Substitui a tabela mockada/vazia da aba "IA & Custo".
+
+**Parâmetros:** `period` (padrão `7d`), `environment`, `limit` (1–500, padrão 100)
+
+**Response 200:**
+```json
+{
+  "source": "d1",
+  "period": "7d",
+  "environment": "production",
+  "records": [
+    {
+      "id": "a1b2c3d4-...",
+      "timestamp": "2026-07-04T13:20:05.000Z",
+      "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+      "provider": "Qwen / Workers AI",
+      "promptTokens": 812,
+      "completionTokens": 305,
+      "costUsd": 0,
+      "status": "success",
+      "errorMessage": null,
+      "diagnosisId": "diag_8f3d1e90",
+      "environment": "production"
+    }
+  ]
+}
+```
+
+Sem campo de latência: o schema de `ai_usage` não registra tempo de resposta —
+não é inventado no worker nem no frontend. `status`/`errorMessage` dependem da
+migration `009_gh421.sql`; registros anteriores a ela assumem `status: "success"`
+(default da coluna), já que o app hoje só grava `ai_usage` ao final de uma
+chamada concluída.
+
+---
+
 ### GET /admin/metrics/operators
 
 Métricas de diagnóstico agrupadas por operadora de telecomunicações.
@@ -799,11 +839,16 @@ Persiste um registro de uso de IA. Autenticação: `Authorization: Bearer <INGES
   "total_tokens": 1700,
   "cost_usd": 0.0,
   "environment": "production",
-  "version_code": 52
+  "version_code": 52,
+  "status": "success",
+  "error_message": ""
 }
 ```
 
 **Campos obrigatórios:** `id`, `model`. `cost_usd` é calculado pelo worker se ausente (via `costForModel()`).
+**GH#421:** `status` (`"success"` | `"error"`, default `"success"`) e `error_message`/`error`
+(opcional) — permite ao painel auditar falhas de inferência por execução, não só
+custo agregado. Requer migration `009_gh421.sql` para as colunas existirem no D1.
 
 **Response 201:**
 ```json
@@ -889,6 +934,8 @@ Todos os erros seguem o schema:
 | `cost_usd` | REAL | Custo calculado pelo worker |
 | `environment` | TEXT | — |
 | `version_code` | INTEGER | — |
+| `status` | TEXT | `success` \| `error`. Default `success` (GH#421, migration `009_gh421.sql`) |
+| `error_message` | TEXT | Mensagem de erro quando `status = 'error'`; vazio caso contrário |
 
 ### Tabela `admin_settings`
 
