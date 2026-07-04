@@ -37,6 +37,8 @@ const PHASE_PROGRESS: Record<SpeedtestPhase, number> = {
   [SpeedtestPhase.Canceled]: 0,
 };
 
+const PHASE_ORDER = [SpeedtestPhase.Latency, SpeedtestPhase.Download, SpeedtestPhase.Upload];
+
 function stepStatus(current: SpeedtestPhase, target: SpeedtestPhase, order: SpeedtestPhase[]): 'done' | 'active' | 'pending' {
   const currentIndex = order.indexOf(current);
   const targetIndex = order.indexOf(target);
@@ -47,11 +49,10 @@ function stepStatus(current: SpeedtestPhase, target: SpeedtestPhase, order: Spee
 
 export function SpeedTestScreen({ onCancel, progress, status }: SpeedTestScreenProps) {
   const phase = progress?.phase ?? SpeedtestPhase.Idle;
-  const order = [SpeedtestPhase.Latency, SpeedtestPhase.Download, SpeedtestPhase.Upload];
   const steps: StepTrackerItem[] = [
-    { icon: 'check_circle', key: 'latency', label: 'Latência', status: stepStatus(phase, SpeedtestPhase.Latency, order) },
-    { icon: 'download', key: 'download', label: 'Download', status: stepStatus(phase, SpeedtestPhase.Download, order) },
-    { icon: 'upload', key: 'upload', label: 'Upload', status: stepStatus(phase, SpeedtestPhase.Upload, order) },
+    { icon: 'check_circle', key: 'latency', label: 'Latência', status: stepStatus(phase, SpeedtestPhase.Latency, PHASE_ORDER) },
+    { icon: 'download', key: 'download', label: 'Download', status: stepStatus(phase, SpeedtestPhase.Download, PHASE_ORDER) },
+    { icon: 'upload', key: 'upload', label: 'Upload', status: stepStatus(phase, SpeedtestPhase.Upload, PHASE_ORDER) },
   ];
 
   return (
@@ -75,15 +76,15 @@ export function SpeedTestScreen({ onCancel, progress, status }: SpeedTestScreenP
       maxWidth={700}
     >
       <div className="sq-speedtest-screen">
-        <span className="overline sq-speedtest-screen__status" style={{ color: 'var(--accent)' }}>
+        <h1 className="overline sq-speedtest-screen__status" style={{ color: 'var(--accent)' }}>
           Teste em andamento
-        </span>
+        </h1>
 
         <ProgressRing
           caption={
             <>
               <span className="sq-progress-ring__pulse" />
-              <span className="body-small" style={{ color: 'var(--text-tertiary)' }}>
+              <span className="body-small" style={{ color: 'var(--text-secondary)' }}>
                 {status === 'running' ? 'medindo…' : progress?.message}
               </span>
             </>
@@ -97,8 +98,8 @@ export function SpeedTestScreen({ onCancel, progress, status }: SpeedTestScreenP
 
         <StepTracker items={steps} />
 
-        <span className="body-small" style={{ color: 'var(--text-tertiary)' }}>
-          A latência (ping) é medida por requisição HTTP, não por ping ICMP.
+        <span className="body-small" style={{ color: 'var(--text-secondary)' }}>
+          Continue nesta aba até o fim — leva menos de um minuto.
         </span>
       </div>
     </AppShell>

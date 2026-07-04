@@ -1,6 +1,7 @@
-import { ReactNode } from 'react';
+import { ReactNode, memo } from 'react';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { QualityBadge } from '../QualityBadge';
-import type { QualityLevel } from '../../tokens/colors';
+import type { QualityLevel } from '../../types';
 import { Icon } from '../Icon';
 
 export interface HistoryTableRow {
@@ -19,7 +20,31 @@ export interface HistoryTableProps {
   trailing?: (row: HistoryTableRow) => ReactNode;
 }
 
-export function HistoryTable({ onOpen, rows, trailing }: HistoryTableProps) {
+function HistoryTableComponent({ onOpen, rows, trailing }: HistoryTableProps) {
+  const isMobile = useMediaQuery('(max-width: 860px)');
+
+  if (isMobile) {
+    return (
+      <div className="sq-history-table">
+        <div className="sq-history-cards">
+          {rows.map((row) => (
+            <button className="sq-history-card" key={row.id} onClick={() => onOpen(row.id)} type="button">
+              <div className="sq-history-card__top">
+                <span className="sq-history-card__date">{row.dateLabel}</span>
+                <QualityBadge label={row.qualityLabel} level={row.qualityLevel} />
+              </div>
+              <div className="sq-history-card__bottom">
+                <span className="sq-history-card__download">{row.downloadLabel}</span>
+                <span className="body-small">{row.latencyLabel}</span>
+                <span className={`body-small sq-history-table__cell--${row.qualityLevel}`}>{row.stabilityLabel}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="sq-history-table">
       <div className="sq-history-table__head">
@@ -40,22 +65,8 @@ export function HistoryTable({ onOpen, rows, trailing }: HistoryTableProps) {
           {trailing ? trailing(row) : <Icon name="chevron_right" size={20} />}
         </button>
       ))}
-
-      <div className="sq-history-cards">
-        {rows.map((row) => (
-          <button className="sq-history-card" key={row.id} onClick={() => onOpen(row.id)} type="button">
-            <div className="sq-history-card__top">
-              <span className="sq-history-card__date">{row.dateLabel}</span>
-              <QualityBadge label={row.qualityLabel} level={row.qualityLevel} />
-            </div>
-            <div className="sq-history-card__bottom">
-              <span className="sq-history-card__download">{row.downloadLabel}</span>
-              <span className="body-small">{row.latencyLabel}</span>
-              <span className={`body-small sq-history-table__cell--${row.qualityLevel}`}>{row.stabilityLabel}</span>
-            </div>
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
+
+export const HistoryTable = memo(HistoryTableComponent);

@@ -18,13 +18,15 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
       maxWidth={820}
     >
       <div className="sq-about-screen">
+        <h1 className="sq-visually-hidden">Sobre o SignallQ</h1>
+
         <p className="body-large sq-about-screen__intro">
           Este teste mede a experiência da sua conexão pelo navegador e explica, em linguagem simples, se ela está boa, lenta ou
           instável.
         </p>
         <div className="sq-about-screen__grid">
           <AboutInfoCard
-            body="Velocidade de download e upload, ping e jitter — tudo pelo navegador."
+            body="Velocidade de download e upload, ping e jitter — tudo pelo navegador. O ping é medido por requisição HTTP, não pelo ping tradicional (ICMP), então pode variar um pouco do que outros apps mostram."
             color="success"
             icon="speed"
             title="O que medimos"
@@ -35,18 +37,14 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
             icon="block"
             title="O que não medimos"
           />
-          <AboutInfoCard
-            body="O histórico fica salvo apenas neste navegador. O app funciona sem cadastro e não pede senha."
-            color="accent"
-            icon="lock"
-            title="Seus dados"
-          />
-          <AboutInfoCard
-            body="Podemos enviar métricas estruturadas — sem dados pessoais — para gerar um diagnóstico mais claro."
-            color="accent"
-            icon="auto_awesome"
-            title="Se a IA for usada"
-          />
+          <div className="sq-about-screen__grid-item--wide">
+            <AboutInfoCard
+              body="O histórico fica salvo apenas neste navegador — sem cadastro, sem senha. Se a IA for usada para o diagnóstico, enviamos apenas métricas estruturadas, nunca dados pessoais."
+              color="accent"
+              icon="lock"
+              title="Seus dados e privacidade"
+            />
+          </div>
         </div>
       </div>
     </AppShell>

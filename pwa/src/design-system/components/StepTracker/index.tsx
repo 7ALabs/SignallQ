@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Icon } from '../Icon';
 
 export type StepStatus = 'done' | 'active' | 'pending';
@@ -14,7 +15,7 @@ export interface StepTrackerProps {
   items: StepTrackerItem[];
 }
 
-export function StepTracker({ items }: StepTrackerProps) {
+function StepTrackerComponent({ items }: StepTrackerProps) {
   return (
     <div className="sq-step-tracker">
       {items.map((item) => (
@@ -29,3 +30,5 @@ export function StepTracker({ items }: StepTrackerProps) {
     </div>
   );
 }
+
+export const StepTracker = memo(StepTrackerComponent);

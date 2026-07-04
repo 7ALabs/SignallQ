@@ -1,5 +1,4 @@
 export * from './AboutInfoCard';
-export * from './ActionCard';
 export * from './AppShell';
 export * from './Button';
 export * from './Card';
@@ -11,7 +10,6 @@ export * from './ProgressRing';
 export * from './QualityBadge';
 export * from './RecommendationList';
 export * from './SettingsMenuItem';
-export * from './SpeedHeroCard';
 export * from './StatusCard';
 export * from './StepTracker';
 export * from './TopAppBar';

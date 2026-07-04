@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DiagnosisResult, HistoryEntry, SpeedTestResult } from '@shared/contracts';
 import { ThemeProvider } from '@/design-system';
 import { buildAdminDiagnosticPayload } from '@/features/diagnosis/adminIngestPayload';
@@ -29,6 +29,7 @@ import {
 } from '@/shared/pwa/installPrompt';
 import { historyRepository } from '@/shared/storage/historyRepository';
 import { preferencesRepository, type ThemePreference } from '@/shared/storage/preferencesRepository';
+import { qualityLabel, qualityLevelFromQuality } from '@/shared/verdict';
 
 export type AppRoute =
   | { kind: 'landing' }
@@ -318,6 +319,19 @@ export function App() {
     />
   ) : null;
 
+  const latest: HomeScreenLatestResult | null = useMemo(() => {
+    const source = result && diagnosis ? { createdAt: new Date().toISOString(), diagnosis, speedTest: result } : historyState.entries[0];
+    if (!source) return null;
+    return {
+      dateLabel: new Date(source.createdAt).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      downloadLabel: source.speedTest.download.mbps != null ? `${source.speedTest.download.mbps.toFixed(0)} Mbps` : '--',
+      latencyLabel: source.speedTest.latency.ms != null ? `${source.speedTest.latency.ms} ms` : '--',
+      qualityLabel: qualityLabel(source.diagnosis.quality),
+      qualityLevel: qualityLevelFromQuality(source.diagnosis.quality),
+      uploadLabel: source.speedTest.upload.mbps != null ? `${source.speedTest.upload.mbps.toFixed(0)} Mbps` : '--',
+    };
+  }, [result, diagnosis, historyState.entries]);
+
   if (route.kind === 'landing') {
     return (
       <ThemeProvider mode={themeMode}>
@@ -406,21 +420,6 @@ export function App() {
       </ThemeProvider>
     );
   }
-
-  const latest: HomeScreenLatestResult | null = (() => {
-    const source = result && diagnosis ? { createdAt: new Date().toISOString(), diagnosis, speedTest: result } : historyState.entries[0];
-    if (!source) return null;
-    const level = source.diagnosis.quality === 'good' ? 'good' : source.diagnosis.quality === 'attention' ? 'fair' : source.diagnosis.quality === 'bad' ? 'poor' : 'unknown';
-    const label = source.diagnosis.quality === 'good' ? 'Bom' : source.diagnosis.quality === 'attention' ? 'Atenção' : source.diagnosis.quality === 'bad' ? 'Ruim' : 'Inconclusivo';
-    return {
-      dateLabel: new Date(source.createdAt).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      downloadLabel: source.speedTest.download.mbps != null ? `${source.speedTest.download.mbps.toFixed(0)} Mbps` : '--',
-      latencyLabel: source.speedTest.latency.ms != null ? `${source.speedTest.latency.ms} ms` : '--',
-      qualityLabel: label,
-      qualityLevel: level,
-      uploadLabel: source.speedTest.upload.mbps != null ? `${source.speedTest.upload.mbps.toFixed(0)} Mbps` : '--',
-    };
-  })();
 
   return (
     <ThemeProvider mode={themeMode}>

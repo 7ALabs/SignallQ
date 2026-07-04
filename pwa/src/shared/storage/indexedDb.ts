@@ -47,6 +47,41 @@ export function openIndexedDb(config: IndexedDbConfig): Promise<IDBDatabase> {
   });
 }
 
+export function runIndexCursorRead<T>(
+  openDatabase: () => Promise<IDBDatabase>,
+  storeName: string,
+  indexName: string,
+  direction: IDBCursorDirection,
+  limit?: number,
+): Promise<T[]> {
+  return openDatabase().then(
+    (db) =>
+      new Promise<T[]>((resolve, reject) => {
+        const results: T[] = [];
+        const transaction = db.transaction(storeName, 'readonly');
+        const request = transaction.objectStore(storeName).index(indexName).openCursor(null, direction);
+
+        request.onsuccess = () => {
+          const cursor = request.result;
+          if (cursor && (limit == null || results.length < limit)) {
+            results.push(cursor.value as T);
+            cursor.continue();
+          }
+        };
+        request.onerror = () => reject(createStorageError('Falha ao acessar armazenamento local.', request.error));
+
+        transaction.oncomplete = () => {
+          db.close();
+          resolve(results);
+        };
+        transaction.onerror = () => {
+          db.close();
+          reject(createStorageError('Falha na transação do armazenamento local.', transaction.error));
+        };
+      }),
+  );
+}
+
 export function runObjectStoreOperation<T>(
   openDatabase: () => Promise<IDBDatabase>,
   storeName: string,

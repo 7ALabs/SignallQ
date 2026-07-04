@@ -1,5 +1,5 @@
 import type { HistoryEntry, HistoryRepository } from '@shared/contracts';
-import { createStorageError, openIndexedDb, runObjectStoreOperation } from './indexedDb';
+import { createStorageError, openIndexedDb, runIndexCursorRead, runObjectStoreOperation } from './indexedDb';
 
 export const HISTORY_DB_NAME = 'signallq-pwa';
 export const HISTORY_DB_VERSION = 1;
@@ -38,8 +38,9 @@ export function createHistoryRepository(openDatabase: () => Promise<IDBDatabase>
     },
 
     async list() {
-      const entries = (await runStoreOperation<HistoryEntry[]>('readonly', (store) => store.getAll())) ?? [];
-      return entries.sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+      return runIndexCursorRead<HistoryEntry>(openDatabase, STORE_NAME, 'createdAt', 'prev').catch((error) => {
+        throw createStorageError('Falha no histórico local.', error);
+      });
     },
 
     async getById(id) {

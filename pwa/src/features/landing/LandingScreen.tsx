@@ -34,7 +34,7 @@ export function LandingScreen({ onOpenAbout, onStartTest }: LandingScreenProps) 
         </p>
         <div className="sq-landing__server-pill">
           <Icon name="dns" size={15} />
-          <span>Servidor estimado · via navegador</span>
+          <span>Medição direta pelo navegador</span>
         </div>
         <button className="sq-landing__cta" onClick={onStartTest} type="button">
           <Icon name="play_arrow" size={34} />

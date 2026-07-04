@@ -1,5 +1,5 @@
-import { AppShell, Button, Icon, QualityBadge, TopAppBar } from '@/design-system';
-import type { QualityLevel } from '@/design-system/tokens/colors';
+import { AppShell, Icon, QualityBadge, TopAppBar } from '@/design-system';
+import type { QualityLevel } from '@/design-system/types';
 
 export interface HomeScreenLatestResult {
   dateLabel: string;
@@ -31,11 +31,6 @@ export function HomeScreen({ historyCount, latest, onOpenAbout, onOpenHistory, o
     <AppShell
       header={
         <TopAppBar
-          actions={
-            <Button icon={<Icon name="history" size={16} />} onClick={onOpenHistory} variant="outline">
-              Histórico
-            </Button>
-          }
           activeHref="#/home"
           mobileAction={
             <button aria-label="Ajustes" className="sq-icon-button" onClick={onOpenSettings} type="button">
@@ -49,6 +44,8 @@ export function HomeScreen({ historyCount, latest, onOpenAbout, onOpenHistory, o
       maxWidth={600}
     >
       <div className="sq-home-screen">
+        <h1 className="sq-visually-hidden">Início</h1>
+
         <div className="sq-home-screen__server-pill">
           <Icon name="dns" size={16} />
           <span>Medição direta pelo navegador</span>
@@ -95,7 +92,9 @@ export function HomeScreen({ historyCount, latest, onOpenAbout, onOpenHistory, o
           </span>
           <span className="sq-home-screen__action-row-text">
             <strong>Histórico</strong>
-            <span className="body-small">{historyCount} teste(s) salvos</span>
+            <span className="body-small">
+              {historyCount} {historyCount === 1 ? 'teste salvo' : 'testes salvos'}
+            </span>
           </span>
           <Icon name="chevron_right" size={19} />
         </button>

@@ -1,4 +1,4 @@
-import { QualityLevel } from '../../tokens/colors';
+import { QualityLevel } from '../../types';
 import { Icon } from '../Icon';
 
 const LEVEL_ICON: Record<QualityLevel, string> = {

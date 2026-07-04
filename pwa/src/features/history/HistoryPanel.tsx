@@ -1,6 +1,7 @@
+import { useMemo } from 'react';
 import { AppShell, Button, HistoryTable, Icon, TopAppBar } from '@/design-system';
 import type { HistoryTableRow } from '@/design-system';
-import type { QualityLevel } from '@/design-system/tokens/colors';
+import { qualityLabel, qualityLevelFromQuality, stabilityLabel } from '@/shared/verdict';
 import type { HistoryState } from './historyTypes';
 
 interface HistoryPanelProps {
@@ -18,53 +19,20 @@ const NAV_ITEMS = [
   { href: '#/sobre', label: 'Sobre' },
 ];
 
-function qualityLevel(quality: string): QualityLevel {
-  switch (quality) {
-    case 'good':
-      return 'good';
-    case 'attention':
-      return 'fair';
-    case 'bad':
-      return 'poor';
-    default:
-      return 'unknown';
-  }
-}
-
-function qualityLabel(quality: string): string {
-  switch (quality) {
-    case 'good':
-      return 'Bom';
-    case 'attention':
-      return 'Atenção';
-    case 'bad':
-      return 'Ruim';
-    default:
-      return 'Inconclusivo';
-  }
-}
-
-function stabilityLabel(stability: string): string {
-  switch (stability) {
-    case 'stable':
-      return 'Estável';
-    case 'unstable':
-      return 'Instável';
-    default:
-      return 'Não medida';
-  }
-}
-
 export function HistoryPanel({ onBack, onClear, onOpenEntry, onStartTest, state }: HistoryPanelProps) {
-  const rows: HistoryTableRow[] = state.entries.map((entry) => ({
-    dateLabel: new Date(entry.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
-    downloadLabel: entry.speedTest.download.mbps != null ? `${entry.speedTest.download.mbps.toFixed(0)} Mbps` : '--',
-    id: entry.id,
-    latencyLabel: entry.speedTest.latency.ms != null ? `${entry.speedTest.latency.ms} ms` : '--',
-    qualityLabel: qualityLabel(entry.diagnosis.quality),
-    qualityLevel: qualityLevel(entry.diagnosis.quality),
-    stabilityLabel: stabilityLabel(entry.diagnosis.stability),
-  }));
+  const rows: HistoryTableRow[] = useMemo(
+    () =>
+      state.entries.map((entry) => ({
+        dateLabel: new Date(entry.createdAt).toLocaleString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
+        downloadLabel: entry.speedTest.download.mbps != null ? `${entry.speedTest.download.mbps.toFixed(0)} Mbps` : '--',
+        id: entry.id,
+        latencyLabel: entry.speedTest.latency.ms != null ? `${entry.speedTest.latency.ms} ms` : '--',
+        qualityLabel: qualityLabel(entry.diagnosis.quality),
+        qualityLevel: qualityLevelFromQuality(entry.diagnosis.quality),
+        stabilityLabel: stabilityLabel(entry.diagnosis.stability),
+      })),
+    [state.entries],
+  );
 
   return (
     <AppShell
@@ -90,17 +58,19 @@ export function HistoryPanel({ onBack, onClear, onOpenEntry, onStartTest, state 
       maxWidth={920}
     >
       <section aria-label="Histórico local" className="sq-history-screen">
-        {state.status === 'loading' ? <p aria-live="polite" className="history-panel__message">Carregando histórico local...</p> : null}
+        <h1 className="sq-visually-hidden">Histórico</h1>
+
+        {state.status === 'loading' ? <p aria-live="polite" className="sq-history-panel__message">Carregando histórico local...</p> : null}
 
         {state.status === 'error' ? (
-          <div className="history-panel__message history-panel__message--error" role="alert">
+          <div className="sq-history-panel__message sq-history-panel__message--error" role="alert">
             <strong>Histórico indisponível</strong>
             <p>{state.error}</p>
           </div>
         ) : null}
 
         {state.status === 'empty' || (state.status === 'idle' && state.entries.length === 0) ? (
-          <div className="history-panel__message">
+          <div className="sq-history-panel__message">
             <strong>Nenhuma medição salva ainda</strong>
             <p>Faça um teste para criar o primeiro laudo local neste navegador.</p>
             {onStartTest ? (
@@ -113,7 +83,9 @@ export function HistoryPanel({ onBack, onClear, onOpenEntry, onStartTest, state 
 
         {rows.length > 0 ? (
           <>
-            <h2 className="sq-history-screen__title">{rows.length} teste(s) salvos</h2>
+            <h2 className="sq-history-screen__title">
+              {rows.length} {rows.length === 1 ? 'teste salvo' : 'testes salvos'}
+            </h2>
             <HistoryTable onOpen={onOpenEntry} rows={rows} />
           </>
         ) : null}

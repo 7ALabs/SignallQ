@@ -24,6 +24,8 @@ export function SettingsPanel({ historyCount, onBack, onClearHistory, onOpenAbou
       maxWidth={680}
     >
       <div className="sq-settings-screen">
+      <h1 className="sq-visually-hidden">Ajustes</h1>
+
       <div className="sq-settings-section">
         <span className="overline">Aparência</span>
         <div className="sq-settings-card sq-settings-card--row">
@@ -36,18 +38,22 @@ export function SettingsPanel({ historyCount, onBack, onClearHistory, onOpenAbou
               <p className="body-small">Escolha como o SignallQ aparece neste navegador.</p>
             </div>
           </div>
-          <div className="sq-segmented-control">
+          <div aria-label="Tema" className="sq-segmented-control" role="radiogroup">
             <button
+              aria-checked={themeMode === 'light'}
               className={themeMode === 'light' ? 'sq-segmented-control__option sq-segmented-control__option--active' : 'sq-segmented-control__option'}
               onClick={() => setThemeMode('light')}
+              role="radio"
               type="button"
             >
               <Icon name="light_mode" size={16} />
               Claro
             </button>
             <button
+              aria-checked={themeMode === 'dark'}
               className={themeMode === 'dark' ? 'sq-segmented-control__option sq-segmented-control__option--active' : 'sq-segmented-control__option'}
               onClick={() => setThemeMode('dark')}
+              role="radio"
               type="button"
             >
               <Icon name="dark_mode" size={16} />
@@ -66,7 +72,9 @@ export function SettingsPanel({ historyCount, onBack, onClearHistory, onOpenAbou
             </span>
             <div>
               <strong>Limpar histórico</strong>
-              <p className="body-small">Remove os {historyCount} testes salvos neste navegador. Pede confirmação.</p>
+              <p className="body-small">
+                Remove {historyCount === 1 ? 'o teste salvo' : `os ${historyCount} testes salvos`} neste navegador.
+              </p>
             </div>
           </div>
           <Button disabled={historyCount === 0} onClick={onClearHistory} variant="danger-outline">
@@ -85,7 +93,7 @@ export function SettingsPanel({ historyCount, onBack, onClearHistory, onOpenAbou
             iconName="sell"
             label="Versão do app"
             showChevron={false}
-            trailing={<span className="body-small">1.0.0 · web</span>}
+            trailing={<span className="body-small">{__APP_VERSION__} · web</span>}
           />
         </div>
       </div>
