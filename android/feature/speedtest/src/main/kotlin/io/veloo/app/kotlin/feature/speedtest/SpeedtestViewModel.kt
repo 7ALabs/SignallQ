@@ -1,4 +1,4 @@
-﻿package io.signallq.app.feature.speedtest
+package io.signallq.app.feature.speedtest
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -70,6 +70,8 @@ class SpeedtestViewModel
                 }
                 try {
                     executarSpeedtest(modo)
+                } catch (t: Throwable) {
+                    Timber.e(t, "$LOG_TAG: erro ao executar speedtest modo=${modo.name}")
                 } finally {
                     acumularMbConsumidos(modo)
                     onSpeedtestConcluido?.invoke()
@@ -84,6 +86,8 @@ class SpeedtestViewModel
             viewModelScope.launch {
                 try {
                     executarSpeedtest(modo)
+                } catch (t: Throwable) {
+                    Timber.e(t, "$LOG_TAG: erro ao confirmar speedtest em rede movel modo=${modo.name}")
                 } finally {
                     acumularMbConsumidos(modo)
                     onSpeedtestConcluido?.invoke()
