@@ -202,7 +202,21 @@ fun AjustesScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text(stringResource(R.string.ajustes_titulo), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Outlined.Settings,
+                            contentDescription = null,
+                            tint = c.textPrimary,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(LkSpacing.xs))
+                        Text(
+                            stringResource(R.string.ajustes_titulo),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.W600,
+                            color = c.textPrimary,
+                        )
+                    }
                 },
                 navigationIcon = {
                     ProfileAvatarButton(
