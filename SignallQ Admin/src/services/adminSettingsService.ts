@@ -40,18 +40,44 @@ export interface ExtendedSettingsPayload extends AdminSettingsPayload {
   contextualAdsCategories: string[];
 }
 
+// GH#416: defaults operacionais reais do worker (mesmos valores documentados em
+// admin-api-schema.md para GET /admin/settings quando a tabela ainda está vazia).
+// Não é dado simulado — é o que o worker devolveria na primeira execução real.
+const defaultAdminSettings: ExtendedSettingsPayload = {
+  selectedDefaultAiModel: "cloudflare_qwen",
+  aiFallbackEnabled: true,
+  maxTokensPerDiagnostic: 4096,
+  speedtestIntervalSeconds: 1800,
+  androidLogsCollectionEnabled: true,
+  stagingAlertWebhookUrl: "",
+  productionAlertWebhookUrl: "",
+  cloudflareWorkerEndpoint: "",
+  monthlyBudgetUsd: 10,
+  budgetAction: "alert",
+  anonymizeIp: true,
+  retentionDays: 90,
+  firebaseAnalyticsEnabled: true,
+  maxAiTokensUserDaily: 50000,
+  maxSpeedTestDataDailyMb: 500,
+  contextualAdsEnabled: false,
+  contextualAdsCategories: [],
+};
+
 export const adminSettingsService = {
   /**
    * Carrega configurações. Em produção, o worker D1 é a fonte da verdade.
-   * localStorage funciona como cache de sessão para evitar re-fetch em cada render.
+   * localStorage funciona como cache de sessão para evitar re-fetch em cada render,
+   * usado apenas quando o worker é inalcançável (dado real previamente obtido).
    * Mock: retorna dados do initialMockSettings.
+   *
+   * GH#416: nunca retorna dado mockado/fictício em produção. Se o worker falhar e
+   * não houver cache real, propaga o erro — a UI deve exibir estado de "sem dados".
    */
   async getSettings(): Promise<ExtendedSettingsPayload> {
     if (apiClient.isMockEnabled()) {
       return { ...initialMockSettings };
     }
 
-    // Produção: consulta o worker primeiro.
     try {
       const remote = await apiClient.request<{ settings: unknown }>("GET", "/admin/settings");
       if (isValidSettings(remote.settings)) {
@@ -63,11 +89,12 @@ export const adminSettingsService = {
         }
         return remote.settings;
       }
-      // Worker retornou {} (primeira execução) — usa defaults e não grava cache.
+      // Worker respondeu, mas a tabela ainda está vazia (primeira execução real).
+      return { ...defaultAdminSettings };
     } catch (e) {
-      console.warn("Falha ao buscar settings do worker — usando cache local ou padrões.", e);
+      console.warn("Falha ao buscar settings do worker — tentando cache local.", e);
 
-      // Fallback: cache local se o worker estiver inacessível.
+      // Fallback: cache local (dado real já obtido antes) se o worker estiver inacessível.
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
@@ -77,9 +104,10 @@ export const adminSettingsService = {
       } catch {
         // cache corrompido — ignora.
       }
-    }
 
-    return { ...initialMockSettings };
+      // Sem worker e sem cache real: não inventa configuração. A UI decide o estado.
+      throw e;
+    }
   },
 
   async getFeatureFlags(): Promise<FeatureFlag[]> {
