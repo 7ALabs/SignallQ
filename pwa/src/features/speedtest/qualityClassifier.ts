@@ -19,17 +19,21 @@ export interface SpeedTestQuality {
   };
 }
 
+// Thresholds de download/latência/jitter alinhados a `shared/diagnosis.ts` e ao motor
+// Android (InternetDiagnosticEngine + MetricClassifier — GH#438). Não diverja destes
+// números sem atualizar os dois lados: essa duplicação foi exatamente o que causou a
+// divergência original entre PWA e Android.
 export function classifySpeed(downloadMbps: number | null): SpeedQuality {
   if (downloadMbps == null) return 'unknown';
-  if (downloadMbps < 10) return 'slow';
-  if (downloadMbps <= 50) return 'ok';
+  if (downloadMbps < 25) return 'slow';
+  if (downloadMbps < 100) return 'ok';
   return 'fast';
 }
 
 export function classifyStability(latencyMs: number | null, jitterMs: number | null): StabilityQuality {
   if (latencyMs == null && jitterMs == null) return 'unknown';
-  if ((latencyMs != null && latencyMs > 150) || (jitterMs != null && jitterMs > 40)) return 'unstable';
-  if ((latencyMs != null && latencyMs > 60) || (jitterMs != null && jitterMs > 20)) return 'attention';
+  if ((latencyMs != null && latencyMs > 100) || (jitterMs != null && jitterMs > 20)) return 'unstable';
+  if ((latencyMs != null && latencyMs > 60) || (jitterMs != null && jitterMs > 10)) return 'attention';
   return 'stable';
 }
 
