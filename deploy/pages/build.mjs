@@ -15,7 +15,7 @@
 //     _headers      (copiado de deploy/pages/_headers)
 
 import { execSync } from 'node:child_process';
-import { cpSync, copyFileSync, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 // GH#443: cada app tem seu proprio _headers/_redirects (usado em preview/deploy
 // standalone). No pacote unificado, so o _headers/_redirects da raiz de
@@ -33,6 +33,14 @@ const outDir = join(here, 'dist');
 function run(cmd, cwd, extraEnv = {}) {
   console.log(`\n$ ${cmd}  (cwd: ${cwd})`);
   execSync(cmd, { cwd, stdio: 'inherit', env: { ...process.env, ...extraEnv } });
+}
+
+// Cloudflare Pages nao processa corretamente _redirects/_headers com CRLF.
+// No Windows, git costuma fazer checkout com CRLF mesmo sem essa intencao —
+// normaliza pra LF na copia em vez de depender de config de git do ambiente.
+function copyNormalizingLineEndings(src, dest) {
+  const content = readFileSync(src, 'utf8').replace(/\r\n/g, '\n');
+  writeFileSync(dest, content, 'utf8');
 }
 
 function requireDist(appDir, label) {
@@ -62,8 +70,8 @@ for (const sub of ['app', 'console']) {
   }
 }
 
-copyFileSync(join(here, '_redirects'), join(outDir, '_redirects'));
-copyFileSync(join(here, '_headers'), join(outDir, '_headers'));
+copyNormalizingLineEndings(join(here, '_redirects'), join(outDir, '_redirects'));
+copyNormalizingLineEndings(join(here, '_headers'), join(outDir, '_headers'));
 
 console.log(`\n[deploy/pages] build unificado pronto em ${outDir}`);
 console.log('[deploy/pages] deploy manual: npx wrangler pages deploy deploy/pages/dist --project-name signallq');
