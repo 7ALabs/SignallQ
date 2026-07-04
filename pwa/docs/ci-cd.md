@@ -4,6 +4,25 @@
 
 Definir o contrato real de validacao, preview e deploy do SignallQ PWA sem misturar pipeline Android e sem prometer Cloudflare pronto quando a conta/projeto ainda nao batem.
 
+## Atualizacao 2026-07-04 (GH#443 / SIG-52)
+
+O deploy de producao deste app **deixou de ser isolado**. O PWA e o Console
+Admin agora sao publicados juntos no mesmo projeto Cloudflare Pages, chamado
+`signallq`, sob rotas explicitas:
+
+```text
+signallq.pages.dev/app       -> este app (pwa/)
+signallq.pages.dev/console   -> SignallQ Admin/
+signallq.pages.dev/          -> redirect 302 para /app
+```
+
+Fonte de verdade dessa configuracao: `deploy/pages/` (build script, wrangler
+config, `_headers`, `_redirects`) e `deploy/pages/README.md`. O restante
+deste documento descreve o pipeline de validacao (`pwa-ci.yml`), que
+continua existindo e restrito a `pwa/**`, mas o job antigo de deploy
+standalone (`cloudflare-pages` publicando em `signallq-pwa`) foi removido —
+ver `.github/workflows/pages-deploy.yml`.
+
 ## Estado atual em 2026-06-30
 
 Ja existe workflow em `.github/workflows/pwa-ci.yml` com gatilho restrito a `pwa/**` e ao proprio workflow.

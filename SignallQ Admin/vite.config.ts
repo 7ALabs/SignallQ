@@ -24,10 +24,16 @@ function assertProductionConfig(mode: string, envDir: string) {
   }
 }
 
+// GH#443: o Console passou a ser publicado sob /console no mesmo projeto Cloudflare
+// Pages do WebApp. VITE_BASE_PATH permite gerar o build com o prefixo correto sem
+// alterar o dev local (que continua em '/').
+const basePath = process.env.VITE_BASE_PATH || '/';
+
 export default defineConfig(({mode}) => {
   assertProductionConfig(mode, process.cwd());
 
   return {
+    base: basePath,
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

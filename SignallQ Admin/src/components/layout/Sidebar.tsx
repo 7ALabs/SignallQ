@@ -50,9 +50,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   id,
   theme = "dark",
 }) => {
+  // GH#443: caminho relativo ao BASE_URL — o Console pode ser servido em /console
   const logoSrc = theme === "dark"
-    ? "/brand/7agents/logo-light.svg"
-    : "/brand/7agents/logo-dark.svg";
+    ? `${import.meta.env.BASE_URL}brand/7agents/logo-light.svg`
+    : `${import.meta.env.BASE_URL}brand/7agents/logo-dark.svg`;
   return (
     <div
       id={id || "sidebar-container"}

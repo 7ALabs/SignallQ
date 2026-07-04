@@ -52,7 +52,12 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-4">
-            <img src="/icon-192.png" alt="7Agents" className="w-16 h-16 rounded-[8px]" />
+            {/* GH#443: caminho relativo ao BASE_URL — o Console pode ser servido em /console */}
+            <img
+              src={`${import.meta.env.BASE_URL}icon-192.png`}
+              alt="7Agents"
+              className="w-16 h-16 rounded-[8px]"
+            />
           </div>
           <h1
             className="text-xl font-semibold tracking-tight"

@@ -2,14 +2,16 @@
 
 @font-face {
   font-family: "Geist";
-  src: url("/fonts/geist/Geist.woff2") format("woff2");
+  /* GH#443: caminho relativo — assets em public/ com path absoluto nao sao
+     reescritos pelo Vite quando o Console e servido sob /console */
+  src: url("./assets/fonts/geist/Geist.woff2") format("woff2");
   font-weight: 100 900;
   font-display: swap;
 }
 
 @font-face {
   font-family: "Geist Mono";
-  src: url("/fonts/geist-mono/GeistMono.woff2") format("woff2");
+  src: url("./assets/fonts/geist-mono/GeistMono.woff2") format("woff2");
   font-weight: 100 900;
   font-display: swap;
 }

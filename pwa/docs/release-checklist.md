@@ -127,6 +127,16 @@ Quando aplicável:
 - secrets fora do client;
 - redirects/headers documentados.
 
+### Rotas /app e /console (GH#443 / SIG-52)
+
+Produção deste app é publicada sob `/app` no projeto Cloudflare Pages único
+`signallq` (junto com o Console Admin, sob `/console`). Ver
+`deploy/pages/README.md` para o pipeline completo. Ao mexer em manifest,
+service worker ou qualquer referência absoluta a asset em `public/`, validar
+que ela usa `import.meta.env.BASE_URL` (ou caminho relativo, para o
+manifest) em vez de caminho absoluto `/algo` — caminho absoluto quebra
+silenciosamente quando o app é servido em subpath.
+
 ## Checklist antes de produção
 
 - Consolidar evidências em `qa-evidence.md` e `deploy-status.md`.
