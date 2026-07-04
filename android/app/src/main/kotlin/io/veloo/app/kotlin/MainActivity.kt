@@ -286,7 +286,10 @@ class MainActivity : ComponentActivity() {
                                 snapshotDevices = snapshotDevices,
                                 apelidos = apelidos,
                                 onRefreshDispositivos = { viewModel.refreshDispositivos() },
-                                onRefreshSinal = { viewModel.refreshSinal() },
+                                onRefreshSinal = {
+                                    viewModel.refreshSinal()
+                                    analyticsTracker.registrarFeatureUsada("wifi")
+                                },
                                 onSalvarApelido = { mac, apelido -> viewModel.salvarApelido(mac, apelido) },
                             ),
                         diagnostico =
@@ -367,8 +370,14 @@ class MainActivity : ComponentActivity() {
                         modemPermanecerConectado = modemPermanecerConectado,
                         gatewayIpDetectado = gatewayIpDetectado,
                         localizacaoServidor = localizacaoServidorUiState,
-                        onDispararBenchmarkDns = { viewModel.dispararBenchmarkDns() },
-                        onReconectarFibra = { host, user, pass -> viewModel.reconectarFibra(host, user, pass) },
+                        onDispararBenchmarkDns = {
+                            viewModel.dispararBenchmarkDns()
+                            analyticsTracker.registrarFeatureUsada("dns")
+                        },
+                        onReconectarFibra = { host, user, pass ->
+                            viewModel.reconectarFibra(host, user, pass)
+                            analyticsTracker.registrarFeatureUsada("fibra")
+                        },
                         onSalvarConfiguracaoModem = { host, user, pass, perm ->
                             viewModel.salvarConfiguracaoModem(host, user, pass, perm)
                         },
@@ -422,9 +431,15 @@ class MainActivity : ComponentActivity() {
                         onDispensarBannerAnatel = { viewModel.dispensarBannerAnatel() },
                         historicoFiltrado = historicoFiltrado,
                         filtroConexaoHistorico = filtroConexaoHistorico,
-                        onFiltroConexaoHistoricoChange = { viewModel.setFiltroConexaoHistorico(it) },
+                        onFiltroConexaoHistoricoChange = {
+                            viewModel.setFiltroConexaoHistorico(it)
+                            analyticsTracker.registrarFeatureUsada("historico")
+                        },
                         filtroOperadoraHistorico = filtroOperadoraHistorico,
-                        onFiltroOperadoraHistoricoChange = { viewModel.setFiltroOperadoraHistorico(it) },
+                        onFiltroOperadoraHistoricoChange = {
+                            viewModel.setFiltroOperadoraHistorico(it)
+                            analyticsTracker.registrarFeatureUsada("historico")
+                        },
                         operadorasDisponiveisHistorico = operadorasDisponiveisHistorico,
                         onScreenView = { screenName -> analyticsTracker.registrarScreenView(screenName) },
                     )
