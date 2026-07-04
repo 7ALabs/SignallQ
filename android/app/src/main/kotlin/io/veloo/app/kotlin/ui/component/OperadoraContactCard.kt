@@ -59,12 +59,16 @@ fun OperadoraContactCard(
     ) {
         if (operadora != null) {
             // Estado: operadora reconhecida
-            Text(
-                text = stringResource(R.string.operadora_falar_com, operadora.nome),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.W600,
-                color = c.textPrimary,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OperadoraBadge(operadora = operadora, size = 32.dp)
+                Spacer(Modifier.width(LkSpacing.sm))
+                Text(
+                    text = stringResource(R.string.operadora_falar_com, operadora.nome),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.W600,
+                    color = c.textPrimary,
+                )
+            }
             Spacer(Modifier.height(LkSpacing.xs))
             Text(
                 text = stringResource(R.string.operadora_contact_mencione),

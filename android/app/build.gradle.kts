@@ -310,8 +310,7 @@ dependencies {
     ksp(libs.hilt.work.compiler)
     implementation(libs.timber)
     implementation(libs.androidx.profileinstaller)
-    implementation(libs.coil.compose)
-    implementation(libs.coil.network.okhttp)
+    implementation(libs.okhttp)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
