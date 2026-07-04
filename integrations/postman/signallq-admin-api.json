@@ -571,9 +571,9 @@
           "description": "Todas as feature flags (requer sessão admin)"
         },
         {
-          "name": "Update Flags",
+          "name": "Update Flag",
           "request": {
-            "method": "POST",
+            "method": "PUT",
             "header": [
               {
                 "key": "Content-Type",
@@ -582,20 +582,21 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\"flags\": {\"ai_enabled\": true}}"
+              "raw": "{\"enabled\": true}"
             },
             "url": {
-              "raw": "{{baseUrl}}/admin/feature-flags",
+              "raw": "{{baseUrl}}/admin/feature-flags/feature_speedtest",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "admin",
-                "feature-flags"
+                "feature-flags",
+                "feature_speedtest"
               ]
             }
           },
-          "description": "Atualiza feature flags (merge com valores existentes)"
+          "description": "Atualiza o enabled de uma flag na tabela feature_flags (requer sessão admin, grava audit log)"
         }
       ],
       "description": "Endpoints de feature flags - públicos (sem auth) e admin (requer sessão)"
