@@ -14,6 +14,7 @@ export const SettingsPage: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [settings, setSettings] = React.useState<ExtendedSettingsPayload | null>(null);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
   const [saveStatus, setSaveStatus] = React.useState<string | null>(null);
   const [saveError, setSaveError] = React.useState<string | null>(null);
 
@@ -29,20 +30,27 @@ export const SettingsPage: React.FC = () => {
     return () => clearTimeout(id);
   }, [saveError]);
 
-  React.useEffect(() => {
-    async function loadSettings() {
-      setLoading(true);
-      try {
-        const payload = await adminSettingsService.getSettings();
-        setSettings(payload);
-      } catch (e) {
-        console.error("Failed to load settings payload", e);
-      } finally {
-        setLoading(false);
-      }
+  const loadSettings = React.useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const payload = await adminSettingsService.getSettings();
+      setSettings(payload);
+    } catch (e) {
+      console.error("Failed to load settings payload", e);
+      // GH#416: sem dado real (worker fora do ar e sem cache) — não mostra dado inventado.
+      setSettings(null);
+      setLoadError(
+        e instanceof Error ? e.message : "Não foi possível carregar as configurações da Admin API."
+      );
+    } finally {
+      setLoading(false);
     }
-    loadSettings();
   }, []);
+
+  React.useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
 
   const handleUpdate = (updates: Partial<ExtendedSettingsPayload>) => {
     setSaveStatus(null);
@@ -77,19 +85,11 @@ export const SettingsPage: React.FC = () => {
 
   const handleReset = async () => {
     if (window.confirm("Deseja realmente redefinir as configurações para os padrões de fábrica?")) {
-      setLoading(true);
       setSaveStatus(null);
       setSaveError(null);
-      try {
-        localStorage.removeItem("@signallq/admin_settings_v1");
-        const payload = await adminSettingsService.getSettings();
-        setSettings(payload);
-        setSaveStatus("Configurações originais redefinidas com sucesso!");
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
+      localStorage.removeItem("@signallq/admin_settings_v1");
+      await loadSettings();
+      setSaveStatus("Configurações originais redefinidas com sucesso!");
     }
   };
 
@@ -99,8 +99,17 @@ export const SettingsPage: React.FC = () => {
 
   if (!settings) {
     return (
-      <div className="py-20 text-center select-none">
-        <p className="text-sm text-[var(--text-tertiary)]">Erro crítico ao processar o arquivo de configurações persistent.</p>
+      <div className="py-20 text-center select-none space-y-3">
+        <p className="text-sm text-[var(--text-tertiary)]">
+          {loadError ?? "Sem dados: não foi possível carregar as configurações."}
+        </p>
+        <button
+          type="button"
+          onClick={() => loadSettings()}
+          className="text-xs text-[var(--primary)] hover:underline cursor-pointer"
+        >
+          Tentar novamente
+        </button>
       </div>
     );
   }

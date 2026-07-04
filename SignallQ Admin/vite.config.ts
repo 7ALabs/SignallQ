@@ -1,9 +1,32 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import {defineConfig, loadEnv} from 'vite';
 
-export default defineConfig(() => {
+// GH#416: build de producao nao pode sair com mocks habilitados nem sem API real
+// configurada — variavel sobrescrita no dashboard do Pages ja causou isso antes.
+function assertProductionConfig(mode: string, envDir: string) {
+  if (mode !== 'production') return;
+
+  const env = loadEnv(mode, envDir, '');
+  const mocksEnabled = (env.VITE_ENABLE_MOCKS ?? '').toLowerCase() === 'true';
+  const apiBaseUrl = env.VITE_ADMIN_API_BASE_URL ?? '';
+
+  if (mocksEnabled) {
+    throw new Error(
+      '[build:production] VITE_ENABLE_MOCKS=true nao e permitido em build de producao (GH#416).'
+    );
+  }
+  if (!apiBaseUrl.trim()) {
+    throw new Error(
+      '[build:production] VITE_ADMIN_API_BASE_URL vazio em build de producao (GH#416).'
+    );
+  }
+}
+
+export default defineConfig(({mode}) => {
+  assertProductionConfig(mode, process.cwd());
+
   return {
     plugins: [react(), tailwindcss()],
     resolve: {
