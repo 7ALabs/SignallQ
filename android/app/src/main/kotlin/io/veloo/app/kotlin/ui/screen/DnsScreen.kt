@@ -150,8 +150,14 @@ private fun DnsMainContent(
     // ── Bloco 2 — Benchmark ───────────────────────────────────────────────────
     when {
         snapshotDns.estado == EstadoBenchmarkDns.erro -> {
+            val mensagemErro =
+                if (!snapshotRede.conectado || snapshotDns.erroMensagem == "semRede") {
+                    "Sem conexão para comparar DNS."
+                } else {
+                    "Não consegui comparar DNS nesta conexão. Tente novamente quando a rede estabilizar."
+                }
             Text(
-                text = "Não consegui comparar DNS nesta conexão. Tente novamente quando a rede estabilizar.",
+                text = mensagemErro,
                 fontSize = 13.sp,
                 color = LkColors.error,
             )
@@ -224,8 +230,11 @@ private fun DnsBloco1Atual(
 ) {
     val dnsIp = snapshotRede.dnsServidores.firstOrNull()
 
-    // Loading quando ainda não há servidores DNS coletados pelo MonitorRede
-    val isLoading = snapshotRede.dnsServidores.isEmpty()
+    // Loading quando ainda não há servidores DNS coletados pelo MonitorRede.
+    // #378: offline nunca coleta dnsServidores — sem essa checagem o skeleton ficava
+    // girando para sempre em vez de refletir a ausência de conexão.
+    val isLoading = snapshotRede.dnsServidores.isEmpty() && snapshotRede.conectado
+    val semDadosOffline = snapshotRede.dnsServidores.isEmpty() && !snapshotRede.conectado
 
     Box(
         modifier =
@@ -235,7 +244,13 @@ private fun DnsBloco1Atual(
                 .background(c.bgPrimary)
                 .padding(12.dp),
     ) {
-        if (isLoading) {
+        if (semDadosOffline) {
+            Text(
+                "Sem conexão para comparar DNS.",
+                fontSize = 13.sp,
+                color = LkColors.error,
+            )
+        } else if (isLoading) {
             DnsSkeletonBloco1(c = c)
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

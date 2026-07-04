@@ -19,6 +19,7 @@ import {
   QwenCFProvider,
 } from "./providers";
 import type { ProviderResult } from "./providers";
+import { extractJson, stripThinkingTokens } from "./text-parsing.ts";
 
 type Env = {
   AI: any;
@@ -45,8 +46,37 @@ const DEFAULT_MODEL = "@cf/qwen/qwen3-30b-a3b-fp8";
 // SCHEMA versionado do payload de saida; o cliente Kotlin precisa aceitar 1 e 2.
 const SCHEMA_VERSION = "2" as const;
 
+// Versao do prompt/schema de ENTRADA (SIG-282), espelhando o versionamento de
+// AI_PROMPT_VERSION em AiModels.kt (lado Android). Nao confundir com
+// SCHEMA_VERSION acima, que versiona o schema de SAIDA da resposta da IA.
+//
+// Historico de versoes do prompt:
+//   diagnostico_v2          — schema v2 com Llama 3.3 70B como padrao.
+//   diagnostico_v2_gemma4   — troca para Gemma 4 26B como motor padrao.
+//   diagnostico_v3_raw      — payload reformatado: somente dados brutos, IA
+//                             faz toda a analise.
+//   diagnostico_v4_guided   — adiciona achadosLocais (decisao do engine local),
+//                             mas o campo ainda chegava vazio/ausente na
+//                             pratica (Fase 1 do payload real ainda nao tinha
+//                             sido implementada no Android) — regra 18 ficava
+//                             inerte na maior parte das analises.
+//   diagnostico_v5_local_primary (ATUAL) — achadosLocais agora chega de fato
+//                             (Fase 1 em producao) com rttGatewayMs; regra 18
+//                             deixa de ser inerte: confianca >= 0.75 faz o
+//                             motor local ser a decisao primaria, a IA so
+//                             valida/explica. Nova regra 18a: quando o motor
+//                             local (Fases 3a/3b) enviar impacto pronto por
+//                             perfil de uso (aba 9, vocabulario proprio
+//                             OK/Instavel/Comprometido — separado do
+//                             vocabulario canonico de status
+//                             excelente/bom/regular/ruim/critico/inconclusivo),
+//                             a IA narra o valor recebido e nao decide mais o
+//                             campo impacto. CHAT_SYSTEM_PROMPT e a rota de
+//                             chat estao fora de escopo desta versao.
+const AI_PROMPT_VERSION = "diagnostico_v5_local_primary" as const;
+
 const SYSTEM_PROMPT = `Você é o motor de diagnóstico inteligente do app SignallQ, especializado em conexões de internet doméstica no Brasil.
-Você recebe dados brutos coletados pelo app (métricas numéricas, contexto de rede sem rótulos, histórico de medições, opcionalmente feedback do usuário). Quando o campo "achadosLocais" estiver presente no payload, ele contém a conclusão do motor determinístico local — use-o como ponto de partida, valide contra as métricas e explique em linguagem clara. Quando "achadosLocais" estiver ausente, toda a análise é sua.
+Você recebe dados brutos coletados pelo app (métricas numéricas, contexto de rede sem rótulos, histórico de medições, opcionalmente feedback do usuário). Quando o campo "achadosLocais" estiver presente no payload, ele contém a conclusão do motor determinístico local — use-o como decisão primária (regra 18), valide contra as métricas e explique em linguagem clara. Quando "achadosLocais" estiver ausente, toda a análise é sua.
 REGRAS INVIOLÁVEIS:
 1. Responda exclusivamente em JSON válido, seguindo o schema informado. Não use markdown, não explique fora do JSON e não adicione texto antes ou depois.
 2. Nunca invente dados. Use apenas métricas e contexto brutos presentes no JSON recebido. Não há análise local, classificação prévia nem rótulos no payload — você cria toda a análise.
@@ -70,7 +100,7 @@ REGRAS INVIOLÁVEIS:
    - repetir em outro horário;
    - verificar dispositivos consumindo banda;
    - avaliar roteador, sinal Wi-Fi ou canal.
-11. O impacto por uso deve refletir apenas o que os dados indicam. Não diga que jogos terão alta latência se a latência medida estiver boa. Não diga que streaming está comprometido se a velocidade estiver boa e não houver perda/jitter relevante.
+11. O impacto por uso deve refletir apenas o que os dados indicam. Não diga que jogos terão alta latência se a latência medida estiver boa. Não diga que streaming está comprometido se a velocidade estiver boa e não houver perda/jitter relevante. Exceção: quando o payload trouxer impacto por perfil já pronto do motor local, siga a regra 18a em vez desta (narrar, não decidir).
 12. Quando houver histórico de 7 ou 30 dias, use esse histórico obrigatoriamente no resumo, no laudo e nas ações.
 13. Use status "inconclusivo" SOMENTE quando downloadMbps, uploadMbps E latenciaMs estiverem TODAS ausentes/null no campo "metricasAtuais". Se qualquer uma dessas métricas existir com valor numérico, PROIBIDO retornar "inconclusivo" — você DEVE produzir um diagnóstico real ("bom", "regular", "ruim" ou "critico"). WiFi fraco (rssi abaixo de -75 dBm) NÃO é justificativa para "inconclusivo" quando há dados de speedtest: anote o WiFi fraco em limitesDaAnalise e diagnostique com os números disponíveis. "inconclusivo" com dados reais é uma mentira para o usuário.
 14. Gere perguntas contextuais quando elas ajudarem a refinar o diagnóstico. As perguntas devem ser curtas, com opções objetivas e úteis para alimentar uma nova análise.
@@ -89,10 +119,10 @@ REGRAS INVIOLÁVEIS:
    - Em campos do bloco "movel" ausentes (null/omitidos), use "limitesDaAnalise" para citar a falta — não invente valores.
 16. O título deve ser específico e refletir o problema real detectado pelas métricas; só use status "inconclusivo" se realmente faltarem dados.
 17. PROIBIDO usar títulos genéricos como "Internet lenta", "Conexão ruim" ou "Problema na rede" quando as métricas permitirem identificar o problema real. Exemplos:
-18. CAMPO achadosLocais (schema v4): quando presente, use desta forma:
+18. CAMPO achadosLocais (schema v4, ATIVO em produção desde v5 — o app Android agora envia este campo com dados reais na maioria das análises, não é mais um campo raramente presente): quando presente, use desta forma:
    - achadosLocais.decisaoId e achadosLocais.statusGeral indicam o que o motor local concluiu.
    - achadosLocais.confianca indica o quanto o motor local confia na conclusão (0.0–1.0).
-   - Se confianca >= 0.75: valide a conclusão local contra os dados brutos e explique em linguagem humana. Não re-decida do zero — refine, enriqueça e explique.
+   - Se confianca >= 0.75: a conclusão do motor local é a DECISÃO PRIMÁRIA. Não re-decida do zero — sua função é validar contra os dados brutos, enriquecer e EXPLICAR em linguagem humana o que o motor local já concluiu. O status, o problemaPrincipal.tipo e o título devem ser consistentes com achadosLocais.statusGeral, salvo evidência clara e explícita nos dados brutos que contradiga a conclusão local (situação rara — documente em limitesDaAnalise se isso ocorrer).
    - Se confianca < 0.75: analise os dados com mais liberdade, mas mencione o achado local como hipótese de partida.
    - achadosLocais.resultadosRelevantes lista os ids dos findings que sustentam a conclusão — use-os para citar evidências.
    - achadosLocais.score é orientativo (0–100). Mantenha consistência: status "ok" não combina com score 20.
@@ -100,8 +130,12 @@ REGRAS INVIOLÁVEIS:
    - Se a velocidade está abaixo do esperado mas latência normal → título deve apontar velocidade (ex.: "Velocidade abaixo do contratado", "Banda insuficiente").
    - Se há perda de pacotes significativa → título deve mencionar perda (ex.: "Perda de pacotes detectada").
    - "Internet lenta" só é aceitável quando NÃO há dados de latência/jitter/perda E download/upload estão de fato baixos.
+18a. CAMPO impacto QUANDO o payload trouxer, dentro de achadosLocais (ou bloco irmão equivalente), os 5 valores de impacto por perfil de uso (navegação/streaming/jogos/videochamada/trabalho) já PRONTOS: esses valores vêm do motor local (classificador determinístico de perfis de uso, aba 9 do produto). Você NÃO decide nem recalcula esses valores — sua única função é NARRAR/EXPLICAR o valor recebido em linguagem humana no textoLaudo/resumo, e replicar no campo "impacto" da sua resposta os MESMOS valores recebidos (apenas convertidos para o vocabulário de saída do schema, ver mapeamento abaixo). PROIBIDO escolher um valor de impacto diferente do que veio pronto.
+   - Vocabulário de ENTRADA do motor local para perfis de uso (aba 9) é PRÓPRIO e SEPARADO do vocabulário de "status": "OK" | "Instavel" | "Comprometido" — não confunda com excelente/bom/regular/ruim/critico/inconclusivo (esse é o vocabulário de "status", nunca use "excelente" ou "critico" dentro do campo impacto).
+   - Mapeamento de referência ao narrar (adapte ao rótulo mais específico do schema de impacto quando a métrica indicar a causa, ex. "Alta latencia" para jogos): OK → "OK"; Instavel → "Instavel" (ou rótulo específico do perfil, ex. "Lento", "Alta latencia"); Comprometido → "Comprometido"/"Indisponivel" conforme severidade.
+   - Quando o payload NÃO trouxer impacto pronto por perfil — caso ainda comum enquanto o motor local está em rollout — o campo impacto continua sendo decidido por você, seguindo a regra 11 (refletir apenas o que os dados indicam).
 
-EXEMPLO OBRIGATÓRIO:
+EXEMPLO OBRIGATÓRIO (payload SEM impacto pronto por perfil — impacto decidido por você conforme regra 11; quando o payload trouxer impacto pronto, siga a regra 18a em vez deste exemplo):
 Entrada (payload simplificado):
 - download 294 Mbps
 - upload 411 Mbps
@@ -188,6 +222,14 @@ const CHAT_SCHEMA_HINT = `Schema JSON de retorno (responda APENAS com este forma
 // Hint do schema v2 enviado junto ao prompt do usuario. O Worker tambem
 // sobrescreve campos criticos pos-parse (modeloIa, schemaVersion, source,
 // generatedAt) para garantir consistencia mesmo se a IA divergir.
+//
+// Vocabulario canonico de "status" (decisao de arquitetura ja fechada, mesmo
+// vocabulario usado pelo ScoreEngine/MetricClassifier locais no Android):
+// excelente | bom | regular | ruim | critico | inconclusivo — 6 valores, ver
+// campo "status" abaixo. NAO confundir com o vocabulario de "impacto" (perfis
+// de uso, aba 9), que e PROPRIO e SEPARADO: OK | Instavel | Comprometido (ou
+// rotulos mais especificos por perfil, ex. "Alta latencia" para jogos). Ver
+// regra 18a do SYSTEM_PROMPT para o mapeamento entre os dois vocabularios.
 const SCHEMA_HINT = `Schema JSON de retorno (responda APENAS com este formato, sem markdown):
 {
   "schemaVersion": "2",
@@ -509,26 +551,6 @@ function extractRawText(aiResult: unknown): string {
   return "";
 }
 
-// Remove blocos <think>...</think> que modelos com reasoning (Qwen3, DeepSeek,
-// QwQ) emitem antes da resposta real. Caso o bloco nao esteja fechado (thinking
-// truncado), remove do <think> ate o fim do texto.
-function stripThinkingTokens(text: string): string {
-  return text.replace(/<think>[\s\S]*?<\/think>/g, "").replace(/<think>[\s\S]*$/, "").trim();
-}
-
-function extractJson(text: string): string {
-  // Remove thinking tokens antes de extrair JSON
-  const cleaned = stripThinkingTokens(text);
-  // Remove blocos markdown ``` se a IA insistir em usa-los apesar do prompt
-  const fenced = cleaned.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fenced) return fenced[1].trim();
-  // Recorta entre o primeiro { e o ultimo }
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start !== -1 && end > start) return cleaned.slice(start, end + 1);
-  return cleaned.trim();
-}
-
 // Normaliza o stream SSE upstream para o formato simples que o cliente Android
 // espera: "data: {\"response\":\"token\"}\n\n" + "data: [DONE]\n\n".
 //
@@ -774,7 +796,7 @@ export default {
       const isChat = !!(payload as Record<string, unknown>).feedbackUsuario;
       const systemPrompt = isChat ? CHAT_SYSTEM_PROMPT : SYSTEM_PROMPT;
       const schemaHint = isChat ? CHAT_SCHEMA_HINT : SCHEMA_HINT;
-      console.log("AI diagnosis mode:", isChat ? "chat" : "diagnostic");
+      console.log("AI diagnosis mode:", isChat ? "chat" : "diagnostic", "promptVersion:", AI_PROMPT_VERSION);
 
       // Modo streaming SSE: ativado via ?stream=true. Retorna ReadableStream com
       // chunks no formato "data: {\"response\":\"token\"}\n\n" e termina com

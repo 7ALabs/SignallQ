@@ -32,6 +32,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.Cable
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -47,8 +48,6 @@ import androidx.compose.material.icons.outlined.SimCard
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WifiFind
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -465,16 +464,31 @@ private fun SinalTopTabRow(
                 onClick = { onTabSelected(index) },
                 text = {
                     if (index == 1 && canalCongestionado) {
-                        BadgedBox(badge = { Badge() }) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        ) {
                             Text(
                                 label,
+                                fontSize = 13.sp,
+                                maxLines = 1,
+                                softWrap = false,
                                 fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.W500,
                                 color = if (selectedTab == index) LkColors.accent else c.textSecondary,
+                            )
+                            Icon(
+                                imageVector = Icons.Outlined.Warning,
+                                contentDescription = "Canal congestionado",
+                                tint = LkColors.warning,
+                                modifier = Modifier.size(12.dp),
                             )
                         }
                     } else {
                         Text(
                             label,
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            softWrap = false,
                             fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.W500,
                             color = if (selectedTab == index) LkColors.accent else c.textSecondary,
                         )
@@ -670,14 +684,35 @@ private fun SimCard(
         )
 
         // Network type subtitle
-        Text(
-            "Rede ${sim.tecnologiaRede ?: "móvel"}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = tokens.textSecondary,
-        )
+        if (!sim.radioDesligado) {
+            Text(
+                "Rede ${sim.tecnologiaRede ?: "móvel"}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = tokens.textSecondary,
+            )
+        }
 
-        // Signal and Quality metrics
-        if (forcaSinal != null && corForca != null && qualidade != null && corQualidade != null) {
+        if (sim.radioDesligado) {
+            Spacer(Modifier.height(LkSpacing.xs))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+            ) {
+                Icon(
+                    Icons.Outlined.AirplanemodeActive,
+                    contentDescription = null,
+                    tint = tokens.textTertiary,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    "Modo avião ativado · Rádio desligado",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.W600,
+                    color = tokens.textSecondary,
+                )
+            }
+        } else if (forcaSinal != null && corForca != null && qualidade != null && corQualidade != null) {
+            // Signal and Quality metrics
             Spacer(Modifier.height(LkSpacing.xs))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -717,7 +752,7 @@ private fun SimCard(
         }
 
         // Contextual description
-        if (descricao != null) {
+        if (!sim.radioDesligado && descricao != null) {
             Spacer(Modifier.height(LkSpacing.xs))
             Text(
                 descricao,
@@ -1125,6 +1160,11 @@ private fun GrupoRedeTree(
     topologiaPorBssid: Map<String, TipoTopologia> = emptyMap(),
 ) {
     val c = LocalLkTokens.current
+    // Roteador dual-band único: mesmo OUI e cada banda aparecendo uma só vez
+    val ehDualBandUnico =
+        nos.size > 1 &&
+            nos.map { it.oui.uppercase() }.toSet().size <= 1 &&
+            nos.map { it.banda }.let { it.size == it.toSet().size }
     Column(
         modifier =
             modifier
@@ -1163,6 +1203,7 @@ private fun GrupoRedeTree(
                             color = c.textPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
                         )
                         Box(
                             modifier =
@@ -1176,6 +1217,8 @@ private fun GrupoRedeTree(
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.W600,
                                 color = LkColors.success,
+                                maxLines = 1,
+                                softWrap = false,
                             )
                         }
                     }
@@ -1191,7 +1234,11 @@ private fun GrupoRedeTree(
                 }
                 val count = nos.size
                 Text(
-                    "$count nó${if (count != 1) "s" else ""} detectado${if (count != 1) "s" else ""}",
+                    if (ehDualBandUnico) {
+                        "Roteador dual-band"
+                    } else {
+                        "$count nó${if (count != 1) "s" else ""} detectado${if (count != 1) "s" else ""}"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = c.textTertiary,
                 )
@@ -1208,6 +1255,7 @@ private fun GrupoRedeTree(
                 label =
                     when {
                         isConnected -> "Conectado agora"
+                        ehDualBandUnico -> "Mesma rede · ${no.banda}"
                         index == 0 -> "Gateway"
                         else -> "Nó #$index"
                     },
@@ -1220,7 +1268,7 @@ private fun GrupoRedeTree(
         }
 
         // Aviso de estimativa quando há mais de um nó
-        if (nos.size > 1) {
+        if (nos.size > 1 && !ehDualBandUnico) {
             Spacer(Modifier.height(LkSpacing.sm))
             Text(
                 "* Gateway estimado pelo sinal mais forte",

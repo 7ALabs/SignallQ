@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.net.HttpURLConnection
 import java.net.InetAddress
 import java.net.URL
@@ -13,6 +14,11 @@ import java.net.URLEncoder
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
+
+// #378: suite inteira (sistema + 7 provedores x 3 rounds) tinha timeout apenas por
+// tentativa individual — sem rede, a soma das tentativas travava o sheet no skeleton
+// por muito além do razoável. Timeout global garante feedback rápido ao usuário.
+private const val TIMEOUT_SUITE_DNS_MS = 15_000L
 
 class BenchmarkDnsDoh : BenchmarkDns {
     private val executando = AtomicBoolean(false)
@@ -36,39 +42,47 @@ class BenchmarkDnsDoh : BenchmarkDns {
         if (!executando.compareAndSet(false, true)) return
         withContext(Dispatchers.IO) {
             try {
-                Timber.i("iniciando benchmark DNS host=$hostConsulta resolvedores=$resolvedoresAtivos privateDns=$privateDnsHostname")
-                publicar(EstadoBenchmarkDns.executando, 5, emptyList(), null)
-                val host = URLEncoder.encode(hostConsulta, Charsets.UTF_8.name())
+                val concluiu =
+                    withTimeoutOrNull(TIMEOUT_SUITE_DNS_MS) {
+                        Timber.i("iniciando benchmark DNS host=$hostConsulta resolvedores=$resolvedoresAtivos privateDns=$privateDnsHostname")
+                        publicar(EstadoBenchmarkDns.executando, 5, emptyList(), null)
+                        val host = URLEncoder.encode(hostConsulta, Charsets.UTF_8.name())
 
-                val resultadoSistema = medirSistemaDns(hostConsulta, resolvedoresAtivos, privateDnsHostname)
-                Timber.i("sistema dns: nome=${resultadoSistema.nomeProvedor} tempo=${resultadoSistema.tempoMs} grade=${resultadoSistema.gradeRapidez} amostras=${resultadoSistema.amostrasMs}")
-                val acumulados = mutableListOf<ResultadoBenchmarkDns>()
-                // IP privado (roteador local) não entra no ranking — latência local não é comparável
-                // a DNS públicos externos. Fica disponível para exibição via nomeProvedor.
-                if (resultadoSistema.tempoMs != null && !resultadoSistema.isGatewayLocal) acumulados.add(resultadoSistema)
-                publicar(EstadoBenchmarkDns.executando, 15, acumulados.sortedBy { it.tempoMs }, null)
+                        val resultadoSistema = medirSistemaDns(hostConsulta, resolvedoresAtivos, privateDnsHostname)
+                        Timber.i("sistema dns: nome=${resultadoSistema.nomeProvedor} tempo=${resultadoSistema.tempoMs} grade=${resultadoSistema.gradeRapidez} amostras=${resultadoSistema.amostrasMs}")
+                        val acumulados = mutableListOf<ResultadoBenchmarkDns>()
+                        // IP privado (roteador local) não entra no ranking — latência local não é comparável
+                        // a DNS públicos externos. Fica disponível para exibição via nomeProvedor.
+                        if (resultadoSistema.tempoMs != null && !resultadoSistema.isGatewayLocal) acumulados.add(resultadoSistema)
+                        publicar(EstadoBenchmarkDns.executando, 15, acumulados.sortedBy { it.tempoMs }, null)
 
-                val provedoresPublicos = listOf(
-                    "Cloudflare" to "https://cloudflare-dns.com/dns-query?name=$host&type=A",
-                    "Google DNS" to "https://dns.google/resolve?name=$host&type=A",
-                    "Quad9" to "https://dns.quad9.net:5053/dns-query?name=$host&type=A",
-                    "OpenDNS" to "https://doh.opendns.com/resolve?name=$host&type=A",
-                    "AdGuard" to "https://dns.adguard-dns.com/resolve?name=$host&type=A",
-                    "Registro.br" to "https://dns.registro.br/query?name=$host&type=A",
-                    "CETIC.br" to "https://resolver.cetic.br/dns-query?name=$host&type=A",
-                )
+                        val provedoresPublicos = listOf(
+                            "Cloudflare" to "https://cloudflare-dns.com/dns-query?name=$host&type=A",
+                            "Google DNS" to "https://dns.google/resolve?name=$host&type=A",
+                            "Quad9" to "https://dns.quad9.net:5053/dns-query?name=$host&type=A",
+                            "OpenDNS" to "https://doh.opendns.com/resolve?name=$host&type=A",
+                            "AdGuard" to "https://dns.adguard-dns.com/resolve?name=$host&type=A",
+                            "Registro.br" to "https://dns.registro.br/query?name=$host&type=A",
+                            "CETIC.br" to "https://resolver.cetic.br/dns-query?name=$host&type=A",
+                        )
 
-                provedoresPublicos.forEachIndexed { idx, (nome, url) ->
-                    val resultado = medirProvedor(nome, hostConsulta, url)
-                    Timber.i("provedor $nome: tempo=${resultado.tempoMs} grade=${resultado.gradeRapidez} amostras=${resultado.amostrasMs} erro=${resultado.erroMensagem}")
-                    if (resultado.tempoMs != null) acumulados.add(resultado)
-                    val progresso = 20 + (((idx + 1).toDouble() / provedoresPublicos.size.toDouble()) * 75.0).toInt()
-                    publicar(EstadoBenchmarkDns.executando, progresso, acumulados.sortedBy { it.tempoMs }, null)
+                        provedoresPublicos.forEachIndexed { idx, (nome, url) ->
+                            val resultado = medirProvedor(nome, hostConsulta, url)
+                            Timber.i("provedor $nome: tempo=${resultado.tempoMs} grade=${resultado.gradeRapidez} amostras=${resultado.amostrasMs} erro=${resultado.erroMensagem}")
+                            if (resultado.tempoMs != null) acumulados.add(resultado)
+                            val progresso = 20 + (((idx + 1).toDouble() / provedoresPublicos.size.toDouble()) * 75.0).toInt()
+                            publicar(EstadoBenchmarkDns.executando, progresso, acumulados.sortedBy { it.tempoMs }, null)
+                        }
+
+                        val final = acumulados.sortedBy { it.tempoMs }
+                        Timber.i("benchmark concluido: ${final.size} provedores validos: ${final.map { "${it.nomeProvedor}=${it.tempoMs}ms(${it.gradeRapidez})" }}")
+                        publicar(EstadoBenchmarkDns.concluido, 100, final, null)
+                        Unit
+                    }
+                if (concluiu == null) {
+                    Timber.w("benchmark DNS excedeu timeout de ${TIMEOUT_SUITE_DNS_MS}ms — provável offline")
+                    publicar(EstadoBenchmarkDns.erro, 100, emptyList(), "semRede")
                 }
-
-                val final = acumulados.sortedBy { it.tempoMs }
-                Timber.i("benchmark concluido: ${final.size} provedores validos: ${final.map { "${it.nomeProvedor}=${it.tempoMs}ms(${it.gradeRapidez})" }}")
-                publicar(EstadoBenchmarkDns.concluido, 100, final, null)
             } catch (t: Throwable) {
                 publicar(EstadoBenchmarkDns.erro, 100, emptyList(), t.message ?: "erroBenchmarkDns")
             } finally {

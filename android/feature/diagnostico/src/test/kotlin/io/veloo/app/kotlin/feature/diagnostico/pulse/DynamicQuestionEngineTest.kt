@@ -60,6 +60,36 @@ class DynamicQuestionEngineTest {
         assertNull(engine.getNextQuestion("desconhecido", emptyList()))
     }
 
+    // ---- qual_jogo_device (SIG-290) ----
+
+    @Test
+    fun `qual_jogo_device first question returned on empty history`() {
+        val q = engine.getNextQuestion("qual_jogo_device", emptyList())
+        assertNotNull(q)
+        assertEquals("qual_jogo_device_q1", q!!.id)
+        assertEquals(5, q.opcoes.size)
+    }
+
+    @Test
+    fun `qual_jogo_device covers the 5 device presets`() {
+        val q = engine.getNextQuestion("qual_jogo_device", emptyList())
+        val ids = q!!.opcoes.map { it.id }.toSet()
+        assertEquals(setOf("playstation", "xbox", "pc", "switch", "mobile"), ids)
+    }
+
+    @Test
+    fun `qual_jogo_device xbox is leaf at root level`() {
+        assertTrue(engine.isLeafAnswer("qual_jogo_device", "xbox", emptyList()))
+    }
+
+    @Test
+    fun `qual_jogo_device returns null after answering once`() {
+        val history = listOf(
+            QuestionAnswer("qual_jogo_device_q1", "Qual jogo ou console?", "xbox", "Xbox", "Xbox."),
+        )
+        assertNull(engine.getNextQuestion("qual_jogo_device", history))
+    }
+
     // ---- getNextQuestion depth 1 ----
 
     @Test

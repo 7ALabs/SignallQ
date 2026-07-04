@@ -122,6 +122,11 @@ class SignallQOrchestrator(
     private val deviceIdProvider: suspend () -> String = { "unknown" },
     /** Lambda que retorna o canal de distribuicao ("play_store", "sideload", "unknown"). */
     private val distChannelProvider: () -> String = { "unknown" },
+    /** Lambda que le o toggle "Analise avancada" (SIG-282) no momento da chamada.
+     *  Default true preserva o comportamento anterior em quem nao passa o provider
+     *  (ex.: testes existentes que nao testam o toggle). Quando false, [callAi]
+     *  pula a chamada de rede e devolve o resultado do motor local direto. */
+    private val analiseAvancadaProvider: suspend () -> Boolean = { true },
 ) {
 
     private val mutableSnapshotFlow = MutableStateFlow(SignallQSnapshot())
@@ -187,6 +192,7 @@ class SignallQOrchestrator(
                 perdaPercentual = resultado.perdaPercentual,
                 bufferbloatMs = resultado.bufferbloatMs,
                 rttGatewayMs = rttGatewayMs,
+                packetLossSource = resultado.packetLossSource,
             )
 
         val wifiInput =
@@ -374,6 +380,7 @@ class SignallQOrchestrator(
                     perdaPercentual = it.perdaPercentual,
                     bufferbloatMs = it.bufferbloatMs,
                     rttGatewayMs = rttGatewayMs,
+                    packetLossSource = it.packetLossSource,
                 )
             } ?: run {
                 val ultimaMedicao = medicaoDao.observarUltimas(1).first().firstOrNull()
@@ -386,6 +393,7 @@ class SignallQOrchestrator(
                         perdaPercentual = it.perdaPercentual,
                         bufferbloatMs = it.bufferbloatMs,
                         rttGatewayMs = rttGatewayMs,
+                        packetLossSource = it.packetLossSource,
                     )
                 }
             }
@@ -830,6 +838,25 @@ class SignallQOrchestrator(
 
         if (report == null) {
             return fallbackEntry(true, "Não foi possível coletar dados de rede suficientes para análise.", null)
+        }
+
+        // SIG-282: "Analise avancada" (IA) e opcional — desligada, o motor local
+        // (Fases 3a/3b) ja resolveu tudo em [report]. Nao e erro, entao nao usa
+        // ResponseSource.LOCAL (reservado a fallback de falha) — usa INSIGHT, o
+        // mesmo canal do card tecnico local que ja aparece antes da IA responder.
+        if (!analiseAvancadaProvider()) {
+            val local = AiFallbackFactory.fromLocal(report)
+            return AiAnalysisEntry(
+                trigger = trigger,
+                content = local.resumo.ifBlank { local.textoLaudo },
+                // isFallback=true so pra sinalizacao de origem ("local" no card) e para
+                // o ingest de telemetria nao contar isto como resumo gerado por IA —
+                // NAO e erro, e escolha do usuario (ver checagem acima).
+                isFallback = true,
+                timestamp = System.currentTimeMillis(),
+                fullResult = local,
+                source = ResponseSource.INSIGHT,
+            )
         }
 
         // Coleta contexto bruto adicional do host (ISP, IP, DNS, dispositivo, etc.).

@@ -1,5 +1,8 @@
 ﻿package io.signallq.app.feature.diagnostico
 
+import io.signallq.app.core.network.contracts.wifi.SegurancaWifi
+import io.signallq.app.feature.diagnostico.topology.model.NatStatus
+
 data class WifiDiagnosticInput(
     val rssiDbm: Int?,
     val linkSpeedMbps: Int?,
@@ -33,6 +36,11 @@ data class InternetDiagnosticInput(
     /** RTT TCP para o gateway local (porta 80/443/53). Null se não disponível
      *  (emulador, Doze Mode, gateway não responde TCP). */
     val rttGatewayMs: Int? = null,
+    /** Proveniência da medição de [perdaPercentual] — "estimated" (timeout HTTP,
+     *  indício não confiável), "naoMedido", "unknown" ou "modem" (medição direta).
+     *  Fonte: ResultadoSpeedtest.packetLossSource. Usado pelo RecommendationEngine
+     *  para não cravar perda de pacotes como certeza quando é apenas estimada. */
+    val packetLossSource: String? = null,
 )
 
 data class FibraDiagnosticInput(
@@ -49,6 +57,12 @@ data class MobileDiagnosticInput(
     val signalQualityPercent: Int? = null,
     val band: String? = null,
     val publicIp: String? = null,
+    /** Reference Signal Received Power (4G LTE/5G NR), em dBm. Fonte: MovelSnapshot.rsrpDbm. */
+    val rsrpDbm: Int? = null,
+    /** Reference Signal Received Quality, em dB. Fonte: MovelSnapshot.rsrqDb. */
+    val rsrqDb: Int? = null,
+    /** Signal-to-Interference-plus-Noise Ratio, em dB. Fonte: MovelSnapshot.sinrDb. */
+    val sinrDb: Int? = null,
 )
 
 data class DnsDiagnosticInput(
@@ -59,6 +73,10 @@ data class DnsDiagnosticInput(
     val bestDnsLatencyMsFromComparison: Int? = null,
     val dnsGrade: String? = null,
     val dnsComparisonAvailable: Boolean = false,
+    /** Nivel de alerta calculado por AvaliadorCoerenciaDns.registrarCoerencia() ("none"|"attention"|"critical"). */
+    val coerenciaNivelAlerta: String? = null,
+    val coerenciaDivergenciasConsecutivas: Int? = null,
+    val coerenciaTaxaDivergenciaPercentual: Double? = null,
 )
 
 data class HistoricalDiagnosticInput(
@@ -90,6 +108,7 @@ data class RedeWifiVizinha(
     val frequenciaMhz: Int?,
     val ssid: String? = null,
     val bssid: String? = null,
+    val seguranca: SegurancaWifi? = null,
 )
 
 data class SpeedtestQualityInput(
@@ -121,4 +140,14 @@ data class DiagnosticInput(
     val dns: DnsDiagnosticInput? = null,
     val historico: HistoricalDiagnosticInput? = null,
     val wifiScan: WifiScanDiagnosticInput? = null,
+    /** Velocidade contratada do plano, em Mbps. Fonte: PreferenciasAppRepository.planoInternetFlow. */
+    val velocidadeContratadaMbps: Int? = null,
+    /** Classificacao de NAT/CGNAT da rede atual. Fonte: TopologyDiagnostic/NatClassifier. */
+    val natStatus: NatStatus? = null,
+    /** Device/console selecionado manualmente pelo usuario na arvore de perguntas
+     *  do Pulse (no "qual_jogo_device" — SIG-290), ex.: "playstation", "xbox", "pc",
+     *  "switch". Null quando o usuario nao respondeu essa pergunta (device preset
+     *  entao usa o fallback automatico: o proprio Android/iPhone rodando o app).
+     *  Fonte: [io.signallq.app.feature.diagnostico.pulse.DynamicQuestionEngine]. */
+    val deviceGamingSelecionado: String? = null,
 )

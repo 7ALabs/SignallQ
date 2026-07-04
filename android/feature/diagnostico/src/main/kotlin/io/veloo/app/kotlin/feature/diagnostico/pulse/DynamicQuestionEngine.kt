@@ -272,6 +272,31 @@ class DynamicQuestionEngine {
                 "so_dispositivo" to Node.Leaf,
             ),
         ),
+        // Nó novo (SIG-290, GameReadinessClassifier): pergunta o jogo/console mais
+        // usado para acionar o preset de device certo no RecommendationEngine. Raiz
+        // separada (nao acoplada a "jogos_travando") para nao alterar a arvore
+        // existente ja coberta por teste. Acionada pela UI de diagnostico de jogos,
+        // nao faz parte de getInitialChips().
+        "qual_jogo_device" to Node.Question(
+            node = QuestionNode(
+                id = "qual_jogo_device_q1",
+                texto = "Qual jogo ou console você mais usa?",
+                opcoes = listOf(
+                    OpcaoResposta("playstation", "PlayStation (PS5/PS4)", "Joga principalmente em console PlayStation."),
+                    OpcaoResposta("xbox", "Xbox", "Joga principalmente em console Xbox."),
+                    OpcaoResposta("pc", "PC", "Joga principalmente em computador."),
+                    OpcaoResposta("switch", "Nintendo Switch", "Joga principalmente em Nintendo Switch."),
+                    OpcaoResposta("mobile", "Celular (Android/iPhone)", "Joga principalmente no celular."),
+                ),
+            ),
+            children = mapOf(
+                "playstation" to Node.Leaf,
+                "xbox" to Node.Leaf,
+                "pc" to Node.Leaf,
+                "switch" to Node.Leaf,
+                "mobile" to Node.Leaf,
+            ),
+        ),
     )
 
     // ---- API pública ----

@@ -13,6 +13,8 @@
  * @property tecnologiaRede "5G SA" | "5G NSA" | "4G" | "3G" | "2G" | null.
  * @property rsrpDbm        RSRP do SIM. Bom: >-85, medio: -85..-100, ruim: <=-100.
  * @property emRoaming      true se o SIM esta em roaming internacional.
+ * @property radioDesligado true quando o radio celular esta desligado (modo aviao) —
+ *                          rsrpDbm nao representa uma medicao real quando true.
  */
 data class MovelSimSnapshot(
     val subId: Int,
@@ -22,4 +24,5 @@ data class MovelSimSnapshot(
     val rsrpDbm: Int?,
     val emRoaming: Boolean,
     val isDefaultData: Boolean = false,
+    val radioDesligado: Boolean = false,
 )

@@ -74,12 +74,35 @@ jobs:
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
 
+      - name: Ler release notes públicas
+        id: notas
+        run: |
+          NOTAS_FILE="android/app/src/main/play/release-notes/pt-BR/default.txt"
+          if [ -f "$NOTAS_FILE" ]; then
+            {
+              echo "corpo<<NOTASEOF"
+              cat "$NOTAS_FILE"
+              echo "NOTASEOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "corpo=Ver CHANGELOG interno." >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Criar GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           name: "SignallQ v${{ steps.versao.outputs.name }} (build ${{ steps.versao.outputs.code }})"
+          body: ${{ steps.notas.outputs.corpo }}
           draft: true
-          generate_release_notes: true
           files: |
             android/app/build/outputs/bundle/release/signallq-*.aab
             android/app/build/outputs/apk/release/signallq-*.apk
+
+      # Publica o AAB assinado na Play Console. Trilha via PLAY_TRACK (default: alpha/teste fechado).
+      # Requer o app criado na Play e um primeiro upload manual na trilha (a API nao cria o app do zero).
+      # Roda por ultimo: uma falha aqui nao invalida o GitHub Release nem os artefatos ja gerados.
+      - name: Publicar na Play Console
+        run: cd android && ./gradlew publishReleaseBundle --no-daemon -PplayTrack=${{ vars.PLAY_TRACK || 'alpha' }}
+        env:
+          ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}

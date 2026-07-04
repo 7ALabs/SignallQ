@@ -449,6 +449,7 @@ class AiDiagnosisRepository(
             mo.putOrNull("latencyDownloadMs", m.latencyDownloadMs)
             mo.putOrNull("latencyUploadMs", m.latencyUploadMs)
             m.packetLossSource?.let { mo.put("packetLossSource", it) }
+            m.rttGatewayMs?.let { mo.put("rttGatewayMs", it) }
             o.put("metricasAtuais", mo)
         }
 
@@ -562,6 +563,20 @@ class AiDiagnosisRepository(
         ctx.feedbackUsuario?.let { o.put("feedbackUsuario", it.take(500)) }
 
         ctx.instrucaoTom?.let { o.put("instrucaoTom", it) }
+
+        ctx.achadosLocais?.let { a ->
+            val ao = JSONObject()
+            ao.put("decisaoId", a.decisaoId)
+            ao.put("statusGeral", a.statusGeral)
+            ao.put("score", a.score)
+            ao.put("confianca", a.confianca)
+            if (a.resultadosRelevantes.isNotEmpty()) {
+                val arr = JSONArray()
+                a.resultadosRelevantes.forEach { arr.put(it) }
+                ao.put("resultadosRelevantes", arr)
+            }
+            o.put("achadosLocais", ao)
+        }
 
         return o
     }

@@ -9,6 +9,23 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ---
 
+## [Não lançado]
+
+### Corrigido
+- Sinal › Dispositivos exibe "Dispositivo <Fabricante>" (ex.: "Dispositivo Samsung") via fallback de fabricante por OUI do MAC quando o hostname não é resolvido, em vez do rótulo genérico "Dispositivo" sem nenhuma pista (#394). Resolução completa de nome via mDNS/NetBIOS fica para issue de feature separada.
+
+## [0.22.1] — 2026-07-03
+
+### Publicação
+- Primeira publicação automatizada na Play Console (trilha de teste fechado) via gradle-play-publisher no release por tag.
+
+### Corrigido
+- Roteador dual-band único (mesmo SSID/OUI em 2.4 GHz e 5 GHz) não é mais classificado como sistema mesh nem rotulado como "Nó #N"; agora aparece como "Roteador dual-band" com as bandas identificadas (#356)
+- Chip "Conectado" no card da rede em Sinal › Wi-Fi não quebra mais caractere a caractere com SSID longo; o SSID trunca com reticências (#355)
+- Aba "Dispositivos" na barra de abas da tela Sinal não quebra mais em duas linhas (#354)
+
+---
+
 ## [0.22.0] — 2026-06-29
 
 ### Adicionado

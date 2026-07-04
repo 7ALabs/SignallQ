@@ -1,4 +1,4 @@
-﻿package io.signallq.app.feature.wifi
+package io.signallq.app.core.network.contracts.wifi
 
 object MeshOuiDatabase {
 

@@ -228,7 +228,10 @@ fun AppShell(
     val publicIpStr: String? = (publicIp as? UiState.Success)?.data
     val ispInfoData: IspInfo? = (ispInfo as? UiState.Success)?.data
     val isIspInfoLoading = publicIp is UiState.Loading
-    var selectedTab by remember { mutableIntStateOf(0) }
+    // #381/#376: cold start sempre abre na aba Velocidade (indice 1), nunca em Home
+    // e nunca restaurando a ultima tela — decisao de produto que substitui o
+    // comportamento anterior (abria em Home, indice 0).
+    var selectedTab by remember { mutableIntStateOf(1) }
     var modoSelecionado by remember { mutableStateOf(ModoSpeedtest.complete) }
     val overlayStack = remember { mutableStateListOf<Overlay>() }
     var showDnsSheet by remember { mutableStateOf(false) }
@@ -285,6 +288,12 @@ fun AppShell(
         selectedTab = 0
     }
 
+    // #374: tela de erro do speedtest (overlay VelocidadeScreen) não tinha BackHandler
+    // próprio — o back físico do sistema saía direto do app em vez de descartar o erro.
+    BackHandler(enabled = snapshotSpeedtest.estado == EstadoExecucaoSpeedtest.erro) {
+        onCancelarTeste()
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             containerColor = c.bgPrimary,
@@ -333,11 +342,6 @@ fun AppShell(
                                 } else {
                                     modoSelecionado = modo
                                     onNovoTeste(modo)
-                                }
-                            },
-                            onAbrirUltimoResultado = {
-                                if (Overlay.ResultadoVelocidade !in overlayStack && snapshotSpeedtest.resultado != null) {
-                                    overlayStack.add(Overlay.ResultadoVelocidade)
                                 }
                             },
                             onAbrirHistorico = { selectedTab = 3 },
@@ -498,6 +502,10 @@ fun AppShell(
                             onAbrirPrivacidade = { if (Overlay.Privacidade !in overlayStack) overlayStack.add(Overlay.Privacidade) },
                             onAbrirNovidades = { if (Overlay.Novidades !in overlayStack) overlayStack.add(Overlay.Novidades) },
                             onAbrirMinhaConexao = { if (Overlay.MinhaConexao !in overlayStack) overlayStack.add(Overlay.MinhaConexao) },
+                            onAbrirFibra = {
+                                onReconectarFibra(modemHost ?: "", modemUsername, modemPassword)
+                                if (Overlay.Fibra !in overlayStack) overlayStack.add(Overlay.Fibra)
+                            },
                             dadosMoveis =
                                 AjustesDadosMoveisState(
                                     speedtestPermiteHeavyMovel = speedtestPermiteHeavyMovel,
@@ -600,6 +608,7 @@ fun AppShell(
                 ipPublico = publicIpStr,
                 onVoltar = { overlayStack.remove(Overlay.Laudo) },
                 velocidadeContratadaMbps = planoInternet.filter { it.isDigit() }.toIntOrNull(),
+                conectado = snapshotRede.conectado,
             )
         }
 

@@ -38,6 +38,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
 import androidx.compose.material.icons.outlined.Adjust
+import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Construction
@@ -194,7 +195,6 @@ fun HomeScreen(
     onAbrirDns: () -> Unit,
     onAbrirPing: () -> Unit,
     onIniciarTeste: (ModoSpeedtest) -> Unit,
-    onAbrirUltimoResultado: () -> Unit,
     onAbrirHistorico: () -> Unit,
     onAbrirPerfil: () -> Unit,
     onAbrirRedes: () -> Unit,
@@ -258,7 +258,7 @@ fun HomeScreen(
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = c.bgSecondary,
         ) {
-            DeviceInfoSheet(localIp = localIp, isMobile = !isOnWifi, deviceName = deviceName, connectedNetwork = connectedNetwork, c = c)
+            DeviceInfoSheet(localIp = localIp, isMobile = !isOnWifi, deviceName = deviceName, c = c)
         }
     }
     showGatewaySheet?.let { gw ->
@@ -448,7 +448,6 @@ fun HomeScreen(
                     hasEffectiveResult = hasEffectiveResult,
                     history = history,
                     onAbrirHistorico = onAbrirHistorico,
-                    onAbrirUltimoResultado = onAbrirUltimoResultado,
                     onIniciarTeste = { showMedicaoTipoSheet = true },
                     c = c,
                 )
@@ -519,7 +518,6 @@ private fun CardMedicoes(
     hasEffectiveResult: Boolean,
     history: List<HistoryPoint>,
     onAbrirHistorico: () -> Unit,
-    onAbrirUltimoResultado: () -> Unit,
     onIniciarTeste: () -> Unit,
     c: LkTokens,
 ) {
@@ -574,7 +572,7 @@ private fun CardMedicoes(
                         Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(LkRadius.card))
-                            .clickable { onAbrirUltimoResultado() },
+                            .clickable { onAbrirHistorico() },
                 ) {
                     MiniLineChart(
                         history = history,
@@ -1622,6 +1620,60 @@ private fun MobileSignalCard(
     c: LkTokens,
     onTap: () -> Unit,
 ) {
+    if (movelSnapshot.radioDesligado) {
+        SignallQCard(c) {
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onTap),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(c.textTertiary.copy(alpha = 0.10f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Outlined.AirplanemodeActive,
+                        contentDescription = "Modo avião ativado",
+                        tint = c.textTertiary,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                Spacer(Modifier.width(LkSpacing.md))
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        "REDE MÓVEL",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.W600,
+                        color = c.textTertiary,
+                        letterSpacing = 0.3.sp,
+                    )
+                    Text(
+                        "Modo avião ativado",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.W600,
+                        color = c.textPrimary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        "Rádio desligado",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+        return
+    }
+
     val tec = movelSnapshot.tecnologia?.ifBlank { null }
     val tecLabel = tec?.uppercase() ?: "LTE"
     val rsrp = movelSnapshot.rsrpDbm
@@ -2261,7 +2313,6 @@ private fun DeviceInfoSheet(
     localIp: String?,
     isMobile: Boolean,
     deviceName: String,
-    connectedNetwork: RedeVizinha?,
     c: LkTokens,
 ) {
     Column(
@@ -2285,10 +2336,6 @@ private fun DeviceInfoSheet(
         SheetInfoRow("Sistema", "Android", c)
         SheetInfoRow("IP Local", localIp?.takeIf { it.isNotEmpty() } ?: "N/A", c)
         SheetInfoRow("Tipo de conexão", if (isMobile) "Dados móveis" else "Wi-Fi", c)
-        if (!isMobile && connectedNetwork != null) {
-            connectedNetwork.canal?.let { SheetInfoRow("Canal Wi-Fi", "$it", c) }
-            SheetInfoRow("Segurança", wifiSecurityLabel(connectedNetwork.seguranca), c)
-        }
     }
 }
 
@@ -2347,6 +2394,7 @@ private fun GatewayInfoSheet(
         }
         connectedNetwork?.canal?.let { SheetInfoRow("Canal", "$it", c) }
         connectedNetwork?.larguraCanalMhz?.let { SheetInfoRow("Largura de canal", "$it MHz", c) }
+        connectedNetwork?.let { net -> SheetInfoRow("Segurança", wifiSecurityLabel(net.seguranca), c) }
     }
 }
 
@@ -2393,7 +2441,9 @@ private fun InternetInfoSheet(
             )
         }
         ispInfo?.isp?.takeIf { it.isNotEmpty() }?.let { SheetInfoRow("Provedor", it, c) }
-        ispInfo?.asn?.takeIf { it.isNotEmpty() }?.let { SheetInfoRow("ASN", it, c) }
+        ispInfo?.asn?.takeIf { it.isNotEmpty() }?.let {
+            SheetInfoRow("ASN", it, c, caption = stringResource(R.string.home_sheet_asn_explicacao))
+        }
         if (countryRegion.isNotEmpty()) SheetInfoRow("País / Região", countryRegion, c)
         val dnsPrivadoValor =
             if (privateDnsAtivo) {
@@ -2688,23 +2738,34 @@ private fun SheetInfoRow(
     value: String,
     c: LkTokens,
     valueColor: Color? = null,
+    caption: String? = null,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(bottom = LkSpacing.md),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Top,
-    ) {
-        Text(key, style = MaterialTheme.typography.bodyMedium, color = c.textSecondary, modifier = Modifier.padding(end = LkSpacing.lg))
-        Text(
-            value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.W600,
-            color = valueColor ?: c.textPrimary,
-            textAlign = TextAlign.End,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
+    Column(modifier = Modifier.fillMaxWidth().padding(bottom = LkSpacing.md)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Top,
+        ) {
+            Text(key, style = MaterialTheme.typography.bodyMedium, color = c.textSecondary, modifier = Modifier.padding(end = LkSpacing.lg))
+            Text(
+                value,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.W600,
+                color = valueColor ?: c.textPrimary,
+                textAlign = TextAlign.End,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        caption?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.labelSmall,
+                color = c.textSecondary,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
     }
 }
 

@@ -116,7 +116,20 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
 
     override val snapshotFlow: StateFlow<SnapshotExecucaoSpeedtest> = mutableSnapshotFlow.asStateFlow()
 
-    override fun cancelar() { cancelFlag.set(true) }
+    override fun cancelar() {
+        cancelFlag.set(true)
+        // #374: se não há teste em execução (ex.: já caiu em erro), sinalizar a flag não
+        // muda o estado publicado — a tela de erro ficava presa. Nesse caso, resetar direto.
+        if (!emExecucao.get() && mutableSnapshotFlow.value.estado == EstadoExecucaoSpeedtest.erro) {
+            mutableSnapshotFlow.value =
+                SnapshotExecucaoSpeedtest(
+                    estado = EstadoExecucaoSpeedtest.idle,
+                    progressoPercentual = 0,
+                    resultado = mutableSnapshotFlow.value.resultado,
+                    erroMensagem = null,
+                )
+        }
+    }
 
     override suspend fun executar(
         modo: ModoSpeedtest,

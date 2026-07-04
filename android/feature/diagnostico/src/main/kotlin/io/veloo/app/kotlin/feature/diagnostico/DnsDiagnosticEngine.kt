@@ -84,7 +84,42 @@ object DnsDiagnosticEngine {
             }
         }
 
+        avaliarCoerencia(input)?.let { resultados.add(it) }
+
         return resultados
+    }
+
+    // Resultado de AvaliadorCoerenciaDns.registrarCoerencia() (feature/dns), repassado
+    // como primitivos em DnsDiagnosticInput — feature/diagnostico nao pode depender de
+    // feature/dns (lei de dependencias :feature* -> :feature* proibido).
+    private fun avaliarCoerencia(input: DnsDiagnosticInput): DiagnosticResult? {
+        val nivel = input.coerenciaNivelAlerta ?: return null
+        val consecutivas = input.coerenciaDivergenciasConsecutivas ?: 0
+        val taxa = input.coerenciaTaxaDivergenciaPercentual ?: 0.0
+        val evidencia = "nivel=$nivel consecutivas=$consecutivas taxaDivergencia=${"%.1f".format(taxa)}%"
+
+        return when (nivel) {
+            "critical" -> DiagnosticResult(
+                id = "DNS-COERENCIA-01",
+                titulo = "DNS Divergente da Configuracao",
+                status = DiagnosticStatus.critical,
+                evidencia = evidencia,
+                mensagemUsuario = "O DNS efetivamente em uso diverge repetidamente do DNS configurado. Isso pode indicar que a configuracao nao esta sendo aplicada pela operadora ou pelo roteador.",
+                recomendacao = "Verifique se o DNS privado/configurado esta realmente ativo. Em redes moveis, algumas operadoras ignoram configuracoes de DNS.",
+                categoria = CAT_DNS,
+                podeConcluir = false,
+            )
+            "attention" -> DiagnosticResult(
+                id = "DNS-COERENCIA-02",
+                titulo = "DNS Instavel",
+                status = DiagnosticStatus.attention,
+                evidencia = evidencia,
+                mensagemUsuario = "O DNS em uso divergiu do configurado em parte das medicoes recentes.",
+                recomendacao = "Acompanhe se a divergencia persiste. Pode indicar troca automatica de DNS pela rede.",
+                categoria = CAT_DNS,
+            )
+            else -> null
+        }
     }
 }
 

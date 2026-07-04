@@ -493,12 +493,13 @@ class AiDiagnosisRepositoryTest {
     }
 
     // -------------------------------------------------------------------------
-    // AI_PROMPT_VERSION — bump para "diagnostico_v2_gemma4" garante invalidacao
-    // de respostas antigas geradas com Llama/prompt v2 anterior.
+    // AI_PROMPT_VERSION — bump para "diagnostico_v5_local_primary" (SIG-282)
+    // garante invalidacao de caches gerados com o prompt v4 anterior, quando
+    // achadosLocais ainda chegava vazio/ausente na pratica.
     // -------------------------------------------------------------------------
     @Test
-    fun aiPromptVersion_estaBumpadoParaV4Guided_invalidaCachesAntigos() {
-        assertEquals("diagnostico_v4_guided", AI_PROMPT_VERSION)
+    fun aiPromptVersion_estaBumpadoParaV5LocalPrimary_invalidaCachesAntigos() {
+        assertEquals("diagnostico_v5_local_primary", AI_PROMPT_VERSION)
     }
 
     // -------------------------------------------------------------------------
@@ -506,7 +507,7 @@ class AiDiagnosisRepositoryTest {
     // -------------------------------------------------------------------------
 
     private fun fakeDiagnosisAiContext(): DiagnosisAiContext = DiagnosisAiContext(
-        schemaVersion = "3",
+        schemaVersion = "5",
         generatedAtEpochMs = 1700000000000L,
         connectionType = io.signallq.app.feature.diagnostico.ConnectionType.wifi,
         evidencias = emptyList(),
@@ -648,12 +649,13 @@ class AiDiagnosisRepositoryTest {
     }
 
     // -------------------------------------------------------------------------
-    // Item #7 — payload v3 NÃO deve conter campos de análise prévia
+    // Item #7 — payload v5 (schema raw atual, SIG-282) NÃO deve conter campos
+    // de análise prévia — regra herdada do payload v3 e nunca revertida.
     // -------------------------------------------------------------------------
     @Test
-    fun contextToJson_v3_naoContemAnalisePrevia() {
+    fun contextToJson_v5_naoContemAnalisePrevia() {
         val ctx = DiagnosisAiContext(
-            schemaVersion = "3",
+            schemaVersion = "5",
             generatedAtEpochMs = 1700000000000L,
             connectionType = io.signallq.app.feature.diagnostico.ConnectionType.wifi,
             metricasAtuais = AiMetricasAtuais(
@@ -668,7 +670,7 @@ class AiDiagnosisRepositoryTest {
         )
         val json = repo.contextToJson(ctx).toString()
         // schemaVersion correto
-        assertTrue(json.contains("\"schemaVersion\":\"3\""))
+        assertTrue(json.contains("\"schemaVersion\":\"5\""))
         // Campos de análise prévia NÃO podem aparecer
         assertFalse("decisaoStatus removido", json.contains("decisaoStatus"))
         assertFalse("decisaoTitulo removido", json.contains("decisaoTitulo"))
@@ -682,6 +684,56 @@ class AiDiagnosisRepositoryTest {
         // Métricas brutas presentes
         assertTrue(json.contains("\"downloadMbps\":294"))
         assertTrue(json.contains("\"latenciaMs\":101"))
+    }
+
+    // -------------------------------------------------------------------------
+    // Fase 1 do bugfix — achadosLocais e rttGatewayMs precisam chegar no payload
+    // real enviado ao Worker. Antes desta correcao, DiagnosisAiContext.achadosLocais
+    // e AiMetricasAtuais.rttGatewayMs existiam no objeto Kotlin mas nunca eram
+    // serializados por contextToJson — a IA "decidia sozinha" sem a ancora do
+    // motor local.
+    // -------------------------------------------------------------------------
+    @Test
+    fun contextToJson_serializaAchadosLocaisERttGateway() {
+        val ctx = DiagnosisAiContext(
+            schemaVersion = "5",
+            generatedAtEpochMs = 1700000000000L,
+            connectionType = io.signallq.app.feature.diagnostico.ConnectionType.wifi,
+            metricasAtuais = AiMetricasAtuais(
+                downloadMbps = 294.0,
+                rttGatewayMs = 12,
+            ),
+            achadosLocais = AchadosDiagnosticoLocal(
+                decisaoId = "DECISAO-GW-01",
+                statusGeral = "attention",
+                score = 62,
+                confianca = 0.82,
+                resultadosRelevantes = listOf("WIFI-01", "INTERNET-03"),
+            ),
+        )
+        val json = repo.contextToJson(ctx).toString()
+
+        assertTrue("rttGatewayMs presente em metricasAtuais", json.contains("\"rttGatewayMs\":12"))
+
+        assertTrue("achadosLocais presente no payload", json.contains("\"achadosLocais\""))
+        assertTrue(json.contains("\"decisaoId\":\"DECISAO-GW-01\""))
+        assertTrue(json.contains("\"statusGeral\":\"attention\""))
+        assertTrue(json.contains("\"score\":62"))
+        assertTrue(json.contains("\"confianca\":0.82"))
+        assertTrue(json.contains("\"WIFI-01\""))
+        assertTrue(json.contains("\"INTERNET-03\""))
+    }
+
+    @Test
+    fun contextToJson_achadosLocaisNull_naoSerializaCampo() {
+        val ctx = DiagnosisAiContext(
+            schemaVersion = "5",
+            generatedAtEpochMs = 1700000000000L,
+            connectionType = io.signallq.app.feature.diagnostico.ConnectionType.wifi,
+            achadosLocais = null,
+        )
+        val json = repo.contextToJson(ctx).toString()
+        assertFalse("achadosLocais omitido quando null", json.contains("achadosLocais"))
     }
 
     @Test

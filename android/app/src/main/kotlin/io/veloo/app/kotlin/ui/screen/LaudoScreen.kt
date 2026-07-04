@@ -80,6 +80,7 @@ fun LaudoScreen(
     ipPublico: String?,
     onVoltar: () -> Unit,
     velocidadeContratadaMbps: Int? = null,
+    conectado: Boolean = true,
 ) {
     val c = LocalLkTokens.current
     val context = LocalContext.current
@@ -92,9 +93,14 @@ fun LaudoScreen(
     val relatorio = snapshotDiagnostico.relatorio
     val decisao = relatorio?.decisao
 
+    // #375: offline reaproveita a ultima medicao salva — exibir o timestamp da
+    // medicao original, nunca o momento da consulta, para nao sugerir uma analise nova.
+    val dataHoraEpochMs =
+        if (!conectado) ultimaMedicao?.timestampEpochMs else null
     val dataHora =
-        remember {
-            SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR")).format(Date())
+        remember(dataHoraEpochMs) {
+            val data = dataHoraEpochMs?.let { Date(it) } ?: Date()
+            SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR")).format(data)
         }
     val headerTitulo =
         buildString {
@@ -145,6 +151,7 @@ fun LaudoScreen(
                                         ipLocal = ipLocal,
                                         ipPublico = ipPublico,
                                         velocidadeContratadaMbps = velocidadeContratadaMbps,
+                                        conectado = conectado,
                                     )
                                 } catch (e: Exception) {
                                     erro = "Não foi possível gerar o PDF: ${e.message}"
@@ -302,6 +309,17 @@ fun LaudoScreen(
                             color = c.textTertiary,
                         )
                     }
+                    // #375: sem conexao no momento da consulta — deixa explicito que os
+                    // dados exibidos sao de uma medicao anterior, nao uma analise nova.
+                    if (!conectado) {
+                        Spacer(Modifier.height(LkSpacing.xs))
+                        Text(
+                            "Sem conexão no momento · exibindo última medição salva",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.W600,
+                            color = LkColors.error,
+                        )
+                    }
                 }
             }
 
@@ -365,6 +383,7 @@ fun LaudoScreen(
                                     unidade = "%",
                                     c = c,
                                     modifier = Modifier.weight(1f),
+                                    nota = "estimado".takeIf { ultimaMedicao.packetLossSource == "estimated" },
                                 )
                                 LaudoMetrica(
                                     label = "Bufferbloat",
@@ -437,6 +456,7 @@ private fun LaudoMetrica(
     unidade: String,
     c: LkTokens,
     modifier: Modifier = Modifier,
+    nota: String? = null,
 ) {
     Column(modifier = modifier) {
         Text(
@@ -460,6 +480,13 @@ private fun LaudoMetrica(
                 modifier = Modifier.padding(bottom = 2.dp),
             )
         }
+        if (nota != null) {
+            Text(
+                nota,
+                fontSize = 9.5.sp,
+                color = c.textTertiary,
+            )
+        }
     }
 }
 
@@ -473,6 +500,7 @@ private suspend fun gerarECompartilharLaudo(
     ipLocal: String?,
     ipPublico: String?,
     velocidadeContratadaMbps: Int? = null,
+    conectado: Boolean = true,
 ) {
     val uri: Uri =
         withContext(Dispatchers.IO) {
@@ -481,7 +509,10 @@ private suspend fun gerarECompartilharLaudo(
             val page = document.startPage(pageInfo)
             val canvas = page.canvas
 
-            val dataHora = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR")).format(Date())
+            // #375: offline reaproveita a ultima medicao salva — o comprovante (usado para
+            // reclamacao formal na Anatel) precisa exibir o timestamp real da medicao.
+            val dataHoraBase = if (!conectado) ultimaMedicao?.timestampEpochMs?.let { Date(it) } ?: Date() else Date()
+            val dataHora = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale("pt", "BR")).format(dataHoraBase)
             val margem = 40f
             val colValor = 180f
 
@@ -532,7 +563,7 @@ private suspend fun gerarECompartilharLaudo(
             var y = 55f
 
             // Cabeçalho
-            canvas.drawText("LINKA — Laudo Técnico", margem, y, paintTitulo)
+            canvas.drawText("SignallQ — Laudo Técnico", margem, y, paintTitulo)
             y += 18f
             canvas.drawText("Diagnóstico de rede doméstica", margem, y, paintSubtitulo)
             y += 14f
@@ -543,6 +574,15 @@ private suspend fun gerarECompartilharLaudo(
                 }
             canvas.drawText(metaLinha, margem, y, paintSubtitulo)
             y += 14f
+            if (!conectado) {
+                canvas.drawText(
+                    "Sem conexão no momento da geração — dados da última medição salva.",
+                    margem,
+                    y,
+                    paintFooter,
+                )
+                y += 14f
+            }
             canvas.drawLine(margem, y, 595f - margem, y, paintLinha)
             y += 18f
 
@@ -647,7 +687,7 @@ private suspend fun gerarECompartilharLaudo(
 
             // Rodapé
             canvas.drawLine(margem, 800f, 595f - margem, 800f, paintLinha)
-            canvas.drawText("Gerado pelo app LINKA", margem, 818f, paintFooter)
+            canvas.drawText("Gerado pelo app SignallQ", margem, 818f, paintFooter)
 
             document.finishPage(page)
 

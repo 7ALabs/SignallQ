@@ -77,8 +77,11 @@ import androidx.compose.ui.unit.sp
 import io.signallq.app.R
 import io.signallq.app.feature.diagnostico.ConnectionType
 import io.signallq.app.feature.diagnostico.DiagSignalSelection
+import io.signallq.app.feature.diagnostico.DiagnosticReport
 import io.signallq.app.feature.diagnostico.EstadoDiagnostico
+import io.signallq.app.feature.diagnostico.GameReadinessClassifier
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
+import io.signallq.app.feature.diagnostico.UsageProfileClassifier
 import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
 import io.signallq.app.feature.diagnostico.ai.AiDiagnosisResult
 import io.signallq.app.feature.diagnostico.ai.AiDiagnosisState
@@ -118,6 +121,11 @@ sealed interface DiagnosticoUiData {
     data class Resultado(
         val result: AiDiagnosisResult,
         val isFallback: Boolean,
+        /** Relatorio local (SIG-289) — usado para montar o card "Impacto no uso"
+         *  a partir do [io.signallq.app.feature.diagnostico.UsageProfileClassifier]
+         *  em vez do texto livre `result.impacto.*` decidido pela IA. Nulo apenas
+         *  em fluxos de teste que nao propagam o snapshot completo. */
+        val report: DiagnosticReport? = null,
     ) : DiagnosticoUiData
 }
 
@@ -129,6 +137,9 @@ fun DiagnosticoScreen(
     onIniciarDiagnostico: () -> Unit,
     analiseSolicitada: Boolean,
     onAnaliseSolicitadaChange: (Boolean) -> Unit,
+    /** Toggle "Analise avancada" (SIG-282, Ajustes) — controla se a IA e chamada
+     *  automaticamente. Desligado, a tela usa direto o motor local (AiFallbackFactory). */
+    analiseAvancada: Boolean,
     aiState: AiDiagnosisState,
     onAiStateChange: (AiDiagnosisState) -> Unit,
     onVoltar: () -> Unit,
@@ -168,16 +179,28 @@ fun DiagnosticoScreen(
         }
     }
 
-    LaunchedEffect(snapshotDiagnostico.estado, analiseSolicitada) {
+    LaunchedEffect(snapshotDiagnostico.estado, analiseSolicitada, analiseAvancada) {
         if (!analiseSolicitada) return@LaunchedEffect
         if (aiState is AiDiagnosisState.loading || aiState is AiDiagnosisState.success) return@LaunchedEffect
         val relatorio = snapshotDiagnostico.relatorio ?: return@LaunchedEffect
         if (snapshotDiagnostico.estado != EstadoDiagnostico.concluido) return@LaunchedEffect
 
+        // SIG-282: "Analise avancada" desligada — usa o motor local (Fases 3a/3b)
+        // direto, sem chamar a IA. Nao e erro, entao vai como success normal.
+        if (!analiseAvancada) {
+            onAiStateChange(AiDiagnosisState.success(AiFallbackFactory.fromLocal(relatorio)))
+            return@LaunchedEffect
+        }
+
         onAiStateChange(AiDiagnosisState.loading)
         val connectionType = snapshotDiagnostico.input?.connectionType ?: ConnectionType.desconhecido
         val ctx = DiagnosisAiContextFactory.from(relatorio, snapshotDiagnostico.input, connectionType)
-        onAiStateChange(aiRepository.explainDiagnosis(ctx) { AiFallbackFactory.fromLocal(relatorio) })
+        onAiStateChange(
+            aiRepository.explainDiagnosis(
+                ctx,
+                decisaoLocalStatus = relatorio.decisao.status.name,
+            ) { AiFallbackFactory.fromLocal(relatorio) },
+        )
     }
 
     Scaffold(
@@ -271,6 +294,7 @@ fun DiagnosticoScreen(
                             DiagResultContent(
                                 c = c,
                                 result = data.result,
+                                report = data.report,
                                 onCompartilhar = onCompartilhar,
                                 onRefazer = {
                                     onAnaliseSolicitadaChange(false)
@@ -296,11 +320,19 @@ fun DiagnosticoScreen(
                         var mostrarDetalhes by remember { mutableStateOf(false) }
                         AlertDialog(
                             onDismissRequest = { onAiStateChange(AiDiagnosisState.idle) },
-                            title = { Text("IA temporariamente indisponível") },
+                            title = {
+                                Text(if (analiseAvancada) "IA temporariamente indisponível" else "IA desligada")
+                            },
                             text = {
                                 Column {
-                                    Text("A IA não respondeu agora. O diagnóstico local continua funcionando.")
-                                    if (mostrarDetalhes) {
+                                    Text(
+                                        if (analiseAvancada) {
+                                            "A IA não respondeu agora. O diagnóstico local continua funcionando."
+                                        } else {
+                                            "A Análise avançada (IA) está desligada nos Ajustes. O diagnóstico local continua funcionando normalmente."
+                                        },
+                                    )
+                                    if (mostrarDetalhes && analiseAvancada) {
                                         Spacer(Modifier.height(LkSpacing.sm))
                                         Text(
                                             "Código: $codigoAmigavel",
@@ -311,18 +343,33 @@ fun DiagnosticoScreen(
                                 }
                             },
                             confirmButton = {
-                                Button(
-                                    onClick = {
-                                        scope.launch {
-                                            val relatorio = snapshotDiagnostico.relatorio ?: return@launch
-                                            onAiStateChange(AiDiagnosisState.loading)
-                                            val connectionType = snapshotDiagnostico.input?.connectionType ?: ConnectionType.desconhecido
-                                            val ctx = DiagnosisAiContextFactory.from(relatorio, snapshotDiagnostico.input, connectionType)
-                                            onAiStateChange(aiRepository.explainDiagnosis(ctx) { AiFallbackFactory.fromLocal(relatorio) })
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
-                                ) { Text("Tentar novamente") }
+                                if (analiseAvancada) {
+                                    Button(
+                                        onClick = {
+                                            scope.launch {
+                                                val relatorio = snapshotDiagnostico.relatorio ?: return@launch
+                                                onAiStateChange(AiDiagnosisState.loading)
+                                                val connectionType = snapshotDiagnostico.input?.connectionType ?: ConnectionType.desconhecido
+                                                val ctx = DiagnosisAiContextFactory.from(relatorio, snapshotDiagnostico.input, connectionType)
+                                                onAiStateChange(
+                                                    aiRepository.explainDiagnosis(
+                                                        ctx,
+                                                        decisaoLocalStatus = relatorio.decisao.status.name,
+                                                    ) { AiFallbackFactory.fromLocal(relatorio) },
+                                                )
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                                    ) { Text("Tentar novamente") }
+                                } else {
+                                    Button(
+                                        onClick = {
+                                            val relatorio = snapshotDiagnostico.relatorio ?: return@Button
+                                            onAiStateChange(AiDiagnosisState.success(AiFallbackFactory.fromLocal(relatorio)))
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                                    ) { Text("OK") }
+                                }
                             },
                             dismissButton = {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -330,12 +377,14 @@ fun DiagnosticoScreen(
                                         onAnaliseSolicitadaChange(false)
                                         onAiStateChange(AiDiagnosisState.idle)
                                     }) { Text("Sair") }
-                                    TextButton(onClick = { mostrarDetalhes = !mostrarDetalhes }) {
-                                        Text(
-                                            if (mostrarDetalhes) "Ocultar detalhes" else "Ver detalhes",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = c.textTertiary,
-                                        )
+                                    if (analiseAvancada) {
+                                        TextButton(onClick = { mostrarDetalhes = !mostrarDetalhes }) {
+                                            Text(
+                                                if (mostrarDetalhes) "Ocultar detalhes" else "Ver detalhes",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = c.textTertiary,
+                                            )
+                                        }
                                     }
                                 }
                             },
@@ -365,7 +414,7 @@ private fun resolveUiState(
     if (!solicitada) return UiState.Empty
     if (snap.estado == EstadoDiagnostico.erro) return UiState.Error("Não foi possível diagnosticar a conexão.")
     if (ai is AiDiagnosisState.success) {
-        return UiState.Success(DiagnosticoUiData.Resultado(ai.result, isFallback = false))
+        return UiState.Success(DiagnosticoUiData.Resultado(ai.result, isFallback = false, report = snap.relatorio))
     }
     if (ai is AiDiagnosisState.fallback || ai is AiDiagnosisState.error) {
         val code = if (ai is AiDiagnosisState.error) ai.code else "ERR_SERVIDOR_INDISPONIVEL"
@@ -719,6 +768,7 @@ private fun AnalysisStepRow(
 private fun DiagResultContent(
     c: LkTokens,
     result: AiDiagnosisResult,
+    report: DiagnosticReport?,
     onCompartilhar: () -> Unit,
     onRefazer: () -> Unit,
     onFalarOperadora: () -> Unit,
@@ -730,7 +780,7 @@ private fun DiagResultContent(
     val statusLabel = diagStatusToLabel(result.status)
     val confiancaLabel = diagConfiancaLabel(result.problemaPrincipal.confianca)
 
-    val impactItems = buildImpactItems(result)
+    val impactItems = buildImpactItems(report, result)
     val metricItems = buildMetricItems(result)
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -972,7 +1022,94 @@ private fun buildSecondaryRootCauses(result: AiDiagnosisResult): List<RootCauseE
     return candidates.take(2)
 }
 
-private fun buildImpactItems(result: AiDiagnosisResult): List<ImpactItem> {
+/**
+ * Monta o card "Impacto no uso" a partir do [UsageProfileClassifier] (SIG-289) —
+ * calculo local deterministico, nao mais texto livre da IA (`result.impacto.*`,
+ * mantido em [AiDiagnosisResult] so por retrocompat do payload/fallback).
+ * Sem [report] (fluxo de teste sem snapshot completo), cai para o texto legado da
+ * IA para nao quebrar telas existentes.
+ */
+private fun buildImpactItems(
+    report: DiagnosticReport?,
+    result: AiDiagnosisResult,
+): List<ImpactItem> {
+    if (report == null || report.perfisUso.isEmpty()) return buildImpactItemsLegado(result)
+
+    val iconePorPerfil =
+        mapOf(
+            UsageProfileClassifier.Perfil.NAVEGACAO to Icons.Outlined.Language,
+            UsageProfileClassifier.Perfil.STREAMING to Icons.Outlined.BarChart,
+            UsageProfileClassifier.Perfil.VIDEOCHAMADA to Icons.Outlined.NetworkWifi,
+            UsageProfileClassifier.Perfil.JOGOS to Icons.Outlined.Speed,
+            UsageProfileClassifier.Perfil.TRABALHO to Icons.Outlined.Refresh,
+        )
+    val labelPorPerfil =
+        mapOf(
+            UsageProfileClassifier.Perfil.NAVEGACAO to "Navegação",
+            UsageProfileClassifier.Perfil.STREAMING to "Streaming",
+            UsageProfileClassifier.Perfil.VIDEOCHAMADA to "Videochamadas",
+            UsageProfileClassifier.Perfil.JOGOS to "Jogos",
+            UsageProfileClassifier.Perfil.TRABALHO to "Trabalho remoto",
+        )
+
+    return report.perfisUso.mapNotNull { perfil ->
+        val status = perfil.status ?: return@mapNotNull null
+        val (label, color) = usageStatusToLabelAndColor(status)
+        ImpactItem(
+            icon = iconePorPerfil.getValue(perfil.perfil),
+            label = labelPorPerfil.getValue(perfil.perfil),
+            status = label,
+            statusColor = color,
+            detalhes =
+                if (perfil.perfil == UsageProfileClassifier.Perfil.JOGOS) {
+                    buildGameReadinessDetalhes(report)
+                } else {
+                    null
+                },
+        )
+    }
+}
+
+/**
+ * Texto do "ver detalhes" do card Jogos (SIG-290) — categoria de jogo
+ * detectada/selecionada + recomendacao do [GameReadinessClassifier]/device
+ * preset. Reaproveita [DiagnosticReport.gameReadiness], ja calculado pelo
+ * [io.signallq.app.feature.diagnostico.DiagnosticRunner] a partir do mesmo
+ * [io.signallq.app.feature.diagnostico.DiagnosticInput] — sem recalcular na UI.
+ */
+private fun buildGameReadinessDetalhes(report: DiagnosticReport): String? {
+    if (report.gameReadiness.isEmpty()) return null
+    return report.gameReadiness.joinToString("\n\n") { categoria ->
+        val titulo = categoria.categoria.labelDetalhado()
+        val statusTexto = categoria.status?.let { it.name } ?: "Sem dados"
+        buildString {
+            append("$titulo · $statusTexto\n")
+            append(categoria.motivo)
+            categoria.recomendacao?.let { rec ->
+                append("\n")
+                append(rec)
+            }
+        }
+    }
+}
+
+private fun GameReadinessClassifier.Categoria.labelDetalhado(): String =
+    when (this) {
+        GameReadinessClassifier.Categoria.FPS_COMPETITIVO -> "FPS competitivo"
+        GameReadinessClassifier.Categoria.CLOUD_GAMING -> "Cloud gaming"
+        GameReadinessClassifier.Categoria.MOBILE_COMPETITIVO -> "Mobile competitivo"
+    }
+
+private fun usageStatusToLabelAndColor(status: UsageProfileClassifier.UsageProfileStatus): Pair<String, Color> =
+    when (status) {
+        UsageProfileClassifier.UsageProfileStatus.OK -> "OK" to LkColors.success
+        UsageProfileClassifier.UsageProfileStatus.Instavel -> "Instável" to LkColors.warning
+        UsageProfileClassifier.UsageProfileStatus.Comprometido -> "Comprometido" to LkColors.error
+    }
+
+/** Fallback legado: texto livre `result.impacto.*` da IA — usado apenas quando
+ *  o [DiagnosticReport] local nao esta disponivel (ex.: testes isolados de UI). */
+private fun buildImpactItemsLegado(result: AiDiagnosisResult): List<ImpactItem> {
     val imp = result.impacto
     return buildList {
         fun addImpact(
@@ -1008,7 +1145,10 @@ private fun buildMetricItems(result: AiDiagnosisResult): List<MetricItem> {
         val label = ev.label.substringAfter(":").ifBlank { ev.label }
         val valor = ev.valor.ifBlank { return@mapNotNull null }
         val status = inferMetricStatus(ev.label, cl)
-        MetricItem(label = label, value = valor, status = status)
+        // Perda de pacotes hoje e sempre inferida por timeout HTTP, nunca medida
+        // por pacote real — nao apresentar como percentual definitivo.
+        val note = if ("perda" in label.lowercase()) "estimado" else null
+        MetricItem(label = label, value = valor, status = status, note = note)
     }
 }
 
