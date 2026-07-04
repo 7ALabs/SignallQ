@@ -224,13 +224,14 @@ class ScannerDispositivosAndroid(
                                 try { resolverHostname(d.ip) } finally { semReverseDns.release() }
                             } else null
                             // Prioridade de nome: fonteNome com alta prioridade já vem enriquecido (ssdpXml/mdnsJmDns)
-                            // Só cai para hostname/fabricante se ainda é genérico
+                            // Só cai para hostname/fabricante se ainda é genérico.
+                            // Sem hostname resolvido, fallback fica em "Dispositivo <Fabricante>" via OUI
+                            // (resolução completa de mDNS/NetBIOS é escopo de feature separada).
                             val nomeResolvido = when {
                                 d.fonteNome == "gateway" -> d.nomeExibicao
                                 d.nomeExibicao !in genericosParaResolver -> d.nomeExibicao
                                 hostname != null -> hostname
-                                fabricanteResolvido != null -> fabricanteResolvido
-                                else -> d.ip ?: d.nomeExibicao
+                                else -> NamingPrioridade.rotuloFallbackGenerico(fabricanteResolvido)
                             }
                             d.copy(
                                 mac = macResolvido,

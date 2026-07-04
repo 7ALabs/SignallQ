@@ -15,7 +15,7 @@
  * Nomes "genéricos" (lista [NOMES_GENERICOS]) são ignorados e tratados como null
  * na resolução de prioridade.
  */
-internal object NamingPrioridade {
+object NamingPrioridade {
 
     /** Nomes que não carregam informação útil — tratados como ausentes na priorização. */
     val NOMES_GENERICOS = setOf(
@@ -66,5 +66,17 @@ internal object NamingPrioridade {
         return fabricanteUpnpXml?.takeIf { it.isNotBlank() }
             ?: fabricanteMdns?.takeIf { it.isNotBlank() }
             ?: fabricanteOui?.takeIf { it.isNotBlank() }
+    }
+
+    /**
+     * Rótulo de fallback quando não há hostname/nome resolvido para o dispositivo.
+     *
+     * Escopo deliberadamente reduzido: NÃO resolve mDNS/NetBIOS (feature maior, fora
+     * de bug-fix). Usa apenas o fabricante já inferido via OUI do MAC — quando disponível,
+     * "Dispositivo <Fabricante>" (ex.: "Dispositivo Samsung"); sem fabricante, "Dispositivo".
+     */
+    fun rotuloFallbackGenerico(fabricante: String?): String {
+        val f = fabricante?.takeIf { it.isNotBlank() }
+        return if (f != null) "Dispositivo $f" else "Dispositivo"
     }
 }
