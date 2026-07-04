@@ -974,6 +974,51 @@ async function handleAiUsageTimeline(request: Request, env: Env): Promise<Respon
   return json({ source: "d1", days, environment: envFilter ?? "all", series }, 200, env);
 }
 
+// GH#421: histórico de execuções reais de IA — cada linha vem direto de `ai_usage`,
+// correlacionada com `diagnostic_sessions` quando `session_id` existe. Sem invenção
+// de latência: o schema não registra esse campo hoje (ver docs/architecture/data-architecture.md).
+async function handleAiUsageRecords(request: Request, env: Env): Promise<Response> {
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "7d";
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+  const limit     = Math.min(Math.max(parseInt(url.searchParams.get("limit") ?? "100"), 1), 500);
+
+  const envClause = envFilter ? " AND au.environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]               : [];
+
+  const rows = await env.DB.prepare(
+    `SELECT
+       au.id, au.session_id, au.created_at, au.model,
+       au.prompt_tokens, au.completion_tokens, au.cost_usd,
+       au.status, au.error_message, au.environment,
+       ds.id AS diag_id
+     FROM ai_usage au
+     LEFT JOIN diagnostic_sessions ds ON ds.id = au.session_id
+     WHERE au.created_at >= ?${envClause}
+     ORDER BY au.created_at DESC
+     LIMIT ?`
+  ).bind(since, ...envBinds, limit).all();
+
+  const records = (rows.results ?? []).map((r: any) => ({
+    id:               r.id,
+    timestamp:        new Date((r.created_at ?? 0) * 1000).toISOString(),
+    model:            r.model ?? "",
+    provider:         providerName(r.model ?? ""),
+    promptTokens:     r.prompt_tokens     ?? 0,
+    completionTokens: r.completion_tokens ?? 0,
+    costUsd:          r.cost_usd ?? 0,
+    // status/error_message podem não existir ainda em registros anteriores à migration
+    // 009_gh421 — default 'success' documentado na própria coluna (DEFAULT 'success').
+    status:           r.status === "error" ? "error" : "success",
+    errorMessage:     r.error_message || null,
+    diagnosisId:      r.diag_id ?? null,
+    environment:      r.environment ?? "production",
+  }));
+
+  return json({ source: "d1", period, environment: envFilter ?? "all", records }, 200, env);
+}
+
 // SIG-139: métricas de diagnóstico agrupadas por operadora.
 async function handleOperators(request: Request, env: Env): Promise<Response> {
   const url       = new URL(request.url);
@@ -1480,17 +1525,25 @@ async function handleIngestAiUsage(request: Request, env: Env): Promise<Response
   const buildType   = p.build_type   ?? 'release';
   const deviceId    = p.device_id    ?? '';
 
+  // GH#421: status/erro da execução. Default 'success' porque o app hoje só
+  // envia ai_usage ao final de uma chamada concluída (sem retry/erro reportado
+  // ainda) — quando o Android passar a enviar falhas, o valor real prevalece.
+  const status       = p.status === 'error' ? 'error' : 'success';
+  const errorMessage = p.error_message ?? p.error ?? '';
+
   try {
     await env.DB.prepare(
       `INSERT OR REPLACE INTO ai_usage
          (id, session_id, created_at, model,
           prompt_tokens, completion_tokens, total_tokens, cost_usd,
-          environment, version_code, dist_channel, build_type, device_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          environment, version_code, dist_channel, build_type, device_id,
+          status, error_message)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       p.id, p.session_id ?? null, p.created_at ?? nowSec(), p.model,
       prompt, completion, total, cost,
       environment, versionCode, distChannel, buildType, deviceId,
+      status, errorMessage,
     ).run();
   } catch (e) {
     await logError(env, 'ai-usage', String(e), e instanceof Error ? e.stack ?? '' : '');
@@ -1810,6 +1863,7 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-costs$/,                    handler: withErrorLogging('metrics', handleAiCostMetrics) },
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-providers$/,                handler: withErrorLogging('metrics', handleAiProviders) },
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage\/timeline$/,          handler: withErrorLogging('metrics', handleAiUsageTimeline) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage\/records$/,          handler: withErrorLogging('metrics', handleAiUsageRecords) },
   { method: "GET",  pattern: /^\/admin\/metrics\/operators$/,                   handler: withErrorLogging('metrics', handleOperators) },
   { method: "GET",  pattern: /^\/admin\/metrics\/intelligence$/,                handler: withErrorLogging('metrics', handleDiagnosticsIntelligence) },
   { method: "GET",  pattern: /^\/admin\/diagnostics\/intelligence$/,            handler: withErrorLogging('metrics', handleDiagnosticsIntelligence) },
