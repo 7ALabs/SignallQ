@@ -26,6 +26,8 @@ data class MedicaoEntity(
     val vereditoVideoChamada: String?,
     val gargaloPrimario: String?,
     val fonte: String? = null,
+    /** Operadora movel (SIM) OU provedor Wi-Fi (ISP) identificado. Null quando
+     *  nenhum dos dois esta disponivel (GH#412). */
     val operadoraMovel: String? = null,
     val diagnosticoTexto: String? = null,
     val diagnosticoOrigem: String? = null,
