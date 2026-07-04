@@ -42,26 +42,32 @@ const speedTest: SpeedTestResult = {
 };
 
 describe('AI diagnosis client', () => {
-  it('returns AI diagnosis when the worker responds with the expected contract', async () => {
+  it('returns AI diagnosis when the worker responds with the real ai-diagnosis-worker schema', async () => {
+    // Schema real do Worker (compartilhado com o Android) — não o contrato
+    // de UI `DiagnosisResult`. Ver aiResponseMapper.ts.
     const fetchFn: typeof fetch = async () =>
       Response.json({
-        actions: [
+        acoesRecomendadas: [
           {
-            category: 'retry',
-            description: 'Use este resultado como referência.',
-            priority: 1,
-            title: 'Mantenha o teste salvo',
+            descricao: 'Use este resultado como referência.',
+            prioridade: 'alta',
+            tipo: 'reteste',
+            titulo: 'Mantenha o teste salvo',
           },
         ],
-        confidence: 'high',
-        generatedAt: '2026-06-28T00:00:00.000Z',
-        id: 'diag_ai',
-        limitations: [],
-        quality: 'good',
-        source: 'ai',
-        speed: 'fast',
-        stability: 'stable',
-        summary: 'Sua conexão está boa para uso comum.',
+        classificacaoTecnica: {
+          estabilidade: { avaliacao: 'boa' },
+          velocidade: { avaliacao: 'boa' },
+        },
+        generatedAt: 1751068800000,
+        limitesDaAnalise: [],
+        problemaPrincipal: { confianca: 0.9, tipo: 'sem_problema' },
+        resumo: 'Sua conexão está boa para uso comum.',
+        schemaVersion: '2',
+        source: 'cloudflare_ai',
+        status: 'bom',
+        textoLaudo: 'Sua conexão está boa para uso comum.',
+        titulo: 'Conexão boa',
       });
 
     const result = await createDiagnosisWithAiFallback(speedTest, { fetchFn });

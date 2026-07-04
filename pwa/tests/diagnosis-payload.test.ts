@@ -65,7 +65,7 @@ describe('diagnosis AI payload', () => {
         downloadMbps: 8,
         jitterMs: 4,
         latenciaMs: 20,
-        perceivedLossPercent: 0,
+        perdaPacotesPercentual: 0,
         uploadMbps: 4,
       },
       schemaVersion: 'pwa_foundation_v1',
@@ -79,7 +79,7 @@ describe('diagnosis AI payload', () => {
       downloadMbps: null,
       jitterMs: null,
       latenciaMs: null,
-      perceivedLossPercent: null,
+      perdaPacotesPercentual: null,
       uploadMbps: null,
     });
   });
