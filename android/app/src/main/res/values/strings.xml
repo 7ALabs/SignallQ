@@ -123,6 +123,7 @@
     <string name="home_sheet_meu_dispositivo">Meu dispositivo</string>
     <string name="home_sheet_internet">Internet</string>
     <string name="home_sheet_ip_compartilhado">IP compartilhado com outros clientes do provedor (CG-NAT)</string>
+    <string name="home_sheet_asn_explicacao">Identifica a rede do seu provedor na internet</string>
     <string name="home_offline_titulo">Sem conexão com a internet</string>
     <string name="home_offline_descricao">Sem conexão com a internet. Algumas análises dependem de conexão ativa. Os últimos dados salvos continuam disponíveis no histórico.</string>
     <string name="home_offline_btn_aguardar">Aguardando conexão…</string>
