@@ -1080,8 +1080,9 @@ async function handleOperators(request: Request, env: Env): Promise<Response> {
     avg_download:        r.avg_download       ?? null,
     avg_upload:          r.avg_upload         ?? null,
     avg_latency:         r.avg_latency        != null ? Math.round(r.avg_latency) : null,
-    packetLossAverage:   r.avg_packet_loss    != null ? Math.round(r.avg_packet_loss * 100) / 100 : 0,
-    type:                r.dominant_network_type ?? 'mobile',
+    packetLossAverage:   r.avg_packet_loss    != null ? Math.round(r.avg_packet_loss * 100) / 100 : null,
+    // Não inventar "mobile" quando não há amostra suficiente para determinar o tipo dominante.
+    type:                r.dominant_network_type ?? null,
     completed:           r.completed          ?? 0,
     resolved:            r.resolved           ?? 0,
   }));

@@ -42,13 +42,18 @@ export interface OperatorRecord {
   id: string;
   name: string; // e.g. "Claro", "Vivo", "TIM", "Desktop Internet"
   country: string; // e.g. "Brasil"
-  type: "mobile" | "fiber" | "cable";
+  // Tipo de rede dominante nos diagnósticos da operadora (network_type real vindo
+  // do Android: "wifi" | "4g" | "5g" | "ethernet" | "mobile" | "fiber" | "cable").
+  // null quando o Worker não conseguiu determinar um tipo dominante — nunca inventar valor.
+  type: string | null;
   testCount: number;
-  averageDownloadMbps: number;
-  averageUploadMbps: number;
-  averageLatencyMs: number;
-  packetLossAverage: number;
-  customerSatisfactionPercentage: number; // 0 to 100 based on diagnostics feedback
+  averageDownloadMbps: number | null;
+  averageUploadMbps: number | null;
+  averageLatencyMs: number | null;
+  packetLossAverage: number | null;
+  // Score médio de diagnóstico (0 a 100), calculado pelo engine local no device.
+  // NÃO é pesquisa de satisfação do cliente — não existe essa fonte de dado hoje.
+  averageScorePercentage: number | null;
 }
 
 /**

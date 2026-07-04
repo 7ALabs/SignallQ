@@ -269,7 +269,7 @@ export const mockOperatorsList: OperatorRecord[] = [
     averageUploadMbps: 28.2,
     averageLatencyMs: 38,
     packetLossAverage: 0.15,
-    customerSatisfactionPercentage: 88,
+    averageScorePercentage: 88,
   },
   {
     id: "op_vivo_m",
@@ -281,7 +281,7 @@ export const mockOperatorsList: OperatorRecord[] = [
     averageUploadMbps: 32.4,
     averageLatencyMs: 34,
     packetLossAverage: 0.12,
-    customerSatisfactionPercentage: 90,
+    averageScorePercentage: 90,
   },
   {
     id: "op_tim_m",
@@ -293,7 +293,7 @@ export const mockOperatorsList: OperatorRecord[] = [
     averageUploadMbps: 24.1,
     averageLatencyMs: 42,
     packetLossAverage: 0.22,
-    customerSatisfactionPercentage: 85,
+    averageScorePercentage: 85,
   },
   {
     id: "op_claro_f",
@@ -305,7 +305,7 @@ export const mockOperatorsList: OperatorRecord[] = [
     averageUploadMbps: 188.4,
     averageLatencyMs: 12,
     packetLossAverage: 0.05,
-    customerSatisfactionPercentage: 92,
+    averageScorePercentage: 92,
   },
   {
     id: "op_vivo_f",
@@ -317,7 +317,7 @@ export const mockOperatorsList: OperatorRecord[] = [
     averageUploadMbps: 384.2,
     averageLatencyMs: 8,
     packetLossAverage: 0.02,
-    customerSatisfactionPercentage: 96,
+    averageScorePercentage: 96,
   },
   {
     id: "op_desktop_f",
@@ -329,6 +329,6 @@ export const mockOperatorsList: OperatorRecord[] = [
     averageUploadMbps: 154.9,
     averageLatencyMs: 15,
     packetLossAverage: 0.08,
-    customerSatisfactionPercentage: 87,
+    averageScorePercentage: 87,
   }
 ];

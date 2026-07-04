@@ -461,6 +461,8 @@ export const adminMetricsService = {
           avg_download: number | null;
           avg_upload: number | null;
           avg_latency: number | null;
+          packetLossAverage: number | null;
+          type: string | null;
           completed: number;
           resolved: number;
         }> }>("GET", `/admin/metrics/operators?environment=${envOperators}&period=${period}`);
@@ -469,13 +471,13 @@ export const adminMetricsService = {
           id:                             `op_${idx}`,
           name:                           r.operator,
           country:                        "Brasil",
-          type:                           "mobile" as const,
+          type:                           r.type,
           testCount:                      r.total_diagnostics,
-          averageDownloadMbps:            r.avg_download         ?? 0,
-          averageUploadMbps:              r.avg_upload           ?? 0,
-          averageLatencyMs:               r.avg_latency          ?? 0,
-          packetLossAverage:              0,
-          customerSatisfactionPercentage: r.avg_score            ?? 0,
+          averageDownloadMbps:            r.avg_download,
+          averageUploadMbps:              r.avg_upload,
+          averageLatencyMs:               r.avg_latency,
+          packetLossAverage:              r.packetLossAverage,
+          averageScorePercentage:         r.avg_score,
         }));
       } catch {
         return [];
