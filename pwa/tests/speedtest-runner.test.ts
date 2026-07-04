@@ -41,10 +41,18 @@ describe('speedtest runner', () => {
 
     const progress: string[] = [];
     const result = await runSpeedTestWeb({
+      // Janela menor que o custo de uma segunda requisição (1000ms) força exatamente
+      // 1 request por stream, reproduzindo o cenário de referência com precisão.
+      downloadDurationMs: 40,
+      downloadStreams: 1,
+      downloadWarmupMs: 0,
       fetchFn,
       now: () => currentTime,
       onProgress: (event) => progress.push(`${event.phase}:${event.status}`),
-      uploadBytes: 100_000,
+      uploadChunkBytes: 100_000,
+      uploadDurationMs: 40,
+      uploadStreams: 1,
+      uploadWarmupMs: 0,
     });
 
     if (!result.result) throw new Error('expected result');
@@ -81,7 +89,15 @@ describe('speedtest runner', () => {
       return jsonResponse({ ok: true, receivedBytes: 64_000 });
     });
 
-    const result = await runSpeedTestWeb({ fetchFn, now: () => currentTime, uploadBytes: 64_000 });
+    const result = await runSpeedTestWeb({
+      downloadDurationMs: 20,
+      downloadStreams: 1,
+      fetchFn,
+      now: () => currentTime,
+      uploadChunkBytes: 64_000,
+      uploadDurationMs: 20,
+      uploadStreams: 1,
+    });
 
     if (!result.result) throw new Error('expected result');
 
@@ -104,7 +120,15 @@ describe('speedtest runner', () => {
       return jsonResponse({ ok: true, receivedBytes: body.byteLength });
     });
 
-    const result = await runSpeedTestWeb({ fetchFn, now: () => currentTime, uploadBytes: 32_000 });
+    const result = await runSpeedTestWeb({
+      downloadDurationMs: 1000,
+      downloadStreams: 1,
+      fetchFn,
+      now: () => currentTime,
+      uploadChunkBytes: 32_000,
+      uploadDurationMs: 100,
+      uploadStreams: 1,
+    });
     if (!result.result) throw new Error('expected result');
 
     const quality = classifySpeedTest(result.result);
@@ -138,10 +162,11 @@ describe('speedtest runner', () => {
     });
 
     const result = await runSpeedTestWeb({
+      downloadDurationMs: 5,
       fetchFn,
       latencySampleCount: 2,
       timeoutMs: 1,
-      uploadRetryCount: 1,
+      uploadDurationMs: 5,
     });
 
     if (!result.result) throw new Error('expected error result');
@@ -151,10 +176,11 @@ describe('speedtest runner', () => {
     expect(result.result.download.mbps).toBeNull();
     expect(result.result.upload.mbps).toBeNull();
     expect(result.result.latency.ms).toBeNull();
-    expect(result.result.availability.failedRequests).toBe(4);
+    // 2 amostras de latência + ao menos 1 tentativa de download e 1 de upload.
+    expect(result.result.availability.failedRequests).toBeGreaterThanOrEqual(4);
   });
 
-  it('retries upload before returning a partial result', async () => {
+  it('retries upload naturally within the measurement window before returning a partial result', async () => {
     let currentTime = 0;
     let uploadAttempts = 0;
     const fetchFn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -172,10 +198,15 @@ describe('speedtest runner', () => {
     });
 
     const result = await runSpeedTestWeb({
+      downloadDurationMs: 40,
+      downloadStreams: 1,
       fetchFn,
       now: () => currentTime,
-      uploadBytes: 50_000,
-      uploadRetryCount: 3,
+      uploadChunkBytes: 50_000,
+      // Janela cobre exatamente as 3 tentativas (1000ms cada); a 4ª nunca chega a rodar.
+      uploadDurationMs: 3000,
+      uploadStreams: 1,
+      uploadWarmupMs: 0,
     });
 
     if (!result.result) throw new Error('expected result');
@@ -196,12 +227,56 @@ describe('speedtest runner', () => {
       return jsonResponse({ error: 'unexpected' }, false);
     });
 
-    const result = await runSpeedTestWeb({ fetchFn, now: () => currentTime, skipUpload: true });
+    const result = await runSpeedTestWeb({
+      downloadDurationMs: 40,
+      downloadStreams: 1,
+      fetchFn,
+      now: () => currentTime,
+      skipUpload: true,
+    });
 
     if (!result.result) throw new Error('expected result');
 
     expect(result.status).toBe('partial');
     expect(result.result.upload.status).toBe('not_available');
     expect(result.result.limitations).toContain('upload_endpoint_unavailable');
+  });
+
+  it('GH#436: measures download/upload as a sustained multi-request window with warmup discard, not a single small transfer', async () => {
+    let currentTime = 0;
+    const fetchFn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.includes('/latency')) {
+        currentTime += 10;
+        return jsonResponse({ ok: true, method: 'http_timing' });
+      }
+
+      currentTime += 500;
+      if (url.includes('/download')) return byteResponse(1_000_000);
+
+      const body = init?.body as Uint8Array;
+      return jsonResponse({ ok: true, receivedBytes: body.byteLength });
+    });
+
+    const result = await runSpeedTestWeb({
+      downloadDurationMs: 2500,
+      downloadStreams: 1,
+      downloadWarmupMs: 600,
+      fetchFn,
+      now: () => currentTime,
+      uploadChunkBytes: 250_000,
+      uploadDurationMs: 2500,
+      uploadStreams: 1,
+      uploadWarmupMs: 600,
+    });
+
+    if (!result.result) throw new Error('expected result');
+
+    expect(result.status).toBe('success');
+    // 5 requisições cabem na janela de 2500ms (a 500ms cada); a 1ª cai dentro do warmup
+    // e é descartada do cálculo de throughput, mas ainda conta como amostra.
+    expect(result.result.download).toMatchObject({ bytes: 4_000_000, mbps: 16.8, samples: 5, status: 'measured' });
+    expect(result.result.upload).toMatchObject({ bytes: 1_000_000, mbps: 4.2, samples: 5, status: 'measured' });
   });
 });

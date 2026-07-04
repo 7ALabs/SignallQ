@@ -14,6 +14,36 @@ Este contrato segue a paridade definida em `pwa/docs/parity.md`.
 
 SpeedTest no PWA é `paridade-metodologica`.
 
+### GH#436 — correção de metodologia (download/upload)
+
+Antes desta correção, download e upload eram medidos com uma única requisição pequena
+(1MB / 512KB). Isso mede sobretudo o tempo de handshake/TLS/TCP slow-start da conexão,
+não o throughput sustentado, e por isso o resultado divergia (geralmente bem abaixo)
+do SpeedTest Android, que usa múltiplas conexões paralelas sustentadas por uma janela
+de tempo com aquecimento (warmup) descartado.
+
+Correção aplicada em `speedTestRunner.ts`: download e upload passaram a rodar como
+`N` streams paralelos, repetindo requisições contra os mesmos endpoints Cloudflare
+Pages Functions (`/api/speedtest/download`, `/api/speedtest/upload`) durante uma
+janela de ~8s (configurável), descartando o primeiro ~1s (warmup) do cálculo de
+Mbps — mesmo critério do `ExecutorSpeedtestCloudflare` do Android (streams + janela
++ warmup), adaptado ao que o `fetch` do browser suporta.
+
+Divergência que permanece e é aceitável (documentada, não é bug):
+
+- Android atinge `speed.cloudflare.com` diretamente (rede pública Cloudflare); o PWA
+  usa Cloudflare Pages Functions no mesmo domínio do app. Motivo: `fetch` cross-origin
+  para outro host exigiria CORS liberado pelo destino, o que não é garantido para todo
+  navegador/rede corporativa. Usar o próprio domínio evita bloqueio silencioso de CORS.
+- Escalonamento adaptativo de streams (Android ajusta paralelismo dinamicamente por
+  ganho de throughput) não foi replicado — o PWA usa uma contagem fixa de streams.
+  Justificativa: replicar o algoritmo adaptativo por completo é uma mudança maior;
+  o ganho de precisão do fixo-vs-adaptativo é pequeno frente ao ganho de trocar
+  "1 request pequena" por "múltiplas requisições sustentadas", que é a causa raiz do
+  bug relatado. Fica como follow-up se a métrica ainda divergir em QA de campo.
+- Modo `triplo` (3 rodadas + mediana) do Android não existe no PWA. Fora do escopo
+  desta correção.
+
 O objetivo é entregar resultado comparável ao Android para:
 
 - download;

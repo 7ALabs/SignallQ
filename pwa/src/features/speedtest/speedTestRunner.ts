@@ -13,10 +13,24 @@ import { SpeedtestPhase } from '@/types/network';
 import type { SpeedTestProgress, SpeedTestRunnerOptions, SpeedTestRunnerResult } from './speedTestTypes';
 
 const DEFAULT_LATENCY_SAMPLE_COUNT = 15;
-const DEFAULT_DOWNLOAD_BYTES = 1024 * 1024;
-const DEFAULT_UPLOAD_BYTES = 512 * 1024;
 const DEFAULT_TIMEOUT_MS = 15_000;
-const DEFAULT_UPLOAD_RETRY_COUNT = 3;
+
+// GH#436: download/upload eram uma unica requisicao pequena (1MB/512KB). Isso mede
+// sobretudo o tempo de handshake/TLS/TCP slow-start da conexao, nao o throughput
+// sustentado da rede, e por isso o resultado divergia (muitas vezes bem abaixo) do
+// SpeedTest Android, que usa multiplas conexoes paralelas sustentadas por uma janela
+// de tempo com aquecimento descartado (ExecutorSpeedtestCloudflare). A correcao aqui
+// reproduz a mesma lógica (streams paralelos + janela + warmup) dentro do que o
+// browser suporta via fetch, sem estimativa nativa por RSSI/ICMP.
+const DEFAULT_DOWNLOAD_DURATION_MS = 8_000;
+const DEFAULT_DOWNLOAD_WARMUP_MS = 1_000;
+const DEFAULT_DOWNLOAD_STREAMS = 4;
+const DEFAULT_DOWNLOAD_CHUNK_BYTES = 1_500_000;
+const DEFAULT_UPLOAD_DURATION_MS = 8_000;
+const DEFAULT_UPLOAD_WARMUP_MS = 1_000;
+const DEFAULT_UPLOAD_STREAMS = 4;
+const DEFAULT_UPLOAD_CHUNK_BYTES = 512 * 1024;
+const MAX_WORKER_ITERATIONS = 500;
 
 interface LatencyResponse {
   method?: 'http_timing';
@@ -203,13 +217,40 @@ async function measureLatency(
   };
 }
 
+/**
+ * Resume os bytes transferidos durante a janela de medição, descartando o warmup
+ * inicial quando há amostras suficientes depois dele (mesmo critério do Android:
+ * throughput calculado sobre a janela estável, não sobre o teste inteiro).
+ */
+function summarizeThroughputWindow(
+  bytesTotal: number,
+  bytesAfterWarmup: number,
+  elapsedTotalMs: number,
+  warmupMs: number,
+  successfulRequests: number,
+): { bytes: number; durationMs: number; mbps: number | null } {
+  const hasWarmupWindow = elapsedTotalMs > warmupMs && bytesAfterWarmup > 0;
+  if (hasWarmupWindow) {
+    const durationMs = Math.max(elapsedTotalMs - warmupMs, 1);
+    return { bytes: bytesAfterWarmup, durationMs, mbps: calculateMbps(bytesAfterWarmup, durationMs) };
+  }
+  if (successfulRequests > 0) {
+    const durationMs = Math.max(elapsedTotalMs, 1);
+    return { bytes: bytesTotal, durationMs, mbps: calculateMbps(bytesTotal, durationMs) };
+  }
+  return { bytes: 0, durationMs: Math.max(elapsedTotalMs, 1), mbps: null };
+}
+
 async function measureDownload(
   fetchFn: typeof fetch,
   now: () => number,
   options: {
-    downloadBytes: number;
+    chunkBytes: number;
+    durationMs: number;
     signal: AbortSignal | undefined;
+    streams: number;
     timeoutMs: number;
+    warmupMs: number;
   },
 ): Promise<{
   failedRequests: number;
@@ -218,58 +259,73 @@ async function measureDownload(
 }> {
   assertNotCanceled(options.signal);
   const startedAt = now();
+  const deadline = startedAt + options.durationMs;
+  let bytesTotal = 0;
+  let bytesAfterWarmup = 0;
+  let successfulRequests = 0;
+  let failedRequests = 0;
+  let requestSeq = 0;
 
-  try {
-    const response = await fetchWithTimeout(
-      fetchFn,
-      `/api/speedtest/download?bytes=${options.downloadBytes}&cacheBust=${Date.now()}`,
-      {
-        cache: 'no-store',
-        method: 'GET',
-      },
-      options.timeoutMs,
-      options.signal,
-    );
-    if (!response.ok) throw new Error('download_failed');
-    const buffer = await response.arrayBuffer();
-    const durationMs = Math.max(now() - startedAt, 1);
+  async function worker(): Promise<void> {
+    let iterations = 0;
+    while (now() < deadline && iterations < MAX_WORKER_ITERATIONS) {
+      iterations += 1;
+      requestSeq += 1;
+      assertNotCanceled(options.signal);
 
-    return {
-      failedRequests: 0,
-      metric: {
-        bytes: buffer.byteLength,
-        durationMs,
-        mbps: calculateMbps(buffer.byteLength, durationMs),
-        samples: 1,
-        status: 'measured',
-      },
-      totalRequests: 1,
-    };
-  } catch (error) {
-    if (isCanceledError(error)) throw error;
-    return {
-      failedRequests: 1,
-      metric: {
-        bytes: 0,
-        durationMs: Math.max(now() - startedAt, 1),
-        mbps: null,
-        samples: 0,
-        status: 'failed',
-      },
-      totalRequests: 1,
-    };
+      try {
+        const response = await fetchWithTimeout(
+          fetchFn,
+          `/api/speedtest/download?bytes=${options.chunkBytes}&cacheBust=${Date.now()}_${requestSeq}`,
+          {
+            cache: 'no-store',
+            method: 'GET',
+          },
+          options.timeoutMs,
+          options.signal,
+        );
+        if (!response.ok) throw new Error('download_failed');
+        const buffer = await response.arrayBuffer();
+        const elapsed = now() - startedAt;
+        bytesTotal += buffer.byteLength;
+        successfulRequests += 1;
+        if (elapsed >= options.warmupMs) bytesAfterWarmup += buffer.byteLength;
+      } catch (error) {
+        if (isCanceledError(error)) throw error;
+        failedRequests += 1;
+      }
+    }
   }
+
+  await Promise.all(Array.from({ length: options.streams }, () => worker()));
+
+  const elapsedTotalMs = Math.max(now() - startedAt, 1);
+  const window = summarizeThroughputWindow(bytesTotal, bytesAfterWarmup, elapsedTotalMs, options.warmupMs, successfulRequests);
+
+  return {
+    failedRequests,
+    metric: {
+      bytes: window.bytes,
+      durationMs: window.durationMs,
+      mbps: window.mbps,
+      samples: successfulRequests,
+      status: successfulRequests > 0 ? 'measured' : 'failed',
+    },
+    totalRequests: successfulRequests + failedRequests,
+  };
 }
 
 async function measureUpload(
   fetchFn: typeof fetch,
   now: () => number,
   options: {
+    chunkBytes: number;
+    durationMs: number;
     signal: AbortSignal | undefined;
     skipUpload: boolean | undefined;
+    streams: number;
     timeoutMs: number;
-    uploadBytes: number;
-    uploadRetryCount: number;
+    warmupMs: number;
   },
 ): Promise<{
   failedRequests: number;
@@ -291,62 +347,69 @@ async function measureUpload(
   }
 
   assertNotCanceled(options.signal);
-  const payload = createRandomPayload(options.uploadBytes);
+  const payload = createRandomPayload(options.chunkBytes);
+  const startedAt = now();
+  const deadline = startedAt + options.durationMs;
+  let bytesTotal = 0;
+  let bytesAfterWarmup = 0;
+  let successfulRequests = 0;
   let failedRequests = 0;
+  let requestSeq = 0;
 
-  for (let attempt = 0; attempt < options.uploadRetryCount; attempt += 1) {
-    assertNotCanceled(options.signal);
-    const startedAt = now();
+  async function worker(): Promise<void> {
+    let iterations = 0;
+    while (now() < deadline && iterations < MAX_WORKER_ITERATIONS) {
+      iterations += 1;
+      requestSeq += 1;
+      assertNotCanceled(options.signal);
 
-    try {
-      const response = await fetchWithTimeout(
-        fetchFn,
-        `/api/speedtest/upload?cacheBust=${Date.now()}_${attempt}`,
-        {
-          body: payload,
-          cache: 'no-store',
-          method: 'POST',
-        },
-        options.timeoutMs,
-        options.signal,
-      );
-      if (!response.ok) throw new Error('upload_failed');
-
-      const data = (await response.json().catch(() => null)) as UploadResponse | null;
-      const receivedBytes = data?.receivedBytes ?? payload.byteLength;
-      const durationMs = Math.max(now() - startedAt, 1);
-
-      if (receivedBytes > 0) {
-        return {
-          failedRequests,
-          metric: {
-            bytes: receivedBytes,
-            durationMs,
-            mbps: calculateMbps(receivedBytes, durationMs),
-            samples: 1,
-            status: 'measured',
+      try {
+        const response = await fetchWithTimeout(
+          fetchFn,
+          `/api/speedtest/upload?cacheBust=${Date.now()}_${requestSeq}`,
+          {
+            body: payload,
+            cache: 'no-store',
+            method: 'POST',
           },
-          totalRequests: attempt + 1,
-        };
-      }
+          options.timeoutMs,
+          options.signal,
+        );
+        if (!response.ok) throw new Error('upload_failed');
 
-      failedRequests += 1;
-    } catch (error) {
-      if (isCanceledError(error)) throw error;
-      failedRequests += 1;
+        const data = (await response.json().catch(() => null)) as UploadResponse | null;
+        const receivedBytes = data?.receivedBytes ?? payload.byteLength;
+        if (receivedBytes <= 0) {
+          failedRequests += 1;
+          continue;
+        }
+
+        const elapsed = now() - startedAt;
+        bytesTotal += receivedBytes;
+        successfulRequests += 1;
+        if (elapsed >= options.warmupMs) bytesAfterWarmup += receivedBytes;
+      } catch (error) {
+        if (isCanceledError(error)) throw error;
+        failedRequests += 1;
+      }
     }
   }
+
+  await Promise.all(Array.from({ length: options.streams }, () => worker()));
+
+  const elapsedTotalMs = Math.max(now() - startedAt, 1);
+  const window = summarizeThroughputWindow(bytesTotal, bytesAfterWarmup, elapsedTotalMs, options.warmupMs, successfulRequests);
 
   return {
     failedRequests,
     metric: {
-      bytes: payload.byteLength,
-      durationMs: 0,
-      mbps: null,
-      samples: 0,
-      status: 'failed',
+      bytes: window.bytes,
+      durationMs: window.durationMs,
+      mbps: window.mbps,
+      samples: successfulRequests,
+      status: successfulRequests > 0 ? 'measured' : 'failed',
     },
-    totalRequests: options.uploadRetryCount,
+    totalRequests: successfulRequests + failedRequests,
   };
 }
 
@@ -355,9 +418,14 @@ export async function runSpeedTestWeb(options: SpeedTestRunnerOptions = {}): Pro
   const now = options.now ?? (() => performance.now());
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const latencySampleCount = options.latencySampleCount ?? DEFAULT_LATENCY_SAMPLE_COUNT;
-  const downloadBytes = options.downloadBytes ?? DEFAULT_DOWNLOAD_BYTES;
-  const uploadBytes = options.uploadBytes ?? DEFAULT_UPLOAD_BYTES;
-  const uploadRetryCount = options.uploadRetryCount ?? DEFAULT_UPLOAD_RETRY_COUNT;
+  const downloadDurationMs = options.downloadDurationMs ?? DEFAULT_DOWNLOAD_DURATION_MS;
+  const downloadWarmupMs = options.downloadWarmupMs ?? DEFAULT_DOWNLOAD_WARMUP_MS;
+  const downloadStreams = options.downloadStreams ?? DEFAULT_DOWNLOAD_STREAMS;
+  const downloadChunkBytes = options.downloadChunkBytes ?? DEFAULT_DOWNLOAD_CHUNK_BYTES;
+  const uploadDurationMs = options.uploadDurationMs ?? DEFAULT_UPLOAD_DURATION_MS;
+  const uploadWarmupMs = options.uploadWarmupMs ?? DEFAULT_UPLOAD_WARMUP_MS;
+  const uploadStreams = options.uploadStreams ?? DEFAULT_UPLOAD_STREAMS;
+  const uploadChunkBytes = options.uploadChunkBytes ?? DEFAULT_UPLOAD_CHUNK_BYTES;
   const limitations = [
     'http_latency_not_icmp_ping',
     'packet_loss_not_directly_measured',
@@ -395,9 +463,12 @@ export async function runSpeedTestWeb(options: SpeedTestRunnerOptions = {}): Pro
       message: 'Medindo download...',
     });
     const download = await measureDownload(fetchFn, now, {
-      downloadBytes,
+      chunkBytes: downloadChunkBytes,
+      durationMs: downloadDurationMs,
       signal: options.signal,
+      streams: downloadStreams,
       timeoutMs,
+      warmupMs: downloadWarmupMs,
     });
 
     emit(options.onProgress, {
@@ -406,11 +477,13 @@ export async function runSpeedTestWeb(options: SpeedTestRunnerOptions = {}): Pro
       message: options.skipUpload ? 'Upload indisponível neste ambiente.' : 'Medindo upload...',
     });
     const upload = await measureUpload(fetchFn, now, {
+      chunkBytes: uploadChunkBytes,
+      durationMs: uploadDurationMs,
       signal: options.signal,
       skipUpload: options.skipUpload,
+      streams: uploadStreams,
       timeoutMs,
-      uploadBytes,
-      uploadRetryCount,
+      warmupMs: uploadWarmupMs,
     });
 
     const failedRequests = latency.failedRequests + download.failedRequests + upload.failedRequests;
