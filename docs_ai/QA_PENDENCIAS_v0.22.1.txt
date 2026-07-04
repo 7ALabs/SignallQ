@@ -1,0 +1,143 @@
+PENDÊNCIAS DE QA MANUAL — SignallQ v0.22.1 (versionCode 55)
+============================================================
+
+AUTOMAÇÃO EXECUTADA (2026-07-03):
+✅ Versionamento: 0.22.1 / 55 confirmado
+✅ Testes unitários: BUILD SUCCESSFUL (coreNetwork, featureDevices, featureDiagnostico)
+✅ Configuração compilação: compileSdk 37, minSdk 24, targetSdk 36 corretos
+⚠️  Warnings: 29 deprecations (não bloqueantes) — remover em próximo release
+
+BUILD RELEASE:
+❌ Não rodou — lock Kotlin daemon (IOException delete intermediates)
+➜  Comando para rodar: ./gradlew.bat clean assembleRelease --no-build-cache
+
+================================================================================
+
+PENDÊNCIAS MANUAIS — PRIORIDADE POR ORDEM
+
+🔴 CRÍTICO (Bloqueia Beta M2)
+
+1. SIG-217 Fresh Install & Update (30min / device)
+   Devices: Pixel 7a (stock), Galaxy A14 (low-end), Emulator API 24 (legacy)
+   Passos:
+     - Fresh install APK v0.22.1
+     - Onboarding: Pass slides → grant Localização/Notificações
+     - Ajustes: Verificar versionCode 55
+     - Teste: Install v0.21.0 → update para v0.22.1 → histórico deve estar intacto
+     - Negativo: Negar permissões → app acessível? Offline install → erro humanizado?
+
+2. SIG-219 Speedtest End-to-End (45min / device)
+   Devices: Pixel 7a (Wi-Fi), Moto G54 (mid-range), Galaxy A14 (low-end)
+   Passos:
+     - Rápido: start → download/upload/latência em <45s → resultado exibido
+     - Completo: start → ~2min → validar mais amostras
+     - Cancelar: durante upload → resultado não salva
+     - Compartilhar: botão Share → sheet Android
+     - Offline: Mode avião → botão desabilitado → error "Sem conexão"
+     - Negativo: Desligar Wi-Fi durante teste → graceful failure (não salva)
+
+3. SIG-222 Diagnóstico IA End-to-End (30min / device)
+   Devices: Pixel 7a
+   Passos:
+     - Diagnóstico local: etapas visíveis (internet, Wi-Fi, DNS) → resultado PT-BR
+     - IA Analysis: resposta humanizada, contextualizada (cita métricas)
+     - Chat: enviar "Por que minha internet está lenta?" → resposta em PT-BR
+     - Fallback: Worker offline → análise local com label "Local do SignallQ"
+     - Negativo: Pergunta off-topic → redirecionamento ("Posso ajudar com...")
+
+🟡 ALTO (Deve Passar Antes do Next Release)
+
+4. SIG-221 Permissões (40min / device)
+   Devices: Pixel 7a (stock), Xiaomi Redmi (MIUI quirks)
+   Passos:
+     - Grant Localização in onboarding → Wi-Fi scan funciona
+     - Negar Notificações → app acessível
+     - Ajustes: status de permissões correto
+     - Runtime: revogar Localização em Settings Android → app detecta, pede novamente
+     - Negativo: Negar tudo → IA funciona mesmo (sem Wi-Fi scan, mas IA sim)
+
+5. SIG-223 Offline / Timeout / Retry (35min / device)
+   Devices: Pixel 7a, Moto G54
+   Passos:
+     - Mode avião → banner "Você está offline" → testes desabilitados
+     - Desativar avião → banner desaparece em <5s
+     - Diagnóstico timeout: Worker offline → fallback < 10s (não crash)
+     - Retry: 2ª tentativa sem delay artificial
+     - Offline History: abrir Histórico sem conexão → carrega do DB
+     - Negativo: Ajustes offline → salva localmente? Chat offline → input?
+
+6. Regressão Features (20min / device — smoke test)
+   Devices: 1 device qualquer
+   Passos:
+     - Home: atalhos clicáveis, card de conexão exibido
+     - Sinal: lista Wi-Fi carrega, filtros funcionam
+     - Histórico: filtros, uptime visível, sem crash
+     - Ajustes: tema/notificações persistem
+     - Navegação: 5 abas acessíveis, sem crash ao navegar
+     - Negativo: Rotacionar device — UI reflow, sem perda de dados
+
+🟢 MÉDIO (Nice-to-Have Antes de Beta)
+
+7. Acessibilidade & Linguagem (15min / device)
+   Device: 1 com TalkBack habilitado
+   Passos:
+     - Todos textos em PT-BR (sem inglês, sem PT-PT)
+     - Métrica crua + veredito: "120 Mbps — Bom" (não só número)
+     - Separador inline: · (ponto médio, não hífen)
+     - Sem emoji obrigatório
+     - TalkBack: navegação clara (contentDescription)
+     - Contraste WCAG AA (Accessibility Inspector)
+
+8. Documentação (10min — manual review)
+   Passos:
+     - CHANGELOG.md atualizado para v0.22.1 (features, fixes, breaking changes)
+     - Design tokens atualizados (se UI mudou)
+     - Sem comentários óbvios, sem TODO soltos em código
+
+================================================================================
+
+DISTRIBUIÇÃO RECOMENDADA (Para Rodar em Paralelo — 2 Devices)
+
+Device 1: Pixel 7a (stock Android — referência)
+  - SIG-217 (fresh install)
+  - SIG-219 (speedtest)
+  - SIG-222 (diagnóstico IA)
+  - SIG-223 (offline/timeout)
+  - Acessibilidade (TalkBack)
+
+Device 2: Moto G54 ou Galaxy A14
+  - SIG-219 (speedtest confirmação)
+  - SIG-223 (offline confirmação)
+  - Regressão features
+
+Device 3: Xiaomi Redmi (opcional)
+  - SIG-221 (MIUI quirks)
+
+Emulator API 24 (em paralelo):
+  - SIG-217 fresh install (minSdk compatibility)
+
+**TEMPO TOTAL:** 3-4 horas rodando 2 devices em paralelo
+
+================================================================================
+
+COMANDOS DE AJUDA
+
+Build release (se precisar):
+  cd C:\Projetos\SignallQ\android
+  .\gradlew.bat clean assembleRelease --no-build-cache
+
+Limpar lock Kotlin daemon (se travar novamente):
+  Kill any java processes com: taskkill /F /IM java.exe
+  Depois retry do build
+
+Checklist para cada issue no Linear:
+  SIG-217: [ ] Fresh [ ] Grant [ ] Deny [ ] Update [ ] versionCode
+  SIG-219: [ ] Rápido [ ] Completo [ ] Cancel [ ] Share [ ] Offline
+  SIG-222: [ ] Local [ ] IA [ ] Chat [ ] Fallback
+  SIG-221: [ ] Grant [ ] Deny [ ] Revoke [ ] Rationale
+  SIG-223: [ ] Avião [ ] Reconexão [ ] Timeout [ ] Retry [ ] Worker
+
+================================================================================
+
+QA READY FOR CAPTURE
+Data: 2026-07-03 | Build: v0.22.1 (versionCode 55) | Track: Alpha Play Console

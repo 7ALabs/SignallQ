@@ -66,3 +66,6 @@ packages/design-system/.ds-sync/
 packages/design-system/dist/
 packages/design-system/package-lock.json
 integrations/cloudflare/signallq-admin-worker/dist/
+
+# Claude Code runtime lock files
+**/.claude/scheduled_tasks.lock
