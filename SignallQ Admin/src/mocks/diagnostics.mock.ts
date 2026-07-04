@@ -10,6 +10,8 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
     timestamp: "2026-06-21T10:15:00-07:00",
     networkType: "mobile",
     environment: "production",
+    operator: "Vivo Brasil",
+    score: 28,
     speed: {
       downloadMbps: 18.4,
       uploadMbps: 1.2,
@@ -51,6 +53,7 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
     timestamp: "2026-06-21T10:04:12-07:00",
     networkType: "wifi",
     environment: "production",
+    score: 34,
     speed: {
       downloadMbps: 4.8,
       uploadMbps: 35.2,
@@ -93,6 +96,7 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
     timestamp: "2026-06-21T09:48:33-07:00",
     networkType: "fiber",
     environment: "production",
+    score: 96,
     speed: {
       downloadMbps: 450.2,
       uploadMbps: 210.6,
@@ -121,6 +125,7 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
     timestamp: "2026-06-21T09:12:05-07:00",
     networkType: "wifi",
     environment: "staging",
+    score: 72,
     speed: {
       downloadMbps: 95.4,
       uploadMbps: 88.1,
@@ -157,6 +162,7 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
     timestamp: "2026-06-21T08:31:00-07:00",
     networkType: "ethernet",
     environment: "production",
+    score: 98,
     speed: {
       downloadMbps: 940.5,
       uploadMbps: 910.2,
@@ -179,6 +185,7 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
     timestamp: "2026-06-21T08:15:22-07:00",
     networkType: "wifi",
     environment: "production",
+    score: 68,
     speed: {
       downloadMbps: 64.9,
       uploadMbps: 12.4,

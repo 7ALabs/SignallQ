@@ -415,7 +415,8 @@ async function handleDiagnostics(request: Request, env: Env): Promise<Response> 
             download_mbps, upload_mbps, latency_ms, jitter_ms, packet_loss,
             issues, resolved, operator,
             device_model, os_version, app_version, ai_summary_report,
-            environment, dist_channel, build_type, version_code, device_id
+            environment, dist_channel, build_type, version_code, device_id,
+            rssi, banda_wifi, padrao_wifi
      FROM diagnostic_sessions WHERE created_at >= ?${envClause}
      ORDER BY created_at DESC LIMIT ?`
   ).bind(since, ...envBinds, limit).all();
@@ -443,6 +444,9 @@ async function handleDiagnostics(request: Request, env: Env): Promise<Response> 
     build_type:        r.build_type        ?? 'release',
     version_code:      r.version_code      ?? 0,
     device_id:         r.device_id         ?? '',
+    rssi:              r.rssi              ?? null,
+    banda_wifi:        r.banda_wifi        ?? null,
+    padrao_wifi:       r.padrao_wifi       ?? null,
   }));
 
   return json({ source: "d1", period, environment: envFilter ?? "all", sessions }, 200, env);
