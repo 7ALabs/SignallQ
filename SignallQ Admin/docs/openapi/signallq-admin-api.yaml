@@ -568,6 +568,33 @@ paths:
               schema:
                 type: object
 
+  /admin/metrics/ai-usage/records:
+    get:
+      summary: Individual AI usage execution history (GH#421)
+      operationId: getAiUsageRecords
+      tags:
+        - admin
+      security:
+        - cookieAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Period'
+        - $ref: '#/components/parameters/Environment'
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 100
+      responses:
+        '200':
+          description: Real ai_usage rows, correlated with diagnostic_sessions when available
+          content:
+            application/json:
+              schema:
+                type: object
+
   /admin/metrics/timeline:
     get:
       summary: Test timeline (by day)

@@ -130,3 +130,9 @@ ALTER TABLE analytics_events ADD COLUMN dist_channel TEXT    DEFAULT '';
 ALTER TABLE analytics_events ADD COLUMN build_type   TEXT    DEFAULT 'release';
 ALTER TABLE analytics_events ADD COLUMN duration_ms  INTEGER DEFAULT NULL; -- só em session_end
 CREATE INDEX IF NOT EXISTS idx_analytics_device_id ON analytics_events(device_id);
+
+-- GH#421: histórico de IA precisa auditar status/erro de cada execução —
+-- ai_usage não tinha essas colunas, só tokens/custo agregado.
+-- Aplicar via: migrations/009_gh421.sql (npx wrangler d1 execute --file=... --remote)
+ALTER TABLE ai_usage ADD COLUMN status        TEXT DEFAULT 'success';
+ALTER TABLE ai_usage ADD COLUMN error_message TEXT DEFAULT '';
