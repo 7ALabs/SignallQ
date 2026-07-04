@@ -1,5 +1,6 @@
 import React from "react";
 import { Severity } from "../../types/diagnostics";
+import { alpha } from "../../utils/color";
 
 interface StatusBadgeProps {
   status: Severity | "stable" | "beta" | "deprecated" | "halted" | "success" | "cached" | "failed" | string;
@@ -10,8 +11,8 @@ interface StatusBadgeProps {
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, customLabel, className = "", id }) => {
   let style: React.CSSProperties = {
-    backgroundColor: "color-mix(in srgb, var(--text-tertiary) 10%, transparent)",
-    borderColor: "color-mix(in srgb, var(--text-tertiary) 20%, transparent)",
+    backgroundColor: alpha("var(--text-tertiary)", 10),
+    borderColor: alpha("var(--text-tertiary)", 20),
     color: "var(--text-secondary)",
   };
   let dotStyle: React.CSSProperties = { backgroundColor: "var(--text-tertiary)" };
@@ -23,8 +24,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, customLabel, c
     case "stable":
     case "success":
       style = {
-        backgroundColor: "color-mix(in srgb, var(--success) 10%, transparent)",
-        borderColor: "color-mix(in srgb, var(--success) 20%, transparent)",
+        backgroundColor: alpha("var(--success)", 10),
+        borderColor: alpha("var(--success)", 20),
         color: "var(--success)",
       };
       dotStyle = { backgroundColor: "var(--success)" };
@@ -35,8 +36,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, customLabel, c
     case "beta":
     case "cached":
       style = {
-        backgroundColor: "color-mix(in srgb, var(--attention) 10%, transparent)",
-        borderColor: "color-mix(in srgb, var(--attention) 20%, transparent)",
+        backgroundColor: alpha("var(--attention)", 10),
+        borderColor: alpha("var(--attention)", 20),
         color: "var(--attention)",
       };
       dotStyle = { backgroundColor: "var(--attention)" };
@@ -47,8 +48,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, customLabel, c
     case "error":
     case "halted":
       style = {
-        backgroundColor: "color-mix(in srgb, var(--error) 10%, transparent)",
-        borderColor: "color-mix(in srgb, var(--error) 20%, transparent)",
+        backgroundColor: alpha("var(--error)", 10),
+        borderColor: alpha("var(--error)", 20),
         color: "var(--error)",
       };
       dotStyle = { backgroundColor: "var(--error)" };
@@ -65,8 +66,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, customLabel, c
       break;
     case "info":
       style = {
-        backgroundColor: "color-mix(in srgb, var(--info) 10%, transparent)",
-        borderColor: "color-mix(in srgb, var(--info) 20%, transparent)",
+        backgroundColor: alpha("var(--info)", 10),
+        borderColor: alpha("var(--info)", 20),
         color: "var(--info)",
       };
       dotStyle = { backgroundColor: "var(--info)" };

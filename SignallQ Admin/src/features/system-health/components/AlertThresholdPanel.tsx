@@ -1,6 +1,7 @@
 import React from "react";
 import { AlertTriangle, CheckCircle, TrendingUp, DollarSign } from "lucide-react";
 import { SectionCard } from "../../../components/ui/SectionCard";
+import { alpha, mix } from "../../../utils/color";
 
 interface AlertThresholdPanelProps {
   crashRatePercent: number | null;
@@ -36,16 +37,16 @@ const ThresholdRow: React.FC<ThresholdRowProps> = ({
       className="flex items-center gap-4 p-4 rounded-xl"
       style={{
         backgroundColor: isAlert
-          ? "color-mix(in srgb, var(--sq-error, #ef4444) 6%, var(--bg-surface-hover))"
+          ? mix("var(--sq-error, #ef4444)", 6, "var(--bg-surface-hover)")
           : "var(--bg-surface-hover)",
-        border: `1px solid ${isAlert ? "color-mix(in srgb, var(--sq-error, #ef4444) 20%, transparent)" : "var(--border)"}`,
+        border: `1px solid ${isAlert ? alpha("var(--sq-error, #ef4444)", 20) : "var(--border)"}`,
       }}
     >
       <div
         className="p-2.5 rounded-xl shrink-0"
         style={{
-          backgroundColor: `color-mix(in srgb, ${activeColor} 10%, transparent)`,
-          border: `1px solid color-mix(in srgb, ${activeColor} 20%, transparent)`,
+          backgroundColor: alpha(activeColor, 10),
+          border: `1px solid ${alpha(activeColor, 20)}`,
         }}
       >
         <div style={{ color: activeColor }}>{icon}</div>
@@ -81,8 +82,8 @@ const ThresholdRow: React.FC<ThresholdRowProps> = ({
               className="flex items-center gap-1 text-[10px] font-sans font-semibold uppercase tracking-wider px-2 py-1 rounded-full"
               style={{
                 color: alertColor,
-                backgroundColor: "color-mix(in srgb, var(--sq-error, #ef4444) 12%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--sq-error, #ef4444) 25%, transparent)",
+                backgroundColor: alpha("var(--sq-error, #ef4444)", 12),
+                border: `1px solid ${alpha("var(--sq-error, #ef4444)", 25)}`,
               }}
             >
               <AlertTriangle className="w-3 h-3" />
@@ -93,8 +94,8 @@ const ThresholdRow: React.FC<ThresholdRowProps> = ({
               className="flex items-center gap-1 text-[10px] font-sans font-semibold uppercase tracking-wider px-2 py-1 rounded-full"
               style={{
                 color: okColor,
-                backgroundColor: "color-mix(in srgb, var(--sq-success, #22c55e) 12%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--sq-success, #22c55e) 25%, transparent)",
+                backgroundColor: alpha("var(--sq-success, #22c55e)", 12),
+                border: `1px solid ${alpha("var(--sq-success, #22c55e)", 25)}`,
               }}
             >
               <CheckCircle className="w-3 h-3" />
@@ -138,8 +139,8 @@ export const AlertThresholdPanel: React.FC<AlertThresholdPanelProps> = ({
             className="flex items-center gap-1.5 text-[11px] font-sans font-semibold px-2.5 py-1 rounded-full"
             style={{
               color: "var(--sq-error, #ef4444)",
-              backgroundColor: "color-mix(in srgb, var(--sq-error, #ef4444) 10%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--sq-error, #ef4444) 20%, transparent)",
+              backgroundColor: alpha("var(--sq-error, #ef4444)", 10),
+              border: `1px solid ${alpha("var(--sq-error, #ef4444)", 20)}`,
             }}
           >
             <AlertTriangle className="w-3.5 h-3.5" />
@@ -150,8 +151,8 @@ export const AlertThresholdPanel: React.FC<AlertThresholdPanelProps> = ({
             className="flex items-center gap-1.5 text-[11px] font-sans font-semibold px-2.5 py-1 rounded-full"
             style={{
               color: "var(--sq-success, #22c55e)",
-              backgroundColor: "color-mix(in srgb, var(--sq-success, #22c55e) 10%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--sq-success, #22c55e) 20%, transparent)",
+              backgroundColor: alpha("var(--sq-success, #22c55e)", 10),
+              border: `1px solid ${alpha("var(--sq-success, #22c55e)", 20)}`,
             }}
           >
             <CheckCircle className="w-3.5 h-3.5" />

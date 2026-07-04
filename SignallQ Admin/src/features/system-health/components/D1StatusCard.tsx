@@ -1,6 +1,7 @@
 import React from "react";
 import { Database, CheckCircle, XCircle } from "lucide-react";
 import { SectionCard } from "../../../components/ui/SectionCard";
+import { alpha } from "../../../utils/color";
 
 interface D1StatusCardProps {
   status: "connected" | "error" | "loading";
@@ -42,8 +43,8 @@ export const D1StatusCard: React.FC<D1StatusCardProps> = ({ status, lastQuery, l
           <div
             className="p-3 rounded-xl"
             style={{
-              backgroundColor: `color-mix(in srgb, ${statusColor} 10%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${statusColor} 20%, transparent)`,
+              backgroundColor: alpha(statusColor, 10),
+              border: `1px solid ${alpha(statusColor, 20)}`,
             }}
           >
             <Database className="w-5 h-5" style={{ color: statusColor }} />
@@ -79,8 +80,8 @@ export const D1StatusCard: React.FC<D1StatusCardProps> = ({ status, lastQuery, l
             className="text-[11px] font-sans font-semibold uppercase tracking-wider px-2 py-1 rounded-lg shrink-0"
             style={{
               color: statusColor,
-              backgroundColor: `color-mix(in srgb, ${statusColor} 12%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${statusColor} 25%, transparent)`,
+              backgroundColor: alpha(statusColor, 12),
+              border: `1px solid ${alpha(statusColor, 25)}`,
             }}
           >
             {isOk ? "Online" : "Offline"}

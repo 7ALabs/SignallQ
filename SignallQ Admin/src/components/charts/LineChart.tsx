@@ -1,4 +1,5 @@
 import React from "react";
+import { alpha } from "../../utils/color";
 import {
   LineChart as ReLineChart,
   Line,
@@ -38,7 +39,7 @@ export const LineChart: React.FC<LineChartProps> = ({
   if (!isMounted) {
     return (
       <div
-        style={{ height, backgroundColor: "color-mix(in srgb, var(--sq-bg-primary) 20%, transparent)" }}
+        style={{ height, backgroundColor: alpha("var(--sq-bg-primary)", 20) }}
         className="w-full flex items-center justify-center rounded-xl animate-pulse"
       >
         <span

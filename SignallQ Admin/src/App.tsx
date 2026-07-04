@@ -6,6 +6,7 @@ import { AppEnvironment } from "./types/admin";
 import { LoginPage } from "./auth/LoginPage";
 import { apiClient } from "./services/apiClient";
 import { ErrorBoundary } from "./components/ui/ErrorBoundary";
+import { alpha } from "./utils/color";
 
 // Tab/Feature Components
 import { OverviewTab } from "./features/overview/OverviewTab";
@@ -162,8 +163,8 @@ export default function App() {
             <span
               className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--sq-accent) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--sq-accent) 20%, transparent)",
+                backgroundColor: alpha("var(--sq-accent)", 10),
+                border: `1px solid ${alpha("var(--sq-accent)", 20)}`,
                 color: "var(--sq-accent)",
               }}
             >
@@ -180,8 +181,8 @@ export default function App() {
             <span
               className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--sq-accent) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--sq-accent) 20%, transparent)",
+                backgroundColor: alpha("var(--sq-accent)", 10),
+                border: `1px solid ${alpha("var(--sq-accent)", 20)}`,
                 color: "var(--sq-accent)",
               }}
             >
@@ -198,8 +199,8 @@ export default function App() {
             <span
               className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--sq-success) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--sq-success) 20%, transparent)",
+                backgroundColor: alpha("var(--sq-success)", 10),
+                border: `1px solid ${alpha("var(--sq-success)", 20)}`,
                 color: "var(--sq-success)",
               }}
             >
@@ -237,8 +238,8 @@ export default function App() {
             <span
               className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg uppercase"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--sq-error) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--sq-error) 20%, transparent)",
+                backgroundColor: alpha("var(--sq-error)", 10),
+                border: `1px solid ${alpha("var(--sq-error)", 20)}`,
                 color: "var(--sq-error)",
               }}
             >
@@ -269,8 +270,8 @@ export default function App() {
             <span
               className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
               style={{
-                backgroundColor: "color-mix(in srgb, var(--sq-success) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--sq-success) 20%, transparent)",
+                backgroundColor: alpha("var(--sq-success)", 10),
+                border: `1px solid ${alpha("var(--sq-success)", 20)}`,
                 color: "var(--sq-success)",
               }}
             >

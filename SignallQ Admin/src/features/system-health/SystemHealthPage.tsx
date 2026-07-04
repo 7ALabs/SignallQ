@@ -8,6 +8,7 @@ import { IntegrationCheckRow } from "./components/IntegrationCheckRow";
 import { LastEventsCard } from "./components/LastEventsCard";
 import { apiClient } from "../../services/apiClient";
 import { systemHealthService, SystemHealthResponse } from "../../services/systemHealthService";
+import { alpha, mix } from "../../utils/color";
 import { AppEnvironment } from "../../types/admin";
 
 // SIG-261 — Thresholds configuráveis (hardcoded por enquanto).
@@ -141,8 +142,8 @@ export const SystemHealthPage: React.FC<SystemHealthPageProps> = ({
         <div
           className="p-4 rounded-xl text-[13px]"
           style={{
-            backgroundColor: "color-mix(in srgb, var(--sq-error, #ef4444) 8%, var(--bg-surface))",
-            border: "1px solid color-mix(in srgb, var(--sq-error, #ef4444) 25%, transparent)",
+            backgroundColor: mix("var(--sq-error, #ef4444)", 8, "var(--bg-surface)"),
+            border: `1px solid ${alpha("var(--sq-error, #ef4444)", 25)}`,
             color: "var(--sq-error, #ef4444)",
           }}
         >

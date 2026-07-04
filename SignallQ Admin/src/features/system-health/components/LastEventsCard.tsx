@@ -2,6 +2,7 @@ import React from "react";
 import { AlertOctagon, CheckCircle2 } from "lucide-react";
 import { SectionCard } from "../../../components/ui/SectionCard";
 import { SystemHealthEvent } from "../../../services/systemHealthService";
+import { alpha } from "../../../utils/color";
 
 interface LastEventsCardProps {
   lastFailure: SystemHealthEvent | null;
@@ -49,7 +50,7 @@ export const LastEventsCard: React.FC<LastEventsCardProps> = ({
             className="p-4 rounded-xl"
             style={{
               backgroundColor: "var(--bg-surface-hover)",
-              border: "1px solid color-mix(in srgb, var(--sq-error, #ef4444) 20%, transparent)",
+              border: `1px solid ${alpha("var(--sq-error, #ef4444)", 20)}`,
             }}
           >
             <div className="flex items-center gap-2">
@@ -78,7 +79,7 @@ export const LastEventsCard: React.FC<LastEventsCardProps> = ({
             className="p-4 rounded-xl"
             style={{
               backgroundColor: "var(--bg-surface-hover)",
-              border: "1px solid color-mix(in srgb, var(--sq-success, #22c55e) 20%, transparent)",
+              border: `1px solid ${alpha("var(--sq-success, #22c55e)", 20)}`,
             }}
           >
             <div className="flex items-center gap-2">

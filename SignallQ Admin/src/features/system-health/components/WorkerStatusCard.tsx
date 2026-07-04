@@ -1,5 +1,6 @@
 import React from "react";
 import { CheckCircle, XCircle, Loader } from "lucide-react";
+import { alpha } from "../../../utils/color";
 
 interface WorkerHealth {
   name: string;
@@ -33,7 +34,7 @@ export const WorkerStatusCard: React.FC<WorkerStatusCardProps> = ({ worker }) =>
       className="p-4 rounded-xl flex items-start gap-3"
       style={{
         backgroundColor: "var(--bg-surface-hover)",
-        border: `1px solid ${isOk ? "color-mix(in srgb, var(--sq-success, #22c55e) 20%, transparent)" : isLoading ? "var(--border)" : "color-mix(in srgb, var(--sq-error, #ef4444) 20%, transparent)"}`,
+        border: `1px solid ${isOk ? alpha("var(--sq-success, #22c55e)", 20) : isLoading ? "var(--border)" : alpha("var(--sq-error, #ef4444)", 20)}`,
       }}
     >
       <div className="mt-0.5 shrink-0">
@@ -58,8 +59,8 @@ export const WorkerStatusCard: React.FC<WorkerStatusCardProps> = ({ worker }) =>
             className="text-[10px] font-sans font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0"
             style={{
               color: statusColor,
-              backgroundColor: `color-mix(in srgb, ${statusColor} 12%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${statusColor} 25%, transparent)`,
+              backgroundColor: alpha(statusColor, 12),
+              border: `1px solid ${alpha(statusColor, 25)}`,
             }}
           >
             {statusLabel}
