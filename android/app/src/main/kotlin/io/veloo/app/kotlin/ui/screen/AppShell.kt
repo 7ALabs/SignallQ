@@ -228,7 +228,10 @@ fun AppShell(
     val publicIpStr: String? = (publicIp as? UiState.Success)?.data
     val ispInfoData: IspInfo? = (ispInfo as? UiState.Success)?.data
     val isIspInfoLoading = publicIp is UiState.Loading
-    var selectedTab by remember { mutableIntStateOf(0) }
+    // #381/#376: cold start sempre abre na aba Velocidade (indice 1), nunca em Home
+    // e nunca restaurando a ultima tela — decisao de produto que substitui o
+    // comportamento anterior (abria em Home, indice 0).
+    var selectedTab by remember { mutableIntStateOf(1) }
     var modoSelecionado by remember { mutableStateOf(ModoSpeedtest.complete) }
     val overlayStack = remember { mutableStateListOf<Overlay>() }
     var showDnsSheet by remember { mutableStateOf(false) }
@@ -605,6 +608,7 @@ fun AppShell(
                 ipPublico = publicIpStr,
                 onVoltar = { overlayStack.remove(Overlay.Laudo) },
                 velocidadeContratadaMbps = planoInternet.filter { it.isDigit() }.toIntOrNull(),
+                conectado = snapshotRede.conectado,
             )
         }
 
