@@ -1,4 +1,10 @@
-$DiscordWebhook = "https://discord.com/api/webhooks/1506716002212122744/DVVfS02Rb6-jxD0aJwh23S6_-k1z1HtE85z_mskQmBM7Q_wiuG1O11IZ87BadtIflmBP"
+$DiscordWebhook = $env:DISCORD_WEBHOOK_LINKA
+if (-not $DiscordWebhook) {
+  Write-Host "Erro: DISCORD_WEBHOOK_LINKA não está configurada em variáveis de ambiente ou .env" -ForegroundColor Red
+  Write-Host "Configure o webhook em .env (copie .env.example como referência)" -ForegroundColor Yellow
+  exit 1
+}
+
 $SlackChannelId = "C0B4NSGSK1D"
 
 # Mapeamento de issues por sprint
