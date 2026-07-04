@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    SIG-292 — fallback neutro para operadora sem logo oficial disponivel.
+    Icone abstrato de barras de sinal (estilo Material 3), sem nenhuma
+    semelhanca com marca real. Cor neutra, funciona em tema claro/escuro.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <path
+        android:fillColor="#FF9AA0A6"
+        android:pathData="
+            M 6,15 H 6 A 1,1 0 0 1 7,16 V 19 A 1,1 0 0 1 6,20 H 6 A 1,1 0 0 1 5,19 V 16 A 1,1 0 0 1 6,15 Z
+            M 10,12 H 10 A 1,1 0 0 1 11,13 V 19 A 1,1 0 0 1 10,20 H 10 A 1,1 0 0 1 9,19 V 13 A 1,1 0 0 1 10,12 Z
+            M 14,8 H 14 A 1,1 0 0 1 15,9 V 19 A 1,1 0 0 1 14,20 H 14 A 1,1 0 0 1 13,19 V 9 A 1,1 0 0 1 14,8 Z
+            M 18,4 H 18 A 1,1 0 0 1 19,5 V 19 A 1,1 0 0 1 18,20 H 18 A 1,1 0 0 1 17,19 V 5 A 1,1 0 0 1 18,4 Z"/>
+
+</vector>
