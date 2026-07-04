@@ -26,6 +26,10 @@ Disparo: quando o usuário aciona uma feature principal.
 Pontos de disparo:
 - `speedtest` — `MainActivity.speedtestViewModel.onSpeedtestConcluido`
 - `diagnostico` — `MainActivity.AppShellDiagnosticoState.onIniciarDiagnostico`
+- `wifi` — `MainActivity.AppShellWifiState.onRefreshSinal`
+- `dns` — `MainActivity.onDispararBenchmarkDns`
+- `fibra` — `MainActivity.onReconectarFibra`
+- `historico` — `MainActivity.onFiltroConexaoHistoricoChange` / `onFiltroOperadoraHistoricoChange`
 
 ---
 
@@ -97,6 +101,31 @@ Disparo: `MainActivity.onCreate()`, via `ACTION_BATTERY_CHANGED` (sticky broadca
 ```
 
 Os módulos `:feature*` não dependem de Firebase diretamente — se precisarem registrar eventos, receberão `AnalyticsTracker` via Hilt respeitando a lei de dependências (`:feature*` → `:core*` apenas).
+
+---
+
+## Funil principal (SIG-155)
+
+Todas as 6 features do `feature_id` documentadas acima já disparam `feature_used`
+ao serem acionadas pelo usuário:
+
+```
+speedtest  → MainActivity.speedtestViewModel.onSpeedtestConcluido
+diagnostico → AppShellDiagnosticoState.onIniciarDiagnostico
+wifi       → AppShellWifiState.onRefreshSinal
+dns        → onDispararBenchmarkDns
+fibra      → onReconectarFibra
+historico  → onFiltroConexaoHistoricoChange / onFiltroOperadoraHistoricoChange
+```
+
+Combinado com `screen_view` (navegação entre abas) e `app_session_start`, esse
+conjunto permite montar o funil de engajamento no GA4/Admin Panel: quantas
+sessões tocam cada feature principal a partir da abertura do app.
+
+Nota: `docs_ai/technical/analytics-events.md` descreve um contrato mais amplo
+e granular (eventos `speedtest_iniciado`, `diag_concluido`, `ia_laudo_*` etc.)
+que ainda não foi implementado — trata-se de uma proposta de evolução futura,
+não do estado atual. O estado atual é o descrito neste arquivo.
 
 ---
 
