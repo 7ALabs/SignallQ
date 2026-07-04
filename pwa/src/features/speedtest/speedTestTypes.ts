@@ -21,7 +21,10 @@ export interface SpeedTestCanceledResult {
 }
 
 export interface SpeedTestRunnerOptions {
-  downloadBytes?: number;
+  downloadChunkBytes?: number;
+  downloadDurationMs?: number;
+  downloadStreams?: number;
+  downloadWarmupMs?: number;
   fetchFn?: typeof fetch;
   latencySampleCount?: number;
   now?: () => number;
@@ -29,8 +32,10 @@ export interface SpeedTestRunnerOptions {
   signal?: AbortSignal;
   skipUpload?: boolean;
   timeoutMs?: number;
-  uploadBytes?: number;
-  uploadRetryCount?: number;
+  uploadChunkBytes?: number;
+  uploadDurationMs?: number;
+  uploadStreams?: number;
+  uploadWarmupMs?: number;
 }
 
 export type SpeedTestRunnerResult = SpeedTestRunResult | SpeedTestCanceledResult;
