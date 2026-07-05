@@ -2443,9 +2443,6 @@ private fun InternetInfoSheet(
             )
         }
         ispInfo?.isp?.takeIf { it.isNotEmpty() }?.let { SheetInfoRow("Provedor", it, c) }
-        ispInfo?.asn?.takeIf { it.isNotEmpty() }?.let {
-            SheetInfoRow("ASN", it, c, caption = stringResource(R.string.home_sheet_asn_explicacao))
-        }
         if (countryRegion.isNotEmpty()) SheetInfoRow("País / Região", countryRegion, c)
         val dnsPrivadoValor =
             if (privateDnsAtivo) {
