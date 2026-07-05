@@ -34,5 +34,26 @@ em CSS/SVG à mão, não usar a marca anterior "linka/veloo".
 O ícone do app deriva do **símbolo**. Os recursos em
 `android/app/src/main/res/mipmap-*/ic_launcher*` devem sempre corresponder a
 `signallq-symbol-1024.png`. Ao atualizar a marca, regenerar os mipmaps a partir deste símbolo.
+Estado atual (2026-07-05): já correspondem — confirmado visualmente, nenhuma ação necessária.
+
+## Favicons / ícones web (`favicon/`)
+
+Gerados a partir de `signallq-symbol-1024.png` (símbolo é colorido com fundo transparente —
+funciona em fundo claro ou escuro sem precisar de variante própria).
+
+| Arquivo | Uso | Fundo |
+|---|---|---|
+| `favicon.ico` | Favicon multi-resolução (16/32/48px) | Transparente |
+| `favicon-16.png` / `favicon-32.png` / `favicon-48.png` | Favicon PNG por tamanho | Transparente |
+| `icon-192.png` / `icon-512.png` | PWA `manifest.json` (`purpose` padrão) | Transparente |
+| `icon-192-maskable.png` / `icon-512-maskable.png` | PWA `manifest.json` (`purpose: maskable`) | Branco `#FFFFFF`, símbolo a ~62% (zona segura) |
+| `apple-touch-icon.png` (180×180) | iOS home screen | Branco `#FFFFFF` (iOS não aceita transparência) |
+
+Aplicado em `SignallQ Admin/public/` em 2026-07-05, substituindo um ícone antigo (Wi-Fi/scan)
+que não correspondia à marca. Regenerar a partir do mesmo símbolo se o ícone mudar.
+
+**Pendente:** a landing page pública (`https://7agentsstudio.github.io/signallq/`) fica em
+repositório separado (`7agentsstudio` no GitHub, fora deste monorepo) — não verificado/atualizado
+nesta rodada. Aplicar o mesmo conjunto lá quando houver acesso ao repo.
 
 > Marca anterior ("linka") é histórica e **não deve ser usada** em nenhum material novo.
