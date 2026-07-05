@@ -80,7 +80,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
-import io.signallq.app.feature.speedtest.SeveridadeBufferbloat
 import io.signallq.app.feature.speedtest.VereditoUso
 import io.signallq.app.ui.BancoOperadoras
 import io.signallq.app.ui.IspInfo
@@ -149,14 +148,6 @@ fun ResultadoVelocidadeScreen(
                 resultado.perdaPercentual < 1.0 -> LkColors.success
                 resultado.perdaPercentual < 3.0 -> LkColors.warning
                 else -> LkColors.error
-            }
-        }
-    val corBloat =
-        remember(resultado.severidadeBufferbloat) {
-            when (resultado.severidadeBufferbloat) {
-                SeveridadeBufferbloat.none -> LkColors.success
-                SeveridadeBufferbloat.mild -> LkColors.warning
-                SeveridadeBufferbloat.moderate, SeveridadeBufferbloat.severe -> LkColors.error
             }
         }
     val corLatencia =
@@ -387,27 +378,22 @@ fun ResultadoVelocidadeScreen(
                     }
                 }
 
-                // 6. NOVO: Row: Perda + Bufferbloat (1-A)
+                // 6. Perda (metrica essencial, sozinha -- Bufferbloat vive só no BufferbloatCard
+                // abaixo, com veredito; antes duplicava aqui como numero cru sem contexto)
                 Spacer(Modifier.height(LkSpacing.md))
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    MetricCard(
-                        label = "Perda",
-                        value = "%.1f".format(resultado.perdaPercentual),
-                        unit = "%",
-                        cor = corPerda,
-                        c = c,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Spacer(Modifier.width(LkSpacing.md))
-                    MetricCard(
-                        label = "Bufferbloat",
-                        value = "%.0f".format(resultado.bufferbloatMs),
-                        unit = "ms",
-                        cor = corBloat,
-                        c = c,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                MetricCard(
+                    label = "Perda",
+                    value = "%.1f".format(resultado.perdaPercentual),
+                    unit = "%",
+                    cor = corPerda,
+                    c = c,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                // 6b. Bufferbloat com veredito -- junto das metricas essenciais, nao mais
+                // isolado perto do rodape (era a unica representacao "core" fora do topo)
+                Spacer(Modifier.height(LkSpacing.md))
+                BufferbloatCard(bufferbloatMs = resultado.bufferbloatMs.takeIf { it > 0.0 }, c = c)
 
                 // 7. NOVO: Seção "EXPERIÊNCIA DE USO" (1-C)
                 Spacer(Modifier.height(LkSpacing.xxl))
@@ -563,11 +549,7 @@ fun ResultadoVelocidadeScreen(
                     )
                 }
 
-                // 11. Card Bufferbloat — migrado da Home #172
-                Spacer(Modifier.height(LkSpacing.md))
-                BufferbloatCard(bufferbloatMs = resultado.bufferbloatMs.takeIf { it > 0.0 }, c = c)
-
-                // 11b. Card Jogar Online — migrado da Home #173
+                // 11. Card Jogar Online — migrado da Home #173
                 Spacer(Modifier.height(LkSpacing.md))
                 GamerShortcutCard(c = c, onClick = { showGamerSheet = true })
 

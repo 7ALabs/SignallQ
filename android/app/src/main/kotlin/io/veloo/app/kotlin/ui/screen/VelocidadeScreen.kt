@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -32,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -75,6 +77,7 @@ fun VelocidadeScreen(
 ) {
     val c = LocalLkTokens.current
     val haptic = LocalHapticFeedback.current
+    var mostrarConfirmarCancelar by remember { mutableStateOf(false) }
 
     val fase = snapshot.faseAtual
     val corFase = corDaFase(fase)
@@ -270,8 +273,8 @@ fun VelocidadeScreen(
 
             Spacer(Modifier.height(LkSpacing.xl))
 
-            // Botão Cancelar
-            TextButton(onClick = onCancelar) {
+            // Botão Cancelar — pede confirmação, mesmo texto/fluxo do BackHandler (SpeedTestScreen)
+            TextButton(onClick = { mostrarConfirmarCancelar = true }) {
                 Text(
                     text = "Cancelar",
                     color = c.textTertiary,
@@ -281,6 +284,28 @@ fun VelocidadeScreen(
 
             Spacer(Modifier.height(LkSpacing.lg))
         }
+    }
+
+    if (mostrarConfirmarCancelar) {
+        AlertDialog(
+            onDismissRequest = { mostrarConfirmarCancelar = false },
+            title = { Text("Interromper o teste?") },
+            text = { Text("O teste em andamento será interrompido e o resultado descartado.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        mostrarConfirmarCancelar = false
+                        onCancelar()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.error),
+                ) { Text("Interromper") }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarConfirmarCancelar = false }) {
+                    Text("Continuar testando")
+                }
+            },
+        )
     }
 }
 

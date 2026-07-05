@@ -31,7 +31,6 @@ import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -69,7 +68,6 @@ import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.telephony.MovelSnapshot
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
-import io.signallq.app.feature.speedtest.FaseSpeedtest
 import io.signallq.app.feature.speedtest.ModoSpeedtest
 import io.signallq.app.feature.speedtest.ResultadoRodadaTriplo
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
@@ -363,9 +361,6 @@ private fun BlocoCirculoSpeedTest(
 
     SpeedTestCircle(
         estado = snapshotSpeedtest.estado,
-        progresso = snapshotSpeedtest.progressoPercentual,
-        fase = snapshotSpeedtest.faseAtual,
-        velocidadeMbps = if (snapshotSpeedtest.aguardandoProximaRodada) 0.0 else snapshotSpeedtest.velocidadeAtualMbps,
         conectado = snapshotRede.conectado,
         onIniciarTeste = onIniciarTeste,
     )
@@ -497,9 +492,6 @@ private fun LinhaContextoConexao(
 @Composable
 private fun SpeedTestCircle(
     estado: EstadoExecucaoSpeedtest,
-    progresso: Int,
-    fase: FaseSpeedtest,
-    velocidadeMbps: Double,
     conectado: Boolean,
     onIniciarTeste: () -> Unit,
 ) {
@@ -515,11 +507,10 @@ private fun SpeedTestCircle(
                 ErrorCircle(onTentarNovamente = onIniciarTeste)
             }
             EstadoExecucaoSpeedtest.executando -> {
-                ProgressCircle(
-                    progresso = progresso,
-                    fase = fase,
-                    velocidadeMbps = velocidadeMbps,
-                )
+                // Sem UI própria: o overlay em tela cheia (VelocidadeScreen/GaugeCircular)
+                // cobre a tela inteira durante a execução (ver AppShell) -- este branch
+                // nunca fica visível. Renderizar aqui de novo so duplicava visual
+                // divergente (rotulo "PING" e cor sempre violeta, sem cor por fase).
             }
             EstadoExecucaoSpeedtest.concluido -> {
                 ConcluidoCircle(onIniciarTeste = onIniciarTeste)
@@ -582,71 +573,6 @@ private fun IdleCircle(
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
             )
-        }
-    }
-}
-
-@Composable
-private fun ProgressCircle(
-    progresso: Int,
-    fase: FaseSpeedtest,
-    velocidadeMbps: Double,
-) {
-    Box(contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(
-            progress = { progresso / 100f },
-            modifier = Modifier.size(210.dp),
-            color = LkColors.accent,
-            strokeWidth = 6.dp,
-            trackColor = LkColors.accent.copy(alpha = 0.2f),
-        )
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(horizontal = 24.dp),
-        ) {
-            val rotulo =
-                when (fase) {
-                    FaseSpeedtest.ping -> "PING"
-                    FaseSpeedtest.download -> "DOWNLOAD"
-                    FaseSpeedtest.upload -> "UPLOAD"
-                    else -> ""
-                }
-            if (rotulo.isNotBlank()) {
-                Text(
-                    text = rotulo,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = LkColors.accent.copy(alpha = 0.7f),
-                    fontWeight = FontWeight.W600,
-                    letterSpacing = 1.5.sp,
-                )
-                Spacer(Modifier.height(4.dp))
-            }
-            val mostraVelocidade = fase == FaseSpeedtest.download || fase == FaseSpeedtest.upload
-            if (mostraVelocidade && velocidadeMbps > 0.0) {
-                Text(
-                    text = "%.1f".format(velocidadeMbps),
-                    style = MaterialTheme.typography.displayLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = LkColors.accent,
-                )
-                Text(
-                    text = "Mbps",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = LkColors.accent.copy(alpha = 0.7f),
-                )
-            } else {
-                Text(
-                    text = "$progresso%",
-                    style = MaterialTheme.typography.displayMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = LkColors.accent,
-                )
-                Text(
-                    text = if (rotulo.isBlank()) "testando…" else "medindo…",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = LkColors.accent.copy(alpha = 0.7f),
-                )
-            }
         }
     }
 }
