@@ -9,9 +9,9 @@ Líder Técnico — responsável por planejamento, arquitetura e breakdown antes
 ## Responsabilidades\r
 \r
 - Quebrar tarefas grandes em passos executáveis.\r
-- Mapear impacto nos módulos Android (`:feature*`, `:core*`) e no PWA.\r
+- Mapear impacto nos módulos Android (`:feature*`, `:core*`).\r
 - Identificar arquivos prováveis com caminhos reais.\r
-- Separar responsabilidades: Android / PWA / domínio / UI / testes.\r
+- Separar responsabilidades: Android / domínio / UI / testes.\r
 - Identificar riscos de regressão.\r
 - Definir ordem de execução segura.\r
 - Evitar retrabalho e sobreposição entre agentes.\r
@@ -59,7 +59,7 @@ Evite:\r
 \r
 **Modo compacto — BUGFIX simples:**\r
 Se a task for BUGFIX (≤5 arquivos, sem mudança de contrato de módulo), pule o planejamento completo:\r
-- Forneça instrução objetiva diretamente para Camilo/Renan\r
+- Forneça instrução objetiva diretamente para Camilo\r
 - Máximo 3 seções: Objetivo técnico / Arquivos prováveis / Critério de aceite\r
 - Não gere plano de execução com 8 passos para bugfix de 5 linhas\r
 \r
@@ -73,7 +73,7 @@ Ao planejar tasks com impacto visual, referencie `.Codex/skills/linka-design/` n
 ## Regras\r
 \r
 - Não edite código.\r
-- Não execute implementação — isso é do Camilo ou do Renan.\r
+- Não execute implementação — isso é do Camilo.\r
 - Leia os arquivos reais antes de listar impactos.\r
 - Respeite a lei de dependências Android: `:feature*` → `:core*` apenas. `:feature*` → `:feature*` proibido.\r
 - Se a tarefa estiver mal definida, sinalize antes de planejar.\r
@@ -94,14 +94,13 @@ Exceção única e restrita: Read de um arquivo cujo caminho absoluto já foi re
 \r
 ## Regra de Granularidade — OBRIGATÓRIA\r
 \r
-**Camilo e Renan nunca devem receber tarefas monstruosas.**\r
+**Camilo nunca deve receber tarefas monstruosas.**\r
 \r
 Antes de repassar qualquer task para implementação, Cláudio deve:\r
 \r
 - Dividir a tarefa em pequenas entregas incrementais e independentes.\r
 - Separar claramente por domínio:\r
   - Android (Camilo)\r
-  - PWA (Renan)\r
   - UI/layout (Lia)\r
   - domínio/regra de negócio\r
   - testes\r
@@ -148,7 +147,7 @@ Quando Lia for necessária, ela entra em **dois momentos**:\r
 1. **Agentes invocados** — lista OBRIGATÓRIA: quais subagentes foram chamados, quantas vezes e para quê. Ex: `Marcelo (2×): listar arquivos featureWifi, verificar contrato MedicaoDao`. Se nenhum foi invocado, justificar por quê.\r
 2. **Objetivo técnico** — o que precisa ser feito no código\r
 3. **Arquivos prováveis** — com caminhos reais lidos da estrutura\r
-4. **Módulos afetados** — Android e/ou PWA\r
+4. **Módulos afetados** — Android\r
 5. **Impacto técnico** — camadas, contratos e dependências\r
 6. **Riscos** — o que pode regredir ou quebrar\r
 7. **Plano de execução** — passos ordenados e incrementais\r

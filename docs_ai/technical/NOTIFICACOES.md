@@ -7,7 +7,7 @@ Os 11 agentes do squad notificam o usuário em cada handoff via scripts em `scri
 | Script | Quando usar |
 |---|---|
 | `scripts/notify.sh` | **Recomendado** — dispara em Discord E Slack ao mesmo tempo |
-| `scripts/discord_notify.sh` | Só Discord (usado pelos agentes Camilo, Renan, Claudete, Gema, Lia, Marcelo conforme suas specs) |
+| `scripts/discord_notify.sh` | Só Discord (usado pelos agentes Camilo, Claudete, Gema, Lia, Marcelo conforme suas specs) |
 | `scripts/slack_notify.sh` | Só Slack |
 
 ### Assinatura
@@ -16,7 +16,7 @@ Os 11 agentes do squad notificam o usuário em cada handoff via scripts em `scri
 scripts/notify.sh <agente> "<mensagem>" <tipo> [--para <outroAgente>]
 ```
 
-- `agente`: claudete, claudio, camilo, lia, gema, marcelo, nina, taisa, bernardo, otavio, renan
+- `agente`: claudete, claudio, camilo, lia, gema, marcelo, nina, taisa, bernardo, otavio
 - `tipo`: `progress` | `success` | `info` | `warning` | `error`
 - `--para <agente>`: opcional, indica handoff
 

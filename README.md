@@ -7,7 +7,6 @@ App Android de **diagnóstico de conectividade** com IA — analisa Wi-Fi, fibra
 ## Stack
 
 - **Android** Kotlin + Jetpack Compose (Material 3), MVVM + `StateFlow`
-- **PWA** React + TypeScript + Vite + Tailwind CSS (design system SignallQ inspirado em Material 3)
 - **DI** Hilt · **Persistência** Room (`SignallQDatabase`) + DataStore · **Background** WorkManager (`MonitoramentoWorker`)
 - **IA** Cloudflare Worker (`integrations/cloudflare/ai-diagnosis-worker`), modelo Qwen3 30B MoE FP8, URL via `BuildConfig.AI_WORKER_URL`
 - **Analytics** Firebase Analytics + Crashlytics

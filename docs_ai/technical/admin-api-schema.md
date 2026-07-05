@@ -1155,7 +1155,6 @@ Os endpoints abaixo são necessários para completar o painel mas **ainda não e
 | `POST /admin/errors/:id/resolve` | Marcar erro como resolvido | Retorna `{ success: false, message: "Em implementação" }` |
 | `POST /diagnosis/explain` | Rediagnóstico remoto | Retorna `{ success: false }` com mensagem informativa |
 | `GET /admin/integrations/google-play` | Status Play Console | Não integrado — apenas no OpenAPI spec |
-| `GET /admin/integrations/app-store` | Status App Store Connect | Planejado para iOS (futuro) |
 
 **Nota (GH#423):** `GET /admin/metrics/app-versions`, `GET /admin/integrations/firebase/crashlytics` e `GET /admin/integrations/firebase/versions` já existem no worker (ver seções acima) — retiradas desta tabela. A aba "Versões" do painel usa o primeiro para versão/canal/sessões reais (D1) e o segundo para crash rate real quando o Firebase está configurado.
 

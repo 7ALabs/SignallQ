@@ -14,7 +14,6 @@ label() {
 label "agent:claudete"  "1f6feb" "Diretora de Produto & Delivery"
 label "agent:claudio"   "0e8a16" "Líder Técnico (planejamento)"
 label "agent:camilo"    "d93f0b" "Especialista Android (implementação)"
-label "agent:renan"     "8957e5" "Especialista PWA (stand-by neste repo)"
 label "agent:lia"       "f29ddc" "UX/UI Material 3"
 label "agent:gema"      "0e8a16" "QA & Release"
 label "agent:marcelo"   "fbca04" "Analista Júnior (scout + tasks pequenas)"

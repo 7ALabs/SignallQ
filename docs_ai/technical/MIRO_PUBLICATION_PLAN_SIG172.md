@@ -21,16 +21,12 @@ Publish architecture diagrams to Miro for team reference and onboarding. Source:
 **Content**:
 - **Layer 1: Client Apps**
   - Android (v0.21.0, versionCode 52)
-  - PWA (React/TS/Vite/Tailwind)
-  - iOS (future)
 
 - **Layer 2: Local Persistence**
   - Android: Room (linkaKotlin.db), DataStore (linkaPreferencias)
-  - PWA: LocalStorage, IndexedDB
 
 - **Layer 3: HTTP Layer**
   - Android: OkHttp + Hilt DI
-  - PWA: Fetch API
 
 - **Layer 4: Backend**
   - Cloudflare Workers (3 deployments)
@@ -85,7 +81,7 @@ Publish architecture diagrams to Miro for team reference and onboarding. Source:
    - Cost: $0.X per request (free tier Gemini fallback if Qwen fails)
 5. **Parse response** → Schema v2 JSON (insights, recommendations)
 6. **Cache response** → Cloudflare KV (5 min TTL, reduce API hits)
-7. **Return to client** → PWA displays insights in Diagnosis UI
+7. **Return to client** → Android displays insights in Diagnosis UI
 
 **Decision Tree**:
 - If Qwen3 available → use Qwen3
@@ -195,7 +191,6 @@ Publish architecture diagrams to Miro for team reference and onboarding. Source:
 - **/admin/integrations/** (9 endpoints, session auth)
   - Firebase (6): status, analytics, crashlytics, versions, crash-issues, sync
   - Google Play (1)
-  - App Store (1)
   - (Future: more integrations)
 
 - **/admin/settings** (2 endpoints, session auth)

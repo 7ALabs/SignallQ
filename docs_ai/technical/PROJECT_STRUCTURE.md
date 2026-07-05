@@ -41,7 +41,6 @@ C:\Projetos\SignallQ Android
 
 ## O que ficou fora
 
-- `linkaSpeedtestPwa/`: pertence ao PWA.
 - `source/app/`: app Flutter legado, mantido fora da nova raiz.
 - `.old/`, `tmp/`, caches, logs e builds locais.
 - `apk/`: pasta antiga substituida por `builds/apk/`.
@@ -58,6 +57,6 @@ Um arquivo foi migrado quando atende pelo menos um criterio:
 - Script operacional ainda referenciado por docs Android.
 - Integracao diretamente consumida pelo Android.
 
-Um arquivo foi excluido quando e artefato gerado, cache, legado nao ativo ou pertence ao PWA.
+Um arquivo foi excluido quando e artefato gerado, cache ou legado nao ativo.
 
 `segredos/`, `certificados/`, `key.properties` e `.env` existem localmente no destino, mas continuam protegidos por `.gitignore`.

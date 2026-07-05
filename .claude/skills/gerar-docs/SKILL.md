@@ -1,6 +1,6 @@
 ---
 name: gerar-docs
-description: Gera documentação completa e atualizada para o projeto SignallQ — funcional, técnica, testes, fluxos, design, PPT e HTML. Audita documentação existente antes de criar qualquer coisa nova, move obsoleta para .old, diferencia Android Kotlin de PWA, e adequa estilo ao público-alvo (humano ou IA).
+description: Gera documentação completa e atualizada para o projeto SignallQ (Android Kotlin) — funcional, técnica, testes, fluxos, design, PPT e HTML. Audita documentação existente antes de criar qualquer coisa nova, move obsoleta para .old, e adequa estilo ao público-alvo (humano ou IA).
 ---
 
 Skill de geração e atualização de documentação. Executada pela **Gema**.
@@ -59,22 +59,16 @@ mv docs/feature-speedtest.md docs/.old/feature-speedtest.2024-01-15.old.md
 
 ---
 
-## Passo 3 — Identificar escopo: Android / PWA / Unificado
+## Passo 3 — Confirmar escopo: SignallQ Android ou SignallQ Admin
 
-Avaliar o escopo com base no que foi solicitado e no código real:
+O produto é Android nativo (Kotlin/Compose). O "SignallQ Admin" (React/TS) é um produto separado, documentado à parte quando explicitamente solicitado.
 
 | Critério | Escopo |
 |---|---|
-| Depende de API Android, permissão, hardware | Android exclusivo |
-| Depende de browser, Service Worker, Web API | PWA exclusivo |
-| Fluxo de produto com paridade nas duas plataformas | Unificado |
-| Arquitetura de dados compartilhada | Unificado |
+| Feature, tela, fluxo do app SignallQ | Android |
+| Painel administrativo, análise de dados, métricas | SignallQ Admin |
 
-**Em documentação unificada**, marcar diferenças com blocos explícitos:
-```
-> **Android:** [comportamento específico]
-> **PWA:** [comportamento específico ou limitação]
-```
+Se o pedido não deixar claro qual dos dois, perguntar antes de gerar o documento.
 
 ---
 
@@ -87,7 +81,6 @@ Avaliar o escopo com base no que foi solicitado e no código real:
 ```markdown
 # [Nome da Feature]
 
-**Plataforma:** Android | PWA | Ambas
 **Status:** Em desenvolvimento | Concluída | Planejada
 **Versão:** x.x.x
 **Última atualização:** YYYY-MM-DD
@@ -113,10 +106,6 @@ Avaliar o escopo com base no que foi solicitado e no código real:
 ## Critérios de aceite
 - [ ] [Critério 1]
 - [ ] [Critério 2]
-
-## Diferenças por plataforma
-> **Android:** [diferença]
-> **PWA:** [diferença ou N/A]
 ```
 
 #### Documentação Técnica
@@ -124,7 +113,6 @@ Avaliar o escopo com base no que foi solicitado e no código real:
 ```markdown
 # [Módulo / Componente / API]
 
-**Plataforma:** Android | PWA | Ambas
 **Módulo:** :[nome-do-modulo]
 **Última atualização:** YYYY-MM-DD
 
@@ -154,14 +142,13 @@ Avaliar o escopo com base no que foi solicitado e no código real:
 ```markdown
 # Plano de Testes — [Feature]
 
-**Plataforma:** Android | PWA | Ambas
 **Última atualização:** YYYY-MM-DD
 
 ## Cobertura atual
 
-| Área | Android | PWA |
-|---|---|---|
-| [área] | ✅ / ⚠️ / ❌ | ✅ / ⚠️ / ❌ |
+| Área | Cobertura |
+|---|---|
+| [área] | ✅ / ⚠️ / ❌ |
 
 ## Casos de teste
 
@@ -169,7 +156,6 @@ Avaliar o escopo com base no que foi solicitado e no código real:
 - **Dado:** [pré-condição]
 - **Quando:** [ação]
 - **Então:** [resultado esperado]
-- **Plataforma:** Android | PWA | Ambas
 
 ## Cenários de regressão
 [O que nunca pode quebrar]
@@ -183,7 +169,6 @@ Avaliar o escopo com base no que foi solicitado e no código real:
 ```markdown
 # Fluxo — [Nome]
 
-**Plataforma:** Android | PWA | Ambas
 **Última atualização:** YYYY-MM-DD
 
 ## Diagrama
@@ -214,14 +199,13 @@ flowchart TD
 ```markdown
 # Design — [Tela / Componente]
 
-**Plataforma:** Android | PWA | Ambas
 **Última atualização:** YYYY-MM-DD
 
 ## Componentes visuais
 
-| Componente | Android | PWA | Token MD3 |
-|---|---|---|---|
-| [comp] | [Composable] | [React comp] | [token] |
+| Componente | Composable | Token MD3 |
+|---|---|---|
+| [comp] | [Composable] | [token] |
 
 ## Estados visuais
 | Estado | Trigger | Aparência |
@@ -315,10 +299,9 @@ Quando o output for uma apresentação:
 2. **Problema** — o que motivou esta feature/decisão.
 3. **Solução** — o que foi construído ou proposto.
 4. **Fluxo** — diagrama simplificado do fluxo principal.
-5. **Diferenças Android vs. PWA** — quando aplicável.
-6. **Métricas / Critérios de aceite** — como medir sucesso.
-7. **Riscos e limitações** — o que ainda não está resolvido.
-8. **Próximos passos** — o que vem depois.
+5. **Métricas / Critérios de aceite** — como medir sucesso.
+6. **Riscos e limitações** — o que ainda não está resolvido.
+7. **Próximos passos** — o que vem depois.
 
 **Identidade visual:**
 - Fundo: branco ou cinza muito claro (`#F8F9FA`).
@@ -371,12 +354,11 @@ Documento só é considerado entregue quando:
 - [ ] Público-alvo confirmado (humano / IA / qual IA)
 - [ ] Auditoria de docs existentes realizada
 - [ ] Documentação obsoleta movida para `.old/` (quando aplicável)
-- [ ] Escopo definido (Android / PWA / Unificado)
+- [ ] Escopo confirmado (SignallQ Android ou SignallQ Admin)
 - [ ] Documento gerado no formato correto para o público
 - [ ] Path de saída informado
 - [ ] Conteúdo ancoragem no código/comportamento real (não inventado)
 - [ ] Edge cases documentados
-- [ ] Diferenças por plataforma marcadas (quando unificado)
 
 ---
 
@@ -387,7 +369,7 @@ Usar ferramentas nativas (Glob, Grep, Read) para buscas em código e documentaç
 | Lacuna | Consultar |
 |---|---|
 | Comportamento técnico Android | Camilo |
-| Comportamento técnico PWA | Renan |
+| Comportamento técnico SignallQ Admin | Felipe |
 | Validação de device real, OEM, API level | `/regras-android` |
 | Decisão de arquitetura, fluxo de dados | Claudete |
 | Estados visuais, microcopy, MD3 | Lia |

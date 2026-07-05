@@ -37,5 +37,5 @@
 
 - Criar um repositorio Git novo para `C:\Projetos\SignallQ Android`.
 - Decidir se `integrations/cloudflare/ai-diagnosis-worker` vira workspace proprio ou permanece como integracao local.
-- Revisar `docs_ai` para remover mencoes residuais ao Flutter/PWA quando nao forem referencia comparativa.
+- [feito 2026-07-04] Revisar `docs_ai` para remover mencoes residuais ao Flutter/PWA/iOS apos descontinuacao do PWA e do app iOS.
 - Manter os segredos locais migrados fora do Git e validar que `.gitignore` continua cobrindo `.env`, `key.properties`, keystores, certificados e chaves.

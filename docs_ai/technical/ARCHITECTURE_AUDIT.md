@@ -1,5 +1,7 @@
 # Auditoria de Arquitetura SignallQ — 27.06.2026
 
+> **Nota (2026-07-04):** o PWA e o app iOS descritos nesta auditoria foram descontinuados. Este documento é mantido como registro histórico do estado da arquitetura em 27/06/2026 — não reflete a estrutura atual do monorepo.
+
 ## Resumo Executivo
 
 Auditoria completa da arquitetura SignallQ (v0.21.0) baseada em:

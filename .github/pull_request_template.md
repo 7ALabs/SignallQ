@@ -17,8 +17,7 @@ Closes #<!-- número da issue -->
 ## Plataforma afetada
 
 - [ ] Android
-- [ ] PWA
-- [ ] Ambos
+- [ ] Infraestrutura
 
 ## Checklist
 

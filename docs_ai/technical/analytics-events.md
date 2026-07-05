@@ -22,7 +22,6 @@ contrato (`onboarding_concluido`, `speedtest_erro`, `diag_erro`,
   compartilham a mesma instância de `FirebaseAnalytics`, mas com APIs públicas
   separadas. Ver seção "Funil principal" para os pontos exatos de disparo.
 - **Android — demais eventos deste contrato:** ainda não instrumentados.
-- **PWA:** Firebase não inicializado. Nenhum tracking presente.
 
 O contrato abaixo define os eventos que **devem ser implementados**, derivados
 do modelo de domínio atual (v0.21.0). Qualquer evento novo ou alterado exige
@@ -532,12 +531,3 @@ Ponto de implementação no Android: injetar `AnalyticsHelper` (funil principal,
 SIG-155) ou `AnalyticsTracker` (schema SIG-134) via Hilt no ViewModel ou classe
 de domínio correspondente — nunca `FirebaseAnalytics` diretamente. Não chamar
 `logEvent` diretamente em Composables.
-
----
-
-## PWA
-
-Firebase Analytics não inicializado no PWA (`pwa/src/`). Quando for
-instrumentado, os eventos equivalentes devem seguir as mesmas convenções
-de nome e parâmetros deste documento, adicionando `plataforma: "pwa"` como
-parâmetro em todos os eventos.

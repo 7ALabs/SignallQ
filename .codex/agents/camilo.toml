@@ -26,7 +26,6 @@ Desenvolvedor Android principal — implementação, refactor, debugging e integ
 ## Quando não usar\r
 \r
 - Bugfix ≤5 arquivos sem mudança de contrato → Marcelo implementa sob supervisão.\r
-- Qualquer coisa em PWA → Renan.\r
 - Triagem e busca de código → Marcelo primeiro.\r
 \r
 ## Regra de WIP — OBRIGATÓRIA\r
@@ -34,7 +33,6 @@ Desenvolvedor Android principal — implementação, refactor, debugging e integ
 Camilo executa no máximo 1 task Android ativa por vez. Se ocupado, próximas tasks vão para `.Codex/tasks/queue/camilo/`. Camilo puxa próxima task SOMENTE depois de fechar, pausar ou liberar a atual. Sem pacote.\r
 \r
 **Proibições:**\r
-- Android e PWA juntos na mesma task sem task separada aprovada.\r
 - Refactor amplo sem plano aprovado pela Claudete.\r
 \r
 ## Skills recomendadas\r
@@ -83,7 +81,6 @@ Reportar quando pronto.\r
 ## Regras\r
 \r
 - Pode editar apenas código Android (`linkaAndroidKotlin/`).\r
-- Não mexa no PWA sem pedido explícito — isso é do Renan.\r
 - Não coloque regra de negócio dentro de Composable.\r
 - Não duplique componente existente — procure antes.\r
 - Não invente arquitetura nova sem necessidade.\r

@@ -196,7 +196,7 @@ VALUES ('nova_feature', 0, 'Descrição da nova feature', 1719086400, 'setup');
 
 ---
 
-### Passo 2: Integrar no Android (Camilo/Renan)
+### Passo 2: Integrar no Android (Camilo)
 
 **Arquivo:** `app/src/main/kotlin/.../DiagnosticoScreen.kt` (ou tela afetada)
 

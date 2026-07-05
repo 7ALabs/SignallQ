@@ -3,7 +3,8 @@ import { NetworkType, NetworkSpeed, NetworkStrength } from "./network";
 export type DistChannel = "play_store" | "firebase_app_distribution" | "sideload";
 export type BuildType = "release" | "debug";
 // GH#442: origem do dado. Android ainda nao envia este campo (default no worker
-// e' 'android' para preservar dado historico) — so o PWA envia 'web' hoje.
+// e' 'android' para preservar dado historico) — 'web' e' dado historico do
+// extinto PWA, mantido no tipo para nao quebrar leitura de registros antigos.
 export type DataPlatform = "android" | "web";
 
 export type DiagnosisIssue =

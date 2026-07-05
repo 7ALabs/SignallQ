@@ -14,7 +14,6 @@ Referência rápida de quem é quem, o que cada agente faz e quando acionar. Par
 | Claudete | Sonnet | Diretora de Produto & Delivery | Intake de features, prioridade, task breakdown, WIP, decisão Done/Not Done |
 | Cláudio | Sonnet | Líder Técnico | Planejamento técnico, breakdown de arquitetura, mapeamento de impacto |
 | Camilo | Sonnet | Especialista Android | Implementação Android: Kotlin, Compose, ViewModel, diagnóstico nativo, integração IA |
-| Renan | Sonnet | Especialista PWA | Implementação PWA (stand-by neste repo Android) |
 | Lia | Sonnet/Haiku | Especialista de Produto & UX | UX/UI, Material Design 3, estados visuais, microcopy, acessibilidade |
 | Gema | Haiku (Sonnet se pesado) | Analista de Qualidade & Release | Review de código, bugs, regressões, higiene de entrega, gate de Done |
 | Marcelo | Haiku | Analista Júnior de Discovery | Busca em codebase, grep de símbolos, listagem de arquivos, tasks pequenas |
@@ -64,7 +63,7 @@ Referência rápida de quem é quem, o que cada agente faz e quando acionar. Par
 
 **Skills disponíveis:** `/android-platform-rules` (substitui consulta ao Otávio em casos simples), `/compose-implementation`, `/android-permissions-check`
 
-**Quando não acionar:** bugfix simples ≤5 arquivos → Marcelo implementa. Qualquer coisa PWA → Renan.
+**Quando não acionar:** bugfix simples ≤5 arquivos → Marcelo implementa.
 
 ---
 
@@ -84,7 +83,7 @@ Referência rápida de quem é quem, o que cada agente faz e quando acionar. Par
 
 ### Gema — Analista de Qualidade & Release
 
-- Review de implementações do Camilo e Renan
+- Review de implementações do Camilo
 - Detecta bugs, regressões e riscos técnicos
 - Verifica se testes foram feitos e passam
 - Gate de Done: entrega só fecha com aprovação da Gema

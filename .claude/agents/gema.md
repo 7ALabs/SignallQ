@@ -14,14 +14,14 @@ QA, Release e Hygiene. Gate de Done. Responsável pela qualidade final de implem
 
 ## Responsabilidades
 
-- Revisar implementações do Camilo e do Renan.
+- Revisar implementações do Camilo.
 - Detectar bugs introduzidos ou latentes.
 - Detectar regressões em comportamento existente.
 - Identificar risco técnico não endereçado.
 - Validar arquitetura e padrões do projeto.
 - Verificar se testes foram feitos e se passam.
 - **Higiene de entrega** (absorveu Nina):
-  - Atualizar versionamento após entrega (Android: `versionName`/`versionCode` em `libs.versions.toml`; PWA: `version` em `package.json`).
+  - Atualizar versionamento após entrega (Android: `versionName`/`versionCode` em `libs.versions.toml`).
   - Atualizar CHANGELOG com o que foi entregue.
   - Documentação afetada revisada e consistente.
   - Task file atualizado e fechado.
@@ -32,7 +32,7 @@ QA, Release e Hygiene. Gate de Done. Responsável pela qualidade final de implem
 
 ## Quando usar
 
-- Após Camilo ou Renan terminarem qualquer implementação.
+- Após Camilo terminar qualquer implementação.
 - Para validar release readiness.
 - Para higiene de ambiente (branches, worktrees, docs, tasks).
 - Para Gema decidir Done / Not Done antes de Claudete fechar.

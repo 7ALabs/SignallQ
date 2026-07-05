@@ -1,5 +1,8 @@
 # ADR-005 — iOS: scaffolding criado, agente adiado
 
+> **Nota (2026-07-04):** o app iOS foi descontinuado; este ADR é mantido como
+> registro histórico da decisão.
+
 **Data:** 2026-06-24
 **Status:** Aceito
 

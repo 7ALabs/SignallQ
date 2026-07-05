@@ -37,7 +37,7 @@ Armazena todas as medições — tanto speedtests completos quanto medições do
 | `vereditoGamer` | String? | Sim | `"good"`, `"acceptable"` ou `"poor"` |
 | `vereditoVideoChamada` | String? | Sim | `"good"`, `"acceptable"` ou `"poor"` |
 | `gargaloPrimario` | String? | Sim | Gargalo principal identificado |
-| `fonte` | String? | Sim | `"web"`, `"android"` ou `"pwa"` |
+| `fonte` | String? | Sim | `"web"`, `"android"` ou `"pwa"` (legado — PWA descontinuado, valor pode existir apenas em registros históricos) |
 
 **Distinção de tipos de medição:**
 

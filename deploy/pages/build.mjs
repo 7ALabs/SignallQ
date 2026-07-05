@@ -1,15 +1,17 @@
 #!/usr/bin/env node
-// GH#443 / SIG-52: monta o output unificado do projeto Cloudflare Pages "signallq",
-// que serve o WebApp SignallQ sob /app e o Console (Admin) sob /console a partir
-// de um unico dominio (signallq.pages.dev). Este script assume que as dependencias
-// (`npm ci`) ja foram instaladas em `pwa/` e em `SignallQ Admin/`.
+// GH#443 / SIG-52: monta o output do projeto Cloudflare Pages "signallq",
+// que serve o Console (Admin) sob /console (signallq.pages.dev). Este script
+// assume que as dependencias (`npm ci`) ja foram instaladas em
+// `SignallQ Admin/`.
+//
+// O PWA (`pwa/`) foi descontinuado e removido do monorepo; este script nao
+// builda mais nada sob /app.
 //
 // Uso local:
 //   node deploy/pages/build.mjs
 //
 // Saida:
 //   deploy/pages/dist/
-//     app/...       (build do pwa/ com base '/app/')
 //     console/...   (build do "SignallQ Admin/" com base '/console/')
 //     _redirects    (copiado de deploy/pages/_redirects)
 //     _headers      (copiado de deploy/pages/_headers)
@@ -19,14 +21,13 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } fr
 import { dirname, join } from 'node:path';
 // GH#443: cada app tem seu proprio _headers/_redirects (usado em preview/deploy
 // standalone). No pacote unificado, so o _headers/_redirects da raiz de
-// deploy/pages e lido pelo Cloudflare Pages — os das subpastas sao removidos
-// para nao ficar um arquivo morto e confuso servido em /app/_headers etc.
+// deploy/pages e lido pelo Cloudflare Pages — o das subpastas e removido
+// para nao ficar um arquivo morto e confuso servido em /console/_headers etc.
 const STALE_SUBPATH_FILES = ['_headers', '_redirects'];
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(here, '..', '..');
-const pwaDir = join(repoRoot, 'pwa');
 const adminDir = join(repoRoot, 'SignallQ Admin');
 const outDir = join(here, 'dist');
 
@@ -51,23 +52,17 @@ function requireDist(appDir, label) {
   return dist;
 }
 
-// 1. Build do WebApp SignallQ sob /app
-run('npm run build', pwaDir, { VITE_BASE_PATH: '/app/' });
-
-// 2. Build do Console (Admin) sob /console
+// 1. Build do Console (Admin) sob /console
 run('npm run build', adminDir, { VITE_BASE_PATH: '/console/' });
 
-// 3. Monta o diretorio unificado de deploy
+// 2. Monta o diretorio de deploy
 rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
 
-cpSync(requireDist(pwaDir, 'pwa'), join(outDir, 'app'), { recursive: true });
 cpSync(requireDist(adminDir, 'SignallQ Admin'), join(outDir, 'console'), { recursive: true });
 
-for (const sub of ['app', 'console']) {
-  for (const file of STALE_SUBPATH_FILES) {
-    rmSync(join(outDir, sub, file), { force: true });
-  }
+for (const file of STALE_SUBPATH_FILES) {
+  rmSync(join(outDir, 'console', file), { force: true });
 }
 
 copyNormalizingLineEndings(join(here, '_redirects'), join(outDir, '_redirects'));

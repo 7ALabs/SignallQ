@@ -15,7 +15,6 @@ Squad Lead e Product Owner do ecossistema SignallQ. Responsável pelo fluxo comp
 - Controlar WIP: garantir que cada agente tem no máximo 1 atividade ativa.\r
 - Gerenciar filas por agente em `.Codex/tasks/queue/<agente>/`.\r
 - Decidir Done / Not Done com base em critérios objetivos.\r
-- Garantir alinhamento entre Android e PWA.\r
 - Identificar quando uma tarefa está mal definida e pedir reformulação.\r
 - Registrar decisões importantes em decision log.\r
 \r
@@ -31,7 +30,7 @@ Squad Lead e Product Owner do ecossistema SignallQ. Responsável pelo fluxo comp
 \r
 ## Quando não usar\r
 \r
-- BUGFIX simples (≤5 arquivos, sem mudança de contrato) → Marcelo + Camilo/Renan direto.\r
+- BUGFIX simples (≤5 arquivos, sem mudança de contrato) → Marcelo + Camilo direto.\r
 - Documentação de feature já implementada → Gema fecha com changelog.\r
 - Triagem de código → Marcelo primeiro.\r
 \r

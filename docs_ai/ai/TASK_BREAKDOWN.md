@@ -20,7 +20,7 @@
 
 ## Regra de granularidade
 
-- Nenhum dev (Camilo, Renan) recebe tarefa vaga, aberta ou monstruosa.
+- Nenhum dev (Camilo) recebe tarefa vaga, aberta ou monstruosa.
 - Bugfix simples (5 arquivos ou menos, sem mudança de contrato) → Camilo direto, sem passar pelo Cláudio.
 - Tasks médias ou grandes → obrigatório passar pelo Cláudio para decomposição.
 
@@ -30,7 +30,6 @@
 |---|---|
 | Arquitetura, planejamento, decomposição | Cláudio |
 | Implementação Android (Kotlin, Compose, MVVM) | Camilo |
-| Implementação PWA (React, TypeScript, Tailwind) | Renan |
 | UX, design, Material Design 3, microcopy | Lia |
 | APIs Android, permissões, hardware, OEM quirks | Otávio |
 | Revisão de qualidade, bugs, regressão | Gema |

@@ -1,10 +1,10 @@
 ---
 name: checar-release
-description: Checklist pré-release por stack (Android e PWA/Cloudflare Pages) mais atualização de changelog.
+description: Checklist pré-release por stack (Android e Cloudflare Pages) mais atualização de changelog.
 ---
 
 ## Quando usar
-Antes de gerar APK/AAB de release, fazer deploy do PWA no Cloudflare Pages ou submeter à loja. Cobre as três stacks mais o changelog. Use só as seções relevantes à entrega.
+Antes de gerar APK/AAB de release, fazer deploy no Cloudflare Pages ou submeter à loja. Cobre as stacks mais o changelog. Use só as seções relevantes à entrega.
 
 ---
 
@@ -46,34 +46,6 @@ Antes de gerar APK/AAB de release, fazer deploy do PWA no Cloudflare Pages ou su
 
 ---
 
-## PWA
-
-### Manifest
-- [ ] `manifest.json` atualizado com versão?
-- [ ] Ícones em todos os tamanhos (192x192, 512x512)?
-- [ ] `theme_color` e `background_color` corretos?
-- [ ] `start_url` e `scope` configurados?
-- [ ] `display: standalone` para experiência app?
-
-### Service Worker
-- [ ] Cache version atualizado se assets mudaram?
-- [ ] Estratégia de cache correta (network-first para dados, cache-first para assets)?
-- [ ] Atualização de SW funciona sem deixar usuário preso em versão antiga?
-- [ ] Fallback offline configurado?
-
-### Build
-- [ ] `npm run build` passou sem erros?
-- [ ] TypeScript sem erros (`tsc --noEmit`)?
-- [ ] Sem `console.log` de debug no código de produção?
-- [ ] `vite.config.ts` com `base` correto para a URL de produção?
-- [ ] Build output em `dist/` sem arquivos desnecessários (não commitar `dist/`)?
-- [ ] Fluxo principal testado em Chrome e Safari?
-- [ ] Responsivo em mobile (360px) e desktop (1280px)?
-- [ ] Sem regressões visuais nas telas existentes?
-- [ ] Lighthouse PWA score ≥ 80?
-
----
-
 ## Cloudflare Pages
 
 ### Deploy
@@ -110,7 +82,6 @@ Atualizar após aprovar a entrega, antes do build final.
 
 ### Localização
 - Android: `android/CHANGELOG.md`
-- PWA: `pwa/CHANGELOG.md`
 
 ### Formato (Keep a Changelog)
 
@@ -148,4 +119,4 @@ Atualizar após aprovar a entrega, antes do build final.
 
 ## Limites
 - Esta skill orienta, não implementa.
-- Build/release Android → Camilo. Deploy PWA/Cloudflare → Renan. Changelog → Gema.
+- Build/release Android → Camilo. Changelog → Gema.

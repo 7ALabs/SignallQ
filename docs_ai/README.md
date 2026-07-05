@@ -43,7 +43,7 @@ Recuperacao rapida, fatos operacionais, inferencia minima.
 - [Cores (`design-system/COLORS.md`)](./design-system/COLORS.md) — tokens brand, status, superficies, SignallQ
 - [Tipografia (`design-system/TYPOGRAPHY.md`)](./design-system/TYPOGRAPHY.md) — escala MD3, animacao tipografica
 - [Espacamento (`design-system/SPACING.md`)](./design-system/SPACING.md) — grid 8dp, valores canonicos
-- [Design Tokens Cross-Platform (`design-system/DESIGN_TOKENS_CROSSPLATFORM.md`)](./design-system/DESIGN_TOKENS_CROSSPLATFORM.md) — Android vs. PWA
+- [Design Tokens (`design-system/DESIGN_TOKENS.md`)](./design-system/DESIGN_TOKENS.md) — tokens de cor, tipografia, espaçamento e raio Android
 - [Componentes Android (`design-system/COMPONENTS_ANDROID.md`)](./design-system/COMPONENTS_ANDROID.md) — componentes SignallQ, SpeedTest, Layout
 - [Material Design 3 (`design-system/MD3_GUIDELINES.md`)](./design-system/MD3_GUIDELINES.md)
 
@@ -62,7 +62,6 @@ Recuperacao rapida, fatos operacionais, inferencia minima.
 - [Cloudflare Integration (`technical/CLOUDFLARE.md`)](./technical/CLOUDFLARE.md) — worker `linka-ai-diagnosis-worker`, modelo padrao Qwen3 30B, fallback local
 - [Admin API Schema (`technical/admin-api-schema.md`)](./technical/admin-api-schema.md) — schema D1 e contratos do `signallq-admin`
 - [Analytics Events (`technical/analytics-events.md`)](./technical/analytics-events.md) — contrato de eventos Firebase Analytics
-- [Paridade Plataformas (`technical/paridade-plataformas.md`)](./technical/paridade-plataformas.md) — matriz Android x PWA e limites de browser
 - [Storage Details (`technical/STORAGE.md`)](./technical/STORAGE.md) — Room v10, DataStore
 - [Services Overview (`technical/SERVICES.md`)](./technical/SERVICES.md)
 - [Build System (`technical/BUILD_SYSTEM.md`)](./technical/BUILD_SYSTEM.md)
@@ -89,7 +88,7 @@ Recuperacao rapida, fatos operacionais, inferencia minima.
 - [ADR-003 — DispatcherProvider via DI (`decisions/ADR-003-dispatcher-provider-di.md`)](./decisions/ADR-003-dispatcher-provider-di.md)
 - [ADR-004 — Module Structure (`decisions/ADR-004-module-structure-android.md`)](./decisions/ADR-004-module-structure-android.md)
 - [ADR-005 — Custo IA Free Tier + Fallback (`decisions/ADR-005-custo-ia-free-tier-fallback.md`)](./decisions/ADR-005-custo-ia-free-tier-fallback.md)
-- [ADR-005 — iOS Scaffolding sem agente (`decisions/ADR-005-ios-scaffolding-sem-agente.md`)](./decisions/ADR-005-ios-scaffolding-sem-agente.md)
+- [ADR-005 — iOS Scaffolding sem agente (`decisions/ADR-005-ios-scaffolding-sem-agente.md`)](./decisions/ADR-005-ios-scaffolding-sem-agente.md) — registro histórico; app iOS descontinuado
 
 ---
 

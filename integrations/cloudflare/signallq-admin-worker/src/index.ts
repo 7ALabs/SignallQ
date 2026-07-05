@@ -1807,8 +1807,8 @@ async function handleIngestDiagnostic(request: Request, env: Env): Promise<Respo
   const deviceId    = p.device_id    ?? '';
 
   // GH#442: origem do dado. Default 'android' porque o app Android ainda não
-  // envia este campo (todo dado histórico é dele) — o PWA passa a mandar 'web'
-  // explicitamente (ver pwa/src/features/diagnosis/adminIngestPayload.ts).
+  // envia este campo (todo dado histórico é dele) — o extinto PWA mandava
+  // 'web' explicitamente. Mantido para não quebrar leitura de dados históricos.
   const platform = p.platform === 'web' ? 'web' : 'android';
 
   // Gap 3 (SIG-164): rssi, banda_wifi, padrao_wifi enviados ao AI Worker mas nunca persistidos.

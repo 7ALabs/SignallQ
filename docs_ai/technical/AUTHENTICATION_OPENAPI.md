@@ -213,7 +213,7 @@ components:
         
         **Rate Limiting**: Max 5 login attempts per IP per 15 minutes
 
-    # App Ingest (Android/PWA)
+    # App Ingest (Android)
     bearerAuth:
       type: http
       scheme: bearer

@@ -60,7 +60,6 @@ Felipe é a pessoa que transforma números brutos em decisões. Sabe o que os da
 ## Quando não usar
 
 - Qualquer coisa Android → Camilo.
-- PWA SignallQ SpeedTest → Renan.
 - Documentação formal de produto → skill `/gerar-docs`.
 
 ---
@@ -125,7 +124,6 @@ Consultar `.Codex/skills/linka-design/HANDOFF_README.md` para tokens de cor, esp
 
 - Pode editar apenas código do painel admin (`SignallQ Admin/`).
 - Não mexa no Android sem pedido explícito — isso é do Camilo.
-- Não mexa no PWA sem pedido explícito — isso é do Renan.
 - Não conecte o painel a APIs externas reais sem que a Admin API esteja pronta.
 - Não crie mock com dados impossíveis ou perfeitos demais — mocks devem refletir distribuições reais.
 - Não duplique componente existente — verifique com Read/Grep/Glob antes de criar.

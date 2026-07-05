@@ -23,7 +23,6 @@ Responda cada critério com SIM ou NÃO e some os pontos.
 | Requer migration de schema Room | +3 |
 | Requer mudança no Worker Cloudflare (`linka-ai-diagnosis-worker`) | +2 |
 | Adiciona permissão nova no Android | +2 |
-| Exige paridade obrigatória Android ↔ PWA | +1 |
 | Envolve mudança de contrato de API pública (Worker ou endpoint) | +2 |
 
 **Escala:**
@@ -149,5 +148,5 @@ IMPACTO: Grande · Risco Alto · Milestone recomendado: M2 · Recomendação: mo
 
 ## Quando não usar
 
-- BUGFIXes simples (≤5 arquivos, sem mudança de contrato) — Camilo/Renan direto.
+- BUGFIXes simples (≤5 arquivos, sem mudança de contrato) — Camilo direto.
 - Ajustes de copy ou cor que não afetam lógica — Camilo direto com `/linka-design`.

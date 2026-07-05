@@ -1,6 +1,6 @@
 # SignallQ — Guia Para Agentes
 
-Monorepo com plataformas separadas: `android/` (Kotlin nativo), `pwa/` (React/TS), `ios/`, `integrations/` (Cloudflare), `scripts/`, `docs_ai/`.
+Monorepo com plataformas separadas: `android/` (Kotlin nativo), `integrations/` (Cloudflare), `scripts/`, `docs_ai/`.
 
 ## Entrada rapida
 
@@ -13,14 +13,13 @@ Monorepo com plataformas separadas: `android/` (Kotlin nativo), `pwa/` (React/TS
 
 - Produto/UX: use `docs_ai/functional/` e `docs_ai/design-system/`.
 - Engenharia Android: use `docs_ai/technical/`, `android/settings.gradle.kts` e os modulos `android/core*`/`android/feature*`.
-- Engenharia PWA: use `pwa/` (Renan responsavel).
 - QA/Release: use `docs_ai/operations/`, `docs/GuiaReleaseBuild.md` e `scripts/`.
 - Integracoes: use `integrations/`, mantendo dependencias baixadas fora do Git.
 
 ## Regras de trabalho
 
 - Codigo Android fica nos modulos Gradle em `android/`.
-- Codigo PWA fica em `pwa/`. Codigo do admin panel fica em `SignallQ Admin/`.
+- Codigo do admin panel fica em `SignallQ Admin/`.
 - Documentacao viva fica em `docs_ai/`.
 - Documentacao operacional complementar fica em `docs/`.
 - Scripts versionados ficam em `scripts/`.

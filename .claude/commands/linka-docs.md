@@ -35,7 +35,6 @@ allowed-tools: Read(*), Edit(*), Bash(*)
 | `DOCUMENTACAO_CONSOLIDADA.md` | raiz | Novo doc central adicionado; sequência de leitura mudou |
 | `CLAUDE.md` | raiz | Nova skill adicionada; referência rápida mudou |
 | `_AGENTS_KOTLIN.md` | raiz | Novas regras de comportamento de agente; novos gatilhos de skill |
-| `docs/contratos/` | `docs/contratos/` | Contrato PWA↔Kotlin mudou (SpeedTest, MonitoramentoRede, FormatoLog) |
 | `docs/branding/linka_branding_guidelines.md` | `docs/branding/` | Design system mudou (cores, tipografia, componentes) |
 
 ### Regra de Impacto — Matriz de Mudança
@@ -49,7 +48,6 @@ allowed-tools: Read(*), Edit(*), Bash(*)
 | Nova dependência | `DocumentacaoTecnicaSistema.md` (seção dependências) | — |
 | Mudança de fluxo/navegação | `DocumentacaoFuncionalSistema.md` | `DocumentacaoTecnicaSistema.md` |
 | Bug fix sem impacto de UI | Apenas se regra de negócio mudou | `PendenciasSanitizacaoCodigo.md` (remover débito) |
-| Novo contrato PWA↔Kotlin | `docs/contratos/<Contrato>.md` | `DOCUMENTACAO_CONSOLIDADA.md` |
 | Migração Flutter→Kotlin concluída | `tarefasMigracaoKotlin.md` + `ComparativoFlutterKotlin.md` | — |
 | Build/release process mudou | `GuiaReleaseBuild.md` | `GuiaVersioning.md` |
 | Novo débito técnico | `PendenciasSanitizacaoCodigo.md` | — |

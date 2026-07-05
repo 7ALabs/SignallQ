@@ -189,7 +189,7 @@ O `MainViewModel` é anotado com `@HiltViewModel`. Dependências fornecidas pelo
 | `vereditoGamer` | String? | Veredito: `"good"`, `"acceptable"` ou `"poor"` |
 | `vereditoVideoChamada` | String? | Veredito: `"good"`, `"acceptable"` ou `"poor"` |
 | `gargaloPrimario` | String? | Gargalo identificado |
-| `fonte` | String? | `"web"`, `"android"` ou `"pwa"` |
+| `fonte` | String? | `"web"`, `"android"` ou `"pwa"` (legado — PWA descontinuado, valor pode existir apenas em registros históricos) |
 
 > Medições com `connectionType = "monitor"` têm `downloadMbps` e `uploadMbps` nulos — o monitoramento passivo só mede latência.
 

@@ -1110,7 +1110,7 @@ Fluxo de primeiro uso com slides de boas-vindas. Exibido uma única vez.
 
 ---
 
-## 13. Features Exclusivas Android (sem equivalente no PWA)
+## 13. Features Dependentes de APIs Nativas Android
 
 | Feature | Dependência Android |
 |---|---|

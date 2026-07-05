@@ -1,7 +1,7 @@
 # Tokens de Cores — SignallQ
 
-**Fonte:** `SignallQTheme.kt` (LkColors) | `src/tokens.css` (PWA)  
-**Escopo:** Android v0.16.0 | PWA (referência cross-platform)  
+**Fonte:** `SignallQTheme.kt` (LkColors)
+**Escopo:** Android v0.16.0
 **Última atualização:** 2026-06-21
 
 ---

@@ -12,9 +12,7 @@ files=$(git diff --cached --name-only)
 [ -z "$files" ] && exit 0
 
 stacks=$(printf '%s\n' "$files" | awk '
-  /^pwa\//              { print "pwa"; next }
   /^android\//          { print "android"; next }
-  /^ios\//              { print "ios"; next }
   /^SignallQ Admin\//   { print "admin"; next }
   /^integrations\//     { print "integrations"; next }
 ' | sort -u)
@@ -25,14 +23,6 @@ if [ "$count" -gt 1 ]; then
   echo "BLOQUEADO: commit cruzando stacks -> $(echo $stacks | tr '\n' ' ')" >&2
   echo "Cada stack vai em sua branch/commit. Isso costuma ser despejo de worktree." >&2
   echo "Se for intencional: COMMIT_ALLOW_CROSS_STACK=1 git commit ..." >&2
-  exit 1
-fi
-
-# Extra: PWA numa branch cujo nome indica Android/Sinal.
-branch=$(git rev-parse --abbrev-ref HEAD)
-if printf '%s\n' "$stacks" | grep -qx pwa && printf '%s' "$branch" | grep -qiE 'sinal|android|wifi'; then
-  echo "BLOQUEADO: arquivos pwa/ na branch '$branch' (parece branch Android)." >&2
-  echo "Mova para uma branch de PWA. Override: COMMIT_ALLOW_CROSS_STACK=1" >&2
   exit 1
 fi
 

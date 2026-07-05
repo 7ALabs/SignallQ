@@ -38,7 +38,7 @@ body:
     id: plataforma
     attributes:
       label: "Plataforma"
-      options: ["Android", "PWA", "Ambos", "Infraestrutura"]
+      options: ["Android", "Infraestrutura"]
     validations:
       required: true
 

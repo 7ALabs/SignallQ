@@ -1,15 +1,15 @@
 ---
 name: auditar-ux
-description: Auditoria profunda de design system (tokens MD3, cores, tipografia, contraste WCAG) e de usabilidade (arquitetura de informação, fluxos, navegação, heurísticas mobile) do SignallQ. Cobre Android e PWA. Executada pela Lia em modo Sonnet.
+description: Auditoria profunda de design system (tokens MD3, cores, tipografia, contraste WCAG) e de usabilidade (arquitetura de informação, fluxos, navegação, heurísticas mobile) do SignallQ Android. Executada pela Lia em modo Sonnet.
 ---
 
 ## Quando usar
 
 **Design system:**
-- Antes de Camilo ou Renan implementar componente visual novo ou tela relevante
+- Antes de Camilo implementar componente visual novo ou tela relevante
 - Inconsistência visual reportada: cor, fonte ou espaçamento fora do padrão MD3
 - Revisão de acessibilidade: contraste WCAG, TalkBack, ARIA, navegação por teclado
-- Definição ou atualização de tokens no `MaterialTheme`, `LocalLkTokens` (Android) ou `tailwind.config`/variáveis CSS (PWA)
+- Definição ou atualização de tokens no `MaterialTheme`, `LocalLkTokens` (Android)
 - Quando o visual "parece errado mas ninguém sabe dizer por quê"
 - Pré-release de tela nova — gate antes de Gema fechar Done
 
@@ -50,12 +50,7 @@ Acionar Marcelo para extrair:
 - Composables de tema: onde `LkTheme` ou `MaterialTheme` é declarado
 - Tokens custom fora do MD3 canônico (hardcoded `Color(0xFF...)` fora de definições de paleta)
 
-**PWA:**
-- Variáveis CSS declaradas em `:root` ou `tailwind.config.js` (cores, fontes, espaçamentos, sombras, border-radius)
-- Classes utilitárias Tailwind customizadas
-- Componentes React de UI reutilizáveis já implementados
-
-**Saída esperada:** tabela de tokens → nome, valor, uso atual, plataforma.
+**Saída esperada:** tabela de tokens → nome, valor, uso atual.
 
 ---
 
@@ -71,16 +66,6 @@ Acionar Marcelo para extrair:
 | Dark mode funcional | Tokens têm variante `darkColorScheme` — sem quebra de legibilidade |
 | Cores de acento/estado | Máximo 2 acentos primários; hover/pressed/focused diferenciado do estado normal |
 
-#### PWA
-
-| Verificação | Critério |
-|---|---|
-| Uso consistente | Mesmo papel visual → mesmo token Tailwind/CSS (não valor hexadecimal repetido inline) |
-| Hierarquia de fundo | Background base < sidebar < painel < elevated (escala legível) |
-| Sem hardcoded | Nenhum `#hex` ou `rgb()` fora das declarações de variável ou `tailwind.config` |
-| Dark mode funcional | Classes `dark:` cobrindo todos os elementos visíveis |
-| Contraste | ≥ 4.5:1 (texto normal), ≥ 3:1 (texto grande/bold) |
-
 ---
 
 ### 3. Auditar tipografia
@@ -95,29 +80,17 @@ Acionar Marcelo para extrair:
 | Máximo de pesos em uso | Até 3 simultâneos (ex: 400, 500, 700) |
 | Consistência de papel visual | Mesmo papel → mesmo token de tipo (sem variação arbitrária por tela) |
 
-#### PWA
-
-| Verificação | Critério |
-|---|---|
-| Famílias de fonte | Máximo 2: 1 sans-serif (UI) + 1 monospace se houver código/terminal |
-| Escala Tailwind usada | `text-xs`, `text-sm`, `text-base`, `text-lg`, `text-xl` — tokens, não valores avulsos |
-| Line height | `leading-relaxed` (1.625) para texto corrido; `leading-tight` aceito para labels |
-| Peso | Máximo 3 pesos (`font-normal`, `font-medium`, `font-bold`) em uso simultâneo |
-| Consistência | Mesmo papel visual → mesma classe Tailwind (sem variação arbitrária) |
-
 ---
 
 ### 4. Auditar espaçamento
 
 | Verificação | Critério |
 |---|---|
-| Escala base | 4dp/px ou 8dp/px — valores em múltiplos (4, 8, 12, 16, 24, 32, 48) |
-| Android: padding mínimo de tela | ≥ 16dp horizontal, ≥ 12dp entre seções |
-| Android: sem magic numbers | Nenhum `padding = 7.dp` ou `Spacer(Modifier.height(13.dp))` sem token |
-| PWA: usa escala Tailwind | `p-1/2/3/4/6/8` — sem `style="padding: 7px"` inline |
-| PWA: sem magic numbers | Nenhum valor de espaçamento fora da escala Tailwind/config |
+| Escala base | 4dp ou 8dp — valores em múltiplos (4, 8, 12, 16, 24, 32, 48) |
+| Padding mínimo de tela | ≥ 16dp horizontal, ≥ 12dp entre seções |
+| Sem magic numbers | Nenhum `padding = 7.dp` ou `Spacer(Modifier.height(13.dp))` sem token |
 | Density adequada | Listas densas (WiFi, History): espaçamento compacto. Cards de diagnóstico: breathing room |
-| Touch target mínimo | ≥ 48dp (Android) / ≥ 44px (PWA) para elementos interativos |
+| Touch target mínimo | ≥ 48dp para elementos interativos |
 
 ---
 
@@ -170,47 +143,21 @@ Para cada fluxo principal do SignallQ:
 | Foco de teclado/acessibilidade | Ordem de foco lógica e previsível |
 | Role de acessibilidade | Botões têm `Role.Button`, checkboxes têm `Role.Checkbox`, etc. |
 
-#### PWA (WCAG / ARIA)
-
-| Verificação | Critério |
-|---|---|
-| Contraste WCAG AA | ≥ 4.5:1 (texto normal), ≥ 3:1 (texto grande/bold ≥18px ou ≥14px bold) |
-| Foco visível | Todos os elementos interativos têm outline de foco visível com contraste |
-| ARIA em ícones | Botões com ícone sem texto têm `aria-label` descritivo |
-| Semântica HTML | `<nav>`, `<main>`, `<section>`, `<header>` usados corretamente |
-| Rótulos de formulário | Inputs têm `<label>` associado ou `aria-label` |
-| Navegação por teclado | É possível acionar ações principais sem mouse (`Tab`, `Enter`, `Space`) |
-
----
-
-### 7. Verificar consistência visual Android ↔ PWA
-
-Para features com paridade declarada (ver `/paridade-plataformas`):
-
-| Verificação | Critério |
-|---|---|
-| Paleta de cores | Mesmas cores de marca nas duas plataformas — divergência só se justificada por limitação de plataforma |
-| Hierarquia visual | Mesma ordem de importância de informações em cada tela equivalente |
-| Terminologia | Mesmo microcopy para mesmos conceitos — sem variação de nomenclatura entre plataformas |
-| Estados visuais | Loading, erro, sucesso e vazio definidos nas duas plataformas |
-| Ações principais | Mesmos CTAs primários disponíveis (quando possível no browser) |
-
 ---
 
 # Auditoria de Usabilidade
 
-### 8. Mapear arquitetura de informação (via Marcelo)
+### 7. Mapear arquitetura de informação (via Marcelo)
 
 Acionar Marcelo para listar:
 
 **Android:** screens registradas na `NavGraph`, destinos de `BottomNavigation`, rotas de `NavController`
-**PWA:** rotas React Router, componentes de navegação, menu principal
 
 **Saída esperada:** mapa de telas com hierarquia (nível 1 = acessível pelo nav principal / nível 2+ = dentro de fluxo).
 
 ---
 
-### 9. Avaliar arquitetura de informação
+### 8. Avaliar arquitetura de informação
 
 | Verificação | Critério |
 |---|---|
@@ -223,7 +170,7 @@ Acionar Marcelo para listar:
 
 ---
 
-### 10. Avaliar fluxos de tarefa críticos
+### 9. Avaliar fluxos de tarefa críticos
 
 Para cada fluxo principal do SignallQ, contar taps/cliques e identificar friction:
 
@@ -262,7 +209,7 @@ Severidade: [crítico | importante | melhoria]
 
 ---
 
-### 11. Avaliar discoverabilidade
+### 10. Avaliar discoverabilidade
 
 | Verificação | Critério |
 |---|---|
@@ -274,7 +221,7 @@ Severidade: [crítico | importante | melhoria]
 
 ---
 
-### 12. Avaliar onboarding e primeiro uso
+### 11. Avaliar onboarding e primeiro uso
 
 | Verificação | Critério |
 |---|---|
@@ -286,7 +233,7 @@ Severidade: [crítico | importante | melhoria]
 
 ---
 
-### 13. Avaliar navegação e back stack
+### 12. Avaliar navegação e back stack
 
 | Verificação | Critério |
 |---|---|
@@ -294,12 +241,11 @@ Severidade: [crítico | importante | melhoria]
 | Back stack | Resultado de diagnóstico → tela anterior é a home, não um estado intermediário |
 | Deep links | Se existirem, chegam na tela certa sem quebrar o back stack |
 | Bottom Nav + back | Trocar de aba e pressionar Voltar não sai do app inesperadamente |
-| PWA: botão Voltar do browser | Navegação por histórico do browser funciona coerentemente |
 | Modal e bottom sheets | Fechar modal retorna ao estado anterior da tela — sem perda de posição |
 
 ---
 
-### 14. Avaliar recuperação de erros
+### 13. Avaliar recuperação de erros
 
 | Verificação | Critério |
 |---|---|
@@ -312,7 +258,7 @@ Severidade: [crítico | importante | melhoria]
 
 ---
 
-### 15. Heurísticas de usabilidade móvel (Nielsen adaptado)
+### 14. Heurísticas de usabilidade móvel (Nielsen adaptado)
 
 | Heurística | O que verificar no SignallQ |
 |---|---|
@@ -329,7 +275,7 @@ Severidade: [crítico | importante | melhoria]
 
 ---
 
-### 16. Verificar consistência de padrões
+### 15. Verificar consistência de padrões
 
 | Verificação | Critério |
 |---|---|
@@ -346,13 +292,12 @@ Severidade: [crítico | importante | melhoria]
 Para cada problema encontrado:
 
 ```
-Plataforma: [Android | PWA | Ambas]
 Categoria: [Design System | Usabilidade]
-Componente/token/fluxo: [nome do Composable, token MD3, classe Tailwind, fluxo, tela]
+Componente/token/fluxo: [nome do Composable, token MD3, fluxo, tela]
 Problema: [descrição objetiva]
 Especificação: [token → valor → justificativa | mudança de fluxo/navegação]
 Prioridade: [crítico | importante | melhoria]
-Responsável: [Camilo (Android) | Renan (PWA) | ambos]
+Responsável: Camilo
 ```
 
 Problemas críticos (contraste quebrado, touch target < 48dp, ARIA ausente em elemento interativo, funcionalidade principal enterrada além de 3 taps, ação destrutiva sem confirmação, loading sem timeout) **bloqueiam aprovação**. Demais são registrados e priorizados por Claudete.
@@ -362,26 +307,25 @@ Problemas críticos (contraste quebrado, touch target < 48dp, ARIA ausente em el
 ## Output esperado
 
 **Design system:**
-1. **Tabela de tokens existentes** — nome, valor, plataforma, uso atual, status (ok / inconsistente / ausente)
+1. **Tabela de tokens existentes** — nome, valor, uso atual, status (ok / inconsistente / ausente)
 2. **Problemas de contraste** — elemento, razão medida, razão exigida, veredicto
 3. **Problemas de tipografia e espaçamento** — magic numbers, tokens faltando, variações sem padrão
 4. **Estados visuais de UX flows** — friction points encontrados, o que mudar e por quê
 5. **Problemas de acessibilidade** — TalkBack/ARIA faltando, foco invisível, touch target pequeno
-6. **Inconsistências visuais Android ↔ PWA** — divergências injustificadas entre plataformas
 
 **Usabilidade:**
-7. **Mapa de arquitetura** — telas por nível de acesso, gaps identificados
-8. **Fluxos de tarefa** — taps até conclusão, friction encontrado, severidade
-9. **Discoverabilidade** — features enterradas, ícones sem label, CTAs ausentes
-10. **Onboarding** — avaliação do primeiro uso, permissões, valor comunicado
-11. **Navegação e back stack** — problemas de back, deep link, modal
-12. **Recuperação de erros** — timeouts, fallbacks, confirmações faltando
-13. **Score por heurística** — ok / atenção / problema para cada uma das 10
-14. **Inconsistências de padrão** — variações injustificadas entre telas
+6. **Mapa de arquitetura** — telas por nível de acesso, gaps identificados
+7. **Fluxos de tarefa** — taps até conclusão, friction encontrado, severidade
+8. **Discoverabilidade** — features enterradas, ícones sem label, CTAs ausentes
+9. **Onboarding** — avaliação do primeiro uso, permissões, valor comunicado
+10. **Navegação e back stack** — problemas de back, deep link, modal
+11. **Recuperação de erros** — timeouts, fallbacks, confirmações faltando
+12. **Score por heurística** — ok / atenção / problema para cada uma das 10
+13. **Inconsistências de padrão** — variações injustificadas entre telas
 
 **Consolidado:**
-15. **Especificação emitida** — lista de correções para Camilo/Renan, com prioridade e esforço estimado
-16. **Decisões registradas** — o que foi documentado no decision log do projeto
+14. **Especificação emitida** — lista de correções para Camilo, com prioridade e esforço estimado
+15. **Decisões registradas** — o que foi documentado no decision log do projeto
 
 ---
 
@@ -396,4 +340,3 @@ Problemas críticos (contraste quebrado, touch target < 48dp, ARIA ausente em el
 - Não avalia fluxo de diagnóstico em profundidade — usar `/motor-diagnostico`.
 - Testes com usuário real estão fora do escopo — esta skill avalia heurísticas, não comportamento observado.
 - Não bloqueia entrega por problema de melhoria — somente crítico bloqueia.
-- Para features impossíveis no browser, não exigir paridade — usar `/regras-pwa` para validar.

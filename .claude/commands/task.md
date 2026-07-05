@@ -143,7 +143,7 @@ Não usar `gh issue create` no Trilho B.
 
 ### B4. Encaminhar ao squad
 
-A issue entra no fluxo normal do Linear (backlog/triagem/cycle). Acione o agente responsável conforme o tipo (Camilo/Renan para código, Lia para UX, Felipe para Admin, `/gerar-docs` para docs) com o identificador `SIG-N` e link da issue.
+A issue entra no fluxo normal do Linear (backlog/triagem/cycle). Acione o agente responsável conforme o tipo (Camilo para código, Lia para UX, Felipe para Admin, `/gerar-docs` para docs) com o identificador `SIG-N` e link da issue.
 
 ---
 

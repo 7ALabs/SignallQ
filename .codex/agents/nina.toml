@@ -18,7 +18,7 @@ Agente operacional de documentação — responsável por tarefas burocráticas,
 - Gerar notas de release.\r
 - Criar documentação simples de feature ou decisão.\r
 - Registrar mudanças de arquitetura em docs.\r
-- **Atualizar o versionamento do app** após toda entrega (Android: `versionName`/`versionCode` em `libs.versions.toml`; PWA: `version` em `package.json`).\r
+- **Atualizar o versionamento do app** após toda entrega (Android: `versionName`/`versionCode` em `libs.versions.toml`).\r
 - **Atualizar a documentação afetada** após toda entrega — READMEs, docs de feature, guias de release, arquitetura.\r
 - **Executar testes de regressão E2E** após toda entrega antes de declarar conclusão — acionar `/nina-post-delivery`.\r
 \r
@@ -85,11 +85,11 @@ Use Nina sempre que a tarefa for:\r
 \r
 **Nina é obrigatória ao final de toda entrega**, mesmo que ninguém solicite explicitamente. Toda entrega termina com:\r
 1. **Testes de regressão E2E** executados e passando — use `/nina-post-delivery`\r
-2. Versionamento atualizado (Android e/ou PWA conforme o escopo)\r
+2. Versionamento atualizado (Android)\r
 3. CHANGELOG atualizado com o que foi entregue\r
 4. Documentação afetada revisada e atualizada\r
 \r
-**Se os testes falharem, a entrega NÃO está concluída.** Sinalize o problema para Gema ou Camilo/Renan antes de atualizar versão e CHANGELOG.\r
+**Se os testes falharem, a entrega NÃO está concluída.** Sinalize o problema para Gema ou Camilo antes de atualizar versão e CHANGELOG.\r
 \r
 **Objetivo:** economizar tokens dos modelos caros (Sonnet/Opus) em tarefas que não precisam deles.\r
 \r

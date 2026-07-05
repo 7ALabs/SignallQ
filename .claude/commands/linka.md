@@ -32,20 +32,6 @@ Em seguida, pergunte: **"Em que vamos trabalhar hoje?"**
 
 ---
 
-## Documentação Cross-Platform (workspace `E:\Projetos\SignallQ\docs\`)
-
-Documentação que cobre **Android e PWA** simultaneamente. Leia antes de tomar decisões que impactam comportamento compartilhado (thresholds, diagnóstico, design system).
-
-| Documento | Quando ler |
-|---|---|
-| [`../docs/FUNCIONAL_CROSSPLATFORM.md`](../docs/FUNCIONAL_CROSSPLATFORM.md) | Feature nova, mudança de comportamento, paridade Android ↔ PWA |
-| [`../docs/TECNICO_CROSSPLATFORM.md`](../docs/TECNICO_CROSSPLATFORM.md) | Arquitetura, módulos, fluxos técnicos, APIs externas compartilhadas |
-| [`../docs/DESIGN_SYSTEM_CROSSPLATFORM.md`](../docs/DESIGN_SYSTEM_CROSSPLATFORM.md) | Tokens, componentes, estados visuais, paridade visual |
-| [`../docs/MATERIAL_DESIGN_3.md`](../docs/MATERIAL_DESIGN_3.md) | Cores, tipografia, espaçamento, componentes MD3 em uso |
-| [`../docs/PADROES_UI_UX.md`](../docs/PADROES_UI_UX.md) | Princípios iOS-Calma, nomenclatura de métricas, estados visuais |
-| [`../docs/VISAO_GERAL_LINKA.md`](../docs/VISAO_GERAL_LINKA.md) | Visão geral do produto, os dois projetos, onde encontrar cada informação |
-| [`../docs/GUIA_DESENVOLVIMENTO_IA.md`](../docs/GUIA_DESENVOLVIMENTO_IA.md) | Como trabalhar em código com IA: sequência de leitura, classificação de task |
-
 ---
 
 ## Skills Disponíveis (para referência sua — não exibir ao usuário)

@@ -179,7 +179,7 @@ interface NomeDao {
 2. **Dados antes de UI** — modelo de dados definido antes da tela
 3. **Contratos antes de implementação** — interface do repositório antes da impl
 4. **Simplicidade antes de sofisticação** — sem over-engineering
-5. **Sem duplicação entre stacks** — Kotlin e PWA seguem contratos em `docs/contratos/`
+5. **Sem duplicação de lógica** — repositórios e serviços não reimplementam o que já existe em outro módulo
 
 ---
 

@@ -7,8 +7,7 @@ Hooks versionados do monorepo SignallQ. Ativação por clone (o Git não version
 
 ## pre-commit
 
-Bloqueia commit que cruza stacks (`pwa/`, `android/`, `ios/`, `SignallQ Admin/`, `integrations/`)
-e commit de `pwa/` em branch cujo nome indica Android (`sinal`/`android`/`wifi`).
+Bloqueia commit que cruza stacks (`android/`, `SignallQ Admin/`, `integrations/`).
 
 Motivo: a remoção de worktree de agente com mudanças pendentes despeja essas mudanças no
 working tree da branch ativa, contaminando a branch errada. O guardrail barra isso no commit.

@@ -26,7 +26,6 @@
 |---|---|
 | Cláudio | Arquitetura, decisões complexas, decomposição de tasks |
 | Camilo | Implementação Android (Kotlin, Jetpack Compose, MD3, MVVM, Room, Coroutines) |
-| Renan | Implementação PWA (React, TypeScript, Vite, Tailwind CSS, Cloudflare Pages) |
 | Otávio | Validação de APIs Android, permissões, OEM quirks — obrigatório antes de Camilo em tasks com hardware/OS |
 | Gema | Revisão de bugs, regressão, risco técnico — passo 5 do fluxo |
 | Marcelo | Busca de código, grep de símbolos (Haiku — não edita código) |

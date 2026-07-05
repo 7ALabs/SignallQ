@@ -102,7 +102,6 @@ Ao modificar qualquer parte do fluxo de diagnóstico, revise pela perspectiva do
 2. Verificar transições: cada estado tem microcopy claro e duração previsível.
 3. Verificar o resultado: o usuário entende o problema e sabe o que fazer.
 4. Verificar fallbacks: o que acontece se o diagnóstico falha ou fica incompleto.
-5. Verificar consistência Android ↔ PWA: onde diverge e se é aceitável.
 
 ### Checklist
 - [ ] Cada estado de loading comunica o que está acontecendo.
@@ -110,7 +109,6 @@ Ao modificar qualquer parte do fluxo de diagnóstico, revise pela perspectiva do
 - [ ] Resultado oferece ação clara (não só "seu sinal está fraco").
 - [ ] Estado de erro explica o que falhou e o que o usuário pode tentar.
 - [ ] Animações de progresso não bloqueiam leitura de informação.
-- [ ] PWA não promete diagnóstico nativo impossível no browser.
 
 ---
 

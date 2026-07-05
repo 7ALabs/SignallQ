@@ -94,23 +94,28 @@ lógica de `getDistributionChannel`.
 | `feature_flags` / `feature_flag_audit` | `PUT /admin/feature-flags/:key` (painel) | Feature Flags (painel) + `GET /flags` (Android) |
 | `admin_users` / `admin_sessions` / `auth_rate_limit` | Auth do painel (SIG-136) | Login do painel |
 
-## Contrato de ingest (GH#417) — schema dos eventos enviados pelo Android e pelo PWA
+## Contrato de ingest (GH#417) — schema dos eventos enviados pelo Android
+
+> O PWA (`pwa/`) foi descontinuado em 2026-07-04. Os trechos abaixo sobre o PWA
+> descrevem uma fonte de dados histórica (`platform: 'web'`) que já não envia
+> nada — mantidos porque a coluna `platform` e os dados antigos continuam no D1.
 
 Autenticação: `Authorization: Bearer <INGEST_KEY>` (chave separada do
 `ADMIN_SECRET` — escopo limitado a `POST /ingest/*`, vai embarcada no APK via
-`BuildConfig`/`local.properties` e, no PWA, injetada só no lado do servidor via
-`ADMIN_INGEST_KEY` da Cloudflare Pages Function `pwa/functions/api/admin/ingest.ts`
-— nunca chega ao bundle do navegador).
+`BuildConfig`/`local.properties`; o PWA injetava a sua só no lado do servidor via
+`ADMIN_INGEST_KEY` da Cloudflare Pages Function `pwa/functions/api/admin/ingest.ts`,
+que não existe mais).
 
 **GH#442 — campo `platform` (origem do dado):** todas as três tabelas de ingest
 (`diagnostic_sessions`, `ai_usage`, `analytics_events`) têm a coluna `platform`
 (`android` | `web`, migration `011_gh442.sql`). O Android ainda não envia esse
 campo — o Worker aplica default `'android'` para preservar a semântica de todo
-o dado histórico. O PWA envia `platform: 'web'` explicitamente em todo payload
-de `/ingest/diagnostic` (ver `pwa/src/features/diagnosis/adminIngestPayload.ts`).
-Os endpoints `/admin/metrics/overview`, `/admin/metrics/diagnostics` e
-`/admin/metrics/diagnostics/summary` aceitam `?platform=android|web` (mesmo
-padrão de `?environment=`) para segmentar por origem no painel.
+o dado histórico. O extinto PWA enviava `platform: 'web'` explicitamente em todo
+payload de `/ingest/diagnostic` (ver histórico em `pwa/src/features/diagnosis/adminIngestPayload.ts`,
+arquivo removido junto com o produto). Os endpoints `/admin/metrics/overview`,
+`/admin/metrics/diagnostics` e `/admin/metrics/diagnostics/summary` aceitam
+`?platform=android|web` (mesmo padrão de `?environment=`) para segmentar por
+origem no painel — `web` hoje só retorna dado histórico.
 
 ### `POST /ingest/diagnostic` → `diagnostic_sessions`
 
@@ -137,10 +142,10 @@ sessão). Reenviar o mesmo `id` sobrescreve, não duplica — seguro para retry.
 | `rssi`, `banda_wifi`/`bandaWifi`, `padrao_wifi`/`padraoWifi` | number/string | não | Sinal Wi-Fi (Gap 3 do SIG-164) |
 | `platform` | string | não (default `android`) | `android` \| `web` — origem do dado (GH#442) |
 
-**Campos que o PWA nunca envia (limitação real de navegador, não gap a corrigir):**
+**Campos que o extinto PWA nunca enviava (limitação real de navegador, histórico):**
 `operator`, `device_model`, `os_version`, `rssi`/`banda_wifi`/`padrao_wifi` — o
 navegador não expõe operadora móvel, modelo de hardware nem rádio Wi-Fi. O PWA
-também sempre envia `network_type: 'unknown'`: a Network Information API expõe
+também sempre enviava `network_type: 'unknown'`: a Network Information API expõe
 apenas uma estimativa de velocidade (`effectiveType`), não o meio físico
 (wifi vs. celular vs. ethernet).
 

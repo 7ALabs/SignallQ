@@ -17,7 +17,7 @@ Branch `feat/68-streaming-sse-chat` criada em 2026-05-26.
 - `DiagnosticoScreen`: sem cursor pulsante.
 
 **5 Tasks:**
-1. Worker SSE via `?stream=true` [Renan]
+1. Worker SSE via `?stream=true` [sem owner — Renan foi descontinuado em 2026-07-04, reatribuir antes de retomar]
 2. `DiagChatEntry.isParcial: Boolean = false` [Camilo]
 3. `explainDiagnosisStream(): Flow<String>` aditivo no repositório [Camilo]
 4. Refatorar `enviarPerguntaDiagnostico()` para stream + fallback [Camilo]

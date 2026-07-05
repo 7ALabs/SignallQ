@@ -1,14 +1,15 @@
 name: Cloudflare Pages Deploy (signallq)
 
-# GH#443 / SIG-52: builda e publica o projeto unico Cloudflare Pages
-# `signallq`, que serve o WebApp SignallQ sob /app e o Console Admin sob
-# /console. Ver deploy/pages/README.md.
+# GH#443 / SIG-52: builda e publica o projeto Cloudflare Pages `signallq`,
+# que serve o Console Admin sob /console. Ver deploy/pages/README.md.
+#
+# O PWA (`pwa/`) foi descontinuado e removido do monorepo; este workflow nao
+# builda mais nada sob /app.
 
 on:
   push:
     branches: [main]
     paths:
-      - 'pwa/**'
       - 'SignallQ Admin/**'
       - 'deploy/pages/**'
       - '.github/workflows/pages-deploy.yml'
@@ -23,7 +24,7 @@ concurrency:
 
 jobs:
   build-and-deploy:
-    name: Build unified /app + /console
+    name: Build /console
     runs-on: ubuntu-latest
     timeout-minutes: 25
     env:
@@ -54,17 +55,12 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install PWA dependencies
-        if: steps.gate.outputs.enabled == 'true'
-        working-directory: pwa
-        run: npm ci
-
       - name: Install Console dependencies
         if: steps.gate.outputs.enabled == 'true'
         working-directory: "SignallQ Admin"
         run: npm ci
 
-      - name: Build unified Pages output
+      - name: Build Pages output
         if: steps.gate.outputs.enabled == 'true'
         run: node deploy/pages/build.mjs
 

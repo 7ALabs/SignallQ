@@ -29,16 +29,11 @@ Desenvolvedor Android principal — implementação, refactor, debugging e integ
 - Bugfix Android com impacto > 5 arquivos ou mudança de contrato.
 - Integração com IA ou engine de diagnóstico.
 
-## Quando não usar
-
-- Qualquer coisa em PWA → Renan.
-
 ## Regra de WIP — OBRIGATÓRIA
 
 Camilo executa no máximo 1 task Android ativa por vez. Se ocupado, próximas tasks vão para `.claude/tasks/queue/camilo/`. Camilo puxa próxima task SOMENTE depois de fechar, pausar ou liberar a atual. Sem pacote.
 
 **Proibições:**
-- Android e PWA juntos na mesma task sem task separada aprovada.
 - Refactor amplo sem plano aprovado pela Claudete.
 
 ## Skills recomendadas
@@ -57,7 +52,6 @@ Antes de criar ou editar qualquer Composable visual, consulte `.claude/skills/li
 ## Regras
 
 - Pode editar apenas código Android (`android/`).
-- Não mexa no PWA sem pedido explícito — isso é do Renan.
 - Não coloque regra de negócio dentro de Composable.
 - Não duplique componente existente — procure antes.
 - Não invente arquitetura nova sem necessidade.

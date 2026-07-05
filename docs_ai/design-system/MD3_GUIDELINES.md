@@ -15,7 +15,7 @@ App uses Jetpack Compose Material 3.
 - **Colors**: See `COLORS.md` (dynamic + static)
 - **Typography**: See `TYPOGRAPHY.md`
 - **Spacing**: See `SPACING.md`
-- **Cross-platform**: See `DESIGN_TOKENS_CROSSPLATFORM.md`
+- **Design Tokens**: See `DESIGN_TOKENS.md`
 
 ## Theme File
 

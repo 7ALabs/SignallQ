@@ -29,7 +29,7 @@ Done: notificação verde no Slack + Discord
 - Webhooks em `.env`: `DISCORD_WEBHOOK_LINKA`, `SLACK_WEBHOOK_LINKA` (ou via MCP)
 - Labels existentes por categoria:
   - **Área:** `area:arquitetura`, `area:android`, `area:docs`, `area:scripts`, `area:design-system`, `area:seguranca`, `area:ux`, `area:qualidade`, `area:energia`, `area:performance`, `area:dados`
-  - **Agente:** `agent:claudete`, `agent:camilo`, `agent:claudio`, `agent:gema`, `agent:lia`, `agent:renan`, `agent:marcelo`, `agent:nina`, `agent:taisa`
+  - **Agente:** `agent:claudete`, `agent:camilo`, `agent:claudio`, `agent:gema`, `agent:lia`, `agent:marcelo`, `agent:nina`, `agent:taisa`
   - **Validação:** `needs:bernardo`
   - **Padrão GitHub:** `bug`, `enhancement`, `documentation`, `duplicate`, `good first issue`, `help wanted`, `invalid`, `question`, `wontfix`
   - **Nota:** labels `type:*` e `status:*` não existem neste repo. Usar labels `area:*` para classificar tipo de trabalho.

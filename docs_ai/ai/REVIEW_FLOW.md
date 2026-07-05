@@ -12,7 +12,7 @@
 
 ## Processo de revisão
 
-1. **Gatilho**: Camilo ou Renan conclui implementação.
+1. **Gatilho**: Camilo conclui implementação.
 2. **Checks automáticos**: `./gradlew lint` e `./gradlew test` devem passar.
 3. **Revisão especializada em paralelo**:
    - Gema: bugs, regressões, arquitetura, risco técnico.
@@ -28,7 +28,7 @@
 
 ## O que Gema não faz
 
-- Não implementa correções — devolve para Camilo ou Renan.
+- Não implementa correções — devolve para Camilo.
 - Não aprova mudanças de arquitetura sem consultar Cláudio.
 
 ## O que Lia não faz
