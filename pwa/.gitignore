@@ -1,9 +1,0 @@
-node_modules/
-dist/
-.wrangler/
-.env
-.env.local
-.dev.vars
-
-# Cache/estado local do skill impeccable (não é fonte, é gerado por execução)
-.impeccable/
