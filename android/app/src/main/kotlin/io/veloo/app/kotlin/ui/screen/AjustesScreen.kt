@@ -137,7 +137,6 @@ fun AjustesScreen(
     onAbrirPerfil: () -> Unit = {},
     onAbrirPrivacidade: () -> Unit = {},
     onAbrirNovidades: () -> Unit = {},
-    onAbrirMinhaConexao: () -> Unit = {},
     onAbrirFibra: () -> Unit = {},
     dadosMoveis: AjustesDadosMoveisState =
         AjustesDadosMoveisState(
@@ -160,6 +159,9 @@ fun AjustesScreen(
     val cidadeNome = provedor.cidadeNome
     val ispDetectado = provedor.ispDetectado
     val ispConfirmado = provedor.ispConfirmado
+    val velocidadeContratadaDownMbps = provedor.velocidadeContratadaDownMbps
+    val velocidadeContratadaUpMbps = provedor.velocidadeContratadaUpMbps
+    val operadoraAutodetectada = provedor.operadoraAutodetectada
     val analiseAvancada = monitoramento.analiseAvancada
     val monitoramentoAtivo = monitoramento.monitoramentoAtivo
     val notificacaoLatenciaAtiva = monitoramento.notificacaoLatenciaAtiva
@@ -177,6 +179,7 @@ fun AjustesScreen(
     val onSalvarEstadoCidade = provedor.onSalvarEstadoCidade
     val onConfirmarIsp = provedor.onConfirmarIsp
     val onDispensarBannerIsp = provedor.onDispensarBannerIsp
+    val onSalvarVelocidadeContratada = provedor.onSalvarVelocidadeContratada
     val onDefinirAnaliseAvancada = monitoramento.onDefinirAnaliseAvancada
     val onAtivarMonitoramento = monitoramento.onAtivarMonitoramento
     val onDefinirNotificacaoLatenciaAtiva = monitoramento.onDefinirNotificacaoLatenciaAtiva
@@ -192,12 +195,12 @@ fun AjustesScreen(
     var showRoteadorSheet by remember { mutableStateOf(false) }
     var showPerfilSheet by remember { mutableStateOf(false) }
     var showSobreSheet by remember { mutableStateOf(false) }
-    var showConfirmResetApp by remember { mutableStateOf(false) }
     var showProvedorSheet by remember { mutableStateOf(false) }
     // showPreferenciasSheet removido — dead code (nunca aberto via LazyColumn)
     var showDiagnosticoSheet by remember { mutableStateOf(false) }
     var showDadosLocaisSheet by remember { mutableStateOf(false) }
     var showDiagnosticoAppSheet by remember { mutableStateOf(false) }
+    var showMinhaConexaoSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = c.bgPrimary,
@@ -373,7 +376,7 @@ fun AjustesScreen(
                                 contentDescription = "Minha conexão. ${
                                     if (operadora.isNotBlank()) "Operadora: $operadora." else ""
                                 } Toque para editar."
-                            }.clickable { onAbrirMinhaConexao() }
+                            }.clickable { showMinhaConexaoSheet = true }
                             .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
@@ -454,7 +457,7 @@ fun AjustesScreen(
                         c = c,
                         icon = Icons.Outlined.Router,
                         label = "Fibra óptica",
-                        subtitle = modemHost ?: "Não configurado",
+                        subtitle = if (modemHost.isNullOrBlank()) "Não configurado" else "Conectado",
                         onClick = {
                             if (modemHost.isNullOrBlank()) {
                                 showRoteadorSheet = true
@@ -521,15 +524,15 @@ fun AjustesScreen(
                 SettingItem(
                     c = c,
                     icon = Icons.Outlined.Delete,
-                    label = "Gerenciar dados locais",
-                    subtitle = "Limpar histórico e preferências",
+                    label = "Gerenciar dados e privacidade",
+                    subtitle = "Limpar histórico, apagar dados ou resetar o app",
                     onClick = { showDadosLocaisSheet = true },
                 )
             }
             item { Spacer(Modifier.height(16.dp)) }
 
-            // ── DADOS MÓVEIS ──────────────────────────────────────────────────────────
-            item { SectionHeader("Dados móveis", c) }
+            // ── AVANÇADO (Dados móveis + monitoramento passivo/análise, feature-flagged) ──
+            item { SectionHeader("Avançado", c) }
             item {
                 ToggleItem(
                     c = c,
@@ -545,11 +548,8 @@ fun AjustesScreen(
                 val mbLabel = if (speedtestMbConsumidosMes > 0L) "$speedtestMbConsumidosMes MB" else "0 MB"
                 InfoRow(c, "Consumo em testes este mês", mbLabel)
             }
-            item { Spacer(Modifier.height(16.dp)) }
-
-            // ── AVANÇADO (feature-flagged: monitoramento passivo / análise avançada) ──
             if (BuildConfig.FEATURE_LINKPULSE_ATIVO) {
-                item { SectionHeader("Avançado", c) }
+                item { HorizontalDivider(color = c.border, thickness = 1.dp) }
                 item {
                     SettingItem(
                         c = c,
@@ -574,8 +574,8 @@ fun AjustesScreen(
                         onClick = { showDiagnosticoSheet = true },
                     )
                 }
-                item { Spacer(Modifier.height(16.dp)) }
             }
+            item { Spacer(Modifier.height(16.dp)) }
 
             // ── INFORMAÇÕES ───────────────────────────────────────────────────────────
             item { SectionHeader("Informações", c) }
@@ -634,21 +634,6 @@ fun AjustesScreen(
                     onClick = { showSobreSheet = true },
                 )
             }
-            item { Spacer(Modifier.height(16.dp)) }
-
-            // ── ZONA DE RISCO ─────────────────────────────────────────────────────────
-            item { SectionHeader("Zona de risco", c) }
-            item {
-                SettingItem(
-                    c = c,
-                    icon = Icons.Outlined.Delete,
-                    label = "Redefinir o app",
-                    subtitle = "Apaga todos os dados e restaura configurações iniciais",
-                    onClick = { showConfirmResetApp = true },
-                    tintError = true,
-                )
-            }
-
             item {
                 Spacer(
                     Modifier
@@ -757,6 +742,7 @@ fun AjustesScreen(
             onDismiss = { showDadosLocaisSheet = false },
             onLimparHistorico = onLimparHistorico,
             onApagarDadosLocais = onApagarDadosLocais,
+            onResetarApp = onResetarApp,
         )
     }
 
@@ -768,17 +754,20 @@ fun AjustesScreen(
         )
     }
 
-    if (showConfirmResetApp) {
-        ConfirmacaoDialog(
-            titulo = "Redefinir o app?",
-            mensagem =
-                "Esta ação apagará todos os dados locais: histórico de testes, configurações salvas e preferências. " +
-                    "O app voltará ao estado inicial. Esta ação não pode ser desfeita.",
-            onConfirmar = {
-                onResetarApp()
-                showConfirmResetApp = false
+    if (showMinhaConexaoSheet) {
+        MinhaConexaoSheet(
+            operadora = operadora,
+            estadoUf = estadoUf,
+            cidadeNome = cidadeNome,
+            velocidadeContratadaDownMbps = velocidadeContratadaDownMbps,
+            velocidadeContratadaUpMbps = velocidadeContratadaUpMbps,
+            operadoraAutodetectada = operadoraAutodetectada,
+            onSalvar = { op, uf, cidade, down, up ->
+                onSalvarDadosProvedor(op, planoInternet, regiao)
+                onSalvarEstadoCidade(uf, cidade)
+                onSalvarVelocidadeContratada(down, up)
             },
-            onCancelar = { showConfirmResetApp = false },
+            onDismiss = { showMinhaConexaoSheet = false },
         )
     }
 }
@@ -1987,17 +1976,24 @@ private fun DiagnosticoSheet(
 
 // ─── Dados locais sheet ───────────────────────────────────────────────────────
 
+/**
+ * Destino unico para as acoes de limpar/apagar/resetar dados -- consolidando o que
+ * antes eram 3 entradas espalhadas (Zona de risco, Historico e dados, Privacidade),
+ * cada uma com comportamento de confirmacao diferente. Escalonado por gravidade.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DadosLocaisSheet(
+internal fun DadosLocaisSheet(
     c: LkTokens,
     onDismiss: () -> Unit,
     onLimparHistorico: () -> Unit,
     onApagarDadosLocais: () -> Unit,
+    onResetarApp: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var showConfirmLimpar by remember { mutableStateOf(false) }
     var showConfirmApagar by remember { mutableStateOf(false) }
+    var showConfirmResetar by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -2027,7 +2023,7 @@ private fun DadosLocaisSheet(
             )
             Spacer(Modifier.height(LkSpacing.sm))
             Text(
-                text = "Gerenciar dados locais",
+                text = "Gerenciar dados e privacidade",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = c.textPrimary,
@@ -2058,6 +2054,16 @@ private fun DadosLocaisSheet(
                 Spacer(Modifier.width(LkSpacing.xs))
                 Text("Apagar dados locais")
             }
+            OutlinedButton(
+                onClick = { showConfirmResetar = true },
+                modifier = Modifier.fillMaxWidth(),
+                border = BorderStroke(1.dp, LkColors.error),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = LkColors.error),
+            ) {
+                Icon(Icons.Outlined.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(LkSpacing.xs))
+                Text("Resetar app")
+            }
         }
     }
 
@@ -2084,6 +2090,21 @@ private fun DadosLocaisSheet(
                 onDismiss()
             },
             onCancelar = { showConfirmApagar = false },
+        )
+    }
+
+    if (showConfirmResetar) {
+        ConfirmacaoDialog(
+            titulo = "Redefinir o app?",
+            mensagem =
+                "Esta ação apagará todos os dados locais: histórico de testes, configurações salvas e preferências. " +
+                    "O app voltará ao estado inicial. Esta ação não pode ser desfeita.",
+            onConfirmar = {
+                onResetarApp()
+                showConfirmResetar = false
+                onDismiss()
+            },
+            onCancelar = { showConfirmResetar = false },
         )
     }
 }
