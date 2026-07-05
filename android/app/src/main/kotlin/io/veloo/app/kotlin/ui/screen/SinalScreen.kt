@@ -36,6 +36,7 @@ import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.Cable
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.DeviceHub
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Hub
@@ -1158,6 +1159,7 @@ private fun BandFilterRow(
     bands: List<String>,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
+    counts: Map<String, Int>? = null,
 ) {
     val c = LocalLkTokens.current
     Row(
@@ -1166,6 +1168,7 @@ private fun BandFilterRow(
     ) {
         bands.forEach { band ->
             val active = selected == band
+            val label = counts?.get(band)?.let { "$band ($it)" } ?: band
             Box(
                 modifier =
                     Modifier
@@ -1177,7 +1180,7 @@ private fun BandFilterRow(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    band,
+                    label,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = if (active) FontWeight.W600 else FontWeight.W500,
                     color = if (active) LkColors.accent else c.textSecondary,
@@ -1385,14 +1388,6 @@ private fun NoTreeItem(
                         fontWeight = FontWeight.W600,
                         color = if (isConnected) LkColors.accent else c.textPrimary,
                     )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        "· ${rede.bssid.takeLast(8)}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = c.textTertiary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
                     if (isConnected) {
                         Spacer(Modifier.width(LkSpacing.sm))
                         Box(
@@ -1594,60 +1589,31 @@ private fun OtherNetworkGroupItem(
                 SignalBars(rssiDbm = grupo.redes.maxOfOrNull { it.rede.rssiDbm } ?: 0, banda = bestBanda)
             }
 
-            // Expandido: lista de nós
+            // Expandido: resumo (não lista cada nó técnico -- ver # de pontos de acesso
+            // de uma rede de terceiros nao ajuda o usuario a decidir nada, so gera ruido)
             if (isExpanded) {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(start = LkSpacing.lg, top = LkSpacing.sm, bottom = LkSpacing.sm),
-                ) {
-                    grupo.redes.forEach { redeClass ->
-                        val rede = redeClass.rede
-                        val banda =
-                            when {
-                                rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
-                                else -> BandaWifi.ghz5
-                            }
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .minimumInteractiveComponentSize()
-                                    .clickable { onNetworkClick(rede) }
-                                    .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            val topologiaIcon = redeClass.tipo.toIconData()
-                            if (topologiaIcon != null) {
-                                Icon(
-                                    imageVector = topologiaIcon.icon,
-                                    contentDescription = null,
-                                    tint = topologiaIcon.cor,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            } else {
-                                Spacer(Modifier.width(16.dp))
-                            }
-                            Spacer(Modifier.width(LkSpacing.md))
-                            Column(Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        rede.bssid.takeLast(8),
-                                        fontWeight = FontWeight.W500,
-                                        color = c.textPrimary,
-                                        style = MaterialTheme.typography.bodySmall,
-                                    )
-                                }
-                                Text(
-                                    signalQuality(rede.rssiDbm, banda),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = signalColor(rede.rssiDbm, banda),
-                                )
-                            }
-                            Spacer(Modifier.width(LkSpacing.sm))
-                            SignalBars(rssiDbm = rede.rssiDbm, banda = banda)
+                val melhorRede = grupo.redes.maxByOrNull { it.rede.rssiDbm }?.rede
+                if (melhorRede != null) {
+                    val bandaMelhor =
+                        when {
+                            melhorRede.frequenciaMhz < 3000 -> BandaWifi.ghz24
+                            else -> BandaWifi.ghz5
                         }
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(start = LkSpacing.lg, top = LkSpacing.sm, bottom = LkSpacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Outlined.DeviceHub, null, tint = c.textTertiary, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(LkSpacing.sm))
+                        Text(
+                            "Rede com ${grupo.redes.size} pontos de acesso · sinal mais forte: " +
+                                signalQuality(melhorRede.rssiDbm, bandaMelhor),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = c.textSecondary,
+                        )
                     }
                 }
             }
@@ -1870,6 +1836,12 @@ private fun NetworkDetailSheet(
         DetailRow("Segurança", securityLabel(rede.seguranca))
         HorizontalDivider(color = c.border, modifier = Modifier.padding(vertical = LkSpacing.sm))
         DetailRow("BSSID", rede.bssid)
+        Text(
+            "Identificador técnico do roteador — útil só se você for comparar com o painel de administração dele.",
+            style = MaterialTheme.typography.labelSmall,
+            color = c.textTertiary,
+            modifier = Modifier.padding(top = 2.dp),
+        )
 
         if (canalCongestionado) {
             Spacer(Modifier.height(LkSpacing.lg))
@@ -2079,34 +2051,13 @@ private fun CanalTab(
     ) {
         if (bandasDisponiveis.isNotEmpty()) {
             item {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
-                    horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-                ) {
-                    bandasDisponiveis.forEach { banda ->
-                        val n = if (banda == "Todos") redes.size else (bandaCounts[banda] ?: 0)
-                        val active = selectedBanda == banda
-                        Box(
-                            modifier =
-                                Modifier
-                                    .clip(RoundedCornerShape(999.dp))
-                                    .background(if (active) LkColors.accent.copy(alpha = 0.12f) else c.bgSecondary)
-                                    .clickable { selectedBanda = banda }
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                "$banda ($n)",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = if (active) FontWeight.W600 else FontWeight.W500,
-                                color = if (active) LkColors.accent else c.textSecondary,
-                            )
-                        }
-                    }
-                }
+                BandFilterRow(
+                    selected = selectedBanda,
+                    bands = bandasDisponiveis,
+                    onSelect = { selectedBanda = it },
+                    counts = bandaCounts + ("Todos" to redes.size),
+                    modifier = Modifier.padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+                )
             }
         }
 
