@@ -126,6 +126,23 @@ fun ResultadoVelocidadeScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    val corDownload =
+        remember(resultado.downloadMbps) {
+            when {
+                resultado.downloadMbps >= 50.0 -> LkColors.success
+                resultado.downloadMbps >= 25.0 -> LkColors.warning
+                else -> LkColors.error
+            }
+        }
+    val corUpload =
+        remember(resultado.uploadMbps, resultado.uploadNaoDetectado) {
+            when {
+                resultado.uploadNaoDetectado -> LkColors.warning
+                resultado.uploadMbps >= 10.0 -> LkColors.success
+                resultado.uploadMbps >= 3.0 -> LkColors.warning
+                else -> LkColors.error
+            }
+        }
     val corPerda =
         remember(resultado.perdaPercentual) {
             when {
@@ -271,7 +288,7 @@ fun ResultadoVelocidadeScreen(
                         label = "Download",
                         value = "%.1f".format(resultado.downloadMbps),
                         unit = "Mbps",
-                        cor = LkColors.success,
+                        cor = corDownload,
                         c = c,
                         modifier = Modifier.weight(1f),
                     )
@@ -280,7 +297,7 @@ fun ResultadoVelocidadeScreen(
                         label = "Upload",
                         value = if (resultado.uploadNaoDetectado) "—" else "%.1f".format(resultado.uploadMbps),
                         unit = if (resultado.uploadNaoDetectado) "não detectado" else "Mbps",
-                        cor = if (resultado.uploadNaoDetectado) LkColors.warning else LkColors.accent,
+                        cor = corUpload,
                         c = c,
                         modifier = Modifier.weight(1f),
                     )
