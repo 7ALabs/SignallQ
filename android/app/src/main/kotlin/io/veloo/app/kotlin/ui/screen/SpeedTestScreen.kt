@@ -866,12 +866,38 @@ private fun LastResultCard(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(LkSpacing.lg),
         ) {
-            MetricColumn("Download", "%.1f".format(downloadMbps), "Mbps", LkColors.success, Modifier.weight(1f))
-            MetricColumn("Upload", "%.1f".format(uploadMbps), "Mbps", LkColors.accent, Modifier.weight(1f))
-            MetricColumn("Latência", "%.0f".format(latencyMs), "ms", LkColors.success, Modifier.weight(1f))
+            MetricColumn("Download", "%.1f".format(downloadMbps), "Mbps", corDownloadPorSeveridade(downloadMbps), Modifier.weight(1f))
+            MetricColumn("Upload", "%.1f".format(uploadMbps), "Mbps", corUploadPorSeveridade(uploadMbps), Modifier.weight(1f))
+            MetricColumn("Latência", "%.0f".format(latencyMs), "ms", corLatenciaPorSeveridade(latencyMs), Modifier.weight(1f))
         }
     }
 }
+
+/**
+ * Mesmas faixas de severidade ja usadas em ResultadoVelocidadeScreen.kt
+ * (corDownload/corUpload/corLatencia) -- duplicadas aqui de proposito pra nao
+ * acoplar este card resumido ao arquivo de resultado detalhado so por causa de cor.
+ */
+private fun corDownloadPorSeveridade(mbps: Double): Color =
+    when {
+        mbps >= 50.0 -> LkColors.success
+        mbps >= 25.0 -> LkColors.warning
+        else -> LkColors.error
+    }
+
+private fun corUploadPorSeveridade(mbps: Double): Color =
+    when {
+        mbps >= 10.0 -> LkColors.success
+        mbps >= 3.0 -> LkColors.warning
+        else -> LkColors.error
+    }
+
+private fun corLatenciaPorSeveridade(ms: Double): Color =
+    when {
+        ms < 20.0 -> LkColors.success
+        ms < 60.0 -> LkColors.warning
+        else -> LkColors.error
+    }
 
 @Composable
 private fun MetricColumn(

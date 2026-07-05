@@ -48,6 +48,7 @@ import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Sensors
 import androidx.compose.material.icons.outlined.Settings
@@ -2054,13 +2055,12 @@ internal fun DadosLocaisSheet(
                 Spacer(Modifier.width(LkSpacing.xs))
                 Text("Apagar dados locais")
             }
-            OutlinedButton(
+            Button(
                 onClick = { showConfirmResetar = true },
                 modifier = Modifier.fillMaxWidth(),
-                border = BorderStroke(1.dp, LkColors.error),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = LkColors.error),
+                colors = ButtonDefaults.buttonColors(containerColor = LkColors.error),
             ) {
-                Icon(Icons.Outlined.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.RestartAlt, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(LkSpacing.xs))
                 Text("Resetar app")
             }

@@ -172,7 +172,7 @@ fun PrivacidadeScreen(
                     Icon(
                         imageVector = Icons.Outlined.Delete,
                         contentDescription = null,
-                        tint = LkColors.error,
+                        tint = LkColors.accent,
                         modifier = Modifier.size(20.dp),
                     )
                     Column(modifier = Modifier.weight(1f)) {
@@ -180,7 +180,7 @@ fun PrivacidadeScreen(
                             text = "Gerenciar dados e privacidade",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.W600,
-                            color = LkColors.error,
+                            color = c.textPrimary,
                         )
                         Text(
                             text = "Limpar histórico, apagar dados locais ou resetar o app",

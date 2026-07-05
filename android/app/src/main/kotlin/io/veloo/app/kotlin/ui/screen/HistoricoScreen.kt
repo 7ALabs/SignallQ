@@ -1196,7 +1196,7 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
         item { SheetRow("Tipo de rede", tipoLabel(medicao)) }
         item { HorizontalDivider(color = c.border) }
         if (medicao.contaminado) {
-            item { SheetRow("Resultado", "Contaminado", valueColor = LkColors.error) }
+            item { SheetRow("Resultado", "Pode não ser confiável", valueColor = LkColors.error) }
             item { HorizontalDivider(color = c.border) }
         }
         if (bufferbloat != null) {

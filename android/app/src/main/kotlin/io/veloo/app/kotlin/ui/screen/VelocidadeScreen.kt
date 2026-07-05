@@ -345,8 +345,8 @@ private data class PillConfig(
 private val fasePills =
     listOf(
         PillConfig(FaseSpeedtest.ping, "LATÊNCIA", 0),
-        PillConfig(FaseSpeedtest.download, "DOWN", 1),
-        PillConfig(FaseSpeedtest.upload, "UP", 2),
+        PillConfig(FaseSpeedtest.download, "DOWNLOAD", 1),
+        PillConfig(FaseSpeedtest.upload, "UPLOAD", 2),
     )
 
 @Composable
