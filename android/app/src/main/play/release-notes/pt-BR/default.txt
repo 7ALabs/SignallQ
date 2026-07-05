@@ -1,1 +1,1 @@
-Primeira versão do SignallQ: diagnóstico de conexão, análise de rede e explicações simples para entender a qualidade da sua internet.
+Diagnóstico mais claro: os cards de velocidade e Wi-Fi agora mostram um veredito de qualidade (Excelente/Bom/Regular/Fraco) em vez de só o número cru. A Análise por IA passa a sugerir ações práticas e priorizadas, não só o diagnóstico. Alerta de canal Wi-Fi congestionado, exportação de histórico corrigida e jargão técnico traduzido em várias telas.

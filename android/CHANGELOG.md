@@ -11,6 +11,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ## [Não lançado]
 
+## [0.24.1] — 2026-07-05
+
+### Corrigido
+- Card "Análise por IA" no resultado do speedtest agora exibe as ações recomendadas (até 2, priorizadas) além do diagnóstico — antes só mostrava o texto de leitura/causa provável, sem a ação prática que a IA já retornava (#498)
+
 ## [0.24.0] — 2026-07-05
 
 ### Corrigido
