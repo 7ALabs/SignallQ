@@ -1201,6 +1201,22 @@ private fun LastResultHero(
     }
 }
 
+/**
+ * Faixas absolutas de qualidade de velocidade, sem relacao ao plano contratado do
+ * usuario (veredito relativo ao plano fica para outra issue — ver SIG referente ao
+ * wiring de velocidadeContratadaDownMbps/UpMbps). Mesmos limiares ja usados em
+ * ScoreEvidenceBuilder.velocidade() (:featureDiagnostico), duplicados aqui de proposito
+ * para nao acoplar a tela Home ao motor de diagnostico so por causa de um rotulo.
+ */
+private fun veredictoVelocidade(mbps: Double): Pair<String, Color> =
+    when {
+        mbps >= 100.0 -> "Excelente" to LkColors.success
+        mbps >= 50.0 -> "Bom" to LkColors.success
+        mbps >= 25.0 -> "Regular" to LkColors.warning
+        mbps >= 10.0 -> "Fraco" to LkColors.error
+        else -> "Fraco" to LkColors.error
+    }
+
 @Composable
 private fun HeroSpeed(
     arrow: String,
@@ -1211,6 +1227,7 @@ private fun HeroSpeed(
     modifier: Modifier = Modifier,
 ) {
     val formatted = if (value >= 100) value.toLong().toString() else "%.1f".format(value)
+    val (veredicto, veredictoColor) = veredictoVelocidade(value)
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
@@ -1237,7 +1254,15 @@ private fun HeroSpeed(
             )
         }
         Spacer(modifier = Modifier.height(LkSpacing.sm))
-        Text(label, style = MaterialTheme.typography.labelMedium, color = labelColor)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = labelColor)
+            Text(
+                "  ·  $veredicto",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.W600,
+                color = veredictoColor,
+            )
+        }
     }
 }
 
