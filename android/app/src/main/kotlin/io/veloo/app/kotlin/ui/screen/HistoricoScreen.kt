@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,6 +24,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.SaveAlt
@@ -81,6 +83,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.network.EstadoConexao
+import io.signallq.app.feature.diagnostico.MetricClassifier
+import io.signallq.app.feature.diagnostico.MetricStatus
 import io.signallq.app.feature.history.BlocoUptime
 import io.signallq.app.feature.history.ResumoHistorico
 import io.signallq.app.feature.history.TendenciaEstado
@@ -190,6 +194,15 @@ private fun vereditoLabel(v: String?): String? =
         "poor" -> "Ruim"
         null -> null
         else -> v
+    }
+
+/** Veredito humano do bufferbloat -- mesma regua canonica de [MetricClassifier.classificarBufferbloat]. */
+private fun bufferbloatVeredito(deltaMs: Double): Pair<String, Color> =
+    when (MetricClassifier.classificarBufferbloat(deltaMs)) {
+        MetricStatus.excelente, MetricStatus.bom -> "Baixo" to LkColors.success
+        MetricStatus.regular -> "Moderado" to LkColors.warning
+        MetricStatus.ruim, MetricStatus.critico -> "Alto" to LkColors.error
+        MetricStatus.inconclusivo -> "—" to LkColors.accent
     }
 
 private fun gargaloLabel(g: String?): String? =
@@ -470,6 +483,39 @@ private fun LineChartGrafico(
                 }
             }
         }
+
+        // Eixo de tempo: sem isso, o gráfico não diz se cobre 3 dias ou 3 meses (P1)
+        Spacer(Modifier.height(2.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = yAxisWidthDp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                formatDateShort(ordered.first().timestampEpochMs),
+                style = MaterialTheme.typography.labelSmall,
+                color = c.textTertiary,
+            )
+            if (ordered.size > 1) {
+                Text(
+                    formatDateShort(ordered.last().timestampEpochMs),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.textTertiary,
+                )
+            }
+        }
+    }
+}
+
+private fun formatDateShort(epochMs: Long): String {
+    val cal = Calendar.getInstance().apply { timeInMillis = epochMs }
+    val today = Calendar.getInstance()
+    val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
+    return when {
+        cal.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+            cal.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR) -> "Hoje"
+        cal.get(Calendar.YEAR) == yesterday.get(Calendar.YEAR) &&
+            cal.get(Calendar.DAY_OF_YEAR) == yesterday.get(Calendar.DAY_OF_YEAR) -> "Ontem"
+        else -> "%02d/%02d".format(cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH) + 1)
     }
 }
 
@@ -557,6 +603,7 @@ private fun FiltrosConexao(
                     selected = filtroSelecionado == filtro,
                     onClick = { onFiltroChange(filtro) },
                     label = { Text(filtro.label, style = MaterialTheme.typography.labelSmall) },
+                    modifier = Modifier.heightIn(min = 48.dp),
                     colors =
                         FilterChipDefaults.filterChipColors(
                             selectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
@@ -579,6 +626,7 @@ private fun FiltrosConexao(
                     selected = filtroOperadora == null,
                     onClick = { onFiltroOperadoraChange(null) },
                     label = { Text("Todas", style = MaterialTheme.typography.labelSmall) },
+                    modifier = Modifier.heightIn(min = 48.dp),
                     colors =
                         FilterChipDefaults.filterChipColors(
                             selectedContainerColor = LkColors.accentBlue.copy(alpha = 0.15f),
@@ -597,6 +645,7 @@ private fun FiltrosConexao(
                         selected = filtroOperadora == op,
                         onClick = { onFiltroOperadoraChange(op) },
                         label = { Text(op, style = MaterialTheme.typography.labelSmall) },
+                        modifier = Modifier.heightIn(min = 48.dp),
                         colors =
                             FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = LkColors.accentBlue.copy(alpha = 0.15f),
@@ -720,12 +769,12 @@ fun HistoricoScreen(
                                 mostrarExport = true
                             }
                         },
-                        enabled = historico.isNotEmpty(),
+                        enabled = historicoFiltrado.isNotEmpty(),
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.SaveAlt,
                             contentDescription = "Exportar histórico",
-                            tint = if (historico.isNotEmpty()) c.textPrimary else c.textTertiary,
+                            tint = if (historicoFiltrado.isNotEmpty()) c.textPrimary else c.textTertiary,
                         )
                     }
                 },
@@ -759,6 +808,11 @@ fun HistoricoScreen(
                 if (listaParaExibir.isNotEmpty()) {
                     item(key = "grafico_linha") {
                         LineChartGrafico(medicoes = historicoFiltrado, c = c)
+                    }
+                    if (blocoUptime.isNotEmpty()) {
+                        item(key = "uptime_grid") {
+                            UptimeGridChart(blocos = blocoUptime, narrativa = narrativaUptime)
+                        }
                     }
                     item(key = "media_cards") {
                         MediaCards(medicoes = historicoFiltrado, c = c)
@@ -854,7 +908,7 @@ fun HistoricoScreen(
             dragHandle = {},
         ) {
             ExportHistoricoBottomSheet(
-                historico = historico,
+                historico = historicoFiltrado,
                 snackbarHostState = snackbarHostState,
                 onDismiss = { mostrarExport = false },
                 onRetry = {
@@ -947,7 +1001,7 @@ private fun HistoricoCard(
                 )
                 Spacer(Modifier.weight(1f))
                 if (medicao.fonte == "orbit") {
-                    QualityBadge("SIGNALLQ", LkColors.accent)
+                    IaBadge()
                     Spacer(Modifier.width(LkSpacing.xs))
                 }
                 if (medicao.contaminado) {
@@ -1033,6 +1087,27 @@ private fun QualityBadge(
     }
 }
 
+/**
+ * Badge de origem "diagnóstico gerado por IA" -- autoexplicativo por design: o icone
+ * de sparkle (mesmo usado em todo o app pra IA, ver DiagVerdictHeroCard/DiagnosticoScreen)
+ * + rotulo "IA" comunicam a origem sem precisar de nome de marca nem texto explicativo.
+ */
+@Composable
+private fun IaBadge() {
+    Row(
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(4.dp))
+                .background(LkColors.accent.copy(alpha = 0.15f))
+                .padding(horizontal = 6.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Outlined.AutoAwesome, contentDescription = null, tint = LkColors.accent, modifier = Modifier.size(10.dp))
+        Spacer(Modifier.width(2.dp))
+        Text("IA", fontSize = 10.sp, fontWeight = FontWeight.W700, color = LkColors.accent)
+    }
+}
+
 // ─── Detail sheet ─────────────────────────────────────────────────────────────
 
 @Composable
@@ -1115,7 +1190,7 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
             }
         }
         if (medicao.fonte == "orbit") {
-            item { SheetRow("Origem", "SignallQ (IA)", valueColor = LkColors.accent) }
+            item { SheetRow("Origem", "Diagnóstico gerado por IA", valueColor = LkColors.accent) }
             item { HorizontalDivider(color = c.border) }
         }
         item { SheetRow("Tipo de rede", tipoLabel(medicao)) }
@@ -1125,7 +1200,10 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
             item { HorizontalDivider(color = c.border) }
         }
         if (bufferbloat != null) {
-            item { SheetRow("Bufferbloat", "%.0f ms".format(bufferbloat)) }
+            val (bloatVeredito, bloatCor) = bufferbloatVeredito(bufferbloat)
+            item {
+                SheetRow("Bufferbloat", "${"%.0f".format(bufferbloat)} ms — $bloatVeredito", valueColor = bloatCor)
+            }
             item { HorizontalDivider(color = c.border) }
         }
         if (streaming != null) {
