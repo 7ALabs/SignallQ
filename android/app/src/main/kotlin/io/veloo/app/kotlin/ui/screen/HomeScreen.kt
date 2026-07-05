@@ -1208,13 +1208,14 @@ private fun LastResultHero(
  * ScoreEvidenceBuilder.velocidade() (:featureDiagnostico), duplicados aqui de proposito
  * para nao acoplar a tela Home ao motor de diagnostico so por causa de um rotulo.
  */
-private fun veredictoVelocidade(mbps: Double): Pair<String, Color> = when {
-    mbps >= 100.0 -> "Excelente" to LkColors.success
-    mbps >= 50.0 -> "Bom" to LkColors.success
-    mbps >= 25.0 -> "Regular" to LkColors.warning
-    mbps >= 10.0 -> "Fraco" to LkColors.error
-    else -> "Fraco" to LkColors.error
-}
+private fun veredictoVelocidade(mbps: Double): Pair<String, Color> =
+    when {
+        mbps >= 100.0 -> "Excelente" to LkColors.success
+        mbps >= 50.0 -> "Bom" to LkColors.success
+        mbps >= 25.0 -> "Regular" to LkColors.warning
+        mbps >= 10.0 -> "Fraco" to LkColors.error
+        else -> "Fraco" to LkColors.error
+    }
 
 @Composable
 private fun HeroSpeed(
