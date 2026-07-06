@@ -311,6 +311,12 @@ private fun LineChartGrafico(
     }
 
     val ordered = remember(medicoes) { medicoes.sortedBy { it.timestampEpochMs } }
+
+    if (ordered.size == 1) {
+        UnicaMedicaoDestaque(medicao = ordered.first(), c = c)
+        return
+    }
+
     val maxMbps =
         remember(ordered) {
             ordered
@@ -500,6 +506,59 @@ private fun LineChartGrafico(
                     formatDateShort(ordered.last().timestampEpochMs),
                     style = MaterialTheme.typography.labelSmall,
                     color = c.textTertiary,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Card de destaque para quando ha apenas 1 medicao no filtro atual: nao da pra escalar
+ * um eixo Y nem tracar uma serie com 1 unico ponto, entao mostra os valores da medicao
+ * em destaque (sem grafico) ate que existam medicoes suficientes para uma serie real.
+ */
+@Composable
+private fun UnicaMedicaoDestaque(
+    medicao: MedicaoEntity,
+    c: LkTokens,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = c.bgCard),
+        border = BorderStroke(1.dp, c.border),
+        shape = RoundedCornerShape(LkRadius.card),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(modifier = Modifier.padding(LkSpacing.lg)) {
+            Text(
+                "PRIMEIRA MEDIÇÃO",
+                style = MaterialTheme.typography.labelSmall,
+                color = c.textTertiary,
+            )
+            Spacer(Modifier.height(LkSpacing.xs))
+            Text(
+                "Faça mais testes para ver a evolução em gráfico",
+                style = MaterialTheme.typography.bodySmall,
+                color = c.textSecondary,
+            )
+            Spacer(Modifier.height(LkSpacing.md))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+            ) {
+                MediaCard(
+                    label = "DOWNLOAD",
+                    value = medicao.downloadMbps?.let { "%.0f Mbps".format(it) } ?: "--",
+                    color = LkColors.accent,
+                    modifier = Modifier.weight(1f),
+                    c = c,
+                )
+                MediaCard(
+                    label = "UPLOAD",
+                    value = medicao.uploadMbps?.let { "%.0f Mbps".format(it) } ?: "--",
+                    color = LkColors.accentBlue,
+                    modifier = Modifier.weight(1f),
+                    c = c,
                 )
             }
         }
