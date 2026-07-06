@@ -91,12 +91,15 @@ fun UptimeGridChart(
 
             val totalMedidos = diaBlocos.count { it.status != StatusUptime.SEM_DADO }
             val okCount = diaBlocos.count { it.status == StatusUptime.OK }
-            val uptimePct = if (totalMedidos > 0) (okCount * 100) / totalMedidos else 100
+            // Dia sem nenhum bloco medido não deve ser exibido como "100% de uptime" --
+            // ausência de dado é diferente de rede estável (causa raiz do bug #501).
+            val uptimePct = if (totalMedidos > 0) (okCount * 100) / totalMedidos else null
 
             val labelDia = diasLabels.getOrElse(diaIdx) { "Dia ${diaIdx + 1}" }
 
             val barCor =
                 when {
+                    uptimePct == null -> c.textTertiary
                     uptimePct == 100 -> LkColors.success
                     uptimePct >= 95 -> LkColors.success.copy(alpha = 0.7f)
                     uptimePct >= 80 -> LkColors.warning
@@ -125,7 +128,7 @@ fun UptimeGridChart(
                     // Barra de uptime
                     Box(modifier = Modifier.weight(1f)) {
                         LinearProgressIndicator(
-                            progress = { uptimePct / 100f },
+                            progress = { (uptimePct ?: 0) / 100f },
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
@@ -139,7 +142,7 @@ fun UptimeGridChart(
                     Spacer(Modifier.width(LkSpacing.sm))
                     // Percentual
                     Text(
-                        text = "$uptimePct%",
+                        text = uptimePct?.let { "$it%" } ?: "—",
                         modifier = Modifier.width(36.dp),
                         style = MaterialTheme.typography.bodySmall,
                         color = pctCor,
@@ -147,8 +150,15 @@ fun UptimeGridChart(
                         maxLines = 1,
                     )
                 }
-                // Sub-item offline
-                if (resumoOffline != null) {
+                // Sub-item: sem dado medido no dia, ou resumo de offline
+                if (uptimePct == null) {
+                    Text(
+                        text = "· Sem medições neste dia",
+                        modifier = Modifier.padding(start = 60.dp, top = 2.dp),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.textTertiary,
+                    )
+                } else if (resumoOffline != null) {
                     Text(
                         text = "· $resumoOffline",
                         modifier = Modifier.padding(start = 60.dp, top = 2.dp),
