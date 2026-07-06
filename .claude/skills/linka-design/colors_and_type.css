@@ -15,6 +15,7 @@
 :root {
   /* ---- Brand ------------------------------------------------------------ */
   --accent:        #6C2BFF;  /* CTA primário, highlights, seleção, nav ativa  */
+  --accent-on-dark: #9B6BFF; /* accent p/ texto/ícone sobre fundo escuro (>=4.5:1 AA); NÃO usar como background */
   --accent-blue:   #2563EB;  /* links complementares, badges informativos     */
 
   /* ---- Status ----------------------------------------------------------- */
