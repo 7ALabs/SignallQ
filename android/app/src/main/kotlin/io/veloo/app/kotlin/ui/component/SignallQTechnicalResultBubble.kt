@@ -1,6 +1,7 @@
 ﻿package io.signallq.app.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +42,9 @@ fun SignallQTechnicalResultBubble(
 ) {
     val c = LocalLkTokens.current
     val report = session.diagnosticReport
+    // accent puro sobre fundo escuro cai a ~3.1:1 (falha WCAG AA) — em dark
+    // theme usa a variante clara accentOnDark p/ ícone (ver GH#505).
+    val accentIcon = if (isSystemInDarkTheme()) LkColors.accentOnDark else LkColors.accent
 
     val statusColor =
         when (report?.decisao?.status) {
@@ -75,7 +79,7 @@ fun SignallQTechnicalResultBubble(
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = null,
-                    tint = LkColors.accent,
+                    tint = accentIcon,
                     modifier = Modifier.size(12.dp),
                 )
                 Text(

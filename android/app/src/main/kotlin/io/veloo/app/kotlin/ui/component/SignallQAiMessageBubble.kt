@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,6 +60,9 @@ fun SignallQAiMessageBubble(
     isProgressMessage: Boolean = false,
 ) {
     val tokens = LocalLkTokens.current
+    // accent puro sobre fundo escuro cai a ~3.1:1 (falha WCAG AA) — em dark
+    // theme usa a variante clara accentOnDark p/ texto/ícone (ver GH#505).
+    val accentText = if (isSystemInDarkTheme()) LkColors.accentOnDark else LkColors.accent
 
     // Cor do símbolo por fonte da resposta:
     // INSIGHT/LOCAL → roxo (accent), GEMMA → amarelo (amber)
@@ -232,12 +236,12 @@ fun SignallQAiMessageBubble(
                         Text(
                             text = "Ver detalhes técnicos",
                             style = MaterialTheme.typography.labelMedium,
-                            color = LkColors.accent.copy(alpha = 0.8f),
+                            color = accentText,
                         )
                         Icon(
                             imageVector = if (showTechnical) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
                             contentDescription = null,
-                            tint = LkColors.accent.copy(alpha = 0.8f),
+                            tint = accentText,
                             modifier = Modifier.size(14.dp),
                         )
                     }

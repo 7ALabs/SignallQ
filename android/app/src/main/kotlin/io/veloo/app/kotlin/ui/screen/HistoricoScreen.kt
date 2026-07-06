@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -1153,6 +1154,9 @@ private fun QualityBadge(
  */
 @Composable
 private fun IaBadge() {
+    // accent puro sobre fundo escuro cai a ~3.1:1 (falha WCAG AA) — em dark
+    // theme usa a variante clara accentOnDark p/ texto/ícone (ver GH#505).
+    val accentText = if (isSystemInDarkTheme()) LkColors.accentOnDark else LkColors.accent
     Row(
         modifier =
             Modifier
@@ -1161,9 +1165,9 @@ private fun IaBadge() {
                 .padding(horizontal = 6.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Outlined.AutoAwesome, contentDescription = null, tint = LkColors.accent, modifier = Modifier.size(10.dp))
+        Icon(Icons.Outlined.AutoAwesome, contentDescription = null, tint = accentText, modifier = Modifier.size(10.dp))
         Spacer(Modifier.width(2.dp))
-        Text("IA", fontSize = 10.sp, fontWeight = FontWeight.W700, color = LkColors.accent)
+        Text("IA", fontSize = 10.sp, fontWeight = FontWeight.W700, color = accentText)
     }
 }
 
