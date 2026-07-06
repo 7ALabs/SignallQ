@@ -34,6 +34,11 @@ object CanalTextGenerator {
             return strings.bandaCongestionada(snapshot.banda)
         }
 
+        // Canal atual já livre: mesmo havendo alternativa, não há motivo real pra recomendar troca
+        if (canalAtualDado?.nivel == NivelCongestionamento.livre && temCanalAlternativo) {
+            return strings.canalAtualLivreComAlternativa(snapshot.canalAtual!!, snapshot.banda)
+        }
+
         // Canal recomendado: sugere o melhor canal disponível
         if (canalRec != null) {
             val canalRecDado = snapshot.dadosPorCanal.find { it.ehCanalRecomendado }

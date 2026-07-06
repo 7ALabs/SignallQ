@@ -2017,6 +2017,9 @@ private fun CanalTab(
                         },
                         canalRecomendadoLivre = { canal, banda -> context.getString(R.string.canal_recomendado_livre, canal, banda) },
                         canalRecomendadoModerado = { canal, banda -> context.getString(R.string.canal_recomendado_moderado, canal, banda) },
+                        canalAtualLivreComAlternativa = { canalAtual, banda ->
+                            context.getString(R.string.canal_atual_livre_com_alternativa, canalAtual, banda)
+                        },
                         semDados = { context.getString(R.string.canal_sem_dados) },
                     ),
             )
@@ -2104,7 +2107,11 @@ private fun CanalTab(
         val canalRecParaCard = espectro.canalRecomendado
         val dadoCanalRec = espectro.dadosPorCanal.find { it.canal == canalRecParaCard }
         val nivelCanalRec = dadoCanalRec?.nivel
-        if (canalAtualParaCard != null && (canalRecParaCard == null || canalRecParaCard == canalAtualParaCard)) {
+        val dadoCanalAtualParaCard = espectro.dadosPorCanal.find { it.canal == canalAtualParaCard }
+        val canalAtualJaLivre = dadoCanalAtualParaCard?.nivel == NivelCongestionamento.livre
+        if (canalAtualParaCard != null &&
+            (canalRecParaCard == null || canalRecParaCard == canalAtualParaCard || canalAtualJaLivre)
+        ) {
             item {
                 Row(
                     modifier =
@@ -2135,6 +2142,7 @@ private fun CanalTab(
         if (canalAtualParaCard != null &&
             canalRecParaCard != null &&
             canalRecParaCard != canalAtualParaCard &&
+            !canalAtualJaLivre &&
             nivelCanalRec != NivelCongestionamento.congestionado
         ) {
             item {
