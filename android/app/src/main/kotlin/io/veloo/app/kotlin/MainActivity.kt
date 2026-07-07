@@ -280,6 +280,9 @@ class MainActivity : ComponentActivity() {
                                 speedtestPermiteHeavyMovel = speedtestPermiteHeavyMovel,
                                 speedtestMbConsumidosMes = speedtestMbConsumidosMes,
                                 onNovoTeste = { modo -> viewModel.reiniciarSuite(modo) },
+                                onNovoTesteJaConfirmadoMovel = { modo ->
+                                    viewModel.reiniciarSuite(modo, jaConfirmadoRedeMovel = true)
+                                },
                                 onCancelarTeste = { viewModel.executorSpeedtest.cancelar() },
                                 onConfirmarSpeedtestMovel = { viewModel.confirmarSpeedtestEmMovel() },
                                 onCancelarSpeedtestMovel = { viewModel.cancelarSpeedtestMovel() },

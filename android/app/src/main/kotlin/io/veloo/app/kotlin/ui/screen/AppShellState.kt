@@ -26,6 +26,12 @@ data class AppShellSpeedtestState(
     val speedtestPermiteHeavyMovel: Boolean = false,
     val speedtestMbConsumidosMes: Long = 0L,
     val onNovoTeste: (ModoSpeedtest) -> Unit,
+    /**
+     * Igual a [onNovoTeste], mas para quando o usuario ja confirmou o aviso de dados moveis
+     * (ForaDoWifiDialog, Home) — pula o segundo gate de confirmacao em rede medida, que nao
+     * tem UI fora da tab Velocidade (#516).
+     */
+    val onNovoTesteJaConfirmadoMovel: (ModoSpeedtest) -> Unit = onNovoTeste,
     val onCancelarTeste: () -> Unit,
     val onConfirmarSpeedtestMovel: () -> Unit = {},
     val onCancelarSpeedtestMovel: () -> Unit = {},
