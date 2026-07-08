@@ -49,14 +49,38 @@ interface StubWorkerResponse {
   [key: string]: unknown;
 }
 
+// Estrutura crua retornada pela rota de status do worker (ver admin-api-schema.md).
+interface FirebaseStatusWorkerResponse {
+  source: string;
+  projectId?: string;
+  status: "connected" | "mock" | "attention" | "planned" | "disabled";
+  hasCredentials: boolean;
+  ga4PropertyConfigured: boolean;
+}
+
 export async function getFirebaseIntegrationStatus(): Promise<FirebaseIntegrationStatus> {
   if (apiClient.isMockEnabled()) {
     return apiClient.simulateFetch(mockFirebaseStatus, {});
   }
-  return apiClient.request<FirebaseIntegrationStatus>(
+
+  const raw = await apiClient.request<FirebaseStatusWorkerResponse>(
     "GET",
     "/admin/integrations/firebase/status"
   );
+
+  // O worker não expõe platform/lastSync/contadores nesta rota — apenas o
+  // estado de credenciais. Normalizamos aqui para o contrato que a UI espera.
+  return {
+    enabled: raw.hasCredentials,
+    status: raw.status,
+    message: raw.hasCredentials
+      ? "Sincronizado via Conta de Serviço do Google Cloud Platform (GCP)"
+      : "Credenciais do Firebase ainda não configuradas no Admin Worker",
+    platform: "Android (Firebase Analytics + Crashlytics)",
+    lastSyncTimestamp: "Nunca sincronizado",
+    eventsImported: 0,
+    crashesImported: 0,
+  };
 }
 
 export async function getFirebaseAnalyticsSummary(

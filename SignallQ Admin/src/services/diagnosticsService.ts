@@ -3,6 +3,46 @@ import { mockDiagnosticSessions, mockDiagnosticsSummary, mockAggregateData } fro
 import { DiagnosticSession, DiagnosticsSummary, AggregateRow, DataPlatform } from "../types/diagnostics";
 import { DashboardFilters } from "./adminMetricsService";
 
+// O app Android (AdminIngestPayloads.kt / idParaIssueLabel) envia `issues` como
+// array de labels em snake_case (ex: "sinal_fraco"), não como objetos
+// {issue, severity, description} — esse formato só existe no mock. O worker
+// persiste e devolve o array cru (signallq-admin-worker/src/index.ts:456), então
+// sem essa normalização o campo `description` chega vazio na UI (GH diagnostics).
+const ISSUE_LABEL_DESCRIPTIONS: Record<string, string> = {
+  sinal_fraco: "Força do sinal de rede abaixo do ideal durante a medição.",
+  alta_latencia: "Tempo de resposta da rede acima do esperado para uma navegação fluida.",
+  falha_dns: "Resolução de DNS lenta ou instável durante o diagnóstico.",
+  jitter_alto: "Variação irregular de latência, prejudicial a chamadas e streaming.",
+  perda_de_pacotes: "Pacotes de rede perdidos durante o teste, indicando instabilidade na conexão.",
+  upload_lento: "Taxa de upload significativamente abaixo do esperado para a rede.",
+  download_lento: "Taxa de download significativamente abaixo do esperado para a rede.",
+  problema_fibra: "Instabilidade detectada na conexão de fibra/GPON.",
+  gateway_inacessivel: "O gateway padrão da rede não respondeu dentro do esperado.",
+  bufferbloat: "Fila de pacotes excessiva no roteador, aumentando a latência sob carga.",
+  interferencia_canal_wifi: "Canal Wi-Fi congestionado por outras redes próximas.",
+  problema_banda: "Banda de frequência da rede associada a instabilidade na medição.",
+};
+
+function normalizeSessionIssue(raw: unknown): DiagnosticSession["issues"][number] | null {
+  if (raw == null) return null;
+
+  // Formato mock/futuro do worker: já vem como objeto completo.
+  if (typeof raw === "object" && "description" in (raw as Record<string, unknown>)) {
+    return raw as DiagnosticSession["issues"][number];
+  }
+
+  // Formato real hoje: string crua em snake_case vinda do app Android.
+  if (typeof raw === "string" && raw.length > 0) {
+    return {
+      issue: raw as DiagnosticSession["issues"][number]["issue"],
+      severity: "attention",
+      description: ISSUE_LABEL_DESCRIPTIONS[raw] ?? `Anomalia detectada: ${raw.replace(/_/g, " ")}.`,
+    };
+  }
+
+  return null;
+}
+
 export const diagnosticsService = {
   async getDiagnosticsSummary(filters: DashboardFilters & { platform?: DataPlatform } = {}): Promise<DiagnosticsSummary> {
     if (!apiClient.isMockEnabled()) {
@@ -107,7 +147,9 @@ export const diagnosticsService = {
           frequencyBandGhz: r.banda_wifi ?? undefined,
           wifiStandard: r.padrao_wifi ?? undefined,
         } : undefined,
-        issues: Array.isArray(r.issues) ? r.issues : [],
+        issues: Array.isArray(r.issues)
+          ? r.issues.map(normalizeSessionIssue).filter((i: unknown): i is DiagnosticSession["issues"][number] => i !== null)
+          : [],
         // Não existe status intermediário real vindo do worker hoje (pending/failed) —
         // só sabemos se um laudo IA foi persistido ou não. "completed"/"none" é o único
         // par honesto até o worker expor o estado real do pipeline de IA.

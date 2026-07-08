@@ -29,7 +29,14 @@ import { DashboardFilters } from "../../services/adminMetricsService";
  */
 export async function getGooglePlayIntegrationStatus(): Promise<GooglePlayIntegrationStatus> {
   if (!apiClient.isMockEnabled()) {
-    return { connected: false, lastSync: null } as unknown as GooglePlayIntegrationStatus;
+    return {
+      enabled: false,
+      status: "disabled",
+      message: "Integração com o Google Play Developer API ainda não está disponível no Admin Worker.",
+      platform: "Android (Google Play Console)",
+      lastSyncTimestamp: "Nunca sincronizado",
+      downloadsImported: 0
+    };
   }
   return apiClient.simulateFetch(mockGooglePlayStatus, {});
 }

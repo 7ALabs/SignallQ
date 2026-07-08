@@ -136,13 +136,13 @@ export const IntegrationsSettings: React.FC = () => {
               <div className="space-y-1.5 pt-2 border-t border-zinc-900 text-[10px] font-mono text-[var(--text-tertiary)]">
                 <div className="flex justify-between">
                   <span>Plataforma:</span>
-                  <span className="text-[var(--text-primary)]">{fb.platform}</span>
+                  <span className="text-[var(--text-primary)]">{fb.platform || "Android (Firebase Analytics + Crashlytics)"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Última Sync:</span>
                   <span className="text-[var(--text-primary)] flex items-center gap-1">
                     <Clock className="w-3 h-3 text-[var(--text-tertiary)]" />
-                    {fb.lastSyncTimestamp}
+                    {fb.lastSyncTimestamp || "Nunca sincronizado"}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -190,13 +190,13 @@ export const IntegrationsSettings: React.FC = () => {
               <div className="space-y-1.5 pt-2 border-t border-zinc-900 text-[10px] font-mono text-[var(--text-tertiary)]">
                 <div className="flex justify-between">
                   <span>Plataforma:</span>
-                  <span className="text-[var(--text-primary)]">{gp.platform}</span>
+                  <span className="text-[var(--text-primary)]">{gp.platform || "Android (Google Play Console)"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Última Sync:</span>
                   <span className="text-[var(--text-primary)] flex items-center gap-1">
                     <Clock className="w-3 h-3 text-[var(--text-tertiary)]" />
-                    {gp.lastSyncTimestamp}
+                    {gp.lastSyncTimestamp || "Nunca sincronizado"}
                   </span>
                 </div>
                 <div className="flex justify-between">

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { NAVIGATION_SECTIONS } from "../../config/navigation";
 import { AppEnvironment } from "../../types/admin";
+import { errorMetricsService } from "../../services/errorMetricsService";
 
 interface SidebarProps {
   currentPath: string;
@@ -47,6 +48,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   id,
   theme = "dark",
 }) => {
+  // Badge de "Problemas & Incidentes" vem da mesma fonte de dado da tela de
+  // erros (errorMetricsService), não de valor estático — evita dessincronia
+  // entre o número do menu e os KPIs reais da página (GH#issue badge vs KPI).
+  const [errorBadgeCount, setErrorBadgeCount] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    let active = true;
+    errorMetricsService.getErrorMetricSummary({ environment }).then((data) => {
+      if (!active) return;
+      const match = data?.activeErrors.match(/\d+/);
+      setErrorBadgeCount(match ? parseInt(match[0], 10) : null);
+    }).catch(() => {
+      if (active) setErrorBadgeCount(null);
+    });
+    return () => { active = false; };
+  }, [environment]);
+
   // GH#443: caminho relativo ao BASE_URL — o Console pode ser servido em /console
   const logoSrc = theme === "dark"
     ? `${import.meta.env.BASE_URL}brand/7agents/logo-light.svg`
@@ -133,6 +151,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {section.items.map((item) => {
                 const IconComponent = iconMap[item.iconName as keyof typeof iconMap];
                 const isActive = currentPath === item.path;
+                const badgeLabel = item.path === "/errors"
+                  ? (errorBadgeCount && errorBadgeCount > 0 ? String(errorBadgeCount) : undefined)
+                  : item.badge;
 
                 return (
                   <button
@@ -162,7 +183,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       <span>{item.name}</span>
                     </div>
 
-                    {item.badge && (
+                    {badgeLabel && (
                       <span
                         className="text-[11px] font-sans font-medium px-2 py-0.5 rounded-md tracking-[0.04em] uppercase"
                         style={
@@ -179,7 +200,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                               }
                         }
                       >
-                        {item.badge}
+                        {badgeLabel}
                       </span>
                     )}
                   </button>

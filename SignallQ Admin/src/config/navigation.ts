@@ -36,7 +36,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     items: [
       { name: "Centro de Controle", path: "/overview", iconName: "LayoutDashboard" },
       { name: "Diagnósticos", path: "/diagnostics", iconName: "Activity" },
-      { name: "Problemas & Incidentes", path: "/errors", iconName: "AlertTriangle", badge: "12", badgeType: "error" },
+      { name: "Problemas & Incidentes", path: "/errors", iconName: "AlertTriangle", badgeType: "error" },
       { name: "Redes & Provedores", path: "/networks", iconName: "Wifi" },
       { name: "Uso do App", path: "/product-analytics", iconName: "LineChart" },
       { name: "Releases & Qualidade", path: "/app-versions", iconName: "GitBranch" },

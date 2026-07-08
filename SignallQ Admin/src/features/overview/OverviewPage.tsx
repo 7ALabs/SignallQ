@@ -100,6 +100,39 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
     };
   }, [environment, period, triggerRefreshCounter, retryCount]);
 
+  // GH#552 (Fase 2) — síntese textual derivada só de valores já carregados nesta
+  // tela (metrics + timelineData), sem inventar correlação que os dados não
+  // sustentam. Se algum valor de referência faltar, cai para uma frase neutra.
+  //
+  // Precisa ficar antes dos early-returns abaixo (loading/error/!metrics): um
+  // hook chamado condicionalmente muda de ordem entre renders e quebra a tela
+  // inteira com "Rendered more hooks than during the previous render" (GH#753).
+  const insightText = React.useMemo(() => {
+    if (!metrics) return null;
+    const diagCount = metrics.diagnosticsCount?.value;
+    const successRate = metrics.successRate?.value;
+    const aiCost = metrics.aiCost?.value;
+    const peak = timelineData.reduce(
+      (max, point: any) => (point.completedDiagnostics > (max?.completedDiagnostics ?? -1) ? point : max),
+      null as any
+    );
+    const parts: string[] = [];
+    if (diagCount != null) {
+      parts.push(`${diagCount} diagnósticos executados no período selecionado`);
+    }
+    if (successRate != null) {
+      parts.push(`taxa de sucesso de ${successRate}%`);
+    }
+    if (peak?.timestamp) {
+      parts.push(`pico de volume em ${peak.timestamp} (${peak.completedDiagnostics} diagnósticos)`);
+    }
+    if (aiCost != null) {
+      parts.push(`custo de IA acumulado de ${aiCost}`);
+    }
+    if (parts.length === 0) return null;
+    return `${parts.join(", ")}.`;
+  }, [metrics, timelineData]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -131,35 +164,6 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       </div>
     );
   }
-
-  // GH#552 (Fase 2) — síntese textual derivada só de valores já carregados nesta
-  // tela (metrics + timelineData), sem inventar correlação que os dados não
-  // sustentam. Se algum valor de referência faltar, cai para uma frase neutra.
-  const insightText = React.useMemo(() => {
-    if (!metrics) return null;
-    const diagCount = metrics.diagnosticsCount?.value;
-    const successRate = metrics.successRate?.value;
-    const aiCost = metrics.aiCost?.value;
-    const peak = timelineData.reduce(
-      (max, point: any) => (point.completedDiagnostics > (max?.completedDiagnostics ?? -1) ? point : max),
-      null as any
-    );
-    const parts: string[] = [];
-    if (diagCount != null) {
-      parts.push(`${diagCount} diagnósticos executados no período selecionado`);
-    }
-    if (successRate != null) {
-      parts.push(`taxa de sucesso de ${successRate}%`);
-    }
-    if (peak?.timestamp) {
-      parts.push(`pico de volume em ${peak.timestamp} (${peak.completedDiagnostics} diagnósticos)`);
-    }
-    if (aiCost != null) {
-      parts.push(`custo de IA acumulado de ${aiCost}`);
-    }
-    if (parts.length === 0) return null;
-    return `${parts.join(", ")}.`;
-  }, [metrics, timelineData]);
 
   return (
     <div className="space-y-6">
