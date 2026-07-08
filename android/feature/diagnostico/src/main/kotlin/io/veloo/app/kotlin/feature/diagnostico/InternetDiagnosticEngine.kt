@@ -7,7 +7,12 @@ object InternetDiagnosticEngine {
     fun avaliar(
         input: InternetDiagnosticInput?,
         wifiConfiavelParaTeste: Boolean,
+        /** Tipo de conexão ativa no momento do teste. Usado para não falar de
+         *  "Wi-Fi"/"roteador" quando a conexão é 100% rede móvel (SIG-521). */
+        connectionType: ConnectionType = ConnectionType.wifi,
     ): List<DiagnosticResult> {
+        val emRedeMovel = connectionType == ConnectionType.mobile
+
         if (input == null) {
             return listOf(
                 DiagnosticResult(
@@ -31,7 +36,11 @@ object InternetDiagnosticEngine {
                     status = DiagnosticStatus.critical,
                     evidencia = "download=null",
                     mensagemUsuario = "O teste de velocidade não conseguiu medir o download. A internet pode estar sem acesso.",
-                    recomendacao = "Verifique se outros sites ou apps funcionam. Se não funcionarem, o problema pode ser no roteador ou no provedor.",
+                    recomendacao = if (emRedeMovel) {
+                        "Verifique se outros sites ou apps funcionam. Se não funcionarem, o problema pode ser na operadora."
+                    } else {
+                        "Verifique se outros sites ou apps funcionam. Se não funcionarem, o problema pode ser no roteador ou no provedor."
+                    },
                     categoria = CAT,
                     podeConcluir = true,
                 ),
@@ -55,7 +64,11 @@ object InternetDiagnosticEngine {
                         status = DiagnosticStatus.critical,
                         evidencia = "perda=${"%.1f".format(perda)}%",
                         mensagemUsuario = "Há perda de pacotes alta (${"%.1f".format(perda)}%). Calls de vídeo e jogos serão gravemente afetados.",
-                        recomendacao = "Reinicie o roteador e o modem. Se persistir, contate o provedor.",
+                        recomendacao = if (emRedeMovel) {
+                            "Teste em outro local ou horário. Se persistir, contate a operadora."
+                        } else {
+                            "Reinicie o roteador e o modem. Se persistir, contate o provedor."
+                        },
                         categoria = CAT,
                         podeConcluir = true,
                     ),
@@ -67,7 +80,11 @@ object InternetDiagnosticEngine {
                         status = DiagnosticStatus.attention,
                         evidencia = "perda=${"%.1f".format(perda)}%",
                         mensagemUsuario = "Há alguma perda de pacotes (${"%.1f".format(perda)}%). Jogos e chamadas podem ser afetados.",
-                        recomendacao = "Verifique interferências no Wi-Fi ou instabilidade no link.",
+                        recomendacao = if (emRedeMovel) {
+                            "Pode indicar sinal de rede móvel instável ou instabilidade no link."
+                        } else {
+                            "Verifique interferências no Wi-Fi ou instabilidade no link."
+                        },
                         categoria = CAT,
                     ),
                 )
@@ -98,7 +115,11 @@ object InternetDiagnosticEngine {
                     status = DiagnosticStatus.attention,
                     evidencia = "latencia=${"%.0f".format(lat)} ms",
                     mensagemUsuario = "A latência está acima de 100 ms (${"%.0f".format(lat)} ms), acima da referência Anatel RQUAL.",
-                    recomendacao = "Latência alta pode ser causada por congestionamento no provedor ou Wi-Fi com sinal fraco.",
+                    recomendacao = if (emRedeMovel) {
+                        "Latência alta pode ser causada por congestionamento na operadora ou sinal de rede móvel instável."
+                    } else {
+                        "Latência alta pode ser causada por congestionamento no provedor ou Wi-Fi com sinal fraco."
+                    },
                     categoria = CAT,
                 ),
             )
@@ -119,7 +140,11 @@ object InternetDiagnosticEngine {
                         "O bufferbloat está muito alto (${"%.0f".format(bb)} ms). Streaming, jogos e chamadas serão gravemente prejudicados mesmo com velocidade adequada."
                     else
                         "O bufferbloat está elevado (${"%.0f".format(bb)} ms). Jogos e chamadas podem ter instabilidade sob carga.",
-                    recomendacao = "Verifique se o roteador suporta QoS ou SQM. Reduza o número de dispositivos usando a rede simultaneamente.",
+                    recomendacao = if (emRedeMovel) {
+                        "Reduza o número de dispositivos usando a rede simultaneamente. Bufferbloat em rede móvel pode variar com a operadora e a região."
+                    } else {
+                        "Verifique se o roteador suporta QoS ou SQM. Reduza o número de dispositivos usando a rede simultaneamente."
+                    },
                     categoria = CAT,
                     podeConcluir = bb > 100.0,
                 ),
@@ -136,7 +161,11 @@ object InternetDiagnosticEngine {
                     status = DiagnosticStatus.critical,
                     evidencia = "upload=0.0 Mbps",
                     mensagemUsuario = "O upload medido foi 0 Mbps. Isso costuma quebrar videoconferencias, jogos online, trabalho remoto e envio de arquivos.",
-                    recomendacao = "Verifique se ha algum bloqueio no roteador, QoS mal configurado, ou instabilidade no link. Reinicie o roteador. Se persistir, contate o provedor.",
+                    recomendacao = if (emRedeMovel) {
+                        "Verifique se ha instabilidade no sinal de rede movel. Teste em outro local ou horario. Se persistir, contate a operadora."
+                    } else {
+                        "Verifique se ha algum bloqueio no roteador, QoS mal configurado, ou instabilidade no link. Reinicie o roteador. Se persistir, contate o provedor."
+                    },
                     categoria = CAT,
                     podeConcluir = true,
                 ),

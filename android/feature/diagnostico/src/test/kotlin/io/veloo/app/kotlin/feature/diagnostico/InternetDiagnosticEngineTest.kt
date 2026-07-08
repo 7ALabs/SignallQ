@@ -37,5 +37,66 @@ class InternetDiagnosticEngineTest {
         assertTrue(resultados.isNotEmpty())
         assertEquals(true, resultados.all { it.status == DiagnosticStatus.inconclusive })
     }
+
+    @Test
+    fun `perda de pacotes alta em wifi fala de roteador`() {
+        val input =
+            InternetDiagnosticInput(
+                downloadMbps = 100.0,
+                uploadMbps = 20.0,
+                latencyMs = 20.0,
+                jitterMs = 5.0,
+                perdaPercentual = 5.0,
+                bufferbloatMs = 0.0,
+            )
+        val resultados = InternetDiagnosticEngine.avaliar(
+            input,
+            wifiConfiavelParaTeste = true,
+            connectionType = ConnectionType.wifi,
+        )
+        val achado = resultados.first { it.id == "IN-NORMAL-07" }
+        assertTrue(achado.recomendacao!!.contains("roteador"))
+    }
+
+    @Test
+    fun `perda de pacotes alta em rede movel nao fala de roteador nem Wi-Fi`() {
+        val input =
+            InternetDiagnosticInput(
+                downloadMbps = 100.0,
+                uploadMbps = 20.0,
+                latencyMs = 20.0,
+                jitterMs = 5.0,
+                perdaPercentual = 5.0,
+                bufferbloatMs = 0.0,
+            )
+        val resultados = InternetDiagnosticEngine.avaliar(
+            input,
+            wifiConfiavelParaTeste = true,
+            connectionType = ConnectionType.mobile,
+        )
+        val achado = resultados.first { it.id == "IN-NORMAL-07" }
+        assertTrue(!achado.recomendacao!!.contains("roteador"))
+        assertTrue(!achado.recomendacao!!.contains("Wi-Fi"))
+    }
+
+    @Test
+    fun `upload zerado em rede movel nao fala de roteador`() {
+        val input =
+            InternetDiagnosticInput(
+                downloadMbps = 100.0,
+                uploadMbps = 0.0,
+                latencyMs = 20.0,
+                jitterMs = 5.0,
+                perdaPercentual = 0.0,
+                bufferbloatMs = 0.0,
+            )
+        val resultados = InternetDiagnosticEngine.avaliar(
+            input,
+            wifiConfiavelParaTeste = true,
+            connectionType = ConnectionType.mobile,
+        )
+        val achado = resultados.first { it.id == "IN-NORMAL-04Z" }
+        assertTrue(!achado.recomendacao!!.contains("roteador"))
+    }
 }
 

@@ -222,6 +222,18 @@ class RecommendationEngineTest {
         assertFalse(r.any { it.id == "REC-05" })
     }
 
+    @Test
+    fun `situacao 5 - em rede movel nao fala de roteador`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.mobile,
+            internet = InternetDiagnosticInput(downloadMbps = 100.0, uploadMbps = 20.0, latencyMs = 10.0, jitterMs = 2.0, perdaPercentual = 0.0, bufferbloatMs = 150.0),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val rec = r.first { it.id == "REC-05" }
+        assertFalse(rec.recomendacao!!.contains("roteador"))
+        assertFalse(rec.recomendacao!!.contains("QoS"))
+    }
+
     // -------------------------------------------------------------------------
     // 6. DNS lento
     // -------------------------------------------------------------------------
@@ -292,6 +304,21 @@ class RecommendationEngineTest {
         assertFalse(r.any { it.id == "REC-07" })
     }
 
+    @Test
+    fun `situacao 7 - em rede movel nao fala de roteador nem Wi-Fi`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.mobile,
+            internet = InternetDiagnosticInput(
+                downloadMbps = 80.0, uploadMbps = 20.0, latencyMs = 180.0, jitterMs = 5.0, perdaPercentual = 0.0,
+                rttGatewayMs = 4,
+            ),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val rec = r.first { it.id == "REC-07" }
+        assertFalse(rec.mensagemUsuario.contains("roteador"))
+        assertFalse(rec.mensagemUsuario.contains("Wi-Fi"))
+    }
+
     // -------------------------------------------------------------------------
     // 8. Gateway / roteador lento
     // -------------------------------------------------------------------------
@@ -312,6 +339,19 @@ class RecommendationEngineTest {
         )
         val r = RecommendationEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-08" })
+    }
+
+    @Test
+    fun `situacao 8 - em rede movel nao fala de roteador nem Wi-Fi`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.mobile,
+            internet = InternetDiagnosticInput(downloadMbps = 80.0, uploadMbps = 20.0, latencyMs = 20.0, jitterMs = 3.0, perdaPercentual = 0.0, rttGatewayMs = 80),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val rec = r.first { it.id == "REC-08" }
+        assertFalse(rec.titulo.contains("Roteador"))
+        assertFalse(rec.mensagemUsuario.contains("roteador"))
+        assertFalse(rec.recomendacao!!.contains("roteador"))
     }
 
     // -------------------------------------------------------------------------
@@ -433,6 +473,20 @@ class RecommendationEngineTest {
         )
         val r = RecommendationEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-11" })
+    }
+
+    @Test
+    fun `situacao 11 - perda critica em rede movel nao fala de roteador`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.mobile,
+            internet = InternetDiagnosticInput(
+                downloadMbps = 80.0, uploadMbps = 20.0, latencyMs = 20.0, jitterMs = 3.0,
+                perdaPercentual = 4.0, packetLossSource = "modem",
+            ),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val rec = r.first { it.id == "REC-11" }
+        assertFalse(rec.recomendacao!!.contains("roteador"))
     }
 
     // -------------------------------------------------------------------------

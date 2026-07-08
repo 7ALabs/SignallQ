@@ -221,6 +221,7 @@ object RecommendationEngine {
         if (bb <= 30.0) return null
 
         val critico = bb > 100.0
+        val emRedeMovel = input.connectionType == ConnectionType.mobile
         return DiagnosticResult(
             id = "REC-05",
             titulo = if (critico) "Bufferbloat crítico — ative QoS/SQM" else "Bufferbloat elevado — considere QoS/SQM",
@@ -231,7 +232,11 @@ object RecommendationEngine {
             } else {
                 "O bufferbloat está elevado (${"%.0f".format(bb)} ms) — sob carga (downloads, uploads simultâneos), jogos e chamadas podem engasgar."
             },
-            recomendacao = "Se o roteador suportar QoS (Quality of Service) ou SQM (Smart Queue Management), ative essa opção nas configurações avançadas — isso prioriza tráfego sensível a latência mesmo com o link ocupado.",
+            recomendacao = if (emRedeMovel) {
+                "Evite usar a rede móvel simultaneamente para múltiplos downloads/uploads pesados — isso ajuda a reduzir o bufferbloat sob carga."
+            } else {
+                "Se o roteador suportar QoS (Quality of Service) ou SQM (Smart Queue Management), ative essa opção nas configurações avançadas — isso prioriza tráfego sensível a latência mesmo com o link ocupado."
+            },
             categoria = CAT,
         )
     }
@@ -296,12 +301,17 @@ object RecommendationEngine {
             "perda ${"%.1f".format(internet.perdaPercentual)}%".takeIf { perdaRuim },
         )
 
+        val emRedeMovel = input.connectionType == ConnectionType.mobile
         return DiagnosticResult(
             id = "REC-07",
             titulo = "O problema pode estar fora da sua rede",
             status = DiagnosticStatus.attention,
             evidencia = "rttGateway=${rttGateway}ms sintomasExternos=${sintomas.joinToString("; ")}",
-            mensagemUsuario = "Seu roteador está respondendo rápido e o Wi-Fi está saudável, mas ${sintomas.joinToString(", ")} sugerem instabilidade fora da sua rede local.",
+            mensagemUsuario = if (emRedeMovel) {
+                "O gateway da rede móvel está respondendo rápido, mas ${sintomas.joinToString(", ")} sugerem instabilidade fora da sua rede local."
+            } else {
+                "Seu roteador está respondendo rápido e o Wi-Fi está saudável, mas ${sintomas.joinToString(", ")} sugerem instabilidade fora da sua rede local."
+            },
             recomendacao = "O problema pode estar na operadora ou na rota até a internet. Se persistir, contate o suporte do provedor com esses dados.",
             categoria = CAT,
         )
@@ -316,17 +326,26 @@ object RecommendationEngine {
         val rttGateway = input.internet?.rttGatewayMs ?: return null
         if (rttGateway <= 50) return null
 
+        val emRedeMovel = input.connectionType == ConnectionType.mobile
         val rssi = input.wifi?.rssiDbm
         val rssiBom = rssi != null && rssi >= -67
         val reforco = if (rssiBom) " O sinal Wi-Fi está bom, então o atraso não é do ar — é do próprio equipamento." else ""
 
         return DiagnosticResult(
             id = "REC-08",
-            titulo = "Roteador respondendo lentamente",
+            titulo = if (emRedeMovel) "Gateway da rede respondendo lentamente" else "Roteador respondendo lentamente",
             status = DiagnosticStatus.attention,
             evidencia = "rttGateway=${rttGateway}ms rssiBom=$rssiBom",
-            mensagemUsuario = "O roteador está demorando ${rttGateway} ms para responder na rede local.$reforco",
-            recomendacao = "Reinicie o roteador: desligue da tomada, aguarde 30 segundos e ligue novamente. Se o problema persistir, o roteador pode estar sobrecarregado ou precisando de troca.",
+            mensagemUsuario = if (emRedeMovel) {
+                "O gateway da rede móvel está demorando ${rttGateway} ms para responder."
+            } else {
+                "O roteador está demorando ${rttGateway} ms para responder na rede local.$reforco"
+            },
+            recomendacao = if (emRedeMovel) {
+                "Teste em outro local ou horário. Se o problema persistir, verifique com sua operadora."
+            } else {
+                "Reinicie o roteador: desligue da tomada, aguarde 30 segundos e ligue novamente. Se o problema persistir, o roteador pode estar sobrecarregado ou precisando de troca."
+            },
             categoria = CAT,
         )
     }
@@ -417,7 +436,11 @@ object RecommendationEngine {
             evidencia = "perda=${"%.1f".format(perda)}% fonte=${fonte ?: "—"}",
             mensagemUsuario = "Foi detectada perda de pacotes de ${"%.1f".format(perda)}%.$avisoConfiabilidade",
             recomendacao = if (critico) {
-                "Reinicie o roteador e o modem. Se a perda persistir mesmo assim, contate o provedor — chamadas e jogos serão afetados."
+                if (input.connectionType == ConnectionType.mobile) {
+                    "Teste em outro local ou horário. Se a perda persistir mesmo assim, contate a operadora — chamadas e jogos serão afetados."
+                } else {
+                    "Reinicie o roteador e o modem. Se a perda persistir mesmo assim, contate o provedor — chamadas e jogos serão afetados."
+                }
             } else {
                 "Fique de olho: perda de pacotes moderada pode afetar chamadas e jogos em momentos de pico."
             },
