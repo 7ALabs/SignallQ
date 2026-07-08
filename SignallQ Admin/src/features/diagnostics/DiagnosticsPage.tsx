@@ -2,14 +2,17 @@ import React from "react";
 import { diagnosticsService } from "../../services/diagnosticsService";
 import { DiagnosticsFilters } from "./components/DiagnosticsFilters";
 import { DiagnosticsMetricGrid } from "./components/DiagnosticsMetricGrid";
-import { DiagnosticIntelligencePanel } from "./components/DiagnosticIntelligencePanel";
 import { DiagnosticsAggregateTable } from "./components/DiagnosticsAggregateTable";
-import { IssueDetailPanel } from "./components/IssueDetailPanel";
 import { DataTable } from "../../components/ui/DataTable";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { LoadingState } from "../../components/ui/LoadingState";
-import { DiagnosticSession, DiagnosticsSummary, DistChannel, BuildType, DataPlatform } from "../../types/diagnostics";
+import { InsightBlock } from "../../components/ui/InsightBlock";
+import { ActionsRow } from "../../components/ui/ActionsRow";
+import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
+import { BarChart } from "../../components/charts/BarChart";
+import { ChartCard } from "../../components/ui/ChartCard";
+import { DiagnosticSession, DiagnosticsSummary, DistChannel, BuildType, DataPlatform, AggregateRow } from "../../types/diagnostics";
 import { AppEnvironment } from "../../types/admin";
 import { Smartphone, Clock, Server, Sparkles, Zap, Info, ShieldCheck, AlertOctagon } from "lucide-react";
 
@@ -17,12 +20,14 @@ interface DiagnosticsPageProps {
   environment: AppEnvironment;
   period: string;
   triggerRefreshCounter: number;
+  onNavigate?: (path: string) => void;
 }
 
 export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
   environment: propEnv,
   period: propPeriod,
   triggerRefreshCounter,
+  onNavigate,
 }) => {
   // Advanced filter states
   const [localEnv, setLocalEnv] = React.useState<AppEnvironment>(propEnv);
@@ -44,9 +49,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
   const [sessions, setSessions] = React.useState<DiagnosticSession[]>([]);
   const [selectedSession, setSelectedSession] = React.useState<DiagnosticSession | null>(null);
   const [summary, setSummary] = React.useState<DiagnosticsSummary | null>(null);
-
-  // Highlighted Intelligence problem
-  const [selectedIntelIssue, setSelectedIntelIssue] = React.useState<string | null>(null);
+  const [aggregate, setAggregate] = React.useState<AggregateRow[]>([]);
 
   // Re-diagnosing states
   const [diagnosingId, setDiagnosingId] = React.useState<string | null>(null);
@@ -76,6 +79,13 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
       ]);
 
       setSummary(summaryResponse);
+
+      // GH#552 (Fase 3) — mesma fonte usada pela tabela de investigação e pelo
+      // gráfico principal (barras por tipo de rede), buscada uma única vez aqui.
+      diagnosticsService
+        .getAggregateDiagnostics({ environment: localEnv, period: localPeriod })
+        .then(setAggregate)
+        .catch((err) => console.error("Failed to load aggregate data:", err));
 
       // Opções de versão disponíveis vêm do conjunto completo retornado pela API,
       // antes de qualquer filtro local — senão o próprio filtro de versão se auto-restringe.
@@ -172,6 +182,44 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
     }
   };
 
+  // GH#552 (Fase 3) — tipo de rede com mais sessões no período, derivado da
+  // agregação real (D1, network_type) — alimenta o KPI "tipo mais comum".
+  const topNetworkType = React.useMemo(() => {
+    if (aggregate.length === 0) return null;
+    const top = [...aggregate].sort((a, b) => b.diagnosticsCount - a.diagnosticsCount)[0];
+    const totalCount = aggregate.reduce((acc, r) => acc + r.diagnosticsCount, 0);
+    const percentage = totalCount > 0 ? (top.diagnosticsCount / totalCount) * 100 : 0;
+    return { name: top.networkType, percentage };
+  }, [aggregate]);
+
+  // Bloco de explicação — compara o tipo de rede líder com o de pior score,
+  // só com dado já carregado (sem inventar correlação).
+  const insightText = React.useMemo(() => {
+    if (aggregate.length === 0 || !topNetworkType) return null;
+    const worst = [...aggregate].sort((a, b) => a.avgScore - b.avgScore)[0];
+    if (worst.networkType === topNetworkType.name) {
+      return `"${topNetworkType.name}" concentra ${topNetworkType.percentage.toFixed(0)}% dos diagnósticos do período e também tem o pior score médio (${worst.avgScore}/100) — vale investigar antes das outras redes.`;
+    }
+    return `"${topNetworkType.name}" concentra ${topNetworkType.percentage.toFixed(0)}% dos diagnósticos do período. O pior score médio está em "${worst.networkType}" (${worst.avgScore}/100) — ver detalhe na tabela abaixo.`;
+  }, [aggregate, topNetworkType]);
+
+  const handleExportSessions = () => {
+    const header = "ID,Dispositivo,Rede,Operadora,Download,Upload,Score,Problemas,Timestamp\r\n";
+    const rows = sessions
+      .map((s) => [
+        s.id, s.deviceModel, s.networkType, s.operator ?? "",
+        s.speed.downloadMbps, s.speed.uploadMbps, s.score, s.issues.length, s.timestamp,
+      ].join(","))
+      .join("\r\n");
+    const csvContent = `data:text/csv;charset=utf-8,${header}${rows}`;
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `signallq_diagnosticos_${localEnv}_${localPeriod}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const tableColumns = [
     {
       header: "Sessão ID",
@@ -265,26 +313,47 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
         isRefreshing={isRefreshing}
       />
 
-      {/* 2. Grid de cards principais - 6 cards */}
-      <DiagnosticsMetricGrid environment={localEnv} summary={summary} />
+      {/* 2. KPIs — 4 cards, com veredito humano (GH#552 Fase 3, substitui grid de 6) */}
+      <DiagnosticsMetricGrid environment={localEnv} summary={summary} topNetworkType={topNetworkType} />
 
-      {/* 3. Diagnostic Intelligence Panel (5 cards cognitivos) */}
-      <DiagnosticIntelligencePanel onSelectIssue={(name) => setSelectedIntelIssue(name)} />
-
-      {/* 4. Linha dividida - tabela agregada (esquerda) ou detalhe de problema (direita) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <DiagnosticsAggregateTable environment={localEnv} />
-        </div>
-        <div>
-          <IssueDetailPanel
-            selectedIssueName={selectedIntelIssue}
-            onClear={() => setSelectedIntelIssue(null)}
+      {/* 3. Gráfico principal — o que os usuários estão medindo, por tipo de rede
+          (D1 diagnostic_sessions agregado; sem granularidade diária no worker
+          hoje, então o gráfico é por composição do período, não série temporal) */}
+      <ChartCard
+        title="Diagnósticos por tipo de rede"
+        description="Volume de sessões e score médio no período selecionado, por tipo de rede."
+        id="diagnostics-main-chart"
+      >
+        {aggregate.length === 0 ? (
+          <FeatureComingSoon feature="Distribuição por tipo de rede" reason="Sem sessões suficientes no período selecionado" compact />
+        ) : (
+          <BarChart
+            data={aggregate.map((r) => ({ name: r.networkType, sessões: r.diagnosticsCount, score: r.avgScore }))}
+            xAxisKey="name"
+            series={[
+              { key: "sessões", name: "Sessões", color: "var(--chart-line-primary)" },
+              { key: "score", name: "Score médio", color: "var(--chart-line-tertiary)" },
+            ]}
           />
-        </div>
-      </div>
+        )}
+      </ChartCard>
 
-      {/* 5. Tabela de Sessões de Diagnósticos Recentes (Filtros Avançados) */}
+      {/* 4. Bloco de explicação — antes da tabela de investigação */}
+      {insightText && <InsightBlock id="diagnostics-insight-block">{insightText}</InsightBlock>}
+
+      {/* Funil de diagnóstico (iniciado → concluído → laudo gerado) pedido pelo
+          wireframe não tem contrato de dados real hoje — o worker não rastreia
+          estágio de sessão, só o resultado final persistido. Sem número inventado. */}
+      <FeatureComingSoon
+        feature="Funil de Diagnóstico (iniciado → concluído → laudo gerado)"
+        reason="Requer rastreamento de estágio por sessão no worker/app — hoje só o resultado final é persistido"
+        compact
+      />
+
+      {/* 5. Tabela de investigação — agregado por tipo de rede (drill-down) */}
+      <DiagnosticsAggregateTable environment={localEnv} data={aggregate} />
+
+      {/* 6. Tabela de Sessões de Diagnósticos Recentes (Filtros Avançados) */}
       {loading ? (
         <LoadingState message="Acompanhando logs de conectividade (Android e WebApp)..." />
       ) : error ? (
@@ -535,6 +604,15 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
           </div>
         </div>
       )}
+
+      {/* 7. Ações */}
+      <ActionsRow
+        id="diagnostics-actions-row"
+        actions={[
+          { label: "Exportar CSV", onClick: handleExportSessions, variant: "secondary" },
+          ...(onNavigate ? [{ label: "Ver Redes & Provedores", onClick: () => onNavigate("/networks") }] : []),
+        ]}
+      />
     </div>
   );
 };

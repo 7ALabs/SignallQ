@@ -1,132 +1,80 @@
 import React from "react";
-import { AppEnvironment } from "../../../types/admin";
 import { MetricCard } from "../../../components/ui/MetricCard";
-import { aiUsageService } from "../../../services/aiUsageService";
+import { FeatureComingSoon } from "../../../components/ui/FeatureComingSoon";
+import { AiModelInsights } from "../../../types/ai";
+import { MetricVerdict } from "../../../types/metrics";
 
 interface AiCostMetricGridProps {
-  environment: AppEnvironment;
-  period?: string;
+  costSummary: {
+    totalCostUsd: string;
+    reliabilityPercentage: number | null;
+  } | null;
+  modelInsights: AiModelInsights[];
 }
 
-export const AiCostMetricGrid: React.FC<AiCostMetricGridProps> = ({ environment, period }) => {
-  const [summary, setSummary] = React.useState<{
-    totalCostUsd: string;
-    totalRequests: string;
-    avgCostPerRequest: string;
-    tokensSentM: string;
-    tokensReceivedM: string;
-    successRate: string;
-    reliabilityPercentage: number | null;
-  } | null>(null);
-  const [loaded, setLoaded] = React.useState(false);
+// GH#552 (Fase 3) — taxa de fallback (chamadas fora do provider primário Gemini):
+// abaixo de 10% é operação normal, acima disso já indica instabilidade do
+// primário sendo compensada pelo fallback Qwen3 (ver docs_ai/technical/CLOUDFLARE.md).
+function fallbackVerdict(rate: number): MetricVerdict {
+  if (rate < 5) return "excelente";
+  if (rate < 10) return "bom";
+  if (rate < 25) return "regular";
+  return "fraco";
+}
 
-  React.useEffect(() => {
-    let active = true;
-    setLoaded(false);
-    const p = (period === "today" ? "1d" : period) as "today" | "7d" | "30d" | undefined;
-    aiUsageService.getAiCostSummary({ environment, period: p }).then((data) => {
-      if (active) {
-        setSummary(data);
-        setLoaded(true);
-      }
-    });
-    return () => { active = false; };
-  }, [environment, period]);
+// Taxa de falha: proxy de (100 - reliabilityPercentage), ver SIG-125.
+function failureVerdict(rate: number): MetricVerdict {
+  if (rate < 2) return "excelente";
+  if (rate < 5) return "bom";
+  if (rate < 10) return "regular";
+  return "fraco";
+}
 
-  if (!loaded) {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
-        {Array.from({ length: 7 }).map((_, idx) => (
-          <div key={idx} className="h-24 bg-zinc-950/40 border border-zinc-900 rounded-xl animate-pulse" />
-        ))}
-      </div>
-    );
-  }
+export const AiCostMetricGrid: React.FC<AiCostMetricGridProps> = ({ costSummary, modelInsights }) => {
+  const totalCalls = modelInsights.reduce((s, m) => s + m.totalCalls, 0);
+  const fallbackCalls = modelInsights
+    .filter((m) => !`${m.provider} ${m.displayName}`.toLowerCase().includes("gemini"))
+    .reduce((s, m) => s + m.totalCalls, 0);
+  const fallbackRate = totalCalls > 0 ? (fallbackCalls / totalCalls) * 100 : null;
 
-  if (!summary) {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
-        {Array.from({ length: 7 }).map((_, idx) => (
-          <div key={idx} className="h-24 bg-zinc-950/40 border border-zinc-900 rounded-xl flex items-center justify-center">
-            <span className="text-[10px] font-mono text-zinc-600 uppercase tracking-wider">Sem dados</span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  // Card de Sucesso API: successRate pode ser "—" quando não há fonte real.
-  const successRateIsReal = summary.successRate !== "—";
-
-  // SIG-125: Confiabilidade IA com veredito semântico.
-  const rel = summary.reliabilityPercentage;
-  const reliabilityValue = rel !== null ? `${rel.toFixed(1)}%` : "--";
-  const reliabilityVerdict =
-    rel === null       ? ""
-    : rel >= 95        ? "Excelente"
-    : rel >= 80        ? "Bom"
-    : rel >= 70        ? "Regular"
-    : "Fraco";
-  const reliabilityDisplay = rel !== null ? `${reliabilityValue} · ${reliabilityVerdict}` : "--";
-
-  const metrics = [
-    {
-      label: "Custo Total Previsto (USD)",
-      value: summary.totalCostUsd,
-      trend: { value: 4.5, changePercentage: 4.5, type: "up" as const, intervalLabel: "vs semana anterior" }
-    },
-    {
-      label: "Total de Requisições IA",
-      value: summary.totalRequests,
-      trend: { value: 8.2, changePercentage: 8.2, type: "up" as const, intervalLabel: "volume de laudos" }
-    },
-    {
-      label: "Custo Médio / Laudo",
-      value: summary.avgCostPerRequest,
-      trend: { value: 0.8, changePercentage: 0.8, type: "down" as const, intervalLabel: "otimização Gemini" }
-    },
-    {
-      label: "Tokens Enviados (M)",
-      value: summary.tokensSentM,
-      trend: { value: 12.4, changePercentage: 12.4, type: "up" as const, intervalLabel: "contexto de rádio" }
-    },
-    {
-      label: "Tokens Recebidos (M)",
-      value: summary.tokensReceivedM,
-      trend: { value: 6.8, changePercentage: 6.8, type: "up" as const, intervalLabel: "laudos de mitigação" }
-    },
-    {
-      label: "Sucesso de Conexão API",
-      value: summary.successRate,
-      trend: successRateIsReal
-        ? { value: 0.02, changePercentage: 0.02, type: "up" as const, intervalLabel: "taxa de resiliência" }
-        : undefined,
-    },
-    {
-      label: "Confiabilidade IA",
-      value: reliabilityDisplay,
-      trend: rel !== null
-        ? {
-            value: rel,
-            changePercentage: rel,
-            type: rel >= 80 ? "up" as const : "down" as const,
-            intervalLabel: rel >= 95 ? "dentro do SLA" : rel >= 70 ? "atenção requerida" : "abaixo do aceitável",
-          }
-        : undefined,
-    },
-  ];
+  const reliability = costSummary?.reliabilityPercentage ?? null;
+  const failureRate = reliability != null ? Math.max(0, 100 - reliability) : null;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
-      {metrics.map((m, idx) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <MetricCard
+        label="Custo no período"
+        value={costSummary?.totalCostUsd ?? "—"}
+        id="ai-cost-metric-total"
+      />
+
+      {fallbackRate !== null ? (
         <MetricCard
-          key={idx}
-          label={m.label}
-          value={m.value}
-          trend={m.trend}
-          id={`ai-cost-metric-${idx}`}
+          label="Taxa de fallback"
+          value={`${fallbackRate.toFixed(1)}%`}
+          verdict={fallbackVerdict(fallbackRate)}
+          verdictNote="chamadas fora do provider primário (Gemini)"
+          id="ai-cost-metric-fallback"
         />
-      ))}
+      ) : (
+        <FeatureComingSoon feature="Taxa de Fallback" reason="Sem chamadas de IA registradas no período" compact />
+      )}
+
+      {failureRate !== null ? (
+        <MetricCard
+          label="Taxa de falha"
+          value={`${failureRate.toFixed(1)}%`}
+          verdict={failureVerdict(failureRate)}
+          verdictNote="proxy: completion_tokens = 0"
+          id="ai-cost-metric-failure"
+        />
+      ) : (
+        <FeatureComingSoon feature="Taxa de Falha" reason="Sem chamadas de IA registradas no período" compact />
+      )}
+
+      {/* Latência P95 pedida pelo wireframe não é rastreada no schema hoje
+          (ai_usage não tem coluna de tempo de resposta) — sem número inventado. */}
+      <FeatureComingSoon feature="Latência P95 da IA" reason="Schema ai_usage não registra tempo de resposta" compact />
     </div>
   );
 };

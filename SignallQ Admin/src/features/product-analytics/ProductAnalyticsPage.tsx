@@ -1,28 +1,31 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { AppEnvironment } from "../../types/admin";
 import { productAnalyticsService, DashboardFilters } from "../../services/productAnalyticsService";
-import { FeatureUsageMetric, ScreenNavigationMetric, FeatureCrashMetric, RetentionMetric, FeatureAiUsageMetric } from "../../types/productAnalytics";
+import { FeatureUsageMetric, ScreenNavigationMetric, FeatureCrashMetric, RetentionMetric } from "../../types/productAnalytics";
 import { FeatureUsageGrid } from "./components/FeatureUsageGrid";
 import { MostUsedFeaturesTable } from "./components/MostUsedFeaturesTable";
 import { ScreenNavigationPanel } from "./components/ScreenNavigationPanel";
 import { FeatureCrashTable } from "./components/FeatureCrashTable";
 import { RetentionPanel } from "./components/RetentionPanel";
-import { FeatureTokenUsagePanel } from "./components/FeatureTokenUsagePanel";
 import { LoadingState } from "../../components/ui/LoadingState";
+import { InsightBlock } from "../../components/ui/InsightBlock";
+import { ActionsRow } from "../../components/ui/ActionsRow";
+import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
+import { ChartCard } from "../../components/ui/ChartCard";
+import { BarChart } from "../../components/charts/BarChart";
 
 interface ProductAnalyticsPageProps {
   environment: AppEnvironment;
   period: string;
   triggerRefreshCounter: number;
+  onNavigate?: (path: string) => void;
 }
 
 interface PageData {
-  overview: Awaited<ReturnType<typeof productAnalyticsService.getOverviewCards>>;
   featureUsage: FeatureUsageMetric[];
   screenNavigation: ScreenNavigationMetric[];
   featureCrashes: FeatureCrashMetric[];
   retention: RetentionMetric[];
-  aiUsage: FeatureAiUsageMetric[];
   sessionDuration: Awaited<ReturnType<typeof productAnalyticsService.getSessionDuration>>;
 }
 
@@ -30,6 +33,7 @@ export const ProductAnalyticsPage: React.FC<ProductAnalyticsPageProps> = ({
   environment,
   period,
   triggerRefreshCounter,
+  onNavigate,
 }) => {
   const [data, setData] = useState<PageData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,17 +47,15 @@ export const ProductAnalyticsPage: React.FC<ProductAnalyticsPageProps> = ({
       environment: environment === "all" ? undefined : environment,
     };
     try {
-      const [overview, featureUsage, screenNavigation, featureCrashes, retention, aiUsage, sessionDuration] =
+      const [featureUsage, screenNavigation, featureCrashes, retention, sessionDuration] =
         await Promise.all([
-          productAnalyticsService.getOverviewCards(filters),
           productAnalyticsService.getFeatureUsage(filters),
           productAnalyticsService.getScreenNavigation(filters),
           productAnalyticsService.getFeatureCrashes(filters),
           productAnalyticsService.getRetention(filters),
-          productAnalyticsService.getFeatureAiUsage(filters),
           productAnalyticsService.getSessionDuration(filters),
         ]);
-      setData({ overview, featureUsage, screenNavigation, featureCrashes, retention, aiUsage, sessionDuration });
+      setData({ featureUsage, screenNavigation, featureCrashes, retention, sessionDuration });
     } catch (e) {
       setError("Falha ao carregar dados de produto.");
     } finally {
@@ -62,6 +64,49 @@ export const ProductAnalyticsPage: React.FC<ProductAnalyticsPageProps> = ({
   }, [environment, period, triggerRefreshCounter]);
 
   useEffect(() => { load(); }, [load]);
+
+  const handleExportFeatureUsage = () => {
+    if (!data) return;
+    const header = "Feature,Usos,Usuários únicos,Taxa conclusão,Taxa falha,Duração média (s),Tendência\r\n";
+    const rows = data.featureUsage
+      .map((f) => [
+        f.feature, f.usageCount, f.uniqueUsers,
+        `${(f.completionRate * 100).toFixed(1)}%`, `${(f.failureRate * 100).toFixed(1)}%`,
+        (f.avgDurationMs / 1000).toFixed(1), `${f.trendPercent}%`,
+      ].join(","))
+      .join("\r\n");
+    const csvContent = `data:text/csv;charset=utf-8,${header}${rows}`;
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `signallq_uso_do_app_${environment}_${period}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // GH#552 (Fase 3) — bloco de explicação: compara retenção com benchmark e
+  // aponta a feature com maior abandono (menor completionRate), sem inventar
+  // correlação além do que os dois conjuntos de dados já carregados mostram.
+  const insightText = React.useMemo(() => {
+    if (!data) return null;
+    const cohort = data.retention[0];
+    const worstFeature = [...data.featureUsage].sort((a, b) => a.completionRate - b.completionRate)[0];
+    const parts: string[] = [];
+    if (cohort?.day1 != null) {
+      const inRange = cohort.day1 >= 25 && cohort.day1 <= 40;
+      parts.push(
+        inRange
+          ? `Retenção D1 de ${cohort.day1.toFixed(0)}% está na faixa saudável de mercado para utilitários (25-40%).`
+          : `Retenção D1 de ${cohort.day1.toFixed(0)}% está ${cohort.day1 < 25 ? "abaixo" : "acima"} da faixa saudável de mercado (25-40%).`
+      );
+    }
+    if (worstFeature) {
+      parts.push(
+        `Maior abandono está em "${worstFeature.label}" (${(worstFeature.completionRate * 100).toFixed(0)}% de conclusão) — investigar se é timeout de IA (ver IA & Custos).`
+      );
+    }
+    return parts.length > 0 ? parts.join(" ") : null;
+  }, [data]);
 
   if (loading) {
     return (
@@ -99,29 +144,71 @@ export const ProductAnalyticsPage: React.FC<ProductAnalyticsPageProps> = ({
 
   return (
     <div className="space-y-6">
-      {data?.overview && (
-        <FeatureUsageGrid overview={data.overview} />
+      {/* 1. KPIs — 4 cards, com veredito vs. benchmark de mercado (GH#552 Fase 3) */}
+      <FeatureUsageGrid retention={data!.retention} sessionDuration={data!.sessionDuration} />
+
+      {/* DAU/MAU pedido pelo wireframe não tem endpoint de usuários ativos únicos
+          por dia/mês hoje — só uniqueUsers por feature/tela. Sem número inventado. */}
+      <FeatureComingSoon feature="DAU/MAU" reason="Requer contagem de usuários ativos únicos por dia/mês no worker" compact />
+
+      {/* 2. Gráfico principal — engajamento por função (o que responde "estão
+          usando como esperado?" de forma mais direta hoje, dado o funil completo
+          abertura→diagnóstico→laudo não ter contrato de dados ainda) */}
+      {data!.featureUsage.length > 0 && (
+        <ChartCard
+          title="Engajamento por função"
+          description="Volume de uso e taxa de conclusão por funcionalidade no período."
+          id="product-analytics-main-chart"
+        >
+          <BarChart
+            data={data!.featureUsage.map((f) => ({
+              name: f.label,
+              usos: f.usageCount,
+              conclusão: Math.round(f.completionRate * 100),
+            }))}
+            xAxisKey="name"
+            series={[
+              { key: "usos", name: "Usos", color: "var(--chart-line-primary)" },
+              { key: "conclusão", name: "Conclusão %", color: "var(--chart-line-tertiary)" },
+            ]}
+          />
+        </ChartCard>
       )}
 
-      {data && data.featureUsage.length > 0 && (
-        <MostUsedFeaturesTable metrics={data.featureUsage} />
+      {/* 3. Bloco de explicação */}
+      {insightText && <InsightBlock id="product-analytics-insight-block">{insightText}</InsightBlock>}
+
+      {/* Funil de engajamento (abertura → diagnóstico iniciado → concluído →
+          laudo gerado) pedido pelo wireframe não tem contrato de dados real —
+          screen_navigation/feature_usage não rastreiam estágio de funil por
+          sessão. Sem número inventado. */}
+      <FeatureComingSoon
+        feature="Funil de Engajamento (abertura → diagnóstico → laudo gerado)"
+        reason="Requer rastreamento de estágio por sessão no worker/app"
+        compact
+      />
+
+      {/* 4. Tabela de investigação — engajamento por função (drill-down primário) */}
+      {data!.featureUsage.length > 0 && <MostUsedFeaturesTable metrics={data!.featureUsage} />}
+
+      {/* Drill-down secundário — navegação de telas e crashes por função */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {data!.screenNavigation.length > 0 && <ScreenNavigationPanel metrics={data!.screenNavigation} />}
+        {data!.featureCrashes.length > 0 && <FeatureCrashTable metrics={data!.featureCrashes} />}
+      </div>
+
+      {(data!.retention.length > 0 || data!.sessionDuration) && (
+        <RetentionPanel metrics={data!.retention} sessionDuration={data!.sessionDuration} />
       )}
 
-      {data && data.screenNavigation.length > 0 && (
-        <ScreenNavigationPanel metrics={data.screenNavigation} />
-      )}
-
-      {data && data.featureCrashes.length > 0 && (
-        <FeatureCrashTable metrics={data.featureCrashes} />
-      )}
-
-      {data && (data.retention.length > 0 || data.sessionDuration) && (
-        <RetentionPanel metrics={data.retention} sessionDuration={data.sessionDuration} />
-      )}
-
-      {data && data.aiUsage.length > 0 && (
-        <FeatureTokenUsagePanel metrics={data.aiUsage} period={period} />
-      )}
+      {/* 5. Ações */}
+      <ActionsRow
+        id="product-analytics-actions-row"
+        actions={[
+          { label: "Exportar CSV", onClick: handleExportFeatureUsage, variant: "secondary" },
+          ...(onNavigate ? [{ label: "Ver IA & Custos", onClick: () => onNavigate("/ai-cost") }] : []),
+        ]}
+      />
     </div>
   );
 };

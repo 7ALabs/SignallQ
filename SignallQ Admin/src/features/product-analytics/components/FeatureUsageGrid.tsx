@@ -1,117 +1,81 @@
 import React from "react";
-import { 
-  Zap, 
-  Layers, 
-  TrendingDown, 
-  AlertTriangle, 
-  Clock, 
-  UserCheck, 
-  Cpu, 
-  Battery 
-} from "lucide-react";
+import { MetricCard } from "../../../components/ui/MetricCard";
+import { FeatureComingSoon } from "../../../components/ui/FeatureComingSoon";
+import { RetentionMetric } from "../../../types/productAnalytics";
+import { MetricVerdict } from "../../../types/metrics";
 
 interface FeatureUsageGridProps {
-  overview: {
-    mostUsedFeature: string;
-    mostUsedFeatureCount: string;
-    topViewedScreen: string;
-    topViewedScreenCount: string;
-    worstAbandonedFlow: string;
-    abandonRate: string;
-    mostCrashingFeature: string;
-    crashCount: string;
-    avgInstalledTime: string;
-    d7Retention: string;
-    highestAiConsumer: string;
-    highestAiConsumerCalls: string;
-    batteryHighestFeature: string;
-    batteryHighestImpact: string;
-  };
+  retention: RetentionMetric[];
+  sessionDuration: { avgDurationMs: number | null; sessionCount: number } | null;
 }
 
-export const FeatureUsageGrid: React.FC<FeatureUsageGridProps> = ({ overview }) => {
-  const cards = [
-    {
-      title: "Função mais usada",
-      value: overview.mostUsedFeature,
-      sub: overview.mostUsedFeatureCount,
-      icon: <Zap className="w-4 h-4 text-[var(--text-secondary)]" />,
-      color: "border-[var(--border)] hover:border-[var(--border)] bg-[var(--bg-surface-muted)]"
-    },
-    {
-      title: "Tela mais acessada",
-      value: overview.topViewedScreen,
-      sub: overview.topViewedScreenCount,
-      icon: <Layers className="w-4 h-4 text-emerald-400" />,
-      color: "border-emerald-500/10 hover:border-emerald-500/20 bg-emerald-950/5"
-    },
-    {
-      title: "Maior Abandono",
-      value: overview.worstAbandonedFlow,
-      sub: `Taxa: ${overview.abandonRate}`,
-      icon: <TrendingDown className="w-4 h-4 text-red-400" />,
-      color: "border-red-500/10 hover:border-red-500/20 bg-red-950/5"
-    },
-    {
-      title: "Função com mais Crash",
-      value: overview.mostCrashingFeature,
-      sub: overview.crashCount,
-      icon: <AlertTriangle className="w-4 h-4 text-amber-500" />,
-      color: "border-amber-500/10 hover:border-amber-500/20 bg-amber-950/5"
-    },
-    {
-      title: "Média Instalado",
-      value: overview.avgInstalledTime,
-      sub: "Tempo de vida médio",
-      icon: <Clock className="w-4 h-4 text-blue-400" />,
-      color: "border-blue-500/10 hover:border-blue-500/20 bg-blue-950/5"
-    },
-    {
-      title: "Retenção D7",
-      value: overview.d7Retention,
-      sub: "Usuários ativos D7",
-      icon: <UserCheck className="w-4 h-4 text-teal-400" />,
-      color: "border-teal-500/10 hover:border-teal-500/20 bg-teal-950/5"
-    },
-    {
-      title: "Maior Consumo IA",
-      value: overview.highestAiConsumer,
-      sub: overview.highestAiConsumerCalls,
-      icon: <Cpu className="w-4 h-4 text-amber-400" />,
-      color: "border-amber-500/10 hover:border-amber-500/20 bg-amber-950/10"
-    },
-    {
-      title: "Impacto Estimado Bateria",
-      value: overview.batteryHighestFeature,
-      sub: `Impacto: ${overview.batteryHighestImpact}`,
-      icon: <Battery className="w-4 h-4 text-pink-400" />,
-      color: "border-pink-500/10 hover:border-pink-500/20 bg-pink-950/5"
-    }
-  ];
+// GH#552 (Fase 3) — benchmark de mercado para apps utilitários brasileiros
+// (ver conhecimento de domínio do Felipe / persona): D1 saudável 25-40%,
+// abaixo de 20% é alerta; D7 aceitável 10-20%.
+function retentionVerdict(value: number | null, kind: "d1" | "d7"): MetricVerdict | undefined {
+  if (value == null) return undefined;
+  if (kind === "d1") {
+    if (value >= 25 && value <= 40) return "bom";
+    if (value > 40) return "excelente";
+    if (value >= 20) return "regular";
+    return "fraco";
+  }
+  if (value >= 10 && value <= 20) return "bom";
+  if (value > 20) return "excelente";
+  if (value >= 6) return "regular";
+  return "fraco";
+}
+
+function formatDuration(ms: number | null | undefined): string {
+  if (ms == null) return "—";
+  const totalSec = Math.round(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return min > 0 ? `${min}m ${sec}s` : `${sec}s`;
+}
+
+export const FeatureUsageGrid: React.FC<FeatureUsageGridProps> = ({ retention, sessionDuration }) => {
+  const cohort = retention[0];
+  const d1 = cohort?.day1 ?? null;
+  const d7 = cohort?.day7 ?? null;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 select-none">
-      {cards.map((card, i) => (
-        <div 
-          key={i} 
-          className={`relative border rounded-[8px] p-4 flex flex-col justify-between overflow-hidden transition-all duration-200 ${card.color}`}
-        >
-          {/* Subtle grid bg effect */}
-          <div className="absolute -top-6 -right-6 w-16 h-16 bg-white/[0.01] rounded-full filter blur-md pointer-events-none" />
-          
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider">
-              {card.title}
-            </span>
-            {card.icon}
-          </div>
-          
-          <div>
-            <div className="text-base font-bold text-white tracking-tight">{card.value}</div>
-            <div className="text-[10px] font-mono text-zinc-400/90 mt-0.5">{card.sub}</div>
-          </div>
-        </div>
-      ))}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {d1 != null ? (
+        <MetricCard
+          label="Retenção D1"
+          value={`${d1.toFixed(0)}%`}
+          verdict={retentionVerdict(d1, "d1")}
+          verdictNote="referência de mercado: 25-40%"
+          id="product-grid-metric-d1"
+        />
+      ) : (
+        <FeatureComingSoon feature="Retenção D1" reason="Cohort ainda sem dispositivos com 1 dia de histórico" compact />
+      )}
+
+      {d7 != null ? (
+        <MetricCard
+          label="Retenção D7"
+          value={`${d7.toFixed(0)}%`}
+          verdict={retentionVerdict(d7, "d7")}
+          verdictNote="referência de mercado: 10-20%"
+          id="product-grid-metric-d7"
+        />
+      ) : (
+        <FeatureComingSoon feature="Retenção D7" reason="Cohort ainda sem dispositivos com 7 dias de histórico" compact />
+      )}
+
+      <MetricCard
+        label="Duração média de sessão"
+        value={formatDuration(sessionDuration?.avgDurationMs)}
+        id="product-grid-metric-session-duration"
+      />
+
+      <MetricCard
+        label="Sessões no período"
+        value={sessionDuration?.sessionCount ?? 0}
+        id="product-grid-metric-session-count"
+      />
     </div>
   );
 };

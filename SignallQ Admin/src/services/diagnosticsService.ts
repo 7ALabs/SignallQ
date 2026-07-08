@@ -1,5 +1,5 @@
 import { apiClient } from "./apiClient";
-import { mockDiagnosticSessions, mockDiagnosticsSummary, mockAggregateData, mockIssueDetailsMap, IssueDetail, mockDiagnosticIntelligence, IntelligenceItem } from "../mocks/diagnostics.mock";
+import { mockDiagnosticSessions, mockDiagnosticsSummary, mockAggregateData } from "../mocks/diagnostics.mock";
 import { DiagnosticSession, DiagnosticsSummary, AggregateRow, DataPlatform } from "../types/diagnostics";
 import { DashboardFilters } from "./adminMetricsService";
 
@@ -193,17 +193,6 @@ export const diagnosticsService = {
       }));
     }
     return data;
-  },
-
-  async getDiagnosticIntelligence(_filters: DashboardFilters = {}): Promise<IntelligenceItem[]> {
-    if (!apiClient.isMockEnabled()) return [];
-    return apiClient.simulateFetch(mockDiagnosticIntelligence, _filters);
-  },
-
-  async getIssueDetail(issueName: string): Promise<IssueDetail | null> {
-    if (!apiClient.isMockEnabled()) return null;
-    await new Promise(resolve => setTimeout(resolve, 60));
-    return mockIssueDetailsMap[issueName] ?? null;
   },
 
   async triggerReDiagnosis(sessionId: string): Promise<{ success: boolean; message: string; data?: any }> {

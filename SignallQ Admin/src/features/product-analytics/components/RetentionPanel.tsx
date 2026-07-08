@@ -21,16 +21,17 @@ const formatDuration = (ms: number | null | undefined): string => {
 export const RetentionPanel: React.FC<RetentionPanelProps> = ({ metrics, sessionDuration }) => {
   const m = metrics[0];
 
+  // GH#552 (Fase 3) — D1/D7 já aparecem como KPI no topo da tela (com veredito
+  // de mercado); aqui fica só o que não é redundante: D30, duração de sessão e
+  // o proxy de inatividade do cohort.
   const rates = [
-    { label: "Retenção D1", val: pct(m?.day1), desc: "Retorno no dia seguinte ao primeiro evento" },
-    { label: "Retenção D7", val: pct(m?.day7), desc: "Retorno na primeira semana" },
     { label: "Retenção D30", val: pct(m?.day30), desc: "Retorno no primeiro mês" },
     { label: "Tempo Médio de Sessão", val: formatDuration(sessionDuration?.avgDurationMs), desc: `${sessionDuration?.sessionCount ?? 0} sessões no período` }
   ];
 
   return (
     <SectionCard
-      title="Retenção de Usuários & Tempo de Sessão"
+      title="Contexto do cohort de retenção"
       description="Coorte de dispositivos por primeiro evento visto (device_id anônimo) e duração média de sessão."
     >
       <div className="space-y-6">
@@ -43,7 +44,7 @@ export const RetentionPanel: React.FC<RetentionPanelProps> = ({ metrics, session
           </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {rates.map((rate, i) => (
             <div key={i} className="p-4 bg-zinc-950/40 border border-zinc-900 rounded-xl flex flex-col justify-between">
               <span className="text-[10px] font-sans uppercase text-[var(--text-tertiary)] tracking-wider font-semibold">{rate.label}</span>

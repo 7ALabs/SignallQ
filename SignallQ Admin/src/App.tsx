@@ -172,7 +172,7 @@ export default function App() {
         };
       case "/product-analytics":
         return {
-          title: "Produto & Uso",
+          title: "As pessoas estão usando o app como esperado?",
           description: "Monitore o engajamento de features, navegação, retenção, métricas de performance e monetização futura.",
           dataSource: "D1 (analytics_events) via signallq-admin-worker — ingest Android pendente (GH#417)",
           badge: (
@@ -190,8 +190,8 @@ export default function App() {
         };
       case "/diagnostics":
         return {
-          title: "Sessões de Diagnósticos",
-          description: "Pesquise por logs brutos, meça o bufferbloat local e emita diagnósticos preditivos baseados em IA.",
+          title: "O que os usuários estão medindo?",
+          description: "Volume e composição dos diagnósticos por tipo de rede, com drill-down por sessão individual.",
           dataSource: "D1 (diagnostic_sessions) via signallq-admin-worker",
           badge: (
             <span
@@ -218,8 +218,8 @@ export default function App() {
         };
       case "/ai-cost":
         return {
-          title: "IA & Custo de Telemetria",
-          description: "Demonstrativos de tokens processados, custos previstos da API do Gemini e tempos médios de resposta de pareceres.",
+          title: "A IA está entregando valor com custo controlado?",
+          description: "Custo por provider, latência, taxa de fallback e falha, com auditoria de sessões outlier.",
           dataSource: "D1 (ai_usage) via signallq-admin-worker",
           badge: null,
         };
@@ -250,7 +250,7 @@ export default function App() {
         };
       case "/system-health":
         return {
-          title: "Saúde do Sistema",
+          title: "A infraestrutura está funcionando?",
           description: "Status dos Workers Cloudflare, D1 Database e alertas de threshold para crash rate e custo de IA.",
           dataSource: "D1 + Firebase + BigQuery — checagem de conectividade via signallq-admin-worker",
           badge: (
@@ -343,6 +343,7 @@ export default function App() {
           environment={environment}
           period={period}
           triggerRefreshCounter={refreshCounter}
+          onNavigate={handleNavigate}
         />
       )}
       {currentPath === "/diagnostics" && (
@@ -352,6 +353,7 @@ export default function App() {
           onEnvironmentChange={handleEnvironmentChange}
           onPeriodChange={handlePeriodChange}
           triggerRefreshCounter={refreshCounter}
+          onNavigate={handleNavigate}
         />
       )}
       {/* GH#552 (Fase 2): "/operators" fundido em "/networks" — mesmo componente
@@ -369,6 +371,7 @@ export default function App() {
           environment={environment}
           period={period}
           triggerRefreshCounter={refreshCounter}
+          onNavigate={handleNavigate}
         />
       )}
       {currentPath === "/errors" && (
@@ -392,6 +395,7 @@ export default function App() {
           environment={environment}
           period={period}
           triggerRefreshCounter={refreshCounter}
+          onNavigate={handleNavigate}
         />
       )}
       {/* GH#552 (Fase 2): "/feature-flags" fundido em "/settings" — mesmo componente

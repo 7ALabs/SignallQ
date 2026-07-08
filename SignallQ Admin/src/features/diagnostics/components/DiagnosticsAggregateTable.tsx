@@ -9,13 +9,22 @@ import { AppEnvironment } from "../../../types/admin";
 interface DiagnosticsAggregateTableProps {
   environment: AppEnvironment;
   period?: string;
+  /** GH#552 (Fase 3) — quando a tela-mãe já buscou a agregação (para o gráfico
+   * principal), passa os dados prontos aqui em vez de duplicar o fetch. */
+  data?: AggregateRow[];
 }
 
-export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps> = ({ environment, period }) => {
-  const [data, setData] = React.useState<AggregateRow[]>([]);
-  const [loading, setLoading] = React.useState(true);
+export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps> = ({ environment, period, data: externalData }) => {
+  const [data, setData] = React.useState<AggregateRow[]>(externalData ?? []);
+  const [loading, setLoading] = React.useState(externalData === undefined);
 
   React.useEffect(() => {
+    if (externalData !== undefined) {
+      setData(externalData);
+      setLoading(false);
+      return;
+    }
+
     let active = true;
     const fetchAggregate = async () => {
       setLoading(true);
@@ -37,7 +46,7 @@ export const DiagnosticsAggregateTable: React.FC<DiagnosticsAggregateTableProps>
     return () => {
       active = false;
     };
-  }, [environment, period]);
+  }, [environment, period, externalData]);
 
   const columns = [
     {

@@ -8,6 +8,7 @@ interface DiagnosticsTabProps {
   onEnvironmentChange: (env: AppEnvironment) => void;
   onPeriodChange: (p: string) => void;
   triggerRefreshCounter: number;
+  onNavigate?: (path: string) => void;
 }
 
 export const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({
@@ -16,12 +17,14 @@ export const DiagnosticsTab: React.FC<DiagnosticsTabProps> = ({
   onEnvironmentChange,
   onPeriodChange,
   triggerRefreshCounter,
+  onNavigate,
 }) => {
   return (
     <DiagnosticsPage
       environment={environment}
       period={period}
       triggerRefreshCounter={triggerRefreshCounter}
+      onNavigate={onNavigate}
     />
   );
 };

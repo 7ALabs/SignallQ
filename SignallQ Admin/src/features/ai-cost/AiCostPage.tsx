@@ -4,13 +4,15 @@ import { alpha } from "../../utils/color";
 import { AiCostMetricGrid } from "./components/AiCostMetricGrid";
 import { ProviderCostTable } from "./components/ProviderCostTable";
 import { AiCostTimeline } from "./components/AiCostTimeline";
-import { ProviderUsageChart } from "./components/ProviderUsageChart";
 import { AiAlertsPanel } from "./components/AiAlertsPanel";
 import { DataTable } from "../../components/ui/DataTable";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
+import { InsightBlock } from "../../components/ui/InsightBlock";
+import { ActionsRow } from "../../components/ui/ActionsRow";
+import { GlobalFilters } from "../../components/ui/GlobalFilters";
 import { AppEnvironment } from "../../types/admin";
 import { AiModelInsights, AiUsageRecord, AiDailyUsage } from "../../types/ai";
 import { Bot, RefreshCw } from "lucide-react";
@@ -19,12 +21,14 @@ interface AiCostPageProps {
   environment: AppEnvironment;
   period: string;
   triggerRefreshCounter: number;
+  onNavigate?: (path: string) => void;
 }
 
 export const AiCostPage: React.FC<AiCostPageProps> = ({
   environment,
   period,
   triggerRefreshCounter,
+  onNavigate,
 }) => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -32,21 +36,25 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
   const [modelInsights, setModelInsights] = React.useState<AiModelInsights[]>([]);
   const [timelineData, setTimelineData] = React.useState<AiDailyUsage[]>([]);
   const [records, setRecords] = React.useState<AiUsageRecord[]>([]);
+  const [costSummary, setCostSummary] = React.useState<{ totalCostUsd: string; reliabilityPercentage: number | null } | null>(null);
+  const [providerFilter, setProviderFilter] = React.useState("all");
 
   const loadAiStats = React.useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const filters = { environment, period };
-      const [insights, dailyCosts, logs] = await Promise.all([
+      const [insights, dailyCosts, logs, summary] = await Promise.all([
         aiUsageService.getAiUsageMetrics(filters),
         aiUsageService.getAiUsageTimeSeries(filters),
         aiUsageService.getAiUsageRecords(filters),
+        aiUsageService.getAiCostSummary(filters),
       ]);
 
       setModelInsights(insights ?? []);
       setTimelineData(dailyCosts);
       setRecords(logs);
+      setCostSummary(summary);
     } catch (e: any) {
       console.error("Failed to sync AI usage insights", e);
       const code = e?.code;
@@ -65,6 +73,54 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
     await new Promise((resolve) => setTimeout(resolve, 300));
     await loadAiStats();
     setIsRefreshing(false);
+  };
+
+  const providerOptions = React.useMemo(() => {
+    const names = Array.from(new Set(modelInsights.map((m) => m.displayName || m.provider)));
+    return [{ label: "Todos", value: "all" }, ...names.map((n) => ({ label: n, value: n }))];
+  }, [modelInsights]);
+
+  const filteredRecords = React.useMemo(() => {
+    if (providerFilter === "all") return records;
+    return records.filter((r) => r.provider === providerFilter);
+  }, [records, providerFilter]);
+
+  // GH#552 (Fase 3) — bloco de explicação: variação de fallback entre os dois
+  // provedores presentes na timeline (últimos dois dias com dado), sem inventar
+  // tendência além do que a série já carregada mostra.
+  const insightText = React.useMemo(() => {
+    if (timelineData.length < 2) return null;
+    const last = timelineData[timelineData.length - 1];
+    const prev = timelineData[timelineData.length - 2];
+    const fallbackKey = Object.keys(last.byProvider).find((k) => !k.toLowerCase().includes("gemini"));
+    if (!fallbackKey) return null;
+    const lastVal = last.byProvider[fallbackKey] ?? 0;
+    const prevVal = prev.byProvider[fallbackKey] ?? 0;
+    const lastTotal = Object.values(last.byProvider).reduce((s, v) => s + v, 0);
+    const prevTotal = Object.values(prev.byProvider).reduce((s, v) => s + v, 0);
+    const lastShare = lastTotal > 0 ? (lastVal / lastTotal) * 100 : 0;
+    const prevShare = prevTotal > 0 ? (prevVal / prevTotal) * 100 : 0;
+    if (Math.abs(lastShare - prevShare) < 1) return null;
+    const direction = lastShare > prevShare ? "subiu" : "caiu";
+    return `Uso de "${fallbackKey}" ${direction} de ${prevShare.toFixed(0)}% para ${lastShare.toFixed(0)}% do volume diário — ${
+      lastShare > prevShare
+        ? "vale monitorar se é instabilidade momentânea do provider primário."
+        : "provider primário voltou a concentrar a maior parte das chamadas."
+    }`;
+  }, [timelineData]);
+
+  const handleExportCostReport = () => {
+    const header = "Provider,Modelo,Chamadas,Tokens,Custo (USD),Confiabilidade\r\n";
+    const rows = modelInsights
+      .map((m) => [m.provider, m.displayName, m.totalCalls, m.totalTokens, m.estimatedCostUsd.toFixed(4), m.reliabilityPercentage ?? ""].join(","))
+      .join("\r\n");
+    const csvContent = `data:text/csv;charset=utf-8,${header}${rows}`;
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `signallq_custo_ia_${environment}_${period}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const tableColumns = [
@@ -186,9 +242,9 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* 1. Metric card triggers row */}
+      {/* 1. Toolbar de sincronismo + filtro por provider */}
       <div
-        className="flex justify-between items-center rounded-[8px] p-4 select-none"
+        className="flex flex-wrap justify-between items-center gap-3 rounded-[8px] p-4 select-none"
         style={{
           backgroundColor: "var(--sq-bg-card)",
           border: "1px solid var(--sq-border)",
@@ -223,19 +279,23 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
         </button>
       </div>
 
-      <AiCostMetricGrid environment={environment} period={period} />
+      <GlobalFilters
+        id="ai-cost-global-filters"
+        filters={[
+          { key: "provider", label: "Provider", value: providerFilter, onChange: setProviderFilter, options: providerOptions },
+        ]}
+      />
 
-      {/* 2. Visual graphs section area */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <AiCostTimeline timelineData={timelineData} />
-        </div>
-        <div>
-          <ProviderUsageChart insights={modelInsights} />
-        </div>
-      </div>
+      {/* 2. KPIs — 4 cards, com veredito humano (GH#552 Fase 3, substitui grid de 7) */}
+      <AiCostMetricGrid costSummary={costSummary} modelInsights={modelInsights} />
 
-      {/* 3. Splitted operational details - Costs and alerts */}
+      {/* 3. Gráfico principal — custo/volume diário por provider */}
+      <AiCostTimeline timelineData={timelineData} />
+
+      {/* 4. Bloco de explicação */}
+      {insightText && <InsightBlock id="ai-cost-insight-block">{insightText}</InsightBlock>}
+
+      {/* 5. Tabela de investigação — custo por provider + alertas de orçamento */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8">
           <ProviderCostTable insights={modelInsights} />
@@ -245,7 +305,9 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
         </div>
       </div>
 
-      {/* 4. Demonstrativo por Função */}
+      {/* Faturamento por função pedido pelo wireframe não tem rota de breakdown
+          por feature no worker (session_id de ai_usage e de analytics_events
+          não são a mesma entidade hoje — gap documentado em data-architecture.md) */}
       <SectionCard
         title="Faturamento e Consumo IA por Função"
         description="Mapeamento econômico de processamento de tokens por finalidade de IA e as devidas contingências."
@@ -256,19 +318,28 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
         />
       </SectionCard>
 
-      {/* 5. Fine-grained execution logging table */}
+      {/* Auditoria de sessão — outlier de tokens/custo, filtrável por provider */}
       <SectionCard
         title="Histórico de Varreduras e Execuções Síncronas"
-        description="Faturamento granular e latências apuradas a cada laudo gerado nas interfaces móveis."
+        description="Faturamento granular apurado a cada laudo gerado nas interfaces móveis. Latência por execução não disponível (schema ai_usage não registra tempo de resposta)."
       >
         <DataTable
-          data={records}
+          data={filteredRecords}
           columns={tableColumns}
           keyExtractor={(row) => row.id}
           emptyMessage="Nenhuma transação efetuada neste período."
           id="ai-fine-grained-table"
         />
       </SectionCard>
+
+      {/* 6. Ações */}
+      <ActionsRow
+        id="ai-cost-actions-row"
+        actions={[
+          { label: "Exportar relatório de custo", onClick: handleExportCostReport, variant: "secondary" },
+          ...(onNavigate ? [{ label: "Ver Diagnósticos", onClick: () => onNavigate("/diagnostics") }] : []),
+        ]}
+      />
     </div>
   );
 };
