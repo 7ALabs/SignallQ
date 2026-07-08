@@ -272,6 +272,7 @@ fun HomeScreen(
                 gateway = gw,
                 connectedNetwork = if (gw.ip == null && gw.type == ConnectionNodeType.WifiRouter) null else connectedNetwork,
                 c = c,
+                linkSpeedMbps = linkSpeedMbps,
             )
         }
     }
@@ -324,12 +325,14 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                modifier = Modifier.graphicsLayer { alpha = topBarAlpha },
                 title = {
                     val estaConectado =
                         snapshotRede.estadoConexao == EstadoConexao.wifi ||
                             snapshotRede.estadoConexao == EstadoConexao.movel
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.graphicsLayer { alpha = topBarAlpha },
+                    ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Outlined.Home,
@@ -359,6 +362,7 @@ fun HomeScreen(
                         nomeUsuario = nomeUsuario,
                         fotoUri = fotoUriUsuario,
                         onClick = onAbrirPerfil,
+                        modifier = Modifier.graphicsLayer { alpha = topBarAlpha },
                     )
                 },
                 colors =
@@ -827,24 +831,24 @@ private fun MiniCard(
         color = c.bgCard,
         border = androidx.compose.foundation.BorderStroke(1.dp, c.border),
     ) {
-        Column(
-            modifier = Modifier.padding(vertical = LkSpacing.md, horizontal = LkSpacing.sm),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+        Row(
+            modifier = Modifier.padding(vertical = LkSpacing.sm, horizontal = LkSpacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
                 tint = LkColors.accent,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(18.dp),
             )
             Text(
                 label,
-                style = MaterialTheme.typography.labelMedium,
+                style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.W600,
                 color = c.textPrimary,
                 textAlign = TextAlign.Center,
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
@@ -902,7 +906,7 @@ private fun NetworkPath(
                 label = deviceName,
                 subLabel =
                     when {
-                        localIp != null -> localIp
+                        localIp != null -> stringResource(R.string.home_network_conectado)
                         isConectado -> stringResource(R.string.home_network_buscando)
                         else -> stringResource(R.string.home_network_desconectado)
                     },
@@ -934,8 +938,10 @@ private fun NetworkPath(
                     if (isMobileNode && gw.ip == null) {
                         val tec = movelSnapshot?.tecnologia?.ifBlank { null }
                         if (tec != null) "Rede móvel · $tec" else "Rede móvel"
+                    } else if (gw.ip != null) {
+                        stringResource(R.string.home_network_conectado)
                     } else {
-                        gw.ip ?: "—"
+                        "—"
                     }
                 PathNode(
                     icon = icon,
@@ -964,13 +970,16 @@ private fun NetworkPath(
                         ?: "Internet"
                 }
             val internetSubLabel =
-                ispInfo?.ip ?: publicIp
-                    ?: when {
+                if ((ispInfo?.ip ?: publicIp) != null) {
+                    stringResource(R.string.home_network_conectado)
+                } else {
+                    when {
                         hasInternetError -> stringResource(R.string.home_network_sem_conexao)
                         isIspInfoLoading -> stringResource(R.string.home_network_conectando)
                         // #220: "—" substituído por texto útil quando IP público não está disponível
                         else -> "IP indisponível"
                     }
+                }
             val internetSubColor: Color? =
                 when {
                     hasInternetError -> LkColors.error
@@ -1201,6 +1210,22 @@ private fun LastResultHero(
     }
 }
 
+/**
+ * Faixas absolutas de qualidade de velocidade, sem relacao ao plano contratado do
+ * usuario (veredito relativo ao plano fica para outra issue — ver SIG referente ao
+ * wiring de velocidadeContratadaDownMbps/UpMbps). Mesmos limiares ja usados em
+ * ScoreEvidenceBuilder.velocidade() (:featureDiagnostico), duplicados aqui de proposito
+ * para nao acoplar a tela Home ao motor de diagnostico so por causa de um rotulo.
+ */
+private fun veredictoVelocidade(mbps: Double): Pair<String, Color> =
+    when {
+        mbps >= 100.0 -> "Excelente" to LkColors.success
+        mbps >= 50.0 -> "Bom" to LkColors.success
+        mbps >= 25.0 -> "Regular" to LkColors.warning
+        mbps >= 10.0 -> "Fraco" to LkColors.error
+        else -> "Fraco" to LkColors.error
+    }
+
 @Composable
 private fun HeroSpeed(
     arrow: String,
@@ -1211,6 +1236,7 @@ private fun HeroSpeed(
     modifier: Modifier = Modifier,
 ) {
     val formatted = if (value >= 100) value.toLong().toString() else "%.1f".format(value)
+    val (veredicto, veredictoColor) = veredictoVelocidade(value)
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
@@ -1237,7 +1263,15 @@ private fun HeroSpeed(
             )
         }
         Spacer(modifier = Modifier.height(LkSpacing.sm))
-        Text(label, style = MaterialTheme.typography.labelMedium, color = labelColor)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = labelColor)
+            Text(
+                "  ·  $veredicto",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.W600,
+                color = veredictoColor,
+            )
+        }
     }
 }
 
@@ -1272,8 +1306,8 @@ private fun MiniLineChart(
     modifier: Modifier,
     c: LkTokens,
 ) {
-    val accent = LkColors.accent
-    val success = LkColors.success
+    val phaseDownload = LkColors.phaseDownload
+    val phaseUpload = LkColors.phaseUpload
     Canvas(modifier = modifier) {
         val dlPairs = history.mapIndexedNotNull { i, p -> p.downloadMbps?.let { i.toFloat() to it.toFloat() } }
         val ulPairs = history.mapIndexedNotNull { i, p -> p.uploadMbps?.let { i.toFloat() to it.toFloat() } }
@@ -1308,8 +1342,8 @@ private fun MiniLineChart(
                     it.lineTo(toX(dlPairs.first().first), size.height)
                     it.close()
                 }
-            drawPath(fillPath, accent.copy(alpha = 0.1f))
-            drawPath(linePath, accent, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+            drawPath(fillPath, phaseDownload.copy(alpha = 0.1f))
+            drawPath(linePath, phaseDownload, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
         }
         if (ulPairs.isNotEmpty()) {
             val linePath = smoothPath(ulPairs)
@@ -1320,8 +1354,8 @@ private fun MiniLineChart(
                     it.lineTo(toX(ulPairs.first().first), size.height)
                     it.close()
                 }
-            drawPath(fillPath, success.copy(alpha = 0.07f))
-            drawPath(linePath, success, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+            drawPath(fillPath, phaseUpload.copy(alpha = 0.07f))
+            drawPath(linePath, phaseUpload, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
         }
     }
 }
@@ -1454,8 +1488,6 @@ private fun WifiSignalCard(
     val ssidResolvido = connectedNetwork?.ssid ?: snapshotRede.wifiLinkSnapshot?.ssid
     val ssid = ssidResolvido ?: "Wi-Fi"
     val freqMhz = connectedNetwork?.frequenciaMhz ?: snapshotRede.wifiLinkSnapshot?.frequenciaMhz
-    val wifiLinkSpeed = snapshotRede.wifiLinkSnapshot?.linkSpeedMbps
-    val canal = freqMhz?.let { freqToChannel(it) }?.takeIf { it > 0 }
     val localizacaoDesligada = ssidResolvido == null && !snapshotRede.locationAtivado
 
     val iconColor =
@@ -1546,32 +1578,28 @@ private fun WifiSignalCard(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        val linha2 =
-                            buildList {
-                                wifiRssi?.let { add("RSSI $it dBm") }
-                                canal?.let { add("Canal $it") }
-                                wifiLinkSpeed?.let { add("$it Mbps") }
-                            }.joinToString(" · ")
-                        if (linha2.isNotEmpty()) {
-                            Text(
-                                linha2,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = c.textSecondary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                        if (wifiRssi != null) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "RSSI $wifiRssi dBm",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = c.textSecondary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text("  ·  ", style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
+                                Text(
+                                    wifiSignalQuality(wifiRssi),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.W600,
+                                    color = iconColor,
+                                )
+                            }
                         }
                     }
                 }
                 if (wifiRssi != null && wifiPct != null) {
                     MiniSignalBars(pct = wifiPct, color = iconColor)
-                    Spacer(Modifier.width(LkSpacing.sm))
-                    Text(
-                        wifiSignalQuality(wifiRssi),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.W600,
-                        color = iconColor,
-                    )
                 }
             }
             if (!localizacaoDesligada && connectedNetwork != null) {
@@ -1722,33 +1750,29 @@ private fun MobileSignalCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                val infoItems =
-                    buildList {
-                        rsrp?.let { add("RSRP $it dBm") }
-                        movelSnapshot.operadora?.takeIf { it.isNotBlank() }?.let { add(it) }
-                        tec?.let { add(it) }
-                    }.joinToString(" · ")
-                if (infoItems.isNotEmpty()) {
-                    Text(
-                        infoItems,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.textSecondary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                if (rsrp != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "RSRP $rsrp dBm",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = c.textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text("  ·  ", style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
+                        Text(
+                            mobileSignalQuality(rsrp),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.W600,
+                            color = mobileColor,
+                        )
+                    }
                 }
             }
             if (rsrp != null) {
                 val mobilePct = ((rsrp + 140) / 96.0).coerceIn(0.0, 1.0) * 100
                 MiniSignalBars(pct = mobilePct.roundToInt(), color = mobileColor)
-                Spacer(Modifier.width(LkSpacing.sm))
             }
-            Text(
-                mobileSignalQuality(rsrp),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.W600,
-                color = mobileColor,
-            )
         }
     }
 }
@@ -2360,6 +2384,7 @@ private fun GatewayInfoSheet(
     gateway: GatewayInfo,
     connectedNetwork: RedeVizinha?,
     c: LkTokens,
+    linkSpeedMbps: Int? = null,
 ) {
     val typeLabel =
         when (gateway.type) {
@@ -2393,6 +2418,9 @@ private fun GatewayInfoSheet(
             }
             SheetInfoRow("Sinal", "${net.rssiDbm} dBm", c)
             SheetInfoRow("Banda", freqDisplay(net.frequenciaMhz), c)
+        }
+        if (!isMeshOrExtensor) {
+            linkSpeedMbps?.let { SheetInfoRow("Velocidade do link", "$it Mbps", c) }
         }
         connectedNetwork?.canal?.let { SheetInfoRow("Canal", "$it", c) }
         connectedNetwork?.larguraCanalMhz?.let { SheetInfoRow("Largura de canal", "$it MHz", c) }

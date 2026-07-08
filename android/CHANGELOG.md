@@ -11,6 +11,32 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ## [Não lançado]
 
+## [0.24.1] — 2026-07-05
+
+### Corrigido
+- Card "Análise por IA" no resultado do speedtest agora exibe as ações recomendadas (até 2, priorizadas) além do diagnóstico — antes só mostrava o texto de leitura/causa provável, sem a ação prática que a IA já retornava (#498)
+
+## [0.24.0] — 2026-07-05
+
+### Corrigido
+- Número de WhatsApp da TIM inválido na tela de contato da operadora (#485, #486)
+- Cor semântica real nos cards de resultado do speedtest — Download/Upload/Latência agora refletem a severidade medida em vez de cor fixa, tanto no resultado detalhado quanto no card "Último resultado" (#490, #497)
+- Metadado técnico cru (Banda/RSSI/Canal/BSSID) removido da lista principal de redes Wi-Fi, substituído por veredito humano; detalhe técnico continua disponível no sheet (#491)
+- `UptimeGridChart` (grid de uptime de 7 dias) nunca era renderizado na tela Histórico apesar do dado já existir — bug funcional corrigido (#495)
+- Exportação de histórico agora respeita o filtro de conexão/operadora ativo em vez de sempre exportar tudo (#495)
+- Ação destrutiva (apagar dados locais/resetar app) na tela de Privacidade agora exige confirmação, igual ao resto do app (#496)
+- Cancelar um teste de velocidade em andamento agora sempre pede confirmação, pelo botão ou pelo gesto de voltar (#493)
+
+### Alterado
+- Veredito de qualidade (Excelente/Bom/Regular/Fraco) ao lado de Download/Upload na Home (#489)
+- Alerta de canal Wi-Fi congestionado e recomendação de troca de canal na tela Sinal (#491)
+- Três pontos de "apagar/limpar/resetar dados" consolidados num único destino, com ações escalonadas por gravidade (#496)
+- "Minha conexão" migrou de tela cheia para bottom sheet, no mesmo padrão do Perfil (#496)
+- Jargão técnico traduzido (Bufferbloat com veredito, badge de IA autoexplicativo, "Contaminado" → "Pode não ser confiável") no Histórico (#495, #497)
+
+### Documentação
+- `PRODUCT.md` e `DESIGN.md` adicionados na raiz do repo, formalizando o design system em complemento à skill `linka-design`
+
 ## [0.23.0] — 2026-07-05
 
 ### Adicionado

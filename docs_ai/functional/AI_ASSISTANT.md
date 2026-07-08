@@ -29,7 +29,7 @@ O `SignallQOrchestrator` executa um pipeline multi-turno de diagnóstico:
 4. Exibe resultado estruturado com chips de follow-up
 5. Máx. 5 turnos; detecção de off-topic ativa
 
-**Modelo padrão:** Qwen3 30B  
+**Modelo padrão:** Gemini 2.0 Flash (primário, quando `GEMINI_API_KEY` configurada) / Qwen3 30B (fallback cloud)  
 **Fallback:** `AiFallbackFactory` — diagnóstico local sem IA se o Worker falhar  
 **API:** Worker Cloudflare (URL em `AiDiagnosisRepository`)
 

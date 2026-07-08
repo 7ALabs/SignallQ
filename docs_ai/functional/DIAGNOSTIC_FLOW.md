@@ -117,7 +117,7 @@ SignallQScreen → SignallQOrchestrator
     ├── Speedtest silencioso (sem abrir VelocidadeScreen)
     ├── Monta payload DiagnosisAiContext (schema v3)
     └── Envia ao Worker Cloudflare
-        └── Qwen3 30B (padrão) / fallback local
+        └── Gemini 2.0 Flash (primário) / Qwen3 30B (fallback cloud) / fallback local
             └── AiDiagnosisResult (JSON)
                 └── SignallQScreen exibe resposta em markdown
 ```

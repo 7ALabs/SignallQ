@@ -78,11 +78,13 @@ object NamingPrioridade {
      * arquivo e em [ScannerDispositivosAndroid] linha do enriquecimento final.
      *
      * Usa apenas o fabricante já inferido via OUI do MAC — quando disponível,
-     * "Dispositivo <Fabricante>" (ex.: "Dispositivo Samsung"); sem fabricante, "Dispositivo".
+     * "Dispositivo <Fabricante>" (ex.: "Dispositivo Samsung"); sem fabricante,
+     * "Dispositivo desconhecido" (issue #219 — usuário leigo precisa de um rótulo que
+     * comunique "não identificado", não um "Dispositivo" seco que soa como nome próprio).
      */
     fun rotuloFallbackGenerico(fabricante: String?): String {
         val f = fabricante?.takeIf { it.isNotBlank() }
-        return if (f != null) "Dispositivo $f" else "Dispositivo"
+        return if (f != null) "Dispositivo $f" else "Dispositivo desconhecido"
     }
 
     /** [android.os.Build.MANUFACTURER] vem em lowercase (ex: "samsung") — capitaliza para exibição. */

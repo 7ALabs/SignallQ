@@ -17,6 +17,13 @@ import androidx.compose.ui.unit.sp
 
 object LkColors {
     val accent = Color(0xFF6C2BFF)
+
+    // Variante clara do accent p/ TEXTO/ÍCONE sobre superfícies escuras (dark
+    // theme ou fundo fixo SignallQ IA). accent puro sobre fundo escuro dá
+    // ~3.1:1 (falha WCAG AA); esta variante dá >=5:1 em #0D0D1A/#000000/#1E1130.
+    // Não usar como background — só como cor de texto/ícone.
+    val accentOnDark = Color(0xFF9B6BFF)
+
     val success = Color(0xFF22C55E)
     val warning = Color(0xFFF5A623)
     val error = Color(0xFFFF4D4F)

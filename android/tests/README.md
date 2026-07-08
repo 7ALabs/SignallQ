@@ -158,7 +158,7 @@ speedtest concluído).
   executado manualmente; ainda não há harness automatizado (ex.: Firebase App
   Testing / Espresso / Compose UI test) rodando em CI.
 - **Caminho da IA não exercitado fim a fim em CI.** A integração real com o
-  Worker Cloudflare (modelo padrão Qwen3 30B) e o fallback local são cobertos
+  Worker Cloudflare (Gemini 2.0 Flash primário, Qwen3 30B fallback cloud) e o fallback local são cobertos
   por testes unitários de repositório/factory, mas não por um teste de rede
   real automatizado. O fallback local deve ser validado manualmente
   (caso `diagnostico-ia-fallback`).

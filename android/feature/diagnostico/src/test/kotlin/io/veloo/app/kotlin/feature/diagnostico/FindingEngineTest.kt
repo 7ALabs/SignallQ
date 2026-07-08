@@ -169,6 +169,57 @@ class FindingEngineTest {
     }
 
     // -------------------------------------------------------------------------
+    // DECISAO-02/02b: mensagem varia por tipo de conexao (SIG-514)
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `DECISAO-02 em wifi fala de Wi-Fi e roteador`() {
+        val r = FindingEngine.analisar(
+            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+            connectionType = ConnectionType.wifi,
+        )
+
+        assertEquals("DECISAO-02", r.principal.id)
+        assertTrue(r.principal.mensagemUsuario.contains("Wi-Fi"))
+        assertTrue(r.principal.recomendacao!!.contains("roteador"))
+    }
+
+    @Test
+    fun `DECISAO-02 em rede movel nao fala de Wi-Fi nem roteador`() {
+        val r = FindingEngine.analisar(
+            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+            connectionType = ConnectionType.mobile,
+        )
+
+        assertEquals("DECISAO-02", r.principal.id)
+        assertTrue(
+            "mensagem em rede movel nao pode falar de Wi-Fi",
+            !r.principal.mensagemUsuario.contains("Wi-Fi"),
+        )
+        assertTrue(
+            "recomendacao em rede movel nao pode falar de roteador",
+            !r.principal.recomendacao!!.contains("roteador"),
+        )
+        assertTrue(r.principal.mensagemUsuario.contains("rede móvel"))
+        assertTrue(r.principal.recomendacao!!.contains("operadora"))
+    }
+
+    @Test
+    fun `DECISAO-02b em rede movel nao fala de Wi-Fi nem roteador`() {
+        val r = FindingEngine.analisar(
+            internetResultados = listOf(resultado("IN-ATENCAO", DiagnosticStatus.attention, "internet")),
+            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+            connectionType = ConnectionType.mobile,
+        )
+
+        assertEquals("DECISAO-02b", r.principal.id)
+        assertTrue(!r.principal.mensagemUsuario.contains("Wi-Fi"))
+        assertTrue(!r.principal.recomendacao!!.contains("roteador"))
+    }
+
+    // -------------------------------------------------------------------------
     // Dados ausentes
     // -------------------------------------------------------------------------
 

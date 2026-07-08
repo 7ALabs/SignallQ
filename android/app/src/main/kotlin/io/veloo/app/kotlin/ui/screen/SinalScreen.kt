@@ -36,6 +36,7 @@ import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.Cable
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.DeviceHub
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Hub
@@ -872,6 +873,39 @@ private fun RedesTab(
             }
         }
 
+    // Espectro do canal da rede conectada — mesma logica/engine do Tab Canal, usada
+    // aqui so para o alerta de congestionamento + recomendacao no card/sheet da rede.
+    val espectroConectado =
+        remember(snapshotWifi.redes, connectedNetwork) {
+            val canal = connectedNetwork?.canal ?: return@remember null
+            val redesMesmaBanda = snapshotWifi.redes.filter { it.banda == connectedNetwork.banda }
+            WifiChannelDiagnosticEngine.computarEspectro(
+                redes =
+                    redesMesmaBanda.map {
+                        RedeWifiVizinha(
+                            canal = it.canal,
+                            rssiDbm = it.rssiDbm,
+                            frequenciaMhz = it.frequenciaMhz,
+                            ssid = it.ssid,
+                            bssid = it.bssid,
+                        )
+                    },
+                canalAtual = canal,
+                banda = connectedNetwork.banda,
+                seuSSID = connectedNetwork.ssid,
+            )
+        }
+    val dadoCanalConectado =
+        remember(espectroConectado, connectedNetwork) {
+            espectroConectado?.dadosPorCanal?.find { it.canal == connectedNetwork?.canal }
+        }
+    val canalConectadoCongestionado = dadoCanalConectado?.nivel == NivelCongestionamento.congestionado
+    val canalRecomendadoConectado = espectroConectado?.canalRecomendado
+    val dadoCanalRecomendadoConectado =
+        remember(espectroConectado, canalRecomendadoConectado) {
+            espectroConectado?.dadosPorCanal?.find { it.canal == canalRecomendadoConectado }
+        }
+
     // Redes de outros SSIDs (exclui nós da mesma rede) — classificadas e agrupadas por SSID
     val otherClassificadas =
         remember(filteredRedes, connectedNetwork, filteredRedes.size) {
@@ -971,6 +1005,7 @@ private fun RedesTab(
                             onNoClick = { selectedNetwork = it },
                             wifiLinkSnapshot = wifiLinkSnapshot,
                             topologiaPorBssid = topologiaPorBssid,
+                            canalConectadoCongestionado = canalConectadoCongestionado,
                         )
                     }
                     Spacer(Modifier.height(LkSpacing.lg))
@@ -1085,13 +1120,19 @@ private fun RedesTab(
 
     val net = selectedNetwork
     if (net != null) {
+        val ehRedeConectada = net.bssid == connectedNetwork?.bssid
         ModalBottomSheet(
             onDismissRequest = { selectedNetwork = null },
             sheetState = sheetState,
             containerColor = c.bgCard,
             dragHandle = {},
         ) {
-            NetworkDetailSheet(rede = net)
+            NetworkDetailSheet(
+                rede = net,
+                canalCongestionado = ehRedeConectada && canalConectadoCongestionado,
+                canalRecomendado = if (ehRedeConectada) canalRecomendadoConectado else null,
+                nivelCanalRecomendado = if (ehRedeConectada) dadoCanalRecomendadoConectado?.nivel else null,
+            )
         }
     }
 }
@@ -1118,6 +1159,7 @@ private fun BandFilterRow(
     bands: List<String>,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
+    counts: Map<String, Int>? = null,
 ) {
     val c = LocalLkTokens.current
     Row(
@@ -1126,6 +1168,7 @@ private fun BandFilterRow(
     ) {
         bands.forEach { band ->
             val active = selected == band
+            val label = counts?.get(band)?.let { "$band ($it)" } ?: band
             Box(
                 modifier =
                     Modifier
@@ -1137,7 +1180,7 @@ private fun BandFilterRow(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    band,
+                    label,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = if (active) FontWeight.W600 else FontWeight.W500,
                     color = if (active) LkColors.accent else c.textSecondary,
@@ -1158,6 +1201,7 @@ private fun GrupoRedeTree(
     modifier: Modifier = Modifier,
     wifiLinkSnapshot: WifiLinkSnapshot? = null,
     topologiaPorBssid: Map<String, TipoTopologia> = emptyMap(),
+    canalConectadoCongestionado: Boolean = false,
 ) {
     val c = LocalLkTokens.current
     // Roteador dual-band único: mesmo OUI e cada banda aparecendo uma só vez
@@ -1264,6 +1308,7 @@ private fun GrupoRedeTree(
                 onClick = { onNoClick(no) },
                 wifiLinkSnapshot = if (isConnected) wifiLinkSnapshot else null,
                 tipoTopologia = topologiaPorBssid[no.bssid],
+                canalCongestionado = isConnected && canalConectadoCongestionado,
             )
         }
 
@@ -1289,6 +1334,7 @@ private fun NoTreeItem(
     onClick: () -> Unit,
     wifiLinkSnapshot: WifiLinkSnapshot? = null,
     tipoTopologia: TipoTopologia? = null,
+    canalCongestionado: Boolean = false,
 ) {
     val c = LocalLkTokens.current
     val lineColor = c.border
@@ -1342,14 +1388,6 @@ private fun NoTreeItem(
                         fontWeight = FontWeight.W600,
                         color = if (isConnected) LkColors.accent else c.textPrimary,
                     )
-                    Spacer(Modifier.width(4.dp))
-                    Text(
-                        "· ${rede.bssid.takeLast(8)}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = c.textTertiary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
                     if (isConnected) {
                         Spacer(Modifier.width(LkSpacing.sm))
                         Box(
@@ -1361,6 +1399,15 @@ private fun NoTreeItem(
                         ) {
                             Text("✓ Conectado", fontSize = 12.sp, fontWeight = FontWeight.W600, color = LkColors.success)
                         }
+                    }
+                    if (canalCongestionado) {
+                        Spacer(Modifier.width(LkSpacing.xs))
+                        Icon(
+                            imageVector = Icons.Outlined.Warning,
+                            contentDescription = "Canal congestionado",
+                            tint = LkColors.warning,
+                            modifier = Modifier.size(16.dp),
+                        )
                     }
                     val topologiaIcon = tipoTopologia?.toIconData()
                     if (topologiaIcon != null) {
@@ -1382,21 +1429,6 @@ private fun NoTreeItem(
                         color = signalColor(rede.rssiDbm, bandaVizinha),
                     )
                 }
-                // #177 — segunda linha: banda, RSSI, canal
-                val canalNo = rede.canal
-                val metaPartsNo =
-                    buildList {
-                        add("Banda: ${rede.banda}")
-                        add("RSSI: ${rede.rssiDbm} dBm")
-                        if (canalNo != null) add("Canal: $canalNo")
-                    }
-                Text(
-                    metaPartsNo.joinToString("  "),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = c.textTertiary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
                 if (wifiLinkSnapshot != null) {
                     val parts =
                         listOfNotNull(
@@ -1465,21 +1497,20 @@ private fun OtherNetworkGroupItem(
                             )
                         }
                     }
-                    // #177 — segunda linha: banda, RSSI, canal
-                    val canalSingle = rede.canal
-                    val metaPartsSingle =
-                        buildList {
-                            add("Banda: ${rede.banda}")
-                            add("RSSI: ${rede.rssiDbm} dBm")
-                            if (canalSingle != null) add("Canal: $canalSingle")
+                    val bandaSingle =
+                        when {
+                            rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
+                            else -> BandaWifi.ghz5
                         }
-                    Text(
-                        metaPartsSingle.joinToString("  "),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = c.textTertiary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(rede.banda, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+                        Text("  ·  ", style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
+                        Text(
+                            signalQuality(rede.rssiDbm, bandaSingle),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = signalColor(rede.rssiDbm, bandaSingle),
+                        )
+                    }
                 }
                 Spacer(Modifier.width(LkSpacing.sm))
                 Icon(
@@ -1558,75 +1589,31 @@ private fun OtherNetworkGroupItem(
                 SignalBars(rssiDbm = grupo.redes.maxOfOrNull { it.rede.rssiDbm } ?: 0, banda = bestBanda)
             }
 
-            // Expandido: lista de nós
+            // Expandido: resumo (não lista cada nó técnico -- ver # de pontos de acesso
+            // de uma rede de terceiros nao ajuda o usuario a decidir nada, so gera ruido)
             if (isExpanded) {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(start = LkSpacing.lg, top = LkSpacing.sm, bottom = LkSpacing.sm),
-                ) {
-                    grupo.redes.forEach { redeClass ->
-                        val rede = redeClass.rede
-                        val banda =
-                            when {
-                                rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
-                                else -> BandaWifi.ghz5
-                            }
-                        Row(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .minimumInteractiveComponentSize()
-                                    .clickable { onNetworkClick(rede) }
-                                    .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            val topologiaIcon = redeClass.tipo.toIconData()
-                            if (topologiaIcon != null) {
-                                Icon(
-                                    imageVector = topologiaIcon.icon,
-                                    contentDescription = null,
-                                    tint = topologiaIcon.cor,
-                                    modifier = Modifier.size(16.dp),
-                                )
-                            } else {
-                                Spacer(Modifier.width(16.dp))
-                            }
-                            Spacer(Modifier.width(LkSpacing.md))
-                            Column(Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        rede.bssid.takeLast(8),
-                                        fontWeight = FontWeight.W500,
-                                        color = c.textPrimary,
-                                        style = MaterialTheme.typography.bodySmall,
-                                    )
-                                }
-                                Text(
-                                    signalQuality(rede.rssiDbm, banda),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = signalColor(rede.rssiDbm, banda),
-                                )
-                                // #177 — segunda linha: banda, RSSI, canal
-                                val canalMulti = rede.canal
-                                val metaPartsMulti =
-                                    buildList {
-                                        add("Banda: ${rede.banda}")
-                                        add("RSSI: ${rede.rssiDbm} dBm")
-                                        if (canalMulti != null) add("Canal: $canalMulti")
-                                    }
-                                Text(
-                                    metaPartsMulti.joinToString("  "),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = c.textTertiary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            Spacer(Modifier.width(LkSpacing.sm))
-                            SignalBars(rssiDbm = rede.rssiDbm, banda = banda)
+                val melhorRede = grupo.redes.maxByOrNull { it.rede.rssiDbm }?.rede
+                if (melhorRede != null) {
+                    val bandaMelhor =
+                        when {
+                            melhorRede.frequenciaMhz < 3000 -> BandaWifi.ghz24
+                            else -> BandaWifi.ghz5
                         }
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(start = LkSpacing.lg, top = LkSpacing.sm, bottom = LkSpacing.sm),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(Icons.Outlined.DeviceHub, null, tint = c.textTertiary, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(LkSpacing.sm))
+                        Text(
+                            "Rede com ${grupo.redes.size} pontos de acesso · sinal mais forte: " +
+                                signalQuality(melhorRede.rssiDbm, bandaMelhor),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = c.textSecondary,
+                        )
                     }
                 }
             }
@@ -1792,7 +1779,12 @@ private fun EmptyStateBandaVazia(
 // ─── Network detail sheet ──────────────────────────────────────────────────────
 
 @Composable
-private fun NetworkDetailSheet(rede: RedeVizinha) {
+private fun NetworkDetailSheet(
+    rede: RedeVizinha,
+    canalCongestionado: Boolean = false,
+    canalRecomendado: Int? = null,
+    nivelCanalRecomendado: NivelCongestionamento? = null,
+) {
     val c = LocalLkTokens.current
     val ssid = rede.ssid
     val largura = rede.larguraCanalMhz
@@ -1844,6 +1836,86 @@ private fun NetworkDetailSheet(rede: RedeVizinha) {
         DetailRow("Segurança", securityLabel(rede.seguranca))
         HorizontalDivider(color = c.border, modifier = Modifier.padding(vertical = LkSpacing.sm))
         DetailRow("BSSID", rede.bssid)
+        Text(
+            "Identificador técnico do roteador — útil só se você for comparar com o painel de administração dele.",
+            style = MaterialTheme.typography.labelSmall,
+            color = c.textTertiary,
+            modifier = Modifier.padding(top = 2.dp),
+        )
+
+        if (canalCongestionado) {
+            Spacer(Modifier.height(LkSpacing.lg))
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(LkRadius.card))
+                        .border(1.dp, LkColors.warning.copy(alpha = 0.3f), RoundedCornerShape(LkRadius.card))
+                        .background(LkColors.warning.copy(alpha = 0.08f))
+                        .padding(LkSpacing.lg),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Warning,
+                    contentDescription = null,
+                    tint = LkColors.warning,
+                    modifier = Modifier.size(20.dp),
+                )
+                Column {
+                    Text(
+                        "Canal congestionado",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.W600,
+                        color = LkColors.warning,
+                    )
+                    Text(
+                        "Várias redes vizinhas dividem o canal ${rede.canal}.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.textSecondary,
+                    )
+                }
+            }
+
+            if (canalRecomendado != null &&
+                canalRecomendado != rede.canal &&
+                nivelCanalRecomendado != NivelCongestionamento.congestionado
+            ) {
+                Spacer(Modifier.height(LkSpacing.md))
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(LkRadius.card))
+                            .background(LkColors.accent.copy(alpha = 0.08f))
+                            .padding(LkSpacing.lg),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Wifi,
+                        contentDescription = null,
+                        tint = LkColors.accent,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(LkSpacing.md))
+                    Column {
+                        Text(
+                            "Troque de canal",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.W600,
+                            color = LkColors.accent,
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            "Mude para o canal $canalRecomendado no roteador — está mais livre agora.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = c.textSecondary,
+                        )
+                    }
+                }
+            }
+        }
+
         Spacer(Modifier.height(LkSpacing.xxl))
     }
 }
@@ -1945,6 +2017,9 @@ private fun CanalTab(
                         },
                         canalRecomendadoLivre = { canal, banda -> context.getString(R.string.canal_recomendado_livre, canal, banda) },
                         canalRecomendadoModerado = { canal, banda -> context.getString(R.string.canal_recomendado_moderado, canal, banda) },
+                        canalAtualLivreComAlternativa = { canalAtual, banda ->
+                            context.getString(R.string.canal_atual_livre_com_alternativa, canalAtual, banda)
+                        },
                         semDados = { context.getString(R.string.canal_sem_dados) },
                     ),
             )
@@ -1979,34 +2054,13 @@ private fun CanalTab(
     ) {
         if (bandasDisponiveis.isNotEmpty()) {
             item {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
-                    horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-                ) {
-                    bandasDisponiveis.forEach { banda ->
-                        val n = if (banda == "Todos") redes.size else (bandaCounts[banda] ?: 0)
-                        val active = selectedBanda == banda
-                        Box(
-                            modifier =
-                                Modifier
-                                    .clip(RoundedCornerShape(999.dp))
-                                    .background(if (active) LkColors.accent.copy(alpha = 0.12f) else c.bgSecondary)
-                                    .clickable { selectedBanda = banda }
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                "$banda ($n)",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = if (active) FontWeight.W600 else FontWeight.W500,
-                                color = if (active) LkColors.accent else c.textSecondary,
-                            )
-                        }
-                    }
-                }
+                BandFilterRow(
+                    selected = selectedBanda,
+                    bands = bandasDisponiveis,
+                    onSelect = { selectedBanda = it },
+                    counts = bandaCounts + ("Todos" to redes.size),
+                    modifier = Modifier.padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+                )
             }
         }
 
@@ -2017,6 +2071,16 @@ private fun CanalTab(
                 CanalCongestionadoBanner(dadoCanal = dadoCanalAtual)
                 Spacer(Modifier.height(LkSpacing.md))
             }
+        }
+
+        item {
+            Text(
+                textoExplicativo,
+                modifier = Modifier.padding(horizontal = LkSpacing.lg),
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.textSecondary,
+            )
+            Spacer(Modifier.height(LkSpacing.lg))
         }
 
         item {
@@ -2032,16 +2096,6 @@ private fun CanalTab(
             }
         }
 
-        item {
-            Text(
-                textoExplicativo,
-                modifier = Modifier.padding(horizontal = LkSpacing.lg),
-                style = MaterialTheme.typography.bodyMedium,
-                color = c.textSecondary,
-            )
-            Spacer(Modifier.height(LkSpacing.lg))
-        }
-
         if (mostrarAlertaBandSteering) {
             item {
                 BandSteeringCard()
@@ -2053,7 +2107,11 @@ private fun CanalTab(
         val canalRecParaCard = espectro.canalRecomendado
         val dadoCanalRec = espectro.dadosPorCanal.find { it.canal == canalRecParaCard }
         val nivelCanalRec = dadoCanalRec?.nivel
-        if (canalAtualParaCard != null && (canalRecParaCard == null || canalRecParaCard == canalAtualParaCard)) {
+        val dadoCanalAtualParaCard = espectro.dadosPorCanal.find { it.canal == canalAtualParaCard }
+        val canalAtualJaLivre = dadoCanalAtualParaCard?.nivel == NivelCongestionamento.livre
+        if (canalAtualParaCard != null &&
+            (canalRecParaCard == null || canalRecParaCard == canalAtualParaCard || canalAtualJaLivre)
+        ) {
             item {
                 Row(
                     modifier =
@@ -2084,6 +2142,7 @@ private fun CanalTab(
         if (canalAtualParaCard != null &&
             canalRecParaCard != null &&
             canalRecParaCard != canalAtualParaCard &&
+            !canalAtualJaLivre &&
             nivelCanalRec != NivelCongestionamento.congestionado
         ) {
             item {

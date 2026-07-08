@@ -7,17 +7,22 @@ allowed-tools: Read(*), Bash(*), PowerShell(*)
 ## Sistema de Design Atual (lido dos arquivos em tempo real)
 
 **SignallQTheme.kt — tokens vivos:**
-!`cat "C:/Projetos/SignallQ Android/app/src/main/kotlin/io/linka/app/kotlin/ui/SignallQTheme.kt"`
+!`cat "C:/Projetos/SignallQ/android/app/src/main/kotlin/io/veloo/app/kotlin/ui/SignallQTheme.kt"`
 
 **Componentes reutilizáveis disponíveis:**
-!`ls "C:/Projetos/SignallQ Android/app/src/main/kotlin/io/linka/app/kotlin/ui/component/" 2>/dev/null | grep ".kt" || echo "(diretório não encontrado)"`
+!`ls "C:/Projetos/SignallQ/android/app/src/main/kotlin/io/veloo/app/kotlin/ui/component/" 2>/dev/null | grep ".kt" || echo "(diretório não encontrado)"`
 
 **Telas existentes (referência de padrão):**
-!`ls "C:/Projetos/SignallQ Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/" 2>/dev/null | grep ".kt" || echo "(diretório não encontrado)"`
+!`ls "C:/Projetos/SignallQ/android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/" 2>/dev/null | grep ".kt" || echo "(diretório não encontrado)"`
 
 ---
 
 ## Regras do Design System SignallQ
+
+> Referência canônica e mais detalhada (mantida sob `docs_ai/design-system/`):
+> `COLORS.md`, `TYPOGRAPHY.md`, `SPACING.md`, `DESIGN_TOKENS.md`, `MD3_GUIDELINES.md`,
+> `COMPONENTS_ANDROID.md`. Em caso de divergência com o resumo abaixo, esses arquivos
+> ganham — eles são gerados a partir do código real (`SignallQTheme.kt`).
 
 ### Identidade da Marca
 - Nome do produto: **SignallQ** (identidade visual)
@@ -30,6 +35,7 @@ allowed-tools: Read(*), Bash(*), PowerShell(*)
 | Token | Valor | Uso |
 |-------|-------|-----|
 | `LkColors.accent` | `#6C2BFF` | Botões primários, estados ativos, elementos interativos, ícones de destaque |
+| `LkColors.accentBlue` | `#2563EB` | Gradiente do avatar de perfil (accent→accentBlue), acentos secundários |
 | `LkColors.success` | `#22C55E` | Status positivo, conexão OK, diagnóstico aprovado |
 | `LkColors.warning` | `#F5A623` | Alertas, estados de atenção |
 | `LkColors.error` | `#FF4D4F` | Erros, ações destrutivas, falha de diagnóstico |
@@ -44,15 +50,18 @@ allowed-tools: Read(*), Bash(*), PowerShell(*)
 | `tokens.textSecondary` | Texto secundário, descrições, labels de apoio |
 | `tokens.textTertiary` | Placeholders, hints, texto de baixo contraste |
 | `tokens.border` | Divisores, strokes, bordas de input |
+| `tokens.warningContainer` / `tokens.onWarningContainer` | Fundo/texto de chip ou card de aviso (âmbar) |
+| `tokens.amberSurface` | Superfície âmbar suave (variação de aviso) |
+| `tokens.successContainer` / `tokens.onSuccessContainer` | Fundo/texto de chip ou card de sucesso (verde) |
 
 **Paleta exclusiva SignallQ IA (always-dark — não adaptativa):**
 | Token | Uso |
 |-------|-----|
-| `LkColors.signallqBlack` | Fundo primário das telas de IA |
-| `LkColors.signallqDarkSurface` | Gradiente superior, header da tela de IA |
-| `LkColors.signallqDarkCard` | Cards dentro das telas de IA |
-| `LkColors.signallqTextOnDark` | Texto primário sobre fundos IA |
-| `LkColors.signallqTextSecondaryOnDark` | Texto secundário sobre fundos IA |
+| `LkColors.signallQBlack` | Fundo primário das telas de IA |
+| `LkColors.signallQDarkSurface` | Gradiente superior, header da tela de IA |
+| `LkColors.signallQDarkCard` | Cards dentro das telas de IA |
+| `LkColors.signallQTextOnDark` | Texto primário sobre fundos IA |
+| `LkColors.signallQTextSecondaryOnDark` | Texto secundário sobre fundos IA |
 
 **Cores de fase do Speedtest:**
 | Token | Uso |
@@ -97,9 +106,8 @@ LkSpacing.xxl = 32.dp  // separação entre blocos maiores, espaço de respiro
 ```
 
 **Tokens estruturais derivados:**
-- Card padding: `18.dp` (entre `md` e `lg`)
-- Section gap: `LkSpacing.xl` (20.dp — gap entre seções)
-- Block gap: `14.dp` (entre blocos dentro da mesma seção)
+- Card padding: `LkSpacing.cardContent` = `16.dp`
+- Section gap: `LkSpacing.xl` (24.dp — gap entre seções)
 
 **PROIBIDO:** valores mágicos de espaçamento (ex: `padding = 13.dp`). Usar os tokens ou justificar explicitamente.
 
@@ -109,11 +117,11 @@ LkSpacing.xxl = 32.dp  // separação entre blocos maiores, espaço de respiro
 
 ```kotlin
 LkRadius.card   = 16.dp  // cards, superfícies elevadas
-LkRadius.button = 12.dp  // botões, inputs
+LkRadius.button = 12.dp  // botões
+LkRadius.input  = 12.dp  // campos de entrada
 ```
 
 Chips: `999.dp` (pill shape — `RoundedCornerShape(999.dp)`)
-Inputs: `10.dp`
 
 ---
 
@@ -160,7 +168,7 @@ Card(
     border = BorderStroke(1.dp, tokens.border)
 ) {
     Column(
-        modifier = Modifier.padding(18.dp),
+        modifier = Modifier.padding(LkSpacing.cardContent),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.md)
     ) {
         // conteúdo
@@ -178,7 +186,7 @@ Card(
 4. **Estado visível por cor + ícone** — nunca só cor para comunicar estado
 5. **Transições curtas** — 200–220ms para push/modal
 6. **Respiro entre seções** — sempre `LkSpacing.xl` entre blocos de conteúdo
-7. **Densidade média** — nunca comprimir; card padding mínimo de 18dp
+7. **Densidade média** — nunca comprimir; card padding via `LkSpacing.cardContent` (16dp)
 8. **Branding silencioso** — logo apenas em splash, corner do header e footer; não repetir em cada card
 
 ---

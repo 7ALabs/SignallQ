@@ -31,7 +31,7 @@ Publish architecture diagrams to Miro for team reference and onboarding. Source:
 - **Layer 4: Backend**
   - Cloudflare Workers (3 deployments)
     1. signallq-admin-worker (OpenAPI v2.0.0, 42+ endpoints)
-    2. linka-ai-diagnosis-worker (Qwen3 30B MoE, Gemini Flash fallback)
+    2. linka-ai-diagnosis-worker (Gemini 2.0 Flash primário, Qwen3 30B MoE fallback)
     3. feature-flags-worker (public /flags endpoint)
   - Cloudflare D1 (SQLite) — admin sessions, users, feature flags
 
@@ -68,7 +68,7 @@ Publish architecture diagrams to Miro for team reference and onboarding. Source:
 
 ---
 
-### Diagram 3: Data Flow — AI Diagnosis (Request → Qwen3 → Response + Caching)
+### Diagram 3: Data Flow — AI Diagnosis (Request → Gemini/Qwen3 → Response + Caching)
 
 **Source**: ARCHITECTURE_AUDIT.md, integrations/cloudflare/ai-diagnosis-worker
 
@@ -76,17 +76,17 @@ Publish architecture diagrams to Miro for team reference and onboarding. Source:
 1. **Client sends diagnostic request** → /api/ai/diagnostico-conexao (POST)
 2. **Worker receives** → linka-ai-diagnosis-worker
 3. **Prompt engineering** → SignallQ persona + diagnostic session data
-4. **Model call** → Qwen3 30B MoE FP8
+4. **Model call** → Gemini 2.0 Flash (primário, quando `GEMINI_API_KEY` configurada)
    - Latency: ~2-5s
-   - Cost: $0.X per request (free tier Gemini fallback if Qwen fails)
+   - Cost: free tier Google (fallback Qwen3/Cloudflare Workers AI se Gemini falhar ou a secret não estiver setada)
 5. **Parse response** → Schema v2 JSON (insights, recommendations)
 6. **Cache response** → Cloudflare KV (5 min TTL, reduce API hits)
 7. **Return to client** → Android displays insights in Diagnosis UI
 
 **Decision Tree**:
-- If Qwen3 available → use Qwen3
-- If Qwen3 rate-limited → fallback to Gemini Flash
-- If both fail → return cached response or "unavailable" message
+- If Gemini available (`GEMINI_API_KEY` set) → use Gemini 2.0 Flash
+- If Gemini fails/unavailable → fallback to Qwen3 30B MoE FP8 (Cloudflare Workers AI)
+- If both fail → client falls back to local diagnostic engine (no external AI)
 
 **Miro Layout**: Request → Processing → Decision Diamond → Response, with cost annotations
 

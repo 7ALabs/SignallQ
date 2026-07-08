@@ -69,6 +69,7 @@ object DiagnosticRunner {
                 fibraResultados = fibraResultados,
                 rttGatewayMs = input.internet?.rttGatewayMs,
                 latenciaInternetMs = input.internet?.latencyMs,
+                connectionType = input.connectionType,
             )
 
         val recomendacoes = RecommendationEngine.recomendar(input = input, achados = achados)

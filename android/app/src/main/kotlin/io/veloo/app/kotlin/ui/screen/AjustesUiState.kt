@@ -16,10 +16,14 @@ data class AjustesProvedorState(
     val cidadeNome: String,
     val ispDetectado: String?,
     val ispConfirmado: Boolean,
+    val velocidadeContratadaDownMbps: Int = 0,
+    val velocidadeContratadaUpMbps: Int = 0,
+    val operadoraAutodetectada: String? = null,
     val onSalvarDadosProvedor: (operadora: String, plano: String, regiao: String) -> Unit,
     val onSalvarEstadoCidade: (estadoUf: String, cidadeNome: String) -> Unit,
     val onConfirmarIsp: (operadora: String) -> Unit,
     val onDispensarBannerIsp: () -> Unit,
+    val onSalvarVelocidadeContratada: (downMbps: Int, upMbps: Int) -> Unit = { _, _ -> },
 )
 
 data class AjustesMonitoramentoState(

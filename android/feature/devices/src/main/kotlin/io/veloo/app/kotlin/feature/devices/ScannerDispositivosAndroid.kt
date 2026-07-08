@@ -212,7 +212,7 @@ class ScannerDispositivosAndroid(
                 // somente para hosts ainda com nome genérico.
                 val genericosParaResolver = setOf(
                     "Dispositivo não identificado", "Host ativo",
-                    "Serviço mDNS", "Dispositivo SSDP",
+                    "Serviço mDNS", "Dispositivo SSDP", "Gateway",
                 )
                 val semReverseDns = Semaphore(CONCORRENCIA_REVERSE_DNS)
                 val dispositivosEnriquecidos = coroutineScope {
@@ -258,20 +258,24 @@ class ScannerDispositivosAndroid(
                             val fabricanteOui = OuiDatabase.lookupFabricante(macResolvido)
                             val fabricanteResolvido = d.fabricante ?: fabricanteOui
                             val tipo = ClassificadorDispositivoRede.classificar(d, fabricanteResolvido)
+                            val ehGateway = d.fonteNome == "gateway"
                             // Reverse DNS: só para genéricos, concorrência limitada a CONCORRENCIA_REVERSE_DNS
-                            val hostname = if (d.ip != null && d.fonteNome != "gateway" && d.nomeExibicao in genericosParaResolver) {
+                            val hostname = if (d.ip != null && d.nomeExibicao in genericosParaResolver) {
                                 semReverseDns.acquire()
                                 try { resolverHostname(d.ip) } finally { semReverseDns.release() }
                             } else null
                             // Prioridade de nome: fonteNome com alta prioridade já vem enriquecido (ssdpXml/mdnsJmDns)
                             // Só cai para hostname/fabricante se ainda é genérico.
+                            // Gateway (SIG-219): antes ficava travado em "Gateway" cru — agora, se ainda
+                            // genérico após SSDP/mDNS/reverse-DNS, usa "Roteador <Fabricante>" via OUI
+                            // (mesmo pipeline dos demais), caindo para "Roteador" só sem fabricante algum.
                             // Sem hostname resolvido, fallback fica em "Dispositivo <Fabricante>" via OUI,
                             // como último recurso — mDNS/SSDP/reverse-DNS já tiveram chance de resolver
                             // o nome real antes deste ponto (NetBIOS fica fora, ver NamingPrioridade).
                             val nomeResolvido = when {
-                                d.fonteNome == "gateway" -> d.nomeExibicao
                                 d.nomeExibicao !in genericosParaResolver -> d.nomeExibicao
                                 hostname != null -> hostname
+                                ehGateway -> fabricanteResolvido?.let { "Roteador $it" } ?: "Roteador"
                                 else -> NamingPrioridade.rotuloFallbackGenerico(fabricanteResolvido)
                             }
                             d.copy(
@@ -824,7 +828,9 @@ class ScannerDispositivosAndroid(
         )
         val prioExistente = prioFonte[existente.fonteNome] ?: 0
         val prioNova = prioFonte[dispositivo.fonteNome] ?: 0
-        val genericos = setOf("Dispositivo não identificado", "Host ativo", "Serviço mDNS", "Dispositivo SSDP")
+        // "Gateway" é placeholder do detectarGatewayIp() (SIG-219) — precisa ser tratado como
+        // genérico aqui, senão SSDP/mDNS respondendo no mesmo IP do gateway nunca sobrescreve o nome.
+        val genericos = setOf("Dispositivo não identificado", "Host ativo", "Serviço mDNS", "Dispositivo SSDP", "Gateway")
         val nome = when {
             existente.nomeExibicao in genericos -> dispositivo.nomeExibicao
             dispositivo.nomeExibicao !in genericos && prioNova > prioExistente -> dispositivo.nomeExibicao

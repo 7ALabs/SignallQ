@@ -94,7 +94,6 @@ private enum class Overlay {
     Novidades,
     ResultadoVelocidade,
     Fibra,
-    MinhaConexao,
     Dispositivos,
 }
 
@@ -198,6 +197,7 @@ fun AppShell(
     val speedtestPermiteHeavyMovel = speedtest.speedtestPermiteHeavyMovel
     val speedtestMbConsumidosMes = speedtest.speedtestMbConsumidosMes
     val onNovoTeste = speedtest.onNovoTeste
+    val onNovoTesteJaConfirmadoMovel = speedtest.onNovoTesteJaConfirmadoMovel
     val onCancelarTeste = speedtest.onCancelarTeste
     val onConfirmarSpeedtestMovel = speedtest.onConfirmarSpeedtestMovel
     val onCancelarSpeedtestMovel = speedtest.onCancelarSpeedtestMovel
@@ -237,6 +237,7 @@ fun AppShell(
     var showDnsSheet by remember { mutableStateOf(false) }
     var showForaDoWifiDialog by remember { mutableStateOf(false) }
     var showPerfilSheet by remember { mutableStateOf(false) }
+    var showGerenciarDadosSheet by remember { mutableStateOf(false) }
     var testeAtivo by remember { mutableStateOf(false) }
     var mostrarConcluido by remember { mutableStateOf(false) }
     val primeiraHistoria = remember(historico) { historico.firstOrNull() }
@@ -246,10 +247,6 @@ fun AppShell(
     LaunchedEffect(selectedTab) {
         if (selectedTab == 1) onVerificarGemma()
         tabScreenNames.getOrNull(selectedTab)?.let { onScreenView(it) }
-    }
-
-    LaunchedEffect(showDnsSheet) {
-        if (showDnsSheet) onDispararBenchmarkDns()
     }
 
     LaunchedEffect(snapshotSpeedtest.estado) {
@@ -269,10 +266,20 @@ fun AppShell(
         }
     }
 
-    // Abre LaudoScreen automaticamente ao concluir qualquer diagnóstico.
+    // #480: no cold start, iniciarRotinasNaoSpeedtest() dispara o diagnóstico em background
+    // e ele pode concluir rápido (ex.: cache/BD), fazendo este efeito abrir o Laudo por cima
+    // da aba Velocidade antes do usuário pedir qualquer coisa. Suprime só a primeira conclusão
+    // observada nesta composição; diagnósticos seguintes (ex.: apos novo speedtest) abrem normalmente.
+    var primeiraConclusaoDiagnosticoIgnorada by remember { mutableStateOf(false) }
+
+    // Abre LaudoScreen automaticamente ao concluir qualquer diagnóstico, exceto o do cold start.
     LaunchedEffect(snapshotDiagnostico.estado) {
         if (snapshotDiagnostico.estado == EstadoDiagnostico.concluido) {
-            if (Overlay.Laudo !in overlayStack) overlayStack.add(Overlay.Laudo)
+            if (!primeiraConclusaoDiagnosticoIgnorada) {
+                primeiraConclusaoDiagnosticoIgnorada = true
+            } else if (Overlay.Laudo !in overlayStack) {
+                overlayStack.add(Overlay.Laudo)
+            }
         }
     }
 
@@ -459,10 +466,14 @@ fun AppShell(
                                     cidadeNome = cidadeNome,
                                     ispDetectado = ispInfoData?.isp,
                                     ispConfirmado = ispConfirmado,
+                                    velocidadeContratadaDownMbps = velocidadeContratadaDownMbps,
+                                    velocidadeContratadaUpMbps = velocidadeContratadaUpMbps,
+                                    operadoraAutodetectada = movelSnapshot?.operadora,
                                     onSalvarDadosProvedor = onSalvarDadosProvedor,
                                     onSalvarEstadoCidade = onSalvarEstadoCidade,
                                     onConfirmarIsp = onConfirmarIsp,
                                     onDispensarBannerIsp = onDispensarBannerIsp,
+                                    onSalvarVelocidadeContratada = onSalvarVelocidadeContratada,
                                 ),
                             monitoramento =
                                 AjustesMonitoramentoState(
@@ -501,7 +512,6 @@ fun AppShell(
                             onAbrirPerfil = { showPerfilSheet = true },
                             onAbrirPrivacidade = { if (Overlay.Privacidade !in overlayStack) overlayStack.add(Overlay.Privacidade) },
                             onAbrirNovidades = { if (Overlay.Novidades !in overlayStack) overlayStack.add(Overlay.Novidades) },
-                            onAbrirMinhaConexao = { if (Overlay.MinhaConexao !in overlayStack) overlayStack.add(Overlay.MinhaConexao) },
                             onAbrirFibra = {
                                 onReconectarFibra(modemHost ?: "", modemUsername, modemPassword)
                                 if (Overlay.Fibra !in overlayStack) overlayStack.add(Overlay.Fibra)
@@ -619,8 +629,10 @@ fun AppShell(
         ) {
             PrivacidadeScreen(
                 onVoltar = { overlayStack.remove(Overlay.Privacidade) },
-                onApagarDadosLocais = onApagarDadosLocais,
-                onResetarApp = onResetarApp,
+                onAbrirGerenciarDados = {
+                    overlayStack.remove(Overlay.Privacidade)
+                    showGerenciarDadosSheet = true
+                },
             )
         }
 
@@ -669,28 +681,6 @@ fun AppShell(
             )
         }
 
-        AnimatedVisibility(
-            visible = Overlay.MinhaConexao in overlayStack,
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-        ) {
-            MinhaConexaoScreen(
-                operadora = operadora,
-                estadoUf = estadoUf,
-                cidadeNome = cidadeNome,
-                velocidadeContratadaDownMbps = velocidadeContratadaDownMbps,
-                velocidadeContratadaUpMbps = velocidadeContratadaUpMbps,
-                operadoraAutodetectada = movelSnapshot?.operadora,
-                onSalvar = { op, uf, cidade, down, up ->
-                    onSalvarDadosProvedor(op, planoInternet, regiao)
-                    onSalvarEstadoCidade(uf, cidade)
-                    onSalvarVelocidadeContratada(down, up)
-                    overlayStack.remove(Overlay.MinhaConexao)
-                },
-                onVoltar = { overlayStack.remove(Overlay.MinhaConexao) },
-            )
-        }
-
         if (showDnsSheet && FeatureFlags.DNS_SCREEN) {
             ModalBottomSheet(
                 onDismissRequest = { showDnsSheet = false },
@@ -702,6 +692,7 @@ fun AppShell(
                     dnsResolverIp = dnsResolverIp,
                     snapshotRede = snapshotRede,
                     c = c,
+                    onIniciarBenchmark = onDispararBenchmarkDns,
                 )
             }
         }
@@ -727,9 +718,21 @@ fun AppShell(
             ForaDoWifiDialog(
                 onContinuar = {
                     showForaDoWifiDialog = false
-                    onNovoTeste(modoSelecionado)
+                    // Usuario ja confirmou o aviso de dados moveis aqui — pula o segundo
+                    // gate de confirmacao em rede medida (#516).
+                    onNovoTesteJaConfirmadoMovel(modoSelecionado)
                 },
                 onCancelar = { showForaDoWifiDialog = false },
+            )
+        }
+
+        if (showGerenciarDadosSheet) {
+            DadosLocaisSheet(
+                c = c,
+                onDismiss = { showGerenciarDadosSheet = false },
+                onLimparHistorico = onLimparHistorico,
+                onApagarDadosLocais = onApagarDadosLocais,
+                onResetarApp = onResetarApp,
             )
         }
     }

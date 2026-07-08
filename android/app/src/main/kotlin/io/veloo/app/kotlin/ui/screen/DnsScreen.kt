@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -73,6 +74,7 @@ fun DnsSheetContent(
     dnsResolverIp: String?,
     snapshotRede: SnapshotRede,
     c: LkTokens,
+    onIniciarBenchmark: () -> Unit,
 ) {
     val currentDnsName = resolveDnsName(dnsResolverIp)
     var showGuia by remember { mutableStateOf(false) }
@@ -108,6 +110,7 @@ fun DnsSheetContent(
                 snapshotRede = snapshotRede,
                 c = c,
                 onAbrirGuia = { showGuia = true },
+                onIniciarBenchmark = onIniciarBenchmark,
             )
         }
     }
@@ -123,6 +126,7 @@ private fun DnsMainContent(
     snapshotRede: SnapshotRede,
     c: LkTokens,
     onAbrirGuia: () -> Unit,
+    onIniciarBenchmark: () -> Unit,
 ) {
     val isLoading = snapshotDns.estado == EstadoBenchmarkDns.executando
 
@@ -149,6 +153,14 @@ private fun DnsMainContent(
 
     // ── Bloco 2 — Benchmark ───────────────────────────────────────────────────
     when {
+        snapshotDns.estado == EstadoBenchmarkDns.idle -> {
+            Button(
+                onClick = onIniciarBenchmark,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Comparar servidores DNS")
+            }
+        }
         snapshotDns.estado == EstadoBenchmarkDns.erro -> {
             val mensagemErro =
                 if (!snapshotRede.conectado || snapshotDns.erroMensagem == "semRede") {

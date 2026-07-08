@@ -232,7 +232,7 @@
 - `SignallQWelcomeState`: tela inicial vazia
 - `AiModelFooter`: info do modelo IA
 
-**Orquestrador:** `SignallQOrchestrator`, máx. 5 turnos, detecção off-topic, modelo padrão Qwen3 30B
+**Orquestrador:** `SignallQOrchestrator`, máx. 5 turnos, detecção off-topic, Gemini 2.0 Flash primário / Qwen3 30B fallback cloud
 
 **Navegação de saída:** — (retorna ao ponto de entrada)
 

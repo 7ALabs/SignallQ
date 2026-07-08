@@ -1,6 +1,6 @@
 ---
 name: linka-design
-description: Use this skill to generate well-branded interfaces and assets for SignallQ (a.k.a. "Pulse — Speedtest Inteligente"), a Brazilian-Portuguese Android internet-diagnostics app, either for production or throwaway prototypes/mocks/etc. Contains essential design guidelines, colors, type, fonts, assets, and UI kit components for prototyping.
+description: Use this skill to generate well-branded interfaces and assets for SignallQ, a Brazilian-Portuguese Android internet-diagnostics app, either for production or throwaway prototypes/mocks/etc. Contains essential design guidelines, colors, type, fonts, assets, and UI kit components for prototyping.
 user-invocable: true
 ---
 

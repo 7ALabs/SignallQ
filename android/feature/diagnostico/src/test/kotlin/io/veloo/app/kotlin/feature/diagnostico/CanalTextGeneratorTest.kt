@@ -233,6 +233,49 @@ class CanalTextGeneratorTest {
         )
     }
 
+    // ── canal atual já livre com alternativa (regressão #502) ────────────────
+
+    @Test
+    fun `canal atual ja livre com alternativa tambem livre nao recomenda troca`() {
+        val snapshot = SnapshotEspectroCanal(
+            dadosPorCanal = listOf(
+                dado(36, 2, NivelCongestionamento.livre, ehCanalAtual = true),
+                dado(40, 1, NivelCongestionamento.livre, ehCanalRecomendado = true),
+                dado(44, 3, NivelCongestionamento.moderado),
+                dado(48, 4, NivelCongestionamento.moderado),
+                dado(149, 3, NivelCongestionamento.moderado),
+            ),
+            canalAtual = 36,
+            canalRecomendado = 40,
+            motivoRecomendacao = "Canal livre — sem interferência espectral",
+            banda = "5GHz",
+        )
+        assertEquals(
+            strings.canalAtualLivreComAlternativa(36, "5GHz"),
+            CanalTextGenerator.gerarTexto(snapshot, strings),
+        )
+    }
+
+    @Test
+    fun `canal atual ja livre sem alternativa diferente mantem texto normal`() {
+        val snapshot = SnapshotEspectroCanal(
+            dadosPorCanal = listOf(
+                dado(36, 2, NivelCongestionamento.livre, ehCanalAtual = true, ehCanalRecomendado = true),
+                dado(40, 3, NivelCongestionamento.moderado),
+                dado(44, 3, NivelCongestionamento.moderado),
+                dado(48, 4, NivelCongestionamento.moderado),
+                dado(149, 3, NivelCongestionamento.moderado),
+            ),
+            canalAtual = 36,
+            canalRecomendado = 36,
+            motivoRecomendacao = null,
+            banda = "5GHz",
+        )
+        val resultado = CanalTextGenerator.gerarTexto(snapshot, strings)
+        // canalRec == canalAtual → cai no ramo de canal recomendado normal (nao ha troca real)
+        assertEquals(strings.canalRecomendadoLivre(36, "5GHz"), resultado)
+    }
+
     // ── motivoRecomendacao ────────────────────────────────────────────────────
 
     @Test
@@ -282,6 +325,7 @@ class CanalTextGeneratorTest {
             canalAtualCongestionado = { cur, rec -> "Channel $cur congested, try $rec." },
             canalRecomendadoLivre = { canal, banda -> "Channel $canal is free in $banda." },
             canalRecomendadoModerado = { canal, banda -> "Try channel $canal in $banda." },
+            canalAtualLivreComAlternativa = { canalAtual, banda -> "Channel $canalAtual is already free in $banda." },
             semDados = { "No data available." },
         )
         val snapshot = SnapshotEspectroCanal(

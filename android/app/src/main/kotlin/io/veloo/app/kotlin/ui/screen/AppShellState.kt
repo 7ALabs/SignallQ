@@ -3,6 +3,7 @@
 import androidx.compose.runtime.Stable
 import io.signallq.app.feature.devices.SnapshotScanDispositivos
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
+import io.signallq.app.feature.diagnostico.ai.AiAcaoRecomendada
 import io.signallq.app.feature.diagnostico.ai.DiagChatEntry
 import io.signallq.app.feature.diagnostico.chat.TipoDiagnostico
 import io.signallq.app.feature.diagnostico.pulse.OpcaoResposta
@@ -25,6 +26,12 @@ data class AppShellSpeedtestState(
     val speedtestPermiteHeavyMovel: Boolean = false,
     val speedtestMbConsumidosMes: Long = 0L,
     val onNovoTeste: (ModoSpeedtest) -> Unit,
+    /**
+     * Igual a [onNovoTeste], mas para quando o usuario ja confirmou o aviso de dados moveis
+     * (ForaDoWifiDialog, Home) — pula o segundo gate de confirmacao em rede medida, que nao
+     * tem UI fora da tab Velocidade (#516).
+     */
+    val onNovoTesteJaConfirmadoMovel: (ModoSpeedtest) -> Unit = onNovoTeste,
     val onCancelarTeste: () -> Unit,
     val onConfirmarSpeedtestMovel: () -> Unit = {},
     val onCancelarSpeedtestMovel: () -> Unit = {},
@@ -53,6 +60,7 @@ sealed class AnalisadorState {
     data class Resultado(
         val texto: String,
         val origem: String,
+        val acoes: List<AiAcaoRecomendada> = emptyList(),
     ) : AnalisadorState()
 
     data class Erro(

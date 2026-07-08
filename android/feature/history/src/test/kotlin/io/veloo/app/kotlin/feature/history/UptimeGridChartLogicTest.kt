@@ -168,4 +168,51 @@ class UptimeGridChartLogicTest {
         assertEquals("Coluna 6 deve ter 48 blocos", 48, coluna6.size)
         assertTrue("Coluna 6 deve ser toda OFFLINE", coluna6.all { it.status == StatusUptime.OFFLINE })
     }
+
+    // ─── Regressão #501: uptimePct por dia não pode mentir 100% sem dado ─────
+
+    /** Mesma fórmula usada em UptimeGridChart.kt -- testada isoladamente pois o Composable vive no módulo :app. */
+    private fun uptimePctDoDia(diaBlocos: List<BlocoUptime>): Int? {
+        val totalMedidos = diaBlocos.count { it.status != StatusUptime.SEM_DADO }
+        val okCount = diaBlocos.count { it.status == StatusUptime.OK }
+        return if (totalMedidos > 0) (okCount * 100) / totalMedidos else null
+    }
+
+    @Test
+    fun `dia sem nenhum bloco medido nao deve reportar 100 por cento de uptime`() {
+        val diaSemDado = List(48) { blocoSemDado() }
+
+        val uptimePct = uptimePctDoDia(diaSemDado)
+
+        assertEquals("Dia sem dado medido deve ser null, nao 100%", null, uptimePct)
+    }
+
+    @Test
+    fun `dia com pelo menos um bloco medido calcula uptime real`() {
+        val diaComUmaMedicao = List(47) { blocoSemDado() } + blocoOk()
+
+        val uptimePct = uptimePctDoDia(diaComUmaMedicao)
+
+        assertEquals("Uptime deve ser 100% considerando so o bloco medido", 100, uptimePct)
+    }
+
+    @Test
+    fun `narrativa de poucos dados e uptime do dia devem ser consistentes quando historico e escasso`() {
+        // Cenario do bug #501: so 1 medicao real no historico inteiro de 7 dias.
+        val blocos = List(335) { blocoSemDado() } + blocoOk()
+
+        val narrativa = UptimeNarrativaEngine.gerarNarrativa(blocos)
+        val ultimoDia = blocos.subList(6 * 48, 7 * 48)
+        val uptimeUltimoDia = uptimePctDoDia(ultimoDia)
+
+        assertTrue(
+            "Com so 1 medicao, a narrativa deve indicar monitoramento recente",
+            narrativa.contains("recentemente"),
+        )
+        assertEquals(
+            "E o dia com so 1 medicao deve refletir 100% APENAS sobre o unico bloco medido, nao mentir sobre os outros 47",
+            100,
+            uptimeUltimoDia,
+        )
+    }
 }

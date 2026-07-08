@@ -41,9 +41,9 @@ O modelo pode ser sobrescrito por variável de ambiente em deploy — o worker l
 
 ## 3. Modelo Padrão
 
-**Qwen3 30B MoE FP8** (`@cf/qwen/qwen3-30b-a3b-fp8`) via Cloudflare Workers AI — `DEFAULT_MODEL` em `src/index.ts` e `AI_MODEL` em `wrangler.toml`.
+**Provider primário: Gemini 2.0 Flash.** Adicionar a secret `GEMINI_API_KEY` ativa o `GeminiFlashProvider` como provider primário (tentado primeiro pelo `AiProviderRouter`), com Qwen3/Cloudflare como fallback automático. Sem essa secret, Qwen3/CF é o único provider cloud. Em falha de ambos, o cliente Kotlin usa o fallback local (sem IA externa).
 
-**Fallback / provider primário Gemini:** adicionar a secret `GEMINI_API_KEY` ativa o `GeminiFlashProvider` (Gemini 2.0 Flash) como provider primário, com Qwen/Cloudflare como fallback automático. Sem essa secret, Qwen/CF é o único provider cloud. Em falha de ambos, o cliente Kotlin usa o fallback local (sem IA externa).
+**Modelo do fallback cloud (Qwen3/Cloudflare Workers AI):** `@cf/qwen/qwen3-30b-a3b-fp8` (Qwen3 30B MoE FP8) — `DEFAULT_MODEL` em `src/index.ts` e `AI_MODEL` em `wrangler.toml`.
 
 **Política de modelos:** Llama/Meta NÃO deve ser configurado como padrão nem como fallback cloud (regra registrada no `wrangler.toml`).
 

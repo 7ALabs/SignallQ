@@ -80,7 +80,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
-import io.signallq.app.feature.speedtest.SeveridadeBufferbloat
 import io.signallq.app.feature.speedtest.VereditoUso
 import io.signallq.app.ui.BancoOperadoras
 import io.signallq.app.ui.IspInfo
@@ -126,20 +125,29 @@ fun ResultadoVelocidadeScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    val corDownload =
+        remember(resultado.downloadMbps) {
+            when {
+                resultado.downloadMbps >= 50.0 -> LkColors.success
+                resultado.downloadMbps >= 25.0 -> LkColors.warning
+                else -> LkColors.error
+            }
+        }
+    val corUpload =
+        remember(resultado.uploadMbps, resultado.uploadNaoDetectado) {
+            when {
+                resultado.uploadNaoDetectado -> LkColors.warning
+                resultado.uploadMbps >= 10.0 -> LkColors.success
+                resultado.uploadMbps >= 3.0 -> LkColors.warning
+                else -> LkColors.error
+            }
+        }
     val corPerda =
         remember(resultado.perdaPercentual) {
             when {
                 resultado.perdaPercentual < 1.0 -> LkColors.success
                 resultado.perdaPercentual < 3.0 -> LkColors.warning
                 else -> LkColors.error
-            }
-        }
-    val corBloat =
-        remember(resultado.severidadeBufferbloat) {
-            when (resultado.severidadeBufferbloat) {
-                SeveridadeBufferbloat.none -> LkColors.success
-                SeveridadeBufferbloat.mild -> LkColors.warning
-                SeveridadeBufferbloat.moderate, SeveridadeBufferbloat.severe -> LkColors.error
             }
         }
     val corLatencia =
@@ -271,7 +279,7 @@ fun ResultadoVelocidadeScreen(
                         label = "Download",
                         value = "%.1f".format(resultado.downloadMbps),
                         unit = "Mbps",
-                        cor = LkColors.success,
+                        cor = corDownload,
                         c = c,
                         modifier = Modifier.weight(1f),
                     )
@@ -280,7 +288,7 @@ fun ResultadoVelocidadeScreen(
                         label = "Upload",
                         value = if (resultado.uploadNaoDetectado) "—" else "%.1f".format(resultado.uploadMbps),
                         unit = if (resultado.uploadNaoDetectado) "não detectado" else "Mbps",
-                        cor = if (resultado.uploadNaoDetectado) LkColors.warning else LkColors.accent,
+                        cor = corUpload,
                         c = c,
                         modifier = Modifier.weight(1f),
                     )
@@ -370,27 +378,22 @@ fun ResultadoVelocidadeScreen(
                     }
                 }
 
-                // 6. NOVO: Row: Perda + Bufferbloat (1-A)
+                // 6. Perda (metrica essencial, sozinha -- Bufferbloat vive só no BufferbloatCard
+                // abaixo, com veredito; antes duplicava aqui como numero cru sem contexto)
                 Spacer(Modifier.height(LkSpacing.md))
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    MetricCard(
-                        label = "Perda",
-                        value = "%.1f".format(resultado.perdaPercentual),
-                        unit = "%",
-                        cor = corPerda,
-                        c = c,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Spacer(Modifier.width(LkSpacing.md))
-                    MetricCard(
-                        label = "Bufferbloat",
-                        value = "%.0f".format(resultado.bufferbloatMs),
-                        unit = "ms",
-                        cor = corBloat,
-                        c = c,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
+                MetricCard(
+                    label = "Perda",
+                    value = "%.1f".format(resultado.perdaPercentual),
+                    unit = "%",
+                    cor = corPerda,
+                    c = c,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                // 6b. Bufferbloat com veredito -- junto das metricas essenciais, nao mais
+                // isolado perto do rodape (era a unica representacao "core" fora do topo)
+                Spacer(Modifier.height(LkSpacing.md))
+                BufferbloatCard(bufferbloatMs = resultado.bufferbloatMs.takeIf { it > 0.0 }, c = c)
 
                 // 7. NOVO: Seção "EXPERIÊNCIA DE USO" (1-C)
                 Spacer(Modifier.height(LkSpacing.xxl))
@@ -546,11 +549,7 @@ fun ResultadoVelocidadeScreen(
                     )
                 }
 
-                // 11. Card Bufferbloat — migrado da Home #172
-                Spacer(Modifier.height(LkSpacing.md))
-                BufferbloatCard(bufferbloatMs = resultado.bufferbloatMs.takeIf { it > 0.0 }, c = c)
-
-                // 11b. Card Jogar Online — migrado da Home #173
+                // 11. Card Jogar Online — migrado da Home #173
                 Spacer(Modifier.height(LkSpacing.md))
                 GamerShortcutCard(c = c, onClick = { showGamerSheet = true })
 
@@ -841,6 +840,15 @@ private val problemasPredefinidos =
         "Travamentos em streaming ou jogos",
     )
 
+/** Menor valor = maior prioridade, para escolher a ação de destaque via minByOrNull. */
+private fun prioridadeOrdem(prioridade: String): Int =
+    when (prioridade) {
+        "alta" -> 0
+        "media" -> 1
+        "baixa" -> 2
+        else -> 1
+    }
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AnalisadorProblemaSection(
@@ -947,6 +955,55 @@ private fun AnalisadorProblemaSection(
                         color = c.textPrimary,
                         lineHeight = 20.sp,
                     )
+                    // Próximo passo concreto -- o diagnóstico sozinho (texto acima) não
+                    // basta; o app não pode terminar em "isso está ruim" sem indicar o
+                    // que fazer (ver PRODUCT.md). acoesRecomendadas já vem específica e
+                    // priorizada da IA/motor local (regra 9 do prompt), só faltava ser
+                    // exibida nesta tela. Mostra ate 2 acoes (nao so a 1a) porque o
+                    // diagnostico costuma ter mais de uma causa (ex.: latencia alta +
+                    // canal congestionado), cada uma com sua propria acao pratica.
+                    val proximasAcoes =
+                        state.acoes
+                            .sortedBy { prioridadeOrdem(it.prioridade) }
+                            .take(2)
+                    if (proximasAcoes.isNotEmpty()) {
+                        Spacer(Modifier.height(LkSpacing.md))
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(LkRadius.card))
+                                    .background(LkColors.accent.copy(alpha = 0.08f))
+                                    .padding(LkSpacing.md),
+                            verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                        ) {
+                            proximasAcoes.forEach { acao ->
+                                Row(verticalAlignment = Alignment.Top) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Info,
+                                        contentDescription = null,
+                                        tint = LkColors.accent,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                    Spacer(Modifier.width(LkSpacing.sm))
+                                    Column {
+                                        Text(
+                                            text = acao.titulo.ifBlank { "Próximo passo" },
+                                            style = MaterialTheme.typography.titleSmall,
+                                            fontWeight = FontWeight.W600,
+                                            color = c.textPrimary,
+                                        )
+                                        Text(
+                                            text = acao.descricao,
+                                            fontSize = 13.sp,
+                                            color = c.textSecondary,
+                                            lineHeight = 18.sp,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                     Spacer(Modifier.height(LkSpacing.md))
                     Row(
                         modifier = Modifier.fillMaxWidth(),

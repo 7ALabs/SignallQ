@@ -1,21 +1,18 @@
 ---
 description: Kickoff de sessão LINKA — orienta Claude sobre o estado atual do projeto (versão, pendências, fase, skills disponíveis). Use no início de qualquer sessão nova.
-allowed-tools: Read(*)
+allowed-tools: Read(*), Bash(*), PowerShell(*)
 ---
 
 ## Estado Atual do Projeto (lido dos arquivos agora)
 
-**Versão Kotlin (ativa):**
-!`cat "C:/Projetos/SignallQ Android/gradle/libs.versions.toml" 2>/dev/null | grep -E "versionName|versionCode"`
+**Versão Android (ativa):**
+!`cat "C:/Projetos/SignallQ/android/gradle/libs.versions.toml" 2>/dev/null | grep -E "versionName|versionCode"`
 
-**Último release:**
-!`cat "C:/Projetos/SignallQ Android/CHANGELOG.md" 2>/dev/null | head -20`
+**Último release (topo do changelog):**
+!`cat "C:/Projetos/SignallQ/android/CHANGELOG.md" 2>/dev/null | head -25`
 
-**Pendências abertas (top 15 linhas):**
-!`cat "C:/Projetos/SignallQ Android/docs/PendenciasSanitizacaoCodigo.md" 2>/dev/null | head -15`
-
-**Fase atual do plano:**
-!`cat "C:/Projetos/SignallQ Android/docs/PlanoFaseadoCustoBeneficio.md" 2>/dev/null | head -30`
+**Milestones do projeto:**
+!`grep -A 6 "^## Milestones" "C:/Projetos/SignallQ/.claude/CLAUDE.md" 2>/dev/null`
 
 ---
 
@@ -25,18 +22,16 @@ Com base nas informações acima, apresente ao usuário um briefing de sessão c
 
 1. **Versão atual** — versionName + versionCode
 2. **Último release** — data e o que foi entregue (do CHANGELOG)
-3. **Top 3 pendências abertas** — as mais críticas de PendenciasSanitizacaoCodigo.md
-4. **Fase atual** — em qual fase do plano o projeto está
+3. **Milestone atual** — compare a data de hoje com a tabela de milestones e diga em qual estamos
+4. **Pendências críticas** — consulte o Linear (projeto SignallQ, backlog/cycle atual) pelas issues de maior prioridade e o GitHub Issues do repo por bugs abertos não triados; liste as 3 mais críticas combinando as duas fontes
 
 Em seguida, pergunte: **"Em que vamos trabalhar hoje?"**
 
 ---
 
----
+## Skills e Comandos Disponíveis (para referência sua — não exibir ao usuário)
 
-## Skills Disponíveis (para referência sua — não exibir ao usuário)
-
-| Skill | Quando usar automaticamente |
+| Skill / Comando | Quando usar automaticamente |
 |-------|-----------------------------|
 | `/linka` | Início de sessão nova sem contexto anterior |
 | `/linka-design create` | Criar nova tela ou componente Compose |
@@ -45,10 +40,13 @@ Em seguida, pergunte: **"Em que vamos trabalhar hoje?"**
 | `/linka-arch create` | Criar módulo, ViewModel, DAO, serviço ou repositório |
 | `/linka-arch review` | Revisão arquitetural de arquivo Kotlin |
 | `/linka-arch map` | Dúvida sobre onde implementar algo |
-| `/linka-docs impact` | **Após qualquer mudança de código** — sempre |
+| `/linka-docs impact` | Após qualquer mudança de código — sempre |
 | `/linka-docs update` | Atualizar doc específico |
 | `/linka-docs new` | Criar novo documento oficial |
 | `/linka-docs check` | Auditar docs de uma feature |
-| `/linka-build` | Usuário pede build, APK, compilar |
-| `/linka-version` | Usuário menciona versão, bump, semver |
-| `/linka-release` | Usuário quer release completo ou publicar |
+| `/estimativa-impacto` | Avaliar tamanho/risco/milestone de uma issue antes do breakdown |
+| `/checar-release` | Checklist pré-release (Android + Cloudflare Pages) |
+| `/validar-release` | Checklist executável de release com validação de versionamento/build |
+| `/gerar-docs` | Gerar ou atualizar documentação funcional/técnica/testes |
+| `/auditar-ux` | Auditoria de design system e usabilidade |
+| `/motor-diagnostico` | Trabalho no engine de diagnóstico, speedtest ou IA |

@@ -14,6 +14,14 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 
 ---
 
+## [0.24.1] — 2026-07-05
+
+Fix: card "Análise por IA" no resultado do speedtest passa a exibir as ações recomendadas pela IA, não só o diagnóstico. Primeira publicação na trilha de teste fechado da Play Console desde a 0.22.1. Ver [`android/CHANGELOG.md`](android/CHANGELOG.md#0241--2026-07-05).
+
+## [0.24.0] — 2026-07-05
+
+Ciclo de critique de design/UX (skill `impeccable`) nas 5 telas de maior uso do Android (Início, Velocidade, Sinal, Histórico, Ajustes) + fix de bug do WhatsApp da TIM. Ver [`android/CHANGELOG.md`](android/CHANGELOG.md#0240--2026-07-05) para o detalhamento completo e Linear SIG-304 para o resumo do ciclo.
+
 ## [Unreleased] — Admin Worker / SIG-128 / SIG-130 / SIG-13 / SIG-129 / SIG-133
 
 ### Added

@@ -16,7 +16,7 @@ Na conversa principal, responda sempre como **Claudete** (PM & Tech Lead do Sign
 - **Android Stack**: Kotlin, Jetpack Compose, Hilt, Room, DataStore, WorkManager.
 - 15 modulos Gradle: `app` + core(5): `coreNetwork`, `coreDatabase`, `coreDatastore`, `coreTelephony`, `corePermissions` + feature(9): `featureHome`, `featureSpeedtest`, `featureWifi`, `featureDevices`, `featureDns`, `featureFibra`, `featureDiagnostico`, `featureHistory`, `featureSettings`.
 - MVVM + StateFlow, Hilt DI (`AppModule.kt` + `DiagnosticoModule.kt`), Room v12 (`SignallQDatabase`), DataStore `linkaPreferencias`.
-- IA: Worker Cloudflare (`integrations/cloudflare/ai-diagnosis-worker/`), URL via `BuildConfig.AI_WORKER_URL`, modelo Qwen3 30B MoE FP8 (fallback Gemini Flash), persona SignallQ.
+- IA: Worker Cloudflare (`integrations/cloudflare/ai-diagnosis-worker/`), URL via `BuildConfig.AI_WORKER_URL`, persona SignallQ. Provider: **Gemini 2.0 Flash é o primário** quando `GEMINI_API_KEY` está configurada (produção); Qwen3 30B MoE FP8 (Cloudflare Workers AI) é o fallback automático. Sem a secret, Qwen3/CF é o único provider cloud. Ordem definida em `providers.ts` (array `providers[]`, tentado em sequência) — ver `docs_ai/technical/CLOUDFLARE.md`.
 - **Analytics**: Firebase Analytics (events) + Crashlytics (error logs). **NOT using**: Realtime DB.
 - Navegacao: `AppShell.kt` -- 5 abas (Inicio, Velocidade, Sinal, Historico, Ajustes). Diagnostico/IA, Dispositivos, Fibra sao overlays, nao abas.
 - Background: WorkManager `MonitoramentoWorker` (30 min).
@@ -83,6 +83,8 @@ Nao-negociaveis:
 - Separador inline: ponto medio
 
 Referencia rapida de tokens: `.claude/skills/linka-design/HANDOFF_README.md`.
+
+**Design Context (skill impeccable):** `PRODUCT.md` e `DESIGN.md` na raiz do repo formalizam esse mesmo sistema no formato impeccable/DESIGN.md spec (register: product; North Star "The Calm Translator"). Consultar antes de rodar `/impeccable craft|critique|audit|polish` em qualquer tela.
 
 ---
 

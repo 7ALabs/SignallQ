@@ -1,9 +1,11 @@
 ﻿package io.signallq.app.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,8 +15,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,7 +28,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -33,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
@@ -41,8 +46,7 @@ import io.signallq.app.ui.LocalLkTokens
 @Composable
 fun PrivacidadeScreen(
     onVoltar: () -> Unit,
-    onApagarDadosLocais: () -> Unit = {},
-    onResetarApp: () -> Unit = {},
+    onAbrirGerenciarDados: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
 
@@ -152,43 +156,43 @@ fun PrivacidadeScreen(
 
             item { Spacer(Modifier.height(LkSpacing.lg)) }
 
-            // Destructive actions
+            // Destino único para limpar histórico, apagar dados ou resetar o app --
+            // antes eram dois botões diretos aqui, sem confirmação (ver critique P0).
             item {
-                Column(modifier = Modifier.padding(horizontal = LkSpacing.lg)) {
-                    TextButton(onClick = onApagarDadosLocais) {
-                        Text(
-                            text = "Apagar dados locais",
-                            color = LkColors.error,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.W600,
-                        )
-                    }
-                    Text(
-                        text = "Apaga histórico, perfil e preferências do app.",
-                        fontSize = 12.sp,
-                        color = c.textTertiary,
-                        modifier = Modifier.padding(start = LkSpacing.md),
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(LkRadius.card))
+                            .clickable(onClick = onAbrirGerenciarDados)
+                            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Delete,
+                        contentDescription = null,
+                        tint = LkColors.accent,
+                        modifier = Modifier.size(20.dp),
                     )
-                }
-            }
-
-            item { Spacer(Modifier.height(LkSpacing.sm)) }
-
-            item {
-                Column(modifier = Modifier.padding(horizontal = LkSpacing.lg)) {
-                    TextButton(onClick = onResetarApp) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Resetar app",
-                            color = LkColors.error,
+                            text = "Gerenciar dados e privacidade",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.W600,
+                            color = c.textPrimary,
+                        )
+                        Text(
+                            text = "Limpar histórico, apagar dados locais ou resetar o app",
+                            fontSize = 12.sp,
+                            color = c.textTertiary,
                         )
                     }
-                    Text(
-                        text = "Volta ao estado inicial, incluindo onboarding.",
-                        fontSize = 12.sp,
-                        color = c.textTertiary,
-                        modifier = Modifier.padding(start = LkSpacing.md),
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                        contentDescription = null,
+                        tint = c.textTertiary,
+                        modifier = Modifier.size(14.dp),
                     )
                 }
             }

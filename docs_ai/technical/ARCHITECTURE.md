@@ -165,7 +165,7 @@ App Android
     → AiDiagnosisRepository
     → POST https://linka-ai-diagnosis-worker.giammattey-luiz.workers.dev/api/ai/diagnostico-conexao
     → Cloudflare Worker (name: linka-ai-diagnosis-worker)
-    → Qwen3 30B MoE FP8 (@cf/qwen/qwen3-30b-a3b-fp8) — modelo padrão atual
+    → Gemini 2.0 Flash (primário, quando `GEMINI_API_KEY` configurada) / Qwen3 30B MoE FP8 (@cf/qwen/qwen3-30b-a3b-fp8, fallback cloud)
     → AiDiagnosisResult (JSON parseado pelo app)
 
 Fallback: AiFallbackFactory.fromLocal() [se IA falhar ou timeout]
@@ -173,7 +173,9 @@ Fallback: AiFallbackFactory.fromLocal() [se IA falhar ou timeout]
 
 **Schema da versão atual:** `diagnostico_v3_raw` — payload com dados brutos; a IA faz toda a análise. O parser do worker aceita schemas v1/v2/v3 para retrocompatibilidade.
 
-**Modelos no worker (wrangler.toml `AI_MODEL`):**
+**Provider primário:** Gemini 2.0 Flash (Google), ativado quando a secret `GEMINI_API_KEY` está configurada. Sem a secret, Qwen3/Cloudflare é o único provider cloud.
+
+**Modelos no worker (wrangler.toml `AI_MODEL`) — usado quando o fallback Qwen3/Cloudflare entra em ação:**
 - Padrão: `@cf/qwen/qwen3-30b-a3b-fp8` (Qwen3 30B MoE FP8)
 - Alternativas/legado: Gemma 7B-IT, Gemma 2 9B, Gemma 4 26B (descartado — timeout)
 

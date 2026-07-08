@@ -16,7 +16,7 @@ MainViewModel
         → DiagnosisAiContextFactory.fromRaw()    [monta payload — prompt diagnostico_v5_local_primary]
         → AiDiagnosisRepository.diagnosticar()  [POST HTTP via OkHttp]
             → linka-ai-diagnosis-worker          [Cloudflare Worker]
-                → Qwen3 30B MoE FP8             [modelo padrão]
+                → Gemini 2.0 Flash (primário) / Qwen3 30B MoE FP8 (fallback cloud)
                 → resposta JSON
             → AiDiagnosisResult                 [parseado pelo app]
         → AiFallbackFactory                     [se timeout ou erro]
@@ -38,7 +38,7 @@ MainViewModel
 
 ## 3. Modelo de IA
 
-**Modelo padrão atual:** `@cf/qwen/qwen3-30b-a3b-fp8` (Qwen3 30B MoE FP8)
+**Modelo do provider fallback (Cloudflare Workers AI):** `@cf/qwen/qwen3-30b-a3b-fp8` (Qwen3 30B MoE FP8). Provider primário é Gemini 2.0 Flash — ver seção "Fallback Gemini" abaixo.
 
 Configurado em `wrangler.toml`:
 ```toml

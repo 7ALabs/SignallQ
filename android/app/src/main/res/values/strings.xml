@@ -6,8 +6,9 @@
     <string name="canal_banda_congestionada">Sua faixa %1$s está congestionada. Há muitas redes competindo pelos mesmos canais, o que pode causar interferência e lentidão.</string>
     <string name="canal_faixa_quase_vazia">Sua faixa %1$s está quase vazia. Há poucas redes por aqui — ótima condição para uma conexão estável.</string>
     <string name="canal_atual_congestionado">O canal %1$d que você usa está muito congestionado. Migrar para o canal %2$d pode melhorar significativamente sua conexão.</string>
-    <string name="canal_recomendado_livre">O canal %1$d é o mais livre da faixa %2$s. Você está bem posicionado para uma conexão estável.</string>
+    <string name="canal_recomendado_livre">O canal %1$d é o mais livre da faixa %2$s. Migrar para ele pode melhorar sua conexão.</string>
     <string name="canal_recomendado_moderado">O canal %1$d tem o menor congestionamento na faixa %2$s. Considere migrar para melhorar a estabilidade.</string>
+    <string name="canal_atual_livre_com_alternativa">Seu canal %1$d já está livre na faixa %2$s. Você está bem posicionado para uma conexão estável — não é necessário trocar de canal.</string>
     <string name="canal_sem_dados">Não há dados suficientes para analisar os canais. Tente um novo scan.</string>
 
     <!-- Redes: Estado vazio diferenciado por faixa -->

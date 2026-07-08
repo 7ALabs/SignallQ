@@ -37,7 +37,7 @@ object BancoOperadoras {
                 "TIM",
                 listOf("tim live", "tim"),
                 sac = "10341",
-                whatsapp = "41414141414",
+                whatsapp = "4141414141",
                 site = "https://www.tim.com.br",
             ),
             ContatoOperadora(

@@ -60,7 +60,7 @@ Recuperacao rapida, fatos operacionais, inferencia minima.
 - [Data Flow (`technical/DATA_FLOW.md`)](./technical/DATA_FLOW.md)
 - [API Map (`technical/API_MAP.md`)](./technical/API_MAP.md)
 - [AI Flow (`technical/AI_FLOW.md`)](./technical/AI_FLOW.md)
-- [Cloudflare Integration (`technical/CLOUDFLARE.md`)](./technical/CLOUDFLARE.md) — worker `linka-ai-diagnosis-worker`, modelo padrao Qwen3 30B, fallback local
+- [Cloudflare Integration (`technical/CLOUDFLARE.md`)](./technical/CLOUDFLARE.md) — worker `linka-ai-diagnosis-worker`, Gemini 2.0 Flash primario / Qwen3 30B fallback cloud / fallback local
 - [Admin API Schema (`technical/admin-api-schema.md`)](./technical/admin-api-schema.md) — schema D1 e contratos do `signallq-admin`
 - [Analytics Events (`technical/analytics-events.md`)](./technical/analytics-events.md) — contrato de eventos Firebase Analytics
 - [Storage Details (`technical/STORAGE.md`)](./technical/STORAGE.md) — Room v10, DataStore

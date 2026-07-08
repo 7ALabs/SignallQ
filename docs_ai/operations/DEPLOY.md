@@ -63,7 +63,7 @@ The deployment process involves several key steps:
 ## Backend Service Deployment
 
 -   Concurrent deployment of backend services is often necessary, especially for features relying on updated APIs or AI models.
--   The worker em `integrations/cloudflare/ai-diagnosis-worker/` (Cloudflare `linka-ai-diagnosis-worker`, modelo padrão **Qwen3 30B** com fallback local) tem seu próprio deploy via `npx wrangler deploy`, executado ANTES do commit quando há mudanças em `src/`.
+-   The worker em `integrations/cloudflare/ai-diagnosis-worker/` (Cloudflare `linka-ai-diagnosis-worker`, **Gemini 2.0 Flash primário** / Qwen3 30B fallback cloud / fallback local) tem seu próprio deploy via `npx wrangler deploy`, executado ANTES do commit quando há mudanças em `src/`.
 
 ## Key Files/Configuration
 

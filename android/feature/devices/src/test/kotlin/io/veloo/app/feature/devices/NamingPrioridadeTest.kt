@@ -47,13 +47,13 @@ class NamingPrioridadeTest {
     }
 
     @Test
-    fun `rotuloFallbackGenerico sem fabricante retorna Dispositivo generico`() {
-        assertEquals("Dispositivo", NamingPrioridade.rotuloFallbackGenerico(null))
+    fun `rotuloFallbackGenerico sem fabricante retorna Dispositivo desconhecido`() {
+        assertEquals("Dispositivo desconhecido", NamingPrioridade.rotuloFallbackGenerico(null))
     }
 
     @Test
-    fun `rotuloFallbackGenerico com fabricante em branco retorna Dispositivo generico`() {
-        assertEquals("Dispositivo", NamingPrioridade.rotuloFallbackGenerico("   "))
+    fun `rotuloFallbackGenerico com fabricante em branco retorna Dispositivo desconhecido`() {
+        assertEquals("Dispositivo desconhecido", NamingPrioridade.rotuloFallbackGenerico("   "))
     }
 
     @Test

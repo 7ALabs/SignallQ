@@ -20,7 +20,7 @@ O SignallQ usa um sistema de **FeatureFlags por build type** para controlar quai
 |---|---|---|---|---|
 | **Teste de Velocidade** | MVP | ✅ | ✅ | Core do app |
 | **Diagnóstico Local** | MVP | ✅ | ✅ | 8 engines especializados |
-| **Diagnóstico IA (SignallQ)** | MVP | ✅ | ✅ | Cloudflare Worker, modelo padrão Qwen3 30B, fallback local |
+| **Diagnóstico IA (SignallQ)** | MVP | ✅ | ✅ | Cloudflare Worker, Gemini 2.0 Flash primário / Qwen3 30B fallback cloud / fallback local |
 | **Análise Wi-Fi** | MVP | ✅ | ✅ | Scan, topologia, congestionamento |
 | **Análise Rede Móvel** | MVP | ✅ | ✅ | 4G/5G, RSRP, RSRQ, SINR |
 | **Histórico e Gráficos** | MVP | ✅ | ✅ | Uptime, narrativa, CSV, PDF |
@@ -147,7 +147,7 @@ buildConfigField("Boolean", "FEATURE_LINKPULSE_ATIVO", "true")
 
 ### SignallQ IA (Chat)
 - Speedtest silencioso integrado
-- Envio ao Worker Cloudflare (modelo padrão: Qwen3 30B, fallback local)
+- Envio ao Worker Cloudflare (Gemini 2.0 Flash primário, Qwen3 30B fallback cloud, fallback local)
 - Perguntas contextuais dinâmicas (`DynamicQuestionEngine`)
 - Chat em markdown com bolhas diferenciadas por tipo
 - Fallback local se IA falhar (`AiFallbackFactory`)

@@ -28,11 +28,11 @@ O SignallQ opera **inteiramente em free tiers** na fase atual. Custos reais surg
 
 | Recurso | Limite Free | Uso Estimado | Risco |
 |---|---|---|---|
-| Neurons/dia | 10.000 | Variável por modelo | Médio |
-| Modelo atual | Qwen3 30B MoE FP8 | ~300 neurons/request | Médio |
-| Fallback | Gemini Flash (Google) | Free tier separado | Baixo |
+| Neurons/dia | 10.000 | Variável por modelo | Baixo (só quando cai pro fallback) |
+| Provider primário | Gemini 2.0 Flash (Google, quando `GEMINI_API_KEY` setada) | Free tier separado do Cloudflare | Baixo |
+| Fallback | Qwen3 30B MoE FP8 (Cloudflare Workers AI) | ~300 neurons/request | Médio se Gemini cair com frequência |
 
-**Alerta:** Qwen3 30B consome mais neurons que modelos menores. Com 1k usuários fazendo 2-3 diagnósticos/dia, pode exceder o free tier. Monitorar via Admin Panel.
+**Alerta:** a maioria das requisições vai pro Gemini (primário); Qwen3/Cloudflare só entra em neurons quando o Gemini falha ou a secret não está configurada. Se o fallback passar a ser acionado com frequência (ex.: rate limit do Gemini), monitorar consumo de neurons via Admin Panel — Qwen3 30B consome mais neurons que modelos menores.
 
 ### Firebase (Spark — Free)
 
@@ -88,6 +88,6 @@ O SignallQ opera **inteiramente em free tiers** na fase atual. Custos reais surg
 
 ## Decisões Registradas
 
-1. **Modelo AI:** Qwen3 30B escolhido por qualidade de resposta em PT-BR. Se custo escalar, considerar downgrade para modelo menor.
+1. **Modelo AI:** Qwen3 30B escolhido por qualidade de resposta em PT-BR. Se custo escalar, considerar downgrade para modelo menor. *(Atualização: Gemini 2.0 Flash passou a ser o provider primário quando `GEMINI_API_KEY` está configurada; Qwen3 é o fallback — ver `docs_ai/technical/CLOUDFLARE.md`.)*
 2. **Sem banco pago:** D1 (SQLite) atende a necessidade. Sem Supabase, PlanetScale ou similar.
 3. **Sem CDN adicional:** Cloudflare já serve como CDN para Workers e pages.

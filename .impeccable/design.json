@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-05T00:00:00.000Z",
+  "title": "Design System: SignallQ",
+  "extensions": {
+    "colorMeta": {
+      "electric-violet": { "role": "primary", "displayName": "Electric Violet", "canonical": "#6C2BFF", "tonalRamp": ["#1A0A40", "#2C1266", "#3F1A8C", "#5222B3", "#6C2BFF", "#8B57FF", "#B08AFF", "#DCCEFF"] },
+      "accent-blue": { "role": "secondary", "displayName": "Accent Blue", "canonical": "#2563EB" },
+      "success": { "role": "status", "displayName": "Success Green", "canonical": "#22C55E" },
+      "warning": { "role": "status", "displayName": "Warning Amber", "canonical": "#F5A623" },
+      "error": { "role": "status", "displayName": "Error Red", "canonical": "#FF4D4F" },
+      "phase-latencia": { "role": "tertiary", "displayName": "Phase Latência Blue", "canonical": "#60A5FA" },
+      "phase-download": { "role": "tertiary", "displayName": "Phase Download Green", "canonical": "#34D399" },
+      "phase-upload": { "role": "tertiary", "displayName": "Phase Upload Amber", "canonical": "#FBBF24" },
+      "bg-primary": { "role": "neutral", "displayName": "Surface White", "canonical": "#FFFFFF" },
+      "bg-secondary": { "role": "neutral", "displayName": "Surface Grey", "canonical": "#F3F4F6" },
+      "bg-card": { "role": "neutral", "displayName": "Card White", "canonical": "#FFFFFF" },
+      "text-primary": { "role": "neutral", "displayName": "Ink Primary", "canonical": "#0D0D1A" },
+      "text-secondary": { "role": "neutral", "displayName": "Ink Secondary", "canonical": "#6B7280" },
+      "text-tertiary": { "role": "neutral", "displayName": "Ink Tertiary", "canonical": "#9CA3AF" },
+      "border": { "role": "neutral", "displayName": "Hairline Border", "canonical": "#E5E7EB" },
+      "signallq-black": { "role": "neutral", "displayName": "SignallQ Black", "canonical": "#0D0D1A" },
+      "signallq-dark-surface": { "role": "neutral", "displayName": "SignallQ Dark Surface", "canonical": "#1A0B2E" },
+      "signallq-dark-card": { "role": "neutral", "displayName": "SignallQ Dark Card", "canonical": "#1E1130" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Resultado de teste, número hero de velocidade." },
+      "headline": { "displayName": "Headline", "purpose": "Títulos de tela e seção." },
+      "title": { "displayName": "Title", "purpose": "Subtítulos, títulos de card." },
+      "body": { "displayName": "Body", "purpose": "Texto corrido." },
+      "label": { "displayName": "Label", "purpose": "Labels de UI, captions, valores de chip." },
+      "overline": { "displayName": "Overline", "purpose": "Rótulos de seção em uppercase." }
+    },
+    "shadows": [
+      { "name": "cta-glow", "value": "0 0 24px rgba(108,43,255,0.35)", "purpose": "Glow suave na cor do próprio elemento, ex. botão de speedtest." },
+      { "name": "active-segment", "value": "0 1px 4px rgba(0,0,0,0.12)", "purpose": "Sombra leve sob o pill branco ativo do seletor segmentado." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "linear", "purpose": "Easing padrão M3 usado em animações de progresso/loop (gauge, thinking dots)." }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "CTA principal (ex. Medir velocidade, Iniciar).",
+      "html": "<button class=\"ds-btn-primary\">Medir velocidade</button>",
+      "css": ".ds-btn-primary { background: #6C2BFF; color: #FFFFFF; padding: 16px 24px; border: none; border-radius: 12px; font: 500 14px/1.3 Roboto, sans-serif; transition: background 0.2s, transform 0.15s; } .ds-btn-primary:hover { background: #7C3FFF; } .ds-btn-primary:focus-visible { outline: 2px solid #6C2BFF; outline-offset: 2px; } .ds-btn-primary:active { transform: scale(0.98); }"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip-idle",
+      "description": "Chip de filtro (ex. Todos / 2.4 / 5 / 6 GHz), estado idle e selecionado.",
+      "html": "<span class=\"ds-chip\">5 GHz</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; background: #F3F4F6; color: #6B7280; padding: 8px 16px; border-radius: 999px; font: 500 14px/1.3 Roboto, sans-serif; } .ds-chip.selected { background: rgba(108,43,255,0.12); color: #6C2BFF; }"
+    },
+    {
+      "name": "Status Card",
+      "kind": "card",
+      "refersTo": "card-default",
+      "description": "Card com tint semântico (ex. Wi-Fi conectado = success @12%).",
+      "html": "<div class=\"ds-card ds-card-success\"><span class=\"ds-card-title\">Conectado</span><span class=\"ds-card-body\">Wi-Fi · 5GHz · Excelente</span></div>",
+      "css": ".ds-card { border-radius: 16px; padding: 16px; border: 1px solid #E5E7EB; } .ds-card-success { background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.28); } .ds-card-title { display: block; font: 600 18px/1.3 Roboto, sans-serif; color: #0D0D1A; } .ds-card-body { display: block; font: 400 14px/1.5 Roboto, sans-serif; color: #6B7280; margin-top: 4px; }"
+    },
+    {
+      "name": "Bottom Navigation",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "5 abas fixas: Início · Velocidade · Sinal · Histórico · Ajustes.",
+      "html": "<nav class=\"ds-nav\"><span class=\"ds-nav-item active\">Início</span><span class=\"ds-nav-item\">Velocidade</span><span class=\"ds-nav-item\">Sinal</span><span class=\"ds-nav-item\">Histórico</span><span class=\"ds-nav-item\">Ajustes</span></nav>",
+      "css": ".ds-nav { display: flex; justify-content: space-around; background: #FFFFFF; border-top: 1px solid #E5E7EB; padding: 8px 0; } .ds-nav-item { font: 500 11px/1.3 Roboto, sans-serif; color: #9CA3AF; } .ds-nav-item.active { color: #6C2BFF; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Calm Translator",
+    "overview": "SignallQ pega o vocabulário técnico de uma conexão de internet — RSSI, jitter, dBm, bufferbloat — e traduz em um veredito que qualquer pessoa entende: Excelente, Bom, Regular, Fraco, Forte. A superfície é Material 3 clara, branca e neutra; nada visual disputa atenção com o dado. Um único violeta elétrico marca ação e identidade; o resto do significado é carregado pela semântica de trânsito (verde/âmbar/vermelho). O sistema rejeita o visual cru de apps de speedtest genéricos e o visual denso de dashboards técnicos de rede.",
+    "keyCharacteristics": [
+      "Superfícies claras, planas, sem imagem/textura/gradiente decorativo",
+      "Uma cor de marca (violeta), usada com parcimônia",
+      "Verde/âmbar/vermelho carregam significado de qualidade, nunca decoração",
+      "Métrica crua sempre ao lado do veredito humano",
+      "SignallQ (IA) é sempre escura, mesmo com o app em tema claro"
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Violeta aparece só em CTA, seleção e nav ativa — nunca como cor de fundo geral ou decoração.", "section": "colors" },
+      { "name": "The Always-Dark AI Rule", "body": "A superfície da SignallQ (IA) nunca herda o tema claro do app.", "section": "colors" },
+      { "name": "The Verdict-Beside-Metric Rule", "body": "Nenhum número técnico aparece sozinho; o veredito humano sempre está a um olhar de distância.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Cards e superfícies não têm sombra; sombra é exceção, não hábito.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do parear todo dado técnico com veredito humano (Excelente/Bom/Regular/Fraco/Forte).",
+      "Do usar violeta elétrico (#6C2BFF) só em CTA, seleção e nav ativa.",
+      "Do manter a superfície da SignallQ (IA) sempre escura, independente do tema do app.",
+      "Do usar Material Symbols Outlined como único sistema de ícone; nunca emoji.",
+      "Do manter cards flat — tonal fill + borda 1px, sem sombra."
+    ],
+    "donts": [
+      "Don't parecer um app genérico de speedtest (tipo Ookla/Speedtest.net): números soltos sem contexto humano, sem veredito.",
+      "Don't parecer um dashboard técnico/enterprise de rede (tipo Wireshark): jargão não traduzido, denso.",
+      "Don't usar emoji como substituto de ícone ou cor semântica.",
+      "Don't aplicar gradiente decorativo fora do avatar de perfil e do header de Diagnóstico/IA.",
+      "Don't adicionar sombra pesada em cards."
+    ]
+  }
+}
