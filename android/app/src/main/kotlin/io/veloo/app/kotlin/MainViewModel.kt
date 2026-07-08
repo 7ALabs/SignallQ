@@ -685,7 +685,10 @@ class MainViewModel
         // _speedtestPendenteModoMovel deste ViewModel quando a migracao for concluida.
         // -------------------------------------------------------------------------
 
-        fun reiniciarSuite(modo: ModoSpeedtest) {
+        fun reiniciarSuite(
+            modo: ModoSpeedtest,
+            jaConfirmadoRedeMovel: Boolean = false,
+        ) {
             scannerDispositivosDisparado = false
             scanWifiDisparado = false
             benchmarkDnsDisparado = false
@@ -697,7 +700,12 @@ class MainViewModel
             viewModelScope.launch {
                 // Guarda de rede medida: se movel, modo pesado e usuario nao autorizou,
                 // suspende e aguarda confirmacao via dialog (Task 4). Sem dialog agora.
-                if (modo != ModoSpeedtest.fast && networkCapabilitiesProvider.isMeteredNetwork()) {
+                // jaConfirmadoRedeMovel = true quando o usuario ja confirmou o ForaDoWifiDialog
+                // (Home) — evita um segundo gate redundante que nao tem UI fora da tab Velocidade (#516).
+                if (!jaConfirmadoRedeMovel &&
+                    modo != ModoSpeedtest.fast &&
+                    networkCapabilitiesProvider.isMeteredNetwork()
+                ) {
                     val permiteHeavy = preferenciasAppRepository.speedtestPermiteHeavyMovel.first()
                     if (!permiteHeavy) {
                         _speedtestPendenteModoMovel.value = modo

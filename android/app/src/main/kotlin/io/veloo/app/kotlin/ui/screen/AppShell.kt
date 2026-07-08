@@ -197,6 +197,7 @@ fun AppShell(
     val speedtestPermiteHeavyMovel = speedtest.speedtestPermiteHeavyMovel
     val speedtestMbConsumidosMes = speedtest.speedtestMbConsumidosMes
     val onNovoTeste = speedtest.onNovoTeste
+    val onNovoTesteJaConfirmadoMovel = speedtest.onNovoTesteJaConfirmadoMovel
     val onCancelarTeste = speedtest.onCancelarTeste
     val onConfirmarSpeedtestMovel = speedtest.onConfirmarSpeedtestMovel
     val onCancelarSpeedtestMovel = speedtest.onCancelarSpeedtestMovel
@@ -717,7 +718,9 @@ fun AppShell(
             ForaDoWifiDialog(
                 onContinuar = {
                     showForaDoWifiDialog = false
-                    onNovoTeste(modoSelecionado)
+                    // Usuario ja confirmou o aviso de dados moveis aqui — pula o segundo
+                    // gate de confirmacao em rede medida (#516).
+                    onNovoTesteJaConfirmadoMovel(modoSelecionado)
                 },
                 onCancelar = { showForaDoWifiDialog = false },
             )
