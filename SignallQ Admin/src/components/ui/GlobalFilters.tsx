@@ -1,6 +1,7 @@
 import React from "react";
 import { ChevronDown } from "lucide-react";
 import { GlobalFilterConfig } from "../../types/filters";
+import { alpha } from "../../utils/color";
 
 /**
  * GH#552 (Fase 1) — filtros globais compartilhados por todas as 9 telas do
@@ -40,17 +41,25 @@ export const GlobalFilters: React.FC<GlobalFiltersProps> = ({ filters, className
             border: "1px solid var(--sq-border)",
           }}
         >
-          <span
+          <label
+            htmlFor={`global-filter-${filter.key}`}
             className="text-[10px] font-sans font-semibold uppercase tracking-[0.08em] select-none shrink-0"
             style={{ color: "var(--sq-text-tertiary)" }}
           >
             {filter.label}
-          </span>
+          </label>
           <select
+            id={`global-filter-${filter.key}`}
             value={filter.value}
             onChange={(e) => filter.onChange(e.target.value)}
-            className="appearance-none bg-transparent outline-none cursor-pointer text-xs font-medium pr-4"
+            className="appearance-none bg-transparent cursor-pointer text-xs font-medium pr-4 rounded-[4px] transition-colors focus:outline-none"
             style={{ color: "var(--sq-text-primary)" }}
+            onFocus={(e) => {
+              e.currentTarget.style.boxShadow = `0 0 0 2px ${alpha("var(--sq-accent)", 40)}`;
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.boxShadow = "none";
+            }}
           >
             {filter.options.map((opt) => (
               <option key={opt.value} value={opt.value}>
