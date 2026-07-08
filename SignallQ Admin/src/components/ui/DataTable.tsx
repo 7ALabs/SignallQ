@@ -13,7 +13,8 @@ interface DataTableProps<T> {
   columns: DataTableColumn<T>[];
   keyExtractor: (row: T) => string;
   emptyMessage?: string;
-  rowClassName?: string;
+  /** GH#552 (Fase 2): aceita string fixa ou função por linha (ex.: destacar a versão em foco). */
+  rowClassName?: string | ((row: T) => string);
   onRowClick?: (row: T) => void;
   id?: string;
 }
@@ -64,11 +65,12 @@ export function DataTable<T>({
           ) : (
             data.map((row) => {
               const rowKey = keyExtractor(row);
+              const resolvedRowClassName = typeof rowClassName === "function" ? rowClassName(row) : rowClassName;
               return (
                 <tr
                   key={rowKey}
                   onClick={() => onRowClick && onRowClick(row)}
-                  className={`transition-colors ${onRowClick ? "cursor-pointer" : ""} ${rowClassName}`}
+                  className={`transition-colors ${onRowClick ? "cursor-pointer" : ""} ${resolvedRowClassName}`}
                   style={{ borderTop: "1px solid var(--sq-border-subtle)" }}
                   onMouseEnter={(e) => {
                     (e.currentTarget as HTMLTableRowElement).style.backgroundColor = alpha("var(--sq-bg-overlay)", 50);

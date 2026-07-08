@@ -8,11 +8,15 @@ import { SectionCard } from "../../components/ui/SectionCard";
 import { MetricCard } from "../../components/ui/MetricCard";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { GlobalFilters } from "../../components/ui/GlobalFilters";
+import { InsightBlock } from "../../components/ui/InsightBlock";
+import { ActionsRow } from "../../components/ui/ActionsRow";
 import { AppEnvironment } from "../../types/admin";
 
 interface VersionsTabProps {
   environment: AppEnvironment;
   period: string;
+  onNavigate: (path: string) => void;
   triggerRefreshCounter: number;
 }
 
@@ -34,6 +38,7 @@ function formatDate(unixSeconds: number | null): string {
 export const VersionsTab: React.FC<VersionsTabProps> = ({
   environment,
   period,
+  onNavigate,
   triggerRefreshCounter,
 }) => {
   const [loading, setLoading] = React.useState(true);
@@ -41,6 +46,7 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
   const [productionVersion, setProductionVersion] = React.useState<AppVersionUsage | null>(null);
   // null = Firebase/Crashlytics não configurado ou sem dados ainda (não é "zero crashes").
   const [crashStats, setCrashStats] = React.useState<FirebaseAppVersionCrashStats[] | null>(null);
+  const [focusVersion, setFocusVersion] = React.useState<string>("all");
 
   React.useEffect(() => {
     let cancelled = false;
@@ -81,8 +87,36 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
     );
   }
 
+  const focusedVersion = focusVersion === "all" ? null : versions.find((v) => v.appVersion === focusVersion) ?? null;
+
+  // GH#552 (Fase 2) — síntese derivada de dado real já carregado. Sem BigQuery
+  // configurado, a frase não afirma estabilidade — só reporta a ausência do dado.
+  const insightText = focusedVersion
+    ? crashStats === null
+      ? `Versão ${focusedVersion.appVersion} tem ${focusedVersion.sessions.toLocaleString("pt-BR")} sessões registradas no período. Crash rate indisponível — Firebase Crashlytics não está configurado no worker.`
+      : `Versão ${focusedVersion.appVersion} tem ${focusedVersion.sessions.toLocaleString("pt-BR")} sessões e ${(crashByVersion.get(focusedVersion.appVersion)?.crashCount ?? 0).toLocaleString("pt-BR")} crashes registrados no Crashlytics no período.`
+    : null;
+
   return (
     <div className="flex flex-col gap-6">
+      {/* 1. Filtro — versão em foco (usa só versões reais já carregadas) */}
+      <GlobalFilters
+        id="versions-global-filters"
+        filters={[
+          {
+            key: "version",
+            label: "Versão foco",
+            value: focusVersion,
+            onChange: setFocusVersion,
+            options: [
+              { label: "Todas", value: "all" },
+              ...versions.map((v) => ({ label: `${v.appVersion} (build ${v.versionCode ?? "—"})`, value: v.appVersion })),
+            ],
+          },
+        ]}
+      />
+
+      {/* 2. KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <MetricCard
           label="Versão em produção"
@@ -105,6 +139,10 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
         />
       </div>
 
+      {/* 3. Bloco de explicação — antes da tabela, só quando há versão em foco */}
+      {insightText && <InsightBlock id="versions-insight-block">{insightText}</InsightBlock>}
+
+      {/* 4. Tabela de investigação — dados por release, versão em foco destacada */}
       <SectionCard
         title="Dados por release"
         description="Sessões de diagnóstico agrupadas por versão, build e canal de distribuição, direto do D1."
@@ -112,6 +150,7 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
         <DataTable
           data={versions}
           keyExtractor={(v) => `${v.appVersion}-${v.versionCode}-${v.distChannel}-${v.buildType}`}
+          rowClassName={(v) => (v.appVersion === focusVersion ? "bg-[var(--primary)]/5" : "")}
           columns={[
             {
               header: "Versão",
@@ -153,6 +192,14 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
           as credenciais do Firebase no worker <code>signallq-admin-worker</code> para habilitar.
         </p>
       )}
+
+      {/* 5. Ações */}
+      <ActionsRow
+        id="versions-actions-row"
+        actions={[
+          { label: "Ver erros relacionados", onClick: () => onNavigate("/errors") },
+        ]}
+      />
     </div>
   );
 };

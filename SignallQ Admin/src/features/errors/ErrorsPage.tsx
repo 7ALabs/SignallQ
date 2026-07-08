@@ -3,12 +3,15 @@ import { errorMetricsService } from "../../services/errorMetricsService";
 import { RecentErrorsTable } from "./components/RecentErrorsTable";
 import { ErrorMetricGrid } from "./components/ErrorMetricGrid";
 import { ErrorByEndpointChart } from "./components/ErrorByEndpointChart";
+import { ErrorAlertsPanel } from "./components/ErrorAlertsPanel";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
+import { GlobalFilters } from "../../components/ui/GlobalFilters";
+import { InsightBlock } from "../../components/ui/InsightBlock";
+import { ActionsRow } from "../../components/ui/ActionsRow";
 import { AppEnvironment } from "../../types/admin";
-import { SystemError } from "../../types/errors";
+import { SystemError, SystemErrorCategory } from "../../types/errors";
 import {
-  RefreshCw,
   Search,
   CheckCircle,
   Terminal,
@@ -18,24 +21,27 @@ import {
 interface ErrorsPageProps {
   environment: AppEnvironment;
   period: string;
-  onEnvironmentChange: (env: AppEnvironment) => void;
-  onPeriodChange: (p: string) => void;
+  onNavigate: (path: string) => void;
   triggerRefreshCounter: number;
 }
 
+const CATEGORY_LABEL: Record<SystemErrorCategory, string> = {
+  app: "App",
+  backend: "Backend",
+  ia: "IA",
+  integration: "Integração",
+};
+
 export const ErrorsPage: React.FC<ErrorsPageProps> = ({
-  environment: propEnv,
-  period: propPeriod,
-  onEnvironmentChange,
-  onPeriodChange,
+  environment,
+  period,
+  onNavigate,
   triggerRefreshCounter,
 }) => {
-  const [localEnv, setLocalEnv] = React.useState<AppEnvironment>(propEnv);
-  const [localPeriod, setLocalPeriod] = React.useState<string>(propPeriod);
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [categoryFilter, setCategoryFilter] = React.useState<string>("all");
 
   const [loading, setLoading] = React.useState(true);
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [errors, setErrors] = React.useState<SystemError[]>([]);
   const [selectedError, setSelectedError] = React.useState<SystemError | null>(null);
 
@@ -44,22 +50,13 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
   const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
   const [resolutionNoteDraft, setResolutionNoteDraft] = React.useState("");
 
-  // Sync prop changes
-  React.useEffect(() => {
-    setLocalEnv(propEnv);
-  }, [propEnv]);
-
-  React.useEffect(() => {
-    setLocalPeriod(propPeriod);
-  }, [propPeriod]);
-
   const loadErrors = React.useCallback(async () => {
     setLoading(true);
     setStatusMessage(null);
     try {
       const data = await errorMetricsService.getSystemErrors({
-        environment: localEnv,
-        period: localPeriod,
+        environment,
+        period,
         search: searchQuery
       });
       setErrors(data);
@@ -73,18 +70,11 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [localEnv, localPeriod, searchQuery, triggerRefreshCounter]);
+  }, [environment, period, searchQuery, triggerRefreshCounter]);
 
   React.useEffect(() => {
     loadErrors();
   }, [loadErrors]);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    await loadErrors();
-    setIsRefreshing(false);
-  };
 
   const handleResolve = async (id: string) => {
     setResolvingId(id);
@@ -118,121 +108,108 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
     }
   };
 
+  const filteredErrors = React.useMemo(() => {
+    if (categoryFilter === "all") return errors;
+    return errors.filter((e) => (e.category ?? "backend") === categoryFilter);
+  }, [errors, categoryFilter]);
+
+  const handleExportErrors = () => {
+    const header = "ID,Fonte,Categoria,Mensagem,Ocorrencias,Afetados,Resolvido,Timestamp\r\n";
+    const rows = filteredErrors
+      .map((e) => [
+        e.id, e.source, e.category ?? "backend",
+        `"${e.message.replace(/"/g, '""')}"`,
+        e.count, e.affectedUserCount, e.resolved ? "sim" : "nao", e.timestamp,
+      ].join(","))
+      .join("\r\n");
+    const csvContent = `data:text/csv;charset=utf-8,${header}${rows}`;
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `signallq_erros_${environment}_${period}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // GH#552 (Fase 2) — síntese derivada só do que já está carregado (fonte
+  // principal por contagem de eventos). Sem inventar taxa de crash: esta tela
+  // reporta erros de sistema (worker/app/IA/integração), não crash rate de app.
+  const insightText = React.useMemo(() => {
+    if (filteredErrors.length === 0) return null;
+    const bySource = new Map<string, number>();
+    filteredErrors.forEach((e) => bySource.set(e.source, (bySource.get(e.source) ?? 0) + e.count));
+    const top = [...bySource.entries()].sort((a, b) => b[1] - a[1])[0];
+    const activeCount = filteredErrors.filter((e) => !e.resolved).length;
+    if (!top) return null;
+    return `${activeCount} erro(s) ativo(s) no período. Maior concentração de eventos vem de "${top[0]}" (${top[1]} ocorrências) — comece a investigação por ali.`;
+  }, [filteredErrors]);
+
   return (
     <div className="space-y-6">
-      {/* 1. Bar of core controls: Search and Filtering */}
-      <div className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-[8px] p-5 space-y-4 select-none">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Pesquise por mensagem de erro, stack trace, componente ou ID do caso..."
-              className="w-full bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl pl-10 pr-4 py-2.5 text-xs text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--primary)]/60 focus:ring-1 focus:ring-[var(--primary)]/30 transition-all font-sans"
-            />
-          </div>
-
-          <div className="flex items-center gap-3 self-end md:self-auto">
-            {/* Env Selector */}
-            <div className="flex bg-[var(--bg-surface)] p-1 border border-[var(--border)] rounded-xl text-[10px] font-sans">
-              <button
-                type="button"
-                onClick={() => {
-                  setLocalEnv("production");
-                  onEnvironmentChange("production");
-                }}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                  localEnv === "production"
-                    ? "bg-[var(--primary)] text-white shadow-sm"
-                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                }`}
-              >
-                PROD
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setLocalEnv("staging");
-                  onEnvironmentChange("staging");
-                }}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
-                  localEnv === "staging"
-                    ? "bg-[var(--attention)] text-black shadow-sm"
-                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                }`}
-              >
-                STAGING
-              </button>
-            </div>
-
-            {/* Period Selector */}
-            <select
-              value={localPeriod}
-              onChange={(e) => {
-                const targetVal = e.target.value;
-                setLocalPeriod(targetVal);
-                onPeriodChange(targetVal);
-              }}
-              className="bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--primary)] transition-colors cursor-pointer font-sans font-bold"
-            >
-              <option value="today">HOJE</option>
-              <option value="7d">7 DIAS</option>
-              <option value="30d">30 DIAS</option>
-            </select>
-
-            <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="flex items-center justify-center p-2.5 bg-[var(--bg-surface)] border border-[var(--border)] hover:border-zinc-700 active:bg-zinc-900 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all rounded-xl disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin text-[var(--text-secondary)]" : ""}`} />
-            </button>
-          </div>
-        </div>
+      {/* 1. Busca livre — free-text não cabe no idioma de GlobalFilters (lista de
+          opções), então fica isolada. Env/período já são globais via Topbar
+          (SIG#552 Fase 1) — não reimplementar aqui. */}
+      <div className="relative">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Pesquise por mensagem de erro, stack trace, componente ou ID do caso..."
+          className="w-full bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl pl-10 pr-4 py-2.5 text-xs text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--primary)]/60 focus:ring-1 focus:ring-[var(--primary)]/30 transition-all font-sans"
+        />
       </div>
 
-      {/* 2. Grid de métricas de erros */}
-      <ErrorMetricGrid environment={localEnv} />
+      {/* 1.5. Filtros globais — único idioma de filtro da tela (categoria real do
+          dado, SystemError.category) */}
+      <GlobalFilters
+        id="errors-global-filters"
+        filters={[
+          {
+            key: "category",
+            label: "Categoria",
+            value: categoryFilter,
+            onChange: setCategoryFilter,
+            options: [
+              { label: "Todas", value: "all" },
+              ...Object.entries(CATEGORY_LABEL).map(([value, label]) => ({ value, label })),
+            ],
+          },
+        ]}
+      />
 
-      {/* 3. Operational grid layouts */}
+      {/* 2. KPIs — grid de métricas de erros */}
+      <ErrorMetricGrid environment={environment} />
+
+      {/* 3. Gráfico principal — volume histórico de erros por fonte técnica */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
         <div className="lg:col-span-2">
-          <ErrorByEndpointChart environment={localEnv} />
+          <ErrorByEndpointChart environment={environment} />
         </div>
         <div>
-          <FeatureComingSoon
-            feature="Alertas Críticos de Infraestrutura"
-            reason="Sistema de alertas não implementado"
-          />
+          <ErrorAlertsPanel />
         </div>
       </div>
 
-      {/* 3.5. Agrupamentos e Respostas Operacionais */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-fade-in">
-        <div className="lg:col-span-7">
-          <FeatureComingSoon
-            feature="Agrupador de Falhas por Função / Tela / Versão"
-            reason="Requer rota de agregação de erros no worker"
-          />
-        </div>
-        <div className="lg:col-span-5">
-          <FeatureComingSoon
-            feature="Análise Automática de Vitals"
-            reason="Requer integração com Firebase Crashlytics e Google Play Vitals"
-          />
-        </div>
-      </div>
+      {/* 4. Bloco de explicação — antes da tabela de investigação */}
+      {insightText && <InsightBlock id="errors-insight-block">{insightText}</InsightBlock>}
 
-      {/* 4. Fine-grained logs of system errors */}
+      {/* Funcionalidades ainda sem rota de agregação no worker — reunidas numa
+          faixa compacta em vez de dois cards vazios grandes (menos ruído visual). */}
+      <FeatureComingSoon
+        feature="Agrupador de Falhas por Função/Tela/Versão · Análise Automática de Vitals"
+        reason="Requer rota de agregação de erros e integração com Firebase Crashlytics/Google Play Vitals"
+        compact
+      />
+
+      {/* 5. Tabela de investigação — drill-down por caso, com ação de resolução */}
       {loading ? (
         <LoadingState message="Acompanhando dumps de erros e crash outputs..." />
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
           <div className="xl:col-span-7">
             <RecentErrorsTable
-              errors={errors}
+              errors={filteredErrors}
               selectedError={selectedError}
               onSelectError={(row) => {
                 setSelectedError(row);
@@ -364,6 +341,15 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
           </div>
         </div>
       )}
+
+      {/* 6. Ações */}
+      <ActionsRow
+        id="errors-actions-row"
+        actions={[
+          { label: "Ver erros por versão", onClick: () => onNavigate("/app-versions") },
+          { label: "Exportar CSV", onClick: handleExportErrors, variant: "secondary" },
+        ]}
+      />
     </div>
   );
 };

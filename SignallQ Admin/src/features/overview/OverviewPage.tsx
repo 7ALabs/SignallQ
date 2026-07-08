@@ -10,16 +10,24 @@ import { LoadingState } from "../../components/ui/LoadingState";
 import { AppEnvironment } from "../../types/admin";
 import { OverviewMetricsResponse } from "../../mocks/overview.mock";
 import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
+import { GlobalFilters } from "../../components/ui/GlobalFilters";
+import { InsightBlock } from "../../components/ui/InsightBlock";
+import { ActionsRow } from "../../components/ui/ActionsRow";
+import { PERIOD_FILTERS } from "../../config/constants";
 
 interface OverviewPageProps {
   environment: AppEnvironment;
   period: string;
+  onPeriodChange: (p: string) => void;
+  onNavigate: (path: string) => void;
   triggerRefreshCounter: number;
 }
 
 export const OverviewPage: React.FC<OverviewPageProps> = ({
   environment,
   period,
+  onPeriodChange,
+  onNavigate,
   triggerRefreshCounter,
 }) => {
   const [loading, setLoading] = React.useState<boolean>(true);
@@ -124,12 +132,55 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
     );
   }
 
+  // GH#552 (Fase 2) — síntese textual derivada só de valores já carregados nesta
+  // tela (metrics + timelineData), sem inventar correlação que os dados não
+  // sustentam. Se algum valor de referência faltar, cai para uma frase neutra.
+  const insightText = React.useMemo(() => {
+    if (!metrics) return null;
+    const diagCount = metrics.diagnosticsCount?.value;
+    const successRate = metrics.successRate?.value;
+    const aiCost = metrics.aiCost?.value;
+    const peak = timelineData.reduce(
+      (max, point: any) => (point.completedDiagnostics > (max?.completedDiagnostics ?? -1) ? point : max),
+      null as any
+    );
+    const parts: string[] = [];
+    if (diagCount != null) {
+      parts.push(`${diagCount} diagnósticos executados no período selecionado`);
+    }
+    if (successRate != null) {
+      parts.push(`taxa de sucesso de ${successRate}%`);
+    }
+    if (peak?.timestamp) {
+      parts.push(`pico de volume em ${peak.timestamp} (${peak.completedDiagnostics} diagnósticos)`);
+    }
+    if (aiCost != null) {
+      parts.push(`custo de IA acumulado de ${aiCost}`);
+    }
+    if (parts.length === 0) return null;
+    return `${parts.join(", ")}.`;
+  }, [metrics, timelineData]);
+
   return (
     <div className="space-y-6">
-      {/* 2. Grid de cards principais - 6 cards */}
+      {/* 1. Filtros globais — período (env já é global via Topbar) */}
+      <GlobalFilters
+        filters={[
+          {
+            key: "period",
+            label: "Período",
+            value: period,
+            onChange: onPeriodChange,
+            options: PERIOD_FILTERS.filter((o) => o.value !== "custom"),
+          },
+        ]}
+      />
+
+      {/* 2. KPIs — grid de cards principais, cada um com veredito/tendência */}
       <OverviewMetricGrid metrics={metrics} />
 
-      {/* 3. Linha principal (gráfico por hora + tipo de rede) */}
+      {/* 3. Gráfico principal — volume de diagnósticos x dispositivos ativos,
+          com a composição por tipo de rede ao lado. */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <DiagnosticsTimeline timelineData={timelineData} period={period} />
@@ -139,7 +190,11 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         </div>
       </div>
 
-      {/* 4. Linha secundária (problemas mais comuns + alertas recentes + uso de IA) */}
+      {/* 4. Bloco de explicação — antes da tabela de investigação */}
+      {insightText && <InsightBlock id="overview-insight-block">{insightText}</InsightBlock>}
+
+      {/* 5. Tabela de investigação — problemas recorrentes, alertas automáticos
+          e uso de IA por provedor (últimos incidentes/gargalos operacionais). */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
         <div>
           <TopIssuesPanel issues={topIssues} />
@@ -152,10 +207,19 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         </div>
       </div>
 
-      {/* 5. Health Section "Saúde do Produto" */}
+      {/* Saúde de produto — sem dado real ainda (requer Firebase Analytics/Crashlytics) */}
       <FeatureComingSoon
         feature="Saúde e Engajamento do Produto"
         reason="Requer Firebase Analytics, Crashlytics e Product Analytics no worker"
+      />
+
+      {/* 6. Ações — navegação direta pras telas que aprofundam cada eixo do semáforo */}
+      <ActionsRow
+        id="overview-actions-row"
+        actions={[
+          { label: "Ver Problemas & Incidentes", onClick: () => onNavigate("/errors") },
+          { label: "Ver IA & Custos", onClick: () => onNavigate("/ai-cost"), variant: "secondary" },
+        ]}
       />
     </div>
   );

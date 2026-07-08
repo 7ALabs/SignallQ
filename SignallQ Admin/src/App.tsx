@@ -13,12 +13,10 @@ import { OverviewTab } from "./features/overview/OverviewTab";
 import { ProductAnalyticsTab } from "./features/product-analytics/ProductAnalyticsTab";
 import { DiagnosticsTab } from "./features/diagnostics/DiagnosticsTab";
 import { NetworksTab } from "./features/networks/NetworksTab";
-import { OperatorsTab } from "./features/operators/OperatorsTab";
 import { AiCostTab } from "./features/ai-cost/AiCostTab";
 import { ErrorsTab } from "./features/errors/ErrorsTab";
 import { VersionsTab } from "./features/app-versions/VersionsTab";
 import { SettingsTab } from "./features/settings/SettingsTab";
-import { FeatureFlagsTab } from "./features/feature-flags/FeatureFlagsTab";
 import { SystemHealthTab } from "./features/system-health/SystemHealthTab";
 
 // Lucide accessories
@@ -156,7 +154,7 @@ export default function App() {
     switch (currentPath) {
       case "/overview":
         return {
-          title: "Visão Geral",
+          title: "O SignallQ está saudável agora?",
           description: "Acompanhe uso, diagnósticos, qualidade da rede e custo de IA em tempo real.",
           dataSource: "D1 (diagnostic_sessions, ai_usage, alerts) via signallq-admin-worker",
           badge: (
@@ -208,18 +206,14 @@ export default function App() {
             </span>
           ),
         };
+      // GH#552 (Fase 2): "Redes & Provedores" — fusão de /networks + /operators,
+      // mesmo texto de cabeçalho nos dois hashes.
       case "/networks":
-        return {
-          title: "Análise de Redes",
-          description: "Visibilidade agregada sobre frequências celulares de rádio, canais Wi-Fi residenciais e gateways atenuados.",
-          dataSource: "D1 (diagnostic_sessions agregado por network_type) via signallq-admin-worker",
-          badge: null,
-        };
       case "/operators":
         return {
-          title: "Benchmarks de Operadoras",
-          description: "Análise comparativa das latências e perdas de pacotes entre as principais operadoras de telecomunicações do Brasil.",
-          dataSource: "D1 (diagnostic_sessions agregado por operator) via signallq-admin-worker",
+          title: "Onde a qualidade varia?",
+          description: "Visibilidade agregada sobre frequências celulares de rádio, canais Wi-Fi residenciais e benchmark comparativo entre operadoras.",
+          dataSource: "D1 (diagnostic_sessions agregado por network_type e por operator) via signallq-admin-worker",
           badge: null,
         };
       case "/ai-cost":
@@ -231,7 +225,7 @@ export default function App() {
         };
       case "/errors":
         return {
-          title: "Logs de Erros",
+          title: "O que está prejudicando a experiência?",
           description: "Erros do Cloudflare Worker, dumps de depuração do app Android e problemas nas conexões com tabelas de banco Analytics DB.",
           dataSource: "D1 (system_errors) via signallq-admin-worker",
           badge: (
@@ -249,16 +243,9 @@ export default function App() {
         };
       case "/app-versions":
         return {
-          title: "Versões do App",
+          title: "A versão publicada está estável?",
           description: "Lista de builds Android transmitindo métricas e status de distribuição de novas atualizações via Play Store.",
-          dataSource: "BigQuery (export Firebase Crashlytics) via signallq-admin-worker",
-          badge: null,
-        };
-      case "/feature-flags":
-        return {
-          title: "Feature Flags",
-          description: "Ative ou desative telas e funcionalidades do app remotamente, sem necessidade de novo build.",
-          dataSource: "D1 (feature_flags, feature_flag_audit) via signallq-admin-worker",
+          dataSource: "D1 (diagnostic_sessions por versão) + BigQuery (export Firebase Crashlytics) via signallq-admin-worker",
           badge: null,
         };
       case "/system-health":
@@ -279,11 +266,14 @@ export default function App() {
             </span>
           ),
         };
+      // GH#552 (Fase 2): "Configurações" — fusão de /settings + /feature-flags,
+      // mesmo texto de cabeçalho nos dois hashes.
       case "/settings":
+      case "/feature-flags":
         return {
-          title: "Configurações Técnicas",
-          description: "Ajustes de model gateway, limiares de canais de rádio, webhooks de alerta e pontos de sincronização de dados.",
-          dataSource: "D1 (admin_settings) via signallq-admin-worker",
+          title: "O que posso controlar com segurança?",
+          description: "Feature flags remotas, limiares de alerta consumidos pelo worker e integrações administrativas externas.",
+          dataSource: "D1 (admin_settings, feature_flags, feature_flag_audit) via signallq-admin-worker",
           badge: null,
         };
       default:
@@ -343,6 +333,7 @@ export default function App() {
         <OverviewTab
           environment={environment}
           period={period}
+          onPeriodChange={handlePeriodChange}
           onNavigate={handleNavigate}
           triggerRefreshCounter={refreshCounter}
         />
@@ -363,17 +354,13 @@ export default function App() {
           triggerRefreshCounter={refreshCounter}
         />
       )}
-      {currentPath === "/networks" && (
+      {/* GH#552 (Fase 2): "/operators" fundido em "/networks" — mesmo componente
+          renderizado nos dois hashes até que nada mais linke pro slug antigo. */}
+      {(currentPath === "/networks" || currentPath === "/operators") && (
         <NetworksTab
           environment={environment}
           period={period}
-          triggerRefreshCounter={refreshCounter}
-        />
-      )}
-      {currentPath === "/operators" && (
-        <OperatorsTab
-          environment={environment}
-          period={period}
+          onNavigate={handleNavigate}
           triggerRefreshCounter={refreshCounter}
         />
       )}
@@ -388,8 +375,7 @@ export default function App() {
         <ErrorsTab
           environment={environment}
           period={period}
-          onEnvironmentChange={handleEnvironmentChange}
-          onPeriodChange={handlePeriodChange}
+          onNavigate={handleNavigate}
           triggerRefreshCounter={refreshCounter}
         />
       )}
@@ -397,10 +383,10 @@ export default function App() {
         <VersionsTab
           environment={environment}
           period={period}
+          onNavigate={handleNavigate}
           triggerRefreshCounter={refreshCounter}
         />
       )}
-      {currentPath === "/feature-flags" && <FeatureFlagsTab />}
       {currentPath === "/system-health" && (
         <SystemHealthTab
           environment={environment}
@@ -408,7 +394,9 @@ export default function App() {
           triggerRefreshCounter={refreshCounter}
         />
       )}
-      {currentPath === "/settings" && <SettingsTab />}
+      {/* GH#552 (Fase 2): "/feature-flags" fundido em "/settings" — mesmo componente
+          renderizado nos dois hashes até que nada mais linke pro slug antigo. */}
+      {(currentPath === "/settings" || currentPath === "/feature-flags") && <SettingsTab />}
       </ErrorBoundary>
     </AppLayout>
   );

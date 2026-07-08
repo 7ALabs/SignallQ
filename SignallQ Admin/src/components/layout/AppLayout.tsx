@@ -46,16 +46,16 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       case "/diagnostics":
         return "Diagnósticos";
       case "/networks":
-        return "Redes & RF";
       case "/operators":
-        return "Operadoras";
+        return "Redes & Provedores";
       case "/ai-cost":
         return "IA & Custo";
       case "/errors":
-        return "Erros";
+        return "Problemas & Incidentes";
       case "/app-versions":
-        return "Versões Android";
+        return "Releases & Qualidade";
       case "/settings":
+      case "/feature-flags":
         return "Configurações";
       default:
         return "7Agents Admin Console";

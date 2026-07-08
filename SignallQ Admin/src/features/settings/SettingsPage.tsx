@@ -3,7 +3,10 @@ import { adminSettingsService, ExtendedSettingsPayload } from "../../services/ad
 import { CostLimitSettings } from "./components/CostLimitSettings";
 import { IntegrationsSettings } from "./components/IntegrationsSettings";
 import { LoadingState } from "../../components/ui/LoadingState";
-import { Settings, Save, CheckCircle2, RotateCcw, ShieldCheck, AlertTriangle, ToggleRight } from "lucide-react";
+import { SectionCard } from "../../components/ui/SectionCard";
+import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
+import { FeatureFlagsTab } from "../feature-flags/FeatureFlagsTab";
+import { Settings, Save, CheckCircle2, RotateCcw, ShieldCheck, AlertTriangle } from "lucide-react";
 
 export const SettingsPage: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
@@ -158,31 +161,30 @@ export const SettingsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Grid configuration panels layouts */}
+      {/* GH#552 (Fase 2) — "Configurações": fusão de settings/ + feature-flags/. Único
+          escritor real de flags continua sendo PUT /admin/feature-flags/:key (GH#424) —
+          o bloco abaixo usa o mesmo componente da rota antiga, sem segundo caminho de escrita. */}
+      <SectionCard
+        title="Feature Flags ativas"
+        description="Controle remoto de telas e funcionalidades do app — efeito real no Android, sem novo build."
+        id="settings-feature-flags-block"
+      >
+        <FeatureFlagsTab embedded />
+      </SectionCard>
+
+      {/* Bloco: Notificações e alertas — limiares que o worker consome de fato (GH#426) */}
+      {/* Bloco: Integrações administrativas externas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 font-sans text-xs">
         <CostLimitSettings settings={settings} onChange={handleUpdate} />
         <IntegrationsSettings />
       </div>
 
-      {/* GH#424: feature flags têm página dedicada própria (/feature-flags), fonte única de
-          escrita real (PUT /admin/feature-flags/:key na tabela feature_flags consumida pelo
-          Android via GET /flags). Duplicar o toggle aqui em Settings levava a um segundo
-          caminho de escrita que gravava num blob legado sem efeito no app — removido. */}
-      <a
-        href="#/feature-flags"
-        className="flex items-center justify-between gap-4 bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-[8px] p-5 hover:border-zinc-700 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <ToggleRight className="w-5 h-5 text-[var(--primary)]" />
-          <div>
-            <h4 className="text-xs font-semibold font-sans text-[var(--text-secondary)] uppercase">Feature Flags</h4>
-            <p className="text-[10px] text-[var(--text-tertiary)] font-sans mt-0.5">
-              Controle remoto de funcionalidades do app — página dedicada, efeito real no Android.
-            </p>
-          </div>
-        </div>
-        <span className="text-[10px] font-sans text-[var(--primary)] shrink-0">Abrir →</span>
-      </a>
+      {/* Bloco: Conta e acesso — sem dado real hoje (não existe tabela de admins/auditoria) */}
+      <FeatureComingSoon
+        feature="Conta e Acesso · Log de Auditoria"
+        reason="Requer tabela de admins com papéis e trilha de auditoria (quem mudou o quê, quando) no worker"
+        compact
+      />
 
       <div className="bg-[var(--bg-sidebar)]/30 border border-dashed border-[var(--border)] rounded-[8px] p-4 flex items-center gap-2.5 text-[10px] font-sans text-[var(--text-tertiary)] select-none justify-center">
         <ShieldCheck className="w-4 h-4 text-[var(--success)]" />

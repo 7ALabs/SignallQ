@@ -4,6 +4,8 @@ import { featureFlagsService, FeatureFlag } from "../../services/featureFlagsSer
 
 interface Props {
   filters?: { environment?: string };
+  /** GH#552 (Fase 2): true quando embutido dentro de Configurações (sem cabeçalho de página próprio). */
+  embedded?: boolean;
 }
 
 function formatFlagKey(key: string): string {
@@ -27,7 +29,7 @@ function formatTimestamp(unixSec: number): string {
   });
 }
 
-export const FeatureFlagsTab: React.FC<Props> = () => {
+export const FeatureFlagsTab: React.FC<Props> = ({ embedded = false }) => {
   const [flags, setFlags] = useState<FeatureFlag[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
@@ -72,18 +74,20 @@ export const FeatureFlagsTab: React.FC<Props> = () => {
 
   return (
     <div className="space-y-6">
-      {/* Cabeçalho da seção */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-[var(--text-primary)]">Feature Flags</h2>
-          <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
-            Controle remoto de telas e funcionalidades
-          </p>
+      {/* Cabeçalho da seção — omitido quando embutido em Configurações (GH#552) */}
+      {!embedded && (
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-base font-semibold text-[var(--text-primary)]">Feature Flags</h2>
+            <p className="text-xs text-[var(--text-tertiary)] mt-0.5">
+              Controle remoto de telas e funcionalidades
+            </p>
+          </div>
+          <span className="shrink-0 text-[10px] font-mono text-[var(--text-tertiary)] bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1">
+            {flags.length} flags
+          </span>
         </div>
-        <span className="shrink-0 text-[10px] font-mono text-[var(--text-tertiary)] bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1">
-          {flags.length} flags
-        </span>
-      </div>
+      )}
 
       {/* Loading */}
       {loading && (

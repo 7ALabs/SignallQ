@@ -14,7 +14,10 @@ export type GlobalFilterKey =
   | "region"
   | "severity"
   | "provider"
-  | "model";
+  | "model"
+  /** GH#552 (Fase 2) — categoria real de `SystemError.category` (app/backend/ia/integration).
+   * Não usar "severity" para isso: o worker não classifica erros por severidade hoje. */
+  | "category";
 
 export interface GlobalFilterOption {
   label: string;
