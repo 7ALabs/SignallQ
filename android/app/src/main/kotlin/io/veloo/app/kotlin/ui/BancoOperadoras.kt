@@ -135,4 +135,31 @@ object BancoOperadoras {
             }
         }
     }
+
+    /**
+     * Prefixos das 4 operadoras que atuam tanto em fibra quanto em móvel — reaproveita a
+     * mesma identidade visual ([id]) cadastrada em [lista]/[OperadoraLogoCatalog], já que a
+     * marca é a mesma independente da linha de produto.
+     */
+    private val prefixosMovel: Map<String, List<String>> =
+        mapOf(
+            "vivo_fibra" to listOf("vivo"),
+            "claro_net" to listOf("claro"),
+            "tim_live" to listOf("tim"),
+            "oi_fibra" to listOf("oi"),
+        )
+
+    /**
+     * Resolve o nome de operadora móvel (`TelephonyManager`/lookup de IP) para a mesma
+     * [ContatoOperadora] da linha fixa. Não reaproveita [resolver]: nomes de operadora móvel
+     * chegam concatenados sem separador (ex.: "TIMBRASIL"), então o `\b` de [resolver] nunca
+     * bate — aqui o match é por prefixo simples.
+     */
+    fun resolverMovel(nomeOperadora: String?): ContatoOperadora? {
+        if (nomeOperadora.isNullOrBlank()) return null
+        val normalizado = nomeOperadora.lowercase().trim()
+        return lista.firstOrNull { op ->
+            prefixosMovel[op.id]?.any { normalizado.startsWith(it) } == true
+        }
+    }
 }

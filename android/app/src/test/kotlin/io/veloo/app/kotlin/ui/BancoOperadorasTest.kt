@@ -80,4 +80,42 @@ class BancoOperadorasTest {
         val resultado = BancoOperadoras.resolver("Vivo")
         assertEquals("https://www.vivo.com.br", resultado?.site)
     }
+
+    // ─── resolverMovel — nomes de operadora móvel chegam concatenados, sem separador ──
+
+    @Test
+    fun `nome de operadora movel concatenado TIMBRASIL resolve para TIM`() {
+        val resultado = BancoOperadoras.resolverMovel("TIMBRASIL")
+        assertEquals("tim_live", resultado?.id)
+    }
+
+    @Test
+    fun `nome de operadora movel VIVO resolve para Vivo`() {
+        val resultado = BancoOperadoras.resolverMovel("VIVO")
+        assertEquals("vivo_fibra", resultado?.id)
+    }
+
+    @Test
+    fun `nome de operadora movel Claro BR resolve para Claro`() {
+        val resultado = BancoOperadoras.resolverMovel("Claro BR")
+        assertEquals("claro_net", resultado?.id)
+    }
+
+    @Test
+    fun `nome de operadora movel OI resolve para Oi`() {
+        val resultado = BancoOperadoras.resolverMovel("OI")
+        assertEquals("oi_fibra", resultado?.id)
+    }
+
+    @Test
+    fun `nome de operadora movel desconhecida nao resolve`() {
+        assertNull(BancoOperadoras.resolverMovel("Algum MVNO"))
+    }
+
+    @Test
+    fun `nome de operadora movel vazio ou nulo retorna null`() {
+        assertNull(BancoOperadoras.resolverMovel(null))
+        assertNull(BancoOperadoras.resolverMovel(""))
+        assertNull(BancoOperadoras.resolverMovel("   "))
+    }
 }

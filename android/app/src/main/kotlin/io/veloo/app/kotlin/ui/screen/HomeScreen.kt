@@ -134,6 +134,7 @@ import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.VereditoUso
 import io.signallq.app.feature.wifi.RedeVizinha
 import io.signallq.app.feature.wifi.SegurancaWifi
+import io.signallq.app.ui.BancoOperadoras
 import io.signallq.app.ui.ConnectionNodeType
 import io.signallq.app.ui.GatewayInfo
 import io.signallq.app.ui.HistoryPoint
@@ -143,6 +144,7 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.component.OperadoraBadge
 import io.signallq.app.ui.component.ProfileAvatarButton
 import io.signallq.app.ui.component.rememberTopBarAlpha
 import kotlin.math.roundToInt
@@ -400,7 +402,13 @@ fun HomeScreen(
                     movelSnapshot = movelSnapshot,
                     c = c,
                     onDeviceTap = { showDeviceSheet = true },
-                    onGatewayTap = { showGatewaySheet = it },
+                    onGatewayTap = {
+                        if (it.type == ConnectionNodeType.Mobile) {
+                            showCellularSheet = true
+                        } else {
+                            showGatewaySheet = it
+                        }
+                    },
                     onInternetTap = { showInternetSheet = true },
                 )
             }
@@ -894,6 +902,9 @@ private fun NetworkPath(
             localIp != null &&
             isIspInfoLoading
 
+    val isMobileConnection = snapshotRede.estadoConexao == EstadoConexao.movel
+    val mobileGateway = gateways.singleOrNull { it.type == ConnectionNodeType.Mobile }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top,
@@ -915,86 +926,102 @@ private fun NetworkPath(
                 onTap = onDeviceTap,
             )
         }
-        gateways.forEachIndexed { i, gw ->
+        if (isMobileConnection && mobileGateway != null) {
+            // Rede móvel: a "antena" e a "internet" são a mesma entidade (a operadora) — um
+            // único nó no lugar de dois evita um hop artificial sem nada de real no meio.
             PathConnector(
                 c = c,
-                active = if (i == 0) !hasLocalError && !loadingLocal else true,
-                hasError = i == 0 && hasLocalError,
-                loading = i == 0 && loadingLocal,
+                active = !hasLocalError && !loadingLocal && !hasInternetError && !loadingInternet,
+                hasError = hasLocalError || hasInternetError,
+                loading = loadingLocal || loadingInternet,
             )
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                val (icon, _) = nodeDisplay(gw.type)
-                val isMobileNode = gw.type == ConnectionNodeType.Mobile
-                // #221: nó móvel exibe operadora como título e tecnologia como subtítulo
-                val nodeLabel =
-                    if (isMobileNode) {
-                        movelSnapshot?.operadora?.ifBlank { null }
-                            ?: gw.name.takeIf { it != "Antena movel" && it != "Antena móvel" }
-                            ?: "Rede móvel"
-                    } else {
-                        gw.name
-                    }
+                val nomeOperadora =
+                    movelSnapshot?.operadora?.ifBlank { null }
+                        ?: ispInfo?.isp?.ifBlank { null }
+                        ?: mobileGateway.name.takeIf { it != "Antena movel" && it != "Antena móvel" }
+                val operadoraIdentificada = BancoOperadoras.resolverMovel(nomeOperadora)
+                val nodeLabel = nomeOperadora ?: "Operadora"
+                val tec = movelSnapshot?.tecnologia?.ifBlank { null }
                 val nodeSubLabel =
-                    if (isMobileNode && gw.ip == null) {
-                        val tec = movelSnapshot?.tecnologia?.ifBlank { null }
-                        if (tec != null) "Rede móvel · $tec" else "Rede móvel"
-                    } else if (gw.ip != null) {
-                        stringResource(R.string.home_network_conectado)
-                    } else {
-                        "—"
+                    when {
+                        hasInternetError -> stringResource(R.string.home_network_sem_conexao)
+                        tec != null -> tec
+                        loadingInternet -> stringResource(R.string.home_network_conectando)
+                        else -> stringResource(R.string.home_network_conectado)
                     }
                 PathNode(
-                    icon = icon,
-                    iconColor = c.textSecondary,
+                    icon = Icons.Outlined.CellTower,
+                    iconColor = if (hasInternetError) c.textTertiary else c.textSecondary,
                     label = nodeLabel,
                     subLabel = nodeSubLabel,
+                    subLabelColor = if (hasInternetError) LkColors.error else null,
                     c = c,
-                    onTap = { onGatewayTap(gw) },
+                    onTap = { onGatewayTap(mobileGateway) },
+                    iconContent =
+                        operadoraIdentificada?.let { operadora ->
+                            { OperadoraBadge(operadora = operadora, size = 32.dp) }
+                        },
                 )
             }
-        }
-        PathConnector(
-            c = c,
-            active = !hasInternetError && !loadingInternet,
-            hasError = hasInternetError,
-            loading = loadingInternet,
-        )
-        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            val isMobileConnection = snapshotRede.estadoConexao == EstadoConexao.movel
-            val internetLabel =
-                if (isMobileConnection) {
-                    "Internet"
-                } else {
+        } else {
+            gateways.forEachIndexed { i, gw ->
+                PathConnector(
+                    c = c,
+                    active = if (i == 0) !hasLocalError && !loadingLocal else true,
+                    hasError = i == 0 && hasLocalError,
+                    loading = i == 0 && loadingLocal,
+                )
+                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    val (icon, _) = nodeDisplay(gw.type)
+                    PathNode(
+                        icon = icon,
+                        iconColor = c.textSecondary,
+                        label = gw.name,
+                        subLabel = if (gw.ip != null) stringResource(R.string.home_network_conectado) else "—",
+                        c = c,
+                        onTap = { onGatewayTap(gw) },
+                    )
+                }
+            }
+            PathConnector(
+                c = c,
+                active = !hasInternetError && !loadingInternet,
+                hasError = hasInternetError,
+                loading = loadingInternet,
+            )
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                val internetLabel =
                     ispInfo?.isp?.takeIf { it.isNotEmpty() }
                         ?: ispName?.takeIf { it.isNotEmpty() }
                         ?: "Internet"
-                }
-            val internetSubLabel =
-                if ((ispInfo?.ip ?: publicIp) != null) {
-                    stringResource(R.string.home_network_conectado)
-                } else {
-                    when {
-                        hasInternetError -> stringResource(R.string.home_network_sem_conexao)
-                        isIspInfoLoading -> stringResource(R.string.home_network_conectando)
-                        // #220: "—" substituído por texto útil quando IP público não está disponível
-                        else -> "IP indisponível"
+                val internetSubLabel =
+                    if ((ispInfo?.ip ?: publicIp) != null) {
+                        stringResource(R.string.home_network_conectado)
+                    } else {
+                        when {
+                            hasInternetError -> stringResource(R.string.home_network_sem_conexao)
+                            isIspInfoLoading -> stringResource(R.string.home_network_conectando)
+                            // #220: "—" substituído por texto útil quando IP público não está disponível
+                            else -> "IP indisponível"
+                        }
                     }
-                }
-            val internetSubColor: Color? =
-                when {
-                    hasInternetError -> LkColors.error
-                    (ispInfo?.ip ?: publicIp) != null -> LkColors.success
-                    else -> null
-                }
-            PathNode(
-                icon = Icons.Outlined.Language,
-                iconColor = if (hasInternetError) c.textTertiary else LkColors.success,
-                label = internetLabel,
-                subLabel = internetSubLabel,
-                subLabelColor = internetSubColor,
-                c = c,
-                onTap = onInternetTap,
-            )
+                val internetSubColor: Color? =
+                    when {
+                        hasInternetError -> LkColors.error
+                        (ispInfo?.ip ?: publicIp) != null -> LkColors.success
+                        else -> null
+                    }
+                PathNode(
+                    icon = Icons.Outlined.Language,
+                    iconColor = if (hasInternetError) c.textTertiary else LkColors.success,
+                    label = internetLabel,
+                    subLabel = internetSubLabel,
+                    subLabelColor = internetSubColor,
+                    c = c,
+                    onTap = onInternetTap,
+                )
+            }
         }
     }
 }
@@ -1045,6 +1072,7 @@ private fun PathNode(
     subLabel2: String? = null,
     c: LkTokens,
     onTap: (() -> Unit)? = null,
+    iconContent: (@Composable () -> Unit)? = null,
 ) {
     Column(
         modifier =
@@ -1059,7 +1087,11 @@ private fun PathNode(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(modifier = Modifier.size(56.dp), contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(26.dp))
+            if (iconContent != null) {
+                iconContent()
+            } else {
+                Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(26.dp))
+            }
         }
         Spacer(modifier = Modifier.height(LkSpacing.sm))
         Text(
