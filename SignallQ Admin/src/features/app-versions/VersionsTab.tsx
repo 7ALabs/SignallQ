@@ -5,6 +5,8 @@ import { integrationsService } from "../../integrations/integrationsService";
 import { FirebaseAppVersionCrashStats } from "../../integrations/firebase/firebase.types";
 import { DataTable } from "../../components/ui/DataTable";
 import { SectionCard } from "../../components/ui/SectionCard";
+import { ChartCard } from "../../components/ui/ChartCard";
+import { BarChart } from "../../components/charts/BarChart";
 import { MetricCard } from "../../components/ui/MetricCard";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -89,6 +91,20 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
 
   const focusedVersion = focusVersion === "all" ? null : versions.find((v) => v.appVersion === focusVersion) ?? null;
 
+  // GH#746 — gráfico principal faltante: distribuição de sessões por versão,
+  // dado real do D1 (appVersionsService), sempre disponível quando há versões
+  // (guard de EmptyState acima já garante versions.length > 0 aqui). Crash rate
+  // por versão entraria como segunda série só quando Crashlytics estiver
+  // configurado — sem inventar contagem quando crashStats é null.
+  const chartData = [...versions]
+    .sort((a, b) => b.sessions - a.sessions)
+    .slice(0, 8)
+    .map((v) => ({
+      name: v.appVersion,
+      sessões: v.sessions,
+      ...(crashStats !== null ? { crashes: crashByVersion.get(v.appVersion)?.crashCount ?? 0 } : {}),
+    }));
+
   // GH#552 (Fase 2) — síntese derivada de dado real já carregado. Sem BigQuery
   // configurado, a frase não afirma estabilidade — só reporta a ausência do dado.
   const insightText = focusedVersion
@@ -139,10 +155,31 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
         />
       </div>
 
-      {/* 3. Bloco de explicação — antes da tabela, só quando há versão em foco */}
+      {/* 3. Gráfico principal — sessões por versão (D1, sempre real); crashes por
+          versão entra como segunda série quando Crashlytics está configurado. */}
+      <ChartCard
+        title="Sessões por versão"
+        description={
+          crashStats === null
+            ? "Volume de sessões de diagnóstico por versão e build, direto do D1, ordenado pelas versões mais ativas no período."
+            : "Volume de sessões e crashes reportados por versão e build, ordenado pelas versões mais ativas no período."
+        }
+        id="versions-main-chart"
+      >
+        <BarChart
+          data={chartData}
+          xAxisKey="name"
+          series={[
+            { key: "sessões", name: "Sessões", color: "var(--info)" },
+            ...(crashStats !== null ? [{ key: "crashes", name: "Crashes (Crashlytics)", color: "var(--error)" }] : []),
+          ]}
+        />
+      </ChartCard>
+
+      {/* 4. Bloco de explicação — antes da tabela, só quando há versão em foco */}
       {insightText && <InsightBlock id="versions-insight-block">{insightText}</InsightBlock>}
 
-      {/* 4. Tabela de investigação — dados por release, versão em foco destacada */}
+      {/* 5. Tabela de investigação — dados por release, versão em foco destacada */}
       <SectionCard
         title="Dados por release"
         description="Sessões de diagnóstico agrupadas por versão, build e canal de distribuição, direto do D1."
@@ -193,7 +230,7 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
         </p>
       )}
 
-      {/* 5. Ações */}
+      {/* 6. Ações */}
       <ActionsRow
         id="versions-actions-row"
         actions={[

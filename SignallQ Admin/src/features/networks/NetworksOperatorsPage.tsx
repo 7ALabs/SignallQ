@@ -10,7 +10,27 @@ import { GlobalFilters } from "../../components/ui/GlobalFilters";
 import { InsightBlock } from "../../components/ui/InsightBlock";
 import { ActionsRow } from "../../components/ui/ActionsRow";
 import { OperatorRecord, AppEnvironment } from "../../types/admin";
-import { Award, Globe, Wifi, Radio } from "lucide-react";
+import { MetricVerdict } from "../../types/metrics";
+import { Award, Globe, Wifi, Radio, ChevronDown } from "lucide-react";
+
+// GH#746 — mesma escala usada em DiagnosticsMetricGrid (score calculado pelo
+// engine local do app, 0-100). Repetida aqui em vez de importada porque o
+// helper original não é exportado do módulo de diagnostics.
+function scoreVerdict(score: number): MetricVerdict {
+  if (score >= 85) return "excelente";
+  if (score >= 70) return "bom";
+  if (score >= 55) return "regular";
+  return "fraco";
+}
+
+// Latência de rede — banda de referência de mercado para conexão residencial/móvel
+// saudável no Brasil (<30ms excelente, <60ms bom, <100ms ainda aceitável).
+function latencyVerdict(ms: number): MetricVerdict {
+  if (ms < 30) return "excelente";
+  if (ms < 60) return "bom";
+  if (ms < 100) return "regular";
+  return "fraco";
+}
 
 interface NetworksOperatorsPageProps {
   environment: AppEnvironment;
@@ -32,6 +52,10 @@ export const NetworksOperatorsPage: React.FC<NetworksOperatorsPageProps> = ({
   const [networkStats, setNetworkStats] = React.useState<NetworkTypeStat[]>([]);
   const [operators, setOperators] = React.useState<OperatorRecord[]>([]);
   const [operatorFilter, setOperatorFilter] = React.useState<string>("all");
+  // GH#746 — detalhamento secundário (download por operadora, latência/perda de
+  // pacote por tipo de rede) fica colapsado por padrão. O gráfico principal
+  // (score por operadora) já responde à pergunta-guia sozinho.
+  const [showDetails, setShowDetails] = React.useState(false);
 
   React.useEffect(() => {
     let active = true;
@@ -212,12 +236,27 @@ export const NetworksOperatorsPage: React.FC<NetworksOperatorsPageProps> = ({
 
       {/* 2. KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard label="Velocidade média download" value={avgDownload != null ? `${avgDownload} Mbps` : "sem dados"} id="metric-avg-download" />
-        <MetricCard label="Latência média" value={avgLatency != null ? `${avgLatency} ms` : "sem dados"} id="metric-avg-latency" />
+        <MetricCard
+          label="Velocidade média download"
+          value={avgDownload != null ? `${avgDownload} Mbps` : "sem dados"}
+          id="metric-avg-download"
+        />
+        <MetricCard
+          label="Latência média"
+          value={avgLatency != null ? `${avgLatency} ms` : "sem dados"}
+          verdict={avgLatency != null ? latencyVerdict(avgLatency) : undefined}
+          verdictNote="referência: <30ms excelente"
+          id="metric-avg-latency"
+        />
         <MetricCard
           label="Operadora com pior score"
           value={worstScoreOperator ? `${worstScoreOperator.name} (${worstScoreOperator.averageScorePercentage}%)` : "sem dados"}
-          verdict={worstScoreOperator && (worstScoreOperator.averageScorePercentage as number) < 50 ? "fraco" : undefined}
+          verdict={
+            worstScoreOperator && worstScoreOperator.averageScorePercentage != null
+              ? scoreVerdict(worstScoreOperator.averageScorePercentage)
+              : undefined
+          }
+          verdictNote="score 0-100, calculado no dispositivo"
           id="metric-worst-operator"
         />
         <MetricCard
@@ -227,30 +266,19 @@ export const NetworksOperatorsPage: React.FC<NetworksOperatorsPageProps> = ({
         />
       </div>
 
-      {/* 3. Gráfico principal — comparativo por operadora */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <ChartCard
-          title="Velocidade Média de Download por Operadora"
-          description="Amostragem em megabits por segundo monitorados via speedtest local integrado no SDK."
-        >
-          <BarChart
-            data={filteredOperators}
-            xAxisKey="name"
-            series={[{ key: "averageDownloadMbps", name: "Velocidade Down (Mbps)", color: "var(--info)" }]}
-          />
-        </ChartCard>
-
-        <ChartCard
-          title="Score Médio de Diagnóstico por Operadora"
-          description="Score calculado pelo engine local do app (0 a 100), agregado por operadora. Não é pesquisa de satisfação — essa fonte de dado não existe hoje."
-        >
-          <BarChart
-            data={filteredOperators}
-            xAxisKey="name"
-            series={[{ key: "averageScorePercentage", name: "Score médio", color: "var(--success)" }]}
-          />
-        </ChartCard>
-      </div>
+      {/* 3. Gráfico principal — responde "onde a qualidade varia": score médio
+          (agrega latência, perda de pacote e velocidade) por operadora. */}
+      <ChartCard
+        title="Score Médio de Diagnóstico por Operadora"
+        description="Score calculado pelo engine local do app (0 a 100), agregado por operadora. Não é pesquisa de satisfação — essa fonte de dado não existe hoje."
+        id="networks-main-chart"
+      >
+        <BarChart
+          data={filteredOperators}
+          xAxisKey="name"
+          series={[{ key: "averageScorePercentage", name: "Score médio", color: "var(--success)" }]}
+        />
+      </ChartCard>
 
       {/* 4. Bloco de explicação */}
       {insightText && <InsightBlock id="networks-insight-block">{insightText}</InsightBlock>}
@@ -288,29 +316,63 @@ export const NetworksOperatorsPage: React.FC<NetworksOperatorsPageProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartCard
-          title="Latência média por tipo de rede"
-          description="Média de latency_ms reportada pelo app, agrupada por network_type, no período selecionado."
-        >
-          <BarChart
-            data={networkStats}
-            xAxisKey="name"
-            series={[{ key: "avgLatencyMs", name: "Latência média (ms)", color: "var(--info)" }]}
-          />
-        </ChartCard>
+      {/* Visão secundária colapsável — GH#746: os outros 3 gráficos (download por
+          operadora, latência e perda de pacote por tipo de rede) eram peso igual
+          ao gráfico principal na versão anterior. Os mesmos números já aparecem
+          na tabela de investigação por operadora; aqui ficam disponíveis para
+          quem quiser o recorte por tipo de rede, sem competir com o gráfico
+          principal. */}
+      <button
+        type="button"
+        onClick={() => setShowDetails((v) => !v)}
+        className="w-full flex items-center justify-between gap-3 px-5 py-3.5 rounded-xl transition-colors cursor-pointer select-none"
+        style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}
+        aria-expanded={showDetails}
+        aria-controls="networks-secondary-detail"
+        id="networks-secondary-detail-toggle"
+      >
+        <span className="text-xs font-sans font-semibold uppercase tracking-[0.06em]">
+          Detalhamento por tipo de rede e operadora
+        </span>
+        <ChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-200 ${showDetails ? "rotate-180" : ""}`} />
+      </button>
 
-        <ChartCard
-          title="Perda de pacote média por tipo de rede"
-          description="Média de packet_loss reportada pelo app, agrupada por network_type, no período selecionado."
-        >
-          <BarChart
-            data={networkStats}
-            xAxisKey="name"
-            series={[{ key: "avgPacketLoss", name: "Perda de pacote (%)", color: "var(--attention)" }]}
-          />
-        </ChartCard>
-      </div>
+      {showDetails && (
+        <div id="networks-secondary-detail" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <ChartCard
+            title="Velocidade média de download por operadora"
+            description="Amostragem em megabits por segundo, via speedtest local integrado no SDK."
+          >
+            <BarChart
+              data={filteredOperators}
+              xAxisKey="name"
+              series={[{ key: "averageDownloadMbps", name: "Velocidade Down (Mbps)", color: "var(--info)" }]}
+            />
+          </ChartCard>
+
+          <ChartCard
+            title="Latência média por tipo de rede"
+            description="Média de latency_ms reportada pelo app, agrupada por network_type, no período selecionado."
+          >
+            <BarChart
+              data={networkStats}
+              xAxisKey="name"
+              series={[{ key: "avgLatencyMs", name: "Latência média (ms)", color: "var(--info)" }]}
+            />
+          </ChartCard>
+
+          <ChartCard
+            title="Perda de pacote média por tipo de rede"
+            description="Média de packet_loss reportada pelo app, agrupada por network_type, no período selecionado."
+          >
+            <BarChart
+              data={networkStats}
+              xAxisKey="name"
+              series={[{ key: "avgPacketLoss", name: "Perda de pacote (%)", color: "var(--attention)" }]}
+            />
+          </ChartCard>
+        </div>
+      )}
 
       {/* 5. Tabela de investigação */}
       <SectionCard
