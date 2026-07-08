@@ -24,6 +24,8 @@ interface GlobalFiltersProps {
 }
 
 export const GlobalFilters: React.FC<GlobalFiltersProps> = ({ filters, className = "", id }) => {
+  const [focusedKey, setFocusedKey] = React.useState<string | null>(null);
+
   if (filters.length === 0) return null;
 
   return (
@@ -35,10 +37,12 @@ export const GlobalFilters: React.FC<GlobalFiltersProps> = ({ filters, className
       {filters.map((filter) => (
         <div
           key={filter.key}
-          className="relative flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-[8px]"
+          className="relative flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-[8px] transition-shadow"
           style={{
             backgroundColor: "var(--sq-bg-card)",
             border: "1px solid var(--sq-border)",
+            boxShadow:
+              focusedKey === filter.key ? `0 0 0 2px ${alpha("var(--sq-accent)", 40)}` : "none",
           }}
         >
           <label
@@ -54,12 +58,8 @@ export const GlobalFilters: React.FC<GlobalFiltersProps> = ({ filters, className
             onChange={(e) => filter.onChange(e.target.value)}
             className="appearance-none bg-transparent cursor-pointer text-xs font-medium pr-4 rounded-[4px] transition-colors focus:outline-none"
             style={{ color: "var(--sq-text-primary)" }}
-            onFocus={(e) => {
-              e.currentTarget.style.boxShadow = `0 0 0 2px ${alpha("var(--sq-accent)", 40)}`;
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.boxShadow = "none";
-            }}
+            onFocus={() => setFocusedKey(filter.key)}
+            onBlur={() => setFocusedKey((current) => (current === filter.key ? null : current))}
           >
             {filter.options.map((opt) => (
               <option key={opt.value} value={opt.value}>
