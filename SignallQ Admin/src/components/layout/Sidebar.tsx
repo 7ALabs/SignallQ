@@ -5,11 +5,9 @@ import {
   LineChart,
   Activity,
   Wifi,
-  Globe,
   BrainCircuit,
   AlertTriangle,
   GitBranch,
-  ToggleRight,
   Settings,
   HeartPulse,
   X,
@@ -33,11 +31,9 @@ const iconMap = {
   LineChart: LineChart,
   Activity: Activity,
   Wifi: Wifi,
-  Globe: Globe,
   BrainCircuit: BrainCircuit,
   AlertTriangle: AlertTriangle,
   GitBranch: GitBranch,
-  ToggleRight: ToggleRight,
   Settings: Settings,
   HeartPulse: HeartPulse,
 };
@@ -124,14 +120,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Navigation Menus List — agrupada por proveniência de dado (SIG-294) */}
         <nav className="px-4 py-2 space-y-4">
-          {NAVIGATION_SECTIONS.map((section) => (
-            <div key={section.label} className="space-y-1">
-              <div
-                className="px-3 pt-2 pb-1 text-[10px] font-sans font-semibold uppercase tracking-[0.08em] select-none"
-                style={{ color: "var(--text-tertiary)" }}
-              >
-                {section.label}
-              </div>
+          {NAVIGATION_SECTIONS.map((section, sectionIndex) => (
+            <div key={section.label || `section-${sectionIndex}`} className="space-y-1">
+              {section.label && (
+                <div
+                  className="px-3 pt-2 pb-1 text-[10px] font-sans font-semibold uppercase tracking-[0.08em] select-none"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  {section.label}
+                </div>
+              )}
               {section.items.map((item) => {
                 const IconComponent = iconMap[item.iconName as keyof typeof iconMap];
                 const isActive = currentPath === item.path;

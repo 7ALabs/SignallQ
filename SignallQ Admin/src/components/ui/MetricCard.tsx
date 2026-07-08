@@ -1,7 +1,15 @@
 import React from "react";
 import { ArrowUpRight, ArrowDownRight, Minus } from "lucide-react";
-import { MetricTrend } from "../../types/metrics";
+import { MetricTrend, MetricVerdict, METRIC_VERDICT_TONE } from "../../types/metrics";
 import { alpha } from "../../utils/color";
+
+const VERDICT_LABEL: Record<MetricVerdict, string> = {
+  excelente: "Excelente",
+  bom: "Bom",
+  regular: "Regular",
+  fraco: "Fraco",
+  forte: "Forte",
+};
 
 interface MetricCardProps {
   label: string;
@@ -11,6 +19,15 @@ interface MetricCardProps {
   className?: string;
   id?: string;
   source?: string;
+  /**
+   * GH#552: veredito humano obrigatório para KPIs de qualidade/status (ex.: crash
+   * rate, retenção, latência) — nunca deixar a métrica crua sozinha. Omitir em
+   * KPIs puramente de volume (ex.: contagem de diagnósticos), onde `trend` já
+   * comunica direção.
+   */
+  verdict?: MetricVerdict;
+  /** Contexto curto do veredito — ex.: "abaixo do limiar de mercado (1%)". */
+  verdictNote?: string;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -21,6 +38,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   className = "",
   id,
   source,
+  verdict,
+  verdictNote,
 }) => {
   const formattedValue = React.useMemo(() => {
     if (typeof value === "number") {
@@ -37,6 +56,14 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
   const isTrendUp = trend?.type === "up";
   const isTrendDown = trend?.type === "down";
+
+  const verdictColor = verdict
+    ? METRIC_VERDICT_TONE[verdict] === "positive"
+      ? "var(--success)"
+      : METRIC_VERDICT_TONE[verdict] === "negative"
+      ? "var(--error)"
+      : "var(--attention)"
+    : undefined;
 
   const trendStyle = isTrendUp
     ? {
@@ -123,6 +150,23 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         >
           {trend.intervalLabel}
         </span>
+      )}
+
+      {verdict && (
+        <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
+          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: verdictColor }} />
+          <span
+            className="text-[11px] font-sans font-semibold uppercase tracking-[0.04em]"
+            style={{ color: verdictColor }}
+          >
+            {VERDICT_LABEL[verdict]}
+          </span>
+          {verdictNote && (
+            <span className="text-[10px] leading-tight" style={{ color: "var(--text-tertiary)" }}>
+              &middot; {verdictNote}
+            </span>
+          )}
+        </div>
       )}
     </div>
   );

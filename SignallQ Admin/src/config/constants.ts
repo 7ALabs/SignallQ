@@ -19,3 +19,21 @@ export const PERIOD_FILTERS = [
   { label: "Últimos 30 dias", value: "30d" },
   { label: "Personalizado", value: "custom" },
 ];
+
+/**
+ * GH#552 (Fase 1) — presets universais para `GlobalFilters` (período/OS aparecem
+ * em quase toda tela do wireframe). Listas de versão, operadora e tipo de rede
+ * são específicas de cada tela e vêm do contrato de dados dela (Fase 2/3), não
+ * daqui — não inventar valores fixos onde o dado real varia por tela.
+ */
+export const GLOBAL_PERIOD_OPTIONS = [
+  { label: "Últimas 24h", value: "24h" },
+  { label: "Últimos 7 dias", value: "7d" },
+  { label: "Últimos 30 dias", value: "30d" },
+];
+
+export const GLOBAL_OS_OPTIONS = [
+  { label: "Todos", value: "all" },
+  { label: "Android", value: "android" },
+  { label: "iOS", value: "ios" },
+];

@@ -1,0 +1,30 @@
+/**
+ * GH#552 (Fase 1) — contrato do componente de filtros globais reutilizado nas
+ * 9 telas do redesenho (ver `docs_ai/design-system/WIREFRAME_ADMIN_REDESIGN_552.md`).
+ * Cada tela declara só os filtros que fazem sentido para sua pergunta-guia —
+ * ex.: "Redes & Provedores" usa operator/region, "Releases & Qualidade" não usa
+ * nenhum destes (usa seletor de versão em foco, fora deste contrato).
+ */
+export type GlobalFilterKey =
+  | "period"
+  | "version"
+  | "os"
+  | "networkType"
+  | "operator"
+  | "region"
+  | "severity"
+  | "provider"
+  | "model";
+
+export interface GlobalFilterOption {
+  label: string;
+  value: string;
+}
+
+export interface GlobalFilterConfig {
+  key: GlobalFilterKey;
+  label: string;
+  options: GlobalFilterOption[];
+  value: string;
+  onChange: (value: string) => void;
+}
