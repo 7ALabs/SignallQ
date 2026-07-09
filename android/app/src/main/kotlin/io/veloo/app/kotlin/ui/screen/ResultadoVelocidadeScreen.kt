@@ -78,6 +78,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 import io.signallq.app.feature.speedtest.VereditoUso
@@ -89,8 +90,10 @@ import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.ResultadoBitmapGenerator
+import io.signallq.app.ui.component.LocalDeviceSection
 import io.signallq.app.ui.component.OperadoraBottomSheet
 import io.signallq.app.ui.component.OperadoraContactCard
+import io.signallq.app.ui.component.mapLocalDeviceSectionUiState
 import io.signallq.app.ui.component.rememberTopBarAlpha
 import kotlinx.coroutines.launch
 
@@ -110,6 +113,11 @@ fun ResultadoVelocidadeScreen(
     analisadorState: AnalisadorState = AnalisadorState.Inativo,
     onAnalisarProblema: (String) -> Unit = {},
     onResetarAnalisador: () -> Unit = {},
+    /** Snapshot do equipamento local (ONT/roteador), quando disponivel — GH#544,
+     *  epic #547. Null ate a leitura opcional de equipamento (GH#543) ser
+     *  produzida; a secao "Equipamento local" renderiza o estado
+     *  "nenhum encontrado" nesse caso, nunca um card vazio. */
+    localDevice: LocalNetworkDeviceSnapshot? = null,
 ) {
     val c = LocalLkTokens.current
     val scrollState = rememberScrollState()
@@ -581,6 +589,12 @@ fun ResultadoVelocidadeScreen(
                     onResetar = onResetarAnalisador,
                     c = c,
                 )
+
+                // 16. Equipamento local — GH#544, epic #547. localDevice ainda vem
+                // sempre null em producao ate a leitura opcional (GH#543) existir;
+                // a secao ja renderiza "nenhum encontrado" corretamente nesse caso.
+                Spacer(Modifier.height(LkSpacing.xl))
+                LocalDeviceSection(state = mapLocalDeviceSectionUiState(localDevice))
 
                 Spacer(Modifier.height(LkSpacing.xl))
             }

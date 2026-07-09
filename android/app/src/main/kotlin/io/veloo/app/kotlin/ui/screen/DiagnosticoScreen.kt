@@ -76,6 +76,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.R
+import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
 import io.signallq.app.feature.diagnostico.ConnectionType
 import io.signallq.app.feature.diagnostico.DiagSignalSelection
 import io.signallq.app.feature.diagnostico.DiagnosticReport
@@ -103,11 +104,13 @@ import io.signallq.app.ui.component.DiagRecommendationCard
 import io.signallq.app.ui.component.DiagRootCauseCard
 import io.signallq.app.ui.component.DiagVerdictHeroCard
 import io.signallq.app.ui.component.ImpactItem
+import io.signallq.app.ui.component.LocalDeviceSection
 import io.signallq.app.ui.component.MetricItem
 import io.signallq.app.ui.component.MetricStatus
 import io.signallq.app.ui.component.OnDevicePill
 import io.signallq.app.ui.component.SignalToggleCard
 import io.signallq.app.ui.component.SignallQSymbol
+import io.signallq.app.ui.component.mapLocalDeviceSectionUiState
 import io.signallq.app.ui.state.UiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -154,6 +157,11 @@ fun DiagnosticoScreen(
     /** AiDiagnosisRepository injetada via AppShell — instancia unica do grafo Hilt.
      *  Nao instancie AiDiagnosisRepository dentro de Composables (regra de negocio fora da UI). */
     aiRepository: AiDiagnosisRepository,
+    /** Snapshot do equipamento local (ONT/roteador), quando disponivel — GH#544,
+     *  epic #547. Null ate a leitura opcional de equipamento (GH#543) ser
+     *  produzida; a secao "Equipamento local" renderiza o estado
+     *  "nenhum encontrado" nesse caso, nunca um card vazio. */
+    localDevice: LocalNetworkDeviceSnapshot? = null,
 ) {
     val c = LocalLkTokens.current
     val scope = rememberCoroutineScope()
@@ -296,6 +304,7 @@ fun DiagnosticoScreen(
                                 c = c,
                                 result = data.result,
                                 report = data.report,
+                                localDevice = localDevice,
                                 onCompartilhar = onCompartilhar,
                                 onRefazer = {
                                     onAnaliseSolicitadaChange(false)
@@ -770,6 +779,7 @@ private fun DiagResultContent(
     c: LkTokens,
     result: AiDiagnosisResult,
     report: DiagnosticReport?,
+    localDevice: LocalNetworkDeviceSnapshot?,
     onCompartilhar: () -> Unit,
     onRefazer: () -> Unit,
     onFalarOperadora: () -> Unit,
@@ -872,6 +882,13 @@ private fun DiagResultContent(
                         onToggleExpand = { metricsExpanded = !metricsExpanded },
                     )
                 }
+            }
+
+            // 6. Equipamento local — GH#544, epic #547. localDevice ainda vem
+            // sempre null em producao ate a leitura opcional (GH#543) existir;
+            // a secao ja renderiza "nenhum encontrado" corretamente nesse caso.
+            item {
+                LocalDeviceSection(state = mapLocalDeviceSectionUiState(localDevice))
             }
 
             item { Spacer(Modifier.height(8.dp)) }
