@@ -387,7 +387,7 @@ async function handleOverview(request: Request, env: Env): Promise<Response> {
     let issues: string[] = [];
     try { issues = JSON.parse((row as any).issues ?? "[]"); } catch { /* ignora */ }
     for (const label of issues) {
-      if (typeof label === "string" && label.trim()) {
+      if (isRealIssueLabel(label)) {
         countMap[label] = (countMap[label] ?? 0) + 1;
       }
     }
@@ -615,6 +615,16 @@ async function handleNetworkInsights(request: Request, env: Env): Promise<Respon
   return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
 }
 
+// GH#765 — o Android manda "none" no array de issues quando não há problema
+// detectado (em vez de array vazio). Sem esse filtro, "none" era contado como
+// o problema mais comum do painel (ex: 42% das sessões).
+const NON_ISSUE_LABELS = new Set(["none", "unknown", "null", "n/a"]);
+function isRealIssueLabel(label: unknown): label is string {
+  if (typeof label !== "string") return false;
+  const trimmed = label.trim();
+  return trimmed.length > 0 && !NON_ISSUE_LABELS.has(trimmed.toLowerCase());
+}
+
 async function handleTopIssues(request: Request, env: Env): Promise<Response> {
   const url       = new URL(request.url);
   const period    = url.searchParams.get("period") ?? "7d";
@@ -637,7 +647,7 @@ async function handleTopIssues(request: Request, env: Env): Promise<Response> {
     let issues: string[] = [];
     try { issues = JSON.parse((row as any).issues ?? "[]"); } catch { /* ignora linha malformada */ }
     for (const label of issues) {
-      if (typeof label === "string" && label.trim()) {
+      if (isRealIssueLabel(label)) {
         countMap[label] = (countMap[label] ?? 0) + 1;
         totalIssues++;
       }
@@ -1197,7 +1207,7 @@ async function handleDiagnosticsIntelligence(request: Request, env: Env): Promis
     try { issues = JSON.parse((row as any).issues ?? "[]"); } catch { continue; }
     const score = (row as any).score;
     for (const label of issues) {
-      if (typeof label === "string" && label.trim()) {
+      if (isRealIssueLabel(label)) {
         const entry = issueMap.get(label) ?? { count: 0, totalScore: 0, scoreCount: 0 };
         entry.count++;
         if (score != null && !isNaN(Number(score))) {

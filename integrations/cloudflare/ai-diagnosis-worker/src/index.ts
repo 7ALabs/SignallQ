@@ -26,9 +26,13 @@ type Env = {
   AI_MODEL?: string;
   // Provedor primário de IA (opcional — sem esta var usa Qwen/CF como primário).
   GEMINI_API_KEY?: string;
-  // Ingestão de métricas no painel admin (opcional — sem estas vars o worker
-  // continua funcionando normalmente, apenas não reporta ao D1).
+  // Ingestão de métricas no painel admin (opcional — sem estas vars/binding o
+  // worker continua funcionando normalmente, apenas não reporta ao D1).
+  // GH#767 — ADMIN_WORKER (service binding) substitui fetch por HTTP público
+  // pra ADMIN_WORKER_URL, que era bloqueado pela Cloudflare (erro 1042,
+  // anti-loop entre *.workers.dev). URL mantida só como sinal de "configurado".
   ADMIN_WORKER_URL?: string;
+  ADMIN_WORKER?: { fetch: typeof fetch };
   ADMIN_SECRET?: string;
 };
 
@@ -727,8 +731,12 @@ async function ingestToPainel(
   const scoreRaw = (parsed.pontuacao ?? parsed.score) as number | undefined;
   const score    = typeof scoreRaw === "number" ? Math.round(scoreRaw) : null;
 
-  await Promise.allSettled([
-    fetch(`${baseUrl}/ingest/diagnostic`, {
+  // GH#767 — service binding em vez de fetch() público: Worker-to-Worker
+  // fetch entre dois *.workers.dev é bloqueado pela Cloudflare (erro 1042).
+  const dispatch = env.ADMIN_WORKER ? env.ADMIN_WORKER.fetch.bind(env.ADMIN_WORKER) : fetch;
+
+  const results = await Promise.allSettled([
+    dispatch(`${baseUrl}/ingest/diagnostic`, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -745,7 +753,7 @@ async function ingestToPainel(
         issues,
       }),
     }),
-    fetch(`${baseUrl}/ingest/ai-usage`, {
+    dispatch(`${baseUrl}/ingest/ai-usage`, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -760,6 +768,20 @@ async function ingestToPainel(
       }),
     }),
   ]);
+
+  // GH#767 — ingest pro admin era 100% silencioso em falha (allSettled sem
+  // checar status). Causa raiz achada assim (erro 1042 de Worker-to-Worker
+  // fetch) — mantido como log permanente de baixo custo (só fala em erro).
+  const labels = ["ingest/diagnostic", "ingest/ai-usage"];
+  for (let i = 0; i < results.length; i++) {
+    const r = results[i];
+    if (r.status === "rejected") {
+      console.error(`ingestToPainel ${labels[i]} REJECTED:`, r.reason);
+    } else if (!r.value.ok) {
+      const bodyText = await r.value.text().catch(() => "");
+      console.error(`ingestToPainel ${labels[i]} HTTP ${r.value.status}:`, bodyText.slice(0, 300));
+    }
+  }
 }
 
 // =============================================================================

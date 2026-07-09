@@ -22,3 +22,11 @@ ADMIN_WORKER_URL = "https://signallq-admin.giammattey-luiz.workers.dev"
 [ai]
 binding = "AI"
 
+# GH#767 — fetch() direto pra outro *.workers.dev e bloqueado pela Cloudflare
+# (erro 1042, anti-loop entre workers.dev). Service binding chama o worker
+# diretamente, sem passar pela rede publica — e a forma correta de
+# Worker-to-Worker. ADMIN_WORKER_URL acima fica so de referencia/fallback.
+[[services]]
+binding = "ADMIN_WORKER"
+service = "signallq-admin"
+
