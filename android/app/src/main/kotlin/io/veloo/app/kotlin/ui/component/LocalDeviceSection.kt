@@ -454,7 +454,7 @@ fun LocalDeviceSection(
                 LocalDeviceEmptyCard(
                     icon = Icons.AutoMirrored.Outlined.HelpOutline,
                     titulo = "Equipamento sem suporte",
-                    descricao = "Identificamos um equipamento na rede, mas ainda não sabemos ler dados dele.",
+                    descricao = semSuporteDescricao(state.deviceType),
                     accent = c.textTertiary,
                 )
 
@@ -518,7 +518,8 @@ private fun LocalDeviceConectadoContent(
                 .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
                 .padding(LkSpacing.lg),
     ) {
-        // Cabecalho: nome do equipamento + nivel de suporte
+        // Cabecalho: nome do equipamento + tipo (GH#538, deixa claro se e ONT ou
+        // roteador antes de qualquer dado tecnico) + nivel de suporte.
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 deviceTypeIcon(state.deviceType),
@@ -527,16 +528,35 @@ private fun LocalDeviceConectadoContent(
                 modifier = Modifier.size(16.dp),
             )
             Spacer(Modifier.width(LkSpacing.xs))
-            Text(
-                state.tituloEquipamento,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = c.textSecondary,
-                modifier = Modifier.weight(1f),
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    state.tituloEquipamento,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = c.textSecondary,
+                )
+                Text(
+                    deviceTypeLabel(state.deviceType),
+                    fontSize = 10.sp,
+                    color = c.textTertiary,
+                )
+            }
             if (!state.completo) {
                 SuporteBadge(texto = "Parcial", cor = LkColors.warning)
             }
+        }
+
+        // Nota de capability (GH#538) — roteador/mesh nunca leem dado optico de
+        // fibra; deixa isso explicito para o usuario nao esperar essa informacao
+        // aqui e nao confundir com falha de leitura.
+        notaSemLeituraDeFibra(state.deviceType)?.let { nota ->
+            Spacer(Modifier.height(4.dp))
+            Text(
+                nota,
+                fontSize = 10.5.sp,
+                color = c.textTertiary,
+                lineHeight = 14.sp,
+            )
         }
 
         // Aviso de suporte experimental (GH#539) — microcopy exata definida na
@@ -680,6 +700,27 @@ private fun deviceTypeLabel(deviceType: DeviceType): String =
         DeviceType.ROUTER -> "Roteador"
         DeviceType.MESH_OR_EXTENDER -> "Nó mesh"
         DeviceType.UNKNOWN_SUPPORTED, DeviceType.UNKNOWN_UNSUPPORTED -> "Equipamento"
+    }
+
+/** Descricao do estado "sem suporte" (GH#538) — personaliza pelo tipo quando o
+ *  fingerprint ja reconheceu se e ONT ou roteador, mesmo sem driver de leitura. */
+private fun semSuporteDescricao(deviceType: DeviceType): String =
+    when (deviceType) {
+        DeviceType.UNKNOWN_SUPPORTED, DeviceType.UNKNOWN_UNSUPPORTED ->
+            "Identificamos um equipamento na rede, mas ainda não sabemos ler dados dele."
+        else ->
+            "Identificamos um " + deviceTypeLabel(deviceType).lowercase() +
+                " na rede, mas ainda não sabemos ler os dados dele."
+    }
+
+/** Nota exibida no cabecalho de equipamentos que nao leem dados opticos de fibra
+ *  (GH#538) — deixa explicito que a leitura de fibra so aparece na ONT/modem,
+ *  sem citar marca/modelo (a regra e por capability, nao por vendor). */
+private fun notaSemLeituraDeFibra(deviceType: DeviceType): String? =
+    when (deviceType) {
+        DeviceType.ROUTER -> "Este roteador não faz leitura de fibra — esse dado aparece apenas na ONT/modem da operadora."
+        DeviceType.MESH_OR_EXTENDER -> "Nós mesh não fazem leitura de fibra — esse dado aparece apenas na ONT/modem da operadora."
+        else -> null
     }
 
 private fun statusParaCor(status: DiagnosticStatus): Color =
