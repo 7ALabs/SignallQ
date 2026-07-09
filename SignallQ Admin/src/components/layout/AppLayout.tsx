@@ -92,6 +92,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         isOpen={isMobileSidebarOpen}
         onClose={() => setIsMobileSidebarOpen(false)}
         theme={theme}
+        onToggleTheme={onToggleTheme}
       />
 
       {/* 2. Main content container */}
@@ -108,7 +109,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           onLogout={onLogout}
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
           theme={theme}
-          onToggleTheme={onToggleTheme}
         />
 
         {/* Staging warning banner */}

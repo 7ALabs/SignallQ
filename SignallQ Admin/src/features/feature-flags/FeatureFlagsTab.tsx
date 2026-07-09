@@ -93,14 +93,14 @@ export const FeatureFlagsTab: React.FC<Props> = ({ embedded = false }) => {
       {loading && (
         <div className="space-y-3">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-20 bg-zinc-900/40 border border-zinc-800 rounded-[8px] animate-pulse" />
+            <div key={i} className="h-20 bg-zinc-900/40 border border-zinc-800 rounded-[var(--radius-card)] animate-pulse" />
           ))}
         </div>
       )}
 
       {/* Empty state */}
       {!loading && flags.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 border border-dashed border-zinc-800 rounded-[8px] text-[var(--text-tertiary)]">
+        <div className="flex flex-col items-center justify-center py-16 border border-dashed border-zinc-800 rounded-[var(--radius-card)] text-[var(--text-tertiary)]">
           <ToggleRight className="w-8 h-8 mb-3 opacity-40" />
           <p className="text-sm">Nenhuma feature flag encontrada</p>
           <p className="text-xs mt-1 opacity-60">Configure flags no worker ou verifique a migration 005_sig13.sql</p>
@@ -113,7 +113,7 @@ export const FeatureFlagsTab: React.FC<Props> = ({ embedded = false }) => {
           {flags.map((flag) => (
             <div
               key={flag.key}
-              className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-[8px] p-4 hover:border-zinc-700 transition-colors"
+              className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-[var(--radius-card)] p-4 hover:border-zinc-700 transition-colors"
             >
               <div className="flex items-center justify-between gap-4">
                 {/* Info da flag */}

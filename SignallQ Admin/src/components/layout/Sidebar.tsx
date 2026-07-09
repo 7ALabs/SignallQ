@@ -24,6 +24,7 @@ interface SidebarProps {
   onClose?: () => void;
   id?: string;
   theme?: "dark" | "light";
+  onToggleTheme?: () => void;
 }
 
 // Map strings to Lucide components directly to prevent type issue
@@ -47,6 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClose,
   id,
   theme = "dark",
+  onToggleTheme,
 }) => {
   // Badge de "Problemas & Incidentes" vem da mesma fonte de dado da tela de
   // erros (errorMetricsService), não de valor estático — evita dessincronia
@@ -73,7 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <div
       id={id || "sidebar-container"}
       className={`
-        w-[240px] h-screen flex flex-col justify-between shrink-0 select-none
+        w-[264px] h-screen flex flex-col justify-between shrink-0 select-none
         fixed lg:relative z-50 lg:z-auto
         transition-transform duration-200 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -90,12 +92,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="p-6 flex items-center justify-between"
           style={{ borderBottom: "1px solid var(--border)" }}
         >
-          <img
-            src={logoSrc}
-            alt="7Agents Admin Console"
-            className="h-10 w-auto"
-            draggable={false}
-          />
+          <div className="flex items-center gap-3 min-w-0">
+            <img
+              src={logoSrc}
+              alt="7Agents Admin Console"
+              className="h-10 w-auto shrink-0"
+              draggable={false}
+            />
+            <span
+              className="text-[10px] font-sans font-semibold uppercase tracking-[0.08em] truncate hidden xl:block"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              Admin Console
+            </span>
+          </div>
           {/* Close button — mobile only */}
           {onClose && (
             <button
@@ -211,34 +221,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      {/* Sidebar Footer Info */}
-      <div className="p-4" style={{ borderTop: "1px solid var(--border)" }}>
+      {/* Sidebar Footer — usuário + tema (Design System.dc.html) */}
+      <div className="p-4 flex items-center gap-3" style={{ borderTop: "1px solid var(--border)" }}>
         <div
-          className="p-3 rounded-xl flex items-center gap-3"
-          style={{
-            backgroundColor: "var(--bg-surface)",
-            border: "1px solid var(--border)",
-          }}
+          className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-sans font-semibold text-white shrink-0 select-none"
+          style={{ background: "linear-gradient(135deg, var(--primary), var(--sq-accent-blue))" }}
         >
-          <div
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-mono"
-            style={{
-              backgroundColor: "var(--bg-surface-hover)",
-              color: "var(--text-secondary)",
-              border: "1px solid var(--border)",
-            }}
-          >
-            CF
-          </div>
-          <div className="min-w-0">
-            <span className="text-[11px] font-semibold block truncate" style={{ color: "var(--text-primary)" }}>
-              Cloudflare Gateway
-            </span>
-            <span className="text-[10px] font-mono block leading-tight" style={{ color: "var(--success)" }}>
-              ONLINE · EDGE
-            </span>
-          </div>
+          SQ
         </div>
+        <div className="min-w-0 flex-1">
+          <span className="text-[12px] font-sans font-semibold block truncate" style={{ color: "var(--text-primary)" }}>
+            Admin
+          </span>
+          <span className="text-[10px] font-sans block leading-tight truncate" style={{ color: "var(--text-tertiary)" }}>
+            Squad técnico
+          </span>
+        </div>
+        {onToggleTheme && (
+          <button
+            onClick={onToggleTheme}
+            className="w-[30px] h-[30px] shrink-0 flex items-center justify-center rounded-full transition-colors cursor-pointer"
+            style={{
+              border: "1px solid var(--border)",
+              backgroundColor: "var(--bg-surface)",
+              color: "var(--text-tertiary)",
+            }}
+            title={theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
+            aria-label={theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: "16px", lineHeight: 1, display: "block" }}>
+              {theme === "dark" ? "light_mode" : "dark_mode"}
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );

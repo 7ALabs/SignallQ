@@ -31,7 +31,7 @@ export function DataTable<T>({
   return (
     <div
       id={id}
-      className="w-full overflow-x-auto rounded-[8px]"
+      className="w-full overflow-x-auto rounded-[var(--radius-card)]"
       style={{
         border: "1px solid var(--sq-border)",
         backgroundColor: "var(--sq-bg-card)",

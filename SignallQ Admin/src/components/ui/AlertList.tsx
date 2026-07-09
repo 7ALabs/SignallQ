@@ -21,7 +21,7 @@ export const AlertList: React.FC<AlertListProps> = ({ alerts, onResolve, id }) =
   return (
     <div id={id} className="space-y-3">
       {alerts.length === 0 ? (
-        <div className="py-6 text-center text-xs text-neutral-500 font-sans border border-dashed border-zinc-800 rounded-[8px]">
+        <div className="py-6 text-center text-xs text-neutral-500 font-sans border border-dashed border-zinc-800 rounded-[var(--radius-card)]">
           Nenhum alerta crítico ativo atualmente.
         </div>
       ) : (
@@ -35,7 +35,7 @@ export const AlertList: React.FC<AlertListProps> = ({ alerts, onResolve, id }) =
           return (
             <div
               key={alert.id}
-              className={`flex items-start justify-between p-4 rounded-[8px] border transition-all duration-150 ${borderClass}`}
+              className={`flex items-start justify-between p-4 rounded-[var(--radius-card)] border transition-all duration-150 ${borderClass}`}
             >
               <div className="flex items-start gap-3">
                 {isCritical ? (

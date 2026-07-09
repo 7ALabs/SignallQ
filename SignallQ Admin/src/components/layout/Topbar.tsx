@@ -16,7 +16,6 @@ interface TopbarProps {
   onOpenMobileSidebar?: () => void;
   isRefreshing?: boolean;
   theme?: "dark" | "light";
-  onToggleTheme?: () => void;
   id?: string;
 }
 
@@ -32,7 +31,6 @@ export const Topbar: React.FC<TopbarProps> = ({
   onOpenMobileSidebar,
   isRefreshing = false,
   theme = "dark",
-  onToggleTheme,
   id,
 }) => {
   return (
@@ -188,25 +186,6 @@ export const Topbar: React.FC<TopbarProps> = ({
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
             <span className="hidden lg:inline">Refresh</span>
-          </button>
-        )}
-
-        {/* Action: Toggle tema */}
-        {onToggleTheme && (
-          <button
-            onClick={onToggleTheme}
-            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-all cursor-pointer"
-            style={{
-              border: "1px solid var(--border)",
-              backgroundColor: "var(--bg-surface)",
-              color: "var(--text-tertiary)",
-            }}
-            title={theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
-            aria-label={theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: "16px", lineHeight: 1, display: "block" }}>
-              {theme === "dark" ? "light_mode" : "dark_mode"}
-            </span>
           </button>
         )}
 

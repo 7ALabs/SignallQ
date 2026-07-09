@@ -86,7 +86,7 @@ export const NetworksOperatorsPage: React.FC<NetworksOperatorsPageProps> = ({
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 border border-[var(--error)]/20 bg-[var(--error)]/5 rounded-[8px]">
+      <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 border border-[var(--error)]/20 bg-[var(--error)]/5 rounded-[var(--radius-card)]">
         <h4 className="text-sm font-semibold text-[var(--error)] uppercase tracking-wider font-sans">Erro ao carregar rede</h4>
         <p className="text-xs text-[var(--text-secondary)] mt-2 font-sans">{error}</p>
         <button

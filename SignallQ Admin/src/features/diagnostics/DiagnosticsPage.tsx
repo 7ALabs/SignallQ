@@ -360,7 +360,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
       {loading ? (
         <LoadingState message="Acompanhando logs de conectividade (Android e WebApp)..." />
       ) : error ? (
-        <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 border border-[var(--error)]/20 bg-[var(--error)]/5 rounded-[8px]">
+        <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 border border-[var(--error)]/20 bg-[var(--error)]/5 rounded-[var(--radius-card)]">
           <h4 className="text-sm font-semibold text-[var(--error)] uppercase tracking-wider font-sans">Erro de Telemetria</h4>
           <p className="text-xs text-[var(--text-secondary)] mt-2 font-sans">{error}</p>
           <button
@@ -371,7 +371,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
           </button>
         </div>
       ) : sessions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 border border-[var(--border)] bg-[var(--bg-sidebar)] rounded-[8px]">
+        <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 border border-[var(--border)] bg-[var(--bg-sidebar)] rounded-[var(--radius-card)]">
           <h4 className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-widest font-sans">Sem dados</h4>
           <p className="text-xs text-[var(--text-secondary)] mt-2 font-sans">Nenhuma sessão de diagnóstico encontrada neste período.</p>
         </div>
@@ -402,7 +402,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
           {/* Direita: Inspetor completo da sessão e laudo Gemini */}
           <div className="xl:col-span-5">
             {selectedSession ? (
-              <div className="rounded-[8px] p-6 relative overflow-hidden" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
+              <div className="rounded-[var(--radius-card)] p-6 relative overflow-hidden" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/5 rounded-full filter blur-2xl flex items-center justify-center pointer-events-none" />
 
                 {/* ID and date details */}
@@ -626,7 +626,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="py-20 text-center rounded-[8px] p-6 select-none font-sans" style={{ background: "var(--bg-surface)", border: "1px dashed var(--border)" }}>
+              <div className="py-20 text-center rounded-[var(--radius-card)] p-6 select-none font-sans" style={{ background: "var(--bg-surface)", border: "1px dashed var(--border)" }}>
                 <p className="text-xs text-[var(--text-tertiary)]">Selecione algum registro físico de rádio para investigar.</p>
               </div>
             )}

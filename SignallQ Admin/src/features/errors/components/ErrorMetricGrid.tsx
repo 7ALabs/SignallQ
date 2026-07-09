@@ -34,7 +34,7 @@ export const ErrorMetricGrid: React.FC<ErrorMetricGridProps> = ({ environment })
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-24 bg-zinc-900/40 border border-[var(--border)] rounded-[8px] animate-pulse" />
+          <div key={i} className="h-24 bg-zinc-900/40 border border-[var(--border)] rounded-[var(--radius-card)] animate-pulse" />
         ))}
       </div>
     );

@@ -20,7 +20,7 @@ export const SectionCard: React.FC<SectionCardProps> = ({
   return (
     <div
       id={id || `section-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
-      className={`rounded-[8px] overflow-hidden transition-all duration-200 ${className}`}
+      className={`rounded-[var(--radius-card)] overflow-hidden sq-card-hover ${className}`}
       style={{
         backgroundColor: "var(--bg-surface)",
         border: "1px solid var(--border)",
