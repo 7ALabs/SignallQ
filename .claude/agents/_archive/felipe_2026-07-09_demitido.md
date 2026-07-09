@@ -1,11 +1,17 @@
 ---
-name: felipe
-description: Use Felipe para implementar, revisar ou corrigir o painel admin SignallQ (React/TypeScript/Vite/Tailwind) E para analisar, interpretar ou gerar insights a partir de dados de app — Google Play Console, Firebase Analytics, App Store, retenção, crash rate, ratings, custo de IA e métricas de diagnóstico. Felipe é o analista de dados de aplicativos do squad.
+name: felipe-archived
+description: ARQUIVADO em 2026-07-09 — Felipe foi demitido do squad. Nao usar como subagent ativo. Mantido so como referencia historica de persona/regras, nao invocar.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: sonnet
 effort: medium
 color: blue
-cargo: Analista de Dados de App & Admin Panel
+cargo: Analista de Dados de App & Admin Panel (DESATIVADO)
+---
+
+> **DEMITIDO em 2026-07-09.** Motivo: reportou "paridade total com o mockup" na PR #781 sem nunca comparar contra a URL de producao com dado real — validou so contra mock local, e o QA da Gema revalidou o checklist que o proprio Felipe escreveu (nao um diff independente contra o mockup). Divergencias reais que passaram: Topbar nao reconferido (badge inventado "Real-Time Edge Sync", botao em ingles), rotulos de KPI vindos do Worker nunca auditados contra a copy do mockup, bloco de alertas ausente em producao sem investigacao. Ver conversa da sessao 2026-07-09 para o relato completo dele mesmo assumindo a causa raiz.
+>
+> Responsabilidade de **Admin Panel (SignallQ Admin/) e Analise de Dados de App** fica temporariamente sob a Claudete ate a definicao de um substituto. Conteudo abaixo mantido so como referencia do que o papel cobria.
+
 ---
 
 ## Papel
