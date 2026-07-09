@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.DeviceUnknown
 import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Lan
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Science
@@ -105,6 +106,7 @@ sealed interface LocalDeviceSectionUiState {
         val supportLevel: SupportLevel,
         val experimental: Boolean,
         val completo: Boolean,
+        val suportaDiagnosticoNativo: Boolean = false,
         val resumoTitulo: String,
         val resumoDescricao: String,
         val resumoStatus: DiagnosticStatus,
@@ -174,6 +176,7 @@ fun mapLocalDeviceSectionUiState(
             snapshot.supportLevel == SupportLevel.PARSER_IMPORTED ||
                 snapshot.supportLevel == SupportLevel.INFERRED_FAMILY,
         completo = !dadosParciais(snapshot),
+        suportaDiagnosticoNativo = snapshot.capabilities.suportaDiagnosticoNativo,
         resumoTitulo = resumoTitulo,
         resumoDescricao = resumoDescricao,
         resumoStatus = resumoStatus,
@@ -409,6 +412,15 @@ private fun secoesTecnicas(snapshot: LocalNetworkDeviceSnapshot): List<Equipamen
                                 null
                             },
                         ).ifEmpty { listOf(EquipamentoItemTecnico("Rede local (LAN)", "Sem leitura nesta captura")) },
+                ),
+            )
+        }
+        if (cap.suportaDiagnosticoNativo) {
+            add(
+                EquipamentoSecaoTecnica(
+                    titulo = "Diagnóstico do fabricante",
+                    icone = Icons.Outlined.Insights,
+                    itens = listOf(EquipamentoItemTecnico("Diagnóstico do fabricante", "Disponível")),
                 ),
             )
         }
@@ -685,6 +697,10 @@ private fun LocalDeviceConectadoContent(
             if (!state.completo) {
                 Spacer(Modifier.width(LkSpacing.xs))
                 SuporteBadge(texto = "Parcial", cor = LkColors.warning)
+            }
+            if (state.suportaDiagnosticoNativo) {
+                Spacer(Modifier.width(LkSpacing.xs))
+                SuporteBadge(texto = "Diagnóstico avançado", cor = LkColors.accent)
             }
         }
 
@@ -1025,6 +1041,44 @@ private fun LocalDeviceSectionRoteadorParcialExperimentalPreview() {
                 freshness = DataFreshness(capturadoEmEpochMs = System.currentTimeMillis() - 3_600_000L, expirado = true),
             ),
             refazerDisponivel = true,
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Composable
+private fun LocalDeviceSectionComDiagnosticoNativoPreview() {
+    SignallQTheme {
+        LocalDeviceSection(
+            LocalDeviceSectionUiState.Conectado(
+                tituloEquipamento = "Nokia G-1425G-B",
+                deviceType = DeviceType.ONT_GPON,
+                supportLevel = SupportLevel.LAB_VALIDATED,
+                experimental = false,
+                completo = true,
+                suportaDiagnosticoNativo = true,
+                resumoTitulo = "Sinal de Recepção Bom",
+                resumoDescricao = "O sinal de recepção da fibra está dentro da faixa ideal (-19.80 dBm).",
+                resumoStatus = DiagnosticStatus.ok,
+                secoes =
+                    listOf(
+                        EquipamentoSecaoTecnica(
+                            "Fibra óptica",
+                            Icons.Outlined.Cable,
+                            listOf(
+                                EquipamentoItemTecnico("Link óptico", "Ativo"),
+                                EquipamentoItemTecnico("Potência RX", "-19.80 dBm"),
+                                EquipamentoItemTecnico("Potência TX", "2.10 dBm"),
+                            ),
+                        ),
+                        EquipamentoSecaoTecnica(
+                            "Diagnóstico do fabricante",
+                            Icons.Outlined.Insights,
+                            listOf(EquipamentoItemTecnico("Diagnóstico do fabricante", "Disponível")),
+                        ),
+                    ),
+                freshness = DataFreshness(capturadoEmEpochMs = System.currentTimeMillis()),
+            ),
         )
     }
 }
