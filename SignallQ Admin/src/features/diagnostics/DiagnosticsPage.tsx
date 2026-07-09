@@ -15,6 +15,7 @@ import { ChartCard } from "../../components/ui/ChartCard";
 import { DiagnosticSession, DiagnosticsSummary, DistChannel, BuildType, DataPlatform, AggregateRow } from "../../types/diagnostics";
 import { AppEnvironment } from "../../types/admin";
 import { Smartphone, Clock, Server, Sparkles, Zap, Info, ShieldCheck, AlertOctagon } from "lucide-react";
+import { alpha } from "../../utils/color";
 
 interface DiagnosticsPageProps {
   environment: AppEnvironment;
@@ -443,7 +444,17 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
                   )}
                   <div>
                     <div className="text-[10px] text-[var(--text-tertiary)] font-sans uppercase tracking-wider">Score da Sessão</div>
-                    <p className={`font-semibold mt-0.5 ${selectedSession.score >= 80 ? "text-emerald-400" : selectedSession.score >= 60 ? "text-amber-500" : "text-red-400"}`}>
+                    <p
+                      className="font-semibold mt-0.5"
+                      style={{
+                        color:
+                          selectedSession.score >= 80
+                            ? "var(--success)"
+                            : selectedSession.score >= 60
+                            ? "var(--attention)"
+                            : "var(--error)",
+                      }}
+                    >
                       {selectedSession.score}/100
                     </p>
                   </div>
@@ -464,7 +475,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
                     <div className="bg-[var(--bg-base)] border border-[var(--border)]/40 p-3 rounded-xl">
                       <span className="text-[9px] font-mono text-[var(--text-tertiary)] uppercase">Upload</span>
                       <div className="flex items-baseline gap-1 mt-1 text-xs">
-                        <span className="text-sm font-bold text-indigo-400">{selectedSession.speed.uploadMbps}</span>
+                        <span className="text-sm font-bold" style={{ color: "var(--sq-phase-upload)" }}>{selectedSession.speed.uploadMbps}</span>
                         <span className="text-[10px] text-[var(--text-tertiary)] font-mono font-medium">Mbps</span>
                       </div>
                     </div>
@@ -472,8 +483,13 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
                     <div className="bg-[var(--bg-base)] border border-[var(--border)]/40 p-3 rounded-xl">
                       <span className="text-[9px] font-mono text-[var(--text-tertiary)] uppercase font-semibold">Bufferbloat</span>
                       <div className="flex items-baseline gap-1 mt-1 justify-between text-xs font-mono">
-                        <span className={`text-md font-bold ${selectedSession.speed.bufferbloatGrade === "A+" ? "text-emerald-400" : "text-amber-500"}`}>{selectedSession.speed.bufferbloatGrade}</span>
-                        <span className="text-[9px] bg-zinc-950 text-[var(--text-tertiary)] px-1 rounded">Grade</span>
+                        <span
+                          className="text-sm font-bold"
+                          style={{ color: selectedSession.speed.bufferbloatGrade === "A+" ? "var(--success)" : "var(--attention)" }}
+                        >
+                          {selectedSession.speed.bufferbloatGrade}
+                        </span>
+                        <span className="text-[9px] px-1 rounded" style={{ backgroundColor: "var(--bg-base)", color: "var(--text-tertiary)" }}>Grade</span>
                       </div>
                     </div>
                   </div>
@@ -534,22 +550,32 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
                 <div className="mb-5">
                   <span className="text-[10px] text-[var(--text-tertiary)] font-sans uppercase tracking-wider block mb-2 select-none font-semibold">Anomalias Físicas ({selectedSession.issues.length})</span>
                   {selectedSession.issues.length === 0 ? (
-                    <div className="p-3 bg-emerald-950/20 border border-emerald-500/20 rounded-xl text-xs text-emerald-400 flex items-center gap-2 font-sans select-none">
-                      <ShieldCheck className="w-4 h-4 shrink-0 text-[var(--success)]" />
+                    <div
+                      className="p-3 rounded-xl text-xs flex items-center gap-2 font-sans select-none"
+                      style={{
+                        backgroundColor: alpha("var(--success)", 10),
+                        border: `1px solid ${alpha("var(--success)", 20)}`,
+                        color: "var(--success)",
+                      }}
+                    >
+                      <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: "var(--success)" }} />
                       <span>Todas as interfaces de rádio analisadas operam na estabilidade linear.</span>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {selectedSession.issues.map((issue, index) => (
+                      {selectedSession.issues.map((issue, index) => {
+                        const severityColor = issue.severity === "critical" ? "var(--error)" : "var(--attention)";
+                        return (
                         <div
                           key={index}
-                          className={`p-3 border rounded-xl flex items-start gap-2.5 text-xs font-sans ${
-                            issue.severity === "critical"
-                              ? "bg-red-950/10 border-red-500/10 text-zinc-200"
-                              : "bg-amber-950/10 border-amber-500/10 text-zinc-200"
-                          }`}
+                          className="p-3 border rounded-xl flex items-start gap-2.5 text-xs font-sans"
+                          style={{
+                            backgroundColor: alpha(severityColor, 10),
+                            borderColor: alpha(severityColor, 20),
+                            color: "var(--text-primary)",
+                          }}
                         >
-                          <AlertOctagon className={`w-4 h-4 shrink-0 mt-0.5 ${issue.severity === "critical" ? "text-red-400" : "text-amber-500"}`} />
+                          <AlertOctagon className="w-4 h-4 shrink-0 mt-0.5" style={{ color: severityColor }} />
                           <div>
                             <div className="font-semibold font-sans tracking-wider text-[10px] uppercase text-[var(--text-secondary)]">
                               {(issue.issue ?? "").replace(/_/g, " ")}
@@ -557,7 +583,8 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
                             <p className="text-[var(--text-secondary)] mt-1 leading-normal text-[11px] font-sans">{issue.description}</p>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -574,7 +601,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
                       disabled={diagnosingId !== null}
                       className="flex items-center gap-1 text-[10px] px-2.5 py-1.5 border border-[var(--border)] hover:border-[var(--primary)]/40 hover:bg-[var(--primary)]/10 text-[var(--primary)] rounded-lg transition-colors font-sans font-bold uppercase select-none cursor-pointer"
                     >
-                      <Zap className={`w-3 h-3 ${diagnosingId ? "animate-bounce" : ""}`} />
+                      <Zap className={`w-3 h-3 ${diagnosingId ? "animate-spin" : ""}`} />
                       <span>{diagnosingId ? "Roteando..." : "Regenerar IA"}</span>
                     </button>
                   </div>

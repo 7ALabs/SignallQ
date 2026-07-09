@@ -43,6 +43,7 @@ export function DataTable<T>({
             {columns.map((col, idx) => (
               <th
                 key={idx}
+                scope="col"
                 className={`py-4 px-6 text-[11px] font-mono font-bold tracking-widest uppercase select-none ${col.thClassName || ""}`}
                 style={{ color: "var(--sq-text-tertiary)" }}
               >
@@ -66,16 +67,41 @@ export function DataTable<T>({
             data.map((row) => {
               const rowKey = keyExtractor(row);
               const resolvedRowClassName = typeof rowClassName === "function" ? rowClassName(row) : rowClassName;
+              const interactive = Boolean(onRowClick);
               return (
                 <tr
                   key={rowKey}
-                  onClick={() => onRowClick && onRowClick(row)}
-                  className={`transition-colors ${onRowClick ? "cursor-pointer" : ""} ${resolvedRowClassName}`}
+                  onClick={() => onRowClick?.(row)}
+                  tabIndex={interactive ? 0 : undefined}
+                  role={interactive ? "button" : undefined}
+                  onKeyDown={
+                    interactive
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            onRowClick?.(row);
+                          }
+                        }
+                      : undefined
+                  }
+                  className={`transition-colors outline-none ${interactive ? "cursor-pointer" : ""} ${resolvedRowClassName}`}
                   style={{ borderTop: "1px solid var(--sq-border-subtle)" }}
                   onMouseEnter={(e) => {
                     (e.currentTarget as HTMLTableRowElement).style.backgroundColor = alpha("var(--sq-bg-overlay)", 50);
                   }}
                   onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLTableRowElement).style.backgroundColor = "";
+                  }}
+                  onFocus={(e) => {
+                    if (!interactive) return;
+                    (e.currentTarget as HTMLTableRowElement).style.boxShadow = `inset 0 0 0 2px ${alpha(
+                      "var(--sq-accent)",
+                      60
+                    )}`;
+                    (e.currentTarget as HTMLTableRowElement).style.backgroundColor = alpha("var(--sq-bg-overlay)", 50);
+                  }}
+                  onBlur={(e) => {
+                    (e.currentTarget as HTMLTableRowElement).style.boxShadow = "";
                     (e.currentTarget as HTMLTableRowElement).style.backgroundColor = "";
                   }}
                 >

@@ -40,28 +40,17 @@ export const ErrorMetricGrid: React.FC<ErrorMetricGridProps> = ({ environment })
     );
   }
 
+  // GH#552: o worker expõe só o período selecionado, sem comparação com o
+  // período anterior (ver errorMetricsService.getErrorMetricSummary) — não há
+  // dado real de tendência hoje. Mostrar volume cru sem trend em vez de
+  // inventar uma variação percentual, na mesma linha do resto do painel
+  // (Overview/Product Analytics/Networks recusam correlação sem dado real).
   const metrics = summary
     ? [
-        {
-          label: "Gargalos / Erros Ativos",
-          value: summary.activeErrors,
-          trend: { value: 25.0, changePercentage: 25.0, type: "down" as const, intervalLabel: "estabilidade progressiva" }
-        },
-        {
-          label: "Eventos nas últimas 24h",
-          value: summary.events24h,
-          trend: { value: 14.8, changePercentage: 14.8, type: "down" as const, intervalLabel: "vs período anterior" }
-        },
-        {
-          label: "Usuários Impactados",
-          value: summary.impactedUsers,
-          trend: { value: 8.2, changePercentage: 8.2, type: "down" as const, intervalLabel: "grupo de teste" }
-        },
-        {
-          label: "Principais Fontes",
-          value: summary.mainSources,
-          trend: { value: 0, changePercentage: 0, type: "neutral" as const, intervalLabel: "interfaces móveis" }
-        }
+        { label: "Gargalos / Erros Ativos", value: summary.activeErrors },
+        { label: "Eventos nas últimas 24h", value: summary.events24h },
+        { label: "Usuários Impactados", value: summary.impactedUsers },
+        { label: "Principais Fontes", value: summary.mainSources },
       ]
     : [];
 
@@ -72,7 +61,6 @@ export const ErrorMetricGrid: React.FC<ErrorMetricGridProps> = ({ environment })
           key={idx}
           label={m.label}
           value={m.value}
-          trend={m.trend}
           id={`error-metric-card-${idx}`}
         />
       ))}

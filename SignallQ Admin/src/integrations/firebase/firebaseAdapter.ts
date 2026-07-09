@@ -23,6 +23,21 @@ import { DashboardFilters } from "../../services/adminMetricsService";
 // Sentinela: indica que os dados não estão disponíveis nesta rota.
 export const NOT_AVAILABLE = null;
 
+// Formata timestamp ISO do worker no mesmo padrão pt-BR usado pelos demais
+// cards de integração (ex.: "21/06/2026 14:05"). Sem valor real ainda: fallback.
+function formatSyncTimestamp(isoTimestamp: string | null | undefined): string {
+  if (!isoTimestamp) return "Nunca sincronizado";
+  const date = new Date(isoTimestamp);
+  if (Number.isNaN(date.getTime())) return "Nunca sincronizado";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function buildQuery(filters: DashboardFilters): string {
   const params = new URLSearchParams();
   if (filters.environment) params.set("environment", filters.environment);
@@ -56,6 +71,9 @@ interface FirebaseStatusWorkerResponse {
   status: "connected" | "mock" | "attention" | "planned" | "disabled";
   hasCredentials: boolean;
   ga4PropertyConfigured: boolean;
+  lastSyncTimestamp?: string | null;
+  eventsImported?: number;
+  crashesImported?: number;
 }
 
 export async function getFirebaseIntegrationStatus(): Promise<FirebaseIntegrationStatus> {
@@ -68,8 +86,10 @@ export async function getFirebaseIntegrationStatus(): Promise<FirebaseIntegratio
     "/admin/integrations/firebase/status"
   );
 
-  // O worker não expõe platform/lastSync/contadores nesta rota — apenas o
-  // estado de credenciais. Normalizamos aqui para o contrato que a UI espera.
+  // O worker não expõe "platform" nesta rota (fixo aqui na UI). lastSync e os
+  // contadores vêm do estado persistido em D1 (admin_settings/'firebase_sync'),
+  // gravado pelo último POST /admin/integrations/firebase/sync. Se nunca houve
+  // sync bem-sucedido, o worker retorna lastSyncTimestamp: null.
   return {
     enabled: raw.hasCredentials,
     status: raw.status,
@@ -77,9 +97,9 @@ export async function getFirebaseIntegrationStatus(): Promise<FirebaseIntegratio
       ? "Sincronizado via Conta de Serviço do Google Cloud Platform (GCP)"
       : "Credenciais do Firebase ainda não configuradas no Admin Worker",
     platform: "Android (Firebase Analytics + Crashlytics)",
-    lastSyncTimestamp: "Nunca sincronizado",
-    eventsImported: 0,
-    crashesImported: 0,
+    lastSyncTimestamp: formatSyncTimestamp(raw.lastSyncTimestamp),
+    eventsImported: raw.eventsImported ?? 0,
+    crashesImported: raw.crashesImported ?? 0,
   };
 }
 
