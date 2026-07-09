@@ -3,6 +3,7 @@ import { SectionCard } from "../../../components/ui/SectionCard";
 import { AlertCircle, AlertTriangle, Bell, Clock, ArrowRight } from "lucide-react";
 import { errorMetricsService } from "../../../services/errorMetricsService";
 import { AiAlert } from "../../../mocks/errors.mock";
+import { formatCurrency } from "../../../utils/format";
 
 export const AiAlertsPanel: React.FC = () => {
   const [alerts, setAlerts] = React.useState<AiAlert[]>([]);
@@ -73,7 +74,7 @@ export const AiAlertsPanel: React.FC = () => {
       )}
 
       <div className="mt-4 pt-3.5 border-t border-dashed border-[var(--border)] flex items-center justify-between text-[10px] font-mono text-[var(--text-tertiary)] select-none">
-        <span>Teto Operacional: ${aiCostCeiling.toFixed(2)} / Mês</span>
+        <span>Teto Operacional: {formatCurrency(aiCostCeiling)} / Mês</span>
         <span className="flex items-center gap-0.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors font-bold uppercase">
           Ajustar Limites <ArrowRight className="w-3" />
         </span>

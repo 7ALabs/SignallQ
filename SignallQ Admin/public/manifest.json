@@ -1,6 +1,6 @@
 {
-  "name": "7Agents Admin Console",
-  "short_name": "7Agents",
+  "name": "SignallQ Admin",
+  "short_name": "SignallQ",
   "description": "Console administrativo do SignallQ",
   "start_url": "./",
   "scope": "./",

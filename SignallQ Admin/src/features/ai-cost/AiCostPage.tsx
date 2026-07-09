@@ -19,6 +19,7 @@ import { GlobalFilters } from "../../components/ui/GlobalFilters";
 import { SectionIntro } from "../../components/ui/SectionIntro";
 import { AppEnvironment } from "../../types/admin";
 import { AiModelInsights, AiUsageRecord, AiDailyUsage } from "../../types/ai";
+import { formatCurrency } from "../../utils/format";
 import { Bot, RefreshCw } from "lucide-react";
 
 interface AiCostPageProps {
@@ -117,7 +118,7 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
   }, [timelineData]);
 
   const handleExportCostReport = () => {
-    const header = "Provider,Modelo,Chamadas,Tokens,Custo (USD),Confiabilidade\r\n";
+    const header = "Provider,Modelo,Chamadas,Tokens,Custo (R$),Confiabilidade\r\n";
     const rows = modelInsights
       .map((m) => [m.provider, m.displayName, m.totalCalls, m.totalTokens, m.estimatedCostUsd.toFixed(4), m.reliabilityPercentage ?? ""].join(","))
       .join("\r\n");
@@ -165,12 +166,12 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
       },
     },
     {
-      header: "Custo (USD)",
+      header: "Custo (R$)",
       accessor: (row: AiUsageRecord) => {
         if (row.costUsd === 0) return <span className="text-[10px] font-mono leading-none" style={{ color: "var(--sq-success)" }}>FREE</span>;
         return (
           <span className="font-mono font-semibold text-xs" style={{ color: "var(--sq-accent)" }}>
-            ${row.costUsd.toFixed(2)}
+            {formatCurrency(row.costUsd)}
           </span>
         );
       },

@@ -56,7 +56,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             {/* GH#443: caminho relativo ao BASE_URL — o Console pode ser servido em /console */}
             <img
               src={`${import.meta.env.BASE_URL}icon-192.png`}
-              alt="7Agents"
+              alt="SignallQ"
               className="w-16 h-16 rounded-[var(--radius-button)]"
             />
           </div>

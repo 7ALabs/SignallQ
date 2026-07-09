@@ -2,6 +2,7 @@ import { apiClient } from "./apiClient";
 import { mockAiUsageRecords, mockAiModelInsights, mockAiDailyUsageTimeSeries } from "../mocks/aiUsage.mock";
 import { AiUsageRecord, AiModelInsights, AiDailyUsage } from "../types/ai";
 import { DashboardFilters } from "./adminMetricsService";
+import { formatCurrency } from "../utils/format";
 
 export const aiUsageService = {
   async getAiUsageMetrics(filters: DashboardFilters = {}): Promise<AiModelInsights[] | null> {
@@ -116,9 +117,9 @@ export const aiUsageService = {
             ) / 100
           : null;
         return {
-          totalCostUsd:          `$${totalCost.toFixed(2)}`,
+          totalCostUsd:          formatCurrency(totalCost),
           totalRequests:         totalReq.toLocaleString("pt-BR"),
-          avgCostPerRequest:     `$${avgCost.toFixed(2)}`,
+          avgCostPerRequest:     formatCurrency(avgCost),
           tokensSentM:           `${sentM.toFixed(1)}M`,
           tokensReceivedM:       `${receivedM.toFixed(1)}M`,
           successRate:           "—",
@@ -142,9 +143,9 @@ export const aiUsageService = {
     const avgReliability = realInsights.reduce((s, i) => s + (i.reliabilityPercentage ?? 100), 0) / realInsights.length;
 
     return {
-      totalCostUsd:          `$${totalCost.toFixed(2)}`,
+      totalCostUsd:          formatCurrency(totalCost),
       totalRequests:         totalCalls.toLocaleString("pt-BR"),
-      avgCostPerRequest:     `$${totalCalls > 0 ? (totalCost / totalCalls).toFixed(2) : "0.00"}`,
+      avgCostPerRequest:     formatCurrency(totalCalls > 0 ? totalCost / totalCalls : 0),
       tokensSentM:           `${sentM.toFixed(1)}M`,
       tokensReceivedM:       `${receivedM.toFixed(1)}M`,
       successRate:           `${avgReliability.toFixed(1)}%`,

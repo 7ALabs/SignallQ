@@ -1,19 +1,23 @@
 import React from "react";
+import { formatCurrency, parseFormattedCurrencyBrl } from "../../../utils/format";
 
 interface AiBudgetCardProps {
-  /** Custo total do período, formatado como "$123.45" (aiUsageService.getAiCostSummary). */
+  /** Custo total do período, formatado em BRL (aiUsageService.getAiCostSummary — utils/format.formatCurrency). */
   totalCostUsd: string | null;
-  /** Teto de alerta configurado (errorMetricsService.getAiAlerts — mesmo valor usado nos alertas de IA). */
+  /** Teto de alerta configurado em USD (errorMetricsService.getAiAlerts — mesmo valor usado nos alertas de IA). */
   ceilingUsd: number;
 }
 
 // GH#781 (paridade mockup) — "Orçamento mensal de IA" full-width, no topo da
 // tela. O teto (ceilingUsd) é o mesmo valor real já usado para disparar
 // alertas de custo (getAiAlerts) — não é um número novo inventado para esta
-// barra, é o único teto de orçamento que o sistema hoje conhece.
+// barra, é o único teto de orçamento que o sistema hoje conhece. Exibição em
+// BRL (GH#781 ajuste fino 2) via utils/format.formatCurrency.
 export const AiBudgetCard: React.FC<AiBudgetCardProps> = ({ totalCostUsd, ceilingUsd }) => {
-  const usedValue = totalCostUsd ? Number(totalCostUsd.replace(/[^0-9.]/g, "")) : null;
-  const pct = usedValue != null && ceilingUsd > 0 ? Math.min(100, Math.round((usedValue / ceilingUsd) * 100)) : null;
+  const usedValueBrl = totalCostUsd ? parseFormattedCurrencyBrl(totalCostUsd) : null;
+  const ceilingBrlFormatted = formatCurrency(ceilingUsd);
+  const ceilingBrlValue = parseFormattedCurrencyBrl(ceilingBrlFormatted);
+  const pct = usedValueBrl != null && ceilingBrlValue > 0 ? Math.min(100, Math.round((usedValueBrl / ceilingBrlValue) * 100)) : null;
 
   return (
     <div
@@ -26,8 +30,8 @@ export const AiBudgetCard: React.FC<AiBudgetCardProps> = ({ totalCostUsd, ceilin
           Orçamento mensal de IA
         </h4>
         <span className="text-[13px] font-semibold font-sans" style={{ color: "var(--text-primary)" }}>
-          {usedValue != null ? `$${usedValue.toFixed(2)}` : "—"}
-          <span style={{ color: "var(--text-tertiary)", fontWeight: 400 }}> / ${ceilingUsd.toFixed(2)}</span>
+          {totalCostUsd ?? "—"}
+          <span style={{ color: "var(--text-tertiary)", fontWeight: 400 }}> / {ceilingBrlFormatted}</span>
         </span>
       </div>
       <div className="h-2.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
