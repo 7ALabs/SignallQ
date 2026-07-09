@@ -24,6 +24,7 @@ include(
     ":coreDatabase",
     ":coreDatastore",
     ":coreTelephony",
+    ":coreRecommendation",
     ":featureHome",
     ":featureWifi",
     ":featureDevices",
@@ -40,6 +41,7 @@ project(":coreDatabase").projectDir   = File("core/database")
 project(":coreDatastore").projectDir  = File("core/datastore")
 project(":corePermissions").projectDir = File("core/permissions")
 project(":coreTelephony").projectDir  = File("core/telephony")
+project(":coreRecommendation").projectDir = File("core/recommendation")
 project(":featureHome").projectDir        = File("feature/home")
 project(":featureWifi").projectDir        = File("feature/wifi")
 project(":featureDevices").projectDir     = File("feature/devices")
