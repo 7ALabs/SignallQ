@@ -32,6 +32,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -147,6 +148,8 @@ internal fun GatewayConnectionSheetContent(
     var lembrarSenha by remember { mutableStateOf(lembrarSenhaInicial || manterConectadoInicial) }
     var manterConectado by remember { mutableStateOf(manterConectadoInicial) }
     var estado by remember { mutableStateOf<GatewayConnectionSheetState>(GatewayConnectionSheetState.Formulario) }
+    // GH#529: guia ilustrado de como obter usuario/senha, aberto sem sair da sheet de conexao.
+    var mostrarGuiaCredenciais by remember { mutableStateOf(false) }
 
     val escopo = rememberCoroutineScope()
     val conectando = estado is GatewayConnectionSheetState.Conectando
@@ -242,6 +245,18 @@ internal fun GatewayConnectionSheetContent(
             shape = RoundedCornerShape(LkRadius.input),
         )
 
+        TextButton(
+            onClick = { mostrarGuiaCredenciais = true },
+            enabled = !conectando,
+            modifier = Modifier.testTag("gateway_link_guia_credenciais"),
+        ) {
+            Text(
+                text = "Não sabe o usuário e a senha?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = LkColors.accent,
+            )
+        }
+
         ToggleRow(
             titulo = "Lembrar senha",
             subtitulo = "Salvar usuário e senha neste aparelho",
@@ -315,6 +330,10 @@ internal fun GatewayConnectionSheetContent(
                 Text(if (erroAtual != null) "Tentar novamente" else "Conectar")
             }
         }
+    }
+
+    if (mostrarGuiaCredenciais) {
+        GatewayCredentialsGuideSheet(onDismissRequest = { mostrarGuiaCredenciais = false })
     }
 }
 

@@ -111,4 +111,16 @@ class GatewayConnectionSheetTest {
         composeRule.onNodeWithTag("gateway_toggle_manter_conectado").assertIsOn()
         composeRule.onNodeWithTag("gateway_toggle_lembrar_senha").assertIsOn()
     }
+
+    @Test
+    fun `link de guia de credenciais abre o guia ilustrado sem sair da sheet`() {
+        renderContent()
+
+        composeRule.onNodeWithTag("gateway_link_guia_credenciais").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Como encontrar usuário e senha do roteador").assertIsDisplayed()
+        // sheet de conexao continua no ar por baixo do guia
+        composeRule.onNodeWithTag("gateway_connect_button").assertIsDisplayed()
+    }
 }
