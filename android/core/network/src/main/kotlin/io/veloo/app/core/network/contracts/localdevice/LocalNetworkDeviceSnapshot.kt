@@ -15,8 +15,12 @@ package io.signallq.app.core.network.contracts.localdevice
  *   [warnings] explícito — nunca deve chegar como exception genérica na UI.
  * - Nenhum campo aqui carrega senha, cookie ou token de sessão. Isso é
  *   reforçado pelos modelos de cada seção (nenhum deles tem campo de
- *   credencial) — sanitização adicional de IP/MAC antes de IA/analytics é
- *   escopo de GH#541.
+ *   credencial).
+ * - Este snapshot completo NUNCA deve ser enviado direto para IA, analytics
+ *   ou logs técnicos — ele ainda carrega MAC/IP completos e a lista crua de
+ *   [clientes]. Use sempre [LocalDeviceSafeFilter.filtrar] para obter o
+ *   payload allowlisted ([SafeLocalDeviceContext]), único formato permitido
+ *   nesses destinos (GH#541).
  */
 data class LocalNetworkDeviceSnapshot(
     val deviceType: DeviceType,
