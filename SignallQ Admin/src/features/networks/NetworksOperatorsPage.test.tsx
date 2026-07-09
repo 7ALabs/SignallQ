@@ -30,8 +30,9 @@ describe("NetworksOperatorsPage", () => {
 
     // Operadoras monitoradas: 2 operadoras mockadas.
     expect(screen.getByText("2")).toBeInTheDocument();
-    // Sessões via Wi-Fi: 320 Wi-Fi / (320 + 110) móvel = 74%.
-    expect(screen.getByText("74%")).toBeInTheDocument();
+    // Sessões via Wi-Fi: 320 Wi-Fi / (320 + 110) móvel = 74% — aparece duas vezes
+    // por design do mockup (KPI "Sessões via Wi-Fi" + rodapé do card de operadoras).
+    expect(screen.getAllByText("74%").length).toBe(2);
     // Regiões cobertas segue indisponível — sem coluna de UF no worker.
     expect(screen.getAllByText("Não disponível").length).toBeGreaterThanOrEqual(1);
   });
