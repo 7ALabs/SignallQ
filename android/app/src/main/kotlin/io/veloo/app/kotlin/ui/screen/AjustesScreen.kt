@@ -172,6 +172,8 @@ fun AjustesScreen(
     val gatewaySessaoValida = modem.gatewaySessaoValida
     val conectarGateway = modem.conectarGateway
     val onGatewayConectado = modem.onGatewayConectado
+    val bandasWifiGateway = modem.bandasWifi
+    val dispositivosNaRedeGateway = modem.dispositivosNaRede
     // aliases de lambdas — mantém corpo interno sem alteração
     val onSalvarPerfil = perfil.onSalvarPerfil
     val onSalvarDadosProvedor = provedor.onSalvarDadosProvedor
@@ -451,11 +453,20 @@ fun AjustesScreen(
             if (BuildConfig.FEATURE_FIBRA_SCREEN) {
                 item { HorizontalDivider(color = c.border, thickness = 1.dp) }
                 item {
+                    // GH#531 — rename "Fibra óptica" → "Roteador e rede": destino é o
+                    // roteador/GPON, não fibra em si; subtítulo comunica bandas Wi-Fi +
+                    // quantidade de dispositivos para dar a real dimensão do que tem lá dentro.
+                    val subtitleGateway =
+                        when {
+                            modemHost.isNullOrBlank() -> "Não configurado"
+                            bandasWifiGateway.isNullOrBlank() -> "Conectado"
+                            else -> "Conectado · $bandasWifiGateway · $dispositivosNaRedeGateway dispositivos"
+                        }
                     SettingItem(
                         c = c,
                         icon = Icons.Outlined.Router,
-                        label = "Fibra óptica",
-                        subtitle = if (modemHost.isNullOrBlank()) "Não configurado" else "Conectado",
+                        label = "Roteador e rede",
+                        subtitle = subtitleGateway,
                         onClick = {
                             // GH#530: sessão válida (mesmo BSSID em que "manter conectado" foi
                             // salvo) pula a sheet e vai direto ao destino provisório.

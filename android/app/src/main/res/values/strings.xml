@@ -358,7 +358,7 @@
     <string name="ajustes_menu_sobre_sub">v%1$s · Android · Kotlin</string>
     <string name="ajustes_menu_testes_moveis">Sempre permitir testes pesados em dados móveis</string>
     <string name="ajustes_menu_testes_moveis_sub">Não mostrar aviso para modo Completo e Triplo na próxima vez</string>
-    <string name="ajustes_menu_fibra">Fibra óptica</string>
+    <string name="ajustes_menu_fibra">Roteador e rede</string>
     <string name="ajustes_menu_monitoramento">Monitoramento passivo</string>
     <string name="ajustes_menu_analise_avancada">Análise avançada</string>
     <string name="ajustes_operadora_detectada">Operadora detectada: %1$s</string>

@@ -74,6 +74,7 @@ import io.signallq.app.core.network.contracts.gateway.GatewayConnectionResultado
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionService
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
+import io.signallq.app.feature.devices.ehClienteFinal
 import io.signallq.app.feature.diagnostico.EstadoDiagnostico
 import io.signallq.app.feature.dns.SnapshotBenchmarkDns
 import io.signallq.app.feature.fibra.SnapshotFibra
@@ -87,6 +88,7 @@ import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.resumoBandasWifi
 import io.signallq.app.ui.state.UiState
 import kotlinx.coroutines.delay
 
@@ -224,6 +226,11 @@ fun AppShell(
     val onRefreshDispositivos = wifi.onRefreshDispositivos
     val onRefreshSinal = wifi.onRefreshSinal
     val onSalvarApelido = wifi.onSalvarApelido
+
+    // GH#531 — resumo de bandas Wi-Fi + contagem de clientes do gateway, reusado
+    // no subtítulo de Ajustes ("Roteador e rede") e no GatewayItem de Dispositivos.
+    val bandasWifiGateway = resumoBandasWifi(snapshotWifi.redes, connectedNetwork?.ssid)
+    val clientesNaRedeGateway = snapshotDevices.dispositivos.count { it.ehClienteFinal() }
 
     val snapshotDiagnostico = diagnostico.snapshotDiagnostico
     val onIniciarDiagnostico = diagnostico.onIniciarDiagnostico
@@ -584,6 +591,8 @@ fun AppShell(
                                     gatewaySessaoValida = gatewaySessaoValida,
                                     conectarGateway = gatewayConnectionServiceMock,
                                     onGatewayConectado = onGatewayConectado,
+                                    bandasWifi = bandasWifiGateway,
+                                    dispositivosNaRede = clientesNaRedeGateway,
                                 ),
                             temaSelecionado = temaSelecionado,
                             onDefinirTemaSelecionado = onDefinirTemaSelecionado,
@@ -762,6 +771,7 @@ fun AppShell(
                 apelidos = apelidos,
                 onSalvarApelido = onSalvarApelido,
                 onVoltar = { overlayStack.remove(Overlay.Dispositivos) },
+                bandasWifi = bandasWifiGateway,
             )
         }
 

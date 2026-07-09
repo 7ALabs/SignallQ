@@ -58,6 +58,11 @@ data class AjustesModemState(
     val conectarGateway: GatewayConnectionService = GatewayConnectionService { _, _, _ -> GatewayConnectionResultado.Sucesso },
     val onGatewayConectado: (ip: String, usuario: String, senha: String, lembrarSenha: Boolean, manterConectado: Boolean) -> Unit =
         { _, _, _, _, _ -> },
+    // GH#531 — resumo de bandas Wi-Fi ("2,4G + 5G") e contagem de dispositivos
+    // na rede, exibidos no subtítulo da linha "Roteador e rede". Null/0 quando
+    // ainda não há dado suficiente (mantém subtítulo genérico "Conectado").
+    val bandasWifi: String? = null,
+    val dispositivosNaRede: Int = 0,
 )
 
 data class AjustesDadosMoveisState(
