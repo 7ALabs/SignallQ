@@ -51,7 +51,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               value={searchText}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full pl-10 pr-4 py-2 text-xs rounded-[8px] transition-colors focus:outline-none"
+              className="w-full pl-10 pr-4 py-2 text-xs rounded-[var(--radius-button)] transition-colors focus:outline-none"
               style={{
                 color: "var(--sq-text-primary)",
                 backgroundColor: "var(--sq-bg-card)",
@@ -74,7 +74,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
       <div className="flex flex-wrap items-center gap-3.5">
         {/* Environment Toggle */}
         <div
-          className="flex items-center p-1 rounded-[8px]"
+          className="flex items-center p-1 rounded-[var(--radius-button)]"
           style={{
             backgroundColor: "var(--sq-bg-card)",
             border: "1px solid var(--sq-border)",
@@ -102,7 +102,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
         {/* Period Filter */}
         <div
-          className="flex items-center gap-1 rounded-[8px] p-0.5"
+          className="flex items-center gap-1 rounded-[var(--radius-button)] p-0.5"
           style={{
             backgroundColor: "var(--sq-bg-card)",
             border: "1px solid var(--sq-border)",
@@ -133,7 +133,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           <button
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs rounded-[8px] transition-colors cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs rounded-[var(--radius-button)] transition-colors cursor-pointer disabled:opacity-50"
             style={{
               backgroundColor: "var(--sq-bg-card)",
               border: "1px solid var(--sq-border)",
@@ -152,7 +152,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         {onExport && (
           <button
             onClick={onExport}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-[8px] transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-[var(--radius-button)] transition-colors cursor-pointer"
             style={{
               backgroundColor: "var(--sq-bg-card)",
               border: "1px solid var(--sq-border)",

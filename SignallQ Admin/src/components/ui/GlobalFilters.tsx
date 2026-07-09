@@ -37,7 +37,7 @@ export const GlobalFilters: React.FC<GlobalFiltersProps> = ({ filters, className
       {filters.map((filter) => (
         <div
           key={filter.key}
-          className="relative flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-[8px] transition-shadow"
+          className="relative flex items-center gap-2 pl-3 pr-2 py-1.5 rounded-[var(--radius-button)] transition-shadow"
           style={{
             backgroundColor: "var(--sq-bg-card)",
             border: "1px solid var(--sq-border)",

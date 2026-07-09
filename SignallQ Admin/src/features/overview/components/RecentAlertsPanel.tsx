@@ -12,7 +12,7 @@ function severityFor(alert: RecentAlertItem & { _severity?: string }) {
 
 export const RecentAlertsPanel: React.FC<RecentAlertsPanelProps> = ({ alerts }) => {
   return (
-    <div className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-[8px] p-5 hover:border-[var(--bg-card-hover)] transition-all duration-200 flex flex-col justify-between h-full">
+    <div className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-[var(--radius-card)] p-5 hover:border-[var(--bg-card-hover)] transition-all duration-200 flex flex-col justify-between h-full">
       <div>
         <div className="flex items-center justify-between gap-4 pb-4 border-b border-[var(--border)] mb-5 select-none">
           <div>
@@ -28,7 +28,7 @@ export const RecentAlertsPanel: React.FC<RecentAlertsPanelProps> = ({ alerts }) 
 
         <div className="max-h-[290px] overflow-y-auto pr-1 space-y-1">
           {alerts.length === 0 ? (
-            <div className="py-8 text-center text-xs text-[var(--text-tertiary)] font-sans border border-dashed border-[var(--border)] rounded-[8px]">
+            <div className="py-8 text-center text-xs text-[var(--text-tertiary)] font-sans border border-dashed border-[var(--border)] rounded-[var(--radius-card)]">
               Sem alertas ativos
             </div>
           ) : (
@@ -48,7 +48,7 @@ export const RecentAlertsPanel: React.FC<RecentAlertsPanelProps> = ({ alerts }) 
                 return (
                   <div
                     key={alert.id}
-                    className={`flex items-start justify-between p-4 rounded-[8px] border transition-all duration-150 ${borderClass}`}
+                    className={`flex items-start justify-between p-4 rounded-[var(--radius-card)] border transition-all duration-150 ${borderClass}`}
                   >
                     <div className="flex items-start gap-3">
                       <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${iconColor}`} />

@@ -17,10 +17,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   return (
     <div
       id={id || "empty-state"}
-      className="flex flex-col items-center justify-center text-center py-14 px-6 rounded-[8px]"
+      className="flex flex-col items-center justify-center text-center py-14 px-6 rounded-[var(--radius-card)]"
       style={{ border: "1px dashed var(--border)", background: "var(--bg-surface)" }}
     >
-      <div className="flex items-center justify-center w-12 h-12 rounded-[8px] mb-4 select-none" style={{ background: "var(--bg-surface-muted)", border: "1px solid var(--border)", color: "var(--text-tertiary)" }}>
+      <div className="flex items-center justify-center w-12 h-12 rounded-[var(--radius-button)] mb-4 select-none" style={{ background: "var(--bg-surface-muted)", border: "1px solid var(--border)", color: "var(--text-tertiary)" }}>
         <Inbox className="w-5 h-5" />
       </div>
 

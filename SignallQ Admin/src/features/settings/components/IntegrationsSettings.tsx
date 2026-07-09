@@ -88,7 +88,7 @@ export const IntegrationsSettings: React.FC = () => {
 
   if (loading || !data) {
     return (
-      <div className="p-6 bg-zinc-900/30 border border-zinc-850 rounded-[8px] flex items-center justify-center font-sans text-[var(--text-tertiary)] text-xs">
+      <div className="p-6 bg-zinc-900/30 border border-zinc-850 rounded-[var(--radius-card)] flex items-center justify-center font-sans text-[var(--text-tertiary)] text-xs">
         <RotateCw className="w-4 h-4 animate-spin mr-2 text-[var(--text-secondary)]" />
         <span>Consultando endpoints de integradores...</span>
       </div>

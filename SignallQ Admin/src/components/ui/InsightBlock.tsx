@@ -17,7 +17,7 @@ export const InsightBlock: React.FC<InsightBlockProps> = ({ children, id }) => {
   return (
     <div
       id={id || "insight-block"}
-      className="flex items-start gap-3 rounded-[8px] p-4"
+      className="flex items-start gap-3 rounded-[var(--radius-card)] p-4"
       style={{
         backgroundColor: "var(--bg-surface)",
         border: "1px solid var(--border)",

@@ -196,7 +196,7 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
   if (error) {
     return (
       <div
-        className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 rounded-[8px]"
+        className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 rounded-[var(--radius-card)]"
         style={{
           border: `1px solid ${alpha("var(--sq-error)", 20)}`,
           backgroundColor: alpha("var(--sq-error)", 5),
@@ -224,7 +224,7 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
   if (modelInsights.length === 0) {
     return (
       <div
-        className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 rounded-[8px]"
+        className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 rounded-[var(--radius-card)]"
         style={{
           border: "1px solid var(--sq-border)",
           backgroundColor: "var(--sq-bg-card)",
@@ -244,7 +244,7 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
     <div className="space-y-6">
       {/* 1. Toolbar de sincronismo + filtro por provider */}
       <div
-        className="flex flex-wrap justify-between items-center gap-3 rounded-[8px] p-4 select-none"
+        className="flex flex-wrap justify-between items-center gap-3 rounded-[var(--radius-card)] p-4 select-none"
         style={{
           backgroundColor: "var(--sq-bg-card)",
           border: "1px solid var(--sq-border)",

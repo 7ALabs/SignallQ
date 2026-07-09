@@ -31,7 +31,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     if (this.state.hasError) {
       return (
         <div
-          className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 rounded-[8px]"
+          className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 rounded-[var(--radius-card)]"
           style={{
             border: `1px solid ${alpha("var(--sq-error)", 20)}`,
             backgroundColor: alpha("var(--sq-error)", 5),
