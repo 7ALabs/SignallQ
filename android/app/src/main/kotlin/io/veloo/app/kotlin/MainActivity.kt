@@ -164,8 +164,6 @@ class MainActivity : ComponentActivity() {
             // --- Historico ---
             val history = viewModel.history.collectAsStateWithLifecycle().value
             val historico = viewModel.historico.collectAsStateWithLifecycle().value
-            val blocoUptime = viewModel.blocoUptime.collectAsStateWithLifecycle().value
-            val narrativaUptime = viewModel.narrativaUptime.collectAsStateWithLifecycle().value
             val resumoHistorico = viewModel.resumoHistorico.collectAsStateWithLifecycle().value
             // #95 — Filtros do Historico
             val historicoFiltrado = viewModel.historicoFiltrado.collectAsStateWithLifecycle().value
@@ -394,8 +392,6 @@ class MainActivity : ComponentActivity() {
                         limiteAlertaMbps = limiteAlertaMbps,
                         dnsResolverIp = snapshotRede.dnsServidores.firstOrNull(),
                         historico = historico,
-                        blocoUptime = blocoUptime,
-                        narrativaUptime = narrativaUptime,
                         resumoHistorico = resumoHistorico,
                         snapshotFibra = snapshotFibra,
                         modemHost = modemHost,

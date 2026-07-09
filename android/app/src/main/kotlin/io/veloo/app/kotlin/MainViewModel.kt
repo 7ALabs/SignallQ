@@ -67,11 +67,8 @@ import io.signallq.app.feature.dns.EstadoBenchmarkDns
 import io.signallq.app.feature.dns.OrientadorConfiguracaoDns
 import io.signallq.app.feature.fibra.EstadoFibra
 import io.signallq.app.feature.fibra.ExecutorFibra
-import io.signallq.app.feature.history.BlocoUptime
 import io.signallq.app.feature.history.ObservadorHistoricoRoom
 import io.signallq.app.feature.history.ResumoHistorico
-import io.signallq.app.feature.history.UptimeChartUseCase
-import io.signallq.app.feature.history.UptimeNarrativaEngine
 import io.signallq.app.feature.speedtest.ExecutorSpeedtest
 import io.signallq.app.feature.speedtest.ModoSpeedtest
 import io.signallq.app.feature.wifi.ScannerRedesWifi
@@ -527,16 +524,12 @@ class MainViewModel
         }
 
         val localizacaoServidor = MutableStateFlow<UiState<String>>(UiState.Loading)
-        val blocoUptime = MutableStateFlow<List<BlocoUptime>>(emptyList())
-        val narrativaUptime = MutableStateFlow<String>("")
 
         private val observadorHistorico by lazy { ObservadorHistoricoRoom(bancoDados.medicaoDao(), dispatchers.io) }
 
         val resumoHistorico: StateFlow<ResumoHistorico?> =
             observadorHistorico.resumoFlow
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
-
-        private val uptimeChartUseCase by lazy { UptimeChartUseCase(bancoDados.medicaoDao(), dispatchers.io) }
 
         private var scannerDispositivosDisparado = false
         private var scanWifiDisparado = false
@@ -683,17 +676,6 @@ class MainViewModel
             viewModelScope.launch {
                 bancoDados.medicaoDao().observarUltimas(100).collect { medicoes ->
                     historico.value = medicoes
-                }
-            }
-
-            viewModelScope.launch {
-                // Recarrega o grid de uptime quando chegam novas medicoes.
-                // observarUltimas(1) serve como trigger — qualquer nova medicao
-                // invalida o cache e gera novamente os 336 blocos.
-                bancoDados.medicaoDao().observarUltimas(1).collect {
-                    val blocos = withContext(dispatchers.io) { uptimeChartUseCase.gerar7dias() }
-                    blocoUptime.value = blocos
-                    narrativaUptime.value = UptimeNarrativaEngine.gerarNarrativa(blocos)
                 }
             }
 
