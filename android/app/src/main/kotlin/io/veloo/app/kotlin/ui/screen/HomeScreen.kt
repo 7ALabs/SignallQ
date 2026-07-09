@@ -501,8 +501,8 @@ fun HomeScreen(
                 }
             }
 
-            // 4b. Mobile SignalCard
-            if (movelSnapshot != null) {
+            // 4b. Mobile SignalCard — só quando single-SIM (dual-SIM cobre a mesma info via chips, GH#522)
+            if (movelSnapshot != null && simsAtivos.size < 2) {
                 item {
                     MobileSignalCard(
                         movelSnapshot = movelSnapshot,
