@@ -122,6 +122,48 @@ data class AiUsageIngestPayload(
     val deviceId: String? = null,
 )
 
+/**
+ * Payload de um evento de produto enviado ao endpoint POST /ingest/analytics
+ * do signallq-admin-worker (GH#759 — antes so ia para o Firebase Analytics).
+ *
+ * [name] deve ser um dos eventos aceitos pelo worker (VALID_ANALYTICS_EVENTS):
+ * "feature_used", "screen_view", "session_start", "session_end", "feature_crash",
+ * "battery_snapshot". Eventos fora dessa lista sao descartados silenciosamente
+ * pelo worker (nao gera erro, so nao insere).
+ */
+data class AnalyticsEventIngestPayload(
+    /** UUID gerado no momento do evento. Obrigatorio — protege contra duplicacao em retry. */
+    val id: String,
+    /** Nome do evento — ver lista aceita acima. */
+    val name: String,
+    /** UUID anonimo por sessao de app (independente do sessionId de diagnostico/IA). */
+    val sessionId: String? = null,
+    /** Unix epoch em segundos. */
+    val createdAt: Long = System.currentTimeMillis() / 1000,
+    /** Versao do app, ex: "0.23.0". */
+    val appVersion: String? = null,
+    /** Preenchido em feature_used e feature_crash. */
+    val featureId: String? = null,
+    /** Preenchido em screen_view. */
+    val screenName: String? = null,
+    /** Preenchido em feature_crash. */
+    val errorType: String? = null,
+    /** Preenchido em battery_snapshot. */
+    val batteryLevel: Int? = null,
+    /** Preenchido em battery_snapshot. */
+    val batteryCharging: Boolean? = null,
+    /** "production" ou "staging". */
+    val environment: String? = null,
+    /** Canal de distribuicao: "play_store", "sideload" ou "unknown". */
+    val distChannel: String? = null,
+    /** Tipo de build: "release", "debug". */
+    val buildType: String? = null,
+    /** versionCode do app. */
+    val versionCode: Int? = null,
+    /** UUID anonimo persistente do dispositivo. Sem PII. */
+    val deviceId: String? = null,
+)
+
 // ---------------------------------------------------------------------------
 // Mapeamento de entidades Room para payloads de ingest (sync retroativo)
 // ---------------------------------------------------------------------------

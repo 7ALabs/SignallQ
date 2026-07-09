@@ -9,6 +9,8 @@ import androidx.work.WorkerParameters
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import io.signallq.app.BuildConfig
+import io.signallq.app.analytics.distributionChannel
+import io.signallq.app.analytics.environmentFor
 import io.signallq.app.core.database.MedicaoDao
 import io.signallq.app.core.database.chat.ChatSessionDao
 import io.signallq.app.core.datastore.PreferenciasAppRepository
@@ -47,10 +49,8 @@ internal class AdminSyncWorker
         override suspend fun doWork(): Result {
             Log.d(TAG, "Iniciando sync retroativo (tentativa ${runAttemptCount + 1})")
             return try {
-                val distChannel = getDistributionChannel(applicationContext)
-                // "production" apenas quando instalado via Play Store.
-                // Firebase App Distribution chega como "sideload" → homologação.
-                val environment = if (distChannel == "play_store") "production" else "staging"
+                val distChannel = distributionChannel(applicationContext)
+                val environment = environmentFor(distChannel)
                 val buildType = BuildConfig.BUILD_TYPE
                 val versionCode = BuildConfig.VERSION_CODE
                 val deviceId =
@@ -69,27 +69,6 @@ internal class AdminSyncWorker
                 if (runAttemptCount < 3) Result.retry() else Result.failure()
             }
         }
-
-        private fun getDistributionChannel(context: Context): String =
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    val info = context.packageManager.getInstallSourceInfo(context.packageName)
-                    when (info.initiatingPackageName) {
-                        "com.android.vending" -> "play_store"
-                        null -> "sideload"
-                        else -> info.initiatingPackageName ?: "unknown"
-                    }
-                } else {
-                    @Suppress("DEPRECATION")
-                    when (context.packageManager.getInstallerPackageName(context.packageName)) {
-                        "com.android.vending" -> "play_store"
-                        null -> "sideload"
-                        else -> "unknown"
-                    }
-                }
-            } catch (e: Exception) {
-                "unknown"
-            }
 
         /**
          * Sincroniza medicoes nao contaminadas desde o ultimo checkpoint.

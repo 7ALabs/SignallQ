@@ -93,6 +93,42 @@ class AdminIngestRepository(
         }
     }
 
+    /**
+     * Envia um evento de produto (feature_used, screen_view, session_start,
+     * feature_crash, battery_snapshot). Fire-and-forget, mesmo padrao de
+     * [sendDiagnostic]/[sendAiUsage]. Nao lanca excecao em nenhum cenario.
+     *
+     * O worker aceita um batch (`events: []`) por chamada — aqui sempre enviamos
+     * um unico evento por vez, no mesmo momento em que ele acontece no app.
+     */
+    suspend fun sendAnalyticsEvent(payload: AnalyticsEventIngestPayload) {
+        if (!consentimentoProvider()) return
+        if (baseUrl.isBlank() || ingestKey.isBlank()) {
+            Timber.w("sendAnalyticsEvent ignorado: baseUrl ou ingestKey nao configurados")
+            return
+        }
+        runCatching {
+            withContext(Dispatchers.IO) {
+                val body = JSONObject()
+                    .put("events", JSONArray().put(payload.toJson()))
+                    .toString()
+                    .toRequestBody(mediaTypeJson)
+                val req = Request.Builder()
+                    .url(baseUrl.trimEnd('/') + "/ingest/analytics")
+                    .addHeader("Authorization", "Bearer $ingestKey")
+                    .post(body)
+                    .build()
+                client.newCall(req).execute().use { resp ->
+                    if (!resp.isSuccessful) {
+                        Timber.w("sendAnalyticsEvent HTTP ${resp.code} — name=${payload.name}")
+                    }
+                }
+            }
+        }.onFailure { t ->
+            Timber.w("sendAnalyticsEvent falhou (ignorando): ${t.message}")
+        }
+    }
+
     // ---- Serialização ----
 
     private fun DiagnosticIngestPayload.toJson(): JSONObject {
@@ -140,6 +176,26 @@ class AdminIngestRepository(
         buildType?.let { o.put("build_type", it) }
         versionCode?.let { o.put("version_code", it) }
         deviceId?.let { o.put("device_id", it) }
+        return o
+    }
+
+    private fun AnalyticsEventIngestPayload.toJson(): JSONObject {
+        val o = JSONObject()
+        o.put("id", id)
+        o.put("name", name)
+        sessionId?.let { o.put("session_id", it) }
+        o.put("timestamp", createdAt)
+        appVersion?.let { o.put("app_version", it) }
+        featureId?.let { o.put("feature_id", it) }
+        screenName?.let { o.put("screen_name", it) }
+        errorType?.let { o.put("error_type", it) }
+        batteryLevel?.let { o.put("battery_level", it) }
+        batteryCharging?.let { o.put("battery_charging", it) }
+        environment?.let { o.put("environment", it) }
+        deviceId?.let { o.put("device_id", it) }
+        versionCode?.let { o.put("version_code", it) }
+        distChannel?.let { o.put("dist_channel", it) }
+        buildType?.let { o.put("build_type", it) }
         return o
     }
 }
