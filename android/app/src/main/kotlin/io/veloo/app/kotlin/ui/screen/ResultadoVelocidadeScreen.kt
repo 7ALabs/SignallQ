@@ -22,9 +22,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.Tv
@@ -89,7 +89,7 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
-import io.signallq.app.ui.ResultadoBitmapGenerator
+import io.signallq.app.ui.ResultadoPdfGenerator
 import io.signallq.app.ui.component.LocalDeviceSection
 import io.signallq.app.ui.component.OperadoraBottomSheet
 import io.signallq.app.ui.component.OperadoraContactCard
@@ -97,6 +97,16 @@ import io.signallq.app.ui.component.mapLocalDeviceSectionUiState
 import io.signallq.app.ui.component.rememberTopBarAlpha
 import kotlinx.coroutines.launch
 
+/**
+ * Tela "Resultado do teste" — GH#536.
+ *
+ * Escopo reduzido de propósito: mostra só o essencial pra responder "minha internet
+ * está boa? o que está ruim? o que eu faço agora?" — diagnóstico geral, badge de rede
+ * e os 5 cards principais (Download/Upload/Latência/Oscilação/Perda). Tudo que era
+ * relatório empilhado (experiência de uso, DNS, detalhes avançados, atalho de gaming,
+ * aviso Anatel pesado, contato permanente com operadora) foi para dentro do bottom
+ * sheet de diagnóstico detalhado por IA, aberto pelo CTA principal.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ResultadoVelocidadeScreen(
@@ -108,15 +118,13 @@ fun ResultadoVelocidadeScreen(
     localizacaoServidor: String? = null,
     ispInfo: IspInfo? = null,
     operadoraMovel: String? = null,
-    anatelBannerDismissed: Boolean = true,
-    onDismissAnatelBanner: () -> Unit = {},
     analisadorState: AnalisadorState = AnalisadorState.Inativo,
     onAnalisarProblema: (String) -> Unit = {},
     onResetarAnalisador: () -> Unit = {},
     /** Snapshot do equipamento local (ONT/roteador), quando disponivel — GH#544,
      *  epic #547. Null ate a leitura opcional de equipamento (GH#543) ser
-     *  produzida; a secao "Equipamento local" renderiza o estado
-     *  "nenhum encontrado" nesse caso, nunca um card vazio. */
+     *  produzida; a secao "Equipamento local" do diagnostico detalhado renderiza
+     *  o estado "nenhum encontrado" nesse caso, nunca um card vazio. */
     localDevice: LocalNetworkDeviceSnapshot? = null,
 ) {
     val c = LocalLkTokens.current
@@ -126,9 +134,8 @@ fun ResultadoVelocidadeScreen(
     val decisaoTitulo = decisao?.titulo
     val decisaoMensagem = decisao?.mensagemUsuario
     val decisaoRecomendacao = decisao?.recomendacao
-    var expandida by remember { mutableStateOf(false) }
     var compartilhando by remember { mutableStateOf(false) }
-    var showGamerSheet by remember { mutableStateOf(false) }
+    var showDiagnosticoSheet by remember { mutableStateOf(false) }
     var showOperadoraSheet by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -175,21 +182,6 @@ fun ResultadoVelocidadeScreen(
             }
         }
 
-    if (showGamerSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showGamerSheet = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-            containerColor = c.bgSecondary,
-        ) {
-            GamerSheet(
-                resultado = resultado,
-                ultimaMedicao = null,
-                c = c,
-                onIrParaTeste = { showGamerSheet = false },
-            )
-        }
-    }
-
     Scaffold(
         containerColor = c.bgPrimary,
         topBar = {
@@ -217,18 +209,21 @@ fun ResultadoVelocidadeScreen(
                         IconButton(onClick = {
                             compartilhando = true
                             scope.launch {
-                                ResultadoBitmapGenerator.gerarECompartilhar(
+                                ResultadoPdfGenerator.gerarECompartilhar(
                                     context = context,
                                     resultado = resultado,
-                                    diagnosticoHeadline = decisaoTitulo,
-                                    diagnosticoStatus = decisao?.status,
+                                    snapshotDiagnostico = snapshotDiagnostico,
+                                    analisadorState = analisadorState,
+                                    ispInfo = ispInfo,
+                                    operadoraMovel = operadoraMovel,
+                                    localizacaoServidor = localizacaoServidor,
                                 )
                                 compartilhando = false
                             }
                         }) {
                             Icon(
                                 imageVector = Icons.Outlined.Share,
-                                contentDescription = "Compartilhar resultado",
+                                contentDescription = "Compartilhar PDF do resultado",
                                 tint = c.textPrimary,
                             )
                         }
@@ -272,7 +267,7 @@ fun ResultadoVelocidadeScreen(
                     )
                 }
 
-                // Chip de tipo de rede — posição discreta antes dos valores de velocidade
+                // Badge discreto do tipo de rede
                 ChipTipoRede(
                     connectionType = resultado.connectionType,
                     tecnologia = resultado.tecnologia,
@@ -281,7 +276,7 @@ fun ResultadoVelocidadeScreen(
 
                 Spacer(Modifier.height(LkSpacing.xxl))
 
-                // 3. Row: DL + UL
+                // Cards principais: Download + Upload
                 Row(modifier = Modifier.fillMaxWidth()) {
                     MetricCard(
                         label = "Download",
@@ -304,7 +299,7 @@ fun ResultadoVelocidadeScreen(
 
                 Spacer(Modifier.height(LkSpacing.md))
 
-                // 4. Row: Latência + Jitter
+                // Cards principais: Latência + Oscilação
                 Row(modifier = Modifier.fillMaxWidth()) {
                     MetricCard(
                         label = "Latência",
@@ -351,7 +346,8 @@ fun ResultadoVelocidadeScreen(
                     }
                 }
 
-                // 5. NOVO: Chip de contaminação (1-B)
+                // Integridade do teste — não é "informação secundária", é sobre a
+                // confiabilidade dos números que acabaram de ser mostrados.
                 if (resultado.contaminado) {
                     val faseInterrompida = resultado.diagnosticoFases.faseInterrompida
                     val interrompidoPorRedeMudou = faseInterrompida.contains("redeMudou", ignoreCase = true)
@@ -386,8 +382,7 @@ fun ResultadoVelocidadeScreen(
                     }
                 }
 
-                // 6. Perda (metrica essencial, sozinha -- Bufferbloat vive só no BufferbloatCard
-                // abaixo, com veredito; antes duplicava aqui como numero cru sem contexto)
+                // Card principal: Perda
                 Spacer(Modifier.height(LkSpacing.md))
                 MetricCard(
                     label = "Perda",
@@ -398,203 +393,26 @@ fun ResultadoVelocidadeScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
 
-                // 6b. Bufferbloat com veredito -- junto das metricas essenciais, nao mais
-                // isolado perto do rodape (era a unica representacao "core" fora do topo)
-                Spacer(Modifier.height(LkSpacing.md))
-                BufferbloatCard(bufferbloatMs = resultado.bufferbloatMs.takeIf { it > 0.0 }, c = c)
-
-                // 7. NOVO: Seção "EXPERIÊNCIA DE USO" (1-C)
+                // CTA principal — abre o diagnóstico detalhado por IA (bottom sheet).
                 Spacer(Modifier.height(LkSpacing.xxl))
-                Text(
-                    text = "EXPERIÊNCIA DE USO",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = c.textTertiary,
+                Button(
+                    onClick = { showDiagnosticoSheet = true },
                     modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(LkSpacing.sm))
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(LkRadius.card))
-                            .background(c.bgSecondary)
-                            .padding(LkSpacing.lg),
+                    shape = RoundedCornerShape(LkRadius.button),
+                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
                 ) {
-                    VereditorRow(
-                        label = "Streaming",
-                        veredito = resultado.diagnosticoQualidade.vereditoStreaming,
-                        icon = Icons.Outlined.Tv,
-                        c = c,
+                    Icon(
+                        imageVector = Icons.Outlined.AutoAwesome,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
                     )
-                    HorizontalDivider(
-                        color = c.border,
-                        thickness = 0.5.dp,
-                        modifier = Modifier.padding(vertical = LkSpacing.sm),
-                    )
-                    VereditorRow(
-                        label = "Gaming",
-                        veredito = resultado.diagnosticoQualidade.vereditoGamer,
-                        icon = Icons.Outlined.SportsEsports,
-                        c = c,
-                    )
-                    HorizontalDivider(
-                        color = c.border,
-                        thickness = 0.5.dp,
-                        modifier = Modifier.padding(vertical = LkSpacing.sm),
-                    )
-                    VereditorRow(
-                        label = "Vídeo Chamada",
-                        veredito = resultado.diagnosticoQualidade.vereditoVideoChamada,
-                        icon = Icons.Outlined.Videocam,
-                        c = c,
-                    )
-                }
-
-                // 8. NOVO: Card DNS (condicional) (1-D)
-                if (resultado.dnsLatencyMs != null) {
-                    Spacer(Modifier.height(LkSpacing.md))
-                    val dnsTexto =
-                        remember(resultado.dnsLatencyMs, resultado.dnsProvider, resultado.dnsResolverIp) {
-                            buildString {
-                                append("DNS")
-                                val provedor = resultado.dnsProvider ?: resultado.dnsResolverIp
-                                if (!provedor.isNullOrBlank()) append(": $provedor")
-                                append(" · ${resultado.dnsLatencyMs} ms")
-                            }
-                        }
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(LkRadius.card))
-                                .background(c.bgSecondary)
-                                .padding(LkSpacing.lg),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Language,
-                            contentDescription = null,
-                            tint = LkColors.accent,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(LkSpacing.sm))
-                        Text(
-                            text = dnsTexto,
-                            style = MaterialTheme.typography.titleSmall,
-                            color = c.textSecondary,
-                            lineHeight = 18.sp,
-                        )
-                    }
-                }
-
-                // 9. NOVO: Seção expandível "Detalhes avançados" (1-E)
-                Spacer(Modifier.height(LkSpacing.md))
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(LkRadius.card))
-                            .background(c.bgSecondary),
-                ) {
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .semantics {
-                                    role = Role.Button
-                                    contentDescription = "Detalhes avançados"
-                                    stateDescription = if (expandida) "expandido" else "recolhido"
-                                }.clickable { expandida = !expandida }
-                                .padding(LkSpacing.lg),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "Detalhes avançados",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = c.textSecondary,
-                            modifier = Modifier.weight(1f),
-                        )
-                        Icon(
-                            imageVector = Icons.Outlined.ExpandMore,
-                            contentDescription = null,
-                            tint = c.textTertiary,
-                            modifier =
-                                Modifier
-                                    .size(20.dp)
-                                    .rotate(if (expandida) 180f else 0f),
-                        )
-                    }
-                    AnimatedVisibility(visible = expandida) {
-                        Column(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = LkSpacing.lg)
-                                    .padding(bottom = LkSpacing.lg),
-                        ) {
-                            HorizontalDivider(color = c.border, thickness = 0.5.dp)
-                            Spacer(Modifier.height(LkSpacing.md))
-                            DetalheRow("Pico Download", "%.1f Mbps".format(resultado.peakDownloadMbps), c)
-                            DetalheRow("Pico Upload", "%.1f Mbps".format(resultado.peakUploadMbps), c)
-                            DetalheRow("Latência c/ carga ↓", "%.0f ms".format(resultado.latencyDownloadMs), c)
-                            DetalheRow("Latência c/ carga ↑", "%.0f ms".format(resultado.latencyUploadMs), c)
-                            if (resultado.stabilityScore in 0.0..1.0) {
-                                DetalheRow("Estabilidade", "%.0f%%".format(resultado.stabilityScore * 100), c)
-                            }
-                        }
-                    }
-                }
-
-                // 10. NOVO: Linha de servidor (condicional) (1-F)
-                if (!localizacaoServidor.isNullOrBlank()) {
-                    Spacer(Modifier.height(LkSpacing.md))
+                    Spacer(Modifier.width(LkSpacing.sm))
                     Text(
-                        text = localizacaoServidor,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.textTertiary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
+                        text = "Ver recomendações para melhorar",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
                     )
                 }
-
-                // 11. Card Jogar Online — migrado da Home #173
-                Spacer(Modifier.height(LkSpacing.md))
-                GamerShortcutCard(c = c, onClick = { showGamerSheet = true })
-
-                // 12. Banner Anatel (dismissível) — migrado da Home #171
-                if (!anatelBannerDismissed) {
-                    Spacer(Modifier.height(LkSpacing.md))
-                    AnatelBanner(onDismiss = onDismissAnatelBanner, c = c)
-                }
-
-                // 13. RecomendacaoCard
-                if (decisaoRecomendacao != null) {
-                    Spacer(Modifier.height(LkSpacing.xxl))
-                    RecomendacaoCard(texto = decisaoRecomendacao, c = c)
-                }
-
-                // 14. OperadoraContactCard — exibido quando o diagnóstico aponta problema no ISP
-                val mostrarContato = decisao?.categoria == "isp"
-                if (mostrarContato) {
-                    val operadora = remember(ispInfo?.isp) { BancoOperadoras.resolver(ispInfo?.isp) }
-                    Spacer(Modifier.height(LkSpacing.md))
-                    OperadoraContactCard(operadora = operadora)
-                }
-
-                // 15. Analisador de problema (SIG-113)
-                Spacer(Modifier.height(LkSpacing.xl))
-                AnalisadorProblemaSection(
-                    state = analisadorState,
-                    onAnalisarProblema = onAnalisarProblema,
-                    onResetar = onResetarAnalisador,
-                    c = c,
-                )
-
-                // 16. Equipamento local — GH#544, epic #547. localDevice ainda vem
-                // sempre null em producao ate a leitura opcional (GH#543) existir;
-                // a secao ja renderiza "nenhum encontrado" corretamente nesse caso.
-                Spacer(Modifier.height(LkSpacing.xl))
-                LocalDeviceSection(state = mapLocalDeviceSectionUiState(localDevice))
 
                 Spacer(Modifier.height(LkSpacing.xl))
             }
@@ -609,11 +427,10 @@ fun ResultadoVelocidadeScreen(
                         .navigationBarsPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Button(
+                OutlinedButton(
                     onClick = onTestarNovamente,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(LkRadius.button),
-                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Refresh,
@@ -625,17 +442,43 @@ fun ResultadoVelocidadeScreen(
                         text = if (resultado.uploadNaoDetectado) "Testar upload novamente" else "Refazer teste",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
+                        color = c.textPrimary,
                     )
                 }
+                // Disclaimer Anatel discreto — não é mais um alerta com fundo colorido,
+                // só o lembrete de que velocidade pode variar por regulação vigente.
                 Spacer(Modifier.height(LkSpacing.sm))
-                TextButton(onClick = { showOperadoraSheet = true }) {
-                    Text(
-                        text = "Falar com a operadora",
-                        color = c.textSecondary,
-                        fontSize = 14.sp,
-                    )
-                }
+                Text(
+                    text = "Resultados de velocidade podem diferir do contratado conforme regulação Anatel vigente.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.textTertiary,
+                    textAlign = TextAlign.Center,
+                )
             }
+        }
+    }
+
+    if (showDiagnosticoSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showDiagnosticoSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = c.bgPrimary,
+        ) {
+            DiagnosticoDetalhadoSheet(
+                resultado = resultado,
+                decisaoTitulo = decisaoTitulo,
+                decisaoMensagem = decisaoMensagem,
+                decisaoRecomendacao = decisaoRecomendacao,
+                categoria = decisao?.categoria,
+                ispInfo = ispInfo,
+                localizacaoServidor = localizacaoServidor,
+                localDevice = localDevice,
+                analisadorState = analisadorState,
+                onAnalisarProblema = onAnalisarProblema,
+                onResetarAnalisador = onResetarAnalisador,
+                onFalarComOperadora = { showOperadoraSheet = true },
+                c = c,
+            )
         }
     }
 
@@ -648,6 +491,281 @@ fun ResultadoVelocidadeScreen(
         )
     }
 }
+
+/**
+ * Conteúdo do bottom sheet "Diagnóstico detalhado" — GH#536. Não é chat livre: é
+ * uma leitura objetiva do mesmo diagnóstico já calculado (causa provável, impacto
+ * prático, recomendações, orientação por tipo de rede) mais um atalho opcional pra
+ * um diagnóstico mais específico por problema relatado (SIG-113, reaproveitado aqui
+ * em vez de recriado).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DiagnosticoDetalhadoSheet(
+    resultado: ResultadoSpeedtest,
+    decisaoTitulo: String?,
+    decisaoMensagem: String?,
+    decisaoRecomendacao: String?,
+    categoria: String?,
+    ispInfo: IspInfo?,
+    localizacaoServidor: String?,
+    localDevice: LocalNetworkDeviceSnapshot?,
+    analisadorState: AnalisadorState,
+    onAnalisarProblema: (String) -> Unit,
+    onResetarAnalisador: () -> Unit,
+    onFalarComOperadora: () -> Unit,
+    c: LkTokens,
+) {
+    var detalhesTecnicosExpandido by remember { mutableStateOf(false) }
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = LkSpacing.xl)
+                .padding(bottom = LkSpacing.xxl)
+                .navigationBarsPadding(),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Outlined.AutoAwesome,
+                contentDescription = null,
+                tint = LkColors.accent,
+                modifier = Modifier.size(24.dp),
+            )
+            Spacer(Modifier.width(LkSpacing.sm))
+            Column {
+                Text(
+                    text = "Diagnóstico detalhado",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.W700,
+                    color = c.textPrimary,
+                )
+                Text(
+                    text = "Leitura objetiva do resultado — sem conversa livre",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.textTertiary,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(LkSpacing.lg))
+        HorizontalDivider(color = c.border, thickness = 0.5.dp)
+        Spacer(Modifier.height(LkSpacing.lg))
+
+        // CAUSA PROVÁVEL
+        if (decisaoTitulo != null || decisaoMensagem != null) {
+            SheetOverline("CAUSA PROVÁVEL", c)
+            Spacer(Modifier.height(LkSpacing.sm))
+            if (decisaoTitulo != null) {
+                Text(
+                    text = decisaoTitulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.W600,
+                    color = c.textPrimary,
+                )
+                Spacer(Modifier.height(2.dp))
+            }
+            if (decisaoMensagem != null) {
+                Text(
+                    text = decisaoMensagem,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.textSecondary,
+                    lineHeight = 20.sp,
+                )
+            }
+            Spacer(Modifier.height(LkSpacing.xl))
+        }
+
+        // IMPACTO PRÁTICO
+        SheetOverline("IMPACTO PRÁTICO", c)
+        Spacer(Modifier.height(LkSpacing.sm))
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(LkRadius.card))
+                    .background(c.bgSecondary)
+                    .padding(LkSpacing.lg),
+        ) {
+            VereditorRow(
+                label = "Streaming",
+                veredito = resultado.diagnosticoQualidade.vereditoStreaming,
+                icon = Icons.Outlined.Tv,
+                c = c,
+            )
+            HorizontalDivider(color = c.border, thickness = 0.5.dp, modifier = Modifier.padding(vertical = LkSpacing.sm))
+            VereditorRow(
+                label = "Gaming",
+                veredito = resultado.diagnosticoQualidade.vereditoGamer,
+                icon = Icons.Outlined.SportsEsports,
+                c = c,
+            )
+            HorizontalDivider(color = c.border, thickness = 0.5.dp, modifier = Modifier.padding(vertical = LkSpacing.sm))
+            VereditorRow(
+                label = "Vídeo Chamada",
+                veredito = resultado.diagnosticoQualidade.vereditoVideoChamada,
+                icon = Icons.Outlined.Videocam,
+                c = c,
+            )
+        }
+
+        // RECOMENDAÇÕES
+        Spacer(Modifier.height(LkSpacing.xl))
+        SheetOverline("RECOMENDAÇÕES", c)
+        Spacer(Modifier.height(LkSpacing.sm))
+        if (!decisaoRecomendacao.isNullOrBlank()) {
+            RecomendacaoCard(texto = decisaoRecomendacao, c = c)
+            Spacer(Modifier.height(LkSpacing.md))
+        }
+        Text(
+            text = "Quer uma recomendação mais específica para o seu caso?",
+            style = MaterialTheme.typography.bodySmall,
+            color = c.textTertiary,
+        )
+        Spacer(Modifier.height(LkSpacing.sm))
+        AnalisadorProblemaSection(
+            state = analisadorState,
+            onAnalisarProblema = onAnalisarProblema,
+            onResetar = onResetarAnalisador,
+            c = c,
+        )
+
+        val mostrarContato = categoria == "isp"
+        if (mostrarContato) {
+            Spacer(Modifier.height(LkSpacing.md))
+            val operadora = remember(ispInfo?.isp) { BancoOperadoras.resolver(ispInfo?.isp) }
+            OperadoraContactCard(operadora = operadora)
+            Spacer(Modifier.height(LkSpacing.xs))
+            TextButton(onClick = onFalarComOperadora) {
+                Text(text = "Falar com a operadora", color = c.textSecondary, fontSize = 14.sp)
+            }
+        }
+
+        // ORIENTAÇÃO POR TIPO DE REDE
+        Spacer(Modifier.height(LkSpacing.xl))
+        SheetOverline("ORIENTAÇÃO POR TIPO DE REDE", c)
+        Spacer(Modifier.height(LkSpacing.sm))
+        Text(
+            text = orientacaoPorTipoDeRede(resultado.connectionType, resultado.tecnologia),
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.textSecondary,
+            lineHeight = 20.sp,
+        )
+
+        // DETALHES TÉCNICOS (expansível)
+        Spacer(Modifier.height(LkSpacing.xl))
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(LkRadius.card))
+                    .background(c.bgSecondary),
+        ) {
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = "Detalhes técnicos"
+                            stateDescription = if (detalhesTecnicosExpandido) "expandido" else "recolhido"
+                        }.clickable { detalhesTecnicosExpandido = !detalhesTecnicosExpandido }
+                        .padding(LkSpacing.lg),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Detalhes técnicos",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = c.textSecondary,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    imageVector = Icons.Outlined.ExpandMore,
+                    contentDescription = null,
+                    tint = c.textTertiary,
+                    modifier =
+                        Modifier
+                            .size(20.dp)
+                            .rotate(if (detalhesTecnicosExpandido) 180f else 0f),
+                )
+            }
+            AnimatedVisibility(visible = detalhesTecnicosExpandido) {
+                Column(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = LkSpacing.lg)
+                            .padding(bottom = LkSpacing.lg),
+                ) {
+                    HorizontalDivider(color = c.border, thickness = 0.5.dp)
+                    Spacer(Modifier.height(LkSpacing.md))
+                    DetalheRow("Bufferbloat", "%.0f ms".format(resultado.bufferbloatMs), c)
+                    DetalheRow("Pico Download", "%.1f Mbps".format(resultado.peakDownloadMbps), c)
+                    DetalheRow("Pico Upload", "%.1f Mbps".format(resultado.peakUploadMbps), c)
+                    DetalheRow("Latência c/ carga ↓", "%.0f ms".format(resultado.latencyDownloadMs), c)
+                    DetalheRow("Latência c/ carga ↑", "%.0f ms".format(resultado.latencyUploadMs), c)
+                    if (resultado.stabilityScore in 0.0..1.0) {
+                        DetalheRow("Estabilidade", "%.0f%%".format(resultado.stabilityScore * 100), c)
+                    }
+                    if (resultado.dnsLatencyMs != null) {
+                        val dnsProvedor = resultado.dnsProvider ?: resultado.dnsResolverIp
+                        DetalheRow(
+                            "DNS" + (dnsProvedor?.let { " ($it)" } ?: ""),
+                            "${resultado.dnsLatencyMs} ms",
+                            c,
+                        )
+                    }
+                    if (!localizacaoServidor.isNullOrBlank()) {
+                        DetalheRow("Servidor", localizacaoServidor, c)
+                    }
+                    Spacer(Modifier.height(LkSpacing.md))
+                    LocalDeviceSection(state = mapLocalDeviceSectionUiState(localDevice))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SheetOverline(
+    texto: String,
+    c: LkTokens,
+) {
+    Text(
+        text = texto,
+        style = MaterialTheme.typography.labelSmall,
+        color = c.textTertiary,
+        letterSpacing = 0.5.sp,
+    )
+}
+
+/** Orientação curta por tipo de conexão — não é chat, é texto fixo condicionado
+ * ao tipo detectado. Extraída como função pura pra ser testável isoladamente. */
+internal fun orientacaoPorTipoDeRede(
+    connectionType: String?,
+    tecnologia: String?,
+): String =
+    when {
+        connectionType.equals("wifi", ignoreCase = true) ->
+            "Conexão via Wi-Fi. Se o resultado ficou abaixo do esperado, teste perto do roteador " +
+                "ou com um cabo de rede pra isolar se o problema é do Wi-Fi ou da internet contratada."
+        connectionType.equals("movel", ignoreCase = true) -> {
+            val tecLabel =
+                when {
+                    tecnologia?.contains("5G", ignoreCase = true) == true -> "5G"
+                    tecnologia?.contains("4G", ignoreCase = true) == true ||
+                        tecnologia?.contains("LTE", ignoreCase = true) == true -> "4G"
+                    else -> "rede móvel"
+                }
+            "Conexão via $tecLabel. Sinal fraco e congestionamento da torre variam por local e horário — " +
+                "repita o teste em outro ponto ou horário antes de concluir que há um problema fixo."
+        }
+        else ->
+            "Tipo de conexão não identificado neste teste. Repita o teste conectado por Wi-Fi ou dados " +
+                "móveis pra ter uma orientação mais precisa."
+    }
 
 @Composable
 private fun ChipTipoRede(

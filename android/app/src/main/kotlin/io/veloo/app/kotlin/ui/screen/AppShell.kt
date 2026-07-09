@@ -677,8 +677,6 @@ fun AppShell(
                     localizacaoServidor = localizacaoServidorStr,
                     ispInfo = ispInfoData,
                     operadoraMovel = operadoraMovel,
-                    anatelBannerDismissed = anatelBannerDismissed,
-                    onDismissAnatelBanner = onDispensarBannerAnatel,
                     analisadorState = analisadorState,
                     onAnalisarProblema = onAnalisarProblema,
                     onResetarAnalisador = onResetarAnalisador,
