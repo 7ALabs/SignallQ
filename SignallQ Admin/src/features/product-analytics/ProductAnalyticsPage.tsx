@@ -7,12 +7,14 @@ import { MostUsedFeaturesTable } from "./components/MostUsedFeaturesTable";
 import { ScreenNavigationPanel } from "./components/ScreenNavigationPanel";
 import { FeatureCrashTable } from "./components/FeatureCrashTable";
 import { RetentionPanel } from "./components/RetentionPanel";
+import { FeatureRankingBars } from "./components/FeatureRankingBars";
+import { RetentionBars } from "./components/RetentionBars";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { InsightBlock } from "../../components/ui/InsightBlock";
 import { ActionsRow } from "../../components/ui/ActionsRow";
 import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
 import { ChartCard } from "../../components/ui/ChartCard";
-import { BarChart } from "../../components/charts/BarChart";
+import { SectionIntro } from "../../components/ui/SectionIntro";
 
 interface ProductAnalyticsPageProps {
   environment: AppEnvironment;
@@ -144,6 +146,15 @@ export const ProductAnalyticsPage: React.FC<ProductAnalyticsPageProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* 0. Identidade da tela — paridade com mockup do Luiz */}
+      <SectionIntro
+        id="product-analytics-section-intro"
+        overline="USO DO APP"
+        question="As pessoas estão usando o app como esperado?"
+        description="Engajamento, retenção, funcionalidades mais usadas e dispositivos — via SDK de analytics do app."
+        source="FONTE · FIREBASE ANALYTICS (ANALYTICS_EVENTS)"
+      />
+
       {/* 1. KPIs — 4 cards, com veredito vs. benchmark de mercado (GH#552 Fase 3) */}
       <FeatureUsageGrid retention={data!.retention} sessionDuration={data!.sessionDuration} />
 
@@ -151,42 +162,43 @@ export const ProductAnalyticsPage: React.FC<ProductAnalyticsPageProps> = ({
           por dia/mês hoje — só uniqueUsers por feature/tela. Sem número inventado. */}
       <FeatureComingSoon feature="DAU/MAU" reason="Requer contagem de usuários ativos únicos por dia/mês no worker" compact />
 
-      {/* 2. Gráfico principal — engajamento por função (o que responde "estão
-          usando como esperado?" de forma mais direta hoje, dado o funil completo
-          abertura→diagnóstico→laudo não ter contrato de dados ainda) */}
-      {data!.featureUsage.length > 0 && (
+      {/* 2. Composição principal — paridade mockup: funcionalidade mais usada
+          (ranking real) + funil de teste de velocidade (sem contrato de dado
+          hoje, ver FeatureComingSoon abaixo) */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-6">
+        {data!.featureUsage.length > 0 ? (
+          <FeatureRankingBars metrics={data!.featureUsage} />
+        ) : (
+          <ChartCard title="Funcionalidade mais usada" id="feature-ranking-bars-card">
+            <FeatureComingSoon feature="Funcionalidade mais usada" reason="Métrica ainda não disponível — aguardando exposição no worker" />
+          </ChartCard>
+        )}
         <ChartCard
-          title="Engajamento por função"
-          description="Volume de uso e taxa de conclusão por funcionalidade no período."
-          id="product-analytics-main-chart"
+          title="Funil · teste de velocidade"
+          description="Abriu o app → iniciou o teste → completou o teste → compartilhou o resultado."
+          id="speedtest-funnel-card"
         >
-          <BarChart
-            data={data!.featureUsage.map((f) => ({
-              name: f.label,
-              usos: f.usageCount,
-              conclusão: Math.round(f.completionRate * 100),
-            }))}
-            xAxisKey="name"
-            series={[
-              { key: "usos", name: "Usos", color: "var(--chart-line-primary)" },
-              { key: "conclusão", name: "Conclusão %", color: "var(--chart-line-tertiary)" },
-            ]}
+          <FeatureComingSoon
+            feature="Funil de teste de velocidade"
+            reason="Métrica ainda não disponível — aguardando exposição no worker (requer rastreamento de estágio por sessão)"
           />
         </ChartCard>
-      )}
+      </div>
+
+      {/* Segunda composição — paridade mockup: retenção D1/D7/D30 (real) +
+          dispositivos mais ativos (sem contrato de dado hoje) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RetentionBars metrics={data!.retention} />
+        <ChartCard title="Dispositivos mais ativos" id="most-active-devices-card">
+          <FeatureComingSoon
+            feature="Dispositivos mais ativos"
+            reason="Métrica ainda não disponível — aguardando exposição no worker (requer breakdown de usuários ativos por modelo/versão de Android)"
+          />
+        </ChartCard>
+      </div>
 
       {/* 3. Bloco de explicação */}
       {insightText && <InsightBlock id="product-analytics-insight-block">{insightText}</InsightBlock>}
-
-      {/* Funil de engajamento (abertura → diagnóstico iniciado → concluído →
-          laudo gerado) pedido pelo wireframe não tem contrato de dados real —
-          screen_navigation/feature_usage não rastreiam estágio de funil por
-          sessão. Sem número inventado. */}
-      <FeatureComingSoon
-        feature="Funil de Engajamento (abertura → diagnóstico → laudo gerado)"
-        reason="Requer rastreamento de estágio por sessão no worker/app"
-        compact
-      />
 
       {/* 4. Tabela de investigação — engajamento por função (drill-down primário) */}
       {data!.featureUsage.length > 0 && <MostUsedFeaturesTable metrics={data!.featureUsage} />}

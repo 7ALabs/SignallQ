@@ -73,7 +73,7 @@ export const ProviderCostTable: React.FC<ProviderCostTableProps> = ({ insights }
       },
     },
     {
-      header: "Custo Estimado (USD)",
+      header: "Custo Estimado (R$)",
       accessor: (row: AiModelInsights) => {
         const costVal = row.estimatedCostUsd;
         if (costVal === 0) {

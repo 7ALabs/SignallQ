@@ -56,7 +56,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             {/* GH#443: caminho relativo ao BASE_URL — o Console pode ser servido em /console */}
             <img
               src={`${import.meta.env.BASE_URL}icon-192.png`}
-              alt="7Agents"
+              alt="SignallQ"
               className="w-16 h-16 rounded-[var(--radius-button)]"
             />
           </div>
@@ -64,10 +64,10 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             className="text-xl font-semibold tracking-tight"
             style={{ color: "var(--sq-text-primary)" }}
           >
-            7Agents Admin Console
+            SignallQ Admin
           </h1>
           <p className="text-sm mt-1" style={{ color: "var(--sq-text-tertiary)" }}>
-            Painel de administração
+            Console técnico do SignallQ
           </p>
         </div>
 

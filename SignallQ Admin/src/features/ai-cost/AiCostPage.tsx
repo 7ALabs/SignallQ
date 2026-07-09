@@ -1,10 +1,13 @@
 import React from "react";
 import { aiUsageService } from "../../services/aiUsageService";
+import { errorMetricsService } from "../../services/errorMetricsService";
 import { alpha } from "../../utils/color";
 import { AiCostMetricGrid } from "./components/AiCostMetricGrid";
 import { ProviderCostTable } from "./components/ProviderCostTable";
 import { AiCostTimeline } from "./components/AiCostTimeline";
 import { AiAlertsPanel } from "./components/AiAlertsPanel";
+import { AiBudgetCard } from "./components/AiBudgetCard";
+import { ProviderCostDonut } from "./components/ProviderCostDonut";
 import { DataTable } from "../../components/ui/DataTable";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { StatusBadge } from "../../components/ui/StatusBadge";
@@ -13,8 +16,10 @@ import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
 import { InsightBlock } from "../../components/ui/InsightBlock";
 import { ActionsRow } from "../../components/ui/ActionsRow";
 import { GlobalFilters } from "../../components/ui/GlobalFilters";
+import { SectionIntro } from "../../components/ui/SectionIntro";
 import { AppEnvironment } from "../../types/admin";
 import { AiModelInsights, AiUsageRecord, AiDailyUsage } from "../../types/ai";
+import { formatCurrency } from "../../utils/format";
 import { Bot, RefreshCw } from "lucide-react";
 
 interface AiCostPageProps {
@@ -37,6 +42,7 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
   const [timelineData, setTimelineData] = React.useState<AiDailyUsage[]>([]);
   const [records, setRecords] = React.useState<AiUsageRecord[]>([]);
   const [costSummary, setCostSummary] = React.useState<{ totalCostUsd: string; reliabilityPercentage: number | null } | null>(null);
+  const [aiCostCeiling, setAiCostCeiling] = React.useState<number>(200);
   const [providerFilter, setProviderFilter] = React.useState("all");
 
   const loadAiStats = React.useCallback(async () => {
@@ -44,17 +50,19 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
     setError(null);
     try {
       const filters = { environment, period };
-      const [insights, dailyCosts, logs, summary] = await Promise.all([
+      const [insights, dailyCosts, logs, summary, aiAlerts] = await Promise.all([
         aiUsageService.getAiUsageMetrics(filters),
         aiUsageService.getAiUsageTimeSeries(filters),
         aiUsageService.getAiUsageRecords(filters),
         aiUsageService.getAiCostSummary(filters),
+        errorMetricsService.getAiAlerts(filters),
       ]);
 
       setModelInsights(insights ?? []);
       setTimelineData(dailyCosts);
       setRecords(logs);
       setCostSummary(summary);
+      setAiCostCeiling(aiAlerts.aiCostCeiling);
     } catch (e: any) {
       console.error("Failed to sync AI usage insights", e);
       const code = e?.code;
@@ -110,7 +118,7 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
   }, [timelineData]);
 
   const handleExportCostReport = () => {
-    const header = "Provider,Modelo,Chamadas,Tokens,Custo (USD),Confiabilidade\r\n";
+    const header = "Provider,Modelo,Chamadas,Tokens,Custo (R$),Confiabilidade\r\n";
     const rows = modelInsights
       .map((m) => [m.provider, m.displayName, m.totalCalls, m.totalTokens, m.estimatedCostUsd.toFixed(4), m.reliabilityPercentage ?? ""].join(","))
       .join("\r\n");
@@ -158,12 +166,12 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
       },
     },
     {
-      header: "Custo (USD)",
+      header: "Custo (R$)",
       accessor: (row: AiUsageRecord) => {
         if (row.costUsd === 0) return <span className="text-[10px] font-mono leading-none" style={{ color: "var(--sq-success)" }}>FREE</span>;
         return (
           <span className="font-mono font-semibold text-xs" style={{ color: "var(--sq-accent)" }}>
-            ${row.costUsd.toFixed(2)}
+            {formatCurrency(row.costUsd)}
           </span>
         );
       },
@@ -242,6 +250,15 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* 0. Identidade da tela — paridade com mockup do Luiz */}
+      <SectionIntro
+        id="ai-cost-section-intro"
+        overline="IA & CUSTOS"
+        question="A IA está entregando valor com custo controlado?"
+        description="Custo por provedor e por funcionalidade, latência, taxa de fallback e orçamento mensal."
+        source="FONTE · CLOUDFLARE WORKERS AI (AI_USAGE)"
+      />
+
       {/* 1. Toolbar de sincronismo + filtro por provider */}
       <div
         className="flex flex-wrap justify-between items-center gap-3 rounded-[var(--radius-card)] p-4 select-none"
@@ -289,13 +306,32 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
       {/* 2. KPIs — 4 cards, com veredito humano (GH#552 Fase 3, substitui grid de 7) */}
       <AiCostMetricGrid costSummary={costSummary} modelInsights={modelInsights} />
 
-      {/* 3. Gráfico principal — custo/volume diário por provider */}
+      {/* 3. Orçamento mensal de IA — full-width, paridade mockup (teto real de alerta) */}
+      <AiBudgetCard totalCostUsd={costSummary?.totalCostUsd ?? null} ceilingUsd={aiCostCeiling} />
+
+      {/* 4. Gráfico principal — custo/volume diário por provider (série real,
+          contexto adicional não presente no mockup mas mantido por valor) */}
       <AiCostTimeline timelineData={timelineData} />
 
-      {/* 4. Bloco de explicação */}
+      {/* 5. Composição paridade mockup — custo por provedor (donut real) +
+          faturamento por função (sem contrato de dado hoje) */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-6">
+        <ProviderCostDonut insights={modelInsights} />
+        <SectionCard
+          title="Custo por funcionalidade"
+          description="Mapeamento econômico de processamento de tokens por finalidade de IA."
+        >
+          <FeatureComingSoon
+            feature="Custo por funcionalidade"
+            reason="Métrica ainda não disponível — aguardando exposição no worker (session_id de ai_usage e de analytics_events não são a mesma entidade hoje)"
+          />
+        </SectionCard>
+      </div>
+
+      {/* 6. Bloco de explicação */}
       {insightText && <InsightBlock id="ai-cost-insight-block">{insightText}</InsightBlock>}
 
-      {/* 5. Tabela de investigação — custo por provider + alertas de orçamento */}
+      {/* 7. Tabela de investigação — custo por provider + alertas de orçamento */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-8">
           <ProviderCostTable insights={modelInsights} />
@@ -304,19 +340,6 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
           <AiAlertsPanel />
         </div>
       </div>
-
-      {/* Faturamento por função pedido pelo wireframe não tem rota de breakdown
-          por feature no worker (session_id de ai_usage e de analytics_events
-          não são a mesma entidade hoje — gap documentado em data-architecture.md) */}
-      <SectionCard
-        title="Faturamento e Consumo IA por Função"
-        description="Mapeamento econômico de processamento de tokens por finalidade de IA e as devidas contingências."
-      >
-        <FeatureComingSoon
-          feature="Faturamento e Consumo IA por Função"
-          reason="Requer rota de breakdown por feature no worker"
-        />
-      </SectionCard>
 
       {/* Auditoria de sessão — outlier de tokens/custo, filtrável por provider */}
       <SectionCard

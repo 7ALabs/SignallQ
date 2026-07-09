@@ -3,6 +3,7 @@ import { diagnosticsService } from "../../services/diagnosticsService";
 import { DiagnosticsFilters } from "./components/DiagnosticsFilters";
 import { DiagnosticsMetricGrid } from "./components/DiagnosticsMetricGrid";
 import { DiagnosticsAggregateTable } from "./components/DiagnosticsAggregateTable";
+import { FailureReasonsPanel } from "./components/FailureReasonsPanel";
 import { DataTable } from "../../components/ui/DataTable";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { StatusBadge } from "../../components/ui/StatusBadge";
@@ -12,6 +13,7 @@ import { ActionsRow } from "../../components/ui/ActionsRow";
 import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
 import { BarChart } from "../../components/charts/BarChart";
 import { ChartCard } from "../../components/ui/ChartCard";
+import { SectionIntro } from "../../components/ui/SectionIntro";
 import { DiagnosticSession, DiagnosticsSummary, DistChannel, BuildType, DataPlatform, AggregateRow } from "../../types/diagnostics";
 import { AppEnvironment } from "../../types/admin";
 import { Smartphone, Clock, Server, Sparkles, Zap, Info, ShieldCheck, AlertOctagon } from "lucide-react";
@@ -285,6 +287,15 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* 0. Identidade da tela — paridade com mockup do Luiz */}
+      <SectionIntro
+        id="diagnostics-section-intro"
+        overline="DIAGNÓSTICOS"
+        question="O motor de diagnóstico está funcionando bem?"
+        description="Volume, taxa de sucesso e motivos de falha das varreduras de conectividade disparadas pelo SDK."
+        source="FONTE · FIREBASE ANALYTICS (DIAGNOSTIC_SESSIONS)"
+      />
+
       {/* 1. Avançados Filtros Integrados */}
       <DiagnosticsFilters
         searchText={searchQuery}
@@ -317,9 +328,26 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
       {/* 2. KPIs — 4 cards, com veredito humano (GH#552 Fase 3, substitui grid de 6) */}
       <DiagnosticsMetricGrid environment={localEnv} summary={summary} topNetworkType={topNetworkType} />
 
-      {/* 3. Gráfico principal — o que os usuários estão medindo, por tipo de rede
-          (D1 diagnostic_sessions agregado; sem granularidade diária no worker
-          hoje, então o gráfico é por composição do período, não série temporal) */}
+      {/* 3. Composição paridade mockup — diagnósticos executados · 14 dias (sem
+          série temporal diária real hoje) + motivos de falha (real, a partir
+          das issues das sessões carregadas). */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <ChartCard title="Diagnósticos executados · 14 dias" id="diagnostics-volume-timeline-card">
+            <FeatureComingSoon
+              feature="Diagnósticos executados · série temporal"
+              reason="Métrica ainda não disponível — aguardando exposição no worker (sem granularidade diária hoje)"
+            />
+          </ChartCard>
+        </div>
+        <div className="lg:col-span-1">
+          <FailureReasonsPanel sessions={sessions} />
+        </div>
+      </div>
+
+      {/* Gráfico complementar — o que os usuários estão medindo, por tipo de
+          rede (D1 diagnostic_sessions agregado, real). Mantido como contexto
+          adicional fora da composição fixa do mockup. */}
       <ChartCard
         title="Diagnósticos por tipo de rede"
         description="Volume de sessões e score médio no período selecionado, por tipo de rede."

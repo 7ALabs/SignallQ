@@ -16,9 +16,9 @@ vi.mock("../../services/aiUsageService", () => ({
     ]),
     getAiUsageRecords: vi.fn().mockResolvedValue([]),
     getAiCostSummary: vi.fn().mockResolvedValue({
-      totalCostUsd: "$12.40",
+      totalCostUsd: "R$ 65,72",
       totalRequests: "960",
-      avgCostPerRequest: "$0.01",
+      avgCostPerRequest: "R$ 0,05",
       tokensSentM: "3.1M",
       tokensReceivedM: "1.3M",
       successRate: "97.4%",

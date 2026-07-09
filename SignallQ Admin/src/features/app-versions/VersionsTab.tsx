@@ -3,6 +3,7 @@ import { AlertTriangle } from "lucide-react";
 import { appVersionsService, AppVersionUsage } from "../../services/appVersionsService";
 import { integrationsService } from "../../integrations/integrationsService";
 import { FirebaseAppVersionCrashStats } from "../../integrations/firebase/firebase.types";
+import { GooglePlayCrashAnrSummary } from "../../integrations/google-play/googlePlay.types";
 import { DataTable } from "../../components/ui/DataTable";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { ChartCard } from "../../components/ui/ChartCard";
@@ -10,7 +11,9 @@ import { BarChart } from "../../components/charts/BarChart";
 import { MetricCard } from "../../components/ui/MetricCard";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { StatusBadge } from "../../components/ui/StatusBadge";
 import { GlobalFilters } from "../../components/ui/GlobalFilters";
+import { SectionIntro } from "../../components/ui/SectionIntro";
 import { InsightBlock } from "../../components/ui/InsightBlock";
 import { ActionsRow } from "../../components/ui/ActionsRow";
 import { AppEnvironment } from "../../types/admin";
@@ -48,6 +51,8 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
   const [productionVersion, setProductionVersion] = React.useState<AppVersionUsage | null>(null);
   // null = Firebase/Crashlytics não configurado ou sem dados ainda (não é "zero crashes").
   const [crashStats, setCrashStats] = React.useState<FirebaseAppVersionCrashStats[] | null>(null);
+  // null = Android Publisher API não expõe ANR (só via export CSV, não implementado — ver GH#761).
+  const [crashAnr, setCrashAnr] = React.useState<GooglePlayCrashAnrSummary | null>(null);
   const [focusVersion, setFocusVersion] = React.useState<string>("all");
 
   React.useEffect(() => {
@@ -57,11 +62,13 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
     Promise.all([
       appVersionsService.getAppVersions({ environment, period }),
       integrationsService.getFirebaseVersions({ environment, period }),
-    ]).then(([appVersionsResult, crashResult]) => {
+      integrationsService.getGooglePlayCrashAnr({ environment, period }),
+    ]).then(([appVersionsResult, crashResult, crashAnrResult]) => {
       if (cancelled) return;
       setVersions(appVersionsResult.versions);
       setProductionVersion(appVersionsResult.productionVersion);
       setCrashStats(crashResult);
+      setCrashAnr(crashAnrResult);
       setLoading(false);
     });
 
@@ -120,6 +127,15 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* 0. Identidade da tela — paridade com mockup do Luiz */}
+      <SectionIntro
+        id="app-versions-section-intro"
+        overline="RELEASES & QUALIDADE"
+        question="Os últimos releases estão estáveis?"
+        description="Adoção de versão, rollout gradual e qualidade (crash rate / ANR) por release — modelo Play Console Vitals."
+        source="FONTE · GOOGLE PLAY CONSOLE"
+      />
+
       {/* 1. Filtro — versão em foco (usa só versões reais já carregadas) */}
       <GlobalFilters
         id="versions-global-filters"
@@ -137,8 +153,11 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
         ]}
       />
 
-      {/* 2. KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* 2. KPIs — GH#781: 4º card (ANR) adicionado para paridade com o mockup.
+          Android Publisher API não expõe ANR (só via export CSV/GCS, não
+          implementado — ver googlePlayAdapter.ts GH#761), então em produção
+          real esse card mostra estado vazio explícito em vez de inventar taxa. */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           label="Versão em produção"
           value={
@@ -157,6 +176,16 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
           label="Cobertura Crashlytics"
           value={crashStats === null ? "Não configurado" : `${crashStats.length} versões monitoradas`}
           source={crashStats === null ? "sem credenciais" : "bigquery"}
+        />
+        <MetricCard
+          label="ANR semanal (Play Console)"
+          value={crashAnr === null ? "Não disponível" : crashAnr.anrCountWeekly}
+          verdictNote={
+            crashAnr === null
+              ? "Android Publisher API não expõe ANR (só via export CSV, não implementado)"
+              : undefined
+          }
+          source={crashAnr === null ? "não implementado" : "google play"}
         />
       </div>
 
@@ -184,7 +213,14 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
       {/* 4. Bloco de explicação — antes da tabela, só quando há versão em foco */}
       {insightText && <InsightBlock id="versions-insight-block">{insightText}</InsightBlock>}
 
-      {/* 5. Tabela de investigação — dados por release, versão em foco destacada */}
+      {/* 5. Tabela de investigação — dados por release, versão em foco destacada.
+          GH#781 (paridade mockup): coluna "Base instalada" do mockup vira aqui
+          "Participação em sessões" (share real de v.sessions sobre o total do
+          período) — o worker não expõe % de base instalada (isso viria da
+          Android Publisher API, que hoje só retorna rating, ver GH#761).
+          "Situação" é derivada honestamente comparando com productionVersion,
+          sem inventar rollout%/crash rate/ANR que o Play Console real não
+          expõe ainda (ver googlePlayAdapter.ts). */}
       <SectionCard
         title="Dados por release"
         description="Sessões de diagnóstico agrupadas por versão, build e canal de distribuição, direto do D1."
@@ -200,6 +236,27 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
             },
             { header: "Canal", accessor: (v) => distChannelLabel(v.distChannel) },
             { header: "Build", accessor: (v) => v.buildType },
+            {
+              header: "Participação em sessões",
+              accessor: (v) => {
+                const totalSessions = versions.reduce((sum, x) => sum + x.sessions, 0);
+                const pct = totalSessions > 0 ? Math.round((v.sessions / totalSessions) * 100) : 0;
+                return (
+                  <div className="flex items-center gap-2 min-w-[110px]">
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
+                      <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: "var(--accent-blue)" }} />
+                    </div>
+                    <span className="text-[11px] font-sans w-9 text-right" style={{ color: "var(--text-secondary)" }}>{pct}%</span>
+                  </div>
+                );
+              },
+            },
+            {
+              header: "Situação",
+              accessor: (v) => (
+                <StatusBadge status={v.appVersion === productionVersion?.appVersion ? "stable" : "deprecated"} />
+              ),
+            },
             { header: "Sessões", accessor: (v) => v.sessions.toLocaleString("pt-BR") },
             {
               header: "Score médio",

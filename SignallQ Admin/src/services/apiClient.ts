@@ -110,7 +110,7 @@ class ApiClient {
   }
 
   public async simulateFetch<T>(mockValue: T, filterLogs?: unknown): Promise<T> {
-    console.debug("[7Agents Mock]", filterLogs ?? {});
+    console.debug("[SignallQ Admin Mock]", filterLogs ?? {});
     await new Promise((resolve) => setTimeout(resolve, 180));
     return JSON.parse(JSON.stringify(mockValue)) as T;
   }

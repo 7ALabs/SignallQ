@@ -19,6 +19,7 @@ vi.mock("../../services/appVersionsService", () => ({
 vi.mock("../../integrations/integrationsService", () => ({
   integrationsService: {
     getFirebaseVersions: vi.fn().mockResolvedValue(null),
+    getGooglePlayCrashAnr: vi.fn().mockResolvedValue(null),
   },
 }));
 

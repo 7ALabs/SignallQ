@@ -60,7 +60,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       case "/feature-flags":
         return "Configurações";
       default:
-        return "7Agents Admin Console";
+        return "SignallQ Admin";
     }
   }, [currentPath]);
 

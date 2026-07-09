@@ -1,4 +1,4 @@
-export const APP_NAME = "7Agents Admin Console";
+export const APP_NAME = "SignallQ Admin";
 
 export const DEV_ENVIRONMENT_LABEL = "Staging";
 export const PROD_ENVIRONMENT_LABEL = "Produção";

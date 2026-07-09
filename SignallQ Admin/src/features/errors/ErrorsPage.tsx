@@ -7,8 +7,10 @@ import { ErrorAlertsPanel } from "./components/ErrorAlertsPanel";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
 import { GlobalFilters } from "../../components/ui/GlobalFilters";
+import { SectionIntro } from "../../components/ui/SectionIntro";
 import { InsightBlock } from "../../components/ui/InsightBlock";
 import { ActionsRow } from "../../components/ui/ActionsRow";
+import { ChartCard } from "../../components/ui/ChartCard";
 import { AppEnvironment } from "../../types/admin";
 import { SystemError, SystemErrorCategory } from "../../types/errors";
 import {
@@ -153,6 +155,15 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* 0. Identidade da tela — paridade com mockup do Luiz */}
+      <SectionIntro
+        id="errors-section-intro"
+        overline="PROBLEMAS & INCIDENTES"
+        question="O app está falhando em algum lugar?"
+        description="Crashes, ANRs e erros — priorizados por impacto em usuários, não por volume bruto."
+        source="FONTE · FIREBASE CRASHLYTICS"
+      />
+
       {/* 1. Busca livre — free-text não cabe no idioma de GlobalFilters (lista de
           opções), então fica isolada. Env/período já são globais via Topbar
           (SIG#552 Fase 1) — não reimplementar aqui. */}
@@ -189,18 +200,30 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
       {/* 2. KPIs — grid de métricas de erros */}
       <ErrorMetricGrid environment={environment} />
 
-      {/* 3. Gráfico principal — volume histórico de erros por fonte técnica */}
+      {/* 3. Composição paridade mockup — taxa de erro · 14 dias (sem série
+          temporal real hoje) + volume por fonte técnica (real, mais próximo
+          disponível de "erros por tela": SystemError não carrega o campo
+          tela/screen, só a fonte técnica que originou o erro). */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
         <div className="lg:col-span-2">
-          <ErrorByEndpointChart environment={environment} />
+          <ChartCard title="Taxa de erro · 14 dias" id="error-rate-timeline-card">
+            <FeatureComingSoon
+              feature="Taxa de erro · série temporal"
+              reason="Métrica ainda não disponível — aguardando exposição no worker (sem série temporal de erros hoje)"
+            />
+          </ChartCard>
         </div>
-        <div>
-          <ErrorAlertsPanel />
+        <div className="lg:col-span-1">
+          <ErrorByEndpointChart environment={environment} />
         </div>
       </div>
 
       {/* 4. Bloco de explicação — antes da tabela de investigação */}
       {insightText && <InsightBlock id="errors-insight-block">{insightText}</InsightBlock>}
+
+      {/* Alertas de infraestrutura — drill-down secundário, fora da composição
+          fixa do mockup (que aqui prioriza a tabela de investigação abaixo). */}
+      <ErrorAlertsPanel />
 
       {/* Funcionalidades ainda sem rota de agregação no worker — reunidas numa
           faixa compacta em vez de dois cards vazios grandes (menos ruído visual). */}

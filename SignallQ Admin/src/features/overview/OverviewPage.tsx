@@ -2,15 +2,18 @@ import React from "react";
 import { adminMetricsService } from "../../services/adminMetricsService";
 import { OverviewMetricGrid } from "./components/OverviewMetricGrid";
 import { DiagnosticsTimeline } from "./components/DiagnosticsTimeline";
-import { NetworkTypeDistribution } from "./components/NetworkTypeDistribution";
+import { ScreenSessionsDonut } from "./components/ScreenSessionsDonut";
 import { TopIssuesPanel } from "./components/TopIssuesPanel";
 import { RecentAlertsPanel } from "./components/RecentAlertsPanel";
 import { AiProviderUsagePanel } from "./components/AiProviderUsagePanel";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { AppEnvironment } from "../../types/admin";
 import { OverviewMetricsResponse } from "../../mocks/overview.mock";
+import { productAnalyticsService } from "../../services/productAnalyticsService";
+import { ScreenNavigationMetric } from "../../types/productAnalytics";
 import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
 import { GlobalFilters } from "../../components/ui/GlobalFilters";
+import { SectionIntro } from "../../components/ui/SectionIntro";
 import { InsightBlock } from "../../components/ui/InsightBlock";
 import { ActionsRow } from "../../components/ui/ActionsRow";
 import { PERIOD_FILTERS } from "../../config/constants";
@@ -37,7 +40,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   // Dash states
   const [metrics, setMetrics] = React.useState<OverviewMetricsResponse | null>(null);
   const [timelineData, setTimelineData] = React.useState<any[]>([]);
-  const [networkDistribution, setNetworkDistribution] = React.useState<any[]>([]);
+  const [screenNavigation, setScreenNavigation] = React.useState<ScreenNavigationMetric[]>([]);
   const [topIssues, setTopIssues] = React.useState<any[]>([]);
   const [alerts, setAlerts] = React.useState<any[]>([]);
   const [aiUsage, setAiUsage] = React.useState<any[]>([]);
@@ -55,14 +58,14 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         const [
           metricsRes,
           timelineRes,
-          networkRes,
+          screenNavRes,
           issuesRes,
           alertsRes,
           aiUsageRes,
         ] = await Promise.all([
           adminMetricsService.getOverviewMetrics(filters),
           adminMetricsService.getDiagnosticsTimeline(filters),
-          adminMetricsService.getNetworkInsights(filters),
+          productAnalyticsService.getScreenNavigation({ period: period as any, environment }),
           adminMetricsService.getTopIssues(filters),
           adminMetricsService.getRecentAlerts(filters),
           adminMetricsService.getAiProviderUsage(filters),
@@ -71,7 +74,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         if (active) {
           setMetrics(metricsRes);
           setTimelineData(timelineRes);
-          setNetworkDistribution(networkRes);
+          setScreenNavigation(screenNavRes);
           setTopIssues(issuesRes);
           setAlerts(alertsRes);
           setAiUsage(aiUsageRes);
@@ -169,6 +172,20 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* 0. Identidade da tela — paridade com mockup do Luiz (signallq-admin-mockup.dc.html) */}
+      <SectionIntro
+        id="overview-section-intro"
+        hero={{
+          iconSrc: `${import.meta.env.BASE_URL}icon-192.png`,
+          title: "SignallQ — Diagnóstico de Rede",
+          subtitle: `io.signallq.app · Conta técnica · Atualizado em ${new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}`,
+        }}
+        overline="CENTRO DE CONTROLE"
+        question="O SignallQ está saudável agora?"
+        description="Visão consolidada de uso, estabilidade, custo de IA e performance do app — para decidir onde agir sem cruzar painéis manualmente."
+        source="FONTES · FIREBASE ANALYTICS · PLAY CONSOLE · CLOUDFLARE WORKERS · CRASHLYTICS"
+      />
+
       {/* 1. Filtros globais — período (env já é global via Topbar) */}
       <GlobalFilters
         filters={[
@@ -186,27 +203,28 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       <OverviewMetricGrid metrics={metrics} />
 
       {/* 3. Gráfico principal — volume de diagnósticos x dispositivos ativos,
-          com a composição por tipo de rede ao lado. */}
+          com a composição de sessões por tela ao lado (paridade mockup). */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <DiagnosticsTimeline timelineData={timelineData} period={period} />
         </div>
         <div>
-          <NetworkTypeDistribution networkData={networkDistribution} />
+          <ScreenSessionsDonut screens={screenNavigation} />
         </div>
       </div>
 
-      {/* 4. Bloco de explicação — antes da tabela de investigação */}
+      {/* 4. Alertas recentes — card full-width, posição fixa no mockup (item 3
+          logo abaixo do par gráfico/donut). */}
+      <RecentAlertsPanel alerts={alerts} />
+
+      {/* 5. Bloco de explicação — antes da tabela de investigação */}
       {insightText && <InsightBlock id="overview-insight-block">{insightText}</InsightBlock>}
 
-      {/* 5. Tabela de investigação — problemas recorrentes, alertas automáticos
-          e uso de IA por provedor (últimos incidentes/gargalos operacionais). */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+      {/* 6. Drill-down secundário — problemas recorrentes e uso de IA por
+          provedor (contexto adicional, fora da composição fixa do mockup). */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
         <div>
           <TopIssuesPanel issues={topIssues} />
-        </div>
-        <div>
-          <RecentAlertsPanel alerts={alerts} />
         </div>
         <div>
           <AiProviderUsagePanel usage={aiUsage} />

@@ -65,24 +65,6 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       : "var(--attention)"
     : undefined;
 
-  const trendStyle = isTrendUp
-    ? {
-        color: "var(--success)",
-        backgroundColor: alpha("var(--success)", 10),
-        border: `1px solid ${alpha("var(--success)", 20)}`,
-      }
-    : isTrendDown
-    ? {
-        color: "var(--error)",
-        backgroundColor: alpha("var(--error)", 10),
-        border: `1px solid ${alpha("var(--error)", 20)}`,
-      }
-    : {
-        color: "var(--text-secondary)",
-        backgroundColor: "var(--bg-surface-hover)",
-        border: "1px solid var(--border)",
-      };
-
   return (
     <div
       id={id || `metric-card-${label.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
@@ -115,58 +97,64 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       )}
 
       <p
-        className="text-[11px] font-sans uppercase tracking-[0.08em] font-semibold select-none"
+        className="text-[11px] font-sans uppercase tracking-[0.08em] font-semibold select-none truncate"
         style={{ color: "var(--text-secondary)" }}
       >
         {label}
       </p>
 
-      <div className="mt-2.5 flex items-baseline justify-between">
+      {/* Valor + veredito inline na mesma linha de base — spec KpiCard.dc.html
+          ("486 Mbps · Excelente"), não em bloco separado abaixo. */}
+      <div className="mt-2.5 flex items-baseline gap-2 flex-wrap">
         <h3 className="text-2xl lg:text-[28px] font-bold tracking-[-0.03em]" style={{ color: "var(--text-primary)" }}>
           {formattedValue}
         </h3>
-
-        {trend && (
+        {verdict && (
           <span
-            className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[11px] font-sans font-medium"
-            style={trendStyle}
+            className="text-xs font-sans font-semibold"
+            style={{ color: verdictColor }}
           >
-            {isTrendUp ? (
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            ) : isTrendDown ? (
-              <ArrowDownRight className="w-3.5 h-3.5" />
-            ) : (
-              <Minus className="w-3.5 h-3.5" />
-            )}
-            <span>{trend.value}%</span>
+            <span aria-hidden="true">&middot; </span>
+            {VERDICT_LABEL[verdict]}
           </span>
         )}
       </div>
 
+      {/* Linha inferior: sub-texto à esquerda, tendência com seta à direita —
+          mesma composição do KpiCard do mockup. */}
+      {(verdictNote || trend) && (
+        <div className="mt-2.5 flex items-center justify-between gap-2 min-h-[16px]">
+          <span
+            className="text-[10px] leading-tight truncate"
+            style={{ color: "var(--text-tertiary)" }}
+          >
+            {verdictNote}
+          </span>
+          {trend && (
+            <span
+              className="inline-flex items-center gap-0.5 shrink-0 text-[11px] font-sans font-semibold"
+              style={{ color: isTrendUp ? "var(--success)" : isTrendDown ? "var(--error)" : "var(--text-secondary)" }}
+            >
+              {isTrendUp ? (
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              ) : isTrendDown ? (
+                <ArrowDownRight className="w-3.5 h-3.5" />
+              ) : (
+                <Minus className="w-3.5 h-3.5" />
+              )}
+              <span>{trend.value}%</span>
+            </span>
+          )}
+        </div>
+      )}
+
       {trend && (
         <span
-          className="mt-2 block text-[10px] tracking-wide"
+          className="mt-1 block text-[10px] tracking-wide"
           style={{ color: "var(--text-tertiary)" }}
         >
           {trend.intervalLabel}
         </span>
-      )}
-
-      {verdict && (
-        <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
-          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: verdictColor }} />
-          <span
-            className="text-[11px] font-sans font-semibold uppercase tracking-[0.04em]"
-            style={{ color: verdictColor }}
-          >
-            {VERDICT_LABEL[verdict]}
-          </span>
-          {verdictNote && (
-            <span className="text-[10px] leading-tight" style={{ color: "var(--text-tertiary)" }}>
-              &middot; {verdictNote}
-            </span>
-          )}
-        </div>
       )}
     </div>
   );

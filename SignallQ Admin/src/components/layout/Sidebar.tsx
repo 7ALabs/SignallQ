@@ -69,8 +69,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // GH#443: caminho relativo ao BASE_URL — o Console pode ser servido em /console
   const logoSrc = theme === "dark"
-    ? `${import.meta.env.BASE_URL}brand/7agents/logo-light.svg`
-    : `${import.meta.env.BASE_URL}brand/7agents/logo-dark.svg`;
+    ? `${import.meta.env.BASE_URL}brand/signallq/lockup-dark-bg.png`
+    : `${import.meta.env.BASE_URL}brand/signallq/lockup-light-bg.png`;
   return (
     <div
       id={id || "sidebar-container"}
@@ -95,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex items-center gap-3 min-w-0">
             <img
               src={logoSrc}
-              alt="7Agents Admin Console"
+              alt="SignallQ Admin"
               className="h-10 w-auto shrink-0"
               draggable={false}
             />

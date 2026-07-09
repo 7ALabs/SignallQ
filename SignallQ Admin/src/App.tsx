@@ -1,12 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTheme } from "./hooks/useTheme";
 import { AppLayout } from "./components/layout/AppLayout";
-import { PageHeader } from "./components/layout/PageHeader";
 import { AppEnvironment } from "./types/admin";
 import { LoginPage } from "./auth/LoginPage";
 import { apiClient } from "./services/apiClient";
 import { ErrorBoundary } from "./components/ui/ErrorBoundary";
-import { alpha } from "./utils/color";
 
 // Tab/Feature Components
 import { OverviewTab } from "./features/overview/OverviewTab";
@@ -18,9 +16,6 @@ import { ErrorsTab } from "./features/errors/ErrorsTab";
 import { VersionsTab } from "./features/app-versions/VersionsTab";
 import { SettingsTab } from "./features/settings/SettingsTab";
 import { SystemHealthTab } from "./features/system-health/SystemHealthTab";
-
-// Lucide accessories
-import { Sparkles, Activity, AlertTriangle, HeartPulse } from "lucide-react";
 
 export default function App() {
   const { theme, toggle: onToggleTheme } = useTheme();
@@ -149,142 +144,6 @@ export default function App() {
     document.body.removeChild(link);
   }, [environment, period]);
 
-  // Determine page header detail and descriptive subtitles
-  const pageHeaderDetail = React.useMemo(() => {
-    switch (currentPath) {
-      case "/overview":
-        return {
-          title: "O SignallQ está saudável agora?",
-          description: "Acompanhe uso, diagnósticos, qualidade da rede e custo de IA em tempo real.",
-          dataSource: "D1 (diagnostic_sessions, ai_usage, alerts) via signallq-admin-worker",
-          badge: (
-            <span
-              className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
-              style={{
-                backgroundColor: alpha("var(--sq-accent)", 10),
-                border: `1px solid ${alpha("var(--sq-accent)", 20)}`,
-                color: "var(--sq-accent)",
-              }}
-            >
-              <Sparkles className="w-3.5 h-3.5" /> Live Engine
-            </span>
-          ),
-        };
-      case "/product-analytics":
-        return {
-          title: "As pessoas estão usando o app como esperado?",
-          description: "Monitore o engajamento de features, navegação, retenção, métricas de performance e monetização futura.",
-          dataSource: "D1 (analytics_events) via signallq-admin-worker — ingest Android pendente (GH#417)",
-          badge: (
-            <span
-              className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
-              style={{
-                backgroundColor: alpha("var(--sq-accent)", 10),
-                border: `1px solid ${alpha("var(--sq-accent)", 20)}`,
-                color: "var(--sq-accent)",
-              }}
-            >
-              <Sparkles className="w-3.5 h-3.5" /> Product Insights
-            </span>
-          ),
-        };
-      case "/diagnostics":
-        return {
-          title: "O que os usuários estão medindo?",
-          description: "Volume e composição dos diagnósticos por tipo de rede, com drill-down por sessão individual.",
-          dataSource: "D1 (diagnostic_sessions) via signallq-admin-worker",
-          badge: (
-            <span
-              className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
-              style={{
-                backgroundColor: alpha("var(--sq-success)", 10),
-                border: `1px solid ${alpha("var(--sq-success)", 20)}`,
-                color: "var(--sq-success)",
-              }}
-            >
-              <Activity className="w-3.5 h-3.5 animate-pulse" /> Telemetria de Rádio
-            </span>
-          ),
-        };
-      // GH#552 (Fase 2): "Redes & Provedores" — fusão de /networks + /operators,
-      // mesmo texto de cabeçalho nos dois hashes.
-      case "/networks":
-      case "/operators":
-        return {
-          title: "Onde a qualidade varia?",
-          description: "Visibilidade agregada sobre frequências celulares de rádio, canais Wi-Fi residenciais e benchmark comparativo entre operadoras.",
-          dataSource: "D1 (diagnostic_sessions agregado por network_type e por operator) via signallq-admin-worker",
-          badge: null,
-        };
-      case "/ai-cost":
-        return {
-          title: "A IA está entregando valor com custo controlado?",
-          description: "Custo por provider, latência, taxa de fallback e falha, com auditoria de sessões outlier.",
-          dataSource: "D1 (ai_usage) via signallq-admin-worker",
-          badge: null,
-        };
-      case "/errors":
-        return {
-          title: "O que está prejudicando a experiência?",
-          description: "Erros do Cloudflare Worker, dumps de depuração do app Android e problemas nas conexões com tabelas de banco Analytics DB.",
-          dataSource: "D1 (system_errors) via signallq-admin-worker",
-          badge: (
-            <span
-              className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg uppercase"
-              style={{
-                backgroundColor: alpha("var(--sq-error)", 10),
-                border: `1px solid ${alpha("var(--sq-error)", 20)}`,
-                color: "var(--sq-error)",
-              }}
-            >
-              <AlertTriangle className="w-3.5 h-3.5" /> Auditoria de Erros
-            </span>
-          ),
-        };
-      case "/app-versions":
-        return {
-          title: "A versão publicada está estável?",
-          description: "Lista de builds Android transmitindo métricas e status de distribuição de novas atualizações via Play Store.",
-          dataSource: "D1 (diagnostic_sessions por versão) + BigQuery (export Firebase Crashlytics) via signallq-admin-worker",
-          badge: null,
-        };
-      case "/system-health":
-        return {
-          title: "A infraestrutura está funcionando?",
-          description: "Status dos Workers Cloudflare, D1 Database e alertas de threshold para crash rate e custo de IA.",
-          dataSource: "D1 + Firebase + BigQuery — checagem de conectividade via signallq-admin-worker",
-          badge: (
-            <span
-              className="flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-mono rounded-lg"
-              style={{
-                backgroundColor: alpha("var(--sq-success)", 10),
-                border: `1px solid ${alpha("var(--sq-success)", 20)}`,
-                color: "var(--sq-success)",
-              }}
-            >
-              <HeartPulse className="w-3.5 h-3.5" /> System Monitor
-            </span>
-          ),
-        };
-      // GH#552 (Fase 2): "Configurações" — fusão de /settings + /feature-flags,
-      // mesmo texto de cabeçalho nos dois hashes.
-      case "/settings":
-      case "/feature-flags":
-        return {
-          title: "O que posso controlar com segurança?",
-          description: "Feature flags remotas, limiares de alerta consumidos pelo worker e integrações administrativas externas.",
-          dataSource: "D1 (admin_settings, feature_flags, feature_flag_audit) via signallq-admin-worker",
-          badge: null,
-        };
-      default:
-        return {
-          title: "7Agents Admin Console",
-          description: "Plataforma administrativa móvel",
-          badge: null,
-        };
-    }
-  }, [currentPath]);
-
   // Aguarda verificação inicial para não piscar a tela de login desnecessariamente.
   if (!authChecked) {
     return (
@@ -318,14 +177,6 @@ export default function App() {
       theme={theme}
       onToggleTheme={onToggleTheme}
     >
-      {/* Dynamic Sub-header */}
-      <PageHeader
-        title={pageHeaderDetail.title}
-        description={pageHeaderDetail.description}
-        dataSource={pageHeaderDetail.dataSource}
-        badge={pageHeaderDetail.badge}
-      />
-
       {/* Structured Switch Rendering the Active tab dynamically.
           ErrorBoundary com key={currentPath} isola crashes por aba e reseta ao navegar. */}
       <ErrorBoundary key={currentPath}>
