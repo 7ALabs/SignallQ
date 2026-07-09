@@ -171,7 +171,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
         setSelectedSession({
           ...selectedSession,
           aiStatus: "completed",
-          aiSummaryReport: "Ajuste e recalculado efetuado com sucesso via Gemini 1.5 Flash. O robô reavaliou que as flutuações eletromagnéticas de radiofrequência local foram dirimidas de forma parcial, mantendo apenas latência leve no DNS local.",
+          aiSummaryReport: "Sinal de rádio reavaliado via Gemini 1.5 Flash: a instabilidade foi parcialmente resolvida, ainda com latência leve no DNS local.",
           issues: selectedSession.issues.map(i => ({ ...i, severity: "attention" })),
         });
       }
@@ -392,7 +392,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
               />
               <div className="mt-4 flex items-center gap-2 text-[10px] text-[var(--text-secondary)] font-sans select-none">
                 <Info className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" />
-                <span>Dica: Clique em qualquer sessão para carregar o escrutínio térmico detalhado de RF local e laudo de IA à direita.</span>
+                <span>Dica: clique em qualquer sessão para ver as métricas detalhadas de rádio e o laudo de IA à direita.</span>
               </div>
             </SectionCard>
           </div>
@@ -422,7 +422,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
                 <div className="grid grid-cols-2 gap-4 border-b border-[var(--border)] pb-4 mb-4 font-sans text-xs">
                   <div>
                     <div className="text-[10px] text-[var(--text-tertiary)] font-sans uppercase tracking-wider">
-                      Dispositivo de Borda · {selectedSession.platform === "web" ? "WebApp" : "Android"}
+                      Dispositivo · {selectedSession.platform === "web" ? "WebApp" : "Android"}
                     </div>
                     <p className="font-semibold text-[var(--text-primary)] mt-0.5 flex items-center gap-1.5 leading-none">
                       <Smartphone className="w-3.5 h-3.5 text-[var(--text-secondary)] shrink-0" />
@@ -514,7 +514,7 @@ export const DiagnosticsPage: React.FC<DiagnosticsPageProps> = ({
                 {/* Network Quality indicators */}
                 {selectedSession.networkStrength && (
                   <div className="mb-5 p-3.5 bg-[var(--bg-base)] border border-[var(--border)]/40 rounded-xl space-y-2 select-none">
-                    <span className="text-[9px] text-[var(--primary)] font-sans uppercase tracking-wide block font-bold">Interfaces físicas & Rádio</span>
+                    <span className="text-[9px] text-[var(--primary)] font-sans uppercase tracking-wide block font-bold">Sinal de rádio</span>
                     <div className="grid grid-cols-2 gap-3 text-xs font-sans">
                       <div>
                         <div className="text-[var(--text-tertiary)] text-[9px] font-sans">Força Sinal (RSSI)</div>

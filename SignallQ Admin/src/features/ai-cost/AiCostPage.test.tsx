@@ -45,6 +45,6 @@ describe("AiCostPage", () => {
   it("renderiza a tabela de investigação (custo por provider)", async () => {
     render(<AiCostPage environment="production" period="7d" triggerRefreshCounter={0} />);
 
-    expect(await screen.findByText("Custo e Métricas Reais por Provedor")).toBeInTheDocument();
+    expect(await screen.findByText("Custo e métricas por provedor")).toBeInTheDocument();
   });
 });

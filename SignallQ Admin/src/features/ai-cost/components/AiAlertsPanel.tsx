@@ -1,6 +1,6 @@
 import React from "react";
 import { SectionCard } from "../../../components/ui/SectionCard";
-import { AlertCircle, AlertTriangle, Sparkles, Clock, ArrowRight } from "lucide-react";
+import { AlertCircle, AlertTriangle, Bell, Clock, ArrowRight } from "lucide-react";
 import { errorMetricsService } from "../../../services/errorMetricsService";
 import { AiAlert } from "../../../mocks/errors.mock";
 
@@ -21,8 +21,8 @@ export const AiAlertsPanel: React.FC = () => {
 
   return (
     <SectionCard
-      title="Alertas Críticos de Orçamento & IA"
-      description="Gatilhos automatizados do model manager capturando gargalos ou perigos de estouro de custos."
+      title="Alertas de orçamento e IA"
+      description="Avisos automáticos quando o custo ou o uso de IA sai do esperado."
       id="ai-alerts-card"
     >
       {alerts.length === 0 ? (
@@ -30,7 +30,7 @@ export const AiAlertsPanel: React.FC = () => {
       ) : (
         <div className="space-y-3 font-sans text-xs">
           {alerts.map((alert) => {
-            let icon = <Sparkles className="w-4 h-4 text-[var(--text-secondary)] animate-pulse" />;
+            let icon = <Bell className="w-4 h-4 text-[var(--text-secondary)]" />;
             let containerClass = "bg-[var(--bg-base)] border-[var(--border)]";
             let titleColor = "text-[var(--text-primary)]";
 

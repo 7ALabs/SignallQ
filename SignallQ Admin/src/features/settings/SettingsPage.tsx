@@ -7,6 +7,7 @@ import { SectionCard } from "../../components/ui/SectionCard";
 import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
 import { FeatureFlagsTab } from "../feature-flags/FeatureFlagsTab";
 import { Settings, Save, CheckCircle2, RotateCcw, ShieldCheck, AlertTriangle } from "lucide-react";
+import { alpha } from "../../utils/color";
 
 export const SettingsPage: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
@@ -119,7 +120,7 @@ export const SettingsPage: React.FC = () => {
         <div className="flex items-center gap-3">
           <Settings className="w-5 h-5 text-[var(--text-secondary)]" />
           <div>
-            <h4 className="text-xs font-semibold font-sans text-[var(--text-secondary)] uppercase">Centro Operacional de Parâmetros</h4>
+            <h4 className="text-xs font-semibold font-sans text-[var(--text-secondary)] uppercase">Parâmetros operacionais</h4>
             <p className="text-[10px] text-[var(--text-tertiary)] font-sans mt-0.5">Ajustes que efetivamente alteram o comportamento do worker de alertas ou de feature flags (GH#426).</p>
           </div>
         </div>
@@ -129,7 +130,9 @@ export const SettingsPage: React.FC = () => {
           <button
             type="button"
             onClick={handleReset}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-transparent hover:bg-zinc-900 border border-transparent text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-xl transition-all cursor-pointer font-sans"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-transparent border border-transparent text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-xl transition-all cursor-pointer font-sans"
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--bg-surface-hover)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Padrões</span>
@@ -142,21 +145,39 @@ export const SettingsPage: React.FC = () => {
             className="flex items-center gap-1.5 px-4 py-2.5 bg-[var(--primary)] hover:opacity-90 disabled:opacity-40 font-sans text-xs font-semibold text-white rounded-xl transition-all shadow-md active:scale-98 cursor-pointer"
           >
             <Save className={`w-3.5 h-3.5 ${saving ? "animate-spin" : ""}`} />
-            <span>{saving ? "PERSISTINDO..." : "PERSISTIR ALTERAÇÕES"}</span>
+            <span>{saving ? "Salvando..." : "Salvar alterações"}</span>
           </button>
         </div>
       </div>
 
       {saveStatus && (
-        <div className="p-3.5 bg-emerald-950/20 border border-emerald-500/20 rounded-xl flex items-center justify-center gap-2 text-emerald-400 text-xs font-sans select-none animate-fade-in text-center">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div
+          role="status"
+          aria-live="polite"
+          className="p-3.5 rounded-xl flex items-center justify-center gap-2 text-xs font-sans select-none animate-fade-in text-center"
+          style={{
+            backgroundColor: alpha("var(--success)", 20),
+            border: `1px solid ${alpha("var(--success)", 20)}`,
+            color: "var(--success)",
+          }}
+        >
+          <CheckCircle2 className="w-4 h-4" style={{ color: "var(--success)" }} />
           <span>{saveStatus}</span>
         </div>
       )}
 
       {saveError && (
-        <div className="p-3.5 bg-red-950/20 border border-red-500/20 rounded-xl flex items-center justify-center gap-2 text-red-400 text-xs font-sans select-none animate-fade-in text-center">
-          <AlertTriangle className="w-4 h-4 text-red-400" />
+        <div
+          role="status"
+          aria-live="polite"
+          className="p-3.5 rounded-xl flex items-center justify-center gap-2 text-xs font-sans select-none animate-fade-in text-center"
+          style={{
+            backgroundColor: alpha("var(--error)", 20),
+            border: `1px solid ${alpha("var(--error)", 20)}`,
+            color: "var(--error)",
+          }}
+        >
+          <AlertTriangle className="w-4 h-4" style={{ color: "var(--error)" }} />
           <span>{saveError}</span>
         </div>
       )}
@@ -188,7 +209,7 @@ export const SettingsPage: React.FC = () => {
 
       <div className="bg-[var(--bg-sidebar)]/30 border border-dashed border-[var(--border)] rounded-[8px] p-4 flex items-center gap-2.5 text-[10px] font-sans text-[var(--text-tertiary)] select-none justify-center">
         <ShieldCheck className="w-4 h-4 text-[var(--success)]" />
-        <span>Todos os dados de seguranças e tokens de gateway estão criptografados na borda do cluster.</span>
+        <span>Chaves e tokens de integração ficam armazenados de forma criptografada no worker — nunca expostos no navegador.</span>
       </div>
     </form>
   );

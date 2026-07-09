@@ -120,8 +120,8 @@ export const ProviderCostTable: React.FC<ProviderCostTableProps> = ({ insights }
 
   return (
     <SectionCard
-      title="Custo e Métricas Reais por Provedor"
-      description="Taxação síncrona, volume de faturamento e tokens calculados para os Model Gateways."
+      title="Custo e métricas por provedor"
+      description="Custo, volume e tokens consumidos por provedor de IA no período."
       id="provider-cost-card"
     >
       <DataTable

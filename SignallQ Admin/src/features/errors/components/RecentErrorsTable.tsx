@@ -104,15 +104,17 @@ export const RecentErrorsTable: React.FC<RecentErrorsTableProps> = ({
 
   return (
     <SectionCard
-      title="Auditorias de Exceções Técnicas Recentes"
-      description="Console central de crashes de borda Android, gargalos no AI Gateway e quedas de conexões Analytics DB."
+      title="Erros recentes do sistema"
+      description="Erros do app Android, do gateway de IA e do banco de analytics, em um só lugar."
     >
       <DataTable
         data={errors}
         columns={tableColumns}
         keyExtractor={(row) => row.id}
-        emptyMessage="Nenhum dump técnico registrado para estes parâmetros."
-        rowClassName="cursor-pointer font-sans"
+        emptyMessage="Nenhum erro registrado para estes parâmetros."
+        rowClassName={(row) =>
+          `cursor-pointer font-sans ${selectedError?.id === row.id ? "bg-[var(--primary)]/5" : ""}`
+        }
         onRowClick={onSelectError}
         id="errors-logs-central-table"
       />

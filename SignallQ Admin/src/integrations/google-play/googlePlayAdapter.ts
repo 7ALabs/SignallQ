@@ -19,26 +19,61 @@ import {
 } from "./googlePlay.types";
 import { DashboardFilters } from "../../services/adminMetricsService";
 
-// O painel NÃO acessa o Google Play Developer API diretamente.
-// Não há rota equivalente no Admin Worker — todos os dados do Google Play são
-// exclusivamente de modo mock. Em produção, retornar sentinelas vazias.
+// GH#761 — o painel acessa a Android Publisher API via Admin Worker (rota
+// /admin/integrations/google-play/*), que detém a service account. A API não
+// expõe contagem de downloads/instalações (isso só existe via export CSV pro
+// Cloud Storage, configurado à parte no Play Console — não implementado
+// aqui); o dado real disponível é a média de rating de uma amostra de reviews.
+
+function formatSyncTimestamp(isoTimestamp: string | null | undefined): string {
+  if (!isoTimestamp) return "Nunca sincronizado";
+  const date = new Date(isoTimestamp);
+  if (Number.isNaN(date.getTime())) return "Nunca sincronizado";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+interface GooglePlayStatusWorkerResponse {
+  source: string;
+  packageName?: string;
+  status: "connected" | "mock" | "attention" | "planned" | "disabled";
+  hasCredentials: boolean;
+  lastSyncTimestamp?: string | null;
+  ratingAverage?: number | null;
+  reviewsSampled?: number;
+}
 
 /**
  * Adapter for Google Play Developer API interface.
  * Retrieves live rollout percentage statistics and uninstallation velocities.
  */
 export async function getGooglePlayIntegrationStatus(): Promise<GooglePlayIntegrationStatus> {
-  if (!apiClient.isMockEnabled()) {
-    return {
-      enabled: false,
-      status: "disabled",
-      message: "Integração com o Google Play Developer API ainda não está disponível no Admin Worker.",
-      platform: "Android (Google Play Console)",
-      lastSyncTimestamp: "Nunca sincronizado",
-      downloadsImported: 0
-    };
+  if (apiClient.isMockEnabled()) {
+    return apiClient.simulateFetch(mockGooglePlayStatus, {});
   }
-  return apiClient.simulateFetch(mockGooglePlayStatus, {});
+
+  const raw = await apiClient.request<GooglePlayStatusWorkerResponse>(
+    "GET",
+    "/admin/integrations/google-play/status"
+  );
+
+  return {
+    enabled: raw.hasCredentials,
+    status: raw.status,
+    message: raw.hasCredentials
+      ? "Sincronizado via Android Publisher API (service account do Google Cloud)"
+      : "Credenciais do Google Play ainda não configuradas no Admin Worker",
+    platform: "Android (Google Play Console)",
+    lastSyncTimestamp: formatSyncTimestamp(raw.lastSyncTimestamp),
+    downloadsImported: 0,
+    ratingAverage: raw.ratingAverage ?? null,
+    reviewsSampled: raw.reviewsSampled ?? 0,
+  };
 }
 
 export async function getGooglePlayInstallMetrics(filters: DashboardFilters = {}): Promise<GooglePlayInstallMetrics | null> {
@@ -90,16 +125,21 @@ export async function getGooglePlayCrashAnrSummary(filters: DashboardFilters = {
 }
 
 export async function syncGooglePlayMetrics(): Promise<{ jobId: string; status: string; startedAt: string }> {
-  if (!apiClient.isMockEnabled()) {
+  if (apiClient.isMockEnabled()) {
     return {
-      jobId: "",
-      status: "not_implemented",
+      jobId: "job_gp_" + Math.random().toString(36).substring(7),
+      status: "started",
       startedAt: new Date().toISOString()
     };
   }
+
+  const raw = await apiClient.request<{ status: string; syncedAt?: string; message?: string }>(
+    "POST",
+    "/admin/integrations/google-play/sync"
+  );
   return {
-    jobId: "job_gp_" + Math.random().toString(36).substring(7),
-    status: "started",
-    startedAt: new Date().toISOString()
+    jobId: raw.syncedAt ?? "",
+    status: raw.status,
+    startedAt: raw.syncedAt ?? new Date().toISOString(),
   };
 }

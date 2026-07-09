@@ -5,6 +5,9 @@ export interface GooglePlayIntegrationStatus {
   platform: string;
   lastSyncTimestamp: string;
   downloadsImported: number;
+  /** GH#761 — nao vem da Android Publisher API (so via export CSV/GCS, nao implementado). */
+  ratingAverage?: number | null;
+  reviewsSampled?: number;
 }
 
 export interface GooglePlayInstallMetrics {

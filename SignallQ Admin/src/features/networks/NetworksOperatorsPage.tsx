@@ -11,7 +11,7 @@ import { InsightBlock } from "../../components/ui/InsightBlock";
 import { ActionsRow } from "../../components/ui/ActionsRow";
 import { OperatorRecord, AppEnvironment } from "../../types/admin";
 import { MetricVerdict } from "../../types/metrics";
-import { Award, Globe, Wifi, Radio, ChevronDown } from "lucide-react";
+import { Award, Globe, ChevronDown } from "lucide-react";
 
 // GH#746 — mesma escala usada em DiagnosticsMetricGrid (score calculado pelo
 // engine local do app, 0-100). Repetida aqui em vez de importada porque o
@@ -49,6 +49,7 @@ export const NetworksOperatorsPage: React.FC<NetworksOperatorsPageProps> = ({
   triggerRefreshCounter,
 }) => {
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
   const [networkStats, setNetworkStats] = React.useState<NetworkTypeStat[]>([]);
   const [operators, setOperators] = React.useState<OperatorRecord[]>([]);
   const [operatorFilter, setOperatorFilter] = React.useState<string>("all");
@@ -57,33 +58,45 @@ export const NetworksOperatorsPage: React.FC<NetworksOperatorsPageProps> = ({
   // (score por operadora) já responde à pergunta-guia sozinho.
   const [showDetails, setShowDetails] = React.useState(false);
 
-  React.useEffect(() => {
-    let active = true;
-    async function loadData() {
-      setLoading(true);
-      try {
-        const [netStats, ops] = await Promise.all([
-          adminMetricsService.getNetworkTypeStats({ environment, period }),
-          adminMetricsService.getOperatorMetrics({ environment, period }),
-        ]);
-        if (active) {
-          setNetworkStats(netStats);
-          setOperators(ops);
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        if (active) setLoading(false);
-      }
+  const loadData = React.useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [netStats, ops] = await Promise.all([
+        adminMetricsService.getNetworkTypeStats({ environment, period }),
+        adminMetricsService.getOperatorMetrics({ environment, period }),
+      ]);
+      setNetworkStats(netStats);
+      setOperators(ops);
+    } catch (e) {
+      console.error("Failed to load network/operator metrics", e);
+      setError(e instanceof Error ? e.message : "Não foi possível carregar as métricas de rede.");
+    } finally {
+      setLoading(false);
     }
+  }, [environment, period]);
+
+  React.useEffect(() => {
     loadData();
-    return () => {
-      active = false;
-    };
-  }, [environment, period, triggerRefreshCounter]);
+  }, [loadData, triggerRefreshCounter]);
 
   if (loading) {
     return <LoadingState message="Agregando qualidade de rede por tipo e operadora..." />;
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-6 border border-[var(--error)]/20 bg-[var(--error)]/5 rounded-[8px]">
+        <h4 className="text-sm font-semibold text-[var(--error)] uppercase tracking-wider font-sans">Erro ao carregar rede</h4>
+        <p className="text-xs text-[var(--text-secondary)] mt-2 font-sans">{error}</p>
+        <button
+          onClick={loadData}
+          className="mt-4 px-4 py-2 text-xs bg-[var(--error)]/10 border border-[var(--error)]/20 text-[var(--error)] hover:bg-[var(--error)]/20 transition-all rounded-xl font-sans"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    );
   }
 
   const wifiStat = networkStats.find((s) => s.name.toLowerCase().includes("wi"));
@@ -127,7 +140,11 @@ export const NetworksOperatorsPage: React.FC<NetworksOperatorsPageProps> = ({
     : null;
 
   const noData = (
-    <span className="font-mono text-[var(--text-tertiary)]" title="Sem medição suficiente no período">
+    <span
+      className="font-mono text-[var(--text-tertiary)]"
+      title="Sem medição suficiente no período"
+      aria-label="Sem medição suficiente no período"
+    >
       —
     </span>
   );
@@ -204,7 +221,7 @@ export const NetworksOperatorsPage: React.FC<NetworksOperatorsPageProps> = ({
     const header = "Operadora,Tipo,Testes,DownloadMbps,UploadMbps,LatenciaMs,PerdaPacote,ScoreMedio\r\n";
     const rows = filteredOperators
       .map((op) => [
-        op.name, op.type ?? "", op.testCount,
+        `"${op.name.replace(/"/g, '""')}"`, op.type ?? "", op.testCount,
         op.averageDownloadMbps ?? "", op.averageUploadMbps ?? "",
         op.averageLatencyMs ?? "", op.packetLossAverage ?? "", op.averageScorePercentage ?? "",
       ].join(","))
@@ -285,35 +302,20 @@ export const NetworksOperatorsPage: React.FC<NetworksOperatorsPageProps> = ({
 
       {/* Detalhe por tipo de rede — Wi-Fi vs móvel */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="p-5 rounded-xl flex items-center gap-4" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
-          <div className="w-10 h-10 rounded-lg bg-[var(--primary)]/10 flex items-center justify-center border border-[var(--primary)]/20 text-[var(--primary)]">
-            <Wifi className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] uppercase font-sans text-[var(--text-tertiary)]">Wi-Fi</span>
-            <h4 className="text-sm font-sans font-bold text-[var(--text-primary)] mt-0.5">
-              {(wifiStat?.count ?? 0).toLocaleString("pt-BR")} diagnósticos no período
-            </h4>
-            <span className="text-[10px] text-[var(--text-secondary)] font-sans">
-              Score médio {fmt(wifiStat?.avgScore ?? null)} · latência média {fmt(wifiStat?.avgLatencyMs ?? null, " ms")}
-            </span>
-          </div>
-        </div>
-
-        <div className="p-5 rounded-xl flex items-center gap-4" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
-          <div className="w-10 h-10 rounded-lg bg-[var(--success)]/10 flex items-center justify-center border border-[var(--success)]/20 text-[var(--success)]">
-            <Radio className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-[10px] uppercase font-sans text-[var(--text-tertiary)] font-semibold">Rede móvel</span>
-            <h4 className="text-sm font-sans font-bold text-[var(--text-primary)] mt-0.5">
-              {(mobileStat?.count ?? 0).toLocaleString("pt-BR")} diagnósticos no período
-            </h4>
-            <span className="text-[10px] text-[var(--text-secondary)] font-sans">
-              Score médio {fmt(mobileStat?.avgScore ?? null)} · latência média {fmt(mobileStat?.avgLatencyMs ?? null, " ms")}
-            </span>
-          </div>
-        </div>
+        <MetricCard
+          label="Wi-Fi · diagnósticos no período"
+          value={(wifiStat?.count ?? 0).toLocaleString("pt-BR")}
+          verdict={wifiStat?.avgScore != null ? scoreVerdict(wifiStat.avgScore) : undefined}
+          verdictNote={`score médio ${fmt(wifiStat?.avgScore ?? null)} · latência média ${fmt(wifiStat?.avgLatencyMs ?? null, " ms")}`}
+          id="metric-wifi-summary"
+        />
+        <MetricCard
+          label="Rede móvel · diagnósticos no período"
+          value={(mobileStat?.count ?? 0).toLocaleString("pt-BR")}
+          verdict={mobileStat?.avgScore != null ? scoreVerdict(mobileStat.avgScore) : undefined}
+          verdictNote={`score médio ${fmt(mobileStat?.avgScore ?? null)} · latência média ${fmt(mobileStat?.avgLatencyMs ?? null, " ms")}`}
+          id="metric-mobile-summary"
+        />
       </div>
 
       {/* Visão secundária colapsável — GH#746: os outros 3 gráficos (download por
