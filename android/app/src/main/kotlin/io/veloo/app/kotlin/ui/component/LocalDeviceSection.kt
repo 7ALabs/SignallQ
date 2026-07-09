@@ -333,7 +333,10 @@ private fun secoesTecnicas(snapshot: LocalNetworkDeviceSnapshot): List<Equipamen
                         listOfNotNull(
                             wan?.ipExterno?.let { EquipamentoItemTecnico("IP externo", it) },
                             wan?.tipoConexao?.let { EquipamentoItemTecnico("Tipo de conexão", it) },
+                            wan?.gateway?.let { EquipamentoItemTecnico("Gateway", it) },
                             wan?.dnsPrimario?.let { EquipamentoItemTecnico("DNS primário", it) },
+                            wan?.dnsSecundario?.let { EquipamentoItemTecnico("DNS secundário", it) },
+                            wan?.nomeInterface?.let { EquipamentoItemTecnico("Interface", it) },
                             wan?.uptimeSegundos?.let { EquipamentoItemTecnico("Uptime", formatarUptime(it)) },
                         ).ifEmpty { listOf(EquipamentoItemTecnico("Internet (WAN)", "Sem leitura nesta captura")) },
                 ),
