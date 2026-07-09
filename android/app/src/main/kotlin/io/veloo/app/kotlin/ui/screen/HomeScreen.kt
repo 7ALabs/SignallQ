@@ -183,6 +183,14 @@ private fun topBarSubtitulo(
  */
 internal fun tecnologiaSimplificada(tec: String?): String? = tec?.ifBlank { null }?.substringBefore(" ")
 
+/**
+ * GH#827 — exige 2+ pontos com dado valido (download ou upload) pra considerar que ha
+ * grafico renderizavel. Com 1 unico ponto o [MiniLineChart] so tem um `moveTo` sem
+ * `lineTo`/`cubicTo` — nao ha linha real pra desenhar, so espaco reservado vazio.
+ */
+internal fun hasRenderableChartData(history: List<HistoryPoint>): Boolean =
+    history.count { it.downloadMbps != null || it.uploadMbps != null } >= 2
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -622,7 +630,7 @@ private fun CardMedicoes(
             }
             val screenHeightDp = LocalConfiguration.current.screenHeightDp.dp
             val chartHeight = (screenHeightDp * 0.10f).coerceIn(72.dp, 120.dp)
-            val hasChartData = remember(history) { history.any { it.downloadMbps != null || it.uploadMbps != null } }
+            val hasChartData = remember(history) { hasRenderableChartData(history) }
             if (hasChartData) {
                 Column(
                     modifier =
