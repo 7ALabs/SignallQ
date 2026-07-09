@@ -37,6 +37,7 @@ object DiagnosticRunner {
                 InternetDiagnosticEngine.avaliar(
                     input = input.internet,
                     wifiConfiavelParaTeste = wifiQuality.confiavelParaTeste,
+                    connectionType = input.connectionType,
                 )
             } else {
                 emptyList()

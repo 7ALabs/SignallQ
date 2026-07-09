@@ -292,6 +292,21 @@ class RecommendationEngineTest {
         assertFalse(r.any { it.id == "REC-07" })
     }
 
+    @Test
+    fun `situacao 7 - GH521 nao fala de roteador ou wifi quando conexao e movel`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.mobile,
+            internet = InternetDiagnosticInput(
+                downloadMbps = 80.0, uploadMbps = 20.0, latencyMs = 180.0, jitterMs = 5.0, perdaPercentual = 0.0,
+                rttGatewayMs = 4,
+            ),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val rec = r.first { it.id == "REC-07" }
+        assertFalse(rec.mensagemUsuario.contains("roteador"))
+        assertFalse(rec.mensagemUsuario.contains("Wi-Fi"))
+    }
+
     // -------------------------------------------------------------------------
     // 8. Gateway / roteador lento
     // -------------------------------------------------------------------------
@@ -312,6 +327,18 @@ class RecommendationEngineTest {
         )
         val r = RecommendationEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-08" })
+    }
+
+    @Test
+    fun `situacao 8 - GH521 nao fala de roteador quando conexao e movel`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.mobile,
+            internet = InternetDiagnosticInput(downloadMbps = 80.0, uploadMbps = 20.0, latencyMs = 20.0, jitterMs = 3.0, perdaPercentual = 0.0, rttGatewayMs = 80),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val rec = r.first { it.id == "REC-08" }
+        assertFalse(rec.mensagemUsuario.contains("roteador"))
+        assertFalse(rec.recomendacao!!.contains("roteador"))
     }
 
     // -------------------------------------------------------------------------
@@ -421,6 +448,21 @@ class RecommendationEngineTest {
         val rec = r.first { it.id == "REC-11" }
         assertFalse("nao pode cravar certeza quando estimado", rec.podeConcluir)
         assertTrue(rec.mensagemUsuario.contains("indício"))
+    }
+
+    @Test
+    fun `situacao 11 - GH521 nao fala de roteador ou modem quando conexao e movel`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.mobile,
+            internet = InternetDiagnosticInput(
+                downloadMbps = 80.0, uploadMbps = 20.0, latencyMs = 20.0, jitterMs = 3.0,
+                perdaPercentual = 4.0, packetLossSource = "modem",
+            ),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val rec = r.first { it.id == "REC-11" }
+        assertFalse(rec.recomendacao!!.contains("roteador"))
+        assertFalse(rec.recomendacao!!.contains("modem"))
     }
 
     @Test

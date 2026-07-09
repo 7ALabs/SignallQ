@@ -296,12 +296,21 @@ object RecommendationEngine {
             "perda ${"%.1f".format(internet.perdaPercentual)}%".takeIf { perdaRuim },
         )
 
+        // Mensagem varia por connectionType: RTT de gateway baixo tambem ocorre em
+        // rede movel (GH#521, mesmo padrao de FindingEngine DECISAO-02/02b).
+        val emRedeMovel = input.connectionType == ConnectionType.mobile
+        val mensagem = if (emRedeMovel) {
+            "Sua rede móvel está respondendo rápido, mas ${sintomas.joinToString(", ")} sugerem instabilidade fora do seu aparelho."
+        } else {
+            "Seu roteador está respondendo rápido e o Wi-Fi está saudável, mas ${sintomas.joinToString(", ")} sugerem instabilidade fora da sua rede local."
+        }
+
         return DiagnosticResult(
             id = "REC-07",
             titulo = "O problema pode estar fora da sua rede",
             status = DiagnosticStatus.attention,
             evidencia = "rttGateway=${rttGateway}ms sintomasExternos=${sintomas.joinToString("; ")}",
-            mensagemUsuario = "Seu roteador está respondendo rápido e o Wi-Fi está saudável, mas ${sintomas.joinToString(", ")} sugerem instabilidade fora da sua rede local.",
+            mensagemUsuario = mensagem,
             recomendacao = "O problema pode estar na operadora ou na rota até a internet. Se persistir, contate o suporte do provedor com esses dados.",
             categoria = CAT,
         )
@@ -320,13 +329,28 @@ object RecommendationEngine {
         val rssiBom = rssi != null && rssi >= -67
         val reforco = if (rssiBom) " O sinal Wi-Fi está bom, então o atraso não é do ar — é do próprio equipamento." else ""
 
+        // RTT de gateway alto tambem ocorre em rede movel — nao falar de "roteador"
+        // nesse caso (GH#521, mesmo padrao de FindingEngine DECISAO-02/02b).
+        val emRedeMovel = input.connectionType == ConnectionType.mobile
+        val titulo = if (emRedeMovel) "Rede respondendo lentamente" else "Roteador respondendo lentamente"
+        val mensagem = if (emRedeMovel) {
+            "A rede está demorando ${rttGateway} ms para responder."
+        } else {
+            "O roteador está demorando ${rttGateway} ms para responder na rede local.$reforco"
+        }
+        val recomendacao = if (emRedeMovel) {
+            "Tente desativar e reativar o modo avião, ou testar em outro local. Se o problema persistir, contate sua operadora."
+        } else {
+            "Reinicie o roteador: desligue da tomada, aguarde 30 segundos e ligue novamente. Se o problema persistir, o roteador pode estar sobrecarregado ou precisando de troca."
+        }
+
         return DiagnosticResult(
             id = "REC-08",
-            titulo = "Roteador respondendo lentamente",
+            titulo = titulo,
             status = DiagnosticStatus.attention,
             evidencia = "rttGateway=${rttGateway}ms rssiBom=$rssiBom",
-            mensagemUsuario = "O roteador está demorando ${rttGateway} ms para responder na rede local.$reforco",
-            recomendacao = "Reinicie o roteador: desligue da tomada, aguarde 30 segundos e ligue novamente. Se o problema persistir, o roteador pode estar sobrecarregado ou precisando de troca.",
+            mensagemUsuario = mensagem,
+            recomendacao = recomendacao,
             categoria = CAT,
         )
     }
@@ -410,6 +434,9 @@ object RecommendationEngine {
             ""
         }
 
+        // GH#521: nao falar de "roteador/modem" quando a conexao e rede movel.
+        val emRedeMovel = input.connectionType == ConnectionType.mobile
+
         return DiagnosticResult(
             id = "REC-11",
             titulo = if (critico) "Perda de pacotes alta" else "Alguma perda de pacotes detectada",
@@ -417,7 +444,11 @@ object RecommendationEngine {
             evidencia = "perda=${"%.1f".format(perda)}% fonte=${fonte ?: "—"}",
             mensagemUsuario = "Foi detectada perda de pacotes de ${"%.1f".format(perda)}%.$avisoConfiabilidade",
             recomendacao = if (critico) {
-                "Reinicie o roteador e o modem. Se a perda persistir mesmo assim, contate o provedor — chamadas e jogos serão afetados."
+                if (emRedeMovel) {
+                    "Teste em outro local ou horário. Se a perda persistir mesmo assim, contate a operadora — chamadas e jogos serão afetados."
+                } else {
+                    "Reinicie o roteador e o modem. Se a perda persistir mesmo assim, contate o provedor — chamadas e jogos serão afetados."
+                }
             } else {
                 "Fique de olho: perda de pacotes moderada pode afetar chamadas e jogos em momentos de pico."
             },
