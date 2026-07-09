@@ -1,5 +1,9 @@
 import React from "react";
 import { adminMetricsService } from "../../services/adminMetricsService";
+import { aiUsageService } from "../../services/aiUsageService";
+import { integrationsService } from "../../integrations/integrationsService";
+import { FirebaseAnalyticsSummary } from "../../integrations/firebase/firebase.types";
+import { GooglePlayRatingSummary } from "../../integrations/google-play/googlePlay.types";
 import { OverviewMetricGrid } from "./components/OverviewMetricGrid";
 import { DiagnosticsTimeline } from "./components/DiagnosticsTimeline";
 import { ScreenSessionsDonut } from "./components/ScreenSessionsDonut";
@@ -43,6 +47,15 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   const [alerts, setAlerts] = React.useState<any[]>([]);
   const [aiUsage, setAiUsage] = React.useState<any[]>([]);
 
+  // Paridade com o mockup: os 4 KPIs do Centro de Controle são Usuários Ativos,
+  // Crash-free rate, Custo de IA (mês) e Nota na Play Store — não os que estavam
+  // aqui antes (Diagnósticos/Score de Rede/Taxa de Sucesso/Custo IA hoje, GH#746).
+  // Crash-free rate e Nota da Play Store hoje não têm dado real disponível
+  // (integrações ainda mock-only) — "Não disponível" é o estado honesto, não bug.
+  const [firebaseAnalytics, setFirebaseAnalytics] = React.useState<FirebaseAnalyticsSummary | null>(null);
+  const [aiCostMonthLabel, setAiCostMonthLabel] = React.useState<string | null>(null);
+  const [playStoreRating, setPlayStoreRating] = React.useState<GooglePlayRatingSummary | null>(null);
+
   React.useEffect(() => {
     let active = true;
 
@@ -76,6 +89,21 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           setTopIssues(issuesRes);
           setAlerts(alertsRes);
           setAiUsage(aiUsageRes);
+        }
+
+        // KPIs do mockup — resilientes individualmente (.catch(() => null)): a
+        // ausência de um não pode derrubar a tela inteira, e cada um já é
+        // honestamente nullable quando a integração real não existe ainda.
+        const [fbAnalyticsRes, aiCostMonthRes, gpRatingRes] = await Promise.all([
+          integrationsService.getFirebaseAnalytics(filters).catch(() => null),
+          aiUsageService.getAiCostSummary({ ...filters, period: "30d" }).catch(() => null),
+          integrationsService.getGooglePlayRatings(filters).catch(() => null),
+        ]);
+
+        if (active) {
+          setFirebaseAnalytics(fbAnalyticsRes);
+          setAiCostMonthLabel(aiCostMonthRes?.totalCostUsd ?? null);
+          setPlayStoreRating(gpRatingRes);
         }
       } catch (err: any) {
         console.error("Failed to load overview telemetry dashboard:", err);
@@ -189,7 +217,11 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           SIG-294 Fase 1, antes do Topbar assumir esse controle. Removido. */}
 
       {/* 2. KPIs — grid de cards principais, cada um com veredito/tendência */}
-      <OverviewMetricGrid metrics={metrics} />
+      <OverviewMetricGrid
+        activeUsersToday={firebaseAnalytics?.activeUsersToday ?? null}
+        aiCostMonthLabel={aiCostMonthLabel}
+        playStoreRating={playStoreRating}
+      />
 
       {/* 3. Gráfico principal — volume de diagnósticos x dispositivos ativos,
           com a composição de sessões por tela ao lado (paridade mockup). */}

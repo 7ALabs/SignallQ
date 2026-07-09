@@ -1,60 +1,61 @@
 import React from "react";
 import { MetricCard } from "../../../components/ui/MetricCard";
-import { OverviewMetricsResponse } from "../../../mocks/overview.mock";
+import { GooglePlayRatingSummary } from "../../../integrations/google-play/googlePlay.types";
 
 interface OverviewMetricGridProps {
-  metrics: OverviewMetricsResponse;
+  activeUsersToday: number | null;
+  aiCostMonthLabel: string | null;
+  playStoreRating: GooglePlayRatingSummary | null;
 }
 
-// GH#746 — Centro de Controle é a tela-bandeira: wireframe pede 3-5 KPIs
-// respondendo só "o SignallQ está saudável agora?" (volume, estabilidade, IA,
-// custo). O grid anterior tinha 10 cards, incluindo dado já duplicado na mesma
-// tela (topProblem já aparece em TopIssuesPanel; mostTestType já aparece em
-// NetworkTypeDistribution, ambos logo abaixo) e dado que já tem casa própria em
-// telas específicas (prodVersion → Releases & Qualidade/VersionsTab,
-// crashFreeUsers → Problemas & Incidentes/ErrorsPage, downloadsToday/
-// activeInstalls → Play Store, sem tela própria ainda porque o app não está
-// publicado). Os campos continuam no contrato de `OverviewMetricsResponse`
-// (services/adminMetricsService) para quando essas telas precisarem deles —
-// só pararam de ser renderizados aqui, para não competir com o gráfico
-// principal (DiagnosticsTimeline) por atenção.
-export const OverviewMetricGrid: React.FC<OverviewMetricGridProps> = ({ metrics }) => {
+// Paridade com o mockup do Luiz (signallq-admin-mockup.dc.html, sec-overview):
+// Usuários Ativos, Crash-free rate, Custo de IA (mês), Nota na Play Store.
+// Crash-free rate e Nota na Play Store não têm integração real ainda
+// (getGooglePlayRatings/crashAnr são mock-only hoje) — "Não disponível" é o
+// estado honesto: mostrar um número fabricado seria pior que não mostrar nada.
+export const OverviewMetricGrid: React.FC<OverviewMetricGridProps> = ({
+  activeUsersToday,
+  aiCostMonthLabel,
+  playStoreRating,
+}) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {/* 1. Volume — quanto o SignallQ está sendo usado agora */}
+      {/* 1. Usuários Ativos — real, Firebase Analytics (GA4) */}
       <MetricCard
-        label={metrics.diagnosticsCount.label}
-        value={metrics.diagnosticsCount.value}
-        trend={metrics.diagnosticsCount.trend}
-        source="SignallQ Analytics"
-        id="metric-diagnostics"
+        label="Usuários Ativos"
+        value={activeUsersToday === null ? "Não disponível" : activeUsersToday}
+        verdictNote={activeUsersToday === null ? "Firebase Analytics sem dado no período" : undefined}
+        source="firebase"
+        id="metric-active-users"
       />
 
-      {/* 2. Alcance — quantas pessoas estão usando */}
+      {/* 2. Crash-free rate — sem integração real ainda (Crashlytics não expõe
+          percentual, só contagens de crash) */}
       <MetricCard
-        label={metrics.activeUsers.label}
-        value={metrics.activeUsers.value}
-        trend={metrics.activeUsers.trend}
-        source="Firebase"
-        id="metric-users"
+        label="Crash-free Rate"
+        value="Não disponível"
+        verdictNote="Crashlytics ainda não expõe percentual — só contagem de crashes"
+        source="não implementado"
+        id="metric-crash-free"
       />
 
-      {/* 3. Estabilidade — o diagnóstico está completando com sucesso */}
+      {/* 3. Custo de IA (mês) — real, Cloudflare Workers AI, últimos 30 dias */}
       <MetricCard
-        label={metrics.successRate?.label ?? "Taxa de Sucesso"}
-        value={metrics.successRate?.value ?? "sem dados"}
-        trend={metrics.successRate?.trend}
-        source="SignallQ Analytics"
-        id="metric-success-rate"
+        label="Custo de IA (mês)"
+        value={aiCostMonthLabel ?? "Não disponível"}
+        verdictNote={aiCostMonthLabel === null ? "Worker de IA sem dado no período" : undefined}
+        source="signallq worker"
+        id="metric-ai-cost-month"
       />
 
-      {/* 4. Custo — a IA está consumindo orçamento sob controle */}
+      {/* 4. Nota na Play Store — sem integração real ainda (Android Publisher
+          API de reviews/rating não implementada, só instalações/tracks) */}
       <MetricCard
-        label={metrics.aiCost.label}
-        value={metrics.aiCost.value}
-        trend={metrics.aiCost.trend}
-        source="SignallQ Worker"
-        id="metric-cost"
+        label="Nota na Play Store"
+        value={playStoreRating === null ? "Não disponível" : `${playStoreRating.averageRating.toFixed(1)} ★`}
+        verdictNote={playStoreRating === null ? "Google Play Ratings API não implementada ainda" : `${playStoreRating.totalRatings.toLocaleString("pt-BR")} avaliações`}
+        source={playStoreRating === null ? "não implementado" : "google play"}
+        id="metric-play-rating"
       />
     </div>
   );
