@@ -51,7 +51,9 @@ export const IntegrationsSettings: React.FC = () => {
       const res = await integrationsService.triggerFirebaseSync();
       setSyncFeedback(prev => ({
         ...prev,
-        firebase: `Iniciado! Job ID: ${res.jobId}. Importando crashlogs e telemetria...`
+        firebase: res.status === "error"
+          ? "Falha ao sincronizar — worker retornou erro."
+          : "Sincronizado com sucesso."
       }));
       fbTimeoutRef.current = setTimeout(() => {
         fetchStatus();
@@ -70,7 +72,9 @@ export const IntegrationsSettings: React.FC = () => {
       const res = await integrationsService.triggerGooglePlaySync();
       setSyncFeedback(prev => ({
         ...prev,
-        googlePlay: `Iniciado! Job ID: ${res.jobId}. Crawlando instalações e avaliações...`
+        googlePlay: res.status === "error" || res.status === "not_configured"
+          ? "Falha ao sincronizar — worker retornou erro."
+          : "Sincronizado com sucesso."
       }));
       gpTimeoutRef.current = setTimeout(() => {
         fetchStatus();
@@ -200,12 +204,16 @@ export const IntegrationsSettings: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Downloads Ativos:</span>
-                  <span className="text-[var(--text-primary)]">{(gp.downloadsImported ?? 0).toLocaleString("pt-BR")}</span>
+                  <span>Nota média (Play Store):</span>
+                  <span className="text-[var(--text-primary)]">
+                    {gp.ratingAverage != null
+                      ? `${gp.ratingAverage.toFixed(2)} (${gp.reviewsSampled ?? 0} reviews)`
+                      : "Sem reviews ainda"}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Mapeamento:</span>
-                  <span className="text-[var(--text-primary)]">Instalações + Ratings</span>
+                  <span>Downloads/Instalações:</span>
+                  <span className="text-[var(--text-primary)]">Não exposto pela API</span>
                 </div>
               </div>
             </div>

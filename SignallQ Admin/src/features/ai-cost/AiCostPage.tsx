@@ -254,10 +254,10 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
           <Bot className="w-5 h-5" style={{ color: "var(--sq-accent)" }} />
           <div>
             <h4 className="text-xs font-semibold font-mono uppercase" style={{ color: "var(--sq-text-primary)" }}>
-              Monitoramento síncrono de IA
+              Uso e custo de IA
             </h4>
             <p className="text-[10px] mt-0.5" style={{ color: "var(--sq-text-tertiary)" }}>
-              Visibilidade completa sobre o processamento e faturamento de pareceres técnicos.
+              Custo e volume de diagnósticos gerados por IA no período.
             </p>
           </div>
         </div>

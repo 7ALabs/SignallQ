@@ -17,8 +17,8 @@ export const ErrorAlertsPanel: React.FC = () => {
 
   return (
     <SectionCard
-      title="Alertas Críticos de Infraestrutura"
-      description="Gargalos ativos em nossos servidores, bancos SQL e APIs capturados pelo robô de auditorias."
+      title="Alertas de infraestrutura"
+      description="Gargalos ativos detectados em servidores, bancos de dados e APIs."
       id="infra-alerts-card"
     >
       {alerts.length === 0 ? (

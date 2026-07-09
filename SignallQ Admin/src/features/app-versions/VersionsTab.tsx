@@ -96,14 +96,19 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
   // (guard de EmptyState acima já garante versions.length > 0 aqui). Crash rate
   // por versão entraria como segunda série só quando Crashlytics estiver
   // configurado — sem inventar contagem quando crashStats é null.
-  const chartData = [...versions]
-    .sort((a, b) => b.sessions - a.sessions)
-    .slice(0, 8)
-    .map((v) => ({
-      name: v.appVersion,
-      sessões: v.sessions,
-      ...(crashStats !== null ? { crashes: crashByVersion.get(v.appVersion)?.crashCount ?? 0 } : {}),
-    }));
+  const topVersionsBySessions = [...versions].sort((a, b) => b.sessions - a.sessions).slice(0, 8);
+  // O InsightBlock abaixo relata a versão em foco com confiança — o gráfico
+  // precisa sempre incluí-la, mesmo fora do top-8, senão o texto fala de uma
+  // barra que o usuário nunca vê.
+  const chartVersions =
+    focusedVersion && !topVersionsBySessions.some((v) => v.appVersion === focusedVersion.appVersion)
+      ? [...topVersionsBySessions, focusedVersion]
+      : topVersionsBySessions;
+  const chartData = chartVersions.map((v) => ({
+    name: v.appVersion,
+    sessões: v.sessions,
+    ...(crashStats !== null ? { crashes: crashByVersion.get(v.appVersion)?.crashCount ?? 0 } : {}),
+  }));
 
   // GH#552 (Fase 2) — síntese derivada de dado real já carregado. Sem BigQuery
   // configurado, a frase não afirma estabilidade — só reporta a ausência do dado.
@@ -149,7 +154,7 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
           source="d1"
         />
         <MetricCard
-          label="Crash-free (Crashlytics)"
+          label="Cobertura Crashlytics"
           value={crashStats === null ? "Não configurado" : `${crashStats.length} versões monitoradas`}
           source={crashStats === null ? "sem credenciais" : "bigquery"}
         />
@@ -222,13 +227,6 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
           ]}
         />
       </SectionCard>
-
-      {crashStats === null && (
-        <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-          Crash rate por versão depende da exportação BigQuery do Firebase Crashlytics — configure
-          as credenciais do Firebase no worker <code>signallq-admin-worker</code> para habilitar.
-        </p>
-      )}
 
       {/* 6. Ações */}
       <ActionsRow

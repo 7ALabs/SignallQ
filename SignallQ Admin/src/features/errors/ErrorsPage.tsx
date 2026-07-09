@@ -17,6 +17,7 @@ import {
   Terminal,
   Workflow
 } from "lucide-react";
+import { alpha } from "../../utils/color";
 
 interface ErrorsPageProps {
   environment: AppEnvironment;
@@ -47,7 +48,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
 
   // Resolution states
   const [resolvingId, setResolvingId] = React.useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = React.useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = React.useState<{ text: string; success: boolean } | null>(null);
   const [resolutionNoteDraft, setResolutionNoteDraft] = React.useState("");
 
   const loadErrors = React.useCallback(async () => {
@@ -81,9 +82,9 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
     setStatusMessage(null);
     try {
       const res = await errorMetricsService.resolveError(id, resolutionNoteDraft);
-      if (res.success) {
-        setStatusMessage(res.message);
+      setStatusMessage({ text: res.message, success: res.success });
 
+      if (res.success) {
         // Atualiza estado local: erro resolvido some da lista de ativos
         // (mesmo comportamento do worker, que já filtra resolved=0 por padrão).
         setErrors(prev => prev.filter(e => e.id !== id));
@@ -97,15 +98,21 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
           });
         }
         setResolutionNoteDraft("");
-      } else {
-        setStatusMessage(res.message);
       }
     } catch (err) {
       console.error("Failed to resolve error", err);
-      setStatusMessage("Falha ao comunicar resolução com o cluster.");
+      setStatusMessage({ text: "Falha ao comunicar resolução com o cluster.", success: false });
     } finally {
       setResolvingId(null);
     }
+  };
+
+  // Ação irreversível na sessão (o erro some da lista assim que resolvido) —
+  // exige confirmação explícita para não perder um caso por misclique durante
+  // triagem rápida, mesmo padrão já usado no reset de Configurações.
+  const handleResolveClick = (id: string) => {
+    if (!window.confirm(`Marcar o erro ${id} como resolvido? Ele sai da lista de erros ativos.`)) return;
+    handleResolve(id);
   };
 
   const filteredErrors = React.useMemo(() => {
@@ -153,6 +160,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
         <input
           type="text"
+          aria-label="Pesquisar erros por mensagem, stack trace, componente ou ID do caso"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Pesquise por mensagem de erro, stack trace, componente ou ID do caso..."
@@ -204,7 +212,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
 
       {/* 5. Tabela de investigação — drill-down por caso, com ação de resolução */}
       {loading ? (
-        <LoadingState message="Acompanhando dumps de erros e crash outputs..." />
+        <LoadingState message="Carregando erros do sistema..." />
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
           <div className="xl:col-span-7">
@@ -222,13 +230,11 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
           {/* Right side investigator panel */}
           <div className="xl:col-span-5">
             {selectedError ? (
-              <div className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-[8px] p-6 relative overflow-hidden font-sans">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full filter blur-2xl flex items-center justify-center pointer-events-none" />
-
+              <div className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-[8px] p-6 font-sans">
                 {/* Main title casing */}
                 <div className="flex items-start justify-between pb-4 border-b border-[var(--border)] mb-5 select-none">
                   <div>
-                    <span className="text-[9px] text-[var(--error)] font-sans uppercase tracking-widest font-bold">Investigador de Exceção</span>
+                    <span className="text-[9px] text-[var(--error)] font-sans uppercase tracking-widest font-bold">Detalhes do erro</span>
                     <h5 className="font-bold text-[var(--text-primary)] text-sm font-mono mt-0.5">{selectedError.id}</h5>
                   </div>
                   <div className="text-right">
@@ -273,9 +279,16 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
                   <div className="space-y-1">
                     <div className="text-[9px] text-[var(--text-tertiary)] font-sans uppercase tracking-widest font-bold flex items-center gap-1">
                       <Terminal className="w-3.5 h-3.5 text-[var(--error)]" />
-                      <span>Trace Back do Sistema</span>
+                      <span>Stack trace</span>
                     </div>
-                    <div className="bg-black text-[var(--error)] p-4 rounded-xl font-mono text-[9px] leading-relaxed max-h-48 overflow-y-auto whitespace-pre-wrap selection:bg-[var(--error)]/35 selection:text-white">
+                    {/* Terminal técnico deliberadamente sempre escuro, independente do tema
+                        do app (mesmo princípio da superfície SignallQ/IA) — cor de erro
+                        fixa em vez de var(--error) porque o tom claro do tema light
+                        (#D93025) não garante contraste AA sobre preto. */}
+                    <div
+                      className="p-4 rounded-xl font-mono text-[9px] leading-relaxed max-h-48 overflow-y-auto whitespace-pre-wrap"
+                      style={{ backgroundColor: "#000000", color: "#FF4D4F" }}
+                    >
                       {selectedError.stackTrace}
                     </div>
                   </div>
@@ -284,12 +297,18 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
                   <div className="pt-4 border-t border-[var(--border)]">
                     <div className="flex items-center gap-1 text-xs text-[var(--text-secondary)] pb-3 select-none">
                       <Workflow className="w-4 h-4 text-[var(--text-tertiary)] mr-1" />
-                      <span>Resolvedor do Caso</span>
+                      <span>Resolução</span>
                     </div>
 
                     {selectedError.resolved ? (
-                      <div className="p-3 bg-emerald-950/15 border border-emerald-500/20 rounded-xl space-y-1.5">
-                        <div className="flex items-center gap-1.5 text-emerald-400 text-[10px] font-sans font-bold uppercase">
+                      <div
+                        className="p-3 rounded-xl space-y-1.5"
+                        style={{ backgroundColor: alpha("var(--success)", 15), border: `1px solid ${alpha("var(--success)", 20)}` }}
+                      >
+                        <div
+                          className="flex items-center gap-1.5 text-[10px] font-sans font-bold uppercase"
+                          style={{ color: "var(--success)" }}
+                        >
                           <CheckCircle className="w-3.5 h-3.5" />
                           <span>Resolvido</span>
                         </div>
@@ -315,7 +334,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
                           className="w-full bg-[var(--bg-base)] border border-[var(--border)] rounded-xl p-2.5 text-[10.5px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--primary)]/60 resize-none font-sans"
                         />
                         <button
-                          onClick={() => handleResolve(selectedError.id)}
+                          onClick={() => handleResolveClick(selectedError.id)}
                           disabled={resolvingId !== null}
                           className="w-full flex items-center justify-center gap-1.5 px-3.5 py-2 border rounded-xl font-sans text-[10px] font-bold uppercase transition-all select-none cursor-pointer bg-[var(--error)]/10 border-[var(--error)]/20 text-[var(--error)] hover:bg-[var(--error)]/20 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
@@ -326,8 +345,15 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
                     )}
 
                     {statusMessage && (
-                      <div className="mt-3 p-3 bg-zinc-950/80 border border-zinc-850 text-emerald-400 text-[10px] font-sans text-center rounded-xl select-none">
-                        {statusMessage}
+                      <div
+                        className="mt-3 p-3 text-[10px] font-sans text-center rounded-xl select-none"
+                        style={{
+                          backgroundColor: alpha(statusMessage.success ? "var(--success)" : "var(--error)", 10),
+                          border: `1px solid ${alpha(statusMessage.success ? "var(--success)" : "var(--error)", 20)}`,
+                          color: statusMessage.success ? "var(--success)" : "var(--error)",
+                        }}
+                      >
+                        {statusMessage.text}
                       </div>
                     )}
                   </div>
@@ -335,7 +361,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
               </div>
             ) : (
               <div className="py-20 text-center rounded-[8px] p-6 select-none font-sans" style={{ background: "var(--bg-surface)", border: "1px dashed var(--border)" }}>
-                <p className="text-xs text-[var(--text-tertiary)]">Selecione algum dump técnico ativo no console esquerdo para inspecionar.</p>
+                <p className="text-xs text-[var(--text-tertiary)]">Selecione um erro na lista à esquerda para investigar.</p>
               </div>
             )}
           </div>

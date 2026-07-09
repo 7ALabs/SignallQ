@@ -243,9 +243,14 @@ export async function syncFirebaseMetrics(): Promise<{ jobId: string; status: st
       startedAt: new Date().toISOString(),
     });
   }
-  return apiClient.request<{ jobId: string; status: string; startedAt: string }>(
+  const raw = await apiClient.request<{ ok: boolean; source: string; syncedAt?: string; message?: string }>(
     "POST",
     "/admin/integrations/firebase/sync",
     {}
   );
+  return {
+    jobId: raw.syncedAt ?? "",
+    status: raw.ok ? "started" : "error",
+    startedAt: raw.syncedAt ?? new Date().toISOString(),
+  };
 }

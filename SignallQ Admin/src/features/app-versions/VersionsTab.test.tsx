@@ -32,6 +32,7 @@ describe("VersionsTab", () => {
   it("mostra aviso de Crashlytics não configurado quando crashStats é null", async () => {
     render(<VersionsTab environment="production" period="7d" onNavigate={vi.fn()} triggerRefreshCounter={0} />);
 
-    expect(await screen.findByText(/Crash rate por versão depende da exportação BigQuery/i)).toBeInTheDocument();
+    expect(await screen.findByText("Cobertura Crashlytics")).toBeInTheDocument();
+    expect(screen.getAllByText("Não configurado").length).toBeGreaterThan(0);
   });
 });
