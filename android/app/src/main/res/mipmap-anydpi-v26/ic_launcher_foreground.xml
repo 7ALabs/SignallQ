@@ -6,14 +6,14 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- 4 barras de sinal crescentes — símbolo SignallQ -->
+    <!-- 4 barras de sinal — símbolo SignallQ. Pico na barra 3; barra 4 tem a mesma altura da barra 2 -->
     <!-- Safe zone: x 18–90, y 18–90. Barras centradas em x e alinhadas na base y=82 -->
     <path
         android:pathData="
             M 32,64 H 33 A 4,4 0 0 1 37,68 V 78 A 4,4 0 0 1 33,82 H 32 A 4,4 0 0 1 28,78 V 68 A 4,4 0 0 1 32,64 Z
             M 46,52 H 47 A 4,4 0 0 1 51,56 V 78 A 4,4 0 0 1 47,82 H 46 A 4,4 0 0 1 42,78 V 56 A 4,4 0 0 1 46,52 Z
             M 60,40 H 61 A 4,4 0 0 1 65,44 V 78 A 4,4 0 0 1 61,82 H 60 A 4,4 0 0 1 56,78 V 44 A 4,4 0 0 1 60,40 Z
-            M 74,28 H 75 A 4,4 0 0 1 79,32 V 78 A 4,4 0 0 1 75,82 H 74 A 4,4 0 0 1 70,78 V 32 A 4,4 0 0 1 74,28 Z">
+            M 74,52 H 75 A 4,4 0 0 1 79,56 V 78 A 4,4 0 0 1 75,82 H 74 A 4,4 0 0 1 70,78 V 56 A 4,4 0 0 1 74,52 Z">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:startX="28"
