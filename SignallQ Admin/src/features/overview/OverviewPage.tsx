@@ -12,11 +12,9 @@ import { OverviewMetricsResponse } from "../../mocks/overview.mock";
 import { productAnalyticsService } from "../../services/productAnalyticsService";
 import { ScreenNavigationMetric } from "../../types/productAnalytics";
 import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
-import { GlobalFilters } from "../../components/ui/GlobalFilters";
 import { SectionIntro } from "../../components/ui/SectionIntro";
 import { InsightBlock } from "../../components/ui/InsightBlock";
 import { ActionsRow } from "../../components/ui/ActionsRow";
-import { PERIOD_FILTERS } from "../../config/constants";
 
 interface OverviewPageProps {
   environment: AppEnvironment;
@@ -186,18 +184,9 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         source="FONTES · FIREBASE ANALYTICS · PLAY CONSOLE · CLOUDFLARE WORKERS · CRASHLYTICS"
       />
 
-      {/* 1. Filtros globais — período (env já é global via Topbar) */}
-      <GlobalFilters
-        filters={[
-          {
-            key: "period",
-            label: "Período",
-            value: period,
-            onChange: onPeriodChange,
-            options: PERIOD_FILTERS.filter((o) => o.value !== "custom"),
-          },
-        ]}
-      />
+      {/* Período já é controlado globalmente pelo Topbar (pills PROD/STG + período) —
+          duplicar o mesmo filtro aqui era um GlobalFilters redundante herdado do
+          SIG-294 Fase 1, antes do Topbar assumir esse controle. Removido. */}
 
       {/* 2. KPIs — grid de cards principais, cada um com veredito/tendência */}
       <OverviewMetricGrid metrics={metrics} />
