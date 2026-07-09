@@ -676,7 +676,7 @@ private fun DiagnosticoDetalhadoSheet(
             c = c,
         )
 
-        val mostrarContato = categoria == "isp"
+        val mostrarContato = categoria == "isp" || categoria == "fibra"
         if (mostrarContato) {
             Spacer(Modifier.height(LkSpacing.md))
             val operadora = remember(ispInfo?.isp) { BancoOperadoras.resolver(ispInfo?.isp) }
