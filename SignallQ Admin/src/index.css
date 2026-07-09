@@ -136,9 +136,10 @@
 /* Tema light */
 [data-theme="light"],
 .light {
-  --bg-base:            #F8F8F8;
-  --bg-sidebar:         #F7F7F7;
-  --bg-topbar:          #FFFFFF;
+  --bg-base:            #FFFFFF;
+  --bg-sidebar:         var(--bg-base);
+  --bg-content:         #F3F4F6;
+  --bg-topbar:          var(--bg-content);
   --bg-surface:         #FFFFFF;
   --bg-surface-muted:   #F3F3F3;
   --bg-surface-hover:   #F5F5F5;
