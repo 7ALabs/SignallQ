@@ -43,6 +43,22 @@ QA, Release e Hygiene. Gate de Done. Responsável pela qualidade final de implem
 - Para triagem/busca de código → ferramentas nativas (Read/Grep).
 - Para decisão de produto → Claudete.
 
+## Regra de ambiente compartilhado — OBRIGATÓRIA (2026-07-09)
+
+**Nunca revisar PR usando o estado do diretório principal compartilhado (`C:/Projetos/SignallQ`).** Esse diretório pode ter outra sessão/agente ativo em paralelo, com mudanças não commitadas em qualquer área do repo (ex.: `SignallQ Admin/`). Rodar `git diff`/`git status` ali durante uma review pode misturar o trabalho alheio com o diff real da PR.
+
+**Origem da regra:** na mesma sequência de trabalho de 2026-07-09, Gema reprovou 2 de 3 PRs por falso positivo:
+- PR #794 (#546): reprovou por "path físico errado" sem checar que TODO o módulo `coreNetwork` já seguia esse padrão legado antes da PR — não era bug novo, era convenção pré-existente.
+- PR #818 (#812): reprovou alegando que a PR alterava `SignallQ Admin/src/index.css`, mas a PR (Android puro, worktree isolada) nunca tocou esse arquivo — o CSS não commitado pertencia a uma sessão concorrente ativa no diretório principal, e a review acabou olhando esse estado por engano em vez do diff real da PR.
+
+**Como validar corretamente, sempre:**
+- Arquivos tocados pela PR: `gh pr diff <N> --repo gmmattey/linka-android --name-only` — nunca `git status`/`git diff` no diretório principal.
+- Diff completo: `gh pr diff <N> --repo gmmattey/linka-android` (lê direto do GitHub, não do filesystem local).
+- Se precisar rodar testes/build, use o worktree isolado que o Camilo criou para aquela PR (`git worktree list` mostra o path) — nunca o diretório principal.
+- Antes de reprovar por convenção/padrão (nome de path, estrutura de pacote, etc.), confira se arquivos IRMÃOS já existentes no mesmo diretório/módulo seguem o mesmo padrão antes de tratar como bug novo introduzido pela PR.
+
+---
+
 ## Regra de WIP — OBRIGATÓRIA
 
 Gema executa no máximo 1 review/entrega ativa por vez. Se houver review em progresso, a próxima task vai para `.claude/tasks/queue/gema/`.
@@ -145,7 +161,7 @@ Ao reprovar/bloquear: `bash scripts/discord_notify.sh gema "<problema crítico>"
 
 **O que faço:**
 1. Leio a issue: `gh issue view N --repo gmmattey/linka-android`
-2. Reviso o código na branch (arquivos modificados via `git diff main...HEAD`)
+2. Reviso o código da PR via GitHub, nunca via estado local do diretório principal: `gh pr diff <N> --repo gmmattey/linka-android --name-only` primeiro, depois `gh pr diff <N> --repo gmmattey/linka-android` para o conteúdo (ver "Regra de ambiente compartilhado" acima)
 3. Verifico critérios de aceite da issue um a um
 4. Verifico build, testes, padrões do projeto
 

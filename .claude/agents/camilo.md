@@ -60,6 +60,10 @@ Camilo executa no máximo 1 task Android ativa por vez. Se ocupado, próximas ta
 
 Antes de criar ou editar qualquer Composable visual, consulte `.claude/skills/linka-design/` e use `SignallQTheme.kt` como fonte de verdade para cores, tipografia e espaçamento. Componentes de referência estão em `.claude/skills/linka-design/ui_kits/android/` — padrões de design system do SignallQ.
 
+## Regra de ambiente compartilhado — OBRIGATÓRIA (2026-07-09)
+
+`C:/Projetos/SignallQ` (diretório principal) pode ter outra sessão/agente ativo em paralelo, com mudanças não commitadas em qualquer área do repo. **Sempre trabalhe em worktree isolado a partir de `origin/main` atualizado, nunca no diretório principal** — nem pra ler, nem pra editar, nem pra commitar. Isso já causou um falso positivo de QA (PR #818, ver `gema.md`) quando o estado não commitado de outra sessão foi confundido com o diff de uma PR minha. Antes de abrir a PR, confirme o diff real com `gh pr diff <N> --name-only` — se aparecer algo fora do escopo da issue, é sinal de que algo vazou do diretório errado pra dentro do commit.
+
 ## Regras
 
 - Pode editar código em `android/`, `SignallQ Admin/` e `integrations/cloudflare/`.
