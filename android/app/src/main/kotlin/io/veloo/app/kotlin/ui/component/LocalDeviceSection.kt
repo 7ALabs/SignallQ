@@ -122,6 +122,10 @@ data class EquipamentoSecaoTecnica(
 data class EquipamentoItemTecnico(
     val label: String,
     val valor: String,
+    /** Quando presente, colore [valor] inteiro na linha — usado hoje so pela
+     *  seguranca do Wi-Fi (rede aberta/WEP), nunca por dado neutro de config
+     *  (largura de canal, potencia) que nao tem veredito bom/ruim. */
+    val statusValor: DiagnosticStatus? = null,
 )
 
 /**
@@ -353,14 +357,26 @@ private fun secoesTecnicas(snapshot: LocalNetworkDeviceSnapshot): List<Equipamen
                             listOf(EquipamentoItemTecnico("Wi-Fi", "Sem leitura nesta captura"))
                         } else {
                             radios.map { radio ->
+                                val desligado = radio.habilitado == false
+                                // Rádio desligado não tem segurança/largura/potência relevante — suprime os 3.
+                                val seguranca = if (desligado) null else traduzirSegurancaWifiRadio(radio.criptografia)
+                                val largura = if (desligado) null else traduzirLarguraCanalWifi(radio.larguraCanal)
+                                val potencia = if (desligado) null else traduzirPotenciaTxWifi(radio.potenciaTx)
                                 EquipamentoItemTecnico(
                                     label = radio.ssid ?: radio.banda,
                                     valor =
                                         buildString {
                                             append(radio.banda)
                                             radio.canal?.let { append(" · canal $it") }
-                                            if (radio.habilitado == false) append(" · desligado")
+                                            if (desligado) {
+                                                append(" · desligado")
+                                            } else {
+                                                seguranca?.let { append(" · ${it.texto}") }
+                                                largura?.let { append(" · $it") }
+                                                potencia?.let { append(" · $it") }
+                                            }
                                         },
+                                    statusValor = seguranca?.status,
                                 )
                             }
                         },
@@ -389,6 +405,65 @@ private fun secoesTecnicas(snapshot: LocalNetworkDeviceSnapshot): List<Equipamen
                         ).ifEmpty { listOf(EquipamentoItemTecnico("Rede local (LAN)", "Sem leitura nesta captura")) },
                 ),
             )
+        }
+    }
+}
+
+private data class SegurancaWifiTraduzida(
+    val texto: String,
+    val status: DiagnosticStatus?,
+)
+
+/** Traduz `WifiRadioSnapshot.criptografia` (dado bruto do parser do equipamento,
+ *  nao do scan do WifiManager) — mesma logica de `contains` case-insensitive de
+ *  [io.signallq.app.feature.wifi.ScannerRedesWifi] (`ScanResult.paraRedeVizinha`),
+ *  aplicada ao vocabulario dos firmwares (ex.: TP-Link reporta "psk" isolado). */
+private fun traduzirSegurancaWifiRadio(raw: String?): SegurancaWifiTraduzida? {
+    val valor = raw?.trim().orEmpty()
+    if (valor.isBlank()) return null
+    val lower = valor.lowercase()
+    return when {
+        lower.contains("none") || lower.contains("open") || lower.contains("aberta") || lower.contains("disabled") ->
+            SegurancaWifiTraduzida("Sem senha", DiagnosticStatus.critical)
+        lower.contains("wep") -> SegurancaWifiTraduzida("WEP", DiagnosticStatus.attention)
+        lower.contains("wpa3") -> SegurancaWifiTraduzida("WPA3", null)
+        lower.contains("wpa2") -> SegurancaWifiTraduzida("WPA2", null)
+        lower.contains("wpa") -> SegurancaWifiTraduzida("WPA", null)
+        lower.contains("psk") -> SegurancaWifiTraduzida("WPA2", null)
+        else -> SegurancaWifiTraduzida("Segurança não identificada", null)
+    }
+}
+
+/** Traduz `WifiRadioSnapshot.larguraCanal` — so normaliza unidade ("80MHz" ->
+ *  "80 MHz"), nunca inventa veredito (canal largo nao e "melhor" sem saber
+ *  congestionamento). Vendor fora do formato esperado passa o valor bruto. */
+private fun traduzirLarguraCanalWifi(raw: String?): String? {
+    val valor = raw?.trim().orEmpty()
+    if (valor.isBlank()) return null
+    val match = Regex("(\\d+)\\s*mhz", RegexOption.IGNORE_CASE).find(valor)
+    return match?.let { "${it.groupValues[1]} MHz" } ?: valor
+}
+
+/** Traduz `WifiRadioSnapshot.potenciaTx` — dado neutro de configuracao, sem
+ *  cor/veredito. Formato nao reconhecido faz passthrough do valor bruto,
+ *  nunca fabrica traducao. */
+private fun traduzirPotenciaTxWifi(raw: String?): String? {
+    val valor = raw?.trim().orEmpty()
+    if (valor.isBlank()) return null
+    val lower = valor.lowercase()
+    return when {
+        lower.contains("high") || lower.contains("alta") || lower.contains("alto") -> "Potência alta"
+        lower.contains("medium") || lower.contains("média") || lower.contains("media") || lower.contains("moderada") ->
+            "Potência média"
+        lower.contains("low") || lower.contains("baixa") || lower.contains("baixo") -> "Potência baixa"
+        else -> {
+            val percentual = Regex("^(\\d+(?:[.,]\\d+)?)\\s*%$").find(valor)
+            val dbm = Regex("^(\\d+(?:[.,]\\d+)?)\\s*dbm$", RegexOption.IGNORE_CASE).find(valor)
+            when {
+                percentual != null -> "Potência: ${percentual.groupValues[1]}% do máximo"
+                dbm != null -> "Potência: ${dbm.groupValues[1]} dBm"
+                else -> "Potência: $valor"
+            }
         }
     }
 }
@@ -716,7 +791,12 @@ private fun EquipamentoSecaoRow(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(item.label, fontSize = 11.sp, color = c.textTertiary, modifier = Modifier.weight(1f))
-                Text(item.valor, fontSize = 11.sp, fontWeight = FontWeight.W600, color = c.textPrimary)
+                Text(
+                    item.valor,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.W600,
+                    color = item.statusValor?.let { statusParaCor(it) } ?: c.textPrimary,
+                )
             }
         }
     }

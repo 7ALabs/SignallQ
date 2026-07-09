@@ -14,6 +14,7 @@ import io.signallq.app.core.network.contracts.localdevice.SupportLevel
 import io.signallq.app.core.network.contracts.localdevice.WanSnapshot
 import io.signallq.app.core.network.contracts.localdevice.WifiRadioSnapshot
 import io.signallq.app.core.network.contracts.localdevice.WifiSnapshot
+import io.signallq.app.feature.diagnostico.DiagnosticStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -178,6 +179,189 @@ class LocalDeviceSectionUiStateTest {
             lan = null,
             freshness = freshness(),
         )
+
+    private fun wifiItemDoRadio(radio: WifiRadioSnapshot): EquipamentoItemTecnico {
+        val snapshot = tplinkSnapshotCompleto().copy(wifi = WifiSnapshot(radios = listOf(radio)))
+        val estado = mapLocalDeviceSectionUiState(snapshot) as LocalDeviceSectionUiState.Conectado
+        return estado.secoes
+            .first { it.titulo == "Wi-Fi" }
+            .itens
+            .first()
+    }
+
+    @Test
+    fun `radio com todos os campos monta a linha completa traduzida sem cor especial`() {
+        val item =
+            wifiItemDoRadio(
+                WifiRadioSnapshot(
+                    banda = "5 GHz",
+                    ssid = "Casa_5G",
+                    canal = 44,
+                    larguraCanal = "80MHz",
+                    potenciaTx = "alta",
+                    criptografia = "WPA2",
+                    habilitado = true,
+                ),
+            )
+        assertEquals("5 GHz · canal 44 · WPA2 · 80 MHz · Potência alta", item.valor)
+        assertEquals(null, item.statusValor)
+    }
+
+    @Test
+    fun `rede aberta vira Sem senha com status critico`() {
+        val item =
+            wifiItemDoRadio(
+                WifiRadioSnapshot(
+                    banda = "2.4 GHz",
+                    ssid = "Casa_2G",
+                    canal = 6,
+                    larguraCanal = null,
+                    potenciaTx = null,
+                    criptografia = "none",
+                    habilitado = true,
+                ),
+            )
+        assertTrue(item.valor.contains("Sem senha"))
+        assertEquals(DiagnosticStatus.critical, item.statusValor)
+    }
+
+    @Test
+    fun `WEP vira status de atencao`() {
+        val item =
+            wifiItemDoRadio(
+                WifiRadioSnapshot(
+                    banda = "2.4 GHz",
+                    ssid = "Casa_2G",
+                    canal = 6,
+                    larguraCanal = null,
+                    potenciaTx = null,
+                    criptografia = "WEP",
+                    habilitado = true,
+                ),
+            )
+        assertTrue(item.valor.endsWith("WEP"))
+        assertEquals(DiagnosticStatus.attention, item.statusValor)
+    }
+
+    @Test
+    fun `psk isolado sem wpa no texto vira WPA2 neutro`() {
+        val item =
+            wifiItemDoRadio(
+                WifiRadioSnapshot(
+                    banda = "5 GHz",
+                    ssid = "Casa_5G",
+                    canal = 44,
+                    larguraCanal = null,
+                    potenciaTx = null,
+                    criptografia = "psk",
+                    habilitado = true,
+                ),
+            )
+        assertTrue(item.valor.endsWith("WPA2"))
+        assertEquals(null, item.statusValor)
+    }
+
+    @Test
+    fun `criptografia nao reconhecida mostra rotulo generico sem cor`() {
+        val item =
+            wifiItemDoRadio(
+                WifiRadioSnapshot(
+                    banda = "5 GHz",
+                    ssid = "Casa_5G",
+                    canal = 44,
+                    larguraCanal = null,
+                    potenciaTx = null,
+                    criptografia = "vendor-proprietary-xyz",
+                    habilitado = true,
+                ),
+            )
+        assertTrue(item.valor.endsWith("Segurança não identificada"))
+        assertEquals(null, item.statusValor)
+    }
+
+    @Test
+    fun `radio desligado suprime seguranca largura e potencia`() {
+        val item =
+            wifiItemDoRadio(
+                WifiRadioSnapshot(
+                    banda = "5 GHz",
+                    ssid = "Casa_5G",
+                    canal = 44,
+                    larguraCanal = "80MHz",
+                    potenciaTx = "alta",
+                    criptografia = "WPA2",
+                    habilitado = false,
+                ),
+            )
+        assertEquals("5 GHz · canal 44 · desligado", item.valor)
+        assertEquals(null, item.statusValor)
+    }
+
+    @Test
+    fun `campos ausentes sao omitidos sem traco`() {
+        val item =
+            wifiItemDoRadio(
+                WifiRadioSnapshot(
+                    banda = "5 GHz",
+                    ssid = "Casa_5G",
+                    canal = 44,
+                    larguraCanal = null,
+                    potenciaTx = null,
+                    criptografia = null,
+                    habilitado = true,
+                ),
+            )
+        assertEquals("5 GHz · canal 44", item.valor)
+        assertFalse(item.valor.contains("—"))
+    }
+
+    @Test
+    fun `largura de canal em formato inesperado mostra valor bruto`() {
+        val item =
+            wifiItemDoRadio(
+                WifiRadioSnapshot(
+                    banda = "5 GHz",
+                    ssid = "Casa_5G",
+                    canal = 44,
+                    larguraCanal = "faixa-dupla",
+                    potenciaTx = null,
+                    criptografia = null,
+                    habilitado = true,
+                ),
+            )
+        assertTrue(item.valor.endsWith("faixa-dupla"))
+    }
+
+    @Test
+    fun `potencia com percentual e dBm sao traduzidas com unidade`() {
+        val itemPercentual =
+            wifiItemDoRadio(
+                WifiRadioSnapshot(
+                    banda = "5 GHz",
+                    ssid = "Casa_5G",
+                    canal = 44,
+                    larguraCanal = null,
+                    potenciaTx = "75%",
+                    criptografia = null,
+                    habilitado = true,
+                ),
+            )
+        assertTrue(itemPercentual.valor.endsWith("Potência: 75% do máximo"))
+
+        val itemDbm =
+            wifiItemDoRadio(
+                WifiRadioSnapshot(
+                    banda = "5 GHz",
+                    ssid = "Casa_5G",
+                    canal = 44,
+                    larguraCanal = null,
+                    potenciaTx = "20dBm",
+                    criptografia = null,
+                    habilitado = true,
+                ),
+            )
+        assertTrue(itemDbm.valor.endsWith("Potência: 20 dBm"))
+    }
 
     private fun tplinkSnapshotCompleto() =
         LocalNetworkDeviceSnapshot(
