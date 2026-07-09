@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -578,22 +577,21 @@ private fun DiagnosticoDetalhadoSheet(
             }
         }
 
-        Spacer(Modifier.height(LkSpacing.lg))
-        HorizontalDivider(color = c.border, thickness = 0.5.dp)
-        Spacer(Modifier.height(LkSpacing.lg))
+        Spacer(Modifier.height(LkSpacing.xl))
 
-        // CAUSA PROVÁVEL
+        // CAUSA PROVÁVEL — a informação mais importante da tela: peso tipográfico
+        // reforçado (titleLarge) pra não competir com o resto (#833).
         if (decisaoTitulo != null || decisaoMensagem != null) {
             SheetOverline("CAUSA PROVÁVEL", c)
             Spacer(Modifier.height(LkSpacing.sm))
             if (decisaoTitulo != null) {
                 Text(
                     text = decisaoTitulo,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.W600,
                     color = c.textPrimary,
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(4.dp))
             }
             if (decisaoMensagem != null) {
                 Text(
@@ -606,36 +604,34 @@ private fun DiagnosticoDetalhadoSheet(
             Spacer(Modifier.height(LkSpacing.xl))
         }
 
-        // IMPACTO PRÁTICO
+        // IMPACTO PRÁTICO — compactado numa linha só (#833): os 3 vereditos cabem
+        // lado a lado, sem precisar de 3 linhas + 2 divisores pra mesma informação.
         SheetOverline("IMPACTO PRÁTICO", c)
         Spacer(Modifier.height(LkSpacing.sm))
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(LkRadius.card))
-                    .background(c.bgSecondary)
-                    .padding(LkSpacing.lg),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
         ) {
-            VereditorRow(
+            ImpactoPraticoChip(
                 label = "Streaming",
                 veredito = resultado.diagnosticoQualidade.vereditoStreaming,
                 icon = Icons.Outlined.Tv,
                 c = c,
+                modifier = Modifier.weight(1f),
             )
-            HorizontalDivider(color = c.border, thickness = 0.5.dp, modifier = Modifier.padding(vertical = LkSpacing.sm))
-            VereditorRow(
+            ImpactoPraticoChip(
                 label = "Gaming",
                 veredito = resultado.diagnosticoQualidade.vereditoGamer,
                 icon = Icons.Outlined.SportsEsports,
                 c = c,
+                modifier = Modifier.weight(1f),
             )
-            HorizontalDivider(color = c.border, thickness = 0.5.dp, modifier = Modifier.padding(vertical = LkSpacing.sm))
-            VereditorRow(
+            ImpactoPraticoChip(
                 label = "Vídeo Chamada",
                 veredito = resultado.diagnosticoQualidade.vereditoVideoChamada,
                 icon = Icons.Outlined.Videocam,
                 c = c,
+                modifier = Modifier.weight(1f),
             )
         }
 
@@ -663,12 +659,6 @@ private fun DiagnosticoDetalhadoSheet(
             Spacer(Modifier.height(LkSpacing.md))
         }
 
-        Text(
-            text = "Quer uma recomendação mais específica para o seu caso?",
-            style = MaterialTheme.typography.bodySmall,
-            color = c.textTertiary,
-        )
-        Spacer(Modifier.height(LkSpacing.sm))
         AnalisadorProblemaSection(
             state = analisadorState,
             onAnalisarProblema = onAnalisarProblema,
@@ -687,18 +677,10 @@ private fun DiagnosticoDetalhadoSheet(
             }
         }
 
-        // ORIENTAÇÃO POR TIPO DE REDE
-        Spacer(Modifier.height(LkSpacing.xl))
-        SheetOverline("ORIENTAÇÃO POR TIPO DE REDE", c)
-        Spacer(Modifier.height(LkSpacing.sm))
-        Text(
-            text = orientacaoPorTipoDeRede(resultado.connectionType, resultado.tecnologia),
-            style = MaterialTheme.typography.bodyMedium,
-            color = c.textSecondary,
-            lineHeight = 20.sp,
-        )
-
-        // DETALHES TÉCNICOS (expansível)
+        // DETALHES TÉCNICOS (expansível) — inclui Orientação por tipo de rede como
+        // primeiro item interno (#833): é texto de referência/boilerplate por tipo
+        // de conexão, não personalizado como a causa provável ou o diagnóstico da IA,
+        // então não precisa competir na primeira dobra.
         Spacer(Modifier.height(LkSpacing.xl))
         Column(
             modifier =
@@ -743,6 +725,17 @@ private fun DiagnosticoDetalhadoSheet(
                             .padding(horizontal = LkSpacing.lg)
                             .padding(bottom = LkSpacing.lg),
                 ) {
+                    HorizontalDivider(color = c.border, thickness = 0.5.dp)
+                    Spacer(Modifier.height(LkSpacing.md))
+                    SheetOverline("ORIENTAÇÃO POR TIPO DE REDE", c)
+                    Spacer(Modifier.height(LkSpacing.xs))
+                    Text(
+                        text = orientacaoPorTipoDeRede(resultado.connectionType, resultado.tecnologia),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.textSecondary,
+                        lineHeight = 18.sp,
+                    )
+                    Spacer(Modifier.height(LkSpacing.md))
                     HorizontalDivider(color = c.border, thickness = 0.5.dp)
                     Spacer(Modifier.height(LkSpacing.md))
                     DetalheRow("Bufferbloat", "%.0f ms".format(resultado.bufferbloatMs), c)
@@ -867,11 +860,12 @@ private fun ChipTipoRede(
 }
 
 @Composable
-private fun VereditorRow(
+private fun ImpactoPraticoChip(
     label: String,
     veredito: VereditoUso,
     icon: ImageVector,
     c: LkTokens,
+    modifier: Modifier = Modifier,
 ) {
     val (cor, badgeLabel) =
         when (veredito) {
@@ -879,39 +873,32 @@ private fun VereditorRow(
             VereditoUso.acceptable -> LkColors.warning to "Aceitável"
             VereditoUso.poor -> LkColors.error to "Ruim"
         }
+    // Compacta os 3 vereditos de Impacto prático numa única linha (#833): o nome
+    // completo ("Streaming", "Gaming"...) só existe pro leitor de tela, na tela
+    // aparece ícone + veredito curto, cor semântica já carrega o significado.
     Row(
         modifier =
-            Modifier
-                .fillMaxWidth()
-                .semantics { contentDescription = "$label: $badgeLabel" },
+            modifier
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(cor.copy(alpha = 0.12f))
+                .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.sm)
+                .semantics(mergeDescendants = true) { contentDescription = "$label: $badgeLabel" },
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = c.textSecondary,
+            tint = cor,
             modifier = Modifier.size(16.dp),
         )
-        Spacer(Modifier.width(LkSpacing.sm))
+        Spacer(Modifier.width(4.dp))
         Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = c.textSecondary,
-            modifier = Modifier.weight(1f),
+            text = badgeLabel,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.W600,
+            color = cor,
         )
-        Box(
-            modifier =
-                Modifier
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(cor.copy(alpha = 0.15f))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-        ) {
-            Text(
-                text = badgeLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = cor,
-            )
-        }
     }
 }
 
@@ -1188,7 +1175,7 @@ private fun AnalisadorProblemaSection(
             shape = RoundedCornerShape(LkRadius.button),
         ) {
             Text(
-                text = "Analisar meu problema",
+                text = "Analisar meu problema com IA",
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
                 color = c.textPrimary,
