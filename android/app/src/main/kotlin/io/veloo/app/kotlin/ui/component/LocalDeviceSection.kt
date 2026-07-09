@@ -539,6 +539,9 @@ private fun LocalDeviceConectadoContent(
             }
         }
 
+        // Aviso de suporte experimental (GH#539) — microcopy exata definida na
+        // regra de produto do catalogo, nao deve ser reformulada aqui sem
+        // atualizar a issue/regra.
         if (state.experimental) {
             Spacer(Modifier.height(LkSpacing.sm))
             Row(
@@ -553,7 +556,7 @@ private fun LocalDeviceConectadoContent(
                 Icon(Icons.Outlined.Science, contentDescription = null, tint = LkColors.warning, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(LkSpacing.xs))
                 Text(
-                    "Suporte experimental — estes dados ainda não passaram por validação de laboratório.",
+                    "Suporte experimental. Alguns dados podem não aparecer ou estar incompletos.",
                     fontSize = 10.5.sp,
                     color = c.textSecondary,
                     lineHeight = 14.sp,

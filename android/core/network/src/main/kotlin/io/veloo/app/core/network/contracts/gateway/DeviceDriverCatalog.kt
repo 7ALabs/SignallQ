@@ -31,6 +31,14 @@ data class DeviceDriverProfile(
      * capabilities de fibra").
      */
     val fibraCapable: Boolean = false,
+    /**
+     * Nome de modelo amigavel para exibicao publica (GH#539) — ex.: "G-1425G-B",
+     * "Archer C20". Nulo para entradas genericas/experimentais que nao
+     * representam um modelo especifico (a familia inteira e citada, nao um
+     * aparelho). Nunca usar [modelPatterns] diretamente como nome de exibicao —
+     * sao trechos de match case-insensitive, nao texto pronto para o usuario.
+     */
+    val displayModel: String? = null,
 )
 
 /**
@@ -57,6 +65,7 @@ object DeviceDriverCatalog {
             deviceType = DeviceType.ONT_GPON,
             supportLevel = SupportLevel.LAB_VALIDATED,
             fibraCapable = true,
+            displayModel = "G-1425G-B",
         ),
         // TP-Link Archer C20 — roteador, validado fisicamente em LAB.
         // routeSignatures fica de fora de proposito: o endpoint "cgi-bin/luci" e
@@ -71,6 +80,7 @@ object DeviceDriverCatalog {
             deviceType = DeviceType.ROUTER,
             supportLevel = SupportLevel.LAB_VALIDATED,
             fibraCapable = false,
+            displayModel = "Archer C20",
         ),
         // TP-Link Archer C6 (tambem se anuncia como "Archer A6 v2" via OneMesh) — roteador, validado fisicamente em LAB.
         DeviceDriverProfile(
@@ -81,6 +91,7 @@ object DeviceDriverCatalog {
             deviceType = DeviceType.ROUTER,
             supportLevel = SupportLevel.LAB_VALIDATED,
             fibraCapable = false,
+            displayModel = "Archer C6",
         ),
         // Familia stok-luci generica (outros TP-Link/Mercusys) — parser importado do NetHAL,
         // ainda sem validacao fisica do SignallQ. Unica entrada que casa so pela rota
@@ -93,6 +104,7 @@ object DeviceDriverCatalog {
             deviceType = DeviceType.ROUTER,
             supportLevel = SupportLevel.PARSER_IMPORTED,
             fibraCapable = false,
+            displayModel = "Familia stok-luci (roteador TP-Link/Mercusys nao identificado)",
         ),
         // Mesh/extensores conhecidos por nome — sem parser dedicado, so familia inferida.
         DeviceDriverProfile(
@@ -102,6 +114,7 @@ object DeviceDriverCatalog {
             deviceType = DeviceType.MESH_OR_EXTENDER,
             supportLevel = SupportLevel.INFERRED_FAMILY,
             fibraCapable = false,
+            displayModel = "Mesh/extensor (familia inferida)",
         ),
     )
 }
