@@ -5,9 +5,10 @@ package io.signallq.app.core.network.contracts.gateway
  * de conexao da Home (GatewayConnectionSheet, GH#526, epic #525).
  *
  * A implementacao real (autenticacao HTTP/TR-064 no roteador ou ONT, por
- * fabricante/firmware) e escopo de GH#527/#530. Esta interface existe so para
- * a UI funcionar hoje com estados mockaveis, sem acoplar a sheet a nenhuma
- * implementacao concreta ainda inexistente.
+ * fabricante/firmware) segue fora de escopo — item futuro do epic #525. Esta
+ * interface existe so para a UI funcionar hoje (sheet manual e autoconexao por
+ * BSSID do GH#527) com estados mockaveis, sem acoplar a nenhuma implementacao
+ * concreta ainda inexistente.
  */
 fun interface GatewayConnectionService {
     suspend fun conectar(ip: String, usuario: String, senha: String): GatewayConnectionResultado

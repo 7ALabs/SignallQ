@@ -1185,6 +1185,10 @@ class MainViewModel
                 preferenciasAppRepository.definirModemUsername(user)
                 preferenciasAppRepository.definirModemPassword(pass)
                 preferenciasAppRepository.definirModemPermanecerConectado(perm)
+                // GH#527 — revogar "manter conectado" por aqui tambem limpa o BSSID vinculado,
+                // senao fica credencial orfa tentando autoconectar numa sessao que o usuario
+                // ja desligou.
+                if (!perm) preferenciasAppRepository.definirGatewaySessionBssid(null)
             }
         }
 

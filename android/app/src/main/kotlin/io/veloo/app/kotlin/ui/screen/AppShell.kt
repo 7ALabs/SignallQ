@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.sp
 import io.signallq.app.BuildConfig
 import io.signallq.app.FeatureFlags
 import io.signallq.app.R
+import io.signallq.app.bssidElegivelParaAutoconexao
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
@@ -248,15 +249,9 @@ fun AppShell(
     var modoSelecionado by remember { mutableStateOf(ModoSpeedtest.complete) }
     val overlayStack = remember { mutableStateListOf<Overlay>() }
 
-    // GH#530 — sessao "manter conectado" do gateway, fonte unica compartilhada pelos dois
-    // entry points (Home e Ajustes). Valida quando o toggle esta ativo E o BSSID atual bate
-    // com o BSSID em que a sessao foi estabelecida — rede diferente invalida a sessao.
-    val bssidAtual = snapshotRede.wifiLinkSnapshot?.bssid
-    val gatewaySessaoValida =
-        modemPermanecerConectado && gatewaySessionBssid != null && gatewaySessionBssid == bssidAtual
-
-    // Implementacao mock (GH#526/#530) — autenticacao real no equipamento e escopo de #527.
-    // Existe so para a sheet funcionar hoje, sem acoplar a UI a uma implementacao concreta.
+    // Implementacao mock (GH#526/#530) — autenticacao real no equipamento (HTTP/TR-064 por
+    // fabricante/firmware) segue fora deste escopo. Existe so para a sheet e a autoconexao
+    // funcionarem hoje, sem acoplar a UI a uma implementacao concreta.
     val gatewayConnectionServiceMock =
         remember {
             GatewayConnectionService { _, _, _ ->
@@ -264,6 +259,28 @@ fun AppShell(
                 GatewayConnectionResultado.Sucesso
             }
         }
+
+    // GH#527 — sessao "manter conectado" do gateway, fonte unica compartilhada pelos dois
+    // entry points (Home e Ajustes). Elegivel quando o toggle esta ativo E o BSSID atual bate
+    // com o BSSID vinculado a credencial — rede diferente (mesmo com o mesmo SSID) invalida.
+    // Elegibilidade sozinha nao basta: dispara uma tentativa real de autenticacao silenciosa
+    // ao entrar na rede vinculada, sem pedir a senha de novo. Falha nao mostra erro intrusivo —
+    // so mantem a trilha no estado "desconectado" (nó do gateway volta a abrir a sheet manual).
+    val bssidAtual = snapshotRede.wifiLinkSnapshot?.bssid
+    val elegivelParaAutoconexao =
+        bssidElegivelParaAutoconexao(modemPermanecerConectado, gatewaySessionBssid, bssidAtual)
+    var gatewaySessaoValida by remember { mutableStateOf(false) }
+    LaunchedEffect(elegivelParaAutoconexao, modemHost, modemUsername, modemPassword) {
+        gatewaySessaoValida =
+            if (elegivelParaAutoconexao && !modemHost.isNullOrBlank()) {
+                val resultado =
+                    runCatching { gatewayConnectionServiceMock.conectar(modemHost, modemUsername, modemPassword) }
+                        .getOrNull()
+                resultado is GatewayConnectionResultado.Sucesso
+            } else {
+                false
+            }
+    }
 
     // Destino provisorio da conexao ao gateway — FibraModemScreen ja le sinal do modem, mas
     // NAO e a tela de detalhe definitiva do GPON/Roteador (isso e SIG-357, ainda nao existe).

@@ -37,6 +37,7 @@ class CredenciaisModemStore(private val context: Context) {
 
     private val _usernameFlow = MutableStateFlow(DEFAULT_USERNAME)
     private val _passwordFlow = MutableStateFlow(DEFAULT_PASSWORD)
+    private val _bssidVinculadoFlow = MutableStateFlow<String?>(null)
 
     private var inicializado = false
 
@@ -50,11 +51,23 @@ class CredenciaisModemStore(private val context: Context) {
         return _passwordFlow
     }
 
+    /**
+     * BSSID do gateway ao qual a credencial acima foi vinculada via "Manter conectado"
+     * (GH#527). Guardado junto da credencial no store criptografado — nunca no DataStore
+     * plaintext — porque, a partir da API 26, o Android trata BSSID como dado sensivel
+     * de localizacao. Null = nenhum vinculo ativo (autoconexao desligada ou revogada).
+     */
+    val bssidVinculadoFlow: StateFlow<String?> get() {
+        garantirInicializado()
+        return _bssidVinculadoFlow
+    }
+
     @Synchronized
     private fun garantirInicializado() {
         if (inicializado) return
         _usernameFlow.value = prefs.getString(CHAVE_USERNAME, DEFAULT_USERNAME) ?: DEFAULT_USERNAME
         _passwordFlow.value = prefs.getString(CHAVE_PASSWORD, DEFAULT_PASSWORD) ?: DEFAULT_PASSWORD
+        _bssidVinculadoFlow.value = prefs.getString(CHAVE_BSSID_VINCULADO, null)
         inicializado = true
     }
 
@@ -68,6 +81,15 @@ class CredenciaisModemStore(private val context: Context) {
         garantirInicializado()
         prefs.edit().putString(CHAVE_PASSWORD, password).apply()
         _passwordFlow.value = password
+    }
+
+    /** Vincula (ou revoga, com null) o BSSID do gateway a credencial salva. */
+    fun salvarBssidVinculado(bssid: String?) {
+        garantirInicializado()
+        val editor = prefs.edit()
+        if (bssid != null) editor.putString(CHAVE_BSSID_VINCULADO, bssid) else editor.remove(CHAVE_BSSID_VINCULADO)
+        editor.apply()
+        _bssidVinculadoFlow.value = bssid
     }
 
     /**
@@ -102,6 +124,7 @@ class CredenciaisModemStore(private val context: Context) {
     companion object {
         private const val CHAVE_USERNAME = "modem_username"
         private const val CHAVE_PASSWORD = "modem_password"
+        private const val CHAVE_BSSID_VINCULADO = "gateway_bssid_vinculado"
         private const val CHAVE_MIGRADO = "migrado_do_datastore"
         const val DEFAULT_USERNAME = "userAdmin"
         const val DEFAULT_PASSWORD = ""

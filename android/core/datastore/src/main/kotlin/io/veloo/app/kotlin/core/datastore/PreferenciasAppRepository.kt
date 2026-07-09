@@ -31,10 +31,9 @@ class PreferenciasAppRepository(
     private val chaveModemPassword = stringPreferencesKey("modemPassword")
     private val chaveModemPermanecerConectado = booleanPreferencesKey("modemPermanecerConectado")
 
-    // Sessao "manter conectado" do gateway (GH#530) — BSSID da rede em que a sessao foi
-    // estabelecida. Sessao so e considerada valida quando o BSSID atual bate com este valor
-    // E modemPermanecerConectado esta ativo (checado pelo caller, nao aqui).
-    private val chaveGatewaySessionBssid = stringPreferencesKey("gatewaySessionBssid")
+    // Legado (GH#530) — chave plaintext onde o BSSID vinculado ficava antes do GH#527 mover
+    // esse dado para o CredenciaisModemStore criptografado. Mantida so para migracao unica.
+    private val chaveGatewaySessionBssidLegado = stringPreferencesKey("gatewaySessionBssid")
     private val chaveTemaSelecionado = stringPreferencesKey("temaSelecionado")
     private val chaveAnaliseAvancada = booleanPreferencesKey("analiseAvancada")
     private val chaveNomeUsuario = stringPreferencesKey("nomeUsuario")
@@ -110,6 +109,14 @@ class PreferenciasAppRepository(
                     it.remove(chaveModemPassword)
                 }
             }
+
+            // GH#527 — migra o BSSID vinculado (GH#530) da chave plaintext legada para o
+            // store criptografado, uma unica vez.
+            val bssidLegado = prefs[chaveGatewaySessionBssidLegado]
+            if (bssidLegado != null) {
+                credenciaisModem.salvarBssidVinculado(bssidLegado)
+                context.dataStore.edit { it.remove(chaveGatewaySessionBssidLegado) }
+            }
         }
     }
 
@@ -126,8 +133,9 @@ class PreferenciasAppRepository(
     val modemPermanecerConectadoFlow: Flow<Boolean> =
         context.dataStore.data.map { it[chaveModemPermanecerConectado] ?: false }
 
-    val gatewaySessionBssidFlow: Flow<String?> =
-        context.dataStore.data.map { it[chaveGatewaySessionBssid] }
+    // GH#527 — BSSID vinculado a credencial "manter conectado", agora persistido junto
+    // dela no store criptografado (nunca em plaintext no DataStore comum).
+    val gatewaySessionBssidFlow: Flow<String?> get() = credenciaisModem.bssidVinculadoFlow
 
     val temaSelecionadoFlow: Flow<String> =
         context.dataStore.data.map { it[chaveTemaSelecionado] ?: "sistema" }
@@ -265,12 +273,7 @@ class PreferenciasAppRepository(
 
     /** BSSID em que a sessao "manter conectado" do gateway foi estabelecida. Null limpa. */
     suspend fun definirGatewaySessionBssid(bssid: String?) {
-        withContext(ioDispatcher) {
-            context.dataStore.edit { prefs ->
-                if (bssid != null) prefs[chaveGatewaySessionBssid] = bssid
-                else prefs.remove(chaveGatewaySessionBssid)
-            }
-        }
+        withContext(ioDispatcher) { credenciaisModem.salvarBssidVinculado(bssid) }
     }
 
     suspend fun definirTemaSelecionado(tema: String) {
@@ -478,6 +481,7 @@ class PreferenciasAppRepository(
             context.dataStore.edit { it.clear() }
             credenciaisModem.salvarUsername(CredenciaisModemStore.DEFAULT_USERNAME)
             credenciaisModem.salvarPassword(CredenciaisModemStore.DEFAULT_PASSWORD)
+            credenciaisModem.salvarBssidVinculado(null)
         }
     }
 }
