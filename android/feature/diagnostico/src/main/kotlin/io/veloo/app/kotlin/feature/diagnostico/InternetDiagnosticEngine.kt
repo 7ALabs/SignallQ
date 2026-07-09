@@ -7,6 +7,9 @@ object InternetDiagnosticEngine {
     fun avaliar(
         input: InternetDiagnosticInput?,
         wifiConfiavelParaTeste: Boolean,
+        /** Tipo de conexao ativa. Usado para nao falar de "roteador/modem" quando a
+         *  conexao e 100% rede movel (GH#521, mesmo padrao de FindingEngine SIG-514). */
+        connectionType: ConnectionType = ConnectionType.wifi,
     ): List<DiagnosticResult> {
         if (input == null) {
             return listOf(
@@ -46,6 +49,7 @@ object InternetDiagnosticEngine {
         val perda = input.perdaPercentual
 
         // IN-NORMAL-07 / 07b: perda de pacotes
+        val emRedeMovel = connectionType == ConnectionType.mobile
         if (perda != null) {
             when {
                 perda >= 3.0 -> resultados.add(
@@ -55,7 +59,11 @@ object InternetDiagnosticEngine {
                         status = DiagnosticStatus.critical,
                         evidencia = "perda=${"%.1f".format(perda)}%",
                         mensagemUsuario = "Há perda de pacotes alta (${"%.1f".format(perda)}%). Calls de vídeo e jogos serão gravemente afetados.",
-                        recomendacao = "Reinicie o roteador e o modem. Se persistir, contate o provedor.",
+                        recomendacao = if (emRedeMovel) {
+                            "Teste em outro local ou horário. Se persistir, contate a operadora."
+                        } else {
+                            "Reinicie o roteador e o modem. Se persistir, contate o provedor."
+                        },
                         categoria = CAT,
                         podeConcluir = true,
                     ),

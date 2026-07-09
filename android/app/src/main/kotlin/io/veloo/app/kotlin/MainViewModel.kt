@@ -264,12 +264,14 @@ class MainViewModel
                 preferenciasAppRepository.modemUsernameFlow,
                 preferenciasAppRepository.modemPasswordFlow,
                 preferenciasAppRepository.modemPermanecerConectadoFlow,
-            ) { host, username, password, permanecerConectado ->
+                preferenciasAppRepository.gatewaySessionBssidFlow,
+            ) { host, username, password, permanecerConectado, gatewaySessionBssid ->
                 PreferenciasModemUiState(
                     host = host,
                     username = username,
                     password = password,
                     permanecerConectado = permanecerConectado,
+                    gatewaySessionBssid = gatewaySessionBssid,
                 )
             }.distinctUntilChanged()
                 .stateIn(
@@ -1186,6 +1188,32 @@ class MainViewModel
             }
         }
 
+        /**
+         * Registra o resultado da [GatewayConnectionSheet][io.signallq.app.ui.screen.GatewayConnectionSheet]
+         * (GH#526/#530): persiste o host sempre, credenciais so quando [lembrarSenha], e a sessao
+         * "manter conectado" atrelada ao [bssidAtual] — e essa sessao (permanecerConectado +
+         * BSSID batendo) que permite pular a sheet e ir direto ao destino provisorio na proxima
+         * vez que o usuario tocar no gateway na mesma rede.
+         */
+        fun registrarConexaoGateway(
+            ip: String,
+            usuario: String,
+            senha: String,
+            lembrarSenha: Boolean,
+            manterConectado: Boolean,
+            bssidAtual: String?,
+        ) {
+            viewModelScope.launch {
+                preferenciasAppRepository.definirModemHost(ip.ifBlank { null })
+                if (lembrarSenha) {
+                    preferenciasAppRepository.definirModemUsername(usuario)
+                    preferenciasAppRepository.definirModemPassword(senha)
+                }
+                preferenciasAppRepository.definirModemPermanecerConectado(manterConectado)
+                preferenciasAppRepository.definirGatewaySessionBssid(if (manterConectado) bssidAtual else null)
+            }
+        }
+
         fun definirTemaSelecionado(tema: String) {
             viewModelScope.launch { preferenciasAppRepository.definirTemaSelecionado(tema) }
         }
@@ -1902,6 +1930,8 @@ class MainViewModel
             val username: String = "userAdmin",
             val password: String = "",
             val permanecerConectado: Boolean = false,
+            // GH#530 — BSSID em que a sessao "manter conectado" foi estabelecida.
+            val gatewaySessionBssid: String? = null,
         )
 
         data class PreferenciasNotificacaoUiState(

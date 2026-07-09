@@ -125,6 +125,8 @@ import io.signallq.app.R
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
+import io.signallq.app.core.network.contracts.gateway.GatewayConnectionResultado
+import io.signallq.app.core.network.contracts.gateway.GatewayConnectionService
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
 import io.signallq.app.feature.speedtest.GargaloPrimario
@@ -199,6 +201,16 @@ fun HomeScreen(
     connectedNetwork: RedeVizinha?,
     movelSnapshot: MovelSnapshot?,
     simsAtivos: List<MovelSimSnapshot>,
+    // GH#530 — reuso da GatewayConnectionSheet no nó do gateway (roteador) da trilha.
+    // Sessão válida (BSSID atual == BSSID salvo com "manter conectado") pula a sheet.
+    gatewaySessaoValida: Boolean = false,
+    conectarGateway: GatewayConnectionService = GatewayConnectionService { _, _, _ -> GatewayConnectionResultado.Sucesso },
+    modemUsername: String = "",
+    modemPassword: String = "",
+    modemPermanecerConectado: Boolean = false,
+    onAbrirGatewayDetalhe: () -> Unit = {},
+    onGatewayConectado: (ip: String, usuario: String, senha: String, lembrarSenha: Boolean, manterConectado: Boolean) -> Unit =
+        { _, _, _, _, _ -> },
     anatelBannerDismissed: Boolean,
     onDismissAnatelBanner: () -> Unit,
     onAbrirDns: () -> Unit,
@@ -260,6 +272,10 @@ fun HomeScreen(
     var showInternetSheet by remember { mutableStateOf(false) }
     var showCellularSheet by remember { mutableStateOf(false) }
     var showMedicaoTipoSheet by remember { mutableStateOf(false) }
+    // GH#530 — GatewayConnectionSheet (roteador/GPON) do nó do gateway na trilha. IP separado
+    // de "visível" porque um gateway detectado pode legitimamente ter ip == null.
+    var showGatewayConnectionSheet by remember { mutableStateOf(false) }
+    var gatewayConnectionIp by remember { mutableStateOf<String?>(null) }
 
     if (showDeviceSheet) {
         ModalBottomSheet(
@@ -283,6 +299,18 @@ fun HomeScreen(
                 linkSpeedMbps = linkSpeedMbps,
             )
         }
+    }
+    if (showGatewayConnectionSheet) {
+        GatewayConnectionSheet(
+            ipInicial = gatewayConnectionIp,
+            usuarioInicial = modemUsername,
+            senhaInicial = modemPassword,
+            lembrarSenhaInicial = modemUsername.isNotBlank() || modemPassword.isNotBlank(),
+            manterConectadoInicial = modemPermanecerConectado,
+            onDismissRequest = { showGatewayConnectionSheet = false },
+            conectar = conectarGateway,
+            onConectado = onGatewayConectado,
+        )
     }
     if (showInternetSheet) {
         ModalBottomSheet(
@@ -408,11 +436,21 @@ fun HomeScreen(
                     movelSnapshot = movelSnapshot,
                     c = c,
                     onDeviceTap = { showDeviceSheet = true },
-                    onGatewayTap = {
-                        if (it.type == ConnectionNodeType.Mobile) {
-                            showCellularSheet = true
-                        } else {
-                            showGatewaySheet = it
+                    onGatewayTap = { gw ->
+                        when {
+                            gw.type == ConnectionNodeType.Mobile -> showCellularSheet = true
+                            // GH#530: nó do roteador — sessão válida pula a sheet e vai direto
+                            // ao destino provisório; sem sessão abre a GatewayConnectionSheet.
+                            // Mesh/extensor/desconhecido seguem no GatewayInfoSheet somente-leitura.
+                            gw.type == ConnectionNodeType.WifiRouter -> {
+                                if (gatewaySessaoValida) {
+                                    onAbrirGatewayDetalhe()
+                                } else {
+                                    gatewayConnectionIp = gw.ip
+                                    showGatewayConnectionSheet = true
+                                }
+                            }
+                            else -> showGatewaySheet = gw
                         }
                     },
                     onInternetTap = { showInternetSheet = true },
@@ -501,8 +539,8 @@ fun HomeScreen(
                 }
             }
 
-            // 4b. Mobile SignalCard
-            if (movelSnapshot != null) {
+            // 4b. Mobile SignalCard — só quando single-SIM (dual-SIM cobre a mesma info via chips, GH#522)
+            if (movelSnapshot != null && simsAtivos.size < 2) {
                 item {
                     MobileSignalCard(
                         movelSnapshot = movelSnapshot,

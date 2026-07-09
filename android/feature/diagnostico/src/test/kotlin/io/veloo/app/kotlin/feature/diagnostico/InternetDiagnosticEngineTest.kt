@@ -23,6 +23,36 @@ class InternetDiagnosticEngineTest {
     }
 
     @Test
+    fun `packet loss recommendation mentions router on wifi`() {
+        val input = InternetDiagnosticInput(
+            downloadMbps = 100.0,
+            uploadMbps = 20.0,
+            latencyMs = 20.0,
+            jitterMs = 5.0,
+            perdaPercentual = 5.0,
+            bufferbloatMs = 0.0,
+        )
+        val resultados = InternetDiagnosticEngine.avaliar(input, wifiConfiavelParaTeste = true, connectionType = ConnectionType.wifi)
+        val achado = resultados.first { it.id == "IN-NORMAL-07" }
+        assertTrue(achado.recomendacao!!.contains("roteador"))
+    }
+
+    @Test
+    fun `packet loss recommendation does not mention router on mobile`() {
+        val input = InternetDiagnosticInput(
+            downloadMbps = 100.0,
+            uploadMbps = 20.0,
+            latencyMs = 20.0,
+            jitterMs = 5.0,
+            perdaPercentual = 5.0,
+            bufferbloatMs = 0.0,
+        )
+        val resultados = InternetDiagnosticEngine.avaliar(input, wifiConfiavelParaTeste = true, connectionType = ConnectionType.mobile)
+        val achado = resultados.first { it.id == "IN-NORMAL-07" }
+        assertTrue(!achado.recomendacao!!.contains("roteador") && !achado.recomendacao!!.contains("modem"))
+    }
+
+    @Test
     fun `wifi not reliable converts issues to inconclusive`() {
         val input =
             InternetDiagnosticInput(
