@@ -55,6 +55,7 @@ dependencies {
     implementation(project(":coreDatabase"))
     implementation(project(":coreDatastore"))
     implementation(project(":coreNetwork"))
+    implementation(project(":coreRecommendation"))
     implementation(libs.timber)
     implementation(libs.okhttp)
     implementation(libs.androidx.datastore.preferences)
