@@ -1,6 +1,15 @@
 package io.signallq.app.feature.diagnostico
 
+import io.signallq.app.core.network.contracts.localdevice.DeviceType
+import io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus
+import io.signallq.app.core.network.contracts.localdevice.SafeLocalDeviceContext
+import io.signallq.app.core.network.contracts.localdevice.SupportLevel
+
 private const val CAT = "decisao"
+
+// Mesmo limiar usado por RecommendationEngine.recomendarRoteadorLimitado (">10")
+// para "muitos dispositivos" — mantido consistente entre os dois motores.
+private const val MUITOS_CLIENTES_THRESHOLD = 10
 
 /**
  * Um achado candidato avaliado pelo [FindingEngine] antes do desempate.
@@ -93,6 +102,12 @@ object FindingEngine {
         /** Tipo de conexão ativa no momento do teste. Usado por DECISAO-02/02b para
          *  não falar de "Wi-Fi"/"roteador" quando a conexão é 100% rede móvel. */
         connectionType: ConnectionType = ConnectionType.wifi,
+        /** Resumo seguro (allowlisted) do equipamento de rede local (ONT/roteador),
+         *  quando disponível — GH#542, epic #547. Null em fluxos sem equipamento
+         *  detectado/conectado; o motor continua funcionando normalmente sem ele.
+         *  Usado apenas para CORRELACIONAR com os achados acima — nunca decide
+         *  sozinho sem evidência de speedtest/Wi-Fi (ver regras LOCAL-EQUIP-*). */
+        localDevice: SafeLocalDeviceContext? = null,
     ): FindingResult {
         val dnsCritico = internetResultados.any { it.categoria == "dns" && it.status == DiagnosticStatus.critical }
         val dnsAtencao = internetResultados.any { it.categoria == "dns" && it.status == DiagnosticStatus.attention }
@@ -228,6 +243,127 @@ object FindingEngine {
             )
         }
 
+        // ---------------------------------------------------------------------
+        // Regras LOCAL-EQUIP-*: correlação com o equipamento de rede local
+        // (ONT Nokia GPON / roteador TP-Link), quando disponível — GH#542,
+        // epic #547. Todas nulas/inativas quando [localDevice] é null: o motor
+        // continua funcionando normalmente sem o snapshot.
+        //
+        // Regras de produto aplicadas aqui:
+        //  - Nunca inventa dado ausente: só correlaciona com o que o
+        //    [SafeLocalDeviceContext] efetivamente reportou (OK/ATENCAO), nunca
+        //    assume valor para INDISPONIVEL/NAO_SUPORTADO.
+        //  - Roteador (TP-Link) NUNCA gera recomendação baseada em fibra — as
+        //    regras abaixo condicionadas a DeviceType.ROUTER nunca mencionam
+        //    fibra na mensagem/recomendação.
+        //  - Suporte experimental/inferido (SupportLevel != LAB_VALIDATED) pesa
+        //    menos no desempate — ver [confiancaEquipamentoLocal].
+        // ---------------------------------------------------------------------
+
+        // LOCAL-EQUIP-WIFI-01: fibra da ONT confirmada OK + Wi-Fi ruim + internet
+        // ruim/inconclusiva → o equipamento corrobora que o link óptico está bem,
+        // reforçando que a causa é Wi-Fi/local. Confiança maior que DECISAO-01
+        // genérico (0.65) porque soma evidência direta do equipamento — quando
+        // ambas batem, esta regra vence o desempate e DECISAO-01 aparece como
+        // achado secundário (mesmo diagnóstico, evidência mais forte).
+        val fibraOntConfirmadaOk = localDevice != null &&
+            localDevice.deviceType == DeviceType.ONT_GPON &&
+            localDevice.statusFibra == LocalDeviceSectionStatus.OK
+        if (fibraOntConfirmadaOk && (internetRuim || internetInconclusivo) && wifiRuim) {
+            candidatos += Achado(
+                DiagnosticResult(
+                    id = "LOCAL-EQUIP-WIFI-01",
+                    titulo = "Equipamento Confirma: Problema é Local/Wi-Fi",
+                    status = DiagnosticStatus.attention,
+                    evidencia = "equipamento=${localDevice.vendor}/${localDevice.modelo} statusFibra=OK wifiConfiavel=false",
+                    mensagemUsuario = "A ONT confirma que o sinal da fibra está bom — a lentidão detectada provavelmente vem do Wi-Fi ou de um dispositivo na rede local, não da fibra.",
+                    recomendacao = "Aproxime-se do roteador, reconecte ao Wi-Fi e refaça o teste.",
+                    categoria = CAT,
+                    podeConcluir = false,
+                ),
+                confianca = confiancaEquipamentoLocal(0.85, localDevice.supportLevel),
+                ativo = true,
+            )
+        }
+
+        // LOCAL-EQUIP-FIBRA-01: ONT reporta atenção no link óptico + internet ruim
+        // → possível problema óptico/provedor. Suprimida quando DECISAO-00/00b
+        // (leitura direta do módulo de fibra, mais granular) já cobriu a mesma
+        // causa raiz — vira hipótese descartada em vez de duplicar a mensagem.
+        val fibraOntComAtencao = localDevice != null &&
+            localDevice.deviceType == DeviceType.ONT_GPON &&
+            localDevice.statusFibra == LocalDeviceSectionStatus.ATENCAO
+        if (fibraOntComAtencao && internetRuim) {
+            val suprimidaPorLeituraDireta = fibraCritica || fibraAtencao
+            candidatos += Achado(
+                DiagnosticResult(
+                    id = "LOCAL-EQUIP-FIBRA-01",
+                    titulo = "Equipamento Local Indica Problema na Fibra",
+                    status = DiagnosticStatus.attention,
+                    evidencia = "equipamento=${localDevice.vendor}/${localDevice.modelo} statusFibra=ATENCAO",
+                    mensagemUsuario = "A ONT reportou instabilidade no link óptico. Isso pode indicar um problema físico na fibra ou uma falha do lado do provedor.",
+                    recomendacao = "Verifique o cabo de fibra e o estado da ONT. Se a instabilidade persistir, contate o provedor.",
+                    categoria = CAT,
+                ),
+                confianca = confiancaEquipamentoLocal(0.7, localDevice.supportLevel),
+                ativo = !suprimidaPorLeituraDireta,
+                motivoDescarte = if (suprimidaPorLeituraDireta) {
+                    "suprimida: já coberta por DECISAO-00/00b (leitura direta da fibra, mais granular)"
+                } else {
+                    null
+                },
+            )
+        }
+
+        // LOCAL-EQUIP-SATURACAO-01: roteador TP-Link com WAN OK + muitos clientes
+        // conectados + internet ruim → possível saturação da rede local, não da
+        // operadora. Nunca menciona fibra (TP-Link não tem essa seção).
+        val saturacaoLocalProvavel = localDevice != null &&
+            localDevice.deviceType == DeviceType.ROUTER &&
+            localDevice.statusWan == LocalDeviceSectionStatus.OK &&
+            localDevice.quantidadeClientes > MUITOS_CLIENTES_THRESHOLD
+        if (saturacaoLocalProvavel && internetRuim) {
+            candidatos += Achado(
+                DiagnosticResult(
+                    id = "LOCAL-EQUIP-SATURACAO-01",
+                    titulo = "Possível Saturação da Rede Local",
+                    status = DiagnosticStatus.attention,
+                    evidencia = "equipamento=${localDevice.vendor}/${localDevice.modelo} statusWan=OK clientes=${localDevice.quantidadeClientes}",
+                    mensagemUsuario = "O roteador confirma que a internet (WAN) está funcionando, mas há ${localDevice.quantidadeClientes} dispositivos conectados — a lentidão pode ser saturação da rede local, não da operadora.",
+                    recomendacao = "Verifique quais dispositivos estão consumindo mais banda e desconecte os que não estão em uso no momento.",
+                    categoria = CAT,
+                ),
+                confianca = confiancaEquipamentoLocal(0.65, localDevice.supportLevel),
+                ativo = true,
+            )
+        }
+
+        // LOCAL-EQUIP-WAN-01: roteador TP-Link sem WAN funcionando + internet ruim
+        // → falha upstream ou local, SEM afirmar que é fibra (o roteador não tem
+        // como confirmar isso — regra de produto: TP-Link nunca aponta fibra).
+        val wanRoteadorIndisponivel = localDevice != null &&
+            localDevice.deviceType == DeviceType.ROUTER &&
+            (
+                localDevice.statusWan == LocalDeviceSectionStatus.ATENCAO ||
+                    localDevice.statusWan == LocalDeviceSectionStatus.INDISPONIVEL
+            )
+        if (wanRoteadorIndisponivel && internetRuim) {
+            candidatos += Achado(
+                DiagnosticResult(
+                    id = "LOCAL-EQUIP-WAN-01",
+                    titulo = "Falha na Conexão Upstream do Roteador",
+                    status = DiagnosticStatus.critical,
+                    evidencia = "equipamento=${localDevice.vendor}/${localDevice.modelo} statusWan=${localDevice.statusWan}",
+                    mensagemUsuario = "O roteador não está recebendo conexão da rede upstream. Pode ser um problema local (cabo/configuração) ou uma falha antes do roteador — este equipamento não fornece dados de fibra para confirmar a causa.",
+                    recomendacao = "Reinicie o roteador. Se persistir, verifique o cabo até o equipamento anterior (ONT/modem) e contate o provedor caso o problema continue.",
+                    categoria = CAT,
+                    podeConcluir = false,
+                ),
+                confianca = confiancaEquipamentoLocal(0.75, localDevice.supportLevel),
+                ativo = true,
+            )
+        }
+
         // DECISAO-DNS-01: DNS crítico. Mesma causa raiz de DECISAO-00 (fibra crítica)
         // quando ambas batem — fibra crítica é evidência mais forte e mais próxima
         // do hardware, então suprime DNS quando concorrem (criticoNaoDns preservado
@@ -324,7 +460,13 @@ object FindingEngine {
         // (Wi-Fi pode estar mascarando/causando o sintoma de internet).
         // Mensagem/recomendação variam por [connectionType]: em rede móvel não faz
         // sentido falar de Wi-Fi/roteador (SIG-514).
+        // Guard adicional (GH#542): quando o equipamento local já aponta uma causa
+        // mais específica (fibra da ONT com atenção, saturação local por muitos
+        // clientes, ou WAN do roteador fora do ar), a explicação genérica "pode ser
+        // roteador ou provedor" cede — vira hipótese descartada em favor da regra
+        // LOCAL-EQUIP-* correspondente, que já tem a evidência do equipamento.
         val emRedeMovel = connectionType == ConnectionType.mobile
+        val equipamentoLocalExplicaMelhor = fibraOntComAtencao || saturacaoLocalProvavel || wanRoteadorIndisponivel
         if (internetCritico) {
             candidatos += Achado(
                 DiagnosticResult(
@@ -346,8 +488,12 @@ object FindingEngine {
                     podeConcluir = true,
                 ),
                 confianca = 0.8,
-                ativo = !wifiRuim,
-                motivoDescarte = if (wifiRuim) "suprimida por Wi-Fi não confiável durante o teste (ver DECISAO-01)" else null,
+                ativo = !wifiRuim && !equipamentoLocalExplicaMelhor,
+                motivoDescarte = when {
+                    wifiRuim -> "suprimida por Wi-Fi não confiável durante o teste (ver DECISAO-01)"
+                    equipamentoLocalExplicaMelhor -> "suprimida: equipamento local já aponta causa mais específica (ver LOCAL-EQUIP-*)"
+                    else -> null
+                },
             )
         }
         if (internetAtencao) {
@@ -371,8 +517,12 @@ object FindingEngine {
                     podeConcluir = false,
                 ),
                 confianca = 0.6,
-                ativo = !wifiRuim,
-                motivoDescarte = if (wifiRuim) "suprimida por Wi-Fi não confiável durante o teste (ver DECISAO-01)" else null,
+                ativo = !wifiRuim && !equipamentoLocalExplicaMelhor,
+                motivoDescarte = when {
+                    wifiRuim -> "suprimida por Wi-Fi não confiável durante o teste (ver DECISAO-01)"
+                    equipamentoLocalExplicaMelhor -> "suprimida: equipamento local já aponta causa mais específica (ver LOCAL-EQUIP-*)"
+                    else -> null
+                },
             )
         }
 
@@ -460,6 +610,7 @@ object FindingEngine {
                 secundarios = emptyList(),
                 hipotesesDescartadas = descartados.map { it.comMotivoNaEvidencia() },
                 dadosAusentes = dadosAusentes(rttGatewayMs, fibraDisponivel),
+                limitacoesEquipamentoLocal = limitacoesLocalDevice(localDevice),
             )
         }
 
@@ -475,7 +626,50 @@ object FindingEngine {
             secundarios = secundarios.map { it.resultado },
             hipotesesDescartadas = descartados.map { it.comMotivoNaEvidencia() },
             dadosAusentes = dadosAusentes(rttGatewayMs, fibraDisponivel),
+            limitacoesEquipamentoLocal = limitacoesLocalDevice(localDevice),
         )
+    }
+
+    /**
+     * Reduz a confiança de uma regra LOCAL-EQUIP-* quando o driver que produziu
+     * o snapshot não é [SupportLevel.LAB_VALIDATED] — dado experimental/inferido
+     * pesa menos no desempate por score, nunca some, nunca é tratado como certeza
+     * (regra de produto do GH#542: "dados experimentais devem ter peso menor").
+     */
+    private fun confiancaEquipamentoLocal(base: Double, supportLevel: SupportLevel?): Double =
+        when (supportLevel) {
+            SupportLevel.LAB_VALIDATED -> base
+            SupportLevel.PARSER_IMPORTED, SupportLevel.INFERRED_FAMILY -> base * 0.7
+            SupportLevel.UNKNOWN, null -> base * 0.5
+        }
+
+    /**
+     * Limitações do equipamento local a declarar ao usuário — nunca como achado
+     * competindo pelo posto de "principal" (não deve mascarar "Conexão Sem
+     * Problemas" quando a internet está de fato saudável), mas sempre presente
+     * como nota honesta quando aplicável. Distingue explicitamente "não
+     * disponível"/"não suportado" de "problema detectado" (regra de produto do
+     * GH#542).
+     */
+    private fun limitacoesLocalDevice(localDevice: SafeLocalDeviceContext?): List<String> {
+        if (localDevice == null) return emptyList()
+        val limitacoes = mutableListOf<String>()
+        if (localDevice.deviceType == DeviceType.ROUTER &&
+            localDevice.statusFibra == LocalDeviceSectionStatus.NAO_SUPORTADO
+        ) {
+            limitacoes += "Este roteador não informa dados da fibra óptica — não é possível confirmar o " +
+                "estado do link óptico por este equipamento."
+        }
+        if (localDevice.supportLevel == SupportLevel.PARSER_IMPORTED ||
+            localDevice.supportLevel == SupportLevel.INFERRED_FAMILY
+        ) {
+            limitacoes += "Os dados deste equipamento vêm de um driver experimental/inferido e podem não " +
+                "ser totalmente precisos."
+        }
+        if (localDevice.connectionStatus == LocalDeviceSectionStatus.INDISPONIVEL) {
+            limitacoes += "Não foi possível se comunicar com o equipamento local nesta leitura."
+        }
+        return limitacoes
     }
 
     /** Anexa [Achado.motivoDescarte] à evidência do resultado, para que o motivo da
@@ -522,4 +716,11 @@ data class FindingResult(
     val secundarios: List<DiagnosticResult> = emptyList(),
     val hipotesesDescartadas: List<DiagnosticResult> = emptyList(),
     val dadosAusentes: List<String> = emptyList(),
+    /** Limitações honestas do equipamento de rede local (ONT/roteador) a
+     *  declarar ao usuário — ex.: "este roteador não informa fibra", "suporte
+     *  experimental" (GH#542). Nunca compete pelo posto de achado principal —
+     *  não deve mascarar "Conexão Sem Problemas" quando a internet está
+     *  saudável. Vazio quando não há equipamento local ou nenhuma limitação
+     *  se aplica. */
+    val limitacoesEquipamentoLocal: List<String> = emptyList(),
 )

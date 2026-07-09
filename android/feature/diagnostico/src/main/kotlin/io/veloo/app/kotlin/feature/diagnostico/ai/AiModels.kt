@@ -1,5 +1,6 @@
 ﻿package io.signallq.app.feature.diagnostico.ai
 
+import io.signallq.app.core.network.contracts.localdevice.SafeLocalDeviceContext
 import io.signallq.app.feature.diagnostico.BandaWifi
 import io.signallq.app.feature.diagnostico.ConnectionType
 import io.signallq.app.feature.diagnostico.DiagnosticInput
@@ -44,8 +45,16 @@ import io.signallq.app.feature.diagnostico.WifiDiagnosticInput
  *                                 valida/explica em vez de decidir do zero.
  *                                 Espelha AI_PROMPT_VERSION no Worker
  *                                 (SIG-282).
+ *   - "diagnostico_v6_local_device"  — adiciona campo opcional `equipamentoLocal`
+ *                                 com o resumo JÁ FILTRADO (allowlist) do
+ *                                 equipamento de rede local (ONT Nokia GPON/
+ *                                 roteador TP-Link), quando disponível (GH#542,
+ *                                 epic #547). Só chega dado permitido por
+ *                                 `LocalDeviceSafeFilter` — nunca MAC/IP
+ *                                 completo, senha, serial ou payload bruto do
+ *                                 equipamento.
  */
-const val AI_PROMPT_VERSION = "diagnostico_v5_local_primary"
+const val AI_PROMPT_VERSION = "diagnostico_v6_local_device"
 
 // =============================================================================
 // Schema v3 — APENAS DADOS BRUTOS
@@ -103,6 +112,39 @@ data class DiagnosisAiContext(
      *   "Tudo dentro do esperado."                 — 0 metricas ruins (conexao saudavel)
      */
     val instrucaoTom: String? = null,
+    /**
+     * Resumo JA FILTRADO (allowlist) do equipamento de rede local (ONT/roteador)
+     * detectado, quando disponivel (GH#542, epic #547). Null quando nenhum
+     * equipamento foi lido nesta sessao — a IA analisa normalmente sem ele.
+     */
+    val equipamentoLocal: AiEquipamentoLocalInfo? = null,
+)
+
+/**
+ * Recorte allowlisted de [SafeLocalDeviceContext] para o payload da IA — mesmos
+ * campos que ja passaram por `LocalDeviceSafeFilter.filtrar` no `DiagnosticInput`.
+ * Nunca inclui MAC/IP completo, credenciais, serial da ONT ou dado optico bruto:
+ * esses campos ja nao existem em [SafeLocalDeviceContext], entao esta estrutura
+ * so re-formata o que ja e seguro para o schema JSON enviado ao Worker.
+ */
+data class AiEquipamentoLocalInfo(
+    val vendor: String? = null,
+    val modelo: String? = null,
+    val firmwareVersion: String? = null,
+    /** "ONT_GPON"|"ROUTER"|"MESH_OR_EXTENDER"|"UNKNOWN_SUPPORTED"|"UNKNOWN_UNSUPPORTED". */
+    val deviceType: String,
+    /** "LAB_VALIDATED"|"PARSER_IMPORTED"|"INFERRED_FAMILY"|"UNKNOWN". */
+    val supportLevel: String,
+    /** "OK"|"ATENCAO"|"INDISPONIVEL"|"NAO_SUPORTADO" — status agregado por secao. */
+    val connectionStatus: String,
+    val statusFibra: String,
+    val statusWan: String,
+    val statusWifi: String,
+    val statusLan: String,
+    val quantidadeClientes: Int,
+    /** Limitacoes honestas a explicar ao usuario (ex.: "roteador nao informa fibra",
+     *  "suporte experimental"). Calculadas por FindingEngine.limitacoesLocalDevice. */
+    val limitacoes: List<String> = emptyList(),
 )
 
 /** Rotulo + valor brutos. Sem campo `interpretacao` — analise e da IA. */
@@ -560,8 +602,30 @@ object DiagnosisAiContextFactory {
             evidencias = evidencias,
             achadosLocais = achadosLocais,
             instrucaoTom = buildToneInstruction(metricas),
+            equipamentoLocal = input?.localDevice?.let { equipamentoLocalFrom(it, report.limitacoesEquipamentoLocal) },
         )
     }
+
+    /** Mapeia o payload ja filtrado ([SafeLocalDeviceContext]) para o schema da IA
+     *  — nenhum campo novo e adicionado, so reformatacao (enums viram String). */
+    private fun equipamentoLocalFrom(
+        ctx: SafeLocalDeviceContext,
+        limitacoes: List<String>,
+    ): AiEquipamentoLocalInfo =
+        AiEquipamentoLocalInfo(
+            vendor = ctx.vendor,
+            modelo = ctx.modelo,
+            firmwareVersion = ctx.firmwareVersion,
+            deviceType = ctx.deviceType.name,
+            supportLevel = ctx.supportLevel.name,
+            connectionStatus = ctx.connectionStatus.name,
+            statusFibra = ctx.statusFibra.name,
+            statusWan = ctx.statusWan.name,
+            statusWifi = ctx.statusWifi.name,
+            statusLan = ctx.statusLan.name,
+            quantidadeClientes = ctx.quantidadeClientes,
+            limitacoes = limitacoes,
+        )
 
     /**
      * Deriva a instrucao de tom a partir da contagem de metricas ruins.

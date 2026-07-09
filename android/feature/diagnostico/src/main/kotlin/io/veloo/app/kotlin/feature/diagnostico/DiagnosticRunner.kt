@@ -71,6 +71,7 @@ object DiagnosticRunner {
                 rttGatewayMs = input.internet?.rttGatewayMs,
                 latenciaInternetMs = input.internet?.latencyMs,
                 connectionType = input.connectionType,
+                localDevice = input.localDevice,
             )
 
         val recomendacoes = RecommendationEngine.recomendar(input = input, achados = achados)
@@ -88,6 +89,7 @@ object DiagnosticRunner {
             achadosSecundarios = achados.secundarios,
             hipotesesDescartadas = achados.hipotesesDescartadas,
             dadosAusentes = achados.dadosAusentes,
+            limitacoesEquipamentoLocal = achados.limitacoesEquipamentoLocal,
             recomendacoes = recomendacoes,
             perfisUsoSpeedtest = input.internet?.qualidadeUso,
             perfisUso = UsageProfileClassifier.classificarTodos(input),

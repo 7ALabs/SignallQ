@@ -21,6 +21,11 @@ data class DiagnosticReport(
     /** Fontes de dado ausentes que, se disponíveis, poderiam refinar o diagnóstico
      *  (ex.: "rttGateway", "fibra"). */
     val dadosAusentes: List<String> = emptyList(),
+    /** Limitações honestas do equipamento de rede local (ONT/roteador) detectado
+     *  — ex.: "este roteador não informa fibra", "suporte experimental" (GH#542,
+     *  epic #547). Vazio quando não há equipamento local ou nenhuma limitação se
+     *  aplica. Calculado por [FindingEngine]. */
+    val limitacoesEquipamentoLocal: List<String> = emptyList(),
     /** Recomendações práticas geradas pelo [RecommendationEngine] a partir dos
      *  achados do [FindingEngine] — as 12 situações documentadas na skill
      *  `motor-diagnostico`. Aditivo: pode ter zero, uma ou várias simultâneas. */

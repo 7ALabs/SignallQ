@@ -578,6 +578,27 @@ class AiDiagnosisRepository(
             o.put("achadosLocais", ao)
         }
 
+        ctx.equipamentoLocal?.let { eq ->
+            val eo = JSONObject()
+            eq.vendor?.let { eo.put("vendor", it) }
+            eq.modelo?.let { eo.put("modelo", it) }
+            eq.firmwareVersion?.let { eo.put("firmwareVersion", it) }
+            eo.put("deviceType", eq.deviceType)
+            eo.put("supportLevel", eq.supportLevel)
+            eo.put("connectionStatus", eq.connectionStatus)
+            eo.put("statusFibra", eq.statusFibra)
+            eo.put("statusWan", eq.statusWan)
+            eo.put("statusWifi", eq.statusWifi)
+            eo.put("statusLan", eq.statusLan)
+            eo.put("quantidadeClientes", eq.quantidadeClientes)
+            if (eq.limitacoes.isNotEmpty()) {
+                val arr = JSONArray()
+                eq.limitacoes.forEach { arr.put(it) }
+                eo.put("limitacoes", arr)
+            }
+            o.put("equipamentoLocal", eo)
+        }
+
         return o
     }
 

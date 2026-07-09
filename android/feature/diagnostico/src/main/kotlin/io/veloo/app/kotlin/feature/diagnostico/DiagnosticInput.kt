@@ -1,5 +1,6 @@
 ﻿package io.signallq.app.feature.diagnostico
 
+import io.signallq.app.core.network.contracts.localdevice.SafeLocalDeviceContext
 import io.signallq.app.core.network.contracts.wifi.SegurancaWifi
 import io.signallq.app.feature.diagnostico.topology.model.NatStatus
 
@@ -150,4 +151,10 @@ data class DiagnosticInput(
      *  entao usa o fallback automatico: o proprio Android/iPhone rodando o app).
      *  Fonte: [io.signallq.app.feature.diagnostico.pulse.DynamicQuestionEngine]. */
     val deviceGamingSelecionado: String? = null,
+    /** Resumo seguro (allowlisted) do equipamento de rede local (ONT/roteador)
+     *  detectado, quando disponivel — GH#542, epic #547. Ja passou por
+     *  [io.signallq.app.core.network.contracts.localdevice.LocalDeviceSafeFilter],
+     *  nunca o snapshot bruto. Null quando nenhum equipamento foi lido nesta
+     *  sessao — o diagnostico continua funcionando normalmente sem ele. */
+    val localDevice: SafeLocalDeviceContext? = null,
 )

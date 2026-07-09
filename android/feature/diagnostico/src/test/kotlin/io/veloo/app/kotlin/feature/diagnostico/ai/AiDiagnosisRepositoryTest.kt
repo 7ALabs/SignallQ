@@ -493,13 +493,13 @@ class AiDiagnosisRepositoryTest {
     }
 
     // -------------------------------------------------------------------------
-    // AI_PROMPT_VERSION — bump para "diagnostico_v5_local_primary" (SIG-282)
-    // garante invalidacao de caches gerados com o prompt v4 anterior, quando
-    // achadosLocais ainda chegava vazio/ausente na pratica.
+    // AI_PROMPT_VERSION — bump para "diagnostico_v6_local_device" (GH#542)
+    // garante invalidacao de caches gerados com o prompt v5 anterior, quando o
+    // campo `equipamentoLocal` ainda nao existia no payload.
     // -------------------------------------------------------------------------
     @Test
-    fun aiPromptVersion_estaBumpadoParaV5LocalPrimary_invalidaCachesAntigos() {
-        assertEquals("diagnostico_v5_local_primary", AI_PROMPT_VERSION)
+    fun aiPromptVersion_estaBumpadoParaV6LocalDevice_invalidaCachesAntigos() {
+        assertEquals("diagnostico_v6_local_device", AI_PROMPT_VERSION)
     }
 
     // -------------------------------------------------------------------------

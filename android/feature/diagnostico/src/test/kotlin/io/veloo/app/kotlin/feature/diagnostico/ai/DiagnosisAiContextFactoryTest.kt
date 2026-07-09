@@ -162,8 +162,8 @@ class DiagnosisAiContextFactoryTest {
     }
 
     @Test
-    fun aiPromptVersion_constante_atualizadaParaV5LocalPrimary() {
-        assertEquals("diagnostico_v5_local_primary", AI_PROMPT_VERSION)
+    fun aiPromptVersion_constante_atualizadaParaV6LocalDevice() {
+        assertEquals("diagnostico_v6_local_device", AI_PROMPT_VERSION)
         assertTrue(AI_PROMPT_VERSION.startsWith("diagnostico_"))
     }
 
@@ -414,5 +414,67 @@ class DiagnosisAiContextFactoryTest {
         val json = repo.contextToJson(ctx).toString()
         assertFalse(json.contains("\"movel\":"))
         assertTrue(json.contains("\"connectionType\":\"wifi\""))
+    }
+
+    // -------------------------------------------------------------------------
+    // equipamentoLocal (GH#542, epic #547) — a IA so pode receber o resumo JA
+    // FILTRADO ([SafeLocalDeviceContext]), nunca o snapshot bruto. Como o campo
+    // do DiagnosticInput ja e tipado como SafeLocalDeviceContext, e estruturalmente
+    // impossivel vazar MAC/IP completo/senha por este caminho — os testes abaixo
+    // confirmam o mapeamento e a ausencia do bloco quando nao ha equipamento.
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun equipamentoLocal_ausente_quandoNaoHaLocalDeviceNoInput() {
+        val ctx = DiagnosisAiContextFactory.from(
+            report = fakeReport(),
+            input = DiagnosticInput(connectionType = ConnectionType.wifi),
+            connectionType = ConnectionType.wifi,
+        )
+        assertNull(ctx.equipamentoLocal)
+
+        val repo = AiDiagnosisRepository(baseUrl = "http://invalid.local", isAuthorized = { true })
+        val json = repo.contextToJson(ctx).toString()
+        assertFalse(json.contains("\"equipamentoLocal\":"))
+    }
+
+    @Test
+    fun equipamentoLocal_populado_a_partir_do_resumo_seguro_ja_filtrado() {
+        val snapshot = io.signallq.app.core.network.contracts.localdevice.SafeLocalDeviceContext(
+            vendor = "Nokia",
+            modelo = "G-1425G-B",
+            firmwareVersion = "1.2.3",
+            deviceType = io.signallq.app.core.network.contracts.localdevice.DeviceType.ONT_GPON,
+            supportLevel = io.signallq.app.core.network.contracts.localdevice.SupportLevel.LAB_VALIDATED,
+            capabilities = io.signallq.app.core.network.contracts.localdevice.DeviceCapabilities(suportaFibra = true),
+            connectionStatus = io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus.OK,
+            statusFibra = io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus.OK,
+            statusWan = io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus.OK,
+            statusWifi = io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus.NAO_SUPORTADO,
+            statusLan = io.signallq.app.core.network.contracts.localdevice.LocalDeviceSectionStatus.NAO_SUPORTADO,
+            quantidadeClientes = 4,
+            warnings = emptyList(),
+            coletadoEmEpochMs = 1_000L,
+        )
+        val ctx = DiagnosisAiContextFactory.from(
+            report = fakeReport(),
+            input = DiagnosticInput(connectionType = ConnectionType.wifi, localDevice = snapshot),
+            connectionType = ConnectionType.wifi,
+        )
+
+        assertNotNull(ctx.equipamentoLocal)
+        assertEquals("Nokia", ctx.equipamentoLocal?.vendor)
+        assertEquals("ONT_GPON", ctx.equipamentoLocal?.deviceType)
+        assertEquals("LAB_VALIDATED", ctx.equipamentoLocal?.supportLevel)
+        assertEquals(4, ctx.equipamentoLocal?.quantidadeClientes)
+
+        val repo = AiDiagnosisRepository(baseUrl = "http://invalid.local", isAuthorized = { true })
+        val json = repo.contextToJson(ctx).toString()
+        assertTrue(json.contains("\"equipamentoLocal\":"))
+        assertTrue(json.contains("\"deviceType\":\"ONT_GPON\""))
+        // Nunca deve vazar campos brutos que nem existem em SafeLocalDeviceContext.
+        assertFalse(json.contains("mac"))
+        assertFalse(json.contains("senha"))
+        assertFalse(json.contains("serial"))
     }
 }
