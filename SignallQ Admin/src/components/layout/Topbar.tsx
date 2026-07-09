@@ -1,5 +1,5 @@
 import React from "react";
-import { RefreshCw, Download, Database, LogOut, Menu } from "lucide-react";
+import { RefreshCw, Download, LogOut, Menu } from "lucide-react";
 import { AppEnvironment } from "../../types/admin";
 import { PERIOD_FILTERS } from "../../config/constants";
 import { alpha } from "../../utils/color";
@@ -78,21 +78,6 @@ export const Topbar: React.FC<TopbarProps> = ({
                 STAGING
               </span>
             )}
-          </div>
-          <div
-            className="hidden lg:block h-4 w-px"
-            style={{ backgroundColor: "var(--border)" }}
-          />
-          <div
-            className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-sans"
-            style={{
-              backgroundColor: "var(--bg-surface)",
-              border: "1px solid var(--border)",
-              color: "var(--text-secondary)",
-            }}
-          >
-            <Database className="w-3 h-3" style={{ color: "var(--primary)" }} />
-            <span>Real-Time Edge Sync</span>
           </div>
         </div>
       </div>
@@ -185,7 +170,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             title="Sincronizar telemetria"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
-            <span className="hidden lg:inline">Refresh</span>
+            <span className="hidden lg:inline">Atualizar</span>
           </button>
         )}
 
