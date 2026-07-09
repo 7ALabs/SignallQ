@@ -17,6 +17,9 @@ export interface Env {
   INGEST_KEY: string;
   FIREBASE_CLIENT_EMAIL: string;
   FIREBASE_PRIVATE_KEY: string;
+  /** GH#761 — service account com acesso à Android Publisher API (reviews). */
+  GOOGLE_PLAY_CLIENT_EMAIL: string;
+  GOOGLE_PLAY_PRIVATE_KEY: string;
   DB: D1Database;
   /** Pepper para PBKDF2 das senhas admin — SIG-136. */
   ADMIN_AUTH_PEPPER: string;
@@ -1290,6 +1293,137 @@ async function handleFirebaseStatus(_req: Request, env: Env): Promise<Response> 
   }, 200, env);
 }
 
+// --- GH#761: integração real com Google Play (Android Publisher API) ---
+
+const GOOGLE_PLAY_PACKAGE_NAME = "io.signallq.app";
+
+async function getGooglePlayAccessToken(env: Env, scope: string): Promise<string> {
+  const now = nowSec();
+  const payload = {
+    iss: env.GOOGLE_PLAY_CLIENT_EMAIL,
+    sub: env.GOOGLE_PLAY_CLIENT_EMAIL,
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+    scope,
+  };
+  const privateKey = env.GOOGLE_PLAY_PRIVATE_KEY.replace(/\\n/g, "\n");
+  const keyData = privateKey
+    .replace("-----BEGIN PRIVATE KEY-----", "")
+    .replace("-----END PRIVATE KEY-----", "")
+    .replace(/\s/g, "");
+  const binaryKey = Uint8Array.from(atob(keyData), (c) => c.charCodeAt(0));
+  const cryptoKey = await crypto.subtle.importKey(
+    "pkcs8", binaryKey,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false, ["sign"]
+  );
+  const toB64Url = (s: string) =>
+    btoa(s).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const header = toB64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const body   = toB64Url(JSON.stringify(payload));
+  const sigInput = new TextEncoder().encode(`${header}.${body}`);
+  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, sigInput);
+  const sig = toB64Url(String.fromCharCode(...new Uint8Array(signature)));
+  const tokenResp = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: `${header}.${body}.${sig}`,
+    }),
+  });
+  if (!tokenResp.ok) {
+    throw new Error(`google_play_oauth_${tokenResp.status}: ${(await tokenResp.text()).slice(0, 200)}`);
+  }
+  const tokenData = (await tokenResp.json()) as { access_token: string };
+  return tokenData.access_token;
+}
+
+interface GooglePlaySyncState {
+  syncedAt: string;
+  ratingAverage: number | null;
+  reviewsSampled: number;
+}
+
+async function readGooglePlaySyncState(env: Env): Promise<GooglePlaySyncState | null> {
+  const row = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'google_play_sync'"
+  ).first<{ value: string }>();
+  if (!row?.value) return null;
+  try {
+    return JSON.parse(row.value) as GooglePlaySyncState;
+  } catch {
+    return null;
+  }
+}
+
+async function writeGooglePlaySyncState(env: Env, state: GooglePlaySyncState): Promise<void> {
+  await env.DB.prepare(
+    "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES ('google_play_sync', ?, ?)"
+  ).bind(JSON.stringify(state), nowSec()).run();
+}
+
+async function handleGooglePlayStatus(_req: Request, env: Env): Promise<Response> {
+  const hasCredentials = !!(env.GOOGLE_PLAY_CLIENT_EMAIL && env.GOOGLE_PLAY_PRIVATE_KEY);
+  const syncState = await readGooglePlaySyncState(env);
+  return json({
+    source: "worker",
+    packageName: GOOGLE_PLAY_PACKAGE_NAME,
+    status: hasCredentials ? "connected" : "disabled",
+    hasCredentials,
+    lastSyncTimestamp: syncState?.syncedAt ?? null,
+    ratingAverage: syncState?.ratingAverage ?? null,
+    reviewsSampled: syncState?.reviewsSampled ?? 0,
+  }, 200, env);
+}
+
+// GH#761 — a Android Publisher API não expõe contagem de downloads/instalações
+// (isso só existe via export de relatórios CSV pro Cloud Storage, configurado
+// à parte no Play Console — não implementado aqui). O dado real disponível
+// via API é a lista de reviews (reviews.list), com nota (starRating) por
+// review — usamos a média de uma amostra recente como sinal real de
+// satisfação, sem inventar número de instalações.
+async function handleGooglePlaySync(_req: Request, env: Env): Promise<Response> {
+  if (!env.GOOGLE_PLAY_CLIENT_EMAIL || !env.GOOGLE_PLAY_PRIVATE_KEY) {
+    return json({ status: "not_configured", message: "GOOGLE_PLAY_CLIENT_EMAIL/GOOGLE_PLAY_PRIVATE_KEY não configurados." }, 200, env);
+  }
+  try {
+    const token = await getGooglePlayAccessToken(
+      env,
+      "https://www.googleapis.com/auth/androidpublisher"
+    );
+    const resp = await fetch(
+      `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${GOOGLE_PLAY_PACKAGE_NAME}/reviews?maxResults=100`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!resp.ok) {
+      const errText = await resp.text();
+      await logError(env, 'google-play', `reviews_${resp.status}: ${errText.slice(0, 300)}`, '');
+      return json({ status: "error", message: `Falha ao consultar reviews (HTTP ${resp.status}) — app pode ainda não estar publicado.` }, 200, env);
+    }
+    const data = await resp.json() as {
+      reviews?: Array<{ comments?: Array<{ userComment?: { starRating?: number } }> }>;
+    };
+    const ratings: number[] = [];
+    for (const review of data.reviews ?? []) {
+      for (const comment of review.comments ?? []) {
+        const rating = comment.userComment?.starRating;
+        if (typeof rating === "number") ratings.push(rating);
+      }
+    }
+    const ratingAverage = ratings.length
+      ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 100) / 100
+      : null;
+    const syncedAt = new Date().toISOString();
+    await writeGooglePlaySyncState(env, { syncedAt, ratingAverage, reviewsSampled: ratings.length });
+    return json({ status: "ok", syncedAt, ratingAverage, reviewsSampled: ratings.length }, 200, env);
+  } catch (e) {
+    await logError(env, 'google-play', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ status: "error", message: String(e) }, 200, env);
+  }
+}
+
 // --- GH#417 / GH#425: saúde do sistema com verificação real de cada dependência ---
 
 interface HealthCheckResult {
@@ -2377,6 +2511,8 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/versions$/,     handler: handleFirebaseVersions },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/crash-issues$/, handler: handleFirebaseCrashIssues },
   { method: "POST", pattern: /^\/admin\/integrations\/firebase\/sync$/,         handler: handleFirebaseSync },
+  { method: "GET",  pattern: /^\/admin\/integrations\/google-play\/status$/,   handler: handleGooglePlayStatus },
+  { method: "POST", pattern: /^\/admin\/integrations\/google-play\/sync$/,     handler: handleGooglePlaySync },
   { method: "GET",  pattern: /^\/admin\/analytics\/product$/,                   handler: withErrorLogging('analytics', handleProductAnalytics) },
   { method: "GET",  pattern: /^\/admin\/analytics\/battery$/,                   handler: withErrorLogging('analytics', handleBatteryAnalytics) },
   { method: "GET",  pattern: /^\/admin\/settings$/,                             handler: handleSettings },
