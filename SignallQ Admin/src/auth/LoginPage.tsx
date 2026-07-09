@@ -57,7 +57,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             <img
               src={`${import.meta.env.BASE_URL}icon-192.png`}
               alt="7Agents"
-              className="w-16 h-16 rounded-[8px]"
+              className="w-16 h-16 rounded-[var(--radius-button)]"
             />
           </div>
           <h1
@@ -73,7 +73,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
         {/* Card */}
         <div
-          className="rounded-[8px] p-6"
+          className="rounded-[var(--radius-card)] p-6"
           style={{
             backgroundColor: "var(--sq-bg-elevated)",
             border: `1px solid ${alpha("white", 8)}`,

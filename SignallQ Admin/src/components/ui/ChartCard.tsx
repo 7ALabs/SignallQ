@@ -18,7 +18,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   return (
     <div
       id={id || `chart-card-${title.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
-      className="rounded-[8px] p-5 transition-all duration-200"
+      className="rounded-[var(--radius-card)] p-5 sq-card-hover"
       style={{
         backgroundColor: "var(--bg-surface)",
         border: "1px solid var(--border)",

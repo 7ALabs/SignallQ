@@ -59,7 +59,7 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
   isRefreshing = false,
 }) => {
   return (
-    <div className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-[8px] p-5 space-y-4">
+    <div className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-[var(--radius-card)] p-5 space-y-4">
       {/* Prime row - search, refresh & environment */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         {/* Search Input bar */}

@@ -230,7 +230,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
           {/* Right side investigator panel */}
           <div className="xl:col-span-5">
             {selectedError ? (
-              <div className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-[8px] p-6 font-sans">
+              <div className="bg-[var(--bg-sidebar)] border border-[var(--border)] rounded-[var(--radius-card)] p-6 font-sans">
                 {/* Main title casing */}
                 <div className="flex items-start justify-between pb-4 border-b border-[var(--border)] mb-5 select-none">
                   <div>
@@ -360,7 +360,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="py-20 text-center rounded-[8px] p-6 select-none font-sans" style={{ background: "var(--bg-surface)", border: "1px dashed var(--border)" }}>
+              <div className="py-20 text-center rounded-[var(--radius-card)] p-6 select-none font-sans" style={{ background: "var(--bg-surface)", border: "1px dashed var(--border)" }}>
                 <p className="text-xs text-[var(--text-tertiary)]">Selecione um erro na lista à esquerda para investigar.</p>
               </div>
             )}
