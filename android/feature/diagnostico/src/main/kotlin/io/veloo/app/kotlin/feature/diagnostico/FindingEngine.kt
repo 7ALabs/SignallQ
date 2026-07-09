@@ -156,6 +156,7 @@ object FindingEngine {
                     recomendacao = "Entre em contato com sua operadora e informe que a conexão está lenta fora de casa. Se possível, peça abertura de chamado com o resultado deste diagnóstico.",
                     categoria = CAT,
                     podeConcluir = true,
+                    categoriaOrigem = "isp",
                 ),
                 confianca = 0.9,
                 ativo = true,
@@ -176,6 +177,7 @@ object FindingEngine {
                     recomendacao = "Reinicie o roteador: desligue da tomada, aguarde 30 segundos e ligue novamente. Se a lentidão persistir, tente se aproximar do roteador.",
                     categoria = CAT,
                     podeConcluir = false,
+                    categoriaOrigem = "roteador",
                 ),
                 confianca = 0.75,
                 ativo = true,
@@ -197,6 +199,7 @@ object FindingEngine {
                     recomendacao = "Verifique o estado da ONT. Se o cabo de fibra ou o laser estiver com problema, contate o provedor.",
                     categoria = CAT,
                     podeConcluir = true,
+                    categoriaOrigem = "fibra",
                 ),
                 confianca = 0.9,
                 ativo = true,
@@ -212,6 +215,7 @@ object FindingEngine {
                     mensagemUsuario = "Alguns indicadores da fibra merecem atenção. Monitore a estabilidade da conexão.",
                     recomendacao = "Verifique a ventilação da ONT e o estado do cabo de fibra. Informe o provedor se houver quedas recorrentes.",
                     categoria = CAT,
+                    categoriaOrigem = "fibra",
                 ),
                 confianca = 0.6,
                 ativo = true,
@@ -237,6 +241,7 @@ object FindingEngine {
                     recomendacao = "Aproxime-se do roteador, reconecte ao Wi-Fi e refaça o teste.",
                     categoria = CAT,
                     podeConcluir = false,
+                    categoriaOrigem = "wifi",
                 ),
                 confianca = 0.65,
                 ativo = true,
@@ -280,6 +285,7 @@ object FindingEngine {
                     recomendacao = "Aproxime-se do roteador, reconecte ao Wi-Fi e refaça o teste.",
                     categoria = CAT,
                     podeConcluir = false,
+                    categoriaOrigem = "wifi",
                 ),
                 confianca = confiancaEquipamentoLocal(0.85, localDevice.supportLevel),
                 ativo = true,
@@ -304,6 +310,7 @@ object FindingEngine {
                     mensagemUsuario = "A ONT reportou instabilidade no link óptico. Isso pode indicar um problema físico na fibra ou uma falha do lado do provedor.",
                     recomendacao = "Verifique o cabo de fibra e o estado da ONT. Se a instabilidade persistir, contate o provedor.",
                     categoria = CAT,
+                    categoriaOrigem = "fibra",
                 ),
                 confianca = confiancaEquipamentoLocal(0.7, localDevice.supportLevel),
                 ativo = !suprimidaPorLeituraDireta,
@@ -332,6 +339,7 @@ object FindingEngine {
                     mensagemUsuario = "O roteador confirma que a internet (WAN) está funcionando, mas há ${localDevice.quantidadeClientes} dispositivos conectados — a lentidão pode ser saturação da rede local, não da operadora.",
                     recomendacao = "Verifique quais dispositivos estão consumindo mais banda e desconecte os que não estão em uso no momento.",
                     categoria = CAT,
+                    categoriaOrigem = "local",
                 ),
                 confianca = confiancaEquipamentoLocal(0.65, localDevice.supportLevel),
                 ativo = true,
@@ -380,6 +388,7 @@ object FindingEngine {
                     recomendacao = "Troque o DNS para uma opcao mais rapida (ex.: Cloudflare ou Google DNS) e refaca o teste.",
                     categoria = CAT,
                     podeConcluir = true,
+                    categoriaOrigem = "dns",
                 ),
                 confianca = 0.85,
                 ativo = !dnsSuprimidaPorFibraOuOutroCritico,
@@ -406,6 +415,7 @@ object FindingEngine {
                     recomendacao = "Compare com outros DNS e considere trocar para o melhor no comparativo.",
                     categoria = CAT,
                     podeConcluir = false,
+                    categoriaOrigem = "dns",
                 ),
                 confianca = 0.6,
                 ativo = true,
@@ -448,6 +458,7 @@ object FindingEngine {
                     recomendacao = "Troque o canal Wi-Fi para um canal menos ocupado e refaça o teste.",
                     categoria = CAT,
                     podeConcluir = false,
+                    categoriaOrigem = "wifi",
                 ),
                 confianca = 0.55,
                 ativo = true,
@@ -465,6 +476,12 @@ object FindingEngine {
         // clientes, ou WAN do roteador fora do ar), a explicação genérica "pode ser
         // roteador ou provedor" cede — vira hipótese descartada em favor da regra
         // LOCAL-EQUIP-* correspondente, que já tem a evidência do equipamento.
+        // categoriaOrigem (GH#836): propositalmente NULL nesta regra — a própria
+        // mensagem já admite duas causas possíveis não distinguíveis pela evidência
+        // disponível ("roteador ou provedor" / "operadora ou servidor de destino").
+        // Mesmo padrão de ambiguidade genuína do exemplo LOCAL-EQUIP-WAN-01 citado
+        // na issue. Sem RTT de gateway (DECISAO-GW-01/02) ou leitura de equipamento
+        // que aponte um lado específico, não há como afirmar "isp" com segurança.
         val emRedeMovel = connectionType == ConnectionType.mobile
         val equipamentoLocalExplicaMelhor = fibraOntComAtencao || saturacaoLocalProvavel || wanRoteadorIndisponivel
         if (internetCritico) {
@@ -538,6 +555,7 @@ object FindingEngine {
                     mensagemUsuario = "A internet está funcionando bem, mas o sinal Wi-Fi merece atenção para evitar problemas futuros.",
                     recomendacao = "Aproxime-se do roteador ou reduza obstáculos entre o dispositivo e o roteador.",
                     categoria = CAT,
+                    categoriaOrigem = "wifi",
                 ),
                 confianca = 0.7,
                 ativo = !internetRuim,
@@ -562,6 +580,7 @@ object FindingEngine {
                     mensagemUsuario = "A internet está funcionando, mas há indicadores do Wi-Fi que merecem atenção e podem afetar a experiência.",
                     recomendacao = "Verifique os itens sinalizados para melhorar a qualidade da conexão Wi-Fi.",
                     categoria = CAT,
+                    categoriaOrigem = "wifi",
                 ),
                 confianca = 0.5,
                 ativo = !suprimida,

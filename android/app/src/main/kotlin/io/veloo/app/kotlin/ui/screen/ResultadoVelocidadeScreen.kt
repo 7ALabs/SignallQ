@@ -486,7 +486,7 @@ fun ResultadoVelocidadeScreen(
                 decisaoTitulo = decisaoTitulo,
                 decisaoMensagem = decisaoMensagem,
                 decisaoRecomendacao = decisaoRecomendacao,
-                categoria = decisao?.categoria,
+                categoria = decisao?.categoriaOrigem,
                 ispInfo = ispInfo,
                 localizacaoServidor = localizacaoServidor,
                 localDevice = localDevice,

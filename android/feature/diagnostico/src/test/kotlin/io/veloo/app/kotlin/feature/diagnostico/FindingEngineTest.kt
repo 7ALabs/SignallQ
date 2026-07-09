@@ -261,4 +261,92 @@ class FindingEngineTest {
         assertEquals("DECISAO-00", r.principal.id)
         assertEquals(DiagnosticStatus.critical, r.principal.status)
     }
+
+    // -------------------------------------------------------------------------
+    // categoriaOrigem (GH#836): campo novo que carrega a causa raiz REAL do
+    // achado vencedor, distinto do `categoria` genérico ("decisao") usado antes.
+    // Sem isso, "Falar com a operadora" nunca aparecia na tela de resultado.
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `DECISAO-00b (atencao na fibra) carrega categoriaOrigem fibra`() {
+        val r = FindingEngine.analisar(
+            internetResultados = listOf(resultado("IN-ATENCAO", DiagnosticStatus.attention, "internet")),
+            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+            fibraResultados = listOf(resultado("FIB-ATENCAO", DiagnosticStatus.attention, "fibra")),
+        )
+
+        assertEquals("DECISAO-00b", r.principal.id)
+        assertEquals("fibra", r.principal.categoriaOrigem)
+    }
+
+    @Test
+    fun `DECISAO-00 (fibra critica) carrega categoriaOrigem fibra`() {
+        val r = FindingEngine.analisar(
+            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+            fibraResultados = listOf(resultado("FIB-CRITICO", DiagnosticStatus.critical, "fibra")),
+        )
+
+        assertEquals("DECISAO-00", r.principal.id)
+        assertEquals("fibra", r.principal.categoriaOrigem)
+    }
+
+    @Test
+    fun `DECISAO-GW-01 (problema na operadora) carrega categoriaOrigem isp`() {
+        val r = FindingEngine.analisar(
+            internetResultados = listOf(resultado("IN-LATENCIA", DiagnosticStatus.critical, "internet")),
+            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+            rttGatewayMs = 5,
+            latenciaInternetMs = 250.0,
+        )
+
+        assertEquals("DECISAO-GW-01", r.principal.id)
+        assertEquals("isp", r.principal.categoriaOrigem)
+    }
+
+    @Test
+    fun `DECISAO-DNS-01 (dns critico isolado) carrega categoriaOrigem dns, nao isp nem fibra`() {
+        val r = FindingEngine.analisar(
+            internetResultados = listOf(resultado("DNS-RUIM", DiagnosticStatus.critical, "dns")),
+            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+        )
+
+        assertEquals("DECISAO-DNS-01", r.principal.id)
+        assertEquals("dns", r.principal.categoriaOrigem)
+        assertTrue(r.principal.categoriaOrigem != "isp" && r.principal.categoriaOrigem != "fibra")
+    }
+
+    @Test
+    fun `DECISAO-01 (interferencia wifi) carrega categoriaOrigem wifi, nao isp nem fibra`() {
+        val r = FindingEngine.analisar(
+            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = false),
+        )
+
+        assertEquals("DECISAO-01", r.principal.id)
+        assertEquals("wifi", r.principal.categoriaOrigem)
+    }
+
+    @Test
+    fun `DECISAO-02 (problema generico na internet) tem categoriaOrigem null - causa ambigua entre roteador e provedor`() {
+        val r = FindingEngine.analisar(
+            internetResultados = listOf(resultado("IN-CRITICO", DiagnosticStatus.critical, "internet")),
+            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+        )
+
+        assertEquals("DECISAO-02", r.principal.id)
+        assertEquals(null, r.principal.categoriaOrigem)
+    }
+
+    @Test
+    fun `DECISAO-04 (tudo ok) tem categoriaOrigem null`() {
+        val r = FindingEngine.analisar(
+            internetResultados = emptyList(),
+            wifiQuality = WifiQualityResult(emptyList(), confiavelParaTeste = true),
+        )
+
+        assertEquals("DECISAO-04", r.principal.id)
+        assertEquals(null, r.principal.categoriaOrigem)
+    }
 }
