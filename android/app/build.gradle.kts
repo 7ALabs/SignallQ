@@ -316,6 +316,9 @@ dependencies {
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.analytics)
 
+    // Avaliacao nativa Google Play sem atrito (SIG-173/#664)
+    implementation(libs.play.review)
+
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)

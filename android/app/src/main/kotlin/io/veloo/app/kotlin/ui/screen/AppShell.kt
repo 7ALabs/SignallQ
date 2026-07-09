@@ -230,6 +230,7 @@ fun AppShell(
     val analisadorState = diagnostico.analisadorState
     val onAnalisarProblema = diagnostico.onAnalisarProblema
     val onResetarAnalisador = diagnostico.onResetarAnalisador
+    val onLaudoFechado = diagnostico.onLaudoFechado
 
     val operadoraMovel = signallQ.operadoraMovel
     val onVerificarGemma = signallQ.onVerificarGemma
@@ -354,7 +355,10 @@ fun AppShell(
 
     // Back em overlay: desfaz último overlay empilhado.
     BackHandler(enabled = overlayStack.isNotEmpty()) {
-        overlayStack.removeLastOrNull()
+        val removido = overlayStack.removeLastOrNull()
+        // SIG-173/#664 — back fisico tambem conta como "fechou o Laudo" para fins
+        // de elegibilidade do prompt de avaliacao, mesmo caminho do botao voltar da tela.
+        if (removido == Overlay.Laudo) onLaudoFechado()
     }
 
     // Back na tab Histórico (índice 3): volta para Home em vez de sair do app.
@@ -695,7 +699,10 @@ fun AppShell(
                 ssid = connectedNetwork?.ssid,
                 ipLocal = localIpStr,
                 ipPublico = publicIpStr,
-                onVoltar = { overlayStack.remove(Overlay.Laudo) },
+                onVoltar = {
+                    overlayStack.remove(Overlay.Laudo)
+                    onLaudoFechado()
+                },
                 velocidadeContratadaMbps = planoInternet.filter { it.isDigit() }.toIntOrNull(),
                 conectado = snapshotRede.conectado,
             )

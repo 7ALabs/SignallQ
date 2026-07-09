@@ -14,6 +14,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +28,7 @@ import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.feature.devices.DevicesViewModel
 import io.signallq.app.feature.speedtest.SpeedtestViewModel
+import io.signallq.app.review.InAppReviewManager
 import io.signallq.app.ui.SignallQTheme
 import io.signallq.app.ui.component.LgpdConsentDialog
 import io.signallq.app.ui.screen.AppShell
@@ -42,6 +44,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var analyticsHelper: AnalyticsHelper
+
+    @Inject
+    lateinit var inAppReviewManager: InAppReviewManager
 
     private val viewModel: MainViewModel by viewModels()
     private val chatDiagViewModel: ChatDiagnosticoIaViewModel by viewModels()
@@ -250,6 +255,16 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
+            // SIG-173/#664 — avaliacao nativa Google Play sem atrito. A elegibilidade
+            // (ReviewPromptPolicy) e decidida no MainViewModel; aqui so disparamos o
+            // fluxo nativo, que exige uma Activity e nunca deve ser retido pelo ViewModel.
+            LaunchedEffect(Unit) {
+                viewModel.solicitarAvaliacaoPlayEvent.collect {
+                    analyticsTracker.registrarFeatureUsada("review_prompt_google_play")
+                    inAppReviewManager.solicitarFluxoAvaliacao(this@MainActivity)
+                }
+            }
+
             val connectedBssid = snapshotRede.wifiLinkSnapshot?.bssid
             val connectedNetwork =
                 if (connectedBssid != null) {
@@ -317,6 +332,7 @@ class MainActivity : ComponentActivity() {
                                 analisadorState = analisadorState,
                                 onAnalisarProblema = { problema -> viewModel.analisarProblema(problema) },
                                 onResetarAnalisador = { viewModel.resetarAnalisador() },
+                                onLaudoFechado = { viewModel.onLaudoFechado() },
                             ),
                         signallQ =
                             io.signallq.app.ui.screen.AppShellSignallQState(

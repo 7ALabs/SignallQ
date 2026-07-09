@@ -92,6 +92,12 @@ class PreferenciasAppRepository(
     // Identificador anonimo permanente do dispositivo — UUID gerado na primeira execucao, sem PII
     private val chaveAnonDeviceId = stringPreferencesKey("anon_device_id")
 
+    // Avaliacao nativa Google Play sem atrito (SIG-173/#664) — contador de diagnosticos
+    // com veredito positivo desde a ultima solicitacao e timestamp da ultima vez que o
+    // fluxo In-App Review foi disparado. Ver ReviewPromptPolicy (:app) para a regra de elegibilidade.
+    private val chaveReviewDiagnosticosPositivos = intPreferencesKey("review_diagnosticos_positivos")
+    private val chaveReviewUltimaSolicitacaoEpochMs = longPreferencesKey("review_ultima_solicitacao_epoch_ms")
+
     /**
      * Deve ser chamada uma vez após construção (idealmente no provide do Hilt).
      * Lê credenciais plaintext do DataStore e migra para o store criptografado.
@@ -431,6 +437,33 @@ class PreferenciasAppRepository(
     suspend fun salvarAdminSyncChatLastEpochMs(epochMs: Long) {
         withContext(ioDispatcher) {
             context.dataStore.edit { it[chaveAdminSyncChatLastEpochMs] = epochMs }
+        }
+    }
+
+    // --- Avaliacao nativa Google Play sem atrito (SIG-173/#664) ---
+
+    val reviewDiagnosticosPositivosFlow: Flow<Int> =
+        context.dataStore.data.map { it[chaveReviewDiagnosticosPositivos] ?: 0 }
+
+    val reviewUltimaSolicitacaoEpochMsFlow: Flow<Long?> =
+        context.dataStore.data.map { it[chaveReviewUltimaSolicitacaoEpochMs] }
+
+    suspend fun incrementarReviewDiagnosticosPositivos() {
+        withContext(ioDispatcher) {
+            context.dataStore.edit {
+                it[chaveReviewDiagnosticosPositivos] = (it[chaveReviewDiagnosticosPositivos] ?: 0) + 1
+            }
+        }
+    }
+
+    /** Registra que o fluxo In-App Review foi disparado — zera o contador de diagnosticos
+     *  positivos para exigir um novo ciclo completo antes da proxima solicitacao. */
+    suspend fun registrarReviewSolicitacaoDisparada(epochMs: Long) {
+        withContext(ioDispatcher) {
+            context.dataStore.edit {
+                it[chaveReviewUltimaSolicitacaoEpochMs] = epochMs
+                it[chaveReviewDiagnosticosPositivos] = 0
+            }
         }
     }
 

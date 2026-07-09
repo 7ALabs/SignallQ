@@ -27,6 +27,7 @@ import io.signallq.app.feature.diagnostico.ConnectionType
 import io.signallq.app.feature.diagnostico.DiagnosticInput
 import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
 import io.signallq.app.feature.diagnostico.DnsDiagnosticInput
+import io.signallq.app.feature.diagnostico.EstadoDiagnostico
 import io.signallq.app.feature.diagnostico.FibraDiagnosticInput
 import io.signallq.app.feature.diagnostico.InternetDiagnosticInput
 import io.signallq.app.feature.diagnostico.MobileDiagnosticInput
@@ -70,6 +71,7 @@ import io.signallq.app.monitoramento.MonitoramentoScheduler
 import io.signallq.app.network.IspInfoCache
 import io.signallq.app.notificacao.SignallQNotificationHelper
 import io.signallq.app.pulse.SignallQUiStateMapper
+import io.signallq.app.review.ReviewPromptPolicy
 import io.signallq.app.speedtest.SpeedtestPersistenceCoordinator
 import io.signallq.app.ui.BancoOperadoras
 import io.signallq.app.ui.ConnectionNodeType
@@ -80,9 +82,12 @@ import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.screen.AnalisadorState
 import io.signallq.app.ui.screen.SignallQUiState
 import io.signallq.app.ui.state.UiState
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -238,6 +243,30 @@ class MainViewModel
 
         fun definirConsentimentoLgpd(aceito: Boolean) {
             viewModelScope.launch { preferenciasAppRepository.definirConsentimentoLgpd(aceito) }
+        }
+
+        // ── Avaliacao nativa Google Play sem atrito (SIG-173/#664) ─────────────────
+        // Evento one-shot: a Activity coleta e dispara o InAppReviewManager (precisa
+        // de Activity, que o ViewModel nunca deve reter). Decisao de elegibilidade
+        // (ReviewPromptPolicy) fica inteiramente aqui, testavel sem Android.
+        private val _solicitarAvaliacaoPlayEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        val solicitarAvaliacaoPlayEvent: SharedFlow<Unit> = _solicitarAvaliacaoPlayEvent.asSharedFlow()
+
+        /** Chamado quando o usuario fecha o LaudoScreen (botao voltar ou back fisico). */
+        fun onLaudoFechado() {
+            val veredito =
+                diagnosticOrchestrator.snapshotFlow.value.relatorio
+                    ?.veredito ?: return
+            if (veredito !in ReviewPromptPolicy.VEREDITOS_POSITIVOS) return
+            viewModelScope.launch {
+                val positivos = preferenciasAppRepository.reviewDiagnosticosPositivosFlow.first()
+                val ultimaSolicitacao = preferenciasAppRepository.reviewUltimaSolicitacaoEpochMsFlow.first()
+                val agora = System.currentTimeMillis()
+                if (ReviewPromptPolicy.deveExibirPrompt(veredito, positivos, ultimaSolicitacao, agora)) {
+                    preferenciasAppRepository.registrarReviewSolicitacaoDisparada(agora)
+                    _solicitarAvaliacaoPlayEvent.tryEmit(Unit)
+                }
+            }
         }
 
         val gemmaAvailable = MutableStateFlow(false)
@@ -498,6 +527,19 @@ class MainViewModel
         }
 
         private fun iniciarObservadores() {
+            // SIG-173/#664 — acumula diagnosticos com veredito positivo para elegibilidade
+            // do prompt de avaliacao nativa do Google Play. So conta; o disparo do fluxo
+            // so acontece quando o usuario fecha o Laudo (onLaudoFechado).
+            viewModelScope.launch {
+                diagnosticOrchestrator.snapshotFlow.collect { snapshot ->
+                    if (snapshot.estado != EstadoDiagnostico.concluido) return@collect
+                    val veredito = snapshot.relatorio?.veredito ?: return@collect
+                    if (veredito in ReviewPromptPolicy.VEREDITOS_POSITIVOS) {
+                        preferenciasAppRepository.incrementarReviewDiagnosticosPositivos()
+                    }
+                }
+            }
+
             // Persistência do speedtest delegada ao SpeedtestPersistenceCoordinator (issues #184/#185).
             viewModelScope.launch {
                 executorFibra.snapshotFlow.collect { snapshot ->

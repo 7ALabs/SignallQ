@@ -82,6 +82,9 @@ data class AppShellDiagnosticoState(
     val analisadorState: AnalisadorState = AnalisadorState.Inativo,
     val onAnalisarProblema: (String) -> Unit = {},
     val onResetarAnalisador: () -> Unit = {},
+    /** SIG-173/#664 — chamado quando o usuario fecha o LaudoScreen. Avalia elegibilidade
+     *  para o prompt nativo de avaliacao do Google Play (nunca bloqueia o fechamento). */
+    val onLaudoFechado: () -> Unit = {},
 )
 
 /**
