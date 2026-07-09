@@ -1,5 +1,7 @@
 package io.signallq.app.ui.screen
 
+import io.signallq.app.core.recommendation.RecommendationType
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -36,5 +38,35 @@ class ResultadoVelocidadeScreenTest {
     fun `tipo desconhecido pede para repetir o teste`() {
         val texto = orientacaoPorTipoDeRede(null, null)
         assertTrue(texto.contains("não identificado"))
+    }
+
+    // GH#813 — badge de tipo da recomendacao do Recommendation Engine (RecommendationType).
+    @Test
+    fun `free tip mostra rotulo dica gratuita`() {
+        assertEquals("DICA GRATUITA", recommendationTypeLabel(RecommendationType.FREE_TIP))
+    }
+
+    @Test
+    fun `tutorial mostra rotulo tutorial`() {
+        assertEquals("TUTORIAL", recommendationTypeLabel(RecommendationType.TUTORIAL))
+    }
+
+    @Test
+    fun `configuration mostra rotulo configuracao`() {
+        assertEquals("CONFIGURAÇÃO", recommendationTypeLabel(RecommendationType.CONFIGURATION))
+    }
+
+    @Test
+    fun `todos os tipos monetizados tem rotulo distinto e nao vazio`() {
+        val monetizados =
+            listOf(
+                RecommendationType.AFFILIATE_PRODUCT,
+                RecommendationType.PARTNER_OFFER,
+                RecommendationType.OPERATOR_OFFER,
+                RecommendationType.NATIVE_AD_FALLBACK,
+            )
+        val rotulos = monetizados.map { recommendationTypeLabel(it) }
+        assertTrue(rotulos.all { it.isNotBlank() })
+        assertEquals(rotulos.distinct().size, rotulos.size)
     }
 }

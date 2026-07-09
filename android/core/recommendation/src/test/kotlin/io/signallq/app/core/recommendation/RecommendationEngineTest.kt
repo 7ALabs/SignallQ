@@ -178,6 +178,65 @@ class RecommendationEngineTest {
         assertNull(decision)
     }
 
+    // GH#813 — a experiencia pos-diagnostico desliga todos os tipos monetizados nas
+    // RecommendationFlags passadas ao request (criterio de aceite obrigatorio: nenhum tipo
+    // monetizado pode aparecer nesta entrega). Esses testes fixam essa combinacao de flags.
+    private val flagsSemMonetizacao = RecommendationFlags(
+        affiliateEnabled = false,
+        partnerOffersEnabled = false,
+        operatorOffersEnabled = false,
+        nativeAdFallbackEnabled = false,
+    )
+
+    @Test
+    fun `com flags de monetizacao desligadas produto afiliado nunca e elegivel`() {
+        val request = RecommendationRequest(
+            tags = setOf(DiagnosticTag.SINAL_BAIXO),
+            network = NetworkContextType.WIFI,
+            flags = flagsSemMonetizacao,
+        )
+
+        val decision = engine.choose(request)
+
+        // sinal_baixo so tem candidato monetizado (affiliate_repetidor_wifi) no catalogo local
+        // -- sem afiliado e sem fallback de admob, nao ha nada elegivel.
+        assertNull(decision)
+    }
+
+    @Test
+    fun `com flags de monetizacao desligadas recomendacao gratuita continua elegivel`() {
+        val request = RecommendationRequest(
+            tags = setOf(DiagnosticTag.WIFI_FRACO),
+            network = NetworkContextType.WIFI,
+            flags = flagsSemMonetizacao,
+        )
+
+        val decision = engine.choose(request)
+
+        assertNotNull(decision)
+        assertEquals(RecommendationType.FREE_TIP, decision!!.type)
+        assertTrue(!decision.monetized)
+    }
+
+    @Test
+    fun `com flags de monetizacao desligadas nenhum tipo elegivel jamais e monetizado`() {
+        val tagsDoDiagnostico = setOf(
+            DiagnosticTag.WIFI_FRACO,
+            DiagnosticTag.SINAL_BAIXO,
+            DiagnosticTag.MUITOS_DISPOSITIVOS,
+            DiagnosticTag.VELOCIDADE_ABAIXO_DO_CONTRATADO,
+        )
+        val request = RecommendationRequest(
+            tags = tagsDoDiagnostico,
+            network = NetworkContextType.WIFI,
+            flags = flagsSemMonetizacao,
+        )
+
+        val ranked = engine.rank(request)
+
+        assertTrue(ranked.none { it.monetized })
+    }
+
     private companion object {
         const val HOUR_MS = 3_600_000L
     }

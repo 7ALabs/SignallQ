@@ -27,8 +27,11 @@ import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.SportsEsports
+import androidx.compose.material.icons.outlined.ThumbDown
+import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material.icons.outlined.Tv
 import androidx.compose.material.icons.outlined.Videocam
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.rounded.CellTower
 import androidx.compose.material.icons.rounded.Refresh
@@ -56,6 +59,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -79,6 +83,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
+import io.signallq.app.core.recommendation.RecommendationDecision
+import io.signallq.app.core.recommendation.RecommendationFeedbackType
+import io.signallq.app.core.recommendation.RecommendationType
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 import io.signallq.app.feature.speedtest.VereditoUso
@@ -126,6 +133,14 @@ fun ResultadoVelocidadeScreen(
      *  produzida; a secao "Equipamento local" do diagnostico detalhado renderiza
      *  o estado "nenhum encontrado" nesse caso, nunca um card vazio. */
     localDevice: LocalNetworkDeviceSnapshot? = null,
+    /** Recomendacao do Recommendation Engine (#790/#811/#812) para este diagnostico -- #813.
+     *  null quando nao ha nada elegivel ou o usuario ja ocultou. */
+    recommendationDecision: RecommendationDecision? = null,
+    recommendationFeedback: RecommendationFeedbackType? = null,
+    onRecommendationShown: () -> Unit = {},
+    onRecommendationClicked: () -> Unit = {},
+    onRecommendationFeedback: (RecommendationFeedbackType) -> Unit = {},
+    onRecommendationDismissed: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
     val scrollState = rememberScrollState()
@@ -460,7 +475,10 @@ fun ResultadoVelocidadeScreen(
 
     if (showDiagnosticoSheet) {
         ModalBottomSheet(
-            onDismissRequest = { showDiagnosticoSheet = false },
+            onDismissRequest = {
+                showDiagnosticoSheet = false
+                onRecommendationDismissed()
+            },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = c.bgPrimary,
         ) {
@@ -477,6 +495,11 @@ fun ResultadoVelocidadeScreen(
                 onAnalisarProblema = onAnalisarProblema,
                 onResetarAnalisador = onResetarAnalisador,
                 onFalarComOperadora = { showOperadoraSheet = true },
+                recommendationDecision = recommendationDecision,
+                recommendationFeedback = recommendationFeedback,
+                onRecommendationShown = onRecommendationShown,
+                onRecommendationClicked = onRecommendationClicked,
+                onRecommendationFeedback = onRecommendationFeedback,
                 c = c,
             )
         }
@@ -514,6 +537,11 @@ private fun DiagnosticoDetalhadoSheet(
     onAnalisarProblema: (String) -> Unit,
     onResetarAnalisador: () -> Unit,
     onFalarComOperadora: () -> Unit,
+    recommendationDecision: RecommendationDecision?,
+    recommendationFeedback: RecommendationFeedbackType?,
+    onRecommendationShown: () -> Unit,
+    onRecommendationClicked: () -> Unit,
+    onRecommendationFeedback: (RecommendationFeedbackType) -> Unit,
     c: LkTokens,
 ) {
     var detalhesTecnicosExpandido by remember { mutableStateOf(false) }
@@ -619,6 +647,22 @@ private fun DiagnosticoDetalhadoSheet(
             RecomendacaoCard(texto = decisaoRecomendacao, c = c)
             Spacer(Modifier.height(LkSpacing.md))
         }
+
+        // Recomendacao do Recommendation Engine (#790/#811/#812) — #813. Se o engine nao
+        // achou nada elegivel, recommendationDecision e null e a secao inteira nao renderiza
+        // (sem card vazio, sem placeholder).
+        if (recommendationDecision != null) {
+            RecommendationEngineCard(
+                decision = recommendationDecision,
+                feedback = recommendationFeedback,
+                onShown = onRecommendationShown,
+                onClicked = onRecommendationClicked,
+                onFeedback = onRecommendationFeedback,
+                c = c,
+            )
+            Spacer(Modifier.height(LkSpacing.md))
+        }
+
         Text(
             text = "Quer uma recomendação mais específica para o seu caso?",
             style = MaterialTheme.typography.bodySmall,
@@ -964,6 +1008,151 @@ private fun RecomendacaoCard(
         )
     }
 }
+
+/**
+ * Recomendacao escolhida pelo Recommendation Engine (`RecommendationEngine.choose`,
+ * `coreRecommendation`, issues #790/#811/#812) — GH#813. Mostra titulo, tipo e motivo
+ * da decisao, com as 3 acoes de feedback do usuario (util / não útil / ocultar).
+ *
+ * `onShown` dispara uma unica vez por [RecommendationDecision.trackingId] — LaunchedEffect
+ * so reexecuta se a key mudar, e o ViewModel tem uma guarda de idempotencia adicional, então
+ * recomposição do Compose nunca duplica o evento `recommendation_shown`.
+ */
+@Composable
+private fun RecommendationEngineCard(
+    decision: RecommendationDecision,
+    feedback: RecommendationFeedbackType?,
+    onShown: () -> Unit,
+    onClicked: () -> Unit,
+    onFeedback: (RecommendationFeedbackType) -> Unit,
+    c: LkTokens,
+) {
+    LaunchedEffect(decision.trackingId) { onShown() }
+    var motivoExpandido by remember(decision.trackingId) { mutableStateOf(false) }
+
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.bgSecondary)
+                .semantics {
+                    role = Role.Button
+                    contentDescription = "Recomendação: ${decision.recommendation.title}"
+                    stateDescription = if (motivoExpandido) "expandido" else "recolhido"
+                }.clickable {
+                    if (!motivoExpandido) onClicked()
+                    motivoExpandido = !motivoExpandido
+                }.padding(LkSpacing.lg),
+    ) {
+        Row(verticalAlignment = Alignment.Top) {
+            Icon(
+                imageVector = Icons.Outlined.AutoAwesome,
+                contentDescription = null,
+                tint = LkColors.accent,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(LkSpacing.sm))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = recommendationTypeLabel(decision.type),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.textTertiary,
+                    letterSpacing = 0.5.sp,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = decision.recommendation.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.W600,
+                    color = c.textPrimary,
+                    lineHeight = 18.sp,
+                )
+            }
+            Icon(
+                imageVector = Icons.Outlined.ExpandMore,
+                contentDescription = null,
+                tint = c.textTertiary,
+                modifier =
+                    Modifier
+                        .size(20.dp)
+                        .rotate(if (motivoExpandido) 180f else 0f),
+            )
+        }
+
+        AnimatedVisibility(visible = motivoExpandido) {
+            Text(
+                text = decision.reason,
+                style = MaterialTheme.typography.bodySmall,
+                color = c.textSecondary,
+                lineHeight = 18.sp,
+                modifier = Modifier.padding(top = LkSpacing.sm),
+            )
+        }
+
+        Spacer(Modifier.height(LkSpacing.md))
+        if (feedback == null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
+                RecommendationFeedbackButton(
+                    texto = "Útil",
+                    icon = Icons.Outlined.ThumbUp,
+                    c = c,
+                    onClick = { onFeedback(RecommendationFeedbackType.HELPFUL) },
+                )
+                RecommendationFeedbackButton(
+                    texto = "Não útil",
+                    icon = Icons.Outlined.ThumbDown,
+                    c = c,
+                    onClick = { onFeedback(RecommendationFeedbackType.NOT_HELPFUL) },
+                )
+                RecommendationFeedbackButton(
+                    texto = "Ocultar",
+                    icon = Icons.Outlined.VisibilityOff,
+                    c = c,
+                    onClick = { onFeedback(RecommendationFeedbackType.HIDE) },
+                )
+            }
+        } else {
+            Text(
+                text = "Obrigado pelo feedback — isso ajuda a melhorar as próximas recomendações.",
+                style = MaterialTheme.typography.labelSmall,
+                color = c.textTertiary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RecommendationFeedbackButton(
+    texto: String,
+    icon: ImageVector,
+    c: LkTokens,
+    onClick: () -> Unit,
+) {
+    TextButton(onClick = onClick, contentPadding = ButtonDefaults.TextButtonContentPadding) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = c.textSecondary,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(text = texto, style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
+    }
+}
+
+internal fun recommendationTypeLabel(type: RecommendationType): String =
+    when (type) {
+        RecommendationType.FREE_TIP -> "DICA GRATUITA"
+        RecommendationType.TUTORIAL -> "TUTORIAL"
+        RecommendationType.CONFIGURATION -> "CONFIGURAÇÃO"
+        // Tipos monetizados desligados nas RecommendationFlags desta entrega (#813) --
+        // labels aqui só por exaustividade do when, não devem aparecer na UI ainda.
+        RecommendationType.AFFILIATE_PRODUCT -> "PRODUTO RECOMENDADO"
+        RecommendationType.PARTNER_OFFER -> "OFERTA PARCEIRA"
+        RecommendationType.OPERATOR_OFFER -> "OFERTA DA OPERADORA"
+        RecommendationType.NATIVE_AD_FALLBACK -> "PUBLICIDADE"
+    }
 
 private val problemasPredefinidos =
     listOf(

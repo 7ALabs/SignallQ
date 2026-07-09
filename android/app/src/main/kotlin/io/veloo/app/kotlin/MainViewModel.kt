@@ -18,6 +18,12 @@ import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.network.NetworkCapabilitiesProvider
 import io.signallq.app.core.network.contracts.wifi.channel.freqToChannel
 import io.signallq.app.core.permissions.GerenciadorPermissoesRede
+import io.signallq.app.core.recommendation.RecommendationDecision
+import io.signallq.app.core.recommendation.RecommendationFeedbackType
+import io.signallq.app.core.recommendation.RecommendationFlags
+import io.signallq.app.core.recommendation.analytics.RecommendationAnalyticsEventName
+import io.signallq.app.core.recommendation.analytics.RecommendationAnalyticsTracker
+import io.signallq.app.core.recommendation.analytics.toAnalyticsPayload
 import io.signallq.app.core.telephony.MonitorTelephony
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
@@ -26,6 +32,7 @@ import io.signallq.app.feature.devices.SnapshotScanDispositivos
 import io.signallq.app.feature.diagnostico.ConnectionType
 import io.signallq.app.feature.diagnostico.DiagnosticInput
 import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
+import io.signallq.app.feature.diagnostico.DiagnosticReport
 import io.signallq.app.feature.diagnostico.DnsDiagnosticInput
 import io.signallq.app.feature.diagnostico.EstadoDiagnostico
 import io.signallq.app.feature.diagnostico.FibraDiagnosticInput
@@ -50,6 +57,7 @@ import io.signallq.app.feature.diagnostico.banda
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.pulse.OpcaoResposta
 import io.signallq.app.feature.diagnostico.pulse.SignallQOrchestrator
+import io.signallq.app.feature.diagnostico.recommendation.RecommendationDecisionCoordinator
 import io.signallq.app.feature.diagnostico.topology.TopologyDiagnostic
 import io.signallq.app.feature.diagnostico.topology.model.NatStatus
 import io.signallq.app.feature.dns.AvaliadorCoerenciaDns
@@ -143,6 +151,14 @@ class MainViewModel
         /** Funil principal de engajamento (SIG-155) — repassado ao SignallQOrchestrator
          *  para os eventos ia_laudo_solicitado/ia_laudo_recebido. */
         private val analyticsHelper: AnalyticsHelper,
+        /** Unico ponto de integracao com o Recommendation Engine (issue #790/#811/#812) --
+         *  monta o request a partir do relatorio/input do diagnostico, le/persiste o
+         *  historico local (Room) e devolve a decisao a exibir na experiencia pos-diagnostico
+         *  (issue #813). */
+        private val recommendationDecisionCoordinator: RecommendationDecisionCoordinator,
+        /** Eventos `recommendation_*` (issue #790) do Recommendation Engine -- distinto do
+         *  AnalyticsHelper/AnalyticsTracker acima, que cobrem outros funis. */
+        private val recommendationAnalyticsTracker: RecommendationAnalyticsTracker,
     ) : AndroidViewModel(application) {
         private companion object {
             const val LOG_TAG = "SignallQSpeedtestSuite"
@@ -182,6 +198,28 @@ class MainViewModel
 
         private val _analisadorState = MutableStateFlow<AnalisadorState>(AnalisadorState.Inativo)
         val analisadorState: StateFlow<AnalisadorState> = _analisadorState
+
+        // ── Recomendacao do Recommendation Engine na experiencia pos-diagnostico (#813) ──
+        // Uma unica decisao por diagnostico concluido -- recalculada em iniciarObservadores()
+        // quando o DiagnosticOrchestrator emite um relatorio novo. null = nada elegivel
+        // (RecommendationEngine.choose retornou null) ou feedback "ocultar" ja dado.
+        private val _recommendationDecision = MutableStateFlow<RecommendationDecision?>(null)
+        val recommendationDecision: StateFlow<RecommendationDecision?> = _recommendationDecision
+
+        private val _recommendationFeedback = MutableStateFlow<RecommendationFeedbackType?>(null)
+        val recommendationFeedback: StateFlow<RecommendationFeedbackType?> = _recommendationFeedback
+
+        // Guarda de idempotencia por trackingId -- evita reenviar o mesmo evento de
+        // analytics em recomposicao do Compose (LaunchedEffect/onClick chamam de novo
+        // sem side effect se o id ja foi processado).
+        private val recommendationShownTrackingIds = mutableSetOf<String>()
+        private val recommendationClickedTrackingIds = mutableSetOf<String>()
+        private val recommendationDismissedTrackingIds = mutableSetOf<String>()
+
+        // Id do diagnostico que originou _recommendationDecision -- guardado a parte porque
+        // RecommendationDecision (coreRecommendation) nao carrega o diagnosticId, so o
+        // RecommendationRequest o recebe (fica dentro do RecommendationDecisionCoordinator).
+        private var recommendationDiagnosticId: String? = null
 
         // #179 Task C — Dual SIM: lista de SIMs ativos, atualizada sempre que o monitor de
         // telefonia emite novo snapshot (mudanca de rede/sinal). Inicializado com emptyList()
@@ -537,6 +575,21 @@ class MainViewModel
                     if (veredito in ReviewPromptPolicy.VEREDITOS_POSITIVOS) {
                         preferenciasAppRepository.incrementarReviewDiagnosticosPositivos()
                     }
+                }
+            }
+
+            // #813 — recalcula a recomendacao do Recommendation Engine a cada diagnostico
+            // concluido. Uma unica chamada por relatorio novo: SnapshotDiagnostico e um
+            // data class, entao o StateFlow so re-emite quando o conteudo muda de fato
+            // (novo relatorio = geradoEmMs diferente); reabrir a tela de resultado depois
+            // NAO reexecuta isto, o que evitaria escrever exibicao duplicada no historico
+            // (Room, #812) para o mesmo diagnostico.
+            viewModelScope.launch {
+                diagnosticOrchestrator.snapshotFlow.collect { snapshot ->
+                    if (snapshot.estado != EstadoDiagnostico.concluido) return@collect
+                    val relatorio = snapshot.relatorio ?: return@collect
+                    val input = snapshot.input ?: return@collect
+                    avaliarRecomendacao(relatorio = relatorio, input = input)
                 }
             }
 
@@ -1819,6 +1872,98 @@ class MainViewModel
 
         fun resetarAnalisador() {
             _analisadorState.value = AnalisadorState.Inativo
+        }
+
+        // ── Recomendacao do Recommendation Engine (#813) ─────────────────────────────
+
+        /**
+         * Chamada uma vez por diagnostico concluido (ver [iniciarObservadores]).
+         * Nenhum tipo monetizado entra nesta entrega -- flags correspondentes desligadas
+         * (criterio de aceite da #813); apenas free_tip/tutorial/configuration podem
+         * aparecer aqui ate a monetizacao real ser implementada.
+         */
+        private suspend fun avaliarRecomendacao(
+            relatorio: DiagnosticReport,
+            input: DiagnosticInput,
+        ) {
+            val diagnosticId = relatorio.geradoEmMs.toString()
+            val decisao =
+                recommendationDecisionCoordinator.escolherRecomendacao(
+                    report = relatorio,
+                    input = input,
+                    isp = ispInfoCache.ultimoIspNome,
+                    flags =
+                        RecommendationFlags(
+                            affiliateEnabled = false,
+                            partnerOffersEnabled = false,
+                            operatorOffersEnabled = false,
+                            nativeAdFallbackEnabled = false,
+                        ),
+                    diagnosticId = diagnosticId,
+                )
+            _recommendationDecision.value = decisao
+            _recommendationFeedback.value = null
+            recommendationDiagnosticId = diagnosticId
+            if (decisao != null) {
+                recommendationAnalyticsTracker.track(
+                    decisao.toAnalyticsPayload(RecommendationAnalyticsEventName.ELIGIBLE, diagnosticId = diagnosticId),
+                )
+            }
+        }
+
+        /** Chamada pela UI quando o card de recomendacao e efetivamente renderizado na tela
+         *  (LaunchedEffect por trackingId) -- distinto de "eligible", que so significa que o
+         *  engine encontrou uma recomendacao, nao que o usuario chegou a ve-la. */
+        fun registrarRecomendacaoMostrada() {
+            val decisao = _recommendationDecision.value ?: return
+            if (!recommendationShownTrackingIds.add(decisao.trackingId)) return
+            recommendationAnalyticsTracker.track(
+                decisao.toAnalyticsPayload(RecommendationAnalyticsEventName.SHOWN, diagnosticId = recommendationDiagnosticId),
+            )
+        }
+
+        /** Chamada quando o usuario interage com o card (expande o motivo). */
+        fun registrarRecomendacaoClicada() {
+            val decisao = _recommendationDecision.value ?: return
+            if (!recommendationClickedTrackingIds.add(decisao.trackingId)) return
+            recommendationAnalyticsTracker.track(
+                decisao.toAnalyticsPayload(RecommendationAnalyticsEventName.CLICKED, diagnosticId = recommendationDiagnosticId),
+            )
+        }
+
+        /** Feedback explicito do usuario (util / nao util / ocultar). Persiste no historico
+         *  (Room, #812) -- influencia a proxima recomendacao via cooldown/penalizacao de
+         *  score do RecommendationEngine. "Ocultar" remove o card da tela imediatamente;
+         *  util/nao util mantem o card visivel com o feedback registrado. */
+        fun registrarFeedbackRecomendacao(feedback: RecommendationFeedbackType) {
+            val decisao = _recommendationDecision.value ?: return
+            _recommendationFeedback.value = feedback
+            if (feedback == RecommendationFeedbackType.HIDE) {
+                _recommendationDecision.value = null
+            }
+            viewModelScope.launch {
+                recommendationDecisionCoordinator.registrarFeedback(decisao.trackingId, feedback)
+            }
+            recommendationAnalyticsTracker.track(
+                decisao.toAnalyticsPayload(
+                    RecommendationAnalyticsEventName.FEEDBACK,
+                    diagnosticId = recommendationDiagnosticId,
+                    feedback = feedback,
+                ),
+            )
+        }
+
+        /** Chamada quando o usuario fecha a experiencia pos-diagnostico sem dar nenhum
+         *  feedback explicito para a recomendacao atual -- "ignorou/fechou" (#790). Nao
+         *  dispara se o usuario ja deu feedback (util/nao util/ocultar), pra nao contar a
+         *  mesma interacao como dismissed e feedback ao mesmo tempo. */
+        fun registrarRecomendacaoDispensada() {
+            val decisao = _recommendationDecision.value ?: return
+            if (_recommendationFeedback.value != null) return
+            if (!recommendationDismissedTrackingIds.add(decisao.trackingId)) return
+            recommendationAnalyticsTracker.track(
+                decisao.toAnalyticsPayload(RecommendationAnalyticsEventName.DISMISSED, diagnosticId = recommendationDiagnosticId),
+            )
         }
 
         /**

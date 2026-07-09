@@ -228,6 +228,8 @@ class MainActivity : ComponentActivity() {
             val diagChatHistorico by viewModel.diagChatHistorico.collectAsStateWithLifecycle()
             val diagChatCarregando by viewModel.diagChatCarregando.collectAsStateWithLifecycle()
             val analisadorState by viewModel.analisadorState.collectAsStateWithLifecycle()
+            val recommendationDecision by viewModel.recommendationDecision.collectAsStateWithLifecycle()
+            val recommendationFeedback by viewModel.recommendationFeedback.collectAsStateWithLifecycle()
             // #82 — Banner Anatel dismissível
             val anatelBannerDismissed = viewModel.anatelBannerDismissed.collectAsStateWithLifecycle().value
             // Chat Diagnóstico IA
@@ -333,6 +335,12 @@ class MainActivity : ComponentActivity() {
                                 onAnalisarProblema = { problema -> viewModel.analisarProblema(problema) },
                                 onResetarAnalisador = { viewModel.resetarAnalisador() },
                                 onLaudoFechado = { viewModel.onLaudoFechado() },
+                                recommendationDecision = recommendationDecision,
+                                recommendationFeedback = recommendationFeedback,
+                                onRecommendationShown = { viewModel.registrarRecomendacaoMostrada() },
+                                onRecommendationClicked = { viewModel.registrarRecomendacaoClicada() },
+                                onRecommendationFeedback = { feedback -> viewModel.registrarFeedbackRecomendacao(feedback) },
+                                onRecommendationDismissed = { viewModel.registrarRecomendacaoDispensada() },
                             ),
                         signallQ =
                             io.signallq.app.ui.screen.AppShellSignallQState(

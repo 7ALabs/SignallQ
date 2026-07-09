@@ -238,6 +238,12 @@ fun AppShell(
     val onAnalisarProblema = diagnostico.onAnalisarProblema
     val onResetarAnalisador = diagnostico.onResetarAnalisador
     val onLaudoFechado = diagnostico.onLaudoFechado
+    val recommendationDecision = diagnostico.recommendationDecision
+    val recommendationFeedback = diagnostico.recommendationFeedback
+    val onRecommendationShown = diagnostico.onRecommendationShown
+    val onRecommendationClicked = diagnostico.onRecommendationClicked
+    val onRecommendationFeedback = diagnostico.onRecommendationFeedback
+    val onRecommendationDismissed = diagnostico.onRecommendationDismissed
 
     val operadoraMovel = signallQ.operadoraMovel
     val onVerificarGemma = signallQ.onVerificarGemma
@@ -689,6 +695,12 @@ fun AppShell(
                     analisadorState = analisadorState,
                     onAnalisarProblema = onAnalisarProblema,
                     onResetarAnalisador = onResetarAnalisador,
+                    recommendationDecision = recommendationDecision,
+                    recommendationFeedback = recommendationFeedback,
+                    onRecommendationShown = onRecommendationShown,
+                    onRecommendationClicked = onRecommendationClicked,
+                    onRecommendationFeedback = onRecommendationFeedback,
+                    onRecommendationDismissed = onRecommendationDismissed,
                 )
             }
         }

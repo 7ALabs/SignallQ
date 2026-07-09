@@ -277,6 +277,7 @@ dependencies {
     implementation(project(":coreDatabase"))
     implementation(project(":coreDatastore"))
     implementation(project(":coreTelephony"))
+    implementation(project(":coreRecommendation"))
     implementation(project(":featureHome"))
     implementation(project(":featureWifi"))
     implementation(project(":featureDevices"))

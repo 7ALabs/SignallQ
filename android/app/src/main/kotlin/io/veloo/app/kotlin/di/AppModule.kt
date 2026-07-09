@@ -10,6 +10,7 @@ import dagger.hilt.components.SingletonComponent
 import io.signallq.app.BuildConfig
 import io.signallq.app.analytics.CompositeAnalyticsTracker
 import io.signallq.app.analytics.FirebaseAnalyticsHelper
+import io.signallq.app.analytics.FirebaseRecommendationAnalyticsTracker
 import io.signallq.app.core.database.CoreDatabaseModulo
 import io.signallq.app.core.database.MedicaoDao
 import io.signallq.app.core.database.SignallQDatabase
@@ -26,6 +27,7 @@ import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.network.NetworkCapabilitiesProvider
 import io.signallq.app.core.permissions.CorePermissionsModulo
 import io.signallq.app.core.permissions.GerenciadorPermissoesRede
+import io.signallq.app.core.recommendation.analytics.RecommendationAnalyticsTracker
 import io.signallq.app.core.telephony.CoreTelephonyModulo
 import io.signallq.app.core.telephony.MonitorTelephony
 import io.signallq.app.feature.devices.FeatureDevicesModulo
@@ -236,6 +238,14 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAnalyticsHelper(helper: FirebaseAnalyticsHelper): AnalyticsHelper = helper
+
+    /** RecommendationAnalyticsTracker (`coreRecommendation`, issue #790/#813) -- eventos
+     *  `recommendation_*` do Recommendation Engine, distintos dos dois contratos acima. */
+    @Provides
+    @Singleton
+    fun provideRecommendationAnalyticsTracker(
+        tracker: FirebaseRecommendationAnalyticsTracker,
+    ): RecommendationAnalyticsTracker = tracker
 
     @Provides
     @Singleton

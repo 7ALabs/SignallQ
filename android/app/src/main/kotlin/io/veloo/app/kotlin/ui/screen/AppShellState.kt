@@ -1,6 +1,8 @@
 ﻿package io.signallq.app.ui.screen
 
 import androidx.compose.runtime.Stable
+import io.signallq.app.core.recommendation.RecommendationDecision
+import io.signallq.app.core.recommendation.RecommendationFeedbackType
 import io.signallq.app.feature.devices.SnapshotScanDispositivos
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.diagnostico.ai.AiAcaoRecomendada
@@ -85,6 +87,16 @@ data class AppShellDiagnosticoState(
     /** SIG-173/#664 — chamado quando o usuario fecha o LaudoScreen. Avalia elegibilidade
      *  para o prompt nativo de avaliacao do Google Play (nunca bloqueia o fechamento). */
     val onLaudoFechado: () -> Unit = {},
+    /** Recomendacao do Recommendation Engine (#790/#811/#812) para o diagnostico atual --
+     *  null quando `RecommendationEngine.choose` nao encontrou nada elegivel, ou depois que
+     *  o usuario deu feedback "ocultar" (#813). */
+    val recommendationDecision: RecommendationDecision? = null,
+    /** Feedback ja dado pelo usuario para [recommendationDecision] nesta sessao, ou null. */
+    val recommendationFeedback: RecommendationFeedbackType? = null,
+    val onRecommendationShown: () -> Unit = {},
+    val onRecommendationClicked: () -> Unit = {},
+    val onRecommendationFeedback: (RecommendationFeedbackType) -> Unit = {},
+    val onRecommendationDismissed: () -> Unit = {},
 )
 
 /**
