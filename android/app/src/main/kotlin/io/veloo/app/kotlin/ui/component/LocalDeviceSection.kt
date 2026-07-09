@@ -50,6 +50,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.core.network.contracts.gateway.EquipmentClassification
+import io.signallq.app.core.network.contracts.localdevice.DataFreshness
 import io.signallq.app.core.network.contracts.localdevice.DeviceType
 import io.signallq.app.core.network.contracts.localdevice.DeviceWarningType
 import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
@@ -108,6 +109,7 @@ sealed interface LocalDeviceSectionUiState {
         val resumoDescricao: String,
         val resumoStatus: DiagnosticStatus,
         val secoes: List<EquipamentoSecaoTecnica>,
+        val freshness: DataFreshness,
     ) : LocalDeviceSectionUiState
 }
 
@@ -172,6 +174,7 @@ fun mapLocalDeviceSectionUiState(
         resumoDescricao = resumoDescricao,
         resumoStatus = resumoStatus,
         secoes = secoesTecnicas(snapshot),
+        freshness = snapshot.freshness,
     )
 }
 
@@ -392,6 +395,22 @@ private fun formatarUptime(segundos: Int): String {
     }
 }
 
+/** Formata o tempo decorrido desde a captura do snapshot em texto humano — a
+ *  regra de expiracao ([DataFreshness.expirado]) e do motor, esta funcao so
+ *  cobre o texto de "ha quanto tempo" quando a leitura ainda e considerada
+ *  valida. */
+private fun formatarFrescor(
+    capturadoEmEpochMs: Long,
+    agora: Long = System.currentTimeMillis(),
+): String {
+    val minutos = ((agora - capturadoEmEpochMs).coerceAtLeast(0)) / 60_000
+    return when {
+        minutos < 2 -> "Atualizado agora"
+        minutos < 60 -> "Atualizado há $minutos min"
+        else -> "Atualizado há ${minutos / 60}h"
+    }
+}
+
 /** Mascara o ultimo octeto de um IPv4 para nao expor a rede local inteira na tela. */
 private fun mascaraIpEquipamento(ip: String): String {
     val partes = ip.trim().split(".")
@@ -410,6 +429,11 @@ private fun mascaraIpEquipamento(ip: String): String {
 fun LocalDeviceSection(
     state: LocalDeviceSectionUiState,
     modifier: Modifier = Modifier,
+    /** Indica se a tela onde esta secao esta inserida tem uma acao de refazer
+     *  diagnostico disponivel agora (ex.: [io.signallq.app.ui.component.DiagActionFooter]
+     *  ja presente na tela) — controla se a nota de leitura desatualizada convida o
+     *  usuario a usa-la. Nao cria um botao novo aqui, so reaproveita a acao existente. */
+    refazerDisponivel: Boolean = false,
 ) {
     val c = LocalLkTokens.current
 
@@ -458,7 +482,8 @@ fun LocalDeviceSection(
                     accent = c.textTertiary,
                 )
 
-            is LocalDeviceSectionUiState.Conectado -> LocalDeviceConectadoContent(state = state, c = c)
+            is LocalDeviceSectionUiState.Conectado ->
+                LocalDeviceConectadoContent(state = state, c = c, refazerDisponivel = refazerDisponivel)
         }
     }
 }
@@ -505,6 +530,7 @@ private fun LocalDeviceEmptyCard(
 private fun LocalDeviceConectadoContent(
     state: LocalDeviceSectionUiState.Conectado,
     c: io.signallq.app.ui.LkTokens,
+    refazerDisponivel: Boolean,
 ) {
     var detalhesExpandidos by remember { mutableStateOf(false) }
     val statusColor = statusParaCor(state.resumoStatus)
@@ -541,7 +567,9 @@ private fun LocalDeviceConectadoContent(
                     color = c.textTertiary,
                 )
             }
+            FrescorIndicator(freshness = state.freshness, c = c)
             if (!state.completo) {
+                Spacer(Modifier.width(LkSpacing.xs))
                 SuporteBadge(texto = "Parcial", cor = LkColors.warning)
             }
         }
@@ -601,6 +629,20 @@ private fun LocalDeviceConectadoContent(
                 Spacer(Modifier.height(2.dp))
                 Text(state.resumoDescricao, fontSize = 12.sp, color = c.textSecondary, lineHeight = 17.sp)
             }
+        }
+
+        // Aviso de leitura desatualizada (frescor) — so convida a usar a acao de
+        // refazer quando ela ja existe na tela (footer/botao existente, nunca um
+        // botao novo criado dentro deste card).
+        if (state.freshness.expirado && refazerDisponivel) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Estes dados podem não refletir o estado atual do equipamento — " +
+                    "toque em Atualizar para uma nova leitura.",
+                fontSize = 10.5.sp,
+                color = LkColors.warning,
+                lineHeight = 14.sp,
+            )
         }
 
         if (state.secoes.isNotEmpty()) {
@@ -667,6 +709,40 @@ private fun EquipamentoSecaoRow(
                 Text(item.valor, fontSize = 11.sp, fontWeight = FontWeight.W600, color = c.textPrimary)
             }
         }
+    }
+}
+
+/** Indicador de frescor da leitura no cabecalho do card "Conectado" — traduz
+ *  [DataFreshness] em confianca visual: dado recente e neutro (cinza,
+ *  discreto), dado marcado como expirado pelo motor vira alerta ambar com
+ *  icone, nunca a mesma aparencia de um dado atual. */
+@Composable
+private fun FrescorIndicator(
+    freshness: DataFreshness,
+    c: io.signallq.app.ui.LkTokens,
+) {
+    if (freshness.expirado) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Outlined.ErrorOutline,
+                contentDescription = null,
+                tint = LkColors.warning,
+                modifier = Modifier.size(12.dp),
+            )
+            Spacer(Modifier.width(2.dp))
+            Text(
+                "Leitura desatualizada",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.W600,
+                color = LkColors.warning,
+            )
+        }
+    } else {
+        Text(
+            formatarFrescor(freshness.capturadoEmEpochMs),
+            fontSize = 10.sp,
+            color = c.textTertiary,
+        )
     }
 }
 
@@ -794,6 +870,7 @@ private fun LocalDeviceSectionNokiaCompletoPreview() {
                             ),
                         ),
                     ),
+                freshness = DataFreshness(capturadoEmEpochMs = System.currentTimeMillis()),
             ),
         )
     }
@@ -826,7 +903,9 @@ private fun LocalDeviceSectionRoteadorParcialExperimentalPreview() {
                             listOf(EquipamentoItemTecnico("Casa_5G", "5 GHz · canal 44")),
                         ),
                     ),
+                freshness = DataFreshness(capturadoEmEpochMs = System.currentTimeMillis() - 3_600_000L, expirado = true),
             ),
+            refazerDisponivel = true,
         )
     }
 }

@@ -887,8 +887,13 @@ private fun DiagResultContent(
             // 6. Equipamento local — GH#544, epic #547. localDevice ainda vem
             // sempre null em producao ate a leitura opcional (GH#543) existir;
             // a secao ja renderiza "nenhum encontrado" corretamente nesse caso.
+            // refazerDisponivel = true porque o DiagActionFooter logo abaixo ja
+            // oferece a acao de refazer usada pela nota de leitura desatualizada.
             item {
-                LocalDeviceSection(state = mapLocalDeviceSectionUiState(localDevice))
+                LocalDeviceSection(
+                    state = mapLocalDeviceSectionUiState(localDevice),
+                    refazerDisponivel = true,
+                )
             }
 
             item { Spacer(Modifier.height(8.dp)) }
