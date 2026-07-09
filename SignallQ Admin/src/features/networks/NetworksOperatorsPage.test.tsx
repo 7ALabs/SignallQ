@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { NetworksOperatorsPage } from "./NetworksOperatorsPage";
 
-// GH#746 — smoke test: mocka o service diretamente (mesmo padrão de
-// AiCostPage.test.tsx / DiagnosticsPage.test.tsx).
+// GH#781 (paridade mockup) — smoke test: mocka o service diretamente (mesmo
+// padrão de AiCostPage.test.tsx / DiagnosticsPage.test.tsx).
 vi.mock("../../services/adminMetricsService", () => ({
   adminMetricsService: {
     getNetworkTypeStats: vi.fn().mockResolvedValue([
@@ -18,37 +18,42 @@ vi.mock("../../services/adminMetricsService", () => ({
 }));
 
 describe("NetworksOperatorsPage", () => {
-  it("mostra o gráfico principal (score por operadora) sem os outros 3 gráficos empilhados", async () => {
+  it("mostra os 4 KPIs de paridade com o mockup (networkKpis)", async () => {
     render(
       <NetworksOperatorsPage environment="production" period="7d" onNavigate={vi.fn()} triggerRefreshCounter={0} />
     );
 
-    expect(await screen.findByText("Score Médio de Diagnóstico por Operadora")).toBeInTheDocument();
-    expect(screen.queryByText("Velocidade média de download por operadora")).not.toBeInTheDocument();
-    expect(screen.queryByText("Latência média por tipo de rede")).not.toBeInTheDocument();
-    expect(screen.queryByText("Perda de pacote média por tipo de rede")).not.toBeInTheDocument();
+    expect(await screen.findByText("Score médio de rede")).toBeInTheDocument();
+    expect(screen.getByText("Sessões via Wi-Fi")).toBeInTheDocument();
+    expect(screen.getByText("Operadoras monitoradas")).toBeInTheDocument();
+    expect(screen.getByText("Regiões cobertas")).toBeInTheDocument();
+
+    // Operadoras monitoradas: 2 operadoras mockadas.
+    expect(screen.getByText("2")).toBeInTheDocument();
+    // Sessões via Wi-Fi: 320 Wi-Fi / (320 + 110) móvel = 74%.
+    expect(screen.getByText("74%")).toBeInTheDocument();
+    // Regiões cobertas segue indisponível — sem coluna de UF no worker.
+    expect(screen.getAllByText("Não disponível").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("revela os gráficos secundários ao expandir o detalhamento", async () => {
+  it("não mostra filtro global nem blocos fora da composição do mockup", async () => {
     render(
       <NetworksOperatorsPage environment="production" period="7d" onNavigate={vi.fn()} triggerRefreshCounter={0} />
     );
 
-    const toggle = await screen.findByText("Detalhamento por tipo de rede e operadora");
-    fireEvent.click(toggle);
-
-    expect(await screen.findByText("Velocidade média de download por operadora")).toBeInTheDocument();
-    expect(screen.getByText("Latência média por tipo de rede")).toBeInTheDocument();
-    expect(screen.getByText("Perda de pacote média por tipo de rede")).toBeInTheDocument();
+    await screen.findByText("Score médio de rede");
+    expect(screen.queryByText("Score Médio de Diagnóstico por Operadora")).not.toBeInTheDocument();
+    expect(screen.queryByText("Detalhamento por tipo de rede e operadora")).not.toBeInTheDocument();
+    expect(screen.queryByText("Estudo Técnico Comparativo de Conectividade")).not.toBeInTheDocument();
+    expect(screen.queryByText("Exportar relatório por operadora")).not.toBeInTheDocument();
   });
 
-  it("aplica veredito consistente no KPI de operadora com pior score", async () => {
+  it("mostra o mapa por UF e as sessões por operadora na mesma linha", async () => {
     render(
       <NetworksOperatorsPage environment="production" period="7d" onNavigate={vi.fn()} triggerRefreshCounter={0} />
     );
 
-    expect(await screen.findByText("Operadora com pior score")).toBeInTheDocument();
-    // Oi tem score 48 -> abaixo de 55 -> "Fraco" pela mesma escala de scoreVerdict usada em Diagnósticos.
-    expect(screen.getByText("Fraco")).toBeInTheDocument();
+    expect(await screen.findByText("Onde o app é mais usado")).toBeInTheDocument();
+    expect(screen.getByText("Sessões por operadora")).toBeInTheDocument();
   });
 });
