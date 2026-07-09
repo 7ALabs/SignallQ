@@ -119,7 +119,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
         )}
 
         {/* 3. Main scrollable panel */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 lg:space-y-8" style={{ backgroundColor: "var(--bg-base)" }}>
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 lg:space-y-8" style={{ backgroundColor: "var(--bg-content)" }}>
           {children}
         </main>
       </div>

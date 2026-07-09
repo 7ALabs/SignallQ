@@ -26,9 +26,10 @@
 
   /* Superfícies */
   --bg-base:            #000000;
-  --bg-sidebar:         #050505;
-  --bg-topbar:          #000000;
-  --bg-surface:         #0B0B0B;
+  --bg-sidebar:         var(--bg-base);
+  --bg-content:         #1A1A1A;
+  --bg-topbar:          var(--bg-content);
+  --bg-surface:         #111111;
   --bg-surface-muted:   #111111;
   --bg-surface-hover:   #151515;
   --bg-card-hover:      #151515;
@@ -78,7 +79,7 @@
 
   --sq-bg-primary:      var(--bg-base);
   --sq-bg-secondary:    var(--bg-surface);
-  --sq-bg-card:         var(--bg-sidebar);
+  --sq-bg-card:         var(--bg-surface);
   --sq-bg-elevated:     var(--bg-surface);
   --sq-bg-overlay:      var(--bg-surface-hover);
   --sq-border:          var(--border);
@@ -113,9 +114,10 @@
 /* Tema dark explícito — sobrepõe prefers-color-scheme: light */
 [data-theme="dark"] {
   --bg-base:            #000000;
-  --bg-sidebar:         #050505;
-  --bg-topbar:          #000000;
-  --bg-surface:         #0B0B0B;
+  --bg-sidebar:         var(--bg-base);
+  --bg-content:         #1A1A1A;
+  --bg-topbar:          var(--bg-content);
+  --bg-surface:         #111111;
   --bg-surface-muted:   #111111;
   --bg-surface-hover:   #151515;
   --bg-card-hover:      #151515;
@@ -156,7 +158,7 @@
 
   --sq-bg-primary:      var(--bg-base);
   --sq-bg-secondary:    var(--bg-surface);
-  --sq-bg-card:         var(--bg-sidebar);
+  --sq-bg-card:         var(--bg-surface);
   --sq-bg-elevated:     var(--bg-surface);
   --sq-bg-overlay:      var(--bg-surface-hover);
   --sq-border:          var(--border);
@@ -171,9 +173,10 @@
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]):not(.dark) {
-    --bg-base:            #F8F8F8;
-    --bg-sidebar:         #F7F7F7;
-    --bg-topbar:          #FFFFFF;
+    --bg-base:            #FFFFFF;
+    --bg-sidebar:         var(--bg-base);
+    --bg-content:         #F3F4F6;
+    --bg-topbar:          var(--bg-content);
     --bg-surface:         #FFFFFF;
     --bg-surface-muted:   #F3F3F3;
     --bg-surface-hover:   #F5F5F5;
@@ -193,7 +196,7 @@
 
     --sq-bg-primary:      var(--bg-base);
     --sq-bg-secondary:    var(--bg-surface);
-    --sq-bg-card:         var(--bg-sidebar);
+    --sq-bg-card:         var(--bg-surface);
     --sq-bg-elevated:     var(--bg-surface);
     --sq-bg-overlay:      var(--bg-surface-hover);
     --sq-border:          var(--border);
