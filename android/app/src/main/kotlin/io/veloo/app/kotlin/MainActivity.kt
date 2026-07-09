@@ -174,6 +174,7 @@ class MainActivity : ComponentActivity() {
             val modemUsername = preferenciasModem.username
             val modemPassword = preferenciasModem.password
             val modemPermanecerConectado = preferenciasModem.permanecerConectado
+            val gatewaySessionBssid = preferenciasModem.gatewaySessionBssid
 
             val preferenciasNotificacao = viewModel.preferenciasNotificacao.collectAsStateWithLifecycle().value
             val notificacaoLatenciaAtiva = preferenciasNotificacao.latenciaAtiva
@@ -377,6 +378,7 @@ class MainActivity : ComponentActivity() {
                         modemUsername = modemUsername,
                         modemPassword = modemPassword,
                         modemPermanecerConectado = modemPermanecerConectado,
+                        gatewaySessionBssid = gatewaySessionBssid,
                         gatewayIpDetectado = gatewayIpDetectado,
                         localizacaoServidor = localizacaoServidorUiState,
                         onDispararBenchmarkDns = {
@@ -389,6 +391,10 @@ class MainActivity : ComponentActivity() {
                         },
                         onSalvarConfiguracaoModem = { host, user, pass, perm ->
                             viewModel.salvarConfiguracaoModem(host, user, pass, perm)
+                        },
+                        onRegistrarConexaoGateway = { ip, usuario, senha, lembrarSenha, manterConectado, bssidAtual ->
+                            viewModel.registrarConexaoGateway(ip, usuario, senha, lembrarSenha, manterConectado, bssidAtual)
+                            analyticsTracker.registrarFeatureUsada("fibra")
                         },
                         temaSelecionado = temaSelecionado,
                         analiseAvancada = analiseAvancada,

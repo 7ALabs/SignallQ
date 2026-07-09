@@ -30,6 +30,11 @@ class PreferenciasAppRepository(
     private val chaveModemUsername = stringPreferencesKey("modemUsername")
     private val chaveModemPassword = stringPreferencesKey("modemPassword")
     private val chaveModemPermanecerConectado = booleanPreferencesKey("modemPermanecerConectado")
+
+    // Sessao "manter conectado" do gateway (GH#530) — BSSID da rede em que a sessao foi
+    // estabelecida. Sessao so e considerada valida quando o BSSID atual bate com este valor
+    // E modemPermanecerConectado esta ativo (checado pelo caller, nao aqui).
+    private val chaveGatewaySessionBssid = stringPreferencesKey("gatewaySessionBssid")
     private val chaveTemaSelecionado = stringPreferencesKey("temaSelecionado")
     private val chaveAnaliseAvancada = booleanPreferencesKey("analiseAvancada")
     private val chaveNomeUsuario = stringPreferencesKey("nomeUsuario")
@@ -120,6 +125,9 @@ class PreferenciasAppRepository(
 
     val modemPermanecerConectadoFlow: Flow<Boolean> =
         context.dataStore.data.map { it[chaveModemPermanecerConectado] ?: false }
+
+    val gatewaySessionBssidFlow: Flow<String?> =
+        context.dataStore.data.map { it[chaveGatewaySessionBssid] }
 
     val temaSelecionadoFlow: Flow<String> =
         context.dataStore.data.map { it[chaveTemaSelecionado] ?: "sistema" }
@@ -253,6 +261,16 @@ class PreferenciasAppRepository(
 
     suspend fun definirModemPermanecerConectado(permanecer: Boolean) {
         withContext(ioDispatcher) { context.dataStore.edit { it[chaveModemPermanecerConectado] = permanecer } }
+    }
+
+    /** BSSID em que a sessao "manter conectado" do gateway foi estabelecida. Null limpa. */
+    suspend fun definirGatewaySessionBssid(bssid: String?) {
+        withContext(ioDispatcher) {
+            context.dataStore.edit { prefs ->
+                if (bssid != null) prefs[chaveGatewaySessionBssid] = bssid
+                else prefs.remove(chaveGatewaySessionBssid)
+            }
+        }
     }
 
     suspend fun definirTemaSelecionado(tema: String) {

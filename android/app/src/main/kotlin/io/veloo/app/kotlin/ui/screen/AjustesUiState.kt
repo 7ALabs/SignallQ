@@ -1,5 +1,8 @@
 ﻿package io.signallq.app.ui.screen
 
+import io.signallq.app.core.network.contracts.gateway.GatewayConnectionResultado
+import io.signallq.app.core.network.contracts.gateway.GatewayConnectionService
+
 data class AjustesPerfilState(
     val nomeUsuario: String,
     val fotoUriUsuario: String?,
@@ -49,6 +52,12 @@ data class AjustesModemState(
     val gatewayIpDetectado: String?,
     val onSalvarConfiguracaoModem: (host: String, username: String, password: String, permanecer: Boolean) -> Unit,
     val onConectarFibra: (host: String, username: String, password: String) -> Unit,
+    // GH#530 — reuso da GatewayConnectionSheet na linha do roteador. Sessão válida
+    // (BSSID atual == BSSID salvo com "manter conectado") pula a sheet.
+    val gatewaySessaoValida: Boolean = false,
+    val conectarGateway: GatewayConnectionService = GatewayConnectionService { _, _, _ -> GatewayConnectionResultado.Sucesso },
+    val onGatewayConectado: (ip: String, usuario: String, senha: String, lembrarSenha: Boolean, manterConectado: Boolean) -> Unit =
+        { _, _, _, _, _ -> },
 )
 
 data class AjustesDadosMoveisState(

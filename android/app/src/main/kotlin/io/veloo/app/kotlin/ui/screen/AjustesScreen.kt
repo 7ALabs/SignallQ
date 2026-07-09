@@ -33,8 +33,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.outlined.Article
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.DarkMode
@@ -66,7 +64,6 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ModalBottomSheet
@@ -98,8 +95,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -174,6 +169,9 @@ fun AjustesScreen(
     val modemPassword = modem.modemPassword
     val modemPermanecerConectado = modem.modemPermanecerConectado
     val gatewayIpDetectado = modem.gatewayIpDetectado
+    val gatewaySessaoValida = modem.gatewaySessaoValida
+    val conectarGateway = modem.conectarGateway
+    val onGatewayConectado = modem.onGatewayConectado
     // aliases de lambdas — mantém corpo interno sem alteração
     val onSalvarPerfil = perfil.onSalvarPerfil
     val onSalvarDadosProvedor = provedor.onSalvarDadosProvedor
@@ -187,13 +185,12 @@ fun AjustesScreen(
     val onDefinirNotificacaoDnsAtiva = monitoramento.onDefinirNotificacaoDnsAtiva
     val onDefinirNotificacaoRssiAtiva = monitoramento.onDefinirNotificacaoRssiAtiva
     val onDefinirNotificacaoSemInternetAtiva = monitoramento.onDefinirNotificacaoSemInternetAtiva
-    val onSalvarConfiguracaoModem = modem.onSalvarConfiguracaoModem
-    val onConectarFibra = modem.onConectarFibra
     val speedtestPermiteHeavyMovel = dadosMoveis.speedtestPermiteHeavyMovel
     val speedtestMbConsumidosMes = dadosMoveis.speedtestMbConsumidosMes
     val onSetSpeedtestPermiteHeavyMovel = dadosMoveis.onSetSpeedtestPermiteHeavyMovel
 
-    var showRoteadorSheet by remember { mutableStateOf(false) }
+    // GH#530 — GatewayConnectionSheet (mesmo componente da Home) na linha do roteador.
+    var showGatewayConnectionSheet by remember { mutableStateOf(false) }
     var showPerfilSheet by remember { mutableStateOf(false) }
     var showSobreSheet by remember { mutableStateOf(false) }
     var showProvedorSheet by remember { mutableStateOf(false) }
@@ -460,10 +457,12 @@ fun AjustesScreen(
                         label = "Fibra óptica",
                         subtitle = if (modemHost.isNullOrBlank()) "Não configurado" else "Conectado",
                         onClick = {
-                            if (modemHost.isNullOrBlank()) {
-                                showRoteadorSheet = true
-                            } else {
+                            // GH#530: sessão válida (mesmo BSSID em que "manter conectado" foi
+                            // salvo) pula a sheet e vai direto ao destino provisório.
+                            if (gatewaySessaoValida) {
                                 onAbrirFibra()
+                            } else {
+                                showGatewayConnectionSheet = true
                             }
                         },
                     )
@@ -647,24 +646,16 @@ fun AjustesScreen(
 
     // ── Bottom sheets & dialogs ───────────────────────────────────────────────
 
-    if (showRoteadorSheet) {
-        RoteadorBottomSheet(
-            c = c,
-            modemHost = modemHost,
-            modemUsername = modemUsername,
-            modemPassword = modemPassword,
-            modemPermanecerConectado = modemPermanecerConectado,
-            gatewayIpDetectado = gatewayIpDetectado,
-            onDismiss = { showRoteadorSheet = false },
-            onSalvar = { host, user, pass, perm ->
-                onSalvarConfiguracaoModem(host, user, pass, perm)
-                showRoteadorSheet = false
-            },
-            onConectar = { host, user, pass, perm ->
-                onSalvarConfiguracaoModem(host, user, pass, perm)
-                showRoteadorSheet = false
-                onConectarFibra(host, user, pass)
-            },
+    if (showGatewayConnectionSheet) {
+        GatewayConnectionSheet(
+            ipInicial = modemHost ?: gatewayIpDetectado,
+            usuarioInicial = modemUsername,
+            senhaInicial = modemPassword,
+            lembrarSenhaInicial = modemUsername.isNotBlank() || modemPassword.isNotBlank(),
+            manterConectadoInicial = modemPermanecerConectado,
+            onDismissRequest = { showGatewayConnectionSheet = false },
+            conectar = conectarGateway,
+            onConectado = onGatewayConectado,
         )
     }
 
@@ -2187,207 +2178,5 @@ private fun DiagnosticoAppSheet(
     }
 }
 
-// ─── Roteador sheet ───────────────────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun RoteadorBottomSheet(
-    c: LkTokens,
-    modemHost: String?,
-    modemUsername: String,
-    modemPassword: String,
-    modemPermanecerConectado: Boolean,
-    gatewayIpDetectado: String?,
-    onDismiss: () -> Unit,
-    onSalvar: (host: String, username: String, password: String, permanecer: Boolean) -> Unit,
-    onConectar: (host: String, username: String, password: String, permanecer: Boolean) -> Unit,
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var hostInput by remember { mutableStateOf(modemHost ?: gatewayIpDetectado ?: "") }
-    var usernameInput by remember { mutableStateOf(modemUsername) }
-    var passwordInput by remember { mutableStateOf(modemPassword) }
-    var permanecerInput by remember { mutableStateOf(modemPermanecerConectado) }
-    var showPassword by remember { mutableStateOf(false) }
-
-    val fieldColors =
-        OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = LkColors.accent,
-            unfocusedBorderColor = c.border,
-            focusedLabelColor = LkColors.accent,
-            unfocusedLabelColor = c.textSecondary,
-            cursorColor = LkColors.accent,
-            focusedTextColor = c.textPrimary,
-            unfocusedTextColor = c.textPrimary,
-        )
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = {},
-        containerColor = c.bgSecondary,
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = LkSpacing.lg)
-                    .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
-                    .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(c.border)
-                        .align(Alignment.CenterHorizontally)
-                        .semantics { contentDescription = "Arrastar para fechar" },
-            )
-
-            Spacer(Modifier.height(LkSpacing.sm))
-
-            Text(
-                text = "Configurações do roteador",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = c.textPrimary,
-            )
-
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(LkRadius.card))
-                        .background(LkColors.accent.copy(alpha = 0.08f))
-                        .padding(LkSpacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Router,
-                    contentDescription = null,
-                    tint = LkColors.accent,
-                    modifier = Modifier.size(22.dp),
-                )
-                Spacer(Modifier.width(LkSpacing.sm))
-                Column {
-                    Text(
-                        text = "Modem suportado",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.W600,
-                        color = LkColors.accent,
-                    )
-                    Text(
-                        text = "Nokia GPON (série SA / NT)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.textSecondary,
-                    )
-                }
-            }
-
-            OutlinedTextField(
-                value = hostInput,
-                onValueChange = { hostInput = it },
-                label = { Text("Endereço IP do modem") },
-                placeholder = { Text(gatewayIpDetectado ?: "192.168.1.1", color = c.textTertiary) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                colors = fieldColors,
-                shape = RoundedCornerShape(8.dp),
-            )
-
-            OutlinedTextField(
-                value = usernameInput,
-                onValueChange = { usernameInput = it },
-                label = { Text("Usuário") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                colors = fieldColors,
-                shape = RoundedCornerShape(8.dp),
-            )
-
-            OutlinedTextField(
-                value = passwordInput,
-                onValueChange = { passwordInput = it },
-                label = { Text("Senha") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = {
-                    IconButton(onClick = { showPassword = !showPassword }) {
-                        Icon(
-                            imageVector = if (showPassword) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                            contentDescription = if (showPassword) "Ocultar senha" else "Mostrar senha",
-                            tint = c.textSecondary,
-                        )
-                    }
-                },
-                colors = fieldColors,
-                shape = RoundedCornerShape(8.dp),
-            )
-
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(LkRadius.card))
-                        .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-                        .background(c.bgCard)
-                        .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Permanecer conectado",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.W500,
-                        color = c.textPrimary,
-                    )
-                    Text(
-                        text = "Conectar automaticamente ao iniciar o app",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.textSecondary,
-                    )
-                }
-                Switch(
-                    checked = permanecerInput,
-                    onCheckedChange = { permanecerInput = it },
-                    colors =
-                        SwitchDefaults.colors(
-                            checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                            checkedTrackColor = LkColors.accent,
-                            uncheckedThumbColor = c.textTertiary,
-                            uncheckedTrackColor = c.border,
-                        ),
-                )
-            }
-
-            Spacer(Modifier.height(LkSpacing.sm))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-            ) {
-                OutlinedButton(
-                    onClick = { onSalvar(hostInput, usernameInput, passwordInput, permanecerInput) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(LkRadius.button),
-                    border = BorderStroke(1.dp, c.border),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = c.textPrimary),
-                ) {
-                    Text("Salvar")
-                }
-                Button(
-                    onClick = { onConectar(hostInput, usernameInput, passwordInput, permanecerInput) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(LkRadius.button),
-                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
-                ) {
-                    Text("Conectar e ver status")
-                }
-            }
-        }
-    }
-}
+// ─── Roteador sheet (GH#526/#530): ver GatewayConnectionSheet.kt (componente único
+// reaproveitado aqui e no nó do gateway em HomeScreen.kt) ──────────────────────

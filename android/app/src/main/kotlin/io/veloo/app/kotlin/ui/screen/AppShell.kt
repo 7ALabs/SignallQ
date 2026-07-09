@@ -69,6 +69,8 @@ import io.signallq.app.R
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
+import io.signallq.app.core.network.contracts.gateway.GatewayConnectionResultado
+import io.signallq.app.core.network.contracts.gateway.GatewayConnectionService
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
 import io.signallq.app.feature.diagnostico.EstadoDiagnostico
@@ -123,6 +125,8 @@ fun AppShell(
     modemUsername: String,
     modemPassword: String,
     modemPermanecerConectado: Boolean,
+    // GH#530 — BSSID em que a sessao "manter conectado" do gateway foi estabelecida.
+    gatewaySessionBssid: String?,
     gatewayIpDetectado: String?,
     localizacaoServidor: UiState<String>,
     temaSelecionado: String,
@@ -130,6 +134,15 @@ fun AppShell(
     onDispararBenchmarkDns: () -> Unit,
     onReconectarFibra: (host: String, username: String, password: String) -> Unit,
     onSalvarConfiguracaoModem: (host: String, username: String, password: String, permanecer: Boolean) -> Unit,
+    // GH#530 — persiste o resultado da GatewayConnectionSheet (fonte unica dos dois entry points).
+    onRegistrarConexaoGateway: (
+        ip: String,
+        usuario: String,
+        senha: String,
+        lembrarSenha: Boolean,
+        manterConectado: Boolean,
+        bssidAtual: String?,
+    ) -> Unit = { _, _, _, _, _, _ -> },
     onDefinirTemaSelecionado: (String) -> Unit,
     onDefinirAnaliseAvancada: (Boolean) -> Unit,
     nomeUsuario: String,
@@ -234,6 +247,45 @@ fun AppShell(
     var selectedTab by remember { mutableIntStateOf(1) }
     var modoSelecionado by remember { mutableStateOf(ModoSpeedtest.complete) }
     val overlayStack = remember { mutableStateListOf<Overlay>() }
+
+    // GH#530 — sessao "manter conectado" do gateway, fonte unica compartilhada pelos dois
+    // entry points (Home e Ajustes). Valida quando o toggle esta ativo E o BSSID atual bate
+    // com o BSSID em que a sessao foi estabelecida — rede diferente invalida a sessao.
+    val bssidAtual = snapshotRede.wifiLinkSnapshot?.bssid
+    val gatewaySessaoValida =
+        modemPermanecerConectado && gatewaySessionBssid != null && gatewaySessionBssid == bssidAtual
+
+    // Implementacao mock (GH#526/#530) — autenticacao real no equipamento e escopo de #527.
+    // Existe so para a sheet funcionar hoje, sem acoplar a UI a uma implementacao concreta.
+    val gatewayConnectionServiceMock =
+        remember {
+            GatewayConnectionService { _, _, _ ->
+                delay(900)
+                GatewayConnectionResultado.Sucesso
+            }
+        }
+
+    // Destino provisorio da conexao ao gateway — FibraModemScreen ja le sinal do modem, mas
+    // NAO e a tela de detalhe definitiva do GPON/Roteador (isso e SIG-357, ainda nao existe).
+    // Reusada por ambos entry points (nó do gateway na Home e linha do roteador em Ajustes).
+    val onAbrirGatewayDetalhe: () -> Unit = {
+        onReconectarFibra(modemHost ?: "", modemUsername, modemPassword)
+        if (Overlay.Fibra !in overlayStack) overlayStack.add(Overlay.Fibra)
+    }
+
+    // Callback unico chamado quando a GatewayConnectionSheet conecta com sucesso, em qualquer
+    // um dos dois entry points — persiste a sessao e navega ao destino provisorio.
+    val onGatewayConectado: (
+        ip: String,
+        usuario: String,
+        senha: String,
+        lembrarSenha: Boolean,
+        manterConectado: Boolean,
+    ) -> Unit = { ip, usuario, senha, lembrarSenha, manterConectado ->
+        onRegistrarConexaoGateway(ip, usuario, senha, lembrarSenha, manterConectado, bssidAtual)
+        onAbrirGatewayDetalhe()
+    }
+
     var showDnsSheet by remember { mutableStateOf(false) }
     var showForaDoWifiDialog by remember { mutableStateOf(false) }
     var showPerfilSheet by remember { mutableStateOf(false) }
@@ -340,6 +392,15 @@ fun AppShell(
                             connectedNetwork = connectedNetwork,
                             movelSnapshot = movelSnapshot,
                             simsAtivos = simsAtivos,
+                            // GH#530 — nó do gateway na trilha: sessão válida pula a sheet,
+                            // sem sessão abre a GatewayConnectionSheet (mesmo componente do Ajustes).
+                            gatewaySessaoValida = gatewaySessaoValida,
+                            conectarGateway = gatewayConnectionServiceMock,
+                            modemUsername = modemUsername,
+                            modemPassword = modemPassword,
+                            modemPermanecerConectado = modemPermanecerConectado,
+                            onAbrirGatewayDetalhe = onAbrirGatewayDetalhe,
+                            onGatewayConectado = onGatewayConectado,
                             onIniciarTeste = { modo ->
                                 if (snapshotRede.estadoConexao == EstadoConexao.movel) {
                                     // AppShell decide: em rede móvel mostra ForaDoWifiDialog
@@ -499,6 +560,9 @@ fun AppShell(
                                     gatewayIpDetectado = gatewayIpDetectado,
                                     onSalvarConfiguracaoModem = onSalvarConfiguracaoModem,
                                     onConectarFibra = { host, user, pass -> onReconectarFibra(host, user, pass) },
+                                    gatewaySessaoValida = gatewaySessaoValida,
+                                    conectarGateway = gatewayConnectionServiceMock,
+                                    onGatewayConectado = onGatewayConectado,
                                 ),
                             temaSelecionado = temaSelecionado,
                             onDefinirTemaSelecionado = onDefinirTemaSelecionado,
@@ -512,10 +576,8 @@ fun AppShell(
                             onAbrirPerfil = { showPerfilSheet = true },
                             onAbrirPrivacidade = { if (Overlay.Privacidade !in overlayStack) overlayStack.add(Overlay.Privacidade) },
                             onAbrirNovidades = { if (Overlay.Novidades !in overlayStack) overlayStack.add(Overlay.Novidades) },
-                            onAbrirFibra = {
-                                onReconectarFibra(modemHost ?: "", modemUsername, modemPassword)
-                                if (Overlay.Fibra !in overlayStack) overlayStack.add(Overlay.Fibra)
-                            },
+                            // GH#530 — mesmo destino provisório usado pelo nó do gateway na Home.
+                            onAbrirFibra = onAbrirGatewayDetalhe,
                             dadosMoveis =
                                 AjustesDadosMoveisState(
                                     speedtestPermiteHeavyMovel = speedtestPermiteHeavyMovel,
