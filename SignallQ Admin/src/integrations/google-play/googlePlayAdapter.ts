@@ -6,7 +6,10 @@ import {
   mockGooglePlayAppVersions,
   mockGooglePlayRatings,
   mockGooglePlayReviews,
-  mockGooglePlayCrashAnr
+  mockGooglePlayCrashAnr,
+  mockGooglePlayTracksStatus,
+  mockGooglePlayTracksSyncResult,
+  mockGooglePlayTracksBackfillResult
 } from "./googlePlay.mock";
 import {
   GooglePlayIntegrationStatus,
@@ -15,7 +18,10 @@ import {
   GooglePlayAppVersionStats,
   GooglePlayRatingSummary,
   GooglePlayReviewSummary,
-  GooglePlayCrashAnrSummary
+  GooglePlayCrashAnrSummary,
+  GooglePlayTracksStatus,
+  GooglePlayTracksSyncResult,
+  GooglePlayTracksBackfillResult
 } from "./googlePlay.types";
 import { DashboardFilters } from "../../services/adminMetricsService";
 
@@ -162,4 +168,26 @@ export async function syncGooglePlayMetrics(): Promise<{ jobId: string; status: 
     status: raw.status,
     startedAt: raw.syncedAt ?? new Date().toISOString(),
   };
+}
+
+// migration 012_play_track.sql — mapeamento version_code -> trilha do Play Console.
+export async function getGooglePlayTracksStatus(): Promise<GooglePlayTracksStatus> {
+  if (apiClient.isMockEnabled()) {
+    return apiClient.simulateFetch(mockGooglePlayTracksStatus, {});
+  }
+  return apiClient.request<GooglePlayTracksStatus>("GET", "/admin/integrations/google-play/tracks/status");
+}
+
+export async function syncGooglePlayTracks(): Promise<GooglePlayTracksSyncResult> {
+  if (apiClient.isMockEnabled()) {
+    return apiClient.simulateFetch(mockGooglePlayTracksSyncResult, {});
+  }
+  return apiClient.request<GooglePlayTracksSyncResult>("POST", "/admin/integrations/google-play/tracks/sync");
+}
+
+export async function backfillGooglePlayTracks(): Promise<GooglePlayTracksBackfillResult> {
+  if (apiClient.isMockEnabled()) {
+    return apiClient.simulateFetch(mockGooglePlayTracksBackfillResult, {});
+  }
+  return apiClient.request<GooglePlayTracksBackfillResult>("POST", "/admin/integrations/google-play/tracks/backfill");
 }

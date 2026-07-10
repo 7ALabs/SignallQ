@@ -103,14 +103,15 @@ export const diagnosticsService = {
     return summary;
   },
 
-  async getDiagnosticSessions(filters: DashboardFilters & { search?: string; platform?: DataPlatform } = {}): Promise<DiagnosticSession[]> {
+  async getDiagnosticSessions(filters: DashboardFilters & { search?: string; platform?: DataPlatform; playTrack?: string } = {}): Promise<DiagnosticSession[]> {
     if (!apiClient.isMockEnabled()) {
       const period = filters.period === "today" ? "1d" : (filters.period ?? "7d");
       const env = filters.environment ?? "production";
       const platformQuery = filters.platform ? `&platform=${filters.platform}` : "";
+      const playTrackQuery = filters.playTrack ? `&play_track=${filters.playTrack}` : "";
       const raw = await apiClient.request<{ sessions: any[] }>(
         "GET",
-        `/admin/metrics/diagnostics?environment=${env}&period=${period}&limit=100${platformQuery}`
+        `/admin/metrics/diagnostics?environment=${env}&period=${period}&limit=100${platformQuery}${playTrackQuery}`
       );
       const mapped: DiagnosticSession[] = (raw.sessions ?? []).map((r: any) => {
         // GH#442: worker so preenche 'platform' a partir da migration 011_gh442.sql —
@@ -158,6 +159,8 @@ export const diagnosticsService = {
         distChannel: r.dist_channel ?? undefined,
         buildType: r.build_type ?? undefined,
         platform,
+        // migration 012_play_track.sql — null = ainda não mapeada, nunca assumir produção.
+        playTrack: r.play_track ?? null,
         };
       });
 

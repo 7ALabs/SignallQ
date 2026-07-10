@@ -60,3 +60,30 @@ export interface GooglePlayCrashAnrSummary {
   crashCountWeekly: number;
   crashFreeSessionRate: number;
 }
+
+// migration 012_play_track.sql — mapeamento version_code -> trilha do Play Console
+// (internal/alpha/beta/production), sincronizado via Android Publisher API e aplicado
+// aos dados históricos por um backfill explícito e separado.
+export interface GooglePlayTracksStatus {
+  status: "connected" | "disabled";
+  hasCredentials: boolean;
+  lastSyncTimestamp: string | null;
+  tracksCount: number;
+}
+
+export interface GooglePlayTracksSyncResult {
+  status: "ok" | "error" | "not_configured";
+  message?: string;
+  syncedAt?: string;
+  tracksCount?: number;
+}
+
+export interface GooglePlayTracksBackfillResult {
+  status: "ok" | "error";
+  message?: string;
+  updated?: {
+    diagnostic_sessions: number;
+    ai_usage: number;
+    analytics_events: number;
+  };
+}

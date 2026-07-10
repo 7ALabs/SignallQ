@@ -17,15 +17,19 @@ export const IntegrationsSettings: React.FC = () => {
 
   const [syncingFb, setSyncingFb] = React.useState(false);
   const [syncingGp, setSyncingGp] = React.useState(false);
+  const [syncingGpTracks, setSyncingGpTracks] = React.useState(false);
+  const [backfillingGpTracks, setBackfillingGpTracks] = React.useState(false);
   const [syncFeedback, setSyncFeedback] = React.useState<{ [key: string]: string }>({});
 
   const fbTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const gpTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gpTracksTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
     return () => {
       if (fbTimeoutRef.current) clearTimeout(fbTimeoutRef.current);
       if (gpTimeoutRef.current) clearTimeout(gpTimeoutRef.current);
+      if (gpTracksTimeoutRef.current) clearTimeout(gpTracksTimeoutRef.current);
     };
   }, []);
 
@@ -86,6 +90,50 @@ export const IntegrationsSettings: React.FC = () => {
     }
   };
 
+  const handleSyncGooglePlayTracks = async () => {
+    setSyncingGpTracks(true);
+    setSyncFeedback(prev => ({ ...prev, googlePlayTracks: "" }));
+    try {
+      const res = await integrationsService.triggerGooglePlayTracksSync();
+      setSyncFeedback(prev => ({
+        ...prev,
+        googlePlayTracks: res.status === "error" || res.status === "not_configured"
+          ? (res.message || "Falha ao sincronizar trilhas — worker retornou erro.")
+          : `Trilhas sincronizadas (${res.tracksCount ?? 0} versões mapeadas).`
+      }));
+      gpTracksTimeoutRef.current = setTimeout(() => {
+        fetchStatus();
+        setSyncingGpTracks(false);
+      }, 1500);
+    } catch (err: any) {
+      setSyncFeedback(prev => ({ ...prev, googlePlayTracks: "Falha na sincronização síncrona de trilhas." }));
+      setSyncingGpTracks(false);
+    }
+  };
+
+  const handleBackfillGooglePlayTracks = async () => {
+    setBackfillingGpTracks(true);
+    setSyncFeedback(prev => ({ ...prev, googlePlayBackfill: "" }));
+    try {
+      const res = await integrationsService.triggerGooglePlayTracksBackfill();
+      if (res.status === "error") {
+        setSyncFeedback(prev => ({ ...prev, googlePlayBackfill: res.message || "Falha ao aplicar retroativamente — worker retornou erro." }));
+      } else {
+        const u = res.updated;
+        setSyncFeedback(prev => ({
+          ...prev,
+          googlePlayBackfill: u
+            ? `Aplicado: ${u.diagnostic_sessions} sessões, ${u.ai_usage} usos de IA, ${u.analytics_events} eventos.`
+            : "Backfill aplicado."
+        }));
+      }
+    } catch (err: any) {
+      setSyncFeedback(prev => ({ ...prev, googlePlayBackfill: "Falha na aplicação retroativa síncrona." }));
+    } finally {
+      setBackfillingGpTracks(false);
+    }
+  };
+
   if (loading || !data) {
     return (
       <div className="p-6 bg-zinc-900/30 border border-zinc-850 rounded-[var(--radius-card)] flex items-center justify-center font-sans text-[var(--text-tertiary)] text-xs">
@@ -115,6 +163,7 @@ export const IntegrationsSettings: React.FC = () => {
   const fb = data.firebase;
   const gp = data.googlePlay;
   const as = data.appStore;
+  const gpTracks = data.googlePlayTracks;
 
   return (
     <div className="col-span-1 lg:col-span-2 select-none">
@@ -215,6 +264,15 @@ export const IntegrationsSettings: React.FC = () => {
                   <span>Downloads/Instalações:</span>
                   <span className="text-[var(--text-primary)]">Não exposto pela API</span>
                 </div>
+                {/* migration 012_play_track.sql — status do mapeamento version_code -> trilha */}
+                <div className="flex justify-between">
+                  <span>Trilhas mapeadas:</span>
+                  <span className="text-[var(--text-primary)]">{gpTracks?.tracksCount ?? 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Última sync de trilhas:</span>
+                  <span className="text-[var(--text-primary)]">{gpTracks?.lastSyncTimestamp ? new Date(gpTracks.lastSyncTimestamp).toLocaleString("pt-BR") : "Nunca sincronizado"}</span>
+                </div>
               </div>
             </div>
 
@@ -232,6 +290,37 @@ export const IntegrationsSettings: React.FC = () => {
               >
                 <RotateCw className={`w-3.5 h-3.5 text-[var(--primary)] ${syncingGp ? "animate-spin" : ""}`} />
                 <span>{syncingGp ? "SINCRONIZANDO..." : "SINCRONIZAR AGORA"}</span>
+              </button>
+
+              {syncFeedback.googlePlayTracks && (
+                <div className="text-[9px] font-mono text-[var(--text-secondary)] bg-[var(--bg-surface-muted)] px-2 py-1 rounded border border-[var(--border)]">
+                  {syncFeedback.googlePlayTracks}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handleSyncGooglePlayTracks}
+                disabled={syncingGpTracks || !gpTracks?.hasCredentials}
+                className="w-full h-8 flex items-center justify-center gap-1.5 text-[11px] font-sans font-semibold bg-zinc-900 hover:bg-zinc-850 text-[var(--text-secondary)] disabled:opacity-40 rounded-lg cursor-pointer transition-colors"
+              >
+                <RotateCw className={`w-3.5 h-3.5 text-[var(--primary)] ${syncingGpTracks ? "animate-spin" : ""}`} />
+                <span>{syncingGpTracks ? "SINCRONIZANDO TRILHAS..." : "SINCRONIZAR TRILHAS"}</span>
+              </button>
+
+              {syncFeedback.googlePlayBackfill && (
+                <div className="text-[9px] font-mono text-[var(--text-secondary)] bg-[var(--bg-surface-muted)] px-2 py-1 rounded border border-[var(--border)]">
+                  {syncFeedback.googlePlayBackfill}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handleBackfillGooglePlayTracks}
+                disabled={backfillingGpTracks || !gpTracks?.tracksCount}
+                className="w-full h-8 flex items-center justify-center gap-1.5 text-[11px] font-sans font-semibold bg-zinc-900 hover:bg-zinc-850 text-[var(--text-secondary)] disabled:opacity-40 rounded-lg cursor-pointer transition-colors"
+                title="Aplica o mapeamento já sincronizado aos dados históricos (não chama a API do Google)"
+              >
+                <RotateCw className={`w-3.5 h-3.5 text-[var(--primary)] ${backfillingGpTracks ? "animate-spin" : ""}`} />
+                <span>{backfillingGpTracks ? "APLICANDO..." : "APLICAR RETROATIVAMENTE"}</span>
               </button>
             </div>
           </div>

@@ -24,6 +24,9 @@ export const integrationsService = {
   getGooglePlayReviews: googlePlayAdapter.getGooglePlayReviews,
   getGooglePlayCrashAnr: googlePlayAdapter.getGooglePlayCrashAnrSummary,
   triggerGooglePlaySync: googlePlayAdapter.syncGooglePlayMetrics,
+  getGooglePlayTracksStatus: googlePlayAdapter.getGooglePlayTracksStatus,
+  triggerGooglePlayTracksSync: googlePlayAdapter.syncGooglePlayTracks,
+  triggerGooglePlayTracksBackfill: googlePlayAdapter.backfillGooglePlayTracks,
 
   // --- APP STORE FUTURE-READY ---
   getAppStoreStatus: appStoreAdapter.getAppStoreIntegrationStatus,
@@ -36,15 +39,17 @@ export const integrationsService = {
    * Retrieves high level summary of all active integration packages.
    */
   async getAllStatus(filters: DashboardFilters = {}) {
-    const [fb, gp, as] = await Promise.all([
+    const [fb, gp, as, gpTracks] = await Promise.all([
       firebaseAdapter.getFirebaseIntegrationStatus(),
       googlePlayAdapter.getGooglePlayIntegrationStatus(),
-      appStoreAdapter.getAppStoreIntegrationStatus()
+      appStoreAdapter.getAppStoreIntegrationStatus(),
+      googlePlayAdapter.getGooglePlayTracksStatus()
     ]);
     return {
       firebase: fb,
       googlePlay: gp,
-      appStore: as
+      appStore: as,
+      googlePlayTracks: gpTracks
     };
   }
 };
