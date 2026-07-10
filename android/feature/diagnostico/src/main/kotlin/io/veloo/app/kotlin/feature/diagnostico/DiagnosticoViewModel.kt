@@ -28,7 +28,7 @@ import javax.inject.Inject
  *
  * Nota: o Chat Diagnostico IA completo (sessoes, historico Room, drawer) continua em
  * [ChatDiagnosticoIaViewModel] — responsabilidade diferente, mais complexa.
- * Este ViewModel cuida apenas do chat "inline" que aparece diretamente na DiagnosticoScreen.
+ * Este ViewModel cuida apenas do chat "inline" de diagnostico (ver nota: atualmente sem call site ativo, DiagnosticoScreen foi removida).
  */
 @HiltViewModel
 class DiagnosticoViewModel
@@ -42,7 +42,7 @@ class DiagnosticoViewModel
             private const val MAX_PERGUNTAS_USUARIO = 5
         }
 
-        /** Snapshot do diagnostico local — observado pela DiagnosticoScreen. */
+        /** Snapshot do diagnostico local. */
         val snapshotDiagnostico: StateFlow<SnapshotDiagnostico> = diagnosticOrchestrator.snapshotFlow
 
         // ── DiagChat inline ────────────────────────────────────────────────────────

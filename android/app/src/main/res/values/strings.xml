@@ -58,8 +58,6 @@
     <string name="diagnostico_step_2">Verificando sinal Wi-Fi</string>
     <string name="diagnostico_step_3">Checando DNS e histórico</string>
     <string name="diagnostico_step_ia">Gerando diagnóstico com IA…</string>
-    <string name="diagnostico_erro_titulo">Não foi possível diagnosticar</string>
-    <string name="diagnostico_erro_descricao">Verifique se há conexão com a internet e tente novamente.</string>
     <string name="diagnostico_msg_usuario">Analisar minha conexão</string>
     <string name="diagnostico_badge_analise_local">Diagnóstico do dispositivo</string>
     <string name="diagnostico_secao_o_que_fazer">O QUE FAZER</string>

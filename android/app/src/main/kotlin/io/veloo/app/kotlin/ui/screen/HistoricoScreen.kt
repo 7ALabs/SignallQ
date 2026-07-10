@@ -1083,7 +1083,7 @@ private fun QualityBadge(
 
 /**
  * Badge de origem "diagnóstico gerado por IA" -- autoexplicativo por design: o icone
- * de sparkle (mesmo usado em todo o app pra IA, ver DiagVerdictHeroCard/DiagnosticoScreen)
+ * de sparkle (mesmo usado em todo o app pra IA, ver DiagVerdictHeroCard)
  * + rotulo "IA" comunicam a origem sem precisar de nome de marca nem texto explicativo.
  */
 @Composable
