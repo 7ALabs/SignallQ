@@ -1913,14 +1913,26 @@ async function handleFirebaseSync(_req: Request, env: Env): Promise<Response> {
       AND event_name = 'session_start'
   `);
 
-  if (error === "table_not_found" || !rows.length) {
+  if (error) {
+    if (error === "table_not_found") {
+      // Esperado antes do primeiro export diário do GA4 -> BigQuery: não é falha.
+      const syncedAt = new Date().toISOString();
+      await writeFirebaseSyncState(env, { syncedAt, eventsImported: 0, crashesImported: 0 });
+      return json({ ok: false, source: "no_data_yet", sessionsYesterday: 0, syncedAt }, 200, env);
+    }
+    // GH#877 — bug anterior: `!rows.length` cai aqui pra QUALQUER erro (queryBigQuery
+    // sempre devolve rows:[] em caso de falha), então nenhuma falha real (auth_failed,
+    // bq_error_*) nunca chegava a virar source:"error" — era sempre lida como
+    // "no_data_yet" e o sync ainda gravava estado de "sucesso com 0 eventos",
+    // escondendo a falha real e corrompendo o timestamp da última sincronização
+    // válida. Query falhou de verdade: não persiste estado de sync, pois nada foi
+    // de fato sincronizado.
+    return json({ ok: false, source: "error", message: error }, 200, env);
+  }
+  if (!rows.length) {
     const syncedAt = new Date().toISOString();
     await writeFirebaseSyncState(env, { syncedAt, eventsImported: 0, crashesImported: 0 });
     return json({ ok: false, source: "no_data_yet", sessionsYesterday: 0, syncedAt }, 200, env);
-  }
-  if (error) {
-    // Query falhou: não persiste estado de sync, pois nada foi de fato sincronizado.
-    return json({ ok: false, source: "error", message: error }, 200, env);
   }
 
   const sessions = parseInt(rows[0]?.sessions ?? "0", 10);
