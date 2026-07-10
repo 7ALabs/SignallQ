@@ -781,9 +781,19 @@ class MainViewModel
                 // suspende e aguarda confirmacao via dialog (Task 4). Sem dialog agora.
                 // jaConfirmadoRedeMovel = true quando o usuario ja confirmou o ForaDoWifiDialog
                 // (Home) — evita um segundo gate redundante que nao tem UI fora da tab Velocidade (#516).
-                if (!jaConfirmadoRedeMovel &&
-                    modo != ModoSpeedtest.fast &&
-                    networkCapabilitiesProvider.isMeteredNetwork()
+                //
+                // #838 — antes lia networkCapabilitiesProvider.isMeteredNetwork(), uma consulta
+                // avulsa ao ConnectivityManager feita exatamente no instante do toque em "Iniciar".
+                // Logo apos abrir o app/trocar de tab o NetworkCapabilities pode ainda nao estar
+                // assentado (mesma classe de problema ja documentada em MonitorRedeAndroid para
+                // NET_CAPABILITY_VALIDATED), fazendo a consulta cair no caminho `?: return false`
+                // e o gate nunca disparar. monitorRede.snapshotFlow ja mantem esse dado sempre
+                // atualizado via callback continuo do ConnectivityManager — usa o mesmo valor.
+                if (deveSolicitarConfirmacaoRedeMovel(
+                        metered = monitorRede.snapshotFlow.value.metered,
+                        modo = modo,
+                        jaConfirmadoRedeMovel = jaConfirmadoRedeMovel,
+                    )
                 ) {
                     val permiteHeavy = preferenciasAppRepository.speedtestPermiteHeavyMovel.first()
                     if (!permiteHeavy) {
@@ -2138,6 +2148,15 @@ class MainViewModel
             val mbConsumidosMes: Long = 0L,
         )
     }
+
+// #838 — extraida de reiniciarSuite() para ser testavel sem Robolectric/Hilt (MainViewModel
+// tem dependencias demais para instanciar em teste unitario puro). NAO decide sozinha se o
+// speedtest deve rodar — so se o gate de confirmacao de rede movel deve interceptar o inicio.
+internal fun deveSolicitarConfirmacaoRedeMovel(
+    metered: Boolean,
+    modo: ModoSpeedtest,
+    jaConfirmadoRedeMovel: Boolean,
+): Boolean = !jaConfirmadoRedeMovel && modo != ModoSpeedtest.fast && metered
 
 // SIG-279 — enums identicos por nome (wifi/movel/ethernet/desconectado/desconhecido),
 // mapeamento explicito para nao acoplar core/network a feature/diagnostico.

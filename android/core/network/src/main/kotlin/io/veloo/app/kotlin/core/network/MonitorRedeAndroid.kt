@@ -165,6 +165,9 @@ class MonitorRedeAndroid(
                 ?.filter { it.isNotBlank() }
                 .orEmpty()
         val locationAtivado = estaLocalizacaoAtivada()
+        // #838 — mesmo NetworkCapabilities ja obtido acima (via callback continuo, nao
+        // uma consulta avulsa): fonte confiavel para o gate de confirmacao de dados moveis.
+        val metered = !caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
         return SnapshotRede(
             estadoConexao = estadoConexao,
             conectado = conectado,
@@ -174,6 +177,7 @@ class MonitorRedeAndroid(
             privateDnsHostname = privateDnsHostname,
             dnsServidores = dnsServidores,
             locationAtivado = locationAtivado,
+            metered = metered,
         )
     }
 
