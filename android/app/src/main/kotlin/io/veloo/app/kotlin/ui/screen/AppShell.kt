@@ -334,11 +334,23 @@ fun AppShell(
         tabScreenNames.getOrNull(selectedTab)?.let { onScreenView(it) }
     }
 
+    // Sinaliza que a PRÓXIMA conclusão de diagnóstico deve abrir o Laudo automaticamente —
+    // setado só quando a conclusão é consequência direta de um speedtest do usuário (abaixo).
+    // MainViewModel dispara diagnóstico automaticamente em mais de um gatilho de fundo (cold
+    // start via iniciarRotinasNaoSpeedtest, e de novo sempre que a leitura de fibra/ONT
+    // conclui — ver coletor de executorFibra.snapshotFlow) — nenhum desses é ação do usuário,
+    // então nenhum deles deve abrir o Laudo sozinho. Sem essa flag, o diagnóstico automático
+    // disparado pela fibra concluindo (alguns segundos após o cold start) escapava da supressão
+    // antiga (que só ignorava a primeira conclusão) e abria o Laudo por cima da aba Velocidade
+    // sem o usuário pedir nada.
+    var laudoAutomaticoEsperado by remember { mutableStateOf(false) }
+
     LaunchedEffect(snapshotSpeedtest.estado) {
         when (snapshotSpeedtest.estado) {
             EstadoExecucaoSpeedtest.executando -> testeAtivo = true
             EstadoExecucaoSpeedtest.concluido -> {
                 if (testeAtivo) {
+                    laudoAutomaticoEsperado = true
                     onIniciarDiagnostico()
                     mostrarConcluido = true
                     delay(400)
@@ -351,20 +363,13 @@ fun AppShell(
         }
     }
 
-    // #480: no cold start, iniciarRotinasNaoSpeedtest() dispara o diagnóstico em background
-    // e ele pode concluir rápido (ex.: cache/BD), fazendo este efeito abrir o Laudo por cima
-    // da aba Velocidade antes do usuário pedir qualquer coisa. Suprime só a primeira conclusão
-    // observada nesta composição; diagnósticos seguintes (ex.: apos novo speedtest) abrem normalmente.
-    var primeiraConclusaoDiagnosticoIgnorada by remember { mutableStateOf(false) }
-
-    // Abre LaudoScreen automaticamente ao concluir qualquer diagnóstico, exceto o do cold start.
+    // Abre LaudoScreen automaticamente só quando a conclusão do diagnóstico é a que foi
+    // sinalizada acima (consequência de um speedtest do usuário) — nunca em conclusões
+    // automáticas de fundo.
     LaunchedEffect(snapshotDiagnostico.estado) {
-        if (snapshotDiagnostico.estado == EstadoDiagnostico.concluido) {
-            if (!primeiraConclusaoDiagnosticoIgnorada) {
-                primeiraConclusaoDiagnosticoIgnorada = true
-            } else if (Overlay.Laudo !in overlayStack) {
-                overlayStack.add(Overlay.Laudo)
-            }
+        if (snapshotDiagnostico.estado == EstadoDiagnostico.concluido && laudoAutomaticoEsperado) {
+            laudoAutomaticoEsperado = false
+            if (Overlay.Laudo !in overlayStack) overlayStack.add(Overlay.Laudo)
         }
     }
 
