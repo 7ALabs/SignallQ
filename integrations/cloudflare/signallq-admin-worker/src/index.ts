@@ -1633,6 +1633,18 @@ async function handleFirebaseVersions(_req: Request, env: Env): Promise<Response
   return json({ source: "bigquery", versions }, 200, env);
 }
 
+// NOTA: app_version/device_model não foram adicionados ao SELECT abaixo via
+// ANY_VALUE. ANY_VALUE() em si é seguro (aggregate function, não muda o
+// GROUP BY issue_id/issue_title) — mas o nome exato das colunas não pôde ser
+// confirmado sem acesso às credenciais/dataset real do BigQuery. Se os nomes
+// estiverem errados, a query falha com "Unrecognized name" (BigQuery 400),
+// que NÃO cai no branch table_not_found (só reconhece "Not found"/"notFound"),
+// então rows.length===0 faz o handler responder "no_data_yet" silenciosamente
+// — sem crash, mas mascarando um bug de schema como "sem dados ainda". Dado
+// esse risco real e sem forma de validar aqui, a coluna fica de fora até
+// alguém confirmar o schema de `firebase_crashlytics.android_crashes_*`
+// direto no BigQuery. O frontend (FirebaseCrashIssue) já trata appVersion/
+// deviceModel como opcionais e mostra "-" quando ausentes.
 async function handleFirebaseCrashIssues(_req: Request, env: Env): Promise<Response> {
   if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
     return json({ source: "no_credentials", issues: [] }, 200, env);
