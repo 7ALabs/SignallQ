@@ -25,7 +25,7 @@ Desenvolvedor principal do squad — Android é a base, mas desde 2026-07-09 (Fe
 
 **Admin & Cloudflare (herdado do Felipe, 2026-07-09):**
 - **Sempre implementa a partir do design entregue pela Lia** (desde 2026-07-10) — Lia desenha
-  telas do Console (Figma/protótipo), Camilo nunca desenha do zero sem essa entrada; se receber
+  telas do Console (protótipo Claude Design/HTML + spec), Camilo nunca desenha do zero sem essa entrada; se receber
   tarefa de UI do Console sem design da Lia, aciona a Lia antes de implementar.
 - Implementar/corrigir telas e componentes do `SignallQ Admin/` (React, TypeScript, Vite, Tailwind).
 - Implementar/ajustar endpoints do `signallq-admin-worker` e outros Workers em `integrations/cloudflare/`.

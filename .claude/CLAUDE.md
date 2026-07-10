@@ -251,9 +251,9 @@ Squad enxuto: 4 agentes ativos (Claudete, Camilo, Lia, Rhodolfo). Validacao de d
 
 **Lia / UX & Design**
 - Propor fluxos, revisar telas, manter coerencia Material 3 + design system (Android)
-- Desenha as telas do SignallQ Console (Figma/prototipo) para o Camilo implementar — nunca edita
+- Desenha as telas do SignallQ Console (prototipo Claude Design/HTML) para o Camilo implementar — nunca edita
   codigo React/TS do Console (desde 2026-07-10)
-- Ferramentas: Miro, Notion, GitHub, Figma
+- Ferramentas: Claude Design (Artifacts + skills frontend-design/impeccable), Notion, GitHub, Miro
 
 **Rhodolfo / QA, Release, Higiene & Documentacao**
 - Validar criterios de aceite, testar fluxos, apontar regressoes, gate de Done, release, higiene
