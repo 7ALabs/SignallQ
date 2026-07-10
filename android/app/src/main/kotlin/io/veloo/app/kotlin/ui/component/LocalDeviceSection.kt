@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Lan
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Science
+import androidx.compose.material.icons.outlined.SettingsEthernet
 import androidx.compose.material.icons.outlined.SettingsInputAntenna
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.Icon
@@ -53,6 +54,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.core.network.contracts.gateway.EquipmentClassification
+import io.signallq.app.core.network.contracts.localdevice.ClientSnapshot
 import io.signallq.app.core.network.contracts.localdevice.DataFreshness
 import io.signallq.app.core.network.contracts.localdevice.DeviceType
 import io.signallq.app.core.network.contracts.localdevice.DeviceWarningType
@@ -120,7 +122,16 @@ sealed interface LocalDeviceSectionUiState {
 data class EquipamentoSecaoTecnica(
     val titulo: String,
     val icone: ImageVector,
-    val itens: List<EquipamentoItemTecnico>,
+    val itens: List<EquipamentoItemTecnico> = emptyList(),
+    /** Texto solto acima da lista de [clientes] (ex.: "3 dispositivos
+     *  conectados") — so usado pela secao "Dispositivos conectados". */
+    val overline: String? = null,
+    /** Lista compacta de clientes conectados (ja no cap de exibicao e ja
+     *  traduzida) — quando nao vazia, substitui [itens] nesta secao. */
+    val clientes: List<ClienteConectadoUi> = emptyList(),
+    /** Texto estatico de excedente (ex.: "+ 3 outros dispositivos"), sem
+     *  interacao/CTA. */
+    val trailing: String? = null,
 )
 
 data class EquipamentoItemTecnico(
@@ -130,6 +141,21 @@ data class EquipamentoItemTecnico(
      *  seguranca do Wi-Fi (rede aberta/WEP), nunca por dado neutro de config
      *  (largura de canal, potencia) que nao tem veredito bom/ruim. */
     val statusValor: DiagnosticStatus? = null,
+)
+
+/** Linha compacta de um cliente conectado — peek tecnico dentro do
+ *  accordion "Dispositivos conectados", nao o card cheio do scanner
+ *  ([io.signallq.app.ui.screen.DispositivosScreen]). MAC nunca aparece aqui,
+ *  so hostname/IP mascarado/tipo de conexao traduzido. */
+data class ClienteConectadoUi(
+    val titulo: String,
+    /** IP mascarado (ultimo octeto) — null quando nao ha IP ou quando o IP
+     *  ja foi usado como [titulo] (evita mostrar o mesmo valor duas vezes). */
+    val ip: String?,
+    /** Copy traduzida de `tipoConexao` — null quando o parser emitiu um
+     *  valor nao mapeado (o icone cai no fallback neutro, nunca quebra). */
+    val tipoLabel: String?,
+    val tipoIcone: ImageVector,
 )
 
 /**
@@ -396,11 +422,25 @@ private fun secoesTecnicas(snapshot: LocalNetworkDeviceSnapshot): List<Equipamen
             )
         }
         if (cap.suportaClientes) {
+            val clientes = snapshot.clientes
             add(
                 EquipamentoSecaoTecnica(
                     titulo = "Dispositivos conectados",
                     icone = Icons.Outlined.Devices,
-                    itens = listOf(EquipamentoItemTecnico("Clientes na rede", "${snapshot.clientes.size}")),
+                    itens =
+                        if (clientes.isEmpty()) {
+                            listOf(EquipamentoItemTecnico("Dispositivos conectados", "Sem leitura nesta captura"))
+                        } else {
+                            emptyList()
+                        },
+                    overline = if (clientes.isEmpty()) null else clientesOverline(clientes.size),
+                    clientes = clientes.take(CAP_CLIENTES_EXIBIDOS).map { it.paraClienteConectadoUi() },
+                    trailing =
+                        if (clientes.size > CAP_CLIENTES_EXIBIDOS) {
+                            "+ ${clientes.size - CAP_CLIENTES_EXIBIDOS} outros dispositivos"
+                        } else {
+                            null
+                        },
                 ),
             )
         }
@@ -435,6 +475,47 @@ private fun secoesTecnicas(snapshot: LocalNetworkDeviceSnapshot): List<Equipamen
         }
     }
 }
+
+/** Numero pratico de dispositivos exibidos numa casa comum sem esticar o card
+ *  verticalmente — acima disso vira [EquipamentoSecaoTecnica.trailing]. */
+private const val CAP_CLIENTES_EXIBIDOS = 8
+
+private fun clientesOverline(quantidade: Int): String =
+    if (quantidade == 1) "1 dispositivo conectado" else "$quantidade dispositivos conectados"
+
+/** Mapeia o dado bruto do equipamento ([ClientSnapshot]) para o que a UI pode
+ *  mostrar com seguranca — MAC nunca aparece (identificador mais sensivel do
+ *  dispositivo), IP sempre mascarado, hostname ausente cai no IP mascarado e,
+ *  na falta de ambos, num rotulo generico. */
+private fun ClientSnapshot.paraClienteConectadoUi(): ClienteConectadoUi {
+    val hostnameLimpo = hostname?.trim()?.takeIf { it.isNotBlank() }
+    val ipMascarado = ip?.trim()?.takeIf { it.isNotBlank() }?.let { mascaraIpEquipamento(it) }
+    val titulo = hostnameLimpo ?: ipMascarado ?: "Dispositivo sem nome"
+    // So mostra o IP como subtitulo quando ele nao e o proprio titulo — evita
+    // repetir "192.168.1.*" duas vezes na mesma linha.
+    val ipComoSubtitulo = if (hostnameLimpo != null) ipMascarado else null
+    val (tipoLabel, tipoIcone) = traduzirTipoConexaoCliente(tipoConexao)
+    return ClienteConectadoUi(
+        titulo = titulo,
+        ip = ipComoSubtitulo,
+        tipoLabel = tipoLabel,
+        tipoIcone = tipoIcone,
+    )
+}
+
+/** Traduz `ClientSnapshot.tipoConexao` (string crua do parser, ex.: TP-Link
+ *  "wifi_5g"/"wired") para copy PT-BR + icone — nunca exibe o valor cru.
+ *  Valor nao reconhecido cai no fallback neutro (icone de duvida, sem texto),
+ *  sem quebrar o layout. */
+private fun traduzirTipoConexaoCliente(tipoConexaoCru: String?): Pair<String?, ImageVector> =
+    when (tipoConexaoCru?.trim()?.lowercase()) {
+        "wifi" -> "Wi-Fi" to Icons.Outlined.Wifi
+        "wifi_2g" -> "Wi-Fi 2,4 GHz" to Icons.Outlined.Wifi
+        "wifi_5g" -> "Wi-Fi 5 GHz" to Icons.Outlined.Wifi
+        "wifi_6g" -> "Wi-Fi 6 GHz" to Icons.Outlined.Wifi
+        "wired", "ethernet", "lan" -> "Cabo (Ethernet)" to Icons.Outlined.SettingsEthernet
+        else -> null to Icons.Outlined.DeviceUnknown
+    }
 
 private data class SegurancaWifiTraduzida(
     val texto: String,
@@ -839,6 +920,12 @@ private fun EquipamentoSecaoRow(
             Text(secao.titulo, fontSize = 11.sp, fontWeight = FontWeight.W600, color = c.textSecondary)
         }
         Spacer(Modifier.height(6.dp))
+
+        secao.overline?.let { overline ->
+            Text(overline, fontSize = 10.5.sp, color = c.textTertiary)
+            Spacer(Modifier.height(4.dp))
+        }
+
         secao.itens.forEach { item ->
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
@@ -867,6 +954,65 @@ private fun EquipamentoSecaoRow(
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                 )
+            }
+        }
+
+        secao.clientes.forEach { cliente -> ClienteConectadoRow(cliente = cliente, c = c) }
+
+        secao.trailing?.let { trailing ->
+            Spacer(Modifier.height(2.dp))
+            Text(trailing, fontSize = 10.5.sp, color = c.textTertiary)
+        }
+    }
+}
+
+/** Linha compacta de um cliente conectado dentro de "Dispositivos conectados"
+ *  (GH#546) — titulo + tipo de conexao na linha 1, IP mascarado na linha 2.
+ *  Agrupada num unico no de acessibilidade para leitor de tela nao fragmentar
+ *  "Notebook", "Wi-Fi 5 GHz", "192.168.1.*" em 3 anuncios soltos (mesmo padrao
+ *  de [LocalDeviceEmptyCard]). */
+@Composable
+private fun ClienteConectadoRow(
+    cliente: ClienteConectadoUi,
+    c: io.signallq.app.ui.LkTokens,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(
+            cliente.tipoIcone,
+            contentDescription = null,
+            // Fallback (tipo nao reconhecido) usa tom mais apagado — e neutro,
+            // nao e veredito, nunca deve competir visualmente com os icones
+            // de tipo conhecido (Wi-Fi/Ethernet, sempre textSecondary).
+            tint = if (cliente.tipoLabel == null) c.textTertiary else c.textSecondary,
+            modifier = Modifier.size(14.dp),
+        )
+        Spacer(Modifier.width(6.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    cliente.titulo,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.W600,
+                    color = c.textPrimary,
+                    modifier = Modifier.weight(1f),
+                )
+                cliente.tipoLabel?.let { tipoLabel ->
+                    Spacer(Modifier.width(6.dp))
+                    Text(tipoLabel, fontSize = 10.5.sp, color = c.textTertiary)
+                }
+            }
+            cliente.ip?.let { ip ->
+                Text(ip, fontSize = 10.5.sp, color = c.textTertiary)
             }
         }
     }

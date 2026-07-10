@@ -10,6 +10,8 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 ---
 
 ## [Não lançado]
+### Adicionado
+- Seção "Equipamento local" agora exibe segurança do Wi-Fi (traduzida em Sem senha/WEP/WPA/WPA2/WPA3), largura de canal normalizada e potência de transmissão (#843)
 
 ## [0.24.1] — 2026-07-05
 

@@ -482,4 +482,95 @@ class LocalDeviceSectionUiStateTest {
             clientes = listOf(ClientSnapshot(mac = "AA:BB:CC:DD:EE:FF", ip = "192.168.1.50", hostname = "notebook", tipoConexao = "wifi")),
             freshness = freshness(),
         )
+
+    private fun clientesSecaoDe(clientes: List<ClientSnapshot>): EquipamentoSecaoTecnica {
+        val snapshot = tplinkSnapshotCompleto().copy(clientes = clientes)
+        val estado = mapLocalDeviceSectionUiState(snapshot) as LocalDeviceSectionUiState.Conectado
+        return estado.secoes.first { it.titulo == "Dispositivos conectados" }
+    }
+
+    @Test
+    fun `cliente com hostname mostra hostname como titulo e IP mascarado como subtitulo`() {
+        val secao =
+            clientesSecaoDe(
+                listOf(ClientSnapshot(mac = "AA:BB:CC:DD:EE:FF", ip = "192.168.1.50", hostname = "Notebook da Sala", tipoConexao = "wifi_5g")),
+            )
+        val cliente = secao.clientes.single()
+        assertEquals("Notebook da Sala", cliente.titulo)
+        assertEquals("192.168.1.*", cliente.ip)
+        assertEquals("Wi-Fi 5 GHz", cliente.tipoLabel)
+    }
+
+    @Test
+    fun `cliente sem hostname usa IP mascarado como titulo e omite subtitulo repetido`() {
+        val secao =
+            clientesSecaoDe(
+                listOf(ClientSnapshot(mac = "AA:BB:CC:DD:EE:FF", ip = "192.168.1.77", hostname = null, tipoConexao = "wired")),
+            )
+        val cliente = secao.clientes.single()
+        assertEquals("192.168.1.*", cliente.titulo)
+        assertEquals(null, cliente.ip)
+        assertEquals("Cabo (Ethernet)", cliente.tipoLabel)
+    }
+
+    @Test
+    fun `cliente sem hostname e sem IP vira Dispositivo sem nome, nunca expoe o MAC cru`() {
+        val secao =
+            clientesSecaoDe(
+                listOf(ClientSnapshot(mac = "AA:BB:CC:DD:EE:FF", ip = null, hostname = null, tipoConexao = null)),
+            )
+        val cliente = secao.clientes.single()
+        assertEquals("Dispositivo sem nome", cliente.titulo)
+        assertFalse(cliente.titulo.contains("AA:BB:CC"))
+        assertEquals(null, cliente.tipoLabel)
+    }
+
+    @Test
+    fun `tipoConexao nao reconhecido omite o texto do badge`() {
+        val secao =
+            clientesSecaoDe(
+                listOf(ClientSnapshot(mac = "AA:BB:CC:DD:EE:FF", ip = "192.168.1.9", hostname = "TV", tipoConexao = "powerline")),
+            )
+        assertEquals(null, secao.clientes.single().tipoLabel)
+    }
+
+    @Test
+    fun `overline usa singular para 1 dispositivo e plural para mais de 1`() {
+        val umCliente = clientesSecaoDe(listOf(ClientSnapshot(null, "192.168.1.2", "PC", "wifi")))
+        assertEquals("1 dispositivo conectado", umCliente.overline)
+
+        val doisClientes =
+            clientesSecaoDe(
+                listOf(
+                    ClientSnapshot(null, "192.168.1.2", "PC", "wifi"),
+                    ClientSnapshot(null, "192.168.1.3", "TV", "wired"),
+                ),
+            )
+        assertEquals("2 dispositivos conectados", doisClientes.overline)
+    }
+
+    @Test
+    fun `lista vazia de clientes mostra Sem leitura nesta captura e nao afirma zero dispositivos`() {
+        val secao = clientesSecaoDe(emptyList())
+        assertEquals(null, secao.overline)
+        assertTrue(secao.clientes.isEmpty())
+        assertEquals(1, secao.itens.size)
+        assertEquals("Sem leitura nesta captura", secao.itens.single().valor)
+    }
+
+    @Test
+    fun `mais de 8 clientes trunca em 8 e mostra contador de excedente`() {
+        val clientes = (1..11).map { ClientSnapshot(null, "192.168.1.$it", "Dispositivo $it", "wifi") }
+        val secao = clientesSecaoDe(clientes)
+        assertEquals(8, secao.clientes.size)
+        assertEquals("+ 3 outros dispositivos", secao.trailing)
+    }
+
+    @Test
+    fun `8 clientes ou menos nao mostra contador de excedente`() {
+        val clientes = (1..8).map { ClientSnapshot(null, "192.168.1.$it", "Dispositivo $it", "wifi") }
+        val secao = clientesSecaoDe(clientes)
+        assertEquals(8, secao.clientes.size)
+        assertEquals(null, secao.trailing)
+    }
 }
