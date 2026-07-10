@@ -155,3 +155,21 @@ ALTER TABLE diagnostic_sessions ADD COLUMN platform TEXT DEFAULT 'android';
 ALTER TABLE ai_usage            ADD COLUMN platform TEXT DEFAULT 'android';
 ALTER TABLE analytics_events    ADD COLUMN platform TEXT DEFAULT 'android';
 CREATE INDEX IF NOT EXISTS idx_sessions_platform ON diagnostic_sessions(platform);
+
+-- Trilha do Play Console (internal/alpha/beta/production) por sessao/uso/evento —
+-- diferencia tester de trilha fechada (dist_channel=play_store, mas nao e producao
+-- real) de usuario real de producao, sem sobrescrever `environment` (dado historico
+-- gravado pelo app). play_console_tracks mapeia version_code -> track via Android
+-- Publisher API; play_track e' preenchido por backfill explicito, nao automatico.
+-- Aplicar via: migrations/012_play_track.sql (npx wrangler d1 execute --file=... --remote)
+CREATE TABLE IF NOT EXISTS play_console_tracks (
+  version_code INTEGER PRIMARY KEY,
+  track        TEXT    NOT NULL,
+  synced_at    INTEGER NOT NULL
+);
+ALTER TABLE diagnostic_sessions ADD COLUMN play_track TEXT DEFAULT NULL;
+ALTER TABLE ai_usage            ADD COLUMN play_track TEXT DEFAULT NULL;
+ALTER TABLE analytics_events    ADD COLUMN play_track TEXT DEFAULT NULL;
+CREATE INDEX IF NOT EXISTS idx_sessions_play_track  ON diagnostic_sessions(play_track);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_play_track   ON ai_usage(play_track);
+CREATE INDEX IF NOT EXISTS idx_analytics_play_track  ON analytics_events(play_track);

@@ -238,6 +238,16 @@ function getPlatformFilter(url: URL): string | null {
   return platform === "all" || !platform ? null : platform;
 }
 
+/**
+ * Extrai filtro de trilha do Play Console da query string (migration 012_play_track.sql).
+ * ?play_track=internal|alpha|beta|production → filtra por trilha já sincronizada.
+ * ?play_track=all ou ausente → sem filtro (mostra todas as trilhas, inclusive não mapeadas).
+ */
+function getPlayTrackFilter(url: URL): string | null {
+  const playTrack = url.searchParams.get("play_track");
+  return playTrack === "all" || !playTrack ? null : playTrack;
+}
+
 async function getFirebaseAccessToken(env: Env): Promise<string> {
   const now = nowSec();
   const payload = {
@@ -330,6 +340,16 @@ async function queryBigQuery<T = unknown>(
 
 // --- handlers /admin ---
 
+// PRÓXIMO PASSO (não implementado nesta rodada, migration 012_play_track.sql):
+// os ~20 handlers abaixo que filtram por `environment = ?` (envFilter) tratam
+// environment=production como produção real. Depois do backfill, uma sessão pode
+// ter environment="production" (gravado pelo app) e play_track="internal"/"alpha"/
+// "beta" (tester de trilha fechada) — hoje essa sessão ainda entra na contagem de
+// "produção" em todos esses handlers. Ajustar cada query para excluir
+// `play_track IS NOT NULL AND play_track != 'production'` do filtro de produção é
+// uma mudança de escopo maior (toca ~20 call sites, risco de regressão nas métricas
+// centrais do painel) — fica para uma issue separada, depois de validar o primeiro
+// sync/backfill reais em produção.
 async function handleOverview(request: Request, env: Env): Promise<Response> {
   const url       = new URL(request.url);
   const period    = url.searchParams.get("period") ?? "7d";
@@ -426,13 +446,16 @@ async function handleDiagnostics(request: Request, env: Env): Promise<Response> 
   const since     = nowSec() - periodToSeconds(period);
   const envFilter = getEnvironmentFilter(url);
   const platformFilter = getPlatformFilter(url);
+  const playTrackFilter = getPlayTrackFilter(url);
 
   const envClause = envFilter ? " AND environment = ?" : "";
   const envBinds  = envFilter ? [envFilter]            : [];
   const platformClause = platformFilter ? " AND platform = ?" : "";
   const platformBinds  = platformFilter ? [platformFilter]    : [];
-  const filterClause = `${envClause}${platformClause}`;
-  const filterBinds  = [...envBinds, ...platformBinds];
+  const playTrackClause = playTrackFilter ? " AND play_track = ?" : "";
+  const playTrackBinds  = playTrackFilter ? [playTrackFilter]    : [];
+  const filterClause = `${envClause}${platformClause}${playTrackClause}`;
+  const filterBinds  = [...envBinds, ...platformBinds, ...playTrackBinds];
 
   const rows = await env.DB.prepare(
     `SELECT id, created_at, network_type, status, score,
@@ -440,7 +463,7 @@ async function handleDiagnostics(request: Request, env: Env): Promise<Response> 
             issues, resolved, operator,
             device_model, os_version, app_version, ai_summary_report,
             environment, dist_channel, build_type, version_code, device_id,
-            rssi, banda_wifi, padrao_wifi, platform
+            rssi, banda_wifi, padrao_wifi, platform, play_track
      FROM diagnostic_sessions WHERE created_at >= ?${filterClause}
      ORDER BY created_at DESC LIMIT ?`
   ).bind(since, ...filterBinds, limit).all();
@@ -474,9 +497,13 @@ async function handleDiagnostics(request: Request, env: Env): Promise<Response> 
     // GH#442: origem do dado — 'android' | 'web'. Default 'android' preserva
     // semântica de dados anteriores à migration 011_gh442.sql.
     platform:          r.platform          ?? 'android',
+    // migration 012_play_track.sql — trilha do Play Console (internal/alpha/beta/
+    // production), preenchida via backfill. null = ainda não mapeada, nunca assumir
+    // 'production' por padrão.
+    play_track:        r.play_track        ?? null,
   }));
 
-  return json({ source: "d1", period, environment: envFilter ?? "all", platform: platformFilter ?? "all", sessions }, 200, env);
+  return json({ source: "d1", period, environment: envFilter ?? "all", platform: platformFilter ?? "all", playTrack: playTrackFilter ?? "all", sessions }, 200, env);
 }
 
 async function handleAiCost(request: Request, env: Env): Promise<Response> {
@@ -1428,6 +1455,191 @@ async function handleGooglePlaySync(_req: Request, env: Env): Promise<Response> 
     const syncedAt = new Date().toISOString();
     await writeGooglePlaySyncState(env, { syncedAt, ratingAverage, reviewsSampled: ratings.length });
     return json({ status: "ok", syncedAt, ratingAverage, reviewsSampled: ratings.length }, 200, env);
+  } catch (e) {
+    await logError(env, 'google-play', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ status: "error", message: String(e) }, 200, env);
+  }
+}
+
+// --- migration 012_play_track.sql — mapeamento version_code -> trilha do Play Console ---
+// Sem isso, um tester de trilha fechada (internal/alpha/beta) instalado via link do Play
+// Console gera dist_channel="play_store" + environment="production", indistinguível de um
+// usuário real (ver DistributionChannel.kt). A Android Publisher API não expõe leitura de
+// tracks sem abrir um edit — mesmo sendo somente-leitura, o ciclo create→read→discard é o
+// único documentado (mesmo padrão usado por fastlane/supply). O edit nunca é commitado
+// (sem PUT); o DELETE em `finally` garante que o edit é sempre descartado.
+
+interface GooglePlayTrackRelease {
+  versionCodes?: string[];
+}
+
+interface GooglePlayTrackEntry {
+  track: string;
+  releases?: GooglePlayTrackRelease[];
+}
+
+interface GooglePlayTracksListResponse {
+  tracks?: GooglePlayTrackEntry[];
+}
+
+interface GooglePlayTracksSyncState {
+  syncedAt: string;
+  tracksCount: number;
+}
+
+async function readGooglePlayTracksSyncState(env: Env): Promise<GooglePlayTracksSyncState | null> {
+  const row = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'google_play_tracks_sync'"
+  ).first<{ value: string }>();
+  if (!row?.value) return null;
+  try {
+    return JSON.parse(row.value) as GooglePlayTracksSyncState;
+  } catch {
+    return null;
+  }
+}
+
+async function writeGooglePlayTracksSyncState(env: Env, state: GooglePlayTracksSyncState): Promise<void> {
+  await env.DB.prepare(
+    "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES ('google_play_tracks_sync', ?, ?)"
+  ).bind(JSON.stringify(state), nowSec()).run();
+}
+
+async function handleGooglePlayTracksStatus(_req: Request, env: Env): Promise<Response> {
+  const hasCredentials = !!(env.GOOGLE_PLAY_CLIENT_EMAIL && env.GOOGLE_PLAY_PRIVATE_KEY);
+  const syncState = await readGooglePlayTracksSyncState(env);
+  return json({
+    source: "worker",
+    status: hasCredentials ? "connected" : "disabled",
+    hasCredentials,
+    lastSyncTimestamp: syncState?.syncedAt ?? null,
+    tracksCount: syncState?.tracksCount ?? 0,
+  }, 200, env);
+}
+
+async function handleGooglePlayTracksSync(_req: Request, env: Env): Promise<Response> {
+  if (!env.GOOGLE_PLAY_CLIENT_EMAIL || !env.GOOGLE_PLAY_PRIVATE_KEY) {
+    return json({ status: "not_configured", message: "GOOGLE_PLAY_CLIENT_EMAIL/GOOGLE_PLAY_PRIVATE_KEY não configurados." }, 200, env);
+  }
+
+  const base = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${GOOGLE_PLAY_PACKAGE_NAME}`;
+  let token: string;
+  try {
+    token = await getGooglePlayAccessToken(env, "https://www.googleapis.com/auth/androidpublisher");
+  } catch (e) {
+    await logError(env, 'google-play', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ status: "error", message: String(e) }, 200, env);
+  }
+
+  let editId: string | null = null;
+  try {
+    const editResp = await fetch(`${base}/edits`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!editResp.ok) {
+      const errText = await editResp.text();
+      await logError(env, 'google-play', `edits_insert_${editResp.status}: ${errText.slice(0, 300)}`, '');
+      return json({ status: "error", message: `Falha ao criar edit (HTTP ${editResp.status}) — app pode ainda não estar publicado.` }, 200, env);
+    }
+    editId = ((await editResp.json()) as { id: string }).id;
+
+    const tracksResp = await fetch(`${base}/edits/${editId}/tracks`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!tracksResp.ok) {
+      const errText = await tracksResp.text();
+      await logError(env, 'google-play', `tracks_list_${tracksResp.status}: ${errText.slice(0, 300)}`, '');
+      return json({ status: "error", message: `Falha ao listar trilhas (HTTP ${tracksResp.status}).` }, 200, env);
+    }
+    const tracksData = (await tracksResp.json()) as GooglePlayTracksListResponse;
+
+    const mapping: Array<{ versionCode: number; track: string }> = [];
+    for (const t of tracksData.tracks ?? []) {
+      for (const release of t.releases ?? []) {
+        for (const vc of release.versionCodes ?? []) {
+          const versionCode = parseInt(vc, 10);
+          if (!Number.isNaN(versionCode)) mapping.push({ versionCode, track: t.track });
+        }
+      }
+    }
+
+    const syncedAtSec = nowSec();
+    if (mapping.length > 0) {
+      await env.DB.batch(
+        mapping.map((m) =>
+          env.DB.prepare(
+            "INSERT OR REPLACE INTO play_console_tracks (version_code, track, synced_at) VALUES (?, ?, ?)"
+          ).bind(m.versionCode, m.track, syncedAtSec)
+        )
+      );
+    }
+
+    const syncedAt = new Date().toISOString();
+    await writeGooglePlayTracksSyncState(env, { syncedAt, tracksCount: mapping.length });
+    return json({ status: "ok", syncedAt, tracksCount: mapping.length }, 200, env);
+  } catch (e) {
+    await logError(env, 'google-play', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ status: "error", message: String(e) }, 200, env);
+  } finally {
+    // Descarta o edit sem commitar nada (sem PUT) — sempre executa, mesmo em erro.
+    if (editId) {
+      try {
+        await fetch(`${base}/edits/${editId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch (e) {
+        await logError(env, 'google-play', `edit_discard_failed: ${String(e)}`, '');
+      }
+    }
+  }
+}
+
+// Backfill explícito e separado do sync: só aplica o mapeamento já salvo em
+// play_console_tracks aos dados históricos, sem chamar a API do Google. Idempotente —
+// só toca linhas com play_track IS NULL, então rodar de novo nunca duplica/sobrescreve
+// trabalho já feito; simples de re-rodar quando novas versões forem mapeadas depois.
+//
+// ai_usage não tem coluna `dist_channel` própria (só diagnostic_sessions e
+// analytics_events têm) — a origem play_store é inferida via join em
+// diagnostic_sessions.session_id. Se session_id for nulo ou não houver sessão
+// correspondente, a linha de ai_usage fica sem play_track (não inventa dado).
+async function handleGooglePlayTracksBackfill(_req: Request, env: Env): Promise<Response> {
+  try {
+    const results = await env.DB.batch([
+      env.DB.prepare(
+        `UPDATE diagnostic_sessions
+         SET play_track = (SELECT track FROM play_console_tracks WHERE version_code = diagnostic_sessions.version_code)
+         WHERE dist_channel = 'play_store' AND play_track IS NULL
+           AND EXISTS (SELECT 1 FROM play_console_tracks WHERE version_code = diagnostic_sessions.version_code)`
+      ),
+      env.DB.prepare(
+        `UPDATE ai_usage
+         SET play_track = (SELECT track FROM play_console_tracks WHERE version_code = ai_usage.version_code)
+         WHERE play_track IS NULL
+           AND EXISTS (SELECT 1 FROM play_console_tracks WHERE version_code = ai_usage.version_code)
+           AND EXISTS (
+             SELECT 1 FROM diagnostic_sessions ds
+             WHERE ds.id = ai_usage.session_id AND ds.dist_channel = 'play_store'
+           )`
+      ),
+      env.DB.prepare(
+        `UPDATE analytics_events
+         SET play_track = (SELECT track FROM play_console_tracks WHERE version_code = analytics_events.version_code)
+         WHERE dist_channel = 'play_store' AND play_track IS NULL
+           AND EXISTS (SELECT 1 FROM play_console_tracks WHERE version_code = analytics_events.version_code)`
+      ),
+    ]);
+
+    return json({
+      status: "ok",
+      updated: {
+        diagnostic_sessions: results[0]?.meta?.changes ?? 0,
+        ai_usage:            results[1]?.meta?.changes ?? 0,
+        analytics_events:    results[2]?.meta?.changes ?? 0,
+      },
+    }, 200, env);
   } catch (e) {
     await logError(env, 'google-play', String(e), e instanceof Error ? (e.stack ?? '') : '');
     return json({ status: "error", message: String(e) }, 200, env);
@@ -2535,6 +2747,9 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "POST", pattern: /^\/admin\/integrations\/firebase\/sync$/,         handler: handleFirebaseSync },
   { method: "GET",  pattern: /^\/admin\/integrations\/google-play\/status$/,   handler: handleGooglePlayStatus },
   { method: "POST", pattern: /^\/admin\/integrations\/google-play\/sync$/,     handler: handleGooglePlaySync },
+  { method: "GET",  pattern: /^\/admin\/integrations\/google-play\/tracks\/status$/,   handler: handleGooglePlayTracksStatus },
+  { method: "POST", pattern: /^\/admin\/integrations\/google-play\/tracks\/sync$/,     handler: handleGooglePlayTracksSync },
+  { method: "POST", pattern: /^\/admin\/integrations\/google-play\/tracks\/backfill$/, handler: handleGooglePlayTracksBackfill },
   { method: "GET",  pattern: /^\/admin\/analytics\/product$/,                   handler: withErrorLogging('analytics', handleProductAnalytics) },
   { method: "GET",  pattern: /^\/admin\/analytics\/battery$/,                   handler: withErrorLogging('analytics', handleBatteryAnalytics) },
   { method: "GET",  pattern: /^\/admin\/settings$/,                             handler: handleSettings },

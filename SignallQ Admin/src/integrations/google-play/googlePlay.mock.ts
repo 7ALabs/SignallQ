@@ -1,11 +1,14 @@
-import { 
-  GooglePlayIntegrationStatus, 
-  GooglePlayInstallMetrics, 
-  GooglePlayReleaseTrack, 
-  GooglePlayAppVersionStats, 
-  GooglePlayRatingSummary, 
-  GooglePlayReviewSummary, 
-  GooglePlayCrashAnrSummary 
+import {
+  GooglePlayIntegrationStatus,
+  GooglePlayInstallMetrics,
+  GooglePlayReleaseTrack,
+  GooglePlayAppVersionStats,
+  GooglePlayRatingSummary,
+  GooglePlayReviewSummary,
+  GooglePlayCrashAnrSummary,
+  GooglePlayTracksStatus,
+  GooglePlayTracksSyncResult,
+  GooglePlayTracksBackfillResult
 } from "./googlePlay.types";
 
 export const mockGooglePlayStatus: GooglePlayIntegrationStatus = {
@@ -116,4 +119,26 @@ export const mockGooglePlayCrashAnr: GooglePlayCrashAnrSummary = {
   anrCountWeekly: 3,
   crashCountWeekly: 11,
   crashFreeSessionRate: 99.45
+};
+
+export const mockGooglePlayTracksStatus: GooglePlayTracksStatus = {
+  status: "connected",
+  hasCredentials: true,
+  lastSyncTimestamp: "21/06/2026 14:00",
+  tracksCount: 4
+};
+
+export const mockGooglePlayTracksSyncResult: GooglePlayTracksSyncResult = {
+  status: "ok",
+  syncedAt: new Date().toISOString(),
+  tracksCount: 4
+};
+
+export const mockGooglePlayTracksBackfillResult: GooglePlayTracksBackfillResult = {
+  status: "ok",
+  updated: {
+    diagnostic_sessions: 128,
+    ai_usage: 42,
+    analytics_events: 310
+  }
 };

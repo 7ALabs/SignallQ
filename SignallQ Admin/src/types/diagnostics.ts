@@ -7,6 +7,24 @@ export type BuildType = "release" | "debug";
 // extinto PWA, mantido no tipo para nao quebrar leitura de registros antigos.
 export type DataPlatform = "android" | "web";
 
+// migration 012_play_track.sql: trilha do Play Console mapeada via Android Publisher
+// API (internal/alpha/beta/production sao as 4 trilhas padrao; o Play Console tambem
+// permite trilhas customizadas de teste fechado/aberto, por isso o campo no dado real
+// e' `string`, nao restrito a este union — este type cobre só as opções de filtro/UI.
+export type PlayTrack = "internal" | "alpha" | "beta" | "production";
+
+export const PLAY_TRACK_LABELS: Record<PlayTrack, string> = {
+  internal: "Interno",
+  alpha: "Fechado (Alfa)",
+  beta: "Aberto (Beta)",
+  production: "Produção",
+};
+
+export function playTrackLabel(track?: string | null): string {
+  if (!track) return "Não mapeado";
+  return PLAY_TRACK_LABELS[track as PlayTrack] ?? track;
+}
+
 export type DiagnosisIssue =
   | "wifi_signal_weak"
   | "bufferbloat_upload"
@@ -42,6 +60,9 @@ export interface DiagnosticSession {
   distChannel?: DistChannel;
   buildType?: BuildType;
   platform?: DataPlatform;
+  // migration 012_play_track.sql — trilha do Play Console, preenchida via backfill.
+  // null/undefined = ainda não mapeada (nunca assumir "production" por padrão).
+  playTrack?: string | null;
 }
 
 export interface DiagnosticsSummary {

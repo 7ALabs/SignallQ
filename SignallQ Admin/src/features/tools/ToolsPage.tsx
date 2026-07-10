@@ -11,7 +11,7 @@ import { AppEnvironment } from "../../types/admin";
 // --- Diagnósticos — sessões individuais ---
 import { diagnosticsService } from "../../services/diagnosticsService";
 import { DiagnosticsFilters } from "../diagnostics/components/DiagnosticsFilters";
-import { DiagnosticSession, DistChannel, BuildType, DataPlatform } from "../../types/diagnostics";
+import { DiagnosticSession, DistChannel, BuildType, DataPlatform, PlayTrack, playTrackLabel } from "../../types/diagnostics";
 
 // --- Erros — lista detalhada ---
 import { errorMetricsService } from "../../services/errorMetricsService";
@@ -109,6 +109,13 @@ const diagnosticsTableColumns = [
         <div>
           <span className="font-sans text-[11px] text-[var(--text-secondary)] block uppercase font-bold">{row.networkType}</span>
           <span className="text-[10px] text-[var(--text-tertiary)] font-mono block truncate max-w-[120px]">{details}</span>
+          {/* migration 012_play_track.sql — só mostra a trilha quando a sessão veio da Play Store,
+              onde a distinção tester/produção real importa. */}
+          {row.distChannel === "play_store" && (
+            <span className={`text-[9px] font-mono uppercase tracking-wider font-bold block ${row.playTrack ? "text-[var(--text-tertiary)]" : "text-[var(--attention)]"}`}>
+              {playTrackLabel(row.playTrack)}
+            </span>
+          )}
         </div>
       );
     },
@@ -150,6 +157,7 @@ const DiagnosticsSessionsSection: React.FC<{ environment: AppEnvironment; period
   const [selectedDistChannel, setSelectedDistChannel] = React.useState<DistChannel | "">("");
   const [selectedBuildType, setSelectedBuildType] = React.useState<BuildType | "">("");
   const [selectedPlatform, setSelectedPlatform] = React.useState<DataPlatform | "">("");
+  const [selectedPlayTrack, setSelectedPlayTrack] = React.useState<PlayTrack | "">("");
 
   const [loading, setLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -170,6 +178,7 @@ const DiagnosticsSessionsSection: React.FC<{ environment: AppEnvironment; period
         period: localPeriod,
         search: searchQuery,
         platform: selectedPlatform || undefined,
+        playTrack: selectedPlayTrack || undefined,
       });
 
       const versions = Array.from(new Set(sessionsData.map((s) => s.appVersion).filter(Boolean))).sort();
@@ -209,6 +218,7 @@ const DiagnosticsSessionsSection: React.FC<{ environment: AppEnvironment; period
     selectedDistChannel,
     selectedBuildType,
     selectedPlatform,
+    selectedPlayTrack,
     triggerRefreshCounter,
   ]);
 
@@ -247,6 +257,8 @@ const DiagnosticsSessionsSection: React.FC<{ environment: AppEnvironment; period
         onBuildTypeChange={setSelectedBuildType}
         selectedPlatform={selectedPlatform}
         onPlatformChange={setSelectedPlatform}
+        selectedPlayTrack={selectedPlayTrack}
+        onPlayTrackChange={setSelectedPlayTrack}
         selectedPeriod={localPeriod}
         onPeriodChange={setLocalPeriod}
         selectedEnvironment={localEnv}

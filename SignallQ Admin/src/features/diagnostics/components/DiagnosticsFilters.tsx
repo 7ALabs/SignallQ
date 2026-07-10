@@ -1,6 +1,6 @@
 import React from "react";
 import { Search, RefreshCw } from "lucide-react";
-import { DistChannel, BuildType, DataPlatform } from "../../../types/diagnostics";
+import { DistChannel, BuildType, DataPlatform, PlayTrack, PLAY_TRACK_LABELS } from "../../../types/diagnostics";
 import { AppEnvironment } from "../../../types/admin";
 
 interface DiagnosticsFiltersProps {
@@ -27,6 +27,8 @@ interface DiagnosticsFiltersProps {
   onBuildTypeChange: (type: BuildType | "") => void;
   selectedPlatform: DataPlatform | "";
   onPlatformChange: (platform: DataPlatform | "") => void;
+  selectedPlayTrack: PlayTrack | "";
+  onPlayTrackChange: (track: PlayTrack | "") => void;
   onRefresh: () => void;
   isRefreshing?: boolean;
 }
@@ -55,6 +57,8 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
   onBuildTypeChange,
   selectedPlatform,
   onPlatformChange,
+  selectedPlayTrack,
+  onPlayTrackChange,
   onRefresh,
   isRefreshing = false,
 }) => {
@@ -128,7 +132,7 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
       </div>
 
       {/* Advanced filters selectors row */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3 pt-1 border-t border-[var(--border)]/40 select-none">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-10 gap-3 pt-1 border-t border-[var(--border)]/40 select-none">
         {/* Network Selection */}
         <div className="space-y-1">
           <label className="text-[10px] font-sans uppercase tracking-wider text-[var(--text-tertiary)] font-bold block">
@@ -214,6 +218,24 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
             <option value="">Todas</option>
             <option value="android">Android</option>
             <option value="web">WebApp</option>
+          </select>
+        </div>
+
+        {/* Trilha do Play Console (migration 012_play_track.sql) */}
+        <div className="space-y-1">
+          <label className="text-[10px] font-sans uppercase tracking-wider text-[var(--text-tertiary)] font-bold block">
+            Trilha
+          </label>
+          <select
+            value={selectedPlayTrack}
+            onChange={(e) => onPlayTrackChange(e.target.value as PlayTrack | "")}
+            className="w-full bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl px-3 py-2 text-xs text-[var(--text-secondary)] focus:outline-none focus:border-[var(--primary)] cursor-pointer"
+          >
+            <option value="">Todas</option>
+            <option value="internal">{PLAY_TRACK_LABELS.internal}</option>
+            <option value="alpha">{PLAY_TRACK_LABELS.alpha}</option>
+            <option value="beta">{PLAY_TRACK_LABELS.beta}</option>
+            <option value="production">{PLAY_TRACK_LABELS.production}</option>
           </select>
         </div>
 
