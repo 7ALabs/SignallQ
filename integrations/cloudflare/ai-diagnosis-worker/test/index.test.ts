@@ -1,6 +1,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { extractJson, stripThinkingTokens } from "../src/text-parsing.ts";
+
+// SYSTEM_PROMPT nao e exportado por src/index.ts (worker so exporta o
+// handler default), entao lemos o fonte como texto em vez de importa-lo —
+// evita puxar o resto do modulo (providers, env do Worker) para o teste.
+const INDEX_SOURCE = readFileSync(
+  fileURLToPath(new URL("../src/index.ts", import.meta.url)),
+  "utf-8",
+);
 
 // =============================================================================
 // stripThinkingTokens — remove blocos <think>...</think> emitidos por modelos
@@ -78,4 +88,22 @@ test("extractJson: sem chaves no texto retorna o texto (trimado) como fallback",
 
 test("extractJson: string vazia retorna string vazia", () => {
   assert.equal(extractJson(""), "");
+});
+
+// =============================================================================
+// SYSTEM_PROMPT — regra 10/15b nao pode recomendar roteador/Wi-Fi de forma
+// incondicional quando connectionType == "mobile" (regressao #521 / #851).
+// =============================================================================
+
+test("SYSTEM_PROMPT: regra 10 nao recomenda roteador/Wi-Fi de forma incondicional para rede movel", () => {
+  const regra10 = INDEX_SOURCE.split(/\n11\./)[0].split(/\n10\./)[1];
+  assert.ok(regra10, "regra 10 deveria existir no SYSTEM_PROMPT");
+  assert.match(regra10, /mobile.*PROIBIDO mencionar roteador/s);
+});
+
+test("SYSTEM_PROMPT: regra 15b proibe roteador/Wi-Fi em rede movel mesmo sem o bloco 'movel' no payload", () => {
+  const regra15b = INDEX_SOURCE.split(/\n16\./)[0].split(/15b\./)[1];
+  assert.ok(regra15b, "regra 15b deveria existir no SYSTEM_PROMPT");
+  assert.match(regra15b, /esta regra vale SEMPRE, independente de o bloco "movel"/);
+  assert.match(regra15b, /PROIBIDO recomendar, sugerir ou mencionar roteador/);
 });

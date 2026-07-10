@@ -518,6 +518,16 @@ fun HomeScreen(
                 )
             }
 
+            // GH#847 — disclaimer regulatório Anatel: só após 1+ medição, respeitando dismiss
+            if (hasEffectiveResult && !anatelBannerDismissed) {
+                item {
+                    AnatelBanner(
+                        onDismiss = onDismissAnatelBanner,
+                        c = c,
+                    )
+                }
+            }
+
             // 3. Mini-cards DNS / Ping / Diagnóstico IA
             item {
                 MiniCardsRow(

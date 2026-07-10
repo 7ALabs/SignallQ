@@ -100,7 +100,11 @@ const diagnosticsTableColumns = [
   {
     header: "Rede / Canal",
     accessor: (row: DiagnosticSession) => {
-      const details = row.networkStrength?.ssid ? `SSID: ${row.networkStrength.ssid}` : row.operator || "-";
+      // Carrier/SSID crus do dispositivo às vezes vêm com espaço/caractere de
+      // padding sobrando (ex: "NC BRASIL TELECOM _") — sanitiza só a exibição,
+      // sem alterar o dado de origem.
+      const rawDetails = row.networkStrength?.ssid ? `SSID: ${row.networkStrength.ssid}` : row.operator || "-";
+      const details = rawDetails.trim().replace(/[\s_]+$/, "");
       return (
         <div>
           <span className="font-sans text-[11px] text-[var(--text-secondary)] block uppercase font-bold">{row.networkType}</span>
@@ -113,15 +117,18 @@ const diagnosticsTableColumns = [
     header: "Download / Upload",
     accessor: (row: DiagnosticSession) => (
       <span className="font-mono text-[var(--info)] font-bold">
-        {row.speed.downloadMbps} / {row.speed.uploadMbps} <span className="text-[10px] text-[var(--text-tertiary)]">M</span>
+        {row.speed.downloadMbps.toFixed(1)} / {row.speed.uploadMbps.toFixed(1)}{" "}
+        <span className="text-[10px] text-[var(--text-tertiary)]">Mbps</span>
       </span>
     ),
   },
   {
     header: "Problemas",
     accessor: (row: DiagnosticSession) => {
-      const severity = row.issues.some((i) => i.severity === "critical") ? "critical" : row.issues.length > 0 ? "attention" : "ok";
-      return <StatusBadge status={severity} customLabel={row.issues.length > 0 ? `${row.issues.length} detectados` : "Limpo"} />;
+      const count = row.issues.length;
+      const severity = row.issues.some((i) => i.severity === "critical") ? "critical" : count > 0 ? "attention" : "ok";
+      const label = count === 0 ? "Limpo" : count === 1 ? "1 problema detectado" : `${count} problemas detectados`;
+      return <StatusBadge status={severity} customLabel={label} />;
     },
   },
 ];

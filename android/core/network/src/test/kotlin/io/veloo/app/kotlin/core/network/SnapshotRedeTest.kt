@@ -1,6 +1,7 @@
 ﻿package io.signallq.app.core.network
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -60,5 +61,28 @@ class SnapshotRedeTest {
         val snap = SnapshotRede.desconectado(0L)
 
         assertTrue(snap.locationAtivado)
+    }
+
+    @Test
+    fun `metered tem default false`() {
+        val snap = SnapshotRede.desconectado(0L)
+
+        assertFalse(snap.metered)
+    }
+
+    @Test
+    fun `metered true e preservado quando informado explicitamente`() {
+        val snap = SnapshotRede(
+            estadoConexao = EstadoConexao.movel,
+            conectado = true,
+            timestampEpochMs = 1_700_000_000_000L,
+            wifiLinkSnapshot = null,
+            privateDnsAtivo = false,
+            privateDnsHostname = null,
+            dnsServidores = emptyList(),
+            metered = true,
+        )
+
+        assertTrue(snap.metered)
     }
 }

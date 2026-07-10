@@ -404,7 +404,12 @@ fun AjustesScreen(
                             color = c.textPrimary,
                         )
                         val tudoVazio =
-                            operadora.isBlank() && planoInternet.isBlank() && regiao.isBlank() && cidadeNome.isBlank() && estadoUf.isBlank()
+                            operadora.isBlank() &&
+                                velocidadeContratadaDownMbps <= 0 &&
+                                velocidadeContratadaUpMbps <= 0 &&
+                                regiao.isBlank() &&
+                                cidadeNome.isBlank() &&
+                                estadoUf.isBlank()
                         if (tudoVazio) {
                             Text(
                                 text = "Toque para configurar sua conexão",
@@ -418,9 +423,17 @@ fun AjustesScreen(
                                 color = c.textSecondary,
                             )
                             // #225: plano vazio exibe call-to-action em vez de "—"
+                            // #849: resumo deve refletir a velocidade contratada (down/up Mbps)
+                            // persistida por MinhaConexaoSheet, e nao o campo "planoInternet" legado
+                            // (texto livre da extinta ProvedorSheet, nunca atualizado por este fluxo).
+                            val temVelocidadeContratada = velocidadeContratadaDownMbps > 0 || velocidadeContratadaUpMbps > 0
                             val planoTexto =
-                                if (planoInternet.isNotBlank()) "$planoInternet Mbps" else "Toque para informar seu plano"
-                            val planoColor = if (planoInternet.isNotBlank()) c.textSecondary else c.textTertiary
+                                if (temVelocidadeContratada) {
+                                    "$velocidadeContratadaDownMbps/$velocidadeContratadaUpMbps Mbps"
+                                } else {
+                                    "Toque para informar seu plano"
+                                }
+                            val planoColor = if (temVelocidadeContratada) c.textSecondary else c.textTertiary
                             Text(
                                 text = "Plano: $planoTexto",
                                 style = MaterialTheme.typography.bodySmall,

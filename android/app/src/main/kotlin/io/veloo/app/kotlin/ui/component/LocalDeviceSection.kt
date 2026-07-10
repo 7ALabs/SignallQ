@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.DeviceUnknown
 import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Lan
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Science
@@ -107,6 +108,7 @@ sealed interface LocalDeviceSectionUiState {
         val supportLevel: SupportLevel,
         val experimental: Boolean,
         val completo: Boolean,
+        val suportaDiagnosticoNativo: Boolean = false,
         val resumoTitulo: String,
         val resumoDescricao: String,
         val resumoStatus: DiagnosticStatus,
@@ -200,6 +202,7 @@ fun mapLocalDeviceSectionUiState(
             snapshot.supportLevel == SupportLevel.PARSER_IMPORTED ||
                 snapshot.supportLevel == SupportLevel.INFERRED_FAMILY,
         completo = !dadosParciais(snapshot),
+        suportaDiagnosticoNativo = snapshot.capabilities.suportaDiagnosticoNativo,
         resumoTitulo = resumoTitulo,
         resumoDescricao = resumoDescricao,
         resumoStatus = resumoStatus,
@@ -441,8 +444,23 @@ private fun secoesTecnicas(snapshot: LocalNetworkDeviceSnapshot): List<Equipamen
                     itens =
                         listOfNotNull(
                             lan?.ipRoteador?.let { EquipamentoItemTecnico("IP do roteador", mascaraIpEquipamento(it)) },
+                            lan?.mascara?.let { EquipamentoItemTecnico("Máscara de sub-rede", formatarMascaraSubRede(it)) },
                             lan?.dhcpHabilitado?.let { EquipamentoItemTecnico("DHCP", if (it) "Ativo" else "Desligado") },
+                            if (lan?.dhcpHabilitado == true && lan.faixaDhcpInicio != null && lan.faixaDhcpFim != null) {
+                                EquipamentoItemTecnico("Faixa de DHCP", "${lan.faixaDhcpInicio} – ${lan.faixaDhcpFim}")
+                            } else {
+                                null
+                            },
                         ).ifEmpty { listOf(EquipamentoItemTecnico("Rede local (LAN)", "Sem leitura nesta captura")) },
+                ),
+            )
+        }
+        if (cap.suportaDiagnosticoNativo) {
+            add(
+                EquipamentoSecaoTecnica(
+                    titulo = "Diagnóstico do fabricante",
+                    icone = Icons.Outlined.Insights,
+                    itens = listOf(EquipamentoItemTecnico("Diagnóstico do fabricante", "Disponível")),
                 ),
             )
         }
@@ -581,6 +599,29 @@ private fun formatarFrescor(
 private fun mascaraIpEquipamento(ip: String): String {
     val partes = ip.trim().split(".")
     return if (partes.size == 4) "${partes[0]}.${partes[1]}.${partes[2]}.*" else ip.trim()
+}
+
+/** Formata a mascara de sub-rede dotted-decimal com o prefixo CIDR equivalente
+ *  (ex.: "255.255.255.0" -> "255.255.255.0 · /24"). Se a mascara nao for um
+ *  padrao valido, retorna o valor cru sem sufixo quebrado. */
+private fun formatarMascaraSubRede(mascara: String): String {
+    val prefixo = mascaraParaPrefixoCidr(mascara)
+    return if (prefixo != null) "$mascara · /$prefixo" else mascara
+}
+
+/** Converte uma mascara de sub-rede IPv4 dotted-decimal para o prefixo CIDR
+ *  (contagem de bits ligados). Retorna null se a mascara nao tiver 4 octetos
+ *  validos (0-255) ou nao formar um padrao de bits contiguo valido. */
+private fun mascaraParaPrefixoCidr(mascara: String): Int? {
+    val octetos =
+        mascara.trim().split(".").map { it.toIntOrNull() ?: return null }
+    if (octetos.size != 4 || octetos.any { it !in 0..255 }) return null
+
+    val bits = octetos.joinToString("") { it.toString(2).padStart(8, '0') }
+    // Padrao valido de mascara: sequencia de 1s seguida de sequencia de 0s, sem intercalar.
+    if (!bits.matches(Regex("1*0*"))) return null
+
+    return bits.count { it == '1' }
 }
 
 // ─── Composable ─────────────────────────────────────────────────────────────
@@ -737,6 +778,10 @@ private fun LocalDeviceConectadoContent(
             if (!state.completo) {
                 Spacer(Modifier.width(LkSpacing.xs))
                 SuporteBadge(texto = "Parcial", cor = LkColors.warning)
+            }
+            if (state.suportaDiagnosticoNativo) {
+                Spacer(Modifier.width(LkSpacing.xs))
+                SuporteBadge(texto = "Diagnóstico avançado", cor = LkColors.accent)
             }
         }
 
@@ -1142,6 +1187,44 @@ private fun LocalDeviceSectionRoteadorParcialExperimentalPreview() {
                 freshness = DataFreshness(capturadoEmEpochMs = System.currentTimeMillis() - 3_600_000L, expirado = true),
             ),
             refazerDisponivel = true,
+        )
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFFFFFFF)
+@Composable
+private fun LocalDeviceSectionComDiagnosticoNativoPreview() {
+    SignallQTheme {
+        LocalDeviceSection(
+            LocalDeviceSectionUiState.Conectado(
+                tituloEquipamento = "Nokia G-1425G-B",
+                deviceType = DeviceType.ONT_GPON,
+                supportLevel = SupportLevel.LAB_VALIDATED,
+                experimental = false,
+                completo = true,
+                suportaDiagnosticoNativo = true,
+                resumoTitulo = "Sinal de Recepção Bom",
+                resumoDescricao = "O sinal de recepção da fibra está dentro da faixa ideal (-19.80 dBm).",
+                resumoStatus = DiagnosticStatus.ok,
+                secoes =
+                    listOf(
+                        EquipamentoSecaoTecnica(
+                            "Fibra óptica",
+                            Icons.Outlined.Cable,
+                            listOf(
+                                EquipamentoItemTecnico("Link óptico", "Ativo"),
+                                EquipamentoItemTecnico("Potência RX", "-19.80 dBm"),
+                                EquipamentoItemTecnico("Potência TX", "2.10 dBm"),
+                            ),
+                        ),
+                        EquipamentoSecaoTecnica(
+                            "Diagnóstico do fabricante",
+                            Icons.Outlined.Insights,
+                            listOf(EquipamentoItemTecnico("Diagnóstico do fabricante", "Disponível")),
+                        ),
+                    ),
+                freshness = DataFreshness(capturadoEmEpochMs = System.currentTimeMillis()),
+            ),
         )
     }
 }

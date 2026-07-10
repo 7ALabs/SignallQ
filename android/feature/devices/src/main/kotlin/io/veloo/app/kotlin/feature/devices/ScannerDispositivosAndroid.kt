@@ -8,6 +8,7 @@ import android.net.Network
 import android.net.wifi.WifiManager
 import android.os.Build
 import timber.log.Timber
+import io.signallq.app.core.network.contracts.localdevice.ClientSnapshot
 import com.stealthcopter.networktools.ARPInfo
 import com.stealthcopter.networktools.SubnetDevices
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +62,8 @@ import kotlin.math.min
  *     Limitado por Semaphore(50) para não estourar file descriptors.
  *
  * Pipeline de naming (melhor → pior):
+ *   ClientSnapshot.hostname via leitura ativa do gateway (routerActive, ver
+ *   [NamingPrioridade.resolverNomeRouterActive] — bypass por MAC, issue #839) >
  *   friendlyName SSDP(XML) > nome amigável mDNS TXT/instância(jmDNS) > reverse DNS
  *   > "Dispositivo <Fabricante>" via OUI (último recurso) > "Dispositivo"
  *
@@ -105,7 +108,7 @@ class ScannerDispositivosAndroid(
 
     override val snapshotFlow: StateFlow<SnapshotScanDispositivos> = mutableSnapshotFlow.asStateFlow()
 
-    override suspend fun iniciarScan(profundo: Boolean) {
+    override suspend fun iniciarScan(profundo: Boolean, clientesGateway: List<ClientSnapshot>) {
         withContext(Dispatchers.IO) {
             if (!scanEmAndamento.compareAndSet(false, true)) {
                 return@withContext
@@ -254,6 +257,17 @@ class ScannerDispositivosAndroid(
                                 )
                             }
 
+                            // Leitura ativa do gateway (routerActive, issue #839) — bypass de
+                            // NamingPrioridade.resolverNome, checado ANTES do pipeline de
+                            // SSDP/mDNS/reverse-DNS/OUI abaixo: é dado do próprio equipamento
+                            // confirmando o cliente, não inferência da varredura passiva (ver
+                            // header do arquivo). Só aplica quando o MAC bate E o hostname
+                            // reportado é válido — caso contrário não muda nada (sem
+                            // "meio-confirmado": mantém fonte/nome que a varredura passiva já
+                            // tinha resolvido).
+                            val nomeRouterActive =
+                                NamingPrioridade.resolverNomeRouterActive(macResolvido, clientesGateway)
+
                             // Prioridade de fabricante: manufacturer UPnP(XML) > fabricante mDNS TXT > OUI(MAC)
                             val fabricanteOui = OuiDatabase.lookupFabricante(macResolvido)
                             val fabricanteResolvido = d.fabricante ?: fabricanteOui
@@ -264,8 +278,8 @@ class ScannerDispositivosAndroid(
                                 semReverseDns.acquire()
                                 try { resolverHostname(d.ip) } finally { semReverseDns.release() }
                             } else null
-                            // Prioridade de nome: fonteNome com alta prioridade já vem enriquecido (ssdpXml/mdnsJmDns)
-                            // Só cai para hostname/fabricante se ainda é genérico.
+                            // Prioridade de nome: routerActive > fonteNome com alta prioridade já
+                            // enriquecido (ssdpXml/mdnsJmDns) > hostname/fabricante se ainda é genérico.
                             // Gateway (SIG-219): antes ficava travado em "Gateway" cru — agora, se ainda
                             // genérico após SSDP/mDNS/reverse-DNS, usa "Roteador <Fabricante>" via OUI
                             // (mesmo pipeline dos demais), caindo para "Roteador" só sem fabricante algum.
@@ -273,6 +287,7 @@ class ScannerDispositivosAndroid(
                             // como último recurso — mDNS/SSDP/reverse-DNS já tiveram chance de resolver
                             // o nome real antes deste ponto (NetBIOS fica fora, ver NamingPrioridade).
                             val nomeResolvido = when {
+                                nomeRouterActive != null -> nomeRouterActive
                                 d.nomeExibicao !in genericosParaResolver -> d.nomeExibicao
                                 hostname != null -> hostname
                                 ehGateway -> fabricanteResolvido?.let { "Roteador $it" } ?: "Roteador"
@@ -283,6 +298,11 @@ class ScannerDispositivosAndroid(
                                 fabricante = fabricanteResolvido,
                                 tipoDispositivo = tipo,
                                 nomeExibicao = nomeResolvido,
+                                fonteNome = if (nomeRouterActive != null) {
+                                    NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE
+                                } else {
+                                    d.fonteNome
+                                },
                                 esteDispositivo = false,
                             )
                         }

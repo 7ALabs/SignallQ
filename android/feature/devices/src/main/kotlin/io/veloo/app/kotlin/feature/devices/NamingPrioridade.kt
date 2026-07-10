@@ -1,5 +1,7 @@
 ﻿package io.signallq.app.feature.devices
 
+import io.signallq.app.core.network.contracts.localdevice.ClientSnapshot
+
 /**
  * Lógica pura de prioridade/resolução de nome e fabricante de dispositivos de rede.
  *
@@ -7,7 +9,14 @@
  * e sem dependência de Android runtime.
  *
  * Pipeline de NOME (melhor → pior):
- *   friendlyName SSDP(XML) > nome amigável mDNS TXT/instância (jmDNS) > hostname reverso > fallback
+ *   ClientSnapshot.hostname (routerActive, ver [resolverNomeRouterActive]) > friendlyName
+ *   SSDP(XML) > nome amigável mDNS TXT/instância (jmDNS) > hostname reverso > fallback
+ *
+ * O degrau `routerActive` é resolvido FORA de [resolverNome] — é um bypass por MAC
+ * (issue #839), não um parâmetro a mais dessa função. Ele vem de outra categoria de
+ * dado (o próprio equipamento confirmando o cliente conectado), não de inferência da
+ * varredura passiva, por isso não compete com SSDP/mDNS/hostname reverso dentro da
+ * mesma função: quando há match, ele já vence antes de [resolverNome] ser chamado.
  *
  * Pipeline de FABRICANTE (melhor → pior):
  *   manufacturer UPnP(XML) > fabricante mDNS TXT > OUI(MAC) > null
@@ -18,12 +27,12 @@
 object NamingPrioridade {
 
     /**
-     * Fonte reservada para nome obtido por **leitura ativa** do gateway/roteador (epic #525,
-     * SIG-358/359/360/361 — leitura ativa do gateway). Nenhum scanner produz este valor ainda:
-     * a autenticação/leitura real no roteador é item futuro (ver
-     * `GatewayConnectionService.kt`). O valor existe hoje só como infraestrutura de UI
-     * (ícone/label/cor em `DispositivosScreen.kt`) para não precisar retrabalhar a tela
-     * quando a leitura ativa estiver pronta — ver issue #532.
+     * Fonte para nome obtido por **leitura ativa** do gateway/roteador (epic #525,
+     * SIG-358/359/360/361 — leitura ativa do gateway). Produzido por
+     * [resolverNomeRouterActive] quando o MAC do dispositivo bate com um
+     * [ClientSnapshot] reportado pelo próprio equipamento (issue #839). O valor
+     * já era consumido pela UI (ícone/label/cor em `DispositivosScreen.kt`) desde
+     * antes de ter produtor real — ver issue #532.
      */
     const val FONTE_NOME_ROUTER_ACTIVE = "routerActive"
 
@@ -60,6 +69,37 @@ object NamingPrioridade {
 
         return fallback
     }
+
+    /**
+     * Resolve nome via **leitura ativa do gateway** (issue #839) — bypass de [resolverNome],
+     * não parte dele. Casa [macDispositivo] (normalizado) contra a lista de [ClientSnapshot]
+     * reportada pelo próprio equipamento e retorna o hostname do roteador quando:
+     *  1. Existe um [ClientSnapshot] com o mesmo MAC normalizado.
+     *  2. O hostname desse cliente não é nulo, não é branco e não está em [NOMES_GENERICOS].
+     *
+     * Retorna `null` em qualquer outro caso (sem MAC, sem match, hostname ausente/genérico) —
+     * o chamador deve manter o nome/fonte já resolvidos pela varredura passiva, sem
+     * "meio-confirmado": ou o selo acende com nome real, ou não acende.
+     *
+     * [clientesGateway] já deve vir filtrada pelo chamador por `capabilities.suportaClientes`
+     * (lista vazia quando não há leitura ativa disponível nesta sessão) — esta função não
+     * conhece [io.signallq.app.core.network.contracts.localdevice.DeviceCapabilities].
+     */
+    fun resolverNomeRouterActive(
+        macDispositivo: String?,
+        clientesGateway: List<ClientSnapshot>,
+    ): String? {
+        val macNormalizado = normalizarMac(macDispositivo) ?: return null
+        val cliente = clientesGateway.firstOrNull { normalizarMac(it.mac) == macNormalizado } ?: return null
+        return cliente.hostname?.takeIf { it.isNotBlank() && it !in NOMES_GENERICOS }
+    }
+
+    /** Normaliza MAC para comparação: lowercase, sem separador (`:`/`-`). */
+    private fun normalizarMac(mac: String?): String? =
+        mac?.lowercase(java.util.Locale.ROOT)
+            ?.replace(":", "")
+            ?.replace("-", "")
+            ?.takeIf { it.isNotBlank() }
 
     /**
      * Resolve o melhor fabricante disponível para um dispositivo.

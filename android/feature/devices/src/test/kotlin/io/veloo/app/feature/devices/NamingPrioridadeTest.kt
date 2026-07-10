@@ -1,6 +1,8 @@
 package io.signallq.app.feature.devices
 
+import io.signallq.app.core.network.contracts.localdevice.ClientSnapshot
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
@@ -45,6 +47,61 @@ class NamingPrioridadeTest {
         val fontesPassivas = setOf("ssdp", "ssdpXml", "mdnsJmDns", "subnetMdns", "arp", "subnet", "tcpProbe", "gateway")
         assertEquals("routerActive", NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE)
         assert(NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE !in fontesPassivas)
+    }
+
+    @Test
+    fun `resolverNomeRouterActive retorna hostname quando MAC bate e hostname e valido`() {
+        val clientes = listOf(ClientSnapshot(mac = "AA:BB:CC:DD:EE:FF", ip = "192.168.1.10", hostname = "notebook-camilo", tipoConexao = "wired"))
+        val nome = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
+        assertEquals("notebook-camilo", nome)
+    }
+
+    @Test
+    fun `resolverNomeRouterActive normaliza MAC ignorando case e separador`() {
+        val clientes = listOf(ClientSnapshot(mac = "aabbccddeeff", ip = "192.168.1.10", hostname = "tablet-cozinha", tipoConexao = "wifi"))
+        val nome = NamingPrioridade.resolverNomeRouterActive("AA-BB-CC-DD-EE-FF", clientes)
+        assertEquals("tablet-cozinha", nome)
+    }
+
+    @Test
+    fun `resolverNomeRouterActive retorna null quando MAC nao bate com nenhum cliente`() {
+        val clientes = listOf(ClientSnapshot(mac = "11:22:33:44:55:66", ip = "192.168.1.5", hostname = "outro-device", tipoConexao = "wired"))
+        val nome = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
+        assertNull(nome)
+    }
+
+    @Test
+    fun `resolverNomeRouterActive retorna null quando hostname do cliente e nulo`() {
+        val clientes = listOf(ClientSnapshot(mac = "aa:bb:cc:dd:ee:ff", ip = "192.168.1.10", hostname = null, tipoConexao = "wired"))
+        val nome = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
+        assertNull(nome)
+    }
+
+    @Test
+    fun `resolverNomeRouterActive retorna null quando hostname do cliente e em branco`() {
+        val clientes = listOf(ClientSnapshot(mac = "aa:bb:cc:dd:ee:ff", ip = "192.168.1.10", hostname = "   ", tipoConexao = "wired"))
+        val nome = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
+        assertNull(nome)
+    }
+
+    @Test
+    fun `resolverNomeRouterActive retorna null quando hostname do cliente e generico`() {
+        val clientes = listOf(ClientSnapshot(mac = "aa:bb:cc:dd:ee:ff", ip = "192.168.1.10", hostname = "Host ativo", tipoConexao = "wired"))
+        val nome = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
+        assertNull(nome)
+    }
+
+    @Test
+    fun `resolverNomeRouterActive retorna null quando MAC do dispositivo e nulo`() {
+        val clientes = listOf(ClientSnapshot(mac = "aa:bb:cc:dd:ee:ff", ip = "192.168.1.10", hostname = "notebook", tipoConexao = "wired"))
+        val nome = NamingPrioridade.resolverNomeRouterActive(null, clientes)
+        assertNull(nome)
+    }
+
+    @Test
+    fun `resolverNomeRouterActive retorna null quando lista de clientes esta vazia`() {
+        val nome = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", emptyList())
+        assertNull(nome)
     }
 
     @Test

@@ -363,6 +363,70 @@ class LocalDeviceSectionUiStateTest {
         assertTrue(itemDbm.valor.endsWith("Potência: 20 dBm"))
     }
 
+    private fun lanItens(lan: LanSnapshot?): List<EquipamentoItemTecnico> {
+        val snapshot = tplinkSnapshotCompleto().copy(lan = lan)
+        val estado = mapLocalDeviceSectionUiState(snapshot) as LocalDeviceSectionUiState.Conectado
+        return estado.secoes.first { it.titulo == "Rede local (LAN)" }.itens
+    }
+
+    @Test
+    fun `mascara de sub-rede 255-255-255-0 vira barra 24`() {
+        val itens = lanItens(tplinkSnapshotCompleto().lan)
+        val item = itens.first { it.label == "Máscara de sub-rede" }
+        assertEquals("255.255.255.0 · /24", item.valor)
+    }
+
+    @Test
+    fun `mascara de sub-rede malformada mostra valor bruto sem sufixo quebrado`() {
+        val lan =
+            LanSnapshot(
+                ipRoteador = "192.168.1.1",
+                mascara = "algo-invalido",
+                dhcpHabilitado = true,
+                faixaDhcpInicio = "192.168.1.100",
+                faixaDhcpFim = "192.168.1.200",
+            )
+        val item = lanItens(lan).first { it.label == "Máscara de sub-rede" }
+        assertEquals("algo-invalido", item.valor)
+        assertFalse(item.valor.contains("null"))
+        assertFalse(item.valor.contains("NaN"))
+    }
+
+    @Test
+    fun `faixa de dhcp ativa mostra inicio e fim sem mascaramento`() {
+        val itens = lanItens(tplinkSnapshotCompleto().lan)
+        val item = itens.first { it.label == "Faixa de DHCP" }
+        assertEquals("192.168.1.100 – 192.168.1.200", item.valor)
+    }
+
+    @Test
+    fun `faixa de dhcp desligado nao mostra a linha mesmo com valores residuais`() {
+        val lan =
+            LanSnapshot(
+                ipRoteador = "192.168.1.1",
+                mascara = "255.255.255.0",
+                dhcpHabilitado = false,
+                faixaDhcpInicio = "192.168.1.100",
+                faixaDhcpFim = "192.168.1.200",
+            )
+        val itens = lanItens(lan)
+        assertFalse(itens.any { it.label == "Faixa de DHCP" })
+    }
+
+    @Test
+    fun `faixa de dhcp parcial e omitida`() {
+        val lan =
+            LanSnapshot(
+                ipRoteador = "192.168.1.1",
+                mascara = "255.255.255.0",
+                dhcpHabilitado = true,
+                faixaDhcpInicio = "192.168.1.100",
+                faixaDhcpFim = null,
+            )
+        val itens = lanItens(lan)
+        assertFalse(itens.any { it.label == "Faixa de DHCP" })
+    }
+
     private fun tplinkSnapshotCompleto() =
         LocalNetworkDeviceSnapshot(
             deviceType = DeviceType.ROUTER,
