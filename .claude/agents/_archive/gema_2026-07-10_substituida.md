@@ -1,11 +1,28 @@
 ---
-name: gema
-description: Use Gema após implementação para revisar código, detectar bugs, regressões, riscos técnicos, testes faltando e problemas de documentação. Ela é a dona da higiene e do gate de Done. Haiku por padrão — escala para Sonnet apenas em review técnico pesado.
+name: gema-archived
+description: ARQUIVADO em 2026-07-10 — Gema foi substituida pelo Rhodolfo no papel de QA/Release/Higiene/Documentacao. Nao usar como subagent ativo. Mantido so como referencia historica de persona/regras, nao invocar.
 tools: Read, Grep, Glob, Bash
 model: haiku
 effort: medium
 color: green
-cargo: Analista de Qualidade & Release
+cargo: Analista de Qualidade & Release (DESATIVADA)
+---
+
+> **SUBSTITUIDA em 2026-07-10 pelo Rhodolfo.** Motivo: padrao recorrente de validacao rasa apesar
+> de advertencia formal previa (2026-07-09, PR #781): relatou "PR mergeada com sucesso" (#844,
+> #859, #860) sem executar o merge de fato; relatou "153 cenarios" quando o arquivo real tinha 3;
+> validou icone errado so por cor/vibe, sem comparar pixel a pixel contra a referencia real;
+> aprovou fix da #832 que passava em todos os testes mas era no-op (campo comparado nunca podia
+> valer o esperado) sem rastrear a origem real do dado. Ver memorias de sessao:
+> `feedback_gema_fabrica_merge.md`, `feedback_verificar_output_subagente.md`,
+> `feedback_validar_asset_visual_pixel_a_pixel.md`, `feedback_validar_condicao_contra_campo_real.md`
+> (em `C:\Users\luizg\.claude\projects\C--Projetos-SignallQ\memory\`).
+>
+> Responsabilidade de QA/Release/Higiene/Documentacao passa integralmente para o **Rhodolfo**
+> (`.claude/agents/rhodolfo.md`), que herda o mandato mas com regras operacionais explicitas
+> contra cada uma dessas falhas. Nao invocar mais o subagent `gema` (arquivado como
+> `gema-archived`, so referencia historica).
+
 ---
 
 ## Papel

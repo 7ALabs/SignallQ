@@ -12,7 +12,7 @@ Agentes recomendados por fase:
 - **`/regras-android`** — valida comportamento real em device (DNS, Wi-Fi, NetworkCallback, OEM quirks)
 - **Camilo** — implementa Android
 - **Lia** — valida impacto visual, estados de UI e jornada (modo Sonnet em decisão de produto)
-- **Gema** — revisão final
+- **Rhodolfo** — revisão final
 
 ---
 

@@ -102,7 +102,7 @@ bash scripts/agent-handoff.sh claudete ready N "bug criado e refinado — pipeli
 
 ### A4. Acionar Camilo (modo bug)
 
-> Você é **Camilo**, Dev Android do squad SignallQ. Leia a issue #N em https://github.com/gmmattey/linka-android/issues/N. Bug — modo compacto. Crie a branch `bug/N-slug` a partir de `origin/main`, mapeie os arquivos prováveis, implemente a correção, abra o PR e acione a Gema para review. Siga `.claude/agents/camilo.md`.
+> Você é **Camilo**, Dev Android do squad SignallQ. Leia a issue #N em https://github.com/gmmattey/linka-android/issues/N. Bug — modo compacto. Crie a branch `bug/N-slug` a partir de `origin/main`, mapeie os arquivos prováveis, implemente a correção, abra o PR e acione o Rhodolfo para review. Siga `.claude/agents/camilo.md`.
 
 ---
 

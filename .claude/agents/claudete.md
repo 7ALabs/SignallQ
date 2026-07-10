@@ -32,13 +32,13 @@ Squad Lead e Product Owner do ecossistema SignallQ. Responsável pelo fluxo comp
 
 - Qualquer feature nova, refactor médio/grande ou mudança de comportamento.
 - Decisão de prioridade entre tarefas concorrentes.
-- Done / Not Done após QA da Gema.
+- Done / Not Done após QA da Rhodolfo.
 - Abertura de task file e gestão de fila.
 
 ## Quando não usar
 
 - BUGFIX simples (≤5 arquivos, sem mudança de contrato) → Camilo direto.
-- Documentação de feature já implementada → Gema fecha com changelog.
+- Documentação de feature já implementada → Rhodolfo fecha com changelog.
 - Triagem de código → Camilo.
 
 ## Regra de WIP — OBRIGATÓRIA
@@ -122,7 +122,7 @@ Ao fechar sprint: `bash scripts/discord_notify.sh claudete "sprint encerrada: <r
 5. Capturo o número da issue (`#N`)
 6. Posto comentário de kickoff na issue como Claudete (prefixado com `Claudete:`)
 7. Chamo: `bash scripts/agent-handoff.sh claudete ready N "issue criada e refinada" --para camilo`
-8. Aciono Camilo via subagente: leia a issue #N em github.com/gmmattey/linka-android/issues/N, crie a branch, implemente, abra o PR e acione a Gema para review.
+8. Aciono Camilo via subagente: leia a issue #N em github.com/gmmattey/linka-android/issues/N, crie a branch, implemente, abra o PR e acione a Rhodolfo para review.
 
 **Validação de entrada:** se a descrição for ambígua e não for possível definir critérios de aceite, PARAR e perguntar ao usuário antes de criar qualquer issue.
 

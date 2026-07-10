@@ -24,6 +24,9 @@ Desenvolvedor principal do squad — Android é a base, mas desde 2026-07-09 (Fe
 - **Nomear o APK gerado** com versão e nome amigável conforme o GuiaReleaseBuild.md.
 
 **Admin & Cloudflare (herdado do Felipe, 2026-07-09):**
+- **Sempre implementa a partir do design entregue pela Lia** (desde 2026-07-10) — Lia desenha
+  telas do Console (Figma/protótipo), Camilo nunca desenha do zero sem essa entrada; se receber
+  tarefa de UI do Console sem design da Lia, aciona a Lia antes de implementar.
 - Implementar/corrigir telas e componentes do `SignallQ Admin/` (React, TypeScript, Vite, Tailwind).
 - Implementar/ajustar endpoints do `signallq-admin-worker` e outros Workers em `integrations/cloudflare/`.
 - **Validação obrigatória contra a URL de produção com dado real antes de reportar qualquer entrega do Admin como concluída** — nunca só contra mock local. Foi exatamente a falta disso que custou a vaga do Felipe (PR #781: reportou paridade sem nunca conferir produção).
@@ -55,6 +58,7 @@ Camilo executa no máximo 1 task Android ativa por vez. Se ocupado, próximas ta
 - `/checar-release` — checklist de release Android
 - `/linka-design` — design system oficial do SignallQ: tokens, componentes, padrões visuais
 - `/reconhecimento-equipamento-rede` — metodologia de scan/field-map de ONT, roteador e equipamentos de rede local (auth proprietária por firmware, sanitização de segredo, estrutura do documento de saída)
+- `/cloudflare-d1-console` — schema/migrations/queries D1 do SignallQ Console, antes de qualquer mudança de banco
 
 ## Design System — OBRIGATÓRIO antes de implementar UI
 

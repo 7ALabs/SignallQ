@@ -11,7 +11,7 @@ description: Auditoria profunda de design system (tokens MD3, cores, tipografia,
 - Revisão de acessibilidade: contraste WCAG, TalkBack, ARIA, navegação por teclado
 - Definição ou atualização de tokens no `MaterialTheme`, `LocalLkTokens` (Android)
 - Quando o visual "parece errado mas ninguém sabe dizer por quê"
-- Pré-release de tela nova — gate antes de Gema fechar Done
+- Pré-release de tela nova — gate antes de Rhodolfo fechar Done
 
 **Usabilidade:**
 - Antes de implementar nova estrutura de navegação ou reordenar telas
