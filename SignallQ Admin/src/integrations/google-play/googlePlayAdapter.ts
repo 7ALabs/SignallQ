@@ -150,7 +150,7 @@ export async function getGooglePlayCrashAnrSummary(filters: DashboardFilters = {
   return apiClient.simulateFetch(mockGooglePlayCrashAnr, filters);
 }
 
-export async function syncGooglePlayMetrics(): Promise<{ jobId: string; status: string; startedAt: string }> {
+export async function syncGooglePlayMetrics(): Promise<{ jobId: string; status: string; startedAt: string; message?: string }> {
   if (apiClient.isMockEnabled()) {
     return {
       jobId: "job_gp_" + Math.random().toString(36).substring(7),
@@ -167,6 +167,10 @@ export async function syncGooglePlayMetrics(): Promise<{ jobId: string; status: 
     jobId: raw.syncedAt ?? "",
     status: raw.status,
     startedAt: raw.syncedAt ?? new Date().toISOString(),
+    // GH#873-followup: sem isso a mensagem real do worker (ex: "Falha ao
+    // consultar reviews HTTP 403 — app pode ainda não estar publicado") era
+    // descartada e a UI so mostrava um "worker retornou erro" generico.
+    message: raw.message,
   };
 }
 

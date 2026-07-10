@@ -56,7 +56,7 @@ export const IntegrationsSettings: React.FC = () => {
       setSyncFeedback(prev => ({
         ...prev,
         firebase: res.status === "error"
-          ? "Falha ao sincronizar — worker retornou erro."
+          ? (res.message || "Falha ao sincronizar — worker retornou erro.")
           : "Sincronizado com sucesso."
       }));
       fbTimeoutRef.current = setTimeout(() => {
@@ -77,7 +77,7 @@ export const IntegrationsSettings: React.FC = () => {
       setSyncFeedback(prev => ({
         ...prev,
         googlePlay: res.status === "error" || res.status === "not_configured"
-          ? "Falha ao sincronizar — worker retornou erro."
+          ? (res.message || "Falha ao sincronizar — worker retornou erro.")
           : "Sincronizado com sucesso."
       }));
       gpTimeoutRef.current = setTimeout(() => {
