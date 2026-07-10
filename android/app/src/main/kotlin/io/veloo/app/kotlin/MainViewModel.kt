@@ -16,6 +16,7 @@ import io.signallq.app.core.network.DispatcherProvider
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.network.NetworkCapabilitiesProvider
+import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
 import io.signallq.app.core.network.contracts.wifi.channel.freqToChannel
 import io.signallq.app.core.permissions.GerenciadorPermissoesRede
 import io.signallq.app.core.recommendation.RecommendationDecision
@@ -67,6 +68,7 @@ import io.signallq.app.feature.dns.EstadoBenchmarkDns
 import io.signallq.app.feature.dns.OrientadorConfiguracaoDns
 import io.signallq.app.feature.fibra.EstadoFibra
 import io.signallq.app.feature.fibra.ExecutorFibra
+import io.signallq.app.feature.fibra.NokiaLocalDeviceMapper
 import io.signallq.app.feature.history.ObservadorHistoricoRoom
 import io.signallq.app.feature.history.ResumoHistorico
 import io.signallq.app.feature.speedtest.ExecutorSpeedtest
@@ -195,6 +197,15 @@ class MainViewModel
 
         private val _analisadorState = MutableStateFlow<AnalisadorState>(AnalisadorState.Inativo)
         val analisadorState: StateFlow<AnalisadorState> = _analisadorState
+
+        // GH#865 Fase 1 — snapshot normalizado do equipamento local (ONT Nokia),
+        // consumido por LocalDeviceSection via AppShell. null ate a primeira
+        // leitura de fibra concluir com sucesso (ver NokiaLocalDeviceMapper).
+        val localDeviceSnapshot: StateFlow<LocalNetworkDeviceSnapshot?> by lazy {
+            executorFibra.snapshotFlow
+                .map { NokiaLocalDeviceMapper.map(it, System.currentTimeMillis()) }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        }
 
         // ── Recomendacao do Recommendation Engine na experiencia pos-diagnostico (#813) ──
         // Uma unica decisao por diagnostico concluido -- recalculada em iniciarObservadores()

@@ -153,6 +153,11 @@ class MainActivity : ComponentActivity() {
                 viewModel.executorFibra.snapshotFlow
                     .collectAsStateWithLifecycle()
                     .value
+            // GH#865 Fase 1 — snapshot normalizado do equipamento local (ONT Nokia).
+            val localDeviceSnapshot =
+                viewModel.localDeviceSnapshot
+                    .collectAsStateWithLifecycle()
+                    .value
 
             // --- Estado de rede e ISP (atualizam em momentos distintos — NAO combinar) ---
             val localIpUiState = viewModel.localIp.collectAsStateWithLifecycle().value
@@ -394,6 +399,7 @@ class MainActivity : ComponentActivity() {
                         historico = historico,
                         resumoHistorico = resumoHistorico,
                         snapshotFibra = snapshotFibra,
+                        localDevice = localDeviceSnapshot,
                         modemHost = modemHost,
                         modemUsername = modemUsername,
                         modemPassword = modemPassword,

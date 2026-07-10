@@ -48,6 +48,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -376,7 +378,14 @@ private fun secoesTecnicas(snapshot: LocalNetworkDeviceSnapshot): List<Equipamen
             )
         }
         if (cap.suportaWifi) {
-            val radios = snapshot.wifi?.radios.orEmpty()
+            // So mostra radios ativos — redes guest/secundarias desligadas nao
+            // interessam ao diagnostico e poluem a lista (achado da revalidacao
+            // de 2026-07-10: o equipamento reporta ate 8 SSIDs por leitura).
+            val radios =
+                snapshot.wifi
+                    ?.radios
+                    .orEmpty()
+                    .filter { it.habilitado != false }
             add(
                 EquipamentoSecaoTecnica(
                     titulo = "Wi-Fi",
@@ -922,12 +931,28 @@ private fun EquipamentoSecaoRow(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text(item.label, fontSize = 11.sp, color = c.textTertiary, modifier = Modifier.weight(1f))
+                Text(
+                    item.label,
+                    fontSize = 11.sp,
+                    color = c.textTertiary,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.width(8.dp))
+                // weight() nos dois lados evita que um valor longo (ex.: resumo
+                // de radio Wi-Fi) espreme o label ate sobrar 1 caractere de
+                // largura e quebrar em coluna vertical — achado real na
+                // revalidacao de 2026-07-10, so aparecia com dado real de Wi-Fi.
                 Text(
                     item.valor,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.W600,
                     color = item.statusValor?.let { statusParaCor(it) } ?: c.textPrimary,
+                    modifier = Modifier.weight(1.3f),
+                    textAlign = TextAlign.End,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

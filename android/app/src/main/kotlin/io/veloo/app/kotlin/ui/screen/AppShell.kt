@@ -72,6 +72,7 @@ import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionResultado
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionService
+import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
 import io.signallq.app.feature.devices.ehClienteFinal
@@ -122,6 +123,9 @@ fun AppShell(
     historico: List<MedicaoEntity>,
     resumoHistorico: ResumoHistorico? = null,
     snapshotFibra: SnapshotFibra,
+    // GH#865 Fase 1 — snapshot normalizado do equipamento local (ONT Nokia),
+    // null ate a primeira leitura de fibra concluir com sucesso.
+    localDevice: LocalNetworkDeviceSnapshot? = null,
     modemHost: String?,
     modemUsername: String,
     modemPassword: String,
@@ -697,6 +701,7 @@ fun AppShell(
                     onRecommendationClicked = onRecommendationClicked,
                     onRecommendationFeedback = onRecommendationFeedback,
                     onRecommendationDismissed = onRecommendationDismissed,
+                    localDevice = localDevice,
                 )
             }
         }

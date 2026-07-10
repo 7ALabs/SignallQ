@@ -137,21 +137,58 @@ VLAN, e OTHER via DHCP).
 | PPPoE Connection Failure / ISP Failure / BRAS Connection Status / Authentication Failure | enum/string | — | **Não — dado novo**, valioso para diagnosticar causa de queda de PPPoE sem depender só de "conectado/desconectado" |
 | Tx/Rx Packets, Tx/Rx Dropped, Err Packets | int | pacotes | **Não — dado novo** (estatísticas de tráfego por conexão WAN) |
 
-### Home Networking (`lan_status.cgi?wlan`)
+### Home Networking — `wlan_status` (CORRIGIDO 2026-07-10: vive em `lan_status.cgi?lan`, não `?wlan`)
 
-Fonte: `wlan_status` (6 slots: 2.4GHz principal + 3 guest, 5GHz principal + 1 guest).
+**Revalidação contra equipamento real em 2026-07-10 corrigiu dois erros da versão original deste documento:**
+
+1. **URL errada.** `wlan_status` (radios Wi-Fi com canal/segurança/potência) é servido por
+   `lan_status.cgi?lan` — a mesma página já buscada para os dados de LAN — e **não**
+   `lan_status.cgi?wlan` como esta seção descrevia originalmente. A página `?wlan`
+   serve outros objetos (ver subseção abaixo).
+2. **Formato errado.** `wlan_status` é um **objeto indexado por chave numérica**
+   (`{1:{...}, 2:{...}, ..., 8:{...}}`), não um array (`[{...}, {...}]`). 8 slots reais
+   observados: chaves 1–4 = rádio 2.4GHz (1 principal + 3 guest), chaves 5–8 = rádio
+   5GHz (1 principal + 3 guest) — todos os 8 sempre presentes na resposta, ativos ou não.
 
 | Campo | Tipo | Unidade | Usado hoje? |
 |---|---|---|---|
-| `RadioEnabled` / `Enable` | bool | — | Não (SignallQ lê estado do Wi-Fi via API Android, não via scraping do modem) |
-| `SSID` | string | — | Não |
-| `Channel` / `ChannelsInUse` | int | — | Não (o módulo `featureWifi`/`core/network` avalia canal via API Android — `ChannelEvaluator`/`FrequencyUtils` — não via este campo do modem) |
-| `BeaconType` (ex. `WPAand11i`, `11i`) | enum | — | Não |
-| `Standard` (ex. `b,g,n` / `a,n,ac`) | string | — | Não |
-| `TransmitPower` | int | % | Não |
+| `RadioEnabled` | bool (0/1) | — | Sim, mas com ressalva: reflete o rádio físico do band inteiro, fica `1` mesmo com o SSID guest daquele slot desligado — não usar sozinho para decidir se aquele SSID específico está ativo |
+| `Enable` | bool (0/1) | — | **Sim** — flag correta para "este SSID está ativo"; tem prioridade sobre `RadioEnabled` no parser (`GH#865`) |
+| `SSID` | string | — | Sim |
+| `Channel` / `ChannelsInUse` | int | — | Sim (`Channel`) |
+| `BeaconType` (ex. `WPAand11i`, `11i`) | enum | — | Sim, traduzido para rótulo humano (Sem senha/WEP/WPA/WPA2/WPA3/não identificada) |
+| `Standard` (ex. `b,g,n` / `a,n,ac`) | string | — | Sim — usado só para inferir banda (`ac`/`ax` → 5GHz) |
+| `WPAAuthenticationMode` / `WPAEncryptionModes` | string | — | Não — `BeaconType` já cobre a tradução de segurança hoje; esses dois dariam uma tradução mais precisa (ex. distinguir WPA2 de WPA3) se o `BeaconType` sozinho ficar ambíguo |
+| `TransmitPower` | int | % | Sim |
 | `TotalAssociations` | int | qtd de clientes conectados naquele SSID | **Não — dado novo** |
 | `TotalBytesSent/Received`, `TotalPacketsSent/Received` | int | bytes/pacotes | Não |
 | `X_ASB_COM_RxErrors` / `RxDrops` / `TxErrors` / `TxDrops` | int | pacotes | **Não — dado novo** (taxa de erro/descarte Wi-Fi por rádio, direto do chipset do AP embutido no ONT) |
+
+**Nota de UX:** o app filtra e exibe só os SSIDs com `Enable=1` (decisão de produto de
+2026-07-10) — mostrar as 8 entradas (a maioria guest/desligada) polui a tela sem
+valor de diagnóstico.
+
+### `lan_status.cgi?wlan` — objetos reais encontrados (diferente do que a URL sugere)
+
+Contrário à suposição original deste documento, esta página **não** contém
+`wlan_status`. Os objetos reais encontrados na revalidação de 2026-07-10:
+
+- **`wlan_ssid`** — objeto indexado por chave numérica (mesmas 8 chaves de
+  `wlan_status`), só com `SSID`, `BSSID`, `X_ASB_COM_routeMode`. Redundante com
+  `wlan_status.SSID` — sem valor adicional hoje.
+- **`device_cfg`** — array com a lista real de dispositivos conhecidos pelo
+  equipamento: `HostName`, `IPAddress`, `MACAddress`, `InterfaceType` (`Ethernet`/
+  outros), `Active` (0/1), `AddressSource` (`DHCP`/`Static`), `LeaseTimeRemaining`.
+  **Não usado hoje — dado novo relevante**: é a fonte que poderia alimentar a lista
+  de clientes conectados (`ClientSnapshot`) e o selo "confirmado pelo roteador"
+  (issue #839), hoje sempre vazia por falta desse wiring.
+- **`alias_cfg`** — array com apelido atribuído pelo usuário por MAC (`MACAddress`,
+  `HostName`, `HostAlias` — ex. `HostAlias:"Notebook da TIM"`). **Não usado hoje —
+  dado novo**, potencialmente melhor que `device_cfg.HostName` para nomear
+  dispositivo na UI (é o nome que o próprio usuário deu no roteador, não um hostname
+  técnico de rede).
+- `lan_ifip`, `is_superuser` — duplicam objetos já descritos em outras seções
+  (mesmo template compartilhado entre as abas de "Home Networking").
 
 ### Optics Module Status (`wan_status.cgi?gpon`) — tela mais relevante para fibra
 

@@ -280,7 +280,11 @@ class LocalDeviceSectionUiStateTest {
     }
 
     @Test
-    fun `radio desligado suprime seguranca largura e potencia`() {
+    fun `radio desligado nao aparece na lista — so radios ativos sao mostrados`() {
+        // Decisao de produto de 2026-07-10: rede guest/secundaria desligada
+        // nao interessa ao diagnostico e poluia a lista (o equipamento real
+        // reporta ate 8 SSIDs por leitura, a maioria guest desabilitada) —
+        // filtrada antes de chegar na UI, nao so suprime campos.
         val item =
             wifiItemDoRadio(
                 WifiRadioSnapshot(
@@ -293,8 +297,7 @@ class LocalDeviceSectionUiStateTest {
                     habilitado = false,
                 ),
             )
-        assertEquals("5 GHz · canal 44 · desligado", item.valor)
-        assertEquals(null, item.statusValor)
+        assertEquals("Sem leitura nesta captura", item.valor)
     }
 
     @Test

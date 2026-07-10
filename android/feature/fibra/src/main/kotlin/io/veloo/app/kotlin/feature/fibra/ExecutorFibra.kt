@@ -43,6 +43,31 @@ class ExecutorFibra {
                 val ppp = NokiaModemParser.parsePpp(pppJson)
                 val devInfo = NokiaModemParser.parseDeviceInfo(deviceHtml)
 
+                // GH#865 Fase 1 — Wi-Fi/LAN reais (docs_ai/technical/NOKIA_GPON_FIELD_MAP.md).
+                // Leitura best-effort: falha nessas paginas novas nao deve derrubar o
+                // resultado de fibra/WAN que ja funcionava.
+                //
+                // O objeto wlan_status (radios Wi-Fi com canal/seguranca/potencia) vive
+                // na mesma pagina lan_status.cgi?lan ja buscada para LAN — corrigido apos
+                // revalidacao contra equipamento real em 2026-07-10. A pagina
+                // lan_status.cgi?wlan NAO contem esse objeto (contem wlan_ssid/device_cfg/
+                // alias_cfg, ainda nao consumidos).
+                val lanStatusHtml = client.fetchPage("/lan_status.cgi?lan")
+                val lanConfigHtml = client.fetchPage("/lan_ipv4.cgi")
+
+                val wifi = runCatching {
+                    NokiaModemParser.parseWifi(lanStatusHtml)
+                }.getOrElse {
+                    Timber.w(it, "executar[${tentativa + 1}]: falha ao ler wifi (nao critico)")
+                    null
+                }
+                val lan = runCatching {
+                    NokiaModemParser.parseLan(lanStatusHtml, lanConfigHtml)
+                }.getOrElse {
+                    Timber.w(it, "executar[${tentativa + 1}]: falha ao ler lan (nao critico)")
+                    null
+                }
+
                 Timber.i("executar[${tentativa + 1}]: gpon=${gpon?.status} rx=${gpon?.rxPowerDbm}")
                 mutableSnapshotFlow.value = SnapshotFibra(
                     estado = EstadoFibra.concluido,
@@ -51,6 +76,8 @@ class ExecutorFibra {
                     ppp = ppp,
                     deviceInfo = devInfo,
                     erroMensagem = null,
+                    wifi = wifi,
+                    lan = lan,
                 )
                 return@withContext
             } catch (t: Throwable) {
