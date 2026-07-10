@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.DevicesOther
 import androidx.compose.material.icons.outlined.Laptop
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Print
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material.icons.outlined.VerifiedUser
@@ -120,6 +121,24 @@ fun DispositivosScreen(
                     if (onVoltar != null) {
                         IconButton(onClick = onVoltar) {
                             Icon(imageVector = Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Voltar", tint = c.textPrimary)
+                        }
+                    }
+                },
+                actions = {
+                    val escaneando = snapshotDevices.estado == EstadoScanDispositivos.varrendo
+                    IconButton(onClick = onRefresh, enabled = !escaneando) {
+                        if (escaneando) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = LkColors.accent,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Outlined.Refresh,
+                                contentDescription = "Escanear Rede",
+                                tint = c.textPrimary,
+                            )
                         }
                     }
                 },
