@@ -102,6 +102,89 @@ internal object NokiaModemParser {
         }
     }
 
+    /**
+     * Extrai os radios Wi-Fi (2.4GHz/5GHz) da tela "Home Networking"
+     * (`lan_status.cgi?wlan`, objeto JS `wlan_status`) — GH#865 Fase 1.
+     * Ver `docs_ai/technical/NOKIA_GPON_FIELD_MAP.md`.
+     *
+     * `larguraCanal` fica sempre null nesta fase: o unico campo documentado
+     * para largura de banda (`X_ASB_COM_OperatingChannelBandwidth`) vive na
+     * tela de configuracao (`wlan_config.cgi`), a mesma que carrega PSK/senha
+     * em texto plano — nao buscamos essa pagina para evitar qualquer risco de
+     * trafegar segredo, mesmo que so leiamos um campo nao-secreto dela.
+     */
+    fun parseWifi(html: String): WifiStatus? {
+        return try {
+            val blocks = extractJsObjectBlocks(html, "wlan_status")
+            if (blocks.isEmpty()) return null
+
+            val radios = blocks.mapNotNull { block ->
+                val ssid = extractJsStringAny(block, listOf("SSID")) ?: return@mapNotNull null
+                val standard = extractJsStringAny(block, listOf("Standard")).orEmpty()
+                val banda = if (standard.contains("ac", ignoreCase = true) ||
+                    standard.contains("ax", ignoreCase = true)
+                ) {
+                    "5GHz"
+                } else {
+                    "2.4GHz"
+                }
+                val habilitado = extractJsBoolAny(block, listOf("RadioEnabled", "Enable")) ?: true
+                val canal = extractJsIntAny(block, listOf("Channel"))
+                val criptografia = extractJsStringAny(block, listOf("BeaconType")) ?: "—"
+                val potenciaRaw = extractJsStringAny(block, listOf("TransmitPower"))
+                    ?: extractJsIntAny(block, listOf("TransmitPower"))?.toString()
+
+                WifiRadioStatus(
+                    banda = banda,
+                    ssid = ssid,
+                    canal = canal,
+                    habilitado = habilitado,
+                    criptografia = criptografia,
+                    potenciaTx = potenciaRaw?.let { "$it%" } ?: "—",
+                )
+            }
+
+            if (radios.isEmpty()) null else WifiStatus(radios)
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    /**
+     * Combina o IP/mascara da propria interface LAN do ONT (`lan_ifip`, tela
+     * `lan_status.cgi?lan`) com a configuracao do servidor DHCP (`ipv4_config`,
+     * tela `lan_ipv4.cgi`) — GH#865 Fase 1. Ver
+     * `docs_ai/technical/NOKIA_GPON_FIELD_MAP.md`.
+     */
+    fun parseLan(lanStatusHtml: String, lanConfigHtml: String): LanStatus? {
+        return try {
+            val routerIp = extractJsStringAny(
+                lanStatusHtml,
+                listOf("IPAddress", "IPInterfaceIPAddress", "LanIPAddress"),
+            )
+            val maskFromStatus = extractJsStringAny(
+                lanStatusHtml,
+                listOf("SubnetMask", "IPInterfaceSubnetMask", "NetMask"),
+            )
+            val maskFromConfig = extractJsStringAny(lanConfigHtml, listOf("SubnetMask"))
+            val dhcpMin = extractJsStringAny(lanConfigHtml, listOf("MinAddress"))
+            val dhcpMax = extractJsStringAny(lanConfigHtml, listOf("MaxAddress"))
+            val dhcpEnabled = extractJsBoolAny(lanConfigHtml, listOf("DHCPServerEnable"))
+
+            if (routerIp.isNullOrEmpty() && dhcpMin.isNullOrEmpty()) return null
+
+            LanStatus(
+                routerIp = routerIp?.ifEmpty { "—" } ?: "—",
+                subnetMask = (maskFromStatus ?: maskFromConfig)?.ifEmpty { "—" } ?: "—",
+                dhcpHabilitado = dhcpEnabled ?: false,
+                dhcpFaixaInicio = dhcpMin?.ifEmpty { "—" } ?: "—",
+                dhcpFaixaFim = dhcpMax?.ifEmpty { "—" } ?: "—",
+            )
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
     fun parseDeviceInfo(html: String): DeviceInfoFibra? {
         return try {
             val model = Regex(""""ModelName":"([^"]*)"""").find(html)?.groupValues?.get(1) ?: ""
@@ -161,6 +244,79 @@ internal object NokiaModemParser {
             }
         }
         return null
+    }
+
+    internal fun extractJsBoolAny(source: String, keys: List<String>): Boolean? {
+        for (key in keys) {
+            val escaped = Regex.escape(key)
+            val patterns = listOf(
+                Regex(""""$escaped"\s*:\s*(true|false)""", RegexOption.IGNORE_CASE),
+                Regex("""\b$escaped\b\s*:\s*(true|false)""", RegexOption.IGNORE_CASE),
+                Regex("""\b$escaped\b\s*=\s*(true|false)""", RegexOption.IGNORE_CASE),
+            )
+            for (p in patterns) {
+                val m = p.find(source) ?: continue
+                return m.groupValues[1].equals("true", ignoreCase = true)
+            }
+        }
+        // Alguns firmwares reportam booleano como 0/1 em vez de true/false.
+        val intVal = extractJsIntAny(source, keys) ?: return null
+        return intVal == 1
+    }
+
+    /**
+     * Localiza um array JS pelo nome da variavel (ex: `wlan_status:[...]` ou
+     * `var lan_ether = [...]`) e retorna o conteudo bruto de cada objeto
+     * `{...}` do array, respeitando aninhamento de chaves (ex: um `stat:{...}`
+     * dentro do item). Necessario porque os campos novos deste parser vivem
+     * em listas (varios radios Wi-Fi, varias portas LAN), diferente dos
+     * objetos unicos ja tratados por [extractJsStringAny]/[extractJsIntAny].
+     */
+    internal fun extractJsObjectBlocks(source: String, arrayVarName: String): List<String> {
+        val escaped = Regex.escape(arrayVarName)
+        val varMatch = Regex("""\b$escaped\b\s*[:=]\s*\[""").find(source) ?: return emptyList()
+        val arrayStart = varMatch.range.last // índice do '['
+
+        var depthBracket = 0
+        var arrayEnd = -1
+        var i = arrayStart
+        while (i < source.length) {
+            when (source[i]) {
+                '[' -> depthBracket++
+                ']' -> {
+                    depthBracket--
+                    if (depthBracket == 0) {
+                        arrayEnd = i
+                        break
+                    }
+                }
+            }
+            i++
+        }
+        if (arrayEnd == -1) return emptyList()
+
+        val arrayContent = source.substring(arrayStart + 1, arrayEnd)
+        val blocks = mutableListOf<String>()
+        var depthBrace = 0
+        var blockStart = -1
+        var j = 0
+        while (j < arrayContent.length) {
+            when (arrayContent[j]) {
+                '{' -> {
+                    if (depthBrace == 0) blockStart = j
+                    depthBrace++
+                }
+                '}' -> {
+                    depthBrace--
+                    if (depthBrace == 0 && blockStart != -1) {
+                        blocks.add(arrayContent.substring(blockStart, j + 1))
+                        blockStart = -1
+                    }
+                }
+            }
+            j++
+        }
+        return blocks
     }
 
     private fun extractJsNumberAny(source: String, keys: List<String>): String? {
