@@ -1420,6 +1420,10 @@ class MainViewModel
             viewModelScope.launch { preferenciasAppRepository.definirLimiteAlertaMbps(limite) }
         }
 
+        /**
+         * #853 — [mac] pode ser o MAC real do dispositivo ou a chave sintetica de fallback
+         * (`DispositivoRede.chaveApelido()`) quando o MAC nao e resolvivel via ARP.
+         */
         fun salvarApelido(
             mac: String,
             apelido: String,

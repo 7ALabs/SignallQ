@@ -77,6 +77,7 @@ import io.signallq.app.feature.devices.EstadoScanDispositivos
 import io.signallq.app.feature.devices.NamingPrioridade
 import io.signallq.app.feature.devices.SnapshotScanDispositivos
 import io.signallq.app.feature.devices.TipoDispositivo
+import io.signallq.app.feature.devices.chaveApelido
 import io.signallq.app.feature.devices.ehClienteFinal
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
@@ -296,7 +297,7 @@ private fun DispositivosLista(
                     GatewayItem(
                         dispositivo = gw,
                         c = c,
-                        apelido = gw.mac?.let { apelidos[it] },
+                        apelido = gw.chaveApelido()?.let { apelidos[it] },
                         bandasWifi = bandasWifi,
                         clientesCount = clientes.size,
                         onTap = { deviceEmSheet = gw },
@@ -313,7 +314,7 @@ private fun DispositivosLista(
                     ApMeshItem(
                         dispositivo = ap,
                         c = c,
-                        apelido = ap.mac?.let { apelidos[it] },
+                        apelido = ap.chaveApelido()?.let { apelidos[it] },
                         onTap = { deviceEmSheet = ap },
                     )
                 }
@@ -331,7 +332,7 @@ private fun DispositivosLista(
                     DispositivoItem(
                         dispositivo = dev,
                         c = c,
-                        apelido = dev.mac?.let { apelidos[it] },
+                        apelido = dev.chaveApelido()?.let { apelidos[it] },
                         onTap = { deviceEmSheet = dev },
                     )
                 }
@@ -368,18 +369,18 @@ private fun DispositivosLista(
                 MeshApSheet(
                     dispositivo = dev,
                     c = c,
-                    apelidoAtual = dev.mac?.let { apelidos[it] } ?: "",
+                    apelidoAtual = dev.chaveApelido()?.let { apelidos[it] } ?: "",
                     onSalvarApelido = { apelido ->
-                        dev.mac?.let { mac -> onSalvarApelido(mac, apelido) }
+                        dev.chaveApelido()?.let { chave -> onSalvarApelido(chave, apelido) }
                     },
                 )
             } else {
                 DeviceDetailSheet(
                     dispositivo = dev,
                     c = c,
-                    apelidoAtual = dev.mac?.let { apelidos[it] } ?: "",
+                    apelidoAtual = dev.chaveApelido()?.let { apelidos[it] } ?: "",
                     onSalvarApelido = { apelido ->
-                        dev.mac?.let { mac -> onSalvarApelido(mac, apelido) }
+                        dev.chaveApelido()?.let { chave -> onSalvarApelido(chave, apelido) }
                     },
                 )
             }
@@ -637,6 +638,9 @@ private fun DeviceDetailSheet(
     val icon = iconForTipo(dispositivo.tipoDispositivo)
     val isGateway = dispositivo.fonteNome == "gateway"
     val mac = dispositivo.mac
+    // #853 — a secao APELIDO usa a chave com fallback ip+nome (chaveApelido), nao so o MAC
+    // cru, senao ela some sempre que o Android nao consegue resolver o MAC via ARP.
+    val chaveApelido = dispositivo.chaveApelido()
     val fabricante = dispositivo.fabricante
     var apelidoInput by remember { mutableStateOf(apelidoAtual) }
 
@@ -712,8 +716,8 @@ private fun DeviceDetailSheet(
             HorizontalDivider(color = c.border)
         }
 
-        // Seção APELIDO (só se tiver MAC)
-        if (mac != null) {
+        // Seção APELIDO (#853 — chave com fallback ip+nome quando não há MAC resolvível)
+        if (chaveApelido != null) {
             item {
                 SheetSectionHeader(title = "APELIDO", c = c)
             }
@@ -798,6 +802,8 @@ private fun MeshApSheet(
     onSalvarApelido: (String) -> Unit,
 ) {
     val mac = dispositivo.mac
+    // #853 — mesma logica de fallback do DeviceDetailSheet: chave com fallback ip+nome.
+    val chaveApelido = dispositivo.chaveApelido()
     val fabricante = dispositivo.fabricante
     var apelidoInput by remember { mutableStateOf(apelidoAtual) }
 
@@ -879,8 +885,8 @@ private fun MeshApSheet(
             Spacer(Modifier.height(LkSpacing.sm))
         }
 
-        // Seção APELIDO
-        if (mac != null) {
+        // Seção APELIDO (#853 — chave com fallback ip+nome quando não há MAC resolvível)
+        if (chaveApelido != null) {
             item { SheetSectionHeader(title = "APELIDO", c = c) }
             item {
                 Column(modifier = Modifier.padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm)) {
