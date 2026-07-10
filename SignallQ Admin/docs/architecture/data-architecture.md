@@ -1,8 +1,8 @@
 # Arquitetura de Dados do Painel Admin (SIG-295)
 
-Data: 2026-07-04
+Data: 2026-07-04 (atualizado em 2026-07-10 — status do Play Console e do gap de `analytics_events`)
 Status: decidido e implementado (regra de arquitetura já aprovada pelo dono do produto)
-Relacionado: SIG-295, SIG-294, GH#417, GH#415-427
+Relacionado: SIG-295, SIG-294, GH#417, GH#415-427, GH#761
 
 ## Decisão de arquitetura (não-negociável)
 
@@ -54,9 +54,9 @@ documenta o estado real, porque nenhuma doc consolidava isso antes.
 │  React + Vite + TS     │
 └───────────────────────┘
 
-Play Console: SEM integração hoje. Fase M3 (pré-lançamento). Quando existir,
-entra como mais uma fonte por trás do Worker (nunca direto no frontend) — ver
-seção "Play Console" abaixo.
+Play Console: integração parcial desde GH#761 — nota média de reviews via
+Android Publisher API, sem instalações (API não expõe) nem ANR/crash rate
+(precisaria de Play Vitals, não implementado). Ver seção "Play Console" abaixo.
 ```
 
 ## Fontes de dados — o que alimenta cada uma
@@ -68,7 +68,7 @@ seção "Play Console" abaixo.
 | **Firebase Analytics (GA4)** | Métricas agregadas de sessão/usuário via API REST | `Analytics Data API` (`runReport`), OAuth via service account | Ativo (`/admin/integrations/firebase/analytics`) |
 | **Firebase Crashlytics** | Crashes por versão, issues de crash | BigQuery export (`firebase_crashlytics.android_crashes_*`) | Ativo, mas retorna `no_data_yet` até o export ter volume |
 | **BigQuery** | Camada de consulta para Crashlytics + GA4 export bruto | REST API `bigquery.googleapis.com`, mesma service account | Ativo |
-| **Play Console** | Instalações, avaliações, ANR/crash rate nativos da loja | — | **Não integrado.** Bloqueado até M3 (pré-lançamento, ver `CLAUDE.md` — milestones). Quando entrar, é mais uma chamada server-side do Worker, nunca do frontend |
+| **Play Console** | Avaliações (nota média de amostra de reviews) | Android Publisher API (`reviews.list`), JWT via service account (`GOOGLE_PLAY_CLIENT_EMAIL`/`GOOGLE_PLAY_PRIVATE_KEY`) | **Parcialmente integrado (GH#761).** `/admin/integrations/google-play/{status,sync}` reais no Worker desde GH#761; o painel (`googlePlayAdapter.getGooglePlayRatings`) foi ligado a esse dado real em 2026-07-10 (antes, retornava sempre `null` em produção mesmo com o Worker já sincronizando). Instalações/downloads **não são expostos** pela Android Publisher API (só via export CSV separado, não configurado) — `getGooglePlayInstallMetrics` continua sem fonte real. ANR/crash rate **não vem do Play Console** (precisaria de Play Vitals export, não implementado) — `getGooglePlayCrashAnrSummary` continua retornando `null` honestamente, não é bug |
 
 ## Regra de ambiente (`environment`)
 
@@ -226,20 +226,23 @@ quando aplicável.
    falhar silenciosamente para um item individual do batch — ou seja, um item que
    falhou no envio é tratado como enviado. Isso é trabalho de **Camilo** (Android),
    não coberto por este PR (fora do escopo de `signallq-admin-worker`).
-2. **Nenhum evento de `analytics_events` é enviado pelo Android hoje.** O endpoint
-   `POST /ingest/analytics` existe e está completo no Worker, mas não há chamador
-   no app — `feature_used`, `screen_view`, `session_start` etc. nunca são
-   emitidos. A aba "Produto & Uso" (#418) não tem dado real até isso ser
-   implementado no Android. Contrato já documentado acima para quem for
-   implementar.
+2. **RESOLVIDO em 2026-07-10 — Android agora envia `analytics_events`.**
+   `CompositeAnalyticsTracker.kt` chama `AdminIngestRepository.sendAnalyticsEvent`
+   (`POST /ingest/analytics`). A aba "Produto & Uso" passa a ter dado real
+   conforme o app gerar eventos — não reconferido nesta atualização se toda a
+   whitelist de eventos (`feature_used`, `screen_view`, `session_start`,
+   `session_end`, `feature_crash`, `battery_snapshot`) já é emitida ou só um
+   subconjunto.
 3. **Idempotência de `/ingest/analytics` depende do cliente enviar `id`.** Antes
    deste PR, o Worker gerava um UUID aleatório por evento — um retry de rede
    duplicava a linha. Agora aceita `id` do cliente, mas nenhum cliente existe
    ainda (ver gap 2) — quando o Android implementar o envio, deve gerar `id`
    determinístico por evento (não por retry).
-4. **Play Console:** sem integração. Não é bloqueio para M0-M2. Endpoint
-   futuro entraria como `/admin/integrations/play-console/*`, mesmo padrão dos
-   demais (Worker busca com credencial própria, nunca o frontend).
+4. **Play Console:** parcialmente integrado desde GH#761 (ver tabela de fontes
+   acima) — só nota média de reviews. Instalações e ANR/crash rate seguem sem
+   fonte real disponível (limitação da Android Publisher API, não falta de
+   implementação) — `getGooglePlayInstallMetrics` e `getGooglePlayCrashAnrSummary`
+   continuam retornando vazio/`null` honestamente em produção.
 5. **`system_errors` não diferencia origem** (app vs. Worker vs. IA vs.
    integração) além do campo `source` livre — relevante para #422.
 6. **Android ainda não envia `status`/`error_message` em `POST /ingest/ai-usage`

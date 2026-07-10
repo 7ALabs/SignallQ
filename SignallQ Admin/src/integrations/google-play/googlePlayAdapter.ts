@@ -110,8 +110,28 @@ export async function getGooglePlayAppVersions(filters: DashboardFilters = {}): 
 }
 
 export async function getGooglePlayRatings(filters: DashboardFilters = {}): Promise<GooglePlayRatingSummary | null> {
-  if (!apiClient.isMockEnabled()) return null;
-  return apiClient.simulateFetch(mockGooglePlayRatings, filters);
+  if (apiClient.isMockEnabled()) {
+    return apiClient.simulateFetch(mockGooglePlayRatings, filters);
+  }
+
+  // GH#761 (follow-up) — o worker já sincroniza nota média real via
+  // /admin/integrations/google-play/status (Android Publisher API,
+  // reviews.list), mas esse adapter nunca tinha sido ligado a esse dado.
+  // A API não expõe distribuição por estrela (1-5), só a média de uma
+  // amostra de reviews — starDistribution fica zerado por falta de fonte,
+  // não é dado fabricado.
+  const raw = await apiClient.request<GooglePlayStatusWorkerResponse>(
+    "GET",
+    "/admin/integrations/google-play/status"
+  );
+
+  if (raw.ratingAverage == null) return null;
+
+  return {
+    averageRating: raw.ratingAverage,
+    totalRatings: raw.reviewsSampled ?? 0,
+    starDistribution: { five: 0, four: 0, three: 0, two: 0, one: 0 },
+  };
 }
 
 export async function getGooglePlayReviews(filters: DashboardFilters = {}): Promise<GooglePlayReviewSummary[]> {
