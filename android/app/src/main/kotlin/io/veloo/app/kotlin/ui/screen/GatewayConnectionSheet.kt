@@ -30,6 +30,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -375,13 +377,29 @@ private fun ToggleRow(
             onCheckedChange = onCheckedChange,
             enabled = enabled,
             modifier = Modifier.testTag(testTag),
-            colors =
-                SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                    checkedTrackColor = LkColors.accent,
-                    uncheckedThumbColor = c.textTertiary,
-                    uncheckedTrackColor = c.border,
-                ),
+            colors = toggleRowSwitchColors(c),
         )
     }
 }
+
+/**
+ * Cores do [Switch] de [ToggleRow]. Extraida para ser testavel isoladamente
+ * (GH#848): sem os overrides `disabled*`, o Switch cai nos tokens "disabled"
+ * padrao do Material3 (cinza tanto para checked quanto unchecked), fazendo um
+ * toggle true+disabled parecer desligado. Aqui a versao desabilitada mantem a
+ * mesma aparencia do estado habilitado equivalente, so trocando a interatividade.
+ */
+@Composable
+internal fun toggleRowSwitchColors(c: LkTokens): SwitchColors =
+    SwitchDefaults.colors(
+        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+        checkedTrackColor = LkColors.accent,
+        checkedBorderColor = Color.Transparent,
+        uncheckedThumbColor = c.textTertiary,
+        uncheckedTrackColor = c.border,
+        disabledCheckedThumbColor = MaterialTheme.colorScheme.onPrimary,
+        disabledCheckedTrackColor = LkColors.accent,
+        disabledCheckedBorderColor = Color.Transparent,
+        disabledUncheckedThumbColor = c.textTertiary,
+        disabledUncheckedTrackColor = c.border,
+    )

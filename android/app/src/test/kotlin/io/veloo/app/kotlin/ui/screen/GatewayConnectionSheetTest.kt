@@ -1,6 +1,8 @@
 package io.signallq.app.ui.screen
 
+import androidx.compose.material3.SwitchColors
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -12,6 +14,7 @@ import io.signallq.app.core.network.contracts.gateway.GatewayConnectionService
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.SignallQTheme
 import kotlinx.coroutines.CompletableDeferred
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -110,6 +113,28 @@ class GatewayConnectionSheetTest {
 
         composeRule.onNodeWithTag("gateway_toggle_manter_conectado").assertIsOn()
         composeRule.onNodeWithTag("gateway_toggle_lembrar_senha").assertIsOn()
+        composeRule.onNodeWithTag("gateway_toggle_lembrar_senha").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `switch desabilitado mantem a mesma cor visual do estado habilitado equivalente (GH#848)`() {
+        var cores: SwitchColors? = null
+        composeRule.setContent {
+            SignallQTheme {
+                cores = toggleRowSwitchColors(LocalLkTokens.current)
+            }
+        }
+        composeRule.waitForIdle()
+
+        val c = requireNotNull(cores)
+        // Sem essa paridade, o switch true+disabled (ex.: "Lembrar senha" apos
+        // ativar "Manter conectado") cai nos tokens cinza padrao do Material3
+        // e parece desligado mesmo estando checked=true.
+        assertEquals(c.checkedThumbColor, c.disabledCheckedThumbColor)
+        assertEquals(c.checkedTrackColor, c.disabledCheckedTrackColor)
+        assertEquals(c.checkedBorderColor, c.disabledCheckedBorderColor)
+        assertEquals(c.uncheckedThumbColor, c.disabledUncheckedThumbColor)
+        assertEquals(c.uncheckedTrackColor, c.disabledUncheckedTrackColor)
     }
 
     @Test
