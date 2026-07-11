@@ -89,6 +89,67 @@ class RecommendationEngineTest {
         assertFalse(r.any { it.id == "REC-01" })
     }
 
+    // #897: cenario real de producao — sem wifiScan (nao preenchido pelo
+    // SignallQOrchestrator no fluxo padrao) e ainda assim deve recomendar.
+    @Test
+    fun `situacao 1 - mostra troca para 5GHz mesmo sem dado de scan de vizinhanca (bug 897)`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.wifi,
+            wifi = WifiDiagnosticInput(
+                rssiDbm = -55,
+                linkSpeedMbps = 65,
+                frequenciaMhz = 2437,
+                ssid = "CasaWifi",
+                is5GhzCapable = true,
+            ),
+            internet = InternetDiagnosticInput(
+                downloadMbps = 15.0, uploadMbps = 10.0, latencyMs = 20.0, jitterMs = 5.0, perdaPercentual = 0.0,
+            ),
+            wifiScan = null,
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        assertTrue(r.any { it.id == "REC-01" })
+    }
+
+    @Test
+    fun `situacao 1 - nao mostra quando sinal 2,4GHz atual ja esta fraco demais`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.wifi,
+            wifi = WifiDiagnosticInput(rssiDbm = -78, linkSpeedMbps = 65, frequenciaMhz = 2437, ssid = "CasaWifi"),
+            internet = InternetDiagnosticInput(downloadMbps = 15.0, uploadMbps = 10.0, latencyMs = 20.0, jitterMs = 5.0, perdaPercentual = 0.0),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        assertFalse(r.any { it.id == "REC-01" })
+    }
+
+    @Test
+    fun `situacao 1 - nao mostra quando aparelho nao suporta 5GHz`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.wifi,
+            wifi = WifiDiagnosticInput(
+                rssiDbm = -55,
+                linkSpeedMbps = 65,
+                frequenciaMhz = 2437,
+                ssid = "CasaWifi",
+                is5GhzCapable = false,
+            ),
+            internet = InternetDiagnosticInput(downloadMbps = 15.0, uploadMbps = 10.0, latencyMs = 20.0, jitterMs = 5.0, perdaPercentual = 0.0),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        assertFalse(r.any { it.id == "REC-01" })
+    }
+
+    @Test
+    fun `situacao 1 - nao mostra quando conectado em 5GHz`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.wifi,
+            wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 65, frequenciaMhz = 5180, ssid = "CasaWifi"),
+            internet = InternetDiagnosticInput(downloadMbps = 15.0, uploadMbps = 10.0, latencyMs = 20.0, jitterMs = 5.0, perdaPercentual = 0.0),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        assertFalse(r.any { it.id == "REC-01" })
+    }
+
     // -------------------------------------------------------------------------
     // 2. Distancia do roteador / obstaculos
     // -------------------------------------------------------------------------
