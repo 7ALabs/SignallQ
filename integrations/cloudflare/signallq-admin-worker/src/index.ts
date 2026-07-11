@@ -529,18 +529,31 @@ async function handleAiCost(request: Request, env: Env): Promise<Response> {
      FROM ai_usage WHERE created_at >= ?${envClause} GROUP BY model ORDER BY calls DESC`
   ).bind(since, ...envBinds).all();
 
-  const byModel = (rows.results ?? []).map((r: any) => {
-    const calls     = r.calls ?? 0;
-    const successful = r.successful_calls ?? 0;
-    return {
-      model:                 r.model,
-      calls,
-      tokens:                r.tokens    ?? 0,
-      cost_usd:              r.cost_usd  ?? 0,
-      // null quando não há registros; valor calculado a 2 casas decimais caso contrário.
-      reliabilityPercentage: calls > 0 ? Math.round((successful / calls) * 10000) / 100 : null,
-    };
-  });
+  // #879 (achado 4): reagrega por provedor (providerEnumId) — vários model IDs
+  // técnicos podem pertencer ao mesmo provedor (ex.: variações do Gemini), e o
+  // frontend usa `model` diretamente como o enum AiProvider (PROVIDER_COLORS),
+  // não como o ID técnico bruto. Mesmo padrão de reagregação já usado em
+  // handleAiUsageTimeline (byProvider a partir de múltiplos models).
+  const porProvedor = new Map<string, { calls: number; tokens: number; cost_usd: number; successful: number; label: string }>();
+  for (const r of (rows.results ?? []) as any[]) {
+    const providerId = providerEnumId(r.model ?? "");
+    const entry = porProvedor.get(providerId) ?? { calls: 0, tokens: 0, cost_usd: 0, successful: 0, label: providerName(r.model ?? "") };
+    entry.calls      += r.calls           ?? 0;
+    entry.tokens      += r.tokens          ?? 0;
+    entry.cost_usd    += r.cost_usd        ?? 0;
+    entry.successful  += r.successful_calls ?? 0;
+    porProvedor.set(providerId, entry);
+  }
+
+  const byModel = Array.from(porProvedor.entries()).map(([providerId, e]) => ({
+    model:                 providerId, // ID compatível com o enum AiProvider do frontend
+    providerLabel:         e.label,    // rótulo humano, ex.: "Gemini", "Qwen / Workers AI"
+    calls:                 e.calls,
+    tokens:                e.tokens,
+    cost_usd:              e.cost_usd,
+    // null quando não há registros; valor calculado a 2 casas decimais caso contrário.
+    reliabilityPercentage: e.calls > 0 ? Math.round((e.successful / e.calls) * 10000) / 100 : null,
+  })).sort((a, b) => b.calls - a.calls);
 
   const totals = byModel.reduce(
     (acc: any, r: any) => ({
@@ -566,15 +579,17 @@ async function handleTimeline(request: Request, env: Env): Promise<Response> {
   const envBinds  = envFilter ? [envFilter]            : [];
 
   // Agrega diagnostic_sessions por dia (DATE unix→ISO via strftime).
-  // activeUsers: não há user_id na tabela — aproximado por contagem de sessões do dia.
-  // Documentação da aproximação: 1 sessão ≈ 1 usuário único (subestima heavy users,
-  // mas é a melhor proxy disponível sem PII no D1). Ver SIG-110.
+  // #879 (achado 1 da auditoria 2026-07-10): completedDiagnostics e activeUsers
+  // usavam o MESMO COUNT(*) — as duas linhas do grafico "Sessoes vs. Diagnosticos"
+  // eram sempre identicas. device_id (hash anonimo, coluna existe desde SIG-143)
+  // permite contagem de usuarios unicos de verdade via COUNT(DISTINCT device_id),
+  // mesmo padrao ja usado em handleProductAnalytics (PR #878) com session_id.
   // criticalAlerts: sessões com status='failed' ou score < 40 (limiar "Fraco").
   const rows = await env.DB.prepare(
     `SELECT
        strftime('%Y-%m-%d', datetime(created_at, 'unixepoch')) AS date,
        COUNT(*) AS completedDiagnostics,
-       COUNT(*) AS activeUsers,
+       COUNT(DISTINCT NULLIF(device_id, '')) AS activeUsers,
        SUM(CASE WHEN status = 'failed' OR (score IS NOT NULL AND score < 40) THEN 1 ELSE 0 END) AS criticalAlerts
      FROM diagnostic_sessions
      WHERE created_at >= ?${envClause}
@@ -924,6 +939,20 @@ function providerName(model: string): string {
   if (m.includes("gpt"))                         return "OpenAI GPT";
   if (m.includes("claude"))                      return "Anthropic Claude";
   return model; // fallback: nome técnico do modelo
+}
+
+// #879 (achado 4 da auditoria 2026-07-10): o Admin (types/ai.ts) define o enum
+// AiProvider como IDs técnicos ("gemini_flash" | "cloudflare_qwen" | "openai" |
+// "local_fallback"), usados como chave direta em mapas de cor (PROVIDER_COLORS).
+// providerName() acima devolve rótulo HUMANO ("Gemini", "Qwen / Workers AI"), que
+// nunca bate com esse enum — daí o donut cair sempre na cor de fallback. Mesma
+// lógica de deteção de providerName(), saída compatível com o enum do frontend.
+function providerEnumId(model: string): string {
+  const m = (model ?? "").toLowerCase();
+  if (m.includes("gemini"))                      return "gemini_flash";
+  if (m.includes("qwen") || m.startsWith("@cf/")) return "cloudflare_qwen";
+  if (m.includes("gpt"))                         return "openai";
+  return "local_fallback";
 }
 
 async function handleDiagnosticsSummary(request: Request, env: Env): Promise<Response> {
@@ -1807,10 +1836,27 @@ async function handleFirebaseCrashlytics(_req: Request, env: Env): Promise<Respo
   }, 200, env);
 }
 
-async function handleFirebaseVersions(_req: Request, env: Env): Promise<Response> {
+// #879 (achado 2 da auditoria 2026-07-10): esta função ignorava period/environment
+// da query string por completo (janela fixa de 30 dias, todos os ambientes),
+// enquanto o denominador (productionVersion.sessions, de handleAppVersions) RESPEITA
+// os dois filtros — dividir numerador fixo por denominador filtrado distorcia o crash
+// rate sempre que o filtro selecionado era diferente de "30d/produção".
+//
+// `period` agora controla de fato a janela do BigQuery (mesmo mapeamento de
+// periodToSeconds usado no resto do worker). `environment`, porém, não pode ser
+// respeitado aqui: o export do Crashlytics não carrega o conceito de "environment"
+// (production/staging/development) que existe só no nosso schema D1 — não há coluna
+// nem dimensão equivalente em `firebase_crashlytics.android_crashes_*`. Em vez de
+// fingir que filtra, a resposta agora expõe `environmentScope: "all"` explicitamente
+// para o frontend avisar o usuário, conforme a alternativa descrita na issue #879.
+async function handleFirebaseVersions(req: Request, env: Env): Promise<Response> {
   if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
     return json({ source: "no_credentials", versions: [] }, 200, env);
   }
+
+  const url = new URL(req.url);
+  const period = url.searchParams.get("period") ?? "30d";
+  const windowDays = Math.max(1, Math.round(periodToSeconds(period) / 86400));
 
   const { rows, error } = await queryBigQuery<{
     app_version: string;
@@ -1822,18 +1868,18 @@ async function handleFirebaseVersions(_req: Request, env: Env): Promise<Response
       COUNT(*)                          AS total_crashes,
       COUNT(DISTINCT installation_uuid) AS affected_users
     FROM \`${env.FIREBASE_PROJECT_ID}.firebase_crashlytics.android_crashes_*\`
-    WHERE _TABLE_SUFFIX >= FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY))
+    WHERE _TABLE_SUFFIX >= FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL ${windowDays} DAY))
     GROUP BY app_version
     ORDER BY total_crashes DESC
     LIMIT 10
   `);
 
   if (error === "table_not_found" || !rows.length) {
-    return json({ source: "no_data_yet", versions: [] }, 200, env);
+    return json({ source: "no_data_yet", versions: [], period, environmentScope: "all" }, 200, env);
   }
   if (error) {
     await logError(env, 'bigquery-versions', error, '');
-    return json({ source: "error", versions: [] }, 200, env);
+    return json({ source: "error", versions: [], period, environmentScope: "all" }, 200, env);
   }
 
   const versions = rows.map((r) => ({
@@ -1842,7 +1888,7 @@ async function handleFirebaseVersions(_req: Request, env: Env): Promise<Response
     affectedUsers: parseInt(r.affected_users ?? "0", 10),
   }));
 
-  return json({ source: "bigquery", versions }, 200, env);
+  return json({ source: "bigquery", versions, period, environmentScope: "all" }, 200, env);
 }
 
 // NOTA: app_version/device_model não foram adicionados ao SELECT abaixo via
