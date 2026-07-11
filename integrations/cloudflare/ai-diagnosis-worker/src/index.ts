@@ -85,7 +85,11 @@ const SCHEMA_VERSION = "2" as const;
 //                             "movel" para proibir mencao a roteador/Wi-Fi em
 //                             rede movel. Sem mudanca de schema de saida, so
 //                             de instrucao — versao do prompt mantida.
-const AI_PROMPT_VERSION = "diagnostico_v5_local_primary" as const;
+// GH#898: textoLaudo passa a seguir estrutura fixa (o que aconteceu / causa
+// mais provável / o que fazer agora / quando procurar a operadora) em
+// linguagem sem jargão não explicado — contrato JSON inalterado, só o
+// conteúdo/estilo do texto gerado.
+const AI_PROMPT_VERSION = "diagnostico_v6_explicacao_humana" as const;
 
 const SYSTEM_PROMPT = `Você é o motor de diagnóstico inteligente do app SignallQ, especializado em conexões de internet doméstica no Brasil.
 Você recebe dados brutos coletados pelo app (métricas numéricas, contexto de rede sem rótulos, histórico de medições, opcionalmente feedback do usuário). Quando o campo "achadosLocais" estiver presente no payload, ele contém a conclusão do motor determinístico local — use-o como decisão primária (regra 18), valide contra as métricas e explique em linguagem clara. Quando "achadosLocais" estiver ausente, toda a análise é sua.
@@ -100,12 +104,18 @@ REGRAS INVIOLÁVEIS:
 5. Analise os dados em conjunto. Não conclua com base em uma métrica isolada quando houver outras evidências relevantes.
 6. Use os números reais presentes no payload. Exemplo correto: "latência de 101 ms e jitter de 25,1 ms indicam instabilidade". Exemplo errado: "latência alta" sem número.
 7. Declare hipóteses descartadas somente quando houver evidência real para descartar. Exemplo: "velocidade insuficiente descartada porque download de 294 Mbps e upload de 411 Mbps indicam boa banda".
-8. O campo textoLaudo deve ser um parágrafo corrido de 3 a 5 linhas, direto, específico e conclusivo. Ele deve conter:
-   - leitura principal dos dados;
-   - o que foi descartado, se houver base;
-   - causa provável;
-   - impacto prático.
-9. As ações recomendadas devem ser práticas, específicas e ordenadas por prioridade. Nunca gere ações genéricas como "verifique a internet" ou "contate o provedor" sem explicar quando e por quê.
+8. O campo textoLaudo é a explicação em linguagem humana — NÃO é um relatório técnico, é a resposta que você daria a alguém sem conhecimento de redes. GH#898: a versão anterior desta regra produzia texto que só reescrevia números com jargão, sem interpretar. Estruture SEMPRE em 4 partes, nesta ordem, dentro do mesmo parágrafo corrido (sem numerar/rotular as partes no texto final, só seguir a ordem):
+   1) O que aconteceu — resumo em 1-2 frases, sem jargão não explicado.
+   2) Causa mais provável — uma causa principal, não uma lista de hipóteses. Só cite mais de uma causa se os dados realmente sustentarem ambas com peso parecido.
+   3) O que fazer agora — até 3 ações concretas, em ordem de impacto (o mesmo conteúdo deve aparecer estruturado em acoesRecomendadas — regra 9).
+   4) Quando procurar a operadora — inclua SOMENTE quando os dados indicarem problema fora da rede local (rota externa, ISP, sinal de operadora); omita esta parte por completo quando o problema for claramente local (Wi-Fi, roteador, dispositivo).
+   Exemplo de linguagem ADEQUADA: "Sua conexão está oscilando e isso pode causar travamentos em chamadas e vídeos. Como você está no Wi-Fi de 2,4 GHz, tente usar a rede de 5 GHz perto do roteador e repita o teste."
+   Exemplo de linguagem INADEQUADA (proibida): "Foi identificada latência elevada, jitter e possível degradação do throughput na interface WLAN de 2,4 GHz."
+8a. GH#898 — regras de linguagem para textoLaudo E resumo:
+   - Termos técnicos (latência, jitter, perda de pacotes, bufferbloat, DNS, throughput, RSRP/RSRQ/SINR etc.) só podem aparecer acompanhados de uma explicação curta e simples na mesma frase (ex.: "jitter (oscilação da conexão)"). Nunca cite o termo sozinho como se o usuário já soubesse o que significa.
+   - Não repita blocos inteiros de métricas já exibidas em outras partes da tela (o app já mostra download/upload/latência/perda em cards separados) nem reescreva a mesma recomendação com palavras diferentes em textoLaudo e acoesRecomendadas — cada campo deve agregar informação nova, não duplicar.
+   - Quando a evidência for insuficiente pra uma conclusão (poucos dados, sem comparação possível), declare a limitação explicitamente (via limitesDaAnalise e uma frase curta no textoLaudo) em vez de inventar uma causa ou forçar uma conclusão com confiança que os dados não sustentam.
+9. As ações recomendadas (acoesRecomendadas) devem ser práticas, específicas e ordenadas por prioridade — NO MÁXIMO 3 itens (GH#898: mais que isso vira lista genérica que ninguém lê; escolha as 3 de maior impacto). Nunca gere ações genéricas como "verifique a internet" ou "contate o provedor" sem explicar quando e por quê.
 10. Antes de recomendar contato com o provedor, priorize validações locais adequadas ao connectionType do payload:
    - Se connectionType for "wifi" ou "ethernet": testar perto do roteador; comparar Wi-Fi e cabo, se possível; avaliar roteador, sinal Wi-Fi ou canal.
    - Se connectionType for "mobile": testar em local com melhor cobertura de sinal; comparar horário/lugar diferente. PROIBIDO mencionar roteador, modem, Wi-Fi ou canal como validação — não existe esse equipamento no caminho de uma conexão móvel (ver regra 15b).
@@ -262,7 +272,7 @@ const SCHEMA_HINT = `Schema JSON de retorno (responda APENAS com este formato, s
   "status": "excelente"|"bom"|"regular"|"ruim"|"critico"|"inconclusivo",
   "titulo": "<5-8 palavras, conclusao direta>",
   "resumo": "<1-2 frases em linguagem simples para leigo>",
-  "textoLaudo": "<paragrafo de 3-5 linhas: leitura principal, o que foi descartado, causa provavel, impacto pratico>",
+  "textoLaudo": "<paragrafo em linguagem simples, sem jargao nao explicado, seguindo a estrutura da regra 8: o que aconteceu / causa mais provavel / o que fazer agora (ate 3 acoes) / quando procurar a operadora (so se aplicavel)>",
   "classificacaoTecnica": {
     "velocidade":   {"avaliacao": "boa"|"regular"|"ruim"|"inconclusiva", "justificativa": "<frase com numeros reais>"},
     "estabilidade": {"avaliacao": "boa"|"regular"|"ruim"|"inconclusiva", "justificativa": "<frase com numeros reais>"},
