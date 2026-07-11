@@ -685,11 +685,24 @@ private fun DeviceDetailSheet(
                 }
                 Spacer(Modifier.width(12.dp))
                 Column {
-                    Text(
-                        text = dispositivo.nomeExibicao,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = c.textPrimary,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = dispositivo.nomeExibicao,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = c.textPrimary,
+                        )
+                        // #854: selo de confiabilidade em vez de expor a fonte tecnica crua
+                        // (ssdpXml/subnet) — mesmo padrao ja usado na linha da lista.
+                        if (dispositivo.fonteNome in FONTES_CONFIAVEIS) {
+                            Spacer(Modifier.width(6.dp))
+                            Icon(
+                                imageVector = Icons.Outlined.VerifiedUser,
+                                contentDescription = "Nome confirmado pelo equipamento de rede",
+                                tint = LkColors.accent,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
                     Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
@@ -1274,17 +1287,39 @@ private fun tipoLabel(tipo: TipoDispositivo): String =
         TipoDispositivo.desconhecido -> "Desconhecido"
     }
 
+// #854: nunca expor o valor cru de fonteNome na UI (viola "métrica crua sempre
+// acompanhada de veredito humano" do design system) — todo valor produzido pelo
+// scanner (ver prioridade de fonte em ScannerDispositivosAndroid) precisa de
+// tradução aqui. O fallback (`fonte tratada`) so existe pra nao quebrar em caso
+// de fonte nova ainda nao mapeada, nunca deve aparecer em uso normal.
 private fun fonteNomeLabel(fonte: String) =
     when (fonte) {
         NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE -> "Confirmado pelo roteador"
         "gateway" -> "Roteador (gateway)"
         "mdns" -> "mDNS · Bonjour"
+        "mdnsJmDns" -> "mDNS · Bonjour"
+        "subnetMdns" -> "mDNS · Bonjour"
         "ssdp" -> "UPnP · SSDP"
+        "ssdpXml" -> "UPnP · SSDP"
         "nbns" -> "NetBIOS"
         "arp" -> "ARP (varredura)"
+        "subnet" -> "Varredura de rede"
         "tcpProbe" -> "TCP probe"
-        else -> fonte
+        else -> "Varredura de rede"
     }
+
+/** Fontes em que o próprio equipamento/dispositivo se identifica ativamente
+ *  (protocolo estruturado — UPnP/SSDP, mDNS, leitura ativa do gateway), em vez
+ *  de inferência passiva da varredura (ARP/subnet/TCP probe). Usado para
+ *  decidir quando mostrar o selo de confiabilidade (ícone) ao lado do nome. */
+private val FONTES_CONFIAVEIS = setOf(
+    NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE,
+    "gateway",
+    "ssdp",
+    "ssdpXml",
+    "mdns",
+    "mdnsJmDns",
+)
 
 private fun traduzirErroParaPortugues(erro: String): Pair<String, String> =
     when {
