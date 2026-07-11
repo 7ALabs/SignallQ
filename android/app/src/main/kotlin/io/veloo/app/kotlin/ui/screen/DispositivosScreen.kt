@@ -1312,14 +1312,15 @@ private fun fonteNomeLabel(fonte: String) =
  *  (protocolo estruturado — UPnP/SSDP, mDNS, leitura ativa do gateway), em vez
  *  de inferência passiva da varredura (ARP/subnet/TCP probe). Usado para
  *  decidir quando mostrar o selo de confiabilidade (ícone) ao lado do nome. */
-private val FONTES_CONFIAVEIS = setOf(
-    NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE,
-    "gateway",
-    "ssdp",
-    "ssdpXml",
-    "mdns",
-    "mdnsJmDns",
-)
+private val FONTES_CONFIAVEIS =
+    setOf(
+        NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE,
+        "gateway",
+        "ssdp",
+        "ssdpXml",
+        "mdns",
+        "mdnsJmDns",
+    )
 
 private fun traduzirErroParaPortugues(erro: String): Pair<String, String> =
     when {
