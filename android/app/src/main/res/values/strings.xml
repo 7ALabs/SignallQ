@@ -73,17 +73,12 @@
     <string name="diagnostico_dados_antigos_msg">Este diagnóstico usa dados salvos anteriormente. Faça um novo teste para atualizar.</string>
     <string name="diagnostico_dados_antigos_btn">Atualizar diagnóstico</string>
 
-    <!-- Onboarding screen -->
-    <string name="onboarding_slide0_titulo">Sua internet explicada em português</string>
-    <string name="onboarding_slide0_descricao">Não só os números — o SignallQ analisa sua conexão\ne te diz o que está acontecendo e o que fazer.</string>
-    <string name="onboarding_slide1_titulo">Seus dados ficam no seu celular</string>
-    <string name="onboarding_slide1_descricao">Medimos sua rede, não rastreamos você. Tudo fica salvo localmente — nenhum dado pessoal sai do seu dispositivo.</string>
-    <string name="onboarding_slide2_titulo">Algumas análises precisam de permissão do Android</string>
-    <string name="onboarding_slide2_descricao">Você pode pular e permitir depois. O app continua útil mesmo sem estas permissões.</string>
-    <string name="onboarding_btn_anterior">← Anterior</string>
-    <string name="onboarding_btn_proximo">Próximo →</string>
-    <string name="onboarding_btn_comecar">Começar →</string>
-    <string name="onboarding_btn_pular">Pular</string>
+    <!-- Onboarding screen (redesign 2 telas, GH#128) -->
+    <string name="onboarding_tela1_titulo">Bem-vindo ao SignallQ</string>
+    <string name="onboarding_tela1_subtitulo">Diagnóstico de conectividade direto ao ponto, sem enrolação.</string>
+    <string name="onboarding_tela2_titulo">Permitir acesso</string>
+    <string name="onboarding_tela2_subtitulo">Essas permissões deixam o diagnóstico mais completo — nenhuma é obrigatória.</string>
+    <string name="onboarding_btn_continuar">Continuar</string>
 
     <!-- Home screen -->
     <string name="home_titulo">Home</string>

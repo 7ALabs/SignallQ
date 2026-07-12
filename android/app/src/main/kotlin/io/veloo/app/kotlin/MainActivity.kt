@@ -297,11 +297,24 @@ class MainActivity : ComponentActivity() {
                                 .background(MaterialTheme.colorScheme.background),
                     )
                 } else if (!onboardingConcluido) {
+                    // #128: onboarding pede as 4 permissoes (batch) internamente na tela 2;
+                    // aqui so reagimos ao resultado real pra ligar as rotinas que dependiam
+                    // do fluxo antigo de callbacks por permissao.
                     OnboardingScreen(
                         onConcluir = { viewModel.marcarOnboardingConcluido() },
-                        // #128: solicitar permissões no slide 3 (localização + dispositivos próximos)
-                        onSolicitarPermissaoLocalizacao = { solicitarPermissaoLocalizacaoContextual() },
-                        onSolicitarPermissaoDispositivosProximos = { solicitarPermissaoDispositivosProximosContextual() },
+                        onPermissoesConcedidas = { concedidas ->
+                            if (Manifest.permission.ACCESS_FINE_LOCATION in concedidas) {
+                                temPermissaoLocalizacao = true
+                                viewModel.iniciarRotinasNaoSpeedtest()
+                            }
+                            if (Manifest.permission.READ_PHONE_STATE in concedidas) {
+                                temPermissaoTelefonia = true
+                                viewModel.iniciarMonitorTelefoniaSeMovel()
+                            }
+                            if (Manifest.permission.POST_NOTIFICATIONS in concedidas) {
+                                viewModel.atualizarMonitoramento(true)
+                            }
+                        },
                     )
                 } else if (consentimentoLgpd == null) {
                     LgpdConsentDialog(
@@ -556,6 +569,10 @@ class MainActivity : ComponentActivity() {
 
     private fun verificarEPedirPermissoes() {
         if (aguardandoRespostaPermissoes) return
+        // #128: onboarding novo (tela 2) e quem controla a solicitacao de permissoes antes da
+        // primeira conclusao — sem essa guarda, este auto-pedido do onStart competia com os
+        // dialogs abertos pelos toggles da tela 2 (mesma permissao pedida duas vezes seguidas).
+        if (viewModel.onboardingConcluido.value != true) return
         val pendentes = viewModel.gerenciadorPermissoes.listarPermissoesPendentes()
         if (pendentes.isNotEmpty()) {
             aguardandoRespostaPermissoes = true
@@ -615,23 +632,6 @@ class MainActivity : ComponentActivity() {
             return
         }
         solicitacaoPermissaoTelefonia.launch(Manifest.permission.READ_PHONE_STATE)
-    }
-
-    // #128: solicitar permissão de dispositivos próximos (NEARBY_WIFI_DEVICES) no onboarding
-    private fun solicitarPermissaoDispositivosProximosContextual() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            val concedida =
-                ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.NEARBY_WIFI_DEVICES,
-                ) == PackageManager.PERMISSION_GRANTED
-            if (!concedida) {
-                // Usar launcher genérico (múltiplas permissões) para não corromper o
-                // launcher de localização (solicitacaoPermissaoLocalizacao)
-                solicitacaoPermissoes.launch(arrayOf(Manifest.permission.NEARBY_WIFI_DEVICES))
-            }
-        }
-        // Abaixo do API 33, NEARBY_WIFI_DEVICES não existe — no-op; localização cobre o caso
     }
 
     // Analytics (SIG-155): EstadoConexao.movel vira "mobile" no schema do funil.
