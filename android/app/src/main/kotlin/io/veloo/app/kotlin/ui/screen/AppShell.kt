@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.sp
 import io.signallq.app.BuildConfig
 import io.signallq.app.FeatureFlags
 import io.signallq.app.R
+import io.signallq.app.ads.AdSlot
 import io.signallq.app.bssidElegivelParaAutoconexao
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.network.EstadoConexao
@@ -112,6 +113,7 @@ fun AppShell(
     diagnostico: AppShellDiagnosticoState,
     signallQ: AppShellSignallQState,
     chatDiag: AppShellChatDiagState,
+    ads: AppShellAdsState = AppShellAdsState(),
     snapshotDns: SnapshotBenchmarkDns,
     history: List<HistoryPoint>,
     localIp: UiState<String>,
@@ -249,6 +251,11 @@ fun AppShell(
 
     val operadoraMovel = signallQ.operadoraMovel
     val onVerificarGemma = signallQ.onVerificarGemma
+
+    // Monetizacao nativa (issue #555) -- resolvido uma vez aqui, repassado como
+    // booleano simples "adsEnabled" por tela para nao acoplar as 4 telas ao tipo AdsFlags.
+    val adsFlags = ads.flags
+    val podeRequisitarAnuncio = ads.podeRequisitarAnuncio
 
     val c = LocalLkTokens.current
     // Desempacota UiState<T> → tipos opcionais para as telas filhas que ainda recebem primitivos.
@@ -505,6 +512,7 @@ fun AppShell(
                             onConfirmarSpeedtestMovel = onConfirmarSpeedtestMovel,
                             onCancelarSpeedtestMovel = onCancelarSpeedtestMovel,
                             movelSnapshot = movelSnapshot,
+                            adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.VELOCIDADE),
                         )
                     // NAV-B: Tab 2 — Sinal (SinalScreen como tab fixa, sem botão voltar)
                     2 ->
@@ -545,6 +553,7 @@ fun AppShell(
                             filtroOperadora = filtroOperadoraHistorico,
                             onFiltroOperadoraChange = onFiltroOperadoraHistoricoChange,
                             operadorasDisponiveis = operadorasDisponiveisHistorico,
+                            adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.HISTORICO),
                         )
                     // Tab 4 — Ajustes
                     else ->
@@ -707,6 +716,7 @@ fun AppShell(
                     onRecommendationFeedback = onRecommendationFeedback,
                     onRecommendationDismissed = onRecommendationDismissed,
                     localDevice = localDevice,
+                    adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.RESULTADO),
                 )
             }
         }
@@ -790,6 +800,7 @@ fun AppShell(
                 onSalvarApelido = onSalvarApelido,
                 onVoltar = { overlayStack.remove(Overlay.Dispositivos) },
                 bandasWifi = bandasWifiGateway,
+                adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.DISPOSITIVOS),
             )
         }
 

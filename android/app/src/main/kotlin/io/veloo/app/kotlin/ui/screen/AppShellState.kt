@@ -1,6 +1,7 @@
 ﻿package io.signallq.app.ui.screen
 
 import androidx.compose.runtime.Stable
+import io.signallq.app.ads.AdsFlags
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
 import io.signallq.app.feature.devices.SnapshotScanDispositivos
@@ -114,6 +115,18 @@ data class AppShellSignallQState(
     val onEnviarMensagemTexto: (String) -> Unit = {},
     val onVerificarGemma: () -> Unit = {},
     val onIniciarSignallQComResultado: (ResultadoSpeedtest, String?) -> Unit = { _, _ -> },
+)
+
+/**
+ * Agrupa o estado de monetizacao nativa (issue #555): flags remotas por tela + gate
+ * de consentimento UMP. [podeRequisitarAnuncio] cobre tanto "UMP ainda nao respondeu"
+ * quanto "usuario recusou personalizacao" -- em ambos os casos as telas nao chamam
+ * `AdLoader.loadAd`, nao so nao mostram o card.
+ */
+@Stable
+data class AppShellAdsState(
+    val flags: AdsFlags = AdsFlags.DESLIGADO,
+    val podeRequisitarAnuncio: Boolean = false,
 )
 
 /**

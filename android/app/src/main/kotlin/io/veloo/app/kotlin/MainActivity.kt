@@ -27,7 +27,10 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.ads.MobileAds
 import dagger.hilt.android.AndroidEntryPoint
+import io.signallq.app.ads.AdsFlagsManager
+import io.signallq.app.ads.ConsentManager
 import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.EstadoConexao
@@ -52,6 +55,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var inAppReviewManager: InAppReviewManager
+
+    @Inject
+    lateinit var adsFlagsManager: AdsFlagsManager
 
     private val viewModel: MainViewModel by viewModels()
     private val chatDiagViewModel: ChatDiagnosticoIaViewModel by viewModels()
@@ -105,11 +111,26 @@ class MainActivity : ComponentActivity() {
     // #155/9.3: permissão negada permanentemente (shouldShowRequestPermissionRationale = false E não concedida)
     private var localizacaoBloqueadaPermanentemente by mutableStateOf(false)
 
+    // Issue #555 -- gate de consentimento UMP para anuncio nativo AdMob. Comeca false:
+    // nenhuma tela pede anuncio ate a UMP responder (mesmo que a resposta seja "nao
+    // exigido nesta regiao", ainda precisa do callback pra saber disso).
+    private var podeRequisitarAnuncio by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         analyticsTracker.registrarSessionStart()
         registrarBatterySnapshotInicial()
+
+        // Issue #555 -- gate de consentimento UMP antes de qualquer AdRequest, mesmo
+        // so contextual. MobileAds.initialize so roda depois do consentimento resolvido
+        // (ordem recomendada pelo proprio guia UMP+AdMob do Google).
+        ConsentManager.atualizarEMostrarSeNecessario(this) { podeRequisitar ->
+            podeRequisitarAnuncio = podeRequisitar
+            if (podeRequisitar) {
+                MobileAds.initialize(this) {}
+            }
+        }
         val estadoConexaoInicial = viewModel.monitorRede.snapshotFlow.value.estadoConexao
         analyticsHelper.registrarAppAberto(tipoConexao = estadoConexaoInicial.paraTipoConexaoAnalytics())
 
@@ -242,6 +263,8 @@ class MainActivity : ComponentActivity() {
             val anatelBannerDismissed = viewModel.anatelBannerDismissed.collectAsStateWithLifecycle().value
             // Chat Diagnóstico IA
             val chatDiagUiState by chatDiagViewModel.uiState.collectAsStateWithLifecycle()
+            // Issue #555 -- toggle remoto (Firebase Remote Config) de anuncios nativos.
+            val adsFlags by adsFlagsManager.flags.collectAsStateWithLifecycle()
 
             val gatewayIpDetectado = gateways.firstOrNull()?.ip
             val darkTheme =
@@ -395,6 +418,11 @@ class MainActivity : ComponentActivity() {
                                 onNovaSessao = chatDiagViewModel::onNovaSessao,
                                 onToggleDrawer = chatDiagViewModel::onToggleDrawer,
                                 onCancelarAcaoAtual = chatDiagViewModel::onCancelarAcaoAtual,
+                            ),
+                        ads =
+                            io.signallq.app.ui.screen.AppShellAdsState(
+                                flags = adsFlags,
+                                podeRequisitarAnuncio = podeRequisitarAnuncio,
                             ),
                         snapshotDns = snapshotDns,
                         history = history,

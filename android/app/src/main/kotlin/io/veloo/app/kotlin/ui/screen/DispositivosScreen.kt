@@ -70,6 +70,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.signallq.app.ads.AdSlot
+import io.signallq.app.ads.AdUnitIds
+import io.signallq.app.ads.NativeAdContentSignals
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.feature.devices.DispositivoRede
@@ -84,8 +87,11 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.ads.rememberNativeAd
 import io.signallq.app.ui.component.OfflineBanner
 import io.signallq.app.ui.component.SheetDragHandle
+import io.signallq.app.ui.component.ads.NativeAdListRow
+import io.signallq.app.ui.component.ads.NativeAdSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,6 +105,9 @@ fun DispositivosScreen(
     // GH#531 — resumo "2,4G + 5G" das bandas Wi-Fi do gateway conectado, exibido
     // no subtítulo do GatewayItem na seção INFRAESTRUTURA. Null quando sem dado.
     bandasWifi: String? = null,
+    /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555.
+     *  Default `false`: nunca mostra anuncio sem sinal explicito de que pode. */
+    adsEnabled: Boolean = false,
 ) {
     val c = LocalLkTokens.current
 
@@ -188,6 +197,7 @@ fun DispositivosScreen(
                         apelidos = apelidos,
                         onSalvarApelido = onSalvarApelido,
                         bandasWifi = bandasWifi,
+                        adsEnabled = adsEnabled,
                     )
                 }
             } // Box
@@ -248,6 +258,7 @@ private fun DispositivosLista(
     apelidos: Map<String, String>,
     onSalvarApelido: (mac: String, apelido: String) -> Unit,
     bandasWifi: String? = null,
+    adsEnabled: Boolean = false,
 ) {
     val gateways = remember(dispositivos) { dispositivos.filter { it.fonteNome == "gateway" } }
     val aps =
@@ -335,6 +346,19 @@ private fun DispositivosLista(
                         apelido = dev.chaveApelido()?.let { apelidos[it] },
                         onTap = { deviceEmSheet = dev },
                     )
+                }
+                // Slot de anuncio nativo (issue #555, feedback do Luiz 2026-07-12) --
+                // dentro da lista de DISPOSITIVOS, nunca em INFRAESTRUTURA (misturar
+                // com "seu equipamento real" confunde "isso e meu / isso e anuncio").
+                // Tela nao roda diagnostico -- sem tag contextual, so o slot do topico.
+                item(key = "native_ad_dispositivos") {
+                    val nativeAd by
+                        rememberNativeAd(
+                            adUnitId = AdUnitIds.para(AdSlot.DISPOSITIVOS),
+                            contentSignal = NativeAdContentSignals.forSlot(AdSlot.DISPOSITIVOS),
+                            eligible = adsEnabled,
+                        )
+                    NativeAdListRow(nativeAd = nativeAd, source = NativeAdSource.ADMOB, modifier = Modifier.fillMaxWidth())
                 }
             }
 

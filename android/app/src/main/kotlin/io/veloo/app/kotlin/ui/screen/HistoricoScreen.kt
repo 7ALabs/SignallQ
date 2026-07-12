@@ -82,6 +82,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.signallq.app.ads.AdSlot
+import io.signallq.app.ads.AdUnitIds
+import io.signallq.app.ads.NativeAdContentSignals
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.feature.diagnostico.MetricClassifier
@@ -95,7 +98,10 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.ads.rememberNativeAd
 import io.signallq.app.ui.component.ProfileAvatarButton
+import io.signallq.app.ui.component.ads.NativeAdCard
+import io.signallq.app.ui.component.ads.NativeAdSource
 import io.signallq.app.ui.component.rememberTopBarAlpha
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -682,12 +688,17 @@ fun HistoricoScreen(
     filtroOperadora: String? = null,
     onFiltroOperadoraChange: (String?) -> Unit = {},
     operadorasDisponiveis: List<String> = emptyList(),
+    /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555.
+     *  Default `false`: nunca mostra anuncio sem sinal explicito de que pode. */
+    adsEnabled: Boolean = false,
 ) {
     val c = LocalLkTokens.current
     val scope = rememberCoroutineScope()
 
     var selectedMedicao by remember { mutableStateOf<MedicaoEntity?>(null) }
     var mostrarExport by remember { mutableStateOf(false) }
+    // Issue #555 -- dispensar o anuncio e estado de sessao, nunca persistido.
+    var nativeAdDismissedHistorico by remember { mutableStateOf(false) }
 
     // Controlled mode: use external state from AppShell/ViewModel
     // Uncontrolled mode: use internal session state
@@ -860,6 +871,24 @@ fun HistoricoScreen(
                             item(key = "tendencia") {
                                 TendenciaCard(resumo = resumo, c = c)
                             }
+                        }
+                    }
+                    // Slot de anuncio nativo (issue #555) -- depois do resumo de
+                    // estabilidade (Tendencia), antes das medicoes recentes.
+                    if (!nativeAdDismissedHistorico) {
+                        item(key = "native_ad_historico") {
+                            val nativeAd by
+                                rememberNativeAd(
+                                    adUnitId = AdUnitIds.para(AdSlot.HISTORICO),
+                                    contentSignal = NativeAdContentSignals.forSlot(AdSlot.HISTORICO),
+                                    eligible = adsEnabled,
+                                )
+                            NativeAdCard(
+                                nativeAd = nativeAd,
+                                source = NativeAdSource.ADMOB,
+                                onDismiss = { nativeAdDismissedHistorico = true },
+                                modifier = Modifier.padding(top = LkSpacing.xs),
+                            )
                         }
                     }
                     items(historicoFiltrado, key = { it.id }) { medicao ->

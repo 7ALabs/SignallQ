@@ -81,6 +81,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.signallq.app.ads.AdSlot
+import io.signallq.app.ads.AdUnitIds
+import io.signallq.app.ads.NativeAdContentSignals
 import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
@@ -96,9 +99,12 @@ import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.ResultadoPdfGenerator
+import io.signallq.app.ui.ads.rememberNativeAd
 import io.signallq.app.ui.component.LocalDeviceSection
 import io.signallq.app.ui.component.OperadoraBottomSheet
 import io.signallq.app.ui.component.OperadoraContactCard
+import io.signallq.app.ui.component.ads.NativeAdCard
+import io.signallq.app.ui.component.ads.NativeAdSource
 import io.signallq.app.ui.component.mapLocalDeviceSectionUiState
 import io.signallq.app.ui.component.rememberTopBarAlpha
 import kotlinx.coroutines.launch
@@ -140,6 +146,9 @@ fun ResultadoVelocidadeScreen(
     onRecommendationClicked: () -> Unit = {},
     onRecommendationFeedback: (RecommendationFeedbackType) -> Unit = {},
     onRecommendationDismissed: () -> Unit = {},
+    /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555.
+     *  Default `false`: nunca mostra anuncio sem sinal explicito de que pode. */
+    adsEnabled: Boolean = false,
 ) {
     val c = LocalLkTokens.current
     val scrollState = rememberScrollState()
@@ -151,6 +160,9 @@ fun ResultadoVelocidadeScreen(
     var compartilhando by remember { mutableStateOf(false) }
     var showDiagnosticoSheet by remember { mutableStateOf(false) }
     var showOperadoraSheet by remember { mutableStateOf(false) }
+    // Issue #555 -- dispensar o anuncio e estado de sessao (some ate o proximo resultado
+    // recompor a tela do zero); nunca persistido, nunca conta como feedback de recomendacao.
+    var nativeAdDismissedResultado by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -425,6 +437,33 @@ fun ResultadoVelocidadeScreen(
                         text = "Ver recomendações para melhorar",
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
+                    )
+                }
+
+                // Slot de anuncio nativo (issue #555) -- depois de todos os CTAs
+                // organicos (aqui: "Ver recomendacoes para melhorar" acima; "Refazer
+                // teste" e o disclaimer Anatel ficam na barra fixa do rodape, fora do
+                // scroll -- colocar o anuncio la competiria com o CTA primario sempre
+                // visivel, entao fica no fim do conteudo rolavel). Fonte da oferta:
+                // tags reais do diagnostico quando o Recommendation Engine achou uma
+                // recomendacao gratuita elegivel para este resultado; sem isso, o slot
+                // ainda aparece (AdMob e sempre ativo), so sem sinal contextual extra.
+                Spacer(Modifier.height(LkSpacing.xl))
+                val tagIdsResultado =
+                    remember(recommendationDecision) {
+                        recommendationDecision?.matchedTags?.map { it.id }?.toSet() ?: emptySet()
+                    }
+                val nativeAdResultado by
+                    rememberNativeAd(
+                        adUnitId = AdUnitIds.para(AdSlot.RESULTADO),
+                        contentSignal = NativeAdContentSignals.forSlot(AdSlot.RESULTADO, tagIdsResultado),
+                        eligible = adsEnabled && !nativeAdDismissedResultado,
+                    )
+                if (!nativeAdDismissedResultado) {
+                    NativeAdCard(
+                        nativeAd = nativeAdResultado,
+                        source = NativeAdSource.ADMOB,
+                        onDismiss = { nativeAdDismissedResultado = true },
                     )
                 }
 
