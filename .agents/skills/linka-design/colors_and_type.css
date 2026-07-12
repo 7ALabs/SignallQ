@@ -1,7 +1,7 @@
 /* ============================================================================
    SignallQ — Design Foundations (colors + type)
-   Source of truth: app/src/main/kotlin/io/linka/app/kotlin/ui/SignallQTheme.kt
-   (LkColors, LkSpacing, LkRadius, linkaTypography) + docs_ai/design-system/*
+   Source of truth: android/app/src/main/kotlin/io/veloo/app/kotlin/ui/SignallQTheme.kt
+   (LkColors, LkSpacing, LkRadius, signallQTypography) + docs_ai/design-system/*
    Platform: Android (Kotlin / Jetpack Compose / Material Design 3)
    ----------------------------------------------------------------------------
    FONT NOTE: The app declares NO custom font — Compose typography uses only
@@ -15,6 +15,7 @@
 :root {
   /* ---- Brand ------------------------------------------------------------ */
   --accent:        #6C2BFF;  /* CTA primário, highlights, seleção, nav ativa  */
+  --accent-on-dark: #9B6BFF; /* accent p/ texto/ícone sobre fundo escuro (>=4.5:1 AA); NÃO usar como background */
   --accent-blue:   #2563EB;  /* links complementares, badges informativos     */
 
   /* ---- Status ----------------------------------------------------------- */
@@ -86,7 +87,7 @@
 }
 
 /* ============================================================================
-   SEMANTIC TYPE — Material Design 3 scale (linkaTypography)
+   SEMANTIC TYPE — Material Design 3 scale (signallQTypography)
    All sizes in px (1sp ≈ 1px). Use these classes directly.
    ============================================================================ */
 .display-large   { font: 700 34px/1.15 var(--font-sans); color: var(--text-primary); }

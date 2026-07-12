@@ -20,7 +20,7 @@ export interface NavigationSection {
 /**
  * GH#552 (Fase 1) — menu redesenhado como console operacional, 9 entradas
  * (uma por pergunta-guia), sem agrupamento por seção — ver
- * `docs_ai/design-system/WIREFRAME_ADMIN_REDESIGN_552.md`.
+ * `docs_ai/_archive/2026-07-12_WIREFRAME_ADMIN_REDESIGN_552.md`.
  *
  * Cada item ainda aponta para a rota/slug técnico atual (`/overview`, `/errors`
  * etc.) — a migração de rótulo é feita aqui, a migração de CONTEÚDO de tela é

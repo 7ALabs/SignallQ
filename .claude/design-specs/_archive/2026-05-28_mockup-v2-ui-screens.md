@@ -1,3 +1,7 @@
+> **ARQUIVADO em 2026-07-12** — todas as specs verificadas contra o código real
+> (`HomeScreen.kt`, `SinalScreen.kt`, `SpeedTestScreen.kt`, `ResultadoVelocidadeScreen.kt`) e
+> confirmadas implementadas (PR #206, mergeada 2026-05-28). Mantido como histórico de decisão.
+
 # Design Specs — Mockup v2 UI (PR #206)
 
 > Especificacao visual ancorада nos mockups JSX de referencia (`C:\Users\luizg\Downloads\SignallQ Disign_v2\screens\`).
