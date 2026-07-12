@@ -12,6 +12,7 @@ import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.database.SignallQDatabase
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.core.network.AnalyticsHelper
+import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.DispatcherProvider
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.MonitorRede
@@ -158,6 +159,9 @@ class MainViewModel
         /** Eventos `recommendation_*` (issue #790) do Recommendation Engine -- distinto do
          *  AnalyticsHelper/AnalyticsTracker acima, que cobrem outros funis. */
         private val recommendationAnalyticsTracker: RecommendationAnalyticsTracker,
+        /** GH#919 — repassado ao SignallQOrchestrator para correlacionar feature_used("diagnostico")
+         *  com diagnostic_sessions.id real (schema SIG-134, distinto do funil AnalyticsHelper acima). */
+        private val analyticsTracker: AnalyticsTracker,
     ) : AndroidViewModel(application) {
         private companion object {
             const val LOG_TAG = "SignallQSpeedtestSuite"
@@ -255,6 +259,7 @@ class MainViewModel
                 // SIG-282: IA so dispara automaticamente com o toggle "Analise avancada" ligado.
                 analiseAvancadaProvider = { preferenciasAppRepository.analiseAvancadaFlow.first() },
                 analyticsHelper = analyticsHelper,
+                analyticsTracker = analyticsTracker,
             )
         }
         val signallQUiStateFlow by lazy {

@@ -376,8 +376,12 @@ class MainActivity : ComponentActivity() {
                                 snapshotDiagnostico = snapshotDiagnostico,
                                 onIniciarDiagnostico = {
                                     solicitarPermissaoTelefoniaSeNecessario()
+                                    // GH#919 — feature_used("diagnostico") passou a ser disparado
+                                    // dentro do SignallQOrchestrator, no momento em que a sessao
+                                    // real (diagnostic_sessions.id) e criada, correlacionando com
+                                    // ai_usage.session_id. Emitir aqui tambem duplicaria a contagem
+                                    // de "feature usada" com um session_id generico e sem correlacao.
                                     viewModel.iniciarDiagnostico()
-                                    analyticsTracker.registrarFeatureUsada("diagnostico")
                                 },
                                 diagChatHistorico = diagChatHistorico,
                                 diagChatCarregando = diagChatCarregando,
