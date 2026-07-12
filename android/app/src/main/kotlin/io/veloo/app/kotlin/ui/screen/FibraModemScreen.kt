@@ -25,12 +25,14 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CheckCircleOutline
+import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.SignalCellularAlt
+import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -209,7 +211,14 @@ fun FibraModemScreen(
                         Text("Sem dados GPON disponíveis.", fontSize = 14.sp, color = c.textSecondary)
                     }
                 } else {
-                    FibraConcluidoContent(gpon = gpon, c = c, modifier = Modifier.padding(padding))
+                    FibraConcluidoContent(
+                        gpon = gpon,
+                        deviceInfo = snapshotFibra.deviceInfo,
+                        wifi = snapshotFibra.wifi,
+                        wan = snapshotFibra.wan,
+                        c = c,
+                        modifier = Modifier.padding(padding),
+                    )
                 }
             }
         }
@@ -219,6 +228,9 @@ fun FibraModemScreen(
 @Composable
 private fun FibraConcluidoContent(
     gpon: io.signallq.app.feature.fibra.GponStatus,
+    deviceInfo: io.signallq.app.feature.fibra.DeviceInfoFibra?,
+    wifi: io.signallq.app.feature.fibra.WifiStatus?,
+    wan: io.signallq.app.feature.fibra.WanStatus?,
     c: LkTokens,
     modifier: Modifier = Modifier,
 ) {
@@ -349,6 +361,27 @@ private fun FibraConcluidoContent(
             iconeCor = if (gpon.isUp) LkColors.success else LkColors.error,
             c = c,
         )
+
+        // GH#893 — 3 cards novos, mesmo padrao FibraFriendlyCard
+        if (deviceInfo != null && deviceInfo.uptimeSeconds > 0) {
+            FibraFriendlyCard(
+                icone = Icons.Outlined.CheckCircleOutline,
+                titulo = "Tempo ligado",
+                descricao = "Direto, sem quedas ou reinícios",
+                badge = deviceInfo.formatarUptime(),
+                badgeCor = LkColors.success,
+                iconeCor = LkColors.success,
+                c = c,
+            )
+        }
+
+        wifi?.radios?.forEach { radio ->
+            FibraWifiRadioCard(radio = radio, c = c)
+        }
+
+        if (wan != null) {
+            FibraDnsCard(wan = wan, c = c)
+        }
 
         FibraDetalhesTecnicosDisclosure(gpon = gpon, c = c)
 
@@ -498,6 +531,74 @@ private fun FibraFriendlyCard(
                     .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
         ) {
             Text(badge, fontSize = 11.sp, fontWeight = FontWeight.W700, color = badgeCor)
+        }
+    }
+}
+
+/**
+ * Card de um radio Wi-Fi (2.4GHz/5GHz) do roteador — GH#893.
+ *
+ * Rede aberta (`criptografia == "None"`) usa o mesmo tratamento visual de
+ * atenção do resto da tela (badge cor `LkColors.warning`, ver `StatusSaude`/
+ * `friendlyBadge*`) em vez do "Ativa" neutro — sem senha é uma situação que
+ * merece chamar atenção do usuário, não uma confirmação tranquila.
+ */
+@Composable
+private fun FibraWifiRadioCard(
+    radio: io.signallq.app.feature.fibra.WifiRadioStatus,
+    c: LkTokens,
+) {
+    val redeAberta = radio.criptografia.equals("None", ignoreCase = true)
+    val descricaoCripto = if (redeAberta) "Rede aberta, sem senha" else "Wi-Fi protegida"
+    val (badge, badgeCor) =
+        when {
+            redeAberta -> "Sem senha" to LkColors.warning
+            radio.habilitado -> "Ativa" to LkColors.success
+            else -> "Inativa" to c.textTertiary
+        }
+    FibraFriendlyCard(
+        icone = Icons.Outlined.Wifi,
+        titulo = radio.ssid,
+        descricao = "${radio.banda} · Canal ${radio.canal ?: "—"} · $descricaoCripto",
+        badge = badge,
+        badgeCor = badgeCor,
+        iconeCor = if (redeAberta) LkColors.warning else LkColors.accent,
+        c = c,
+    )
+}
+
+/**
+ * Card de DNS (Servidor de nomes) — GH#893. IPs primário/secundário aparecem
+ * numa legenda discreta abaixo, mesma fonte monoespaçada do disclosure
+ * "Detalhes técnicos".
+ */
+@Composable
+private fun FibraDnsCard(
+    wan: io.signallq.app.feature.fibra.WanStatus,
+    c: LkTokens,
+) {
+    val configurado = wan.primaryDns.isNotBlank() || wan.secondaryDns.isNotBlank()
+    Column(Modifier.fillMaxWidth()) {
+        FibraFriendlyCard(
+            icone = Icons.Outlined.Dns,
+            titulo = "Servidor de nomes",
+            descricao = "Ajuda seu Wi-Fi a encontrar os sites mais rápido",
+            badge = if (configurado) "Configurado" else "Não configurado",
+            badgeCor = if (configurado) LkColors.success else c.textTertiary,
+            iconeCor = LkColors.accent,
+            c = c,
+        )
+        if (configurado) {
+            Text(
+                listOfNotNull(
+                    wan.primaryDns.takeIf { it.isNotBlank() },
+                    wan.secondaryDns.takeIf { it.isNotBlank() },
+                ).joinToString(" · "),
+                fontSize = 11.sp,
+                color = c.textTertiary,
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier.padding(start = 48.dp, top = 2.dp),
+            )
         }
     }
 }

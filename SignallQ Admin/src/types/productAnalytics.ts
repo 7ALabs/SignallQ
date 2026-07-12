@@ -85,6 +85,14 @@ export interface RetentionMetric {
   uninstallRate: number | null;
 }
 
+// #785 — fonte: diagnostic_sessions.device_model/os_version (D1), não analytics_events.
+export interface DeviceBreakdownMetric {
+  deviceModel: string;
+  osVersion: string;
+  sessionCount: number;
+  percentage: number;
+}
+
 export interface FeatureAiUsageMetric {
   feature: FeatureKey;
   label: string;

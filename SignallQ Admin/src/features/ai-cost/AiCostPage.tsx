@@ -28,7 +28,8 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
   const [error, setError] = React.useState<string | null>(null);
   const [modelInsights, setModelInsights] = React.useState<AiModelInsights[]>([]);
   const [costSummary, setCostSummary] = React.useState<{ totalCostUsd: string; reliabilityPercentage: number | null } | null>(null);
-  const [aiCostCeiling, setAiCostCeiling] = React.useState<number>(200);
+  // Default provisório até o fetch real — mesmo fallback de errorMetricsService (aiDailyBudgetUsd).
+  const [aiCostCeiling, setAiCostCeiling] = React.useState<number>(1.0);
 
   const loadAiStats = React.useCallback(async () => {
     setLoading(true);
@@ -123,7 +124,7 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
       <AiCostMetricGrid costSummary={costSummary} modelInsights={modelInsights} />
 
       {/* 2. Orçamento mensal de IA — full-width, paridade mockup (teto real de alerta) */}
-      <AiBudgetCard totalCostUsd={costSummary?.totalCostUsd ?? null} ceilingUsd={aiCostCeiling} />
+      <AiBudgetCard totalCostUsd={costSummary?.totalCostUsd ?? null} ceilingUsd={aiCostCeiling} period={period} />
 
       {/* 3. Composição paridade mockup — custo por provedor (donut real) +
           faturamento por função (sem contrato de dado hoje) */}

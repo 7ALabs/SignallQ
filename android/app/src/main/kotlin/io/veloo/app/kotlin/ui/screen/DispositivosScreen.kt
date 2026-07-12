@@ -70,6 +70,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.signallq.app.ads.AdSlot
+import io.signallq.app.ads.AdUnitIds
+import io.signallq.app.ads.NativeAdContentSignals
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.feature.devices.DispositivoRede
@@ -84,8 +87,11 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.ads.rememberNativeAd
 import io.signallq.app.ui.component.OfflineBanner
 import io.signallq.app.ui.component.SheetDragHandle
+import io.signallq.app.ui.component.ads.NativeAdListRow
+import io.signallq.app.ui.component.ads.NativeAdSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,6 +105,9 @@ fun DispositivosScreen(
     // GH#531 — resumo "2,4G + 5G" das bandas Wi-Fi do gateway conectado, exibido
     // no subtítulo do GatewayItem na seção INFRAESTRUTURA. Null quando sem dado.
     bandasWifi: String? = null,
+    /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555.
+     *  Default `false`: nunca mostra anuncio sem sinal explicito de que pode. */
+    adsEnabled: Boolean = false,
 ) {
     val c = LocalLkTokens.current
 
@@ -188,6 +197,7 @@ fun DispositivosScreen(
                         apelidos = apelidos,
                         onSalvarApelido = onSalvarApelido,
                         bandasWifi = bandasWifi,
+                        adsEnabled = adsEnabled,
                     )
                 }
             } // Box
@@ -248,6 +258,7 @@ private fun DispositivosLista(
     apelidos: Map<String, String>,
     onSalvarApelido: (mac: String, apelido: String) -> Unit,
     bandasWifi: String? = null,
+    adsEnabled: Boolean = false,
 ) {
     val gateways = remember(dispositivos) { dispositivos.filter { it.fonteNome == "gateway" } }
     val aps =
@@ -335,6 +346,19 @@ private fun DispositivosLista(
                         apelido = dev.chaveApelido()?.let { apelidos[it] },
                         onTap = { deviceEmSheet = dev },
                     )
+                }
+                // Slot de anuncio nativo (issue #555, feedback do Luiz 2026-07-12) --
+                // dentro da lista de DISPOSITIVOS, nunca em INFRAESTRUTURA (misturar
+                // com "seu equipamento real" confunde "isso e meu / isso e anuncio").
+                // Tela nao roda diagnostico -- sem tag contextual, so o slot do topico.
+                item(key = "native_ad_dispositivos") {
+                    val nativeAd by
+                        rememberNativeAd(
+                            adUnitId = AdUnitIds.para(AdSlot.DISPOSITIVOS),
+                            contentSignal = NativeAdContentSignals.forSlot(AdSlot.DISPOSITIVOS),
+                            eligible = adsEnabled,
+                        )
+                    NativeAdListRow(nativeAd = nativeAd, source = NativeAdSource.ADMOB, modifier = Modifier.fillMaxWidth())
                 }
             }
 
@@ -685,11 +709,24 @@ private fun DeviceDetailSheet(
                 }
                 Spacer(Modifier.width(12.dp))
                 Column {
-                    Text(
-                        text = dispositivo.nomeExibicao,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = c.textPrimary,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = dispositivo.nomeExibicao,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = c.textPrimary,
+                        )
+                        // #854: selo de confiabilidade em vez de expor a fonte tecnica crua
+                        // (ssdpXml/subnet) — mesmo padrao ja usado na linha da lista.
+                        if (dispositivo.fonteNome in FONTES_CONFIAVEIS) {
+                            Spacer(Modifier.width(6.dp))
+                            Icon(
+                                imageVector = Icons.Outlined.VerifiedUser,
+                                contentDescription = "Nome confirmado pelo equipamento de rede",
+                                tint = LkColors.accent,
+                                modifier = Modifier.size(16.dp),
+                            )
+                        }
+                    }
                     Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
@@ -1274,17 +1311,40 @@ private fun tipoLabel(tipo: TipoDispositivo): String =
         TipoDispositivo.desconhecido -> "Desconhecido"
     }
 
+// #854: nunca expor o valor cru de fonteNome na UI (viola "métrica crua sempre
+// acompanhada de veredito humano" do design system) — todo valor produzido pelo
+// scanner (ver prioridade de fonte em ScannerDispositivosAndroid) precisa de
+// tradução aqui. O fallback (`fonte tratada`) so existe pra nao quebrar em caso
+// de fonte nova ainda nao mapeada, nunca deve aparecer em uso normal.
 private fun fonteNomeLabel(fonte: String) =
     when (fonte) {
         NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE -> "Confirmado pelo roteador"
         "gateway" -> "Roteador (gateway)"
         "mdns" -> "mDNS · Bonjour"
+        "mdnsJmDns" -> "mDNS · Bonjour"
+        "subnetMdns" -> "mDNS · Bonjour"
         "ssdp" -> "UPnP · SSDP"
+        "ssdpXml" -> "UPnP · SSDP"
         "nbns" -> "NetBIOS"
         "arp" -> "ARP (varredura)"
+        "subnet" -> "Varredura de rede"
         "tcpProbe" -> "TCP probe"
-        else -> fonte
+        else -> "Varredura de rede"
     }
+
+/** Fontes em que o próprio equipamento/dispositivo se identifica ativamente
+ *  (protocolo estruturado — UPnP/SSDP, mDNS, leitura ativa do gateway), em vez
+ *  de inferência passiva da varredura (ARP/subnet/TCP probe). Usado para
+ *  decidir quando mostrar o selo de confiabilidade (ícone) ao lado do nome. */
+private val FONTES_CONFIAVEIS =
+    setOf(
+        NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE,
+        "gateway",
+        "ssdp",
+        "ssdpXml",
+        "mdns",
+        "mdnsJmDns",
+    )
 
 private fun traduzirErroParaPortugues(erro: String): Pair<String, String> =
     when {

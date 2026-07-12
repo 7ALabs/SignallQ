@@ -210,6 +210,7 @@ class SignallQOrchestrator(
                     linkSpeedMbps = ws.linkSpeedMbps,
                     frequenciaMhz = ws.frequenciaMhz,
                     ssid = ws.ssid,
+                    is5GhzCapable = ws.is5GhzCapable,
                 )
             }
 
@@ -415,6 +416,7 @@ class SignallQOrchestrator(
                     linkSpeedMbps = ws.linkSpeedMbps,
                     frequenciaMhz = ws.frequenciaMhz,
                     ssid = ws.ssid,
+                    is5GhzCapable = ws.is5GhzCapable,
                 )
             }
 

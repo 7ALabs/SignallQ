@@ -3,6 +3,12 @@ package io.signallq.app.ui.screen
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -92,6 +98,9 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import io.signallq.app.R
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.WifiLinkSnapshot
@@ -123,6 +132,8 @@ import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.OfflineBanner
 import io.signallq.app.ui.component.ProfileAvatarButton
 import io.signallq.app.ui.component.WifiChannelGuide
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -198,6 +209,49 @@ private fun securityLabel(s: SegurancaWifi): String =
         SegurancaWifi.desconhecida -> "Desconhecida"
     }
 
+// ─── Auto-refresh (#893) ──────────────────────────────────────────────────────
+
+private const val SINAL_AUTO_REFRESH_INTERVAL_MS = 30_000L
+
+/**
+ * Indicador discreto de atualizacao automatica: ponto pulsante + "Ao vivo" em
+ * `colorScheme.tertiary` — nao usa accent/success/warning/error de proposito pra
+ * nao competir visualmente com badges de status reais da tela.
+ */
+@Composable
+private fun LiveIndicator(modifier: Modifier = Modifier) {
+    val transicaoInfinita = rememberInfiniteTransition(label = "sinal-live-pulse")
+    val alpha by transicaoInfinita.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec =
+            infiniteRepeatable(
+                animation = tween(durationMillis = 900, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+        label = "sinal-live-pulse-alpha",
+    )
+    val corAoVivo = MaterialTheme.colorScheme.tertiary
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(corAoVivo.copy(alpha = alpha)),
+        )
+        Text(
+            "Ao vivo",
+            style = MaterialTheme.typography.labelSmall,
+            color = corAoVivo,
+        )
+    }
+}
+
 // ─── ConexaoTipo ──────────────────────────────────────────────────────────────
 
 private enum class ConexaoTipo { WIFI, MOBILE, CABO, DESCONHECIDO }
@@ -236,6 +290,9 @@ fun SinalScreen(
     snapshotDispositivos: SnapshotScanDispositivos? = null,
     apelidos: Map<String, String> = emptyMap(),
     onSalvarApelido: (mac: String, apelido: String) -> Unit = { _, _ -> },
+    // Seam de teste (#893) — producao nunca passa isso, so os testes de auto-refresh
+    // usam um intervalo curto pra nao esperar 30s reais por teste.
+    autoRefreshIntervalMs: Long = SINAL_AUTO_REFRESH_INTERVAL_MS,
 ) {
     val c = LocalLkTokens.current
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -296,6 +353,23 @@ fun SinalScreen(
             }
         }
 
+        // Auto-refresh (#893): reescaneia periodicamente enquanto a aba Wi-Fi ou Canal
+        // estiver visivel e a tela em foreground. `repeatOnLifecycle` cancela o loop
+        // sozinho quando o app vai pra background e retoma quando volta — sem isso o
+        // scan continuaria rodando com a tela fora de foco. Sair da aba Sinal (troca de
+        // tab no AppShell) tambem cancela, pois o LaunchedEffect sai de composicao.
+        val autoRefreshAtivo = conexaoTipo == ConexaoTipo.WIFI && (selectedTab == 0 || selectedTab == 1)
+        val lifecycleOwner = LocalLifecycleOwner.current
+        LaunchedEffect(autoRefreshAtivo, lifecycleOwner, autoRefreshIntervalMs) {
+            if (!autoRefreshAtivo) return@LaunchedEffect
+            lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                while (isActive) {
+                    onRefresh()
+                    delay(autoRefreshIntervalMs)
+                }
+            }
+        }
+
         Column(
             Modifier
                 .fillMaxSize()
@@ -313,6 +387,11 @@ fun SinalScreen(
                 connectedNetwork = connectedNetwork,
                 c = c,
             )
+            if (autoRefreshAtivo) {
+                Box(Modifier.fillMaxWidth().padding(horizontal = LkSpacing.lg, vertical = 4.dp), contentAlignment = Alignment.CenterEnd) {
+                    LiveIndicator()
+                }
+            }
             when (selectedTab) {
                 0 -> {
                     if (conexaoTipo == ConexaoTipo.WIFI) {
@@ -2038,12 +2117,14 @@ private fun CanalTab(
                 }
         }
 
-    if (estado == EstadoScanWifi.idle) {
+    if (estado == EstadoScanWifi.idle && redes.isEmpty()) {
         CanalIdleState(onRefresh = onRefresh)
         return
     }
 
-    if (estado == EstadoScanWifi.erro) {
+    // Erro so ocupa a tela inteira quando nao ha dado anterior pra mostrar — com
+    // cache valido, o erro vira so um aviso inline (#893: nao apagar ultimo dado).
+    if (estado == EstadoScanWifi.erro && redes.isEmpty()) {
         CanalErroState(erroMensagem = erroMensagem, onRefresh = onRefresh)
         return
     }
@@ -2052,6 +2133,27 @@ private fun CanalTab(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = LkSpacing.xl),
     ) {
+        if (estado == EstadoScanWifi.erro) {
+            item {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(LkColors.error.copy(alpha = 0.1f))
+                        .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Outlined.WifiFind, null, tint = LkColors.error, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(LkSpacing.sm))
+                    Text(
+                        "Não foi possível atualizar agora. Mostrando o último dado válido.",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Normal,
+                        color = LkColors.error,
+                    )
+                }
+            }
+        }
+
         if (bandasDisponiveis.isNotEmpty()) {
             item {
                 BandFilterRow(

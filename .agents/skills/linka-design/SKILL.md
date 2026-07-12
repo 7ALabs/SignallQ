@@ -1,6 +1,6 @@
 ---
 name: linka-design
-description: Use this skill to generate well-branded interfaces and assets for SignallQ (a.k.a. "Pulse — Speedtest Inteligente"), a Brazilian-Portuguese Android internet-diagnostics app, either for production or throwaway prototypes/mocks/etc. Contains essential design guidelines, colors, type, fonts, assets, and UI kit components for prototyping.
+description: Use this skill to generate well-branded interfaces and assets for SignallQ, a Brazilian-Portuguese Android internet-diagnostics app, either for production or throwaway prototypes/mocks/etc. Contains essential design guidelines, colors, type, fonts, assets, and UI kit components for prototyping.
 user-invocable: true
 ---
 
@@ -10,8 +10,19 @@ Key files:
 - `README.md` — product context, content & visual foundations, iconography, full index.
 - `colors_and_type.css` — all design tokens (CSS vars) + semantic type classes. Import this in every artifact.
 - `preview/` — design-system reference cards (colors, type, spacing, components).
-- `assets/` — the SignallQ brand mark.
+- `assets/` — the SignallQ brand mark, synced from the canonical `brand/` folder at repo root (`brand/README.md` is the full spec — read it before using any logo).
 - `ui_kits/android/` — high-fidelity React recreation of the app + reusable components (`chrome.jsx` carries the `LK` tokens and shared primitives).
+
+**Logo — which file, when.** Recurring mistake: fabricating a logo, or reaching for `mipmap/ic_launcher*` (the Android launcher icon, not a general-purpose logo asset) when a real screen needs a brand mark. Always use one of these three, never redraw:
+
+| Situation | File |
+|---|---|
+| Square / icon / avatar slot | `signallq-symbol-1024.png` (or `-512.png` for smaller renders) — 4-bar symbol only, transparent bg |
+| Full lockup (symbol + "SignallQ" wordmark) on a **light** background | `signallq-lockup-light-bg.png` |
+| Full lockup on a **dark** background (SignallQ AI surfaces, onboarding dark states, etc.) | `signallq-lockup-dark-bg.png` |
+| Android app launcher icon specifically | `mipmap-*/ic_launcher*` — but these must already match `signallq-symbol-1024.png`; if they don't, that's a bug, not an excuse to use the mipmap elsewhere |
+
+Source of truth is repo-root `brand/` (also mirrored into `docs_ai/brand/`, `SignallQ Admin/public/brand/`, and this skill's `assets/`). If a screen needs a logo and you're unsure which variant, check `brand/README.md` before picking — don't guess, don't use the launcher icon as a stand-in.
 
 If creating visual artifacts (slides, mocks, throwaway prototypes, etc), copy assets out and create static HTML files for the user to view. If working on production code, copy assets and read the rules here to become an expert in designing with this brand.
 

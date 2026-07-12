@@ -11,6 +11,7 @@ import {
   FirebaseAnalyticsSummary,
   FirebaseCrashlyticsSummary,
   FirebaseAppVersionCrashStats,
+  FirebaseAppVersionsResult,
   FirebaseCrashIssue,
   FirebaseCrashIssuesResult,
 } from "./firebase.types";
@@ -193,18 +194,21 @@ export async function getFirebaseCrashlyticsSummary(
 
 export async function getFirebaseAppVersions(
   filters: DashboardFilters = {}
-): Promise<FirebaseAppVersionCrashStats[] | null> {
+): Promise<FirebaseAppVersionsResult> {
   if (apiClient.isMockEnabled()) {
     const result = await apiClient.simulateFetch(mockFirebaseAppVersions, filters);
     if (filters.environment === "staging") {
-      return result.map((v) => ({
-        ...v,
-        crashCount: Math.round(v.crashCount * 0.1),
-        nonFatalCount: Math.round(v.nonFatalCount * 0.1),
-        status: "stable" as const,
-      }));
+      return {
+        source: "bigquery",
+        versions: result.map((v) => ({
+          ...v,
+          crashCount: Math.round(v.crashCount * 0.1),
+          nonFatalCount: Math.round(v.nonFatalCount * 0.1),
+          status: "stable" as const,
+        })),
+      };
     }
-    return result;
+    return { source: "bigquery", versions: result };
   }
 
   const raw = await apiClient.request<{
@@ -212,21 +216,28 @@ export async function getFirebaseAppVersions(
     versions: Array<{ version: string; totalCrashes: number; affectedUsers: number }>;
   }>("GET", `/admin/integrations/firebase/versions${buildQuery(filters)}`);
 
-  // "no_credentials" (Firebase não configurado) e "no_data_yet" (export do BigQuery
-  // ainda sem linhas) não têm dado real — o painel deve exibir "não configurado",
-  // nunca fabricar números. O worker nunca retorna "stub" nesta rota (era um bug
-  // deste adapter — ele nunca detectava a ausência de credenciais).
-  if (raw.source === "no_credentials" || raw.source === "no_data_yet" || raw.source === "error") {
-    return NOT_AVAILABLE;
+  const source = raw.source as FirebaseAppVersionsResult["source"];
+
+  // #880 (achado 3): "no_credentials" (Firebase não configurado), "no_data_yet"
+  // (export do BigQuery ainda sem linhas) e "error" não têm dado real — mas cada
+  // um é um motivo DIFERENTE, e antes os três colapsavam num único `null`, que a
+  // UI sempre traduzia como "Firebase Crashlytics não está configurado" mesmo
+  // quando as credenciais estavam OK e só faltava volume. Agora o `source` real
+  // do worker é propagado pra UI escolher a mensagem certa (crashFreeReason).
+  if (source === "no_credentials" || source === "no_data_yet" || source === "error") {
+    return { source, versions: [] };
   }
 
-  return (raw.versions ?? []).map((v): FirebaseAppVersionCrashStats => ({
-    appVersion: v.version,
-    crashCount: v.totalCrashes ?? 0,
-    nonFatalCount: 0, // worker não separa fatal/não-fatal por versão ainda.
-    crashFreeUsersPercentage: 100, // worker não calcula base de usuários por versão ainda.
-    status: (v.totalCrashes ?? 0) > 100 ? "critical" : (v.totalCrashes ?? 0) > 20 ? "unstable" : "stable",
-  }));
+  return {
+    source,
+    versions: (raw.versions ?? []).map((v): FirebaseAppVersionCrashStats => ({
+      appVersion: v.version,
+      crashCount: v.totalCrashes ?? 0,
+      nonFatalCount: 0, // worker não separa fatal/não-fatal por versão ainda.
+      crashFreeUsersPercentage: 100, // worker não calcula base de usuários por versão ainda.
+      status: (v.totalCrashes ?? 0) > 100 ? "critical" : (v.totalCrashes ?? 0) > 20 ? "unstable" : "stable",
+    })),
+  };
 }
 
 // Estrutura crua retornada pela rota de crash-issues do worker (ver

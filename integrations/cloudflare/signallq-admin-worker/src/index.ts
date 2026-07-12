@@ -25,6 +25,11 @@ export interface Env {
   DB: D1Database;
   /** Pepper para PBKDF2 das senhas admin — SIG-136. */
   ADMIN_AUTH_PEPPER: string;
+  /** #883 — token da GraphQL Analytics API (Account Analytics:Read). Sem custo, mas exige criação manual no dashboard Cloudflare (fora do alcance do worker). */
+  CLOUDFLARE_API_TOKEN?: string;
+  /** #883 — não é secret (já visível em wrangler.toml/dashboard), mas fica no Env para não hardcodear no handler. */
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  CLOUDFLARE_D1_DATABASE_ID?: string;
 }
 
 function corsHeaders(env: Env): Record<string, string> {
@@ -220,6 +225,21 @@ function nowSec(): number {
   return Math.floor(Date.now() / 1000);
 }
 
+// Achado ao validar #883 em produção: um valor corrompido em
+// admin_settings.value (ex.: escrita manual malformada) derrubava
+// generateAndPersistAlerts inteiro (500 em /admin/alerts) via JSON.parse sem
+// tratamento — settings ausentes/corrompidas devem degradar para "{}" (nenhum
+// teto configurado), nunca derrubar a rota. Tipo solto de propósito (mesmo
+// padrão já usado no resto do arquivo, ex.: `let p: any` em handleIngestAiUsage).
+function parseAdminSettings(value: string | undefined | null): any {
+  if (!value) return {};
+  try {
+    return JSON.parse(value);
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Extrai filtro de environment da query string.
  * ?environment=production → filtra por 'production'
@@ -338,6 +358,42 @@ async function queryBigQuery<T = unknown>(
   });
 
   return { rows };
+}
+
+// #883 — GraphQL Analytics API do Cloudflare (api.cloudflare.com/client/v4/graphql).
+// Incluída em todos os planos (inclusive Free), sem custo — não confundir com Workers
+// Analytics Engine (esse sim é produto pago). Requer API Token escopado
+// "Account Analytics: Read", criado manualmente no dashboard Cloudflare (o token OAuth
+// do wrangler CLI não tem esse escopo e não pode criar tokens novos via API).
+async function queryCloudflareGraphQL<T = unknown>(
+  env: Env,
+  query: string,
+  variables: Record<string, unknown>
+): Promise<{ data: T | null; error?: string }> {
+  if (!env.CLOUDFLARE_API_TOKEN || !env.CLOUDFLARE_ACCOUNT_ID) {
+    return { data: null, error: "not_configured" };
+  }
+
+  const resp = await fetch("https://api.cloudflare.com/client/v4/graphql", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  if (!resp.ok) {
+    return { data: null, error: `cf_graphql_${resp.status}` };
+  }
+
+  const body = (await resp.json()) as { data?: T; errors?: Array<{ message: string }> | null };
+  if (body.errors && body.errors.length > 0) {
+    return { data: null, error: body.errors.map((e) => e.message).join("; ").slice(0, 200) };
+  }
+  if (!body.data) return { data: null, error: "empty_response" };
+
+  return { data: body.data };
 }
 
 // --- handlers /admin ---
@@ -531,18 +587,31 @@ async function handleAiCost(request: Request, env: Env): Promise<Response> {
      FROM ai_usage WHERE created_at >= ?${envClause} GROUP BY model ORDER BY calls DESC`
   ).bind(since, ...envBinds).all();
 
-  const byModel = (rows.results ?? []).map((r: any) => {
-    const calls     = r.calls ?? 0;
-    const successful = r.successful_calls ?? 0;
-    return {
-      model:                 r.model,
-      calls,
-      tokens:                r.tokens    ?? 0,
-      cost_usd:              r.cost_usd  ?? 0,
-      // null quando não há registros; valor calculado a 2 casas decimais caso contrário.
-      reliabilityPercentage: calls > 0 ? Math.round((successful / calls) * 10000) / 100 : null,
-    };
-  });
+  // #879 (achado 4): reagrega por provedor (providerEnumId) — vários model IDs
+  // técnicos podem pertencer ao mesmo provedor (ex.: variações do Gemini), e o
+  // frontend usa `model` diretamente como o enum AiProvider (PROVIDER_COLORS),
+  // não como o ID técnico bruto. Mesmo padrão de reagregação já usado em
+  // handleAiUsageTimeline (byProvider a partir de múltiplos models).
+  const porProvedor = new Map<string, { calls: number; tokens: number; cost_usd: number; successful: number; label: string }>();
+  for (const r of (rows.results ?? []) as any[]) {
+    const providerId = providerEnumId(r.model ?? "");
+    const entry = porProvedor.get(providerId) ?? { calls: 0, tokens: 0, cost_usd: 0, successful: 0, label: providerName(r.model ?? "") };
+    entry.calls      += r.calls           ?? 0;
+    entry.tokens      += r.tokens          ?? 0;
+    entry.cost_usd    += r.cost_usd        ?? 0;
+    entry.successful  += r.successful_calls ?? 0;
+    porProvedor.set(providerId, entry);
+  }
+
+  const byModel = Array.from(porProvedor.entries()).map(([providerId, e]) => ({
+    model:                 providerId, // ID compatível com o enum AiProvider do frontend
+    providerLabel:         e.label,    // rótulo humano, ex.: "Gemini", "Qwen / Workers AI"
+    calls:                 e.calls,
+    tokens:                e.tokens,
+    cost_usd:              e.cost_usd,
+    // null quando não há registros; valor calculado a 2 casas decimais caso contrário.
+    reliabilityPercentage: e.calls > 0 ? Math.round((e.successful / e.calls) * 10000) / 100 : null,
+  })).sort((a, b) => b.calls - a.calls);
 
   const totals = byModel.reduce(
     (acc: any, r: any) => ({
@@ -568,15 +637,17 @@ async function handleTimeline(request: Request, env: Env): Promise<Response> {
   const envBinds  = envFilter ? [envFilter]            : [];
 
   // Agrega diagnostic_sessions por dia (DATE unix→ISO via strftime).
-  // activeUsers: não há user_id na tabela — aproximado por contagem de sessões do dia.
-  // Documentação da aproximação: 1 sessão ≈ 1 usuário único (subestima heavy users,
-  // mas é a melhor proxy disponível sem PII no D1). Ver SIG-110.
+  // #879 (achado 1 da auditoria 2026-07-10): completedDiagnostics e activeUsers
+  // usavam o MESMO COUNT(*) — as duas linhas do grafico "Sessoes vs. Diagnosticos"
+  // eram sempre identicas. device_id (hash anonimo, coluna existe desde SIG-143)
+  // permite contagem de usuarios unicos de verdade via COUNT(DISTINCT device_id),
+  // mesmo padrao ja usado em handleProductAnalytics (PR #878) com session_id.
   // criticalAlerts: sessões com status='failed' ou score < 40 (limiar "Fraco").
   const rows = await env.DB.prepare(
     `SELECT
        strftime('%Y-%m-%d', datetime(created_at, 'unixepoch')) AS date,
        COUNT(*) AS completedDiagnostics,
-       COUNT(*) AS activeUsers,
+       COUNT(DISTINCT NULLIF(device_id, '')) AS activeUsers,
        SUM(CASE WHEN status = 'failed' OR (score IS NOT NULL AND score < 40) THEN 1 ELSE 0 END) AS criticalAlerts
      FROM diagnostic_sessions
      WHERE created_at >= ?${envClause}
@@ -697,6 +768,151 @@ async function handleTopIssues(request: Request, env: Env): Promise<Response> {
   return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
 }
 
+// #883 — teto do plano gratuito Cloudflare, valores publicados em
+// developers.cloudflare.com/workers/platform/pricing/ e /d1/platform/pricing/
+// (conferido em 2026-07-12). Reset diário é por dia UTC (é como a Cloudflare conta).
+const CF_FREE_TIER = {
+  workersRequestsPerDay: 100_000,
+  d1RowsReadPerDay:      5_000_000,
+  d1RowsWrittenPerDay:   100_000,
+  d1StorageBytesTotal:   5 * 1024 * 1024 * 1024, // 5 GB, total da conta (não por database)
+};
+
+interface CloudflareResourceUsage {
+  available: boolean;
+  used: number | null;
+  limit: number | null;
+  percentage: number | null; // 0-100, arredondado
+  unit: "requests" | "rows" | "bytes";
+  reason?: string; // preenchido quando available=false
+}
+
+interface CloudflareUsageGraphQLResponse {
+  viewer: {
+    accounts: Array<{
+      workersInvocationsAdaptive: Array<{ sum: { requests: number } }>;
+      d1AnalyticsAdaptiveGroups: Array<{ sum: { readQueries: number; writeQueries: number; rowsRead: number; rowsWritten: number } }>;
+      d1StorageAdaptiveGroups: Array<{ max: { databaseSizeBytes: number } }>;
+    }>;
+  };
+}
+
+function usageOf(used: number, limit: number, unit: CloudflareResourceUsage["unit"]): CloudflareResourceUsage {
+  return {
+    available: true,
+    used,
+    limit,
+    percentage: Math.round((used / limit) * 100),
+    unit,
+  };
+}
+
+function unavailableUsage(reason: string, unit: CloudflareResourceUsage["unit"]): CloudflareResourceUsage {
+  return { available: false, used: null, limit: null, percentage: null, unit, reason };
+}
+
+interface CloudflareUsageResult {
+  source: "graphql" | "not_configured" | "error";
+  timestamp: string;
+  resources: {
+    workersRequestsDay: CloudflareResourceUsage;
+    d1RowsReadDay: CloudflareResourceUsage;
+    d1RowsWrittenDay: CloudflareResourceUsage;
+    d1StorageTotal: CloudflareResourceUsage;
+  };
+}
+
+// #883: uso vs. teto do free tier Cloudflare (Workers requests/dia, D1 rows
+// lidas/escritas por dia, D1 storage total). Conta INTEIRA, não só este worker —
+// o teto de requests do Workers Free é por conta, não por script, então filtrar
+// por scriptName daria um número que não reflete o risco real de estourar o
+// limite gratuito. Extraída de handleCloudflareUsage para ser reaproveitada por
+// generateAndPersistAlerts sem duplicar a chamada GraphQL.
+async function getCloudflareUsage(env: Env): Promise<CloudflareUsageResult> {
+  if (!env.CLOUDFLARE_API_TOKEN || !env.CLOUDFLARE_ACCOUNT_ID) {
+    const reason = "CLOUDFLARE_API_TOKEN não configurado — requer token criado manualmente no dashboard Cloudflare com escopo Account Analytics:Read.";
+    return {
+      source: "not_configured",
+      timestamp: new Date().toISOString(),
+      resources: {
+        workersRequestsDay: unavailableUsage(reason, "requests"),
+        d1RowsReadDay:      unavailableUsage(reason, "rows"),
+        d1RowsWrittenDay:   unavailableUsage(reason, "rows"),
+        d1StorageTotal:     unavailableUsage(reason, "bytes"),
+      },
+    };
+  }
+
+  const now = new Date();
+  const todayStartUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const storageSince = new Date(now.getTime() - 2 * 86400 * 1000); // janela curta só p/ pegar o snapshot mais recente
+
+  const query = `
+    query($accountTag: String!, $since: Time!, $until: Time!, $dbId: String!, $storageSince: Time!) {
+      viewer {
+        accounts(filter: { accountTag: $accountTag }) {
+          workersInvocationsAdaptive(limit: 1, filter: { datetime_geq: $since, datetime_leq: $until }) {
+            sum { requests }
+          }
+          d1AnalyticsAdaptiveGroups(limit: 1, filter: { datetime_geq: $since, datetime_leq: $until, databaseId: $dbId }) {
+            sum { readQueries writeQueries rowsRead rowsWritten }
+          }
+          d1StorageAdaptiveGroups(limit: 1, filter: { databaseId: $dbId, datetimeHour_geq: $storageSince }, orderBy: [datetimeHour_DESC]) {
+            max { databaseSizeBytes }
+          }
+        }
+      }
+    }
+  `;
+
+  const { data, error } = await queryCloudflareGraphQL<CloudflareUsageGraphQLResponse>(env, query, {
+    accountTag: env.CLOUDFLARE_ACCOUNT_ID,
+    since: todayStartUtc.toISOString(),
+    until: now.toISOString(),
+    dbId: env.CLOUDFLARE_D1_DATABASE_ID ?? "",
+    storageSince: storageSince.toISOString(),
+  });
+
+  if (error || !data) {
+    await logError(env, 'cloudflare-usage', error ?? 'unknown_error', '');
+    const reason = `Falha ao consultar GraphQL Analytics API: ${error ?? 'resposta vazia'}`;
+    return {
+      source: "error",
+      timestamp: new Date().toISOString(),
+      resources: {
+        workersRequestsDay: unavailableUsage(reason, "requests"),
+        d1RowsReadDay:      unavailableUsage(reason, "rows"),
+        d1RowsWrittenDay:   unavailableUsage(reason, "rows"),
+        d1StorageTotal:     unavailableUsage(reason, "bytes"),
+      },
+    };
+  }
+
+  const account = data.viewer.accounts[0];
+  const requests = account?.workersInvocationsAdaptive?.[0]?.sum.requests ?? 0;
+  const d1 = account?.d1AnalyticsAdaptiveGroups?.[0]?.sum;
+  const storageBytes = account?.d1StorageAdaptiveGroups?.[0]?.max.databaseSizeBytes;
+
+  return {
+    source: "graphql",
+    timestamp: new Date().toISOString(),
+    resources: {
+      workersRequestsDay: usageOf(requests, CF_FREE_TIER.workersRequestsPerDay, "requests"),
+      d1RowsReadDay:      usageOf(d1?.rowsRead ?? 0, CF_FREE_TIER.d1RowsReadPerDay, "rows"),
+      d1RowsWrittenDay:   usageOf(d1?.rowsWritten ?? 0, CF_FREE_TIER.d1RowsWrittenPerDay, "rows"),
+      d1StorageTotal:     storageBytes != null
+        ? usageOf(storageBytes, CF_FREE_TIER.d1StorageBytesTotal, "bytes")
+        : unavailableUsage("Sem snapshot de storage nas últimas 48h.", "bytes"),
+    },
+  };
+}
+
+// GET /admin/cloudflare-usage — wrapper HTTP de getCloudflareUsage (ver acima).
+async function handleCloudflareUsage(_req: Request, env: Env): Promise<Response> {
+  const result = await getCloudflareUsage(env);
+  return json(result, 200, env);
+}
+
 // SIG-133: tipos e helpers para alertas persistidos.
 
 interface AlertRow {
@@ -752,7 +968,7 @@ async function generateAndPersistAlerts(env: Env): Promise<void> {
   const settingsRow = await env.DB.prepare(
     "SELECT value FROM admin_settings WHERE key = 'admin'"
   ).first<{ value: string }>();
-  const settings = settingsRow?.value ? JSON.parse(settingsRow.value) : {};
+  const settings = parseAdminSettings(settingsRow?.value);
 
   // Budget: se não configurado, não gera alerta de custo (sem fabricar).
   const AI_DAILY_BUDGET: number | null = settings.aiDailyBudgetUsd ?? null;
@@ -805,6 +1021,31 @@ async function generateAndPersistAlerts(env: Env): Promise<void> {
       title:    'Qualidade de rede baixa',
       message:  `Score médio nas últimas 24h: ${Math.round(scoreRow.avg)} (mínimo: ${MIN_SCORE})`,
     });
+  }
+
+  // #883: alerta de uso vs. teto do free tier Cloudflare — só roda a checagem
+  // se CLOUDFLARE_API_TOKEN estiver configurado (sem fabricar alerta sem dado real).
+  const CF_ATTENTION_THRESHOLD = settings.cloudflareUsageAttentionThreshold ?? 80;
+  const cfUsage = await getCloudflareUsage(env);
+  if (cfUsage.source === "graphql") {
+    const cfResourceLabels: Record<string, string> = {
+      workersRequestsDay: 'Workers requests/dia',
+      d1RowsReadDay:      'D1 rows lidas/dia',
+      d1RowsWrittenDay:   'D1 rows escritas/dia',
+      d1StorageTotal:     'D1 storage total',
+    };
+    for (const [key, label] of Object.entries(cfResourceLabels)) {
+      const resource = cfUsage.resources[key as keyof typeof cfUsage.resources];
+      if (resource.available && resource.percentage != null && resource.percentage >= CF_ATTENTION_THRESHOLD) {
+        candidates.push({
+          id:       `cloudflare_usage_${key}`,
+          type:     'CLOUDFLARE_USAGE',
+          severity: resource.percentage >= 100 ? 'critical' : 'warning',
+          title:    'Uso do free tier Cloudflare em atenção',
+          message:  `${label}: ${resource.percentage}% do limite gratuito (${resource.used}/${resource.limit})`,
+        });
+      }
+    }
   }
 
   // Persiste idempotente: INSERT OR IGNORE mantém o alerta original se já existir
@@ -926,6 +1167,20 @@ function providerName(model: string): string {
   if (m.includes("gpt"))                         return "OpenAI GPT";
   if (m.includes("claude"))                      return "Anthropic Claude";
   return model; // fallback: nome técnico do modelo
+}
+
+// #879 (achado 4 da auditoria 2026-07-10): o Admin (types/ai.ts) define o enum
+// AiProvider como IDs técnicos ("gemini_flash" | "cloudflare_qwen" | "openai" |
+// "local_fallback"), usados como chave direta em mapas de cor (PROVIDER_COLORS).
+// providerName() acima devolve rótulo HUMANO ("Gemini", "Qwen / Workers AI"), que
+// nunca bate com esse enum — daí o donut cair sempre na cor de fallback. Mesma
+// lógica de deteção de providerName(), saída compatível com o enum do frontend.
+function providerEnumId(model: string): string {
+  const m = (model ?? "").toLowerCase();
+  if (m.includes("gemini"))                      return "gemini_flash";
+  if (m.includes("qwen") || m.startsWith("@cf/")) return "cloudflare_qwen";
+  if (m.includes("gpt"))                         return "openai";
+  return "local_fallback";
 }
 
 async function handleDiagnosticsSummary(request: Request, env: Env): Promise<Response> {
@@ -1809,10 +2064,27 @@ async function handleFirebaseCrashlytics(_req: Request, env: Env): Promise<Respo
   }, 200, env);
 }
 
-async function handleFirebaseVersions(_req: Request, env: Env): Promise<Response> {
+// #879 (achado 2 da auditoria 2026-07-10): esta função ignorava period/environment
+// da query string por completo (janela fixa de 30 dias, todos os ambientes),
+// enquanto o denominador (productionVersion.sessions, de handleAppVersions) RESPEITA
+// os dois filtros — dividir numerador fixo por denominador filtrado distorcia o crash
+// rate sempre que o filtro selecionado era diferente de "30d/produção".
+//
+// `period` agora controla de fato a janela do BigQuery (mesmo mapeamento de
+// periodToSeconds usado no resto do worker). `environment`, porém, não pode ser
+// respeitado aqui: o export do Crashlytics não carrega o conceito de "environment"
+// (production/staging/development) que existe só no nosso schema D1 — não há coluna
+// nem dimensão equivalente em `firebase_crashlytics.android_crashes_*`. Em vez de
+// fingir que filtra, a resposta agora expõe `environmentScope: "all"` explicitamente
+// para o frontend avisar o usuário, conforme a alternativa descrita na issue #879.
+async function handleFirebaseVersions(req: Request, env: Env): Promise<Response> {
   if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
     return json({ source: "no_credentials", versions: [] }, 200, env);
   }
+
+  const url = new URL(req.url);
+  const period = url.searchParams.get("period") ?? "30d";
+  const windowDays = Math.max(1, Math.round(periodToSeconds(period) / 86400));
 
   const { rows, error } = await queryBigQuery<{
     app_version: string;
@@ -1824,18 +2096,18 @@ async function handleFirebaseVersions(_req: Request, env: Env): Promise<Response
       COUNT(*)                          AS total_crashes,
       COUNT(DISTINCT installation_uuid) AS affected_users
     FROM \`${env.FIREBASE_PROJECT_ID}.firebase_crashlytics.android_crashes_*\`
-    WHERE _TABLE_SUFFIX >= FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY))
+    WHERE _TABLE_SUFFIX >= FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL ${windowDays} DAY))
     GROUP BY app_version
     ORDER BY total_crashes DESC
     LIMIT 10
   `);
 
   if (error === "table_not_found" || !rows.length) {
-    return json({ source: "no_data_yet", versions: [] }, 200, env);
+    return json({ source: "no_data_yet", versions: [], period, environmentScope: "all" }, 200, env);
   }
   if (error) {
     await logError(env, 'bigquery-versions', error, '');
-    return json({ source: "error", versions: [] }, 200, env);
+    return json({ source: "error", versions: [], period, environmentScope: "all" }, 200, env);
   }
 
   const versions = rows.map((r) => ({
@@ -1844,7 +2116,7 @@ async function handleFirebaseVersions(_req: Request, env: Env): Promise<Response
     affectedUsers: parseInt(r.affected_users ?? "0", 10),
   }));
 
-  return json({ source: "bigquery", versions }, 200, env);
+  return json({ source: "bigquery", versions, period, environmentScope: "all" }, 200, env);
 }
 
 // NOTA: app_version/device_model não foram adicionados ao SELECT abaixo via
@@ -2040,6 +2312,7 @@ const ERROR_CATEGORY_BY_SOURCE: Record<string, 'app' | 'backend' | 'ia' | 'integ
   'bigquery-versions':      'integration',
   'bigquery-crash-issues':  'integration',
   'ai-usage':               'ia',
+  'cloudflare-usage':       'integration',
 };
 
 function errorCategoryForSource(source: string): 'app' | 'backend' | 'ia' | 'integration' {
@@ -2633,6 +2906,52 @@ async function handleBatteryAnalytics(request: Request, env: Env): Promise<Respo
   }, 200, env);
 }
 
+// #785 — breakdown de dispositivos mais ativos (modelo + versão Android + %
+// de sessões). Fonte: diagnostic_sessions.device_model/os_version (já
+// coletado pelo app via POST /ingest/diagnostic desde SIG-138) — mais direto
+// que ir buscar no GA4/BigQuery, que não tem esse breakdown pronto sem uma
+// dimensão custom equivalente. Mesma honestidade do resto do painel: sem
+// sessão com device_model preenchido no período, no_data_yet: true.
+async function handleDeviceBreakdown(request: Request, env: Env): Promise<Response> {
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "30d";
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? " AND environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]            : [];
+
+  const rows = await env.DB.prepare(
+    `SELECT device_model, os_version, COUNT(*) AS session_count
+     FROM diagnostic_sessions
+     WHERE created_at >= ? AND device_model != ''${envClause}
+     GROUP BY device_model, os_version
+     ORDER BY session_count DESC
+     LIMIT 10`
+  ).bind(since, ...envBinds).all<{ device_model: string; os_version: string; session_count: number }>();
+
+  const results = rows.results ?? [];
+  const totalRow = await env.DB.prepare(
+    `SELECT COUNT(*) AS total FROM diagnostic_sessions WHERE created_at >= ? AND device_model != ''${envClause}`
+  ).bind(since, ...envBinds).first<{ total: number }>();
+  const total = totalRow?.total ?? 0;
+
+  const items = results.map((r: { device_model: string; os_version: string; session_count: number }) => ({
+    deviceModel:  r.device_model,
+    osVersion:    r.os_version || "—",
+    sessionCount: r.session_count,
+    percentage:   total > 0 ? Math.round((r.session_count / total) * 10000) / 100 : 0,
+  }));
+
+  return json({
+    source: "d1",
+    period,
+    environment: envFilter ?? "all",
+    no_data_yet: total === 0,
+    items,
+  }, 200, env);
+}
+
 // --- SIG-13: feature flags ---
 
 interface FeatureFlag {
@@ -2760,6 +3079,8 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/analytics\/product$/,                   handler: withErrorLogging('analytics', handleProductAnalytics) },
   { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/battery$/,          handler: withErrorLogging('analytics', handleBatteryAnalytics) },
   { method: "GET",  pattern: /^\/admin\/analytics\/battery$/,                   handler: withErrorLogging('analytics', handleBatteryAnalytics) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/devices$/,          handler: withErrorLogging('analytics', handleDeviceBreakdown) },
+  { method: "GET",  pattern: /^\/admin\/analytics\/devices$/,                   handler: withErrorLogging('analytics', handleDeviceBreakdown) },
   { method: "GET",  pattern: /^\/admin\/metrics\/errors$/,                      handler: handleErrors },
   { method: "POST", pattern: /^\/admin\/errors\/[^/]+\/resolve$/,               handler: withErrorLogging('errors', async (req, env) => {
       const session = await authenticateSession(req, env);
@@ -2767,6 +3088,7 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
       return handleResolveSystemError(req, env, session);
     }) },
   { method: "GET",  pattern: /^\/admin\/system-health$/,                        handler: withErrorLogging('system-health', handleSystemHealth) },
+  { method: "GET",  pattern: /^\/admin\/cloudflare-usage$/,                     handler: withErrorLogging('cloudflare-usage', handleCloudflareUsage) },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/status$/,       handler: handleFirebaseStatus },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/analytics$/,    handler: handleFirebaseAnalytics },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/crashlytics$/,  handler: handleFirebaseCrashlytics },

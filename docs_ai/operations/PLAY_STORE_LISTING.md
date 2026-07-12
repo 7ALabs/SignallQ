@@ -34,7 +34,7 @@ Todas as suas medições ficam salvas para você acompanhar a evolução da sua 
 
 PRIVACIDADE
 
-O SignallQ não coleta dados pessoais. Seus diagnósticos ficam apenas no seu dispositivo. Sem rastreamento, sem anúncios, sem compartilhamento de dados.
+O SignallQ não coleta dados de identificação pessoal (nome, localização, contatos, IMEI). Para estabilidade do app, usamos Firebase Crashlytics (relatórios de falha). Mediante seu consentimento — que você concede na primeira abertura e pode revisar a qualquer momento em Ajustes > Privacidade —, também usamos Firebase Analytics para eventos de uso e resultados anônimos de diagnóstico (velocidade, latência, sinal). O histórico completo dos seus diagnósticos fica salvo apenas no seu aparelho. Sem venda de dados, sem anúncios.
 
 GRATUITO
 

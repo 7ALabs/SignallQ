@@ -29,8 +29,21 @@ class ScannerRedesWifi(context: Context) {
     )
     val snapshotFlow: StateFlow<SnapshotScanWifi> = mutableSnapshotFlow.asStateFlow()
 
+    /**
+     * Escaneia redes Wi-Fi vizinhas. Ignora silenciosamente chamadas concorrentes
+     * (guard abaixo) — chamador do auto-refresh (#893) e pull-to-refresh/retry manual
+     * podem colidir, e um scan duplicado só desperdiça o orçamento apertado de
+     * scans do Android (throttle: 4/2min em foreground, ver skill regras-android).
+     *
+     * Erro ou novo scan em andamento NUNCA apagam a última lista de redes válida —
+     * só o [EstadoScanWifi] muda. Sem isso, cada refresh automático (#893) fazia a
+     * tela piscar vazia por alguns instantes e um erro temporário derrubava os
+     * dados já exibidos.
+     */
     suspend fun escanear() = withContext(Dispatchers.IO) {
-        mutableSnapshotFlow.value = SnapshotScanWifi(EstadoScanWifi.scanning, emptyList(), null)
+        if (mutableSnapshotFlow.value.estado == EstadoScanWifi.scanning) return@withContext
+        val redesAnteriores = mutableSnapshotFlow.value.redes
+        mutableSnapshotFlow.value = SnapshotScanWifi(EstadoScanWifi.scanning, redesAnteriores, null)
         try {
             val resultados = withTimeoutOrNull(TIMEOUT_SCAN_MS) { realizarScan() }
                 ?: wifiManager.scanResultsCompat()
@@ -46,7 +59,7 @@ class ScannerRedesWifi(context: Context) {
                 else -> "erroScanWifi"
             }
             Timber.e(t, "erro no scan: $chave — ${t.message}")
-            mutableSnapshotFlow.value = SnapshotScanWifi(EstadoScanWifi.erro, emptyList(), chave)
+            mutableSnapshotFlow.value = SnapshotScanWifi(EstadoScanWifi.erro, redesAnteriores, chave)
         }
     }
 

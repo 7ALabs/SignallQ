@@ -695,7 +695,14 @@ const SettingsDetailSection: React.FC = () => {
     setSaveError(null);
     try {
       const res = await adminSettingsService.saveSettings(settings);
-      if (res.success) setSaveStatus(res.message);
+      if (res.success) {
+        setSaveStatus(res.message);
+        // #880 (achado 20): antes só atualizava o estado local de forma
+        // otimista — se o worker persistiu algo diferente do enviado (ex.:
+        // normalização/clamp no D1), a UI ficava com o valor local, nunca o
+        // real. Recarrega do worker pra confirmar o dado que realmente ficou salvo.
+        await loadSettings();
+      }
     } catch (err) {
       console.error("[Ferramentas] Falha ao salvar configurações:", err);
       setSaveError(err instanceof Error ? err.message : "Falha ao salvar configurações. Tente novamente.");

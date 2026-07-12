@@ -220,6 +220,11 @@ class MonitorRedeAndroid(
                         else -> null
                     }
                 } else null,
+                is5GhzCapable = try {
+                    wifiManager.is5GHzBandSupported
+                } catch (_: Exception) {
+                    null
+                },
             )
         } catch (_: SecurityException) {
             null

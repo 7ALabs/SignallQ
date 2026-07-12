@@ -64,6 +64,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.R
+import io.signallq.app.ads.AdSlot
+import io.signallq.app.ads.AdUnitIds
+import io.signallq.app.ads.NativeAdContentSignals
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.telephony.MovelSnapshot
@@ -77,7 +80,10 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.ads.rememberNativeAd
 import io.signallq.app.ui.component.ProfileAvatarButton
+import io.signallq.app.ui.component.ads.NativeAdRow
+import io.signallq.app.ui.component.ads.NativeAdSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,6 +109,9 @@ fun SpeedTestScreen(
     onAbrirPerfil: () -> Unit = {},
     planoInternet: String = "",
     movelSnapshot: MovelSnapshot? = null,
+    /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555.
+     *  Default `false`: nunca mostra anuncio sem sinal explicito de que pode. */
+    adsEnabled: Boolean = false,
 ) {
     val c = LocalLkTokens.current
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
@@ -231,6 +240,7 @@ fun SpeedTestScreen(
             mostrarDialogCancelar = { mostrarDialogCancelar = true },
             temResultado = temResultado,
             estadoIdle = estadoIdle,
+            adsEnabled = adsEnabled,
             c = c,
         )
     }
@@ -251,6 +261,7 @@ private fun ConteudoSpeedTest(
     mostrarDialogCancelar: () -> Unit,
     temResultado: Boolean,
     estadoIdle: Boolean,
+    adsEnabled: Boolean,
     c: LkTokens,
 ) {
     if (!temResultado) {
@@ -331,6 +342,20 @@ private fun ConteudoSpeedTest(
             if (modoSelecionado == ModoSpeedtest.triplo && snapshotSpeedtest.rodadasTriplo.isNotEmpty()) {
                 Spacer(Modifier.height(LkSpacing.sm))
                 CardRodadasTriplo(c = c, rodadas = snapshotSpeedtest.rodadasTriplo)
+            }
+
+            // Slot de anuncio nativo (issue #555) -- espaco vazio abaixo do "Ultimo
+            // resultado". So depende do estado idle/concluido + Remote Config, nao de
+            // evidencia de diagnostico (fallback generico do AdMob).
+            if (estadoIdle) {
+                Spacer(Modifier.height(LkSpacing.md))
+                val nativeAd by
+                    rememberNativeAd(
+                        adUnitId = AdUnitIds.para(AdSlot.VELOCIDADE),
+                        contentSignal = NativeAdContentSignals.forSlot(AdSlot.VELOCIDADE),
+                        eligible = adsEnabled,
+                    )
+                NativeAdRow(nativeAd = nativeAd, source = NativeAdSource.ADMOB, modifier = Modifier.fillMaxWidth())
             }
             Spacer(Modifier.height(LkSpacing.xxl))
         }

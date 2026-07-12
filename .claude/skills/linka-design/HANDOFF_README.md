@@ -228,6 +228,21 @@ fill + `accent @25–30%` borda; banner de alerta = `warning @12%` fill.
   profundos ganham seta de voltar. `ModalBottomSheet` é o padrão para permissões, análise de
   topologia e pickers.
 
+**Anúncio nativo** (`…/ui/component/ads/`, issue #555 — padrão oficial desde v0.23.0)
+- Três variantes por contexto, nunca escolha por preferência: `NativeAdCard` (card cheio,
+  dispensável — Resultado, Histórico) · `NativeAdRow` (linha compacta — Velocidade idle) ·
+  `NativeAdListRow` (linha dentro de uma lista existente — Dispositivos, dentro da lista de
+  dispositivos conectados, nunca em Infraestrutura).
+- Disclosure `AdBadge` sempre visível: "Patrocinado" (tom neutro, AdMob — única fonte ativa
+  hoje) ou "Parceiro" (tom `accentBlue`, afiliado/parceiro curado — componente já suporta,
+  catálogo ainda não existe).
+- Nunca confundir com card orgânico: borda **tracejada** (`Modifier.dashedBorder`, nunca
+  sólida), CTA **outline violeta** (nunca sólido — sólido é exclusivo de CTA primário
+  orgânico), sem foto/hero, ícone do anunciante em **chip quadrado** (nunca círculo).
+  Componente inteiro é omitido (não vira placeholder) quando não há criativo carregado.
+- Referência completa: `docs_ai/design-system/COMPONENTS_ANDROID.md` (seção "Monetização —
+  Anúncio Nativo").
+
 ---
 
 ## Telas / Superfícies do app (referência)
@@ -254,5 +269,6 @@ Veja `_ref/` (capturas do app real, **não** para shipping) e `preview/` para os
 - `ui_kits/android/index.html` — protótipo click-through; `chrome.jsx` tem os tokens `LK` e
   primitivos compartilhados; `screens.jsx`, `speedtest.jsx`, `signallq.jsx`, `app.jsx`.
 - `preview/*.html` — cards de cores, tipo, espaçamento, raios e componentes.
-- No seu codebase: `SignallQTheme.kt` (tokens), `…/ui/component/*.kt` (25 composables),
-  `…/ui/screen/*.kt` (telas), `docs_ai/design-system/*.md` (docs originais).
+- No seu codebase: `SignallQTheme.kt` (tokens), `…/ui/component/*.kt` (33+ composables,
+  incluindo `…/ui/component/ads/` — anúncio nativo), `…/ui/screen/*.kt` (telas),
+  `docs_ai/design-system/*.md` (docs originais).

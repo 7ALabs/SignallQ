@@ -207,6 +207,14 @@ Sistema flat por padrão: profundidade vem de superfície tonal (bg-card sobre b
 ### Signal Bars (componente assinatura)
 Glifo customizado de 4 barras verticais (alturas 6/9/12/16dp, largura 3dp, radius 1dp); barras preenchidas assumem a cor de qualidade (verde=Forte, âmbar=Regular, vermelho=Fraco), barras vazias usam `--border`.
 
+### Native Ad Components (anúncio nativo, `…/ui/component/ads/`)
+Três variantes por contexto de tela — nunca escolhidas por preferência: **`NativeAdCard`** (card cheio, dispensável — Resultado do teste, Histórico), **`NativeAdRow`** (linha compacta, não dispensável — Velocidade em estado idle), **`NativeAdListRow`** (linha dentro de uma lista orgânica já existente — dentro da lista de dispositivos conectados, nunca na seção Infraestrutura). Toda variante é omitida por completo (não vira placeholder/caixa vazia) quando não há criativo carregado.
+- **Border:** tracejada (`Modifier.dashedBorder`), nunca sólida — único uso de borda tracejada no app, reservado para diferenciar anúncio de conteúdo orgânico.
+- **CTA:** outline violeta (`accent @35%` de borda, texto accent), nunca sólido — violeta sólido é exclusivo de CTA primário orgânico.
+- **Ícone do anunciante:** chip **quadrado** (raio ~27% do tamanho), nunca círculo — distingue do padrão circular de avatares/ícones orgânicos.
+- **Disclosure (`AdBadge`):** sempre visível, nunca atrás de tap/expand. "Patrocinado" (tom neutro `textTertiary`) para `NativeAdSource.ADMOB`; "Parceiro" (tom `accentBlue`) para `NativeAdSource.PARTNER`, reservado a afiliados/parceiros curados (catálogo ainda não existe).
+- **Nunca** foto/hero, headline/body/CTA hardcoded — sempre vêm do `NativeAd` real carregado pelo AdMob.
+
 ## 6. Do's and Don'ts
 
 ### Do:
@@ -215,6 +223,7 @@ Glifo customizado de 4 barras verticais (alturas 6/9/12/16dp, largura 3dp, radiu
 - **Do** manter a superfície da SignallQ (IA) sempre escura, independente do tema do app.
 - **Do** usar Material Symbols Outlined como único sistema de ícone; nunca emoji.
 - **Do** manter cards flat — tonal fill + borda 1px, sem sombra.
+- **Do** deixar todo anúncio nativo com borda tracejada + disclosure (`AdBadge`) sempre visível — nunca disfarçado de card orgânico.
 
 ### Don't:
 - **Don't** parecer um app genérico de speedtest (tipo Ookla/Speedtest.net): números soltos sem contexto humano, sem veredito.
@@ -222,3 +231,4 @@ Glifo customizado de 4 barras verticais (alturas 6/9/12/16dp, largura 3dp, radiu
 - **Don't** usar emoji como substituto de ícone ou cor semântica.
 - **Don't** aplicar gradiente decorativo em superfícies — os únicos dois lugares permitidos são o avatar de perfil e o header de Diagnóstico/IA.
 - **Don't** adicionar sombra pesada em cards; se precisa de destaque, use tint de cor semântica antes de sombra.
+- **Don't** usar CTA violeta sólido em anúncio nativo (só outline) nem ícone de anunciante em chip circular — ambos são reservados a elementos orgânicos do app.

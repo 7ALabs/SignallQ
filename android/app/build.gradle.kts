@@ -316,9 +316,15 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.analytics)
+    implementation(libs.firebase.config)
 
     // Avaliacao nativa Google Play sem atrito (SIG-173/#664)
     implementation(libs.play.review)
+
+    // Monetizacao nativa AdMob (issue #555) -- Google Mobile Ads SDK + UMP (gate de
+    // consentimento obrigatorio antes de qualquer AdRequest, mesmo so contextual).
+    implementation(libs.play.services.ads)
+    implementation(libs.user.messaging.platform)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

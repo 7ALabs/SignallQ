@@ -24,20 +24,26 @@ if [ -z "$WEBHOOK" ]; then
   exit 0
 fi
 
+# Sem emoji (regra de marca SignallQ) — so cor do embed marca o tipo.
 case "$TYPE" in
-  progress) EMOJI="⏳"; COLOR=3447003 ;;   # azul
-  success)  EMOJI="✅"; COLOR=3066993 ;;   # verde
-  info)     EMOJI="ℹ️"; COLOR=10070709 ;;
-  warning)  EMOJI="⚠️"; COLOR=15844367 ;;  # amarelo
-  error)    EMOJI="❌"; COLOR=15158332 ;;  # vermelho
-  *)        EMOJI="•";  COLOR=9807270 ;;
+  progress) COLOR=3447003 ;;   # azul
+  success)  COLOR=3066993 ;;   # verde
+  info)     COLOR=10070709 ;;
+  warning)  COLOR=15844367 ;;  # amarelo
+  error)    COLOR=15158332 ;;  # vermelho
+  *)        COLOR=9807270 ;;
 esac
 
-TITLE="$EMOJI $AGENT"
-[ -n "$TARGET" ] && TITLE="$TITLE → $TARGET"
+TITLE="$(printf '%s' "$AGENT" | tr '[:lower:]' '[:upper:]')"
+[ -n "$TARGET" ] && TITLE="$TITLE → $(printf '%s' "$TARGET" | tr '[:lower:]' '[:upper:]')"
+
+# Capitaliza a primeira letra pra exibir como remetente do webhook (em vez do
+# nome padrao "Captain Hook" que o Discord da a webhook nunca renomeado).
+DISPLAY_AGENT="$(printf '%s' "$AGENT" | sed 's/./\U&/')"
 
 PAYLOAD=$(cat <<JSON
 {
+  "username": "$DISPLAY_AGENT · SignallQ",
   "embeds": [{
     "title": "$TITLE",
     "description": $(printf '%s' "$MSG" | python -c 'import json,sys; print(json.dumps(sys.stdin.read()))' 2>/dev/null || echo "\"$MSG\""),

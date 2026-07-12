@@ -13,16 +13,24 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.ads.MobileAds
 import dagger.hilt.android.AndroidEntryPoint
+import io.signallq.app.ads.AdsFlagsManager
+import io.signallq.app.ads.ConsentManager
 import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.EstadoConexao
@@ -33,7 +41,6 @@ import io.signallq.app.ui.SignallQTheme
 import io.signallq.app.ui.component.LgpdConsentDialog
 import io.signallq.app.ui.screen.AppShell
 import io.signallq.app.ui.screen.OnboardingScreen
-import io.signallq.app.ui.viewmodel.ChatDiagnosticoIaViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -48,8 +55,10 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var inAppReviewManager: InAppReviewManager
 
+    @Inject
+    lateinit var adsFlagsManager: AdsFlagsManager
+
     private val viewModel: MainViewModel by viewModels()
-    private val chatDiagViewModel: ChatDiagnosticoIaViewModel by viewModels()
 
     // ViewModels por feature — extraidos do MainViewModel (Passo 6 do plano de migracao).
     // Fase atual: instanciados e conectados; o MainViewModel ainda contem logica legada
@@ -100,11 +109,26 @@ class MainActivity : ComponentActivity() {
     // #155/9.3: permissão negada permanentemente (shouldShowRequestPermissionRationale = false E não concedida)
     private var localizacaoBloqueadaPermanentemente by mutableStateOf(false)
 
+    // Issue #555 -- gate de consentimento UMP para anuncio nativo AdMob. Comeca false:
+    // nenhuma tela pede anuncio ate a UMP responder (mesmo que a resposta seja "nao
+    // exigido nesta regiao", ainda precisa do callback pra saber disso).
+    private var podeRequisitarAnuncio by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         analyticsTracker.registrarSessionStart()
         registrarBatterySnapshotInicial()
+
+        // Issue #555 -- gate de consentimento UMP antes de qualquer AdRequest, mesmo
+        // so contextual. MobileAds.initialize so roda depois do consentimento resolvido
+        // (ordem recomendada pelo proprio guia UMP+AdMob do Google).
+        ConsentManager.atualizarEMostrarSeNecessario(this) { podeRequisitar ->
+            podeRequisitarAnuncio = podeRequisitar
+            if (podeRequisitar) {
+                MobileAds.initialize(this) {}
+            }
+        }
         val estadoConexaoInicial = viewModel.monitorRede.snapshotFlow.value.estadoConexao
         analyticsHelper.registrarAppAberto(tipoConexao = estadoConexaoInicial.paraTipoConexaoAnalytics())
 
@@ -235,8 +259,8 @@ class MainActivity : ComponentActivity() {
             val recommendationFeedback by viewModel.recommendationFeedback.collectAsStateWithLifecycle()
             // #82 — Banner Anatel dismissível
             val anatelBannerDismissed = viewModel.anatelBannerDismissed.collectAsStateWithLifecycle().value
-            // Chat Diagnóstico IA
-            val chatDiagUiState by chatDiagViewModel.uiState.collectAsStateWithLifecycle()
+            // Issue #555 -- toggle remoto (Firebase Remote Config) de anuncios nativos.
+            val adsFlags by adsFlagsManager.flags.collectAsStateWithLifecycle()
 
             val gatewayIpDetectado = gateways.firstOrNull()?.ip
             val darkTheme =
@@ -279,12 +303,37 @@ class MainActivity : ComponentActivity() {
                 }
 
             SignallQTheme(darkTheme = darkTheme) {
-                if (!onboardingConcluido) {
+                // #895: `onboardingConcluido == null` = DataStore ainda nao respondeu nesta
+                // composicao (distinto de `false` = usuario novo). Sem esse terceiro estado, a
+                // tela de Onboarding (e, na sequencia, o dialog de LGPD) "piscava" por um
+                // instante em TODO cold start, mesmo pra quem ja concluiu ambos — a rota
+                // inicial so e decidida depois que os dois valores reais chegam.
+                if (onboardingConcluido == null) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background),
+                    )
+                } else if (!onboardingConcluido) {
+                    // #128: onboarding pede as 4 permissoes (batch) internamente na tela 2;
+                    // aqui so reagimos ao resultado real pra ligar as rotinas que dependiam
+                    // do fluxo antigo de callbacks por permissao.
                     OnboardingScreen(
                         onConcluir = { viewModel.marcarOnboardingConcluido() },
-                        // #128: solicitar permissões no slide 3 (localização + dispositivos próximos)
-                        onSolicitarPermissaoLocalizacao = { solicitarPermissaoLocalizacaoContextual() },
-                        onSolicitarPermissaoDispositivosProximos = { solicitarPermissaoDispositivosProximosContextual() },
+                        onPermissoesConcedidas = { concedidas ->
+                            if (Manifest.permission.ACCESS_FINE_LOCATION in concedidas) {
+                                temPermissaoLocalizacao = true
+                                viewModel.iniciarRotinasNaoSpeedtest()
+                            }
+                            if (Manifest.permission.READ_PHONE_STATE in concedidas) {
+                                temPermissaoTelefonia = true
+                                viewModel.iniciarMonitorTelefoniaSeMovel()
+                            }
+                            if (Manifest.permission.POST_NOTIFICATIONS in concedidas) {
+                                viewModel.atualizarMonitoramento(true)
+                            }
+                        },
                     )
                 } else if (consentimentoLgpd == null) {
                     LgpdConsentDialog(
@@ -366,18 +415,10 @@ class MainActivity : ComponentActivity() {
                                     viewModel.iniciarSignallQComResultado(resultado, foco)
                                 },
                             ),
-                        chatDiag =
-                            io.signallq.app.ui.screen.AppShellChatDiagState(
-                                chatDiagUiState = chatDiagUiState,
-                                onEnviarMensagem = chatDiagViewModel::onEnviarMensagem,
-                                onAtualizarDraft = chatDiagViewModel::onAtualizarDraft,
-                                onEscolherOpcao = chatDiagViewModel::onEscolherOpcao,
-                                onAbrirSessao = chatDiagViewModel::onAbrirSessao,
-                                onApagarSessao = chatDiagViewModel::onApagarSessao,
-                                onRenomearSessao = chatDiagViewModel::onRenomearSessao,
-                                onNovaSessao = chatDiagViewModel::onNovaSessao,
-                                onToggleDrawer = chatDiagViewModel::onToggleDrawer,
-                                onCancelarAcaoAtual = chatDiagViewModel::onCancelarAcaoAtual,
+                        ads =
+                            io.signallq.app.ui.screen.AppShellAdsState(
+                                flags = adsFlags,
+                                podeRequisitarAnuncio = podeRequisitarAnuncio,
                             ),
                         snapshotDns = snapshotDns,
                         history = history,
@@ -539,6 +580,10 @@ class MainActivity : ComponentActivity() {
 
     private fun verificarEPedirPermissoes() {
         if (aguardandoRespostaPermissoes) return
+        // #128: onboarding novo (tela 2) e quem controla a solicitacao de permissoes antes da
+        // primeira conclusao — sem essa guarda, este auto-pedido do onStart competia com os
+        // dialogs abertos pelos toggles da tela 2 (mesma permissao pedida duas vezes seguidas).
+        if (viewModel.onboardingConcluido.value != true) return
         val pendentes = viewModel.gerenciadorPermissoes.listarPermissoesPendentes()
         if (pendentes.isNotEmpty()) {
             aguardandoRespostaPermissoes = true
@@ -598,23 +643,6 @@ class MainActivity : ComponentActivity() {
             return
         }
         solicitacaoPermissaoTelefonia.launch(Manifest.permission.READ_PHONE_STATE)
-    }
-
-    // #128: solicitar permissão de dispositivos próximos (NEARBY_WIFI_DEVICES) no onboarding
-    private fun solicitarPermissaoDispositivosProximosContextual() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            val concedida =
-                ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.NEARBY_WIFI_DEVICES,
-                ) == PackageManager.PERMISSION_GRANTED
-            if (!concedida) {
-                // Usar launcher genérico (múltiplas permissões) para não corromper o
-                // launcher de localização (solicitacaoPermissaoLocalizacao)
-                solicitacaoPermissoes.launch(arrayOf(Manifest.permission.NEARBY_WIFI_DEVICES))
-            }
-        }
-        // Abaixo do API 33, NEARBY_WIFI_DEVICES não existe — no-op; localização cobre o caso
     }
 
     // Analytics (SIG-155): EstadoConexao.movel vira "mobile" no schema do funil.

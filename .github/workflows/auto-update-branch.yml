@@ -1,0 +1,35 @@
+name: Auto Update Branch
+
+# Mantem PRs abertas atualizadas com main automaticamente. Com strict:true no
+# branch protection, uma PR fica "BEHIND" sempre que outra PR mergeia antes dela
+# -- em dias de merge concorrente isso travava o auto-merge ate alguem rodar
+# update-branch manualmente (aconteceu com #868, #869, #870 no mesmo dia).
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-behind-prs:
+    name: Update open PRs behind main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update branch for each open PR behind main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          prs=$(gh pr list --repo gmmattey/linka-android --state open --json number --jq '.[].number')
+          for n in $prs; do
+            state=$(gh pr view "$n" --repo gmmattey/linka-android --json mergeStateStatus --jq '.mergeStateStatus')
+            echo "PR #$n mergeStateStatus=$state"
+            if [ "$state" = "BEHIND" ]; then
+              echo "Updating PR #$n..."
+              gh api -X PUT "repos/gmmattey/linka-android/pulls/$n/update-branch" \
+                -H "Accept: application/vnd.github+json" || echo "::warning::falha ao atualizar PR #$n (provavel conflito, ignorando)"
+            fi
+          done
