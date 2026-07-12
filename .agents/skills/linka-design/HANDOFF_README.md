@@ -30,7 +30,7 @@ Claude Code reconhece automaticamente. **Não é código de produção para copi
 | `ui_kits/android/` | Recriação React fiel do app (`index.html` interativo + componentes JSX). `chrome.jsx` carrega os tokens `LK` e os primitivos compartilhados. |
 
 > Os tokens aqui foram **engenharia-reversa do próprio codebase Android** (`SignallQTheme.kt` →
-> `LkColors`, `LkSpacing`, `LkRadius`, `linkaTypography`). Os nomes batem com o que já está no
+> `LkColors`, `LkSpacing`, `LkRadius`, `signallQTypography`). Os nomes batem com o que já está no
 > seu código Kotlin/Compose — use os valores abaixo como tabela de equivalência.
 
 ---
@@ -98,7 +98,7 @@ Para confirmar que está instalada, rode `/doctor` ou liste skills no Claude Cod
 Como as telas já existem, o ganho real vem de garantir que elas usem os **tokens** como
 fonte de verdade (e não valores hardcoded). Antes de gerar UI nova, peça ao Claude Code para:
 
-1. Verificar se `SignallQTheme.kt` (`LkColors` / `LkSpacing` / `LkRadius` / `linkaTypography`) é
+1. Verificar se `SignallQTheme.kt` (`LkColors` / `LkSpacing` / `LkRadius` / `signallQTypography`) é
    de fato a origem de cores, espaçamentos e tipos das telas atuais.
 2. Substituir qualquer cor/spacing hardcoded pelos tokens equivalentes (tabela abaixo).
 3. Reaproveitar os componentes existentes (`…/ui/component/*.kt`) em vez de recriar.
@@ -172,7 +172,7 @@ fonte de verdade (e não valores hardcoded). Antes de gerar UI nova, peça ao Cl
 `--radius-card` 16 · `--radius-button` / `--radius-input` 12 · `--radius-pill` 999.
 Ícones em chip circular e avatares: totalmente redondos (36–44dp típico).
 
-### Tipografia — Roboto, escala Material 3 (`linkaTypography`)
+### Tipografia — Roboto, escala Material 3 (`signallQTypography`)
 Sem fonte customizada — Compose usa o default do sistema (Roboto). Classes em
 `colors_and_type.css`: `display-large` (700/34) · `headline-large` (600/24) ·
 `headline-medium` (600/20) · `headline-small` (600/18) · `title-large` (500/16) ·

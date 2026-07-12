@@ -20,8 +20,7 @@ import org.robolectric.annotation.Config
 
 /**
  * Testes de UI dos 3 cards novos do FibraModemScreen (GH#893): Tempo ligado,
- * Rede Wi-Fi (por rádio) e DNS. Segue o padrão Robolectric+Compose de
- * ChatDiagnosticoIaScreenTest.
+ * Rede Wi-Fi (por rádio) e DNS. Segue o padrão Robolectric+Compose.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])

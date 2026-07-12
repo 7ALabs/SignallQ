@@ -112,7 +112,6 @@ fun AppShell(
     wifi: AppShellWifiState,
     diagnostico: AppShellDiagnosticoState,
     signallQ: AppShellSignallQState,
-    chatDiag: AppShellChatDiagState,
     ads: AppShellAdsState = AppShellAdsState(),
     snapshotDns: SnapshotBenchmarkDns,
     history: List<HistoryPoint>,

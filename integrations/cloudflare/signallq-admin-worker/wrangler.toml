@@ -6,6 +6,9 @@ compatibility_date = "2026-06-21"
 ALLOWED_ORIGIN = "https://signallq-admin-panel.pages.dev"
 FIREBASE_PROJECT_ID = "signallq-app"
 FIREBASE_GA4_PROPERTY_ID = "542463828"
+# #883 — nao sao secret (account_id e database_id ja sao publicos no dashboard/neste arquivo).
+CLOUDFLARE_ACCOUNT_ID = "2f38f7354f204d7b3f7d6c750b3e43ff"
+CLOUDFLARE_D1_DATABASE_ID = "952cb253-1a84-48ac-9018-a4ca31036915"
 
 # Secrets: npx wrangler secret put ADMIN_SECRET / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY
 # INGEST_KEY: chave separada para autenticar o app Android em POST /ingest/*
@@ -13,6 +16,13 @@ FIREBASE_GA4_PROPERTY_ID = "542463828"
 #   Gerar: openssl rand -hex 32
 #   Deploy: npx wrangler secret put INGEST_KEY
 #   App: adicionar em local.properties -> ADMIN_INGEST_KEY=<valor>
+# CLOUDFLARE_API_TOKEN (#883): token escopado "Account Analytics: Read" para a GraphQL
+# Analytics API (uso vs. limite do free tier). Sem custo, mas requer criacao manual no
+# dashboard Cloudflare (My Profile > API Tokens > Create Token) -- o token OAuth do
+# wrangler CLI nao tem esse escopo e nao pode criar tokens novos via API.
+#   Deploy: npx wrangler secret put CLOUDFLARE_API_TOKEN
+#   Sem essa secret configurada, GET /admin/cloudflare-usage responde "nao disponivel"
+#   com o motivo (nao fabrica numero) -- ver getCloudflareUsage() em src/index.ts.
 
 [[d1_databases]]
 binding = "DB"

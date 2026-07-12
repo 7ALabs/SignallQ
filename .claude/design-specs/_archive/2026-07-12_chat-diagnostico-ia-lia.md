@@ -239,3 +239,14 @@ Verificar se `SignallQThinkingBubble` usa token (não hardcode).
 - `ModalDrawerSheet`: `Modifier.semantics { paneTitle = "Histórico de conversas" }`.
 - DropdownMenuItem: `Modifier.semantics { contentDescription = "Renomear conversa ${sessao.titulo}" }`.
 - Tamanhos de toque ≥48dp já garantidos pelo MD3 default.
+
+---
+
+## Arquivado — 2026-07-12
+
+**Decisão do Luiz: sem chat com IA no produto.** Confirma e fecha a discussão aberta pelas
+issues #215/#222 (chat já havia sido descontinuado da UI antes, código preservado por
+enquanto) e #850 (confirmou zero ponto de entrada em produção). Esta spec bate 1:1 com o
+código de `ChatDiagnosticoIaScreen.kt` — mas o código nunca teve navegação viva; era plumbing
+órfão. Removido definitivamente via issue de limpeza (ver GitHub). Este arquivo fica só como
+histórico de decisão de produto.

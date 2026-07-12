@@ -22,9 +22,8 @@
 | 4 | `HistoricoScreen` | `HistoricoScreen.kt` | Aba 3 — Histórico | NavigationBar | — |
 | 5 | `AjustesScreen` | `AjustesScreen.kt` | Aba 4 — Ajustes | NavigationBar | FibraModemScreen, LaudoScreen |
 | 6 | `VelocidadeScreen` | `VelocidadeScreen.kt` | Overlay (fluxo) | SpeedTestScreen (auto) | ResultadoVelocidadeScreen |
-| 7 | `ResultadoVelocidadeScreen` | `ResultadoVelocidadeScreen.kt` | Overlay (fluxo) | VelocidadeScreen (auto) | DiagnosticoScreen, LLMChatScreen, HomeScreen |
-| 8 | `DiagnosticoScreen` | `DiagnosticoScreen.kt` | Overlay (fluxo) | ResultadoVelocidade, SpeedTestScreen | LLMChatScreen |
-| 9 | `LLMChatScreen` | `LLMChatScreen.kt` | Overlay (fluxo) | DiagnosticoScreen, ResultadoVelocidade | volta ao anterior |
+| 7 | `ResultadoVelocidadeScreen` | `ResultadoVelocidadeScreen.kt` | Overlay (fluxo) | VelocidadeScreen (auto) | DiagnosticoScreen, HomeScreen |
+| 8 | `DiagnosticoScreen` | `DiagnosticoScreen.kt` | Overlay (fluxo) | ResultadoVelocidade, SpeedTestScreen | — |
 | 10 | `SignallQScreen` | `SignallQScreen.kt` | Overlay (fluxo) | Diagnóstico autônomo | — (ex-OrbitScreen) |
 | 11 | `DispositivosScreen` | `DispositivosScreen.kt` | Overlay | AjustesScreen ou outras entradas | — |
 | 12 | `FibraModemScreen` | `FibraModemScreen.kt` | Overlay (fluxo) | AjustesScreen | AjustesScreen |
@@ -37,7 +36,10 @@
 | 19 | `PrivacidadeScreen` | `PrivacidadeScreen.kt` | Overlay (AnimatedVisibility) | AjustesScreen | AjustesScreen |
 | 20 | `NovidadesScreen` | `NovidadesScreen.kt` | Overlay (AnimatedVisibility) | AjustesScreen | AjustesScreen |
 | 21 | `ChatScreen` | `ChatScreen.kt` | Overlay (fluxo legado) | — | — |
-| 22 | `ChatDiagnosticoIaScreen` | `ChatDiagnosticoIaScreen.kt` | Overlay (fluxo legado v0.12.0) | — | — |
+
+> `LLMChatScreen.kt` e `ChatDiagnosticoIaScreen.kt` (chat de diagnóstico IA) removidos em definitivo
+> na issue #912 (decisão de produto 2026-07-12: sem chat com IA no app). Nunca tiveram ponto de
+> entrada em produção — ver #850.
 
 ---
 

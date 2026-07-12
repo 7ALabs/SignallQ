@@ -4,14 +4,16 @@ import {
   mockScreenNavigation,
   mockFeatureCrashes,
   mockRetention,
-  mockFeatureAiUsage
+  mockFeatureAiUsage,
+  mockDeviceBreakdown
 } from "../mocks/productAnalytics.mock";
 import {
   FeatureUsageMetric,
   ScreenNavigationMetric,
   FeatureCrashMetric,
   RetentionMetric,
-  FeatureAiUsageMetric
+  FeatureAiUsageMetric,
+  DeviceBreakdownMetric
 } from "../types/productAnalytics";
 
 export interface DashboardFilters {
@@ -210,6 +212,26 @@ export class ProductAnalyticsService {
       };
     }
     return null;
+  }
+
+  // #785 — fonte própria (diagnostic_sessions via D1), não fetchProductAnalytics
+  // (que agrega analytics_events) — são tabelas/fontes diferentes.
+  async getDeviceBreakdown(filters?: DashboardFilters): Promise<DeviceBreakdownMetric[]> {
+    if (apiClient.isMockEnabled()) {
+      await this.delay(200);
+      return mockDeviceBreakdown;
+    }
+
+    try {
+      const data = await apiClient.request<{ no_data_yet: boolean; items: DeviceBreakdownMetric[] }>(
+        "GET",
+        `/admin/analytics/devices${this.buildParams(filters)}`
+      );
+      if (!data || data.no_data_yet) return [];
+      return data.items;
+    } catch {
+      return [];
+    }
   }
 
   async getOverviewCards(filters?: DashboardFilters) {

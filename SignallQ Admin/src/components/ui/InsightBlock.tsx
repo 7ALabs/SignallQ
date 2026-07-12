@@ -6,7 +6,7 @@ import { Lightbulb } from "lucide-react";
  * fica entre o gráfico principal e a tabela de investigação, traduzindo o que
  * o gráfico está dizendo em texto corrido, antes do usuário cair no drill-down.
  * Recebe só texto derivado de dado real já carregado na tela — nunca reinventa
- * métrica aqui dentro (ver `docs_ai/design-system/WIREFRAME_ADMIN_REDESIGN_552.md`).
+ * métrica aqui dentro (ver `docs_ai/_archive/2026-07-12_WIREFRAME_ADMIN_REDESIGN_552.md`).
  */
 interface InsightBlockProps {
   children: React.ReactNode;

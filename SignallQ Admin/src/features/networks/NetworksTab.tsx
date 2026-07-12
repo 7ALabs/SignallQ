@@ -10,7 +10,7 @@ interface NetworksTabProps {
 }
 
 // GH#552 (Fase 2) — "Redes & Provedores": fusão de `networks/` + `operators/`
-// (ver docs_ai/design-system/WIREFRAME_ADMIN_REDESIGN_552.md). Rota `/operators`
+// (ver docs_ai/_archive/2026-07-12_WIREFRAME_ADMIN_REDESIGN_552.md). Rota `/operators`
 // aponta pro mesmo componente em App.tsx até que nada mais linke pro slug antigo.
 export const NetworksTab: React.FC<NetworksTabProps> = ({
   environment,

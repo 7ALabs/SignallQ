@@ -26,8 +26,8 @@ import javax.inject.Inject
  * - Chat inline de diagnostico (perguntas simples ao AI sobre o resultado)
  * - Expoe [snapshotDiagnostico] para a UI
  *
- * Nota: o Chat Diagnostico IA completo (sessoes, historico Room, drawer) continua em
- * [ChatDiagnosticoIaViewModel] — responsabilidade diferente, mais complexa.
+ * Nota: o chat de diagnostico IA completo (sessoes, historico Room, drawer) foi removido
+ * em definitivo (issue #912 — decisao de produto: sem chat com IA no app).
  * Este ViewModel cuida apenas do chat "inline" de diagnostico (ver nota: atualmente sem call site ativo, DiagnosticoScreen foi removida).
  */
 @HiltViewModel

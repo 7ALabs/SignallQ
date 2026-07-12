@@ -80,7 +80,7 @@ class SignallQApplication :
         }
 
         // Inicia o coordinator singleton que persiste resultados do speedtest no Room.
-        // Centraliza a lógica que estava duplicada em MainViewModel e ChatDiagnosticoIaViewModel.
+        // Centraliza a lógica que antes estava duplicada entre ViewModels de diagnóstico.
         speedtestPersistenceCoordinator.iniciar()
 
         // Agenda sync retroativo de historico para o painel admin.

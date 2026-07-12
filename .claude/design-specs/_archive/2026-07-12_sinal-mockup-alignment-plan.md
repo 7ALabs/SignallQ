@@ -1,3 +1,8 @@
+> **ARQUIVADO em 2026-07-12** — todas as 5 tasks confirmadas implementadas em `SinalScreen.kt`
+> (filtro "Todos", "Mostrar Mais", `CanalCongestionadoBanner`, `ChannelItem` redesenhado, label
+> "USO POR CANAL", `SpectrumChart` com `redesRaw`/`seuSSID` gaussianas). Mantido como histórico
+> de decisão.
+
 # Plano Técnico — Alinhamento SinalScreen ao Mockup (Abas Wi-Fi e Canal)
 
 **Arquivo principal:** `app/src/main/kotlin/io/linka/app/kotlin/ui/screen/SinalScreen.kt` (3248 linhas)
