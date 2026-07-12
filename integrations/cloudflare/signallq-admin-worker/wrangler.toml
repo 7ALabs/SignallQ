@@ -28,3 +28,8 @@ CLOUDFLARE_D1_DATABASE_ID = "952cb253-1a84-48ac-9018-a4ca31036915"
 binding = "DB"
 database_name = "signallq-admin-db"
 database_id = "952cb253-1a84-48ac-9018-a4ca31036915"
+
+# GH#788 — snapshot de latencia/uptime a cada 15min (96 execucoes/dia, dentro do
+# free tier de Workers requests). Cron Triggers sao gratuitos em todos os planos.
+[triggers]
+crons = ["*/15 * * * *"]

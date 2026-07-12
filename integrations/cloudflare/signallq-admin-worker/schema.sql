@@ -173,3 +173,16 @@ ALTER TABLE analytics_events    ADD COLUMN play_track TEXT DEFAULT NULL;
 CREATE INDEX IF NOT EXISTS idx_sessions_play_track  ON diagnostic_sessions(play_track);
 CREATE INDEX IF NOT EXISTS idx_ai_usage_play_track   ON ai_usage(play_track);
 CREATE INDEX IF NOT EXISTS idx_analytics_play_track  ON analytics_events(play_track);
+
+-- GH#788: série histórica de latência/uptime por serviço (Saúde do Sistema),
+-- snapshot gravado a cada execução do Cron Trigger (ver `scheduled` em src/index.ts).
+-- Aplicar via: migrations/013_gh788.sql (npx wrangler d1 execute --file=... --remote)
+CREATE TABLE IF NOT EXISTS system_health_snapshots (
+  id         TEXT    PRIMARY KEY,
+  service    TEXT    NOT NULL,   -- d1 | firebase | bigquery
+  status     TEXT    NOT NULL,   -- ok | error | not_configured
+  latency_ms INTEGER,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_health_snapshots_service_created
+  ON system_health_snapshots(service, created_at);

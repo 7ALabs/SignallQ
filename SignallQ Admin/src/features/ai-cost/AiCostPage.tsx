@@ -1,10 +1,13 @@
 import React from "react";
 import { aiUsageService } from "../../services/aiUsageService";
 import { errorMetricsService } from "../../services/errorMetricsService";
+import { geminiQuotaService } from "../../services/geminiQuotaService";
+import { GeminiQuotaResponse } from "../../services/geminiQuotaService";
 import { alpha } from "../../utils/color";
 import { AiCostMetricGrid } from "./components/AiCostMetricGrid";
 import { AiBudgetCard } from "./components/AiBudgetCard";
 import { ProviderCostDonut } from "./components/ProviderCostDonut";
+import { GeminiQuotaCard } from "./components/GeminiQuotaCard";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
@@ -30,6 +33,7 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
   const [costSummary, setCostSummary] = React.useState<{ totalCostUsd: string; reliabilityPercentage: number | null } | null>(null);
   // Default provisório até o fetch real — mesmo fallback de errorMetricsService (aiDailyBudgetUsd).
   const [aiCostCeiling, setAiCostCeiling] = React.useState<number>(1.0);
+  const [geminiQuota, setGeminiQuota] = React.useState<GeminiQuotaResponse | null>(null);
 
   const loadAiStats = React.useCallback(async () => {
     setLoading(true);
@@ -57,6 +61,12 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
   React.useEffect(() => {
     loadAiStats();
   }, [loadAiStats]);
+
+  // #884 — quota independe de period/environment (é sempre "agora"), então não
+  // entra no gate de loading/error da tela; falha aqui não deve derrubar o resto.
+  React.useEffect(() => {
+    geminiQuotaService.getQuota().then(setGeminiQuota).catch(() => setGeminiQuota(null));
+  }, [triggerRefreshCounter]);
 
   if (loading) {
     return <LoadingState message="Recuperando telemetria de tokens, faturas e laudos..." />;
@@ -125,6 +135,9 @@ export const AiCostPage: React.FC<AiCostPageProps> = ({
 
       {/* 2. Orçamento mensal de IA — full-width, paridade mockup (teto real de alerta) */}
       <AiBudgetCard totalCostUsd={costSummary?.totalCostUsd ?? null} ceilingUsd={aiCostCeiling} period={period} />
+
+      {/* 2b. #884 — quota do free tier Gemini (RPM/TPM/RPD), independente de period/environment */}
+      <GeminiQuotaCard quota={geminiQuota} />
 
       {/* 3. Composição paridade mockup — custo por provedor (donut real) +
           faturamento por função (sem contrato de dado hoje) */}
