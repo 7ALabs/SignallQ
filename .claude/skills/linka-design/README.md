@@ -68,6 +68,32 @@ A **clean, bright, neutral Material Design 3** surface where a single **electric
 
 ---
 
+## MONETIZATION — NATIVE AD COMPONENTS
+
+`…/ui/component/ads/` (issue #555, v0.23.0) — official pattern for AdMob native ads inside the
+app's organic surfaces, currently anchored on 4 screens: **Velocidade** (`NativeAdRow`, idle
+state, below "Último resultado"), **Resultado** (`NativeAdCard`, dismissible), **Dispositivos**
+(`NativeAdListRow`, inside the connected-devices list itself — never in the Infraestrutura
+section), **Histórico** (`NativeAdCard`, dismissible).
+
+- **Three variants, chosen by context, not preference:** full dismissible card / compact row /
+  row inside an existing list. Never invent a fourth without design review.
+- **Mandatory disclosure (`AdBadge`), never hidden:** "Patrocinado" (neutral tone, `Campaign`
+  icon) for `NativeAdSource.ADMOB` — the only source actually in use; "Parceiro" (`accentBlue`,
+  `Storefront` icon) for `NativeAdSource.PARTNER` — component already supports it for a future
+  curated affiliate/partner catalog (`coreRecommendation`), not live yet.
+- **Never confusable with organic content:** dashed border (`Modifier.dashedBorder`, never
+  solid like organic cards), CTA in violet **outline** (never solid — solid violet is reserved
+  for primary organic CTAs like "Iniciar teste"/"Conversar com IA"), no photo/hero, advertiser
+  icon in a **square chip** (never circular, unlike organic avatars/icon chips).
+- **No placeholder state.** The whole composable returns early and renders nothing when there's
+  no loaded creative (`nativeAd == null`) — surrounding layout recomposes without a gap, never a
+  loading box or empty card.
+- Full component list and per-screen anchoring: `docs_ai/design-system/COMPONENTS_ANDROID.md`
+  ("Monetização — Anúncio Nativo").
+
+---
+
 ## ICONOGRAPHY
 
 - **System:** **Material Symbols / Material Icons** (Compose `androidx.compose.material.icons`), **Outlined** style predominantly (with a few Filled/Rounded for back-arrow, Wi-Fi, CellTower). Single-color, ~24dp, tinted by token (`accent`, `success`, `warning`, `error`, `textSecondary`/`textTertiary`). This is the *only* icon system in the app.
