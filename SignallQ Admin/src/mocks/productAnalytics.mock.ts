@@ -1,9 +1,10 @@
-import { 
-  FeatureUsageMetric, 
-  ScreenNavigationMetric, 
-  FeatureCrashMetric, 
-  RetentionMetric, 
-  FeatureAiUsageMetric 
+import {
+  FeatureUsageMetric,
+  ScreenNavigationMetric,
+  FeatureCrashMetric,
+  RetentionMetric,
+  FeatureAiUsageMetric,
+  DeviceBreakdownMetric
 } from "../types/productAnalytics";
 
 export const mockFeatureUsage: FeatureUsageMetric[] = [
@@ -270,4 +271,16 @@ export const mockFeatureAiUsage: FeatureAiUsageMetric[] = [
       }
     ]
   }
+];
+
+// #785 — reflete distribuição real observada em produção (fragmentação típica
+// de Android: modelo Samsung dominante, cauda longa de fabricantes/modelos).
+export const mockDeviceBreakdown: DeviceBreakdownMetric[] = [
+  { deviceModel: "samsung SM-A256E", osVersion: "Android 16", sessionCount: 36, percentage: 66.67 },
+  { deviceModel: "samsung SM-A155M", osVersion: "Android 16", sessionCount: 3, percentage: 5.56 },
+  { deviceModel: "samsung SM-A515F", osVersion: "Android 13", sessionCount: 3, percentage: 5.56 },
+  { deviceModel: "samsung SM-A566E", osVersion: "Android 16", sessionCount: 3, percentage: 5.56 },
+  { deviceModel: "motorola moto g75 5G", osVersion: "Android 16", sessionCount: 2, percentage: 3.70 },
+  { deviceModel: "samsung SM-S918B", osVersion: "Android 16", sessionCount: 2, percentage: 3.70 },
+  { deviceModel: "Xiaomi 25053PC47G", osVersion: "Android 15", sessionCount: 1, percentage: 1.85 },
 ];
