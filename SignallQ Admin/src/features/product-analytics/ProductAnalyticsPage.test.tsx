@@ -16,6 +16,9 @@ vi.mock("../../services/productAnalyticsService", () => ({
       { cohort: "device_id", cohortSize: 1200, day1: 31, day7: 14, day30: 6, avgInstalledDays: 18, uninstallRate: 22 },
     ]),
     getSessionDuration: vi.fn().mockResolvedValue({ avgDurationMs: 187000, sessionCount: 6200 }),
+    getDeviceBreakdown: vi.fn().mockResolvedValue([
+      { deviceModel: "samsung SM-A256E", osVersion: "Android 16", sessionCount: 36, percentage: 66.67 },
+    ]),
   },
 }));
 

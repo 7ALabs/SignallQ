@@ -41,7 +41,6 @@ import io.signallq.app.ui.SignallQTheme
 import io.signallq.app.ui.component.LgpdConsentDialog
 import io.signallq.app.ui.screen.AppShell
 import io.signallq.app.ui.screen.OnboardingScreen
-import io.signallq.app.ui.viewmodel.ChatDiagnosticoIaViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -60,7 +59,6 @@ class MainActivity : ComponentActivity() {
     lateinit var adsFlagsManager: AdsFlagsManager
 
     private val viewModel: MainViewModel by viewModels()
-    private val chatDiagViewModel: ChatDiagnosticoIaViewModel by viewModels()
 
     // ViewModels por feature — extraidos do MainViewModel (Passo 6 do plano de migracao).
     // Fase atual: instanciados e conectados; o MainViewModel ainda contem logica legada
@@ -261,8 +259,6 @@ class MainActivity : ComponentActivity() {
             val recommendationFeedback by viewModel.recommendationFeedback.collectAsStateWithLifecycle()
             // #82 — Banner Anatel dismissível
             val anatelBannerDismissed = viewModel.anatelBannerDismissed.collectAsStateWithLifecycle().value
-            // Chat Diagnóstico IA
-            val chatDiagUiState by chatDiagViewModel.uiState.collectAsStateWithLifecycle()
             // Issue #555 -- toggle remoto (Firebase Remote Config) de anuncios nativos.
             val adsFlags by adsFlagsManager.flags.collectAsStateWithLifecycle()
 
@@ -418,19 +414,6 @@ class MainActivity : ComponentActivity() {
                                     solicitarPermissaoTelefoniaSeNecessario()
                                     viewModel.iniciarSignallQComResultado(resultado, foco)
                                 },
-                            ),
-                        chatDiag =
-                            io.signallq.app.ui.screen.AppShellChatDiagState(
-                                chatDiagUiState = chatDiagUiState,
-                                onEnviarMensagem = chatDiagViewModel::onEnviarMensagem,
-                                onAtualizarDraft = chatDiagViewModel::onAtualizarDraft,
-                                onEscolherOpcao = chatDiagViewModel::onEscolherOpcao,
-                                onAbrirSessao = chatDiagViewModel::onAbrirSessao,
-                                onApagarSessao = chatDiagViewModel::onApagarSessao,
-                                onRenomearSessao = chatDiagViewModel::onRenomearSessao,
-                                onNovaSessao = chatDiagViewModel::onNovaSessao,
-                                onToggleDrawer = chatDiagViewModel::onToggleDrawer,
-                                onCancelarAcaoAtual = chatDiagViewModel::onCancelarAcaoAtual,
                             ),
                         ads =
                             io.signallq.app.ui.screen.AppShellAdsState(
