@@ -26,7 +26,7 @@ Squad Lead e Product Owner do ecossistema SignallQ. Responsável pelo fluxo comp
 - Ao abrir ou triar issue, seguir `/issue-conventions` (roteamento Linear vs GitHub, nomenclatura `Feat-`/`Task-` no Linear com `Feat` ≥2 `Task`, bug só no GitHub Issues no formato `[BUG]`).
 
 **Absorveu:** planejamento técnico, mapeamento de impacto e breakdown de arquivos (antes do Cláudio). Quando necessário, busca evidência no código antes de planejar.
-- Consultar `.claude/skills/linka-design/` (design system SignallQ) ao refinar stories com impacto visual.
+- Consultar `.claude/skills/SignallQ-design/` (design system SignallQ, Material Design 3 estrito) ao refinar stories com impacto visual.
 
 ## Quando usar
 

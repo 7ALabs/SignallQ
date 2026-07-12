@@ -16,7 +16,7 @@ código já dentro do padrão SignallQ.
 
 ## Sobre os arquivos deste pacote
 
-A pasta `.claude/skills/linka-design/` contém o design system completo, no formato que o
+A pasta `.claude/skills/SignallQ-design/` contém o design system completo, no formato que o
 Claude Code reconhece automaticamente. **Não é código de produção para copiar e colar** — é a
 **fonte de verdade de design** que o agente consulta:
 
@@ -53,7 +53,7 @@ Arraste a pasta `.claude/` deste pacote para a **raiz do seu projeto**:
 seu-projeto/
 └── .claude/
     └── skills/
-        └── linka-design/
+        └── SignallQ-design/
             ├── SKILL.md
             ├── README.md
             ├── colors_and_type.css
@@ -74,12 +74,12 @@ Skills são carregadas sob demanda. Para deixar o DS **sempre presente**, adicio
 ```md
 ## Design System
 Toda UI deste projeto segue o SignallQ Design System.
-Antes de criar ou editar telas/componentes, consulte a skill `linka-design`
-(.claude/skills/linka-design/README.md) e use os tokens de colors_and_type.css /
+Antes de criar ou editar telas/componentes, consulte a skill `SignallQ-design`
+(.claude/skills/SignallQ-design/README.md) e use os tokens de colors_and_type.css /
 SignallQTheme.kt como fonte de verdade.
 Não-negociáveis: Material 3 claro, acento violeta #6C2BFF, semântica de status
 verde/âmbar/vermelho, ícones Material Symbols (Outlined), tipo Roboto, grid 8dp,
-card radius 16dp e flat (sem sombras pesadas), superfícies SignallQ (IA) sempre escuras,
+card radius 12dp (md) e elevação tonal (sem sombra dura isolada), superfícies SignallQ (IA) sempre escuras,
 copy em PT-BR com "você" e SEM emoji.
 ```
 
@@ -87,7 +87,7 @@ copy em PT-BR com "você" e SEM emoji.
 
 - **Automático:** peça qualquer coisa de UI ("crie a tela de configurações de DNS") e o
   Claude Code ativa a skill pela `description`.
-- **Explícito:** "use a skill `linka-design` para …".
+- **Explícito:** "use a skill `SignallQ-design` para …".
 
 Para confirmar que está instalada, rode `/doctor` ou liste skills no Claude Code.
 
@@ -105,51 +105,68 @@ fonte de verdade (e não valores hardcoded). Antes de gerar UI nova, peça ao Cl
 
 ---
 
-## Design Tokens (referência rápida)
+## Design Tokens (referência rápida) — MD3 estrito
 
-> CSS var (artefatos web) → valor → equivalente Compose (`SignallQTheme.kt`).
+> CSS var (artefatos web) → valor → equivalente Compose (`SignallQTheme.kt`, a atualizar pelo
+> Camilo). **Nomenclatura MD3:** `--md-sys-color-{role}` / `on-{role}` / `{role}-container` /
+> `on-{role}-container` (manual §9). Os nomes antigos (`--accent`, `--bg-card`, `--text-primary`
+> etc.) seguem como **aliases deprecados** em `colors_and_type.css` só por compatibilidade —
+> não usar em artefato novo.
 
-### Marca
+### Primary / Secondary / Tertiary (paleta tonal HCT, derivada de `#6C2BFF`)
 | Token | Valor | Uso |
 |---|---|---|
-| `--accent` | `#6C2BFF` | CTA primário, highlights, seleção, nav ativa |
-| `--accent-blue` | `#2563EB` | Links/badges informativos, dados "Móvel", gradiente do avatar |
+| `--md-sys-color-primary` | `#6C2BFF` (tone40, light) | CTA primário, seleção, nav ativa |
+| `--md-sys-color-on-primary` | `#FFFFFF` | Texto/ícone sobre primary |
+| `--md-sys-color-primary-container` | `#EDE4FF` (tone90) | Fill de destaque suave |
+| `--md-sys-color-on-primary-container` | `#2A0080` (tone10) | Texto sobre primary-container |
+| `--md-sys-color-secondary` | `#9284A8` (tone40) | Suporte, chips |
+| `--md-sys-color-secondary-container` | `#EFEBF5` (tone90) | — |
+| `--md-sys-color-tertiary` | `#B03A5B` (tone40) | Destaques contrastantes |
+| `--md-sys-color-tertiary-container` | `#FFE4EC` (tone90) | — |
 
-### Status (semáforo)
+**Dark theme (correção de contraste, manual §2):** primary/secondary/tertiary sobem para o
+**tone80** (`#C9AEFF` / `#CFC4DE` / `#FFAFC7`) — nunca usar o tone40 do light em texto/ícone
+sobre fundo escuro (contraste ~2.8:1 → ~7.2:1 AAA).
+
+### Status (semáforo — fora do escopo MD3, mantido igual)
 | Token | Valor | Uso |
 |---|---|---|
-| `--success` | `#22C55E` | Conexão boa, testes OK |
-| `--warning` | `#F5A623` | Alertas moderados |
-| `--error` | `#FF4D4F` | Erros críticos, falhas |
+| `--md-sys-color-success` | `#22C55E` | Conexão boa, testes OK |
+| `--md-sys-color-warning` | `#F5A623` | Alertas moderados |
+| `--md-sys-color-error` | `#FF4D4F` | Erros críticos, falhas |
+| `--md-sys-color-error-container` / `on-error-container` | `#FFDAD9` / `#7A0009` | **Novo** — faltava (manual §5) |
 
-### Fases do SpeedTest
+### Fases do SpeedTest (produto, fora do escopo MD3)
 | Token | Valor |
 |---|---|
-| `--phase-latencia` | `#60A5FA` |
-| `--phase-download` | `#34D399` |
-| `--phase-upload` | `#FBBF24` |
+| `--md-sys-color-phase-latencia` | `#60A5FA` |
+| `--md-sys-color-phase-download` | `#34D399` |
+| `--md-sys-color-phase-upload` | `#FBBF24` |
 
-### Superfícies — Light (padrão)
+### Superfícies — Light (5 níveis de surface container, manual §5)
 | Token | Valor |
 |---|---|
-| `--bg-primary` | `#FFFFFF` |
-| `--bg-secondary` | `#F3F4F6` |
-| `--bg-card` | `#FFFFFF` |
-| `--text-primary` | `#0D0D1A` |
-| `--text-secondary` | `#6B7280` |
-| `--text-tertiary` | `#9CA3AF` |
-| `--border` | `#E5E7EB` |
+| `--md-sys-color-background` | `#FFFFFF` |
+| `--md-sys-color-surface-dim` | inferido (não está no manual) |
+| `--md-sys-color-surface-container-low` | `#FDFBFF` |
+| `--md-sys-color-surface-container` | `#FBF7FF` |
+| `--md-sys-color-surface-container-high` | `#F8F2FF` |
+| `--md-sys-color-surface-container-highest` | `#F5EDFF` |
+| `--md-sys-color-on-surface` | `#0D0D1A` |
+| `--md-sys-color-on-surface-variant` | `#6B7280` |
+| `--md-sys-color-outline` | `#E5E7EB` |
+| `--md-sys-color-outline-variant` | inferido (mais fraco que outline) |
 
 ### Superfícies — Dark
 | Token | Valor |
 |---|---|
-| `--bg-primary` | `#000000` |
-| `--bg-secondary` | `#1A1A1A` |
-| `--bg-card` | `#111111` |
-| `--text-primary` | `#F3F4F6` |
-| `--border` | `#2A2A2A` |
+| `--md-sys-color-background` | `#000000` |
+| `--md-sys-color-surface-container-low` | `#161616` |
+| `--md-sys-color-surface-container` | `#1A1A1A` |
+| `--md-sys-color-outline` | `#2A2A2A` |
 
-### SignallQ (IA — sempre escuro, não adapta ao tema)
+### SignallQ (IA — sempre escuro, não adapta ao tema, fora do escopo §10)
 | Token | Valor |
 |---|---|
 | `--SignallQ-black` | `#0D0D1A` (background) |
@@ -157,51 +174,69 @@ fonte de verdade (e não valores hardcoded). Antes de gerar UI nova, peça ao Cl
 | `--SignallQ-dark-card` | `#1E1130` |
 | `--SignallQ-text-on-dark` | `#F3F4F6` |
 
-### Containers semânticos (Light)
-| Token | Valor |
-|---|---|
-| `--warning-container` / `--on-warning-container` | `#FFF3CD` / `#7A4E00` |
-| `--amber-surface` | `#FFF8E6` |
-| `--success-container` / `--on-success-container` | `#D1FAE5` / `#065F46` |
+### Elevação tonal — 5 níveis (manual §3)
+| Nível | Tint | Shadow |
+|---|---|---|
+| level0 | `#FFFFFF` | none |
+| level1 | `#FDFBFF` | `0 1px 2px rgba(0,0,0,.08)` |
+| level2 | `#FBF7FF` | `0 1px 3px rgba(0,0,0,.12)` |
+| level3 | `#F8F2FF` | `0 2px 6px rgba(0,0,0,.16)` |
+| level4 | `#F5EDFF` | `0 3px 8px rgba(0,0,0,.18)` |
 
-### Espaçamento — grid 8dp (`LkSpacing`)
+### State layers (manual §6) — aplicar a card clicável, itens de lista/sheet, tabs, ações de TopBar, chips tocáveis
+`hover` 8% · `focus` 10% · `pressed` 12% · `dragged` 16% — overlay sobre `onSurface`/`onPrimary`,
+nunca mudança de cor de fundo.
+
+### Motion (manual §7)
+`emphasized` / `standard` = `cubic-bezier(.2,0,0,1)` · durações `short 100ms · medium 200ms ·
+long 300ms · extra-long 400ms`.
+
+### Espaçamento — grid 8dp (`LkSpacing`, fora do escopo MD3)
 `--space-xs` 4 · `--space-sm` 8 *(unidade base)* · `--space-md` 12 · `--space-lg` 16
 *(padding de tela + card)* · `--space-xl` 24 · `--space-xxl` 32. Toque mínimo: **56dp**.
 
-### Raios (`LkRadius`)
-`--radius-card` 16 · `--radius-button` / `--radius-input` 12 · `--radius-pill` 999.
-Ícones em chip circular e avatares: totalmente redondos (36–44dp típico).
+### Forma — escala completa (manual §4)
+`none` 0 · `xs` 4 · `sm` 8 · `md` 12 · `lg` 16 · `xl` 28 · `full` 999. **Mudança:** card passa
+de 16 para **12 (md)**; **16 (lg) fica reservado a sheets/dialogs**. Ícones em chip circular e
+avatares: totalmente redondos (36–44dp típico).
 
-### Tipografia — Roboto, escala Material 3 (`signallQTypography`)
-Sem fonte customizada — Compose usa o default do sistema (Roboto). Classes em
-`colors_and_type.css`: `display-large` (700/34) · `headline-large` (600/24) ·
-`headline-medium` (600/20) · `headline-small` (600/18) · `title-large` (500/16) ·
-`title-medium` (500/15) · `title-small` (500/14) · `body-large` (400/16) ·
-`body-medium` (400/14) · `body-small` (400/12) · `label-*` (500/400, 14–11) ·
-`overline` (600/11, UPPERCASE, +0.3px letter-spacing).
+### Densidade de ícone (manual §8)
+`24dp` conteúdo padrão · `20dp` ações compactas de TopBar · `18dp` labels inline.
 
-### Alpha (convenção do codebase)
+### Tipografia — Google Sans + Roboto, escala MD3 completa (manual §1)
+Display/Headline/Title em **Google Sans** (fallback Roboto — não disponível no Google Fonts
+público); Body/Label em **Roboto**. Classes em `colors_and_type.css`: `display-large/medium/small`
+(400, 57/45/36) · `headline-large/medium/small` (400, 32/28/24) · `title-large` (400, 22) ·
+`title-medium/small` (500, 16/14) · `body-large/medium/small` (400, 16/14/12) ·
+`label-large/medium/small` (500, 14/12/11) · `overline` (500/11, UPPERCASE, +0.3px, decisão de
+conteúdo — não é estilo MD3 nomeado).
+
+### Alpha (convenção do codebase, fora do escopo MD3)
 Tints são cor-em-alpha por sufixo hex: `1A`=10% · `1F`=12% · `26`=15% · `33`=20% ·
-`40`=25%. Ex.: card de Wi-Fi conectado = `success @12%` fill; seleção/IA = `accent @8–12%`
-fill + `accent @25–30%` borda; banner de alerta = `warning @12%` fill.
+`40`=25%. Ex.: card de Wi-Fi conectado = `success @12%` fill; seleção/IA = `primary @8–12%`
+fill + `primary @25–30%` borda; banner de alerta = `warning @12%` fill.
 
 ---
 
 ## Regras não-negociáveis (resumo)
 
 **Visual**
-- Material Design 3 claro, brilhante, neutro. Um único acento violeta `#6C2BFF` para
-  destaque; status verde/âmbar/vermelho carregam o significado.
+- Material Design 3 **estrito**, claro, brilhante, neutro. Paleta tonal Primary/Secondary/Tertiary
+  (HCT, derivada de `#6C2BFF`) para destaque; status verde/âmbar/vermelho carregam o significado
+  (fora do escopo MD3, mantido igual).
 - **Sem** imagens fotográficas, hero full-bleed, padrões/texturas ou gradientes decorativos.
   Gradiente existe em exatamente 2 lugares: avatar de perfil e header de Diagnóstico/IA
-  (linear `accent → accent-blue`).
-- Cards: raio 16dp, fundo `--bg-card`, hairline `1px --border`, **flat** (elevação por tom de
-  superfície, não por sombra). Sombra suave só no pill de segmento ativo e no botão de
-  speedtest.
+  (linear `primary → accent-blue`).
+- Cards: raio **12dp (md)**, fundo `surface`/`surface-container`, hairline `1px outline-variant`,
+  **elevação tonal** (5 níveis, tint de superfície + shadow sutil — não sombra dura isolada).
+  Sheets/dialogs herdam o raio antigo do card: **16dp (lg)**.
+- State layers em todo componente clicável: hover 8% / focus 10% / pressed 12% / dragged 16%
+  sobre `onSurface`/`onPrimary`.
 - Cards "status" tingidos: cor semântica em alpha baixo (fill) + ~25–30% (borda).
-- Ícone em chip circular preenchido com a cor semântica ~10% é o motivo recorrente.
+- Ícone em chip circular preenchido com a cor semântica ~10% é o motivo recorrente. Densidade:
+  24dp padrão / 20dp TopBar compacta / 18dp inline.
 - Barras de sinal: glyph vertical de 4 barras (alturas 6/9/12/16dp, largura 3dp, raio 1dp),
-  cor pela qualidade (verde Forte / âmbar Regular / vermelho Fraco), vazias em `--border`.
+  cor pela qualidade (verde Forte / âmbar Regular / vermelho Fraco), vazias em `outline`.
 
 **Conteúdo / voz**
 - Português do Brasil, sempre. Fala **com** o usuário usando "você", a partir do mundo dele

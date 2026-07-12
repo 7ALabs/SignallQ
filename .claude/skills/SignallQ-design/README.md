@@ -43,28 +43,45 @@ The product talks to a **non-technical Brazilian** whose internet "is acting up.
 
 ---
 
-## VISUAL FOUNDATIONS
+## VISUAL FOUNDATIONS — MD3 estrito (migração 2026-07-11)
 
-A **clean, bright, neutral Material Design 3** surface where a single **electric violet** does all the highlighting and **traffic-light semantics** (green / amber / red) carry connection quality. Nothing decorative competes with the data.
+> Fonte desta seção: manual "Migração para Material Design 3 (estrito)" (Claude Design,
+> extraído 2026-07-11). Onde o manual não especifica um valor que já existia (status
+> verde/âmbar/vermelho, superfícies SignallQ/IA, copy/voz), o valor anterior foi mantido —
+> ver seção 10 do manual, "fora de escopo".
 
-- **Color vibe.** Mostly **white & light-grey**; one saturated brand color, **violet `#6C2BFF`**, used sparingly for the active nav tab, primary CTAs, selection, and the speedtest button. A secondary **blue `#2563EB`** appears in the profile-avatar gradient and "Móvel" data. Status colors are the workhorses for meaning. There is a full **dark theme** (`#000` bg, `#111` cards, `#1A1A1A` secondary) and a permanently-dark **SignallQ** palette (`#0D0D1A` / `#1A0B2E` / `#1E1130`) for the AI surfaces only.
+A **clean, bright, neutral Material Design 3** surface where a tonal **Primary/Secondary/Tertiary** triad (derived via HCT from electric violet `#6C2BFF`) does all the highlighting and **traffic-light semantics** (green / amber / red) carry connection quality. Nothing decorative competes with the data.
+
+- **Color vibe.** Mostly **white & light-grey**; a tonal triad rooted in **violet `#6C2BFF`** (Primary base/tone40), with Secondary (`#9284A8` base) and Tertiary (`#B03A5B` base) as harmonics — used sparingly for the active nav tab, primary CTAs, selection, and the speedtest button. Status colors are the workhorses for meaning. There is a full **dark theme** (`#000` bg, `#111` surface) — **em modo escuro, texto/ícone de role primary/secondary/tertiary sobe para o tone80 da tríade** (`#C9AEFF`/`#CFC4DE`/`#FFAFC7`), nunca o tone40 do light (correção de contraste: `#6C2BFF` sobre `#111` dava ~2.8:1, abaixo de AA; tone80 dá ~7.2:1, AAA) — e uma paleta permanentemente escura **SignallQ** (`#0D0D1A` / `#1A0B2E` / `#1E1130`) para as superfícies de IA, fora do sistema de tema dinâmico.
 - **Backgrounds.** Flat solids — **no photographic imagery, no full-bleed hero images, no repeating patterns/textures, no decorative gradients** on surfaces. Gradients exist in exactly two places: the **profile avatar** (linear accent→accentBlue) and the **Diagnóstico/AI header** (same linear gradient). The speedtest "Iniciar" button is a solid violet disc with a soft same-color glow ring.
-- **Type.** System **Roboto** (Android default), Material 3 scale. Bold/SemiBold for headings & metric values, Regular for body. Big numeral + small unit is the signature metric treatment. Two custom animated text components: **TypewriterText** (AI replies type in char-by-char) and **RotatingMessageText** (looping hints, fade in/out).
-- **Spacing.** Strict **8dp grid** (`4/8/12/16/24/32`). 16dp is the standard screen padding and card inner padding. 56dp minimum touch target.
-- **Cards.** Rounded **16dp** corners, fill color `--bg-card`, separated by a hairline `1px` `--border` and/or sitting on the `--bg-secondary` page tone — **flat, no drop shadows** in the M3 sense (elevation is conveyed by tonal surface, not shadow). Tinted "status" cards use the semantic color at low alpha for fill and ~25–30% for border: connected Wi-Fi card = `success @12%` fill; selected/AI accents = `accent @8–12%` fill, `accent @25–30%` border. Banners (offline/warning) = `warning @12%` fill, warning text + icon.
+- **Type.** **Google Sans** para Display/Headline/Title (fallback fiel Roboto — Google Sans não está disponível no Google Fonts público); **Roboto** para Body/Label. Escala MD3 completa: 15 estilos (Display/Headline/Title/Body/Label × Large/Medium/Small). Big numeral + small unit continua sendo o tratamento assinatura de métrica. Dois componentes de texto animado seguem: **TypewriterText** e **RotatingMessageText**.
+- **Spacing.** Strict **8dp grid** (`4/8/12/16/24/32`) — fora do escopo do manual MD3, mantido igual. 16dp is the standard screen padding and card inner padding. 56dp minimum touch target.
+- **Forma — escala completa (7 tokens).** `none 0 · xs 4 · sm 8 · md 12 · lg 16 · xl 28 · full 999`. **Mudança de comportamento:** cards agora usam **12dp (md)** — não mais 16dp; **16dp (lg) fica reservado a sheets/dialogs**.
+- **Cards.** Rounded **12dp** corners (token `md`), fill color `surface`/`surface-container`, separated by a hairline `1px` `outline-variant`. **Elevação tonal** (5 níveis — tint de superfície + shadow sutil, não sombra dura isolada) substitui a ausência total de elevação. Tinted "status" cards use the semantic color at low alpha for fill and ~25–30% for border: connected Wi-Fi card = `success @12%` fill; selected/AI accents = `primary @8–12%` fill, `primary @25–30%` border. Banners (offline/warning) = `warning @12%` fill, warning text + icon.
 - **Buttons / pills.**
-  - Primary: solid `--accent`, white text, **12dp** radius.
-  - Segmented selector (Rápido/Completo/Triplo): pill track on `--bg-secondary`, **active segment is a white pill with subtle elevation** — intentionally *neutral*, not accent-colored.
-  - Filter chips (Todos / 2.4 / 5 / 6 GHz): fully-rounded pills; selected = `accent @ light tint` fill + accent text; idle = `--bg-secondary`.
-- **Borders.** `1px` solid `--border` for dividers, list separators, outline buttons, idle chips. Selected states swap to accent at 25–40% alpha.
-- **Radii.** card 16 · button/input 12 · pills/chips 999 · circular icon chips & avatars fully round (commonly 36–44dp).
-- **Elevation / shadow.** Minimal. The active-segment pill and FAB-like speedtest button carry the only soft shadows; cards rely on tonal contrast + border. **No heavy drop shadows.**
+  - Primary: solid `primary`, texto `onPrimary`, **12dp (md)** radius. Variantes MD3 completas a adicionar: Filled / Tonal / Outlined / Text / Elevated.
+  - Segmented selector (Rápido/Completo/Triplo): pill track on `surface-container`, **active segment is a white pill with subtle elevation** — intentionally *neutral*, not accent-colored.
+  - Filter chips (Todos / 2.4 / 5 / 6 GHz): fully-rounded pills (`full`); selected = `primary @ light tint` fill + primary text; idle = `surface-container`.
+- **Borders.** `1px` solid `outline` for dividers, list separators, outline buttons, idle chips; `outline-variant` (mais fraco) para divisores puramente decorativos. Selected states swap to primary at 25–40% alpha.
+- **Radii.** card **12 (md)** · button/input 12 (md) · sheets/dialogs **16 (lg)** · pills/chips 999 (full) · circular icon chips & avatars fully round (commonly 36–44dp).
+- **Elevation.** Tonal, 5 níveis (`level0`–`level4`), tint de superfície crescente + shadow sutil acompanhando. Cards e componentes flutuantes usam essa escala em vez de sombra dura isolada; **FAB** (inexistente hoje, a criar) usa `level3`.
+- **State layers (novo).** Todo componente interativo (Card clicável, itens de lista/sheet, tabs do BottomNav, ações de TopBar, chips/badges tocáveis) expõe overlay de opacidade fixa sobre `onSurface`/`onPrimary`: hover 8% · focus 10% · pressed 12% · dragged 16% — nunca mudança de cor de fundo.
 - **Transparency & blur.** Used as **color-at-alpha tints** (the `1A`=10%, `1F`=12%, `26`=15%, `33`=20%, `40`=25% hex-suffix convention from the codebase), not as glassmorphism. No backdrop blur.
-- **Iconography in circles.** Recurring motif: a Material icon centered in a **circular chip** filled with its semantic color at ~10% — 44dp on signal cards, 36dp on friendly cards, 80dp in empty states.
-- **Signal bars.** Custom 4-bar vertical glyph (heights `6/9/12/16dp`, width `3dp`, radius `1dp`); filled bars take the quality color (green=Forte, amber=Regular, red=Fraco), empty bars use `--border`.
-- **Animation / motion.** Restrained & functional. Live speedtest gauge fills as it measures; phase pills check off with **haptics** between phases; AI "thinking" bubble pulses dots; border-glow effect on highlight cards (`AppBorderGlowEffect`). Scroll-aware bottom nav slides off-screen on scroll-down, returns on scroll-up, and hides entirely during a running test. Transitions are quick fades/offsets — **no bounces, no flourish**. Easing is standard M3 (LinearEasing for the looping/progress animations).
-- **Hover / press.** This is a touch app: feedback is the M3 ripple + state-layer tint (accent/onSurface at low alpha) and, for the gauge/CTA, scale/haptic. No web-style hover.
-- **Layout rules.** Fixed elements: a **CenterAlignedTopAppBar** (centered title, `ProfileAvatarButton` at left, contextual action at right) and a **5-tab bottom NavigationBar** (Início · Velocidade · Sinal · Histórico · Ajustes). Content scrolls in a `LazyColumn` between them. Secondary screens overlay the tabs rather than being separate tabs; deep flows get a back arrow in the nav-icon slot. Bottom sheets (`ModalBottomSheet`) are the standard pattern for permissions, topology analysis, and pickers.
+- **Iconography in circles.** Recurring motif: a Material icon centered in a **circular chip** filled with its semantic color at ~10% — 44dp on signal cards, 36dp on friendly cards, 80dp in empty states. Densidade por contexto: **24dp** conteúdo padrão · **20dp** ações compactas de TopBar · **18dp** labels inline.
+- **Signal bars.** Custom 4-bar vertical glyph (heights `6/9/12/16dp`, width `3dp`, radius `1dp`); filled bars take the quality color (green=Forte, amber=Regular, red=Fraco), empty bars use `outline`.
+- **Animation / motion.** Easing e duração agora tokenizados: **emphasized** e **standard**, ambos `cubic-bezier(.2,0,0,1)`; durações **100/200/300/400ms** (short/medium/long/extra-long) por escala do elemento afetado. Live speedtest gauge fills as it measures; phase pills check off with **haptics** between phases; AI "thinking" bubble pulses dots; border-glow effect on highlight cards (`AppBorderGlowEffect`). Scroll-aware bottom nav slides off-screen on scroll-down, returns on scroll-up, and hides entirely during a running test. **No bounces, no flourish.**
+- **Hover / press.** This is a touch app: feedback é o M3 ripple + **state layer** (ver acima) e, para o gauge/CTA, scale/haptic. No web-style hover.
+- **Layout rules.** Fixed elements: a **CenterAlignedTopAppBar** (centered title, `ProfileAvatarButton` at left, contextual action at right) and a **5-tab bottom NavigationBar** (Início · Velocidade · Sinal · Histórico · Ajustes). Content scrolls in a `LazyColumn` between them. Secondary screens overlay the tabs rather than being separate tabs; deep flows get a back arrow in the nav-icon slot. Bottom sheets (`ModalBottomSheet`, radius **16dp/lg**) are the standard pattern for permissions, topology analysis, and pickers.
+
+### Lacunas do manual (sinalizadas, não inventadas)
+
+- **Surface container "dim"** (5º nível, mais recessado que `highest`) — o manual pede a expansão
+  de 3 para 5 níveis mas só dá hex para os 4 níveis de elevação tonal (0–4). O valor de
+  `surface-dim` em `colors_and_type.css` está marcado como **inferido**, não veio do manual.
+- **Elevação tonal no tema escuro** — o manual só especifica os 5 tints em modo claro. Os
+  equivalentes em `.dark` foram estimados por progressão de neutro, não vêm do manual.
+- **`outline-variant`** — o manual pede o token mas não dá hex; valor atual é inferido (mais
+  claro que `outline`).
 
 ---
 
