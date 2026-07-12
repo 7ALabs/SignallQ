@@ -5,13 +5,15 @@ interface TeamMember {
   role: string;
 }
 
-// Roster estático do squad — dado literal do próprio time, não depende de integração externa.
+// Roster estático do squad — dado literal do próprio time, não depende de
+// integração externa. #880 (achado 11): Felipe foi desligado em 2026-07-09
+// (Admin/Cloudflare herdado pelo Camilo) e Gema foi substituída em 2026-07-10
+// (QA/Release/Higiene/Documentação passou pro Rhodolfo) — ver CLAUDE.md.
 const TEAM: TeamMember[] = [
   { name: "Claudete Souza", role: "Produto" },
   { name: "Camilo Reis", role: "Engenharia" },
-  { name: "Felipe Nunes", role: "Engenharia" },
   { name: "Lia Prado", role: "Design" },
-  { name: "Gema Duarte", role: "Parceiros" },
+  { name: "Rhodolfo Aguiar", role: "QA & Release" },
 ];
 
 function initials(name: string): string {

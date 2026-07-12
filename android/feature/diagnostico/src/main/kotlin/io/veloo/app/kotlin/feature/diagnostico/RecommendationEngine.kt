@@ -56,10 +56,20 @@ object RecommendationEngine {
     // -------------------------------------------------------------------------
     // 1. Trocar para Wi-Fi 5GHz
     // -------------------------------------------------------------------------
-    // Mostrar: conectado em 2.4GHz + (link speed baixo OU download baixo) + rede
-    // 5GHz do mesmo SSID disponivel no scan de vizinhanca (mesmo roteador).
-    // NAO mostrar: 5GHz disponivel mas com sinal muito fraco (regular/critico), ou
-    // se o achado principal aponta problema externo (operadora/DNS/fibra).
+    // Mostrar: conectado em 2.4GHz + (link speed baixo OU download baixo) +
+    // aparelho compativel com 5GHz + sinal atual nao fraco demais (5GHz tem
+    // alcance menor, entao trocar so ajuda perto do roteador) + achado principal
+    // nao aponta problema externo (operadora/DNS/fibra).
+    //
+    // #897: a versao anterior EXIGIA rede 5GHz do mesmo SSID no scan de
+    // vizinhanca como pre-requisito obrigatorio — mas o wifiScan nao e
+    // preenchido no fluxo de producao (SignallQOrchestrator so roda o scan de
+    // vizinhanca em telas dedicadas de Wi-Fi), entao a recomendacao nunca
+    // aparecia de verdade. Alem disso, muitos roteadores usam SSID diferente
+    // para a banda de 5GHz (ex.: "Casa" e "Casa_5G"), entao exigir SSID igual
+    // tambem excluia esse cenario comum mesmo com scan disponivel. Scan
+    // confirmando o mesmo SSID em 5GHz agora e evidencia extra (reforca a
+    // mensagem), nao mais obrigatorio.
     private fun recomendarWifi5Ghz(
         input: DiagnosticInput,
         problemaExternoProvavel: Boolean,
@@ -67,34 +77,56 @@ object RecommendationEngine {
         val wifi = input.wifi ?: return null
         if (wifi.banda() != BandaWifi.ghz24) return null
         if (problemaExternoProvavel) return null
+        if (wifi.is5GhzCapable == false) return null // aparelho sem suporte confirmado a 5GHz
 
         val linkBaixo = (wifi.linkSpeedMbps ?: Int.MAX_VALUE) < 144
         val downloadBaixo = (input.internet?.downloadMbps ?: Double.MAX_VALUE) < 25.0
         if (!linkBaixo && !downloadBaixo) return null
 
-        val ssid = wifi.ssid ?: return null
-        val redes5Ghz = input.wifiScan?.redes.orEmpty().filter {
-            it.ssid == ssid && it.frequenciaMhz != null && it.frequenciaMhz >= 5000
-        }
-        if (redes5Ghz.isEmpty()) return null
+        // Sinal 2.4GHz ja fraco demais: 5GHz tem alcance menor, trocar tende a
+        // piorar o cenario em vez de ajudar — nao recomenda.
+        val rssiAtual = wifi.rssiDbm
+        if (rssiAtual != null && rssiAtual < -70) return null
 
-        // Confianca extra (nao obrigatoria): se algum BSSID vizinho tem OUI de
-        // gateway ISP ou mesh conhecido, reforca que e o mesmo roteador fisico.
-        // A condicao principal (mesmo SSID) ja e suficiente para mostrar a dica.
-        val melhorSinal5Ghz = redes5Ghz.maxOf { it.rssiDbm ?: Int.MIN_VALUE }
-        if (melhorSinal5Ghz <= -75) return null // 5GHz disponivel mas fraco demais — nao recomendar
+        val ssid = wifi.ssid
+        val redes5Ghz = if (ssid != null) {
+            input.wifiScan?.redes.orEmpty().filter {
+                it.ssid == ssid && it.frequenciaMhz != null && it.frequenciaMhz >= 5000
+            }
+        } else {
+            emptyList()
+        }
+
+        // Se o scan confirma o mesmo SSID em 5GHz mas com sinal fraco demais,
+        // nao recomenda — evidencia direta de que a troca nao ajudaria.
+        val melhorSinal5Ghz = redes5Ghz.mapNotNull { it.rssiDbm }.maxOrNull()
+        if (melhorSinal5Ghz != null && melhorSinal5Ghz <= -75) return null
 
         val temOuiConhecido = redes5Ghz.any { rede ->
             val oui = rede.bssid?.replace(":", "")?.take(6)?.uppercase()
             oui != null && (MeshOuiDatabase.isGatewayIsp(oui) || MeshOuiDatabase.isMeshNo(oui))
+        }
+        val confirmadoPorScan = redes5Ghz.isNotEmpty()
+
+        val evidencia = "banda=2.4GHz linkSpeed=${wifi.linkSpeedMbps ?: "—"}Mbps rssiAtual=${rssiAtual ?: "—"}dBm " +
+            if (confirmadoPorScan) {
+                "rede5GhzRssi=${melhorSinal5Ghz}dBm ouiConhecido=$temOuiConhecido"
+            } else {
+                "confirmadoPorScan=false"
+            }
+
+        val mensagem = if (confirmadoPorScan) {
+            "Seu roteador tem uma rede 5GHz disponível com sinal bom, mas você está conectado na faixa 2.4GHz."
+        } else {
+            "Você está na faixa 2,4GHz e a velocidade está baixa. Se o seu roteador tiver rede 5GHz (às vezes com nome parecido, tipo \"_5G\"), perto dele ela costuma ser mais rápida."
         }
 
         return DiagnosticResult(
             id = "REC-01",
             titulo = "Troque para o Wi-Fi 5GHz",
             status = DiagnosticStatus.info,
-            evidencia = "banda=2.4GHz linkSpeed=${wifi.linkSpeedMbps ?: "—"}Mbps rede5GhzRssi=${melhorSinal5Ghz}dBm ouiConhecido=$temOuiConhecido",
-            mensagemUsuario = "Seu roteador tem uma rede 5GHz disponível com sinal bom, mas você está conectado na faixa 2.4GHz.",
+            evidencia = evidencia,
+            mensagemUsuario = mensagem,
             recomendacao = "Troque para a rede 5GHz do mesmo roteador nas configurações de Wi-Fi do aparelho — costuma ser mais rápida e com menos interferência.",
             categoria = CAT,
         )

@@ -13,12 +13,17 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -279,7 +284,19 @@ class MainActivity : ComponentActivity() {
                 }
 
             SignallQTheme(darkTheme = darkTheme) {
-                if (!onboardingConcluido) {
+                // #895: `onboardingConcluido == null` = DataStore ainda nao respondeu nesta
+                // composicao (distinto de `false` = usuario novo). Sem esse terceiro estado, a
+                // tela de Onboarding (e, na sequencia, o dialog de LGPD) "piscava" por um
+                // instante em TODO cold start, mesmo pra quem ja concluiu ambos — a rota
+                // inicial so e decidida depois que os dois valores reais chegam.
+                if (onboardingConcluido == null) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background),
+                    )
+                } else if (!onboardingConcluido) {
                     OnboardingScreen(
                         onConcluir = { viewModel.marcarOnboardingConcluido() },
                         // #128: solicitar permissões no slide 3 (localização + dispositivos próximos)

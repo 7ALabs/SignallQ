@@ -77,7 +77,19 @@ export class GeminiFlashProvider implements AiProvider {
     return JSON.stringify({
       systemInstruction: { parts: [{ text: systemPrompt }] },
       contents: [{ role: "user", parts: [{ text: userContent }] }],
-      generationConfig: { maxOutputTokens: maxTokens, temperature },
+      // GH#898 QA fix — o alias "gemini-flash-latest" hoje resolve para um modelo
+      // com "thinking" habilitado por padrao, que consome parte do
+      // maxOutputTokens em tokens de raciocinio invisiveis antes do texto final.
+      // Isso fazia o JSON (mais longo desde a regra 8/8a de linguagem humana)
+      // ser cortado no meio por MAX_TOKENS mesmo com poucos caracteres visiveis
+      // (raiz do 502 ai_json_parse_failed em producao). thinkingBudget: 0
+      // desliga o raciocinio para modelos que suportam o campo; ignorado sem
+      // erro pelos que nao suportam.
+      generationConfig: {
+        maxOutputTokens: maxTokens,
+        temperature,
+        thinkingConfig: { thinkingBudget: 0 },
+      },
     });
   }
 

@@ -2,6 +2,7 @@ import React from "react";
 import { MetricCard } from "../../../components/ui/MetricCard";
 import { GooglePlayRatingSummary } from "../../../integrations/google-play/googlePlay.types";
 import { FirebaseCrashlyticsSummary } from "../../../integrations/firebase/firebase.types";
+import { crashFreeReason } from "../../../utils/crashlytics";
 
 interface OverviewMetricGridProps {
   activeUsersToday: number | null;
@@ -15,18 +16,6 @@ interface OverviewMetricGridProps {
 // Nota na Play Store não tem integração real ainda (getGooglePlayRatings é
 // mock-only hoje) — "Não disponível" é o estado honesto: mostrar um número
 // fabricado seria pior que não mostrar nada.
-function crashFreeReason(source: FirebaseCrashlyticsSummary["source"] | undefined): string {
-  switch (source) {
-    case "no_credentials":
-      return "Firebase não configurado no Admin Worker";
-    case "no_data_yet":
-      return "BigQuery export ainda sem volume de crash";
-    case "error":
-      return "Erro ao consultar o BigQuery — tente novamente";
-    default:
-      return "Crashlytics indisponível";
-  }
-}
 
 export const OverviewMetricGrid: React.FC<OverviewMetricGridProps> = ({
   activeUsersToday,

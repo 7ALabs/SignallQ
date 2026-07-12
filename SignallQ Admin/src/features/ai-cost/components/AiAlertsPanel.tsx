@@ -7,7 +7,7 @@ import { formatCurrency } from "../../../utils/format";
 
 export const AiAlertsPanel: React.FC = () => {
   const [alerts, setAlerts] = React.useState<AiAlert[]>([]);
-  const [aiCostCeiling, setAiCostCeiling] = React.useState<number>(200);
+  const [aiCostCeiling, setAiCostCeiling] = React.useState<number>(1.0);
 
   React.useEffect(() => {
     let active = true;
@@ -74,10 +74,20 @@ export const AiAlertsPanel: React.FC = () => {
       )}
 
       <div className="mt-4 pt-3.5 border-t border-dashed border-[var(--border)] flex items-center justify-between text-[10px] font-mono text-[var(--text-tertiary)] select-none">
-        <span>Teto Operacional: {formatCurrency(aiCostCeiling)} / Mês</span>
-        <span className="flex items-center gap-0.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors font-bold uppercase">
+        {/* #880 (achado 5): "/ Mês" não batia com o teto real (aiDailyBudgetUsd,
+            diário) — mesmo valor usado pelo worker pra disparar o alerta AI_BUDGET
+            nas últimas 24h. */}
+        <span>Teto Operacional: {formatCurrency(aiCostCeiling)} / Dia</span>
+        {/* #880 (achado 9): botão sem onClick — agora rola até o card real onde
+            esse valor é editável (Ferramentas → Limiares de Alerta), em vez de
+            navegar pra uma tela separada que não existe. */}
+        <button
+          type="button"
+          onClick={() => document.getElementById("cost-limit-settings")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+          className="flex items-center gap-0.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer transition-colors font-bold uppercase bg-transparent border-0 p-0 font-mono text-[10px]"
+        >
           Ajustar Limites <ArrowRight className="w-3" />
-        </span>
+        </button>
       </div>
     </SectionCard>
   );

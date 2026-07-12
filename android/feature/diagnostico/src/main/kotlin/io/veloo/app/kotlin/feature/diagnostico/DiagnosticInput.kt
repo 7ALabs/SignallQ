@@ -19,6 +19,9 @@ data class WifiDiagnosticInput(
     val localIp: String? = null,
     val routerType: RouterType? = null,
     val dispositivosNaRede: Int? = null,
+    /** Suporte do aparelho a 5GHz. Null quando desconhecido (leitura falhou) —
+     *  tratado como "desconhecido", nao "sem suporte", pelo RecommendationEngine. */
+    val is5GhzCapable: Boolean? = null,
 )
 
 data class InternetDiagnosticInput(

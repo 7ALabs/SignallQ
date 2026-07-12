@@ -113,7 +113,18 @@ export const IntegrationsSettings: React.FC = () => {
     }
   };
 
+  // #880 (achado 7): reescreve linhas em 3 tabelas (diagnostic_sessions,
+  // ai_usage, analytics_events) de uma vez, sem confirmação — enquanto
+  // "Marcar resolvido" (1 registro) já tinha confirm(). Prioridade de risco
+  // invertida corrigida aqui.
   const handleBackfillGooglePlayTracks = async () => {
+    const confirmado = window.confirm(
+      "Isso reescreve o mapeamento de trilha (track) em diagnostic_sessions, ai_usage e analytics_events " +
+        "para TODOS os registros históricos que casarem com o version_code sincronizado. Não é reversível " +
+        "por aqui. Confirma aplicar retroativamente?"
+    );
+    if (!confirmado) return;
+
     setBackfillingGpTracks(true);
     setSyncFeedback(prev => ({ ...prev, googlePlayBackfill: "" }));
     try {

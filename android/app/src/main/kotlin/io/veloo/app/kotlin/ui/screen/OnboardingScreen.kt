@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
@@ -98,7 +99,13 @@ fun OnboardingScreen(
         modifier =
             modifier
                 .fillMaxSize()
-                .background(c.bgPrimary),
+                .background(c.bgPrimary)
+                // #896: tela edge-to-edge sem Scaffold — sem isso, a zona de botões
+                // (Próximo/Anterior/Começar) fica atrás da barra de navegação por 3
+                // botões, cortando o CTA principal; e o botão "Pular" (TopEnd) fica
+                // atrás da status bar. safeDrawingPadding cobre os dois de uma vez —
+                // confirmado em emulador (adb) antes e depois desta mudança.
+                .safeDrawingPadding(),
     ) {
         HorizontalPager(
             state = pagerState,

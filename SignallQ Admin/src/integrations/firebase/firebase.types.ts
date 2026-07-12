@@ -45,6 +45,15 @@ export interface FirebaseAppVersionCrashStats {
   status: "stable" | "unstable" | "critical";
 }
 
+// #880 (achado 3): antes getFirebaseAppVersions colapsava no_credentials/
+// no_data_yet/error em `null`, indistinguível pra UI ("não configurado" mesmo
+// quando configurado, só sem volume ainda). Mesmo padrão de source explícito
+// já usado em FirebaseCrashIssuesResult/FirebaseCrashlyticsSummary.
+export interface FirebaseAppVersionsResult {
+  source: "bigquery" | "no_credentials" | "no_data_yet" | "error";
+  versions: FirebaseAppVersionCrashStats[];
+}
+
 // Espelha o shape real de GET /admin/integrations/firebase/crash-issues.
 // appVersion/deviceModel são opcionais: o worker ainda não os expõe (schema
 // do BigQuery não confirmado sem credencial — ver comentário em

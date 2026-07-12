@@ -42,10 +42,12 @@ describe("AiCostPage", () => {
     expect(screen.getByText("Taxa de falha")).toBeInTheDocument();
   });
 
-  it("renderiza o orçamento mensal e a composição de custo por provedor", async () => {
+  it("renderiza o orçamento diário e a composição de custo por provedor", async () => {
     render(<AiCostPage environment="production" period="7d" triggerRefreshCounter={0} />);
 
-    expect(await screen.findByText("Orçamento mensal de IA")).toBeInTheDocument();
+    // #880 (achado 5): rótulo corrigido de "mensal" pra "diário" — o teto real
+    // (aiDailyBudgetUsd) é diário, não mensal.
+    expect(await screen.findByText("Orçamento diário de IA")).toBeInTheDocument();
     expect(screen.getByText("Custo por provedor")).toBeInTheDocument();
   });
 });

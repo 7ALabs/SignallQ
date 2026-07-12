@@ -535,7 +535,8 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
             connectionTypeStart = connectionType,
             connectionTypeEnd = connectionTypeProvider?.invoke() ?: connectionType,
             contaminado = false,
-            connectionType = connectionType,
+            // #862: mesma correcao do modo simples — badge/PDF usam a rede final.
+            connectionType = connectionTypeProvider?.invoke() ?: connectionType,
             tecnologia = tecnologiaProvider?.invoke(),
             latenciaMs = latenciaMediana,
             jitterMs = 0.0,
@@ -1184,7 +1185,11 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
                     dnsErroMensagem = dns.erroMensagem,
                 ),
             uploadNaoDetectado = uploadNaoDetectado,
-            connectionType = redeInicial,
+            // #862: usar a rede FINAL (nao a inicial) — se a rede mudou durante o
+            // teste (ex.: Wi-Fi reativou sozinho e caiu pra movel no meio da
+            // medicao), o badge/PDF devem refletir o estado real ao final, igual
+            // ao que o diagnostico local/IA ja usam (connectionTypeEnd).
+            connectionType = redeFinal ?: redeInicial,
             tecnologia = tecnologia,
         )
     }

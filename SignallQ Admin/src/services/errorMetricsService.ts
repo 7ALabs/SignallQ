@@ -2,6 +2,13 @@ import { apiClient } from "./apiClient";
 import { SystemError } from "../types/errors";
 import { DashboardFilters } from "./adminMetricsService";
 import { InfraAlert, AiAlert, ErrorMetricSummary, ErrorByEndpointEntry } from "../mocks/errors.mock";
+import { adminSettingsService } from "./adminSettingsService";
+
+// #880 (achado 5): aiCostCeiling vinha hardcoded em 200 em todos os caminhos
+// (mock, sucesso, erro) — desconectado de aiDailyBudgetUsd, o teto real e
+// configurável em Ferramentas (o mesmo que o worker usa pra disparar o alerta
+// AI_BUDGET). Fallback local só é usado se o worker de settings também falhar.
+const FALLBACK_AI_DAILY_BUDGET_USD = 1.0;
 
 export const errorMetricsService = {
   async getSystemErrors(_filters: DashboardFilters & { search?: string } = {}): Promise<SystemError[]> {
@@ -150,20 +157,23 @@ export const errorMetricsService = {
 
   async getAiAlerts(_filters: DashboardFilters = {}): Promise<{ alerts: AiAlert[]; aiCostCeiling: number }> {
     if (!apiClient.isMockEnabled()) {
-      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return { alerts: [], aiCostCeiling: 200 };
+      if (!import.meta.env.VITE_ADMIN_API_BASE_URL) return { alerts: [], aiCostCeiling: FALLBACK_AI_DAILY_BUDGET_USD };
       try {
-        const raw = await apiClient.request<{
-          items: Array<{
-            id: string;
-            type: string;
-            severity: string;
-            title: string;
-            message: string;
-            created_at: number;
-            timestamp: string;
-            resolved: boolean;
-          }>;
-        }>("GET", "/admin/alerts");
+        const [raw, settings] = await Promise.all([
+          apiClient.request<{
+            items: Array<{
+              id: string;
+              type: string;
+              severity: string;
+              title: string;
+              message: string;
+              created_at: number;
+              timestamp: string;
+              resolved: boolean;
+            }>;
+          }>("GET", "/admin/alerts"),
+          adminSettingsService.getSettings().catch(() => null),
+        ]);
 
         const alerts: AiAlert[] = (raw.items ?? [])
           .filter((r) => !r.resolved)
@@ -175,14 +185,15 @@ export const errorMetricsService = {
             timestamp:   r.timestamp,
           }));
 
-        return { alerts, aiCostCeiling: 200 };
+        return { alerts, aiCostCeiling: settings?.aiDailyBudgetUsd ?? FALLBACK_AI_DAILY_BUDGET_USD };
       } catch {
-        return { alerts: [], aiCostCeiling: 200 };
+        return { alerts: [], aiCostCeiling: FALLBACK_AI_DAILY_BUDGET_USD };
       }
     }
     const { mockAiAlerts } = await import("../mocks/errors.mock");
     const alerts = await apiClient.simulateFetch(mockAiAlerts, _filters);
-    return { alerts, aiCostCeiling: 200 };
+    const settings = await adminSettingsService.getSettings().catch(() => null);
+    return { alerts, aiCostCeiling: settings?.aiDailyBudgetUsd ?? FALLBACK_AI_DAILY_BUDGET_USD };
   },
 
   /**
@@ -205,8 +216,15 @@ export const errorMetricsService = {
           resolvedBy: res.resolvedBy,
           resolvedAt: res.resolvedAt,
         };
-      } catch {
-        return { success: false, message: "Falha ao comunicar resolução com o worker." };
+      } catch (e) {
+        // #880 (achado 8): antes descartava o erro real e sempre devolvia a
+        // mesma mensagem genérica — mesmo padrão já corrigido pros syncs de
+        // Firebase/Google Play (#874/#875), replicado aqui.
+        const detail = e instanceof Error ? e.message : "";
+        return {
+          success: false,
+          message: detail ? `Falha ao resolver erro: ${detail}` : "Falha ao comunicar resolução com o worker.",
+        };
       }
     }
     console.log(`[ApiClient Dispatch] Triggering remote error resolution for id: ${errorId}`);
