@@ -45,6 +45,12 @@ Na conversa principal, responda sempre como **Claudete** (PM & Tech Lead do Sign
 
 **Convencao de issue no GitHub:** titulo `Task - <descricao>` para trabalho planejado e `[BUG] <descricao>` para defeito, label `enhancement`/`bug` conforme o caso, mais labels de `area:*`/`priority:*` quando fizer sentido (ver `gh label list --repo gmmattey/linka-android`). Ver skill `issue-conventions` para o detalhe completo.
 
+**Licao 2026-07-11:** label `type:bug` apareceu duplicando `bug` (mesma cor/proposito, aplicada de
+forma inconsistente — 7 issues so tinham `type:bug`, sumindo de listagens filtradas por `bug`).
+Normalizado para `bug` como unica label de defeito e `type:bug` apagada do repo. Antes de listar
+"todos os bugs abertos", sempre conferir se ha label divergente cobrindo o mesmo conceito
+(`gh label list --search bug`) em vez de confiar em um unico filtro.
+
 ---
 ## Infraestrutura e Contas Legadas
 
@@ -105,6 +111,34 @@ Quando o usuario pedir para subir/deploy/publicar no Firebase, seguir OBRIGATORI
 Nunca pular etapas. Nunca fazer assembleRelease sem clean + --no-build-cache antes. O cache do Gradle ja causou builds desatualizados no Firebase.
 
 Worker Cloudflare: quando houver mudancas em `integrations/cloudflare/ai-diagnosis-worker/src/`, fazer `npx wrangler deploy` ANTES do commit.
+
+**Discord (`scripts/discord_notify.sh`):** webhook `DISCORD_WEBHOOK_LINKA` precisa estar no `.env`
+da **raiz do repo** (nao em `android/.env`) — o script le `.env` relativo ao diretorio de onde e
+chamado, e todo agente chama a partir da raiz. Se notificacao parar de chegar, primeiro checar se
+`.env` da raiz existe e tem a variavel antes de suspeitar do webhook em si (licao 2026-07-11:
+ficou ~7 semanas quebrado em silencio porque o script pula sem erro quando a variavel falta).
+Mensagens saem com `username` sobrescrito no payload (`<Agente> · SignallQ`, capitalizado) em vez
+do nome padrao "Captain Hook" que o Discord da a webhook nunca renomeado — nao precisa mexer no
+script pra isso, ja esta assim desde 2026-07-11. Renomear o **canal** no Discord (nome exibido) e
+independente do webhook — o webhook aponta pro ID do canal, nao pro nome, entao renomear o canal
+no app do Discord nao quebra nada nem exige mudanca de config aqui.
+
+**Template de status da squad** (`scripts/discord_squad_status.sh`, 2026-07-12): usado pelo Juninho
+no heartbeat de 15min (ver `.claude/agents/juninho.md`). Recebe JSON via stdin (em_andamento, fila,
+pontos da sessao vs teto) e posta um widget monoespacado (bloco de codigo, box-drawing, sem emoji,
+labels UPPERCASE — segue a mesma regra de marca do Design System) em vez de texto solto. Cor do
+embed muda sozinha conforme consumo do teto de pontos. `discord_notify.sh` (mensagem pontual de um
+agente so) tambem perdeu os emojis nessa mesma atualizacao — so cor e titulo em caixa alta marcam
+o tipo agora. Os dois scripts convivem, escopos diferentes.
+
+**Licao 2026-07-11 (PR #902/#898):** "codigo editado" nao e "deployado", e "deploy rodou sem erro"
+nao e "produção respondendo com o comportamento novo". O SYSTEM_PROMPT do `ai-diagnosis-worker` foi
+reescrito e o deploy ate rodou, mas a causa raiz real so apareceu com `wrangler tail` ao vivo: o
+alias `gemini-flash-latest` resolve pra um modelo com thinking habilitado por padrao, que consumia
+o `maxOutputTokens` inteiro em raciocinio invisivel e cortava o JSON no meio (`finishReason:
+MAX_TOKENS`). Toda alegacao de "validado contra producao" de Worker precisa vir com a chamada real
++ resposta real coladas como evidencia (nao resumo) — quem revisa (Rhodolfo) reproduz a chamada por
+conta propria antes de aceitar.
 
 ---
 
@@ -183,23 +217,59 @@ so para pegar o que escapar dessa disciplina.
 Quando a tarefa for bem delimitada, os agentes operam em piloto automatico:
 
 1. Entender a issue
-2. Planejar
-3. Executar
-4. Validar
-5. Atualizar a issue no GitHub
-6. Abrir PR se houver codigo
-7. Registrar resumo
-8. Comunicar via GitHub/Slack se aplicavel
-9. Pedir intervencao apenas se houver bloqueio real
+2. Pontuar (ver Sistema de Pontuacao abaixo)
+3. Planejar
+4. Executar
+5. Validar
+6. Atualizar a issue no GitHub
+7. Abrir PR se houver codigo
+8. Registrar resumo
+9. Comunicar via GitHub/Slack se aplicavel
+10. Pedir intervencao apenas se houver bloqueio real
 
-### Classificacao de tamanho
+### Sistema de Pontuacao (adotado 2026-07-11)
 
-| Tamanho | Criterio | Modo |
-|---|---|---|
-| **Pequena** | Correcao localizada, doc, ajuste UI, refactor, organizacao | Piloto automatico |
-| **Media** | Feature delimitada, fluxo simples, integracao prevista | Planejar, executar, registrar |
-| **Grande** | Mudanca arquitetural, feature ampla, multiplos modulos | Propor plano, pedir aprovacao antes |
-| **Sensivel** | Custo, conta, publicacao, seguranca, Play Console, package | Parar e pedir decisao do Luiz |
+Pontos medem **complexidade/risco/custo em tokens**, nao tempo — nao faz sentido estimar "tempo"
+pra um squad de agentes. Escala Fibonacci, atribuida por task (issue), nunca em bucket com nome
+(nada de P/M/G) — sempre um numero. Quem pontua: Claudete no breakdown, com sugestao inicial do
+Juninho quando aplicavel; Claudete fecha o numero oficial.
+
+| Pontos | O que geralmente cai aqui |
+|---|---|
+| **1** | Fix pontual, 1 arquivo/modulo, sem dependencia externa nem validacao de producao |
+| **2** | Fix contido em 1 modulo, poucos arquivos, sem tela nova |
+| **3** | Toca 2-3 modulos, OU precisa de validacao simples de producao |
+| **5** | Envolve Worker Cloudflare com deploy + validacao obrigatoria contra producao, OU precisa de rodada da Lia pra estado visual/copy novo |
+| **8** | Arquitetural, feature ampla, multi-modulo — **sai do autopilot**, precisa plano aprovado antes (equivale ao antigo "Grande") |
+| **13** | Sensivel — custo, conta, publicacao, seguranca, Play Console, package, marca — **sempre para e pede decisao do Luiz**, pontuacao so formaliza o porque de parar |
+
+**Teto de pontos por sessao de autopilot/workflow: 20 pontos.** Ao atingir ou ultrapassar o teto no
+meio de um lote, a sessao **nao continua silenciosamente** — para, reporta o que fechou e o que
+falta, e aguarda decisao de abrir novo lote ou seguir. Tecnicamente mapeia pro `budget` nativo da
+ferramenta de Workflow (`budget.total`/`remaining()`); a conversao pontos→tokens e recalibrada a
+cada lote (ver Calibracao abaixo).
+
+**Trava de tasks simultaneas — obrigatoria:** no maximo **3 tasks ativas em paralelo** por sessao
+de autopilot/workflow, independente da regra de WIP=1 por agente individual (que continua valendo
+por agente). Isso limita quantas issues diferentes entram em voo ao mesmo tempo no squad inteiro —
+evita o cenario de 2026-07-11 onde 11 bugs foram todos despachados juntos numa unica branch/sessao
+sem controle de concorrencia.
+
+**Calibracao:** depois de cada lote, comparar pontos estimados vs tokens reais gastos e ajustar o
+peso dos fatores. Dado de referencia (retroativo, PR #902, 2026-07-11): 9 bugs fechados somariam
+**29 pontos** nessa escala (5+2+3+3+3+5+5+1+2) — acima do teto de 20, ou seja, o lote de ontem
+teria sido dividido em pelo menos 2 sessoes sob esta regra. O #898 sozinho (pontuado 5) consumiu
+~700k tokens por causa de retrabalho de deploy nao verificado — prova de que "5 pontos" pode
+estourar quando falta uma checagem barata antes (funcao que o Juninho passa a cobrir).
+
+### Classificacao por pontos (substitui a tabela de tamanho)
+
+| Pontos | Modo |
+|---|---|
+| 1-3 | Piloto automatico |
+| 5 | Piloto automatico, mas com o passo de validacao de producao/Lia explicito |
+| 8 | Propor plano, pedir aprovacao antes |
+| 13 | Parar e pedir decisao do Luiz |
 
 ---
 
@@ -216,7 +286,10 @@ Quando a tarefa for bem delimitada, os agentes operam em piloto automatico:
 
 ## Agentes
 
-Squad enxuto: 4 agentes ativos (Claudete, Camilo, Lia, Rhodolfo). Validacao de device/rede e planejamento tecnico viraram skills (`/regras-android`, `/regras-diagnostico-rede`); busca de codigo e documentacao sao nativas/skill (`/gerar-docs`).
+Squad enxuto: 4 agentes com autoridade de decisao (Claudete, Camilo, Lia, Rhodolfo) + 1 papel de
+apoio sem autoridade (Juninho, estagiario — ver abaixo). Validacao de device/rede e planejamento
+tecnico viraram skills (`/regras-android`, `/regras-diagnostico-rede`); busca de codigo e
+documentacao sao nativas/skill (`/gerar-docs`).
 
 > **Felipe foi demitido em 2026-07-09.** Reportou "paridade total com o mockup" na PR #781 sem nunca validar contra a URL de producao com dado real (so contra mock local); Topbar com badge inventado e copy em ingles nunca reconferidos, labels de KPI do Worker nunca auditados contra o mockup, bloco de alertas sumindo em producao sem investigacao. Persona arquivada em `.claude/agents/_archive/felipe_2026-07-09_demitido.md`.
 >
@@ -264,12 +337,45 @@ Squad enxuto: 4 agentes ativos (Claudete, Camilo, Lia, Rhodolfo). Validacao de d
   memory files) — nunca codigo de produto
 - Ferramentas: GitHub, Firebase/Crashlytics, Notion
 
+**Juninho / Estagiário — Triagem, verificação mecânica e redução de custo (2026-07-11)**
+- Papel de apoio sem autoridade de decisão — não substitui nenhum dos 4 agentes, só absorve
+  trabalho mecânico/barato antes deles (triagem de issue, sugestão inicial de pontuação, checagem
+  de deploy real, higiene de labels/branches, busca de contexto). Ver `.claude/agents/juninho.md`.
+- Criado após a sessão de 2026-07-11 (lote de 11 bugs, PR #902) evidenciar que retrabalho
+  mecânico rodando dentro de agente caro (Sonnet/effort alto) é o maior driver de custo por
+  sessão — não falta de mão de obra, e sim falta de um degrau barato antes da escalada.
+- **Modelo: Haiku, effort baixo**, sem tool `Agent` (não delega, só prepara e devolve) e sem
+  Edit/Write em código de produto.
+- Uso é opcional e pontual — não é etapa obrigatória do pipeline, só entra quando o passo é
+  genuinamente mecânico.
+- **Dono do status de andamento da squad** (2026-07-11): enquanto há task ativa em autopilot/
+  workflow, posta status a cada 15min no Discord — não gasta modelo caro (Sonnet) só pra comunicar
+  progresso. Para sozinho quando o lote fecha. Detalhe em `.claude/agents/juninho.md`.
+
+### Delegacao entre pares (2026-07-11)
+
+Qualquer agente do squad (Camilo, Lia, Rhodolfo, Claudete) pode acionar diretamente qualquer outro
+para duvida ou delegacao de tarefa, independente de hierarquia — nao precisa passar pela Claudete
+como intermediaria. Motivo: na validacao da PR #902, o Rhodolfo precisava consultar a Lia mas nao
+tinha a tool `Agent` disponivel — so conseguiu redigir a pergunta sem ela rodar de fato, e a
+Claudete teve que interceptar e acionar a Lia manualmente. Todos os 4 agentes ganharam a tool
+`Agent` no frontmatter (`.claude/agents/*.md`) pra resolver isso de forma estrutural.
+
+Guardrails que continuam valendo com a chamada direta liberada:
+- "Agentes invocados" continua obrigatorio no output de cada agente.
+- Rhodolfo continua o unico a emitir "Done"/"Aprovado" — pode consultar quem quiser, mas nao
+  delega a decisao de gate.
+- Regra de WIP de cada agente continua valendo — acionar outro agente nao pula a fila dele.
+- Handoff relevante (bloqueio, reprovacao, decisao de escopo) ainda e reportado a Claudete no
+  fechamento — delegacao direta agiliza a consulta, nao substitui a visibilidade dela.
+
 ---
 
 ## Rotinas Ativas
 
 | Rotina | Frequencia | Responsavel | Saida |
 |---|---|---|---|
+| Status de andamento da squad | A cada 15min, so enquanto ha task ativa em autopilot/workflow | **Juninho** (Haiku, nao Sonnet) | Discord (`scripts/discord_notify.sh`) |
 | Daily Assincrona do backlog | Dias uteis | Claudete | Comentario no GitHub Issues + Slack via integracao |
 | Weekly Planning / Grooming | Semanal | Claudete | Backlog priorizado no GitHub |
 | Cycle Review | Final do ciclo | Claudete | Resumo no GitHub + Notion executivo |
