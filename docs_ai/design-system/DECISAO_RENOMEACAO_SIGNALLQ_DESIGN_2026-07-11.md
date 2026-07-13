@@ -12,7 +12,7 @@
    "Especificação: Migração para Material Design 3 (estrito)" (Claude Design, projeto
    `e77ea465-291f-4bf5-930c-a267680da04e`, arquivo `templates/md3-migration-spec/Md3MigrationSpec.dc.html`).
    Principais mudanças de token:
-   - Tipografia: Google Sans (display/headline/title) + Roboto (body/label), escala MD3 completa (15 estilos).
+   - Tipografia: Google Sans Flex (display/headline/title) + Roboto (body/label), escala MD3 completa (15 estilos).
    - Cor: tríade tonal HCT (Primary/Secondary/Tertiary) derivada de `#6C2BFF`, com correção de contraste
      no tema escuro (tom sobe para tone80 em vez de reusar o tom base do claro — AA→AAA).
    - Elevação: 5 níveis tonais (0/1/3/6/8dp) via tint de superfície, não sombra dura isolada.
@@ -39,19 +39,25 @@
   `standard`, state layer no flash de atualização), mas a existência do badge em si é decisão de produto,
   não do MD3, e deve ser validada antes de virar convenção fixa da skill.
 
-## Exceção decidida (2026-07-12): Google Sans descartada
+## Decisão registrada (2026-07-13): Google Sans Flex confirmada; esclarecimento sobre distinção de fonte
 
-O manual pede Google Sans para display/headline/title, embutida via link do Google Fonts
-(`fonts.googleapis.com/css2?family=Google+Sans...`). **Google Sans não é um webfont público do Google
-Fonts** — é fonte proprietária de uso interno do Google (Pixel, apps próprios), não distribuída pra
-terceiros embutirem via CDN; esse link do manual não funciona (cai em fallback silencioso). No Android,
-Google Sans só vem pré-instalada em aparelhos Pixel — na base de usuários do SignallQ (majoritariamente
-não-Pixel), declarar essa fonte não teria efeito visual pra maioria dos usuários.
+**Contexto anterior (2026-07-11):** o documento inicial sinalizou rejeição a "Google Sans" porque o manual
+pede embutição via link do Google Fonts (`fonts.googleapis.com/css2?family=Google+Sans...`). **Google Sans
+não é um webfont público** — é fonte proprietária de uso interno do Google (Pixel, apps próprios), não
+distribuída pra terceiros via CDN. Essa objeção era válida naquela data.
 
-**Decisão do Luiz:** manter Roboto como única fonte do sistema (já é o padrão documentado no
-`CLAUDE.md` raiz do projeto e já cobre toda a tipografia hoje). A seção 1 do manual (tipografia) é
-adotada só na parte de escala/pesos/line-height — a substituição de fonte por Google Sans fica fora de
-escopo, não é gap de conformidade a perseguir.
+**Distinção crítica:** o que foi implementado em PR #939 não é "Google Sans", mas **"Google Sans Flex"**
+— uma família diferente, com licença SIL OFL genuína (confirmada no catálogo ao vivo do Google Fonts em
+2026-07-12). A implementação em #939:
+- Baixou os arquivos `.ttf` reais do CDN oficial (fonts.gstatic.com) — não depende de pre-instalação
+- Embutiu os 4 pesos (400/500/600/700) como arquivos binários no APK (`android/app/src/main/res/font/google_sans_flex_*.ttf`)
+- Confirmou licença SIL OFL 1.1 via `android/app/src/main/assets/licenses/google_sans_flex_OFL.txt` (metadados extraídos do binário)
+
+A objeção original (Google Sans via CDN, só em Pixel) **não se aplica** a Google Sans Flex embutida.
+
+**Decisão do Luiz (2026-07-13):** **Google Sans Flex fica** — é a fonte oficial da tipografia MD3 do SignallQ,
+já implementada e mergeada em main via PR #939. A escala tipográfica (15 estilos, pesos/line-height conforme
+manual MD3) usa Google Sans Flex para display/headline/title e Roboto para body/label conforme o manual.
 
 ## Escopo desta renomeação (o que foi e não foi tocado)
 

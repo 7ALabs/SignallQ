@@ -78,9 +78,9 @@ Antes de criar ou editar telas/componentes, consulte a skill `SignallQ-design`
 (.claude/skills/SignallQ-design/README.md) e use os tokens de colors_and_type.css /
 SignallQTheme.kt como fonte de verdade.
 Não-negociáveis: Material 3 claro, acento violeta #6C2BFF, semântica de status
-verde/âmbar/vermelho, ícones Material Symbols (Outlined), tipo Roboto, grid 8dp,
-card radius 12dp (md) e elevação tonal (sem sombra dura isolada), superfícies SignallQ (IA) sempre escuras,
-copy em PT-BR com "você" e SEM emoji.
+verde/âmbar/vermelho, ícones Material Symbols (Outlined), tipo Google Sans Flex (display/headline/title)
++ Roboto (body/label), grid 8dp, card radius 12dp (md) e elevação tonal (sem sombra dura isolada),
+superfícies SignallQ (IA) sempre escuras, copy em PT-BR com "você" e SEM emoji.
 ```
 
 ### 3. Use
@@ -203,14 +203,13 @@ avatares: totalmente redondos (36–44dp típico).
 ### Densidade de ícone (manual §8)
 `24dp` conteúdo padrão · `20dp` ações compactas de TopBar · `18dp` labels inline.
 
-### Tipografia — Roboto única, escala MD3 completa (manual §1)
-Todos os estilos em **Roboto** — o manual pedia Google Sans para Display/Headline/Title, mas foi
-descartada em 2026-07-12 (não é webfont público, só pré-instalada em Pixel). Classes em
-`colors_and_type.css`: `display-large/medium/small`
-(400, 57/45/36) · `headline-large/medium/small` (400, 32/28/24) · `title-large` (400, 22) ·
-`title-medium/small` (500, 16/14) · `body-large/medium/small` (400, 16/14/12) ·
-`label-large/medium/small` (500, 14/12/11) · `overline` (500/11, UPPERCASE, +0.3px, decisão de
-conteúdo — não é estilo MD3 nomeado).
+### Tipografia — Google Sans Flex + Roboto, escala MD3 completa (manual §1)
+**Google Sans Flex** para display/headline/title (pesos 400/600) · **Roboto** para body/label (pesos
+400/500) — implementado em PR #939 com licença SIL OFL, arquivos embutidos no APK. Classes em
+`colors_and_type.css`: `display-large/medium/small` (600, 57/45/36) · `headline-large/medium/small`
+(600, 32/28/24) · `title-large` (500, 22) · `title-medium/small` (500, 16/14) · `body-large/medium/small`
+(400, 16/14/12) · `label-large/medium/small` (500, 14/12/11) · `overline` (500/11, UPPERCASE, +0.3px,
+decisão de conteúdo — não é estilo MD3 nomeado).
 
 ### Alpha (convenção do codebase, fora do escopo MD3)
 Tints são cor-em-alpha por sufixo hex: `1A`=10% · `1F`=12% · `26`=15% · `33`=20% ·

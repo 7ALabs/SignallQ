@@ -21,7 +21,7 @@ If the user invokes this skill without any other guidance, ask them what they wa
 
 Non-negotiables to stay on-brand (MD3 estrito, migração 2026-07-11):
 - Material Design 3 estrito: paleta tonal HCT (Primary/Secondary/Tertiary derivadas de `#6C2BFF`), tokens `--md-sys-color-{role}` / `on-{role}` / `{role}-container` / `on-{role}-container`; traffic-light status semantics (green/amber/red, fora do escopo MD3, mantido igual); no decorative gradients except the profile avatar & AI header.
-- Tipografia Roboto única em todos os estilos (Google Sans descartada em 2026-07-12 — não é webfont público, só pré-instalada em Pixel) — escala completa de 15 estilos MD3.
+- Tipografia Google Sans Flex (display/headline/title) + Roboto (body/label), implementado em PR #939 — arquivo TTF embutido no APK, licença SIL OFL — escala completa de 15 estilos MD3.
 - Elevação tonal (5 níveis, tint de superfície) em vez de sombra dura sozinha; forma em 7 tokens (`none/xs/sm/md/lg/xl/full`) — card agora **12dp (md)**, sheets/dialogs em **16dp (lg)**.
 - State layers (hover 8% / focus 10% / pressed 12% / dragged 16%) em todo componente clicável. Motion: easing `cubic-bezier(.2,0,0,1)` (emphasized/standard), durações 100/200/300/400ms.
 - Brazilian Portuguese, "você", sentence-case titles, UPPERCASE overlines, raw metric + human verdict word, **no emoji** — decisão de produto, não muda com o MD3.

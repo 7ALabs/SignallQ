@@ -12,20 +12,23 @@
      `--md-sys-color-{role}` / `on-{role}` / `{role}-container` / `on-{role}-container`.
    - Tipografia: 15 estilos MD3 completos (Display/Headline/Title/Body/Label,
      cada um Large/Medium/Small) — escala de size/line-height/peso adotada do
-     manual. Fonte: Roboto em todos os estilos (ver EXCEÇÃO abaixo).
+     manual. Fonte: Google Sans Flex (display/headline/title) + Roboto (body/label),
+     implementada e mergeada em PR #939.
    - Elevação tonal (5 níveis), forma (7 tokens), state layers, motion,
      outline/outline-variant, densidade de ícone — todos novos, ver seções abaixo.
    - Tokens antigos (`--accent`, `--bg-card`, `--text-primary` etc.) são mantidos
      como ALIASES DEPRECADOS apontando para os tokens novos, só para não quebrar
      artefatos HTML/JSX ainda não migrados. Não usar em artefato novo — use
      sempre `--md-sys-color-*`.
-   EXCEÇÃO DECIDIDA 2026-07-12 (ver docs_ai/design-system/DECISAO_RENOMEACAO_
+   DECISÃO REGISTRADA 2026-07-13 (ver docs_ai/design-system/DECISAO_RENOMEACAO_
    SIGNALLQ_DESIGN_2026-07-11.md): o manual pede Google Sans para display/
-   headline/title. Google Sans NÃO é webfont público do Google Fonts (fonte
-   interna do Google, só pré-instalada em Pixel) — não embeda via CDN e não
-   está presente na maioria dos Android (não-Pixel). Decisão do Luiz: manter
-   Roboto como única fonte do sistema, em todos os estilos MD3. Não declarar
-   'Google Sans' na pilha de nenhum artefato novo.
+   headline/title. A implementação original proposta (Google Sans via CDN) foi
+   rejeitada porque Google Sans não é webfont público. Porém, o que foi
+   implementado em PR #939 é "Google Sans Flex" — familia diferente, com licença
+   SIL OFL genuína, arquivos embutidos no APK, não depende de CDN. Decisão do
+   Luiz (2026-07-13): Google Sans Flex fica (já em main via #939). A tipografia
+   usa Google Sans Flex para display/headline/title e Roboto para body/label,
+   conforme manual MD3.
    ============================================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap');
