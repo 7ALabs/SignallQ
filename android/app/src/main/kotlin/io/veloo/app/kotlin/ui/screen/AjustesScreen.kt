@@ -42,6 +42,7 @@ import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Sensors
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SignalCellularAlt
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.Button
@@ -169,6 +170,8 @@ fun AjustesScreen(
     var showDadosLocaisSheet by remember { mutableStateOf(false) }
     var showDiagnosticoAppSheet by remember { mutableStateOf(false) }
     var showMinhaConexaoSheet by remember { mutableStateOf(false) }
+    // GH#936 — restaurado: tinha ficado sem entrada de UI (ver PreferenciasSheet.kt).
+    var showPreferenciasSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = c.bgPrimary,
@@ -499,6 +502,18 @@ fun AjustesScreen(
                     },
                 )
             }
+            item { HorizontalDivider(color = c.border, thickness = 1.dp) }
+            item {
+                // GH#936 — restaurado: entrada pra PreferenciasSheet.kt (limite mínimo de
+                // download que dispara alerta), tinha ficado sem ponto de acesso na UI.
+                SettingItem(
+                    c = c,
+                    icon = Icons.Outlined.Speed,
+                    label = "Alertas de qualidade",
+                    subtitle = if (limiteAlertaMbps > 0) "Abaixo de $limiteAlertaMbps Mbps" else "Sem limite definido",
+                    onClick = { showPreferenciasSheet = true },
+                )
+            }
             item { Spacer(Modifier.height(16.dp)) }
 
             // ── HISTÓRICO E DADOS ─────────────────────────────────────────────────────
@@ -711,6 +726,18 @@ fun AjustesScreen(
                 onSalvarVelocidadeContratada(down, up)
             },
             onDismiss = { showMinhaConexaoSheet = false },
+        )
+    }
+
+    if (showPreferenciasSheet) {
+        PreferenciasSheet(
+            c = c,
+            limiteAtual = limiteAlertaMbps,
+            onDismiss = { showPreferenciasSheet = false },
+            onSalvar = { limite ->
+                onSalvarLimiteAlerta(limite)
+                showPreferenciasSheet = false
+            },
         )
     }
 }
