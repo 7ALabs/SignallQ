@@ -39,14 +39,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -110,8 +108,12 @@ private enum class Overlay {
     // reusa o FibraModemScreen (Nokia-only) como stub.
     EquipamentoInternet,
 
-    // TODO(#933): Fase 4 — grid real de atalhos. Por ora reusa o mesmo placeholder da tab.
+    // GH#933 — Fase 4: hub real de atalhos (grid estático, sem chamada de rede própria).
     Ferramentas,
+
+    // GH#933 — Fase 4: DNS saiu do ModalBottomSheet (showDnsSheet) e virou tela cheia
+    // roteada, mesmo padrão dos demais overlays.
+    Dns,
 
     // TODO(#935): Fase 6 — tela real de Jogos. Por ora um stub simples.
     Jogos,
@@ -336,6 +338,32 @@ fun AppShell(
         if (Overlay.Fibra !in overlayStack) overlayStack.add(Overlay.Fibra)
     }
 
+    // GH#933 — Fase 4: callbacks de overlay compartilhados entre os entry points antigos
+    // (Home, SpeedTest, Ajustes) e os novos atalhos do hub Ferramentas — evita duplicar a
+    // mesma lógica de push/pop em dois lugares.
+    val onAbrirDispositivosOverlay: () -> Unit = {
+        if (Overlay.Dispositivos !in overlayStack) overlayStack.add(Overlay.Dispositivos)
+    }
+    val onAbrirPingOverlay: () -> Unit = {
+        if (Overlay.Ping !in overlayStack) overlayStack.add(Overlay.Ping)
+    }
+    val onAbrirLaudoOverlay: () -> Unit = {
+        if (Overlay.Laudo !in overlayStack) overlayStack.add(Overlay.Laudo)
+    }
+    val onAbrirJogosOverlay: () -> Unit = {
+        if (Overlay.Jogos !in overlayStack) overlayStack.add(Overlay.Jogos)
+    }
+    val onAbrirDnsOverlay: () -> Unit = {
+        if (Overlay.Dns !in overlayStack) overlayStack.add(Overlay.Dns)
+    }
+    // Stub Fase 1 (#930) reaproveitado pela Fase 4 — mesma engine/estado do "Fibra" já usado
+    // pelo nó do gateway na Home, so que empilhando Overlay.EquipamentoInternet (nome
+    // definitivo, ver TODO da Fase 5/#934 mais abaixo).
+    val onAbrirEquipamentoInternetOverlay: () -> Unit = {
+        onReconectarFibra(modemHost ?: "", modemUsername, modemPassword)
+        if (Overlay.EquipamentoInternet !in overlayStack) overlayStack.add(Overlay.EquipamentoInternet)
+    }
+
     // Callback unico chamado quando a GatewayConnectionSheet conecta com sucesso, em qualquer
     // um dos dois entry points — persiste a sessao e navega ao destino provisorio.
     val onGatewayConectado: (
@@ -349,7 +377,6 @@ fun AppShell(
         onAbrirGatewayDetalhe()
     }
 
-    var showDnsSheet by remember { mutableStateOf(false) }
     var showForaDoWifiDialog by remember { mutableStateOf(false) }
     var showPerfilSheet by remember { mutableStateOf(false) }
     var showGerenciarDadosSheet by remember { mutableStateOf(false) }
@@ -489,19 +516,11 @@ fun AppShell(
                             onAbrirRedes = { selectedTab = 2 },
                             anatelBannerDismissed = anatelBannerDismissed,
                             onDismissAnatelBanner = onDispensarBannerAnatel,
-                            onAbrirDns = { showDnsSheet = true },
-                            onAbrirPing = {
-                                if (Overlay.Ping !in overlayStack) overlayStack.add(Overlay.Ping)
-                            },
-                            onAbrirDiagnostico = {
-                                if (Overlay.Laudo !in overlayStack) {
-                                    overlayStack.add(Overlay.Laudo)
-                                }
-                            },
+                            onAbrirDns = onAbrirDnsOverlay,
+                            onAbrirPing = onAbrirPingOverlay,
+                            onAbrirDiagnostico = onAbrirLaudoOverlay,
                             snapshotDispositivos = snapshotDevices,
-                            onAbrirDispositivos = {
-                                if (Overlay.Dispositivos !in overlayStack) overlayStack.add(Overlay.Dispositivos)
-                            },
+                            onAbrirDispositivos = onAbrirDispositivosOverlay,
                         )
                     // NAV-E: Tab 1 — Velocidade (SpeedTestScreen como tab fixa)
                     1 ->
@@ -515,9 +534,9 @@ fun AppShell(
                             onIniciarTeste = { onNovoTeste(modoSelecionado) },
                             onCancelarTeste = onCancelarTeste,
                             onAbrirDnsBenchmark = {
-                                if (FeatureFlags.DNS_SCREEN) showDnsSheet = true
+                                if (FeatureFlags.DNS_SCREEN) onAbrirDnsOverlay()
                             },
-                            onAbrirPing = { if (Overlay.Ping !in overlayStack) overlayStack.add(Overlay.Ping) },
+                            onAbrirPing = onAbrirPingOverlay,
                             onVerResultado = {
                                 if (Overlay.ResultadoVelocidade !in
                                     overlayStack
@@ -582,6 +601,13 @@ fun AppShell(
                             nomeUsuario = nomeUsuario,
                             fotoUri = fotoUriUsuario,
                             onAbrirPerfil = onAbrirPerfilOverlay,
+                            onAbrirDispositivos = onAbrirDispositivosOverlay,
+                            onAbrirEquipamentoInternet = onAbrirEquipamentoInternetOverlay,
+                            onAbrirPing = onAbrirPingOverlay,
+                            onAbrirDns = if (FeatureFlags.DNS_SCREEN) onAbrirDnsOverlay else null,
+                            onAbrirLaudo = onAbrirLaudoOverlay,
+                            onAbrirMonitoramento = onAbrirPerfilOverlay,
+                            onAbrirJogos = onAbrirJogosOverlay,
                         )
                 }
             }
@@ -768,9 +794,9 @@ fun AppShell(
             )
         }
 
-        // TODO(#933): Fase 4 — grid real de atalhos (5a-5g). Overlay.Ferramentas existe como
-        // estrutura para futuros pontos de entrada fora da tab bar (ex.: atalho na Home);
-        // hoje reusa o mesmo placeholder da tab.
+        // GH#933 — Fase 4: hub real de atalhos (5a-5g). Overlay.Ferramentas fica disponível
+        // como ponto de entrada fora da tab bar (ex.: atalho futuro na Home) — hoje só a tab
+        // 4 usa FerramentasScreen diretamente, sem passar por este overlay.
         AnimatedVisibility(
             visible = Overlay.Ferramentas in overlayStack,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
@@ -780,6 +806,29 @@ fun AppShell(
                 nomeUsuario = nomeUsuario,
                 fotoUri = fotoUriUsuario,
                 onAbrirPerfil = onAbrirPerfilOverlay,
+                onAbrirDispositivos = onAbrirDispositivosOverlay,
+                onAbrirEquipamentoInternet = onAbrirEquipamentoInternetOverlay,
+                onAbrirPing = onAbrirPingOverlay,
+                onAbrirDns = if (FeatureFlags.DNS_SCREEN) onAbrirDnsOverlay else null,
+                onAbrirLaudo = onAbrirLaudoOverlay,
+                onAbrirMonitoramento = onAbrirPerfilOverlay,
+                onAbrirJogos = onAbrirJogosOverlay,
+            )
+        }
+
+        // GH#933 — Fase 4: DNS migrou de ModalBottomSheet (showDnsSheet) para tela cheia
+        // roteada — lógica de benchmark preservada, ver DnsScreen.kt.
+        AnimatedVisibility(
+            visible = Overlay.Dns in overlayStack,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+        ) {
+            DnsScreen(
+                snapshotDns = snapshotDns,
+                dnsResolverIp = dnsResolverIp,
+                snapshotRede = snapshotRede,
+                onIniciarBenchmark = onDispararBenchmarkDns,
+                onVoltar = { overlayStack.remove(Overlay.Dns) },
             )
         }
 
@@ -867,7 +916,7 @@ fun AppShell(
                     overlayStack.remove(Overlay.Perfil)
                     selectedTab = 3
                 },
-                onAbrirLaudo = { if (Overlay.Laudo !in overlayStack) overlayStack.add(Overlay.Laudo) },
+                onAbrirLaudo = onAbrirLaudoOverlay,
                 onAbrirPerfil = { showPerfilSheet = true },
                 onAbrirPrivacidade = { if (Overlay.Privacidade !in overlayStack) overlayStack.add(Overlay.Privacidade) },
                 onAbrirNovidades = { if (Overlay.Novidades !in overlayStack) overlayStack.add(Overlay.Novidades) },
@@ -881,22 +930,6 @@ fun AppShell(
                     ),
                 onVoltar = { overlayStack.remove(Overlay.Perfil) },
             )
-        }
-
-        if (showDnsSheet && FeatureFlags.DNS_SCREEN) {
-            ModalBottomSheet(
-                onDismissRequest = { showDnsSheet = false },
-                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-                containerColor = c.bgSecondary,
-            ) {
-                DnsSheetContent(
-                    snapshotDns = snapshotDns,
-                    dnsResolverIp = dnsResolverIp,
-                    snapshotRede = snapshotRede,
-                    c = c,
-                    onIniciarBenchmark = onDispararBenchmarkDns,
-                )
-            }
         }
 
         if (showPerfilSheet) {

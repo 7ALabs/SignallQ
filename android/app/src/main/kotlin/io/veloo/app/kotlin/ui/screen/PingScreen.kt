@@ -141,11 +141,11 @@ fun PingScreen(onDismiss: () -> Unit) {
                     tint = c.textPrimary,
                     modifier = Modifier.size(24.dp),
                 )
-                Spacer(Modifier.padding(start = LkSpacing.sm))
+                Spacer(Modifier.width(LkSpacing.sm))
                 Text(
                     text = stringResource(R.string.ping_titulo),
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.W600,
                     color = c.textPrimary,
                 )
             }

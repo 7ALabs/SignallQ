@@ -124,7 +124,12 @@ fun DispositivosScreen(
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(Modifier.width(LkSpacing.xs))
-                        Text("Dispositivos na rede", style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
+                        Text(
+                            "Dispositivos na rede",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.W600,
+                            color = c.textPrimary,
+                        )
                     }
                 },
                 navigationIcon = {
