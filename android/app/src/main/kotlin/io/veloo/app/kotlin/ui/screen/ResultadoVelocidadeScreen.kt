@@ -127,6 +127,9 @@ fun ResultadoVelocidadeScreen(
     onTestarNovamente: () -> Unit,
     onIrParaHome: () -> Unit,
     onVoltar: () -> Unit = {},
+    /** GH#784 — etapa "compartilhou" do funil do teste de velocidade (Uso do App,
+     *  admin-worker). Disparado junto do compartilhamento real do PDF, nao antes. */
+    onCompartilhar: () -> Unit = {},
     localizacaoServidor: String? = null,
     ispInfo: IspInfo? = null,
     operadoraMovel: String? = null,
@@ -244,6 +247,7 @@ fun ResultadoVelocidadeScreen(
                                     operadoraMovel = operadoraMovel,
                                     localizacaoServidor = localizacaoServidor,
                                 )
+                                onCompartilhar()
                                 compartilhando = false
                             }
                         }) {

@@ -208,6 +208,8 @@ fun AppShell(
     onFiltroOperadoraHistoricoChange: (String?) -> Unit = {},
     operadorasDisponiveisHistorico: List<String> = emptyList(),
     onScreenView: (screenName: String) -> Unit = {},
+    // GH#784 — etapa "compartilhou" do funil do teste de velocidade.
+    onCompartilharResultadoVelocidade: () -> Unit = {},
 ) {
     // Desempacota os grupos de estado para variaveis locais — mantém compatibilidade com
     // o corpo interno sem precisar propagar o prefixo `speedtest.x` por toda a funcao.
@@ -702,6 +704,7 @@ fun AppShell(
                         selectedTab = 0
                     },
                     onVoltar = { overlayStack.remove(Overlay.ResultadoVelocidade) },
+                    onCompartilhar = onCompartilharResultadoVelocidade,
                     localizacaoServidor = localizacaoServidorStr,
                     ispInfo = ispInfoData,
                     operadoraMovel = operadoraMovel,

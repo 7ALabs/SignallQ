@@ -528,6 +528,9 @@ class MainActivity : ComponentActivity() {
                         },
                         operadorasDisponiveisHistorico = operadorasDisponiveisHistorico,
                         onScreenView = { screenName -> analyticsTracker.registrarScreenView(screenName) },
+                        onCompartilharResultadoVelocidade = {
+                            analyticsTracker.registrarFeatureUsada("speedtest_compartilhou")
+                        },
                     )
                 } // else onboardingConcluido
             }
