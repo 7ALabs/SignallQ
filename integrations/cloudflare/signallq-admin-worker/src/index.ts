@@ -2740,6 +2740,37 @@ async function handleErrors(request: Request, env: Env): Promise<Response> {
   return json({ source: "d1", period, errors }, 200, env);
 }
 
+// GH#782 — série temporal diária de erros para o gráfico "Taxa de erro · N
+// dias" (Problemas & Incidentes). Fonte é exclusivamente
+// analytics_events(feature_crash) — a mesma fonte que a página já declara
+// (SectionIntro: "FONTE · FIREBASE CRASHLYTICS"). system_errors (erros do
+// próprio worker) fica de fora: a tabela só guarda first_seen/last_seen
+// agregados por erro único (dedup via djb2 em logError), sem uma linha por
+// ocorrência — não dá pra reconstruir contagem diária real sem migration
+// nova de log bruto (fora do escopo desta issue).
+async function handleErrorsTimeline(request: Request, env: Env): Promise<Response> {
+  const url   = new URL(request.url);
+  const days  = Math.min(Math.max(parseInt(url.searchParams.get("days") ?? "14"), 1), 90);
+  const since = nowSec() - days * 86400;
+
+  const rows = await env.DB.prepare(
+    `SELECT
+       strftime('%Y-%m-%d', datetime(created_at, 'unixepoch')) AS date,
+       COUNT(*) AS count
+     FROM analytics_events
+     WHERE event_name = 'feature_crash' AND created_at >= ?
+     GROUP BY date
+     ORDER BY date ASC`
+  ).bind(since).all();
+
+  const series = (rows.results ?? []).map((r: any) => ({
+    date:       r.date,
+    errorCount: r.count ?? 0,
+  }));
+
+  return json({ source: "d1", days, series }, 200, env);
+}
+
 // POST /admin/errors/:id/resolve — GH#422. Marca erro (do worker ou do app)
 // como resolvido, gravando responsável (da sessão autenticada), data (server)
 // e observação (body). UPSERT: erros "app:<id>" ainda não têm linha em
@@ -3366,6 +3397,7 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/devices$/,          handler: withErrorLogging('analytics', handleDeviceBreakdown) },
   { method: "GET",  pattern: /^\/admin\/analytics\/devices$/,                   handler: withErrorLogging('analytics', handleDeviceBreakdown) },
   { method: "GET",  pattern: /^\/admin\/metrics\/errors$/,                      handler: handleErrors },
+  { method: "GET",  pattern: /^\/admin\/metrics\/errors\/timeline$/,             handler: withErrorLogging('metrics', handleErrorsTimeline) },
   { method: "POST", pattern: /^\/admin\/errors\/[^/]+\/resolve$/,               handler: withErrorLogging('errors', async (req, env) => {
       const session = await authenticateSession(req, env);
       if (!session) return err('Unauthorized', 401, env);
