@@ -186,3 +186,12 @@ CREATE TABLE IF NOT EXISTS system_health_snapshots (
 );
 CREATE INDEX IF NOT EXISTS idx_health_snapshots_service_created
   ON system_health_snapshots(service, created_at);
+
+-- GH#786: regiao/UF aproximada por sessao (mapa "Onde o app e mais usado",
+-- Redes & Provedores). Derivada no worker via request.cf.regionCode
+-- (geolocalizacao de borda da Cloudflare) no momento do ingest -- o IP em si
+-- nunca e' persistido. So aceita as 27 UFs brasileiras validas (ver
+-- UF_WHITELIST em src/index.ts); qualquer outro valor grava ''.
+-- Aplicar via: migrations/014_gh786.sql (npx wrangler d1 execute --file=... --remote)
+ALTER TABLE diagnostic_sessions ADD COLUMN uf TEXT DEFAULT '';
+CREATE INDEX IF NOT EXISTS idx_sessions_uf ON diagnostic_sessions(uf);
