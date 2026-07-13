@@ -81,6 +81,10 @@ class ExecutorFibra {
             t is SocketTimeoutException -> "erroTimeout"
             t.message?.contains("timed out", ignoreCase = true) == true -> "erroTimeout"
             t.message?.contains("refused", ignoreCase = true) == true -> "erroModemInacessivel"
+            // GH#934 — err_t=1 do firmware Nokia = usuario/senha incorretos, distinto
+            // de falha generica de comunicacao (ver AcessoEquipamento.CREDENCIAIS_NECESSARIAS).
+            t.message?.contains("credenciais invalidas") == true
+                || t.message?.contains("err_t=1") == true -> "erroCredenciaisInvalidas"
             t.message?.contains("pubkey") == true
                 || t.message?.contains("nonce") == true
                 || t.message?.contains("csrf") == true -> "erroRespostaModemInvalida"
@@ -169,6 +173,21 @@ class ExecutorFibra {
             deviceInfo = null,
             erroMensagem = "semRede",
         )
+    }
+
+    // GH#934 — solicita reboot do equipamento usando a sessao ja autenticada em cache.
+    // Sem sessao ativa (usuario nunca conectou ou a sessao ja caiu), nao ha o que reiniciar —
+    // retorna false sem tentar novo login (reiniciar so faz sentido a partir de um estado
+    // "conectado"). Apos a chamada, invalida sempre o cache: a sessao HTTP nao sobrevive ao
+    // reboot do equipamento, entao o proximo executar() precisa logar de novo do zero.
+    suspend fun reiniciar(): Boolean = withContext(Dispatchers.IO) {
+        val cliente = clienteCache ?: return@withContext false
+        val resultado = runCatching { cliente.reboot() }
+        clienteCache = null
+        credenciaisCache = null
+        val sucesso = resultado.getOrDefault(false)
+        Timber.i("reiniciar: sucesso=$sucesso")
+        sucesso
     }
 
     // #894: desconexao manual (usuario desliga "manter conectado" ou desconecta
