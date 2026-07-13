@@ -726,6 +726,38 @@ async function handleNetworkInsights(request: Request, env: Env): Promise<Respon
   return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
 }
 
+// GH#786 — agregado de sessões por UF (mapa "Onde o app é mais usado", tela
+// Redes & Provedores). uf='' (geo indisponível/fora do Brasil) fica de fora
+// do array — não fabrica uma UF que o worker não conseguiu determinar.
+async function handleRegionInsights(request: Request, env: Env): Promise<Response> {
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "7d";
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? " AND environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]            : [];
+
+  const rows = await env.DB.prepare(
+    `SELECT
+       uf,
+       COUNT(*) AS count,
+       COUNT(*) * 100.0 / SUM(COUNT(*)) OVER() AS percentage
+     FROM diagnostic_sessions
+     WHERE created_at >= ? AND uf IS NOT NULL AND uf != ''${envClause}
+     GROUP BY uf
+     ORDER BY count DESC`
+  ).bind(since, ...envBinds).all();
+
+  const items = (rows.results ?? []).map((r: any) => ({
+    uf:         r.uf,
+    count:      r.count      ?? 0,
+    percentage: r.percentage != null ? Math.round(r.percentage * 10) / 10 : 0,
+  }));
+
+  return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
+}
+
 // GH#765 — o Android manda "none" no array de issues quando não há problema
 // detectado (em vez de array vazio). Sem esse filtro, "none" era contado como
 // o problema mais comum do painel (ex: 42% das sessões).
@@ -2811,6 +2843,26 @@ async function handleResolveSystemError(request: Request, env: Env, session: { u
 
 // --- handlers /ingest ---
 
+// GH#786 — as 27 UFs brasileiras válidas. `request.cf.regionCode` (geolocalização
+// de borda da própria Cloudflare, calculada a partir do IP da requisição) só é
+// aceito quando bate com uma destas — qualquer outro valor (país fora do Brasil,
+// colo sem geo confiável, undefined em dev local) vira '' em vez de fabricar UF.
+const UF_WHITELIST = new Set([
+  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB',
+  'PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO',
+]);
+
+// GH#786 — deriva UF aproximada da requisição via geolocalização de borda da
+// Cloudflare (`request.cf`), sem NUNCA persistir o IP em si. `cf` não tem
+// tipo oficial no projeto (mesmo gap pré-existente de @cloudflare/workers-types
+// documentado no topo do arquivo) — acesso via `any` só para este campo.
+function deriveUfFromRequest(request: Request): string {
+  const regionCode = (request as any).cf?.regionCode;
+  if (typeof regionCode !== 'string') return '';
+  const uf = regionCode.toUpperCase();
+  return UF_WHITELIST.has(uf) ? uf : '';
+}
+
 async function handleIngestDiagnostic(request: Request, env: Env): Promise<Response> {
   let p: any;
   try { p = await request.json(); } catch { return err("invalid JSON", 400, env); }
@@ -2839,6 +2891,9 @@ async function handleIngestDiagnostic(request: Request, env: Env): Promise<Respo
   const bandaWifi  = p.banda_wifi  ?? p.bandaWifi  ?? null;
   const padraoWifi = p.padrao_wifi ?? p.padraoWifi ?? null;
 
+  // GH#786 — UF aproximada, derivada no worker (não enviada pelo app).
+  const uf = deriveUfFromRequest(request);
+
   try {
     await env.DB.prepare(
       `INSERT OR REPLACE INTO diagnostic_sessions
@@ -2847,8 +2902,8 @@ async function handleIngestDiagnostic(request: Request, env: Env): Promise<Respo
           issues, resolved, operator,
           device_model, os_version, app_version, ai_summary_report,
           environment, dist_channel, build_type, version_code, device_id,
-          rssi, banda_wifi, padrao_wifi, platform)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          rssi, banda_wifi, padrao_wifi, platform, uf)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       p.id, p.created_at ?? nowSec(),
       p.network_type ?? "unknown", p.status ?? "unknown", p.score ?? null,
@@ -2858,7 +2913,7 @@ async function handleIngestDiagnostic(request: Request, env: Env): Promise<Respo
       p.operator ?? null,
       deviceModel, osVersion, appVersion, aiSummaryReport,
       environment, distChannel, buildType, versionCode, deviceId,
-      rssi, bandaWifi, padraoWifi, platform,
+      rssi, bandaWifi, padraoWifi, platform, uf,
     ).run();
   } catch (e) {
     await logError(env, 'ingest', String(e), e instanceof Error ? e.stack ?? '' : '');
@@ -3377,6 +3432,7 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage$/,                    handler: withErrorLogging('metrics', handleAiCost) },
   { method: "GET",  pattern: /^\/admin\/metrics\/timeline$/,                    handler: withErrorLogging('metrics', handleTimeline) },
   { method: "GET",  pattern: /^\/admin\/metrics\/network$/,                     handler: withErrorLogging('metrics', handleNetworkInsights) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/regions$/,                     handler: withErrorLogging('metrics', handleRegionInsights) },
   { method: "GET",  pattern: /^\/admin\/metrics\/top-issues$/,                  handler: withErrorLogging('metrics', handleTopIssues) },
   { method: "GET",  pattern: /^\/admin\/metrics\/alerts$/,                      handler: withErrorLogging('metrics', handleRecentAlerts) },
   { method: "GET",  pattern: /^\/admin\/alerts$/,                               handler: withErrorLogging('alerts', handleAlerts) },
