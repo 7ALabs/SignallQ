@@ -19,29 +19,37 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -64,54 +72,74 @@ import io.signallq.app.feature.dns.SnapshotBenchmarkDns
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
+import io.signallq.app.ui.LocalLkTokens
 import kotlin.math.roundToInt
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
+// GH#933 — Fase 4 MD3: migrou de ModalBottomSheet (antigo DnsSheetContent) para tela
+// cheia roteada (Overlay.Dns em AppShell). Lógica de benchmark/orientação de troca de
+// DNS preservada — só o container visual mudou de sheet para Scaffold+TopAppBar.
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DnsSheetContent(
+fun DnsScreen(
     snapshotDns: SnapshotBenchmarkDns,
     dnsResolverIp: String?,
     snapshotRede: SnapshotRede,
-    c: LkTokens,
     onIniciarBenchmark: () -> Unit,
+    onVoltar: () -> Unit,
 ) {
+    val c = LocalLkTokens.current
     val currentDnsName = resolveDnsName(dnsResolverIp)
     var showGuia by remember { mutableStateOf(false) }
 
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp)
-                .navigationBarsPadding(),
-    ) {
-        // drag handle
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Box(
-                modifier =
-                    Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(c.border),
+    Scaffold(
+        containerColor = c.bgPrimary,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "DNS",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.W600,
+                        color = c.textPrimary,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { if (showGuia) showGuia = false else onVoltar() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                            contentDescription = "Voltar",
+                            tint = c.textPrimary,
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
             )
-        }
-        Spacer(Modifier.height(20.dp))
-
-        if (showGuia) {
-            DnsGuideView(c = c, onVoltar = { showGuia = false })
-        } else {
-            DnsMainContent(
-                snapshotDns = snapshotDns,
-                dnsResolverIp = dnsResolverIp,
-                currentDnsName = currentDnsName,
-                snapshotRede = snapshotRede,
-                c = c,
-                onAbrirGuia = { showGuia = true },
-                onIniciarBenchmark = onIniciarBenchmark,
-            )
+        },
+    ) { padding ->
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp),
+        ) {
+            if (showGuia) {
+                DnsGuideView(c = c, onVoltar = { showGuia = false })
+            } else {
+                DnsMainContent(
+                    snapshotDns = snapshotDns,
+                    dnsResolverIp = dnsResolverIp,
+                    currentDnsName = currentDnsName,
+                    snapshotRede = snapshotRede,
+                    c = c,
+                    onAbrirGuia = { showGuia = true },
+                    onIniciarBenchmark = onIniciarBenchmark,
+                )
+            }
         }
     }
 }
@@ -632,7 +660,7 @@ private fun DnsGuideView(
             contentPadding = PaddingValues(0.dp),
         ) {
             Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
+                Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
                 tint = c.textSecondary,

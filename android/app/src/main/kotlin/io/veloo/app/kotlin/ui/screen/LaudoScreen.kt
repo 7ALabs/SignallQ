@@ -125,7 +125,7 @@ fun LaudoScreen(
                 title = {
                     Text(
                         "Laudo de diagnóstico",
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.W600,
                     )
                 },
