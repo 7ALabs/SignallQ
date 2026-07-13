@@ -782,20 +782,38 @@ async function handleTopIssues(request: Request, env: Env): Promise<Response> {
 // #883 — teto do plano gratuito Cloudflare, valores publicados em
 // developers.cloudflare.com/workers/platform/pricing/ e /d1/platform/pricing/
 // (conferido em 2026-07-12). Reset diário é por dia UTC (é como a Cloudflare conta).
+// #921: workersAiNeuronsPerDay — teto do Workers AI (10.000 neurônios/dia, CONTA
+// INTEIRA), developers.cloudflare.com/workers-ai/platform/pricing/ (conferido
+// 2026-07-12). Mesmo reset diário UTC.
 const CF_FREE_TIER = {
-  workersRequestsPerDay: 100_000,
-  d1RowsReadPerDay:      5_000_000,
-  d1RowsWrittenPerDay:   100_000,
-  d1StorageBytesTotal:   5 * 1024 * 1024 * 1024, // 5 GB, total da conta (não por database)
+  workersRequestsPerDay:   100_000,
+  d1RowsReadPerDay:        5_000_000,
+  d1RowsWrittenPerDay:     100_000,
+  d1StorageBytesTotal:     5 * 1024 * 1024 * 1024, // 5 GB, total da conta (não por database)
+  workersAiNeuronsPerDay:  10_000,
 };
+
+// #921 — Workers AI Neurons (fallback Qwen3-30B) NÃO tem dataset na GraphQL
+// Analytics API nem endpoint REST de uso/quota (confirmado em 2026-07-12: página de
+// datasets/discovery da GraphQL API não lista nenhum node de Workers AI, a
+// referência REST /accounts/{id}/ai/* só tem run/finetunes/models/schema — nada de
+// usage; a doc de pricing só recomenda "monitorar no dashboard"). Por isso o "usado"
+// aqui é ESTIMATIVA: tokens reais gravados em ai_usage (o Android reporta cada
+// chamada) × taxa oficial de conversão do Qwen3-30B-A3B-FP8 publicada em
+// developers.cloudflare.com/workers-ai/platform/pricing/ (conferido 2026-07-12):
+// 4625 neurônios por 1M tokens de entrada, 30475 por 1M de saída. Nunca é medição
+// real cobrada pela Cloudflare — só o dashboard deles tem esse número exato.
+const QWEN_NEURONS_PER_INPUT_TOKEN  = 4625 / 1_000_000;
+const QWEN_NEURONS_PER_OUTPUT_TOKEN = 30475 / 1_000_000;
 
 interface CloudflareResourceUsage {
   available: boolean;
   used: number | null;
   limit: number | null;
   percentage: number | null; // 0-100, arredondado
-  unit: "requests" | "rows" | "bytes";
+  unit: "requests" | "rows" | "bytes" | "neurons";
   reason?: string; // preenchido quando available=false
+  estimated?: boolean; // #921: true quando "used" é estimativa, não medição real
 }
 
 interface CloudflareUsageGraphQLResponse {
@@ -830,7 +848,41 @@ interface CloudflareUsageResult {
     d1RowsReadDay: CloudflareResourceUsage;
     d1RowsWrittenDay: CloudflareResourceUsage;
     d1StorageTotal: CloudflareResourceUsage;
+    workersAiNeuronsDay: CloudflareResourceUsage;
   };
+}
+
+// #921 — estimativa de neurônios Workers AI consumidos hoje (dia UTC) pelo
+// fallback Qwen3-30B. Fonte é sempre D1 (ai_usage), nunca a GraphQL Analytics API
+// (não expõe o dado — ver comentário de QWEN_NEURONS_PER_INPUT_TOKEN acima) — por
+// isso roda independente de CLOUDFLARE_API_TOKEN estar configurado ou não.
+// Filtro de provider replica exatamente providerEnumId()/providerName() (model
+// contém "qwen" ou começa com "@cf/") para não duplicar o critério de detecção.
+async function getWorkersAiNeuronsEstimate(env: Env): Promise<CloudflareResourceUsage> {
+  const now = new Date();
+  const todayStartUtcSec = Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 1000);
+
+  try {
+    const row = await env.DB.prepare(
+      `SELECT SUM(prompt_tokens) AS inputTokens, SUM(completion_tokens) AS outputTokens
+       FROM ai_usage
+       WHERE created_at >= ? AND (model LIKE '%qwen%' OR model LIKE '@cf/%')`
+    ).bind(todayStartUtcSec).first<{ inputTokens: number | null; outputTokens: number | null }>();
+
+    const inputTokens  = row?.inputTokens ?? 0;
+    const outputTokens = row?.outputTokens ?? 0;
+    const estimatedNeurons = Math.round(
+      inputTokens * QWEN_NEURONS_PER_INPUT_TOKEN + outputTokens * QWEN_NEURONS_PER_OUTPUT_TOKEN
+    );
+
+    return {
+      ...usageOf(estimatedNeurons, CF_FREE_TIER.workersAiNeuronsPerDay, "neurons"),
+      estimated: true,
+    };
+  } catch (e) {
+    await logError(env, 'workers-ai-neurons-estimate', String(e), e instanceof Error ? e.stack ?? '' : '');
+    return unavailableUsage(`Falha ao consultar ai_usage: ${String(e)}`, "neurons");
+  }
 }
 
 // #883: uso vs. teto do free tier Cloudflare (Workers requests/dia, D1 rows
@@ -840,6 +892,8 @@ interface CloudflareUsageResult {
 // limite gratuito. Extraída de handleCloudflareUsage para ser reaproveitada por
 // generateAndPersistAlerts sem duplicar a chamada GraphQL.
 async function getCloudflareUsage(env: Env): Promise<CloudflareUsageResult> {
+  const workersAiNeuronsDay = await getWorkersAiNeuronsEstimate(env);
+
   if (!env.CLOUDFLARE_API_TOKEN || !env.CLOUDFLARE_ACCOUNT_ID) {
     const reason = "CLOUDFLARE_API_TOKEN não configurado — requer token criado manualmente no dashboard Cloudflare com escopo Account Analytics:Read.";
     return {
@@ -850,6 +904,7 @@ async function getCloudflareUsage(env: Env): Promise<CloudflareUsageResult> {
         d1RowsReadDay:      unavailableUsage(reason, "rows"),
         d1RowsWrittenDay:   unavailableUsage(reason, "rows"),
         d1StorageTotal:     unavailableUsage(reason, "bytes"),
+        workersAiNeuronsDay,
       },
     };
   }
@@ -895,6 +950,7 @@ async function getCloudflareUsage(env: Env): Promise<CloudflareUsageResult> {
         d1RowsReadDay:      unavailableUsage(reason, "rows"),
         d1RowsWrittenDay:   unavailableUsage(reason, "rows"),
         d1StorageTotal:     unavailableUsage(reason, "bytes"),
+        workersAiNeuronsDay,
       },
     };
   }
@@ -914,6 +970,7 @@ async function getCloudflareUsage(env: Env): Promise<CloudflareUsageResult> {
       d1StorageTotal:     storageBytes != null
         ? usageOf(storageBytes, CF_FREE_TIER.d1StorageBytesTotal, "bytes")
         : unavailableUsage("Sem snapshot de storage nas últimas 48h.", "bytes"),
+      workersAiNeuronsDay,
     },
   };
 }
@@ -1057,6 +1114,20 @@ async function generateAndPersistAlerts(env: Env): Promise<void> {
         });
       }
     }
+  }
+
+  // #921: alerta de Workers AI Neurons (estimado) roda sempre — dado vem de D1
+  // (ai_usage), não da GraphQL Analytics API, então não depende de
+  // CLOUDFLARE_API_TOKEN nem do source do restante do card.
+  const neurons = cfUsage.resources.workersAiNeuronsDay;
+  if (neurons.available && neurons.percentage != null && neurons.percentage >= CF_ATTENTION_THRESHOLD) {
+    candidates.push({
+      id:       'cloudflare_usage_workersAiNeuronsDay',
+      type:     'CLOUDFLARE_USAGE',
+      severity: neurons.percentage >= 100 ? 'critical' : 'warning',
+      title:    'Uso do free tier Cloudflare em atenção',
+      message:  `Workers AI Neurons/dia (estimado): ${neurons.percentage}% do limite gratuito (${neurons.used}/${neurons.limit})`,
+    });
   }
 
   // #884: alerta de quota Gemini — só roda se algum teto do free tier estiver
