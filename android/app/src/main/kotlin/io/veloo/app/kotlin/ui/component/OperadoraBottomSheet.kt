@@ -28,6 +28,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -40,7 +41,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.signallq.app.R
 import io.signallq.app.ui.BancoOperadoras
 import io.signallq.app.ui.ContatoOperadora
@@ -49,6 +49,10 @@ import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
 
 private val idsMajores = listOf("vivo_fibra", "claro_net", "tim_live", "oi_fibra")
+
+// Verde oficial da marca WhatsApp — intencionalmente fora da paleta semantica SignallQ,
+// mesmo criterio de "cor de marca de terceiro" usado nos badges de operadora.
+private val whatsappGreen = Color(0xFF25D366)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -105,8 +109,8 @@ fun OperadoraBottomSheet(
             ) {
                 Text(
                     text = "Falar com a operadora",
+                    style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
                     color = c.textPrimary,
                     modifier = Modifier.weight(1f),
                 )
@@ -123,9 +127,8 @@ fun OperadoraBottomSheet(
 
             Text(
                 text = subtituloConexao,
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 color = c.textSecondary,
-                lineHeight = 20.sp,
             )
 
             Spacer(Modifier.height(LkSpacing.lg))
@@ -134,13 +137,7 @@ fun OperadoraBottomSheet(
 
             if (operadoraDetectada != null) {
                 // Seção: operadora detectada
-                Text(
-                    text = "SUA OPERADORA",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.5.sp,
-                    letterSpacing = 0.8.sp,
-                    color = c.textTertiary,
-                )
+                Overline(texto = "Sua operadora", color = c.textTertiary)
                 Spacer(Modifier.height(LkSpacing.md))
                 OperadoraDetectadaSection(
                     operadora = operadoraDetectada,
@@ -153,13 +150,7 @@ fun OperadoraBottomSheet(
                 if (outrasOperadoras.isNotEmpty()) {
                     HorizontalDivider(color = c.border, thickness = 1.dp)
                     Spacer(Modifier.height(LkSpacing.lg))
-                    Text(
-                        text = "NÃO É A SUA? OUTRAS OPERADORAS",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 10.5.sp,
-                        letterSpacing = 0.8.sp,
-                        color = c.textTertiary,
-                    )
+                    Overline(texto = "Não é a sua? Outras operadoras", color = c.textTertiary)
                     Spacer(Modifier.height(LkSpacing.md))
                     if (outrasNacionais.isNotEmpty()) {
                         outrasNacionais.forEach { op ->
@@ -170,13 +161,7 @@ fun OperadoraBottomSheet(
                     if (outrasRegionais.isNotEmpty()) {
                         if (outrasNacionais.isNotEmpty()) {
                             Spacer(Modifier.height(LkSpacing.xs))
-                            Text(
-                                text = "REGIONAIS",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp,
-                                letterSpacing = 0.6.sp,
-                                color = c.textTertiary,
-                            )
+                            Overline(texto = "Regionais", color = c.textTertiary)
                             Spacer(Modifier.height(LkSpacing.sm))
                         }
                         outrasRegionais.forEach { op ->
@@ -190,13 +175,7 @@ fun OperadoraBottomSheet(
                 // Seção: nenhuma detectada — mostrar todas com divisão nacional/regional
                 HorizontalDivider(color = c.border, thickness = 1.dp)
                 Spacer(Modifier.height(LkSpacing.lg))
-                Text(
-                    text = "OPERADORAS DISPONÍVEIS",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.5.sp,
-                    letterSpacing = 0.8.sp,
-                    color = c.textTertiary,
-                )
+                Overline(texto = "Operadoras disponíveis", color = c.textTertiary)
                 Spacer(Modifier.height(LkSpacing.md))
                 val nacionais = BancoOperadoras.lista.filter { it.id in idsMajores }
                 val regionais = BancoOperadoras.lista.filter { it.id !in idsMajores }
@@ -206,13 +185,7 @@ fun OperadoraBottomSheet(
                 }
                 if (regionais.isNotEmpty()) {
                     Spacer(Modifier.height(LkSpacing.xs))
-                    Text(
-                        text = "REGIONAIS",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp,
-                        letterSpacing = 0.6.sp,
-                        color = c.textTertiary,
-                    )
+                    Overline(texto = "Regionais", color = c.textTertiary)
                     Spacer(Modifier.height(LkSpacing.sm))
                     regionais.forEach { op ->
                         OutraOperadoraRow(operadora = op)
@@ -227,9 +200,8 @@ fun OperadoraBottomSheet(
 
             Text(
                 text = "O SignallQ não tem vínculo com as operadoras. Você será levado ao canal oficial de cada uma.",
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.labelMedium,
                 color = c.textTertiary,
-                lineHeight = 17.sp,
             )
 
             Spacer(Modifier.height(LkSpacing.lg))
@@ -257,13 +229,13 @@ private fun OperadoraDetectadaSection(
             Column {
                 Text(
                     text = operadora.nome,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
                     color = c.textPrimary,
                 )
                 Text(
                     text = legenda,
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     color = c.textSecondary,
                 )
             }
@@ -281,12 +253,12 @@ private fun OperadoraDetectadaSection(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(LkRadius.button),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                colors = ButtonDefaults.buttonColors(containerColor = whatsappGreen),
             ) {
                 Text(
                     text = "Falar no WhatsApp",
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
                     color = Color.White,
                 )
             }
@@ -315,7 +287,7 @@ private fun OperadoraDetectadaSection(
                 Spacer(Modifier.width(LkSpacing.xs))
                 Text(
                     text = "Ligar *${operadora.sac}",
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     color = c.textPrimary,
                     fontWeight = FontWeight.Medium,
                 )
@@ -337,7 +309,7 @@ private fun OperadoraDetectadaSection(
                 Spacer(Modifier.width(LkSpacing.xs))
                 Text(
                     text = "App ${operadora.grupo}",
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     color = c.textPrimary,
                     fontWeight = FontWeight.Medium,
                 )
@@ -362,20 +334,20 @@ private fun OutraOperadoraRow(operadora: ContatoOperadora) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = operadora.nome,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
                 color = c.textPrimary,
             )
             if (operadora.whatsapp != null) {
                 Text(
                     text = "WhatsApp · ligar *${operadora.sac}",
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.labelMedium,
                     color = c.textSecondary,
                 )
             } else {
                 Text(
                     text = "ligar *${operadora.sac}",
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.labelMedium,
                     color = c.textSecondary,
                 )
             }
@@ -392,7 +364,7 @@ private fun OutraOperadoraRow(operadora: ContatoOperadora) {
                     modifier =
                         Modifier
                             .size(36.dp)
-                            .background(Color(0xFF25D366), CircleShape),
+                            .background(whatsappGreen, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
