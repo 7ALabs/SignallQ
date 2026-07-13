@@ -9,11 +9,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.signallq.app.R
 
 object LkColors {
     val accent = Color(0xFF6C2BFF)
@@ -207,22 +212,36 @@ fun SignallQTheme(
     }
 }
 
+// Roboto Flex (GH#929) — fonte variável OFL, decisão do Luiz em substituição a Google Sans Flex
+// (sem licença de redistribuição confirmada). Fonte: github.com/google/fonts/tree/main/ofl/robotoflex
+// (SIL OFL 1.1 — texto completo em android/app/src/main/assets/licenses/roboto_flex_OFL.txt).
+// Uma entrada por peso usado na escala abaixo, instanciando o eixo `wght` da fonte variável —
+// evita depender do named instance default (Regular) em toda a tipografia.
+@OptIn(ExperimentalTextApi::class)
+private val signallQFontFamily =
+    FontFamily(
+        Font(R.font.roboto_flex, weight = FontWeight.Normal, variationSettings = FontVariation.Settings(FontVariation.weight(400))),
+        Font(R.font.roboto_flex, weight = FontWeight.Medium, variationSettings = FontVariation.Settings(FontVariation.weight(500))),
+        Font(R.font.roboto_flex, weight = FontWeight.SemiBold, variationSettings = FontVariation.Settings(FontVariation.weight(600))),
+        Font(R.font.roboto_flex, weight = FontWeight.Bold, variationSettings = FontVariation.Settings(FontVariation.weight(700))),
+    )
+
 // Escala tipográfica SignallQ — Material 3 / WCAG 2.2 AA.
 // Todos os tamanhos em sp para respeitar fontScale do sistema.
 // bodyMedium≥14sp, bodyLarge=16sp (telas principais), botões/labels≥14sp.
 private val signallQTypography =
     Typography(
-        displayLarge = TextStyle(fontSize = 34.sp, fontWeight = FontWeight.Bold),
-        headlineLarge = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.SemiBold),
-        headlineMedium = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold),
-        headlineSmall = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.SemiBold),
-        titleLarge = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium),
-        titleMedium = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Medium),
-        titleSmall = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
-        bodyLarge = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Normal),
-        bodyMedium = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Normal),
-        bodySmall = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Normal),
-        labelLarge = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
-        labelMedium = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Normal),
-        labelSmall = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Normal),
+        displayLarge = TextStyle(fontFamily = signallQFontFamily, fontSize = 34.sp, fontWeight = FontWeight.Bold),
+        headlineLarge = TextStyle(fontFamily = signallQFontFamily, fontSize = 24.sp, fontWeight = FontWeight.SemiBold),
+        headlineMedium = TextStyle(fontFamily = signallQFontFamily, fontSize = 20.sp, fontWeight = FontWeight.SemiBold),
+        headlineSmall = TextStyle(fontFamily = signallQFontFamily, fontSize = 18.sp, fontWeight = FontWeight.SemiBold),
+        titleLarge = TextStyle(fontFamily = signallQFontFamily, fontSize = 16.sp, fontWeight = FontWeight.Medium),
+        titleMedium = TextStyle(fontFamily = signallQFontFamily, fontSize = 15.sp, fontWeight = FontWeight.Medium),
+        titleSmall = TextStyle(fontFamily = signallQFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium),
+        bodyLarge = TextStyle(fontFamily = signallQFontFamily, fontSize = 16.sp, fontWeight = FontWeight.Normal),
+        bodyMedium = TextStyle(fontFamily = signallQFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Normal),
+        bodySmall = TextStyle(fontFamily = signallQFontFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal),
+        labelLarge = TextStyle(fontFamily = signallQFontFamily, fontSize = 14.sp, fontWeight = FontWeight.Medium),
+        labelMedium = TextStyle(fontFamily = signallQFontFamily, fontSize = 12.sp, fontWeight = FontWeight.Normal),
+        labelSmall = TextStyle(fontFamily = signallQFontFamily, fontSize = 11.sp, fontWeight = FontWeight.Normal),
     )
