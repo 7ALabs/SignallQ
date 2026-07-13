@@ -39,9 +39,12 @@ class CompositeAnalyticsTracker
     ) : AnalyticsTracker {
         private val sessionId: String = UUID.randomUUID().toString()
 
-        override fun registrarFeatureUsada(featureId: String) {
+        override fun registrarFeatureUsada(
+            featureId: String,
+            sessionIdOverride: String?,
+        ) {
             firebaseTracker.registrarFeatureUsada(featureId)
-            enviarEvento(name = "feature_used", featureId = featureId)
+            enviarEvento(name = "feature_used", featureId = featureId, sessionIdOverride = sessionIdOverride)
         }
 
         override fun registrarScreenView(screenName: String) {
@@ -77,6 +80,9 @@ class CompositeAnalyticsTracker
             errorType: String? = null,
             batteryLevel: Int? = null,
             batteryCharging: Boolean? = null,
+            // GH#919 — quando presente, correlaciona o evento a diagnostic_sessions.id
+            // (mesmo id gravado em ai_usage.session_id) em vez do UUID de instancia.
+            sessionIdOverride: String? = null,
         ) {
             applicationScope.launch {
                 val distChannel = distributionChannel(context)
@@ -88,7 +94,7 @@ class CompositeAnalyticsTracker
                     AnalyticsEventIngestPayload(
                         id = UUID.randomUUID().toString(),
                         name = name,
-                        sessionId = sessionId,
+                        sessionId = sessionIdOverride ?: sessionId,
                         appVersion = BuildConfig.VERSION_NAME,
                         featureId = featureId,
                         screenName = screenName,

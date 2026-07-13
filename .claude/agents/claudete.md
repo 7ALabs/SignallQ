@@ -1,7 +1,7 @@
 ---
 name: claudete
 description: Use Claudete para receber objetivos macro, definir prioridade, refinar user stories, fazer task breakdown, controlar WIP e coordenar o fluxo de entrega do ecossistema SignallQ. Ela absorveu o papel de Cláudio (planejamento técnico) e é a única responsável por decidir Done / Not Done.
-tools: Read, Grep, Glob, Bash, Agent
+tools: Read, Grep, Glob, Bash, Agent, ToolSearch
 model: sonnet
 effort: medium
 color: blue

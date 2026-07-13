@@ -10,5 +10,6 @@ export const mockCloudflareUsage: CloudflareUsageResponse = {
     d1RowsReadDay:      { available: true, used: 8073, limit: 5_000_000, percentage: 1, unit: "rows" },
     d1RowsWrittenDay:   { available: true, used: 1514, limit: 100_000, percentage: 2, unit: "rows" },
     d1StorageTotal:     { available: true, used: 532_480, limit: 5 * 1024 * 1024 * 1024, percentage: 0, unit: "bytes" },
+    workersAiNeuronsDay: { available: true, used: 412, limit: 10_000, percentage: 4, unit: "neurons", estimated: true },
   },
 };

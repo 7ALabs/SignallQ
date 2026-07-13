@@ -8,8 +8,9 @@ export interface CloudflareResourceUsage {
   used: number | null;
   limit: number | null;
   percentage: number | null;
-  unit: "requests" | "rows" | "bytes";
+  unit: "requests" | "rows" | "bytes" | "neurons";
   reason?: string;
+  estimated?: boolean; // #921: true quando "used" é estimativa, não medição real
 }
 
 export interface CloudflareUsageResponse {
@@ -20,6 +21,7 @@ export interface CloudflareUsageResponse {
     d1RowsReadDay: CloudflareResourceUsage;
     d1RowsWrittenDay: CloudflareResourceUsage;
     d1StorageTotal: CloudflareResourceUsage;
+    workersAiNeuronsDay: CloudflareResourceUsage;
   };
 }
 
