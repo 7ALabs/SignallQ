@@ -1,14 +1,9 @@
-﻿package io.signallq.app.ui.screen
+package io.signallq.app.ui.screen
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,15 +21,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Delete
@@ -42,12 +34,10 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Sensors
 import androidx.compose.material.icons.outlined.Settings
@@ -55,23 +45,15 @@ import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.outlined.Wifi
-import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -80,7 +62,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -88,31 +69,23 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import io.signallq.app.BuildConfig
 import io.signallq.app.R
-import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.monitoramento.OemKillInfo
-import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
-import io.signallq.app.ui.component.ConfirmacaoDialog
 import io.signallq.app.ui.component.ProfileAvatarButton
 
 @SuppressLint("InlinedApi")
@@ -136,6 +109,11 @@ fun AjustesScreen(
     onAbrirPrivacidade: () -> Unit = {},
     onAbrirNovidades: () -> Unit = {},
     onAbrirFibra: () -> Unit = {},
+    // GH#936 — Fase 7 MD3 (5f): "Monitoramento passivo" + "Análise avançada" saíram de
+    // dois toggles inline pra um sheet único (MonitoramentoSheet.kt), aberto tanto por
+    // aqui quanto pelo atalho "Monitoramento" no hub Ferramentas — single source, sem
+    // reimplementar os toggles neste arquivo.
+    onAbrirMonitoramento: () -> Unit = {},
     // GH#930 — Fase 1 MD3: Ajustes deixou de ser tab (agora "Perfil" via overlay, acessado
     // pelo avatar no TopBar das outras telas). Quando não-nulo, mostra botão de fechar.
     onVoltar: (() -> Unit)? = null,
@@ -163,12 +141,7 @@ fun AjustesScreen(
     val velocidadeContratadaDownMbps = provedor.velocidadeContratadaDownMbps
     val velocidadeContratadaUpMbps = provedor.velocidadeContratadaUpMbps
     val operadoraAutodetectada = provedor.operadoraAutodetectada
-    val analiseAvancada = monitoramento.analiseAvancada
     val monitoramentoAtivo = monitoramento.monitoramentoAtivo
-    val notificacaoLatenciaAtiva = monitoramento.notificacaoLatenciaAtiva
-    val notificacaoDnsAtiva = monitoramento.notificacaoDnsAtiva
-    val notificacaoRssiAtiva = monitoramento.notificacaoRssiAtiva
-    val notificacaoSemInternetAtiva = monitoramento.notificacaoSemInternetAtiva
     val modemHost = modem.modemHost
     val modemUsername = modem.modemUsername
     val modemPassword = modem.modemPassword
@@ -186,12 +159,6 @@ fun AjustesScreen(
     val onConfirmarIsp = provedor.onConfirmarIsp
     val onDispensarBannerIsp = provedor.onDispensarBannerIsp
     val onSalvarVelocidadeContratada = provedor.onSalvarVelocidadeContratada
-    val onDefinirAnaliseAvancada = monitoramento.onDefinirAnaliseAvancada
-    val onAtivarMonitoramento = monitoramento.onAtivarMonitoramento
-    val onDefinirNotificacaoLatenciaAtiva = monitoramento.onDefinirNotificacaoLatenciaAtiva
-    val onDefinirNotificacaoDnsAtiva = monitoramento.onDefinirNotificacaoDnsAtiva
-    val onDefinirNotificacaoRssiAtiva = monitoramento.onDefinirNotificacaoRssiAtiva
-    val onDefinirNotificacaoSemInternetAtiva = monitoramento.onDefinirNotificacaoSemInternetAtiva
     val speedtestPermiteHeavyMovel = dadosMoveis.speedtestPermiteHeavyMovel
     val speedtestMbConsumidosMes = dadosMoveis.speedtestMbConsumidosMes
     val onSetSpeedtestPermiteHeavyMovel = dadosMoveis.onSetSpeedtestPermiteHeavyMovel
@@ -200,12 +167,11 @@ fun AjustesScreen(
     var showGatewayConnectionSheet by remember { mutableStateOf(false) }
     var showPerfilSheet by remember { mutableStateOf(false) }
     var showSobreSheet by remember { mutableStateOf(false) }
-    var showProvedorSheet by remember { mutableStateOf(false) }
-    // showPreferenciasSheet removido — dead code (nunca aberto via LazyColumn)
-    var showDiagnosticoSheet by remember { mutableStateOf(false) }
     var showDadosLocaisSheet by remember { mutableStateOf(false) }
     var showDiagnosticoAppSheet by remember { mutableStateOf(false) }
     var showMinhaConexaoSheet by remember { mutableStateOf(false) }
+    // GH#936 — restaurado: tinha ficado sem entrada de UI (ver PreferenciasSheet.kt).
+    var showPreferenciasSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = c.bgPrimary,
@@ -536,6 +502,18 @@ fun AjustesScreen(
                     },
                 )
             }
+            item { HorizontalDivider(color = c.border, thickness = 1.dp) }
+            item {
+                // GH#936 — restaurado: entrada pra PreferenciasSheet.kt (limite mínimo de
+                // download que dispara alerta), tinha ficado sem ponto de acesso na UI.
+                SettingItem(
+                    c = c,
+                    icon = Icons.Outlined.Speed,
+                    label = "Alertas de qualidade",
+                    subtitle = if (limiteAlertaMbps > 0) "Abaixo de $limiteAlertaMbps Mbps" else "Sem limite definido",
+                    onClick = { showPreferenciasSheet = true },
+                )
+            }
             item { Spacer(Modifier.height(16.dp)) }
 
             // ── HISTÓRICO E DADOS ─────────────────────────────────────────────────────
@@ -571,7 +549,7 @@ fun AjustesScreen(
             }
             item { Spacer(Modifier.height(16.dp)) }
 
-            // ── AVANÇADO (Dados móveis + monitoramento passivo/análise, feature-flagged) ──
+            // ── AVANÇADO (Dados móveis + monitoramento, feature-flagged) ────────────────
             item { SectionHeader("Avançado", c) }
             item {
                 ToggleItem(
@@ -591,27 +569,21 @@ fun AjustesScreen(
             if (BuildConfig.FEATURE_LINKPULSE_ATIVO) {
                 item { HorizontalDivider(color = c.border, thickness = 1.dp) }
                 item {
+                    // GH#936 — Fase 7 (5f): unifica "Monitoramento passivo" + "Análise
+                    // avançada" numa linha só, mesmo destino do atalho "Monitoramento"
+                    // do hub Ferramentas (MonitoramentoSheet.kt) — nada de toggle
+                    // duplicado aqui.
                     SettingItem(
                         c = c,
                         icon = Icons.Outlined.Sensors,
-                        label = "Monitoramento passivo",
+                        label = "Monitoramento",
                         subtitle =
                             when {
                                 !monitoramentoAtivo -> "Desativado"
                                 OemKillInfo.fabricanteRiscoAlto -> "Ativo · pode ser limitado pelo sistema"
                                 else -> "Ativo"
                             },
-                        onClick = { showDiagnosticoSheet = true },
-                    )
-                }
-                item { HorizontalDivider(color = c.border, thickness = 1.dp) }
-                item {
-                    SettingItem(
-                        c = c,
-                        icon = Icons.Outlined.Analytics,
-                        label = "Análise avançada",
-                        subtitle = if (analiseAvancada) "Ativa" else "Desativada",
-                        onClick = { showDiagnosticoSheet = true },
+                        onClick = onAbrirMonitoramento,
                     )
                 }
             }
@@ -715,56 +687,10 @@ fun AjustesScreen(
     }
 
     if (showSobreSheet) {
-        SimpleInfoSheet(
+        SobreSheet(
             c = c,
-            titulo = "Sobre o SignallQ",
+            appVersion = appVersion,
             onDismiss = { showSobreSheet = false },
-        ) {
-            InfoRow(c, "Versão", "v$appVersion")
-            HorizontalDivider(color = c.border, thickness = 1.dp)
-            InfoRow(c, "Plataforma", "Android · Kotlin + Compose")
-            HorizontalDivider(color = c.border, thickness = 1.dp)
-            InfoRow(c, "Desenvolvido por", "Equipe SignallQ")
-            HorizontalDivider(color = c.border, thickness = 1.dp)
-            InfoRow(c, "Suporte", "suporte@signallq.app")
-        }
-    }
-
-    if (showProvedorSheet) {
-        ProvedorSheet(
-            c = c,
-            operadoraAtual = operadora,
-            planoAtual = planoInternet,
-            regiaoAtual = regiao,
-            estadoUfAtual = estadoUf,
-            cidadeNomeAtual = cidadeNome,
-            onDismiss = { showProvedorSheet = false },
-            onSalvar = { op, plano, reg ->
-                onSalvarDadosProvedor(op, plano, reg)
-                showProvedorSheet = false
-            },
-            onSalvarEstadoCidade = { uf, cidade ->
-                onSalvarEstadoCidade(uf, cidade)
-            },
-        )
-    }
-
-    if (showDiagnosticoSheet) {
-        DiagnosticoSheet(
-            c = c,
-            analiseAvancada = analiseAvancada,
-            monitoramentoAtivo = monitoramentoAtivo,
-            notificacaoLatenciaAtiva = notificacaoLatenciaAtiva,
-            notificacaoDnsAtiva = notificacaoDnsAtiva,
-            notificacaoRssiAtiva = notificacaoRssiAtiva,
-            notificacaoSemInternetAtiva = notificacaoSemInternetAtiva,
-            onDismiss = { showDiagnosticoSheet = false },
-            onDefinirAnaliseAvancada = onDefinirAnaliseAvancada,
-            onAtivarMonitoramento = onAtivarMonitoramento,
-            onDefinirNotificacaoLatenciaAtiva = onDefinirNotificacaoLatenciaAtiva,
-            onDefinirNotificacaoDnsAtiva = onDefinirNotificacaoDnsAtiva,
-            onDefinirNotificacaoRssiAtiva = onDefinirNotificacaoRssiAtiva,
-            onDefinirNotificacaoSemInternetAtiva = onDefinirNotificacaoSemInternetAtiva,
         )
     }
 
@@ -802,133 +728,17 @@ fun AjustesScreen(
             onDismiss = { showMinhaConexaoSheet = false },
         )
     }
-}
 
-@Composable
-private fun CardMonitoramentoExplicativo(
-    c: LkTokens,
-    monitoramentoAtivo: Boolean,
-) {
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = LkSpacing.lg)
-                .padding(top = LkSpacing.sm)
-                .clip(RoundedCornerShape(16.dp))
-                .background(c.bgCard)
-                .border(1.dp, c.border, RoundedCornerShape(16.dp))
-                .padding(LkSpacing.lg),
-    ) {
-        if (!monitoramentoAtivo) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Outlined.Sensors,
-                    contentDescription = null,
-                    tint = c.textTertiary,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(LkSpacing.sm))
-                Text(
-                    text = "Sem consumo adicional de bateria ou dados quando desativado",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textSecondary,
-                )
-            }
-        } else {
-            Column {
-                Text(
-                    text = "O que está sendo monitorado",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.W600,
-                    color = c.textPrimary,
-                )
-                Spacer(Modifier.height(LkSpacing.sm))
-                Row(
-                    modifier = Modifier.padding(vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Speed,
-                        contentDescription = null,
-                        tint = c.textSecondary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(LkSpacing.sm))
-                    Text(
-                        text = "Latência de rede",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.textPrimary,
-                    )
-                }
-                Row(
-                    modifier = Modifier.padding(vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Language,
-                        contentDescription = null,
-                        tint = c.textSecondary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(LkSpacing.sm))
-                    Text(
-                        text = "Velocidade de DNS",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.textPrimary,
-                    )
-                }
-                Row(
-                    modifier = Modifier.padding(vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Wifi,
-                        contentDescription = null,
-                        tint = c.textSecondary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(LkSpacing.sm))
-                    Text(
-                        text = "Sinal Wi-Fi",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.textPrimary,
-                    )
-                }
-                Spacer(Modifier.height(LkSpacing.md))
-                HorizontalDivider(color = c.border, thickness = 0.5.dp)
-                Spacer(Modifier.height(LkSpacing.md))
-                Row {
-                    Box(
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(LkColors.success.copy(alpha = 0.10f))
-                                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
-                    ) {
-                        Text(
-                            text = "Bateria: Muito baixo",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = LkColors.success,
-                        )
-                    }
-                    Spacer(Modifier.width(LkSpacing.sm))
-                    Box(
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(c.bgSecondary)
-                                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
-                    ) {
-                        Text(
-                            text = "Dados: ~2 MB/dia",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = c.textSecondary,
-                        )
-                    }
-                }
-            }
-        }
+    if (showPreferenciasSheet) {
+        PreferenciasSheet(
+            c = c,
+            limiteAtual = limiteAlertaMbps,
+            onDismiss = { showPreferenciasSheet = false },
+            onSalvar = { limite ->
+                onSalvarLimiteAlerta(limite)
+                showPreferenciasSheet = false
+            },
+        )
     }
 }
 
@@ -944,54 +754,6 @@ private fun buildHeroSubtitle(
         operadora.isNotBlank() && planoInternet.isNotBlank() -> "$operadora · $planoInternet" to true
         else -> operadora to true
     }
-
-@Composable
-private fun UserAvatar(
-    fotoUri: String?,
-    fallbackInitial: Char?,
-    size: Dp,
-    onClick: (() -> Unit)? = null,
-) {
-    val context = LocalContext.current
-    val bitmap =
-        remember(fotoUri) {
-            fotoUri?.let { uriStr ->
-                runCatching {
-                    context.contentResolver
-                        .openInputStream(uriStr.toUri())
-                        ?.use { stream -> BitmapFactory.decodeStream(stream)?.asImageBitmap() }
-                }.getOrNull()
-            }
-        }
-    Box(
-        modifier =
-            Modifier
-                .size(size)
-                .clip(CircleShape)
-                .background(LkColors.accent.copy(alpha = 0.12f))
-                .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (bitmap != null) {
-            Image(
-                bitmap = bitmap,
-                contentDescription = "Foto de perfil",
-                contentScale = ContentScale.Crop,
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .clip(CircleShape),
-            )
-        } else {
-            Text(
-                text = fallbackInitial?.uppercaseChar()?.toString() ?: "?",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.W700,
-                color = LkColors.accent,
-            )
-        }
-    }
-}
 
 @Composable
 private fun SectionHeader(
@@ -1075,7 +837,7 @@ private fun SettingItem(
 }
 
 @Composable
-private fun ToggleItem(
+internal fun ToggleItem(
     c: LkTokens,
     icon: ImageVector,
     label: String,
@@ -1191,956 +953,9 @@ private fun ThemeSelector(
     }
 }
 
-// ─── Perfil edit sheet ────────────────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun PerfilEditSheet(
-    c: LkTokens,
-    nomeAtual: String,
-    fotoUriAtual: String?,
-    deviceName: String,
-    appVersion: String,
-    ispInfo: IspInfo? = null,
-    estadoConexao: EstadoConexao? = null,
-    onDismiss: () -> Unit,
-    onSalvar: (nome: String, fotoUri: String?) -> Unit,
-) {
-    val context = LocalContext.current
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var nomeInput by remember { mutableStateOf(nomeAtual) }
-    var fotoUriInput by remember { mutableStateOf(fotoUriAtual) }
-
-    val pickerFoto =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.GetContent(),
-        ) { uri: Uri? ->
-            if (uri != null) {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
-                fotoUriInput = uri.toString()
-            }
-        }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = {},
-        containerColor = c.bgSecondary,
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = LkSpacing.lg)
-                    .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
-                    .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(c.border)
-                        .align(Alignment.CenterHorizontally)
-                        .semantics { contentDescription = "Arrastar para fechar" },
-            )
-            Spacer(Modifier.height(LkSpacing.sm))
-            Text("Meu perfil", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = c.textPrimary)
-
-            // Avatar
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center,
-            ) {
-                UserAvatar(
-                    fotoUri = fotoUriInput,
-                    fallbackInitial = nomeInput.firstOrNull() ?: deviceName.firstOrNull(),
-                    size = 80.dp,
-                    onClick = { pickerFoto.launch("image/*") },
-                )
-            }
-            Text(
-                "Toque no avatar para alterar a foto",
-                style = MaterialTheme.typography.labelMedium,
-                color = c.textTertiary,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
-
-            val fieldColors =
-                OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = LkColors.accent,
-                    unfocusedBorderColor = c.border,
-                    focusedLabelColor = LkColors.accent,
-                    unfocusedLabelColor = c.textSecondary,
-                    cursorColor = LkColors.accent,
-                    focusedTextColor = c.textPrimary,
-                    unfocusedTextColor = c.textPrimary,
-                )
-
-            OutlinedTextField(
-                value = nomeInput,
-                onValueChange = { nomeInput = it },
-                label = { Text("Seu nome ou apelido") },
-                placeholder = { Text(deviceName.ifBlank { "Ex: João" }, color = c.textTertiary) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                colors = fieldColors,
-                shape = RoundedCornerShape(8.dp),
-            )
-
-            HorizontalDivider(color = c.border)
-            val tipoConexao =
-                when (estadoConexao) {
-                    EstadoConexao.wifi -> "Wi-Fi"
-                    EstadoConexao.movel -> ispInfo?.isp?.takeIf { it.isNotEmpty() } ?: "Rede móvel"
-                    EstadoConexao.ethernet -> "Ethernet"
-                    else -> "Sem conexão"
-                }
-            val localizacao = listOfNotNull(ispInfo?.region, ispInfo?.country).joinToString(", ").ifBlank { null }
-
-            ispInfo?.isp?.let { InfoRow(c, "Operadora / ISP", it) }
-            if (ispInfo?.isp != null) HorizontalDivider(color = c.border)
-            ispInfo?.ip?.let { InfoRow(c, "IP Público", it) }
-            if (ispInfo?.ip != null) HorizontalDivider(color = c.border)
-            InfoRow(c, "Conexão", tipoConexao)
-            HorizontalDivider(color = c.border)
-            localizacao?.let { InfoRow(c, "Localização", it) }
-            if (localizacao != null) HorizontalDivider(color = c.border)
-            InfoRow(c, "Versão", "v$appVersion")
-            HorizontalDivider(color = c.border)
-
-            Spacer(Modifier.height(LkSpacing.sm))
-            Button(
-                onClick = { onSalvar(nomeInput.trim(), fotoUriInput) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
-            ) {
-                Text("Salvar perfil")
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SimpleInfoSheet(
-    c: LkTokens,
-    titulo: String,
-    onDismiss: () -> Unit,
-    content: @Composable () -> Unit,
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = {},
-        containerColor = c.bgSecondary,
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(top = LkSpacing.md)
-                    .padding(bottom = LkSpacing.xxl)
-                    .navigationBarsPadding(),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(c.border)
-                        .align(Alignment.CenterHorizontally)
-                        .semantics { contentDescription = "Arrastar para fechar" },
-            )
-            Spacer(Modifier.height(LkSpacing.md))
-            Text(
-                text = titulo,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = c.textPrimary,
-                modifier = Modifier.padding(horizontal = LkSpacing.lg),
-            )
-            Spacer(Modifier.height(LkSpacing.md))
-            content()
-        }
-    }
-}
-
-@Composable
-private fun InfoRow(
-    c: LkTokens,
-    label: String,
-    value: String,
-) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = c.textPrimary, modifier = Modifier.weight(1f))
-        Text(text = value, style = MaterialTheme.typography.titleSmall, color = c.textSecondary, fontWeight = FontWeight.W500)
-    }
-}
-
-// ─── Provedor sheet ───────────────────────────────────────────────────────────
-
-private val cidadesCache = HashMap<String, List<String>>()
-
-private val ESTADOS_BR =
-    listOf(
-        "AC" to "Acre",
-        "AL" to "Alagoas",
-        "AP" to "Amapá",
-        "AM" to "Amazonas",
-        "BA" to "Bahia",
-        "CE" to "Ceará",
-        "DF" to "Distrito Federal",
-        "ES" to "Espírito Santo",
-        "GO" to "Goiás",
-        "MA" to "Maranhão",
-        "MT" to "Mato Grosso",
-        "MS" to "Mato Grosso do Sul",
-        "MG" to "Minas Gerais",
-        "PA" to "Pará",
-        "PB" to "Paraíba",
-        "PR" to "Paraná",
-        "PE" to "Pernambuco",
-        "PI" to "Piauí",
-        "RJ" to "Rio de Janeiro",
-        "RN" to "Rio Grande do Norte",
-        "RS" to "Rio Grande do Sul",
-        "RO" to "Rondônia",
-        "RR" to "Roraima",
-        "SC" to "Santa Catarina",
-        "SP" to "São Paulo",
-        "SE" to "Sergipe",
-        "TO" to "Tocantins",
-    )
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ProvedorSheet(
-    c: LkTokens,
-    operadoraAtual: String,
-    planoAtual: String,
-    regiaoAtual: String,
-    estadoUfAtual: String,
-    cidadeNomeAtual: String,
-    onDismiss: () -> Unit,
-    onSalvar: (operadora: String, plano: String, regiao: String) -> Unit,
-    onSalvarEstadoCidade: (estadoUf: String, cidadeNome: String) -> Unit,
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var operadoraInput by remember { mutableStateOf(operadoraAtual) }
-    var planoInput by remember { mutableStateOf(planoAtual.filter { it.isDigit() }.take(4)) }
-    var estadoUfInput by remember { mutableStateOf(estadoUfAtual) }
-    var cidadeNomeInput by remember { mutableStateOf(cidadeNomeAtual) }
-    var cidadeQuery by remember { mutableStateOf(cidadeNomeAtual) }
-    var customISPInput by remember { mutableStateOf("") }
-    var showProvedorDropdown by remember { mutableStateOf(false) }
-    var showEstadoDropdown by remember { mutableStateOf(false) }
-    var showCidadeDropdown by remember { mutableStateOf(false) }
-    var cidadesFiltradas by remember { mutableStateOf<List<String>>(emptyList()) }
-    var cidadeBuscando by remember { mutableStateOf(false) }
-
-    LaunchedEffect(estadoUfInput) {
-        if (estadoUfInput.isNotBlank()) {
-            cidadeBuscando = true
-            val cached = cidadesCache[estadoUfInput]
-            if (cached != null) {
-                cidadesFiltradas = cached
-            } else {
-                val fetched =
-                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                        runCatching {
-                            val url = "https://servicodados.ibge.gov.br/api/v1/localidades/estados/$estadoUfInput/municipios"
-                            val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
-                            connection.connectTimeout = 8_000
-                            connection.readTimeout = 8_000
-                            val text = connection.inputStream.bufferedReader().use { it.readText() }
-                            connection.disconnect()
-                            val arr = org.json.JSONArray(text)
-                            (0 until arr.length()).map { arr.getJSONObject(it).getString("nome") }.sorted()
-                        }.getOrElse { emptyList() }
-                    }
-                if (fetched.isNotEmpty()) cidadesCache[estadoUfInput] = fetched
-                cidadesFiltradas = fetched
-            }
-            cidadeBuscando = false
-        }
-    }
-
-    val fieldColors =
-        OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = LkColors.accent,
-            unfocusedBorderColor = c.border,
-            focusedLabelColor = LkColors.accent,
-            unfocusedLabelColor = c.textSecondary,
-            cursorColor = LkColors.accent,
-            focusedTextColor = c.textPrimary,
-            unfocusedTextColor = c.textPrimary,
-        )
-
-    val operadorasDisponiveis =
-        listOf(
-            "Vivo",
-            "Claro",
-            "NET/Claro",
-            "TIM",
-            "Oi",
-            "Sky",
-            "Algar Telecom",
-            "Brisanet",
-            "Desktop",
-            "Copel Telecom",
-            "Surf Telecom",
-            "Unifique",
-            "Vogel",
-            "WDC Networks",
-            "Ligga",
-            "Intelbras",
-            "Vero",
-            "Sercomtel",
-            "Outra / ISP Local",
-        )
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = {},
-        containerColor = c.bgSecondary,
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = LkSpacing.lg)
-                    .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
-                    .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(c.border)
-                        .align(Alignment.CenterHorizontally)
-                        .semantics { contentDescription = "Arrastar para fechar" },
-            )
-            Spacer(Modifier.height(LkSpacing.sm))
-            Text("Dados do provedor", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = c.textPrimary)
-            Text(
-                "Informe sua operadora e plano para análises personalizadas.",
-                style = MaterialTheme.typography.bodySmall,
-                color = c.textSecondary,
-            )
-
-            // Operadora
-            ExposedDropdownMenuBox(expanded = showProvedorDropdown, onExpandedChange = { showProvedorDropdown = it }) {
-                OutlinedTextField(
-                    value = operadoraInput,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Operadora / ISP") },
-                    placeholder = { Text("Selecione uma operadora", color = c.textTertiary) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showProvedorDropdown) },
-                    modifier = Modifier.menuAnchor(type = MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
-                    singleLine = true,
-                    colors = fieldColors,
-                    shape = RoundedCornerShape(8.dp),
-                )
-                ExposedDropdownMenu(expanded = showProvedorDropdown, onDismissRequest = { showProvedorDropdown = false }) {
-                    operadorasDisponiveis.forEach { op ->
-                        DropdownMenuItem(
-                            text = { Text(op) },
-                            onClick = {
-                                operadoraInput = op
-                                if (op == "Outra / ISP Local") customISPInput = ""
-                                showProvedorDropdown = false
-                            },
-                        )
-                    }
-                }
-            }
-
-            if (operadoraInput == "Outra / ISP Local") {
-                OutlinedTextField(
-                    value = customISPInput,
-                    onValueChange = { customISPInput = it },
-                    label = { Text("Qual operadora / ISP?") },
-                    placeholder = { Text("Digite o nome", color = c.textTertiary) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    colors = fieldColors,
-                    shape = RoundedCornerShape(8.dp),
-                )
-            }
-
-            // Velocidade contratada — numérico, max 4 dígitos
-            OutlinedTextField(
-                value = planoInput,
-                onValueChange = { v -> if (v.all { it.isDigit() } && v.length <= 4) planoInput = v },
-                label = { Text("Velocidade contratada (Mbps)") },
-                placeholder = { Text("Ex: 100", color = c.textTertiary) },
-                suffix = { if (planoInput.isNotBlank()) Text("Mbps", color = c.textTertiary) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                colors = fieldColors,
-                shape = RoundedCornerShape(8.dp),
-            )
-
-            // Estado
-            ExposedDropdownMenuBox(expanded = showEstadoDropdown, onExpandedChange = { showEstadoDropdown = it }) {
-                OutlinedTextField(
-                    value = ESTADOS_BR.firstOrNull { it.first == estadoUfInput }?.second ?: estadoUfInput,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Estado") },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showEstadoDropdown) },
-                    modifier = Modifier.menuAnchor(type = MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
-                    colors = fieldColors,
-                    shape = RoundedCornerShape(8.dp),
-                )
-                ExposedDropdownMenu(expanded = showEstadoDropdown, onDismissRequest = { showEstadoDropdown = false }) {
-                    ESTADOS_BR.forEach { (uf, nome) ->
-                        DropdownMenuItem(
-                            text = { Text("$uf — $nome") },
-                            onClick = {
-                                estadoUfInput = uf
-                                cidadeNomeInput = ""
-                                cidadeQuery = ""
-                                showEstadoDropdown = false
-                            },
-                        )
-                    }
-                }
-            }
-
-            // Cidade com autocomplete
-            val cidadesFiltPorQuery =
-                remember(cidadeQuery, cidadesFiltradas) {
-                    if (cidadeQuery.length < 2) {
-                        emptyList()
-                    } else {
-                        cidadesFiltradas.filter { it.contains(cidadeQuery, ignoreCase = true) }.take(5)
-                    }
-                }
-            OutlinedTextField(
-                value = cidadeQuery,
-                onValueChange = { v ->
-                    cidadeQuery = v
-                    cidadeNomeInput = v
-                    showCidadeDropdown = v.length >= 2
-                },
-                label = { Text("Cidade") },
-                placeholder = {
-                    Text(
-                        text =
-                            when {
-                                cidadeBuscando -> "Buscando cidades…"
-                                estadoUfInput.isBlank() -> "Selecione um estado primeiro"
-                                else -> "Digite a cidade"
-                            },
-                        color = c.textTertiary,
-                    )
-                },
-                enabled = estadoUfInput.isNotBlank() && !cidadeBuscando,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                colors = fieldColors,
-                shape = RoundedCornerShape(8.dp),
-            )
-            if (showCidadeDropdown && cidadesFiltPorQuery.isNotEmpty()) {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(c.bgSecondary)
-                            .border(1.dp, c.border, RoundedCornerShape(8.dp)),
-                ) {
-                    cidadesFiltPorQuery.forEach { cidade ->
-                        Text(
-                            text = cidade,
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        cidadeNomeInput = cidade
-                                        cidadeQuery = cidade
-                                        showCidadeDropdown = false
-                                    }.padding(LkSpacing.md),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = c.textPrimary,
-                        )
-                    }
-                }
-            }
-
-            Button(
-                onClick = {
-                    val finalOperadora = if (operadoraInput == "Outra / ISP Local") customISPInput else operadoraInput
-                    val regiaoCombinada =
-                        if (cidadeNomeInput.isNotBlank() && estadoUfInput.isNotBlank()) {
-                            "$cidadeNomeInput, $estadoUfInput"
-                        } else {
-                            regiaoAtual
-                        }
-                    onSalvar(finalOperadora.trim(), planoInput.trim(), regiaoCombinada)
-                    if (estadoUfInput.isNotBlank()) onSalvarEstadoCidade(estadoUfInput, cidadeNomeInput.trim())
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
-                enabled = !(operadoraInput == "Outra / ISP Local" && customISPInput.isBlank()),
-            ) {
-                Text("Salvar")
-            }
-        }
-    }
-}
-
-// ─── Preferências sheet ───────────────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PreferenciasSheet(
-    c: LkTokens,
-    limiteAtual: Int,
-    onDismiss: () -> Unit,
-    onSalvar: (Int) -> Unit,
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var limiteInput by remember { mutableStateOf(if (limiteAtual > 0) limiteAtual.toString() else "") }
-
-    val fieldColors =
-        OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = LkColors.accent,
-            unfocusedBorderColor = c.border,
-            focusedLabelColor = LkColors.accent,
-            unfocusedLabelColor = c.textSecondary,
-            cursorColor = LkColors.accent,
-            focusedTextColor = c.textPrimary,
-            unfocusedTextColor = c.textPrimary,
-        )
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = {},
-        containerColor = c.bgSecondary,
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = LkSpacing.lg)
-                    .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
-                    .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(c.border)
-                        .align(Alignment.CenterHorizontally)
-                        .semantics { contentDescription = "Arrastar para fechar" },
-            )
-            Spacer(Modifier.height(LkSpacing.sm))
-            Text(
-                "Alertas de qualidade",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = c.textPrimary,
-            )
-            Text(
-                "Defina um limite mínimo de download. Quando sua conexão ficar abaixo desse valor, o SignallQ pode alertar você.",
-                style = MaterialTheme.typography.titleSmall,
-                color = c.textSecondary,
-                lineHeight = 18.sp,
-            )
-            OutlinedTextField(
-                value = limiteInput,
-                onValueChange = { limiteInput = it.filter { ch -> ch.isDigit() }.take(4) },
-                label = { Text("Mínimo de download (Mbps)") },
-                placeholder = { Text("Ex: 50", color = c.textTertiary) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                colors = fieldColors,
-                shape = RoundedCornerShape(8.dp),
-            )
-            if (limiteInput.isBlank()) {
-                Text(
-                    "Deixe em branco para desativar os alertas.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textTertiary,
-                )
-            }
-            Button(
-                onClick = { onSalvar(limiteInput.toIntOrNull() ?: 0) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
-            ) {
-                Text("Salvar")
-            }
-        }
-    }
-}
-
-// ─── Changelog sheet ──────────────────────────────────────────────────────
-
-// ─── Diagnóstico sheet ────────────────────────────────────────────────────────
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DiagnosticoSheet(
-    c: LkTokens,
-    analiseAvancada: Boolean,
-    monitoramentoAtivo: Boolean,
-    notificacaoLatenciaAtiva: Boolean,
-    notificacaoDnsAtiva: Boolean,
-    notificacaoRssiAtiva: Boolean,
-    notificacaoSemInternetAtiva: Boolean,
-    onDismiss: () -> Unit,
-    onDefinirAnaliseAvancada: (Boolean) -> Unit,
-    onAtivarMonitoramento: (Boolean) -> Unit,
-    onDefinirNotificacaoLatenciaAtiva: (Boolean) -> Unit,
-    onDefinirNotificacaoDnsAtiva: (Boolean) -> Unit,
-    onDefinirNotificacaoRssiAtiva: (Boolean) -> Unit,
-    onDefinirNotificacaoSemInternetAtiva: (Boolean) -> Unit,
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var showConfirmAnalise by remember { mutableStateOf(false) }
-    var showConfirmMonitoramento by remember { mutableStateOf(false) }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = {},
-        containerColor = c.bgSecondary,
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
-                    .navigationBarsPadding(),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(c.border)
-                        .align(Alignment.CenterHorizontally)
-                        .semantics { contentDescription = "Arrastar para fechar" },
-            )
-            Spacer(Modifier.height(LkSpacing.md))
-            Text(
-                text = "Diagnóstico avançado",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = c.textPrimary,
-                modifier = Modifier.padding(horizontal = LkSpacing.lg),
-            )
-            Text(
-                text = "Recursos que aprofundam a análise da sua rede",
-                style = MaterialTheme.typography.bodySmall,
-                color = c.textSecondary,
-                modifier = Modifier.padding(horizontal = LkSpacing.lg),
-            )
-            Spacer(Modifier.height(LkSpacing.sm))
-            ToggleItem(
-                c = c,
-                icon = Icons.Outlined.Analytics,
-                label = "Análise avançada",
-                subtitle = if (analiseAvancada) "Ativa" else "Desativada · pode aumentar consumo de bateria",
-                checked = analiseAvancada,
-                onCheckedChange = { enabled ->
-                    if (enabled && !analiseAvancada) {
-                        showConfirmAnalise = true
-                    } else if (!enabled) {
-                        onDefinirAnaliseAvancada(false)
-                    }
-                },
-            )
-            HorizontalDivider(color = c.border, thickness = 1.dp)
-            ToggleItem(
-                c = c,
-                icon = Icons.Outlined.Sensors,
-                label = "Monitoramento passivo",
-                subtitle = if (monitoramentoAtivo) "Ativo · verifica a cada 30 minutos" else "Desativado",
-                checked = monitoramentoAtivo,
-                onCheckedChange = { novoValor ->
-                    if (novoValor) {
-                        showConfirmMonitoramento = true
-                    } else {
-                        onAtivarMonitoramento(false)
-                    }
-                },
-            )
-            if (monitoramentoAtivo) {
-                HorizontalDivider(
-                    color = c.border,
-                    thickness = 1.dp,
-                    modifier = Modifier.padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
-                )
-                Text(
-                    text = "Notificações",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = c.textSecondary,
-                    modifier = Modifier.padding(horizontal = LkSpacing.lg, vertical = LkSpacing.xs),
-                )
-                ToggleItem(
-                    c = c,
-                    icon = Icons.Outlined.WifiOff,
-                    label = "Sem internet",
-                    subtitle = "Avisa quando a conexão cair",
-                    checked = notificacaoSemInternetAtiva,
-                    onCheckedChange = onDefinirNotificacaoSemInternetAtiva,
-                )
-                HorizontalDivider(color = c.border, thickness = 1.dp)
-                ToggleItem(
-                    c = c,
-                    icon = Icons.Outlined.Speed,
-                    label = "Latência alta",
-                    subtitle = "Avisa quando a rede ficar lenta",
-                    checked = notificacaoLatenciaAtiva,
-                    onCheckedChange = onDefinirNotificacaoLatenciaAtiva,
-                )
-                HorizontalDivider(color = c.border, thickness = 1.dp)
-                ToggleItem(
-                    c = c,
-                    icon = Icons.Outlined.Language,
-                    label = "DNS lento",
-                    subtitle = "Avisa quando sites e apps demorarem para carregar",
-                    checked = notificacaoDnsAtiva,
-                    onCheckedChange = onDefinirNotificacaoDnsAtiva,
-                )
-                HorizontalDivider(color = c.border, thickness = 1.dp)
-                ToggleItem(
-                    c = c,
-                    icon = Icons.Outlined.Wifi,
-                    label = "Sinal Wi-Fi fraco",
-                    subtitle = "Avisa quando o sinal cair abaixo do ideal",
-                    checked = notificacaoRssiAtiva,
-                    onCheckedChange = onDefinirNotificacaoRssiAtiva,
-                )
-            }
-            if (monitoramentoAtivo && OemKillInfo.fabricanteRiscoAlto) {
-                HorizontalDivider(color = c.border, thickness = 1.dp)
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
-                    verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Info,
-                        contentDescription = null,
-                        tint = LkColors.warning,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Text(
-                        text =
-                            "Em alguns dispositivos ${OemKillInfo.nomeFabricante}, o sistema pode reduzir a frequência " +
-                                "das verificações para economizar bateria. Para garantir o funcionamento, mantenha o SignallQ " +
-                                "na lista de apps sem restrição de bateria nas configurações do sistema.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = c.textSecondary,
-                    )
-                }
-            }
-        }
-    }
-
-    if (showConfirmAnalise) {
-        ConfirmacaoDialog(
-            titulo = "Ativar análise avançada?",
-            mensagem = "Esse recurso pode aumentar o consumo de bateria e dados, especialmente nas próximas janelas de medição.",
-            onConfirmar = {
-                onDefinirAnaliseAvancada(true)
-                showConfirmAnalise = false
-            },
-            onCancelar = { showConfirmAnalise = false },
-        )
-    }
-
-    if (showConfirmMonitoramento) {
-        ConfirmacaoDialog(
-            titulo = "Ativar monitoramento em segundo plano?",
-            mensagem =
-                "O SignallQ verificará sua conexão periodicamente e enviará uma notificação se detectar lentidão " +
-                    "ou instabilidade. Consome dados e bateria de forma mínima.",
-            textoBotaoConfirmar = "Ativar",
-            textoBotaoCancelar = "Agora não",
-            onConfirmar = {
-                onAtivarMonitoramento(true)
-                showConfirmMonitoramento = false
-            },
-            onCancelar = { showConfirmMonitoramento = false },
-        )
-    }
-}
-
-// ─── Dados locais sheet ───────────────────────────────────────────────────────
-
-/**
- * Destino unico para as acoes de limpar/apagar/resetar dados -- consolidando o que
- * antes eram 3 entradas espalhadas (Zona de risco, Historico e dados, Privacidade),
- * cada uma com comportamento de confirmacao diferente. Escalonado por gravidade.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun DadosLocaisSheet(
-    c: LkTokens,
-    onDismiss: () -> Unit,
-    onLimparHistorico: () -> Unit,
-    onApagarDadosLocais: () -> Unit,
-    onResetarApp: () -> Unit,
-) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var showConfirmLimpar by remember { mutableStateOf(false) }
-    var showConfirmApagar by remember { mutableStateOf(false) }
-    var showConfirmResetar by remember { mutableStateOf(false) }
-
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        dragHandle = {},
-        containerColor = c.bgSecondary,
-    ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = LkSpacing.lg)
-                    .padding(top = LkSpacing.md, bottom = LkSpacing.xxl)
-                    .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(c.border)
-                        .align(Alignment.CenterHorizontally)
-                        .semantics { contentDescription = "Arrastar para fechar" },
-            )
-            Spacer(Modifier.height(LkSpacing.sm))
-            Text(
-                text = "Gerenciar dados e privacidade",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = c.textPrimary,
-            )
-            Text(
-                text = "Estas ações são irreversíveis. Os dados serão removidos permanentemente do dispositivo.",
-                style = MaterialTheme.typography.titleSmall,
-                color = c.textSecondary,
-                lineHeight = 18.sp,
-            )
-            OutlinedButton(
-                onClick = { showConfirmLimpar = true },
-                modifier = Modifier.fillMaxWidth(),
-                border = BorderStroke(1.dp, LkColors.warning),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = LkColors.warning),
-            ) {
-                Icon(Icons.Outlined.History, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(LkSpacing.xs))
-                Text("Limpar histórico de testes")
-            }
-            OutlinedButton(
-                onClick = { showConfirmApagar = true },
-                modifier = Modifier.fillMaxWidth(),
-                border = BorderStroke(1.dp, LkColors.error),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = LkColors.error),
-            ) {
-                Icon(Icons.Outlined.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(LkSpacing.xs))
-                Text("Apagar dados locais")
-            }
-            Button(
-                onClick = { showConfirmResetar = true },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = LkColors.error),
-            ) {
-                Icon(Icons.Outlined.RestartAlt, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(LkSpacing.xs))
-                Text("Resetar app")
-            }
-        }
-    }
-
-    if (showConfirmLimpar) {
-        ConfirmacaoDialog(
-            titulo = "Limpar histórico?",
-            mensagem = "Esta ação removerá todos os testes registrados. Não pode ser desfeita.",
-            onConfirmar = {
-                onLimparHistorico()
-                showConfirmLimpar = false
-                onDismiss()
-            },
-            onCancelar = { showConfirmLimpar = false },
-        )
-    }
-
-    if (showConfirmApagar) {
-        ConfirmacaoDialog(
-            titulo = "Apagar dados locais?",
-            mensagem = "Remove configurações salvas e preferências. Esta ação não pode ser desfeita.",
-            onConfirmar = {
-                onApagarDadosLocais()
-                showConfirmApagar = false
-                onDismiss()
-            },
-            onCancelar = { showConfirmApagar = false },
-        )
-    }
-
-    if (showConfirmResetar) {
-        ConfirmacaoDialog(
-            titulo = "Redefinir o app?",
-            mensagem =
-                "Esta ação apagará todos os dados locais: histórico de testes, configurações salvas e preferências. " +
-                    "O app voltará ao estado inicial. Esta ação não pode ser desfeita.",
-            onConfirmar = {
-                onResetarApp()
-                showConfirmResetar = false
-                onDismiss()
-            },
-            onCancelar = { showConfirmResetar = false },
-        )
-    }
-}
-
 // ─── Diagnóstico do app sheet ─────────────────────────────────────────────────
+// Fora do escopo 6a-6f (item "Diagnóstico do app" não faz parte da reorganização
+// Perfil/Ajustes da Fase 7) — mantido aqui por enquanto.
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
