@@ -96,6 +96,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -215,6 +216,13 @@ class MainViewModel
                 .map { NokiaLocalDeviceMapper.map(it, System.currentTimeMillis()) }
                 .stateIn(viewModelScope, SharingStarted.Eagerly, null)
         }
+
+        // GH#934 — expoe reativamente o mesmo natStatusAtual (SIG-279) ja calculado por
+        // coletarTopologiaRede() para a EquipamentoInternetScreen sinalizar Double NAT.
+        // Espelha a variavel privada em vez de substitui-la — DiagnosticInput continua
+        // lendo natStatusAtual diretamente, sem mudar o contrato existente do engine.
+        private val _natStatusFlow = MutableStateFlow<NatStatus?>(null)
+        val natStatusFlow: StateFlow<NatStatus?> = _natStatusFlow.asStateFlow()
 
         // ── Recomendacao do Recommendation Engine na experiencia pos-diagnostico (#813) ──
         // Uma unica decisao por diagnostico concluido -- recalculada em iniciarObservadores()
@@ -991,6 +999,7 @@ class MainViewModel
         private suspend fun coletarTopologiaRede() {
             try {
                 natStatusAtual = topologyDiagnostic.diagnose().nat
+                _natStatusFlow.value = natStatusAtual
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 Timber.w("coletarTopologiaRede falhou: ${e.message}")
@@ -1288,6 +1297,13 @@ class MainViewModel
                     }
                 executorFibra.executar(resolvedHost, username, password)
             }
+        }
+
+        // GH#934 — solicita reboot do equipamento conectado (so faz sentido com sessao
+        // ativa). Nao reconecta sozinho: a UI mostra o estado "sessao expirada"/loading
+        // ate o equipamento voltar e o usuario (ou a autoconexao) tentar de novo.
+        fun reiniciarEquipamento() {
+            viewModelScope.launch { executorFibra.reiniciar() }
         }
 
         fun salvarConfiguracaoModem(

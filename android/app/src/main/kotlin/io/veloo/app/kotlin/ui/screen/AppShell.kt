@@ -76,6 +76,7 @@ import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
 import io.signallq.app.feature.devices.ehClienteFinal
 import io.signallq.app.feature.diagnostico.EstadoDiagnostico
+import io.signallq.app.feature.diagnostico.topology.model.NatStatus
 import io.signallq.app.feature.dns.SnapshotBenchmarkDns
 import io.signallq.app.feature.fibra.SnapshotFibra
 import io.signallq.app.feature.history.ResumoHistorico
@@ -104,8 +105,8 @@ private enum class Overlay {
     // GH#930 — Fase 1 MD3 (navegação). Estrutura preparada para as fases seguintes do plano
     // MD3 To-Be preencherem com telas reais — nenhuma delas ganha lógica final aqui.
 
-    // TODO(#934): Fase 5 — substitui Fibra por uma EquipamentoInternetScreen real. Por ora
-    // reusa o FibraModemScreen (Nokia-only) como stub.
+    // GH#934 — Fase 5 MD3: EquipamentoInternetScreen real (composicao por capacidade),
+    // substitui o antigo FibraModemScreen (Nokia-only) tambem no overlay Fibra acima.
     EquipamentoInternet,
 
     // GH#933 — Fase 4: hub real de atalhos (grid estático, sem chamada de rede própria).
@@ -145,6 +146,9 @@ fun AppShell(
     // GH#865 Fase 1 — snapshot normalizado do equipamento local (ONT Nokia),
     // null ate a primeira leitura de fibra concluir com sucesso.
     localDevice: LocalNetworkDeviceSnapshot? = null,
+    // GH#934 — Fase 5: sinal ja existente de NAT/CGNAT (SIG-279, TopologyDiagnostic),
+    // reaproveitado pela EquipamentoInternetScreen para alerta de Double NAT.
+    natStatus: NatStatus? = null,
     modemHost: String?,
     modemUsername: String,
     modemPassword: String,
@@ -157,6 +161,8 @@ fun AppShell(
     analiseAvancada: Boolean,
     onDispararBenchmarkDns: () -> Unit,
     onReconectarFibra: (host: String, username: String, password: String) -> Unit,
+    // GH#934 — solicita reboot do equipamento (so relevante quando AcessoEquipamento.GERENCIAMENTO_DISPONIVEL).
+    onReiniciarEquipamento: () -> Unit = {},
     onSalvarConfiguracaoModem: (host: String, username: String, password: String, permanecer: Boolean) -> Unit,
     // GH#530 — persiste o resultado da GatewayConnectionSheet (fonte unica dos dois entry points).
     onRegistrarConexaoGateway: (
@@ -752,11 +758,17 @@ fun AppShell(
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
-            FibraModemScreen(
+            EquipamentoInternetScreen(
                 snapshotFibra = snapshotFibra,
+                localDevice = localDevice,
+                natStatus = natStatus,
+                modemHost = modemHost,
+                modemUsername = modemUsername,
+                modemPassword = modemPassword,
                 onVoltar = { overlayStack.remove(Overlay.Fibra) },
                 onRetentar = { onReconectarFibra(modemHost ?: "", modemUsername, modemPassword) },
                 onAbrirAjustes = onAbrirPerfilOverlay,
+                onReiniciarEquipamento = onReiniciarEquipamento,
             )
         }
 
@@ -779,18 +791,24 @@ fun AppShell(
             )
         }
 
-        // TODO(#934): Fase 5 — EquipamentoInternetScreen real (composição por capacidade,
-        // engine plugável Nokia). Por ora reusa o FibraModemScreen como stub estrutural.
+        // GH#934 — Fase 5 MD3: EquipamentoInternetScreen real, composta por capacidade
+        // (engine plugável Nokia, unico provider real hoje — ver decisao #1 do plano).
         AnimatedVisibility(
             visible = Overlay.EquipamentoInternet in overlayStack,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
-            FibraModemScreen(
+            EquipamentoInternetScreen(
                 snapshotFibra = snapshotFibra,
+                localDevice = localDevice,
+                natStatus = natStatus,
+                modemHost = modemHost,
+                modemUsername = modemUsername,
+                modemPassword = modemPassword,
                 onVoltar = { overlayStack.remove(Overlay.EquipamentoInternet) },
                 onRetentar = { onReconectarFibra(modemHost ?: "", modemUsername, modemPassword) },
                 onAbrirAjustes = onAbrirPerfilOverlay,
+                onReiniciarEquipamento = onReiniciarEquipamento,
             )
         }
 

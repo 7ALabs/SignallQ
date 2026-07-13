@@ -248,8 +248,10 @@ private fun tituloEquipamento(snapshot: LocalNetworkDeviceSnapshot): String {
 }
 
 /** Dado ausente numa secao suportada pelo driver conta como leitura parcial —
- *  lista de clientes vazia NAO conta sozinha (pode ser legitimo ninguem conectado). */
-private fun dadosParciais(snapshot: LocalNetworkDeviceSnapshot): Boolean {
+ *  lista de clientes vazia NAO conta sozinha (pode ser legitimo ninguem conectado).
+ *  `internal` (GH#934) para ser reaproveitada por EquipamentoInternetUiState.kt sem
+ *  duplicar a regra. */
+internal fun dadosParciais(snapshot: LocalNetworkDeviceSnapshot): Boolean {
     if (snapshot.warnings.any { it.type == DeviceWarningType.DADOS_PARCIAIS }) return true
     val cap = snapshot.capabilities
     if (cap.suportaFibra && snapshot.fiber == null) return true

@@ -182,6 +182,11 @@ class MainActivity : ComponentActivity() {
                 viewModel.localDeviceSnapshot
                     .collectAsStateWithLifecycle()
                     .value
+            // GH#934 — Fase 5: NAT/CGNAT (SIG-279), reusado pela EquipamentoInternetScreen.
+            val natStatus =
+                viewModel.natStatusFlow
+                    .collectAsStateWithLifecycle()
+                    .value
 
             // --- Estado de rede e ISP (atualizam em momentos distintos — NAO combinar) ---
             val localIpUiState = viewModel.localIp.collectAsStateWithLifecycle().value
@@ -445,6 +450,7 @@ class MainActivity : ComponentActivity() {
                         resumoHistorico = resumoHistorico,
                         snapshotFibra = snapshotFibra,
                         localDevice = localDeviceSnapshot,
+                        natStatus = natStatus,
                         modemHost = modemHost,
                         modemUsername = modemUsername,
                         modemPassword = modemPassword,
@@ -458,6 +464,10 @@ class MainActivity : ComponentActivity() {
                         },
                         onReconectarFibra = { host, user, pass ->
                             viewModel.reconectarFibra(host, user, pass)
+                            analyticsTracker.registrarFeatureUsada("fibra")
+                        },
+                        onReiniciarEquipamento = {
+                            viewModel.reiniciarEquipamento()
                             analyticsTracker.registrarFeatureUsada("fibra")
                         },
                         onSalvarConfiguracaoModem = { host, user, pass, perm ->
