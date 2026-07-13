@@ -5,8 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,13 +35,9 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -100,9 +94,11 @@ import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.ResultadoPdfGenerator
 import io.signallq.app.ui.ads.rememberNativeAd
+import io.signallq.app.ui.component.AnaliseDetalhadaBottomSheet
 import io.signallq.app.ui.component.LocalDeviceSection
 import io.signallq.app.ui.component.OperadoraBottomSheet
 import io.signallq.app.ui.component.OperadoraContactCard
+import io.signallq.app.ui.component.Overline
 import io.signallq.app.ui.component.ads.NativeAdCard
 import io.signallq.app.ui.component.ads.NativeAdSource
 import io.signallq.app.ui.component.mapLocalDeviceSectionUiState
@@ -163,6 +159,9 @@ fun ResultadoVelocidadeScreen(
     var compartilhando by remember { mutableStateOf(false) }
     var showDiagnosticoSheet by remember { mutableStateOf(false) }
     var showOperadoraSheet by remember { mutableStateOf(false) }
+    // 1a (GH#931) — "Analisar meu problema com IA" isolado em sheet proprio, aberto a partir
+    // do sheet de diagnostico detalhado (nao mais inline dentro dele).
+    var showAnalisadorSheet by remember { mutableStateOf(false) }
     // Issue #555 -- dispensar o anuncio e estado de sessao (some ate o proximo resultado
     // recompor a tela do zero); nunca persistido, nunca conta como feedback de recomendacao.
     var nativeAdDismissedResultado by remember { mutableStateOf(false) }
@@ -439,8 +438,8 @@ fun ResultadoVelocidadeScreen(
                     Spacer(Modifier.width(LkSpacing.sm))
                     Text(
                         text = "Ver recomendações para melhorar",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp,
                     )
                 }
 
@@ -497,8 +496,8 @@ fun ResultadoVelocidadeScreen(
                     Spacer(Modifier.width(LkSpacing.sm))
                     Text(
                         text = if (resultado.uploadNaoDetectado) "Testar upload novamente" else "Refazer teste",
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
                         color = c.textPrimary,
                     )
                 }
@@ -534,8 +533,7 @@ fun ResultadoVelocidadeScreen(
                 localizacaoServidor = localizacaoServidor,
                 localDevice = localDevice,
                 analisadorState = analisadorState,
-                onAnalisarProblema = onAnalisarProblema,
-                onResetarAnalisador = onResetarAnalisador,
+                onAbrirAnalisador = { showAnalisadorSheet = true },
                 onFalarComOperadora = { showOperadoraSheet = true },
                 recommendationDecision = recommendationDecision,
                 recommendationFeedback = recommendationFeedback,
@@ -553,6 +551,15 @@ fun ResultadoVelocidadeScreen(
             ispNome = ispInfo?.isp,
             operadoraMovel = operadoraMovel,
             onDismiss = { showOperadoraSheet = false },
+        )
+    }
+
+    if (showAnalisadorSheet) {
+        AnaliseDetalhadaBottomSheet(
+            state = analisadorState,
+            onAnalisarProblema = onAnalisarProblema,
+            onResetar = onResetarAnalisador,
+            onDismiss = { showAnalisadorSheet = false },
         )
     }
 }
@@ -576,8 +583,7 @@ private fun DiagnosticoDetalhadoSheet(
     localizacaoServidor: String?,
     localDevice: LocalNetworkDeviceSnapshot?,
     analisadorState: AnalisadorState,
-    onAnalisarProblema: (String) -> Unit,
-    onResetarAnalisador: () -> Unit,
+    onAbrirAnalisador: () -> Unit,
     onFalarComOperadora: () -> Unit,
     recommendationDecision: RecommendationDecision?,
     recommendationFeedback: RecommendationFeedbackType?,
@@ -625,7 +631,7 @@ private fun DiagnosticoDetalhadoSheet(
         // CAUSA PROVÁVEL — a informação mais importante da tela: peso tipográfico
         // reforçado (titleLarge) pra não competir com o resto (#833).
         if (decisaoTitulo != null || decisaoMensagem != null) {
-            SheetOverline("CAUSA PROVÁVEL", c)
+            Overline(texto = "Causa provável", color = c.textTertiary)
             Spacer(Modifier.height(LkSpacing.sm))
             if (decisaoTitulo != null) {
                 Text(
@@ -649,7 +655,7 @@ private fun DiagnosticoDetalhadoSheet(
 
         // IMPACTO PRÁTICO — compactado numa linha só (#833): os 3 vereditos cabem
         // lado a lado, sem precisar de 3 linhas + 2 divisores pra mesma informação.
-        SheetOverline("IMPACTO PRÁTICO", c)
+        Overline(texto = "Impacto prático", color = c.textTertiary)
         Spacer(Modifier.height(LkSpacing.sm))
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -680,7 +686,7 @@ private fun DiagnosticoDetalhadoSheet(
 
         // RECOMENDAÇÕES
         Spacer(Modifier.height(LkSpacing.xl))
-        SheetOverline("RECOMENDAÇÕES", c)
+        Overline(texto = "Recomendações", color = c.textTertiary)
         Spacer(Modifier.height(LkSpacing.sm))
         if (!decisaoRecomendacao.isNullOrBlank()) {
             RecomendacaoCard(texto = decisaoRecomendacao, c = c)
@@ -702,10 +708,9 @@ private fun DiagnosticoDetalhadoSheet(
             Spacer(Modifier.height(LkSpacing.md))
         }
 
-        AnalisadorProblemaSection(
+        AnalisadorEntryRow(
             state = analisadorState,
-            onAnalisarProblema = onAnalisarProblema,
-            onResetar = onResetarAnalisador,
+            onAbrir = onAbrirAnalisador,
             c = c,
         )
 
@@ -716,7 +721,7 @@ private fun DiagnosticoDetalhadoSheet(
             OperadoraContactCard(operadora = operadora)
             Spacer(Modifier.height(LkSpacing.xs))
             TextButton(onClick = onFalarComOperadora) {
-                Text(text = "Falar com a operadora", color = c.textSecondary, fontSize = 14.sp)
+                Text(text = "Falar com a operadora", color = c.textSecondary, style = MaterialTheme.typography.bodyMedium)
             }
         }
 
@@ -770,7 +775,7 @@ private fun DiagnosticoDetalhadoSheet(
                 ) {
                     HorizontalDivider(color = c.border, thickness = 0.5.dp)
                     Spacer(Modifier.height(LkSpacing.md))
-                    SheetOverline("ORIENTAÇÃO POR TIPO DE REDE", c)
+                    Overline(texto = "Orientação por tipo de rede", color = c.textTertiary)
                     Spacer(Modifier.height(LkSpacing.xs))
                     Text(
                         text = orientacaoPorTipoDeRede(resultado.connectionType, resultado.tecnologia),
@@ -806,19 +811,6 @@ private fun DiagnosticoDetalhadoSheet(
             }
         }
     }
-}
-
-@Composable
-private fun SheetOverline(
-    texto: String,
-    c: LkTokens,
-) {
-    Text(
-        text = texto,
-        style = MaterialTheme.typography.labelSmall,
-        color = c.textTertiary,
-        letterSpacing = 0.5.sp,
-    )
 }
 
 /** Orientação curta por tipo de conexão — não é chat, é texto fixo condicionado
@@ -1184,213 +1176,110 @@ internal fun recommendationTypeLabel(type: RecommendationType): String =
         RecommendationType.NATIVE_AD_FALLBACK -> "PUBLICIDADE"
     }
 
-private val problemasPredefinidos =
-    listOf(
-        "Baixa velocidade",
-        "Quedas constantes",
-        "Travamentos em streaming ou jogos",
-    )
-
-/** Menor valor = maior prioridade, para escolher a ação de destaque via minByOrNull. */
-private fun prioridadeOrdem(prioridade: String): Int =
-    when (prioridade) {
-        "alta" -> 0
-        "media" -> 1
-        "baixa" -> 2
-        else -> 1
-    }
-
-@OptIn(ExperimentalLayoutApi::class)
+/**
+ * Entrada compacta do fluxo "Analisar meu problema com IA" dentro do sheet de diagnóstico
+ * detalhado — GH#931 (Fase 2 MD3). O fluxo completo (seletor de problema, loading, resultado,
+ * erro) mora em `AnaliseDetalhadaBottomSheet`, sheet dedicado aberto por [onAbrir]; aqui só o
+ * resumo do estado atual, pra não competir visualmente com o resto do diagnóstico.
+ */
 @Composable
-private fun AnalisadorProblemaSection(
+private fun AnalisadorEntryRow(
     state: AnalisadorState,
-    onAnalisarProblema: (String) -> Unit,
-    onResetar: () -> Unit,
+    onAbrir: () -> Unit,
     c: LkTokens,
 ) {
-    var selecionandoProblema by remember { mutableStateOf(false) }
-
-    // Quando o estado volta para Inativo (após reset), fecha o seletor de chips.
-    if (state is AnalisadorState.Inativo && !selecionandoProblema) {
-        OutlinedButton(
-            onClick = { selecionandoProblema = true },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(LkRadius.button),
-        ) {
-            Text(
-                text = "Analisar meu problema com IA",
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
-                color = c.textPrimary,
-            )
-        }
-        return
-    }
-
-    if (state is AnalisadorState.Inativo && selecionandoProblema) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = "QUAL É O SEU PROBLEMA?",
-                style = MaterialTheme.typography.labelSmall,
-                color = c.textTertiary,
-                letterSpacing = 1.sp,
-            )
-            Spacer(Modifier.height(LkSpacing.sm))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-                verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
-            ) {
-                problemasPredefinidos.forEach { problema ->
-                    FilterChip(
-                        selected = false,
-                        onClick = {
-                            selecionandoProblema = false
-                            onAnalisarProblema(problema)
-                        },
-                        label = { Text(text = problema, fontSize = 13.sp) },
-                        colors =
-                            FilterChipDefaults.filterChipColors(
-                                containerColor = c.bgSecondary,
-                                labelColor = c.textPrimary,
-                            ),
-                    )
-                }
-            }
-            Spacer(Modifier.height(LkSpacing.xs))
-            TextButton(onClick = { selecionandoProblema = false }) {
-                Text(text = "Cancelar", color = c.textTertiary, fontSize = 13.sp)
-            }
-        }
-        return
-    }
-
     when (state) {
+        is AnalisadorState.Inativo -> {
+            OutlinedButton(
+                onClick = onAbrir,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(LkRadius.button),
+            ) {
+                Text(
+                    text = "Analisar meu problema com IA",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = c.textPrimary,
+                )
+            }
+        }
         is AnalisadorState.Analisando -> {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(LkRadius.card))
+                        .background(c.bgSecondary)
+                        .clickable(onClick = onAbrir)
+                        .padding(LkSpacing.lg),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
             ) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(16.dp),
                     strokeWidth = 2.dp,
                     color = LkColors.accent,
                 )
                 Text(
-                    text = "Analisando seu problema...",
-                    fontSize = 14.sp,
+                    text = "Analisando seu problema…",
+                    style = MaterialTheme.typography.bodyMedium,
                     color = c.textSecondary,
                 )
             }
         }
-
         is AnalisadorState.Resultado -> {
-            val origemLabel = if (state.origem == "ia") "Análise por IA" else "Diagnóstico local"
-            val origemCor = if (state.origem == "ia") LkColors.accent else c.textTertiary
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(LkRadius.card),
-                colors = CardDefaults.cardColors(containerColor = c.bgSecondary),
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(LkRadius.card))
+                        .background(c.bgSecondary)
+                        .clickable(onClick = onAbrir)
+                        .padding(LkSpacing.lg),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(modifier = Modifier.padding(LkSpacing.lg)) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Overline(texto = "Diagnóstico da IA", color = c.textTertiary)
+                    Spacer(Modifier.height(2.dp))
                     Text(
-                        text = "DIAGNÓSTICO",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = c.textTertiary,
-                        letterSpacing = 1.sp,
-                    )
-                    Spacer(Modifier.height(LkSpacing.sm))
-                    Text(
-                        text = state.texto,
-                        fontSize = 14.sp,
+                        text = "Ver análise completa",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.W600,
                         color = c.textPrimary,
-                        lineHeight = 20.sp,
                     )
-                    // Próximo passo concreto -- o diagnóstico sozinho (texto acima) não
-                    // basta; o app não pode terminar em "isso está ruim" sem indicar o
-                    // que fazer (ver PRODUCT.md). acoesRecomendadas já vem específica e
-                    // priorizada da IA/motor local (regra 9 do prompt), só faltava ser
-                    // exibida nesta tela. Mostra ate 2 acoes (nao so a 1a) porque o
-                    // diagnostico costuma ter mais de uma causa (ex.: latencia alta +
-                    // canal congestionado), cada uma com sua propria acao pratica.
-                    val proximasAcoes =
-                        state.acoes
-                            .sortedBy { prioridadeOrdem(it.prioridade) }
-                            .take(2)
-                    if (proximasAcoes.isNotEmpty()) {
-                        Spacer(Modifier.height(LkSpacing.md))
-                        Column(
-                            modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(LkRadius.card))
-                                    .background(LkColors.accent.copy(alpha = 0.08f))
-                                    .padding(LkSpacing.md),
-                            verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-                        ) {
-                            proximasAcoes.forEach { acao ->
-                                Row(verticalAlignment = Alignment.Top) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Info,
-                                        contentDescription = null,
-                                        tint = LkColors.accent,
-                                        modifier = Modifier.size(18.dp),
-                                    )
-                                    Spacer(Modifier.width(LkSpacing.sm))
-                                    Column {
-                                        Text(
-                                            text = acao.titulo.ifBlank { "Próximo passo" },
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.W600,
-                                            color = c.textPrimary,
-                                        )
-                                        Text(
-                                            text = acao.descricao,
-                                            fontSize = 13.sp,
-                                            color = c.textSecondary,
-                                            lineHeight = 18.sp,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(LkSpacing.md))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = origemLabel,
-                            fontSize = 12.sp,
-                            color = origemCor,
-                            fontWeight = FontWeight.Medium,
-                        )
-                        TextButton(onClick = {
-                            selecionandoProblema = false
-                            onResetar()
-                        }) {
-                            Text(text = "Nova análise", color = c.textTertiary, fontSize = 12.sp)
-                        }
-                    }
                 }
+                Icon(
+                    imageVector = Icons.Outlined.ExpandMore,
+                    contentDescription = null,
+                    tint = c.textTertiary,
+                    modifier = Modifier.rotate(-90f),
+                )
             }
         }
-
         is AnalisadorState.Erro -> {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(text = state.mensagem, fontSize = 13.sp, color = LkColors.error)
-                Spacer(Modifier.height(LkSpacing.xs))
-                TextButton(onClick = {
-                    selecionandoProblema = false
-                    onResetar()
-                }) {
-                    Text(text = "Tentar novamente", color = c.textTertiary, fontSize = 13.sp)
-                }
+            Row(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(LkRadius.card))
+                        .background(LkColors.error.copy(alpha = 0.08f))
+                        .clickable(onClick = onAbrir)
+                        .padding(LkSpacing.lg),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Warning,
+                    contentDescription = null,
+                    tint = LkColors.error,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(LkSpacing.sm))
+                Text(
+                    text = "A análise falhou — toque para tentar novamente",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = LkColors.error,
+                )
             }
         }
-
-        else -> {}
     }
 }

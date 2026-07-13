@@ -606,8 +606,7 @@ private fun CardMedicoes(
                 Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
                     Text(
                         stringResource(R.string.home_medicoes_titulo),
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.W500,
+                        style = MaterialTheme.typography.titleMedium,
                         color = c.textPrimary,
                     )
                     effectiveTs?.let {
@@ -1337,7 +1336,7 @@ private fun HeroSpeed(
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 arrow,
-                fontSize = 15.sp,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.W600,
                 color = color,
                 lineHeight = 27.sp,
@@ -2302,7 +2301,12 @@ private fun WifiFactorsSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(stringResource(R.string.home_wifi_fatores_titulo), fontSize = 15.sp, fontWeight = FontWeight.W600, color = c.textPrimary)
+            Text(
+                stringResource(R.string.home_wifi_fatores_titulo),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.W600,
+                color = c.textPrimary,
+            )
             WifiQualityBadge(quality = overall, c = c)
         }
         Spacer(modifier = Modifier.height(LkSpacing.sm))
@@ -2601,8 +2605,7 @@ private fun SignalQualitySheet(
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             if (isWifi) "Detalhes da rede Wi-Fi" else "Detalhes da rede móvel",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.W600,
+            style = MaterialTheme.typography.titleLarge,
             color = c.textPrimary,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
@@ -2658,7 +2661,7 @@ private fun QualidadePlaceholderSheet(c: LkTokens) {
         Spacer(Modifier.height(20.dp))
         Text(
             text = stringResource(R.string.home_qualidade_titulo),
-            fontSize = 18.sp,
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = c.textPrimary,
             textAlign = TextAlign.Center,
@@ -2720,13 +2723,13 @@ private fun CellularInfoSheet(
 
         Text(
             "Rede móvel",
-            fontSize = 20.sp,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.W700,
             color = c.textPrimary,
         )
         Text(
             "Detalhes da conexão móvel ativa",
-            fontSize = 13.sp,
+            style = MaterialTheme.typography.bodySmall,
             color = c.textTertiary,
         )
 
@@ -2761,7 +2764,7 @@ private fun CellularInfoSheet(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     operadora ?: "Rede móvel",
-                    fontSize = 15.sp,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.W600,
                     color = c.textPrimary,
                 )
@@ -2770,7 +2773,7 @@ private fun CellularInfoSheet(
                         .joinToString(" · ")
                         .takeIf { it.isNotEmpty() }
                 if (heroSub != null) {
-                    Text(heroSub, fontSize = 12.sp, color = c.textSecondary)
+                    Text(heroSub, style = MaterialTheme.typography.labelMedium, color = c.textSecondary)
                 }
             }
             Box(
@@ -2782,7 +2785,7 @@ private fun CellularInfoSheet(
             ) {
                 Text(
                     "Conectado",
-                    fontSize = 11.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.W700,
                     color = LkColors.success,
                 )
@@ -2821,7 +2824,7 @@ private fun CellularInfoSheet(
         Spacer(Modifier.height(LkSpacing.md))
         Text(
             "Teste de velocidade pode consumir uma parcela significativa do seu plano de dados.",
-            fontSize = 11.sp,
+            style = MaterialTheme.typography.labelSmall,
             color = c.textTertiary,
             lineHeight = 15.sp,
         )
@@ -3199,7 +3202,7 @@ private fun GamerVeredictCard(
             }
             Spacer(Modifier.width(LkSpacing.md))
             Column {
-                Text(label, fontSize = 20.sp, fontWeight = FontWeight.W800, color = cor)
+                Text(label, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.W800, color = cor)
                 Text(desc, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
             }
         }

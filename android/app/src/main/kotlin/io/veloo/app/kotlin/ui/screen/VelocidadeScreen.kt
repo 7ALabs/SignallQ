@@ -13,10 +13,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -50,7 +52,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.signallq.app.R
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.FaseSpeedtest
@@ -62,6 +63,7 @@ import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.GaugeCircular
 import io.signallq.app.ui.component.MiniGrafico
+import io.signallq.app.ui.component.Overline
 import kotlinx.coroutines.isActive
 import androidx.compose.animation.core.tween as tweenSpec
 
@@ -227,7 +229,7 @@ fun VelocidadeScreen(
                         Spacer(Modifier.width(LkSpacing.sm))
                         Text(
                             text = "download concluído",
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.labelMedium,
                             color = c.textTertiary,
                         )
                     }
@@ -327,7 +329,7 @@ private fun LinhaServidor(
     }
     Text(
         text = partes.joinToString(" · "),
-        fontSize = 11.sp,
+        style = MaterialTheme.typography.labelSmall,
         color = c.textTertiary,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -392,13 +394,7 @@ private fun PillsFase(faseAtual: FaseSpeedtest) {
                         ).padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = pill.label,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.W600,
-                    color = corTexto,
-                    letterSpacing = 0.5.sp,
-                )
+                Overline(texto = pill.label, color = corTexto)
             }
         }
     }
@@ -418,7 +414,12 @@ private fun ErroContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = "⚠", fontSize = 48.sp)
+        Icon(
+            imageVector = Icons.Outlined.ErrorOutline,
+            contentDescription = null,
+            tint = LkColors.error,
+            modifier = Modifier.size(48.dp),
+        )
         Spacer(Modifier.height(LkSpacing.lg))
         Text(
             text = "Não foi possível completar o teste",
