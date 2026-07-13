@@ -25,7 +25,13 @@ class FirebaseAnalyticsTracker
         private val sessionId: String = UUID.randomUUID().toString()
         private val appVersion: String = BuildConfig.VERSION_NAME
 
-        override fun registrarFeatureUsada(featureId: String) {
+        // GH#919 — sessionIdOverride nao se aplica ao Firebase/GA4: o SDK nativo
+        // ja tem seu proprio conceito de sessao, independente do session_id
+        // usado no schema SIG-134 enviado ao admin-worker (ver classe doc acima).
+        override fun registrarFeatureUsada(
+            featureId: String,
+            sessionIdOverride: String?,
+        ) {
             firebaseAnalytics.logEvent(
                 "feature_used",
                 Bundle().apply {

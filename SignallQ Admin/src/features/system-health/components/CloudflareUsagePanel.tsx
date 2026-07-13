@@ -11,6 +11,7 @@ const RESOURCE_LABELS: Array<{ key: keyof CloudflareUsageResponse["resources"]; 
   { key: "d1RowsReadDay", label: "D1 rows lidas · hoje (UTC)" },
   { key: "d1RowsWrittenDay", label: "D1 rows escritas · hoje (UTC)" },
   { key: "d1StorageTotal", label: "D1 storage total" },
+  { key: "workersAiNeuronsDay", label: "Workers AI Neurons · hoje (UTC)" },
 ];
 
 function formatUnit(value: number, unit: CloudflareResourceUsage["unit"]): string {
@@ -31,6 +32,9 @@ function barColor(percentage: number): string {
 // este worker). "Não disponível" é estado honesto quando CLOUDFLARE_API_TOKEN não
 // está configurado no worker ou a consulta à GraphQL Analytics API falha — nunca
 // número fabricado (mesmo padrão de FeatureComingSoon usado no resto do painel).
+// #921 — Workers AI Neurons não tem dataset na GraphQL Analytics API (Cloudflare
+// só expõe via dashboard), então esse recurso é sempre estimado a partir de tokens
+// reais gravados em ai_usage — marcado com "(estimado)" no rótulo (resource.estimated).
 export const CloudflareUsagePanel: React.FC<CloudflareUsagePanelProps> = ({ usage }) => {
   return (
     <ChartCard
@@ -49,7 +53,14 @@ export const CloudflareUsagePanel: React.FC<CloudflareUsagePanelProps> = ({ usag
             return (
               <div key={key} className="space-y-1" id={`cloudflare-usage-${key}`}>
                 <div className="flex justify-between items-center text-xs gap-2">
-                  <span className="text-[var(--text-primary)] font-medium truncate">{label}</span>
+                  <span className="text-[var(--text-primary)] font-medium truncate">
+                    {label}
+                    {resource.estimated ? (
+                      <span className="ml-1 font-normal" style={{ color: "var(--text-tertiary)" }}>
+                        (estimado)
+                      </span>
+                    ) : null}
+                  </span>
                   {resource.available && resource.percentage != null ? (
                     <div className="flex items-center gap-2 font-mono text-[11px] shrink-0">
                       <span className="text-[var(--text-secondary)]">

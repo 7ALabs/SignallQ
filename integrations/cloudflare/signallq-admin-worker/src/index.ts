@@ -726,6 +726,38 @@ async function handleNetworkInsights(request: Request, env: Env): Promise<Respon
   return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
 }
 
+// GH#786 — agregado de sessões por UF (mapa "Onde o app é mais usado", tela
+// Redes & Provedores). uf='' (geo indisponível/fora do Brasil) fica de fora
+// do array — não fabrica uma UF que o worker não conseguiu determinar.
+async function handleRegionInsights(request: Request, env: Env): Promise<Response> {
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "7d";
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? " AND environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]            : [];
+
+  const rows = await env.DB.prepare(
+    `SELECT
+       uf,
+       COUNT(*) AS count,
+       COUNT(*) * 100.0 / SUM(COUNT(*)) OVER() AS percentage
+     FROM diagnostic_sessions
+     WHERE created_at >= ? AND uf IS NOT NULL AND uf != ''${envClause}
+     GROUP BY uf
+     ORDER BY count DESC`
+  ).bind(since, ...envBinds).all();
+
+  const items = (rows.results ?? []).map((r: any) => ({
+    uf:         r.uf,
+    count:      r.count      ?? 0,
+    percentage: r.percentage != null ? Math.round(r.percentage * 10) / 10 : 0,
+  }));
+
+  return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
+}
+
 // GH#765 — o Android manda "none" no array de issues quando não há problema
 // detectado (em vez de array vazio). Sem esse filtro, "none" era contado como
 // o problema mais comum do painel (ex: 42% das sessões).
@@ -782,20 +814,38 @@ async function handleTopIssues(request: Request, env: Env): Promise<Response> {
 // #883 — teto do plano gratuito Cloudflare, valores publicados em
 // developers.cloudflare.com/workers/platform/pricing/ e /d1/platform/pricing/
 // (conferido em 2026-07-12). Reset diário é por dia UTC (é como a Cloudflare conta).
+// #921: workersAiNeuronsPerDay — teto do Workers AI (10.000 neurônios/dia, CONTA
+// INTEIRA), developers.cloudflare.com/workers-ai/platform/pricing/ (conferido
+// 2026-07-12). Mesmo reset diário UTC.
 const CF_FREE_TIER = {
-  workersRequestsPerDay: 100_000,
-  d1RowsReadPerDay:      5_000_000,
-  d1RowsWrittenPerDay:   100_000,
-  d1StorageBytesTotal:   5 * 1024 * 1024 * 1024, // 5 GB, total da conta (não por database)
+  workersRequestsPerDay:   100_000,
+  d1RowsReadPerDay:        5_000_000,
+  d1RowsWrittenPerDay:     100_000,
+  d1StorageBytesTotal:     5 * 1024 * 1024 * 1024, // 5 GB, total da conta (não por database)
+  workersAiNeuronsPerDay:  10_000,
 };
+
+// #921 — Workers AI Neurons (fallback Qwen3-30B) NÃO tem dataset na GraphQL
+// Analytics API nem endpoint REST de uso/quota (confirmado em 2026-07-12: página de
+// datasets/discovery da GraphQL API não lista nenhum node de Workers AI, a
+// referência REST /accounts/{id}/ai/* só tem run/finetunes/models/schema — nada de
+// usage; a doc de pricing só recomenda "monitorar no dashboard"). Por isso o "usado"
+// aqui é ESTIMATIVA: tokens reais gravados em ai_usage (o Android reporta cada
+// chamada) × taxa oficial de conversão do Qwen3-30B-A3B-FP8 publicada em
+// developers.cloudflare.com/workers-ai/platform/pricing/ (conferido 2026-07-12):
+// 4625 neurônios por 1M tokens de entrada, 30475 por 1M de saída. Nunca é medição
+// real cobrada pela Cloudflare — só o dashboard deles tem esse número exato.
+const QWEN_NEURONS_PER_INPUT_TOKEN  = 4625 / 1_000_000;
+const QWEN_NEURONS_PER_OUTPUT_TOKEN = 30475 / 1_000_000;
 
 interface CloudflareResourceUsage {
   available: boolean;
   used: number | null;
   limit: number | null;
   percentage: number | null; // 0-100, arredondado
-  unit: "requests" | "rows" | "bytes";
+  unit: "requests" | "rows" | "bytes" | "neurons";
   reason?: string; // preenchido quando available=false
+  estimated?: boolean; // #921: true quando "used" é estimativa, não medição real
 }
 
 interface CloudflareUsageGraphQLResponse {
@@ -830,7 +880,41 @@ interface CloudflareUsageResult {
     d1RowsReadDay: CloudflareResourceUsage;
     d1RowsWrittenDay: CloudflareResourceUsage;
     d1StorageTotal: CloudflareResourceUsage;
+    workersAiNeuronsDay: CloudflareResourceUsage;
   };
+}
+
+// #921 — estimativa de neurônios Workers AI consumidos hoje (dia UTC) pelo
+// fallback Qwen3-30B. Fonte é sempre D1 (ai_usage), nunca a GraphQL Analytics API
+// (não expõe o dado — ver comentário de QWEN_NEURONS_PER_INPUT_TOKEN acima) — por
+// isso roda independente de CLOUDFLARE_API_TOKEN estar configurado ou não.
+// Filtro de provider replica exatamente providerEnumId()/providerName() (model
+// contém "qwen" ou começa com "@cf/") para não duplicar o critério de detecção.
+async function getWorkersAiNeuronsEstimate(env: Env): Promise<CloudflareResourceUsage> {
+  const now = new Date();
+  const todayStartUtcSec = Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 1000);
+
+  try {
+    const row = await env.DB.prepare(
+      `SELECT SUM(prompt_tokens) AS inputTokens, SUM(completion_tokens) AS outputTokens
+       FROM ai_usage
+       WHERE created_at >= ? AND (model LIKE '%qwen%' OR model LIKE '@cf/%')`
+    ).bind(todayStartUtcSec).first<{ inputTokens: number | null; outputTokens: number | null }>();
+
+    const inputTokens  = row?.inputTokens ?? 0;
+    const outputTokens = row?.outputTokens ?? 0;
+    const estimatedNeurons = Math.round(
+      inputTokens * QWEN_NEURONS_PER_INPUT_TOKEN + outputTokens * QWEN_NEURONS_PER_OUTPUT_TOKEN
+    );
+
+    return {
+      ...usageOf(estimatedNeurons, CF_FREE_TIER.workersAiNeuronsPerDay, "neurons"),
+      estimated: true,
+    };
+  } catch (e) {
+    await logError(env, 'workers-ai-neurons-estimate', String(e), e instanceof Error ? e.stack ?? '' : '');
+    return unavailableUsage(`Falha ao consultar ai_usage: ${String(e)}`, "neurons");
+  }
 }
 
 // #883: uso vs. teto do free tier Cloudflare (Workers requests/dia, D1 rows
@@ -840,6 +924,8 @@ interface CloudflareUsageResult {
 // limite gratuito. Extraída de handleCloudflareUsage para ser reaproveitada por
 // generateAndPersistAlerts sem duplicar a chamada GraphQL.
 async function getCloudflareUsage(env: Env): Promise<CloudflareUsageResult> {
+  const workersAiNeuronsDay = await getWorkersAiNeuronsEstimate(env);
+
   if (!env.CLOUDFLARE_API_TOKEN || !env.CLOUDFLARE_ACCOUNT_ID) {
     const reason = "CLOUDFLARE_API_TOKEN não configurado — requer token criado manualmente no dashboard Cloudflare com escopo Account Analytics:Read.";
     return {
@@ -850,6 +936,7 @@ async function getCloudflareUsage(env: Env): Promise<CloudflareUsageResult> {
         d1RowsReadDay:      unavailableUsage(reason, "rows"),
         d1RowsWrittenDay:   unavailableUsage(reason, "rows"),
         d1StorageTotal:     unavailableUsage(reason, "bytes"),
+        workersAiNeuronsDay,
       },
     };
   }
@@ -895,6 +982,7 @@ async function getCloudflareUsage(env: Env): Promise<CloudflareUsageResult> {
         d1RowsReadDay:      unavailableUsage(reason, "rows"),
         d1RowsWrittenDay:   unavailableUsage(reason, "rows"),
         d1StorageTotal:     unavailableUsage(reason, "bytes"),
+        workersAiNeuronsDay,
       },
     };
   }
@@ -914,6 +1002,7 @@ async function getCloudflareUsage(env: Env): Promise<CloudflareUsageResult> {
       d1StorageTotal:     storageBytes != null
         ? usageOf(storageBytes, CF_FREE_TIER.d1StorageBytesTotal, "bytes")
         : unavailableUsage("Sem snapshot de storage nas últimas 48h.", "bytes"),
+      workersAiNeuronsDay,
     },
   };
 }
@@ -1057,6 +1146,20 @@ async function generateAndPersistAlerts(env: Env): Promise<void> {
         });
       }
     }
+  }
+
+  // #921: alerta de Workers AI Neurons (estimado) roda sempre — dado vem de D1
+  // (ai_usage), não da GraphQL Analytics API, então não depende de
+  // CLOUDFLARE_API_TOKEN nem do source do restante do card.
+  const neurons = cfUsage.resources.workersAiNeuronsDay;
+  if (neurons.available && neurons.percentage != null && neurons.percentage >= CF_ATTENTION_THRESHOLD) {
+    candidates.push({
+      id:       'cloudflare_usage_workersAiNeuronsDay',
+      type:     'CLOUDFLARE_USAGE',
+      severity: neurons.percentage >= 100 ? 'critical' : 'warning',
+      title:    'Uso do free tier Cloudflare em atenção',
+      message:  `Workers AI Neurons/dia (estimado): ${neurons.percentage}% do limite gratuito (${neurons.used}/${neurons.limit})`,
+    });
   }
 
   // #884: alerta de quota Gemini — só roda se algum teto do free tier estiver
@@ -2669,6 +2772,37 @@ async function handleErrors(request: Request, env: Env): Promise<Response> {
   return json({ source: "d1", period, errors }, 200, env);
 }
 
+// GH#782 — série temporal diária de erros para o gráfico "Taxa de erro · N
+// dias" (Problemas & Incidentes). Fonte é exclusivamente
+// analytics_events(feature_crash) — a mesma fonte que a página já declara
+// (SectionIntro: "FONTE · FIREBASE CRASHLYTICS"). system_errors (erros do
+// próprio worker) fica de fora: a tabela só guarda first_seen/last_seen
+// agregados por erro único (dedup via djb2 em logError), sem uma linha por
+// ocorrência — não dá pra reconstruir contagem diária real sem migration
+// nova de log bruto (fora do escopo desta issue).
+async function handleErrorsTimeline(request: Request, env: Env): Promise<Response> {
+  const url   = new URL(request.url);
+  const days  = Math.min(Math.max(parseInt(url.searchParams.get("days") ?? "14"), 1), 90);
+  const since = nowSec() - days * 86400;
+
+  const rows = await env.DB.prepare(
+    `SELECT
+       strftime('%Y-%m-%d', datetime(created_at, 'unixepoch')) AS date,
+       COUNT(*) AS count
+     FROM analytics_events
+     WHERE event_name = 'feature_crash' AND created_at >= ?
+     GROUP BY date
+     ORDER BY date ASC`
+  ).bind(since).all();
+
+  const series = (rows.results ?? []).map((r: any) => ({
+    date:       r.date,
+    errorCount: r.count ?? 0,
+  }));
+
+  return json({ source: "d1", days, series }, 200, env);
+}
+
 // POST /admin/errors/:id/resolve — GH#422. Marca erro (do worker ou do app)
 // como resolvido, gravando responsável (da sessão autenticada), data (server)
 // e observação (body). UPSERT: erros "app:<id>" ainda não têm linha em
@@ -2709,6 +2843,26 @@ async function handleResolveSystemError(request: Request, env: Env, session: { u
 
 // --- handlers /ingest ---
 
+// GH#786 — as 27 UFs brasileiras válidas. `request.cf.regionCode` (geolocalização
+// de borda da própria Cloudflare, calculada a partir do IP da requisição) só é
+// aceito quando bate com uma destas — qualquer outro valor (país fora do Brasil,
+// colo sem geo confiável, undefined em dev local) vira '' em vez de fabricar UF.
+const UF_WHITELIST = new Set([
+  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB',
+  'PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO',
+]);
+
+// GH#786 — deriva UF aproximada da requisição via geolocalização de borda da
+// Cloudflare (`request.cf`), sem NUNCA persistir o IP em si. `cf` não tem
+// tipo oficial no projeto (mesmo gap pré-existente de @cloudflare/workers-types
+// documentado no topo do arquivo) — acesso via `any` só para este campo.
+function deriveUfFromRequest(request: Request): string {
+  const regionCode = (request as any).cf?.regionCode;
+  if (typeof regionCode !== 'string') return '';
+  const uf = regionCode.toUpperCase();
+  return UF_WHITELIST.has(uf) ? uf : '';
+}
+
 async function handleIngestDiagnostic(request: Request, env: Env): Promise<Response> {
   let p: any;
   try { p = await request.json(); } catch { return err("invalid JSON", 400, env); }
@@ -2737,6 +2891,9 @@ async function handleIngestDiagnostic(request: Request, env: Env): Promise<Respo
   const bandaWifi  = p.banda_wifi  ?? p.bandaWifi  ?? null;
   const padraoWifi = p.padrao_wifi ?? p.padraoWifi ?? null;
 
+  // GH#786 — UF aproximada, derivada no worker (não enviada pelo app).
+  const uf = deriveUfFromRequest(request);
+
   try {
     await env.DB.prepare(
       `INSERT OR REPLACE INTO diagnostic_sessions
@@ -2745,8 +2902,8 @@ async function handleIngestDiagnostic(request: Request, env: Env): Promise<Respo
           issues, resolved, operator,
           device_model, os_version, app_version, ai_summary_report,
           environment, dist_channel, build_type, version_code, device_id,
-          rssi, banda_wifi, padrao_wifi, platform)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          rssi, banda_wifi, padrao_wifi, platform, uf)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       p.id, p.created_at ?? nowSec(),
       p.network_type ?? "unknown", p.status ?? "unknown", p.score ?? null,
@@ -2756,7 +2913,7 @@ async function handleIngestDiagnostic(request: Request, env: Env): Promise<Respo
       p.operator ?? null,
       deviceModel, osVersion, appVersion, aiSummaryReport,
       environment, distChannel, buildType, versionCode, deviceId,
-      rssi, bandaWifi, padraoWifi, platform,
+      rssi, bandaWifi, padraoWifi, platform, uf,
     ).run();
   } catch (e) {
     await logError(env, 'ingest', String(e), e instanceof Error ? e.stack ?? '' : '');
@@ -3275,6 +3432,7 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage$/,                    handler: withErrorLogging('metrics', handleAiCost) },
   { method: "GET",  pattern: /^\/admin\/metrics\/timeline$/,                    handler: withErrorLogging('metrics', handleTimeline) },
   { method: "GET",  pattern: /^\/admin\/metrics\/network$/,                     handler: withErrorLogging('metrics', handleNetworkInsights) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/regions$/,                     handler: withErrorLogging('metrics', handleRegionInsights) },
   { method: "GET",  pattern: /^\/admin\/metrics\/top-issues$/,                  handler: withErrorLogging('metrics', handleTopIssues) },
   { method: "GET",  pattern: /^\/admin\/metrics\/alerts$/,                      handler: withErrorLogging('metrics', handleRecentAlerts) },
   { method: "GET",  pattern: /^\/admin\/alerts$/,                               handler: withErrorLogging('alerts', handleAlerts) },
@@ -3295,6 +3453,7 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/devices$/,          handler: withErrorLogging('analytics', handleDeviceBreakdown) },
   { method: "GET",  pattern: /^\/admin\/analytics\/devices$/,                   handler: withErrorLogging('analytics', handleDeviceBreakdown) },
   { method: "GET",  pattern: /^\/admin\/metrics\/errors$/,                      handler: handleErrors },
+  { method: "GET",  pattern: /^\/admin\/metrics\/errors\/timeline$/,             handler: withErrorLogging('metrics', handleErrorsTimeline) },
   { method: "POST", pattern: /^\/admin\/errors\/[^/]+\/resolve$/,               handler: withErrorLogging('errors', async (req, env) => {
       const session = await authenticateSession(req, env);
       if (!session) return err('Unauthorized', 401, env);

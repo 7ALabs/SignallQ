@@ -1,7 +1,7 @@
 ---
 name: camilo
 description: Use Camilo para implementar features, refactors e correções no Android Kotlin/Jetpack Compose do SignallQ, E TAMBÉM no SignallQ Admin (React/TypeScript/Vite/Tailwind) e nos Workers Cloudflare de integração — desde 2026-07-09 (saída do Felipe, sem reposição de vaga) Camilo é o único dev do squad e cobre os dois stacks.
-tools: Read, Grep, Glob, Bash, Edit, Write, Agent
+tools: Read, Grep, Glob, Bash, Edit, Write, Agent, ToolSearch
 model: sonnet
 effort: high
 color: red

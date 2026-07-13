@@ -4,6 +4,7 @@ import android.os.Build
 import io.signallq.app.feature.diagnostico.BuildConfig
 import io.signallq.app.core.database.MedicaoDao
 import io.signallq.app.core.network.AnalyticsHelper
+import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.GatewayLatencyMeasurer
 import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.network.NetworkCapabilitiesProvider
@@ -135,6 +136,10 @@ class SignallQOrchestrator(
      *  do funil) — perguntas de acompanhamento (chips/texto livre) NAO contam como um
      *  novo passo do funil, sao conversa complementar sobre o mesmo laudo. */
     private val analyticsHelper: AnalyticsHelper = NoOpAnalyticsHelper,
+    /** GH#919 — schema SIG-134 (feature_used/session_start, distinto de [analyticsHelper]
+     *  acima). Null = tracker desabilitado (testes) — o evento correlato de "diagnostico"
+     *  so e emitido quando presente. */
+    private val analyticsTracker: AnalyticsTracker? = null,
 ) {
 
     private val mutableSnapshotFlow = MutableStateFlow(SignallQSnapshot())
@@ -264,6 +269,11 @@ class SignallQOrchestrator(
                 focoDiagnostico = focoDiagnostico,
             )
         activeSession = partialSession
+        // GH#919 — evento correlato ao diagnostico real, com diagnostic_sessions.id
+        // (mesmo id de ai_usage.session_id via dispararIngestDiagnostico/dispararIngestAiUsage
+        // abaixo). Substitui o feature_used("diagnostico") solto do clique inicial (MainActivity)
+        // que so tinha o UUID de instancia generico, sem correlacao possivel.
+        analyticsTracker?.registrarFeatureUsada("diagnostico", sessionIdOverride = partialSession.sessionId)
         emit(SignallQState.Analyzing, focoDiagnostico = focoDiagnostico)
         cancelarRotacaoMensagens()
         iniciarRotacaoMensagens(SignallQState.Analyzing)
@@ -471,6 +481,11 @@ class SignallQOrchestrator(
                 focoDiagnostico = focoDiagnostico,
             )
         activeSession = partialSession
+        // GH#919 — evento correlato ao diagnostico real, com diagnostic_sessions.id
+        // (mesmo id de ai_usage.session_id via dispararIngestDiagnostico/dispararIngestAiUsage
+        // abaixo). Substitui o feature_used("diagnostico") solto do clique inicial (MainActivity)
+        // que so tinha o UUID de instancia generico, sem correlacao possivel.
+        analyticsTracker?.registrarFeatureUsada("diagnostico", sessionIdOverride = partialSession.sessionId)
         emit(SignallQState.Analyzing, focoDiagnostico = focoDiagnostico)
         cancelarRotacaoMensagens()
         iniciarRotacaoMensagens(SignallQState.Analyzing)
