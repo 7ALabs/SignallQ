@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.Cable
+import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DeviceHub
@@ -129,6 +130,7 @@ import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.OfflineBanner
+import io.signallq.app.ui.component.OperadoraBottomSheet
 import io.signallq.app.ui.component.ProfileAvatarButton
 import io.signallq.app.ui.component.WifiChannelGuide
 import kotlinx.coroutines.delay
@@ -605,13 +607,19 @@ private fun MovelTab(
         }
         return
     }
+    // Sheet 1b reaproveitada (3 · Sinal, aba Movel) — nome da operadora do chip clicado.
+    var operadoraSheetAlvo by remember { mutableStateOf<String?>(null) }
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(LkSpacing.lg),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
         if (simsAtivos.isNotEmpty()) {
-            ChipsAtivosSection(simsAtivos = simsAtivos, tokens = c)
+            ChipsAtivosSection(
+                simsAtivos = simsAtivos,
+                tokens = c,
+                onFalarComOperadora = { operadoraSheetAlvo = it },
+            )
         }
         Row(
             modifier =
@@ -636,12 +644,22 @@ private fun MovelTab(
             )
         }
     }
+
+    if (operadoraSheetAlvo != null) {
+        OperadoraBottomSheet(
+            connectionType = "movel",
+            ispNome = null,
+            operadoraMovel = operadoraSheetAlvo,
+            onDismiss = { operadoraSheetAlvo = null },
+        )
+    }
 }
 
 @Composable
 private fun ChipsAtivosSection(
     simsAtivos: List<MovelSimSnapshot>,
     tokens: LkTokens,
+    onFalarComOperadora: (String?) -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -655,7 +673,7 @@ private fun ChipsAtivosSection(
             modifier = Modifier.padding(bottom = LkSpacing.xs),
         )
         simsAtivos.forEach { sim ->
-            SimCard(sim = sim, tokens = tokens)
+            SimCard(sim = sim, tokens = tokens, onFalarComOperadora = onFalarComOperadora)
         }
     }
 }
@@ -664,6 +682,7 @@ private fun ChipsAtivosSection(
 private fun SimCard(
     sim: MovelSimSnapshot,
     tokens: LkTokens,
+    onFalarComOperadora: (String?) -> Unit,
 ) {
     val forcaSinal =
         sim.rsrpDbm?.let { rsrp ->
@@ -741,7 +760,7 @@ private fun SimCard(
                 Box(
                     modifier =
                         Modifier
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(999.dp))
                             .background(LkColors.success.copy(alpha = 0.12f))
                             .padding(horizontal = 8.dp, vertical = 3.dp),
                 ) {
@@ -860,6 +879,27 @@ private fun SimCard(
                     color = LkColors.warning,
                 )
             }
+        }
+
+        Spacer(Modifier.height(LkSpacing.xs))
+        OutlinedButton(
+            onClick = { onFalarComOperadora(sim.operadora) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(LkRadius.button),
+        ) {
+            Icon(
+                Icons.Outlined.Call,
+                contentDescription = null,
+                tint = LkColors.accent,
+                modifier = Modifier.size(16.dp),
+            )
+            Spacer(Modifier.width(LkSpacing.xs))
+            Text(
+                "Falar com a ${sim.operadora ?: "operadora"}",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.W600,
+                color = LkColors.accent,
+            )
         }
     }
 }
@@ -1232,6 +1272,11 @@ private fun SectionLabel(
     )
 }
 
+/**
+ * Segmented de banda (3 · Sinal, aba Wi-Fi/Canal). Spec To-Be diverge do Segmented
+ * padrao (`.claude/skills/SignallQ-design/README.md`): container unico sem borda,
+ * fundo `surfaceContainer` — nao chips soltos individuais.
+ */
 @Composable
 private fun BandFilterRow(
     selected: String,
@@ -1240,10 +1285,14 @@ private fun BandFilterRow(
     modifier: Modifier = Modifier,
     counts: Map<String, Int>? = null,
 ) {
-    val c = LocalLkTokens.current
     Row(
-        modifier = modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .horizontalScroll(rememberScrollState())
+                .padding(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         bands.forEach { band ->
             val active = selected == band
@@ -1251,18 +1300,18 @@ private fun BandFilterRow(
             Box(
                 modifier =
                     Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(if (active) LkColors.accent.copy(alpha = 0.12f) else c.bgSecondary)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(if (active) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
                         .minimumInteractiveComponentSize()
                         .clickable { onSelect(band) }
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     label,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = if (active) FontWeight.W600 else FontWeight.W500,
-                    color = if (active) LkColors.accent else c.textSecondary,
+                    color = if (active) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -1331,7 +1380,7 @@ private fun GrupoRedeTree(
                         Box(
                             modifier =
                                 Modifier
-                                    .clip(RoundedCornerShape(4.dp))
+                                    .clip(RoundedCornerShape(999.dp))
                                     .background(LkColors.success.copy(alpha = 0.15f))
                                     .padding(horizontal = 6.dp, vertical = 2.dp),
                         ) {
@@ -1472,7 +1521,7 @@ private fun NoTreeItem(
                         Box(
                             modifier =
                                 Modifier
-                                    .clip(RoundedCornerShape(4.dp))
+                                    .clip(RoundedCornerShape(999.dp))
                                     .background(LkColors.success.copy(alpha = 0.2f))
                                     .padding(horizontal = 10.dp, vertical = 6.dp),
                         ) {
@@ -1929,8 +1978,7 @@ private fun NetworkDetailSheet(
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(LkRadius.card))
-                        .border(1.dp, LkColors.warning.copy(alpha = 0.3f), RoundedCornerShape(LkRadius.card))
-                        .background(LkColors.warning.copy(alpha = 0.08f))
+                        .background(c.warningContainer)
                         .padding(LkSpacing.lg),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
@@ -1938,7 +1986,7 @@ private fun NetworkDetailSheet(
                 Icon(
                     imageVector = Icons.Outlined.Warning,
                     contentDescription = null,
-                    tint = LkColors.warning,
+                    tint = c.onWarningContainer,
                     modifier = Modifier.size(20.dp),
                 )
                 Column {
@@ -1946,12 +1994,12 @@ private fun NetworkDetailSheet(
                         "Canal congestionado",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.W600,
-                        color = LkColors.warning,
+                        color = c.onWarningContainer,
                     )
                     Text(
                         "Várias redes vizinhas dividem o canal ${rede.canal}.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = c.textSecondary,
+                        color = c.onWarningContainer,
                     )
                 }
             }
@@ -1966,7 +2014,7 @@ private fun NetworkDetailSheet(
                         Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(LkRadius.card))
-                            .background(LkColors.accent.copy(alpha = 0.08f))
+                            .background(LkColors.accent.copy(alpha = 0.12f))
                             .padding(LkSpacing.lg),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -2011,7 +2059,7 @@ private fun DetailRow(
         Text(
             value,
             color = valueColor ?: c.textPrimary,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.W500,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -2848,7 +2896,7 @@ private fun InlineBadge(
     Box(
         modifier =
             Modifier
-                .clip(RoundedCornerShape(4.dp))
+                .clip(RoundedCornerShape(999.dp))
                 .background(color.copy(alpha = 0.12f))
                 .padding(horizontal = 6.dp, vertical = 3.dp),
     ) {
@@ -3042,7 +3090,7 @@ private fun ChannelDetailSheet(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "Canal ${dado.canal}",
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = c.textPrimary,
             )
@@ -3051,7 +3099,7 @@ private fun ChannelDetailSheet(
                 Box(
                     modifier =
                         Modifier
-                            .clip(RoundedCornerShape(4.dp))
+                            .clip(RoundedCornerShape(999.dp))
                             .background(LkColors.success.copy(alpha = 0.14f))
                             .padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
@@ -3062,7 +3110,7 @@ private fun ChannelDetailSheet(
                 Box(
                     modifier =
                         Modifier
-                            .clip(RoundedCornerShape(4.dp))
+                            .clip(RoundedCornerShape(999.dp))
                             .background(LkColors.accent.copy(alpha = 0.14f))
                             .padding(horizontal = 8.dp, vertical = 4.dp),
                 ) {
