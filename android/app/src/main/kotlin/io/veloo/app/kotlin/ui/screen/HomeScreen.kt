@@ -2554,7 +2554,6 @@ private fun DeviceInfoSheet(
         Text(
             stringResource(R.string.home_sheet_meu_dispositivo),
             style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.W700,
             color = c.textPrimary,
         )
         Spacer(modifier = Modifier.height(LkSpacing.lg))
@@ -2975,8 +2974,7 @@ private fun SheetInfoRow(
             Text(key, style = MaterialTheme.typography.bodyMedium, color = c.textSecondary, modifier = Modifier.padding(end = LkSpacing.lg))
             Text(
                 value,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.W600,
+                style = MaterialTheme.typography.titleSmall,
                 color = valueColor ?: c.textPrimary,
                 textAlign = TextAlign.End,
                 maxLines = 1,
