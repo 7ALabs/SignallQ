@@ -290,14 +290,30 @@ class SpeedtestPersistenceCoordinatorTest {
 
     @Test
     fun `resolverOperadorPersistencia usa ISP cru quando nao reconhecido pelo catalogo`() {
+        // "NC BRASIL TELECOM E SERVICOS LTDA-ME" era o exemplo original de ISP nao
+        // catalogado, mas essa razao social foi cadastrada como "Coopertec SPEED"
+        // em 2026-07-14 (ver BancoOperadorasTest) -- trocado por um nome ficticio que
+        // continua fora do catalogo, pra preservar o proposito original do teste.
         val resultado =
             resolverOperadorPersistencia(
                 estadoConexao = EstadoConexao.wifi,
                 operadoraMovelDetectada = null,
-                ispWifiDetectado = "NC BRASIL TELECOM E SERVICOS LTDA- ME",
+                ispWifiDetectado = "PROVEDOR FICTICIO XYZ TELECOM LTDA-ME",
             )
 
-        assertEquals("NC BRASIL TELECOM E SERVICOS LTDA- ME", resultado)
+        assertEquals("PROVEDOR FICTICIO XYZ TELECOM LTDA-ME", resultado)
+    }
+
+    @Test
+    fun `resolverOperadorPersistencia reconhece Coopertec SPEED pela razao social NC Brasil Telecom`() {
+        val resultado =
+            resolverOperadorPersistencia(
+                estadoConexao = EstadoConexao.wifi,
+                operadoraMovelDetectada = null,
+                ispWifiDetectado = "NC BRASIL TELECOM E SERVICOS LTDA-ME",
+            )
+
+        assertEquals("Coopertec SPEED", resultado)
     }
 
     @Test

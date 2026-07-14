@@ -63,7 +63,6 @@ class OperadoraLogoCatalogTest {
                 "vivo_fibra",
                 "claro_net",
                 "tim_live",
-                "oi_fibra",
                 "nio",
                 "algar",
                 "unifique",
@@ -72,6 +71,14 @@ class OperadoraLogoCatalogTest {
                 "ligga",
                 "vero",
                 "giga_mais",
+                "topfibra",
+                "coopertec_speed",
+                "viamar",
+                "west_telecom",
+                "west_fibra",
+                "fhp_fibra",
+                "amigo",
+                "wlinks",
             )
         comLogoOficial.forEach { id ->
             val operadora = BancoOperadoras.lista.first { it.id == id }
