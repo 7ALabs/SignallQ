@@ -30,7 +30,6 @@ object DiagnosticoModule {
      * Provê DiagnosticOrchestrator como @Singleton no grafo Hilt.
      *
      * Antes era instanciado via `by lazy { DiagnosticOrchestrator() }` no MainViewModel.
-     * Agora e singleton compartilhado entre DiagnosticoViewModel e MainViewModel (legado).
      */
     @Provides
     @Singleton

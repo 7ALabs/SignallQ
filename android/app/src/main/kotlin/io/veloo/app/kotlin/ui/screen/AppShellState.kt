@@ -7,7 +7,6 @@ import io.signallq.app.core.recommendation.RecommendationFeedbackType
 import io.signallq.app.feature.devices.SnapshotScanDispositivos
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.diagnostico.ai.AiAcaoRecomendada
-import io.signallq.app.feature.diagnostico.ai.DiagChatEntry
 import io.signallq.app.feature.speedtest.ModoSpeedtest
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.signallq.app.feature.wifi.RedeVizinha
@@ -87,16 +86,12 @@ sealed class AnalisadorState {
 }
 
 /**
- * Agrupa parametros do diagnostico e do chat inline de diagnostico.
+ * Agrupa parametros do diagnostico.
  */
 @Stable
 data class AppShellDiagnosticoState(
     val snapshotDiagnostico: SnapshotDiagnostico,
     val onIniciarDiagnostico: () -> Unit,
-    val diagChatHistorico: List<DiagChatEntry> = emptyList(),
-    val diagChatCarregando: Boolean = false,
-    val onEnviarPerguntaDiagnostico: (String) -> Unit = {},
-    val onLimparDiagChat: () -> Unit = {},
     val analisadorState: AnalisadorState = AnalisadorState.Inativo,
     /** `problema = null` quando acionado automaticamente pela tela 1a (sem sintoma
      *  escolhido); `problema` preenchido quando vem do fluxo por sintoma
