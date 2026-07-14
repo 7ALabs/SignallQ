@@ -233,6 +233,11 @@ fun HomeScreen(
     onAbrirDiagnostico: () -> Unit,
     snapshotDispositivos: io.signallq.app.feature.devices.SnapshotScanDispositivos? = null,
     onAbrirDispositivos: () -> Unit = {},
+    // 2d To-Be: sem permissao de telefonia, o sheet "Rede movel" nao pode abrir com campos
+    // vazios — direciona pro fluxo de permissao (3f, mesmo PermissaoTelefoniaContextoSheet
+    // usado na aba Sinal) em vez disso.
+    temPermissaoTelefonia: Boolean = false,
+    onSolicitarPermissaoTelefonia: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
     val context = LocalContext.current
@@ -282,7 +287,13 @@ fun HomeScreen(
     var showGatewaySheet by remember { mutableStateOf<GatewayInfo?>(null) }
     var showInternetSheet by remember { mutableStateOf(false) }
     var showCellularSheet by remember { mutableStateOf(false) }
+    var showTelefoniaPermissaoSheet by remember { mutableStateOf(false) }
     var showMedicaoTipoSheet by remember { mutableStateOf(false) }
+    // 2d To-Be: sem permissao de telefonia, abre o fluxo de permissao (3f) em vez do
+    // sheet "Rede movel" com campos vazios.
+    val abrirCellularSheet = {
+        if (temPermissaoTelefonia) showCellularSheet = true else showTelefoniaPermissaoSheet = true
+    }
     // GH#530 — GatewayConnectionSheet (roteador/GPON) do nó do gateway na trilha. IP separado
     // de "visível" porque um gateway detectado pode legitimamente ter ip == null.
     var showGatewayConnectionSheet by remember { mutableStateOf(false) }
@@ -361,6 +372,22 @@ fun HomeScreen(
                 movelSnapshot = movelSnapshot,
                 wifiAtivo = isOnWifi,
                 c = c,
+            )
+        }
+    }
+    if (showTelefoniaPermissaoSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showTelefoniaPermissaoSheet = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            containerColor = c.bgSecondary,
+            dragHandle = {},
+        ) {
+            PermissaoTelefoniaContextoSheet(
+                onConceder = {
+                    showTelefoniaPermissaoSheet = false
+                    onSolicitarPermissaoTelefonia()
+                },
+                onAgoraNao = { showTelefoniaPermissaoSheet = false },
             )
         }
     }
@@ -459,7 +486,7 @@ fun HomeScreen(
                     onDeviceTap = { showDeviceSheet = true },
                     onGatewayTap = { gw ->
                         when (gw.type) {
-                            ConnectionNodeType.Mobile -> showCellularSheet = true
+                            ConnectionNodeType.Mobile -> abrirCellularSheet()
                             // 2b To-Be: tap sempre abre primeiro o sheet somente-leitura
                             // "Roteador da casa", igual 2a/2c/2d — de dentro dele o usuario
                             // segue pra "Conectar" (2b-i) ou "Ver equipamento" quando fizer
@@ -570,7 +597,7 @@ fun HomeScreen(
                         movelSnapshot = movelSnapshot,
                         mobileName = movelSnapshot.operadora,
                         c = c,
-                        onTap = { showCellularSheet = true },
+                        onTap = abrirCellularSheet,
                     )
                 }
             }
@@ -2841,14 +2868,13 @@ private fun CellularInfoSheet(
 
         Text(
             "Rede móvel",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.W700,
+            style = MaterialTheme.typography.headlineSmall,
             color = c.textPrimary,
         )
         Text(
             "Detalhes da conexão móvel ativa",
             style = MaterialTheme.typography.bodySmall,
-            color = c.textTertiary,
+            color = c.onSurfaceVariant,
         )
 
         Spacer(Modifier.height(LkSpacing.lg))
@@ -2859,7 +2885,7 @@ private fun CellularInfoSheet(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(LkRadius.card))
                     .background(c.bgCard)
-                    .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
+                    .border(1.dp, c.outlineVariant, RoundedCornerShape(LkRadius.card))
                     .padding(LkSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -2868,7 +2894,7 @@ private fun CellularInfoSheet(
                     Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(LkColors.accent.copy(alpha = 0.10f)),
+                        .background(LkColors.accent.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -2882,8 +2908,7 @@ private fun CellularInfoSheet(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     operadora ?: "Rede móvel",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.W600,
+                    style = MaterialTheme.typography.titleSmall,
                     color = c.textPrimary,
                 )
                 val heroSub =
@@ -2891,20 +2916,19 @@ private fun CellularInfoSheet(
                         .joinToString(" · ")
                         .takeIf { it.isNotEmpty() }
                 if (heroSub != null) {
-                    Text(heroSub, style = MaterialTheme.typography.labelMedium, color = c.textSecondary)
+                    Text(heroSub, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
                 }
             }
             Box(
                 modifier =
                     Modifier
                         .clip(RoundedCornerShape(999.dp))
-                        .background(LkColors.success.copy(alpha = 0.10f))
+                        .background(LkColors.success.copy(alpha = 0.14f))
                         .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
             ) {
                 Text(
                     "Conectado",
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.W700,
+                    style = MaterialTheme.typography.labelMedium,
                     color = LkColors.success,
                 )
             }
@@ -2942,8 +2966,8 @@ private fun CellularInfoSheet(
         Spacer(Modifier.height(LkSpacing.md))
         Text(
             "Teste de velocidade pode consumir uma parcela significativa do seu plano de dados.",
-            style = MaterialTheme.typography.labelSmall,
-            color = c.textTertiary,
+            style = MaterialTheme.typography.labelMedium,
+            color = c.onSurfaceVariant,
             lineHeight = 15.sp,
         )
 

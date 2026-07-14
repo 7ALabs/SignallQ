@@ -543,6 +543,8 @@ fun AppShell(
                             onAbrirDiagnostico = onAbrirLaudoOverlay,
                             snapshotDispositivos = snapshotDevices,
                             onAbrirDispositivos = onAbrirDispositivosOverlay,
+                            temPermissaoTelefonia = temPermissaoTelefonia,
+                            onSolicitarPermissaoTelefonia = onSolicitarPermissaoTelefonia,
                         )
                     // NAV-E: Tab 1 — Velocidade (SpeedTestScreen como tab fixa)
                     1 ->
