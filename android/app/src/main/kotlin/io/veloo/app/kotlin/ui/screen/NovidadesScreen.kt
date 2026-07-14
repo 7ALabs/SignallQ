@@ -40,7 +40,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.signallq.app.R
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
@@ -112,9 +111,8 @@ fun NovidadesScreen(
                         )
                         Text(
                             "v$appVersion",
-                            fontSize = 12.sp,
-                            // GH#937: textTertiary sobre branco ~2.5:1 (fail AA). textSecondary ~4.8:1.
-                            color = c.textSecondary,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = c.onSurfaceVariant,
                         )
                     }
                 },
@@ -202,13 +200,12 @@ private fun NovidadeRow(
             modifier =
                 Modifier
                     .clip(RoundedCornerShape(4.dp))
-                    .background(badgeCor.copy(alpha = 0.12f))
+                    .background(badgeCor.copy(alpha = 0.14f))
                     .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
         ) {
             Text(
                 text = badgeLabel,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.W700,
+                style = MaterialTheme.typography.labelSmall,
                 color = badgeCor,
             )
         }
@@ -216,16 +213,14 @@ private fun NovidadeRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = item.titulo,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.W600,
+                style = MaterialTheme.typography.titleSmall,
                 color = c.textPrimary,
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 text = item.descricao,
-                fontSize = 12.sp,
-                color = c.textSecondary,
-                lineHeight = 17.sp,
+                style = MaterialTheme.typography.bodySmall,
+                color = c.onSurfaceVariant,
             )
         }
     }
