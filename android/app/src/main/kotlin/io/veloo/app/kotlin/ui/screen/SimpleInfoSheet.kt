@@ -105,12 +105,14 @@ internal fun InfoRow(
 }
 
 // ─── Sobre (6f) ─────────────────────────────────────────────────────────────
-// Conteudo estatico: versao do app, desenvolvedor e contato de suporte, 3
-// linhas conforme spec To-Be. "Plataforma" e "Licencas de terceiros" cortados
-// daqui na reestruturacao de 2026-07 (ver decisao registrada no relatorio da
-// rodada — licencas de terceiros e questao de compliance, nao so visual,
-// pendente de confirmacao antes de remover de vez a superficie in-app).
-// Fonte completa das licencas: docs_ai/technical/THIRD_PARTY_LICENSES.md.
+// Conteudo estatico: versao do app, desenvolvedor, contato de suporte e
+// licencas de terceiros. "Plataforma" cortada na reestruturacao de 2026-07
+// (redundante, sem motivo legal). "Licencas de terceiros" MANTIDA por decisao
+// da Claudete (2026-07): risco de compliance real pesa mais que fidelidade
+// estrita as 3 linhas da spec To-Be — Apache 2.0 de AndroidX/Kotlin/Firebase
+// pede preservacao de NOTICE, e esta e a unica superficie visivel ao usuario
+// hoje (a doc completa em docs_ai/technical/THIRD_PARTY_LICENSES.md e interna,
+// nao aparece no app). Seguranca juridica vence design nesse caso especifico.
 @Composable
 internal fun SobreSheet(
     c: LkTokens,
@@ -127,5 +129,7 @@ internal fun SobreSheet(
         InfoRow(c, "Desenvolvido por", "Equipe SignallQ")
         HorizontalDivider(color = c.border, thickness = 1.dp)
         InfoRow(c, "Suporte", "suporte@signallq.app")
+        HorizontalDivider(color = c.border, thickness = 1.dp)
+        InfoRow(c, "Licenças de terceiros", "Google Sans Flex · SIL OFL 1.1")
     }
 }

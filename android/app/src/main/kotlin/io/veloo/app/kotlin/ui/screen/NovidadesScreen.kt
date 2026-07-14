@@ -49,6 +49,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 
+// GAP CONHECIDO (6e To-Be, 2026-07): a spec pede changelog alimentado por
+// CMS/JSON remoto versionado por versao do app. Hoje le de asset local
+// embutido no APK (context.assets.open("changelog.json") abaixo). Decisao de
+// infraestrutura (endpoint novo? Worker Cloudflare? schema D1?) grande demais
+// pra essa correcao de tela -- fica pendente, fora de escopo aqui.
 private data class NovidadeItem(
     val tipo: String,
     val titulo: String,
