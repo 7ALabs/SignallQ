@@ -694,7 +694,7 @@ private fun SimCard(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
                 .background(tokens.bgCard)
-                .border(1.dp, tokens.border, RoundedCornerShape(16.dp))
+                .border(1.dp, tokens.outline, RoundedCornerShape(16.dp))
                 .padding(LkSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {

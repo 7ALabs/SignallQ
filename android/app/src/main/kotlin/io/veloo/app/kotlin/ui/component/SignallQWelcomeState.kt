@@ -42,7 +42,7 @@ fun SignallQWelcomeState(
     Column(modifier = modifier.fillMaxSize()) {
         Spacer(Modifier.weight(1f))
 
-        HorizontalDivider(color = tokens.border, thickness = 0.5.dp)
+        HorizontalDivider(color = tokens.outlineVariant, thickness = 0.5.dp)
 
         IntentRow(
             icon = Icons.Filled.SignalCellularAlt,
