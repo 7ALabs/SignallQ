@@ -50,6 +50,7 @@ class AdsRemoteConfigRepository(
                     resultado = rc.getBoolean(CHAVE_RESULTADO),
                     dispositivos = rc.getBoolean(CHAVE_DISPOSITIVOS),
                     historico = rc.getBoolean(CHAVE_HISTORICO),
+                    jogos = rc.getBoolean(CHAVE_JOGOS),
                 )
             }.getOrElse { AdsFlags.DESLIGADO }
         }
@@ -62,6 +63,7 @@ class AdsRemoteConfigRepository(
         const val CHAVE_RESULTADO = "ads_native_resultado_enabled"
         const val CHAVE_DISPOSITIVOS = "ads_native_dispositivos_enabled"
         const val CHAVE_HISTORICO = "ads_native_historico_enabled"
+        const val CHAVE_JOGOS = "ads_native_jogos_enabled"
 
         /** Defaults locais do proprio Remote Config -- distintos do fallback de erro:
          *  aqui a config foi lida com sucesso mas as chaves ainda nao existem no console
@@ -73,6 +75,7 @@ class AdsRemoteConfigRepository(
                 CHAVE_RESULTADO to false,
                 CHAVE_DISPOSITIVOS to false,
                 CHAVE_HISTORICO to false,
+                CHAVE_JOGOS to false,
             )
     }
 }

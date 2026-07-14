@@ -31,6 +31,7 @@ object NativeAdContentSignals {
             AdSlot.RESULTADO to "resultado-teste",
             AdSlot.DISPOSITIVOS to "dispositivos-rede",
             AdSlot.HISTORICO to "historico-conectividade",
+            AdSlot.JOGOS to "jogos-resultado",
         )
 
     /**

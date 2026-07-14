@@ -28,6 +28,7 @@ class AdsRemoteConfigRepositoryTest {
             every { remoteConfig.getBoolean(AdsRemoteConfigRepository.CHAVE_RESULTADO) } returns false
             every { remoteConfig.getBoolean(AdsRemoteConfigRepository.CHAVE_DISPOSITIVOS) } returns false
             every { remoteConfig.getBoolean(AdsRemoteConfigRepository.CHAVE_HISTORICO) } returns false
+            every { remoteConfig.getBoolean(AdsRemoteConfigRepository.CHAVE_JOGOS) } returns false
 
             val flags = AdsRemoteConfigRepository(Lazy { remoteConfig }).buscarFlags()
 

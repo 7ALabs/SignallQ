@@ -28,6 +28,6 @@ object AdUnitIds {
      */
     fun para(slot: AdSlot): String =
         when (slot) {
-            AdSlot.VELOCIDADE, AdSlot.RESULTADO, AdSlot.DISPOSITIVOS, AdSlot.HISTORICO -> NATIVE_TESTE
+            AdSlot.VELOCIDADE, AdSlot.RESULTADO, AdSlot.DISPOSITIVOS, AdSlot.HISTORICO, AdSlot.JOGOS -> NATIVE_TESTE
         }
 }
