@@ -7,7 +7,7 @@ import { buildDiagnosticAiPrompt } from "./diagnostic-ai.ts";
 import { buildDiagnosticReport, buildInconclusiveReport } from "./diagnostic-report.ts";
 import { createSession, hashPassword, revokeSession, validateSession, verifyPassword } from "./auth.ts";
 import { getBundledRuleset } from "./bundled-ruleset.ts";
-import type { DiagnosticResult, ProviderDetectionInput } from "./contracts.ts";
+import type { DiagnosticResult, ProviderDetectionInput, ProviderSupport } from "./contracts.ts";
 import {
   getGameCatalogItem,
   getGameCatalogVersion,
@@ -29,6 +29,8 @@ import {
   reviewProvider,
   searchProviders,
   syncSeedProvidersToDb,
+  updateProviderSupport,
+  uploadProviderLogo,
   upsertProvider,
 } from "./provider-directory.ts";
 import { createRulesetDraft, getPublishedRulesetJson, getRuleset, listRulesets, publishRuleset, rollbackRuleset } from "./ruleset-store.ts";
@@ -45,6 +47,10 @@ type Env = {
   // signallq-admin-worker). Sem esta var, Access-Control-Allow-Origin fica
   // vazio (nenhuma origem liberada) em vez de quebrar o worker.
   ALLOWED_ORIGIN?: string;
+  // GH#965 — binding R2 opcional (ver nota em provider-directory.ts e
+  // wrangler.toml: R2 ainda nao habilitado na conta Cloudflare em 2026-07-14).
+  PROVIDER_LOGOS?: R2Bucket;
+  PROVIDER_LOGO_PUBLIC_BASE_URL?: string;
 };
 
 // GH#960 — decisao de arquitetura: o worker e consumido tanto pelo app Android
@@ -383,6 +389,77 @@ async function handleProviderReview(request: Request, env: Env, providerId: stri
   return json(result);
 }
 
+// GH#965 — payload aceita chaves parciais: presenca da chave = "editar este
+// canal" (mesmo com valor null/vazio, que remove); ausencia = "nao mexer".
+// Por isso valida tipos (nao objeto -> erro) mas NAO exige nenhuma chave.
+function validateProviderSupportInput(input: unknown): { ok: true; support: Partial<ProviderSupport> } | { ok: false; errors: string[] } {
+  if (!input || typeof input !== "object") {
+    return { ok: false, errors: ["Body must be an object."] };
+  }
+  const body = input as Record<string, unknown>;
+  const fields: Array<keyof ProviderSupport> = [
+    "sacPhone",
+    "technicalSupportPhone",
+    "whatsappUrl",
+    "websiteUrl",
+    "customerAreaUrl",
+    "ombudsmanPhone",
+  ];
+  const errors: string[] = [];
+  const support: Partial<ProviderSupport> = {};
+  for (const field of fields) {
+    if (!(field in body)) continue;
+    const value = body[field];
+    if (value !== null && typeof value !== "string") {
+      errors.push(`${field} must be a string or null when present.`);
+      continue;
+    }
+    support[field] = value as string | null;
+  }
+  if (errors.length > 0) return { ok: false, errors };
+  return { ok: true, support };
+}
+
+async function handleProviderSupportUpdate(request: Request, env: Env, providerId: string): Promise<Response> {
+  if (!env.DB) return json({ error: "DB binding not configured." }, 500);
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return json({ error: "Invalid JSON body." }, 400);
+  }
+
+  const validation = validateProviderSupportInput(payload);
+  if (!validation.ok) {
+    return json({ error: "Invalid provider support payload.", details: validation.errors }, 400);
+  }
+
+  const result = await updateProviderSupport(env, providerId, validation.support);
+  if (!result) return json({ error: "Provider not found." }, 404);
+  return json(result);
+}
+
+async function handleProviderLogoUpload(request: Request, env: Env, providerId: string): Promise<Response> {
+  const contentType = request.headers.get("Content-Type") ?? "";
+  if (!contentType.startsWith("image/")) {
+    return json({ error: "Content-Type must be an image/* mime type." }, 400);
+  }
+
+  let bytes: ArrayBuffer;
+  try {
+    bytes = await request.arrayBuffer();
+  } catch {
+    return json({ error: "Invalid request body." }, 400);
+  }
+  if (bytes.byteLength === 0) {
+    return json({ error: "Empty request body." }, 400);
+  }
+
+  const result = await uploadProviderLogo(env, providerId, bytes, contentType);
+  if (!result.ok) return json({ error: result.error }, result.status);
+  return json({ ok: true, url: result.url, version: result.version }, 201);
+}
+
 async function handleGameCatalogList(url: URL, env: Env): Promise<Response> {
   const platform = url.searchParams.get("platform");
   return json({ items: await listGameCatalog(env, platform) });
@@ -594,6 +671,8 @@ async function route(request: Request, env: Env): Promise<Response> {
         "/admin/providers/sync-seed",
         "/admin/providers",
         "/admin/providers/:providerId/review",
+        "/admin/providers/:providerId/support",
+        "/admin/providers/:providerId/logo",
         "/admin/games/sync-seed",
         "/admin/games/catalog",
         "/admin/games/catalog/:gameId/activate",
@@ -680,6 +759,14 @@ async function route(request: Request, env: Env): Promise<Response> {
   const providerReviewMatch = url.pathname.match(/^\/admin\/providers\/([^/]+)\/review$/);
   if (request.method === "POST" && providerReviewMatch) {
     return handleProviderReview(request, env, providerReviewMatch[1]!);
+  }
+  const providerSupportEditMatch = url.pathname.match(/^\/admin\/providers\/([^/]+)\/support$/);
+  if ((request.method === "POST" || request.method === "PUT") && providerSupportEditMatch) {
+    return handleProviderSupportUpdate(request, env, providerSupportEditMatch[1]!);
+  }
+  const providerLogoUploadMatch = url.pathname.match(/^\/admin\/providers\/([^/]+)\/logo$/);
+  if (request.method === "POST" && providerLogoUploadMatch) {
+    return handleProviderLogoUpload(request, env, providerLogoUploadMatch[1]!);
   }
   if (request.method === "POST" && url.pathname === "/admin/games/sync-seed") {
     return handleGameSeedSync(env, session!);

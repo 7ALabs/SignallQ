@@ -314,11 +314,38 @@ export class FakeD1Database {
       return;
     }
 
+    if (q.startsWith("update provider_channels set is_active = 0 where provider_id = ? and channel_type = ?")) {
+      const [providerId, channelType] = bindings;
+      this.providerChannels = this.providerChannels.map((row) =>
+        row.provider_id === String(providerId) && row.channel_type === String(channelType)
+          ? { ...row, is_active: 0 }
+          : row,
+      );
+      return;
+    }
+
     if (q.startsWith("update provider_channels set is_active = 0 where provider_id = ?")) {
       const [providerId] = bindings;
       this.providerChannels = this.providerChannels.map((row) =>
         row.provider_id === String(providerId) ? { ...row, is_active: 0 } : row,
       );
+      return;
+    }
+
+    if (q.startsWith("update providers set updated_at = ? where id = ?")) {
+      const [updatedAt, providerId] = bindings;
+      const row = this.providers.get(String(providerId));
+      if (row) row.updated_at = updatedAt;
+      return;
+    }
+
+    if (q.startsWith("update providers set logo_version = ?, updated_at = ? where id = ?")) {
+      const [logoVersion, updatedAt, providerId] = bindings;
+      const row = this.providers.get(String(providerId));
+      if (row) {
+        row.logo_version = Number(logoVersion);
+        row.updated_at = updatedAt;
+      }
       return;
     }
 
@@ -649,6 +676,12 @@ export class FakeD1Database {
     if (q.startsWith("select id, display_name, legal_name, cnpj, provider_type, status, official_domain,")) {
       const [providerId] = bindings;
       return this.providers.get(String(providerId)) ?? null;
+    }
+
+    if (q.startsWith("select id from providers where id = ?")) {
+      const [providerId] = bindings;
+      const row = this.providers.get(String(providerId));
+      return row ? { id: row.id } : null;
     }
 
     if (q.startsWith("select provider_id from provider_identifiers where identifier_type = 'asn'")) {

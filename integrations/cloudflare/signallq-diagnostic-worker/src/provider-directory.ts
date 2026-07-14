@@ -5,6 +5,17 @@ type SeedEnv = {
   PROVIDER_DIRECTORY_SEED_JSON?: string;
 };
 
+// GH#965 — binding R2 opcional para armazenar o asset real de logo por provedor.
+// Ver nota em wrangler.toml: R2 ainda nao esta habilitado na conta Cloudflare
+// (`Please enable R2 through the Cloudflare Dashboard`, code 10042, checado em
+// 2026-07-14 via `wrangler r2 bucket list`) — o binding fica comentado ate a
+// habilitacao manual. `uploadProviderLogo` degrada para erro tratado (nao 500 cru)
+// quando `PROVIDER_LOGOS` esta ausente, em vez de fingir sucesso.
+type ProviderLogoEnv = SeedEnv & {
+  PROVIDER_LOGOS?: R2Bucket;
+  PROVIDER_LOGO_PUBLIC_BASE_URL?: string;
+};
+
 type ProviderAdminInput = {
   id: string;
   displayName: string;
@@ -745,4 +756,129 @@ export async function registerProviderDetection(
   );
 
   return { detectionKey, eligibleForEnrichment };
+}
+
+// GH#965 — mapa canal->coluna de ProviderSupport, reaproveitando os mesmos
+// CHANNEL_TYPE ja usados por upsertProvider/mapChannelsToSupport (nao inventa
+// vocabulario novo).
+const SUPPORT_CHANNEL_MAP: Array<[string, keyof ProviderSupport]> = [
+  ["SAC_PHONE", "sacPhone"],
+  ["TECH_SUPPORT_PHONE", "technicalSupportPhone"],
+  ["WHATSAPP_URL", "whatsappUrl"],
+  ["WEBSITE_URL", "websiteUrl"],
+  ["CUSTOMER_AREA_URL", "customerAreaUrl"],
+  ["OMBUDSMAN_PHONE", "ombudsmanPhone"],
+];
+
+/**
+ * GH#965 — endpoint admin dedicado para editar SO os campos de contato
+ * (telefone/WhatsApp/site/etc.) de um provedor ja existente, sem exigir o
+ * payload completo de `upsertProvider` (displayName, aliases, asns...).
+ *
+ * Atualizacao parcial de verdade: campo AUSENTE no `support` recebido fica
+ * intocado (nao apaga o que ja estava cadastrado); campo presente com valor
+ * `null`/vazio DESATIVA o canal (remove); campo presente com valor novo
+ * substitui o anterior. Retorna `null` quando o provedor nao existe (o
+ * caller em index.ts converte para 404).
+ */
+export async function updateProviderSupport(
+  env: SeedEnv,
+  providerId: string,
+  support: Partial<ProviderSupport>,
+): Promise<{ ok: true; providerId: string } | null> {
+  if (!env.DB) {
+    throw new Error("DB binding not configured.");
+  }
+
+  const existing = await env.DB.prepare("SELECT id FROM providers WHERE id = ?")
+    .bind(providerId)
+    .first<{ id: string }>();
+  if (!existing) return null;
+
+  const timestamp = nowIso();
+
+  for (const [channelType, field] of SUPPORT_CHANNEL_MAP) {
+    if (!(field in support)) continue; // campo ausente do payload -> nao mexe
+
+    await env.DB.prepare(
+      "UPDATE provider_channels SET is_active = 0 WHERE provider_id = ? AND channel_type = ?",
+    ).bind(providerId, channelType).run();
+
+    const value = support[field];
+    if (!value) continue; // valor null/vazio explicito -> so desativa (remove)
+
+    await env.DB.prepare(
+      `INSERT INTO provider_channels (
+        provider_id, channel_type, label, value, source_url, verification_status,
+        verified_at, next_review_at, priority, is_active
+      ) VALUES (?, ?, NULL, ?, NULL, 'VERIFIED', ?, NULL, 100, 1)`,
+    ).bind(providerId, channelType, value, timestamp).run();
+  }
+
+  await env.DB.prepare("UPDATE providers SET updated_at = ? WHERE id = ?")
+    .bind(timestamp, providerId)
+    .run();
+
+  return { ok: true, providerId };
+}
+
+/**
+ * GH#965 — upload de logo por `providerId`, hospedado em R2.
+ *
+ * R2 ainda NAO esta habilitado na conta Cloudflare usada por este projeto
+ * (`wrangler r2 bucket list` -> "Please enable R2 through the Cloudflare
+ * Dashboard", code 10042, verificado em 2026-07-14). Ate a habilitacao manual
+ * + `wrangler r2 bucket create` + descomentar o binding em wrangler.toml,
+ * `env.PROVIDER_LOGOS` fica `undefined` e esta funcao retorna erro tratado
+ * (nunca 500 cru, nunca finge sucesso).
+ */
+export async function uploadProviderLogo(
+  env: ProviderLogoEnv,
+  providerId: string,
+  bytes: ArrayBuffer,
+  contentType: string,
+): Promise<{ ok: true; url: string; version: number } | { ok: false; status: number; error: string }> {
+  if (!env.DB) {
+    return { ok: false, status: 500, error: "DB binding not configured." };
+  }
+  if (!env.PROVIDER_LOGOS) {
+    return {
+      ok: false,
+      status: 501,
+      error: "R2 bucket not configured. Set the PROVIDER_LOGOS binding in wrangler.toml after enabling R2 on the Cloudflare account.",
+    };
+  }
+
+  const provider = await getProviderById(env, providerId);
+  if (!provider) {
+    return { ok: false, status: 404, error: "Provider not found." };
+  }
+
+  const extension = contentType === "image/png"
+    ? "png"
+    : contentType === "image/svg+xml"
+    ? "svg"
+    : contentType === "image/jpeg"
+    ? "jpg"
+    : "webp";
+  const nextVersion = (provider.logo?.version ?? 0) + 1;
+  const r2Key = `providers/${providerId}/logo-square-v${nextVersion}.${extension}`;
+  const timestamp = nowIso();
+
+  await env.PROVIDER_LOGOS.put(r2Key, bytes, { httpMetadata: { contentType } });
+
+  const publicBase = (env.PROVIDER_LOGO_PUBLIC_BASE_URL ?? "").replace(/\/$/, "");
+  const url = publicBase ? `${publicBase}/${r2Key}` : r2Key;
+
+  await env.DB.prepare(
+    `INSERT INTO provider_assets (
+      provider_id, asset_type, r2_key, source_url, file_hash, version, verification_status, created_at
+    ) VALUES (?, 'LOGO_SQUARE', ?, ?, NULL, ?, 'VERIFIED', ?)`,
+  ).bind(providerId, r2Key, url, nextVersion, timestamp).run();
+
+  await env.DB.prepare(
+    "UPDATE providers SET logo_version = ?, updated_at = ? WHERE id = ?",
+  ).bind(nextVersion, timestamp, providerId).run();
+
+  return { ok: true, url, version: nextVersion };
 }
