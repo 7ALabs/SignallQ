@@ -265,32 +265,34 @@ private fun OperadoraDetectadaSection(
             Spacer(Modifier.height(LkSpacing.sm))
         }
 
-        // Ligar + App
+        // Ligar (só quando há SAC cadastrado) + App
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
         ) {
-            OutlinedButton(
-                onClick = {
-                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${operadora.sac}"))
-                    context.startActivity(intent)
-                },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(LkRadius.button),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Call,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = c.textPrimary,
-                )
-                Spacer(Modifier.width(LkSpacing.xs))
-                Text(
-                    text = "Ligar *${operadora.sac}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textPrimary,
-                    fontWeight = FontWeight.Medium,
-                )
+            if (operadora.sac != null) {
+                OutlinedButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${operadora.sac}"))
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(LkRadius.button),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Call,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = c.textPrimary,
+                    )
+                    Spacer(Modifier.width(LkSpacing.xs))
+                    Text(
+                        text = "Ligar *${operadora.sac}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.textPrimary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
             }
             OutlinedButton(
                 onClick = {
@@ -338,15 +340,16 @@ private fun OutraOperadoraRow(operadora: ContatoOperadora) {
                 fontWeight = FontWeight.SemiBold,
                 color = c.textPrimary,
             )
-            if (operadora.whatsapp != null) {
+            val subtitulo =
+                when {
+                    operadora.whatsapp != null && operadora.sac != null -> "WhatsApp · ligar *${operadora.sac}"
+                    operadora.whatsapp != null -> "WhatsApp"
+                    operadora.sac != null -> "ligar *${operadora.sac}"
+                    else -> null
+                }
+            if (subtitulo != null) {
                 Text(
-                    text = "WhatsApp · ligar *${operadora.sac}",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = c.textSecondary,
-                )
-            } else {
-                Text(
-                    text = "ligar *${operadora.sac}",
+                    text = subtitulo,
                     style = MaterialTheme.typography.labelMedium,
                     color = c.textSecondary,
                 )

@@ -5,7 +5,7 @@ data class ContatoOperadora(
     val nome: String,
     val grupo: String,
     val detectarPor: List<String>,
-    val sac: String,
+    val sac: String?,
     val whatsapp: String?,
     val site: String,
 )
@@ -113,6 +113,18 @@ object BancoOperadoras {
                 sac = "10353",
                 whatsapp = "22920410350",
                 site = "https://www.sumicity.com.br",
+            ),
+            ContatoOperadora(
+                "coopertec_speed",
+                "Coopertec SPEED",
+                "NC Brasil Telecom e Serviços",
+                // ISP local que revende a rede da Turbi (por isso a logo é a da Turbi, não uma
+                // marca própria) -- mantém "turbi" nas palavras-chave pois é o que pode aparecer
+                // em lookup de rede/WHOIS, mesmo com o nome exibido sendo "Coopertec SPEED".
+                listOf("coopertec speed", "coopertec", "nc brasil telecom", "turbi"),
+                sac = null,
+                whatsapp = "21971609082",
+                site = "https://coopertec.atlaz.com.br",
             ),
         )
 

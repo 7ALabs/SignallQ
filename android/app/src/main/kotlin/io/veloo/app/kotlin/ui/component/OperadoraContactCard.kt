@@ -77,29 +77,31 @@ fun OperadoraContactCard(
             )
             Spacer(Modifier.height(LkSpacing.md))
 
-            Button(
-                onClick = {
-                    val intent =
-                        Intent(Intent.ACTION_DIAL).apply {
-                            data = Uri.parse("tel:${operadora.sac}")
-                        }
-                    context.startActivity(intent)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(LkRadius.button),
-                colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Call,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                )
-                Spacer(Modifier.width(LkSpacing.xs))
-                Text(
-                    text = stringResource(R.string.operadora_ligar_agora, operadora.sac),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.W600,
-                )
+            if (operadora.sac != null) {
+                Button(
+                    onClick = {
+                        val intent =
+                            Intent(Intent.ACTION_DIAL).apply {
+                                data = Uri.parse("tel:${operadora.sac}")
+                            }
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(LkRadius.button),
+                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Call,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                    )
+                    Spacer(Modifier.width(LkSpacing.xs))
+                    Text(
+                        text = stringResource(R.string.operadora_ligar_agora, operadora.sac),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.W600,
+                    )
+                }
             }
 
             if (operadora.whatsapp != null) {
