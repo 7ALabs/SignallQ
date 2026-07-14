@@ -24,6 +24,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -90,6 +92,31 @@ fun LaudoScreen(
     var gerando by remember { mutableStateOf(false) }
     var erro by remember { mutableStateOf<String?>(null) }
 
+    val compartilharLaudo: () -> Unit = {
+        scope.launch {
+            gerando = true
+            erro = null
+            try {
+                gerarECompartilharLaudo(
+                    context = context,
+                    snapshotDiagnostico = snapshotDiagnostico,
+                    ultimaMedicao = ultimaMedicao,
+                    nomeUsuario = nomeUsuario,
+                    operadora = operadora,
+                    ssid = ssid,
+                    ipLocal = ipLocal,
+                    ipPublico = ipPublico,
+                    velocidadeContratadaMbps = velocidadeContratadaMbps,
+                    conectado = conectado,
+                )
+            } catch (e: Exception) {
+                erro = "Não foi possível gerar o PDF: ${e.message}"
+            } finally {
+                gerando = false
+            }
+        }
+    }
+
     val relatorio = snapshotDiagnostico.relatorio
     val decisao = relatorio?.decisao
 
@@ -136,30 +163,7 @@ fun LaudoScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = {
-                            scope.launch {
-                                gerando = true
-                                erro = null
-                                try {
-                                    gerarECompartilharLaudo(
-                                        context = context,
-                                        snapshotDiagnostico = snapshotDiagnostico,
-                                        ultimaMedicao = ultimaMedicao,
-                                        nomeUsuario = nomeUsuario,
-                                        operadora = operadora,
-                                        ssid = ssid,
-                                        ipLocal = ipLocal,
-                                        ipPublico = ipPublico,
-                                        velocidadeContratadaMbps = velocidadeContratadaMbps,
-                                        conectado = conectado,
-                                    )
-                                } catch (e: Exception) {
-                                    erro = "Não foi possível gerar o PDF: ${e.message}"
-                                } finally {
-                                    gerando = false
-                                }
-                            }
-                        },
+                        onClick = compartilharLaudo,
                         enabled = !gerando,
                     ) {
                         if (gerando) {
@@ -417,6 +421,31 @@ fun LaudoScreen(
             if (erro != null) {
                 item {
                     Text(erro!!, fontSize = 12.sp, color = LkColors.error)
+                }
+            }
+
+            // Botão de rodapé — spec 5e: "Compartilhar laudo em PDF"
+            item {
+                Button(
+                    onClick = compartilharLaudo,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !gerando,
+                    shape = RoundedCornerShape(LkRadius.button),
+                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                ) {
+                    if (gerando) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = LkColors.Light.bgPrimary,
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Text(
+                            "Compartilhar laudo em PDF",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.W600,
+                        )
+                    }
                 }
             }
         }
