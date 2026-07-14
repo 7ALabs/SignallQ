@@ -35,7 +35,7 @@ fun GaugeCircular(
     velocidadeMbps: Float,
     corFase: Color,
     unidade: String,
-    tamanho: Dp = 220.dp,
+    tamanho: Dp = 240.dp,
     modifier: Modifier = Modifier,
 ) {
     val c = LocalLkTokens.current
@@ -52,7 +52,7 @@ fun GaugeCircular(
         label = "gaugeColor",
     )
 
-    val strokeWidthDp = 8.dp
+    val strokeWidthDp = 14.dp
     val strokeWidthPx = remember(density) { with(density) { strokeWidthDp.toPx() } }
 
     Box(contentAlignment = Alignment.Center, modifier = modifier.size(tamanho)) {

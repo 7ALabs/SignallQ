@@ -522,7 +522,10 @@ private fun SpeedTestCircle(
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier.size(230.dp),
+        // 250dp = botão 230dp (spec) + halo 20dp (10dp de espessura equivalente em
+        // cada lado, ver IdleCircle) -- reserva espaço suficiente pro halo não ser
+        // cortado, mesmo nos estados que não usam o halo (Erro/Concluído, 210dp).
+        modifier = Modifier.size(250.dp),
     ) {
         when (estado) {
             EstadoExecucaoSpeedtest.idle -> {
@@ -575,16 +578,18 @@ private fun IdleCircle(
     val cdBotao = if (habilitado) "Iniciar teste de velocidade" else "Iniciar teste de velocidade, indisponível sem conexão"
 
     Box(contentAlignment = Alignment.Center) {
+        // Halo animado -- evolução aceitável do "box-shadow 0 0 0 10px" estático da
+        // spec: 250dp = botão 230dp + 10dp de halo em cada lado.
         Box(
             modifier =
                 Modifier
-                    .size(220.dp)
+                    .size(250.dp)
                     .background(corBotao.copy(alpha = if (habilitado) glowAlpha else glowAlpha * 0.5f), CircleShape),
         )
         Box(
             modifier =
                 Modifier
-                    .size(210.dp)
+                    .size(230.dp)
                     .scale(if (habilitado) scale else 1f)
                     .clip(CircleShape)
                     .background(corBotao)
@@ -668,7 +673,7 @@ private val modoOpcoes =
     listOf(
         "Rápido" to ModoSpeedtest.fast,
         "Completo" to ModoSpeedtest.complete,
-        "Triplo" to ModoSpeedtest.triplo,
+        "3 testes" to ModoSpeedtest.triplo,
     )
 
 private fun descricaoModo(modo: ModoSpeedtest): String =
