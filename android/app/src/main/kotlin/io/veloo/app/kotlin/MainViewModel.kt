@@ -57,7 +57,6 @@ import io.signallq.app.feature.diagnostico.ai.DiagnosisAiContext
 import io.signallq.app.feature.diagnostico.ai.DiagnosisAiContextFactory
 import io.signallq.app.feature.diagnostico.banda
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
-import io.signallq.app.feature.diagnostico.pulse.OpcaoResposta
 import io.signallq.app.feature.diagnostico.pulse.SignallQOrchestrator
 import io.signallq.app.feature.diagnostico.recommendation.RecommendationDecisionCoordinator
 import io.signallq.app.feature.diagnostico.topology.TopologyDiagnostic
@@ -78,7 +77,6 @@ import io.signallq.app.feature.wifi.ScannerRedesWifi
 import io.signallq.app.monitoramento.MonitoramentoScheduler
 import io.signallq.app.network.IspInfoCache
 import io.signallq.app.notificacao.SignallQNotificationHelper
-import io.signallq.app.pulse.SignallQUiStateMapper
 import io.signallq.app.review.ReviewPromptPolicy
 import io.signallq.app.speedtest.SpeedtestPersistenceCoordinator
 import io.signallq.app.ui.BancoOperadoras
@@ -88,7 +86,6 @@ import io.signallq.app.ui.GatewayInfo
 import io.signallq.app.ui.HistoryPoint
 import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.screen.AnalisadorState
-import io.signallq.app.ui.screen.SignallQUiState
 import io.signallq.app.ui.state.UiState
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -269,11 +266,6 @@ class MainViewModel
                 analyticsHelper = analyticsHelper,
                 analyticsTracker = analyticsTracker,
             )
-        }
-        val signallQUiStateFlow by lazy {
-            signallQOrchestrator.snapshotFlow
-                .map { SignallQUiStateMapper.from(it) }
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SignallQUiState.Idle)
         }
 
         // #895: default ERA `false` — todo cold start (mesmo de usuario que ja concluiu o
@@ -1593,39 +1585,6 @@ class MainViewModel
 
         fun refreshSinal() {
             viewModelScope.launch { scannerRedesWifi.escanear() }
-        }
-
-        fun iniciarSignallQ(
-            foco: String? = null,
-            forcarNovoSpeedtest: Boolean = false,
-        ) {
-            viewModelScope.launch { signallQOrchestrator.iniciarDiagnostico(foco, forcarNovoSpeedtest) }
-        }
-
-        fun iniciarSignallQComResultado(
-            resultado: io.signallq.app.feature.speedtest.ResultadoSpeedtest,
-            foco: String? = null,
-        ) {
-            viewModelScope.launch { signallQOrchestrator.iniciarDiagnosticoComResultado(resultado, foco) }
-        }
-
-        /** Volta ao intent picker (Idle) sem iniciar diagnostico. */
-        fun resetSignallQ() {
-            signallQOrchestrator.reset()
-        }
-
-        fun selecionarChipSignallQ(chip: OpcaoResposta) {
-            viewModelScope.launch { signallQOrchestrator.selecionarChip(chip) }
-        }
-
-        fun responderPerguntaSignallQ(opcao: OpcaoResposta) {
-            viewModelScope.launch { signallQOrchestrator.responderPergunta(opcao) }
-        }
-
-        /** Processa mensagem digitada livremente pelo usuario no chat.
-         *  Aplica guard off-topic e incrementa [userTurnCount] apenas se aprovada. */
-        fun enviarMensagemTextoSignallQ(texto: String) {
-            viewModelScope.launch { signallQOrchestrator.enviarMensagemTexto(texto) }
         }
 
         fun coletarInfoLocalRede() {

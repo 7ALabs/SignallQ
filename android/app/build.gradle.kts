@@ -134,7 +134,6 @@ android {
             buildConfigField("Boolean", "FEATURE_DIAGNOSTICO_ITERATIVO", "true")
             buildConfigField("Boolean", "FEATURE_TRACEROUTE", "true")
             buildConfigField("Boolean", "FEATURE_FIBRA_SCREEN", "true")
-            buildConfigField("Boolean", "FEATURE_DNS_SCREEN", "true")
             buildConfigField("Boolean", "FEATURE_DEVICES_SCREEN_V2", "true")
             buildConfigField("Boolean", "FEATURE_TELEPHONY_AVANCADO", "true")
             buildConfigField("Boolean", "FEATURE_MAPA_CALOR_WIFI", "true")
@@ -185,7 +184,6 @@ android {
             buildConfigField("Boolean", "FEATURE_NOVIDADES_TELA", "true")
             // Features adicionais aprovadas para release
             buildConfigField("Boolean", "FEATURE_FIBRA_SCREEN", "true")
-            buildConfigField("Boolean", "FEATURE_DNS_SCREEN", "true")
             // ─── FORA DO RELEASE ──────────────────────────────────────────
             // Chat IA (card e laudo ativos acima; só o chat desligado)
             buildConfigField("Boolean", "FEATURE_DIAGNOSTICO_CHAT", "true")

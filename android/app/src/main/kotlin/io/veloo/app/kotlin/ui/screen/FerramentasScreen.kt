@@ -66,8 +66,7 @@ fun FerramentasScreen(
     onAbrirDispositivos: () -> Unit = {},
     onAbrirEquipamentoInternet: () -> Unit = {},
     onAbrirPing: () -> Unit = {},
-    // Null esconde o card — controlado por FeatureFlags.DNS_SCREEN no AppShell.
-    onAbrirDns: (() -> Unit)? = null,
+    onAbrirDns: () -> Unit = {},
     onAbrirLaudo: () -> Unit = {},
     onAbrirMonitoramento: () -> Unit = {},
     onAbrirJogos: () -> Unit = {},
@@ -109,16 +108,14 @@ fun FerramentasScreen(
                         onClick = onAbrirPing,
                     ),
                 )
-                if (onAbrirDns != null) {
-                    add(
-                        FerramentaItem(
-                            icon = Icons.Outlined.Dns,
-                            titulo = "DNS",
-                            descricao = "Comparar servidores DNS",
-                            onClick = onAbrirDns,
-                        ),
-                    )
-                }
+                add(
+                    FerramentaItem(
+                        icon = Icons.Outlined.Dns,
+                        titulo = "DNS",
+                        descricao = "Comparar servidores DNS",
+                        onClick = onAbrirDns,
+                    ),
+                )
                 add(
                     FerramentaItem(
                         icon = Icons.Outlined.Description,

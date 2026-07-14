@@ -251,7 +251,6 @@ class MainActivity : ComponentActivity() {
                 viewModel.diagnosticOrchestrator.snapshotFlow
                     .collectAsStateWithLifecycle()
                     .value
-            val signallQUiState = viewModel.signallQUiStateFlow.collectAsStateWithLifecycle().value
             val movelSnapshot = viewModel.movelSnapshot.collectAsStateWithLifecycle().value
             val simsAtivos = viewModel.simsAtivos.collectAsStateWithLifecycle().value
             val gemmaAvailable = viewModel.gemmaAvailable.collectAsStateWithLifecycle().value
@@ -405,24 +404,11 @@ class MainActivity : ComponentActivity() {
                             ),
                         signallQ =
                             io.signallq.app.ui.screen.AppShellSignallQState(
-                                signallQUiState = signallQUiState,
                                 gemmaAvailable = gemmaAvailable,
                                 operadoraMovel =
                                     simsAtivos.firstOrNull { it.isDefaultData }?.operadora
                                         ?: simsAtivos.firstOrNull()?.operadora,
-                                onIniciarSignallQ = { foco ->
-                                    solicitarPermissaoTelefoniaSeNecessario()
-                                    viewModel.iniciarSignallQ(foco)
-                                },
-                                onResetSignallQ = { viewModel.resetSignallQ() },
-                                onSelecionarChip = { chip -> viewModel.selecionarChipSignallQ(chip) },
-                                onResponderPergunta = { opcao -> viewModel.responderPerguntaSignallQ(opcao) },
-                                onEnviarMensagemTexto = { texto -> viewModel.enviarMensagemTextoSignallQ(texto) },
                                 onVerificarGemma = { viewModel.verificarDisponibilidadeGemma() },
-                                onIniciarSignallQComResultado = { resultado, foco ->
-                                    solicitarPermissaoTelefoniaSeNecessario()
-                                    viewModel.iniciarSignallQComResultado(resultado, foco)
-                                },
                             ),
                         ads =
                             io.signallq.app.ui.screen.AppShellAdsState(

@@ -43,7 +43,6 @@ object FeatureFlags {
 
     // ─── Sprint 3 ─────────────────────────────────────────────────────────────
     val FIBRA_SCREEN: Boolean get() = BuildConfig.FEATURE_FIBRA_SCREEN
-    val DNS_SCREEN: Boolean get() = BuildConfig.FEATURE_DNS_SCREEN
     val DEVICES_SCREEN_V2: Boolean get() = BuildConfig.FEATURE_DEVICES_SCREEN_V2
     val TELEPHONY_AVANCADO: Boolean get() = BuildConfig.FEATURE_TELEPHONY_AVANCADO
 

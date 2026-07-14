@@ -62,7 +62,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.BuildConfig
-import io.signallq.app.FeatureFlags
 import io.signallq.app.R
 import io.signallq.app.ads.AdSlot
 import io.signallq.app.bssidElegivelParaAutoconexao
@@ -545,9 +544,7 @@ fun AppShell(
                             onModoSelecionado = { modoSelecionado = it },
                             onIniciarTeste = { onNovoTeste(modoSelecionado) },
                             onCancelarTeste = onCancelarTeste,
-                            onAbrirDnsBenchmark = {
-                                if (FeatureFlags.DNS_SCREEN) onAbrirDnsOverlay()
-                            },
+                            onAbrirDnsBenchmark = onAbrirDnsOverlay,
                             onAbrirPing = onAbrirPingOverlay,
                             onVerResultado = {
                                 if (Overlay.ResultadoVelocidade !in
@@ -616,7 +613,7 @@ fun AppShell(
                             onAbrirDispositivos = onAbrirDispositivosOverlay,
                             onAbrirEquipamentoInternet = onAbrirEquipamentoInternetOverlay,
                             onAbrirPing = onAbrirPingOverlay,
-                            onAbrirDns = if (FeatureFlags.DNS_SCREEN) onAbrirDnsOverlay else null,
+                            onAbrirDns = onAbrirDnsOverlay,
                             onAbrirLaudo = onAbrirLaudoOverlay,
                             onAbrirMonitoramento = onAbrirMonitoramentoOverlay,
                             onAbrirJogos = onAbrirJogosOverlay,
@@ -833,7 +830,7 @@ fun AppShell(
                 onAbrirDispositivos = onAbrirDispositivosOverlay,
                 onAbrirEquipamentoInternet = onAbrirEquipamentoInternetOverlay,
                 onAbrirPing = onAbrirPingOverlay,
-                onAbrirDns = if (FeatureFlags.DNS_SCREEN) onAbrirDnsOverlay else null,
+                onAbrirDns = onAbrirDnsOverlay,
                 onAbrirLaudo = onAbrirLaudoOverlay,
                 onAbrirMonitoramento = onAbrirMonitoramentoOverlay,
                 onAbrirJogos = onAbrirJogosOverlay,
