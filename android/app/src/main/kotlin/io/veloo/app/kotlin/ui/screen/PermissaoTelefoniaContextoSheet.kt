@@ -62,7 +62,7 @@ fun PermissaoTelefoniaContextoSheet(
         Spacer(Modifier.height(LkSpacing.lg))
         Text(
             "Por que precisamos desta permissão?",
-            style = MaterialTheme.typography.titleLarge,
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.W600,
             color = c.textPrimary,
             textAlign = TextAlign.Center,
@@ -70,14 +70,14 @@ fun PermissaoTelefoniaContextoSheet(
         Spacer(Modifier.height(LkSpacing.md))
         Text(
             "Para identificar sua operadora, o tipo de rede (4G, 5G) e a qualidade do sinal da torre.",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
             color = c.textSecondary,
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(LkSpacing.sm))
         Text(
             "Não acessamos chamadas, mensagens ou dados pessoais.",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyLarge,
             color = c.textSecondary,
             textAlign = TextAlign.Center,
         )

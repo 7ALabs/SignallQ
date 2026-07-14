@@ -66,7 +66,7 @@ fun PermissaoLocalizacaoContextoSheet(
             // Estado 9.3 — permissão bloqueada permanentemente
             Text(
                 "Permissão bloqueada",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.W600,
                 color = c.textPrimary,
                 textAlign = TextAlign.Center,
@@ -74,7 +74,7 @@ fun PermissaoLocalizacaoContextoSheet(
             Spacer(Modifier.height(LkSpacing.md))
             Text(
                 "A permissão foi bloqueada nas configurações do Android. Para ativar, abra os ajustes do app.",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = c.textSecondary,
                 textAlign = TextAlign.Center,
             )
@@ -95,7 +95,7 @@ fun PermissaoLocalizacaoContextoSheet(
             // Estado 9.2 — permissão não concedida, pode solicitar
             Text(
                 "Por que precisamos da localização?",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.W600,
                 color = c.textPrimary,
                 textAlign = TextAlign.Center,
@@ -103,14 +103,14 @@ fun PermissaoLocalizacaoContextoSheet(
             Spacer(Modifier.height(LkSpacing.md))
             Text(
                 "O Android exige permissão de localização para identificar as redes Wi-Fi ao redor e analisar canais de interferência.",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = c.textSecondary,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(LkSpacing.sm))
             Text(
                 "Não usamos sua localização para rastrear onde você está. Ela nunca sai do dispositivo.",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = c.textSecondary,
                 textAlign = TextAlign.Center,
             )
