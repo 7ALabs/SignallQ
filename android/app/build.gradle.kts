@@ -90,6 +90,15 @@ android {
             "ADMIN_INGEST_KEY",
             "\"$adminIngestKey\"",
         )
+
+        // GH#935 — sonda regional (TCP/HTTPS) usada pela tela Jogos (REGIONAL_ESTIMATE).
+        // Worker leve, sem logica de jogo, so eco/latencia (integrations/cloudflare/game-latency-probe-worker).
+        // Nao e segredo — apenas infraestrutura.
+        buildConfigField(
+            "String",
+            "GAME_LATENCY_PROBE_URL",
+            "\"https://signallq-game-latency-probe.giammattey-luiz.workers.dev/probe\"",
+        )
     }
 
     signingConfigs {

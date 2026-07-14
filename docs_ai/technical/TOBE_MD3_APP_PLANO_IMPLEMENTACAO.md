@@ -117,9 +117,12 @@ gpon-bad, router-only, multi-device, partial, access-error, loading, restart-dia
 
 ## 8. Fase 6 — Jogos (novo)
 
-Wire `GameReadinessClassifier.kt` (existe, órfão) a tela nova. Trava na decisão #6 (lista curada).
-Dicas por plataforma (PS5/Xbox/PC) são conteúdo estático — nunca redigir como se o app tivesse
-aplicado a configuração real.
+Superado pelo spec completo do Luiz (`docs_ai/functional/JOGOS_TESTE_CONEXAO_SPEC.md`,
+2026-07-14) — decisão #6 (lista curada) foi substituída por um catálogo de 16 jogos com 4 perfis
+de sensibilidade e fluxo de teste direcionado, implementado na issue #935 (ver "Status de
+implementação" no fim do spec). `GameReadinessClassifier.kt` **não** foi reaproveitado aqui —
+continua servindo exclusivamente a aba 10 do diagnóstico completo (`DiagnosticRunner`), com
+vocabulário e thresholds próprios, incompatíveis com o catálogo/perfis do spec de Jogos.
 
 ## 9. Fase 7 — Monitoramento (5f) + Perfil/Ajustes (6a-6f)
 

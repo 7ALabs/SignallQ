@@ -215,3 +215,28 @@ exigir conhecimento técnico pra interpretar.
   real; recomendações geradas a partir das métricas detectadas; usuário troca de jogo e roda novo
   teste; fluxo integrado visualmente à tela Jogos já em desenvolvimento (stub criado na Fase 1/4);
   protótipo cobre estados inicial, seleção, carregamento, sucesso, atenção, resultado ruim e erro.
+
+## Status de implementação (2026-07-14, Camilo, issue #935)
+
+Implementado: catálogo dos 16 jogos, 4 perfis de sensibilidade com thresholds exatos, fluxo de 5
+etapas (`android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/JogosScreen.kt` +
+`android/app/src/main/kotlin/io/veloo/app/kotlin/jogos/`), motor de avaliação (perda > jitter >
+latência via worst-metric, thresholds da tabela já cobrem a prioridade de perda), recomendações e
+avisos condicionais, e o Worker `game-latency-probe-worker` (deployado em
+`signallq-game-latency-probe.giammattey-luiz.workers.dev`) para a estratégia `REGIONAL_ESTIMATE`
+(reaproveita `PingExecutor` de `featureSpeedtest`, generalizado para aceitar URL de sonda
+configurável).
+
+Limitações conhecidas, documentadas conforme item 5 do escopo da issue:
+
+- **`PROVIDER_NETWORK` não tem detecção real de rede Riot/Valve implementada** — os 4 jogos que
+  declaram essa estratégia (VALORANT, LoL, CS2, Dota 2) caem automaticamente em
+  `REGIONAL_ESTIMATE` em tempo de execução, com aviso explícito na UI de que a medição não é
+  direto na rede do fornecedor. Nunca inventa dado de rede que não mediu.
+- **"Estabilidade"** (item 3 da prioridade de avaliação do spec) não tem uma faixa numérica própria
+  na tabela de thresholds — tratada aqui via jitter (proxy de variação da amostra) nas
+  recomendações condicionais, não como quarta dimensão pontuada separada.
+- **Bufferbloat não é medido neste fluxo** (10-15s, só latência/jitter/perda — não inclui
+  saturação de banda). A recomendação de bufferbloat existe no motor mas só dispara se um valor for
+  explicitamente fornecido no futuro.
+- **Histórico não implementado** (era opcional no MVP conforme a spec).
