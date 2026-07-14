@@ -287,8 +287,9 @@ fun AppShell(
     val operadoraMovel = signallQ.operadoraMovel
     val onVerificarGemma = signallQ.onVerificarGemma
 
-    // Monetizacao nativa (issue #555) -- resolvido uma vez aqui, repassado como
-    // booleano simples "adsEnabled" por tela para nao acoplar as 4 telas ao tipo AdsFlags.
+    // Monetizacao nativa (issue #555, + slot JOGOS na spec To-Be 5g) -- resolvido uma
+    // vez aqui, repassado como booleano simples "adsEnabled" por tela para nao acoplar
+    // as telas ao tipo AdsFlags.
     val adsFlags = ads.flags
     val podeRequisitarAnuncio = ads.podeRequisitarAnuncio
 
@@ -880,6 +881,7 @@ fun AppShell(
             JogosScreen(
                 tipoConexaoAtual = snapshotRede.estadoConexao,
                 wifiLinkSnapshot = snapshotRede.wifiLinkSnapshot,
+                adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.JOGOS),
                 onVoltar = { overlayStack.remove(Overlay.Jogos) },
             )
         }
