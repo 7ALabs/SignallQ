@@ -115,6 +115,15 @@ object BancoOperadoras {
                 site = "https://www.sumicity.com.br",
             ),
             ContatoOperadora(
+                "topfibra",
+                "Top Fibra",
+                "Top Fibra Internet",
+                listOf("top fibra", "topfibra", "top fibra internet"),
+                sac = "2231990001",
+                whatsapp = "2231990001",
+                site = "https://topfibrarj.net.br",
+            ),
+            ContatoOperadora(
                 "coopertec_speed",
                 "Coopertec SPEED",
                 "NC Brasil Telecom e Serviços",
