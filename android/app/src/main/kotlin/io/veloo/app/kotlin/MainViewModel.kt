@@ -1734,7 +1734,7 @@ class MainViewModel
                             wifiLinkSpeedMbps = extra.wifiLinkSpeedMbps,
                         )
                     val resultado =
-                        withTimeoutOrNull(5_000L) {
+                        withTimeoutOrNull(15_000L) {
                             diagAiRepository.explainDiagnosis(
                                 context = ctx,
                                 decisaoLocalStatus = relatorio.decisao.status.name,
