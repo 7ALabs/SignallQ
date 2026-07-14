@@ -60,6 +60,7 @@ import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.SettingsInputAntenna
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.SignalCellularAlt
+import androidx.compose.material.icons.outlined.SimCard
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.SportsEsports
@@ -97,6 +98,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -147,6 +149,7 @@ import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.OperadoraBadge
+import io.signallq.app.ui.component.Overline
 import io.signallq.app.ui.component.ProfileAvatarButton
 import io.signallq.app.ui.component.rememberTopBarAlpha
 import kotlin.math.roundToInt
@@ -966,6 +969,75 @@ private fun NetworkPath(
     val isMobileConnection = snapshotRede.estadoConexao == EstadoConexao.movel
     val mobileGateway = gateways.singleOrNull { it.type == ConnectionNodeType.Mobile }
 
+    val temErro = hasLocalError || hasInternetError
+    val temCarregamento = loadingLocal || loadingInternet
+    val legenda =
+        when {
+            temErro -> "Não foi possível conectar. Verifique sua rede."
+            temCarregamento -> "Conectando…"
+            else -> "Tudo conectado. Sua conexão chega até o provedor sem falhas."
+        }
+    val legendaColor = if (temErro) LkColors.error else c.textSecondary
+
+    SignallQCard(c) {
+        Column {
+            Overline(texto = "Caminho da sua internet")
+            Spacer(modifier = Modifier.height(LkSpacing.md))
+            NetworkPathRow(
+                hasLocalError = hasLocalError,
+                loadingLocal = loadingLocal,
+                hasInternetError = hasInternetError,
+                loadingInternet = loadingInternet,
+                isIspInfoLoading = isIspInfoLoading,
+                isConectado = isConectado,
+                isMobileConnection = isMobileConnection,
+                mobileGateway = mobileGateway,
+                deviceName = deviceName,
+                localIp = localIp,
+                publicIp = publicIp,
+                ispName = ispName,
+                gateways = gateways,
+                ispInfo = ispInfo,
+                movelSnapshot = movelSnapshot,
+                c = c,
+                onDeviceTap = onDeviceTap,
+                onGatewayTap = onGatewayTap,
+                onInternetTap = onInternetTap,
+            )
+            Spacer(modifier = Modifier.height(LkSpacing.md))
+            Text(
+                text = legenda,
+                style = MaterialTheme.typography.bodySmall,
+                color = legendaColor,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun NetworkPathRow(
+    hasLocalError: Boolean,
+    loadingLocal: Boolean,
+    hasInternetError: Boolean,
+    loadingInternet: Boolean,
+    isIspInfoLoading: Boolean,
+    isConectado: Boolean,
+    isMobileConnection: Boolean,
+    mobileGateway: GatewayInfo?,
+    deviceName: String,
+    localIp: String?,
+    publicIp: String?,
+    ispName: String?,
+    gateways: List<GatewayInfo>,
+    ispInfo: IspInfo?,
+    movelSnapshot: MovelSnapshot?,
+    c: LkTokens,
+    onDeviceTap: () -> Unit,
+    onGatewayTap: (GatewayInfo) -> Unit,
+    onInternetTap: () -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top,
@@ -1149,7 +1221,7 @@ private fun PathNode(
             },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(modifier = Modifier.size(56.dp), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.size(52.dp), contentAlignment = Alignment.Center) {
             if (iconContent != null) {
                 iconContent()
             } else {
@@ -1243,7 +1315,13 @@ private fun PathConnector(
                     x += dashW + space
                 }
             } else {
-                drawLine(lineColor, Offset.Zero, Offset(size.width, 0f), 2.dp.toPx())
+                // Conexão saudável: gradiente success→primary (spec To-Be), em vez de linha solida.
+                drawLine(
+                    brush = Brush.horizontalGradient(listOf(LkColors.success, LkColors.accent)),
+                    start = Offset.Zero,
+                    end = Offset(size.width, 0f),
+                    strokeWidth = 2.dp.toPx(),
+                )
             }
         }
         if (hasError) {
@@ -1286,7 +1364,7 @@ private fun LastResultHero(
                     arrow = "↓",
                     value = downloadMbps,
                     label = "Download",
-                    color = LkColors.accent,
+                    color = LkColors.success,
                     labelColor = c.textTertiary,
                     modifier = Modifier.weight(1f),
                 )
@@ -1295,7 +1373,7 @@ private fun LastResultHero(
                     arrow = "↑",
                     value = uploadMbps,
                     label = "Upload",
-                    color = LkColors.success,
+                    color = LkColors.accent,
                     labelColor = c.textTertiary,
                     modifier = Modifier.weight(1f),
                 )
@@ -1812,16 +1890,17 @@ private fun MobileSignalCard(
             Box(
                 modifier =
                     Modifier
-                        .size(44.dp)
+                        .size(40.dp)
                         .clip(CircleShape)
-                        .background(mobileColor.copy(alpha = 0.10f)),
+                        .background(mobileColor.copy(alpha = 0.10f))
+                        .diagonalStripes(mobileColor.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Outlined.SignalCellularAlt,
+                    Icons.Outlined.SimCard,
                     contentDescription = "Rede móvel, ${mobileName ?: "dados móveis"}",
                     tint = mobileColor,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(20.dp),
                 )
             }
             Spacer(Modifier.width(LkSpacing.md))
@@ -1871,6 +1950,27 @@ private fun MobileSignalCard(
         }
     }
 }
+
+/**
+ * Placeholder de "listras diagonais" atrás do ícone de sim_card no cartão Chip móvel
+ * (spec To-Be, tela 2 · Início) — textura genérica, sem depender de logo de operadora.
+ */
+private fun Modifier.diagonalStripes(stripeColor: Color): Modifier =
+    drawBehind {
+        val stripeWidth = 2.dp.toPx()
+        val gap = 5.dp.toPx()
+        val step = stripeWidth + gap
+        var x = -size.height
+        while (x < size.width) {
+            drawLine(
+                color = stripeColor,
+                start = Offset(x, size.height),
+                end = Offset(x + size.height, 0f),
+                strokeWidth = stripeWidth,
+            )
+            x += step
+        }
+    }
 
 @Composable
 internal fun MiniSignalBars(
