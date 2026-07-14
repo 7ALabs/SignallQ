@@ -47,6 +47,10 @@ object OperadoraLogoCatalog {
             "ligga" to OperadoraVisualIdentity(Color(0xFF8BC53F), "L", R.drawable.operator_ligga),
             "vero" to OperadoraVisualIdentity(Color(0xFF7B2D8E), "V", R.drawable.operator_vero),
             "giga_mais" to OperadoraVisualIdentity(Color(0xFF00AEEF), "G", R.drawable.operator_giga_mais),
+            "viamar" to OperadoraVisualIdentity(Color(0xFF8B0000), "V", R.drawable.operator_viamar),
+            "west_telecom" to OperadoraVisualIdentity(Color(0xFF2184BD), "W", R.drawable.operator_westtelecom),
+            "west_fibra" to OperadoraVisualIdentity(Color(0xFF1D3E70), "W", R.drawable.operator_westfibra),
+            "fhp_fibra" to OperadoraVisualIdentity(Color(0xFFC9584C), "F", R.drawable.operator_fhpfibra),
             "topfibra" to OperadoraVisualIdentity(Color(0xFF007545), "T", R.drawable.operator_topfibra),
             "coopertec_speed" to OperadoraVisualIdentity(Color(0xFF151ADA), "C", R.drawable.operator_coopertec_speed),
         )
