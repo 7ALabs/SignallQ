@@ -30,9 +30,22 @@ data class ResolvedOperadoraContact(
     val whatsapp: String?,
     val site: String?,
     val source: OperadoraSource,
+    /** Termo de busca do app na Play Store — so preenchido para [OperadoraSource.LOCAL]
+     *  (as ~12 operadoras principais); o diretorio remoto (GH#965) nao tem esse dado,
+     *  nunca inventamos um app pra operadora regional desconhecida (GH#970). */
+    val grupo: String? = null,
 ) {
     val hasAnyContact: Boolean get() = sacPhone != null || whatsapp != null || site != null
 }
+
+/**
+ * Normaliza [ResolvedOperadoraContact.whatsapp] pra URL abrivel — o campo carrega numero
+ * cru (DDD+numero, sem `55`/`https://wa.me/`) quando [OperadoraSource.LOCAL] ([BancoOperadoras])
+ * e URL completa quando [OperadoraSource.REMOTE] (formato ja devolvido pelo worker
+ * `signallq-diagnostic`, ver [io.signallq.app.feature.diagnostico.remote.RemoteProviderInfo.whatsappUrl]).
+ */
+fun ResolvedOperadoraContact.whatsappUrl(): String? =
+    whatsapp?.let { if (source == OperadoraSource.LOCAL) "https://wa.me/55$it" else it }
 
 /**
  * Resolve identidade visual (logo) e contato de uma operadora a partir do nome
@@ -58,22 +71,49 @@ class OperadoraDirectoryResolver
     constructor(
         private val providerDirectoryRepository: ProviderDirectoryRepository,
     ) {
+        /**
+         * So o nivel 1 (catalogo local), sincrono — nunca faz I/O. Usado pela camada de
+         * UI (Compose) para o caminho rapido, sem flicker: quando ha match local, o
+         * resultado esta disponivel na primeira composicao, sem esperar corrotina/rede.
+         */
+        fun resolveLocalIdentity(
+            ispNomeBruto: String?,
+            viaMovel: Boolean = false,
+        ): ResolvedOperadoraIdentity? {
+            val local = resolverLocal(ispNomeBruto, viaMovel) ?: return null
+            val visual = OperadoraLogoCatalog.identidadePara(local)
+            return ResolvedOperadoraIdentity(
+                displayName = local.nome,
+                monograma = visual.monograma,
+                corMarca = visual.corMarca,
+                logoRes = visual.logoRes,
+                logoUrl = null,
+                source = OperadoraSource.LOCAL,
+            )
+        }
+
+        /** So o nivel 1 (catalogo local), sincrono — ver kdoc de [resolveLocalIdentity]. */
+        fun resolveLocalContact(
+            ispNomeBruto: String?,
+            viaMovel: Boolean = false,
+        ): ResolvedOperadoraContact? {
+            val local = resolverLocal(ispNomeBruto, viaMovel) ?: return null
+            return ResolvedOperadoraContact(
+                displayName = local.nome,
+                sacPhone = local.sac,
+                whatsapp = local.whatsapp,
+                site = local.site,
+                source = OperadoraSource.LOCAL,
+                grupo = local.grupo,
+            )
+        }
+
         suspend fun resolveIdentity(
             ispNomeBruto: String?,
             viaMovel: Boolean = false,
         ): ResolvedOperadoraIdentity {
-            val local = resolverLocal(ispNomeBruto, viaMovel)
-            if (local != null) {
-                val visual = OperadoraLogoCatalog.identidadePara(local)
-                return ResolvedOperadoraIdentity(
-                    displayName = local.nome,
-                    monograma = visual.monograma,
-                    corMarca = visual.corMarca,
-                    logoRes = visual.logoRes,
-                    logoUrl = null,
-                    source = OperadoraSource.LOCAL,
-                )
-            }
+            val local = resolveLocalIdentity(ispNomeBruto, viaMovel)
+            if (local != null) return local
 
             val remote = buscarRemoto(ispNomeBruto)
             if (remote?.logoUrl != null) {
@@ -101,16 +141,8 @@ class OperadoraDirectoryResolver
             ispNomeBruto: String?,
             viaMovel: Boolean = false,
         ): ResolvedOperadoraContact {
-            val local = resolverLocal(ispNomeBruto, viaMovel)
-            if (local != null) {
-                return ResolvedOperadoraContact(
-                    displayName = local.nome,
-                    sacPhone = local.sac,
-                    whatsapp = local.whatsapp,
-                    site = local.site,
-                    source = OperadoraSource.LOCAL,
-                )
-            }
+            val local = resolveLocalContact(ispNomeBruto, viaMovel)
+            if (local != null) return local
 
             val remote = buscarRemoto(ispNomeBruto)
             if (remote != null && (remote.sacPhone != null || remote.whatsappUrl != null || remote.websiteUrl != null)) {

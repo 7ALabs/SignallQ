@@ -85,13 +85,15 @@ import io.signallq.app.core.recommendation.RecommendationType
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 import io.signallq.app.feature.speedtest.VereditoUso
-import io.signallq.app.ui.BancoOperadoras
 import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.OperadoraSource
+import io.signallq.app.ui.ResolvedOperadoraContact
+import io.signallq.app.ui.ResolvedOperadoraIdentity
 import io.signallq.app.ui.ResultadoPdfGenerator
 import io.signallq.app.ui.ads.rememberNativeAd
 import io.signallq.app.ui.component.AnaliseDetalhadaBottomSheet
@@ -102,6 +104,8 @@ import io.signallq.app.ui.component.Overline
 import io.signallq.app.ui.component.ads.NativeAdCard
 import io.signallq.app.ui.component.ads.NativeAdSource
 import io.signallq.app.ui.component.mapLocalDeviceSectionUiState
+import io.signallq.app.ui.component.rememberResolvedOperadoraContact
+import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
 import io.signallq.app.ui.component.rememberTopBarAlpha
 import kotlinx.coroutines.launch
 
@@ -148,6 +152,36 @@ fun ResultadoVelocidadeScreen(
     /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555.
      *  Default `false`: nunca mostra anuncio sem sinal explicito de que pode. */
     adsEnabled: Boolean = false,
+    /** GH#970 — resolucao de identidade/contato de operadora (nivel 1, catalogo local,
+     *  sincrono). Sem I/O, sem corrotina — mesmo comportamento de sempre pras ~12
+     *  operadoras principais. */
+    resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity? =
+        { _, _ -> null },
+    resolveOperadoraContatoLocal: (String?, Boolean) -> ResolvedOperadoraContact? =
+        { _, _ -> null },
+    /** GH#970 — cadeia completa (local -> diretorio remoto do worker signallq-diagnostic ->
+     *  fallback generico), so chamada quando o nivel 1 acima nao encontrou. */
+    resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity =
+        { nome, _ ->
+            ResolvedOperadoraIdentity(
+                displayName = nome ?: "Operadora",
+                monograma = nome?.firstOrNull()?.uppercase() ?: "?",
+                corMarca = null,
+                logoRes = null,
+                logoUrl = null,
+                source = OperadoraSource.FALLBACK,
+            )
+        },
+    resolveOperadoraContatoRemoto: suspend (String?, Boolean) -> ResolvedOperadoraContact =
+        { nome, _ ->
+            ResolvedOperadoraContact(
+                displayName = nome ?: "Operadora",
+                sacPhone = null,
+                whatsapp = null,
+                site = null,
+                source = OperadoraSource.FALLBACK,
+            )
+        },
 ) {
     val c = LocalLkTokens.current
     val scrollState = rememberScrollState()
@@ -541,6 +575,10 @@ fun ResultadoVelocidadeScreen(
                 onRecommendationClicked = onRecommendationClicked,
                 onRecommendationFeedback = onRecommendationFeedback,
                 c = c,
+                resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
+                resolveOperadoraContatoLocal = resolveOperadoraContatoLocal,
+                resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
+                resolveOperadoraContatoRemoto = resolveOperadoraContatoRemoto,
             )
         }
     }
@@ -551,6 +589,10 @@ fun ResultadoVelocidadeScreen(
             ispNome = ispInfo?.isp,
             operadoraMovel = operadoraMovel,
             onDismiss = { showOperadoraSheet = false },
+            resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
+            resolveOperadoraContatoLocal = resolveOperadoraContatoLocal,
+            resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
+            resolveOperadoraContatoRemoto = resolveOperadoraContatoRemoto,
         )
     }
 
@@ -591,6 +633,10 @@ private fun DiagnosticoDetalhadoSheet(
     onRecommendationClicked: () -> Unit,
     onRecommendationFeedback: (RecommendationFeedbackType) -> Unit,
     c: LkTokens,
+    resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity?,
+    resolveOperadoraContatoLocal: (String?, Boolean) -> ResolvedOperadoraContact?,
+    resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
+    resolveOperadoraContatoRemoto: suspend (String?, Boolean) -> ResolvedOperadoraContact,
 ) {
     var detalhesTecnicosExpandido by remember { mutableStateOf(false) }
 
@@ -717,8 +763,23 @@ private fun DiagnosticoDetalhadoSheet(
         val mostrarContato = categoria == "isp" || categoria == "fibra"
         if (mostrarContato) {
             Spacer(Modifier.height(LkSpacing.md))
-            val operadora = remember(ispInfo?.isp) { BancoOperadoras.resolver(ispInfo?.isp) }
-            OperadoraContactCard(operadora = operadora)
+            // GH#970 — local (sincrono, sem mudanca pras ~12 operadoras principais) ->
+            // diretorio remoto (worker signallq-diagnostic) -> fallback generico.
+            val identidade =
+                rememberResolvedOperadoraIdentity(
+                    ispNomeBruto = ispInfo?.isp,
+                    viaMovel = false,
+                    resolveLocal = resolveOperadoraIdentidadeLocal,
+                    resolveRemoteOrFallback = resolveOperadoraIdentidadeRemota,
+                )
+            val contato =
+                rememberResolvedOperadoraContact(
+                    ispNomeBruto = ispInfo?.isp,
+                    viaMovel = false,
+                    resolveLocal = resolveOperadoraContatoLocal,
+                    resolveRemoteOrFallback = resolveOperadoraContatoRemoto,
+                )
+            OperadoraContactCard(identidade = identidade, contato = contato)
             Spacer(Modifier.height(LkSpacing.xs))
             TextButton(onClick = onFalarComOperadora) {
                 Text(text = "Falar com a operadora", color = c.textSecondary, style = MaterialTheme.typography.bodyMedium)

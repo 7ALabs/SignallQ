@@ -88,6 +88,9 @@ import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.OperadoraSource
+import io.signallq.app.ui.ResolvedOperadoraContact
+import io.signallq.app.ui.ResolvedOperadoraIdentity
 import io.signallq.app.ui.resumoBandasWifi
 import io.signallq.app.ui.state.UiState
 import kotlinx.coroutines.delay
@@ -233,6 +236,35 @@ fun AppShell(
     onScreenView: (screenName: String) -> Unit = {},
     // GH#784 — etapa "compartilhou" do funil do teste de velocidade.
     onCompartilharResultadoVelocidade: () -> Unit = {},
+    // GH#970 — resolucao de identidade/contato de operadora: nivel 1 (catalogo local,
+    // sincrono, sem I/O) + cadeia completa (local -> diretorio remoto do worker
+    // signallq-diagnostic -> fallback generico). Injetado a partir da MainActivity
+    // (OperadoraDirectoryResolver via Hilt) — AppShell so repassa, nao resolve nada.
+    resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity? =
+        { _, _ -> null },
+    resolveOperadoraContatoLocal: (String?, Boolean) -> ResolvedOperadoraContact? =
+        { _, _ -> null },
+    resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity =
+        { nome, _ ->
+            ResolvedOperadoraIdentity(
+                displayName = nome ?: "Operadora",
+                monograma = nome?.firstOrNull()?.uppercase() ?: "?",
+                corMarca = null,
+                logoRes = null,
+                logoUrl = null,
+                source = OperadoraSource.FALLBACK,
+            )
+        },
+    resolveOperadoraContatoRemoto: suspend (String?, Boolean) -> ResolvedOperadoraContact =
+        { nome, _ ->
+            ResolvedOperadoraContact(
+                displayName = nome ?: "Operadora",
+                sacPhone = null,
+                whatsapp = null,
+                site = null,
+                source = OperadoraSource.FALLBACK,
+            )
+        },
 ) {
     // Desempacota os grupos de estado para variaveis locais — mantém compatibilidade com
     // o corpo interno sem precisar propagar o prefixo `speedtest.x` por toda a funcao.
@@ -532,6 +564,8 @@ fun AppShell(
                             onAbrirDiagnostico = onAbrirLaudoOverlay,
                             snapshotDispositivos = snapshotDevices,
                             onAbrirDispositivos = onAbrirDispositivosOverlay,
+                            resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
+                            resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
                         )
                     // NAV-E: Tab 1 — Velocidade (SpeedTestScreen como tab fixa)
                     1 ->
@@ -701,6 +735,10 @@ fun AppShell(
                     onRecommendationDismissed = onRecommendationDismissed,
                     localDevice = localDevice,
                     adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.RESULTADO),
+                    resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
+                    resolveOperadoraContatoLocal = resolveOperadoraContatoLocal,
+                    resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
+                    resolveOperadoraContatoRemoto = resolveOperadoraContatoRemoto,
                 )
             }
         }

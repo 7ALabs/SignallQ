@@ -58,6 +58,13 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var adsFlagsManager: AdsFlagsManager
 
+    // GH#970 — resolve identidade/contato de operadora local -> diretorio remoto do
+    // worker signallq-diagnostic -> fallback generico. Injetado aqui (nao dentro de
+    // Composable) porque AppShell/HomeScreen/ResultadoVelocidadeScreen sao 100%
+    // data-driven (sem hiltViewModel() em Composables leaf neste app).
+    @Inject
+    lateinit var operadoraDirectoryResolver: io.signallq.app.ui.OperadoraDirectoryResolver
+
     private val viewModel: MainViewModel by viewModels()
 
     // ViewModels por feature — extraidos do MainViewModel (Passo 6 do plano de migracao).
@@ -527,6 +534,12 @@ class MainActivity : ComponentActivity() {
                         onCompartilharResultadoVelocidade = {
                             analyticsTracker.registrarFeatureUsada("speedtest_compartilhou")
                         },
+                        // GH#970 — cadeia local -> diretorio remoto -> fallback generico
+                        // (io.signallq.app.ui.OperadoraDirectoryResolver, injetado via Hilt).
+                        resolveOperadoraIdentidadeLocal = operadoraDirectoryResolver::resolveLocalIdentity,
+                        resolveOperadoraContatoLocal = operadoraDirectoryResolver::resolveLocalContact,
+                        resolveOperadoraIdentidadeRemota = operadoraDirectoryResolver::resolveIdentity,
+                        resolveOperadoraContatoRemoto = operadoraDirectoryResolver::resolveContact,
                     )
                 } // else onboardingConcluido
             }

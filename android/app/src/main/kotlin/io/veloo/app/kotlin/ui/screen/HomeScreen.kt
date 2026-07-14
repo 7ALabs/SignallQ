@@ -136,7 +136,6 @@ import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.VereditoUso
 import io.signallq.app.feature.wifi.RedeVizinha
 import io.signallq.app.feature.wifi.SegurancaWifi
-import io.signallq.app.ui.BancoOperadoras
 import io.signallq.app.ui.ConnectionNodeType
 import io.signallq.app.ui.GatewayInfo
 import io.signallq.app.ui.HistoryPoint
@@ -146,8 +145,11 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.OperadoraSource
+import io.signallq.app.ui.ResolvedOperadoraIdentity
 import io.signallq.app.ui.component.OperadoraBadge
 import io.signallq.app.ui.component.ProfileAvatarButton
+import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
 import io.signallq.app.ui.component.rememberTopBarAlpha
 import kotlin.math.roundToInt
 
@@ -230,6 +232,23 @@ fun HomeScreen(
     onAbrirDiagnostico: () -> Unit,
     snapshotDispositivos: io.signallq.app.feature.devices.SnapshotScanDispositivos? = null,
     onAbrirDispositivos: () -> Unit = {},
+    /** GH#970 — resolucao de identidade de operadora (nivel 1, catalogo local, sincrono).
+     *  Sem I/O, sem corrotina — mesmo comportamento de sempre pras ~12 operadoras principais. */
+    resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity? =
+        { _, _ -> null },
+    /** GH#970 — cadeia completa (local -> diretorio remoto do worker signallq-diagnostic ->
+     *  fallback generico), so chamada quando o nivel 1 acima nao encontrou. */
+    resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity =
+        { nome, _ ->
+            ResolvedOperadoraIdentity(
+                displayName = nome ?: "Operadora",
+                monograma = nome?.firstOrNull()?.uppercase() ?: "?",
+                corMarca = null,
+                logoRes = null,
+                logoUrl = null,
+                source = OperadoraSource.FALLBACK,
+            )
+        },
 ) {
     val c = LocalLkTokens.current
     val context = LocalContext.current
@@ -443,6 +462,8 @@ fun HomeScreen(
                     snapshotRede = snapshotRede,
                     movelSnapshot = movelSnapshot,
                     c = c,
+                    resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
+                    resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
                     onDeviceTap = { showDeviceSheet = true },
                     onGatewayTap = { gw ->
                         when {
@@ -939,6 +960,8 @@ private fun NetworkPath(
     snapshotRede: SnapshotRede,
     movelSnapshot: MovelSnapshot?,
     c: LkTokens,
+    resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity?,
+    resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
     onDeviceTap: () -> Unit,
     onGatewayTap: (GatewayInfo) -> Unit,
     onInternetTap: () -> Unit,
@@ -1001,7 +1024,16 @@ private fun NetworkPath(
                     movelSnapshot?.operadora?.ifBlank { null }
                         ?: ispInfo?.isp?.ifBlank { null }
                         ?: mobileGateway.name.takeIf { it != "Antena movel" && it != "Antena móvel" }
-                val operadoraIdentificada = BancoOperadoras.resolverMovel(nomeOperadora)
+                // GH#970 — local (sincrono, sem mudanca pras ~12 operadoras principais) ->
+                // diretorio remoto (worker signallq-diagnostic) -> null (sem badge, comportamento
+                // de antes quando nao ha match nenhum).
+                val identidadeOperadora =
+                    rememberResolvedOperadoraIdentity(
+                        ispNomeBruto = nomeOperadora,
+                        viaMovel = true,
+                        resolveLocal = resolveOperadoraIdentidadeLocal,
+                        resolveRemoteOrFallback = resolveOperadoraIdentidadeRemota,
+                    )?.takeIf { it.source != OperadoraSource.FALLBACK }
                 val nodeLabel = nomeOperadora ?: "Operadora"
                 val tec = tecnologiaSimplificada(movelSnapshot?.tecnologia)
                 val statusLabel =
@@ -1022,8 +1054,8 @@ private fun NetworkPath(
                     c = c,
                     onTap = { onGatewayTap(mobileGateway) },
                     iconContent =
-                        operadoraIdentificada?.let { operadora ->
-                            { OperadoraBadge(operadora = operadora, size = 32.dp) }
+                        identidadeOperadora?.let { identidade ->
+                            { OperadoraBadge(identidade = identidade, size = 32.dp) }
                         },
                 )
             }

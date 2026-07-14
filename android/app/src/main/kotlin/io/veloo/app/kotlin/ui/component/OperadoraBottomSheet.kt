@@ -47,6 +47,10 @@ import io.signallq.app.ui.ContatoOperadora
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.OperadoraSource
+import io.signallq.app.ui.ResolvedOperadoraContact
+import io.signallq.app.ui.ResolvedOperadoraIdentity
+import io.signallq.app.ui.whatsappUrl
 
 private val idsMajores = listOf("vivo_fibra", "claro_net", "tim_live", "oi_fibra")
 
@@ -54,6 +58,14 @@ private val idsMajores = listOf("vivo_fibra", "claro_net", "tim_live", "oi_fibra
 // mesmo criterio de "cor de marca de terceiro" usado nos badges de operadora.
 private val whatsappGreen = Color(0xFF25D366)
 
+/**
+ * Bottom sheet "Falar com a operadora" — GH#970. A secao "Sua operadora" agora usa a
+ * cadeia local -> diretorio remoto (worker `signallq-diagnostic`) -> fallback generico
+ * ([io.signallq.app.ui.OperadoraDirectoryResolver]), via [resolveOperadoraIdentidadeLocal]/
+ * [resolveOperadoraIdentidadeRemota] (identidade) e [resolveOperadoraContatoLocal]/
+ * [resolveOperadoraContatoRemoto] (contato). A lista "Outras operadoras" continua 100%
+ * local (as ~12 principais, [BancoOperadoras.lista]) — sem mudanca de comportamento.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OperadoraBottomSheet(
@@ -61,17 +73,65 @@ fun OperadoraBottomSheet(
     ispNome: String?,
     operadoraMovel: String?,
     onDismiss: () -> Unit,
+    resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity? =
+        { _, _ -> null },
+    resolveOperadoraContatoLocal: (String?, Boolean) -> ResolvedOperadoraContact? =
+        { _, _ -> null },
+    resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity =
+        { nome, _ ->
+            ResolvedOperadoraIdentity(
+                displayName = nome ?: "Operadora",
+                monograma = nome?.firstOrNull()?.uppercase() ?: "?",
+                corMarca = null,
+                logoRes = null,
+                logoUrl = null,
+                source = OperadoraSource.FALLBACK,
+            )
+        },
+    resolveOperadoraContatoRemoto: suspend (String?, Boolean) -> ResolvedOperadoraContact =
+        { nome, _ ->
+            ResolvedOperadoraContact(
+                displayName = nome ?: "Operadora",
+                sacPhone = null,
+                whatsapp = null,
+                site = null,
+                source = OperadoraSource.FALLBACK,
+            )
+        },
 ) {
     val c = LocalLkTokens.current
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val nomeParaResolver = if (connectionType?.equals("movel", ignoreCase = true) == true) operadoraMovel else ispNome
-    val operadoraDetectada = BancoOperadoras.resolver(nomeParaResolver)
+    val viaMovel = connectionType?.equals("movel", ignoreCase = true) == true
+    val nomeParaResolver = if (viaMovel) operadoraMovel else ispNome
+
+    // So pra excluir da lista "Outras operadoras" (sempre local) quando o match tambem
+    // for local — operadora resolvida via diretorio remoto nunca esta em BancoOperadoras.lista.
+    val operadoraDetectadaLocal = BancoOperadoras.resolver(nomeParaResolver)
+
+    val identidadeDetectada =
+        rememberResolvedOperadoraIdentity(
+            ispNomeBruto = nomeParaResolver,
+            viaMovel = viaMovel,
+            resolveLocal = resolveOperadoraIdentidadeLocal,
+            resolveRemoteOrFallback = resolveOperadoraIdentidadeRemota,
+        )
+    val contatoDetectado =
+        rememberResolvedOperadoraContact(
+            ispNomeBruto = nomeParaResolver,
+            viaMovel = viaMovel,
+            resolveLocal = resolveOperadoraContatoLocal,
+            resolveRemoteOrFallback = resolveOperadoraContatoRemoto,
+        )
+    // FALLBACK = nem local nem diretorio remoto encontraram nada — trata como "nao detectada"
+    // (mesmo comportamento de antes, so que agora so decide depois de tentar o remoto tambem).
+    val operadoraDetectada =
+        contatoDetectado?.takeIf { it.source != OperadoraSource.FALLBACK && it.hasAnyContact }
 
     val subtituloConexao =
         when {
-            operadoraDetectada != null && connectionType?.equals("movel", ignoreCase = true) == true ->
+            operadoraDetectada != null && viaMovel ->
                 "Detectamos sua operadora pela rede móvel. Atendimento oficial."
             operadoraDetectada != null ->
                 "Detectamos sua operadora pela rede fixa. Atendimento oficial."
@@ -79,11 +139,10 @@ fun OperadoraBottomSheet(
                 "Não foi possível identificar sua operadora automaticamente. Escolha abaixo para ver os canais de atendimento."
         }
 
-    val legendaDetectada =
-        if (connectionType?.equals("movel", ignoreCase = true) == true) "SIM ativo · plano móvel" else "rede fixa"
+    val legendaDetectada = if (viaMovel) "SIM ativo · plano móvel" else "rede fixa"
 
     val outrasOperadoras =
-        BancoOperadoras.lista.filter { it.id != operadoraDetectada?.id }
+        BancoOperadoras.lista.filter { it.id != operadoraDetectadaLocal?.id }
 
     val outrasNacionais = outrasOperadoras.filter { it.id in idsMajores }
     val outrasRegionais = outrasOperadoras.filter { it.id !in idsMajores }
@@ -135,12 +194,13 @@ fun OperadoraBottomSheet(
             HorizontalDivider(color = c.border, thickness = 1.dp)
             Spacer(Modifier.height(LkSpacing.lg))
 
-            if (operadoraDetectada != null) {
-                // Seção: operadora detectada
+            if (operadoraDetectada != null && identidadeDetectada != null) {
+                // Seção: operadora detectada (local ou via diretorio remoto)
                 Overline(texto = "Sua operadora", color = c.textTertiary)
                 Spacer(Modifier.height(LkSpacing.md))
                 OperadoraDetectadaSection(
-                    operadora = operadoraDetectada,
+                    identidade = identidadeDetectada,
+                    contato = operadoraDetectada,
                     legenda = legendaDetectada,
                     onDismiss = onDismiss,
                 )
@@ -211,12 +271,14 @@ fun OperadoraBottomSheet(
 
 @Composable
 private fun OperadoraDetectadaSection(
-    operadora: ContatoOperadora,
+    identidade: ResolvedOperadoraIdentity,
+    contato: ResolvedOperadoraContact,
     legenda: String,
     onDismiss: () -> Unit,
 ) {
     val c = LocalLkTokens.current
     val context = LocalContext.current
+    val ehLocal = contato.source == OperadoraSource.LOCAL
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Identificacao
@@ -224,11 +286,11 @@ private fun OperadoraDetectadaSection(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            OperadoraBadge(operadora = operadora, size = 40.dp)
+            OperadoraBadge(identidade = identidade, size = 40.dp)
             Spacer(Modifier.width(LkSpacing.md))
             Column {
                 Text(
-                    text = operadora.nome,
+                    text = contato.displayName,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = c.textPrimary,
@@ -244,10 +306,11 @@ private fun OperadoraDetectadaSection(
         Spacer(Modifier.height(LkSpacing.md))
 
         // WhatsApp primario
-        if (operadora.whatsapp != null) {
+        val waUrl = contato.whatsappUrl()
+        if (waUrl != null) {
             Button(
                 onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/55${operadora.whatsapp}"))
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(waUrl))
                     context.startActivity(intent)
                     onDismiss()
                 },
@@ -265,54 +328,59 @@ private fun OperadoraDetectadaSection(
             Spacer(Modifier.height(LkSpacing.sm))
         }
 
-        // Ligar + App
+        // Ligar + App (App so quando ha grupo conhecido — hoje so pra OperadoraSource.LOCAL,
+        // o diretorio remoto GH#965 nao tem esse dado, nunca inventamos)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
         ) {
-            OutlinedButton(
-                onClick = {
-                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${operadora.sac}"))
-                    context.startActivity(intent)
-                },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(LkRadius.button),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Call,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = c.textPrimary,
-                )
-                Spacer(Modifier.width(LkSpacing.xs))
-                Text(
-                    text = "Ligar *${operadora.sac}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textPrimary,
-                    fontWeight = FontWeight.Medium,
-                )
+            if (contato.sacPhone != null) {
+                OutlinedButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${contato.sacPhone}"))
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(LkRadius.button),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Call,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = c.textPrimary,
+                    )
+                    Spacer(Modifier.width(LkSpacing.xs))
+                    Text(
+                        text = if (ehLocal) "Ligar *${contato.sacPhone}" else "Ligar ${contato.sacPhone}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.textPrimary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
             }
-            OutlinedButton(
-                onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://search?q=${operadora.grupo}"))
-                    context.startActivity(intent)
-                },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(LkRadius.button),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.PhoneAndroid,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = c.textPrimary,
-                )
-                Spacer(Modifier.width(LkSpacing.xs))
-                Text(
-                    text = "App ${operadora.grupo}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textPrimary,
-                    fontWeight = FontWeight.Medium,
-                )
+            if (contato.grupo != null) {
+                OutlinedButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://search?q=${contato.grupo}"))
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(LkRadius.button),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.PhoneAndroid,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = c.textPrimary,
+                    )
+                    Spacer(Modifier.width(LkSpacing.xs))
+                    Text(
+                        text = "App ${contato.grupo}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.textPrimary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
             }
         }
     }

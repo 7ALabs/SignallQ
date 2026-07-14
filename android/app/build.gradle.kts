@@ -319,6 +319,10 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.androidx.profileinstaller)
     implementation(libs.okhttp)
+    // GH#970 — carrega logo remota de operadora de cauda longa (ProviderLogo.url,
+    // diretorio do worker signallq-diagnostic). So usado quando o catalogo local
+    // (OperadoraLogoCatalog) nao tem a operadora.
+    implementation(libs.coil.compose)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
