@@ -33,11 +33,16 @@ object DiagnosticoModule {
      *
      * Antes era instanciado via `by lazy { DiagnosticOrchestrator() }` no MainViewModel.
      * Agora e singleton compartilhado entre DiagnosticoViewModel e MainViewModel (legado).
+     *
+     * GH#969: reusa a mesma instancia de [RemoteDiagnosticRepository] ja provida abaixo
+     * (nao cria um OkHttpClient/cache novo so pra este orquestrador).
      */
     @Provides
     @Singleton
-    fun provideDiagnosticOrchestrator(analyticsHelper: AnalyticsHelper): DiagnosticOrchestrator =
-        DiagnosticOrchestrator(analyticsHelper)
+    fun provideDiagnosticOrchestrator(
+        analyticsHelper: AnalyticsHelper,
+        remoteDiagnosticRepository: RemoteDiagnosticRepository,
+    ): DiagnosticOrchestrator = DiagnosticOrchestrator(analyticsHelper, remoteDiagnosticRepository)
 
     /**
      * Provê a instância única de AiDiagnosisRepository no grafo Hilt.
@@ -60,10 +65,9 @@ object DiagnosticoModule {
     /**
      * Provê RemoteDiagnosticRepository no grafo Hilt (GH#962).
      *
-     * Nao esta wireada no [io.signallq.app.feature.diagnostico.DiagnosticOrchestrator]
-     * ainda (decisao desta issue: so a camada de dados, sem tocar em Composable/
-     * ViewModel) — fica disponivel para injecao quando uma issue futura decidir
-     * adotar o fluxo remoto-primeiro no orquestrador principal.
+     * GH#969: wireada no [io.signallq.app.feature.diagnostico.DiagnosticOrchestrator] —
+     * fluxo remoto-primeiro com fallback automatico pro motor local, sem mudanca
+     * perceptivel de UI (o orquestrador so troca a fonte do relatorio).
      */
     @Provides
     @Singleton

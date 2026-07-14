@@ -35,13 +35,13 @@ import java.util.concurrent.TimeUnit
  *    O usuario NUNCA fica esperando rede alem do teto de timeout acima —
  *    nunca trava a UI.
  *
- * ## Por que nao substitui o motor local no fluxo principal (GH#962, ainda)
- * Esta classe e infraestrutura de dados pura (repository), sem nenhuma mudanca
- * de Composable/ViewModel/[io.signallq.app.feature.diagnostico.DiagnosticOrchestrator]
- * nesta issue — o orquestrador principal do app continua 100% local
- * (`DiagnosticOrchestrator.executar` -> `DiagnosticRunner.run`, sincrono, sem
- * IO). Fica pronta para ser adotada pelo orquestrador numa issue futura que
- * avalie o impacto de tornar o fluxo de diagnostico assincrono.
+ * ## Adocao pelo orquestrador principal (GH#969)
+ * Wireada em [io.signallq.app.feature.diagnostico.DiagnosticOrchestrator.executar], que
+ * agora e `suspend` e delega inteiramente a estrategia remoto-primeiro/fallback-local
+ * definida aqui — o orquestrador nao duplica a decisao, so chama [evaluate]. Todos os
+ * call sites de `executar` ja rodavam dentro de coroutine (`viewModelScope.launch` /
+ * `Flow.collect` / `withContext`), entao a mudanca para `suspend` nao exigiu alterar
+ * nenhum chamador.
  */
 class RemoteDiagnosticRepository(
     private val baseUrl: String,
