@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionResultado
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionService
@@ -152,10 +153,21 @@ internal fun GatewayConnectionSheetContent(
     var estado by remember { mutableStateOf<GatewayConnectionSheetState>(GatewayConnectionSheetState.Formulario) }
     // GH#529: guia ilustrado de como obter usuario/senha, aberto sem sair da sheet de conexao.
     var mostrarGuiaCredenciais by remember { mutableStateOf(false) }
+    // 2b-iii To-Be: lista de modelos compativeis, aberta sem sair da sheet de conexao
+    // (mesmo padrao do guia de credenciais acima).
+    var mostrarModelosCompativeis by remember { mutableStateOf(false) }
 
     val escopo = rememberCoroutineScope()
     val conectando = estado is GatewayConnectionSheetState.Conectando
-    val podeConectar = ipInput.isNotBlank() && !conectando
+    // 2b-i To-Be: valida formato IPv4 antes de habilitar "Conectar" — diferencia
+    // erro de credencial de erro de formato de IP antes mesmo de tentar autenticar.
+    val ipValido = isIpv4Valido(ipInput)
+    val podeConectar = ipValido && !conectando
+
+    if (mostrarModelosCompativeis) {
+        GatewayCompatibleModelsSheetContent(onBack = { mostrarModelosCompativeis = false }, c = c)
+        return
+    }
 
     fun tentarConectar() {
         if (!podeConectar) return
@@ -196,10 +208,11 @@ internal fun GatewayConnectionSheetContent(
     ) {
         SheetDragHandle()
         Spacer(Modifier.height(LkSpacing.sm))
+        EstadoConexaoSegmented(estado = estado, c = c)
+        Spacer(Modifier.height(LkSpacing.xs))
         Text(
             text = "Conectar ao roteador",
             style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.W700,
             color = c.textPrimary,
         )
 
@@ -211,9 +224,17 @@ internal fun GatewayConnectionSheetContent(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             enabled = !conectando,
+            isError = ipInput.isNotBlank() && !ipValido,
             colors = fieldColors,
             shape = RoundedCornerShape(LkRadius.input),
         )
+        if (ipInput.isNotBlank() && !ipValido) {
+            Text(
+                text = "Endereço IP inválido — use o formato 192.168.1.1",
+                style = MaterialTheme.typography.labelSmall,
+                color = LkColors.error,
+            )
+        }
 
         OutlinedTextField(
             value = usuarioInput,
@@ -254,6 +275,18 @@ internal fun GatewayConnectionSheetContent(
         ) {
             Text(
                 text = "Não sabe o usuário e a senha?",
+                style = MaterialTheme.typography.bodyMedium,
+                color = LkColors.accent,
+            )
+        }
+
+        TextButton(
+            onClick = { mostrarModelosCompativeis = true },
+            enabled = !conectando,
+            modifier = Modifier.testTag("gateway_link_modelos_compativeis"),
+        ) {
+            Text(
+                text = "Ver modelos de roteador compatíveis",
                 style = MaterialTheme.typography.bodyMedium,
                 color = LkColors.accent,
             )
@@ -336,6 +369,58 @@ internal fun GatewayConnectionSheetContent(
 
     if (mostrarGuiaCredenciais) {
         GatewayCredentialsGuideSheet(onDismissRequest = { mostrarGuiaCredenciais = false })
+    }
+}
+
+/**
+ * Formato de IPv4 (2b-i To-Be) — valida cada octeto no intervalo 0-255 antes de
+ * habilitar "Conectar". Real (regex de faixa), não decorativo: "999.999.999.999"
+ * ou "192.168.1" não passam. Alcançabilidade de rede (ping/reachability) fica
+ * fora deste escopo — a validação aqui é só de formato.
+ */
+private val ipv4Regex =
+    Regex("^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$")
+
+private fun isIpv4Valido(ip: String): Boolean = ipv4Regex.matches(ip.trim())
+
+/**
+ * Indicador visual do estado atual da sheet (2b-i To-Be) — Formulário/Conectando/Erro.
+ * Só reflete [estado], não é selecionável: o estado real é resultado da tentativa
+ * de conexão, nunca escolhido manualmente pelo usuário.
+ */
+@Composable
+private fun EstadoConexaoSegmented(
+    estado: GatewayConnectionSheetState,
+    c: LkTokens,
+) {
+    val opcoes =
+        listOf(
+            "Formulário" to (estado is GatewayConnectionSheetState.Formulario),
+            "Conectando" to (estado is GatewayConnectionSheetState.Conectando),
+            "Erro" to (estado is GatewayConnectionSheetState.Erro),
+        )
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, c.border, RoundedCornerShape(20.dp))
+                .padding(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        opcoes.forEach { (label, ativo) ->
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (ativo) c.textPrimary else c.textSecondary,
+                textAlign = TextAlign.Center,
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(if (ativo) LkColors.accent.copy(alpha = 0.14f) else Color.Transparent)
+                        .padding(vertical = 9.dp),
+            )
+        }
     }
 }
 
