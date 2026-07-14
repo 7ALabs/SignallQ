@@ -856,13 +856,17 @@ fun AppShell(
             )
         }
 
-        // TODO(#935): Fase 6 — tela real de Jogos.
+        // GH#935 — Fase 6: tela real de Jogos (fluxo de 5 etapas).
         AnimatedVisibility(
             visible = Overlay.Jogos in overlayStack,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
-            JogosScreen(onVoltar = { overlayStack.remove(Overlay.Jogos) })
+            JogosScreen(
+                tipoConexaoAtual = snapshotRede.estadoConexao,
+                wifiLinkSnapshot = snapshotRede.wifiLinkSnapshot,
+                onVoltar = { overlayStack.remove(Overlay.Jogos) },
+            )
         }
 
         // GH#936 — Fase 7: AjustesScreen.kt virou lista de entradas pras 6 sub-telas
