@@ -53,84 +53,94 @@ data class ResolvedOperadoraContact(
  * offline sem quebrar a tela.
  */
 @Singleton
-class OperadoraDirectoryResolver @Inject constructor(
-    private val providerDirectoryRepository: ProviderDirectoryRepository,
-) {
+class OperadoraDirectoryResolver
+    @Inject
+    constructor(
+        private val providerDirectoryRepository: ProviderDirectoryRepository,
+    ) {
+        suspend fun resolveIdentity(
+            ispNomeBruto: String?,
+            viaMovel: Boolean = false,
+        ): ResolvedOperadoraIdentity {
+            val local = resolverLocal(ispNomeBruto, viaMovel)
+            if (local != null) {
+                val visual = OperadoraLogoCatalog.identidadePara(local)
+                return ResolvedOperadoraIdentity(
+                    displayName = local.nome,
+                    monograma = visual.monograma,
+                    corMarca = visual.corMarca,
+                    logoRes = visual.logoRes,
+                    logoUrl = null,
+                    source = OperadoraSource.LOCAL,
+                )
+            }
 
-    suspend fun resolveIdentity(ispNomeBruto: String?, viaMovel: Boolean = false): ResolvedOperadoraIdentity {
-        val local = resolverLocal(ispNomeBruto, viaMovel)
-        if (local != null) {
-            val visual = OperadoraLogoCatalog.identidadePara(local)
-            return ResolvedOperadoraIdentity(
-                displayName = local.nome,
-                monograma = visual.monograma,
-                corMarca = visual.corMarca,
-                logoRes = visual.logoRes,
-                logoUrl = null,
-                source = OperadoraSource.LOCAL,
-            )
-        }
+            val remote = buscarRemoto(ispNomeBruto)
+            if (remote?.logoUrl != null) {
+                return ResolvedOperadoraIdentity(
+                    displayName = remote.displayName,
+                    monograma = remote.displayName.firstOrNull()?.uppercase() ?: "?",
+                    corMarca = null,
+                    logoRes = null,
+                    logoUrl = remote.logoUrl,
+                    source = OperadoraSource.REMOTE,
+                )
+            }
 
-        val remote = buscarRemoto(ispNomeBruto)
-        if (remote?.logoUrl != null) {
             return ResolvedOperadoraIdentity(
-                displayName = remote.displayName,
-                monograma = remote.displayName.firstOrNull()?.uppercase() ?: "?",
+                displayName = remote?.displayName ?: ispNomeBruto?.takeIf { it.isNotBlank() } ?: "Operadora",
+                monograma = (remote?.displayName ?: ispNomeBruto)?.firstOrNull()?.uppercase() ?: "?",
                 corMarca = null,
                 logoRes = null,
-                logoUrl = remote.logoUrl,
-                source = OperadoraSource.REMOTE,
+                logoUrl = null,
+                source = OperadoraSource.FALLBACK,
             )
         }
 
-        return ResolvedOperadoraIdentity(
-            displayName = remote?.displayName ?: ispNomeBruto?.takeIf { it.isNotBlank() } ?: "Operadora",
-            monograma = (remote?.displayName ?: ispNomeBruto)?.firstOrNull()?.uppercase() ?: "?",
-            corMarca = null,
-            logoRes = null,
-            logoUrl = null,
-            source = OperadoraSource.FALLBACK,
-        )
-    }
+        suspend fun resolveContact(
+            ispNomeBruto: String?,
+            viaMovel: Boolean = false,
+        ): ResolvedOperadoraContact {
+            val local = resolverLocal(ispNomeBruto, viaMovel)
+            if (local != null) {
+                return ResolvedOperadoraContact(
+                    displayName = local.nome,
+                    sacPhone = local.sac,
+                    whatsapp = local.whatsapp,
+                    site = local.site,
+                    source = OperadoraSource.LOCAL,
+                )
+            }
 
-    suspend fun resolveContact(ispNomeBruto: String?, viaMovel: Boolean = false): ResolvedOperadoraContact {
-        val local = resolverLocal(ispNomeBruto, viaMovel)
-        if (local != null) {
+            val remote = buscarRemoto(ispNomeBruto)
+            if (remote != null && (remote.sacPhone != null || remote.whatsappUrl != null || remote.websiteUrl != null)) {
+                return ResolvedOperadoraContact(
+                    displayName = remote.displayName,
+                    sacPhone = remote.sacPhone,
+                    whatsapp = remote.whatsappUrl,
+                    site = remote.websiteUrl,
+                    source = OperadoraSource.REMOTE,
+                )
+            }
+
             return ResolvedOperadoraContact(
-                displayName = local.nome,
-                sacPhone = local.sac,
-                whatsapp = local.whatsapp,
-                site = local.site,
-                source = OperadoraSource.LOCAL,
+                displayName = remote?.displayName ?: ispNomeBruto?.takeIf { it.isNotBlank() } ?: "Operadora",
+                sacPhone = null,
+                whatsapp = null,
+                site = null,
+                source = OperadoraSource.FALLBACK,
             )
         }
 
-        val remote = buscarRemoto(ispNomeBruto)
-        if (remote != null && (remote.sacPhone != null || remote.whatsappUrl != null || remote.websiteUrl != null)) {
-            return ResolvedOperadoraContact(
-                displayName = remote.displayName,
-                sacPhone = remote.sacPhone,
-                whatsapp = remote.whatsappUrl,
-                site = remote.websiteUrl,
-                source = OperadoraSource.REMOTE,
-            )
+        private fun resolverLocal(
+            ispNomeBruto: String?,
+            viaMovel: Boolean,
+        ): ContatoOperadora? =
+            if (viaMovel) BancoOperadoras.resolverMovel(ispNomeBruto) else BancoOperadoras.resolver(ispNomeBruto)
+
+        /** `null` quando nao ha nome pra buscar OU a chamada remota falhou/nao achou nada. */
+        private suspend fun buscarRemoto(ispNomeBruto: String?): RemoteProviderInfo? {
+            if (ispNomeBruto.isNullOrBlank()) return null
+            return providerDirectoryRepository.searchByName(ispNomeBruto)
         }
-
-        return ResolvedOperadoraContact(
-            displayName = remote?.displayName ?: ispNomeBruto?.takeIf { it.isNotBlank() } ?: "Operadora",
-            sacPhone = null,
-            whatsapp = null,
-            site = null,
-            source = OperadoraSource.FALLBACK,
-        )
     }
-
-    private fun resolverLocal(ispNomeBruto: String?, viaMovel: Boolean): ContatoOperadora? =
-        if (viaMovel) BancoOperadoras.resolverMovel(ispNomeBruto) else BancoOperadoras.resolver(ispNomeBruto)
-
-    /** `null` quando nao ha nome pra buscar OU a chamada remota falhou/nao achou nada. */
-    private suspend fun buscarRemoto(ispNomeBruto: String?): RemoteProviderInfo? {
-        if (ispNomeBruto.isNullOrBlank()) return null
-        return providerDirectoryRepository.searchByName(ispNomeBruto)
-    }
-}
