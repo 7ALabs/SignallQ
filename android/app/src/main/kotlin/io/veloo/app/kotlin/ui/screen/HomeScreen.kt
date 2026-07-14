@@ -3534,8 +3534,7 @@ private fun MedicaoTipoSheet(
         ) {
             Text(
                 "Tipo de medição",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.W700,
+                style = MaterialTheme.typography.headlineSmall,
                 color = c.textPrimary,
             )
             Text(
@@ -3571,7 +3570,7 @@ private fun MedicaoTipoSheet(
                 titulo = "Triplo",
                 descricao = "Média de 3 testes consecutivos · ~3 min",
                 badge = if (!isOnWifi) "Só Wi-Fi" else null,
-                badgeColor = c.textTertiary,
+                badgeColor = c.onSurfaceVariant,
                 disponivel = isOnWifi,
                 c = c,
                 onClick = { onIniciarTeste(ModoSpeedtest.triplo) },
@@ -3622,8 +3621,8 @@ private fun MedicaoOpcaoItem(
             modifier =
                 Modifier
                     .size(44.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(iconColor.copy(alpha = 0.1f)),
+                    .clip(CircleShape)
+                    .background(iconColor.copy(alpha = 0.14f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -3636,8 +3635,7 @@ private fun MedicaoOpcaoItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 titulo,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.W600,
+                style = MaterialTheme.typography.titleSmall,
                 color = textColor,
             )
             Text(
@@ -3656,8 +3654,7 @@ private fun MedicaoOpcaoItem(
             ) {
                 Text(
                     badge,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.W600,
+                    style = MaterialTheme.typography.labelMedium,
                     color = badgeColor,
                 )
             }
