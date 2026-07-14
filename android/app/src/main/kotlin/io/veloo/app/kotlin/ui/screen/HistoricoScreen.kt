@@ -99,6 +99,7 @@ import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.ads.rememberNativeAd
+import io.signallq.app.ui.component.Overline
 import io.signallq.app.ui.component.ProfileAvatarButton
 import io.signallq.app.ui.component.ads.NativeAdCard
 import io.signallq.app.ui.component.ads.NativeAdSource
@@ -593,6 +594,53 @@ private fun MediaCard(
 
 // ─── Filtros de conexão ───────────────────────────────────────────────────────
 
+/**
+ * Segmented Todos/Wi-Fi/Celular (4 · Histórico). Largura fixa 220px por spec To-Be —
+ * mesmo padrao de container unico com fundo `surfaceContainer` usado no Segmented
+ * de banda de 3 · Sinal (`BandFilterRow`), aqui com 3 itens de peso igual.
+ */
+@Composable
+private fun ConexaoSegmented(
+    filtroSelecionado: FiltroTipo,
+    onFiltroChange: (FiltroTipo) -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .width(220.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .padding(2.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        FiltroTipo.entries.forEach { filtro ->
+            val active = filtroSelecionado == filtro
+            Box(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(if (active) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
+                        .clickable { onFiltroChange(filtro) }
+                        .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    filtro.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = if (active) FontWeight.W600 else FontWeight.W500,
+                    color =
+                        if (active) {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FiltrosConexao(
@@ -604,28 +652,7 @@ private fun FiltrosConexao(
     c: LkTokens,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
-            FiltroTipo.entries.forEach { filtro ->
-                FilterChip(
-                    selected = filtroSelecionado == filtro,
-                    onClick = { onFiltroChange(filtro) },
-                    label = { Text(filtro.label, style = MaterialTheme.typography.labelSmall) },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                    colors =
-                        FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
-                            selectedLabelColor = LkColors.accent,
-                        ),
-                    border =
-                        FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = filtroSelecionado == filtro,
-                            borderColor = c.border,
-                            selectedBorderColor = LkColors.accent,
-                        ),
-                )
-            }
-        }
+        ConexaoSegmented(filtroSelecionado = filtroSelecionado, onFiltroChange = onFiltroChange)
 
         if (filtroSelecionado == FiltroTipo.MOVEL && operadorasDisponiveis.isNotEmpty()) {
             Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
@@ -815,6 +842,23 @@ fun HistoricoScreen(
                 contentPadding = PaddingValues(horizontal = LkSpacing.lg, vertical = LkSpacing.lg),
                 verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
             ) {
+                // Slot de anuncio nativo (issue #555) -- primeiro item da tela por spec
+                // To-Be (4 · Historico); posicao anterior (4o item) revertida.
+                if (!nativeAdDismissedHistorico) {
+                    item(key = "native_ad_historico") {
+                        val nativeAd by
+                            rememberNativeAd(
+                                adUnitId = AdUnitIds.para(AdSlot.HISTORICO),
+                                contentSignal = NativeAdContentSignals.forSlot(AdSlot.HISTORICO),
+                                eligible = adsEnabled,
+                            )
+                        NativeAdCard(
+                            nativeAd = nativeAd,
+                            source = NativeAdSource.ADMOB,
+                            onDismiss = { nativeAdDismissedHistorico = true },
+                        )
+                    }
+                }
                 if (listaParaExibir.isNotEmpty()) {
                     item(key = "grafico_linha") {
                         LineChartGrafico(medicoes = historicoFiltrado, c = c)
@@ -822,6 +866,9 @@ fun HistoricoScreen(
                     item(key = "media_cards") {
                         MediaCards(medicoes = historicoFiltrado, c = c)
                     }
+                }
+                item(key = "medicoes_recentes_overline") {
+                    Overline(texto = "Medições recentes", color = c.textTertiary)
                 }
                 item(key = "filtros_conexao") {
                     FiltrosConexao(
@@ -871,24 +918,6 @@ fun HistoricoScreen(
                             item(key = "tendencia") {
                                 TendenciaCard(resumo = resumo, c = c)
                             }
-                        }
-                    }
-                    // Slot de anuncio nativo (issue #555) -- depois do resumo de
-                    // estabilidade (Tendencia), antes das medicoes recentes.
-                    if (!nativeAdDismissedHistorico) {
-                        item(key = "native_ad_historico") {
-                            val nativeAd by
-                                rememberNativeAd(
-                                    adUnitId = AdUnitIds.para(AdSlot.HISTORICO),
-                                    contentSignal = NativeAdContentSignals.forSlot(AdSlot.HISTORICO),
-                                    eligible = adsEnabled,
-                                )
-                            NativeAdCard(
-                                nativeAd = nativeAd,
-                                source = NativeAdSource.ADMOB,
-                                onDismiss = { nativeAdDismissedHistorico = true },
-                                modifier = Modifier.padding(top = LkSpacing.xs),
-                            )
                         }
                     }
                     items(historicoFiltrado, key = { it.id }) { medicao ->
@@ -1169,8 +1198,7 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
                 Text(
                     "Detalhes do teste",
                     modifier = Modifier.padding(horizontal = LkSpacing.xl),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.W600,
+                    style = MaterialTheme.typography.titleLarge,
                     color = c.textPrimary,
                 )
                 Text(
@@ -1346,10 +1374,8 @@ private fun PrimaryMetric(
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 value,
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.W700,
+                style = MaterialTheme.typography.headlineLarge,
                 color = c.textPrimary,
-                letterSpacing = (-1).sp,
             )
             Spacer(Modifier.width(4.dp))
             Text("Mbps", style = MaterialTheme.typography.bodySmall, color = c.textSecondary, modifier = Modifier.padding(bottom = 5.dp))
