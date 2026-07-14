@@ -41,19 +41,12 @@ object BancoOperadoras {
                 site = "https://www.tim.com.br",
             ),
             ContatoOperadora(
-                "oi_fibra",
-                "Oi",
-                "Oi",
-                listOf("oi fibra", "oi", "telemar"),
-                sac = "10331",
-                whatsapp = null,
-                site = "https://www.oi.com.br",
-            ),
-            ContatoOperadora(
                 "nio",
                 "Nio Fibra",
                 "Nio",
-                listOf("nio", "nio internet", "nio fibra"),
+                // "oi"/"oi fibra"/"telemar" cobrem dado legado de roteador/API que ainda reporta o
+                // nome antigo -- a Oi foi rebrandeada para Nio, nao existe mais como marca separada.
+                listOf("nio", "nio internet", "nio fibra", "oi fibra", "oi", "telemar"),
                 sac = "08000011000",
                 whatsapp = "2136051000",
                 site = "https://www.niointernet.com.br",
@@ -146,7 +139,10 @@ object BancoOperadoras {
             "vivo_fibra" to listOf("vivo"),
             "claro_net" to listOf("claro"),
             "tim_live" to listOf("tim"),
-            "oi_fibra" to listOf("oi"),
+            // "oi_fibra" removido (rebrand pra Nio, fibra-only) -- Nio nao tem produto movel
+            // conhecido sob a mesma marca, entao nao redireciona "oi" pra "nio" aqui. Se a Oi
+            // Movel (marca separada, grupo diferente) precisar de deteccao propria, cadastrar
+            // como operadora nova, nao reaproveitar o id "nio".
         )
 
     /**

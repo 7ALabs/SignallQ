@@ -39,7 +39,6 @@ object OperadoraLogoCatalog {
             "vivo_fibra" to OperadoraVisualIdentity(Color(0xFF660099), "V", R.drawable.operator_vivo_fibra),
             "claro_net" to OperadoraVisualIdentity(Color(0xFFED1C24), "C", R.drawable.operator_claro_net),
             "tim_live" to OperadoraVisualIdentity(Color(0xFF003D8F), "T", R.drawable.operator_tim_live),
-            "oi_fibra" to OperadoraVisualIdentity(Color(0xFFFF8C00), "O", R.drawable.operator_oi_fibra),
             "nio" to OperadoraVisualIdentity(Color(0xFF00B4D8), "N", R.drawable.operator_nio),
             "algar" to OperadoraVisualIdentity(Color(0xFF0066CC), "A", R.drawable.operator_algar),
             "unifique" to OperadoraVisualIdentity(Color(0xFF00A651), "U", R.drawable.operator_unifique),
