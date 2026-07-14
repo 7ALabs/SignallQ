@@ -51,7 +51,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -127,30 +126,37 @@ fun OnboardingScreen(
         )
     }
 
+    // Cada toggle da tela 2 dispara o pedido real (RequestMultiplePermissions) na hora em que o
+    // usuario liga o switch — nao so no fim do fluxo. Telas mais a frente (Sinal, 3e/3f) checam
+    // permissao ja concedida antes de abrir sheets de contexto; se o onboarding so simulasse
+    // visualmente, essas telas pediriam de novo depois, duplicando o fluxo.
     val solicitarPermissoesLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { resultado ->
             permissoesConcedidas = aplicarResultadoPermissoesOnboarding(permissoesConcedidas, resultado)
+            permissoesMarcadas = sincronizarPermissoesMarcadasComResultado(permissoesMarcadas, resultado)
             val concedidasNestaRodada = resultado.filterValues { it }.keys
             if (concedidasNestaRodada.isNotEmpty()) onPermissoesConcedidas(concedidasNestaRodada)
-            if (permissoesConcedidas.nenhumaConcedida) {
-                mostrarAvisoSemPermissao = true
-            } else {
-                onConcluir()
-            }
         }
 
-    fun continuarDaTelaPermissoes() {
+    // Solicita so a fatia de permissoes do Android correspondente a categoria que acabou de ser
+    // ligada (ex.: so ACCESS_FINE_LOCATION/COARSE ao ligar "Wi-Fi por perto"), filtrando o que ja
+    // esta concedido para nao reabrir dialogo do sistema a toa.
+    fun solicitarPermissaoDaCategoria(categoriaMarcada: OnboardingPermissoesMarcadas) {
         val paraSolicitar =
-            permissoesAndroidParaSolicitar(permissoesMarcadas)
+            permissoesAndroidParaSolicitar(categoriaMarcada)
                 .filter { perm -> ContextCompat.checkSelfPermission(context, perm) != PackageManager.PERMISSION_GRANTED }
-        if (paraSolicitar.isEmpty()) {
-            if (permissoesConcedidas.nenhumaConcedida) {
-                mostrarAvisoSemPermissao = true
-            } else {
-                onConcluir()
-            }
-        } else {
+        if (paraSolicitar.isNotEmpty()) {
             solicitarPermissoesLauncher.launch(paraSolicitar.toTypedArray())
+        }
+    }
+
+    // "Concluir": so decide navegacao a partir do estado real ja sincronizado pelos toggles —
+    // nenhuma solicitacao de permissao acontece aqui, ela ja rolou na interacao com cada switch.
+    fun continuarDaTelaPermissoes() {
+        if (permissoesConcedidas.nenhumaConcedida) {
+            mostrarAvisoSemPermissao = true
+        } else {
+            onConcluir()
         }
     }
 
@@ -206,6 +212,7 @@ fun OnboardingScreen(
                             permissoesConcedidas = permissoesConcedidas,
                             permissoesMarcadas = permissoesMarcadas,
                             onMarcadasChange = { permissoesMarcadas = it },
+                            onSolicitarPermissao = { categoriaMarcada -> solicitarPermissaoDaCategoria(categoriaMarcada) },
                             onContinuar = { continuarDaTelaPermissoes() },
                         )
                 }
@@ -267,8 +274,8 @@ private fun OnboardingTelaBemVindo(
                     Modifier
                         .size(logoSizeDp)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, c.border, CircleShape),
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .border(1.dp, c.outlineVariant, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Image(
@@ -290,16 +297,15 @@ private fun OnboardingTelaBemVindo(
         ) {
             Text(
                 text = stringResource(R.string.onboarding_tela1_titulo),
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = c.textPrimary,
+                style = MaterialTheme.typography.headlineSmall, // peso ja vem SemiBold do token migrado — sem override
+                color = c.onSurface,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(LkSpacing.md))
             Text(
                 text = stringResource(R.string.onboarding_tela1_subtitulo),
                 style = MaterialTheme.typography.bodyLarge,
-                color = c.textSecondary,
+                color = c.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
 
@@ -332,9 +338,10 @@ private fun OnboardingTelaBemVindo(
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(LkRadius.card))
-                        .background(c.bgCard)
-                        .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-                        .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .border(1.dp, c.outlineVariant, RoundedCornerShape(LkRadius.card))
+                        // spec: padding 12px 16px (vertical=md, horizontal=base)
+                        .padding(horizontal = LkSpacing.base, vertical = LkSpacing.md),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Checkbox(
@@ -349,7 +356,7 @@ private fun OnboardingTelaBemVindo(
                 Text(
                     text = textoTermos,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = c.textPrimary,
+                    color = c.onSurface,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -360,7 +367,10 @@ private fun OnboardingTelaBemVindo(
                 Modifier
                     .fillMaxWidth()
                     .weight(0.18f)
-                    .padding(horizontal = LkSpacing.xl)
+                    // spec: CTA padding 12px 28px 40px (top/horizontal/bottom). 28px nao bate
+                    // exato num degrau da escala 8dp (empate entre xl=24 e xxl=32) — ficamos com
+                    // xl por já ser o horizontal usado no resto da tela. top=md(12), bottom=xxxl(40, exato).
+                    .padding(start = LkSpacing.xl, end = LkSpacing.xl, top = LkSpacing.md, bottom = LkSpacing.xxxl)
                     .navigationBarsPadding(),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
@@ -372,12 +382,12 @@ private fun OnboardingTelaBemVindo(
                     Modifier
                         .fillMaxWidth()
                         .semantics {
-                            contentDescription = if (termosAceitos) "Continuar" else "Aceite os termos para continuar"
+                            contentDescription = if (termosAceitos) "Começar" else "Aceite os termos para continuar"
                         },
                 colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
             ) {
                 Text(
-                    text = stringResource(R.string.onboarding_btn_continuar),
+                    text = stringResource(R.string.onboarding_btn_comecar),
                     color = LkColors.signallQTextOnDark,
                     fontWeight = FontWeight.W600,
                 )
@@ -394,6 +404,7 @@ private fun OnboardingTelaPermissoes(
     permissoesConcedidas: OnboardingPermissoesConcedidas,
     permissoesMarcadas: OnboardingPermissoesMarcadas,
     onMarcadasChange: (OnboardingPermissoesMarcadas) -> Unit,
+    onSolicitarPermissao: (OnboardingPermissoesMarcadas) -> Unit,
     onContinuar: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -407,9 +418,8 @@ private fun OnboardingTelaPermissoes(
         Spacer(Modifier.height(LkSpacing.md))
         Text(
             text = stringResource(R.string.onboarding_tela2_titulo),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = c.textPrimary,
+            style = MaterialTheme.typography.headlineSmall, // peso ja vem SemiBold do token migrado — sem override
+            color = c.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = LkSpacing.xl),
         )
@@ -417,7 +427,7 @@ private fun OnboardingTelaPermissoes(
         Text(
             text = stringResource(R.string.onboarding_tela2_subtitulo),
             style = MaterialTheme.typography.bodyLarge,
-            color = c.textSecondary,
+            color = c.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = LkSpacing.xl),
         )
@@ -438,7 +448,10 @@ private fun OnboardingTelaPermissoes(
                 descricao = "Para encontrar e analisar as redes Wi-Fi ao seu redor.",
                 marcado = permissoesMarcadas.wifiPerto,
                 concedida = permissoesConcedidas.wifiPerto,
-                onMarcadoChange = { onMarcadasChange(permissoesMarcadas.copy(wifiPerto = it)) },
+                onMarcadoChange = { marcado ->
+                    onMarcadasChange(permissoesMarcadas.copy(wifiPerto = marcado))
+                    if (marcado) onSolicitarPermissao(OnboardingPermissoesMarcadas(wifiPerto = true))
+                },
                 c = c,
             )
             PermissaoToggleCard(
@@ -447,7 +460,10 @@ private fun OnboardingTelaPermissoes(
                 descricao = "Para identificar outros aparelhos conectados à sua rede local. Opcional.",
                 marcado = permissoesMarcadas.dispositivosRede,
                 concedida = permissoesConcedidas.dispositivosRede,
-                onMarcadoChange = { onMarcadasChange(permissoesMarcadas.copy(dispositivosRede = it)) },
+                onMarcadoChange = { marcado ->
+                    onMarcadasChange(permissoesMarcadas.copy(dispositivosRede = marcado))
+                    if (marcado) onSolicitarPermissao(OnboardingPermissoesMarcadas(dispositivosRede = true))
+                },
                 c = c,
             )
             PermissaoToggleCard(
@@ -456,7 +472,10 @@ private fun OnboardingTelaPermissoes(
                 descricao = "Para identificar sua operadora, o tipo de rede (4G, 5G) e a força do sinal.",
                 marcado = permissoesMarcadas.sinalChip,
                 concedida = permissoesConcedidas.sinalChip,
-                onMarcadoChange = { onMarcadasChange(permissoesMarcadas.copy(sinalChip = it)) },
+                onMarcadoChange = { marcado ->
+                    onMarcadasChange(permissoesMarcadas.copy(sinalChip = marcado))
+                    if (marcado) onSolicitarPermissao(OnboardingPermissoesMarcadas(sinalChip = true))
+                },
                 c = c,
             )
             PermissaoToggleCard(
@@ -465,7 +484,10 @@ private fun OnboardingTelaPermissoes(
                 descricao = "Para avisar quando detectarmos quedas ou problemas na sua conexão.",
                 marcado = permissoesMarcadas.notificacoes,
                 concedida = permissoesConcedidas.notificacoes,
-                onMarcadoChange = { onMarcadasChange(permissoesMarcadas.copy(notificacoes = it)) },
+                onMarcadoChange = { marcado ->
+                    onMarcadasChange(permissoesMarcadas.copy(notificacoes = marcado))
+                    if (marcado) onSolicitarPermissao(OnboardingPermissoesMarcadas(notificacoes = true))
+                },
                 c = c,
             )
 
@@ -473,14 +495,15 @@ private fun OnboardingTelaPermissoes(
 
             val alternarPermitirTudo: () -> Unit = {
                 val marcarTudo = !permissoesMarcadas.todasMarcadas
-                onMarcadasChange(
+                val novasMarcadas =
                     OnboardingPermissoesMarcadas(
                         wifiPerto = marcarTudo || permissoesConcedidas.wifiPerto,
                         dispositivosRede = marcarTudo || permissoesConcedidas.dispositivosRede,
                         sinalChip = marcarTudo || permissoesConcedidas.sinalChip,
                         notificacoes = marcarTudo || permissoesConcedidas.notificacoes,
-                    ),
-                )
+                    )
+                onMarcadasChange(novasMarcadas)
+                if (marcarTudo) onSolicitarPermissao(novasMarcadas)
             }
 
             Row(
@@ -500,7 +523,7 @@ private fun OnboardingTelaPermissoes(
                     text = "Permitir tudo",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.W600,
-                    color = c.textPrimary,
+                    color = c.onSurface,
                 )
             }
             Spacer(Modifier.height(LkSpacing.md))
@@ -510,16 +533,18 @@ private fun OnboardingTelaPermissoes(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.md)
+                    // mesma receita de rodape da pagina 1 (spec cita 12px 28px 40px so pra pagina 1,
+                    // aplicada aqui tambem pra manter o CTA das duas paginas visualmente consistente)
+                    .padding(start = LkSpacing.xl, end = LkSpacing.xl, top = LkSpacing.md, bottom = LkSpacing.xxxl)
                     .navigationBarsPadding(),
         ) {
             Button(
                 onClick = onContinuar,
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Continuar" },
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Concluir" },
                 colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
             ) {
                 Text(
-                    text = stringResource(R.string.onboarding_btn_continuar),
+                    text = stringResource(R.string.onboarding_btn_concluir),
                     color = LkColors.signallQTextOnDark,
                     fontWeight = FontWeight.W600,
                 )
@@ -543,17 +568,19 @@ private fun PermissaoToggleCard(
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.bgCard)
-                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .border(1.dp, c.outlineVariant, RoundedCornerShape(LkRadius.card))
+                // spec: padding 10px 14px, sem degrau exato na escala 8dp (empate sm/md nos dois
+                // eixos) — usamos md(12) simetrico como aproximacao mais proxima.
+                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier =
                 Modifier
                     .size(36.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(LkColors.accent.copy(alpha = 0.12f)),
+                    .clip(CircleShape) // spec: "icone 36x36px circular"
+                    .background(LkColors.accent.copy(alpha = 0.14f)), // spec: "primary 14% opacidade"
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -565,12 +592,12 @@ private fun PermissaoToggleCard(
         }
         Spacer(Modifier.width(LkSpacing.md))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = titulo, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600, color = c.textPrimary)
-            Spacer(Modifier.height(2.dp))
-            Text(text = descricao, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
-            Spacer(Modifier.height(4.dp))
+            Text(text = titulo, style = MaterialTheme.typography.titleSmall, color = c.onSurface) // spec: titulo titleSmall
+            Spacer(Modifier.height(LkSpacing.xs))
+            Text(text = descricao, style = MaterialTheme.typography.bodySmall, color = c.onSurfaceVariant)
+            Spacer(Modifier.height(LkSpacing.xs))
             Text(
-                text = if (concedida) "Autorizado" else "Pendente",
+                text = if (concedida) "Permitido" else "Não permitido",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.W600,
                 color = if (concedida) LkColors.success else c.textTertiary,
@@ -586,7 +613,7 @@ private fun PermissaoToggleCard(
                     checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                     checkedTrackColor = LkColors.accent,
                     uncheckedThumbColor = c.textTertiary,
-                    uncheckedTrackColor = c.border,
+                    uncheckedTrackColor = c.outlineVariant, // era c.border (token depreciado)
                 ),
             modifier =
                 Modifier.semantics {
