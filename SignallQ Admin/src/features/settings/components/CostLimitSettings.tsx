@@ -52,7 +52,9 @@ export const CostLimitSettings: React.FC<CostLimitSettingsProps> = ({ settings, 
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[var(--text-secondary)] font-medium block">Score crítico mínimo (0-100)</label>
+          {/* #880 (achado 19): rótulo dizia "crítico", mas o alerta correspondente
+              (LOW_SCORE, ver texto abaixo) é "warning" no worker — nunca "critical". */}
+          <label className="text-[var(--text-secondary)] font-medium block">Score mínimo de alerta (0-100)</label>
           <input
             type="number"
             min="0"

@@ -2,7 +2,8 @@ import React from "react";
 import { AlertTriangle } from "lucide-react";
 import { appVersionsService, AppVersionUsage } from "../../services/appVersionsService";
 import { integrationsService } from "../../integrations/integrationsService";
-import { FirebaseAppVersionCrashStats } from "../../integrations/firebase/firebase.types";
+import { FirebaseAppVersionCrashStats, FirebaseAppVersionsResult } from "../../integrations/firebase/firebase.types";
+import { crashFreeReason } from "../../utils/crashlytics";
 import { GooglePlayCrashAnrSummary, GooglePlayReleaseTrack, GooglePlayAppVersionStats } from "../../integrations/google-play/googlePlay.types";
 import { DataTable } from "../../components/ui/DataTable";
 import { SectionCard } from "../../components/ui/SectionCard";
@@ -44,8 +45,10 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
   const [loading, setLoading] = React.useState(true);
   const [versions, setVersions] = React.useState<AppVersionUsage[]>([]);
   const [productionVersion, setProductionVersion] = React.useState<AppVersionUsage | null>(null);
-  // null = Firebase/Crashlytics não configurado ou sem dados ainda (não é "zero crashes").
-  const [crashStats, setCrashStats] = React.useState<FirebaseAppVersionCrashStats[] | null>(null);
+  // #880 (achado 3): guarda o `source` real do worker (no_credentials/
+  // no_data_yet/error/bigquery) — não colapsa mais em null genérico.
+  const [crashResultState, setCrashResultState] = React.useState<FirebaseAppVersionsResult | null>(null);
+  const crashStats = crashResultState?.source === "bigquery" ? crashResultState.versions : null;
   // null = Android Publisher API não expõe ANR (só via export CSV, não implementado — ver GH#761).
   const [crashAnr, setCrashAnr] = React.useState<GooglePlayCrashAnrSummary | null>(null);
   // [] = Android Publisher API de tracks/base instalada por versão ainda não implementada em produção.
@@ -66,7 +69,7 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
       if (cancelled) return;
       setVersions(appVersionsResult.versions);
       setProductionVersion(appVersionsResult.productionVersion);
-      setCrashStats(crashResult);
+      setCrashResultState(crashResult);
       setCrashAnr(crashAnrResult);
       setReleaseTracks(tracksResult);
       setAppVersionStats(versionStatsResult);
@@ -165,17 +168,27 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
           verdictNote={
             productionCrashRate === null
               ? crashStats === null
-                ? "Firebase Crashlytics não está configurado"
+                ? crashFreeReason(crashResultState?.source)
                 : "Sem sessões da versão em produção no período"
               : undefined
           }
           source={productionCrashRate !== null ? "crashlytics" : "sem credenciais"}
         />
+        {/* #880 (achado 16): crashAnr era buscado e nunca lido — card ficava
+            hardcoded mesmo com dado real disponível. anrCountWeekly é agregado
+            do app inteiro (a Android Publisher API não quebra ANR por versão,
+            só via export CSV — isso continua indisponível), então o card segue
+            sem valor numérico de "release atual" pra não fabricar taxa por
+            versão, mas agora mostra o dado real que existe em vez de ignorá-lo. */}
         <MetricCard
           label="ANR rate (release atual)"
           value="Não disponível"
-          verdictNote="Android Publisher API não expõe ANR por versão (só via export CSV, não implementado)"
-          source="não implementado"
+          verdictNote={
+            crashAnr
+              ? `${crashAnr.anrCountWeekly} ANRs no app inteiro nos últimos 7 dias — sem quebra por versão (Android Publisher API só expõe isso via export CSV)`
+              : "Android Publisher API não expõe ANR por versão (só via export CSV, não implementado)"
+          }
+          source={crashAnr ? "google play (agregado, não por versão)" : "não implementado"}
         />
       </div>
 
@@ -225,9 +238,13 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
               accessor: (v) => {
                 if (crashStats === null) {
                   return (
-                    <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
+                    <span
+                      className="inline-flex items-center gap-1 text-[11px]"
+                      style={{ color: "var(--text-tertiary)" }}
+                      title={crashFreeReason(crashResultState?.source)}
+                    >
                       <AlertTriangle className="w-3 h-3" />
-                      Não configurado
+                      {crashResultState?.source === "no_credentials" ? "Não configurado" : "Sem dados ainda"}
                     </span>
                   );
                 }
@@ -247,9 +264,18 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
             },
             {
               header: "Status",
-              accessor: (v) => (
-                <StatusBadge status={v.appVersion === productionVersion?.appVersion ? "stable" : "deprecated"} />
-              ),
+              // #880 (achado 13): qualquer build que não fosse a mais recente do
+              // Play Store virava "Obsoleto" — inclusive beta ativo distribuído
+              // via Firebase App Distribution, que não é obsoleto, é outro canal.
+              accessor: (v) => {
+                const status =
+                  v.appVersion === productionVersion?.appVersion
+                    ? "stable"
+                    : v.distChannel === "firebase_app_distribution"
+                      ? "beta"
+                      : "deprecated";
+                return <StatusBadge status={status} />;
+              },
             },
             { header: "Lançamento", accessor: (v) => formatDate(v.firstSeen) },
           ]}

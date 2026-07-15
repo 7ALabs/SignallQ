@@ -1,6 +1,8 @@
 ﻿package io.signallq.app.feature.diagnostico
 
 import io.signallq.app.core.network.contracts.localdevice.SafeLocalDeviceContext
+import io.signallq.app.core.network.contracts.topologia.NivelConfianca
+import io.signallq.app.core.network.contracts.topologia.PapelTopologia
 import io.signallq.app.core.network.contracts.wifi.SegurancaWifi
 import io.signallq.app.feature.diagnostico.topology.model.NatStatus
 
@@ -19,6 +21,9 @@ data class WifiDiagnosticInput(
     val localIp: String? = null,
     val routerType: RouterType? = null,
     val dispositivosNaRede: Int? = null,
+    /** Suporte do aparelho a 5GHz. Null quando desconhecido (leitura falhou) —
+     *  tratado como "desconhecido", nao "sem suporte", pelo RecommendationEngine. */
+    val is5GhzCapable: Boolean? = null,
 )
 
 data class InternetDiagnosticInput(
@@ -110,6 +115,12 @@ data class RedeWifiVizinha(
     val ssid: String? = null,
     val bssid: String? = null,
     val seguranca: SegurancaWifi? = null,
+    // #980 (Fase 2B, passo 3) — papel/confianca do motor de topologia unificado
+    // (TopologiaRedeEngine/#979) pra este BSSID. Null quando o motor nao classificou essa
+    // rede (ex.: fallback de scan vazio). RecommendationEngine usa em vez de MeshOuiDatabase
+    // direto pra decidir se vale afirmar "OUI conhecido" nas evidencias.
+    val papelTopologia: PapelTopologia? = null,
+    val confiancaTopologia: NivelConfianca? = null,
 )
 
 data class SpeedtestQualityInput(

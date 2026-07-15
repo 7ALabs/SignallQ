@@ -2,12 +2,17 @@
 
 import android.content.Context
 import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.remoteconfig.FirebaseRemoteConfig
+import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
+import com.google.firebase.remoteconfig.remoteConfigSettings
+import dagger.Lazy
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.signallq.app.BuildConfig
+import io.signallq.app.ads.AdsRemoteConfigRepository
 import io.signallq.app.analytics.CompositeAnalyticsTracker
 import io.signallq.app.analytics.FirebaseAnalyticsHelper
 import io.signallq.app.analytics.FirebaseRecommendationAnalyticsTracker
@@ -225,6 +230,39 @@ object AppModule {
     fun provideFirebaseAnalytics(
         @ApplicationContext ctx: Context,
     ): FirebaseAnalytics = FirebaseAnalytics.getInstance(ctx)
+
+    /**
+     * Remote Config para o toggle de anuncios nativos (issue #555).
+     *
+     * [AdsRemoteConfigRepository] injeta isso como `dagger.Lazy<FirebaseRemoteConfig>`
+     * (nao `kotlin.Lazy` -- variancia do tipo Kotlin gera wildcard incompativel com o
+     * binding do Dagger), entao este metodo so roda no primeiro `.get()` de verdade.
+     * `FirebaseRemoteConfig.getInstance()` exige `FirebaseApp` ja inicializado, o que
+     * nao e verdade em testes Robolectric -- construir isso eagerly aqui (sem o Lazy do
+     * Dagger) derrubava QUALQUER teste que instanciasse a Application real, nao so os
+     * testes de ads.
+     *
+     * Fetch minimo de 0 em debug para iterar rapido testando o painel do Firebase
+     * Console; em release o SDK ja aplica seu proprio intervalo minimo padrao
+     * (throttling), entao nao precisa de config adicional aqui.
+     */
+    @Provides
+    @Singleton
+    fun provideFirebaseRemoteConfig(): FirebaseRemoteConfig {
+        val remoteConfig = FirebaseRemoteConfig.getInstance()
+        val settings: FirebaseRemoteConfigSettings =
+            remoteConfigSettings {
+                minimumFetchIntervalInSeconds = if (BuildConfig.DEBUG) 0L else 3_600L
+            }
+        remoteConfig.setConfigSettingsAsync(settings)
+        remoteConfig.setDefaultsAsync(AdsRemoteConfigRepository.DEFAULTS_REMOTE_CONFIG)
+        return remoteConfig
+    }
+
+    @Provides
+    @Singleton
+    fun provideAdsRemoteConfigRepository(remoteConfig: Lazy<FirebaseRemoteConfig>): AdsRemoteConfigRepository =
+        AdsRemoteConfigRepository(remoteConfig)
 
     @Provides
     @Singleton

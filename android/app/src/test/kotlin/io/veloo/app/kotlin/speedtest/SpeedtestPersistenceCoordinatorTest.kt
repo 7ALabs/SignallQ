@@ -227,7 +227,7 @@ class SpeedtestPersistenceCoordinatorTest {
 
     /**
      * Este teste documenta o contrato: após a refatoração das issues #184 e #185,
-     * o ChatDiagnosticoIaViewModel NÃO chama bancoDados.medicaoDao().salvar() diretamente.
+     * ViewModels de diagnóstico NÃO chamam bancoDados.medicaoDao().salvar() diretamente.
      * A persistência é delegada ao SpeedtestPersistenceCoordinator.
      *
      * A verificação é feita pelo inspetor de código — aqui documentamos o comportamento esperado.

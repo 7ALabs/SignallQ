@@ -24,6 +24,7 @@ play-publisher*.json
 .env
 .env.*
 !.env.example
+.dev.vars
 !key.properties.template
 
 node_modules/

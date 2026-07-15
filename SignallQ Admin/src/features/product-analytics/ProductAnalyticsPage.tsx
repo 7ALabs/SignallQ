@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { AppEnvironment } from "../../types/admin";
 import { productAnalyticsService, DashboardFilters } from "../../services/productAnalyticsService";
-import { FeatureUsageMetric, ScreenNavigationMetric, FeatureCrashMetric, RetentionMetric } from "../../types/productAnalytics";
+import { FeatureUsageMetric, ScreenNavigationMetric, FeatureCrashMetric, RetentionMetric, DeviceBreakdownMetric } from "../../types/productAnalytics";
 import { FeatureUsageGrid } from "./components/FeatureUsageGrid";
 import { FeatureRankingBars } from "./components/FeatureRankingBars";
 import { RetentionBars } from "./components/RetentionBars";
+import { DeviceBreakdownList } from "./components/DeviceBreakdownList";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
 import { ChartCard } from "../../components/ui/ChartCard";
@@ -23,6 +24,7 @@ interface PageData {
   featureCrashes: FeatureCrashMetric[];
   retention: RetentionMetric[];
   sessionDuration: Awaited<ReturnType<typeof productAnalyticsService.getSessionDuration>>;
+  deviceBreakdown: DeviceBreakdownMetric[];
 }
 
 export const ProductAnalyticsPage: React.FC<ProductAnalyticsPageProps> = ({
@@ -42,15 +44,16 @@ export const ProductAnalyticsPage: React.FC<ProductAnalyticsPageProps> = ({
       environment: environment === "all" ? undefined : environment,
     };
     try {
-      const [featureUsage, screenNavigation, featureCrashes, retention, sessionDuration] =
+      const [featureUsage, screenNavigation, featureCrashes, retention, sessionDuration, deviceBreakdown] =
         await Promise.all([
           productAnalyticsService.getFeatureUsage(filters),
           productAnalyticsService.getScreenNavigation(filters),
           productAnalyticsService.getFeatureCrashes(filters),
           productAnalyticsService.getRetention(filters),
           productAnalyticsService.getSessionDuration(filters),
+          productAnalyticsService.getDeviceBreakdown(filters),
         ]);
-      setData({ featureUsage, screenNavigation, featureCrashes, retention, sessionDuration });
+      setData({ featureUsage, screenNavigation, featureCrashes, retention, sessionDuration, deviceBreakdown });
     } catch (e) {
       setError("Falha ao carregar dados de produto.");
     } finally {
@@ -135,11 +138,19 @@ export const ProductAnalyticsPage: React.FC<ProductAnalyticsPageProps> = ({
           dispositivos mais ativos (sem contrato de dado hoje) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RetentionBars metrics={data!.retention} />
-        <ChartCard title="Dispositivos mais ativos" id="most-active-devices-card">
-          <FeatureComingSoon
-            feature="Dispositivos mais ativos"
-            reason="Métrica ainda não disponível — aguardando exposição no worker (requer breakdown de usuários ativos por modelo/versão de Android)"
-          />
+        <ChartCard
+          title="Dispositivos mais ativos"
+          description="Modelo, versão Android e % de sessões — a partir dos diagnósticos rodados."
+          id="most-active-devices-card"
+        >
+          {data!.deviceBreakdown.length > 0 ? (
+            <DeviceBreakdownList metrics={data!.deviceBreakdown} />
+          ) : (
+            <FeatureComingSoon
+              feature="Dispositivos mais ativos"
+              reason="Sem diagnósticos com device_model no período selecionado"
+            />
+          )}
         </ChartCard>
       </div>
     </div>

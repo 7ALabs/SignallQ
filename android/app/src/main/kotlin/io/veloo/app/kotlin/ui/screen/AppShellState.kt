@@ -1,20 +1,18 @@
 ﻿package io.signallq.app.ui.screen
 
 import androidx.compose.runtime.Stable
+import io.signallq.app.ads.AdsFlags
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
+import io.signallq.app.feature.devices.ResultadoCorrelacaoTopologia
 import io.signallq.app.feature.devices.SnapshotScanDispositivos
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.diagnostico.ai.AiAcaoRecomendada
 import io.signallq.app.feature.diagnostico.ai.DiagChatEntry
-import io.signallq.app.feature.diagnostico.chat.TipoDiagnostico
-import io.signallq.app.feature.diagnostico.pulse.OpcaoResposta
 import io.signallq.app.feature.speedtest.ModoSpeedtest
-import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.signallq.app.feature.wifi.RedeVizinha
 import io.signallq.app.feature.wifi.SnapshotScanWifi
-import io.signallq.app.ui.viewmodel.ChatDiagUiState
 
 /**
  * Agrupa parametros do speedtest para reduzir a assinatura do AppShell.
@@ -52,6 +50,9 @@ data class AppShellWifiState(
     val onRefreshDispositivos: () -> Unit,
     val onRefreshSinal: () -> Unit,
     val onSalvarApelido: (mac: String, apelido: String) -> Unit,
+    /** #983 (Fase 4) — correlacao best-effort topologia/gateway, chaveada por id do dispositivo
+     *  (ver MainViewModel.correlacoesTopologia). */
+    val correlacoesTopologia: Map<String, ResultadoCorrelacaoTopologia> = emptyMap(),
 )
 
 sealed class AnalisadorState {
@@ -100,35 +101,26 @@ data class AppShellDiagnosticoState(
 )
 
 /**
- * Agrupa parametros do fluxo SignallQ (IA conversacional).
+ * Agrupa parametros usados fora da tela SignallQ standalone (removida na Fase 8 MD3 —
+ * GH#937, decisao #2 do plano: dead code sem rota/overlay alcancavel desde a Fase 1).
+ * [operadoraMovel] alimenta a Analise Detalhada (1a) em ResultadoVelocidadeScreen;
+ * [onVerificarGemma]/[gemmaAvailable] fazem o healthcheck de IA ao entrar na tab Velocidade.
  */
 @Stable
 data class AppShellSignallQState(
-    val signallQUiState: SignallQUiState,
     val gemmaAvailable: Boolean = false,
     val operadoraMovel: String? = null,
-    val onIniciarSignallQ: (foco: String?) -> Unit,
-    val onResetSignallQ: () -> Unit,
-    val onSelecionarChip: (OpcaoResposta) -> Unit,
-    val onResponderPergunta: (OpcaoResposta) -> Unit,
-    val onEnviarMensagemTexto: (String) -> Unit = {},
     val onVerificarGemma: () -> Unit = {},
-    val onIniciarSignallQComResultado: (ResultadoSpeedtest, String?) -> Unit = { _, _ -> },
 )
 
 /**
- * Agrupa parametros do chat de diagnostico IA (sessoes persistidas).
+ * Agrupa o estado de monetizacao nativa (issue #555): flags remotas por tela + gate
+ * de consentimento UMP. [podeRequisitarAnuncio] cobre tanto "UMP ainda nao respondeu"
+ * quanto "usuario recusou personalizacao" -- em ambos os casos as telas nao chamam
+ * `AdLoader.loadAd`, nao so nao mostram o card.
  */
 @Stable
-data class AppShellChatDiagState(
-    val chatDiagUiState: ChatDiagUiState = ChatDiagUiState(),
-    val onEnviarMensagem: (String) -> Unit = {},
-    val onAtualizarDraft: (String) -> Unit = {},
-    val onEscolherOpcao: (TipoDiagnostico) -> Unit = {},
-    val onAbrirSessao: (String) -> Unit = {},
-    val onApagarSessao: (String) -> Unit = {},
-    val onRenomearSessao: (String, String) -> Unit = { _, _ -> },
-    val onNovaSessao: () -> Unit = {},
-    val onToggleDrawer: () -> Unit = {},
-    val onCancelarAcaoAtual: () -> Unit = {},
+data class AppShellAdsState(
+    val flags: AdsFlags = AdsFlags.DESLIGADO,
+    val podeRequisitarAnuncio: Boolean = false,
 )

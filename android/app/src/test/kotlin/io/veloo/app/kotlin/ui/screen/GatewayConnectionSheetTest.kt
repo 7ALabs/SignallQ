@@ -23,7 +23,7 @@ import org.robolectric.annotation.Config
 
 /**
  * Smoke tests de UI para [GatewayConnectionSheetContent] (GH#526) usando
- * Robolectric + Compose — mesmo padrão de ChatDiagnosticoIaScreenTest.
+ * Robolectric + Compose.
  * Testa a Content diretamente (sem o ModalBottomSheet ao redor) para evitar
  * a complexidade de Popup/janela do Material3 ModalBottomSheet em teste.
  *

@@ -24,6 +24,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.net.DatagramPacket
@@ -92,6 +93,19 @@ class ScannerDispositivosAndroid(
          * ainda genéricos saturavam o limite anterior, serializando boa parte da resolução.
          */
         private const val CONCORRENCIA_REVERSE_DNS = 45
+
+        /**
+         * Teto absoluto para uma execução de [iniciarScan] (#887).
+         *
+         * O pipeline soma fases com seus próprios limites (JANELA_MDNS_MS, timeouts de socket/TCP,
+         * etc.), mas nenhum deles cobre o pior caso de uma dependência externa nunca invocar seu
+         * callback (ex.: SubnetDevices.OnSubnetDeviceFound.onFinished never firing em certas ROMs/
+         * condições de rede) — nesse cenário o coroutineScope interno trava esperando aquele filho
+         * para sempre, o estado fica congelado em `varrendo` e o pull-to-refresh nunca conclui.
+         * Este timeout garante que o snapshot SEMPRE termine em `concluido` ou `erro`, mesmo que
+         * uma fase individual pendure.
+         */
+        private const val TIMEOUT_SCAN_MS = 30_000L
     }
 
     private val scanEmAndamento = AtomicBoolean(false)
@@ -114,17 +128,54 @@ class ScannerDispositivosAndroid(
                 return@withContext
             }
             try {
-                // Guarda Wi-Fi: só escanear em Wi-Fi
-                if (!estaEmWifi()) {
+                val concluiuDentroDoPrazo = withTimeoutOrNull(TIMEOUT_SCAN_MS) {
+                    executarScan(profundo, clientesGateway)
+                    true
+                }
+                if (concluiuDentroDoPrazo == null) {
+                    // #887 — nenhuma fase respondeu a tempo (ex.: callback de dependência externa
+                    // nunca disparou). Sem isto, `varrendo` fica congelado e o pull-to-refresh trava.
+                    Timber.e("scan excedeu ${TIMEOUT_SCAN_MS}ms sem concluir — reportando timeout")
                     mutableSnapshotFlow.value =
                         mutableSnapshotFlow.value.copy(
                             estado = EstadoScanDispositivos.erro,
-                            progressoPercentual = 0,
-                            erroMensagem = "naoWifi",
+                            erroMensagem = "timeout",
                         )
-                    return@withContext
                 }
+            } catch (t: Throwable) {
+                if (t is kotlinx.coroutines.CancellationException) throw t
+                Timber.e(t, "scan falhou")
+                val erroSemantico = when {
+                    t is SecurityException -> "semPermissaoLocalizacao"
+                    t is SocketException -> "erroRede"
+                    t.message?.contains("timeout", ignoreCase = true) == true -> "timeout"
+                    else -> "erroDesconhecido"
+                }
+                mutableSnapshotFlow.value =
+                    mutableSnapshotFlow.value.copy(
+                        estado = EstadoScanDispositivos.erro,
+                        erroMensagem = erroSemantico,
+                    )
+            } finally {
+                scanEmAndamento.set(false)
+            }
+        }
+    }
 
+    /** Corpo do scan propriamente dito — extraído para rodar sob [withTimeoutOrNull] em [iniciarScan]. */
+    private suspend fun executarScan(profundo: Boolean, clientesGateway: List<ClientSnapshot>) {
+        // Guarda Wi-Fi: só escanear em Wi-Fi
+        if (!estaEmWifi()) {
+            mutableSnapshotFlow.value =
+                mutableSnapshotFlow.value.copy(
+                    estado = EstadoScanDispositivos.erro,
+                    progressoPercentual = 0,
+                    erroMensagem = "naoWifi",
+                )
+            return
+        }
+
+        coroutineScope {
                 atualizarEstado(EstadoScanDispositivos.varrendo, 5, null)
                 val dispositivos = linkedMapOf<String, DispositivoRede>()
                 val localIp = detectarIpLocal()
@@ -315,23 +366,6 @@ class ScannerDispositivosAndroid(
                         dispositivos = dispositivosEnriquecidos,
                         erroMensagem = null,
                     )
-            } catch (t: Throwable) {
-                if (t is kotlinx.coroutines.CancellationException) throw t
-                Timber.e(t, "scan falhou")
-                val erroSemantico = when {
-                    t is SecurityException -> "semPermissaoLocalizacao"
-                    t is SocketException -> "erroRede"
-                    t.message?.contains("timeout", ignoreCase = true) == true -> "timeout"
-                    else -> "erroDesconhecido"
-                }
-                mutableSnapshotFlow.value =
-                    mutableSnapshotFlow.value.copy(
-                        estado = EstadoScanDispositivos.erro,
-                        erroMensagem = erroSemantico,
-                    )
-            } finally {
-                scanEmAndamento.set(false)
-            }
         }
     }
 
@@ -415,7 +449,9 @@ class ScannerDispositivosAndroid(
 
     private suspend fun coletarViaTcpProbe(gatewayIp: String?, localIp: String?): List<DispositivoRede> = coroutineScope {
         val base = inferirPrefixoRedeCorreto() ?: inferirPrefixoRede(gatewayIp) ?: return@coroutineScope emptyList()
-        val portas = intArrayOf(80, 443, 22, 53, 139, 445, 8080, 8443)
+        // 554 (RTSP) — #982 (Fase 3): evidencia fraca de camera, so conta com corroboracao de
+        // nome em ClassificadorDispositivoRede (varios dispositivos abrem essa porta sem ser camera).
+        val portas = intArrayOf(80, 443, 22, 53, 139, 445, 8080, 8443, 554)
         val alvos = (1..254).map { host -> "$base.$host" }
             .filter { it != gatewayIp && it != localIp }
 
@@ -503,6 +539,13 @@ class ScannerDispositivosAndroid(
             "_amzn-wplay._tcp.local.",
             "_googlezone._tcp.local.",
             "_device-info._tcp.local.",
+            // #982 (Fase 3) — evidencia de smarthome generico (dispositivo Matter), nunca
+            // confirma subtipo sozinho (ClassificadorDispositivoRede.mdnsRules).
+            "_matter._tcp.local.",
+            // #982 (Fase 3) — evidencia de Smart TV (Android TV Remote).
+            "_androidtvremote._tcp.local.",
+            // #982 (Fase 3) — evidencia razoavelmente especifica de camera IP via RTSP.
+            "_rtsp._tcp.local.",
         )
 
         try {

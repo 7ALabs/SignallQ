@@ -1,5 +1,7 @@
 # SignallQ Design System — Conventions
 
+> **Projeto canônico no Claude Design: `SignallQ Design System` (projectId `e77ea465-291f-4bf5-930c-a267680da04e`)**, o mesmo já fixado em `.design-sync/config.json`. É o único projeto ativo — nunca crie um novo projeto para este pacote via `DesignSync.create_project`; sempre reuse este `projectId`. Em 2026-07-12 encontramos 6 outros projetos "Design System"/"Linka Design System"/"Copy of..." no workspace, todos duplicatas ou legado da era Linka — foram esvaziados (conteúdo removido via `delete_files`, projeto ainda aparece na lista até o Luiz apagar manualmente em claude.ai/design, já que a API não expõe `delete_project`). Se sua listagem de projetos mostrar mais de um "SignallQ Design System" no futuro, pare e confirme com a Claudete antes de sincronizar em qualquer um deles.
+
 ## Setup
 
 No provider or context wrapper required. Components are self-contained with inline styles.

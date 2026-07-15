@@ -3,6 +3,7 @@
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,6 +15,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.ResponsiveActionsRow
@@ -55,6 +60,36 @@ fun PermissaoLocalizacaoContextoSheet(
                     .background(c.border),
         )
         Spacer(Modifier.height(24.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement =
+                androidx.compose.foundation.layout.Arrangement
+                    .spacedBy(LkSpacing.sm),
+        ) {
+            listOf("Solicitar", "Bloqueada").forEach { label ->
+                val selecionado =
+                    when (label) {
+                        "Solicitar" -> !bloqueadaPermanentemente
+                        else -> bloqueadaPermanentemente
+                    }
+                FilterChip(
+                    selected = selecionado,
+                    onClick = {},
+                    enabled = false,
+                    modifier = Modifier.weight(1f),
+                    label = { Text(label) },
+                    colors =
+                        FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
+                            selectedLabelColor = LkColors.accent,
+                            disabledSelectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
+                            disabledContainerColor = c.bgSecondary,
+                            disabledLabelColor = c.textTertiary,
+                        ),
+                )
+            }
+        }
+        Spacer(Modifier.height(LkSpacing.xl))
         Icon(
             imageVector = Icons.Outlined.LocationOn,
             contentDescription = null,
@@ -66,7 +101,7 @@ fun PermissaoLocalizacaoContextoSheet(
             // Estado 9.3 — permissão bloqueada permanentemente
             Text(
                 "Permissão bloqueada",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.W600,
                 color = c.textPrimary,
                 textAlign = TextAlign.Center,
@@ -74,7 +109,7 @@ fun PermissaoLocalizacaoContextoSheet(
             Spacer(Modifier.height(LkSpacing.md))
             Text(
                 "A permissão foi bloqueada nas configurações do Android. Para ativar, abra os ajustes do app.",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = c.textSecondary,
                 textAlign = TextAlign.Center,
             )
@@ -86,7 +121,12 @@ fun PermissaoLocalizacaoContextoSheet(
                     }
                 },
                 primary = { m ->
-                    Button(onClick = onConceder, modifier = m) {
+                    Button(
+                        onClick = onConceder,
+                        modifier = m,
+                        shape = RoundedCornerShape(LkRadius.button),
+                        colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                    ) {
                         Text("Abrir ajustes do Android")
                     }
                 },
@@ -95,7 +135,7 @@ fun PermissaoLocalizacaoContextoSheet(
             // Estado 9.2 — permissão não concedida, pode solicitar
             Text(
                 "Por que precisamos da localização?",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.W600,
                 color = c.textPrimary,
                 textAlign = TextAlign.Center,
@@ -103,14 +143,14 @@ fun PermissaoLocalizacaoContextoSheet(
             Spacer(Modifier.height(LkSpacing.md))
             Text(
                 "O Android exige permissão de localização para identificar as redes Wi-Fi ao redor e analisar canais de interferência.",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = c.textSecondary,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(LkSpacing.sm))
             Text(
                 "Não usamos sua localização para rastrear onde você está. Ela nunca sai do dispositivo.",
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 color = c.textSecondary,
                 textAlign = TextAlign.Center,
             )
@@ -122,7 +162,12 @@ fun PermissaoLocalizacaoContextoSheet(
                     }
                 },
                 primary = { m ->
-                    Button(onClick = onConceder, modifier = m) {
+                    Button(
+                        onClick = onConceder,
+                        modifier = m,
+                        shape = RoundedCornerShape(LkRadius.button),
+                        colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                    ) {
                         Text("Entendi, conceder")
                     }
                 },

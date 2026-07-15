@@ -6,6 +6,7 @@ import androidx.work.Configuration
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.hilt.android.HiltAndroidApp
+import io.signallq.app.ads.AdsFlagsManager
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.di.ApplicationScope
@@ -32,6 +33,9 @@ class SignallQApplication :
 
     @Inject
     lateinit var featureFlagManager: FeatureFlagManager
+
+    @Inject
+    lateinit var adsFlagsManager: AdsFlagsManager
 
     @Inject
     lateinit var analyticsTracker: AnalyticsTracker
@@ -76,7 +80,7 @@ class SignallQApplication :
         }
 
         // Inicia o coordinator singleton que persiste resultados do speedtest no Room.
-        // Centraliza a lógica que estava duplicada em MainViewModel e ChatDiagnosticoIaViewModel.
+        // Centraliza a lógica que antes estava duplicada entre ViewModels de diagnóstico.
         speedtestPersistenceCoordinator.iniciar()
 
         // Agenda sync retroativo de historico para o painel admin.
@@ -95,6 +99,10 @@ class SignallQApplication :
         // Sincroniza feature flags do worker em background.
         // Nao bloqueia o startup — UI usa fallback (todos enabled) ate o fetch completar.
         featureFlagManager.inicializar(applicationScope)
+
+        // Toggle remoto de anuncios nativos (issue #555) via Firebase Remote Config.
+        // Nao bloqueia o startup — fallback local e "desligado" ate o fetch completar.
+        adsFlagsManager.inicializar(applicationScope)
 
         // LGPD: desativa coleta Firebase por padrao. Reativa apenas apos consentimento explícito.
         // setAnalyticsCollectionEnabled deve ser chamado antes do collect para garantir ordem:

@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "roboto",
+        "reason": "User confirmed Roboto is the SignallQ product font (2026-07-12), Google Sans dropped as non-viable",
+        "createdAt": "2026-07-12T03:27:59.918Z"
+      }
+    ]
+  }
+}

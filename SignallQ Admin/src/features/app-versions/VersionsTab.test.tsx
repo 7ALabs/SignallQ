@@ -18,7 +18,10 @@ vi.mock("../../services/appVersionsService", () => ({
 
 vi.mock("../../integrations/integrationsService", () => ({
   integrationsService: {
-    getFirebaseVersions: vi.fn().mockResolvedValue(null),
+    // #880 (achado 3): getFirebaseVersions agora devolve {source, versions}
+    // em vez de T[] | null — source distingue "sem credenciais" de "sem
+    // volume ainda"/"erro", em vez de colapsar tudo num null genérico.
+    getFirebaseVersions: vi.fn().mockResolvedValue({ source: "no_credentials", versions: [] }),
     getGooglePlayCrashAnr: vi.fn().mockResolvedValue(null),
     getGooglePlayTracks: vi.fn().mockResolvedValue([]),
     getGooglePlayVersions: vi.fn().mockResolvedValue([]),

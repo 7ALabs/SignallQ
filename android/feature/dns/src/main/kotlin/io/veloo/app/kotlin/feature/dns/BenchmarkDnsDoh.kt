@@ -7,21 +7,33 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import java.net.HttpURLConnection
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.ByteArrayOutputStream
 import java.net.InetAddress
-import java.net.URL
-import java.net.URLEncoder
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 // #378: suite inteira (sistema + 7 provedores x 3 rounds) tinha timeout apenas por
 // tentativa individual — sem rede, a soma das tentativas travava o sheet no skeleton
 // por muito além do razoável. Timeout global garante feedback rápido ao usuário.
 private const val TIMEOUT_SUITE_DNS_MS = 15_000L
 
+@OptIn(ExperimentalEncodingApi::class)
 class BenchmarkDnsDoh : BenchmarkDns {
     private val executando = AtomicBoolean(false)
+    private val httpClient =
+        OkHttpClient.Builder()
+            .connectTimeout(4, TimeUnit.SECONDS)
+            .readTimeout(8, TimeUnit.SECONDS)
+            .callTimeout(9, TimeUnit.SECONDS)
+            .build()
+
     private val mutableSnapshotFlow =
         MutableStateFlow(
             SnapshotBenchmarkDns(
@@ -46,36 +58,32 @@ class BenchmarkDnsDoh : BenchmarkDns {
                     withTimeoutOrNull(TIMEOUT_SUITE_DNS_MS) {
                         Timber.i("iniciando benchmark DNS host=$hostConsulta resolvedores=$resolvedoresAtivos privateDns=$privateDnsHostname")
                         publicar(EstadoBenchmarkDns.executando, 5, emptyList(), null)
-                        val host = URLEncoder.encode(hostConsulta, Charsets.UTF_8.name())
 
                         val resultadoSistema = medirSistemaDns(hostConsulta, resolvedoresAtivos, privateDnsHostname)
                         Timber.i("sistema dns: nome=${resultadoSistema.nomeProvedor} tempo=${resultadoSistema.tempoMs} grade=${resultadoSistema.gradeRapidez} amostras=${resultadoSistema.amostrasMs}")
                         val acumulados = mutableListOf<ResultadoBenchmarkDns>()
-                        // IP privado (roteador local) não entra no ranking — latência local não é comparável
-                        // a DNS públicos externos. Fica disponível para exibição via nomeProvedor.
-                        if (resultadoSistema.tempoMs != null && !resultadoSistema.isGatewayLocal) acumulados.add(resultadoSistema)
-                        publicar(EstadoBenchmarkDns.executando, 15, acumulados.sortedBy { it.tempoMs }, null)
-
-                        val provedoresPublicos = listOf(
-                            "Cloudflare" to "https://cloudflare-dns.com/dns-query?name=$host&type=A",
-                            "Google DNS" to "https://dns.google/resolve?name=$host&type=A",
-                            "Quad9" to "https://dns.quad9.net:5053/dns-query?name=$host&type=A",
-                            "OpenDNS" to "https://doh.opendns.com/resolve?name=$host&type=A",
-                            "AdGuard" to "https://dns.adguard-dns.com/resolve?name=$host&type=A",
-                            "Registro.br" to "https://dns.registro.br/query?name=$host&type=A",
-                            "CETIC.br" to "https://resolver.cetic.br/dns-query?name=$host&type=A",
+                        publicar(
+                            EstadoBenchmarkDns.executando,
+                            15,
+                            combinarResultados(resultadoSistema, acumulados),
+                            null,
                         )
 
-                        provedoresPublicos.forEachIndexed { idx, (nome, url) ->
-                            val resultado = medirProvedor(nome, hostConsulta, url)
-                            Timber.i("provedor $nome: tempo=${resultado.tempoMs} grade=${resultado.gradeRapidez} amostras=${resultado.amostrasMs} erro=${resultado.erroMensagem}")
-                            if (resultado.tempoMs != null) acumulados.add(resultado)
+                        provedoresPublicos.forEachIndexed { idx, provedor ->
+                            val resultado = medirProvedor(provedor, hostConsulta)
+                            Timber.i("provedor ${provedor.nome}: tempo=${resultado.tempoMs} grade=${resultado.gradeRapidez} amostras=${resultado.amostrasMs} erro=${resultado.erroMensagem}")
+                            acumulados.add(resultado)
                             val progresso = 20 + (((idx + 1).toDouble() / provedoresPublicos.size.toDouble()) * 75.0).toInt()
-                            publicar(EstadoBenchmarkDns.executando, progresso, acumulados.sortedBy { it.tempoMs }, null)
+                            publicar(
+                                EstadoBenchmarkDns.executando,
+                                progresso,
+                                combinarResultados(resultadoSistema, acumulados),
+                                null,
+                            )
                         }
 
-                        val final = acumulados.sortedBy { it.tempoMs }
-                        Timber.i("benchmark concluido: ${final.size} provedores validos: ${final.map { "${it.nomeProvedor}=${it.tempoMs}ms(${it.gradeRapidez})" }}")
+                        val final = combinarResultados(resultadoSistema, acumulados)
+                        Timber.i("benchmark concluido: ${final.size} provedores exibidos: ${final.map { "${it.nomeProvedor}=${it.tempoMs}ms(${it.gradeRapidez}) erro=${it.erroMensagem}" }}")
                         publicar(EstadoBenchmarkDns.concluido, 100, final, null)
                         Unit
                     }
@@ -104,6 +112,21 @@ class BenchmarkDnsDoh : BenchmarkDns {
                 resultados = resultados,
                 erroMensagem = erroMensagem,
             )
+    }
+
+    internal fun combinarResultados(
+        resultadoSistema: ResultadoBenchmarkDns,
+        resultadosPublicos: List<ResultadoBenchmarkDns>,
+    ): List<ResultadoBenchmarkDns> {
+        val resultados = mutableListOf<ResultadoBenchmarkDns>()
+        if (resultadoSistema.tempoMs != null && !resultadoSistema.isGatewayLocal) {
+            resultados.add(resultadoSistema)
+        }
+        resultados += resultadosPublicos
+        return resultados.sortedWith(
+            compareBy<ResultadoBenchmarkDns> { it.tempoMs == null }
+                .thenBy { it.tempoMs ?: Double.MAX_VALUE },
+        )
     }
 
     // Mede o DNS do sistema via InetAddress com mesma metodologia dos publicos:
@@ -144,15 +167,14 @@ class BenchmarkDnsDoh : BenchmarkDns {
 
     // 3 rounds, descarta round 0 (warmup), P50 dos rounds 1-2.
     private fun medirProvedor(
-        nomeProvedor: String,
+        provedor: DnsPublico,
         hostConsulta: String,
-        endpoint: String,
     ): ResultadoBenchmarkDns {
         val amostras = mutableListOf<Double>()
         var ultimoErro: String? = null
 
         repeat(3) { round ->
-            val tempo = medirTentativa(endpoint)
+            val tempo = medirTentativa(provedor, hostConsulta)
             if (round > 0) {
                 if (tempo != null) amostras.add(tempo)
                 else if (ultimoErro == null) ultimoErro = "semResposta"
@@ -161,7 +183,7 @@ class BenchmarkDnsDoh : BenchmarkDns {
 
         val tempo = calcularP50(amostras)
         return ResultadoBenchmarkDns(
-            nomeProvedor = nomeProvedor,
+            nomeProvedor = provedor.nome,
             hostConsulta = hostConsulta,
             tempoMs = tempo,
             amostrasMs = amostras,
@@ -173,26 +195,75 @@ class BenchmarkDnsDoh : BenchmarkDns {
         )
     }
 
-    private fun medirTentativa(endpoint: String): Double? {
+    private fun medirTentativa(
+        provedor: DnsPublico,
+        hostConsulta: String,
+    ): Double? {
         val inicio = System.nanoTime()
         return try {
-            val conn = (URL(endpoint).openConnection() as HttpURLConnection)
-            conn.connectTimeout = 4000
-            conn.readTimeout = 8000
-            conn.requestMethod = "GET"
-            conn.setRequestProperty("accept", "application/dns-json, application/json")
-            val code = conn.responseCode
-            val elapsed = (System.nanoTime() - inicio) / 1_000_000.0
-            if (code in 200..299) {
-                conn.inputStream.use { it.readBytes() }
-            } else {
-                conn.errorStream?.use { it.readBytes() }
+            val request = construirRequest(provedor, hostConsulta)
+            httpClient.newCall(request).execute().use { response ->
+                val elapsed = (System.nanoTime() - inicio) / 1_000_000.0
+                response.body?.bytes()
+                if (response.isSuccessful) elapsed else null
             }
-            conn.disconnect()
-            if (code in 200..299) elapsed else null
         } catch (_: Throwable) {
             null
         }
+    }
+
+    private fun construirRequest(
+        provedor: DnsPublico,
+        hostConsulta: String,
+    ): Request {
+        val url =
+            when (provedor.modoConsulta) {
+                DnsQueryMode.Json ->
+                    provedor.endpoint
+                        .toHttpUrl()
+                        .newBuilder()
+                        .addQueryParameter("name", hostConsulta)
+                        .addQueryParameter("type", "A")
+                        .build()
+                DnsQueryMode.Rfc8484 ->
+                    provedor.endpoint
+                        .toHttpUrl()
+                        .newBuilder()
+                        .addQueryParameter("dns", construirDnsQueryBase64Url(hostConsulta))
+                        .build()
+            }
+
+        val acceptHeader =
+            when (provedor.modoConsulta) {
+                DnsQueryMode.Json -> "application/dns-json, application/json"
+                DnsQueryMode.Rfc8484 -> "application/dns-message"
+            }
+
+        return Request.Builder()
+            .url(url)
+            .get()
+            .header("accept", acceptHeader)
+            .build()
+    }
+
+    internal fun construirDnsQueryBase64Url(hostConsulta: String): String {
+        val saida = ByteArrayOutputStream()
+        val id = 0
+        saida.write(byteArrayOf(0, id.toByte()))
+        saida.write(byteArrayOf(1, 0)) // RD
+        saida.write(byteArrayOf(0, 1, 0, 0, 0, 0, 0, 0))
+        hostConsulta
+            .trim('.')
+            .split('.')
+            .filter { it.isNotBlank() }
+            .forEach { label ->
+                val bytes = label.toByteArray(Charsets.UTF_8)
+                saida.write(bytes.size)
+                saida.write(bytes)
+            }
+        saida.write(0)
+        saida.write(byteArrayOf(0, 1, 0, 1))
+        return Base64.UrlSafe.encode(saida.toByteArray()).trimEnd('=')
     }
 
     // P50 identico ao Flutter: sorted[size / 2] (divisao inteira).
@@ -240,6 +311,17 @@ class BenchmarkDnsDoh : BenchmarkDns {
     }
 
     private companion object {
+        val provedoresPublicos =
+            listOf(
+                DnsPublico("Cloudflare", "https://cloudflare-dns.com/dns-query", DnsQueryMode.Json),
+                DnsPublico("Google DNS", "https://dns.google/resolve", DnsQueryMode.Json),
+                DnsPublico("Quad9", "https://dns.quad9.net/dns-query", DnsQueryMode.Rfc8484),
+                DnsPublico("OpenDNS", "https://doh.opendns.com/dns-query", DnsQueryMode.Rfc8484),
+                DnsPublico("AdGuard", "https://dns.adguard-dns.com/dns-query", DnsQueryMode.Rfc8484),
+                DnsPublico("Control D", "https://freedns.controld.com/p0", DnsQueryMode.Rfc8484),
+                DnsPublico("CleanBrowsing", "https://doh.cleanbrowsing.org/doh/security-filter/", DnsQueryMode.Rfc8484),
+            )
+
         val mapaIpParaProvedor = mapOf(
             "1.1.1.1" to "Cloudflare",
             "1.0.0.1" to "Cloudflare",
@@ -251,9 +333,10 @@ class BenchmarkDnsDoh : BenchmarkDns {
             "208.67.220.220" to "OpenDNS",
             "94.140.14.14" to "AdGuard",
             "94.140.15.15" to "AdGuard",
-            "200.160.0.80" to "Registro.br",
-            "200.160.2.3" to "Registro.br",
-            "191.234.170.40" to "CETIC.br",
+            "76.76.2.0" to "Control D",
+            "76.76.10.0" to "Control D",
+            "185.228.168.9" to "CleanBrowsing",
+            "185.228.169.9" to "CleanBrowsing",
         )
         val mapaHostParaProvedor = mapOf(
             "one.one.one.one" to "Cloudflare",
@@ -262,8 +345,21 @@ class BenchmarkDnsDoh : BenchmarkDns {
             "doh.opendns.com" to "OpenDNS",
             "adguard" to "AdGuard",
             "adguard-dns.com" to "AdGuard",
-            "dns.registro.br" to "Registro.br",
-            "resolver.cetic.br" to "CETIC.br",
+            "freedns.controld.com" to "Control D",
+            "controld.com" to "Control D",
+            "cleanbrowsing.org" to "CleanBrowsing",
+            "security-filter-dns.cleanbrowsing.org" to "CleanBrowsing",
         )
     }
 }
+
+private enum class DnsQueryMode {
+    Json,
+    Rfc8484,
+}
+
+private data class DnsPublico(
+    val nome: String,
+    val endpoint: String,
+    val modoConsulta: DnsQueryMode,
+)

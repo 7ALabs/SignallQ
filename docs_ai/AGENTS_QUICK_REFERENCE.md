@@ -55,7 +55,7 @@ Implementa Android (Kotlin, Compose, ViewModel, StateFlow); refactors seguros; c
 Implementa e mantém o SignallQ Admin (React/TS/Vite/Tailwind); analisa dados de app (Play Console, Firebase Analytics/Crashlytics, retenção, crash rate, custo de IA); gera mocks realistas. Análise sempre com achado + contexto + implicação.
 
 ### Lia — UX & Design
-Define e valida estados visuais, hierarquia, microcopy e acessibilidade conforme MD3 e design system (`/linka-design`). **Obrigatória** quando: tela nova, estado visual novo, microcopy visível, mudança de fluxo. Dispensada em bug/lógica pura e `:core*` sem reflexo visual.
+Define e valida estados visuais, hierarquia, microcopy e acessibilidade conforme MD3 e design system (`/SignallQ-design`). **Obrigatória** quando: tela nova, estado visual novo, microcopy visível, mudança de fluxo. Dispensada em bug/lógica pura e `:core*` sem reflexo visual.
 
 ### Gema — QA, Release & Higiene
 Gate único de Done: review de código, bugs, regressões, risco técnico, testes; higiene (versionamento em `libs.versions.toml`, CHANGELOG, docs); abre bug no **GitHub Issues** (`[BUG]`). Haiku por padrão, Sonnet em review técnico pesado. Skills: `/checar-entrega`, `/checar-release`, `/higiene`.

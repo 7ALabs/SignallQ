@@ -1,8 +1,8 @@
 # SignallQ — Design System
 
-> **SignallQ** (app store name "SignallQ app", package `io.signallq.app`) is a native **Android** smart internet-diagnostics app, built in **Kotlin / Jetpack Compose / Material Design 3**. It analyzes a home connection in real time — speed, latency, Wi-Fi signal & channels, DNS, fiber (GPON) modem, 4G/5G mobile signal — and uses on-device AI to explain *why* the internet is slow, unstable, or down, in clear, non-technical **Brazilian Portuguese**. All processing happens on-device; no personal data leaves the phone.
+> **SignallQ** (app store name "SignallQ app", package `io.signallq.app`) is a native **Android** smart internet-diagnostics app, built in **Kotlin / Jetpack Compose / Material Design 3**. It analyzes a home connection in real time — speed, latency, Wi-Fi signal & channels, DNS, fiber (GPON) modem, 4G/5G mobile signal — and uses AI (Cloudflare Worker) to explain *why* the internet is slow, unstable, or down, in clear, non-technical **Brazilian Portuguese**.
 >
-> The product is sometimes referred to commercially as **"Pulse — Speedtest Inteligente"**; inside the codebase the brand is **SignallQ**, with two named sub-systems: **SignallQ** (the conversational AI assistant) and **SignallQ Pulse** (passive background monitoring).
+> The brand is **SignallQ**, with two named sub-systems: **SignallQ** (the conversational AI assistant) and **SignallQ Pulse** (passive background monitoring).
 
 ---
 
@@ -12,17 +12,16 @@ This design system was reverse-engineered from a single attached, read-only code
 
 | Source | Path | What it gave us |
 |---|---|---|
-| Android codebase | `SignallQ Android/` (mounted, read-only) | Source of truth for all tokens, components & screens |
-| Theme tokens | `SignallQ Android/app/src/main/kotlin/io/linka/app/kotlin/ui/SignallQTheme.kt` | `LkColors`, `LkSpacing`, `LkRadius`, `linkaTypography` |
-| Design-system docs | `SignallQ Android/docs_ai/design-system/*.md` | COLORS, TYPOGRAPHY, SPACING, COMPONENTS_ANDROID, MD3_GUIDELINES |
-| Functional spec | `SignallQ Android/docs_ai/ANDROID_FUNCIONAL.md` | Screen-by-screen behaviour, flows, copy |
-| Mockup v2 spec | `SignallQ Android/.claude/design-specs/mockup-v2-ui-screens.md` | Pixel specs for Home / Sinal / SpeedTest / Resultado |
-| Screen composables | `SignallQ Android/app/src/main/kotlin/io/linka/app/kotlin/ui/screen/*.kt` | Layout, exact labels, metric thresholds |
-| Components | `…/ui/component/*.kt` (25 custom composables) | SignallQ, SpeedTest, Pulse, layout primitives |
-| Screenshots | `SignallQ Android/linka_*.png` (copied to `_ref/`) | Visual ground-truth: SpeedTest, Sinal, Fibra, store listing |
-| Launcher icon | `…/res/mipmap-xxxhdpi/ic_launcher*.png` (copied to `assets/`) | App icon / wordmark "SignallQ" |
+| Android codebase | `SignallQ/android/` (monorepo root) | Source of truth for all tokens, components & screens |
+| Theme tokens | `SignallQ/android/app/src/main/kotlin/io/veloo/app/kotlin/ui/SignallQTheme.kt` | `LkColors`, `LkSpacing`, `LkRadius`, `signallQTypography` |
+| Design-system docs | `SignallQ/docs_ai/design-system/*.md` | COLORS, TYPOGRAPHY, SPACING, DESIGN_TOKENS, COMPONENTS_ANDROID, MD3_GUIDELINES — canonical, kept in sync with the code |
+| Functional spec | `SignallQ/docs_ai/ANDROID_FUNCIONAL.md` | Screen-by-screen behaviour, flows, copy |
+| Mockup v2 spec | `SignallQ/.claude/design-specs/mockup-v2-ui-screens.md` | Pixel specs for Home / Sinal / SpeedTest / Resultado |
+| Screen composables | `SignallQ/android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/*.kt` | Layout, exact labels, metric thresholds |
+| Components | `…/ui/component/*.kt` | SignallQ, SpeedTest, Pulse, layout primitives |
+| Brand mark | `SignallQ/brand/` (canonical, see `brand/README.md`; mirrored into this skill's `assets/`) | Official symbol + lockup files — see SKILL.md's "Logo — which file, when" table before using any logo |
 
-**AI worker (referenced, external):** `https://linka-ai-diagnosis-worker.giammattey-luiz.workers.dev` (Cloudflare Worker, Gemma model). Contact in store listing: `giammattey.luiz@gmail.com`.
+**AI worker (referenced, external):** `integrations/cloudflare/ai-diagnosis-worker/` (Cloudflare Worker; provider primário Gemini 2.0 Flash quando configurado, fallback Qwen3 30B MoE FP8).
 
 ---
 
@@ -76,7 +75,7 @@ A **clean, bright, neutral Material Design 3** surface where a single **electric
 - **In this design system:** we link **Material Symbols (Outlined)** from the Google Fonts CDN — it is the exact icon family the app uses, so no substitution is needed. Use `<span class="material-symbols-outlined">wifi</span>`.
 - **Emoji:** never used as iconography.
 - **Unicode glyphs:** the middle dot `·` as a separator and a check `✓` inside the connected badge are the only non-icon glyphs; everything else is a Material icon.
-- **Logo / brand mark:** the **"SignallQ" wordmark** — soft, rounded, lowercase letterforms in brand violet on a light circular field (see `assets/ic_launcher.png`, `assets/ic_launcher_foreground.png`). There is no separate horizontal logotype in the codebase; the launcher mark is the brand mark. The **SignallQ** AI mark (`SignallQSymbol`) and **SignallQ Pulse** mark (`SignallQPulseSymbol`) are animated in-app glyphs that change color by state (accent / success / warning / error).
+- **Logo / brand mark (OFICIAL):** os arquivos oficiais estão em `brand/` na raiz do repo e replicados aqui em `assets/signallq-*`. O símbolo é um conjunto de **4 barras de sinal** (alturas curta · média · **alta** · média — a 3ª é a mais alta) em degradê **violeta `#6C2BFF` → azul**, com cantos arredondados. O **wordmark** é "SignallQ" com "Signall" em quase-preto (`#0D0D1A`) ou branco no escuro, e o **"Q" em violeta**. Use `signallq-lockup-light-bg.png` em fundo claro, `signallq-lockup-dark-bg.png` em fundo escuro, e `signallq-symbol-*.png` para ícone/avatar/espaço quadrado. **Nunca redesenhar em CSS/SVG à mão nem usar a marca anterior "linka".** Regras completas em `brand/README.md`. As marcas animadas in-app **SignallQ** (`SignallQSymbol`) e **SignallQ Pulse** (`SignallQPulseSymbol`) mudam de cor por estado (accent / success / warning / error).
 
 ---
 
@@ -87,7 +86,7 @@ A **clean, bright, neutral Material Design 3** surface where a single **electric
 | `README.md` | This document — context, content & visual foundations, iconography, index |
 | `colors_and_type.css` | All design tokens as CSS vars + semantic type classes. **Import this in every artifact.** |
 | `SKILL.md` | Agent-Skill manifest (for use in Claude Code) |
-| `assets/` | `ic_launcher.png`, `ic_launcher_foreground.png` (brand mark) |
+| `assets/` | Logos **oficiais**: `signallq-symbol-1024.png`, `signallq-lockup-light-bg.png`, `signallq-lockup-dark-bg.png`. (Fonte da verdade: `brand/` na raiz do repo.) Os `ic_launcher*` antigos são a marca "linka" descontinuada — não usar. |
 | `_ref/` | Reference screenshots from the real app (not for shipping) |
 | `preview/` | Design-system cards shown in the Design System tab (colors, type, spacing, components) |
 | `ui_kits/android/` | High-fidelity Jetpack-Compose-faithful recreation of the app — `index.html` (interactive prototype) + JSX components |

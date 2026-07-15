@@ -26,7 +26,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.signallq.app.feature.diagnostico.pulse.OpcaoResposta
 import io.signallq.app.feature.diagnostico.pulse.QuestionNode
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
@@ -52,7 +51,7 @@ fun ContextualQuestionCard(
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(LkRadius.card))
-                    .background(c.bgCard)
+                    .background(c.surfaceContainer)
                     .padding(16.dp),
         ) {
             Text(
@@ -69,13 +68,13 @@ fun ContextualQuestionCard(
                         label = { Text(opcao.label, style = MaterialTheme.typography.bodyMedium) },
                         colors =
                             SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = LkColors.accent.copy(alpha = 0.08f),
+                                containerColor = c.primary.copy(alpha = 0.14f),
                                 labelColor = c.textPrimary,
                             ),
                         border =
                             SuggestionChipDefaults.suggestionChipBorder(
                                 enabled = true,
-                                borderColor = LkColors.accent.copy(alpha = 0.25f),
+                                borderColor = c.primary.copy(alpha = 0.30f),
                             ),
                         modifier = Modifier.fillMaxWidth().minimumInteractiveComponentSize(),
                     )

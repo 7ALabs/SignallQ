@@ -173,3 +173,25 @@ ALTER TABLE analytics_events    ADD COLUMN play_track TEXT DEFAULT NULL;
 CREATE INDEX IF NOT EXISTS idx_sessions_play_track  ON diagnostic_sessions(play_track);
 CREATE INDEX IF NOT EXISTS idx_ai_usage_play_track   ON ai_usage(play_track);
 CREATE INDEX IF NOT EXISTS idx_analytics_play_track  ON analytics_events(play_track);
+
+-- GH#788: série histórica de latência/uptime por serviço (Saúde do Sistema),
+-- snapshot gravado a cada execução do Cron Trigger (ver `scheduled` em src/index.ts).
+-- Aplicar via: migrations/013_gh788.sql (npx wrangler d1 execute --file=... --remote)
+CREATE TABLE IF NOT EXISTS system_health_snapshots (
+  id         TEXT    PRIMARY KEY,
+  service    TEXT    NOT NULL,   -- d1 | firebase | bigquery
+  status     TEXT    NOT NULL,   -- ok | error | not_configured
+  latency_ms INTEGER,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_health_snapshots_service_created
+  ON system_health_snapshots(service, created_at);
+
+-- GH#786: regiao/UF aproximada por sessao (mapa "Onde o app e mais usado",
+-- Redes & Provedores). Derivada no worker via request.cf.regionCode
+-- (geolocalizacao de borda da Cloudflare) no momento do ingest -- o IP em si
+-- nunca e' persistido. So aceita as 27 UFs brasileiras validas (ver
+-- UF_WHITELIST em src/index.ts); qualquer outro valor grava ''.
+-- Aplicar via: migrations/014_gh786.sql (npx wrangler d1 execute --file=... --remote)
+ALTER TABLE diagnostic_sessions ADD COLUMN uf TEXT DEFAULT '';
+CREATE INDEX IF NOT EXISTS idx_sessions_uf ON diagnostic_sessions(uf);

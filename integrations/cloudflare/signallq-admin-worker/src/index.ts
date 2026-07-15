@@ -7,6 +7,19 @@
 
 import { hashPassword, verifyPassword, createSession, validateSession, revokeSession } from './auth'
 
+// #788 — tipos mínimos do Cron Trigger (workerd runtime). O projeto não tem
+// @cloudflare/workers-types instalado (gap pré-existente, mesma causa dos
+// erros de tsc em Request/Response/D1Database já presentes no arquivo antes
+// desta mudança) — declarados aqui só para não adicionar erros novos de tsc.
+interface ScheduledEvent {
+  readonly cron: string;
+  readonly scheduledTime: number;
+}
+interface ExecutionContext {
+  waitUntil(promise: Promise<unknown>): void;
+  passThroughOnException(): void;
+}
+
 export interface Env {
   ALLOWED_ORIGIN: string;
   FIREBASE_PROJECT_ID: string;
@@ -23,6 +36,11 @@ export interface Env {
   DB: D1Database;
   /** Pepper para PBKDF2 das senhas admin — SIG-136. */
   ADMIN_AUTH_PEPPER: string;
+  /** #883 — token da GraphQL Analytics API (Account Analytics:Read). Sem custo, mas exige criação manual no dashboard Cloudflare (fora do alcance do worker). */
+  CLOUDFLARE_API_TOKEN?: string;
+  /** #883 — não é secret (já visível em wrangler.toml/dashboard), mas fica no Env para não hardcodear no handler. */
+  CLOUDFLARE_ACCOUNT_ID?: string;
+  CLOUDFLARE_D1_DATABASE_ID?: string;
 }
 
 function corsHeaders(env: Env): Record<string, string> {
@@ -218,6 +236,21 @@ function nowSec(): number {
   return Math.floor(Date.now() / 1000);
 }
 
+// Achado ao validar #883/#884 em produção: um valor corrompido em
+// admin_settings.value (ex.: escrita manual malformada) derrubava
+// generateAndPersistAlerts inteiro (500 em /admin/alerts) via JSON.parse sem
+// tratamento — settings ausentes/corrompidas devem degradar para "{}" (nenhum
+// teto configurado), nunca derrubar a rota. Tipo solto de propósito (mesmo
+// padrão já usado no resto do arquivo, ex.: `let p: any` em handleIngestAiUsage).
+function parseAdminSettings(value: string | undefined | null): any {
+  if (!value) return {};
+  try {
+    return JSON.parse(value);
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Extrai filtro de environment da query string.
  * ?environment=production → filtra por 'production'
@@ -336,6 +369,42 @@ async function queryBigQuery<T = unknown>(
   });
 
   return { rows };
+}
+
+// #883 — GraphQL Analytics API do Cloudflare (api.cloudflare.com/client/v4/graphql).
+// Incluída em todos os planos (inclusive Free), sem custo — não confundir com Workers
+// Analytics Engine (esse sim é produto pago). Requer API Token escopado
+// "Account Analytics: Read", criado manualmente no dashboard Cloudflare (o token OAuth
+// do wrangler CLI não tem esse escopo e não pode criar tokens novos via API).
+async function queryCloudflareGraphQL<T = unknown>(
+  env: Env,
+  query: string,
+  variables: Record<string, unknown>
+): Promise<{ data: T | null; error?: string }> {
+  if (!env.CLOUDFLARE_API_TOKEN || !env.CLOUDFLARE_ACCOUNT_ID) {
+    return { data: null, error: "not_configured" };
+  }
+
+  const resp = await fetch("https://api.cloudflare.com/client/v4/graphql", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+
+  if (!resp.ok) {
+    return { data: null, error: `cf_graphql_${resp.status}` };
+  }
+
+  const body = (await resp.json()) as { data?: T; errors?: Array<{ message: string }> | null };
+  if (body.errors && body.errors.length > 0) {
+    return { data: null, error: body.errors.map((e) => e.message).join("; ").slice(0, 200) };
+  }
+  if (!body.data) return { data: null, error: "empty_response" };
+
+  return { data: body.data };
 }
 
 // --- handlers /admin ---
@@ -529,18 +598,31 @@ async function handleAiCost(request: Request, env: Env): Promise<Response> {
      FROM ai_usage WHERE created_at >= ?${envClause} GROUP BY model ORDER BY calls DESC`
   ).bind(since, ...envBinds).all();
 
-  const byModel = (rows.results ?? []).map((r: any) => {
-    const calls     = r.calls ?? 0;
-    const successful = r.successful_calls ?? 0;
-    return {
-      model:                 r.model,
-      calls,
-      tokens:                r.tokens    ?? 0,
-      cost_usd:              r.cost_usd  ?? 0,
-      // null quando não há registros; valor calculado a 2 casas decimais caso contrário.
-      reliabilityPercentage: calls > 0 ? Math.round((successful / calls) * 10000) / 100 : null,
-    };
-  });
+  // #879 (achado 4): reagrega por provedor (providerEnumId) — vários model IDs
+  // técnicos podem pertencer ao mesmo provedor (ex.: variações do Gemini), e o
+  // frontend usa `model` diretamente como o enum AiProvider (PROVIDER_COLORS),
+  // não como o ID técnico bruto. Mesmo padrão de reagregação já usado em
+  // handleAiUsageTimeline (byProvider a partir de múltiplos models).
+  const porProvedor = new Map<string, { calls: number; tokens: number; cost_usd: number; successful: number; label: string }>();
+  for (const r of (rows.results ?? []) as any[]) {
+    const providerId = providerEnumId(r.model ?? "");
+    const entry = porProvedor.get(providerId) ?? { calls: 0, tokens: 0, cost_usd: 0, successful: 0, label: providerName(r.model ?? "") };
+    entry.calls      += r.calls           ?? 0;
+    entry.tokens      += r.tokens          ?? 0;
+    entry.cost_usd    += r.cost_usd        ?? 0;
+    entry.successful  += r.successful_calls ?? 0;
+    porProvedor.set(providerId, entry);
+  }
+
+  const byModel = Array.from(porProvedor.entries()).map(([providerId, e]) => ({
+    model:                 providerId, // ID compatível com o enum AiProvider do frontend
+    providerLabel:         e.label,    // rótulo humano, ex.: "Gemini", "Qwen / Workers AI"
+    calls:                 e.calls,
+    tokens:                e.tokens,
+    cost_usd:              e.cost_usd,
+    // null quando não há registros; valor calculado a 2 casas decimais caso contrário.
+    reliabilityPercentage: e.calls > 0 ? Math.round((e.successful / e.calls) * 10000) / 100 : null,
+  })).sort((a, b) => b.calls - a.calls);
 
   const totals = byModel.reduce(
     (acc: any, r: any) => ({
@@ -566,15 +648,17 @@ async function handleTimeline(request: Request, env: Env): Promise<Response> {
   const envBinds  = envFilter ? [envFilter]            : [];
 
   // Agrega diagnostic_sessions por dia (DATE unix→ISO via strftime).
-  // activeUsers: não há user_id na tabela — aproximado por contagem de sessões do dia.
-  // Documentação da aproximação: 1 sessão ≈ 1 usuário único (subestima heavy users,
-  // mas é a melhor proxy disponível sem PII no D1). Ver SIG-110.
+  // #879 (achado 1 da auditoria 2026-07-10): completedDiagnostics e activeUsers
+  // usavam o MESMO COUNT(*) — as duas linhas do grafico "Sessoes vs. Diagnosticos"
+  // eram sempre identicas. device_id (hash anonimo, coluna existe desde SIG-143)
+  // permite contagem de usuarios unicos de verdade via COUNT(DISTINCT device_id),
+  // mesmo padrao ja usado em handleProductAnalytics (PR #878) com session_id.
   // criticalAlerts: sessões com status='failed' ou score < 40 (limiar "Fraco").
   const rows = await env.DB.prepare(
     `SELECT
        strftime('%Y-%m-%d', datetime(created_at, 'unixepoch')) AS date,
        COUNT(*) AS completedDiagnostics,
-       COUNT(*) AS activeUsers,
+       COUNT(DISTINCT NULLIF(device_id, '')) AS activeUsers,
        SUM(CASE WHEN status = 'failed' OR (score IS NOT NULL AND score < 40) THEN 1 ELSE 0 END) AS criticalAlerts
      FROM diagnostic_sessions
      WHERE created_at >= ?${envClause}
@@ -642,6 +726,38 @@ async function handleNetworkInsights(request: Request, env: Env): Promise<Respon
   return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
 }
 
+// GH#786 — agregado de sessões por UF (mapa "Onde o app é mais usado", tela
+// Redes & Provedores). uf='' (geo indisponível/fora do Brasil) fica de fora
+// do array — não fabrica uma UF que o worker não conseguiu determinar.
+async function handleRegionInsights(request: Request, env: Env): Promise<Response> {
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "7d";
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? " AND environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]            : [];
+
+  const rows = await env.DB.prepare(
+    `SELECT
+       uf,
+       COUNT(*) AS count,
+       COUNT(*) * 100.0 / SUM(COUNT(*)) OVER() AS percentage
+     FROM diagnostic_sessions
+     WHERE created_at >= ? AND uf IS NOT NULL AND uf != ''${envClause}
+     GROUP BY uf
+     ORDER BY count DESC`
+  ).bind(since, ...envBinds).all();
+
+  const items = (rows.results ?? []).map((r: any) => ({
+    uf:         r.uf,
+    count:      r.count      ?? 0,
+    percentage: r.percentage != null ? Math.round(r.percentage * 10) / 10 : 0,
+  }));
+
+  return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
+}
+
 // GH#765 — o Android manda "none" no array de issues quando não há problema
 // detectado (em vez de array vazio). Sem esse filtro, "none" era contado como
 // o problema mais comum do painel (ex: 42% das sessões).
@@ -693,6 +809,208 @@ async function handleTopIssues(request: Request, env: Env): Promise<Response> {
   }));
 
   return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
+}
+
+// #883 — teto do plano gratuito Cloudflare, valores publicados em
+// developers.cloudflare.com/workers/platform/pricing/ e /d1/platform/pricing/
+// (conferido em 2026-07-12). Reset diário é por dia UTC (é como a Cloudflare conta).
+// #921: workersAiNeuronsPerDay — teto do Workers AI (10.000 neurônios/dia, CONTA
+// INTEIRA), developers.cloudflare.com/workers-ai/platform/pricing/ (conferido
+// 2026-07-12). Mesmo reset diário UTC.
+const CF_FREE_TIER = {
+  workersRequestsPerDay:   100_000,
+  d1RowsReadPerDay:        5_000_000,
+  d1RowsWrittenPerDay:     100_000,
+  d1StorageBytesTotal:     5 * 1024 * 1024 * 1024, // 5 GB, total da conta (não por database)
+  workersAiNeuronsPerDay:  10_000,
+};
+
+// #921 — Workers AI Neurons (fallback Qwen3-30B) NÃO tem dataset na GraphQL
+// Analytics API nem endpoint REST de uso/quota (confirmado em 2026-07-12: página de
+// datasets/discovery da GraphQL API não lista nenhum node de Workers AI, a
+// referência REST /accounts/{id}/ai/* só tem run/finetunes/models/schema — nada de
+// usage; a doc de pricing só recomenda "monitorar no dashboard"). Por isso o "usado"
+// aqui é ESTIMATIVA: tokens reais gravados em ai_usage (o Android reporta cada
+// chamada) × taxa oficial de conversão do Qwen3-30B-A3B-FP8 publicada em
+// developers.cloudflare.com/workers-ai/platform/pricing/ (conferido 2026-07-12):
+// 4625 neurônios por 1M tokens de entrada, 30475 por 1M de saída. Nunca é medição
+// real cobrada pela Cloudflare — só o dashboard deles tem esse número exato.
+const QWEN_NEURONS_PER_INPUT_TOKEN  = 4625 / 1_000_000;
+const QWEN_NEURONS_PER_OUTPUT_TOKEN = 30475 / 1_000_000;
+
+interface CloudflareResourceUsage {
+  available: boolean;
+  used: number | null;
+  limit: number | null;
+  percentage: number | null; // 0-100, arredondado
+  unit: "requests" | "rows" | "bytes" | "neurons";
+  reason?: string; // preenchido quando available=false
+  estimated?: boolean; // #921: true quando "used" é estimativa, não medição real
+}
+
+interface CloudflareUsageGraphQLResponse {
+  viewer: {
+    accounts: Array<{
+      workersInvocationsAdaptive: Array<{ sum: { requests: number } }>;
+      d1AnalyticsAdaptiveGroups: Array<{ sum: { readQueries: number; writeQueries: number; rowsRead: number; rowsWritten: number } }>;
+      d1StorageAdaptiveGroups: Array<{ max: { databaseSizeBytes: number } }>;
+    }>;
+  };
+}
+
+function usageOf(used: number, limit: number, unit: CloudflareResourceUsage["unit"]): CloudflareResourceUsage {
+  return {
+    available: true,
+    used,
+    limit,
+    percentage: Math.round((used / limit) * 100),
+    unit,
+  };
+}
+
+function unavailableUsage(reason: string, unit: CloudflareResourceUsage["unit"]): CloudflareResourceUsage {
+  return { available: false, used: null, limit: null, percentage: null, unit, reason };
+}
+
+interface CloudflareUsageResult {
+  source: "graphql" | "not_configured" | "error";
+  timestamp: string;
+  resources: {
+    workersRequestsDay: CloudflareResourceUsage;
+    d1RowsReadDay: CloudflareResourceUsage;
+    d1RowsWrittenDay: CloudflareResourceUsage;
+    d1StorageTotal: CloudflareResourceUsage;
+    workersAiNeuronsDay: CloudflareResourceUsage;
+  };
+}
+
+// #921 — estimativa de neurônios Workers AI consumidos hoje (dia UTC) pelo
+// fallback Qwen3-30B. Fonte é sempre D1 (ai_usage), nunca a GraphQL Analytics API
+// (não expõe o dado — ver comentário de QWEN_NEURONS_PER_INPUT_TOKEN acima) — por
+// isso roda independente de CLOUDFLARE_API_TOKEN estar configurado ou não.
+// Filtro de provider replica exatamente providerEnumId()/providerName() (model
+// contém "qwen" ou começa com "@cf/") para não duplicar o critério de detecção.
+async function getWorkersAiNeuronsEstimate(env: Env): Promise<CloudflareResourceUsage> {
+  const now = new Date();
+  const todayStartUtcSec = Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) / 1000);
+
+  try {
+    const row = await env.DB.prepare(
+      `SELECT SUM(prompt_tokens) AS inputTokens, SUM(completion_tokens) AS outputTokens
+       FROM ai_usage
+       WHERE created_at >= ? AND (model LIKE '%qwen%' OR model LIKE '@cf/%')`
+    ).bind(todayStartUtcSec).first<{ inputTokens: number | null; outputTokens: number | null }>();
+
+    const inputTokens  = row?.inputTokens ?? 0;
+    const outputTokens = row?.outputTokens ?? 0;
+    const estimatedNeurons = Math.round(
+      inputTokens * QWEN_NEURONS_PER_INPUT_TOKEN + outputTokens * QWEN_NEURONS_PER_OUTPUT_TOKEN
+    );
+
+    return {
+      ...usageOf(estimatedNeurons, CF_FREE_TIER.workersAiNeuronsPerDay, "neurons"),
+      estimated: true,
+    };
+  } catch (e) {
+    await logError(env, 'workers-ai-neurons-estimate', String(e), e instanceof Error ? e.stack ?? '' : '');
+    return unavailableUsage(`Falha ao consultar ai_usage: ${String(e)}`, "neurons");
+  }
+}
+
+// #883: uso vs. teto do free tier Cloudflare (Workers requests/dia, D1 rows
+// lidas/escritas por dia, D1 storage total). Conta INTEIRA, não só este worker —
+// o teto de requests do Workers Free é por conta, não por script, então filtrar
+// por scriptName daria um número que não reflete o risco real de estourar o
+// limite gratuito. Extraída de handleCloudflareUsage para ser reaproveitada por
+// generateAndPersistAlerts sem duplicar a chamada GraphQL.
+async function getCloudflareUsage(env: Env): Promise<CloudflareUsageResult> {
+  const workersAiNeuronsDay = await getWorkersAiNeuronsEstimate(env);
+
+  if (!env.CLOUDFLARE_API_TOKEN || !env.CLOUDFLARE_ACCOUNT_ID) {
+    const reason = "CLOUDFLARE_API_TOKEN não configurado — requer token criado manualmente no dashboard Cloudflare com escopo Account Analytics:Read.";
+    return {
+      source: "not_configured",
+      timestamp: new Date().toISOString(),
+      resources: {
+        workersRequestsDay: unavailableUsage(reason, "requests"),
+        d1RowsReadDay:      unavailableUsage(reason, "rows"),
+        d1RowsWrittenDay:   unavailableUsage(reason, "rows"),
+        d1StorageTotal:     unavailableUsage(reason, "bytes"),
+        workersAiNeuronsDay,
+      },
+    };
+  }
+
+  const now = new Date();
+  const todayStartUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const storageSince = new Date(now.getTime() - 2 * 86400 * 1000); // janela curta só p/ pegar o snapshot mais recente
+
+  const query = `
+    query($accountTag: String!, $since: Time!, $until: Time!, $dbId: String!, $storageSince: Time!) {
+      viewer {
+        accounts(filter: { accountTag: $accountTag }) {
+          workersInvocationsAdaptive(limit: 1, filter: { datetime_geq: $since, datetime_leq: $until }) {
+            sum { requests }
+          }
+          d1AnalyticsAdaptiveGroups(limit: 1, filter: { datetime_geq: $since, datetime_leq: $until, databaseId: $dbId }) {
+            sum { readQueries writeQueries rowsRead rowsWritten }
+          }
+          d1StorageAdaptiveGroups(limit: 1, filter: { databaseId: $dbId, datetimeHour_geq: $storageSince }, orderBy: [datetimeHour_DESC]) {
+            max { databaseSizeBytes }
+          }
+        }
+      }
+    }
+  `;
+
+  const { data, error } = await queryCloudflareGraphQL<CloudflareUsageGraphQLResponse>(env, query, {
+    accountTag: env.CLOUDFLARE_ACCOUNT_ID,
+    since: todayStartUtc.toISOString(),
+    until: now.toISOString(),
+    dbId: env.CLOUDFLARE_D1_DATABASE_ID ?? "",
+    storageSince: storageSince.toISOString(),
+  });
+
+  if (error || !data) {
+    await logError(env, 'cloudflare-usage', error ?? 'unknown_error', '');
+    const reason = `Falha ao consultar GraphQL Analytics API: ${error ?? 'resposta vazia'}`;
+    return {
+      source: "error",
+      timestamp: new Date().toISOString(),
+      resources: {
+        workersRequestsDay: unavailableUsage(reason, "requests"),
+        d1RowsReadDay:      unavailableUsage(reason, "rows"),
+        d1RowsWrittenDay:   unavailableUsage(reason, "rows"),
+        d1StorageTotal:     unavailableUsage(reason, "bytes"),
+        workersAiNeuronsDay,
+      },
+    };
+  }
+
+  const account = data.viewer.accounts[0];
+  const requests = account?.workersInvocationsAdaptive?.[0]?.sum.requests ?? 0;
+  const d1 = account?.d1AnalyticsAdaptiveGroups?.[0]?.sum;
+  const storageBytes = account?.d1StorageAdaptiveGroups?.[0]?.max.databaseSizeBytes;
+
+  return {
+    source: "graphql",
+    timestamp: new Date().toISOString(),
+    resources: {
+      workersRequestsDay: usageOf(requests, CF_FREE_TIER.workersRequestsPerDay, "requests"),
+      d1RowsReadDay:      usageOf(d1?.rowsRead ?? 0, CF_FREE_TIER.d1RowsReadPerDay, "rows"),
+      d1RowsWrittenDay:   usageOf(d1?.rowsWritten ?? 0, CF_FREE_TIER.d1RowsWrittenPerDay, "rows"),
+      d1StorageTotal:     storageBytes != null
+        ? usageOf(storageBytes, CF_FREE_TIER.d1StorageBytesTotal, "bytes")
+        : unavailableUsage("Sem snapshot de storage nas últimas 48h.", "bytes"),
+      workersAiNeuronsDay,
+    },
+  };
+}
+
+// GET /admin/cloudflare-usage — wrapper HTTP de getCloudflareUsage (ver acima).
+async function handleCloudflareUsage(_req: Request, env: Env): Promise<Response> {
+  const result = await getCloudflareUsage(env);
+  return json(result, 200, env);
 }
 
 // SIG-133: tipos e helpers para alertas persistidos.
@@ -750,7 +1068,7 @@ async function generateAndPersistAlerts(env: Env): Promise<void> {
   const settingsRow = await env.DB.prepare(
     "SELECT value FROM admin_settings WHERE key = 'admin'"
   ).first<{ value: string }>();
-  const settings = settingsRow?.value ? JSON.parse(settingsRow.value) : {};
+  const settings = parseAdminSettings(settingsRow?.value);
 
   // Budget: se não configurado, não gera alerta de custo (sem fabricar).
   const AI_DAILY_BUDGET: number | null = settings.aiDailyBudgetUsd ?? null;
@@ -803,6 +1121,69 @@ async function generateAndPersistAlerts(env: Env): Promise<void> {
       title:    'Qualidade de rede baixa',
       message:  `Score médio nas últimas 24h: ${Math.round(scoreRow.avg)} (mínimo: ${MIN_SCORE})`,
     });
+  }
+
+  // #883: alerta de uso vs. teto do free tier Cloudflare — só roda a checagem
+  // se CLOUDFLARE_API_TOKEN estiver configurado (sem fabricar alerta sem dado real).
+  const CF_ATTENTION_THRESHOLD = settings.cloudflareUsageAttentionThreshold ?? 80;
+  const cfUsage = await getCloudflareUsage(env);
+  if (cfUsage.source === "graphql") {
+    const cfResourceLabels: Record<string, string> = {
+      workersRequestsDay: 'Workers requests/dia',
+      d1RowsReadDay:      'D1 rows lidas/dia',
+      d1RowsWrittenDay:   'D1 rows escritas/dia',
+      d1StorageTotal:     'D1 storage total',
+    };
+    for (const [key, label] of Object.entries(cfResourceLabels)) {
+      const resource = cfUsage.resources[key as keyof typeof cfUsage.resources];
+      if (resource.available && resource.percentage != null && resource.percentage >= CF_ATTENTION_THRESHOLD) {
+        candidates.push({
+          id:       `cloudflare_usage_${key}`,
+          type:     'CLOUDFLARE_USAGE',
+          severity: resource.percentage >= 100 ? 'critical' : 'warning',
+          title:    'Uso do free tier Cloudflare em atenção',
+          message:  `${label}: ${resource.percentage}% do limite gratuito (${resource.used}/${resource.limit})`,
+        });
+      }
+    }
+  }
+
+  // #921: alerta de Workers AI Neurons (estimado) roda sempre — dado vem de D1
+  // (ai_usage), não da GraphQL Analytics API, então não depende de
+  // CLOUDFLARE_API_TOKEN nem do source do restante do card.
+  const neurons = cfUsage.resources.workersAiNeuronsDay;
+  if (neurons.available && neurons.percentage != null && neurons.percentage >= CF_ATTENTION_THRESHOLD) {
+    candidates.push({
+      id:       'cloudflare_usage_workersAiNeuronsDay',
+      type:     'CLOUDFLARE_USAGE',
+      severity: neurons.percentage >= 100 ? 'critical' : 'warning',
+      title:    'Uso do free tier Cloudflare em atenção',
+      message:  `Workers AI Neurons/dia (estimado): ${neurons.percentage}% do limite gratuito (${neurons.used}/${neurons.limit})`,
+    });
+  }
+
+  // #884: alerta de quota Gemini — só roda se algum teto do free tier estiver
+  // configurado em admin_settings.geminiFreeTierLimits (sem fabricar alerta sem dado real).
+  const GEMINI_ATTENTION_THRESHOLD = settings.geminiQuotaAttentionThreshold ?? 80;
+  const geminiQuota = await getGeminiQuotaUsage(env);
+  if (geminiQuota.source === "d1") {
+    const quotaLabels: Record<string, string> = {
+      requestsPerMinute: 'Gemini RPM',
+      tokensPerMinute:   'Gemini TPM',
+      requestsPerDay:    'Gemini RPD',
+    };
+    for (const [key, label] of Object.entries(quotaLabels)) {
+      const metric = geminiQuota.quota[key as keyof typeof geminiQuota.quota];
+      if (metric.available && metric.percentage != null && metric.percentage >= GEMINI_ATTENTION_THRESHOLD) {
+        candidates.push({
+          id:       `gemini_quota_${key}`,
+          type:     'GEMINI_QUOTA',
+          severity: metric.percentage >= 100 ? 'critical' : 'warning',
+          title:    'Uso do free tier Gemini em atenção',
+          message:  `${label}: ${metric.percentage}% do limite gratuito (${metric.used}/${metric.limit})`,
+        });
+      }
+    }
   }
 
   // Persiste idempotente: INSERT OR IGNORE mantém o alerta original se já existir
@@ -926,6 +1307,20 @@ function providerName(model: string): string {
   return model; // fallback: nome técnico do modelo
 }
 
+// #879 (achado 4 da auditoria 2026-07-10): o Admin (types/ai.ts) define o enum
+// AiProvider como IDs técnicos ("gemini_flash" | "cloudflare_qwen" | "openai" |
+// "local_fallback"), usados como chave direta em mapas de cor (PROVIDER_COLORS).
+// providerName() acima devolve rótulo HUMANO ("Gemini", "Qwen / Workers AI"), que
+// nunca bate com esse enum — daí o donut cair sempre na cor de fallback. Mesma
+// lógica de deteção de providerName(), saída compatível com o enum do frontend.
+function providerEnumId(model: string): string {
+  const m = (model ?? "").toLowerCase();
+  if (m.includes("gemini"))                      return "gemini_flash";
+  if (m.includes("qwen") || m.startsWith("@cf/")) return "cloudflare_qwen";
+  if (m.includes("gpt"))                         return "openai";
+  return "local_fallback";
+}
+
 async function handleDiagnosticsSummary(request: Request, env: Env): Promise<Response> {
   const url       = new URL(request.url);
   const period    = url.searchParams.get("period") ?? "7d";
@@ -1020,6 +1415,100 @@ async function handleAiProviders(request: Request, env: Env): Promise<Response> 
   });
 
   return json({ source: "d1", period, environment: envFilter ?? "all", items }, 200, env);
+}
+
+// #884 — modelo IA primário gravado em ai_usage.model (confirmado em produção,
+// 2026-07-12). Se o provider trocar de alias (ver GH#898 em ai-diagnosis-worker),
+// este valor precisa acompanhar.
+const GEMINI_MODEL_ID = "gemini-flash-latest";
+
+interface QuotaMetric {
+  available: boolean;
+  used: number | null;
+  limit: number | null;
+  percentage: number | null;
+  reason?: string;
+}
+
+function quotaOf(used: number, limit: number): QuotaMetric {
+  return { available: true, used, limit, percentage: Math.round((used / limit) * 100) };
+}
+
+function unavailableQuota(reason: string): QuotaMetric {
+  return { available: false, used: null, limit: null, percentage: null, reason };
+}
+
+// A API do Gemini não expõe consulta de quota em tempo real via REST — rate
+// limits (RPM/TPM/RPD) só aparecem autenticado em Google AI Studio (confirmado
+// em developers docs, 2026-07-12: "View your active rate limits in AI Studio").
+// O teto do free tier, por isso, é CONFIGURÁVEL (checado manualmente em AI Studio
+// e preenchido em admin_settings), nunca hardcoded — o valor muda por tier/conta
+// e a Cloudflare não tem como confirmá-lo sozinha. O "usado" é sempre real,
+// contado a partir de ai_usage (cada chamada do worker é registrada lá).
+function pacificMidnightUnixSec(nowMs: number): number {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles', hour12: false,
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+  const parts = fmt.formatToParts(new Date(nowMs));
+  const get = (type: string) => parseInt(parts.find((p) => p.type === type)?.value ?? '0', 10);
+  const secondsSinceMidnight = get('hour') * 3600 + get('minute') * 60 + get('second');
+  return Math.floor((nowMs - secondsSinceMidnight * 1000) / 1000);
+}
+
+interface GeminiQuotaResult {
+  source: "d1" | "not_configured";
+  timestamp: string;
+  quota: {
+    requestsPerMinute: QuotaMetric;
+    tokensPerMinute: QuotaMetric;
+    requestsPerDay: QuotaMetric;
+  };
+}
+
+async function getGeminiQuotaUsage(env: Env): Promise<GeminiQuotaResult> {
+  const settingsRow = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'admin'"
+  ).first<{ value: string }>();
+  const settings = parseAdminSettings(settingsRow?.value);
+  const limits: { rpm?: number; tpm?: number; rpd?: number } = settings.geminiFreeTierLimits ?? {};
+
+  const now = nowSec();
+  const oneMinuteAgo = now - 60;
+  const pacificMidnight = pacificMidnightUnixSec(Date.now());
+
+  const [minuteRow, dayRow] = await Promise.all([
+    env.DB.prepare(
+      `SELECT COUNT(*) AS requests, SUM(total_tokens) AS tokens
+       FROM ai_usage WHERE model = ? AND created_at >= ?`
+    ).bind(GEMINI_MODEL_ID, oneMinuteAgo).first<{ requests: number; tokens: number | null }>(),
+
+    env.DB.prepare(
+      `SELECT COUNT(*) AS requests FROM ai_usage WHERE model = ? AND created_at >= ?`
+    ).bind(GEMINI_MODEL_ID, pacificMidnight).first<{ requests: number }>(),
+  ]);
+
+  const requestsThisMinute = minuteRow?.requests ?? 0;
+  const tokensThisMinute   = minuteRow?.tokens ?? 0;
+  const requestsToday      = dayRow?.requests ?? 0;
+
+  const reasonNotConfigured = "Teto do free tier não configurado — a API do Gemini não expõe consulta de quota em tempo real (só via login em Google AI Studio); preencher manualmente em admin_settings.geminiFreeTierLimits após checar o valor atual no AI Studio.";
+
+  return {
+    source: limits.rpm || limits.tpm || limits.rpd ? "d1" : "not_configured",
+    timestamp: new Date().toISOString(),
+    quota: {
+      requestsPerMinute: limits.rpm ? quotaOf(requestsThisMinute, limits.rpm) : unavailableQuota(reasonNotConfigured),
+      tokensPerMinute:   limits.tpm ? quotaOf(tokensThisMinute, limits.tpm)   : unavailableQuota(reasonNotConfigured),
+      requestsPerDay:    limits.rpd ? quotaOf(requestsToday, limits.rpd)      : unavailableQuota(reasonNotConfigured),
+    },
+  };
+}
+
+// GET /admin/metrics/ai-quota — #884: uso vs. teto do free tier Gemini.
+async function handleAiQuota(_req: Request, env: Env): Promise<Response> {
+  const result = await getGeminiQuotaUsage(env);
+  return json(result, 200, env);
 }
 
 async function handleAiUsageTimeline(request: Request, env: Env): Promise<Response> {
@@ -1756,6 +2245,114 @@ async function handleSystemHealth(_req: Request, env: Env): Promise<Response> {
   );
 }
 
+// #788 — snapshot periódico de latência/uptime, gravado pelo Cron Trigger
+// (ver `scheduled` no export default). Reaproveita os MESMOS checks reais já
+// usados por /admin/system-health (checkD1Health, checkFirebaseCredentialsHealth,
+// checkBigQueryHealth) — nenhum dado novo é fabricado, só passa a ser persistido.
+async function runHealthSnapshot(env: Env): Promise<void> {
+  const now = nowSec();
+  const d1 = await checkD1Health(env);
+  const firebaseCredentials = await checkFirebaseCredentialsHealth(env);
+  const bigQuery = await checkBigQueryHealth(env, firebaseCredentials.status === "ok");
+
+  const rows: Array<{ service: string; check: HealthCheckResult }> = [
+    { service: "d1", check: d1 },
+    { service: "firebase", check: firebaseCredentials },
+    { service: "bigquery", check: bigQuery },
+  ];
+
+  for (const { service, check } of rows) {
+    const id = `${service}_${now}`;
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO system_health_snapshots (id, service, status, latency_ms, created_at)
+       VALUES (?, ?, ?, ?, ?)`
+    ).bind(id, service, check.status, check.latencyMs ?? null, now).run();
+  }
+
+  // Housekeeping: mantém só os últimos 35 dias (o painel usa no máximo 30d) —
+  // evita crescimento sem limite no D1 free tier (5 GB total da conta).
+  const cutoff = now - 35 * 86400;
+  await env.DB.prepare(
+    "DELETE FROM system_health_snapshots WHERE created_at < ?"
+  ).bind(cutoff).run();
+}
+
+// POST /admin/system-health/snapshot — dispara runHealthSnapshot sob demanda
+// (mesma auth de sessão de /admin/*). Útil pro operador forçar um ponto na série
+// sem esperar o próximo Cron Trigger (ex.: logo após o deploy, pra popular o
+// gráfico antes dos primeiros 15min), e foi assim que validei o endpoint de
+// history em produção antes de abrir a PR.
+async function handleTriggerHealthSnapshot(_req: Request, env: Env): Promise<Response> {
+  await runHealthSnapshot(env);
+  return json({ ok: true, timestamp: new Date().toISOString() }, 200, env);
+}
+
+interface DailyHealthPoint {
+  date: string;        // YYYY-MM-DD (UTC)
+  latencyP95Ms: number | null; // null quando não há amostra "ok" nesse dia
+  uptimePercentage: number | null;
+}
+
+function percentile95(sorted: number[]): number {
+  if (sorted.length === 0) return 0;
+  const idx = Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1);
+  return sorted[Math.max(0, idx)];
+}
+
+// GET /admin/system-health/history?days=14 — #788: série diária de latência
+// P95 (proxy: checks de D1, chamado em quase toda rota) e uptime (% de
+// snapshots com status "ok" em qualquer serviço monitorado) para o gráfico
+// "Latência P95 da API · Nd" da tela Saúde do Sistema.
+async function handleSystemHealthHistory(request: Request, env: Env): Promise<Response> {
+  const url  = new URL(request.url);
+  const days = Math.min(Math.max(parseInt(url.searchParams.get("days") ?? "14", 10) || 14, 1), 30);
+  const since = nowSec() - days * 86400;
+
+  const rows = await env.DB.prepare(
+    `SELECT service, status, latency_ms, created_at
+     FROM system_health_snapshots
+     WHERE created_at >= ?
+     ORDER BY created_at ASC`
+  ).bind(since).all<{ service: string; status: string; latency_ms: number | null; created_at: number }>();
+
+  const results = rows.results ?? [];
+
+  if (results.length === 0) {
+    return json({ source: "d1", period: `${days}d`, points: [] as DailyHealthPoint[] }, 200, env);
+  }
+
+  // Agrupa por dia UTC (YYYY-MM-DD). "Latência P95 da API" usa só service='d1'
+  // (proxy mais estável — é chamado em quase toda rota do worker); uptime
+  // considera todos os serviços monitorados (d1/firebase/bigquery).
+  const byDay = new Map<string, { d1Latencies: number[]; okCount: number; totalCount: number }>();
+  for (const r of results) {
+    const date = new Date(r.created_at * 1000).toISOString().slice(0, 10);
+    if (!byDay.has(date)) byDay.set(date, { d1Latencies: [], okCount: 0, totalCount: 0 });
+    const bucket = byDay.get(date)!;
+    if (r.service === "d1" && r.status === "ok" && r.latency_ms != null) {
+      bucket.d1Latencies.push(r.latency_ms);
+    }
+    if (r.status !== "not_configured") {
+      bucket.totalCount += 1;
+      if (r.status === "ok") bucket.okCount += 1;
+    }
+  }
+
+  const points: DailyHealthPoint[] = Array.from(byDay.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, bucket]) => ({
+      date,
+      latencyP95Ms: bucket.d1Latencies.length > 0
+        ? percentile95([...bucket.d1Latencies].sort((a, b) => a - b))
+        : null,
+      uptimePercentage: bucket.totalCount > 0
+        ? Math.round((bucket.okCount / bucket.totalCount) * 10000) / 100
+        : null,
+    }));
+
+  return json({ source: "d1", period: `${days}d`, points }, 200, env);
+}
+
 async function handleFirebaseCrashlytics(_req: Request, env: Env): Promise<Response> {
   if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
     return json({ source: "no_credentials", unresolvedCrashes: 0, crashFreeUsersPercentage: 100 }, 200, env);
@@ -1807,10 +2404,27 @@ async function handleFirebaseCrashlytics(_req: Request, env: Env): Promise<Respo
   }, 200, env);
 }
 
-async function handleFirebaseVersions(_req: Request, env: Env): Promise<Response> {
+// #879 (achado 2 da auditoria 2026-07-10): esta função ignorava period/environment
+// da query string por completo (janela fixa de 30 dias, todos os ambientes),
+// enquanto o denominador (productionVersion.sessions, de handleAppVersions) RESPEITA
+// os dois filtros — dividir numerador fixo por denominador filtrado distorcia o crash
+// rate sempre que o filtro selecionado era diferente de "30d/produção".
+//
+// `period` agora controla de fato a janela do BigQuery (mesmo mapeamento de
+// periodToSeconds usado no resto do worker). `environment`, porém, não pode ser
+// respeitado aqui: o export do Crashlytics não carrega o conceito de "environment"
+// (production/staging/development) que existe só no nosso schema D1 — não há coluna
+// nem dimensão equivalente em `firebase_crashlytics.android_crashes_*`. Em vez de
+// fingir que filtra, a resposta agora expõe `environmentScope: "all"` explicitamente
+// para o frontend avisar o usuário, conforme a alternativa descrita na issue #879.
+async function handleFirebaseVersions(req: Request, env: Env): Promise<Response> {
   if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
     return json({ source: "no_credentials", versions: [] }, 200, env);
   }
+
+  const url = new URL(req.url);
+  const period = url.searchParams.get("period") ?? "30d";
+  const windowDays = Math.max(1, Math.round(periodToSeconds(period) / 86400));
 
   const { rows, error } = await queryBigQuery<{
     app_version: string;
@@ -1822,18 +2436,18 @@ async function handleFirebaseVersions(_req: Request, env: Env): Promise<Response
       COUNT(*)                          AS total_crashes,
       COUNT(DISTINCT installation_uuid) AS affected_users
     FROM \`${env.FIREBASE_PROJECT_ID}.firebase_crashlytics.android_crashes_*\`
-    WHERE _TABLE_SUFFIX >= FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY))
+    WHERE _TABLE_SUFFIX >= FORMAT_DATE('%Y%m%d', DATE_SUB(CURRENT_DATE(), INTERVAL ${windowDays} DAY))
     GROUP BY app_version
     ORDER BY total_crashes DESC
     LIMIT 10
   `);
 
   if (error === "table_not_found" || !rows.length) {
-    return json({ source: "no_data_yet", versions: [] }, 200, env);
+    return json({ source: "no_data_yet", versions: [], period, environmentScope: "all" }, 200, env);
   }
   if (error) {
     await logError(env, 'bigquery-versions', error, '');
-    return json({ source: "error", versions: [] }, 200, env);
+    return json({ source: "error", versions: [], period, environmentScope: "all" }, 200, env);
   }
 
   const versions = rows.map((r) => ({
@@ -1842,7 +2456,7 @@ async function handleFirebaseVersions(_req: Request, env: Env): Promise<Response
     affectedUsers: parseInt(r.affected_users ?? "0", 10),
   }));
 
-  return json({ source: "bigquery", versions }, 200, env);
+  return json({ source: "bigquery", versions, period, environmentScope: "all" }, 200, env);
 }
 
 // NOTA: app_version/device_model não foram adicionados ao SELECT abaixo via
@@ -2012,6 +2626,8 @@ const ERROR_CATEGORY_BY_SOURCE: Record<string, 'app' | 'backend' | 'ia' | 'integ
   'bigquery-versions':      'integration',
   'bigquery-crash-issues':  'integration',
   'ai-usage':               'ia',
+  'ai-quota':               'ia',
+  'cloudflare-usage':       'integration',
 };
 
 function errorCategoryForSource(source: string): 'app' | 'backend' | 'ia' | 'integration' {
@@ -2156,6 +2772,37 @@ async function handleErrors(request: Request, env: Env): Promise<Response> {
   return json({ source: "d1", period, errors }, 200, env);
 }
 
+// GH#782 — série temporal diária de erros para o gráfico "Taxa de erro · N
+// dias" (Problemas & Incidentes). Fonte é exclusivamente
+// analytics_events(feature_crash) — a mesma fonte que a página já declara
+// (SectionIntro: "FONTE · FIREBASE CRASHLYTICS"). system_errors (erros do
+// próprio worker) fica de fora: a tabela só guarda first_seen/last_seen
+// agregados por erro único (dedup via djb2 em logError), sem uma linha por
+// ocorrência — não dá pra reconstruir contagem diária real sem migration
+// nova de log bruto (fora do escopo desta issue).
+async function handleErrorsTimeline(request: Request, env: Env): Promise<Response> {
+  const url   = new URL(request.url);
+  const days  = Math.min(Math.max(parseInt(url.searchParams.get("days") ?? "14"), 1), 90);
+  const since = nowSec() - days * 86400;
+
+  const rows = await env.DB.prepare(
+    `SELECT
+       strftime('%Y-%m-%d', datetime(created_at, 'unixepoch')) AS date,
+       COUNT(*) AS count
+     FROM analytics_events
+     WHERE event_name = 'feature_crash' AND created_at >= ?
+     GROUP BY date
+     ORDER BY date ASC`
+  ).bind(since).all();
+
+  const series = (rows.results ?? []).map((r: any) => ({
+    date:       r.date,
+    errorCount: r.count ?? 0,
+  }));
+
+  return json({ source: "d1", days, series }, 200, env);
+}
+
 // POST /admin/errors/:id/resolve — GH#422. Marca erro (do worker ou do app)
 // como resolvido, gravando responsável (da sessão autenticada), data (server)
 // e observação (body). UPSERT: erros "app:<id>" ainda não têm linha em
@@ -2196,6 +2843,26 @@ async function handleResolveSystemError(request: Request, env: Env, session: { u
 
 // --- handlers /ingest ---
 
+// GH#786 — as 27 UFs brasileiras válidas. `request.cf.regionCode` (geolocalização
+// de borda da própria Cloudflare, calculada a partir do IP da requisição) só é
+// aceito quando bate com uma destas — qualquer outro valor (país fora do Brasil,
+// colo sem geo confiável, undefined em dev local) vira '' em vez de fabricar UF.
+const UF_WHITELIST = new Set([
+  'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB',
+  'PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO',
+]);
+
+// GH#786 — deriva UF aproximada da requisição via geolocalização de borda da
+// Cloudflare (`request.cf`), sem NUNCA persistir o IP em si. `cf` não tem
+// tipo oficial no projeto (mesmo gap pré-existente de @cloudflare/workers-types
+// documentado no topo do arquivo) — acesso via `any` só para este campo.
+function deriveUfFromRequest(request: Request): string {
+  const regionCode = (request as any).cf?.regionCode;
+  if (typeof regionCode !== 'string') return '';
+  const uf = regionCode.toUpperCase();
+  return UF_WHITELIST.has(uf) ? uf : '';
+}
+
 async function handleIngestDiagnostic(request: Request, env: Env): Promise<Response> {
   let p: any;
   try { p = await request.json(); } catch { return err("invalid JSON", 400, env); }
@@ -2224,6 +2891,9 @@ async function handleIngestDiagnostic(request: Request, env: Env): Promise<Respo
   const bandaWifi  = p.banda_wifi  ?? p.bandaWifi  ?? null;
   const padraoWifi = p.padrao_wifi ?? p.padraoWifi ?? null;
 
+  // GH#786 — UF aproximada, derivada no worker (não enviada pelo app).
+  const uf = deriveUfFromRequest(request);
+
   try {
     await env.DB.prepare(
       `INSERT OR REPLACE INTO diagnostic_sessions
@@ -2232,8 +2902,8 @@ async function handleIngestDiagnostic(request: Request, env: Env): Promise<Respo
           issues, resolved, operator,
           device_model, os_version, app_version, ai_summary_report,
           environment, dist_channel, build_type, version_code, device_id,
-          rssi, banda_wifi, padrao_wifi, platform)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          rssi, banda_wifi, padrao_wifi, platform, uf)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).bind(
       p.id, p.created_at ?? nowSec(),
       p.network_type ?? "unknown", p.status ?? "unknown", p.score ?? null,
@@ -2243,7 +2913,7 @@ async function handleIngestDiagnostic(request: Request, env: Env): Promise<Respo
       p.operator ?? null,
       deviceModel, osVersion, appVersion, aiSummaryReport,
       environment, distChannel, buildType, versionCode, deviceId,
-      rssi, bandaWifi, padraoWifi, platform,
+      rssi, bandaWifi, padraoWifi, platform, uf,
     ).run();
   } catch (e) {
     await logError(env, 'ingest', String(e), e instanceof Error ? e.stack ?? '' : '');
@@ -2387,6 +3057,14 @@ async function handleIngestAnalytics(request: Request, env: Env): Promise<Respon
   return json({ ok: true, inserted: stmts.length }, 201, env);
 }
 
+// GH#784 — feature_id das 3 etapas do funil de speedtest via feature_used
+// (iniciou/completou/compartilhou; "abriu" usa screen_view("speedtest"), já
+// existente). Reaproveita o mesmo evento/schema de "wifi"/"historico"/etc —
+// sem endpoint novo de ingest — mas precisam ficar de fora do ranking geral
+// de "funcionalidade mais usada" (não são features, são estágios de funil).
+const SPEEDTEST_FUNNEL_FEATURE_IDS = ['speedtest_iniciado', 'speedtest_completou', 'speedtest_compartilhou'];
+const SPEEDTEST_FUNNEL_EXCLUSION_CLAUSE = ` AND feature_id NOT IN (${SPEEDTEST_FUNNEL_FEATURE_IDS.map(() => '?').join(',')})`;
+
 async function handleProductAnalytics(request: Request, env: Env): Promise<Response> {
   const url       = new URL(request.url);
   const period    = url.searchParams.get('period') ?? '7d';
@@ -2402,9 +3080,9 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
       `SELECT feature_id, COUNT(*) AS usage_count, COUNT(DISTINCT session_id) AS unique_sessions
        FROM analytics_events
        WHERE event_name = 'feature_used' AND created_at >= ?${envClause}
-         AND feature_id != ''
+         AND feature_id != ''${SPEEDTEST_FUNNEL_EXCLUSION_CLAUSE}
        GROUP BY feature_id ORDER BY usage_count DESC`
-    ).bind(since, ...envBinds).all(),
+    ).bind(since, ...envBinds, ...SPEEDTEST_FUNNEL_FEATURE_IDS).all(),
 
     // Navegação por tela
     env.DB.prepare(
@@ -2431,9 +3109,9 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
       `SELECT feature_id, COUNT(*) AS total
        FROM analytics_events
        WHERE event_name = 'feature_used' AND created_at >= ?${envClause}
-         AND feature_id != ''
+         AND feature_id != ''${SPEEDTEST_FUNNEL_EXCLUSION_CLAUSE}
        GROUP BY feature_id`
-    ).bind(since, ...envBinds).all(),
+    ).bind(since, ...envBinds, ...SPEEDTEST_FUNNEL_FEATURE_IDS).all(),
   ]);
 
   // GH#418: tempo médio de sessão real (duration_ms só existe em session_end, SIG-295/GH#417).
@@ -2591,6 +3269,55 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
   }, 200, env);
 }
 
+// GH#784 — funil do teste de velocidade (Uso do App): abriu -> iniciou ->
+// completou -> compartilhou. "Abriu" usa screen_view("speedtest") (já
+// instrumentado desde sempre — a aba Velocidade dispara screen_view ao
+// entrar); os demais 3 estágios usam feature_used com feature_id dedicado
+// (ver SPEEDTEST_FUNNEL_FEATURE_IDS), tudo via o mesmo pipeline de ingest já
+// existente — sem evento novo no whitelist do worker.
+async function handleSpeedtestFunnel(request: Request, env: Env): Promise<Response> {
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get('period') ?? '7d';
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? ' AND environment = ?' : '';
+  const envBinds  = envFilter ? [envFilter]            : [];
+
+  const [abriuRow, estagiosRows] = await Promise.all([
+    env.DB.prepare(
+      `SELECT COUNT(*) AS count FROM analytics_events
+       WHERE event_name = 'screen_view' AND screen_name = 'speedtest' AND created_at >= ?${envClause}`
+    ).bind(since, ...envBinds).first<{ count: number }>(),
+
+    env.DB.prepare(
+      `SELECT feature_id, COUNT(*) AS count FROM analytics_events
+       WHERE event_name = 'feature_used' AND created_at >= ?${envClause}
+         AND feature_id IN (${SPEEDTEST_FUNNEL_FEATURE_IDS.map(() => '?').join(',')})
+       GROUP BY feature_id`
+    ).bind(since, ...envBinds, ...SPEEDTEST_FUNNEL_FEATURE_IDS).all(),
+  ]);
+
+  const countByFeatureId = new Map<string, number>(
+    (estagiosRows.results ?? []).map((r: any) => [r.feature_id, r.count ?? 0])
+  );
+
+  const stages = [
+    { stage: 'abriu', count: abriuRow?.count ?? 0 },
+    { stage: 'iniciou', count: countByFeatureId.get('speedtest_iniciado') ?? 0 },
+    { stage: 'completou', count: countByFeatureId.get('speedtest_completou') ?? 0 },
+    { stage: 'compartilhou', count: countByFeatureId.get('speedtest_compartilhou') ?? 0 },
+  ];
+
+  return json({
+    source: 'd1',
+    period,
+    environment: envFilter ?? 'all',
+    no_data_yet: stages.every((s) => s.count === 0),
+    stages,
+  }, 200, env);
+}
+
 async function handleBatteryAnalytics(request: Request, env: Env): Promise<Response> {
   const url    = new URL(request.url);
   const period = url.searchParams.get('period') ?? '7d';
@@ -2618,6 +3345,52 @@ async function handleBatteryAnalytics(request: Request, env: Env): Promise<Respo
       total_snapshots:         total,
     },
     items: [],
+  }, 200, env);
+}
+
+// #785 — breakdown de dispositivos mais ativos (modelo + versão Android + %
+// de sessões). Fonte: diagnostic_sessions.device_model/os_version (já
+// coletado pelo app via POST /ingest/diagnostic desde SIG-138) — mais direto
+// que ir buscar no GA4/BigQuery, que não tem esse breakdown pronto sem uma
+// dimensão custom equivalente. Mesma honestidade do resto do painel: sem
+// sessão com device_model preenchido no período, no_data_yet: true.
+async function handleDeviceBreakdown(request: Request, env: Env): Promise<Response> {
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get("period") ?? "30d";
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? " AND environment = ?" : "";
+  const envBinds  = envFilter ? [envFilter]            : [];
+
+  const rows = await env.DB.prepare(
+    `SELECT device_model, os_version, COUNT(*) AS session_count
+     FROM diagnostic_sessions
+     WHERE created_at >= ? AND device_model != ''${envClause}
+     GROUP BY device_model, os_version
+     ORDER BY session_count DESC
+     LIMIT 10`
+  ).bind(since, ...envBinds).all<{ device_model: string; os_version: string; session_count: number }>();
+
+  const results = rows.results ?? [];
+  const totalRow = await env.DB.prepare(
+    `SELECT COUNT(*) AS total FROM diagnostic_sessions WHERE created_at >= ? AND device_model != ''${envClause}`
+  ).bind(since, ...envBinds).first<{ total: number }>();
+  const total = totalRow?.total ?? 0;
+
+  const items = results.map((r: { device_model: string; os_version: string; session_count: number }) => ({
+    deviceModel:  r.device_model,
+    osVersion:    r.os_version || "—",
+    sessionCount: r.session_count,
+    percentage:   total > 0 ? Math.round((r.session_count / total) * 10000) / 100 : 0,
+  }));
+
+  return json({
+    source: "d1",
+    period,
+    environment: envFilter ?? "all",
+    no_data_yet: total === 0,
+    items,
   }, 200, env);
 }
 
@@ -2732,12 +3505,14 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage$/,                    handler: withErrorLogging('metrics', handleAiCost) },
   { method: "GET",  pattern: /^\/admin\/metrics\/timeline$/,                    handler: withErrorLogging('metrics', handleTimeline) },
   { method: "GET",  pattern: /^\/admin\/metrics\/network$/,                     handler: withErrorLogging('metrics', handleNetworkInsights) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/regions$/,                     handler: withErrorLogging('metrics', handleRegionInsights) },
   { method: "GET",  pattern: /^\/admin\/metrics\/top-issues$/,                  handler: withErrorLogging('metrics', handleTopIssues) },
   { method: "GET",  pattern: /^\/admin\/metrics\/alerts$/,                      handler: withErrorLogging('metrics', handleRecentAlerts) },
   { method: "GET",  pattern: /^\/admin\/alerts$/,                               handler: withErrorLogging('alerts', handleAlerts) },
   { method: "POST", pattern: /^\/admin\/alerts\/[^/]+\/resolve$/,               handler: withErrorLogging('alerts', handleResolveAlert) },
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-costs$/,                    handler: withErrorLogging('metrics', handleAiCostMetrics) },
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-providers$/,                handler: withErrorLogging('metrics', handleAiProviders) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/ai-quota$/,                    handler: withErrorLogging('ai-quota', handleAiQuota) },
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage\/timeline$/,          handler: withErrorLogging('metrics', handleAiUsageTimeline) },
   { method: "GET",  pattern: /^\/admin\/metrics\/ai-usage\/records$/,          handler: withErrorLogging('metrics', handleAiUsageRecords) },
   { method: "GET",  pattern: /^\/admin\/metrics\/operators$/,                   handler: withErrorLogging('metrics', handleOperators) },
@@ -2746,15 +3521,22 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/diagnostics\/intelligence$/,            handler: withErrorLogging('metrics', handleDiagnosticsIntelligence) },
   { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/product$/,          handler: withErrorLogging('analytics', handleProductAnalytics) },
   { method: "GET",  pattern: /^\/admin\/analytics\/product$/,                   handler: withErrorLogging('analytics', handleProductAnalytics) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/speedtest-funnel$/, handler: withErrorLogging('analytics', handleSpeedtestFunnel) },
   { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/battery$/,          handler: withErrorLogging('analytics', handleBatteryAnalytics) },
   { method: "GET",  pattern: /^\/admin\/analytics\/battery$/,                   handler: withErrorLogging('analytics', handleBatteryAnalytics) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/devices$/,          handler: withErrorLogging('analytics', handleDeviceBreakdown) },
+  { method: "GET",  pattern: /^\/admin\/analytics\/devices$/,                   handler: withErrorLogging('analytics', handleDeviceBreakdown) },
   { method: "GET",  pattern: /^\/admin\/metrics\/errors$/,                      handler: handleErrors },
+  { method: "GET",  pattern: /^\/admin\/metrics\/errors\/timeline$/,             handler: withErrorLogging('metrics', handleErrorsTimeline) },
   { method: "POST", pattern: /^\/admin\/errors\/[^/]+\/resolve$/,               handler: withErrorLogging('errors', async (req, env) => {
       const session = await authenticateSession(req, env);
       if (!session) return err('Unauthorized', 401, env);
       return handleResolveSystemError(req, env, session);
     }) },
   { method: "GET",  pattern: /^\/admin\/system-health$/,                        handler: withErrorLogging('system-health', handleSystemHealth) },
+  { method: "GET",  pattern: /^\/admin\/system-health\/history$/,               handler: withErrorLogging('system-health', handleSystemHealthHistory) },
+  { method: "POST", pattern: /^\/admin\/system-health\/snapshot$/,              handler: withErrorLogging('system-health', handleTriggerHealthSnapshot) },
+  { method: "GET",  pattern: /^\/admin\/cloudflare-usage$/,                     handler: withErrorLogging('cloudflare-usage', handleCloudflareUsage) },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/status$/,       handler: handleFirebaseStatus },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/analytics$/,    handler: handleFirebaseAnalytics },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/crashlytics$/,  handler: handleFirebaseCrashlytics },
@@ -2850,5 +3632,12 @@ export default {
       }
     }
     return err("Not found", 404, env);
+  },
+
+  // #788 — Cron Trigger (ver [triggers] em wrangler.toml): grava um snapshot
+  // de latência/uptime a cada execução, sem custo (Workers Free inclui cron
+  // triggers; a cada 15min = 96 invocações/dia, irrelevante nos 100k/dia livres).
+  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(runHealthSnapshot(env));
   },
 };

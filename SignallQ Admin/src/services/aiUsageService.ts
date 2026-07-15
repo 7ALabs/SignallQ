@@ -15,8 +15,12 @@ export const aiUsageService = {
         `/admin/metrics/ai-usage?environment=${env}&period=${period}`
       );
       return (raw.byModel ?? []).map((r: any) => ({
+        // #879 (achado 4): worker agora normaliza `model` pro ID de enum
+        // (gemini_flash/cloudflare_qwen/openai/local_fallback) — cast direto do
+        // ID técnico bruto (ex. "gemini-flash-latest") nunca batia com o enum,
+        // fazendo o donut cair sempre na cor de fallback.
         provider: r.model as import("../types/ai").AiProvider,
-        displayName: r.model,
+        displayName: r.providerLabel ?? r.model,
         totalCalls: r.calls ?? 0,
         totalTokens: r.tokens ?? 0,
         averageLatencyMs: 0,

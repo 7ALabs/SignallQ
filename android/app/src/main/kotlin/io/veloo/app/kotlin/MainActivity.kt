@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
@@ -11,18 +12,25 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.ads.MobileAds
 import dagger.hilt.android.AndroidEntryPoint
+import io.signallq.app.ads.AdsFlagsManager
+import io.signallq.app.ads.ConsentManager
 import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.EstadoConexao
@@ -33,7 +41,6 @@ import io.signallq.app.ui.SignallQTheme
 import io.signallq.app.ui.component.LgpdConsentDialog
 import io.signallq.app.ui.screen.AppShell
 import io.signallq.app.ui.screen.OnboardingScreen
-import io.signallq.app.ui.viewmodel.ChatDiagnosticoIaViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -48,8 +55,17 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var inAppReviewManager: InAppReviewManager
 
+    @Inject
+    lateinit var adsFlagsManager: AdsFlagsManager
+
+    // GH#970 — resolve identidade/contato de operadora local -> diretorio remoto do
+    // worker signallq-diagnostic -> fallback generico. Injetado aqui (nao dentro de
+    // Composable) porque AppShell/HomeScreen/ResultadoVelocidadeScreen sao 100%
+    // data-driven (sem hiltViewModel() em Composables leaf neste app).
+    @Inject
+    lateinit var operadoraDirectoryResolver: io.signallq.app.ui.OperadoraDirectoryResolver
+
     private val viewModel: MainViewModel by viewModels()
-    private val chatDiagViewModel: ChatDiagnosticoIaViewModel by viewModels()
 
     // ViewModels por feature — extraidos do MainViewModel (Passo 6 do plano de migracao).
     // Fase atual: instanciados e conectados; o MainViewModel ainda contem logica legada
@@ -60,51 +76,32 @@ class MainActivity : ComponentActivity() {
     private val devicesViewModel: DevicesViewModel by viewModels()
     private val speedtestViewModel: SpeedtestViewModel by viewModels()
 
-    private val solicitacaoPermissoes =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { resultados ->
-            aguardandoRespostaPermissoes = false
-            val todasConcedidas = resultados.values.all { it }
-            if (todasConcedidas) viewModel.iniciarRotinasNaoSpeedtest()
-        }
-
-    /**
-     * Solicitacao LAZY de READ_PHONE_STATE — disparada apenas quando o usuario
-     * roda diagnostico em rede movel pela primeira vez. Justificativa:
-     * "Para analise de sinal 4G/5G". Se negar, snapshot movel fica null e a
-     * IA recebe `connectionType: mobile` sem o bloco `movel` (gracioso).
-     */
-    private val solicitacaoPermissaoTelefonia =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { concedida ->
-            temPermissaoTelefonia = concedida
-            if (concedida) viewModel.iniciarMonitorTelefoniaSeMovel()
-        }
-
-    private val solicitacaoPermissaoLocalizacao =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { concedida ->
-            temPermissaoLocalizacao = concedida
-            if (concedida) viewModel.iniciarRotinasNaoSpeedtest()
-        }
-
-    private val solicitacaoPermissaoNotificacao =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-            // Worker agenda mesmo se permissao negada — notificacoes ficam silenciosas
-            viewModel.atualizarMonitoramento(true)
-        }
-
-    private var jaSolicitouTelefoniaNestaSessao = false
-    private var aguardandoRespostaPermissoes = false
-
     private var temPermissaoTelefonia by mutableStateOf(false)
     private var temPermissaoLocalizacao by mutableStateOf(false)
 
     // #155/9.3: permissão negada permanentemente (shouldShowRequestPermissionRationale = false E não concedida)
     private var localizacaoBloqueadaPermanentemente by mutableStateOf(false)
 
+    // Issue #555 -- gate de consentimento UMP para anuncio nativo AdMob. Comeca false:
+    // nenhuma tela pede anuncio ate a UMP responder (mesmo que a resposta seja "nao
+    // exigido nesta regiao", ainda precisa do callback pra saber disso).
+    private var podeRequisitarAnuncio by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         analyticsTracker.registrarSessionStart()
         registrarBatterySnapshotInicial()
+
+        // Issue #555 -- gate de consentimento UMP antes de qualquer AdRequest, mesmo
+        // so contextual. MobileAds.initialize so roda depois do consentimento resolvido
+        // (ordem recomendada pelo proprio guia UMP+AdMob do Google).
+        ConsentManager.atualizarEMostrarSeNecessario(this) { podeRequisitar ->
+            podeRequisitarAnuncio = podeRequisitar
+            if (podeRequisitar) {
+                MobileAds.initialize(this) {}
+            }
+        }
         val estadoConexaoInicial = viewModel.monitorRede.snapshotFlow.value.estadoConexao
         analyticsHelper.registrarAppAberto(tipoConexao = estadoConexaoInicial.paraTipoConexaoAnalytics())
 
@@ -156,6 +153,11 @@ class MainActivity : ComponentActivity() {
             // GH#865 Fase 1 — snapshot normalizado do equipamento local (ONT Nokia).
             val localDeviceSnapshot =
                 viewModel.localDeviceSnapshot
+                    .collectAsStateWithLifecycle()
+                    .value
+            // GH#934 — Fase 5: NAT/CGNAT (SIG-279), reusado pela EquipamentoInternetScreen.
+            val natStatus =
+                viewModel.natStatusFlow
                     .collectAsStateWithLifecycle()
                     .value
 
@@ -218,11 +220,11 @@ class MainActivity : ComponentActivity() {
                     .collectAsStateWithLifecycle()
                     .value
             val apelidos = viewModel.apelidos.collectAsStateWithLifecycle().value
+            val correlacoesTopologia = viewModel.correlacoesTopologia.collectAsStateWithLifecycle().value
             val snapshotDiagnostico =
                 viewModel.diagnosticOrchestrator.snapshotFlow
                     .collectAsStateWithLifecycle()
                     .value
-            val signallQUiState = viewModel.signallQUiStateFlow.collectAsStateWithLifecycle().value
             val movelSnapshot = viewModel.movelSnapshot.collectAsStateWithLifecycle().value
             val simsAtivos = viewModel.simsAtivos.collectAsStateWithLifecycle().value
             val gemmaAvailable = viewModel.gemmaAvailable.collectAsStateWithLifecycle().value
@@ -235,8 +237,8 @@ class MainActivity : ComponentActivity() {
             val recommendationFeedback by viewModel.recommendationFeedback.collectAsStateWithLifecycle()
             // #82 — Banner Anatel dismissível
             val anatelBannerDismissed = viewModel.anatelBannerDismissed.collectAsStateWithLifecycle().value
-            // Chat Diagnóstico IA
-            val chatDiagUiState by chatDiagViewModel.uiState.collectAsStateWithLifecycle()
+            // Issue #555 -- toggle remoto (Firebase Remote Config) de anuncios nativos.
+            val adsFlags by adsFlagsManager.flags.collectAsStateWithLifecycle()
 
             val gatewayIpDetectado = gateways.firstOrNull()?.ip
             val darkTheme =
@@ -279,12 +281,37 @@ class MainActivity : ComponentActivity() {
                 }
 
             SignallQTheme(darkTheme = darkTheme) {
-                if (!onboardingConcluido) {
+                // #895: `onboardingConcluido == null` = DataStore ainda nao respondeu nesta
+                // composicao (distinto de `false` = usuario novo). Sem esse terceiro estado, a
+                // tela de Onboarding (e, na sequencia, o dialog de LGPD) "piscava" por um
+                // instante em TODO cold start, mesmo pra quem ja concluiu ambos — a rota
+                // inicial so e decidida depois que os dois valores reais chegam.
+                if (onboardingConcluido == null) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background),
+                    )
+                } else if (!onboardingConcluido) {
+                    // #128: onboarding pede as 4 permissoes (batch) internamente na tela 2;
+                    // aqui so reagimos ao resultado real pra ligar as rotinas que dependiam
+                    // do fluxo antigo de callbacks por permissao.
                     OnboardingScreen(
                         onConcluir = { viewModel.marcarOnboardingConcluido() },
-                        // #128: solicitar permissões no slide 3 (localização + dispositivos próximos)
-                        onSolicitarPermissaoLocalizacao = { solicitarPermissaoLocalizacaoContextual() },
-                        onSolicitarPermissaoDispositivosProximos = { solicitarPermissaoDispositivosProximosContextual() },
+                        onPermissoesConcedidas = { concedidas ->
+                            if (Manifest.permission.ACCESS_FINE_LOCATION in concedidas) {
+                                temPermissaoLocalizacao = true
+                                viewModel.iniciarRotinasNaoSpeedtest()
+                            }
+                            if (Manifest.permission.READ_PHONE_STATE in concedidas) {
+                                temPermissaoTelefonia = true
+                                viewModel.iniciarMonitorTelefoniaSeMovel()
+                            }
+                            if (Manifest.permission.POST_NOTIFICATIONS in concedidas) {
+                                viewModel.atualizarMonitoramento(true)
+                            }
+                        },
                     )
                 } else if (consentimentoLgpd == null) {
                     LgpdConsentDialog(
@@ -321,14 +348,18 @@ class MainActivity : ComponentActivity() {
                                     analyticsTracker.registrarFeatureUsada("wifi")
                                 },
                                 onSalvarApelido = { mac, apelido -> viewModel.salvarApelido(mac, apelido) },
+                                correlacoesTopologia = correlacoesTopologia,
                             ),
                         diagnostico =
                             io.signallq.app.ui.screen.AppShellDiagnosticoState(
                                 snapshotDiagnostico = snapshotDiagnostico,
                                 onIniciarDiagnostico = {
-                                    solicitarPermissaoTelefoniaSeNecessario()
+                                    // GH#919 — feature_used("diagnostico") passou a ser disparado
+                                    // dentro do SignallQOrchestrator, no momento em que a sessao
+                                    // real (diagnostic_sessions.id) e criada, correlacionando com
+                                    // ai_usage.session_id. Emitir aqui tambem duplicaria a contagem
+                                    // de "feature usada" com um session_id generico e sem correlacao.
                                     viewModel.iniciarDiagnostico()
-                                    analyticsTracker.registrarFeatureUsada("diagnostico")
                                 },
                                 diagChatHistorico = diagChatHistorico,
                                 diagChatCarregando = diagChatCarregando,
@@ -347,37 +378,16 @@ class MainActivity : ComponentActivity() {
                             ),
                         signallQ =
                             io.signallq.app.ui.screen.AppShellSignallQState(
-                                signallQUiState = signallQUiState,
                                 gemmaAvailable = gemmaAvailable,
                                 operadoraMovel =
                                     simsAtivos.firstOrNull { it.isDefaultData }?.operadora
                                         ?: simsAtivos.firstOrNull()?.operadora,
-                                onIniciarSignallQ = { foco ->
-                                    solicitarPermissaoTelefoniaSeNecessario()
-                                    viewModel.iniciarSignallQ(foco)
-                                },
-                                onResetSignallQ = { viewModel.resetSignallQ() },
-                                onSelecionarChip = { chip -> viewModel.selecionarChipSignallQ(chip) },
-                                onResponderPergunta = { opcao -> viewModel.responderPerguntaSignallQ(opcao) },
-                                onEnviarMensagemTexto = { texto -> viewModel.enviarMensagemTextoSignallQ(texto) },
                                 onVerificarGemma = { viewModel.verificarDisponibilidadeGemma() },
-                                onIniciarSignallQComResultado = { resultado, foco ->
-                                    solicitarPermissaoTelefoniaSeNecessario()
-                                    viewModel.iniciarSignallQComResultado(resultado, foco)
-                                },
                             ),
-                        chatDiag =
-                            io.signallq.app.ui.screen.AppShellChatDiagState(
-                                chatDiagUiState = chatDiagUiState,
-                                onEnviarMensagem = chatDiagViewModel::onEnviarMensagem,
-                                onAtualizarDraft = chatDiagViewModel::onAtualizarDraft,
-                                onEscolherOpcao = chatDiagViewModel::onEscolherOpcao,
-                                onAbrirSessao = chatDiagViewModel::onAbrirSessao,
-                                onApagarSessao = chatDiagViewModel::onApagarSessao,
-                                onRenomearSessao = chatDiagViewModel::onRenomearSessao,
-                                onNovaSessao = chatDiagViewModel::onNovaSessao,
-                                onToggleDrawer = chatDiagViewModel::onToggleDrawer,
-                                onCancelarAcaoAtual = chatDiagViewModel::onCancelarAcaoAtual,
+                        ads =
+                            io.signallq.app.ui.screen.AppShellAdsState(
+                                flags = adsFlags,
+                                podeRequisitarAnuncio = podeRequisitarAnuncio,
                             ),
                         snapshotDns = snapshotDns,
                         history = history,
@@ -400,6 +410,7 @@ class MainActivity : ComponentActivity() {
                         resumoHistorico = resumoHistorico,
                         snapshotFibra = snapshotFibra,
                         localDevice = localDeviceSnapshot,
+                        natStatus = natStatus,
                         modemHost = modemHost,
                         modemUsername = modemUsername,
                         modemPassword = modemPassword,
@@ -413,6 +424,10 @@ class MainActivity : ComponentActivity() {
                         },
                         onReconectarFibra = { host, user, pass ->
                             viewModel.reconectarFibra(host, user, pass)
+                            analyticsTracker.registrarFeatureUsada("fibra")
+                        },
+                        onReiniciarEquipamento = {
+                            viewModel.reiniciarEquipamento()
                             analyticsTracker.registrarFeatureUsada("fibra")
                         },
                         onSalvarConfiguracaoModem = { host, user, pass, perm ->
@@ -431,11 +446,17 @@ class MainActivity : ComponentActivity() {
                         onResetarApp = { viewModel.resetarApp() },
                         monitoramentoAtivo = monitoramentoAtivo,
                         onAtivarMonitoramento = { ativo ->
-                            if (ativo) {
-                                solicitarPermissaoNotificacaoSeNecessario { viewModel.atualizarMonitoramento(true) }
-                            } else {
-                                viewModel.atualizarMonitoramento(false)
+                            if (ativo && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                val notificacaoConcedida =
+                                    ContextCompat.checkSelfPermission(
+                                        this@MainActivity,
+                                        Manifest.permission.POST_NOTIFICATIONS,
+                                    ) == PackageManager.PERMISSION_GRANTED
+                                if (!notificacaoConcedida) {
+                                    abrirAjustesDoApp()
+                                }
                             }
+                            viewModel.atualizarMonitoramento(ativo)
                         },
                         notificacaoLatenciaAtiva = notificacaoLatenciaAtiva,
                         notificacaoDnsAtiva = notificacaoDnsAtiva,
@@ -483,6 +504,15 @@ class MainActivity : ComponentActivity() {
                         },
                         operadorasDisponiveisHistorico = operadorasDisponiveisHistorico,
                         onScreenView = { screenName -> analyticsTracker.registrarScreenView(screenName) },
+                        onCompartilharResultadoVelocidade = {
+                            analyticsTracker.registrarFeatureUsada("speedtest_compartilhou")
+                        },
+                        // GH#970 — cadeia local -> diretorio remoto -> fallback generico
+                        // (io.signallq.app.ui.OperadoraDirectoryResolver, injetado via Hilt).
+                        resolveOperadoraIdentidadeLocal = operadoraDirectoryResolver::resolveLocalIdentity,
+                        resolveOperadoraContatoLocal = operadoraDirectoryResolver::resolveLocalContact,
+                        resolveOperadoraIdentidadeRemota = operadoraDirectoryResolver::resolveIdentity,
+                        resolveOperadoraContatoRemoto = operadoraDirectoryResolver::resolveContact,
                     )
                 } // else onboardingConcluido
             }
@@ -492,7 +522,9 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         viewModel.iniciarMonitorRede()
-        verificarEPedirPermissoes()
+        if (viewModel.onboardingConcluido.value == true) {
+            viewModel.iniciarRotinasNaoSpeedtest()
+        }
     }
 
     override fun onResume() {
@@ -537,55 +569,6 @@ class MainActivity : ComponentActivity() {
         analyticsTracker.registrarBatterySnapshot(levelPercent, charging)
     }
 
-    private fun verificarEPedirPermissoes() {
-        if (aguardandoRespostaPermissoes) return
-        val pendentes = viewModel.gerenciadorPermissoes.listarPermissoesPendentes()
-        if (pendentes.isNotEmpty()) {
-            aguardandoRespostaPermissoes = true
-            solicitacaoPermissoes.launch(pendentes.toTypedArray())
-        } else {
-            viewModel.iniciarRotinasNaoSpeedtest()
-        }
-    }
-
-    /**
-     * Lazy: so solicita READ_PHONE_STATE quando o usuario esta em rede movel
-     * E ainda nao tentamos pedir nesta sessao. Em Wi-Fi/Ethernet, nao pede.
-     * Se ja concedida, apenas garante que o monitor esta iniciado.
-     */
-    private fun solicitarPermissaoNotificacaoSeNecessario(onProsseguir: () -> Unit) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val concedida =
-                ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS,
-                ) == PackageManager.PERMISSION_GRANTED
-            if (!concedida) {
-                solicitacaoPermissaoNotificacao.launch(Manifest.permission.POST_NOTIFICATIONS)
-                return
-            }
-        }
-        onProsseguir()
-    }
-
-    private fun solicitarPermissaoTelefoniaSeNecessario() {
-        val emRedeMovel = viewModel.monitorRede.snapshotFlow.value.estadoConexao == EstadoConexao.movel
-        if (!emRedeMovel) return
-        val concedida =
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_PHONE_STATE,
-            ) == PackageManager.PERMISSION_GRANTED
-        if (concedida) {
-            temPermissaoTelefonia = true
-            viewModel.iniciarMonitorTelefoniaSeMovel()
-            return
-        }
-        if (jaSolicitouTelefoniaNestaSessao) return
-        jaSolicitouTelefoniaNestaSessao = true
-        solicitacaoPermissaoTelefonia.launch(Manifest.permission.READ_PHONE_STATE)
-    }
-
     private fun solicitarPermissaoTelefoniaContextual() {
         val concedida =
             ContextCompat.checkSelfPermission(
@@ -597,24 +580,7 @@ class MainActivity : ComponentActivity() {
             viewModel.iniciarMonitorTelefoniaSeMovel()
             return
         }
-        solicitacaoPermissaoTelefonia.launch(Manifest.permission.READ_PHONE_STATE)
-    }
-
-    // #128: solicitar permissão de dispositivos próximos (NEARBY_WIFI_DEVICES) no onboarding
-    private fun solicitarPermissaoDispositivosProximosContextual() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            val concedida =
-                ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.NEARBY_WIFI_DEVICES,
-                ) == PackageManager.PERMISSION_GRANTED
-            if (!concedida) {
-                // Usar launcher genérico (múltiplas permissões) para não corromper o
-                // launcher de localização (solicitacaoPermissaoLocalizacao)
-                solicitacaoPermissoes.launch(arrayOf(Manifest.permission.NEARBY_WIFI_DEVICES))
-            }
-        }
-        // Abaixo do API 33, NEARBY_WIFI_DEVICES não existe — no-op; localização cobre o caso
+        abrirAjustesDoApp()
     }
 
     // Analytics (SIG-155): EstadoConexao.movel vira "mobile" no schema do funil.
@@ -630,16 +596,17 @@ class MainActivity : ComponentActivity() {
             ) == PackageManager.PERMISSION_GRANTED
         if (concedida) {
             temPermissaoLocalizacao = true
+            viewModel.iniciarRotinasNaoSpeedtest()
             return
         }
-        if (shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
-            solicitacaoPermissaoLocalizacao.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-        } else {
-            startActivity(
-                android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = android.net.Uri.fromParts("package", packageName, null)
-                },
-            )
-        }
+        abrirAjustesDoApp()
+    }
+
+    private fun abrirAjustesDoApp() {
+        startActivity(
+            Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", packageName, null)
+            },
+        )
     }
 }

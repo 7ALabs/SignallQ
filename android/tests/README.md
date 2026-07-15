@@ -50,8 +50,6 @@ Total atual: **37 classes de teste** em `*/src/test/`, distribuídas por módulo
 | `monitoramento/MonitoramentoWorkerHistereseTest` | Histerese do worker de monitoramento (evita alertas por oscilação) |
 | `monitoramento/MonitoramentoWorkerMedicaoTest` | Lógica de medição do worker de monitoramento passivo |
 | `speedtest/SpeedtestPersistenceCoordinatorTest` | Coordenação de persistência dos resultados de speedtest |
-| `ui/screen/ChatDiagnosticoIaScreenTest` | Tela de chat do diagnóstico por IA (assistente SignallQ) |
-| `ui/viewmodel/ChatDiagnosticoIaViewModelTest` | ViewModel do chat de diagnóstico por IA |
 
 ### Módulo `coreDatabase`
 | Teste | O que cobre |
@@ -76,7 +74,6 @@ Total atual: **37 classes de teste** em `*/src/test/`, distribuídas por módulo
 | `ai/DiagnosisAiContextFactoryTest` | Montagem do contexto enviado à IA de diagnóstico |
 | `ai/AiFallbackFactoryTest` | Fallback de diagnóstico **local** quando a IA na nuvem não está disponível (rodapé "Diagnóstico local do SignallQ") |
 | `ai/AiDiagnosisRepositoryTest` | Repositório de diagnóstico por IA (chamada ao Worker / tratamento de resposta) |
-| `chat/CotaIaRepositoryTest` | Controle de cota de uso da IA |
 | `CanalTextGeneratorTest` | Geração de texto da análise de canais Wi-Fi |
 | `DiagnosticDecisionEngineGatewayTest` | Motor de decisão de diagnóstico (regras de gateway) |
 | `DiagnosticRunnerIntegrationTest` | Integração do runner que orquestra as etapas de diagnóstico |
@@ -111,14 +108,13 @@ Total atual: **37 classes de teste** em `*/src/test/`, distribuídas por módulo
 
 ## 3. Testes instrumentados (androidTest)
 
-Existem **3 classes** instrumentadas, todas focadas na camada de banco
+Existem **2 classes** instrumentadas, ambas focadas na camada de banco
 (Room / migrations / DAO) — **não há testes instrumentados de UI Compose**:
 
 | Teste | Módulo | O que cobre |
 |-------|--------|-------------|
-| `chat/ChatSessionDaoTest` | `coreDatabase` | DAO de sessões de chat |
+| `chat/ChatSessionDaoTest` | `coreDatabase` | DAO de sessões de chat (tabela mantida — usada pelo `AdminSyncWorker` para sync de uso de IA legado) |
 | `chat/Migration9Para10Test` | `coreDatabase` | Migração de schema Room v9 → v10 |
-| `chat/ChatDiagnosticoIaRepositoryTest` | `featureDiagnostico` | Repositório de chat de diagnóstico contra Room real |
 
 ---
 
