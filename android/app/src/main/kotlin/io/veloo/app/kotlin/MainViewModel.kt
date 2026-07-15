@@ -17,8 +17,11 @@ import io.signallq.app.core.network.DispatcherProvider
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.network.NetworkCapabilitiesProvider
+import io.signallq.app.core.network.contracts.localdevice.ClientSnapshot
 import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
+import io.signallq.app.core.network.contracts.topologia.ClassificacaoTopologia
 import io.signallq.app.core.network.contracts.topologia.PapelTopologia
+import io.signallq.app.core.network.contracts.wifi.RedeVizinha
 import io.signallq.app.core.network.contracts.wifi.channel.freqToChannel
 import io.signallq.app.core.network.topologia.engine.TopologiaRedeEngine
 import io.signallq.app.core.permissions.GerenciadorPermissoesRede
@@ -31,8 +34,10 @@ import io.signallq.app.core.recommendation.analytics.toAnalyticsPayload
 import io.signallq.app.core.telephony.MonitorTelephony
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
+import io.signallq.app.feature.devices.ResultadoCorrelacaoTopologia
 import io.signallq.app.feature.devices.ScannerDispositivos
 import io.signallq.app.feature.devices.SnapshotScanDispositivos
+import io.signallq.app.feature.devices.correlacionarDispositivoComTopologia
 import io.signallq.app.feature.diagnostico.ConnectionType
 import io.signallq.app.feature.diagnostico.DiagnosticInput
 import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
@@ -1500,6 +1505,38 @@ class MainViewModel
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), scannerDispositivos.snapshotFlow.value)
         }
 
+        /** #983 (Fase 4) — versao continua (nao reduzida a um mapa por BSSID como em
+         *  [montarWifiScanInput]) da classificacao de topologia Wi-Fi, exposta pra alimentar
+         *  [correlacoesTopologia]. */
+        val redesWifiClassificadas: StateFlow<List<Pair<RedeVizinha, ClassificacaoTopologia>>> by lazy {
+            combine(scannerRedesWifi.snapshotFlow, monitorRede.snapshotFlow) { wifiSnapshot, redeSnapshot ->
+                TopologiaRedeEngine.classificar(
+                    redes = wifiSnapshot.redes,
+                    connectedBssid = redeSnapshot.wifiLinkSnapshot?.bssid,
+                )
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }
+
+        /** #983 (Fase 4) — correlaciona best-effort cada dispositivo do scan LAN (feature/devices)
+         *  com a topologia Wi-Fi classificada e com a leitura direta do gateway (ClientSnapshot),
+         *  quando disponiveis. Sem scan Wi-Fi ou credencial de gateway, todo dispositivo cai em
+         *  [io.signallq.app.feature.devices.NivelCorrelacao.SEM_MATCH] — comportamento identico ao
+         *  de antes da Fase 4. Correlacao fraca (so OUI) nunca reclassifica sozinha — ver
+         *  [correlacionarDispositivoComTopologia]. */
+        val correlacoesTopologia: StateFlow<Map<String, ResultadoCorrelacaoTopologia>> by lazy {
+            combine(
+                snapshotDispositivos,
+                redesWifiClassificadas,
+                localDeviceSnapshot,
+            ) { snapshot, redes, localDevice ->
+                construirCorrelacoesTopologia(
+                    dispositivos = snapshot.dispositivos,
+                    redesWifiClassificadas = redes,
+                    clientesGateway = localDevice?.clientes.orEmpty(),
+                )
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+        }
+
         fun refreshDispositivos() {
             viewModelScope.launch {
                 scannerDispositivos.iniciarScan(clientesGateway = localDeviceSnapshot.value?.clientes.orEmpty())
@@ -2211,6 +2248,24 @@ internal fun papelParaConnectionNodeType(papel: PapelTopologia): ConnectionNodeT
         PapelTopologia.REPETIDOR -> ConnectionNodeType.WifiExtender
         PapelTopologia.PONTO_DE_ACESSO -> ConnectionNodeType.Unknown
         PapelTopologia.DESCONHECIDO -> ConnectionNodeType.Unknown
+    }
+
+// #983 (Fase 4) — extraida para ser testavel sem Hilt/Android; correlaciona cada dispositivo
+// do scan LAN com a topologia Wi-Fi classificada e com a leitura direta do gateway. Sem scan
+// Wi-Fi ou credencial de gateway (ambos vazios), cai no comportamento anterior a Fase 4 —
+// todo dispositivo mapeado pra SEM_MATCH (ver correlacionarDispositivoComTopologia).
+internal fun construirCorrelacoesTopologia(
+    dispositivos: List<io.signallq.app.feature.devices.DispositivoRede>,
+    redesWifiClassificadas: List<Pair<RedeVizinha, ClassificacaoTopologia>>,
+    clientesGateway: List<ClientSnapshot>,
+): Map<String, ResultadoCorrelacaoTopologia> =
+    dispositivos.associate { dispositivo ->
+        dispositivo.id to
+            correlacionarDispositivoComTopologia(
+                dispositivo = dispositivo,
+                clientesGateway = clientesGateway,
+                redesWifiClassificadas = redesWifiClassificadas,
+            )
     }
 
 // SIG-279 — enums identicos por nome (wifi/movel/ethernet/desconectado/desconhecido),

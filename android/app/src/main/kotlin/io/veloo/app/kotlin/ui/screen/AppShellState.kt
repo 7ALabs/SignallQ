@@ -4,6 +4,7 @@ import androidx.compose.runtime.Stable
 import io.signallq.app.ads.AdsFlags
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
+import io.signallq.app.feature.devices.ResultadoCorrelacaoTopologia
 import io.signallq.app.feature.devices.SnapshotScanDispositivos
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.diagnostico.ai.AiAcaoRecomendada
@@ -49,6 +50,9 @@ data class AppShellWifiState(
     val onRefreshDispositivos: () -> Unit,
     val onRefreshSinal: () -> Unit,
     val onSalvarApelido: (mac: String, apelido: String) -> Unit,
+    /** #983 (Fase 4) — correlacao best-effort topologia/gateway, chaveada por id do dispositivo
+     *  (ver MainViewModel.correlacoesTopologia). */
+    val correlacoesTopologia: Map<String, ResultadoCorrelacaoTopologia> = emptyMap(),
 )
 
 sealed class AnalisadorState {
