@@ -5,6 +5,13 @@ import { LoadingState } from "../../../components/ui/LoadingState";
 import { StatusBadge } from "../../../components/ui/StatusBadge";
 import { integrationsService } from "../../../integrations/integrationsService";
 import { FirebaseCrashIssue, FirebaseCrashIssuesResult } from "../../../integrations/firebase/firebase.types";
+import { AppEnvironment } from "../../../types/admin";
+
+interface TopCrashesCardProps {
+  environment: AppEnvironment;
+  period: string;
+  triggerRefreshCounter: number;
+}
 
 // Mesmo threshold já usado em getFirebaseAppVersions (firebaseAdapter.ts) para
 // classificar severidade de crash sem inventar escala nova — só renomeado
@@ -31,7 +38,11 @@ function formatLastSeen(epochMs: number): string {
 // erro independentes do resto da ErrorsPage, para não travar a tela inteira
 // se essa integração falhar. "Sem crashes registrados" (lista vazia real) é
 // um estado diferente de "integração não existe" (era o texto antigo, errado).
-export const TopCrashesCard: React.FC = () => {
+export const TopCrashesCard: React.FC<TopCrashesCardProps> = ({
+  environment,
+  period,
+  triggerRefreshCounter,
+}) => {
   const [issues, setIssues] = React.useState<FirebaseCrashIssue[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -43,7 +54,7 @@ export const TopCrashesCard: React.FC = () => {
     setError(null);
 
     integrationsService
-      .getFirebaseIssues({})
+      .getFirebaseIssues({ environment, period })
       .then((result: FirebaseCrashIssuesResult) => {
         if (!active) return;
         if (result.source === "no_credentials") {
@@ -71,7 +82,7 @@ export const TopCrashesCard: React.FC = () => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [environment, period, triggerRefreshCounter]);
 
   return (
     <ChartCard title="TOP CRASHES" id="top-crashes-card">

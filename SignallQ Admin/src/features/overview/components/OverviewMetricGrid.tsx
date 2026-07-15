@@ -13,9 +13,6 @@ interface OverviewMetricGridProps {
 
 // Paridade com o mockup do Luiz (signallq-admin-mockup.dc.html, sec-overview):
 // Usuários Ativos, Crash-free rate, Custo de IA (mês), Nota na Play Store.
-// Nota na Play Store não tem integração real ainda (getGooglePlayRatings é
-// mock-only hoje) — "Não disponível" é o estado honesto: mostrar um número
-// fabricado seria pior que não mostrar nada.
 
 export const OverviewMetricGrid: React.FC<OverviewMetricGridProps> = ({
   activeUsersToday,
@@ -55,13 +52,14 @@ export const OverviewMetricGrid: React.FC<OverviewMetricGridProps> = ({
         id="metric-ai-cost-month"
       />
 
-      {/* 4. Nota na Play Store — sem integração real ainda (Android Publisher
-          API de reviews/rating não implementada, só instalações/tracks) */}
+      {/* 4. Nota na Play Store — integração real via Android Publisher API
+          (getGooglePlayRatings, GH#871). null hoje é porque o app ainda não
+          foi publicado na Play Store (M3), não porque falta implementação. */}
       <MetricCard
         label="Nota na Play Store"
         value={playStoreRating === null ? "Não disponível" : `${playStoreRating.averageRating.toFixed(1)} ★`}
-        verdictNote={playStoreRating === null ? "Google Play Ratings API não implementada ainda" : `${playStoreRating.totalRatings.toLocaleString("pt-BR")} avaliações`}
-        source={playStoreRating === null ? "não implementado" : "google play"}
+        verdictNote={playStoreRating === null ? "Sem avaliações suficientes na Play Store ainda" : `${playStoreRating.totalRatings.toLocaleString("pt-BR")} avaliações`}
+        source="google play"
         id="metric-play-rating"
       />
     </div>

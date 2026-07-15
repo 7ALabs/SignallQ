@@ -24,7 +24,7 @@ describe("TopCrashesCard", () => {
       ],
     });
 
-    render(<TopCrashesCard />);
+    render(<TopCrashesCard environment="production" period="7d" triggerRefreshCounter={0} />);
 
     expect(await screen.findByText("java.net.SocketTimeoutException")).toBeInTheDocument();
     expect(screen.getByText("410")).toBeInTheDocument();
@@ -39,7 +39,7 @@ describe("TopCrashesCard", () => {
       issues: [{ id: "1", title: "NullPointerException", totalCrashes: 5, affectedUsers: 2, lastSeen: 0 }],
     });
 
-    render(<TopCrashesCard />);
+    render(<TopCrashesCard environment="production" period="7d" triggerRefreshCounter={0} />);
 
     expect(await screen.findByText("NullPointerException")).toBeInTheDocument();
     expect(screen.getAllByText("-").length).toBeGreaterThanOrEqual(1);
@@ -48,7 +48,7 @@ describe("TopCrashesCard", () => {
   it("mostra estado vazio honesto quando source é no_data_yet", async () => {
     getFirebaseIssuesMock.mockResolvedValue({ source: "no_data_yet", issues: [] });
 
-    render(<TopCrashesCard />);
+    render(<TopCrashesCard environment="production" period="7d" triggerRefreshCounter={0} />);
 
     expect(await screen.findByText("Sem crashes registrados no período")).toBeInTheDocument();
   });
@@ -56,7 +56,7 @@ describe("TopCrashesCard", () => {
   it("mostra estado vazio honesto quando não há credenciais", async () => {
     getFirebaseIssuesMock.mockResolvedValue({ source: "no_credentials", issues: [] });
 
-    render(<TopCrashesCard />);
+    render(<TopCrashesCard environment="production" period="7d" triggerRefreshCounter={0} />);
 
     expect(await screen.findByText("Firebase não configurado no Admin Worker")).toBeInTheDocument();
   });
@@ -64,7 +64,7 @@ describe("TopCrashesCard", () => {
   it("mostra erro quando a chamada falha", async () => {
     getFirebaseIssuesMock.mockRejectedValue(new Error("network"));
 
-    render(<TopCrashesCard />);
+    render(<TopCrashesCard environment="production" period="7d" triggerRefreshCounter={0} />);
 
     expect(await screen.findByText("Não foi possível carregar os crashes — worker indisponível")).toBeInTheDocument();
   });
