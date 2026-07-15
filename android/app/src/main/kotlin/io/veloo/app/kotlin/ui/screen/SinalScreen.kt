@@ -103,6 +103,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import io.signallq.app.R
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.WifiLinkSnapshot
+import io.signallq.app.core.network.contracts.topologia.NivelConfianca
+import io.signallq.app.core.network.contracts.topologia.PapelTopologia
+import io.signallq.app.core.network.topologia.engine.TopologiaRedeEngine
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
 import io.signallq.app.feature.diagnostico.BandaWifi
@@ -121,7 +124,6 @@ import io.signallq.app.feature.wifi.RedeVizinha
 import io.signallq.app.feature.wifi.SegurancaWifi
 import io.signallq.app.feature.wifi.SnapshotScanWifi
 import io.signallq.app.feature.wifi.TipoTopologia
-import io.signallq.app.feature.wifi.TopologiaWifiEngine
 import io.signallq.app.ui.BancoOperadoras
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
@@ -158,6 +160,43 @@ private fun TipoTopologia.toIconData(): TopologiaIconData? =
         TipoTopologia.PONTO_DE_ACESSO -> TopologiaIconData(Icons.Outlined.Lan, LkColors.signallQTextSecondaryOnDark)
         TipoTopologia.DESCONHECIDO -> null
     }
+
+// #980 (Fase 2B) — adapta o resultado do motor unificado (TopologiaRedeEngine, Fase 2A/#979)
+// pro shape legado (RedeClassificada/TipoTopologia/ConfiancaTopologia) que esta tela ja consome,
+// pra nao precisar reescrever icone/agrupamento/renderizacao — so troca a fonte da classificacao.
+// SISTEMA_MESH_PROVAVEL vira NO_MESH (mesmo icone de hoje; a incerteza ja e comunicada pelo aviso
+// "* Gateway estimado pelo sinal mais forte" em GrupoRedeTree, calculado independente do motor).
+internal fun PapelTopologia.paraTipoTopologiaLegado(): TipoTopologia =
+    when (this) {
+        PapelTopologia.ROTEADOR -> TipoTopologia.ROTEADOR
+        PapelTopologia.NO_MESH -> TipoTopologia.NO_MESH
+        PapelTopologia.SISTEMA_MESH_PROVAVEL -> TipoTopologia.NO_MESH
+        PapelTopologia.REPETIDOR -> TipoTopologia.REPETIDOR
+        PapelTopologia.PONTO_DE_ACESSO -> TipoTopologia.PONTO_DE_ACESSO
+        PapelTopologia.DESCONHECIDO -> TipoTopologia.DESCONHECIDO
+    }
+
+internal fun NivelConfianca.paraConfiancaTopologiaLegado(): ConfiancaTopologia =
+    when (this) {
+        NivelConfianca.ALTA -> ConfiancaTopologia.ALTA
+        NivelConfianca.MEDIA -> ConfiancaTopologia.MEDIA
+        NivelConfianca.BAIXA -> ConfiancaTopologia.BAIXA
+    }
+
+private fun classificarComMotorUnificado(
+    redes: List<RedeVizinha>,
+    connectedBssid: String?,
+): List<RedeClassificada> =
+    TopologiaRedeEngine
+        .classificar(redes = redes, connectedBssid = connectedBssid)
+        .map { (rede, classificacao) ->
+            RedeClassificada(
+                rede = rede,
+                tipo = classificacao.papelProvavel.paraTipoTopologiaLegado(),
+                confianca = classificacao.confianca.paraConfiancaTopologiaLegado(),
+                motivo = "",
+            )
+        }
 
 private fun signalQuality(
     rssiDbm: Int,
@@ -1227,12 +1266,13 @@ private fun RedesTab(
             connectedNetwork != null && (selectedBanda == "Todos" || connectedNetwork.banda == selectedBanda)
         }
 
-    // Classificação de topologia para todas as redes visíveis
+    // Classificação de topologia para todas as redes visíveis — motor unificado (Fase 2A/#979,
+    // Fase 2B/#980): ve OUI e banda, resolve o conflito Intelbras por contexto.
     val topologiaPorBssid =
         remember(snapshotWifi.redes, connectedNetwork) {
             runCatching {
                 val classificadas =
-                    TopologiaWifiEngine.classificar(
+                    classificarComMotorUnificado(
                         redes = snapshotWifi.redes,
                         connectedBssid = connectedNetwork?.bssid,
                     )
@@ -1296,10 +1336,11 @@ private fun RedesTab(
                     .filter { it.bssid != connectedNetwork?.bssid }
                     .filter { rede -> connSsid == null || rede.ssid == null || rede.ssid != connSsid }
 
-            // Classificar via TopologiaWifiEngine; fallback gracioso para lista vazia
+            // Classificar via motor unificado (TopologiaRedeEngine, Fase 2A/#979); fallback
+            // gracioso para lista vazia
             val classificadas =
                 runCatching {
-                    TopologiaWifiEngine.classificar(
+                    classificarComMotorUnificado(
                         redes = filtered,
                         connectedBssid = connectedNetwork?.bssid,
                     )
