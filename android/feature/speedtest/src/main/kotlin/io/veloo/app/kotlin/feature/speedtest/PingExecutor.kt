@@ -15,7 +15,15 @@ data class PingResultado(
     val amostras: Int,
 )
 
-class PingExecutor {
+/**
+ * @param targetUrl Base do endpoint usado como sonda de latencia. Default preserva
+ * o comportamento historico (CDN Cloudflare) usado pela tela Ping. GH#935 reaproveita
+ * esta classe passando a URL do `game-latency-probe-worker` (sonda regional dedicada,
+ * sem logica de jogo) em vez de duplicar a logica de amostragem/jitter/perda.
+ */
+class PingExecutor(
+    private val targetUrl: String = "https://speed.cloudflare.com/__down?bytes=0",
+) {
     private companion object {
         const val UA = "Mozilla/5.0 (Linux; Android 14; SM-A256E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
 
@@ -76,7 +84,8 @@ class PingExecutor {
 
     private fun medirPing(): Double? {
         val cb = "${System.currentTimeMillis()}_${kotlin.random.Random.nextInt(10_000, 99_999)}"
-        val url = "https://speed.cloudflare.com/__down?bytes=0&_cb=$cb"
+        val separador = if (targetUrl.contains("?")) "&" else "?"
+        val url = "$targetUrl${separador}_cb=$cb"
         val request = Request.Builder().url(url).get().build()
         val inicio = System.nanoTime()
         return try {

@@ -430,7 +430,7 @@ preservando o padrão onde faz sentido.
   realista por tela, seguindo distribuições plausíveis (nunca dado "redondo demais").
 - Esse wireframe não define biblioteca de gráficos, paleta exata ou breakpoints — isso é
   responsabilidade da implementação, respeitando os tokens já definidos em
-  `.claude/skills/linka-design/HANDOFF_README.md`.
+  `.claude/skills/SignallQ-design/HANDOFF_README.md`.
 - Sugestão de ordem de implementação (a validar com Claudete/Luiz): Centro de Controle primeiro
   (é a landing, maior visibilidade), depois Problemas & Incidentes e IA & Custos (maior valor
   operacional imediato), resto em sequência.

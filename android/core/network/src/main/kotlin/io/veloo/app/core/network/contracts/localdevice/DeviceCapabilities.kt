@@ -18,4 +18,10 @@ data class DeviceCapabilities(
     val suportaLan: Boolean = false,
     val suportaClientes: Boolean = false,
     val suportaDiagnosticoNativo: Boolean = false,
+    /**
+     * Driver expõe ação de gerência real sobre o equipamento (ex.: reiniciar)
+     * — GH#934. Distinto de "consegue ler dados": um driver pode ler tudo e
+     * ainda não ter nenhuma ação de escrita/controle disponível.
+     */
+    val suportaGerenciamento: Boolean = false,
 )

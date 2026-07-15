@@ -111,6 +111,16 @@ fun MinhaConexaoSheet(
     var upMbpsEdit by remember(velocidadeContratadaUpMbps) {
         mutableStateOf(if (velocidadeContratadaUpMbps > 0) velocidadeContratadaUpMbps.toString() else "")
     }
+    val fieldColors =
+        OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = LkColors.accent,
+            unfocusedBorderColor = c.border,
+            focusedLabelColor = LkColors.accent,
+            unfocusedLabelColor = c.textSecondary,
+            cursorColor = LkColors.accent,
+            focusedTextColor = c.textPrimary,
+            unfocusedTextColor = c.textPrimary,
+        )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -156,12 +166,9 @@ fun MinhaConexaoSheet(
                     onValueChange = { operadoraEdit = it },
                     label = { Text("Operadora / ISP") },
                     modifier = Modifier.fillMaxWidth(),
-                    colors =
-                        OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = LkColors.accent,
-                            focusedLabelColor = LkColors.accent,
-                        ),
+                    colors = fieldColors,
                     singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
                 )
             }
 
@@ -174,12 +181,9 @@ fun MinhaConexaoSheet(
                         label = { Text("Download (Mbps)") },
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors =
-                            OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = LkColors.accent,
-                                focusedLabelColor = LkColors.accent,
-                            ),
+                        colors = fieldColors,
                         singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
                     )
                     OutlinedTextField(
                         value = upMbpsEdit,
@@ -187,12 +191,9 @@ fun MinhaConexaoSheet(
                         label = { Text("Upload (Mbps)") },
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors =
-                            OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = LkColors.accent,
-                                focusedLabelColor = LkColors.accent,
-                            ),
+                        colors = fieldColors,
                         singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
                     )
                 }
             }
@@ -210,12 +211,9 @@ fun MinhaConexaoSheet(
                     onValueChange = { cidadeEdit = it },
                     label = { Text("Cidade") },
                     modifier = Modifier.fillMaxWidth(),
-                    colors =
-                        OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = LkColors.accent,
-                            focusedLabelColor = LkColors.accent,
-                        ),
+                    colors = fieldColors,
                     singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
                 )
             }
 
@@ -261,14 +259,13 @@ private fun MinhaConexaoSectionCard(
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.bgSecondary)
+                .background(c.surfaceContainer)
                 .padding(LkSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.W600,
+            style = MaterialTheme.typography.labelLarge,
             color = c.textSecondary,
             modifier = Modifier.padding(bottom = LkSpacing.xs),
         )
@@ -286,8 +283,8 @@ private fun MinhaConexaoSugestaoChip(
         modifier =
             Modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(LkColors.accent.copy(alpha = 0.10f))
-                .border(1.dp, LkColors.accent.copy(alpha = 0.30f), RoundedCornerShape(8.dp))
+                .background(c.primary.copy(alpha = 0.14f))
+                .border(1.dp, c.primary.copy(alpha = 0.30f), RoundedCornerShape(8.dp))
                 .semantics { role = Role.Button }
                 .clickable(onClick = onClick)
                 .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
@@ -296,7 +293,7 @@ private fun MinhaConexaoSugestaoChip(
             text = label,
             fontSize = 12.sp,
             fontWeight = FontWeight.W500,
-            color = LkColors.accent,
+            color = c.primary,
         )
     }
 }
@@ -330,9 +327,15 @@ private fun EstadoUfDropdown(
             colors =
                 OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = LkColors.accent,
+                    unfocusedBorderColor = c.border,
                     focusedLabelColor = LkColors.accent,
+                    unfocusedLabelColor = c.textSecondary,
+                    cursorColor = LkColors.accent,
+                    focusedTextColor = c.textPrimary,
+                    unfocusedTextColor = c.textPrimary,
                 ),
             singleLine = true,
+            shape = RoundedCornerShape(12.dp),
         )
         ExposedDropdownMenu(
             expanded = expanded,

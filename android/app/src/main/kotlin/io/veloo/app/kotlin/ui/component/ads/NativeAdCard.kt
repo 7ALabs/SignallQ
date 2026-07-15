@@ -63,7 +63,7 @@ fun NativeAdCard(
             modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.bgCard)
+                .background(c.surfaceContainer)
                 .dashedBorder(color = c.border, cornerRadius = LkRadius.card)
                 .padding(LkSpacing.lg),
     ) {

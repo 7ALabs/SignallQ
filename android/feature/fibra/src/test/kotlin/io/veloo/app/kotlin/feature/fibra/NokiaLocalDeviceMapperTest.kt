@@ -88,6 +88,7 @@ class NokiaLocalDeviceMapperTest {
         assertTrue(resultado.capabilities.suportaWifi)
         assertTrue(resultado.capabilities.suportaLan)
         assertTrue(resultado.capabilities.suportaClientes)
+        assertTrue(resultado.capabilities.suportaGerenciamento)
 
         requireNotNull(resultado.fiber)
         assertEquals(true, resultado.fiber?.linkAtivo)

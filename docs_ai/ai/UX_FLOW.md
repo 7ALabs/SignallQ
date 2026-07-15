@@ -2,7 +2,7 @@
 
 > **Fonte da verdade:** `.claude/CLAUDE.md` + `.claude/agents/*.md`. Este arquivo é um resumo apontador.
 > Decisão de fluxo: `docs_ai/decisions/ADR-006-workflow-squad-5-agentes.md`.
-> Design system: `docs_ai/design-system/` e skill `/linka-design`.
+> Design system: `docs_ai/design-system/` e skill `/SignallQ-design`.
 > Versão: v0.23.0 · 2026-07-05.
 
 ## Objetivos de UX

@@ -56,13 +56,13 @@ Camilo executa no máximo 1 task Android ativa por vez. Se ocupado, próximas ta
 - `/regras-diagnostico-rede` — thresholds e diagnóstico de rede
 - `/motor-diagnostico` — fluxo de speedtest e diagnóstico
 - `/checar-release` — checklist de release Android
-- `/linka-design` — design system oficial do SignallQ: tokens, componentes, padrões visuais
+- `/SignallQ-design` — design system oficial do SignallQ: tokens, componentes, padrões visuais
 - `/reconhecimento-equipamento-rede` — metodologia de scan/field-map de ONT, roteador e equipamentos de rede local (auth proprietária por firmware, sanitização de segredo, estrutura do documento de saída)
 - `/cloudflare-d1-console` — schema/migrations/queries D1 do SignallQ Console, antes de qualquer mudança de banco
 
 ## Design System — OBRIGATÓRIO antes de implementar UI
 
-Antes de criar ou editar qualquer Composable visual, consulte `.claude/skills/linka-design/` e use `SignallQTheme.kt` como fonte de verdade para cores, tipografia e espaçamento. Componentes de referência estão em `.claude/skills/linka-design/ui_kits/android/` — padrões de design system do SignallQ.
+Antes de criar ou editar qualquer Composable visual, consulte `.claude/skills/SignallQ-design/` (Material Design 3 estrito, migrado 2026-07-11) e use `SignallQTheme.kt` como fonte de verdade para cores, tipografia e espaçamento. Componentes de referência estão em `.claude/skills/SignallQ-design/ui_kits/android/` — padrões de design system do SignallQ.
 
 ## Regra de ambiente compartilhado — OBRIGATÓRIA (2026-07-09)
 

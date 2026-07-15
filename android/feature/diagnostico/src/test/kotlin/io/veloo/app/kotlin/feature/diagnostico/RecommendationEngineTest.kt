@@ -1,5 +1,7 @@
 package io.signallq.app.feature.diagnostico
 
+import io.signallq.app.core.network.contracts.topologia.NivelConfianca
+import io.signallq.app.core.network.contracts.topologia.PapelTopologia
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -71,6 +73,76 @@ class RecommendationEngineTest {
         )
         val r = RecommendationEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-01" })
+    }
+
+    // #980 (Fase 2B, passo 3) — evidencia "ouiConhecido" agora vem do motor unificado
+    // (papelTopologia/confiancaTopologia por BSSID), nao mais de MeshOuiDatabase direto.
+
+    @Test
+    fun `situacao 1 - evidencia marca ouiConhecido=true quando papel e ROTEADOR com confianca ALTA`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.wifi,
+            wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 65, frequenciaMhz = 2437, ssid = "CasaWifi"),
+            internet = InternetDiagnosticInput(downloadMbps = 15.0, uploadMbps = 10.0, latencyMs = 20.0, jitterMs = 5.0, perdaPercentual = 0.0),
+            wifiScan = WifiScanDiagnosticInput(
+                redes = listOf(
+                    RedeWifiVizinha(
+                        canal = 36,
+                        rssiDbm = -50,
+                        frequenciaMhz = 5180,
+                        ssid = "CasaWifi",
+                        bssid = "AA:BB:CC:11:22:33",
+                        papelTopologia = PapelTopologia.ROTEADOR,
+                        confiancaTopologia = NivelConfianca.ALTA,
+                    ),
+                ),
+            ),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val rec = r.first { it.id == "REC-01" }
+        assertTrue(rec.evidencia?.contains("ouiConhecido=true") == true)
+    }
+
+    @Test
+    fun `situacao 1 - evidencia marca ouiConhecido=false quando confianca e BAIXA mesmo com papel mesh`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.wifi,
+            wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 65, frequenciaMhz = 2437, ssid = "CasaWifi"),
+            internet = InternetDiagnosticInput(downloadMbps = 15.0, uploadMbps = 10.0, latencyMs = 20.0, jitterMs = 5.0, perdaPercentual = 0.0),
+            wifiScan = WifiScanDiagnosticInput(
+                redes = listOf(
+                    RedeWifiVizinha(
+                        canal = 36,
+                        rssiDbm = -50,
+                        frequenciaMhz = 5180,
+                        ssid = "CasaWifi",
+                        bssid = "AA:BB:CC:11:22:33",
+                        papelTopologia = PapelTopologia.NO_MESH,
+                        confiancaTopologia = NivelConfianca.BAIXA,
+                    ),
+                ),
+            ),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val rec = r.first { it.id == "REC-01" }
+        assertTrue(rec.evidencia?.contains("ouiConhecido=false") == true)
+    }
+
+    @Test
+    fun `situacao 1 - evidencia marca ouiConhecido=false quando nao ha classificacao de topologia`() {
+        val input = DiagnosticInput(
+            connectionType = ConnectionType.wifi,
+            wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 65, frequenciaMhz = 2437, ssid = "CasaWifi"),
+            internet = InternetDiagnosticInput(downloadMbps = 15.0, uploadMbps = 10.0, latencyMs = 20.0, jitterMs = 5.0, perdaPercentual = 0.0),
+            wifiScan = WifiScanDiagnosticInput(
+                redes = listOf(
+                    RedeWifiVizinha(canal = 36, rssiDbm = -50, frequenciaMhz = 5180, ssid = "CasaWifi", bssid = "AA:BB:CC:11:22:33"),
+                ),
+            ),
+        )
+        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val rec = r.first { it.id == "REC-01" }
+        assertTrue(rec.evidencia?.contains("ouiConhecido=false") == true)
     }
 
     @Test
