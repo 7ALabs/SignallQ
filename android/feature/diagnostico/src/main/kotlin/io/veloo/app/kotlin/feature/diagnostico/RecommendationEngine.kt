@@ -1,6 +1,7 @@
 package io.signallq.app.feature.diagnostico
 
-import io.signallq.app.core.network.contracts.wifi.MeshOuiDatabase
+import io.signallq.app.core.network.contracts.topologia.NivelConfianca
+import io.signallq.app.core.network.contracts.topologia.PapelTopologia
 
 private const val CAT = "recomendacao"
 
@@ -102,9 +103,14 @@ object RecommendationEngine {
         val melhorSinal5Ghz = redes5Ghz.mapNotNull { it.rssiDbm }.maxOrNull()
         if (melhorSinal5Ghz != null && melhorSinal5Ghz <= -75) return null
 
+        // #980 (Fase 2B, passo 3) — papel/confianca do motor unificado (TopologiaRedeEngine/#979,
+        // ja calculado em MainViewModel.montarWifiScanInput) em vez de MeshOuiDatabase direto por
+        // OUI cru. So conta como "conhecido" com confianca != BAIXA — um sinal de baixa confianca
+        // nao deveria virar afirmacao na evidencia mostrada ao usuario.
         val temOuiConhecido = redes5Ghz.any { rede ->
-            val oui = rede.bssid?.replace(":", "")?.take(6)?.uppercase()
-            oui != null && (MeshOuiDatabase.isGatewayIsp(oui) || MeshOuiDatabase.isMeshNo(oui))
+            val papel = rede.papelTopologia
+            rede.confiancaTopologia != NivelConfianca.BAIXA &&
+                (papel == PapelTopologia.ROTEADOR || papel == PapelTopologia.NO_MESH || papel == PapelTopologia.SISTEMA_MESH_PROVAVEL)
         }
         val confirmadoPorScan = redes5Ghz.isNotEmpty()
 

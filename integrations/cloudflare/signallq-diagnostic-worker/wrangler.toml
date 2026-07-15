@@ -1,0 +1,61 @@
+name = "signallq-diagnostic"
+main = "src/index.ts"
+compatibility_date = "2026-05-09"
+
+[observability]
+enabled = true
+
+[vars]
+# Ruleset remoto opcional para a issue GH#952.
+# Sem esta var, o worker usa o ruleset bundled local.
+DIAGNOSTIC_RULESET_JSON = ""
+
+# Seed opcional do diretório de provedores para a issue GH#951.
+# Sem esta var (string vazia), o worker usa o catálogo seeded em
+# src/provider-directory.ts. GH#971: "[]" é uma string NAO vazia, então
+# sobrescrevia o fallback com um diretório vazio — nunca deixar preenchida
+# com "[]" aqui, só com JSON real de provedores ou vazia.
+PROVIDER_DIRECTORY_SEED_JSON = ""
+
+# Seed opcional do catálogo remoto de jogos para a issue GH#935.
+# Sem esta var (string vazia), o worker usa o catálogo seeded em
+# src/game-catalog.ts. GH#971: mesmo cuidado do PROVIDER_DIRECTORY_SEED_JSON —
+# nunca deixar "[]" aqui.
+GAME_CATALOG_SEED_JSON = ""
+
+# Seed opcional dos perfis de sensibilidade de jogos.
+# Sem esta var (string vazia), o worker usa os perfis seeded em
+# src/game-catalog.ts. GH#971: mesmo cuidado acima.
+GAME_PROFILE_SEED_JSON = ""
+
+# GH#960 — origem permitida pra CORS em /admin/* (mesmo padrao do
+# signallq-admin-worker, que serve o SignallQ Console). Sem esta var,
+# Access-Control-Allow-Origin fica vazio (nenhuma origem liberada).
+ALLOWED_ORIGIN = "https://signallq-admin-panel.pages.dev"
+
+# GH#965 (revisado 2026-07-14) — base publica usada para montar ProviderLogo.url.
+# R2 foi descartado por decisao de produto (Cloudflare exige cartao de credito
+# cadastrado mesmo no tier gratis). A logo agora fica como BLOB base64 direto
+# no D1 (`provider_assets.data_base64`, migration 006) e e servida pelo proprio
+# worker via `GET /providers/:id/logo` — esta var so precisa apontar pra URL
+# publica de deploy deste worker. Sem esta var, ProviderLogo.url fica um path
+# relativo (nao quebra, mas nao resolve pra um link absoluto de verdade).
+PROVIDER_LOGO_PUBLIC_BASE_URL = "https://signallq-diagnostic.giammattey-luiz.workers.dev"
+
+[triggers]
+crons = ["0 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "signallq-diagnostic-db"
+database_id = "495c8b96-8daf-46b7-b6f2-ba41ae4bd1af"
+
+# GH#965 — R2 descartado por decisao de produto (2026-07-14). A ideia original
+# era hospedar a logo de operadora de cauda longa em R2, mas a Cloudflare exige
+# cartao de credito cadastrado pra habilitar R2 mesmo no tier gratis
+# (`wrangler r2 bucket list` -> "Please enable R2 through the Cloudflare
+# Dashboard", code 10042) — fricção que o Luiz decidiu nao pagar agora. A logo
+# agora fica como BLOB base64 direto no D1 ja usado por este worker
+# (`provider_assets.data_base64`, migration 006_gh965_provider_logo_d1.sql),
+# servida por `GET /providers/:id/logo`. Sem binding R2 nesta config.
+

@@ -1,62 +1,64 @@
 # Tipografia — SignallQ
 
-**Fonte:** `SignallQTheme.kt` (signallQTypography)  
-**Escopo:** Android v0.23.0  
-**Última atualização:** 2026-07-05
+**Fonte de verdade:** `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/SignallQTheme.kt`  
+**Escopo:** Android v0.23.0+  
+**Última atualização:** 2026-07-15
 
 ---
 
-## Material Design 3 — Escala Padrão
+## Família tipográfica
 
-Todos os tamanhos em `sp` para respeitar `fontScale` do sistema (acessibilidade).
+Fonte única do app:
 
-| Estilo | Tamanho | Peso | Uso |
-| --- | --- | --- | --- |
-| `displayLarge` | 34 sp | Bold | Heading de destaque, hero text |
-| `headlineLarge` | 24 sp | SemiBold | Títulos principais de seção |
-| `headlineMedium` | 20 sp | SemiBold | Subtítulos de seção |
-| `headlineSmall` | 18 sp | SemiBold | Headings menores, card titles |
-| `titleLarge` | 16 sp | Medium | Títulos de features |
-| `titleMedium` | 15 sp | Medium | Títulos secundários |
-| `titleSmall` | 14 sp | Medium | Labels de componentes |
-| `bodyLarge` | 16 sp | Normal | Texto principal, descrições longas |
-| `bodyMedium` | 14 sp | Normal | Corpo padrão |
-| `bodySmall` | 12 sp | Normal | Texto menor, suplementar |
-| `labelLarge` | 14 sp | Medium | Labels de botões/chips |
-| `labelMedium` | 12 sp | Normal | Hints, captions |
-| `labelSmall` | 11 sp | Normal | Footnotes, muito pequeno |
+- `Google Sans Flex`
+- fallback técnico no código via recursos `google_sans_flex_*`
+
+Pesos em uso no tema:
+
+- `400` Normal
+- `500` Medium
+- `600` SemiBold
+- `700` Bold
+
+Nenhuma nova tela deve introduzir segunda família tipográfica.
 
 ---
 
-## Componentes de Animação Tipográfica
+## Escala tipográfica oficial (MD3)
 
-SignallQ inclui dois componentes especiais para animação de texto:
+Todos os tamanhos abaixo são a implementação oficial atual em `signallQTypography`.
 
-### TypewriterText
-Anima texto entrando caractere por caractere, criando efeito de digitação.
-
-**Uso:** Respostas da IA no SignallQ, quando o texto é gerado.  
-**Arquivo:** `app/src/main/kotlin/io/veloo/app/kotlin/ui/component/TypewriterText.kt`
-
-### RotatingMessageText
-Rotaciona entre múltiplas mensagens em loop, com fade in/out.
-
-**Uso:** Perguntas contextuais, hints dinâmicos no SignallQ Pulse.  
-**Arquivo:** `app/src/main/kotlin/io/veloo/app/kotlin/ui/component/RotatingMessageText.kt`
-
----
-
-## Uso em Composables
-
-```kotlin
-Text("Seu texto", style = MaterialTheme.typography.bodyMedium)
-Text("Headline", style = MaterialTheme.typography.headlineMedium)
-```
+| Token | Tamanho | Line height | Peso | Tracking |
+| --- | --- | --- | --- | --- |
+| `displayLarge` | 34 sp | 40 sp | Bold | 0 |
+| `displayMedium` | 34 sp | 40 sp | Bold | 0 |
+| `displaySmall` | 34 sp | 40 sp | Bold | 0 |
+| `headlineLarge` | 26 sp | 32 sp | Bold | 0 |
+| `headlineMedium` | 26 sp | 32 sp | Bold | 0 |
+| `headlineSmall` | 22 sp | 28 sp | SemiBold | 0 |
+| `titleLarge` | 20 sp | 26 sp | SemiBold | 0 |
+| `titleMedium` | 16 sp | 22 sp | Medium | 0.1 |
+| `titleSmall` | 14 sp | 20 sp | Medium | 0.1 |
+| `bodyLarge` | 16 sp | 24 sp | Normal | 0.15 |
+| `bodyMedium` | 14 sp | 20 sp | Normal | 0.2 |
+| `bodySmall` | 12 sp | 16 sp | Normal | 0.25 |
+| `labelLarge` | 14 sp | 20 sp | Medium | 0.1 |
+| `labelMedium` | 12 sp | 16 sp | Medium | 0.3 |
+| `labelSmall` | 11 sp | 16 sp | Medium | 0.4 |
 
 ---
 
-## Acessibilidade
+## Regras de uso
 
-- **Mínimo para corpo:** `bodyMedium` (14 sp) atende WCAG AA.
-- **Respeto ao sistema:** Todos os tamanhos usam `sp`, não `dp`, para adaptar à configuração de zoom do usuário.
-- **Contrast:** Material Design 3 garante contraste 4.5:1 em cores padrão.
+- Preferir sempre `MaterialTheme.typography.*`.
+- Evitar `fontSize = ...sp` e `letterSpacing = ...sp` em tela/componente comum.
+- Só usar `TextStyle(...)` manual quando houver motivo técnico real, como canvas, chart labels ou renderização custom.
+- Mesmo papel visual deve usar o mesmo token em todas as telas.
+
+---
+
+## Situação atual do código
+
+- A implementação do tema já está alinhada com a spec mais recente.
+- Ainda existem telas e componentes com `fontSize` e `letterSpacing` hardcoded.
+- Esses hardcodes devem ser tratados como dívida de padronização, não como novo padrão.

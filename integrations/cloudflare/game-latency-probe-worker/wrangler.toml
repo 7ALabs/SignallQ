@@ -1,0 +1,3 @@
+name = "signallq-game-latency-probe"
+main = "src/index.ts"
+compatibility_date = "2026-05-09"

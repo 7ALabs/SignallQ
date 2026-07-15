@@ -1,4 +1,4 @@
-﻿package io.signallq.app.ui
+package io.signallq.app.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -10,153 +10,327 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.signallq.app.R
 
 object LkColors {
-    val accent = Color(0xFF6C2BFF)
+    val accent = Color(0xFF5B21D6)
+    val accentOnDark = Color(0xFFD0BCFF)
 
-    // Variante clara do accent p/ TEXTO/ÍCONE sobre superfícies escuras (dark
-    // theme ou fundo fixo SignallQ IA). accent puro sobre fundo escuro dá
-    // ~3.1:1 (falha WCAG AA); esta variante dá >=5:1 em #0D0D1A/#000000/#1E1130.
-    // Não usar como background — só como cor de texto/ícone.
-    val accentOnDark = Color(0xFF9B6BFF)
-
-    val success = Color(0xFF22C55E)
-    val warning = Color(0xFFF5A623)
-    val error = Color(0xFFFF4D4F)
+    val success = Color(0xFF146C2E)
+    val warning = Color(0xFF8A5000)
+    val error = Color(0xFFBA1A1A)
     val accentBlue = Color(0xFF2563EB)
 
-    // ── Cores utilitárias para texto sobre fundos escuros/coloridos ──
-    // Usadas em botões com fundo accent, avatares e superfícies fixas escuras.
-    // NÃO use para telas que devem seguir o tema claro/escuro do sistema —
-    // para isso use LkTokens via LocalLkTokens.current.
     val signallQBlack = Color(0xFF0D0D1A)
     val signallQDarkSurface = Color(0xFF1A0B2E)
     val signallQDarkCard = Color(0xFF1E1130)
     val signallQTextOnDark = Color(0xFFF3F4F6)
-    val signallQTextSecondaryOnDark = Color(0xFF9CA3AF)
+    val signallQTextSecondaryOnDark = Color(0xFFB9B2C4)
+    val phaseLatencia = Light.phaseLatencia
+    val phaseDownload = Light.phaseDownload
+    val phaseUpload = Light.phaseUpload
 
-    val phaseLatencia = Color(0xFF60A5FA)
-    val phaseDownload = Color(0xFF34D399)
-    val phaseUpload = Color(0xFFFBBF24)
-
-    // ── Tokens semânticos de container — seguem o tema (light/dark) ──
-    // Uso: backgrounds de chips e cards de status, nunca hardcodados na UI.
-    // Valores light calibrados para contraste AA com onWarningContainer/onSuccessContainer.
     object Light {
-        val bgPrimary = Color(0xFFFFFFFF)
-        val bgSecondary = Color(0xFFF3F4F6)
-        val bgCard = Color(0xFFFFFFFF)
-        val textPrimary = Color(0xFF0D0D1A)
-        val textSecondary = Color(0xFF6B7280)
-        val textTertiary = Color(0xFF9CA3AF)
-        val border = Color(0xFFE5E7EB)
-
-        // warning (âmbar): fundo claro + texto escuro âmbar (contraste >=4.5:1)
-        val warningContainer = Color(0xFFFFF3CD)
-        val onWarningContainer = Color(0xFF7A4E00)
-        val amberSurface = Color(0xFFFFF8E6)
-
-        // success (verde): fundo claro + texto escuro verde
-        val successContainer = Color(0xFFD1FAE5)
-        val onSuccessContainer = Color(0xFF065F46)
+        val primary = Color(0xFF5B21D6)
+        val onPrimary = Color(0xFFFFFFFF)
+        val primaryContainer = Color(0xFFEAE0FF)
+        val onPrimaryContainer = Color(0xFF210A5C)
+        val secondary = Color(0xFF2851B8)
+        val onSecondary = Color(0xFFFFFFFF)
+        val secondaryContainer = Color(0xFFDCE6FF)
+        val onSecondaryContainer = Color(0xFF001A41)
+        val surface = Color(0xFFFFFFFF)
+        val surfaceDim = Color(0xFFDED8E1)
+        val surfaceContainerLowest = Color(0xFFFFFFFF)
+        val surfaceContainerLow = Color(0xFFF8F5FB)
+        val surfaceContainer = Color(0xFFF3EEFA)
+        val surfaceContainerHigh = Color(0xFFECE5F5)
+        val surfaceContainerHighest = Color(0xFFE6DDF2)
+        val onSurface = Color(0xFF1C1B1F)
+        val onSurfaceVariant = Color(0xFF49454F)
+        val outline = Color(0xFF79747E)
+        val outlineVariant = Color(0xFFCAC4D0)
+        val inverseSurface = Color(0xFF313033)
+        val inverseOnSurface = Color(0xFFF4EFF4)
+        val error = Color(0xFFBA1A1A)
+        val onError = Color(0xFFFFFFFF)
+        val errorContainer = Color(0xFFFFDAD6)
+        val onErrorContainer = Color(0xFF410002)
+        val success = Color(0xFF146C2E)
+        val onSuccess = Color(0xFFFFFFFF)
+        val successContainer = Color(0xFFB6F2BE)
+        val onSuccessContainer = Color(0xFF04210D)
+        val warning = Color(0xFF8A5000)
+        val onWarning = Color(0xFFFFFFFF)
+        val warningContainer = Color(0xFFFFDDB3)
+        val onWarningContainer = Color(0xFF2B1700)
+        val phaseLatencia = Color(0xFF2563EB)
+        val phaseDownload = Color(0xFF146C2E)
+        val phaseUpload = Color(0xFF8A5000)
+        val bgPrimary = surface
+        val bgSecondary = surfaceContainerLow
+        val bgCard = surfaceContainer
+        val textPrimary = onSurface
+        val textSecondary = onSurfaceVariant
+        val textTertiary = onSurfaceVariant
+        val border = outlineVariant
+        val amberSurface = warningContainer
     }
 
     object Dark {
-        val bgPrimary = Color(0xFF000000)
-        val bgSecondary = Color(0xFF1A1A1A)
-        val bgCard = Color(0xFF111111)
-        val textPrimary = Color(0xFFF3F4F6)
-        val textSecondary = Color(0xFF9CA3AF)
-        val textTertiary = Color(0xFF6B7280)
-        val border = Color(0xFF2A2A2A)
-
-        // warning dark: fundo escuro âmbar + texto âmbar claro
-        val warningContainer = Color(0xFF3D2A00)
-        val onWarningContainer = Color(0xFFFFD97A)
-        val amberSurface = Color(0xFF2E2000)
-
-        // success dark: fundo escuro verde + texto verde claro
-        val successContainer = Color(0xFF064E3B)
-        val onSuccessContainer = Color(0xFF6EE7B7)
+        val primary = Color(0xFFD0BCFF)
+        val onPrimary = Color(0xFF38137E)
+        val primaryContainer = Color(0xFF4F2FA8)
+        val onPrimaryContainer = Color(0xFFEADDFF)
+        val secondary = Color(0xFFAAC7FF)
+        val onSecondary = Color(0xFF002E69)
+        val secondaryContainer = Color(0xFF1E427A)
+        val onSecondaryContainer = Color(0xFFD9E2FF)
+        val surface = Color(0xFF131217)
+        val surfaceDim = Color(0xFF131217)
+        val surfaceContainerLowest = Color(0xFF0E0D12)
+        val surfaceContainerLow = Color(0xFF1D1B20)
+        val surfaceContainer = Color(0xFF211F26)
+        val surfaceContainerHigh = Color(0xFF2B2930)
+        val surfaceContainerHighest = Color(0xFF36343B)
+        val onSurface = Color(0xFFE6E0E9)
+        val onSurfaceVariant = Color(0xFFCAC4D0)
+        val outline = Color(0xFF948F99)
+        val outlineVariant = Color(0xFF49454F)
+        val inverseSurface = Color(0xFFE6E0E9)
+        val inverseOnSurface = Color(0xFF313033)
+        val error = Color(0xFFFFB4AB)
+        val onError = Color(0xFF690005)
+        val errorContainer = Color(0xFF93000A)
+        val onErrorContainer = Color(0xFFFFDAD6)
+        val success = Color(0xFF83DA99)
+        val onSuccess = Color(0xFF00390F)
+        val successContainer = Color(0xFF0A5321)
+        val onSuccessContainer = Color(0xFF9DF4AC)
+        val warning = Color(0xFFFFB870)
+        val onWarning = Color(0xFF4A2900)
+        val warningContainer = Color(0xFF693D00)
+        val onWarningContainer = Color(0xFFFFDDB3)
+        val phaseLatencia = Color(0xFFAAC7FF)
+        val phaseDownload = Color(0xFF83DA99)
+        val phaseUpload = Color(0xFFFFB870)
+        val bgPrimary = surface
+        val bgSecondary = surfaceContainerLow
+        val bgCard = surfaceContainer
+        val textPrimary = onSurface
+        val textSecondary = onSurfaceVariant
+        val textTertiary = onSurfaceVariant
+        val border = outlineVariant
+        val amberSurface = warningContainer
     }
 }
 
 data class LkTokens(
-    val bgPrimary: Color,
-    val bgSecondary: Color,
-    val bgCard: Color,
-    val textPrimary: Color,
-    val textSecondary: Color,
-    val textTertiary: Color,
-    val border: Color,
-    // ── Tokens semânticos de container ──
-    val warningContainer: Color,
-    val onWarningContainer: Color,
-    val amberSurface: Color,
+    val primary: Color,
+    val onPrimary: Color,
+    val primaryContainer: Color,
+    val onPrimaryContainer: Color,
+    val secondary: Color,
+    val onSecondary: Color,
+    val secondaryContainer: Color,
+    val onSecondaryContainer: Color,
+    val surface: Color,
+    val surfaceDim: Color,
+    val surfaceContainerLowest: Color,
+    val surfaceContainerLow: Color,
+    val surfaceContainer: Color,
+    val surfaceContainerHigh: Color,
+    val surfaceContainerHighest: Color,
+    val onSurface: Color,
+    val onSurfaceVariant: Color,
+    val outline: Color,
+    val outlineVariant: Color,
+    val inverseSurface: Color,
+    val inverseOnSurface: Color,
+    val error: Color,
+    val onError: Color,
+    val errorContainer: Color,
+    val onErrorContainer: Color,
+    val success: Color,
+    val onSuccess: Color,
     val successContainer: Color,
     val onSuccessContainer: Color,
-)
+    val warning: Color,
+    val onWarning: Color,
+    val warningContainer: Color,
+    val onWarningContainer: Color,
+    val phaseLatencia: Color,
+    val phaseDownload: Color,
+    val phaseUpload: Color,
+) {
+    val bgPrimary: Color get() = surface
+    val bgSecondary: Color get() = surfaceContainerLow
+    val bgCard: Color get() = surfaceContainer
+    val textPrimary: Color get() = onSurface
+    val textSecondary: Color get() = onSurfaceVariant
+    val textTertiary: Color get() = onSurfaceVariant
+    val border: Color get() = outlineVariant
+    val amberSurface: Color get() = warningContainer
+}
 
-val LocalLkTokens =
-    staticCompositionLocalOf {
-        LkTokens(
-            bgPrimary = LkColors.Light.bgPrimary,
-            bgSecondary = LkColors.Light.bgSecondary,
-            bgCard = LkColors.Light.bgCard,
-            textPrimary = LkColors.Light.textPrimary,
-            textSecondary = LkColors.Light.textSecondary,
-            textTertiary = LkColors.Light.textTertiary,
-            border = LkColors.Light.border,
-            warningContainer = LkColors.Light.warningContainer,
-            onWarningContainer = LkColors.Light.onWarningContainer,
-            amberSurface = LkColors.Light.amberSurface,
-            successContainer = LkColors.Light.successContainer,
-            onSuccessContainer = LkColors.Light.onSuccessContainer,
-        )
-    }
+private fun lightTokens() =
+    LkTokens(
+        primary = LkColors.Light.primary,
+        onPrimary = LkColors.Light.onPrimary,
+        primaryContainer = LkColors.Light.primaryContainer,
+        onPrimaryContainer = LkColors.Light.onPrimaryContainer,
+        secondary = LkColors.Light.secondary,
+        onSecondary = LkColors.Light.onSecondary,
+        secondaryContainer = LkColors.Light.secondaryContainer,
+        onSecondaryContainer = LkColors.Light.onSecondaryContainer,
+        surface = LkColors.Light.surface,
+        surfaceDim = LkColors.Light.surfaceDim,
+        surfaceContainerLowest = LkColors.Light.surfaceContainerLowest,
+        surfaceContainerLow = LkColors.Light.surfaceContainerLow,
+        surfaceContainer = LkColors.Light.surfaceContainer,
+        surfaceContainerHigh = LkColors.Light.surfaceContainerHigh,
+        surfaceContainerHighest = LkColors.Light.surfaceContainerHighest,
+        onSurface = LkColors.Light.onSurface,
+        onSurfaceVariant = LkColors.Light.onSurfaceVariant,
+        outline = LkColors.Light.outline,
+        outlineVariant = LkColors.Light.outlineVariant,
+        inverseSurface = LkColors.Light.inverseSurface,
+        inverseOnSurface = LkColors.Light.inverseOnSurface,
+        error = LkColors.Light.error,
+        onError = LkColors.Light.onError,
+        errorContainer = LkColors.Light.errorContainer,
+        onErrorContainer = LkColors.Light.onErrorContainer,
+        success = LkColors.Light.success,
+        onSuccess = LkColors.Light.onSuccess,
+        successContainer = LkColors.Light.successContainer,
+        onSuccessContainer = LkColors.Light.onSuccessContainer,
+        warning = LkColors.Light.warning,
+        onWarning = LkColors.Light.onWarning,
+        warningContainer = LkColors.Light.warningContainer,
+        onWarningContainer = LkColors.Light.onWarningContainer,
+        phaseLatencia = LkColors.Light.phaseLatencia,
+        phaseDownload = LkColors.Light.phaseDownload,
+        phaseUpload = LkColors.Light.phaseUpload,
+    )
+
+private fun darkTokens() =
+    LkTokens(
+        primary = LkColors.Dark.primary,
+        onPrimary = LkColors.Dark.onPrimary,
+        primaryContainer = LkColors.Dark.primaryContainer,
+        onPrimaryContainer = LkColors.Dark.onPrimaryContainer,
+        secondary = LkColors.Dark.secondary,
+        onSecondary = LkColors.Dark.onSecondary,
+        secondaryContainer = LkColors.Dark.secondaryContainer,
+        onSecondaryContainer = LkColors.Dark.onSecondaryContainer,
+        surface = LkColors.Dark.surface,
+        surfaceDim = LkColors.Dark.surfaceDim,
+        surfaceContainerLowest = LkColors.Dark.surfaceContainerLowest,
+        surfaceContainerLow = LkColors.Dark.surfaceContainerLow,
+        surfaceContainer = LkColors.Dark.surfaceContainer,
+        surfaceContainerHigh = LkColors.Dark.surfaceContainerHigh,
+        surfaceContainerHighest = LkColors.Dark.surfaceContainerHighest,
+        onSurface = LkColors.Dark.onSurface,
+        onSurfaceVariant = LkColors.Dark.onSurfaceVariant,
+        outline = LkColors.Dark.outline,
+        outlineVariant = LkColors.Dark.outlineVariant,
+        inverseSurface = LkColors.Dark.inverseSurface,
+        inverseOnSurface = LkColors.Dark.inverseOnSurface,
+        error = LkColors.Dark.error,
+        onError = LkColors.Dark.onError,
+        errorContainer = LkColors.Dark.errorContainer,
+        onErrorContainer = LkColors.Dark.onErrorContainer,
+        success = LkColors.Dark.success,
+        onSuccess = LkColors.Dark.onSuccess,
+        successContainer = LkColors.Dark.successContainer,
+        onSuccessContainer = LkColors.Dark.onSuccessContainer,
+        warning = LkColors.Dark.warning,
+        onWarning = LkColors.Dark.onWarning,
+        warningContainer = LkColors.Dark.warningContainer,
+        onWarningContainer = LkColors.Dark.onWarningContainer,
+        phaseLatencia = LkColors.Dark.phaseLatencia,
+        phaseDownload = LkColors.Dark.phaseDownload,
+        phaseUpload = LkColors.Dark.phaseUpload,
+    )
+
+val LocalLkTokens = staticCompositionLocalOf { lightTokens() }
 
 object LkSpacing {
     val xs: Dp = 4.dp
     val sm: Dp = 8.dp
     val md: Dp = 12.dp
-    val lg: Dp = 16.dp
+    val base: Dp = 16.dp
+    val lg: Dp = 20.dp
     val xl: Dp = 24.dp
     val xxl: Dp = 32.dp
-    val cardContent: Dp = 16.dp
+    val xxxl: Dp = 40.dp
+    val cardContent: Dp = base
 }
 
 object LkRadius {
     val card: Dp = 16.dp
-    val button: Dp = 12.dp
+    val button: Dp = 20.dp
     val input: Dp = 12.dp
+    val sheet: Dp = 28.dp
+    val pill: Dp = 999.dp
 }
 
 private val lightScheme =
     lightColorScheme(
-        primary = LkColors.accent,
-        background = LkColors.Light.bgPrimary,
-        surface = LkColors.Light.bgCard,
-        onPrimary = Color.White,
-        onBackground = LkColors.Light.textPrimary,
-        onSurface = LkColors.Light.textPrimary,
-        secondary = LkColors.Light.bgSecondary,
-        outline = LkColors.Light.border,
+        primary = LkColors.Light.primary,
+        onPrimary = LkColors.Light.onPrimary,
+        primaryContainer = LkColors.Light.primaryContainer,
+        onPrimaryContainer = LkColors.Light.onPrimaryContainer,
+        secondary = LkColors.Light.secondary,
+        onSecondary = LkColors.Light.onSecondary,
+        secondaryContainer = LkColors.Light.secondaryContainer,
+        onSecondaryContainer = LkColors.Light.onSecondaryContainer,
+        background = LkColors.Light.surface,
+        onBackground = LkColors.Light.onSurface,
+        surface = LkColors.Light.surface,
+        onSurface = LkColors.Light.onSurface,
+        surfaceVariant = LkColors.Light.surfaceContainer,
+        onSurfaceVariant = LkColors.Light.onSurfaceVariant,
+        outline = LkColors.Light.outline,
+        outlineVariant = LkColors.Light.outlineVariant,
+        error = LkColors.Light.error,
+        onError = LkColors.Light.onError,
+        errorContainer = LkColors.Light.errorContainer,
+        onErrorContainer = LkColors.Light.onErrorContainer,
+        inverseSurface = LkColors.Light.inverseSurface,
+        inverseOnSurface = LkColors.Light.inverseOnSurface,
     )
 
 private val darkScheme =
     darkColorScheme(
-        primary = LkColors.accent,
-        background = LkColors.Dark.bgPrimary,
-        surface = LkColors.Dark.bgCard,
-        onPrimary = Color.White,
-        onBackground = LkColors.Dark.textPrimary,
-        onSurface = LkColors.Dark.textPrimary,
-        secondary = LkColors.Dark.bgSecondary,
-        outline = LkColors.Dark.border,
+        primary = LkColors.Dark.primary,
+        onPrimary = LkColors.Dark.onPrimary,
+        primaryContainer = LkColors.Dark.primaryContainer,
+        onPrimaryContainer = LkColors.Dark.onPrimaryContainer,
+        secondary = LkColors.Dark.secondary,
+        onSecondary = LkColors.Dark.onSecondary,
+        secondaryContainer = LkColors.Dark.secondaryContainer,
+        onSecondaryContainer = LkColors.Dark.onSecondaryContainer,
+        background = LkColors.Dark.surface,
+        onBackground = LkColors.Dark.onSurface,
+        surface = LkColors.Dark.surface,
+        onSurface = LkColors.Dark.onSurface,
+        surfaceVariant = LkColors.Dark.surfaceContainer,
+        onSurfaceVariant = LkColors.Dark.onSurfaceVariant,
+        outline = LkColors.Dark.outline,
+        outlineVariant = LkColors.Dark.outlineVariant,
+        error = LkColors.Dark.error,
+        onError = LkColors.Dark.onError,
+        errorContainer = LkColors.Dark.errorContainer,
+        onErrorContainer = LkColors.Dark.onErrorContainer,
+        inverseSurface = LkColors.Dark.inverseSurface,
+        inverseOnSurface = LkColors.Dark.inverseOnSurface,
     )
 
 @Suppress("FunctionNaming")
@@ -165,38 +339,7 @@ fun SignallQTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    val tokens =
-        if (darkTheme) {
-            LkTokens(
-                bgPrimary = LkColors.Dark.bgPrimary,
-                bgSecondary = LkColors.Dark.bgSecondary,
-                bgCard = LkColors.Dark.bgCard,
-                textPrimary = LkColors.Dark.textPrimary,
-                textSecondary = LkColors.Dark.textSecondary,
-                textTertiary = LkColors.Dark.textTertiary,
-                border = LkColors.Dark.border,
-                warningContainer = LkColors.Dark.warningContainer,
-                onWarningContainer = LkColors.Dark.onWarningContainer,
-                amberSurface = LkColors.Dark.amberSurface,
-                successContainer = LkColors.Dark.successContainer,
-                onSuccessContainer = LkColors.Dark.onSuccessContainer,
-            )
-        } else {
-            LkTokens(
-                bgPrimary = LkColors.Light.bgPrimary,
-                bgSecondary = LkColors.Light.bgSecondary,
-                bgCard = LkColors.Light.bgCard,
-                textPrimary = LkColors.Light.textPrimary,
-                textSecondary = LkColors.Light.textSecondary,
-                textTertiary = LkColors.Light.textTertiary,
-                border = LkColors.Light.border,
-                warningContainer = LkColors.Light.warningContainer,
-                onWarningContainer = LkColors.Light.onWarningContainer,
-                amberSurface = LkColors.Light.amberSurface,
-                successContainer = LkColors.Light.successContainer,
-                onSuccessContainer = LkColors.Light.onSuccessContainer,
-            )
-        }
+    val tokens = if (darkTheme) darkTokens() else lightTokens()
 
     CompositionLocalProvider(LocalLkTokens provides tokens) {
         MaterialTheme(
@@ -207,22 +350,42 @@ fun SignallQTheme(
     }
 }
 
-// Escala tipográfica SignallQ — Material 3 / WCAG 2.2 AA.
-// Todos os tamanhos em sp para respeitar fontScale do sistema.
-// bodyMedium≥14sp, bodyLarge=16sp (telas principais), botões/labels≥14sp.
+private val signallQFontFamily =
+    FontFamily(
+        Font(R.font.google_sans_flex_regular, weight = FontWeight.Normal),
+        Font(R.font.google_sans_flex_medium, weight = FontWeight.Medium),
+        Font(R.font.google_sans_flex_semibold, weight = FontWeight.SemiBold),
+        Font(R.font.google_sans_flex_bold, weight = FontWeight.Bold),
+    )
+
+private fun dsTextStyle(
+    fontSize: Int,
+    lineHeight: Int,
+    fontWeight: FontWeight,
+    letterSpacing: Float,
+) = TextStyle(
+    fontFamily = signallQFontFamily,
+    fontSize = fontSize.sp,
+    lineHeight = lineHeight.sp,
+    fontWeight = fontWeight,
+    letterSpacing = letterSpacing.sp,
+)
+
 private val signallQTypography =
     Typography(
-        displayLarge = TextStyle(fontSize = 34.sp, fontWeight = FontWeight.Bold),
-        headlineLarge = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.SemiBold),
-        headlineMedium = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.SemiBold),
-        headlineSmall = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.SemiBold),
-        titleLarge = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium),
-        titleMedium = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Medium),
-        titleSmall = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
-        bodyLarge = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Normal),
-        bodyMedium = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Normal),
-        bodySmall = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Normal),
-        labelLarge = TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Medium),
-        labelMedium = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Normal),
-        labelSmall = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Normal),
+        displayLarge = dsTextStyle(34, 40, FontWeight.Bold, 0f),
+        displayMedium = dsTextStyle(34, 40, FontWeight.Bold, 0f),
+        displaySmall = dsTextStyle(34, 40, FontWeight.Bold, 0f),
+        headlineLarge = dsTextStyle(26, 32, FontWeight.Bold, 0f),
+        headlineMedium = dsTextStyle(26, 32, FontWeight.Bold, 0f),
+        headlineSmall = dsTextStyle(22, 28, FontWeight.SemiBold, 0f),
+        titleLarge = dsTextStyle(20, 26, FontWeight.SemiBold, 0f),
+        titleMedium = dsTextStyle(16, 22, FontWeight.Medium, 0.1f),
+        titleSmall = dsTextStyle(14, 20, FontWeight.Medium, 0.1f),
+        bodyLarge = dsTextStyle(16, 24, FontWeight.Normal, 0.15f),
+        bodyMedium = dsTextStyle(14, 20, FontWeight.Normal, 0.2f),
+        bodySmall = dsTextStyle(12, 16, FontWeight.Normal, 0.25f),
+        labelLarge = dsTextStyle(14, 20, FontWeight.Medium, 0.1f),
+        labelMedium = dsTextStyle(12, 16, FontWeight.Medium, 0.3f),
+        labelSmall = dsTextStyle(11, 16, FontWeight.Medium, 0.4f),
     )

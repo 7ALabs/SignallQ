@@ -36,7 +36,9 @@ fun estadoInicialPermissoesOnboarding(
     sdkInt: Int = Build.VERSION.SDK_INT,
 ): OnboardingPermissoesConcedidas =
     OnboardingPermissoesConcedidas(
-        wifiPerto = possuiPermissao(Manifest.permission.ACCESS_FINE_LOCATION),
+        wifiPerto =
+            possuiPermissao(Manifest.permission.ACCESS_FINE_LOCATION) ||
+                possuiPermissao(Manifest.permission.ACCESS_COARSE_LOCATION),
         dispositivosRede =
             sdkInt < Build.VERSION_CODES.TIRAMISU || possuiPermissao(Manifest.permission.NEARBY_WIFI_DEVICES),
         sinalChip = possuiPermissao(Manifest.permission.READ_PHONE_STATE),
@@ -79,7 +81,10 @@ fun aplicarResultadoPermissoesOnboarding(
     sdkInt: Int = Build.VERSION.SDK_INT,
 ): OnboardingPermissoesConcedidas =
     OnboardingPermissoesConcedidas(
-        wifiPerto = resultado[Manifest.permission.ACCESS_FINE_LOCATION] ?: atual.wifiPerto,
+        wifiPerto =
+            resultado[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                resultado[Manifest.permission.ACCESS_COARSE_LOCATION] == true ||
+                atual.wifiPerto,
         dispositivosRede =
             when {
                 sdkInt < Build.VERSION_CODES.TIRAMISU -> true

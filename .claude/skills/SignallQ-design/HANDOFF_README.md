@@ -1,0 +1,309 @@
+# Handoff: SignallQ Design System → Claude Code
+
+## Overview
+
+Este pacote transforma o **SignallQ Design System** em uma **Claude Code Skill** pronta para
+ser instalada no seu repositório. O objetivo não é implementar telas novas (elas **já
+existem** no app Android `io.signallq.app`), e sim garantir que **todo trabalho futuro de
+UI feito com o Claude Code siga o design system perfeitamente** — mesmos tokens, mesma voz,
+mesmos componentes.
+
+Uma vez instalada, sempre que você pedir uma tela, um componente ou um ajuste de UI, o
+Claude Code reconhece a skill pela sua `description`, carrega as regras e os tokens, e gera
+código já dentro do padrão SignallQ.
+
+---
+
+## Sobre os arquivos deste pacote
+
+A pasta `.claude/skills/SignallQ-design/` contém o design system completo, no formato que o
+Claude Code reconhece automaticamente. **Não é código de produção para copiar e colar** — é a
+**fonte de verdade de design** que o agente consulta:
+
+| Arquivo / pasta | Conteúdo |
+|---|---|
+| `SKILL.md` | Manifesto da skill (frontmatter `name` / `description` / `user-invocable`). É isso que o Claude Code lê para decidir quando ativar a skill. |
+| `README.md` | Fundamentos completos: contexto do produto, voz/conteúdo, fundamentos visuais, iconografia, índice. |
+| `colors_and_type.css` | Todos os design tokens como CSS vars + classes de tipografia M3. **A fonte de verdade dos valores.** |
+| `assets/` | Marca "SignallQ" (`ic_launcher.png`, `ic_launcher_foreground.png`). |
+| `preview/` | Cards de referência do DS (cores, tipo, espaçamento, componentes) — abra no navegador para visualizar. |
+| `ui_kits/android/` | Recriação React fiel do app (`index.html` interativo + componentes JSX). `chrome.jsx` carrega os tokens `LK` e os primitivos compartilhados. |
+
+> Os tokens aqui foram **engenharia-reversa do próprio codebase Android** (`SignallQTheme.kt` →
+> `LkColors`, `LkSpacing`, `LkRadius`, `signallQTypography`). Os nomes batem com o que já está no
+> seu código Kotlin/Compose — use os valores abaixo como tabela de equivalência.
+
+---
+
+## Fidelidade
+
+**Alta fidelidade (hi-fi).** Cores, tipografia, espaçamento, raios e semântica de status são
+os valores finais e exatos, extraídos do app real. Qualquer UI nova deve bater pixel-a-token
+com esta referência.
+
+---
+
+## Instalação (3 passos)
+
+### 1. Copie a skill para o seu repositório
+
+Arraste a pasta `.claude/` deste pacote para a **raiz do seu projeto**:
+
+```
+seu-projeto/
+└── .claude/
+    └── skills/
+        └── SignallQ-design/
+            ├── SKILL.md
+            ├── README.md
+            ├── colors_and_type.css
+            ├── assets/
+            ├── preview/
+            └── ui_kits/android/
+```
+
+- `.claude/skills/` → skill **do projeto**: vai pro Git, todo o time herda. **Recomendado**,
+  já que você quer que *o projeto* siga o DS.
+- `~/.claude/skills/` → skill **pessoal**: só na sua máquina.
+
+### 2. (Recomendado) Reforce no `CLAUDE.md`
+
+Skills são carregadas sob demanda. Para deixar o DS **sempre presente**, adicione ao
+`CLAUDE.md` da raiz do projeto:
+
+```md
+## Design System
+Toda UI deste projeto segue o SignallQ Design System.
+Antes de criar ou editar telas/componentes, consulte a skill `SignallQ-design`
+(.claude/skills/SignallQ-design/README.md) e use os tokens de colors_and_type.css /
+SignallQTheme.kt como fonte de verdade.
+Não-negociáveis: Material 3 claro, acento violeta #6C2BFF, semântica de status
+verde/âmbar/vermelho, ícones Material Symbols (Outlined), tipo Google Sans Flex (display/headline/title)
++ Roboto (body/label), grid 8dp, card radius 12dp (md) e elevação tonal (sem sombra dura isolada),
+superfícies SignallQ (IA) sempre escuras, copy em PT-BR com "você" e SEM emoji.
+```
+
+### 3. Use
+
+- **Automático:** peça qualquer coisa de UI ("crie a tela de configurações de DNS") e o
+  Claude Code ativa a skill pela `description`.
+- **Explícito:** "use a skill `SignallQ-design` para …".
+
+Para confirmar que está instalada, rode `/doctor` ou liste skills no Claude Code.
+
+---
+
+## Como manter as telas existentes alinhadas
+
+Como as telas já existem, o ganho real vem de garantir que elas usem os **tokens** como
+fonte de verdade (e não valores hardcoded). Antes de gerar UI nova, peça ao Claude Code para:
+
+1. Verificar se `SignallQTheme.kt` (`LkColors` / `LkSpacing` / `LkRadius` / `signallQTypography`) é
+   de fato a origem de cores, espaçamentos e tipos das telas atuais.
+2. Substituir qualquer cor/spacing hardcoded pelos tokens equivalentes (tabela abaixo).
+3. Reaproveitar os componentes existentes (`…/ui/component/*.kt`) em vez de recriar.
+
+---
+
+## Design Tokens (referência rápida) — MD3 estrito
+
+> CSS var (artefatos web) → valor → equivalente Compose (`SignallQTheme.kt`, a atualizar pelo
+> Camilo). **Nomenclatura MD3:** `--md-sys-color-{role}` / `on-{role}` / `{role}-container` /
+> `on-{role}-container` (manual §9). Os nomes antigos (`--accent`, `--bg-card`, `--text-primary`
+> etc.) seguem como **aliases deprecados** em `colors_and_type.css` só por compatibilidade —
+> não usar em artefato novo.
+
+### Primary / Secondary / Tertiary (paleta tonal HCT, derivada de `#6C2BFF`)
+| Token | Valor | Uso |
+|---|---|---|
+| `--md-sys-color-primary` | `#6C2BFF` (tone40, light) | CTA primário, seleção, nav ativa |
+| `--md-sys-color-on-primary` | `#FFFFFF` | Texto/ícone sobre primary |
+| `--md-sys-color-primary-container` | `#EDE4FF` (tone90) | Fill de destaque suave |
+| `--md-sys-color-on-primary-container` | `#2A0080` (tone10) | Texto sobre primary-container |
+| `--md-sys-color-secondary` | `#9284A8` (tone40) | Suporte, chips |
+| `--md-sys-color-secondary-container` | `#EFEBF5` (tone90) | — |
+| `--md-sys-color-tertiary` | `#B03A5B` (tone40) | Destaques contrastantes |
+| `--md-sys-color-tertiary-container` | `#FFE4EC` (tone90) | — |
+
+**Dark theme (correção de contraste, manual §2):** primary/secondary/tertiary sobem para o
+**tone80** (`#C9AEFF` / `#CFC4DE` / `#FFAFC7`) — nunca usar o tone40 do light em texto/ícone
+sobre fundo escuro (contraste ~2.8:1 → ~7.2:1 AAA).
+
+### Status (semáforo — fora do escopo MD3, mantido igual)
+| Token | Valor | Uso |
+|---|---|---|
+| `--md-sys-color-success` | `#22C55E` | Conexão boa, testes OK |
+| `--md-sys-color-warning` | `#F5A623` | Alertas moderados |
+| `--md-sys-color-error` | `#FF4D4F` | Erros críticos, falhas |
+| `--md-sys-color-error-container` / `on-error-container` | `#FFDAD9` / `#7A0009` | **Novo** — faltava (manual §5) |
+
+### Fases do SpeedTest (produto, fora do escopo MD3)
+| Token | Valor |
+|---|---|
+| `--md-sys-color-phase-latencia` | `#60A5FA` |
+| `--md-sys-color-phase-download` | `#34D399` |
+| `--md-sys-color-phase-upload` | `#FBBF24` |
+
+### Superfícies — Light (5 níveis de surface container, manual §5)
+| Token | Valor |
+|---|---|
+| `--md-sys-color-background` | `#FFFFFF` |
+| `--md-sys-color-surface-dim` | inferido (não está no manual) |
+| `--md-sys-color-surface-container-low` | `#FDFBFF` |
+| `--md-sys-color-surface-container` | `#FBF7FF` |
+| `--md-sys-color-surface-container-high` | `#F8F2FF` |
+| `--md-sys-color-surface-container-highest` | `#F5EDFF` |
+| `--md-sys-color-on-surface` | `#0D0D1A` |
+| `--md-sys-color-on-surface-variant` | `#6B7280` |
+| `--md-sys-color-outline` | `#E5E7EB` |
+| `--md-sys-color-outline-variant` | inferido (mais fraco que outline) |
+
+### Superfícies — Dark
+| Token | Valor |
+|---|---|
+| `--md-sys-color-background` | `#000000` |
+| `--md-sys-color-surface-container-low` | `#161616` |
+| `--md-sys-color-surface-container` | `#1A1A1A` |
+| `--md-sys-color-outline` | `#2A2A2A` |
+
+### SignallQ (IA — sempre escuro, não adapta ao tema, fora do escopo §10)
+| Token | Valor |
+|---|---|
+| `--SignallQ-black` | `#0D0D1A` (background) |
+| `--SignallQ-dark-surface` | `#1A0B2E` |
+| `--SignallQ-dark-card` | `#1E1130` |
+| `--SignallQ-text-on-dark` | `#F3F4F6` |
+
+### Elevação tonal — 5 níveis (manual §3)
+| Nível | Tint | Shadow |
+|---|---|---|
+| level0 | `#FFFFFF` | none |
+| level1 | `#FDFBFF` | `0 1px 2px rgba(0,0,0,.08)` |
+| level2 | `#FBF7FF` | `0 1px 3px rgba(0,0,0,.12)` |
+| level3 | `#F8F2FF` | `0 2px 6px rgba(0,0,0,.16)` |
+| level4 | `#F5EDFF` | `0 3px 8px rgba(0,0,0,.18)` |
+
+### State layers (manual §6) — aplicar a card clicável, itens de lista/sheet, tabs, ações de TopBar, chips tocáveis
+`hover` 8% · `focus` 10% · `pressed` 12% · `dragged` 16% — overlay sobre `onSurface`/`onPrimary`,
+nunca mudança de cor de fundo.
+
+### Motion (manual §7)
+`emphasized` / `standard` = `cubic-bezier(.2,0,0,1)` · durações `short 100ms · medium 200ms ·
+long 300ms · extra-long 400ms`.
+
+### Espaçamento — grid 8dp (`LkSpacing`, fora do escopo MD3)
+`--space-xs` 4 · `--space-sm` 8 *(unidade base)* · `--space-md` 12 · `--space-lg` 16
+*(padding de tela + card)* · `--space-xl` 24 · `--space-xxl` 32. Toque mínimo: **56dp**.
+
+### Forma — escala completa (manual §4)
+`none` 0 · `xs` 4 · `sm` 8 · `md` 12 · `lg` 16 · `xl` 28 · `full` 999. **Mudança:** card passa
+de 16 para **12 (md)**; **16 (lg) fica reservado a sheets/dialogs**. Ícones em chip circular e
+avatares: totalmente redondos (36–44dp típico).
+
+### Densidade de ícone (manual §8)
+`24dp` conteúdo padrão · `20dp` ações compactas de TopBar · `18dp` labels inline.
+
+### Tipografia — Google Sans Flex + Roboto, escala MD3 completa (manual §1)
+**Google Sans Flex** para display/headline/title (pesos 400/600) · **Roboto** para body/label (pesos
+400/500) — implementado em PR #939 com licença SIL OFL, arquivos embutidos no APK. Classes em
+`colors_and_type.css`: `display-large/medium/small` (600, 57/45/36) · `headline-large/medium/small`
+(600, 32/28/24) · `title-large` (500, 22) · `title-medium/small` (500, 16/14) · `body-large/medium/small`
+(400, 16/14/12) · `label-large/medium/small` (500, 14/12/11) · `overline` (500/11, UPPERCASE, +0.3px,
+decisão de conteúdo — não é estilo MD3 nomeado).
+
+### Alpha (convenção do codebase, fora do escopo MD3)
+Tints são cor-em-alpha por sufixo hex: `1A`=10% · `1F`=12% · `26`=15% · `33`=20% ·
+`40`=25%. Ex.: card de Wi-Fi conectado = `success @12%` fill; seleção/IA = `primary @8–12%`
+fill + `primary @25–30%` borda; banner de alerta = `warning @12%` fill.
+
+---
+
+## Regras não-negociáveis (resumo)
+
+**Visual**
+- Material Design 3 **estrito**, claro, brilhante, neutro. Paleta tonal Primary/Secondary/Tertiary
+  (HCT, derivada de `#6C2BFF`) para destaque; status verde/âmbar/vermelho carregam o significado
+  (fora do escopo MD3, mantido igual).
+- **Sem** imagens fotográficas, hero full-bleed, padrões/texturas ou gradientes decorativos.
+  Gradiente existe em exatamente 2 lugares: avatar de perfil e header de Diagnóstico/IA
+  (linear `primary → accent-blue`).
+- Cards: raio **12dp (md)**, fundo `surface`/`surface-container`, hairline `1px outline-variant`,
+  **elevação tonal** (5 níveis, tint de superfície + shadow sutil — não sombra dura isolada).
+  Sheets/dialogs herdam o raio antigo do card: **16dp (lg)**.
+- State layers em todo componente clicável: hover 8% / focus 10% / pressed 12% / dragged 16%
+  sobre `onSurface`/`onPrimary`.
+- Cards "status" tingidos: cor semântica em alpha baixo (fill) + ~25–30% (borda).
+- Ícone em chip circular preenchido com a cor semântica ~10% é o motivo recorrente. Densidade:
+  24dp padrão / 20dp TopBar compacta / 18dp inline.
+- Barras de sinal: glyph vertical de 4 barras (alturas 6/9/12/16dp, largura 3dp, raio 1dp),
+  cor pela qualidade (verde Forte / âmbar Regular / vermelho Fraco), vazias em `outline`.
+
+**Conteúdo / voz**
+- Português do Brasil, sempre. Fala **com** o usuário usando "você", a partir do mundo dele
+  ("Sua internet por fibra").
+- Títulos e botões em **sentence case**; overlines/labels de seção em **UPPERCASE** com
+  letter-spacing leve.
+- Métrica crua **sempre** acompanhada de um veredito humano (`Excelente`, `Bom`, `Regular`,
+  `Fraco`, `Forte`). Separador inline: ponto médio `·`.
+- **Sem emoji.** Significado vem de ícones Material + cor semântica. Único glyph decorativo: o
+  `✓` dentro do badge "Conectado".
+
+**Sistemas**
+- Ícones: **Material Symbols / Material Icons (Outlined)** apenas. Na web:
+  `<span class="material-symbols-outlined">wifi</span>`.
+- Superfícies **SignallQ** (IA) são **sempre escuras** (`#0D0D1A` / `#1A0B2E` / `#1E1130`),
+  independentes do tema.
+- Movimento contido e funcional: fades/offsets rápidos, ripple M3, sem bounce nem floreio.
+  Nav inferior some no scroll-down e durante teste em andamento.
+
+**Layout fixo**
+- `CenterAlignedTopAppBar` (título centralizado, `ProfileAvatarButton` à esquerda, ação
+  contextual à direita) + `NavigationBar` de 5 abas (Início · Velocidade · Sinal · Histórico ·
+  Ajustes). Conteúdo rola em `LazyColumn`. Telas secundárias sobrepõem as abas; fluxos
+  profundos ganham seta de voltar. `ModalBottomSheet` é o padrão para permissões, análise de
+  topologia e pickers.
+
+**Anúncio nativo** (`…/ui/component/ads/`, issue #555 — padrão oficial desde v0.23.0)
+- Três variantes por contexto, nunca escolha por preferência: `NativeAdCard` (card cheio,
+  dispensável — Resultado, Histórico) · `NativeAdRow` (linha compacta — Velocidade idle) ·
+  `NativeAdListRow` (linha dentro de uma lista existente — Dispositivos, dentro da lista de
+  dispositivos conectados, nunca em Infraestrutura).
+- Disclosure `AdBadge` sempre visível: "Patrocinado" (tom neutro, AdMob — única fonte ativa
+  hoje) ou "Parceiro" (tom `accentBlue`, afiliado/parceiro curado — componente já suporta,
+  catálogo ainda não existe).
+- Nunca confundir com card orgânico: borda **tracejada** (`Modifier.dashedBorder`, nunca
+  sólida), CTA **outline violeta** (nunca sólido — sólido é exclusivo de CTA primário
+  orgânico), sem foto/hero, ícone do anunciante em **chip quadrado** (nunca círculo).
+  Componente inteiro é omitido (não vira placeholder) quando não há criativo carregado.
+- Referência completa: `docs_ai/design-system/COMPONENTS_ANDROID.md` (seção "Monetização —
+  Anúncio Nativo").
+
+---
+
+## Telas / Superfícies do app (referência)
+
+As superfícies centrais — recriadas em alta fidelidade em `ui_kits/android/`:
+
+- **Início (Home):** estado da conexão, cards de resumo, atalhos.
+- **Velocidade (SpeedTest):** seletor segmentado Rápido/Completo/Triplo, botão violeta de
+  iniciar com glow, gauge ao vivo por fase (latência/download/upload) → **Resultado**.
+- **Sinal (Wi-Fi):** card de rede conectada, chips de filtro de banda (Todos / 2.4 / 5 / 6
+  GHz), lista de redes com barras de sinal e métricas cruas + veredito.
+- **Histórico:** resultados anteriores.
+- **Diagnóstico / SignallQ (IA):** superfície escura, bolhas de chat com TypewriterText, bubble
+  "pensando" pulsante.
+
+Veja `_ref/` (capturas do app real, **não** para shipping) e `preview/` para os cards do DS.
+
+---
+
+## Arquivos para referência
+
+- `colors_and_type.css` — tokens + classes de tipo (importe em qualquer artefato web).
+- `README.md` (dentro da skill) — fundamentos completos de conteúdo, visual e iconografia.
+- `ui_kits/android/index.html` — protótipo click-through; `chrome.jsx` tem os tokens `LK` e
+  primitivos compartilhados; `screens.jsx`, `speedtest.jsx`, `signallq.jsx`, `app.jsx`.
+- `preview/*.html` — cards de cores, tipo, espaçamento, raios e componentes.
+- No seu codebase: `SignallQTheme.kt` (tokens), `…/ui/component/*.kt` (33+ composables,
+  incluindo `…/ui/component/ads/` — anúncio nativo), `…/ui/screen/*.kt` (telas),
+  `docs_ai/design-system/*.md` (docs originais).

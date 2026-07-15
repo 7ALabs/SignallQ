@@ -3057,6 +3057,14 @@ async function handleIngestAnalytics(request: Request, env: Env): Promise<Respon
   return json({ ok: true, inserted: stmts.length }, 201, env);
 }
 
+// GH#784 — feature_id das 3 etapas do funil de speedtest via feature_used
+// (iniciou/completou/compartilhou; "abriu" usa screen_view("speedtest"), já
+// existente). Reaproveita o mesmo evento/schema de "wifi"/"historico"/etc —
+// sem endpoint novo de ingest — mas precisam ficar de fora do ranking geral
+// de "funcionalidade mais usada" (não são features, são estágios de funil).
+const SPEEDTEST_FUNNEL_FEATURE_IDS = ['speedtest_iniciado', 'speedtest_completou', 'speedtest_compartilhou'];
+const SPEEDTEST_FUNNEL_EXCLUSION_CLAUSE = ` AND feature_id NOT IN (${SPEEDTEST_FUNNEL_FEATURE_IDS.map(() => '?').join(',')})`;
+
 async function handleProductAnalytics(request: Request, env: Env): Promise<Response> {
   const url       = new URL(request.url);
   const period    = url.searchParams.get('period') ?? '7d';
@@ -3072,9 +3080,9 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
       `SELECT feature_id, COUNT(*) AS usage_count, COUNT(DISTINCT session_id) AS unique_sessions
        FROM analytics_events
        WHERE event_name = 'feature_used' AND created_at >= ?${envClause}
-         AND feature_id != ''
+         AND feature_id != ''${SPEEDTEST_FUNNEL_EXCLUSION_CLAUSE}
        GROUP BY feature_id ORDER BY usage_count DESC`
-    ).bind(since, ...envBinds).all(),
+    ).bind(since, ...envBinds, ...SPEEDTEST_FUNNEL_FEATURE_IDS).all(),
 
     // Navegação por tela
     env.DB.prepare(
@@ -3101,9 +3109,9 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
       `SELECT feature_id, COUNT(*) AS total
        FROM analytics_events
        WHERE event_name = 'feature_used' AND created_at >= ?${envClause}
-         AND feature_id != ''
+         AND feature_id != ''${SPEEDTEST_FUNNEL_EXCLUSION_CLAUSE}
        GROUP BY feature_id`
-    ).bind(since, ...envBinds).all(),
+    ).bind(since, ...envBinds, ...SPEEDTEST_FUNNEL_FEATURE_IDS).all(),
   ]);
 
   // GH#418: tempo médio de sessão real (duration_ms só existe em session_end, SIG-295/GH#417).
@@ -3242,6 +3250,55 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
     avg_session_duration_ms,
     session_count,
     retention,
+  }, 200, env);
+}
+
+// GH#784 — funil do teste de velocidade (Uso do App): abriu -> iniciou ->
+// completou -> compartilhou. "Abriu" usa screen_view("speedtest") (já
+// instrumentado desde sempre — a aba Velocidade dispara screen_view ao
+// entrar); os demais 3 estágios usam feature_used com feature_id dedicado
+// (ver SPEEDTEST_FUNNEL_FEATURE_IDS), tudo via o mesmo pipeline de ingest já
+// existente — sem evento novo no whitelist do worker.
+async function handleSpeedtestFunnel(request: Request, env: Env): Promise<Response> {
+  const url       = new URL(request.url);
+  const period    = url.searchParams.get('period') ?? '7d';
+  const since     = nowSec() - periodToSeconds(period);
+  const envFilter = getEnvironmentFilter(url);
+
+  const envClause = envFilter ? ' AND environment = ?' : '';
+  const envBinds  = envFilter ? [envFilter]            : [];
+
+  const [abriuRow, estagiosRows] = await Promise.all([
+    env.DB.prepare(
+      `SELECT COUNT(*) AS count FROM analytics_events
+       WHERE event_name = 'screen_view' AND screen_name = 'speedtest' AND created_at >= ?${envClause}`
+    ).bind(since, ...envBinds).first<{ count: number }>(),
+
+    env.DB.prepare(
+      `SELECT feature_id, COUNT(*) AS count FROM analytics_events
+       WHERE event_name = 'feature_used' AND created_at >= ?${envClause}
+         AND feature_id IN (${SPEEDTEST_FUNNEL_FEATURE_IDS.map(() => '?').join(',')})
+       GROUP BY feature_id`
+    ).bind(since, ...envBinds, ...SPEEDTEST_FUNNEL_FEATURE_IDS).all(),
+  ]);
+
+  const countByFeatureId = new Map<string, number>(
+    (estagiosRows.results ?? []).map((r: any) => [r.feature_id, r.count ?? 0])
+  );
+
+  const stages = [
+    { stage: 'abriu', count: abriuRow?.count ?? 0 },
+    { stage: 'iniciou', count: countByFeatureId.get('speedtest_iniciado') ?? 0 },
+    { stage: 'completou', count: countByFeatureId.get('speedtest_completou') ?? 0 },
+    { stage: 'compartilhou', count: countByFeatureId.get('speedtest_compartilhou') ?? 0 },
+  ];
+
+  return json({
+    source: 'd1',
+    period,
+    environment: envFilter ?? 'all',
+    no_data_yet: stages.every((s) => s.count === 0),
+    stages,
   }, 200, env);
 }
 
@@ -3448,6 +3505,7 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/diagnostics\/intelligence$/,            handler: withErrorLogging('metrics', handleDiagnosticsIntelligence) },
   { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/product$/,          handler: withErrorLogging('analytics', handleProductAnalytics) },
   { method: "GET",  pattern: /^\/admin\/analytics\/product$/,                   handler: withErrorLogging('analytics', handleProductAnalytics) },
+  { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/speedtest-funnel$/, handler: withErrorLogging('analytics', handleSpeedtestFunnel) },
   { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/battery$/,          handler: withErrorLogging('analytics', handleBatteryAnalytics) },
   { method: "GET",  pattern: /^\/admin\/analytics\/battery$/,                   handler: withErrorLogging('analytics', handleBatteryAnalytics) },
   { method: "GET",  pattern: /^\/admin\/metrics\/analytics\/devices$/,          handler: withErrorLogging('analytics', handleDeviceBreakdown) },

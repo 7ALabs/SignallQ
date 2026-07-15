@@ -17,6 +17,14 @@ android {
             "AI_WORKER_URL",
             "\"https://linka-ai-diagnosis-worker.giammattey-luiz.workers.dev\"",
         )
+        // GH#962/#965 — worker signallq-diagnostic (motor de diagnostico remoto +
+        // diretorio de provedores). Deployado em producao em 2026-07-14 (GH#967) —
+        // URL abaixo confirmada contra o deploy real via GET /health (200).
+        buildConfigField(
+            "String",
+            "DIAGNOSTIC_WORKER_URL",
+            "\"https://signallq-diagnostic.giammattey-luiz.workers.dev\"",
+        )
         buildConfigField(
             "String",
             "APP_VERSION",
@@ -66,6 +74,7 @@ dependencies {
     // recebe null. Ref: https://stackoverflow.com/q/24197773
     testImplementation("org.json:json:20240303")
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.kotlinx.coroutines.test)

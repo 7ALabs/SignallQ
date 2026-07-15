@@ -1,68 +1,46 @@
 # Espaçamento — SignallQ
 
-**Fonte:** `SignallQTheme.kt` (LkSpacing) | Padrão grid 8 dp  
-**Escopo:** Android v0.23.0  
-**Última atualização:** 2026-07-05
+**Fonte oficial:** `LkSpacing` em `SignallQTheme.kt`  
+**Escopo:** Android v0.23.0+  
+**Última atualização:** 2026-07-15
 
 ---
 
-## Token de Espaçamento
-
-SignallQ segue grid 8 dp do Material Design 3. Tokens definidos em `LkSpacing`:
+## Escala oficial
 
 | Token | Valor | Uso |
 | --- | --- | --- |
-| `xs` | 4 dp | Ajustes finos, pequenos gaps |
-| `sm` | 8 dp | Unidade fundamental (padding interno, gaps) |
-| `md` | 12 dp | Espaçamento padrão interno |
-| `lg` | 16 dp | Padding de telas, seções |
-| `xl` | 24 dp | Divisões significativas entre áreas |
-| `xxl` | 32 dp | Espaçamento entre grandes seções |
-| `cardContent` | 16 dp | Padding interno de cards |
+| `xs` | 4 dp | ajustes finos, separações mínimas |
+| `sm` | 8 dp | gaps simples, paddings pequenos |
+| `md` | 12 dp | espaçamento padrão interno |
+| `base` | 16 dp | padding horizontal principal e cards |
+| `lg` | 20 dp | separações de bloco e grupos mais densos |
+| `xl` | 24 dp | separações claras entre seções |
+| `xxl` | 32 dp | grandes blocos ou respiros |
+| `xxxl` | 40 dp | grandes aberturas verticais |
 
 ---
 
-## Raios de Borda
+## Regras
 
-| Token | Valor | Uso |
-| --- | --- | --- |
-| `card` | 16 dp | Cards, superfícies principais |
-| `button` | 12 dp | Botões |
-| `input` | 12 dp | Campos de entrada |
+- Preferir `LkSpacing` em vez de `16.dp`, `24.dp`, etc.
+- Valores fora da escala devem ser exceção técnica, não padrão visual.
+- Medidas como `3.dp`, `5.dp`, `10.dp`, `11.dp`, `13.dp`, `14.dp` e similares devem ser tratadas como dívida visual quando usadas em layout comum.
 
 ---
 
-## Validação em Código
+## Raios relacionados
 
-Não há token centralizado de espaçamento em `dimens.xml`. Valores são aplicados diretamente via `Modifier.padding()` em composables.
-
-Para validar espaçamento em uso, execute:
-
-```bash
-grep -r "padding(" \
-  signallq-android-kotlin/app/src/main/kotlin/io/signallq/app/kotlin/ui/component/ \
-  signallq-android-kotlin/app/src/main/kotlin/io/signallq/app/kotlin/ \
-  | grep -E "(4|8|12|16|24|32)\.dp"
-```
+| Token | Valor |
+| --- | --- |
+| `LkRadius.card` | 16 dp |
+| `LkRadius.button` | 20 dp |
+| `LkRadius.input` | 12 dp |
+| `LkRadius.sheet` | 28 dp |
+| `LkRadius.pill` | 999 dp |
 
 ---
 
-## Aplicação
+## Observação
 
-Preferir `LkSpacing` ao invés de hardcoding valores:
-
-```kotlin
-// Correto
-Box(modifier = Modifier.padding(LkSpacing.lg))
-
-// Evitar
-Box(modifier = Modifier.padding(16.dp))
-```
-
----
-
-## Material Design 3 — Princípios
-
-- Espaçamento cria ritmo vertical e harmonia visual.
-- Grid 8 dp reduz decisões arbitrárias.
-- Acessibilidade: 56 dp mínimo para hit targets (toque).
+O app já possui uma escala de espaçamento bem definida na fundação, mas ainda não está plenamente aplicada em todas as telas e componentes. A meta do saneamento visual é transformar esta escala em padrão obrigatório de consumo.

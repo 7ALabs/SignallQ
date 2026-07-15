@@ -40,6 +40,9 @@ object NokiaLocalDeviceMapper {
                 // alias_cfg), ligada em 2026-07-10.
                 suportaClientes = true,
                 suportaDiagnosticoNativo = false,
+                // Nokia G-1425G-B é o único provider real com ação de gerência
+                // implementada hoje (reboot.cgi, GH#934) — ver NokiaModemClient.reboot.
+                suportaGerenciamento = true,
             ),
             vendor = "Nokia",
             modelo = snapshot.deviceInfo?.model,

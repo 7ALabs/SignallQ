@@ -18,7 +18,9 @@ import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.network.NetworkCapabilitiesProvider
 import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
+import io.signallq.app.core.network.contracts.topologia.PapelTopologia
 import io.signallq.app.core.network.contracts.wifi.channel.freqToChannel
+import io.signallq.app.core.network.topologia.engine.TopologiaRedeEngine
 import io.signallq.app.core.permissions.GerenciadorPermissoesRede
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
@@ -57,7 +59,6 @@ import io.signallq.app.feature.diagnostico.ai.DiagnosisAiContext
 import io.signallq.app.feature.diagnostico.ai.DiagnosisAiContextFactory
 import io.signallq.app.feature.diagnostico.banda
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
-import io.signallq.app.feature.diagnostico.pulse.OpcaoResposta
 import io.signallq.app.feature.diagnostico.pulse.SignallQOrchestrator
 import io.signallq.app.feature.diagnostico.recommendation.RecommendationDecisionCoordinator
 import io.signallq.app.feature.diagnostico.topology.TopologyDiagnostic
@@ -78,7 +79,6 @@ import io.signallq.app.feature.wifi.ScannerRedesWifi
 import io.signallq.app.monitoramento.MonitoramentoScheduler
 import io.signallq.app.network.IspInfoCache
 import io.signallq.app.notificacao.SignallQNotificationHelper
-import io.signallq.app.pulse.SignallQUiStateMapper
 import io.signallq.app.review.ReviewPromptPolicy
 import io.signallq.app.speedtest.SpeedtestPersistenceCoordinator
 import io.signallq.app.ui.BancoOperadoras
@@ -88,7 +88,6 @@ import io.signallq.app.ui.GatewayInfo
 import io.signallq.app.ui.HistoryPoint
 import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.screen.AnalisadorState
-import io.signallq.app.ui.screen.SignallQUiState
 import io.signallq.app.ui.state.UiState
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -96,6 +95,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -216,6 +216,13 @@ class MainViewModel
                 .stateIn(viewModelScope, SharingStarted.Eagerly, null)
         }
 
+        // GH#934 — expoe reativamente o mesmo natStatusAtual (SIG-279) ja calculado por
+        // coletarTopologiaRede() para a EquipamentoInternetScreen sinalizar Double NAT.
+        // Espelha a variavel privada em vez de substitui-la — DiagnosticInput continua
+        // lendo natStatusAtual diretamente, sem mudar o contrato existente do engine.
+        private val _natStatusFlow = MutableStateFlow<NatStatus?>(null)
+        val natStatusFlow: StateFlow<NatStatus?> = _natStatusFlow.asStateFlow()
+
         // ── Recomendacao do Recommendation Engine na experiencia pos-diagnostico (#813) ──
         // Uma unica decisao por diagnostico concluido -- recalculada em iniciarObservadores()
         // quando o DiagnosticOrchestrator emite um relatorio novo. null = nada elegivel
@@ -261,11 +268,6 @@ class MainViewModel
                 analyticsHelper = analyticsHelper,
                 analyticsTracker = analyticsTracker,
             )
-        }
-        val signallQUiStateFlow by lazy {
-            signallQOrchestrator.snapshotFlow
-                .map { SignallQUiStateMapper.from(it) }
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SignallQUiState.Idle)
         }
 
         // #895: default ERA `false` — todo cold start (mesmo de usuario que ja concluiu o
@@ -991,6 +993,7 @@ class MainViewModel
         private suspend fun coletarTopologiaRede() {
             try {
                 natStatusAtual = topologyDiagnostic.diagnose().nat
+                _natStatusFlow.value = natStatusAtual
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 Timber.w("coletarTopologiaRede falhou: ${e.message}")
@@ -1005,9 +1008,17 @@ class MainViewModel
             if (redesScan.isEmpty()) return null
             val wifiSnapshot = monitorRede.snapshotFlow.value.wifiLinkSnapshot
             val conectadoCanal = wifiSnapshot?.frequenciaMhz?.let { freqToChannel(it)?.second }
+            // #980 (Fase 2B, passo 3) — motor unificado (TopologiaRedeEngine/#979) alimenta
+            // RecommendationEngine com papel/confianca por BSSID, em vez de MeshOuiDatabase
+            // consultado direto (ve OUI e banda; nao afirma "roteador central" sem confirmacao).
+            val classificacaoPorBssid =
+                TopologiaRedeEngine
+                    .classificar(redes = redesScan, connectedBssid = wifiSnapshot?.bssid)
+                    .associate { it.first.bssid to it.second }
             return WifiScanDiagnosticInput(
                 redes =
                     redesScan.map { rv ->
+                        val classificacao = classificacaoPorBssid[rv.bssid]
                         RedeWifiVizinha(
                             canal = rv.canal,
                             rssiDbm = rv.rssiDbm,
@@ -1015,6 +1026,8 @@ class MainViewModel
                             ssid = rv.ssid,
                             bssid = rv.bssid,
                             seguranca = rv.seguranca,
+                            papelTopologia = classificacao?.papelProvavel,
+                            confiancaTopologia = classificacao?.confianca,
                         )
                     },
                 conectadoCanal = conectadoCanal,
@@ -1288,6 +1301,13 @@ class MainViewModel
                     }
                 executorFibra.executar(resolvedHost, username, password)
             }
+        }
+
+        // GH#934 — solicita reboot do equipamento conectado (so faz sentido com sessao
+        // ativa). Nao reconecta sozinho: a UI mostra o estado "sessao expirada"/loading
+        // ate o equipamento voltar e o usuario (ou a autoconexao) tentar de novo.
+        fun reiniciarEquipamento() {
+            viewModelScope.launch { executorFibra.reiniciar() }
         }
 
         fun salvarConfiguracaoModem(
@@ -1579,39 +1599,6 @@ class MainViewModel
             viewModelScope.launch { scannerRedesWifi.escanear() }
         }
 
-        fun iniciarSignallQ(
-            foco: String? = null,
-            forcarNovoSpeedtest: Boolean = false,
-        ) {
-            viewModelScope.launch { signallQOrchestrator.iniciarDiagnostico(foco, forcarNovoSpeedtest) }
-        }
-
-        fun iniciarSignallQComResultado(
-            resultado: io.signallq.app.feature.speedtest.ResultadoSpeedtest,
-            foco: String? = null,
-        ) {
-            viewModelScope.launch { signallQOrchestrator.iniciarDiagnosticoComResultado(resultado, foco) }
-        }
-
-        /** Volta ao intent picker (Idle) sem iniciar diagnostico. */
-        fun resetSignallQ() {
-            signallQOrchestrator.reset()
-        }
-
-        fun selecionarChipSignallQ(chip: OpcaoResposta) {
-            viewModelScope.launch { signallQOrchestrator.selecionarChip(chip) }
-        }
-
-        fun responderPerguntaSignallQ(opcao: OpcaoResposta) {
-            viewModelScope.launch { signallQOrchestrator.responderPergunta(opcao) }
-        }
-
-        /** Processa mensagem digitada livremente pelo usuario no chat.
-         *  Aplica guard off-topic e incrementa [userTurnCount] apenas se aprovada. */
-        fun enviarMensagemTextoSignallQ(texto: String) {
-            viewModelScope.launch { signallQOrchestrator.enviarMensagemTexto(texto) }
-        }
-
         fun coletarInfoLocalRede() {
             val cm = getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val network = cm.activeNetwork ?: return
@@ -1633,8 +1620,20 @@ class MainViewModel
                     ?.ssid
                     ?.trim('"')
                     .orEmpty()
+            val bssidAtual = snapshotRede.wifiLinkSnapshot?.bssid
             val redesVizinhas = scannerRedesWifi.snapshotFlow.value.redes
-            val gatewayType = inferirTipoGatewayPorScan(ssid, redesVizinhas)
+            // #980 (Fase 2B) — motor unificado (ve OUI e banda, TopologiaRedeEngine/#979)
+            // substitui a heuristica que so olhava SSID/contagem de BSSID; nao confunde mais
+            // roteador dual-band nem extensor de outro fabricante com mesh real.
+            // papelProvavel nunca afirma "roteador central" sozinho — vira
+            // SISTEMA_MESH_PROVAVEL quando so ha evidencia de scan Wi-Fi (sem 2a rota IP).
+            val classificacaoConectada =
+                TopologiaRedeEngine
+                    .classificar(redes = redesVizinhas, connectedBssid = bssidAtual)
+                    .firstOrNull { it.first.bssid == bssidAtual }
+                    ?.second
+            val gatewayType = papelParaConnectionNodeType(classificacaoConectada?.papelProvavel ?: PapelTopologia.DESCONHECIDO)
+            val confiancaTopologia = classificacaoConectada?.confianca
             val gatewayName =
                 ssid.ifBlank {
                     when (gatewayType) {
@@ -1659,7 +1658,7 @@ class MainViewModel
                     // dispositivo está conectado). O roteador central por trás do mesh não tem IP
                     // visível, então só criamos o nó "Roteador" quando há de fato um segundo gateway.
                     buildList {
-                        add(GatewayInfo(ip = meshIp, name = gatewayName, type = gatewayType))
+                        add(GatewayInfo(ip = meshIp, name = gatewayName, type = gatewayType, confianca = confiancaTopologia))
                         if (routerIp != null) {
                             add(GatewayInfo(ip = routerIp, name = "Roteador", type = ConnectionNodeType.WifiRouter))
                         }
@@ -1667,9 +1666,9 @@ class MainViewModel
                 } else {
                     gatewayIps
                         .map { ip ->
-                            GatewayInfo(ip = ip, name = gatewayName, type = gatewayType)
+                            GatewayInfo(ip = ip, name = gatewayName, type = gatewayType, confianca = confiancaTopologia)
                         }.ifEmpty {
-                            listOf(GatewayInfo(ip = null, name = gatewayName, type = gatewayType))
+                            listOf(GatewayInfo(ip = null, name = gatewayName, type = gatewayType, confianca = confiancaTopologia))
                         }
                 }
         }
@@ -2198,6 +2197,21 @@ internal fun deveSolicitarConfirmacaoRedeMovel(
     modo: ModoSpeedtest,
     jaConfirmadoRedeMovel: Boolean,
 ): Boolean = !jaConfirmadoRedeMovel && modo != ModoSpeedtest.fast && metered
+
+// #980 (Fase 2B) — traduz o papel canonico do motor de topologia unificado
+// (TopologiaRedeEngine, Fase 2A/#979) pro enum que a Home ja usa. SISTEMA_MESH_PROVAVEL vira
+// WifiMesh (nunca WifiRouter): so o papel ROTEADOR aciona o fluxo de login do modem
+// (GatewayConnectionSheet, ver HomeScreen.onGatewayTap) — um no so "provavelmente" mesh nao
+// pode acionar esse fluxo como se fosse um roteador confirmado.
+internal fun papelParaConnectionNodeType(papel: PapelTopologia): ConnectionNodeType =
+    when (papel) {
+        PapelTopologia.ROTEADOR -> ConnectionNodeType.WifiRouter
+        PapelTopologia.NO_MESH -> ConnectionNodeType.WifiMesh
+        PapelTopologia.SISTEMA_MESH_PROVAVEL -> ConnectionNodeType.WifiMesh
+        PapelTopologia.REPETIDOR -> ConnectionNodeType.WifiExtender
+        PapelTopologia.PONTO_DE_ACESSO -> ConnectionNodeType.Unknown
+        PapelTopologia.DESCONHECIDO -> ConnectionNodeType.Unknown
+    }
 
 // SIG-279 — enums identicos por nome (wifi/movel/ethernet/desconectado/desconhecido),
 // mapeamento explicito para nao acoplar core/network a feature/diagnostico.
