@@ -137,4 +137,59 @@ class ClassificadorDispositivoTest {
         val tipo = ClassificadorDispositivoRede.classificar(d, null)
         assertEquals(TipoDispositivo.smarthome, tipo)
     }
+
+    // ─── #982 (Fase 3): sinais novos como evidencia, nunca veredito isolado ─────
+
+    @Test
+    fun `servico _matter classifica como smarthome generico, sem subtipo especifico`() {
+        val d = dispositivo(tiposServico = setOf("_matter._tcp.local"))
+        val tipo = ClassificadorDispositivoRede.classificar(d, null)
+        assertEquals(TipoDispositivo.smarthome, tipo)
+    }
+
+    @Test
+    fun `servico _androidtvremote classifica como smarthome (smart tv)`() {
+        val d = dispositivo(tiposServico = setOf("_androidtvremote._tcp.local"))
+        val tipo = ClassificadorDispositivoRede.classificar(d, null)
+        assertEquals(TipoDispositivo.smarthome, tipo)
+    }
+
+    @Test
+    fun `servico _rtsp via mDNS classifica como smarthome (camera)`() {
+        val d = dispositivo(tiposServico = setOf("_rtsp._tcp.local"))
+        val tipo = ClassificadorDispositivoRede.classificar(d, null)
+        assertEquals(TipoDispositivo.smarthome, tipo)
+    }
+
+    @Test
+    fun `CASO NEGATIVO - porta 554 sozinha nao confirma camera`() {
+        // Varios dispositivos abrem a porta RTSP sem ser camera — sem corroboracao de nome
+        // ou mDNS especifico (_rtsp), a porta isolada nao deve virar veredito de smarthome.
+        val d = dispositivo(portas = setOf(554))
+        val tipo = ClassificadorDispositivoRede.classificar(d, null)
+        assertEquals(TipoDispositivo.desconhecido, tipo)
+    }
+
+    @Test
+    fun `porta 554 com nome sugestivo de camera classifica como smarthome`() {
+        val d = dispositivo(nome = "IPCam Quintal", portas = setOf(554))
+        val tipo = ClassificadorDispositivoRede.classificar(d, null)
+        assertEquals(TipoDispositivo.smarthome, tipo)
+    }
+
+    @Test
+    fun `fabricante Nintendo classifica como console (correcao do bug conhecido)`() {
+        // Antes da Fase 3, Nintendo caia em fabricantesSmarthome e virava "smarthome" — hoje
+        // tem categoria propria.
+        val d = dispositivo()
+        val tipo = ClassificadorDispositivoRede.classificar(d, "Nintendo")
+        assertEquals(TipoDispositivo.console, tipo)
+    }
+
+    @Test
+    fun `nome nintendo switch classifica como console mesmo sem fabricante`() {
+        val d = dispositivo(nome = "Nintendo Switch de Ana")
+        val tipo = ClassificadorDispositivoRede.classificar(d, null)
+        assertEquals(TipoDispositivo.console, tipo)
+    }
 }
