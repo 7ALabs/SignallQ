@@ -9,6 +9,8 @@ import dagger.hilt.components.SingletonComponent
 import io.signallq.app.feature.diagnostico.BuildConfig
 import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
 import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
+import io.signallq.app.feature.diagnostico.remote.ProviderDirectoryRepository
+import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
 import io.signallq.app.core.database.SignallQDatabase
 import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
 import io.signallq.app.core.datastore.PreferenciasAppRepository
@@ -31,11 +33,16 @@ object DiagnosticoModule {
      *
      * Antes era instanciado via `by lazy { DiagnosticOrchestrator() }` no MainViewModel.
      * Agora e singleton compartilhado entre DiagnosticoViewModel e MainViewModel (legado).
+     *
+     * GH#969: reusa a mesma instancia de [RemoteDiagnosticRepository] ja provida abaixo
+     * (nao cria um OkHttpClient/cache novo so pra este orquestrador).
      */
     @Provides
     @Singleton
-    fun provideDiagnosticOrchestrator(analyticsHelper: AnalyticsHelper): DiagnosticOrchestrator =
-        DiagnosticOrchestrator(analyticsHelper)
+    fun provideDiagnosticOrchestrator(
+        analyticsHelper: AnalyticsHelper,
+        remoteDiagnosticRepository: RemoteDiagnosticRepository,
+    ): DiagnosticOrchestrator = DiagnosticOrchestrator(analyticsHelper, remoteDiagnosticRepository)
 
     /**
      * Provê a instância única de AiDiagnosisRepository no grafo Hilt.
@@ -54,6 +61,29 @@ object DiagnosticoModule {
             baseUrl = BuildConfig.AI_WORKER_URL,
             isAuthorized = { true },
         )
+
+    /**
+     * Provê RemoteDiagnosticRepository no grafo Hilt (GH#962).
+     *
+     * GH#969: wireada no [io.signallq.app.feature.diagnostico.DiagnosticOrchestrator] —
+     * fluxo remoto-primeiro com fallback automatico pro motor local, sem mudanca
+     * perceptivel de UI (o orquestrador so troca a fonte do relatorio).
+     */
+    @Provides
+    @Singleton
+    fun provideRemoteDiagnosticRepository(): RemoteDiagnosticRepository =
+        RemoteDiagnosticRepository(baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL)
+
+    /**
+     * Provê ProviderDirectoryRepository no grafo Hilt (GH#965) — diretorio remoto
+     * de provedores de cauda longa (logo + contato). Consumido pelo resolver de
+     * identidade de operadora em `:app` (catalogo local -> este repository ->
+     * fallback generico), nunca direto por Composable.
+     */
+    @Provides
+    @Singleton
+    fun provideProviderDirectoryRepository(): ProviderDirectoryRepository =
+        ProviderDirectoryRepository(baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL)
 
     /**
      * Provê TopologyDiagnostic no grafo Hilt.

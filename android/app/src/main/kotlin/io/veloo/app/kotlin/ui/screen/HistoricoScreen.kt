@@ -25,24 +25,20 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.automirrored.outlined.TrendingDown
+import androidx.compose.material.icons.automirrored.outlined.TrendingFlat
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.SaveAlt
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.TrendingDown
-import androidx.compose.material.icons.outlined.TrendingFlat
-import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -82,9 +78,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.signallq.app.ads.AdSlot
-import io.signallq.app.ads.AdUnitIds
-import io.signallq.app.ads.NativeAdContentSignals
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.feature.diagnostico.MetricClassifier
@@ -98,10 +91,16 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
-import io.signallq.app.ui.ads.rememberNativeAd
+import io.signallq.app.ui.component.LkPillBadge
+import io.signallq.app.ui.component.LkSectionOverline
+import io.signallq.app.ui.component.LkSheetDivider
+import io.signallq.app.ui.component.LkSheetFrame
+import io.signallq.app.ui.component.LkSheetInfoRow
+import io.signallq.app.ui.component.LkStatusDot
+import io.signallq.app.ui.component.LkSurfaceCard
+import io.signallq.app.ui.component.Overline
 import io.signallq.app.ui.component.ProfileAvatarButton
-import io.signallq.app.ui.component.ads.NativeAdCard
-import io.signallq.app.ui.component.ads.NativeAdSource
+import io.signallq.app.ui.component.ads.SimulatedOfferCard
 import io.signallq.app.ui.component.rememberTopBarAlpha
 import kotlinx.coroutines.launch
 import java.util.Calendar
@@ -234,9 +233,9 @@ private fun TendenciaCard(
     val (estado, percentual) = tendencia
     val icon =
         when (estado) {
-            TendenciaEstado.MELHOROU -> Icons.Outlined.TrendingUp
-            TendenciaEstado.PIOROU -> Icons.Outlined.TrendingDown
-            TendenciaEstado.ESTAVEL -> Icons.Outlined.TrendingFlat
+            TendenciaEstado.MELHOROU -> Icons.AutoMirrored.Outlined.TrendingUp
+            TendenciaEstado.PIOROU -> Icons.AutoMirrored.Outlined.TrendingDown
+            TendenciaEstado.ESTAVEL -> Icons.AutoMirrored.Outlined.TrendingFlat
         }
     val iconColor =
         when (estado) {
@@ -345,16 +344,16 @@ private fun LineChartGrafico(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
             ) {
-                Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(LkColors.accent))
+                LkStatusDot(color = LkColors.accent)
                 Text("↓ Download", style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
             ) {
-                Box(Modifier.size(8.dp).clip(RoundedCornerShape(50)).background(LkColors.accentBlue))
+                LkStatusDot(color = LkColors.accentBlue)
                 Text("↑ Upload", style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
             }
         }
@@ -598,14 +597,44 @@ private fun MediaCard(
 private fun FiltrosConexao(
     filtroSelecionado: FiltroTipo,
     onFiltroChange: (FiltroTipo) -> Unit,
-    operadorasDisponiveis: List<String>,
-    filtroOperadora: String?,
-    onFiltroOperadoraChange: (String?) -> Unit,
     c: LkTokens,
+    compact: Boolean = false,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
-            FiltroTipo.entries.forEach { filtro ->
+    Row(
+        modifier =
+            if (compact) {
+                Modifier
+                    .width(220.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(c.surfaceContainer)
+                    .padding(4.dp)
+            } else {
+                Modifier
+            },
+        horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+    ) {
+        FiltroTipo.entries.forEach { filtro ->
+            if (compact) {
+                Surface(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(999.dp))
+                            .clickable { onFiltroChange(filtro) },
+                    color = if (filtroSelecionado == filtro) c.secondaryContainer else Color.Transparent,
+                ) {
+                    Box(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            filtro.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (filtroSelecionado == filtro) c.onSecondaryContainer else c.textSecondary,
+                        )
+                    }
+                }
+            } else {
                 FilterChip(
                     selected = filtroSelecionado == filtro,
                     onClick = { onFiltroChange(filtro) },
@@ -613,60 +642,17 @@ private fun FiltrosConexao(
                     modifier = Modifier.heightIn(min = 48.dp),
                     colors =
                         FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
-                            selectedLabelColor = LkColors.accent,
+                            selectedContainerColor = c.secondaryContainer,
+                            selectedLabelColor = c.onSecondaryContainer,
                         ),
                     border =
                         FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = filtroSelecionado == filtro,
                             borderColor = c.border,
-                            selectedBorderColor = LkColors.accent,
+                            selectedBorderColor = c.secondaryContainer,
                         ),
                 )
-            }
-        }
-
-        if (filtroSelecionado == FiltroTipo.MOVEL && operadorasDisponiveis.isNotEmpty()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
-                FilterChip(
-                    selected = filtroOperadora == null,
-                    onClick = { onFiltroOperadoraChange(null) },
-                    label = { Text("Todas", style = MaterialTheme.typography.labelSmall) },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                    colors =
-                        FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = LkColors.accentBlue.copy(alpha = 0.15f),
-                            selectedLabelColor = LkColors.accentBlue,
-                        ),
-                    border =
-                        FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = filtroOperadora == null,
-                            borderColor = c.border,
-                            selectedBorderColor = LkColors.accentBlue,
-                        ),
-                )
-                operadorasDisponiveis.forEach { op ->
-                    FilterChip(
-                        selected = filtroOperadora == op,
-                        onClick = { onFiltroOperadoraChange(op) },
-                        label = { Text(op, style = MaterialTheme.typography.labelSmall) },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                        colors =
-                            FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = LkColors.accentBlue.copy(alpha = 0.15f),
-                                selectedLabelColor = LkColors.accentBlue,
-                            ),
-                        border =
-                            FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = filtroOperadora == op,
-                                borderColor = c.border,
-                                selectedBorderColor = LkColors.accentBlue,
-                            ),
-                    )
-                }
             }
         }
     }
@@ -712,19 +698,6 @@ fun HistoricoScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
     val topBarAlpha = listState.rememberTopBarAlpha()
-
-    val operadorasDisponiveisAtivas =
-        if (filtroConexao != null) {
-            operadorasDisponiveis
-        } else {
-            remember(historico) {
-                historico
-                    .filter { it.connectionType == EstadoConexao.movel.name }
-                    .mapNotNull { it.operadoraMovel }
-                    .distinct()
-                    .sorted()
-            }
-        }
 
     // Modo controlado: AppShell/ViewModel já pré-filtrou a lista — não re-filtrar aqui,
     // pois isso causaria double-filter e lista sempre vazia ao selecionar MOVEL.
@@ -782,7 +755,7 @@ fun HistoricoScreen(
                         enabled = historicoFiltrado.isNotEmpty(),
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.SaveAlt,
+                            imageVector = Icons.Outlined.Share,
                             contentDescription = "Exportar histórico",
                             tint = if (historicoFiltrado.isNotEmpty()) c.textPrimary else c.textTertiary,
                         )
@@ -802,49 +775,43 @@ fun HistoricoScreen(
                 filtroAtivo = false,
             )
         } else {
-            val maxValue =
-                remember(historicoFiltrado) {
-                    maxOf(
-                        historicoFiltrado.flatMap { listOf(it.downloadMbps ?: 0.0, it.uploadMbps ?: 0.0) }.maxOrNull() ?: 100.0,
-                        100.0,
-                    )
-                }
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize().padding(padding),
                 contentPadding = PaddingValues(horizontal = LkSpacing.lg, vertical = LkSpacing.lg),
                 verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
             ) {
-                if (listaParaExibir.isNotEmpty()) {
-                    item(key = "grafico_linha") {
-                        LineChartGrafico(medicoes = historicoFiltrado, c = c)
-                    }
-                    item(key = "media_cards") {
-                        MediaCards(medicoes = historicoFiltrado, c = c)
+                if (!nativeAdDismissedHistorico) {
+                    item(key = "native_ad_historico") {
+                        // TODO: substituir este card SIMULADO por rememberNativeAd +
+                        // NativeAdCard quando o AdMob real deste slot estiver configurado.
+                        SimulatedOfferCard(
+                            title = "Plano gamer simulado com rota otimizada para menor latência",
+                            body = "Oferta de teste para quem quer comparar estabilidade entre horários e sessões.",
+                            cta = "Ver simulação",
+                        )
                     }
                 }
-                item(key = "filtros_conexao") {
-                    FiltrosConexao(
-                        filtroSelecionado = filtroConexaoAtivo,
-                        onFiltroChange = { novo ->
-                            if (filtroConexao != null) {
-                                onFiltroConexaoChange(novo)
-                            } else {
-                                filtroConexaoInterno = novo
-                                if (novo != FiltroTipo.MOVEL) filtroOperadoraInterno = null
-                            }
-                        },
-                        operadorasDisponiveis = operadorasDisponiveisAtivas,
-                        filtroOperadora = filtroOperadoraAtivo,
-                        onFiltroOperadoraChange = { op ->
-                            if (filtroConexao != null) {
-                                onFiltroOperadoraChange(op)
-                            } else {
-                                filtroOperadoraInterno = op
-                            }
-                        },
-                        c = c,
-                    )
+                item(key = "medicoes_header") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        LkSectionOverline("Medições recentes")
+                        FiltrosConexao(
+                            filtroSelecionado = filtroConexaoAtivo,
+                            onFiltroChange = { novo ->
+                                if (filtroConexao != null) {
+                                    onFiltroConexaoChange(novo)
+                                } else {
+                                    filtroConexaoInterno = novo
+                                }
+                            },
+                            c = c,
+                            compact = true,
+                        )
+                    }
                 }
                 if (listaParaExibir.isEmpty()) {
                     item(key = "empty_filtro") {
@@ -855,46 +822,9 @@ fun HistoricoScreen(
                         )
                     }
                 } else {
-                    item(key = "medir_agora") {
-                        Button(
-                            onClick = onIniciarTeste,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(LkRadius.card),
-                            colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
-                            contentPadding = PaddingValues(vertical = 14.dp),
-                        ) {
-                            Text("Medir agora", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600)
-                        }
-                    }
-                    resumoHistorico?.let { resumo ->
-                        if (resumo.totalMedicoes >= 2) {
-                            item(key = "tendencia") {
-                                TendenciaCard(resumo = resumo, c = c)
-                            }
-                        }
-                    }
-                    // Slot de anuncio nativo (issue #555) -- depois do resumo de
-                    // estabilidade (Tendencia), antes das medicoes recentes.
-                    if (!nativeAdDismissedHistorico) {
-                        item(key = "native_ad_historico") {
-                            val nativeAd by
-                                rememberNativeAd(
-                                    adUnitId = AdUnitIds.para(AdSlot.HISTORICO),
-                                    contentSignal = NativeAdContentSignals.forSlot(AdSlot.HISTORICO),
-                                    eligible = adsEnabled,
-                                )
-                            NativeAdCard(
-                                nativeAd = nativeAd,
-                                source = NativeAdSource.ADMOB,
-                                onDismiss = { nativeAdDismissedHistorico = true },
-                                modifier = Modifier.padding(top = LkSpacing.xs),
-                            )
-                        }
-                    }
                     items(historicoFiltrado, key = { it.id }) { medicao ->
                         HistoricoCard(
                             medicao = medicao,
-                            maxValue = maxValue,
                             onClick = {
                                 scope.launch {
                                     if (mostrarExport) {
@@ -989,14 +919,16 @@ private fun EmptyHistorico(
 @Composable
 private fun HistoricoCard(
     medicao: MedicaoEntity,
-    maxValue: Double,
     onClick: () -> Unit,
 ) {
     val c = LocalLkTokens.current
     val dl = medicao.downloadMbps
     val cardDesc = "Medição de ${formatDate(medicao.timestampEpochMs)}, download ${dl?.let { "%.0f".format(it) } ?: "sem dados"} Mbps"
+    val valorPrincipal = dl ?: medicao.uploadMbps
+    val valorCor =
+        if ((valorPrincipal ?: 0.0) >= 30.0) LkColors.success else LkColors.warning
 
-    Card(
+    LkSurfaceCard(
         modifier =
             Modifier
                 .fillMaxWidth()
@@ -1004,46 +936,26 @@ private fun HistoricoCard(
                     role = Role.Button
                     contentDescription = cardDesc
                 }.clickable(onClick = onClick),
-        shape = RoundedCornerShape(LkRadius.card),
-        colors = CardDefaults.cardColors(containerColor = c.bgCard),
-        border = BorderStroke(1.dp, c.border),
+        outlined = false,
     ) {
-        Column(
-            modifier = Modifier.padding(LkSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(LkSpacing.lg),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    formatDate(medicao.timestampEpochMs),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.W600,
-                    color = c.textPrimary,
-                )
-                Spacer(Modifier.weight(1f))
-                if (medicao.fonte == "orbit") {
-                    IaBadge()
-                    Spacer(Modifier.width(LkSpacing.xs))
-                }
-                if (medicao.contaminado) {
-                    QualityBadge("ERRO", LkColors.error)
-                    Spacer(Modifier.width(LkSpacing.xs))
-                }
-                Icon(networkIcon(medicao), null, tint = c.textSecondary, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(LkSpacing.xs))
-                Text(tipoLabel(medicao), style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
-            }
-            SpeedBar(value = medicao.downloadMbps, maxValue = maxValue, color = LkColors.accentBlue, arrowLabel = "↓")
-            SpeedBar(value = medicao.uploadMbps, maxValue = maxValue, color = LkColors.accent, arrowLabel = "↑")
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.Language, null, tint = c.textTertiary, modifier = Modifier.size(14.dp))
-                Spacer(Modifier.width(LkSpacing.xs))
-                val latStr = medicao.latencyMs?.let { "%.0f ms".format(it) }
-                val footerText = if (latStr != null) "${tipoLabel(medicao)} | $latStr" else tipoLabel(medicao)
-                Text(footerText, style = MaterialTheme.typography.labelSmall, color = c.textTertiary)
-            }
+            Icon(networkIcon(medicao), null, tint = c.textSecondary, modifier = Modifier.size(18.dp))
+            Text(
+                formatDate(medicao.timestampEpochMs),
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.textSecondary,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = valorPrincipal?.let { "${"%.1f".format(it)} Mbps" } ?: "-- Mbps",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.W700,
+                color = valorCor,
+            )
         }
     }
 }
@@ -1100,14 +1012,11 @@ private fun QualityBadge(
     label: String,
     color: Color,
 ) {
-    Box(
-        Modifier
-            .clip(RoundedCornerShape(4.dp))
-            .background(color.copy(alpha = 0.15f))
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-    ) {
-        Text(label, fontSize = 10.sp, fontWeight = FontWeight.W700, color = color)
-    }
+    LkPillBadge(
+        text = label,
+        containerColor = color.copy(alpha = 0.15f),
+        contentColor = color,
+    )
 }
 
 /**
@@ -1120,18 +1029,11 @@ private fun IaBadge() {
     // accent puro sobre fundo escuro cai a ~3.1:1 (falha WCAG AA) — em dark
     // theme usa a variante clara accentOnDark p/ texto/ícone (ver GH#505).
     val accentText = if (isSystemInDarkTheme()) LkColors.accentOnDark else LkColors.accent
-    Row(
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(LkColors.accent.copy(alpha = 0.15f))
-                .padding(horizontal = 6.dp, vertical = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.Outlined.AutoAwesome, contentDescription = null, tint = accentText, modifier = Modifier.size(10.dp))
-        Spacer(Modifier.width(2.dp))
-        Text("IA", fontSize = 10.sp, fontWeight = FontWeight.W700, color = accentText)
-    }
+    LkPillBadge(
+        text = "IA",
+        containerColor = LkColors.accent.copy(alpha = 0.15f),
+        contentColor = accentText,
+    )
 }
 
 // ─── Detail sheet ─────────────────────────────────────────────────────────────
@@ -1150,114 +1052,93 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
     val videoChamada = vereditoLabel(medicao.vereditoVideoChamada)
     val gargalo = gargaloLabel(medicao.gargaloPrimario)
 
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(bottom = LkSpacing.xxl),
-    ) {
-        item {
-            Column(Modifier.fillMaxWidth()) {
-                Box(
-                    Modifier
-                        .padding(vertical = LkSpacing.sm)
-                        .width(36.dp)
-                        .height(4.dp)
-                        .align(Alignment.CenterHorizontally)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(c.border),
-                )
-                Spacer(Modifier.height(LkSpacing.sm))
-                Text(
-                    "Detalhes do teste",
-                    modifier = Modifier.padding(horizontal = LkSpacing.xl),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.W600,
-                    color = c.textPrimary,
-                )
-                Text(
-                    formatFullDate(medicao.timestampEpochMs),
-                    modifier = Modifier.padding(horizontal = LkSpacing.xl),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textSecondary,
-                )
-                Spacer(Modifier.height(LkSpacing.lg))
-                HorizontalDivider(color = c.border)
-                Spacer(Modifier.height(LkSpacing.lg))
-                Row(Modifier.fillMaxWidth().padding(horizontal = LkSpacing.xl)) {
-                    PrimaryMetric(
-                        arrow = "↓",
-                        arrowColor = LkColors.accent,
-                        value = dl?.let { "%.1f".format(it) } ?: "--",
-                        label = "Download",
-                        modifier = Modifier.weight(1f),
-                    )
-                    Box(
-                        Modifier
-                            .width(1.dp)
-                            .height(60.dp)
-                            .background(c.border)
-                            .align(Alignment.CenterVertically),
-                    )
-                    PrimaryMetric(
-                        arrow = "↑",
-                        arrowColor = LkColors.success,
-                        value = ul?.let { "%.1f".format(it) } ?: "--",
-                        label = "Upload",
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                Spacer(Modifier.height(LkSpacing.lg))
-                Row(Modifier.fillMaxWidth().padding(horizontal = LkSpacing.xl)) {
-                    SecondaryMetric("Latência", latency?.let { "%.0f ms".format(it) } ?: "--", Modifier.weight(1f))
-                    SecondaryMetric("Oscilação", jitter?.let { "%.1f ms".format(it) } ?: "--", Modifier.weight(1f))
-                    SecondaryMetric("Perda", perda?.let { "%.1f%%".format(it) } ?: "--", Modifier.weight(1f))
-                }
-                Spacer(Modifier.height(LkSpacing.lg))
-                HorizontalDivider(color = c.border)
-            }
+    LkSheetFrame(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            "Detalhes do teste",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.W600,
+            color = c.textPrimary,
+        )
+        Text(
+            formatFullDate(medicao.timestampEpochMs),
+            style = MaterialTheme.typography.bodySmall,
+            color = c.textSecondary,
+        )
+        Spacer(Modifier.height(LkSpacing.lg))
+        LkSheetDivider()
+        Spacer(Modifier.height(LkSpacing.lg))
+        Row(Modifier.fillMaxWidth()) {
+            PrimaryMetric(
+                arrow = "↓",
+                arrowColor = LkColors.accent,
+                value = dl?.let { "%.1f".format(it) } ?: "--",
+                label = "Download",
+                modifier = Modifier.weight(1f),
+            )
+            Box(
+                Modifier
+                    .width(1.dp)
+                    .height(72.dp)
+                    .background(c.outlineVariant)
+                    .align(Alignment.CenterVertically),
+            )
+            PrimaryMetric(
+                arrow = "↑",
+                arrowColor = LkColors.success,
+                value = ul?.let { "%.1f".format(it) } ?: "--",
+                label = "Upload",
+                modifier = Modifier.weight(1f),
+            )
         }
+        Spacer(Modifier.height(LkSpacing.lg))
+        Row(Modifier.fillMaxWidth()) {
+            SecondaryMetric("Latência", latency?.let { "%.0f ms".format(it) } ?: "--", Modifier.weight(1f))
+            SecondaryMetric("Oscilação", jitter?.let { "%.1f ms".format(it) } ?: "--", Modifier.weight(1f))
+            SecondaryMetric("Perda", perda?.let { "%.1f%%".format(it) } ?: "--", Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(LkSpacing.lg))
+        LkSheetDivider()
+
         if (medicao.fonte == "orbit") {
-            item { SheetRow("Origem", "Diagnóstico gerado por IA", valueColor = LkColors.accent) }
-            item { HorizontalDivider(color = c.border) }
+            LkSheetInfoRow("Origem", "Diagnóstico gerado por IA", valueColor = LkColors.accent)
+            LkSheetDivider()
         }
-        item { SheetRow("Tipo de rede", tipoLabel(medicao)) }
-        item { HorizontalDivider(color = c.border) }
+        LkSheetInfoRow("Tipo de rede", tipoLabel(medicao))
+        LkSheetDivider()
         if (medicao.contaminado) {
-            item { SheetRow("Resultado", "Pode não ser confiável", valueColor = LkColors.error) }
-            item { HorizontalDivider(color = c.border) }
+            LkSheetInfoRow("Resultado", "Pode não ser confiável", valueColor = LkColors.warning)
+            LkSheetDivider()
         }
         if (bufferbloat != null) {
-            val (bloatVeredito, bloatCor) = bufferbloatVeredito(bufferbloat)
-            item {
-                SheetRow("Bufferbloat", "${"%.0f".format(bufferbloat)} ms — $bloatVeredito", valueColor = bloatCor)
-            }
-            item { HorizontalDivider(color = c.border) }
+            val (bloatVeredito, bloatColor) = bufferbloatVeredito(bufferbloat)
+            LkSheetInfoRow("Bufferbloat", "${"%.0f".format(bufferbloat)} ms — $bloatVeredito", valueColor = bloatColor)
+            LkSheetDivider()
         }
         if (streaming != null) {
-            item { SheetRow("Streaming", streaming) }
-            item { HorizontalDivider(color = c.border) }
+            LkSheetInfoRow("Streaming", streaming, valueColor = historicoVerdictColor(streaming))
+            LkSheetDivider()
         }
         if (gamer != null) {
-            item { SheetRow("Games", gamer) }
-            item { HorizontalDivider(color = c.border) }
+            LkSheetInfoRow("Games", gamer, valueColor = historicoVerdictColor(gamer))
+            LkSheetDivider()
         }
         if (videoChamada != null) {
-            item { SheetRow("Vídeo chamada", videoChamada) }
-            item { HorizontalDivider(color = c.border) }
+            LkSheetInfoRow("Vídeo chamada", videoChamada, valueColor = historicoVerdictColor(videoChamada))
+            LkSheetDivider()
         }
         if (gargalo != null) {
-            item { SheetRow("Gargalo identificado", gargalo, valueColor = LkColors.warning) }
-            item { HorizontalDivider(color = c.border) }
+            LkSheetInfoRow("Gargalo identificado", gargalo, valueColor = LkColors.warning)
         }
+
         val diagTexto = medicao.diagnosticoTexto
         if (!diagTexto.isNullOrBlank()) {
-            item {
-                DiagnosticoHistoricoSection(
-                    texto = diagTexto,
-                    origem = medicao.diagnosticoOrigem,
-                    problemas = medicao.diagnosticoProblemas,
-                    c = c,
-                )
-            }
+            Spacer(Modifier.height(LkSpacing.lg))
+            DiagnosticoHistoricoSection(
+                texto = diagTexto,
+                origem = medicao.diagnosticoOrigem,
+                problemas = medicao.diagnosticoProblemas,
+                c = c,
+            )
         }
     }
 }
@@ -1273,64 +1154,60 @@ private fun DiagnosticoHistoricoSection(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg),
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.surfaceContainer)
+                .padding(LkSpacing.lg),
     ) {
-        Text(
-            text = "DIAGNÓSTICO",
-            style = MaterialTheme.typography.labelSmall,
-            color = c.textTertiary,
-            letterSpacing = 0.8.sp,
-        )
+        Overline(texto = "Diagnóstico", color = c.textTertiary)
         Spacer(Modifier.height(LkSpacing.sm))
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(c.bgSecondary)
-                    .padding(LkSpacing.lg),
-        ) {
-            Text(
-                text = texto,
-                style = MaterialTheme.typography.bodyMedium,
-                color = c.textPrimary,
-                lineHeight = 20.sp,
-            )
-            if (!problemas.isNullOrBlank()) {
-                val lista = problemas.split(";").filter { it.isNotBlank() }
-                if (lista.isNotEmpty()) {
-                    Spacer(Modifier.height(LkSpacing.sm))
-                    lista.forEach { problema ->
-                        Row(
-                            modifier = Modifier.padding(vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Box(
-                                Modifier
-                                    .size(4.dp)
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(LkColors.warning),
-                            )
-                            Spacer(Modifier.width(LkSpacing.xs))
-                            Text(
-                                text = problema,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = c.textSecondary,
-                            )
-                        }
+        Text(
+            text = texto,
+            style = MaterialTheme.typography.bodyLarge,
+            color = c.textPrimary,
+            lineHeight = 22.sp,
+        )
+        if (!problemas.isNullOrBlank()) {
+            val lista = problemas.split(";").filter { it.isNotBlank() }
+            if (lista.isNotEmpty()) {
+                Spacer(Modifier.height(LkSpacing.sm))
+                lista.forEach { problema ->
+                    Row(
+                        modifier = Modifier.padding(vertical = 2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            Modifier
+                                .size(4.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(LkColors.warning),
+                        )
+                        Spacer(Modifier.width(LkSpacing.xs))
+                        Text(
+                            text = problema,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = c.textSecondary,
+                        )
                     }
                 }
             }
-            Spacer(Modifier.height(LkSpacing.sm))
-            Text(
-                text = if (origem == "ia") "Gerado por IA" else "Diagnóstico local",
-                style = MaterialTheme.typography.labelSmall,
-                color = if (origem == "ia") LkColors.accent else c.textTertiary,
-                fontWeight = FontWeight.W500,
-            )
         }
+        Spacer(Modifier.height(LkSpacing.sm))
+        Text(
+            text = if (origem == "ia") "Gerado por IA" else "Diagnóstico local",
+            style = MaterialTheme.typography.labelMedium,
+            color = if (origem == "ia") LkColors.accent else c.textTertiary,
+            fontWeight = FontWeight.W500,
+        )
     }
 }
+
+private fun historicoVerdictColor(label: String): Color =
+    when (label) {
+        "Bom" -> LkColors.success
+        "Aceitável" -> LkColors.warning
+        "Ruim" -> LkColors.warning
+        else -> LkColors.warning
+    }
 
 @Composable
 private fun PrimaryMetric(
@@ -1346,10 +1223,9 @@ private fun PrimaryMetric(
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 value,
-                style = MaterialTheme.typography.displaySmall,
+                style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.W700,
                 color = c.textPrimary,
-                letterSpacing = (-1).sp,
             )
             Spacer(Modifier.width(4.dp))
             Text("Mbps", style = MaterialTheme.typography.bodySmall, color = c.textSecondary, modifier = Modifier.padding(bottom = 5.dp))

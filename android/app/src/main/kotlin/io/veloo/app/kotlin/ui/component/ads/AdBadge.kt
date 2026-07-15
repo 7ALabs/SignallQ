@@ -15,11 +15,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
+import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
 
 /**
@@ -36,29 +38,44 @@ fun AdBadge(
 ) {
     val c = LocalLkTokens.current
     val isPartner = source == NativeAdSource.PARTNER
-    val tone = if (isPartner) LkColors.accentBlue else c.textTertiary
-    val label = if (isPartner) "Parceiro" else "Patrocinado"
+    val isSimulated = source == NativeAdSource.SIMULATED
+    val tone =
+        when {
+            isSimulated -> LkColors.warning
+            isPartner -> LkColors.accentBlue
+            else -> c.textTertiary
+        }
+    val label =
+        when {
+            isSimulated -> "SIMULADO"
+            isPartner -> "Parceiro"
+            else -> "Patrocinado"
+        }
 
     Row(
         modifier =
             modifier
-                .border(BorderStroke(1.dp, c.border), RoundedCornerShape(999.dp))
-                .padding(horizontal = 8.dp, vertical = 3.dp),
+                .clip(RoundedCornerShape(LkRadius.pill))
+                .border(BorderStroke(1.dp, c.border), RoundedCornerShape(LkRadius.pill))
+                .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = if (isPartner) Icons.Outlined.Storefront else Icons.Outlined.Campaign,
+            imageVector =
+                when {
+                    isSimulated -> Icons.Outlined.Campaign
+                    isPartner -> Icons.Outlined.Storefront
+                    else -> Icons.Outlined.Campaign
+                },
             contentDescription = null,
             tint = tone,
-            modifier = Modifier.size(12.dp).padding(end = 4.dp),
+            modifier = Modifier.size(12.dp).padding(end = LkSpacing.xs),
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = tone,
-            fontSize = 10.sp,
-            letterSpacing = 0.3.sp,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

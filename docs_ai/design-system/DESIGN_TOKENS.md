@@ -1,92 +1,66 @@
 # Design Tokens — Android
 
-**Escopo:** SignallQ v0.23.0 | Android
-**Última atualização:** 2026-07-05
-**Fonte Android:** `SignallQTheme.kt` (era `LinkaTheme.kt`, renomeado em v0.15.0)
+**Escopo:** SignallQ Android  
+**Fonte oficial:** `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/SignallQTheme.kt`  
+**Última atualização:** 2026-07-15
 
 ---
 
-## Cores — Brand & Status
+## Fonte de verdade
 
-| Conceito | Valor |
-| --- | --- |
-| Brand primário | `#6C2BFF` (accent) |
-| Brand secundário | `#2563EB` (accentBlue) |
-| Sucesso | `#22C55E` |
-| Aviso | `#F5A623` |
-| Erro | `#FF4D4F` |
+Os tokens oficiais do app vivem em:
 
-### Superfícies
+- `LkColors`
+- `LkTokens`
+- `LkSpacing`
+- `LkRadius`
+- `signallQTypography`
 
-| Token | Claro | Escuro |
-| --- | --- | --- |
-| Bg primário | `#FFFFFF` | `#000000` |
-| Bg secundário | `#F3F4F6` | `#1A1A1A` |
-| Card | `#FFFFFF` | `#111111` |
-| Texto primário | `#0D0D1A` | `#F3F4F6` |
-| Texto secundário | `#6B7280` | `#9CA3AF` |
-| Borda | `#E5E7EB` | `#2A2A2A` |
+Toda nova tela, sheet, sub-tela ou variante deve consumir esta base antes de introduzir qualquer estilo local.
 
-### SignallQ (Sempre Escuro)
+---
+
+## Espaçamento oficial
 
 | Token | Valor |
 | --- | --- |
-| Bg | `#0D0D1A` |
-| Surface | `#1A0B2E` |
-| Card | `#1E1130` |
-| Texto | `#F3F4F6` |
-| Accent | `#6C2BFF` |
+| `xs` | `4.dp` |
+| `sm` | `8.dp` |
+| `md` | `12.dp` |
+| `base` | `16.dp` |
+| `lg` | `20.dp` |
+| `xl` | `24.dp` |
+| `xxl` | `32.dp` |
+| `xxxl` | `40.dp` |
+| `cardContent` | `16.dp` |
 
 ---
 
-## SpeedTest — Phase Colors
+## Raios oficiais
 
-| Fase | Valor |
+| Token | Valor |
 | --- | --- |
-| Latência/Resposta | `#60A5FA` |
-| Download | `#34D399` |
-| Upload | `#FBBF24` |
+| `card` | `16.dp` |
+| `button` | `20.dp` |
+| `input` | `12.dp` |
+| `sheet` | `28.dp` |
+| `pill` | `999.dp` |
 
 ---
 
-## Tipografia
+## Regras de implementação
 
-### Família de Fonte
-
-Roboto (fonte padrão MD3, via `androidx.compose.material3`). Escala em `signallQTypography` no `SignallQTheme.kt`.
-
-### Escala
-
-Material Design 3 — 14+ sp para acessibilidade.
-
-| Estilo | Valor |
-| --- | --- |
-| Display | 34 sp |
-| Headline | 24 sp |
-| Body | 14–16 sp |
+- Não usar hardcode visual quando já houver token equivalente.
+- Sempre preferir componentes compartilhados antes de montar estrutura manual.
+- Quando um valor novo parecer necessário, ele deve primeiro virar token ou componente-base.
 
 ---
 
-## Espaçamento
+## Estado atual
 
-Grid 8 dp (Material Design 3):
-
-```
-xs: 4dp, sm: 8dp, md: 12dp, lg: 16dp, xl: 24dp, xxl: 32dp
-```
-
----
-
-## Raios de Borda
-
-| Contexto | Valor |
-| --- | --- |
-| Card | 16 dp |
-| Button | 12 dp |
-| Input | 12 dp |
-
----
-
-## Animação & Transição
-
-Sem transições explícitas documentadas. Favor usar `animateAsState()` ou `transition()` conforme necessário.
+- A fundação do tema está consistente com a spec recente.
+- Ainda há divergência de consumo em várias telas, principalmente por:
+  - `fontSize` hardcoded
+  - `Color(0x...)` fora do tema
+  - espaçamentos em `dp` fora da escala-base
+  - duplicação de padrões de card/row/badge/sheet

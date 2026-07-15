@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.core.network.AnalyticsHelper
+import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.network.NetworkCapabilitiesProvider
 import io.signallq.app.core.telephony.MonitorTelephony
@@ -43,6 +44,11 @@ class SpeedtestViewModel
         private val monitorTelefony: MonitorTelephony,
         /** Funil principal de engajamento (SIG-155) — speedtest_iniciado/speedtest_concluido. */
         private val analyticsHelper: AnalyticsHelper,
+        /** GH#784 — funil do teste de velocidade no admin-worker (abriu/iniciou/completou/
+         *  compartilhou). Evento distinto de [analyticsHelper] (que só vai pro Firebase);
+         *  aqui reaproveita feature_used (mesmo schema de "wifi"/"historico"/etc), com
+         *  feature_id "speedtest_iniciado"/"speedtest_completou" — sem endpoint novo no worker. */
+        private val analyticsTracker: AnalyticsTracker,
     ) : ViewModel() {
         private companion object {
             const val LOG_TAG = "SpeedtestViewModel"
@@ -115,6 +121,8 @@ class SpeedtestViewModel
                 modo = modo.name,
                 tipoConexao = mapTipoConexaoParaAnalytics(connectionType),
             )
+            // GH#784 — etapa "iniciou" do funil (Uso do App, admin-worker).
+            analyticsTracker.registrarFeatureUsada("speedtest_iniciado")
             val inicioMs = System.currentTimeMillis()
             executorSpeedtest.executar(
                 modo = modo,
@@ -138,6 +146,10 @@ class SpeedtestViewModel
             val snapshot = executorSpeedtest.snapshotFlow.value
             if (snapshot.estado != EstadoExecucaoSpeedtest.concluido) return
             val resultado = snapshot.resultado ?: return
+            // GH#784 — etapa "completou" do funil (Uso do App, admin-worker). So dispara
+            // quando ha resultado real disponivel (mesmo guard do bloco acima), nunca em
+            // erro/cancelamento.
+            analyticsTracker.registrarFeatureUsada("speedtest_completou")
             analyticsHelper.registrarSpeedtestConcluido(
                 modo = modo.name,
                 tipoConexaoInicio = resultado.connectionTypeStart?.let(::mapTipoConexaoParaAnalytics) ?: "desconhecido",

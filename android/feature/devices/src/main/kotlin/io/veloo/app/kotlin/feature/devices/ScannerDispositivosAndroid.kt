@@ -449,7 +449,9 @@ class ScannerDispositivosAndroid(
 
     private suspend fun coletarViaTcpProbe(gatewayIp: String?, localIp: String?): List<DispositivoRede> = coroutineScope {
         val base = inferirPrefixoRedeCorreto() ?: inferirPrefixoRede(gatewayIp) ?: return@coroutineScope emptyList()
-        val portas = intArrayOf(80, 443, 22, 53, 139, 445, 8080, 8443)
+        // 554 (RTSP) — #982 (Fase 3): evidencia fraca de camera, so conta com corroboracao de
+        // nome em ClassificadorDispositivoRede (varios dispositivos abrem essa porta sem ser camera).
+        val portas = intArrayOf(80, 443, 22, 53, 139, 445, 8080, 8443, 554)
         val alvos = (1..254).map { host -> "$base.$host" }
             .filter { it != gatewayIp && it != localIp }
 
@@ -537,6 +539,13 @@ class ScannerDispositivosAndroid(
             "_amzn-wplay._tcp.local.",
             "_googlezone._tcp.local.",
             "_device-info._tcp.local.",
+            // #982 (Fase 3) — evidencia de smarthome generico (dispositivo Matter), nunca
+            // confirma subtipo sozinho (ClassificadorDispositivoRede.mdnsRules).
+            "_matter._tcp.local.",
+            // #982 (Fase 3) — evidencia de Smart TV (Android TV Remote).
+            "_androidtvremote._tcp.local.",
+            // #982 (Fase 3) — evidencia razoavelmente especifica de camera IP via RTSP.
+            "_rtsp._tcp.local.",
         )
 
         try {

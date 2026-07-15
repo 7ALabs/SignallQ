@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.R
 import io.signallq.app.feature.diagnostico.pulse.AiAnalysisEntry
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
@@ -61,7 +60,7 @@ fun PulseResultCard(
             modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.bgCard)
+                .background(c.surfaceContainer)
                 .semantics { stateDescription = cardStateDesc }
                 .clickable { expanded = !expanded }
                 .padding(LkSpacing.lg),
@@ -74,13 +73,13 @@ fun PulseResultCard(
             Icon(
                 imageVector = Icons.Default.AutoAwesome,
                 contentDescription = null,
-                tint = LkColors.accent,
+                tint = c.primary,
                 modifier = Modifier.size(16.dp),
             )
             Text(
                 "Análise IA",
                 style = MaterialTheme.typography.labelLarge,
-                color = LkColors.accent,
+                color = c.primary,
                 modifier = Modifier.weight(1f),
             )
             if (analysis.isFallback) {
