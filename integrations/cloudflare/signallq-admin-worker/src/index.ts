@@ -3143,11 +3143,27 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
   ]);
 
   // GH#418: tempo médio de sessão real (duration_ms só existe em session_end, SIG-295/GH#417).
-  const sessionDurationRow = await env.DB.prepare(
-    `SELECT AVG(duration_ms) AS avg_duration_ms, COUNT(*) AS session_count
-     FROM analytics_events
-     WHERE event_name = 'session_end' AND duration_ms IS NOT NULL AND created_at >= ?${envClause}`
-  ).bind(since, ...envBinds).first<{ avg_duration_ms: number | null; session_count: number }>();
+  // GH#XXX: session_count NÃO pode vir dessa mesma query — nem todo fluxo
+  // dispara session_end com duration_ms preenchido (app fica em foreground o
+  // teste todo, sessão nunca fecha graciosamente), e isso zera "Sessões no
+  // período" mesmo com atividade real (feature_usage/screen_navigation > 0 na
+  // mesma janela). session_id é NOT NULL/indexado para TODO evento (migration
+  // 006_sig134.sql) — mesmo critério já usado em feature_usage/screen_navigation
+  // (COUNT DISTINCT session_id). avg_session_duration_ms continua exigindo
+  // session_end de verdade — não inventar duração a partir de outro evento.
+  const [sessionDurationRow, sessionCountRow] = await Promise.all([
+    env.DB.prepare(
+      `SELECT AVG(duration_ms) AS avg_duration_ms
+       FROM analytics_events
+       WHERE event_name = 'session_end' AND duration_ms IS NOT NULL AND created_at >= ?${envClause}`
+    ).bind(since, ...envBinds).first<{ avg_duration_ms: number | null }>(),
+
+    env.DB.prepare(
+      `SELECT COUNT(DISTINCT session_id) AS session_count
+       FROM analytics_events
+       WHERE created_at >= ?${envClause}`
+    ).bind(since, ...envBinds).first<{ session_count: number }>(),
+  ]);
 
   // GH#418: retenção D1/D7/D30 por cohort de device_id (device_id só existe desde GH#417/migration 008).
   // Cohort de retenção usa histórico completo (não limitado ao `period` do request) porque D1/D7/D30
@@ -3252,7 +3268,7 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
   const avg_session_duration_ms = sessionDurationRow?.avg_duration_ms != null
     ? Math.round(sessionDurationRow.avg_duration_ms)
     : null;
-  const session_count = sessionDurationRow?.session_count ?? 0;
+  const session_count = sessionCountRow?.session_count ?? 0;
 
   const totalDevices = retentionRow?.total_devices ?? 0;
   const retention = totalDevices === 0 ? [] : [{

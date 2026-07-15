@@ -6,6 +6,8 @@ import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
 import { SectionIntro } from "../../components/ui/SectionIntro";
 import { ChartCard } from "../../components/ui/ChartCard";
 import { AppEnvironment } from "../../types/admin";
+import { integrationsService } from "../../integrations/integrationsService";
+import { FirebaseCrashlyticsSummary } from "../../integrations/firebase/firebase.types";
 
 interface ErrorsPageProps {
   environment: AppEnvironment;
@@ -19,7 +21,28 @@ interface ErrorsPageProps {
 // tela) → card full-width TOP CRASHES. Sem busca livre, filtros de categoria,
 // alertas de infraestrutura, bloco de insight ou ações de rodapé — nenhum
 // desses blocos existe na seção sec-errors do mockup.
-export const ErrorsPage: React.FC<ErrorsPageProps> = () => {
+export const ErrorsPage: React.FC<ErrorsPageProps> = ({
+  environment,
+  period,
+  triggerRefreshCounter,
+}) => {
+  const [firebaseCrashlytics, setFirebaseCrashlytics] = React.useState<FirebaseCrashlyticsSummary | null>(null);
+
+  React.useEffect(() => {
+    let active = true;
+    integrationsService
+      .getFirebaseCrashlytics({ environment, period })
+      .then((result) => {
+        if (active) setFirebaseCrashlytics(result);
+      })
+      .catch(() => {
+        if (active) setFirebaseCrashlytics(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [environment, period, triggerRefreshCounter]);
+
   return (
     <div className="space-y-6">
       <SectionIntro
@@ -30,7 +53,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = () => {
         source="FONTE · FIREBASE CRASHLYTICS"
       />
 
-      <ErrorMetricGrid />
+      <ErrorMetricGrid firebaseCrashlytics={firebaseCrashlytics} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
         <div className="lg:col-span-2">
@@ -46,7 +69,7 @@ export const ErrorsPage: React.FC<ErrorsPageProps> = () => {
         </div>
       </div>
 
-      <TopCrashesCard />
+      <TopCrashesCard environment={environment} period={period} triggerRefreshCounter={triggerRefreshCounter} />
     </div>
   );
 };
