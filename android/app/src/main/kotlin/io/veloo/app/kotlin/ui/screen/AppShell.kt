@@ -806,6 +806,7 @@ fun AppShell(
                 onVoltar = { overlayStack.remove(Overlay.Dispositivos) },
                 bandasWifi = bandasWifiGateway,
                 adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.DISPOSITIVOS),
+                correlacoesTopologia = wifi.correlacoesTopologia,
             )
         }
 

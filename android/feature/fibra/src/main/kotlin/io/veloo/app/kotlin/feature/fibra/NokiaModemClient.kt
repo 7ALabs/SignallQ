@@ -97,7 +97,9 @@ internal class NokiaModemClient(private val host: String) {
             "0" -> "sessao em uso por outro acesso (err_t=0)"
             "1" -> "credenciais invalidas (err_t=1)"
             "2" -> "token expirado — retry necessario (err_t=2)"
-            else -> "login falhou: status=${resp.statusCode} err_t=$errT body=${resp.body.take(200)}"
+            // GH#983 Fase 4 (checklist de seguranca) — nunca logar/propagar HTML cru do gateway,
+            // so tamanho, seguindo o mesmo padrao ja usado pro SID (sid.take(8) acima).
+            else -> "login falhou: status=${resp.statusCode} err_t=$errT bodyLen=${resp.body.length}"
         }
         Timber.w("login: FALHA $mensagem")
         throw IOException(mensagem)

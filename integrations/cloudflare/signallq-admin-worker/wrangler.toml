@@ -10,6 +10,14 @@ FIREBASE_GA4_PROPERTY_ID = "542463828"
 CLOUDFLARE_ACCOUNT_ID = "2f38f7354f204d7b3f7d6c750b3e43ff"
 CLOUDFLARE_D1_DATABASE_ID = "952cb253-1a84-48ac-9018-a4ca31036915"
 
+# Decisao 2026-07-11: o export GA4->BigQuery nunca foi criado (projeto signallq-app em
+# modo Sandbox, sem billing habilitado por decisao do Luiz de nao assumir custo novo) —
+# o dataset `analytics_542463828` nao existe, entao handleFirebaseSync so produziria
+# bq_error_403 todo dia via cron (GH#877/#878). Flag desliga essa perna sem apagar o
+# codigo. Reativar: habilitar billing -> criar vinculo GA4->BigQuery -> virar "true" aqui
+# -> conceder dataViewer a SA signallq-admin-bq.
+FIREBASE_SYNC_ENABLED = "false"
+
 # Secrets: npx wrangler secret put ADMIN_SECRET / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY
 # INGEST_KEY: chave separada para autenticar o app Android em POST /ingest/*
 #   Scope limitado — nao da acesso de leitura ao painel.
@@ -31,5 +39,12 @@ database_id = "952cb253-1a84-48ac-9018-a4ca31036915"
 
 # GH#788 — snapshot de latencia/uptime a cada 15min (96 execucoes/dia, dentro do
 # free tier de Workers requests). Cron Triggers sao gratuitos em todos os planos.
+# GH#877 — sync automático de telemetria (Firebase Analytics + Google Play).
+# 1x/dia é suficiente: o export GA4->BigQuery é diário (não há granularidade
+# maior pra ganhar rodando com mais frequência) e ratings/tracks do Play Console
+# não mudam rápido o bastante pra justificar polling mais agressivo.
+# 06:00 UTC = 03:00 BRT (horário de menor tráfego no painel).
+# Cloudflare aceita multiplas expressoes cron no mesmo trigger — cada uma dispara
+# scheduled() independentemente; o handler diferencia pela `event.cron` recebida.
 [triggers]
-crons = ["*/15 * * * *"]
+crons = ["*/15 * * * *", "0 6 * * *"]

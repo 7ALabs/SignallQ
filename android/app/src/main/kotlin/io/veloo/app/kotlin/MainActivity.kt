@@ -220,6 +220,7 @@ class MainActivity : ComponentActivity() {
                     .collectAsStateWithLifecycle()
                     .value
             val apelidos = viewModel.apelidos.collectAsStateWithLifecycle().value
+            val correlacoesTopologia = viewModel.correlacoesTopologia.collectAsStateWithLifecycle().value
             val snapshotDiagnostico =
                 viewModel.diagnosticOrchestrator.snapshotFlow
                     .collectAsStateWithLifecycle()
@@ -347,6 +348,7 @@ class MainActivity : ComponentActivity() {
                                     analyticsTracker.registrarFeatureUsada("wifi")
                                 },
                                 onSalvarApelido = { mac, apelido -> viewModel.salvarApelido(mac, apelido) },
+                                correlacoesTopologia = correlacoesTopologia,
                             ),
                         diagnostico =
                             io.signallq.app.ui.screen.AppShellDiagnosticoState(
