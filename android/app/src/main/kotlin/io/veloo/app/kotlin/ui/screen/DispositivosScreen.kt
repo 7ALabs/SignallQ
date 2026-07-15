@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.Print
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Smartphone
+import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Button
@@ -1213,6 +1214,7 @@ private fun iconForTipo(tipo: TipoDispositivo): ImageVector =
         TipoDispositivo.smartphone -> Icons.Outlined.Smartphone
         TipoDispositivo.smarthome -> Icons.Outlined.Lightbulb
         TipoDispositivo.impressora -> Icons.Outlined.Print
+        TipoDispositivo.console -> Icons.Outlined.SportsEsports
         TipoDispositivo.desconhecido -> Icons.Outlined.DevicesOther
     }
 
@@ -1252,6 +1254,7 @@ private fun tipoLabel(tipo: TipoDispositivo): String =
         TipoDispositivo.smartphone -> "Celular / Tablet"
         TipoDispositivo.smarthome -> "Dispositivo inteligente"
         TipoDispositivo.impressora -> "Impressora"
+        TipoDispositivo.console -> "Console de jogos"
         TipoDispositivo.desconhecido -> "Desconhecido"
     }
 
