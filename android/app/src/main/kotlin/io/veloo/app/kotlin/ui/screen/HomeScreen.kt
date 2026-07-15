@@ -125,6 +125,7 @@ import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionResultado
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionService
+import io.signallq.app.core.network.contracts.topologia.NivelConfianca
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
 import io.signallq.app.feature.speedtest.GargaloPrimario
@@ -2491,13 +2492,21 @@ private fun GatewayInfoSheet(
     c: LkTokens,
     linkSpeedMbps: Int? = null,
 ) {
-    val typeLabel =
+    val typeLabelBase =
         when (gateway.type) {
             ConnectionNodeType.WifiRouter -> "Roteador Wi-Fi"
             ConnectionNodeType.WifiMesh -> "Rede Mesh"
             ConnectionNodeType.WifiExtender -> "Repetidor Wi-Fi"
             ConnectionNodeType.Mobile -> "Antena móvel"
             ConnectionNodeType.Unknown -> "Não identificado"
+        }
+    // #980 (Fase 2B) — sem confirmação de qual nó é o central (ver TopologiaRedeEngine/#979),
+    // a confiança do motor fica MEDIA/BAIXA; a Home nunca afirma o papel nesse caso.
+    val typeLabel =
+        if (gateway.confianca != null && gateway.confianca != NivelConfianca.ALTA) {
+            "$typeLabelBase (provável)"
+        } else {
+            typeLabelBase
         }
     val isMeshOrExtensor =
         gateway.type == ConnectionNodeType.WifiMesh ||

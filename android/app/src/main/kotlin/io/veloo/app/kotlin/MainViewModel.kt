@@ -18,7 +18,9 @@ import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.network.NetworkCapabilitiesProvider
 import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
+import io.signallq.app.core.network.contracts.topologia.PapelTopologia
 import io.signallq.app.core.network.contracts.wifi.channel.freqToChannel
+import io.signallq.app.core.network.topologia.engine.TopologiaRedeEngine
 import io.signallq.app.core.permissions.GerenciadorPermissoesRede
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
@@ -1608,8 +1610,20 @@ class MainViewModel
                     ?.ssid
                     ?.trim('"')
                     .orEmpty()
+            val bssidAtual = snapshotRede.wifiLinkSnapshot?.bssid
             val redesVizinhas = scannerRedesWifi.snapshotFlow.value.redes
-            val gatewayType = inferirTipoGatewayPorScan(ssid, redesVizinhas)
+            // #980 (Fase 2B) — motor unificado (ve OUI e banda, TopologiaRedeEngine/#979)
+            // substitui a heuristica que so olhava SSID/contagem de BSSID; nao confunde mais
+            // roteador dual-band nem extensor de outro fabricante com mesh real.
+            // papelProvavel nunca afirma "roteador central" sozinho — vira
+            // SISTEMA_MESH_PROVAVEL quando so ha evidencia de scan Wi-Fi (sem 2a rota IP).
+            val classificacaoConectada =
+                TopologiaRedeEngine
+                    .classificar(redes = redesVizinhas, connectedBssid = bssidAtual)
+                    .firstOrNull { it.first.bssid == bssidAtual }
+                    ?.second
+            val gatewayType = papelParaConnectionNodeType(classificacaoConectada?.papelProvavel ?: PapelTopologia.DESCONHECIDO)
+            val confiancaTopologia = classificacaoConectada?.confianca
             val gatewayName =
                 ssid.ifBlank {
                     when (gatewayType) {
@@ -1634,7 +1648,7 @@ class MainViewModel
                     // dispositivo está conectado). O roteador central por trás do mesh não tem IP
                     // visível, então só criamos o nó "Roteador" quando há de fato um segundo gateway.
                     buildList {
-                        add(GatewayInfo(ip = meshIp, name = gatewayName, type = gatewayType))
+                        add(GatewayInfo(ip = meshIp, name = gatewayName, type = gatewayType, confianca = confiancaTopologia))
                         if (routerIp != null) {
                             add(GatewayInfo(ip = routerIp, name = "Roteador", type = ConnectionNodeType.WifiRouter))
                         }
@@ -1642,9 +1656,9 @@ class MainViewModel
                 } else {
                     gatewayIps
                         .map { ip ->
-                            GatewayInfo(ip = ip, name = gatewayName, type = gatewayType)
+                            GatewayInfo(ip = ip, name = gatewayName, type = gatewayType, confianca = confiancaTopologia)
                         }.ifEmpty {
-                            listOf(GatewayInfo(ip = null, name = gatewayName, type = gatewayType))
+                            listOf(GatewayInfo(ip = null, name = gatewayName, type = gatewayType, confianca = confiancaTopologia))
                         }
                 }
         }
@@ -2173,6 +2187,21 @@ internal fun deveSolicitarConfirmacaoRedeMovel(
     modo: ModoSpeedtest,
     jaConfirmadoRedeMovel: Boolean,
 ): Boolean = !jaConfirmadoRedeMovel && modo != ModoSpeedtest.fast && metered
+
+// #980 (Fase 2B) — traduz o papel canonico do motor de topologia unificado
+// (TopologiaRedeEngine, Fase 2A/#979) pro enum que a Home ja usa. SISTEMA_MESH_PROVAVEL vira
+// WifiMesh (nunca WifiRouter): so o papel ROTEADOR aciona o fluxo de login do modem
+// (GatewayConnectionSheet, ver HomeScreen.onGatewayTap) — um no so "provavelmente" mesh nao
+// pode acionar esse fluxo como se fosse um roteador confirmado.
+internal fun papelParaConnectionNodeType(papel: PapelTopologia): ConnectionNodeType =
+    when (papel) {
+        PapelTopologia.ROTEADOR -> ConnectionNodeType.WifiRouter
+        PapelTopologia.NO_MESH -> ConnectionNodeType.WifiMesh
+        PapelTopologia.SISTEMA_MESH_PROVAVEL -> ConnectionNodeType.WifiMesh
+        PapelTopologia.REPETIDOR -> ConnectionNodeType.WifiExtender
+        PapelTopologia.PONTO_DE_ACESSO -> ConnectionNodeType.Unknown
+        PapelTopologia.DESCONHECIDO -> ConnectionNodeType.Unknown
+    }
 
 // SIG-279 — enums identicos por nome (wifi/movel/ethernet/desconectado/desconhecido),
 // mapeamento explicito para nao acoplar core/network a feature/diagnostico.
