@@ -5,6 +5,7 @@ enum class TipoEvidencia {
     OUI,
     SSID,
     RSSI,
+    BANDA,
     CLIENT_SNAPSHOT,
     CORRELACAO,
 }
