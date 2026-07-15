@@ -11,4 +11,10 @@ data class ClientSnapshot(
     val ip: String?,
     val hostname: String?,
     val tipoConexao: String?,
+    // GH#983 Fase 4 — versao normalizada de [tipoConexao], atribuida dentro da
+    // camada do driver (ex.: NokiaModemParser). Campo novo e opcional (default
+    // null) para nao quebrar consumidores existentes de tipoConexao (string
+    // crua), preservados por retrocompatibilidade — ver LocalDeviceSection.kt
+    // e EquipamentoInternetScreen.kt, que ainda leem a string diretamente.
+    val tipoConexaoFisica: TipoConexaoFisica? = null,
 )

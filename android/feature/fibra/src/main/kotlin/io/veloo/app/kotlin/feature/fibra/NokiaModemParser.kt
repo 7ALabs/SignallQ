@@ -1,5 +1,6 @@
 ﻿package io.signallq.app.feature.fibra
 
+import io.signallq.app.core.network.contracts.localdevice.TipoConexaoFisica
 import org.json.JSONObject
 import kotlin.math.floor
 import kotlin.math.log10
@@ -229,6 +230,7 @@ internal object NokiaModemParser {
                     ip = ip,
                     hostname = aliasPorMac[mac.lowercase()] ?: hostName,
                     tipoConexao = tipoConexao,
+                    tipoConexaoFisica = normalizarTipoConexaoFisica(tipoConexao),
                 )
             }
         } catch (_: Throwable) {
@@ -466,5 +468,27 @@ internal object NokiaModemParser {
         val converted = floor(log10(mw * 0.00001) * 1000) / 100.0
         if (converted > 10 || converted < -40) return 0.0
         return converted
+    }
+}
+
+/**
+ * Normaliza a string crua de `InterfaceType` (`device_cfg`, `lan_status.cgi?wlan`)
+ * para [TipoConexaoFisica] — GH#983 Fase 4. Único valor confirmado no field-map
+ * (`docs_ai/technical/NOKIA_GPON_FIELD_MAP.md`) é `"Ethernet"`; os demais valores
+ * de firmware não estão documentados, então qualquer variante contendo termos de
+ * rede sem fio ("wifi"/"wireless"/"wlan") cai em [TipoConexaoFisica.WIFI] e o
+ * restante (nulo, vazio ou não reconhecido) cai em [TipoConexaoFisica.DESCONHECIDO].
+ * Extraída como função pura top-level (fora do objeto [NokiaModemParser]) para
+ * ser testável isoladamente, seguindo o padrão desta sessão.
+ */
+internal fun normalizarTipoConexaoFisica(tipoConexaoCru: String?): TipoConexaoFisica {
+    val valor = tipoConexaoCru?.trim()?.lowercase()
+    return when {
+        valor.isNullOrEmpty() -> TipoConexaoFisica.DESCONHECIDO
+        // Checar termos sem fio antes: "wlan" contem a substring "lan", entao a
+        // checagem de Ethernet precisa vir depois pra nao classificar errado.
+        valor.contains("wifi") || valor.contains("wireless") || valor.contains("wlan") -> TipoConexaoFisica.WIFI
+        valor.contains("ethernet") || valor.contains("wired") -> TipoConexaoFisica.ETHERNET
+        else -> TipoConexaoFisica.DESCONHECIDO
     }
 }

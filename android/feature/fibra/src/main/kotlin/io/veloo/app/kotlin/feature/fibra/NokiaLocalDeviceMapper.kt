@@ -99,6 +99,7 @@ object NokiaLocalDeviceMapper {
                     ip = cliente.ip,
                     hostname = cliente.hostname,
                     tipoConexao = cliente.tipoConexao,
+                    tipoConexaoFisica = cliente.tipoConexaoFisica,
                 )
             },
             warnings = emptyList(),

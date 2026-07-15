@@ -73,9 +73,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
+import io.signallq.app.core.network.contracts.localdevice.TipoConexaoFisica
+import io.signallq.app.core.network.contracts.topologia.PapelTopologia
 import io.signallq.app.feature.devices.DispositivoRede
 import io.signallq.app.feature.devices.EstadoScanDispositivos
 import io.signallq.app.feature.devices.NamingPrioridade
+import io.signallq.app.feature.devices.ResultadoCorrelacaoTopologia
 import io.signallq.app.feature.devices.SnapshotScanDispositivos
 import io.signallq.app.feature.devices.TipoDispositivo
 import io.signallq.app.feature.devices.chaveApelido
@@ -108,6 +111,10 @@ fun DispositivosScreen(
     /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555.
      *  Default `false`: nunca mostra anuncio sem sinal explicito de que pode. */
     adsEnabled: Boolean = false,
+    /** #983 (Fase 4) — correlacao best-effort topologia/gateway, chaveada por id do dispositivo
+     *  (ver MainViewModel.correlacoesTopologia). Mapa vazio (default) preserva o comportamento
+     *  anterior a Fase 4 — nenhuma secao nova aparece no detalhe do dispositivo. */
+    correlacoesTopologia: Map<String, ResultadoCorrelacaoTopologia> = emptyMap(),
 ) {
     val c = LocalLkTokens.current
 
@@ -221,6 +228,7 @@ fun DispositivosScreen(
                         onSalvarApelido = onSalvarApelido,
                         bandasWifi = bandasWifi,
                         adsEnabled = adsEnabled,
+                        correlacoesTopologia = correlacoesTopologia,
                     )
                 }
             } // Box
@@ -244,6 +252,7 @@ private fun DispositivosLista(
     onSalvarApelido: (mac: String, apelido: String) -> Unit,
     bandasWifi: String? = null,
     adsEnabled: Boolean = false,
+    correlacoesTopologia: Map<String, ResultadoCorrelacaoTopologia> = emptyMap(),
 ) {
     val gateways = remember(dispositivos) { dispositivos.filter { it.fonteNome == "gateway" } }
     val aps =
@@ -388,6 +397,7 @@ private fun DispositivosLista(
                     onSalvarApelido = { apelido ->
                         dev.chaveApelido()?.let { chave -> onSalvarApelido(chave, apelido) }
                     },
+                    correlacao = correlacoesTopologia[dev.id],
                 )
             }
         }
@@ -632,6 +642,9 @@ private fun DeviceDetailSheet(
     c: LkTokens,
     apelidoAtual: String,
     onSalvarApelido: (String) -> Unit,
+    /** #983 (Fase 4) — correlacao best-effort com a topologia Wi-Fi/gateway pra este
+     *  dispositivo especifico. Null quando nao ha correlacao (comportamento pre-Fase 4). */
+    correlacao: ResultadoCorrelacaoTopologia? = null,
 ) {
     val iconBg = iconBgColor(dispositivo.tipoDispositivo, c)
     val iconFg = iconFgColor(dispositivo.tipoDispositivo, c)
@@ -768,6 +781,31 @@ private fun DeviceDetailSheet(
                     color = c.textSecondary,
                 )
             })
+        }
+        // #983 (Fase 4) — so aparece quando ha correlacao confirmada (ClientSnapshot exato ou
+        // MAC==BSSID exato); correlacao fraca (so OUI) nunca chega aqui como papel/conexao,
+        // so como evidencia auxiliar (nao exibida, ver correlacionarDispositivoComTopologia).
+        correlacao?.tipoConexaoFisicaConfirmada?.let { tipoConexao ->
+            item {
+                LkListRow(c = c, title = "Conexão física", trailing = {
+                    Text(
+                        tipoConexaoFisicaLabel(tipoConexao),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = c.textSecondary,
+                    )
+                })
+            }
+        }
+        correlacao?.papelTopologiaHerdado?.let { papel ->
+            item {
+                LkListRow(c = c, title = "Papel na rede", trailing = {
+                    Text(
+                        papelTopologiaLabel(papel),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = c.textSecondary,
+                    )
+                })
+            }
         }
         item {
             LkListRow(c = c, title = "Descoberto via", showDivider = false, trailing = {
@@ -1256,6 +1294,31 @@ private fun tipoLabel(tipo: TipoDispositivo): String =
         TipoDispositivo.impressora -> "Impressora"
         TipoDispositivo.console -> "Console de jogos"
         TipoDispositivo.desconhecido -> "Desconhecido"
+    }
+
+/** #983 (Fase 4) — traduz [TipoConexaoFisica] (confirmado por leitura direta do gateway,
+ *  [ResultadoCorrelacaoTopologia.tipoConexaoFisicaConfirmada]) pra rotulo exibido no detalhe
+ *  do dispositivo. `internal` pra ser testavel isoladamente (padrao ja usado em
+ *  `PapelParaTipoTopologiaLegadoTest`/`PapelParaConnectionNodeTypeTest`). */
+internal fun tipoConexaoFisicaLabel(tipo: TipoConexaoFisica): String =
+    when (tipo) {
+        TipoConexaoFisica.ETHERNET -> "Cabo (Ethernet)"
+        TipoConexaoFisica.WIFI -> "Wi-Fi"
+        TipoConexaoFisica.DESCONHECIDO -> "Desconhecida"
+    }
+
+/** #983 (Fase 4) — traduz [PapelTopologia] herdado por correlacao forte (MAC/ClientSnapshot
+ *  exato, [ResultadoCorrelacaoTopologia.papelTopologiaHerdado]) pra rotulo exibido no detalhe
+ *  do dispositivo. Nunca chamado com papel vindo de correlacao fraca (so OUI) — ver
+ *  [correlacionarDispositivoComTopologia]. */
+internal fun papelTopologiaLabel(papel: PapelTopologia): String =
+    when (papel) {
+        PapelTopologia.ROTEADOR -> "Roteador"
+        PapelTopologia.NO_MESH -> "Nó mesh"
+        PapelTopologia.REPETIDOR -> "Repetidor"
+        PapelTopologia.PONTO_DE_ACESSO -> "Ponto de acesso"
+        PapelTopologia.SISTEMA_MESH_PROVAVEL -> "Sistema mesh (provável)"
+        PapelTopologia.DESCONHECIDO -> "Desconhecido"
     }
 
 // #854: nunca expor o valor cru de fonteNome na UI (viola "métrica crua sempre
