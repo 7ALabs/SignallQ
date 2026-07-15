@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -71,7 +70,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.feature.devices.DispositivoRede
@@ -598,7 +596,9 @@ private fun DevicesSegmentedState(
                 .clip(RoundedCornerShape(LkRadius.pill))
                 .background(c.surfaceContainer)
                 .padding(LkSpacing.xs),
-        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(LkSpacing.xs),
+        horizontalArrangement =
+            androidx.compose.foundation.layout.Arrangement
+                .spacedBy(LkSpacing.xs),
     ) {
         listOf("Lista", "Vazio", "Erro").forEach { label ->
             Surface(

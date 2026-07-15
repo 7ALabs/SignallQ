@@ -33,7 +33,6 @@ import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material.icons.outlined.Tv
 import androidx.compose.material.icons.outlined.Videocam
-import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.rounded.CellTower
 import androidx.compose.material.icons.rounded.Refresh
@@ -102,9 +101,8 @@ import io.signallq.app.ui.component.LkInfoCallout
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.LocalDeviceSection
-import io.signallq.app.ui.component.OperadoraBottomSheet
 import io.signallq.app.ui.component.OperadoraBadge
-import io.signallq.app.ui.component.OperadoraContactCard
+import io.signallq.app.ui.component.OperadoraBottomSheet
 import io.signallq.app.ui.component.ads.SimulatedOfferCard
 import io.signallq.app.ui.component.mapLocalDeviceSectionUiState
 import io.signallq.app.ui.component.rememberResolvedOperadoraContact
@@ -495,7 +493,7 @@ fun ResultadoVelocidadeScreen(
                 LkSurfaceCard(
                     modifier =
                         Modifier
-                            .fillMaxWidth()
+                            .fillMaxWidth(),
                 ) {
                     Column {
                         ImpactoPraticoLinha(
@@ -1037,7 +1035,8 @@ private fun DiagnosticoStatusBanner(
         textoBase.contains("saud") ||
             textoBase.contains("estável") ||
             textoBase.contains("estavel") ||
-            textoBase.contains("fora do esperado").not() && categoria.isNullOrBlank()
+            textoBase.contains("fora do esperado").not() &&
+            categoria.isNullOrBlank()
 
     val containerColor = if (positivo) c.successContainer else LkColors.error.copy(alpha = 0.12f)
     val contentColor = if (positivo) c.onSuccessContainer else LkColors.error

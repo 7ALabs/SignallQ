@@ -86,7 +86,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -107,7 +106,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -2575,7 +2573,7 @@ private fun InternetInfoSheet(
                 privateDnsHostname?.takeIf { it.isNotEmpty() } ?: "Ativo"
             } else {
                 "Padrão do provedor"
-        }
+            }
         LkSheetDivider()
         SheetInfoRow("DNS Privado", dnsPrivadoValor, c, valueColor = if (privateDnsAtivo) LkColors.success else null)
         val servidoresDnsStr = dnsServidores.take(2).joinToString(" / ").ifEmpty { "Não disponível" }

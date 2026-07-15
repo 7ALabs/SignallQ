@@ -1,7 +1,6 @@
 package io.signallq.app.ui.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,13 +38,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.signallq.app.ui.LkColors
-import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
-import io.signallq.app.ui.component.ProfileAvatarButton
 import io.signallq.app.ui.component.LkSurfaceCard
+import io.signallq.app.ui.component.ProfileAvatarButton
 
 // GH#933 — Fase 4 MD3: hub real de atalhos, substitui o placeholder criado na Fase 1
 // (#930). Grade estática, sem chamada de rede própria — cada card só navega para a

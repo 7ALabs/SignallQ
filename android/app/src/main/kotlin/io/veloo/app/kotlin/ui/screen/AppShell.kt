@@ -74,7 +74,6 @@ import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnap
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
 import io.signallq.app.feature.devices.ehClienteFinal
-import io.signallq.app.feature.diagnostico.EstadoDiagnostico
 import io.signallq.app.feature.diagnostico.topology.model.NatStatus
 import io.signallq.app.feature.dns.SnapshotBenchmarkDns
 import io.signallq.app.feature.fibra.SnapshotFibra

@@ -1,8 +1,6 @@
 package io.signallq.app.ui.screen
 
 import android.annotation.SuppressLint
-import android.content.Intent
-import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,28 +25,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.NewReleases
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Router
-import androidx.compose.material.icons.outlined.Sensors
 import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.VerifiedUser
-import androidx.compose.material.icons.outlined.Wifi
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -60,7 +48,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -80,9 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.signallq.app.BuildConfig
 import io.signallq.app.R
-import io.signallq.app.monitoramento.OemKillInfo
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
@@ -277,7 +262,7 @@ fun AjustesScreen(
                         value =
                             when {
                                 velocidadeContratadaDownMbps > 0 && velocidadeContratadaUpMbps > 0 ->
-                                    "${velocidadeContratadaDownMbps} Mbps"
+                                    "$velocidadeContratadaDownMbps Mbps"
                                 planoInternet.isNotBlank() -> planoInternet
                                 else -> "—"
                             },

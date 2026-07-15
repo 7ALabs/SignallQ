@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,7 +52,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.signallq.app.core.network.contracts.gateway.EquipmentClassification
 import io.signallq.app.core.network.contracts.localdevice.ClientSnapshot
 import io.signallq.app.core.network.contracts.localdevice.DataFreshness
@@ -65,15 +63,9 @@ import io.signallq.app.feature.diagnostico.DiagnosticStatus
 import io.signallq.app.feature.diagnostico.FibraDiagnosticInput
 import io.signallq.app.feature.diagnostico.FibraSignalQualityEngine
 import io.signallq.app.ui.LkColors
-import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.SignallQTheme
-import io.signallq.app.ui.component.LkInfoCallout
-import io.signallq.app.ui.component.LkPillBadge
-import io.signallq.app.ui.component.LkSectionOverline
-import io.signallq.app.ui.component.LkStatusDot
-import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.core.network.contracts.gateway.DeviceType as GatewayDeviceType
 import io.signallq.app.core.network.contracts.gateway.SupportLevel as GatewaySupportLevel
 

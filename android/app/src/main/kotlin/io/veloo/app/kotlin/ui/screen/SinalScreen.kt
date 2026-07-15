@@ -36,10 +36,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.Cable
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -48,6 +46,7 @@ import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.Lan
+import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SignalCellularAlt
@@ -93,13 +92,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -909,36 +906,36 @@ private fun snapshotSignalQuality(snapshot: MovelSnapshot): MobileInsight =
     run {
         val rsrp = snapshot.rsrpDbm
         when {
-        snapshot.radioDesligado ->
-            MobileInsight(
-                label = "Sem sinal",
-                description = "Rádio celular desligado. Ative a rede móvel para medir chamadas e dados.",
-                color = LkColors.warning,
-            )
-        rsrp == null ->
-            MobileInsight(
-                label = "Sem leitura",
-                description = "O Android não forneceu leitura precisa do sinal neste momento.",
-                color = LkColors.accentBlue,
-            )
-        rsrp >= -90 ->
-            MobileInsight(
-                label = "Bom",
-                description = "Bom — chamadas e vídeos tendem a ficar estáveis.",
-                color = LkColors.success,
-            )
-        rsrp >= -105 ->
-            MobileInsight(
-                label = "Regular",
-                description = "Regular — pode haver variação em chamadas, uploads e streaming.",
-                color = LkColors.warning,
-            )
-        else ->
-            MobileInsight(
-                label = "Ruim",
-                description = "Ruim — maior chance de falhas em chamadas, uploads e streaming.",
-                color = LkColors.error,
-            )
+            snapshot.radioDesligado ->
+                MobileInsight(
+                    label = "Sem sinal",
+                    description = "Rádio celular desligado. Ative a rede móvel para medir chamadas e dados.",
+                    color = LkColors.warning,
+                )
+            rsrp == null ->
+                MobileInsight(
+                    label = "Sem leitura",
+                    description = "O Android não forneceu leitura precisa do sinal neste momento.",
+                    color = LkColors.accentBlue,
+                )
+            rsrp >= -90 ->
+                MobileInsight(
+                    label = "Bom",
+                    description = "Bom — chamadas e vídeos tendem a ficar estáveis.",
+                    color = LkColors.success,
+                )
+            rsrp >= -105 ->
+                MobileInsight(
+                    label = "Regular",
+                    description = "Regular — pode haver variação em chamadas, uploads e streaming.",
+                    color = LkColors.warning,
+                )
+            else ->
+                MobileInsight(
+                    label = "Ruim",
+                    description = "Ruim — maior chance de falhas em chamadas, uploads e streaming.",
+                    color = LkColors.error,
+                )
         }
     }
 

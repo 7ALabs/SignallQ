@@ -1,5 +1,10 @@
 package io.signallq.app.ui.screen
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -49,11 +54,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -81,7 +81,6 @@ import io.signallq.app.feature.fibra.GponStatus
 import io.signallq.app.feature.fibra.LanStatus
 import io.signallq.app.feature.fibra.SnapshotFibra
 import io.signallq.app.feature.fibra.WanStatus
-import io.signallq.app.feature.fibra.WifiStatus
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
@@ -650,8 +649,7 @@ private fun DeviceSelectorCard(
                                 .clickable {
                                     onSelecionar(painel.id)
                                     expandido = false
-                                }
-                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                                }.padding(horizontal = 14.dp, vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
@@ -1025,8 +1023,7 @@ private fun ActionsSectionCard(
                         .border(1.dp, c.outlineVariant, RoundedCornerShape(14.dp))
                         .clickable(enabled = action.enabled) {
                             if (action.id == "restart") onSolicitarReiniciar()
-                        }
-                        .padding(horizontal = 14.dp, vertical = 13.dp),
+                        }.padding(horizontal = 14.dp, vertical = 13.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(action.icon, contentDescription = null, tint = if (action.danger) LkColors.error else c.textSecondary, modifier = Modifier.size(19.dp))
@@ -1293,7 +1290,10 @@ private fun buildInfoRows(
         deviceInfo?.hardwareVersion?.takeIf { it.isNotBlank() }?.let { add("Versão de hardware" to it) }
         modoOperacao?.takeIf { it.isNotBlank() }?.let { add("Modo de operação" to it) }
         (localDevice.lan?.ipRoteador ?: gatewayDetectado)?.takeIf { it.isNotBlank() }?.let { add("Endereço local" to it) }
-        localDevice.wan?.tipoConexao?.takeIf { it.isNotBlank() }?.let { add("Tipo de conexão" to it) }
+        localDevice.wan
+            ?.tipoConexao
+            ?.takeIf { it.isNotBlank() }
+            ?.let { add("Tipo de conexão" to it) }
         deviceInfo?.serialNumber?.takeIf { it.isNotBlank() }?.let { add("Número de série" to it) }
     }
 

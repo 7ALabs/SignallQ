@@ -50,7 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -68,13 +67,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import io.signallq.app.R
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
-import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.ConfirmacaoDialog
+import io.signallq.app.ui.component.LkSurfaceCard
 import kotlinx.coroutines.launch
 
 private const val TOTAL_SLIDES = 2
@@ -496,7 +494,7 @@ private fun OnboardingTelaPermissoes(
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(LkRadius.card))
-                    .clickable(onClick = alternarPermitirTudo)
+                        .clickable(onClick = alternarPermitirTudo)
                         .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs)
                         .semantics { contentDescription = "Permitir tudo" },
                 verticalAlignment = Alignment.CenterVertically,

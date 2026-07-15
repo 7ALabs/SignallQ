@@ -62,7 +62,9 @@ fun PermissaoLocalizacaoContextoSheet(
         Spacer(Modifier.height(24.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(LkSpacing.sm),
+            horizontalArrangement =
+                androidx.compose.foundation.layout.Arrangement
+                    .spacedBy(LkSpacing.sm),
         ) {
             listOf("Solicitar", "Bloqueada").forEach { label ->
                 val selecionado =
