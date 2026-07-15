@@ -73,6 +73,7 @@ import io.signallq.app.core.network.contracts.fibra.ClassificadorSaudeGpon
 import io.signallq.app.core.network.contracts.fibra.GponSaudeStatus
 import io.signallq.app.core.network.contracts.gateway.AcessoEquipamento
 import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
+import io.signallq.app.core.network.contracts.localdevice.TipoConexaoFisica
 import io.signallq.app.feature.diagnostico.DiagnosticStatus
 import io.signallq.app.feature.diagnostico.topology.model.NatStatus
 import io.signallq.app.feature.fibra.DeviceInfoFibra
@@ -1359,17 +1360,19 @@ private fun buildTopologyNodes(
         add(TopologyNodeUi(label = "Este celular", icon = Icons.Outlined.Smartphone))
     }
 
+// GH#983 Fase 4 — usa tipoConexaoFisica (normalizado por NokiaModemParser) em vez de
+// tipoConexao (string crua) com .contains ad-hoc — nunca consome a string crua fora do parser.
 private fun LocalNetworkDeviceSnapshot.toDevicesSummary(): DevicesSummaryUi? {
     if (clientes.isEmpty()) return null
-    val wifi = clientes.count { it.tipoConexao?.contains("wifi", ignoreCase = true) == true }
-    val cabo = clientes.count { it.tipoConexao?.contains("wired", ignoreCase = true) == true || it.tipoConexao?.contains("ethernet", ignoreCase = true) == true || it.tipoConexao?.contains("lan", ignoreCase = true) == true }
+    val wifi = clientes.count { it.tipoConexaoFisica == TipoConexaoFisica.WIFI }
+    val cabo = clientes.count { it.tipoConexaoFisica == TipoConexaoFisica.ETHERNET }
     return DevicesSummaryUi(total = clientes.size, wifi = wifi, cabo = cabo)
 }
 
 private fun SnapshotFibra.toDevicesSummary(): DevicesSummaryUi? {
     if (clientes.isEmpty()) return null
-    val wifi = clientes.count { it.tipoConexao?.contains("wifi", ignoreCase = true) == true }
-    val cabo = clientes.count { it.tipoConexao?.contains("wired", ignoreCase = true) == true || it.tipoConexao?.contains("ethernet", ignoreCase = true) == true || it.tipoConexao?.contains("lan", ignoreCase = true) == true }
+    val wifi = clientes.count { it.tipoConexaoFisica == TipoConexaoFisica.WIFI }
+    val cabo = clientes.count { it.tipoConexaoFisica == TipoConexaoFisica.ETHERNET }
     return DevicesSummaryUi(total = clientes.size, wifi = wifi, cabo = cabo)
 }
 

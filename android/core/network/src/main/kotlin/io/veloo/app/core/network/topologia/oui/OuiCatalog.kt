@@ -29,13 +29,26 @@ object OuiCatalog {
         return entries[prefixo]
     }
 
-    private fun normalizarPrefixo(mac: String?): String? {
-        val limpo = mac
-            ?.replace(":", "")
-            ?.replace("-", "")
-            ?.replace(".", "")
-            ?.uppercase()
-            ?: return null
+    /**
+     * Normaliza um MAC completo (maiúsculas, sem separadores) sem truncar pra prefixo OUI —
+     * usado pela correlação exata MAC==BSSID da Fase 4 (GH#983), que precisa comparar o MAC
+     * inteiro, não só os 6 primeiros hex. [normalizarPrefixo] reaproveita esta função pra não
+     * duplicar a etapa de limpeza.
+     */
+    fun normalizarMacCompleto(mac: String?): String? = mac
+        ?.replace(":", "")
+        ?.replace("-", "")
+        ?.replace(".", "")
+        ?.uppercase()
+        ?.takeIf { it.isNotEmpty() }
+
+    /**
+     * Normaliza um MAC pro prefixo OUI (6 primeiros hex, maiúsculas, sem separadores). Público
+     * porque a correlação fraca por OUI da Fase 4 (GH#983) reaproveita esta mesma normalização
+     * pra comparar prefixos sem duplicar a lógica aqui.
+     */
+    fun normalizarPrefixo(mac: String?): String? {
+        val limpo = normalizarMacCompleto(mac) ?: return null
         return if (limpo.length >= 6) limpo.take(6) else null
     }
 
