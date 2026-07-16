@@ -46,6 +46,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -346,6 +347,10 @@ private fun EquipamentoConectadoContent(
             c = c,
         )
 
+        painelSelecionado.alerta?.let { alerta ->
+            AlertaCard(alerta = alerta)
+        }
+
         if (painelSelecionado.mostrarAvisoLeituraParcial) {
             AvisoAcessoCard(
                 icone = Icons.Outlined.ErrorOutline,
@@ -537,6 +542,38 @@ private fun AvisoAcessoCard(
             Text("Atenção", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = cor)
             Spacer(Modifier.height(2.dp))
             Text(texto, fontSize = 12.sp, color = LocalLkTokens.current.textSecondary, lineHeight = 17.sp)
+        }
+    }
+}
+
+/** Alerta acionável (fundo warning 10% / borda warning 30% / botão tonal) — ver protótipo
+ *  TO-BE `tobe/screens/EquipamentoInternet.jsx`, função `AlertCard` (linhas ~145-154). Botão sem
+ *  `onClick` real de propósito: nenhuma das ações candidatas ("Executar diagnóstico") está
+ *  ligada a um fluxo de navegação real ainda (ver GH#1031). */
+@Composable
+private fun AlertaCard(alerta: EquipmentAlertUi) {
+    val cor = LkColors.warning
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(cor.copy(alpha = 0.10f))
+                .border(1.dp, cor.copy(alpha = 0.30f), RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.base),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+    ) {
+        Row(verticalAlignment = Alignment.Top) {
+            Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = cor, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(LkSpacing.sm))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(alerta.titulo, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = LocalLkTokens.current.textPrimary)
+                Spacer(Modifier.height(2.dp))
+                Text(alerta.descricao, fontSize = 12.sp, color = LocalLkTokens.current.textSecondary, lineHeight = 17.sp)
+            }
+        }
+        FilledTonalButton(onClick = {}, enabled = false) {
+            Text(alerta.botaoLabel)
         }
     }
 }
@@ -1075,6 +1112,7 @@ private data class EquipmentPanelUi(
     val acessoLabel: String,
     val mostrarAvisoLeituraParcial: Boolean,
     val gponSaude: GponSaudeStatus?,
+    val alerta: EquipmentAlertUi?,
     val topologyWarning: String?,
     val secoesTecnicas: List<EquipamentoSecaoTecnica>,
     val devicesSummary: DevicesSummaryUi?,
@@ -1082,6 +1120,29 @@ private data class EquipmentPanelUi(
     val actions: List<EquipmentActionUi>,
     val podeReiniciar: Boolean,
 )
+
+/** Ver protótipo TO-BE `tobe/screens/EquipamentoInternet.jsx`, cenário `gpon-bad`
+ *  (alert.title/desc/button, linha ~297). */
+private data class EquipmentAlertUi(
+    val titulo: String,
+    val descricao: String,
+    val botaoLabel: String,
+)
+
+/** Sinal óptico abaixo do esperado (GponSaudeStatus.ruim) é o único gatilho real disponível
+ *  hoje nesta tela — canal 2,4GHz congestionado (segundo cenário do protótipo) exigiria dado de
+ *  varredura de redes vizinhas que só existe em featureDiagnostico/SinalScreen, não plumbado
+ *  aqui (ver GH#1031). */
+private fun alertaSinalOptico(gponSaude: GponSaudeStatus?): EquipmentAlertUi? =
+    if (gponSaude == GponSaudeStatus.ruim) {
+        EquipmentAlertUi(
+            titulo = "Sinal óptico abaixo do esperado",
+            descricao = "O problema pode estar na fibra ou na instalação da operadora, e não no Wi-Fi.",
+            botaoLabel = "Executar diagnóstico",
+        )
+    } else {
+        null
+    }
 
 private data class DevicesSummaryUi(
     val total: Int,
@@ -1113,6 +1174,22 @@ private fun buildEquipmentPanels(
     doubleNatSuspeito: Boolean,
 ): List<EquipmentPanelUi> {
     val paineis = mutableListOf<EquipmentPanelUi>()
+    val gponSaudeAtual =
+        localDevice.fiber?.let { fiber ->
+            val rx = fiber.rxPowerDbm
+            val tx = fiber.txPowerDbm
+            val temperatura = fiber.temperaturaCelsius
+            if (rx != null && tx != null && temperatura != null) {
+                ClassificadorSaudeGpon.classificar(
+                    isUp = fiber.linkAtivo ?: true,
+                    rxPowerDbm = rx,
+                    txPowerDbm = tx,
+                    temperatureCelsius = temperatura,
+                )
+            } else {
+                null
+            }
+        }
     paineis +=
         EquipmentPanelUi(
             id = "current",
@@ -1130,22 +1207,8 @@ private fun buildEquipmentPanels(
             totalClientes = localDevice.clientes.size,
             acessoLabel = acessoLabel(acesso),
             mostrarAvisoLeituraParcial = acesso == AcessoEquipamento.LEITURA_PARCIAL,
-            gponSaude =
-                localDevice.fiber?.let { fiber ->
-                    val rx = fiber.rxPowerDbm
-                    val tx = fiber.txPowerDbm
-                    val temperatura = fiber.temperaturaCelsius
-                    if (rx != null && tx != null && temperatura != null) {
-                        ClassificadorSaudeGpon.classificar(
-                            isUp = fiber.linkAtivo ?: true,
-                            rxPowerDbm = rx,
-                            txPowerDbm = tx,
-                            temperatureCelsius = temperatura,
-                        )
-                    } else {
-                        null
-                    }
-                },
+            gponSaude = gponSaudeAtual,
+            alerta = alertaSinalOptico(gponSaudeAtual),
             topologyWarning =
                 if (doubleNatSuspeito) {
                     "Possível NAT duplo detectado: seu equipamento e um roteador adicional podem estar fazendo NAT ao mesmo tempo. Isso pode causar problemas em jogos online e chamadas de vídeo."
@@ -1173,6 +1236,13 @@ private fun buildOntPanel(snapshotFibra: SnapshotFibra): EquipmentPanelUi {
     val info = requireNotNull(snapshotFibra.deviceInfo)
     val gpon = requireNotNull(snapshotFibra.gpon)
     val secoes = buildSectionsFromFibra(snapshotFibra)
+    val gponSaudeOnt =
+        ClassificadorSaudeGpon.classificar(
+            isUp = gpon.isUp,
+            rxPowerDbm = gpon.rxPowerDbm,
+            txPowerDbm = gpon.txPowerDbm,
+            temperatureCelsius = gpon.temperatureCelsius,
+        )
     return EquipmentPanelUi(
         id = "ont",
         vendor = info.manufacturer,
@@ -1189,13 +1259,8 @@ private fun buildOntPanel(snapshotFibra: SnapshotFibra): EquipmentPanelUi {
         totalClientes = snapshotFibra.clientes.size,
         acessoLabel = "Leitura completa",
         mostrarAvisoLeituraParcial = false,
-        gponSaude =
-            ClassificadorSaudeGpon.classificar(
-                isUp = gpon.isUp,
-                rxPowerDbm = gpon.rxPowerDbm,
-                txPowerDbm = gpon.txPowerDbm,
-                temperatureCelsius = gpon.temperatureCelsius,
-            ),
+        gponSaude = gponSaudeOnt,
+        alerta = alertaSinalOptico(gponSaudeOnt),
         topologyWarning = null,
         secoesTecnicas = secoes,
         devicesSummary = snapshotFibra.toDevicesSummary(),
