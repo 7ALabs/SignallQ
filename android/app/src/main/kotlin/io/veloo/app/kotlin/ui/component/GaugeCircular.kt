@@ -52,8 +52,11 @@ fun GaugeCircular(
         label = "gaugeColor",
     )
 
-    val strokeWidthDp = 8.dp
-    val strokeWidthPx = remember(density) { with(density) { strokeWidthDp.toPx() } }
+    // Proporção do protótipo (Speed.jsx): stroke 14px num diâmetro de 240px (~5,83%).
+    // Recalculado a partir de `tamanho` em vez de fixo, pra manter a proporção se o
+    // diâmetro do gauge mudar.
+    val strokeWidthDp = tamanho * (14f / 240f)
+    val strokeWidthPx = remember(density, strokeWidthDp) { with(density) { strokeWidthDp.toPx() } }
 
     Box(contentAlignment = Alignment.Center, modifier = modifier.size(tamanho)) {
         Canvas(modifier = Modifier.size(tamanho)) {
@@ -99,19 +102,8 @@ fun GaugeCircular(
             }
         }
 
-        // Centro: label + número + unidade
+        // Centro: número + unidade + rótulo da fase (ordem alinhada ao protótipo Speed.jsx)
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            if (rotulo.isNotBlank()) {
-                Text(
-                    text = rotulo,
-                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
-                    fontWeight = FontWeight.W600,
-                    color = corAnimada,
-                    letterSpacing = 1.sp,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(Modifier.height(2.dp))
-            }
             Text(
                 text = formatarVelocidade(velocidadeMbps),
                 // MD3 exception: hero display metric for speed gauge — intentionally exceeds displayLarge (57sp)
@@ -128,6 +120,17 @@ fun GaugeCircular(
                 color = c.textTertiary,
                 letterSpacing = 0.5.sp,
             )
+            if (rotulo.isNotBlank()) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = rotulo,
+                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                    fontWeight = FontWeight.W600,
+                    color = corAnimada,
+                    letterSpacing = 1.sp,
+                    textAlign = TextAlign.Center,
+                )
+            }
         }
     }
 }

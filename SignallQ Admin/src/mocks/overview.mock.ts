@@ -37,6 +37,10 @@ export interface RecentAlertItem {
   severity: "critical" | "warning";
   timestamp: string;
   count: number;
+  /** App / IA & Custos / Sistema — ver utils/alerts.ts (categoryForAlertType).
+   *  undefined quando a origem não permite classificar (worker sem `type`
+   *  reconhecido) — UI mostra "Não disponível", nunca inventa categoria. */
+  category?: "app" | "ia" | "sistema";
 }
 
 export interface ProviderUsageItem {
@@ -277,6 +281,7 @@ export const mockRecentAlertsList: RecentAlertItem[] = [
     severity: "critical",
     timestamp: "2026-06-21T10:15:00-07:00",
     count: 24,
+    category: "ia",
   },
   {
     id: "alert_2",
@@ -285,6 +290,7 @@ export const mockRecentAlertsList: RecentAlertItem[] = [
     severity: "critical",
     timestamp: "2026-06-21T09:42:00-07:00",
     count: 14,
+    category: "app",
   },
   {
     id: "alert_3",
@@ -293,6 +299,7 @@ export const mockRecentAlertsList: RecentAlertItem[] = [
     severity: "warning",
     timestamp: "2026-06-21T10:30:00-07:00",
     count: 8,
+    category: "sistema",
   },
   {
     id: "alert_4",
@@ -301,6 +308,7 @@ export const mockRecentAlertsList: RecentAlertItem[] = [
     severity: "warning",
     timestamp: "2026-06-21T10:05:00-07:00",
     count: 19,
+    category: "ia",
   },
 ];
 

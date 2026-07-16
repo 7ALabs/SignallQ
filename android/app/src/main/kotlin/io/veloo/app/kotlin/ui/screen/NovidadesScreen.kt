@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.signallq.app.R
 import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
@@ -177,7 +178,7 @@ fun NovidadesScreen(
                         NovidadeRow(item = item, c = c)
                         HorizontalDivider(
                             color = c.border,
-                            thickness = 0.5.dp,
+                            thickness = 1.dp,
                             modifier = Modifier.padding(horizontal = LkSpacing.lg),
                         )
                     }
@@ -211,7 +212,7 @@ private fun NovidadeRow(
         Box(
             modifier =
                 Modifier
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(RoundedCornerShape(LkRadius.pill))
                     .background(badgeCor.copy(alpha = 0.14f))
                     .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
         ) {

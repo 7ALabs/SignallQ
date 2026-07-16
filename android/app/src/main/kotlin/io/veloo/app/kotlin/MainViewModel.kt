@@ -337,10 +337,6 @@ class MainViewModel
             viewModelScope.launch { preferenciasAppRepository.definirOnboardingConcluido(true) }
         }
 
-        fun concluirOnboarding() {
-            viewModelScope.launch { preferenciasAppRepository.definirOnboardingConcluido(true) }
-        }
-
         fun definirConsentimentoLgpd(aceito: Boolean) {
             viewModelScope.launch { preferenciasAppRepository.definirConsentimentoLgpd(aceito) }
         }
@@ -1809,6 +1805,9 @@ class MainViewModel
                                     texto = texto,
                                     origem = "ia",
                                     acoes = resultado.result.acoesRecomendadas,
+                                    titulo = resultado.result.titulo,
+                                    resumo = resultado.result.resumo,
+                                    problemaRelatado = problema,
                                 )
                             speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
                         }
@@ -1819,6 +1818,9 @@ class MainViewModel
                                     texto = texto,
                                     origem = "local",
                                     acoes = resultado.result.acoesRecomendadas,
+                                    titulo = resultado.result.titulo,
+                                    resumo = resultado.result.resumo,
+                                    problemaRelatado = problema,
                                 )
                             speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
                         }
@@ -1833,6 +1835,9 @@ class MainViewModel
                                     texto = texto,
                                     origem = "local",
                                     acoes = local.acoesRecomendadas,
+                                    titulo = local.titulo,
+                                    resumo = local.resumo,
+                                    problemaRelatado = problema,
                                 )
                             speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
                         }

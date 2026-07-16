@@ -29,6 +29,11 @@ data class MedicaoEntity(
     /** Operadora movel (SIM) OU provedor Wi-Fi (ISP) identificado. Null quando
      *  nenhum dos dois esta disponivel (GH#412). */
     val operadoraMovel: String? = null,
+    /** Banda Wi-Fi no momento da medicao: "ghz24" ou "ghz5" (nomes de BandaWifi,
+     *  ver feature.diagnostico.DiagnosticInput). Null quando a conexao nao e Wi-Fi
+     *  ou a frequencia nao pode ser lida — inclusive em medicoes salvas antes desta
+     *  coluna existir (GH#1027). */
+    val bandaWifi: String? = null,
     val diagnosticoTexto: String? = null,
     val diagnosticoOrigem: String? = null,
     val diagnosticoProblemas: String? = null,

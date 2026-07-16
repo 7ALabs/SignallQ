@@ -176,6 +176,8 @@ fun OperadoraBottomSheet(
 
             if (operadoraDetectada != null && identidadeDetectada != null) {
                 // Seção: operadora detectada (local ou via diretorio remoto)
+                LkSheetDivider()
+                Spacer(Modifier.height(LkSpacing.lg))
                 Overline(texto = "Sua operadora", color = c.textTertiary)
                 Spacer(Modifier.height(LkSpacing.md))
                 OperadoraDetectadaSection(
@@ -188,7 +190,8 @@ fun OperadoraBottomSheet(
 
                 // Seção: outras operadoras (só quando há detectada)
                 if (outrasOperadoras.isNotEmpty()) {
-                    Spacer(Modifier.height(LkSpacing.lg))
+                    LkSheetDivider()
+                    Spacer(Modifier.height(LkSpacing.md))
                     Overline(texto = "Não é a sua? Outras operadoras", color = c.textTertiary)
                     Spacer(Modifier.height(LkSpacing.md))
                     if (outrasNacionais.isNotEmpty()) {
@@ -233,11 +236,13 @@ fun OperadoraBottomSheet(
             }
 
             Spacer(Modifier.height(LkSpacing.md))
+            LkSheetDivider()
+            Spacer(Modifier.height(LkSpacing.base))
 
             Text(
                 text = "O SignallQ não tem vínculo com as operadoras. Você será levado ao canal oficial de cada uma.",
-                style = MaterialTheme.typography.labelMedium,
-                color = c.textTertiary,
+                style = MaterialTheme.typography.bodySmall,
+                color = c.onSurfaceVariant,
             )
 
             Spacer(Modifier.height(LkSpacing.lg))
@@ -374,8 +379,7 @@ private fun OutraOperadoraRow(operadora: ContatoOperadora) {
         modifier =
             Modifier
                 .fillMaxWidth()
-                .background(c.surfaceContainer, RoundedCornerShape(LkRadius.card))
-                .padding(LkSpacing.base),
+                .padding(vertical = LkSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         OperadoraBadge(operadora = operadora, size = 36.dp)

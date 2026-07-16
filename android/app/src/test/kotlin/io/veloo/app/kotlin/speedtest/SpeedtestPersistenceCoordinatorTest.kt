@@ -337,4 +337,34 @@ class SpeedtestPersistenceCoordinatorTest {
             resolverOperadorPersistencia(EstadoConexao.desconhecido, "Claro", "TELEFONICA BRASIL S.A"),
         )
     }
+
+    // =========================================================================
+    // Caso 9: resolverBandaWifiPersistencia — GH#1027 (banda Wi-Fi na medicao)
+    // =========================================================================
+
+    @Test
+    fun `resolverBandaWifiPersistencia retorna ghz24 para frequencia abaixo de 3000`() {
+        val resultado = resolverBandaWifiPersistencia(EstadoConexao.wifi, frequenciaMhz = 2412)
+
+        assertEquals("ghz24", resultado)
+    }
+
+    @Test
+    fun `resolverBandaWifiPersistencia retorna ghz5 para frequencia igual ou acima de 3000`() {
+        val resultado = resolverBandaWifiPersistencia(EstadoConexao.wifi, frequenciaMhz = 5180)
+
+        assertEquals("ghz5", resultado)
+    }
+
+    @Test
+    fun `resolverBandaWifiPersistencia retorna null quando conexao nao e wifi`() {
+        assertNull(resolverBandaWifiPersistencia(EstadoConexao.movel, frequenciaMhz = 2412))
+        assertNull(resolverBandaWifiPersistencia(EstadoConexao.ethernet, frequenciaMhz = 5180))
+        assertNull(resolverBandaWifiPersistencia(EstadoConexao.desconhecido, frequenciaMhz = 5180))
+    }
+
+    @Test
+    fun `resolverBandaWifiPersistencia retorna null quando wifi sem frequencia lida`() {
+        assertNull(resolverBandaWifiPersistencia(EstadoConexao.wifi, frequenciaMhz = null))
+    }
 }

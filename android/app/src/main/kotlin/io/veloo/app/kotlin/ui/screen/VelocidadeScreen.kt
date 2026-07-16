@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -148,16 +150,6 @@ fun VelocidadeScreen(
                     .padding(padding),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Linha de servidor
-            LinhaServidor(
-                localizacaoServidor = localizacaoServidor,
-                ispInfo = ispInfo,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = LkSpacing.xl),
-            )
-
             // Gauge centralizado com peso para ocupar espaço restante
             Box(
                 modifier =
@@ -286,6 +278,18 @@ fun VelocidadeScreen(
             }
 
             Spacer(Modifier.height(LkSpacing.lg))
+
+            // Linha de servidor — rodapé da tela de execução (Speed.jsx)
+            LinhaServidor(
+                localizacaoServidor = localizacaoServidor,
+                ispInfo = ispInfo,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = LkSpacing.xl),
+            )
+
+            Spacer(Modifier.height(LkSpacing.lg))
         }
     }
 
@@ -328,15 +332,27 @@ private fun LinhaServidor(
         Spacer(Modifier.height(LkSpacing.sm))
         return
     }
-    Text(
-        text = partes.joinToString(" · "),
-        style = MaterialTheme.typography.labelSmall,
-        color = c.textTertiary,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        textAlign = TextAlign.Center,
+    Row(
         modifier = modifier.padding(vertical = LkSpacing.sm),
-    )
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Dns,
+            contentDescription = null,
+            tint = c.textTertiary,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.width(LkSpacing.xs))
+        Text(
+            text = "Servidor: " + partes.joinToString(" · "),
+            style = MaterialTheme.typography.labelSmall,
+            color = c.textTertiary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
+    }
 }
 
 private data class PillConfig(
@@ -400,12 +416,23 @@ private fun PillsFase(faseAtual: FaseSpeedtest) {
                         ).padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = pill.label,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Medium,
-                    color = corTexto,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (concluido) {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = LkColors.success,
+                            modifier = Modifier.size(13.dp),
+                        )
+                        Spacer(Modifier.width(LkSpacing.xs))
+                    }
+                    Text(
+                        text = pill.label,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = corTexto,
+                    )
+                }
             }
         }
     }

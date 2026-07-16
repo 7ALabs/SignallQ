@@ -1,53 +1,30 @@
 import React from "react";
 import { alpha } from "../../utils/color";
-import {
-  LayoutDashboard,
-  LineChart,
-  Activity,
-  Wifi,
-  BrainCircuit,
-  AlertTriangle,
-  GitBranch,
-  Settings,
-  HeartPulse,
-  Wrench,
-  X,
-} from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 import { NAVIGATION_SECTIONS } from "../../config/navigation";
+import { NAVIGATION_ICON_MAP as iconMap } from "../../config/navigationIcons";
 import { AppEnvironment } from "../../types/admin";
 import { errorMetricsService } from "../../services/errorMetricsService";
 
+// GH#1041: Sidebar agora é exclusivo do breakpoint desktop (>=1024px) — o
+// terceiro estado de nav colapsada é o NavRail (tablet, 768-1024px) e o
+// mobile (<768px) usa o BottomNav, que SUBSTITUI o antigo drawer off-canvas
+// (não coexistem, ver FASE1_TOKENS_CONSOLE_MD3_TOBE_2026-07-16.md item 12).
+// isOpen/onClose/hamburger foram removidos junto — não há mais breakpoint
+// que precise abrir/fechar este componente como overlay.
 interface SidebarProps {
   currentPath: string;
   onNavigate: (path: string) => void;
   environment: AppEnvironment;
-  isOpen?: boolean;
-  onClose?: () => void;
   id?: string;
   theme?: "dark" | "light";
   onToggleTheme?: () => void;
 }
 
-// Map strings to Lucide components directly to prevent type issue
-const iconMap = {
-  LayoutDashboard: LayoutDashboard,
-  LineChart: LineChart,
-  Activity: Activity,
-  Wifi: Wifi,
-  BrainCircuit: BrainCircuit,
-  AlertTriangle: AlertTriangle,
-  GitBranch: GitBranch,
-  Settings: Settings,
-  HeartPulse: HeartPulse,
-  Wrench: Wrench,
-};
-
 export const Sidebar: React.FC<SidebarProps> = ({
   currentPath,
   onNavigate,
   environment,
-  isOpen = false,
-  onClose,
   id,
   theme = "dark",
   onToggleTheme,
@@ -76,12 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <div
       id={id || "sidebar-container"}
-      className={`
-        w-[264px] h-screen flex flex-col justify-between shrink-0 select-none
-        fixed lg:relative z-50 lg:z-auto
-        transition-transform duration-200 ease-in-out
-        ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-      `}
+      className="w-[var(--sidebar-width)] h-screen flex flex-col justify-between shrink-0 select-none"
       style={{
         backgroundColor: "var(--bg-sidebar)",
       }}
@@ -104,17 +76,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               Admin Console
             </span>
           </div>
-          {/* Close button — mobile only */}
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="lg:hidden p-1.5 rounded-lg transition-colors"
-              style={{ color: "var(--text-tertiary)" }}
-              aria-label="Fechar menu"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
         </div>
 
         {/* Environment Status Badge */}
@@ -171,8 +132,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     style={
                       isActive
                         ? {
-                            backgroundColor: "var(--bg-sidebar-active)",
-                            color: "var(--primary)",
+                            backgroundColor: "var(--nav-active-bg)",
+                            color: "var(--nav-active-fg)",
                             borderColor: "transparent",
                           }
                         : {
@@ -185,7 +146,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       {IconComponent && (
                         <IconComponent
                           className="w-4 h-4 shrink-0 transition-colors"
-                          style={{ color: isActive ? "var(--primary)" : "var(--text-secondary)" }}
+                          style={{ color: isActive ? "var(--nav-active-fg)" : "var(--text-secondary)" }}
                         />
                       )}
                       <span>{item.name}</span>
@@ -246,9 +207,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             title={theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
             aria-label={theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: "16px", lineHeight: 1, display: "block" }}>
-              {theme === "dark" ? "light_mode" : "dark_mode"}
-            </span>
+            {theme === "dark" ? (
+              <Sun className="w-4 h-4" />
+            ) : (
+              <Moon className="w-4 h-4" />
+            )}
           </button>
         )}
       </div>

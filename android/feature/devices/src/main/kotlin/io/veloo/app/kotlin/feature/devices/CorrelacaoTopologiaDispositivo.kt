@@ -122,3 +122,22 @@ fun correlacionarDispositivoComTopologia(
 
     return ResultadoCorrelacaoTopologia(dispositivo = dispositivo, nivel = NivelCorrelacao.SEM_MATCH)
 }
+
+/**
+ * Localiza, dentre os dispositivos do scan LAN ([dispositivos], feature/devices), aquele cujo
+ * MAC bate exatamente com o [bssid] de um nó Wi-Fi — usado pra abrir a sheet de detalhe de
+ * dispositivo (ex.: `MeshApSheet`) a partir de um nó da árvore de topologia da tela Sinal,
+ * reaproveitando o mesmo dado já carregado em Dispositivos (5a). GH#1025.
+ *
+ * Best-effort e unidirecional (nó Wi-Fi → dispositivo, sentido inverso de
+ * [correlacionarDispositivoComTopologia]): quando nenhum dispositivo tem MAC resolvido ou
+ * nenhum bate com o [bssid] (ex.: o AP ainda não foi descoberto pelo scan LAN), devolve null —
+ * quem chama decide o fallback, nunca fabrica um [DispositivoRede] parcial.
+ */
+fun encontrarDispositivoPorBssid(
+    dispositivos: List<DispositivoRede>,
+    bssid: String,
+): DispositivoRede? {
+    val bssidNormalizado = OuiCatalog.normalizarMacCompleto(bssid) ?: return null
+    return dispositivos.firstOrNull { OuiCatalog.normalizarMacCompleto(it.mac) == bssidNormalizado }
+}

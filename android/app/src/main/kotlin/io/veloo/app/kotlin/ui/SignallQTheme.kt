@@ -278,6 +278,7 @@ object LkRadius {
     val button: Dp = 20.dp
     val input: Dp = 12.dp
     val sheet: Dp = 28.dp
+    val dialog: Dp = 24.dp
     val pill: Dp = 999.dp
 }
 

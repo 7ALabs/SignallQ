@@ -179,6 +179,14 @@ object CoreDatabaseModulo {
             }
         }
 
+    /** GH#1027: banda Wi-Fi (2.4/5GHz) capturada no momento da medicao, exibida no Historico. */
+    private val migracao13para14 =
+        object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE medicao ADD COLUMN bandaWifi TEXT")
+            }
+        }
+
     fun criarBanco(context: Context): SignallQDatabase {
         return Room.databaseBuilder(
             context.applicationContext,
@@ -196,6 +204,7 @@ object CoreDatabaseModulo {
             .addMigrations(migracao10para11)
             .addMigrations(migracao11para12)
             .addMigrations(migracao12para13)
+            .addMigrations(migracao13para14)
             .build()
     }
 

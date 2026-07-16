@@ -1,19 +1,19 @@
 import React from "react";
-import { adminMetricsService } from "../../services/adminMetricsService";
+import { adminMetricsService, NetworkTypeStat } from "../../services/adminMetricsService";
 import { aiUsageService } from "../../services/aiUsageService";
 import { integrationsService } from "../../integrations/integrationsService";
 import { FirebaseAnalyticsSummary, FirebaseCrashlyticsSummary } from "../../integrations/firebase/firebase.types";
 import { GooglePlayRatingSummary } from "../../integrations/google-play/googlePlay.types";
-import { OverviewMetricGrid } from "./components/OverviewMetricGrid";
-import { DiagnosticsTimeline } from "./components/DiagnosticsTimeline";
-import { ScreenSessionsDonut } from "./components/ScreenSessionsDonut";
+import { AppSection } from "./components/AppSection";
+import { NetworkOverviewSection } from "./components/NetworkOverviewSection";
+import { AiCostSummaryCard } from "./components/AiCostSummaryCard";
 import { RecentAlertsPanel } from "./components/RecentAlertsPanel";
 import { LoadingState } from "../../components/ui/LoadingState";
-import { AppEnvironment } from "../../types/admin";
+import { AppEnvironment, OperatorRecord } from "../../types/admin";
 import { OverviewMetricsResponse } from "../../mocks/overview.mock";
 import { productAnalyticsService } from "../../services/productAnalyticsService";
 import { ScreenNavigationMetric } from "../../types/productAnalytics";
-import { SectionIntro } from "../../components/ui/SectionIntro";
+import { computeNetworkOverviewMetrics } from "../networks/networkOverviewMetrics";
 
 interface OverviewPageProps {
   environment: AppEnvironment;
@@ -26,6 +26,7 @@ interface OverviewPageProps {
 export const OverviewPage: React.FC<OverviewPageProps> = ({
   environment,
   period,
+  onNavigate,
   triggerRefreshCounter,
 }) => {
   const [loading, setLoading] = React.useState<boolean>(true);
@@ -37,14 +38,17 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   const [timelineData, setTimelineData] = React.useState<any[]>([]);
   const [screenNavigation, setScreenNavigation] = React.useState<ScreenNavigationMetric[]>([]);
   const [alerts, setAlerts] = React.useState<any[]>([]);
+  const [networkStats, setNetworkStats] = React.useState<NetworkTypeStat[]>([]);
+  const [operators, setOperators] = React.useState<OperatorRecord[]>([]);
 
-  // Paridade com o mockup: os 4 KPIs do Centro de Controle são Usuários Ativos,
-  // Crash-free rate, Custo de IA (mês) e Nota na Play Store — não os que estavam
-  // aqui antes (Diagnósticos/Score de Rede/Taxa de Sucesso/Custo IA hoje, GH#746).
+  // Paridade com o protótipo md3-tobe (Md3DashboardContent.dc.html): os KPIs
+  // do Centro de Controle são Usuários Ativos, Sessões (7d), Crash-free rate e
+  // Nota na Play Store (seção "App"); Score Médio de Rede, Sessões via Wi-Fi e
+  // Operadoras Monitoradas (seção "Rede & Operadora"); Custo de IA isolado.
   // Nota da Play Store hoje não tem dado real disponível (integração ainda
   // mock-only) — "Não disponível" é o estado honesto, não bug. Crash-free rate
-  // agora vem do worker (BigQuery/Crashlytics); "Não disponível" só aparece
-  // quando o source não é "bigquery".
+  // vem do worker (BigQuery/Crashlytics); "Não disponível" só aparece quando o
+  // source não é "bigquery".
   const [firebaseAnalytics, setFirebaseAnalytics] = React.useState<FirebaseAnalyticsSummary | null>(null);
   const [firebaseCrashlytics, setFirebaseCrashlytics] = React.useState<FirebaseCrashlyticsSummary | null>(null);
   const [aiCostMonthLabel, setAiCostMonthLabel] = React.useState<string | null>(null);
@@ -65,11 +69,15 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           timelineRes,
           screenNavRes,
           alertsRes,
+          networkStatsRes,
+          operatorsRes,
         ] = await Promise.all([
           adminMetricsService.getOverviewMetrics(filters),
           adminMetricsService.getDiagnosticsTimeline(filters),
           productAnalyticsService.getScreenNavigation({ period: period as any, environment }),
           adminMetricsService.getRecentAlerts(filters),
+          adminMetricsService.getNetworkTypeStats(filters),
+          adminMetricsService.getOperatorMetrics(filters),
         ]);
 
         if (active) {
@@ -77,9 +85,11 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           setTimelineData(timelineRes);
           setScreenNavigation(screenNavRes);
           setAlerts(alertsRes);
+          setNetworkStats(networkStatsRes);
+          setOperators(operatorsRes);
         }
 
-        // KPIs do mockup — resilientes individualmente (.catch(() => null)): a
+        // KPIs do protótipo — resilientes individualmente (.catch(() => null)): a
         // ausência de um não pode derrubar a tela inteira, e cada um já é
         // honestamente nullable quando a integração real não existe ainda.
         const [fbAnalyticsRes, fbCrashlyticsRes, aiCostMonthRes, gpRatingRes] = await Promise.all([
@@ -151,47 +161,56 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
     );
   }
 
+  const networkOverviewMetrics = computeNetworkOverviewMetrics(networkStats, operators);
+
   return (
     <div className="space-y-6">
-      {/* 0. Identidade da tela — paridade com mockup do Luiz (signallq-admin-mockup.dc.html) */}
-      <SectionIntro
-        id="overview-section-intro"
-        hero={{
-          iconSrc: `${import.meta.env.BASE_URL}icon-192.png`,
-          title: "SignallQ — Diagnóstico de Rede",
-          subtitle: `io.signallq.app · Conta técnica · Última atualização: ${new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}`,
-        }}
-        overline="CENTRO DE CONTROLE"
-        question="O SignallQ está saudável agora?"
-        description="Visão consolidada de uso, estabilidade, custo de IA e performance do app — para decidir onde agir sem cruzar painéis manualmente."
-        source="FONTES · FIREBASE ANALYTICS · PLAY CONSOLE · CLOUDFLARE WORKERS · CRASHLYTICS"
-      />
-
-      {/* Período já é controlado globalmente pelo Topbar (pills PROD/STG + período) —
-          duplicar o mesmo filtro aqui era um GlobalFilters redundante herdado do
-          SIG-294 Fase 1, antes do Topbar assumir esse controle. Removido. */}
-
-      {/* 2. KPIs — grid de cards principais, cada um com veredito/tendência */}
-      <OverviewMetricGrid
-        activeUsersToday={firebaseAnalytics?.activeUsersToday ?? null}
-        firebaseCrashlytics={firebaseCrashlytics}
-        aiCostMonthLabel={aiCostMonthLabel}
-        playStoreRating={playStoreRating}
-      />
-
-      {/* 3. Gráfico principal — sessões x diagnósticos, com a composição de
-          sessões por tela ao lado (paridade mockup). */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <DiagnosticsTimeline timelineData={timelineData} />
+      {/* 0. Identidade da tela — título estático do protótipo md3-tobe
+          (Md3DashboardContent.dc.html:12-15: overline "CENTRO DE CONTROLE" +
+          H1 "Visão geral do SignallQ"), não a pergunta dinâmica do
+          SectionIntro (correção 2026-07-16: "o que vale é o que está na spec
+          md3-tobe" — reverte a decisão anterior de manter o padrão de
+          pergunta-guia nesta tela). SectionIntro continua em uso nas outras
+          8 telas do Console. */}
+      <div className="mb-2">
+        <div
+          className="text-[11px] font-sans font-semibold uppercase tracking-[0.08em]"
+          style={{ color: "var(--text-tertiary)" }}
+        >
+          CENTRO DE CONTROLE
         </div>
-        <div>
-          <ScreenSessionsDonut screens={screenNavigation} />
-        </div>
+        <h1
+          className="text-[26px] font-sans font-bold leading-[1.25] tracking-[-0.02em] mt-1.5"
+          style={{ color: "var(--text-primary)" }}
+        >
+          Visão geral do SignallQ
+        </h1>
       </div>
 
+      {/* Período já é controlado globalmente pelo Topbar (pills PROD/STG +
+          período) — duplicar o mesmo filtro aqui era um GlobalFilters
+          redundante herdado do SIG-294 Fase 1, antes do Topbar assumir esse
+          controle. Removido. */}
+
+      {/* 1. Seção "App" — KPIs + gráfico de sessões + donut de sessões por tela */}
+      <AppSection
+        activeUsersToday={firebaseAnalytics?.activeUsersToday ?? null}
+        sessions7d={firebaseAnalytics?.sessions7d ?? null}
+        firebaseCrashlytics={firebaseCrashlytics}
+        playStoreRating={playStoreRating}
+        timelineData={timelineData}
+        screenNavigation={screenNavigation}
+      />
+
+      {/* 2. Seção "Rede & Operadora" — mesmo cálculo de NetworksOperatorsPage */}
+      <NetworkOverviewSection metrics={networkOverviewMetrics} onNavigate={onNavigate} />
+
+      {/* 3. Custo de IA — card isolado, fora do grid de métricas de produto */}
+      <AiCostSummaryCard aiCostMonthLabel={aiCostMonthLabel} onNavigate={onNavigate} />
+
       {/* 4. Alertas recentes — card full-width, último item da composição fixa
-          do mockup para sec-overview (hero > KPIs > gráfico+donut > alertas). */}
+          do protótipo pra sec-overview (header > App > Rede & Operadora >
+          Custo de IA > alertas). */}
       <RecentAlertsPanel alerts={alerts} />
     </div>
   );

@@ -7,17 +7,7 @@ import { SectionIntro } from "../../components/ui/SectionIntro";
 import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
 import { OperatorSessionsList } from "./components/OperatorSessionsList";
 import { OperatorRecord, AppEnvironment } from "../../types/admin";
-import { MetricVerdict } from "../../types/metrics";
-
-// GH#746 — mesma escala usada em DiagnosticsMetricGrid (score calculado pelo
-// engine local do app, 0-100). Repetida aqui em vez de importada porque o
-// helper original não é exportado do módulo de diagnostics.
-function scoreVerdict(score: number): MetricVerdict {
-  if (score >= 85) return "excelente";
-  if (score >= 70) return "bom";
-  if (score >= 55) return "regular";
-  return "fraco";
-}
+import { computeNetworkOverviewMetrics, scoreVerdict } from "./networkOverviewMetrics";
 
 interface NetworksOperatorsPageProps {
   environment: AppEnvironment;
@@ -89,16 +79,9 @@ export const NetworksOperatorsPage: React.FC<NetworksOperatorsPageProps> = ({
   // KPIs — paridade com mockup (networkKpis): score médio de rede, sessões via
   // Wi-Fi e operadoras monitoradas usam dado real; "Regiões cobertas" segue
   // indisponível porque diagnostic_sessions não coleta UF/região hoje.
-  const scoredStats = networkStats.filter((s) => s.avgScore != null && s.count > 0);
-  const scoredSessionCount = scoredStats.reduce((sum, s) => sum + s.count, 0);
-  const avgNetworkScore = scoredSessionCount > 0
-    ? Math.round(scoredStats.reduce((sum, s) => sum + (s.avgScore as number) * s.count, 0) / scoredSessionCount)
-    : null;
-
-  const wifiCount = wifiStat?.count ?? 0;
-  const mobileCount = mobileStat?.count ?? 0;
-  const wifiMobileTotal = wifiCount + mobileCount;
-  const wifiSessionsPct = wifiMobileTotal > 0 ? Math.round((wifiCount / wifiMobileTotal) * 100) : null;
+  // Cálculo compartilhado com a seção "Rede & Operadora" do Centro de Controle
+  // (Overview) — ver networkOverviewMetrics.ts.
+  const { avgNetworkScore, wifiSessionsPct } = computeNetworkOverviewMetrics(networkStats, operators);
 
   return (
     <div className="space-y-6">

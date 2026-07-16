@@ -87,7 +87,7 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
               onClick={() => onEnvironmentChange("production")}
               className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
                 selectedEnvironment === "production"
-                  ? "bg-[var(--primary)] text-white shadow-sm"
+                  ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-sm"
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >

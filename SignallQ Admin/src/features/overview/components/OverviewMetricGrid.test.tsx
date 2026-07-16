@@ -2,25 +2,27 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { OverviewMetricGrid } from "./OverviewMetricGrid";
 
-// Paridade com o mockup do Luiz: os 4 KPIs do Centro de Controle são
-// Usuários Ativos, Crash-free Rate, Custo de IA (mês) e Nota na Play Store.
+// Paridade com o protótipo md3-tobe (Md3DashboardContent.dc.html:25-30): os 4
+// KPIs da seção "App" do Centro de Controle são Usuários Ativos, Sessões
+// (7d), Crash-free Rate e Nota na Play Store. Custo de IA saiu deste grid —
+// virou card isolado (AiCostSummaryCard), fora deste componente.
 describe("OverviewMetricGrid", () => {
-  it("renderiza os 4 KPIs do mockup com dado real quando disponível", () => {
+  it("renderiza os 4 KPIs da seção App com dado real quando disponível", () => {
     render(
       <OverviewMetricGrid
         activeUsersToday={18240}
+        sessions7d={12860}
         firebaseCrashlytics={{ source: "bigquery", unresolvedCrashes: 4, affectedUsers: 142, crashFreeUsersPercentage: 98.6 }}
-        aiCostMonthLabel="R$ 1.284,90"
         playStoreRating={{ averageRating: 4.6, totalRatings: 2340, starDistribution: { five: 0, four: 0, three: 0, two: 0, one: 0 } }}
       />
     );
 
     expect(screen.getByText("Usuários Ativos")).toBeInTheDocument();
     expect(screen.getByText("18.240")).toBeInTheDocument();
+    expect(screen.getByText("Sessões (7d)")).toBeInTheDocument();
+    expect(screen.getByText("12.860")).toBeInTheDocument();
     expect(screen.getByText("Crash-free Rate")).toBeInTheDocument();
     expect(screen.getByText("98.6%")).toBeInTheDocument();
-    expect(screen.getByText("Custo de IA (mês)")).toBeInTheDocument();
-    expect(screen.getByText("R$ 1.284,90")).toBeInTheDocument();
     expect(screen.getByText("Nota na Play Store")).toBeInTheDocument();
     expect(screen.getByText("4.6 ★")).toBeInTheDocument();
   });
@@ -29,8 +31,8 @@ describe("OverviewMetricGrid", () => {
     render(
       <OverviewMetricGrid
         activeUsersToday={null}
+        sessions7d={null}
         firebaseCrashlytics={null}
-        aiCostMonthLabel={null}
         playStoreRating={null}
       />
     );
@@ -42,8 +44,8 @@ describe("OverviewMetricGrid", () => {
     const { rerender } = render(
       <OverviewMetricGrid
         activeUsersToday={100}
+        sessions7d={500}
         firebaseCrashlytics={{ source: "no_credentials", unresolvedCrashes: 0, crashFreeUsersPercentage: 100 }}
-        aiCostMonthLabel="R$ 1,00"
         playStoreRating={null}
       />
     );
@@ -52,8 +54,8 @@ describe("OverviewMetricGrid", () => {
     rerender(
       <OverviewMetricGrid
         activeUsersToday={100}
+        sessions7d={500}
         firebaseCrashlytics={{ source: "no_data_yet", unresolvedCrashes: 0, crashFreeUsersPercentage: 100 }}
-        aiCostMonthLabel="R$ 1,00"
         playStoreRating={null}
       />
     );

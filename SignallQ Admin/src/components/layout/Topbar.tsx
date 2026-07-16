@@ -1,5 +1,5 @@
 import React from "react";
-import { RefreshCw, Bell, Palette, LayoutGrid, Menu } from "lucide-react";
+import { RefreshCw, Bell, Palette, LogOut } from "lucide-react";
 import { AppEnvironment } from "../../types/admin";
 import { PERIOD_FILTERS } from "../../config/constants";
 import { adminMetricsService } from "../../services/adminMetricsService";
@@ -18,7 +18,6 @@ interface TopbarProps {
   onRefresh?: () => void;
   onLogout?: () => void;
   onNavigate?: (path: string) => void;
-  onOpenMobileSidebar?: () => void;
   isRefreshing?: boolean;
   theme?: "dark" | "light";
   id?: string;
@@ -32,7 +31,6 @@ export const Topbar: React.FC<TopbarProps> = ({
   onRefresh,
   onLogout,
   onNavigate,
-  onOpenMobileSidebar,
   isRefreshing = false,
   id,
 }) => {
@@ -58,23 +56,11 @@ export const Topbar: React.FC<TopbarProps> = ({
         backgroundColor: "var(--bg-topbar)",
       }}
     >
-      {/* Left: hamburger (mobile) + filtros globais (paridade com mockup) */}
+      {/* Left: filtros globais (paridade com mockup). Sem hamburger — o
+          BottomNav (mobile) e o NavRail (tablet) cobrem a navegação nesses
+          breakpoints, não sobra estado que precise abrir a Sidebar como
+          overlay (ver GH#1041). */}
       <div className="flex items-center gap-2 lg:gap-3.5 min-w-0">
-        {/* Hamburger — mobile only */}
-        {onOpenMobileSidebar && (
-          <button
-            onClick={onOpenMobileSidebar}
-            className="lg:hidden p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors shrink-0"
-            style={{
-              backgroundColor: "var(--bg-surface)",
-              color: "var(--text-secondary)",
-            }}
-            aria-label="Abrir menu"
-          >
-            <Menu className="w-4 h-4" />
-          </button>
-        )}
-
         {/* Environment Filter */}
         <div
           className="flex p-0.5 rounded-xl"
@@ -87,12 +73,12 @@ export const Topbar: React.FC<TopbarProps> = ({
             <button
               key={env}
               onClick={() => onEnvironmentChange(env)}
-              className="px-2.5 lg:px-3 py-1.5 text-[11px] font-sans tracking-[0.04em] uppercase transition-all rounded-lg cursor-pointer"
+              className="px-2.5 lg:px-3 py-1.5 min-h-[44px] lg:min-h-0 flex items-center justify-center text-[11px] font-sans tracking-[0.04em] uppercase transition-all rounded-lg cursor-pointer"
               style={
                 environment === env
                   ? {
-                      backgroundColor: "var(--bg-sidebar-active)",
-                      color: "var(--text-primary)",
+                      backgroundColor: "var(--nav-active-bg)",
+                      color: "var(--nav-active-fg)",
                       fontWeight: 600,
                     }
                   : { color: "var(--text-secondary)" }
@@ -115,12 +101,12 @@ export const Topbar: React.FC<TopbarProps> = ({
             <button
               key={f.value}
               onClick={() => onPeriodChange(f.value)}
-              className="px-3 py-1.5 text-[11px] font-sans rounded-lg transition-colors cursor-pointer"
+              className="px-3 py-1.5 min-h-[44px] lg:min-h-0 flex items-center justify-center text-[11px] font-sans rounded-lg transition-colors cursor-pointer"
               style={
                 period === f.value
                   ? {
-                      backgroundColor: "var(--bg-sidebar-active)",
-                      color: "var(--text-primary)",
+                      backgroundColor: "var(--nav-active-bg)",
+                      color: "var(--nav-active-fg)",
                       fontWeight: 500,
                     }
                   : { color: "var(--text-secondary)" }
@@ -155,9 +141,10 @@ export const Topbar: React.FC<TopbarProps> = ({
           <button
             onClick={onRefresh}
             disabled={isRefreshing}
-            className="p-2 min-w-[44px] min-h-[44px] lg:px-4 lg:py-2 lg:min-w-0 lg:min-h-0 rounded-xl text-xs font-semibold text-white transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40"
+            className="p-2 min-w-[44px] min-h-[44px] lg:px-4 lg:py-2 lg:min-w-0 lg:min-h-0 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40"
             style={{
               backgroundColor: "var(--primary)",
+              color: "var(--on-primary)",
               boxShadow: `0 4px 12px ${alpha("var(--primary)", 20)}`,
             }}
             title="Sincronizar telemetria"
@@ -183,7 +170,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           <span>Design System</span>
         </a>
 
-        {/* Menu/Sair — mesmo slot do icone de apps do mockup, ligado a uma acao real */}
+        {/* Sair */}
         {onLogout && (
           <button
             onClick={onLogout}
@@ -195,7 +182,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             title="Sair"
             aria-label="Sair"
           >
-            <LayoutGrid className="w-4 h-4" />
+            <LogOut className="w-4 h-4" />
           </button>
         )}
       </div>

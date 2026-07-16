@@ -331,6 +331,19 @@ data class AiAcaoRecomendada(
     val executavelNoApp: Boolean = false,
 )
 
+/** Ordena por prioridade decrescente ("alta" primeiro). Extraido de duplicacao entre
+ *  `AnaliseDetalhadaBottomSheet.kt` e `ResultadoVelocidadeScreen.kt` — ambas telas
+ *  escolhem a acao de maior prioridade pra destacar num card compacto. */
+fun List<AiAcaoRecomendada>.ordenadasPorPrioridade(): List<AiAcaoRecomendada> =
+    sortedBy {
+        when (it.prioridade) {
+            "alta" -> 0
+            "media" -> 1
+            "baixa" -> 2
+            else -> 1
+        }
+    }
+
 data class AiEvidenceOut(
     val label: String,
     val valor: String,

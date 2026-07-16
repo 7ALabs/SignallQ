@@ -5,6 +5,7 @@ import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.telephony.MonitorTelephony
+import io.signallq.app.feature.diagnostico.BandaWifi
 import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
 import io.signallq.app.feature.diagnostico.DiagnosticReport
 import io.signallq.app.feature.diagnostico.DiagnosticStatus
@@ -40,11 +41,30 @@ internal fun resolverOperadorPersistencia(
     }
 
 /**
+ * Resolve o valor a persistir no campo `bandaWifi` da [MedicaoEntity] (GH#1027).
+ *
+ * Só captura banda quando a conexão é Wi-Fi — célular e cabo não têm banda 2.4/5GHz.
+ * Reaproveita o mesmo limiar de [BandaWifi] usado no diagnóstico (`< 3000 MHz` = 2.4GHz).
+ */
+internal fun resolverBandaWifiPersistencia(
+    estadoConexao: EstadoConexao,
+    frequenciaMhz: Int?,
+): String? {
+    if (estadoConexao != EstadoConexao.wifi) return null
+    return when {
+        frequenciaMhz == null -> null
+        frequenciaMhz < 3000 -> BandaWifi.ghz24.name
+        else -> BandaWifi.ghz5.name
+    }
+}
+
+/**
  * Responsável único por persistir resultados do speedtest no Room.
  *
  * Observa [ExecutorSpeedtest.snapshotFlow], detecta estado concluído, monta a
  * [MedicaoEntity] completa (com operadoraMovel via [MonitorTelephony] em rede
- * móvel, ou via [IspInfoCache] + [BancoOperadoras] em Wi-Fi — GH#412) e salva.
+ * móvel, ou via [IspInfoCache] + [BancoOperadoras] em Wi-Fi — GH#412; e bandaWifi
+ * via [MonitorRede.snapshotFlow] quando a conexão é Wi-Fi — GH#1027) e salva.
  *
  * Também observa [DiagnosticOrchestrator.snapshotFlow]: quando o diagnóstico local
  * é concluído após um speedtest, atualiza o registro com o texto do diagnóstico e
@@ -115,6 +135,13 @@ class SpeedtestPersistenceCoordinator
                                         estadoConexao = monitorRede.snapshotFlow.value.estadoConexao,
                                         operadoraMovelDetectada = monitorTelephony.snapshotFlow.value?.operadora,
                                         ispWifiDetectado = ispInfoCache.ultimoIspNome,
+                                    ),
+                                bandaWifi =
+                                    resolverBandaWifiPersistencia(
+                                        estadoConexao = monitorRede.snapshotFlow.value.estadoConexao,
+                                        frequenciaMhz =
+                                            monitorRede.snapshotFlow.value.wifiLinkSnapshot
+                                                ?.frequenciaMhz,
                                     ),
                                 status = "completed",
                             ),

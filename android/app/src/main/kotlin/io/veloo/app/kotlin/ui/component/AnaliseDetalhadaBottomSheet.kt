@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.signallq.app.feature.diagnostico.ai.AiAcaoRecomendada
+import io.signallq.app.feature.diagnostico.ai.ordenadasPorPrioridade
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
@@ -79,21 +80,30 @@ fun AnaliseDetalhadaBottomSheet(
     }
 }
 
+/** Título/subtítulo do header do sheet aninhado — distingue laudo automático da tela 1a
+ * (`problemaRelatado == null`) de análise pedida pelo usuário por sintoma
+ * (`problemaRelatado != null`); qualquer outro estado mantém a copy original de convite
+ * a descrever o problema. Extraída como função pura pra ser testável isoladamente
+ * (follow-up Lia, PR #1013). */
+internal fun headerAnaliseDetalhada(state: AnalisadorState): Pair<String, String> =
+    when {
+        state is AnalisadorState.Resultado && state.problemaRelatado == null ->
+            "Diagnóstico geral da sua conexão" to
+                "Baseado no teste que você acabou de rodar. Quer detalhar um problema específico?"
+        state is AnalisadorState.Resultado && state.problemaRelatado != null ->
+            "Análise do seu problema" to
+                "Diagnóstico específico para \"${state.problemaRelatado}\"."
+        else ->
+            "Analisar meu problema com IA" to
+                "Descreva o que está acontecendo pra receber um diagnóstico específico."
+    }
+
 private val problemasPredefinidos =
     listOf(
         "Baixa velocidade",
         "Quedas constantes",
         "Travamentos em streaming ou jogos",
     )
-
-/** Menor valor = maior prioridade, para escolher a ação de destaque via sortedBy. */
-private fun prioridadeOrdem(prioridade: String): Int =
-    when (prioridade) {
-        "alta" -> 0
-        "media" -> 1
-        "baixa" -> 2
-        else -> 1
-    }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -113,15 +123,16 @@ private fun AnaliseDetalhadaConteudo(
                 .padding(bottom = LkSpacing.xxl)
                 .navigationBarsPadding(),
     ) {
+        val (headerTitulo, headerSubtitulo) = headerAnaliseDetalhada(state)
         Text(
-            text = "Analisar meu problema com IA",
+            text = headerTitulo,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.W700,
             color = c.textPrimary,
         )
         Spacer(Modifier.height(LkSpacing.xs))
         Text(
-            text = "Descreva o que está acontecendo pra receber um diagnóstico específico.",
+            text = headerSubtitulo,
             style = MaterialTheme.typography.bodySmall,
             color = c.textTertiary,
         )
@@ -179,7 +190,10 @@ private fun AnaliseDetalhadaConteudo(
                     colors = CardDefaults.cardColors(containerColor = c.bgSecondary),
                 ) {
                     Column(modifier = Modifier.padding(LkSpacing.lg)) {
-                        Overline(texto = "Diagnóstico", color = c.textTertiary)
+                        Overline(
+                            texto = state.problemaRelatado?.let { "Diagnóstico — $it" } ?: "Diagnóstico geral",
+                            color = c.textTertiary,
+                        )
                         Spacer(Modifier.height(LkSpacing.sm))
                         Text(
                             text = state.texto,
@@ -188,7 +202,7 @@ private fun AnaliseDetalhadaConteudo(
                         )
 
                         val proximasAcoes: List<AiAcaoRecomendada> =
-                            state.acoes.sortedBy { prioridadeOrdem(it.prioridade) }.take(2)
+                            state.acoes.ordenadasPorPrioridade().take(2)
                         if (proximasAcoes.isNotEmpty()) {
                             Spacer(Modifier.height(LkSpacing.md))
                             Column(

@@ -6,23 +6,24 @@ import { crashFreeReason } from "../../../utils/crashlytics";
 
 interface OverviewMetricGridProps {
   activeUsersToday: number | null;
+  sessions7d: number | null;
   firebaseCrashlytics: FirebaseCrashlyticsSummary | null;
-  aiCostMonthLabel: string | null;
   playStoreRating: GooglePlayRatingSummary | null;
 }
 
-// Paridade com o mockup do Luiz (signallq-admin-mockup.dc.html, sec-overview):
-// Usuários Ativos, Crash-free rate, Custo de IA (mês), Nota na Play Store.
+// Seção "App" do Centro de Controle (spec Lia, Md3DashboardContent.dc.html:25-30):
+// Usuários Ativos, Sessões (7d), Crash-free Rate, Nota na Play Store. Custo de
+// IA saiu deste grid — agora é card isolado full-width (AiCostSummaryCard).
 
 export const OverviewMetricGrid: React.FC<OverviewMetricGridProps> = ({
   activeUsersToday,
+  sessions7d,
   firebaseCrashlytics,
-  aiCostMonthLabel,
   playStoreRating,
 }) => {
   const crashFreeAvailable = firebaseCrashlytics?.source === "bigquery";
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {/* 1. Usuários Ativos — real, Firebase Analytics (GA4) */}
       <MetricCard
         label="Usuários Ativos"
@@ -32,7 +33,20 @@ export const OverviewMetricGrid: React.FC<OverviewMetricGridProps> = ({
         id="metric-active-users"
       />
 
-      {/* 2. Crash-free rate — real via BigQuery export do Crashlytics quando
+      {/* 2. Sessões (7d) — real, soma de sessions do GA4 runReport (mesma
+          janela 7daysAgo-today já consultada para Usuários Ativos). Sem
+          variação vs. período anterior: o worker não consulta uma segunda
+          janela GA4 hoje, então não há "+18%" real pra mostrar (protótipo
+          tem esse veredito, mas é mock estático — não inventar aqui). */}
+      <MetricCard
+        label="Sessões (7d)"
+        value={sessions7d === null ? "Não disponível" : sessions7d}
+        verdictNote={sessions7d === null ? "Firebase Analytics sem dado no período" : undefined}
+        source="firebase"
+        id="metric-sessions-7d"
+      />
+
+      {/* 3. Crash-free rate — real via BigQuery export do Crashlytics quando
           source==="bigquery"; qualquer outro source é honesto-vazio, com o
           motivo exato do worker (sem credencial, sem volume ainda, ou erro). */}
       <MetricCard
@@ -41,15 +55,6 @@ export const OverviewMetricGrid: React.FC<OverviewMetricGridProps> = ({
         verdictNote={crashFreeAvailable ? undefined : crashFreeReason(firebaseCrashlytics?.source)}
         source={crashFreeAvailable ? "firebase (bigquery)" : "não disponível"}
         id="metric-crash-free"
-      />
-
-      {/* 3. Custo de IA (mês) — real, Cloudflare Workers AI, últimos 30 dias */}
-      <MetricCard
-        label="Custo de IA (mês)"
-        value={aiCostMonthLabel ?? "Não disponível"}
-        verdictNote={aiCostMonthLabel === null ? "Worker de IA sem dado no período" : undefined}
-        source="signallq worker"
-        id="metric-ai-cost-month"
       />
 
       {/* 4. Nota na Play Store — integração real via Android Publisher API

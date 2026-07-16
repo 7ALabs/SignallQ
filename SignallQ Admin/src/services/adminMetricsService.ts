@@ -20,6 +20,7 @@ import {
 import { mockOperatorsList } from "../mocks/errors.mock";
 import { AppEnvironment, OperatorRecord } from "../types/admin";
 import { SQ_TOKENS } from "../config/designTokens";
+import { categoryForAlertType } from "../utils/alerts";
 
 // GH#427: métricas por network_type — todas derivadas de colunas reais de
 // diagnostic_sessions (ver "SignallQ Admin/docs/architecture/data-architecture.md").
@@ -336,6 +337,7 @@ export const adminMetricsService = {
             ? new Date(r.created_at * 1000).toISOString()
             : r.created_at,
           count: r.count ?? 1,
+          category: categoryForAlertType(r.type),
         } as RecentAlertItem & { _severity: string }));
       } catch {
         return [];

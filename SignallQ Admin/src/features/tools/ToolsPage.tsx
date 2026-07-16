@@ -745,7 +745,7 @@ const SettingsDetailSection: React.FC = () => {
             <button
               type="submit"
               disabled={saving}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-[var(--primary)] hover:opacity-90 disabled:opacity-40 font-sans text-xs font-semibold text-white rounded-xl transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-[var(--primary)] hover:opacity-90 disabled:opacity-40 font-sans text-xs font-semibold text-[var(--on-primary)] rounded-xl transition-all cursor-pointer"
             >
               <Save className={`w-3.5 h-3.5 ${saving ? "animate-spin" : ""}`} />
               <span>{saving ? "Salvando..." : "Salvar alterações"}</span>

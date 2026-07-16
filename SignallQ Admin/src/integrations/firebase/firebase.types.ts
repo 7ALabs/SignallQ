@@ -17,6 +17,16 @@ export interface FirebaseEventMetric {
 
 export interface FirebaseAnalyticsSummary {
   activeUsersToday: number;
+  /**
+   * Total de sessões GA4 nos últimos 7 dias — soma de metricValues[1] ("sessions")
+   * do runReport já consultado por getFirebaseAnalyticsSummary (mesma janela
+   * 7daysAgo-today usada para activeUsers). Card "Sessões (7d)" do Centro de
+   * Controle (Overview, spec Lia Md3DashboardContent.dc.html:27). Só o total é
+   * real — o worker não calcula variação vs. período anterior (precisaria de uma
+   * segunda janela GA4), então o veredito "+18%" do protótipo NÃO é implementado
+   * aqui (não inventar tendência sem cálculo real).
+   */
+  sessions7d: number | null;
   averageSessionsDurationMs: number;
   crashFreeUsersPercentage: number;
   crashFreeSessionsPercentage: number;

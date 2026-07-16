@@ -37,7 +37,7 @@ export const ActionsRow: React.FC<ActionsRowProps> = ({ actions, id }) => {
                 }
               : {
                   backgroundColor: "var(--primary)",
-                  color: "white",
+                  color: "var(--on-primary)",
                 }
           }
         >

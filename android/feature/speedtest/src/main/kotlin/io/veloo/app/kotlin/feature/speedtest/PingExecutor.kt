@@ -5,7 +5,6 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
-import kotlin.math.abs
 import java.util.concurrent.TimeUnit
 
 data class PingResultado(
@@ -47,37 +46,25 @@ class PingExecutor(
         count: Int = 20,
         onProgresso: (Int) -> Unit = {},
     ): PingResultado = withContext(Dispatchers.IO) {
-        val amostras = mutableListOf<Double>()
         val bruto = mutableListOf<Double?>()
 
         repeat(count) { i ->
-            val rtt = medirPing()
-            bruto.add(rtt)
-            if (rtt != null) {
-                amostras.add(rtt)
-            }
+            bruto.add(medirPing())
             onProgresso(i + 1)
         }
 
-        val semPrimeiro = bruto.drop(1)
-        val timeouts = semPrimeiro.count { it == null }
-        val validos = semPrimeiro.filterNotNull()
-        val mediana = calcularMediana(validos)
-        val filtrados = if (mediana > 0.0) validos.filter { it <= mediana * 3.0 } else validos
-        val usados = if (filtrados.isNotEmpty()) filtrados else validos
-
-        val latenciaMs = calcularMediana(usados)
-        val jitterMs = calcularJitter(usados)
-        val perdaPercentual = if (semPrimeiro.isNotEmpty()) {
-            ((timeouts.toDouble() / semPrimeiro.size.toDouble()) * 100.0).toInt()
-        } else {
-            0
-        }
+        // Algoritmo de mediana/outlier/jitter/perda extraído para AnalisadorAmostragemPing
+        // (GH#1019) — reusado também por ExecutorSpeedtestCloudflare. Decisão de
+        // consolidação: perdaPercentual passa a manter precisão total de Double (antes
+        // era arredondado para Int aqui); sem efeito observável hoje porque os thresholds
+        // de classificação (PerfilThresholds) são mais grossos que a granularidade de
+        // uma única amostra, e a tela Ping já formata a exibição com "%.0f%%".
+        val resultado = AnalisadorAmostragemPing.analisar(bruto)
 
         PingResultado(
-            latenciaMs = latenciaMs,
-            jitterMs = jitterMs,
-            perdaPercentual = perdaPercentual.toDouble(),
+            latenciaMs = resultado.latenciaMs,
+            jitterMs = resultado.jitterMs,
+            perdaPercentual = resultado.perdaPercentual,
             amostras = count,
         )
     }
@@ -98,22 +85,5 @@ class PingExecutor(
         } catch (_: Throwable) {
             null
         }
-    }
-
-    private fun calcularMediana(valores: List<Double>): Double {
-        if (valores.isEmpty()) return 0.0
-        val ordenadas = valores.sorted()
-        val m = ordenadas.size / 2
-        return if (ordenadas.size % 2 == 0) {
-            (ordenadas[m - 1] + ordenadas[m]) / 2.0
-        } else {
-            ordenadas[m]
-        }
-    }
-
-    private fun calcularJitter(valores: List<Double>): Double {
-        if (valores.size < 2) return 0.0
-        val deltas = valores.zipWithNext { a, b -> abs(b - a) }
-        return if (deltas.isEmpty()) 0.0 else deltas.average()
     }
 }

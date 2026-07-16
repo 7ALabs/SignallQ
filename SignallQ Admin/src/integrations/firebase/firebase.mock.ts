@@ -18,6 +18,7 @@ export const mockFirebaseStatus: FirebaseIntegrationStatus = {
 
 export const mockFirebaseAnalytics: FirebaseAnalyticsSummary = {
   activeUsersToday: 4820,
+  sessions7d: 12860, // mesmo valor do protótipo md3-tobe (Md3DashboardContent.dc.html:27)
   averageSessionsDurationMs: 412000, // ~6.87 minutes
   crashFreeUsersPercentage: 99.2,
   crashFreeSessionsPercentage: 99.6,

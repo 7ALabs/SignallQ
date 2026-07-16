@@ -22,9 +22,11 @@ import java.util.concurrent.TimeUnit
  * `signallq-diagnostic` (`POST /api/diagnostic/evaluate`) — GH#962.
  *
  * ## Estrategia local vs. remoto (decisao desta issue, documentada)
- * 1. Tenta o worker remoto com timeout CURTO (connect 3s / read 4s / write 3s,
- *    com teto adicional de 5s via [withTimeoutOrNull] — mesmo padrao ja usado
- *    por [io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository]).
+ * 1. Tenta o worker remoto com timeout de conexao curto (connect 3s / read 4s /
+ *    write 3s no OkHttpClient), com teto adicional de 42s via [withTimeoutOrNull]
+ *    (decisao de produto — Luiz, 2026-07-16 — ampliado a partir dos 5s sugeridos
+ *    na spec original da tela "1a · Analise detalhada" pra reduzir fallback
+ *    prematuro para o motor local em rede lenta).
  * 2. Se o worker responder 2xx com JSON valido: mapeia via
  *    [RemoteDiagnosticReportMapper] e retorna. `perfisUso`/`gameReadiness` sao
  *    SEMPRE calculados localmente (puro, determinístico, nao precisa de rede —
@@ -90,7 +92,7 @@ class RemoteDiagnosticRepository(
      */
     internal suspend fun evaluateRemote(input: DiagnosticInput): JSONObject? {
         return withContext(Dispatchers.IO) {
-            withTimeoutOrNull(5_000L) {
+            withTimeoutOrNull(TIMEOUT_TETO_MS) {
                 try {
                     val url = baseUrl.trimEnd('/') + "/api/diagnostic/evaluate"
                     val json = DiagnosticSnapshotMapper.toJson(input).toString()
@@ -120,5 +122,10 @@ class RemoteDiagnosticRepository(
                 }
             }
         }
+    }
+
+    private companion object {
+        /** Teto total de espera pelo worker remoto antes do fallback local — ver kdoc da classe. */
+        const val TIMEOUT_TETO_MS = 42_000L
     }
 }

@@ -806,8 +806,8 @@ private fun LastResultCard(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(LkSpacing.lg),
         ) {
-            MetricColumn("Download", "%.1f".format(downloadMbps), "Mbps", LkColors.success, Modifier.weight(1f))
-            MetricColumn("Upload", "%.1f".format(uploadMbps), "Mbps", LkColors.accent, Modifier.weight(1f))
+            MetricColumn("Download", "%.0f".format(downloadMbps), "Mbps", LkColors.success, Modifier.weight(1f))
+            MetricColumn("Upload", "%.0f".format(uploadMbps), "Mbps", LkColors.accent, Modifier.weight(1f))
             MetricColumn("Latência", "%.0f".format(latencyMs), "ms", LkColors.success, Modifier.weight(1f))
         }
     }

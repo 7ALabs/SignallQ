@@ -108,6 +108,7 @@ export async function getFirebaseAnalyticsSummary(
       return {
         ...result,
         activeUsersToday: Math.round(result.activeUsersToday * 0.12),
+        sessions7d: result.sessions7d != null ? Math.round(result.sessions7d * 0.12) : null,
         crashFreeUsersPercentage: 99.8,
         crashFreeSessionsPercentage: 99.9,
       };
@@ -129,16 +130,25 @@ export async function getFirebaseAnalyticsSummary(
   // dimensionValues[0] = data YYYYMMDD
   // metricValues[0] = activeUsers, [1] = sessions, [2] = crashAffectedUsers
   let activeUsersToday = 0;
+  let sessions7d = 0;
 
   for (const row of raw.data.rows) {
     const activeUsersRaw = row.metricValues?.[0]?.value;
     if (activeUsersRaw) {
       activeUsersToday += parseInt(activeUsersRaw, 10) || 0;
     }
+    const sessionsRaw = row.metricValues?.[1]?.value;
+    if (sessionsRaw) {
+      sessions7d += parseInt(sessionsRaw, 10) || 0;
+    }
   }
 
   return {
     activeUsersToday,
+    // Soma real das sessões GA4 na janela de 7 dias já pedida ao runReport
+    // (dateRanges: 7daysAgo-today, ver handleFirebaseAnalytics no worker).
+    // Sem cálculo de variação vs. período anterior — ver comentário no tipo.
+    sessions7d,
     averageSessionsDurationMs: 0,
     crashFreeUsersPercentage: 0,
     crashFreeSessionsPercentage: 0,

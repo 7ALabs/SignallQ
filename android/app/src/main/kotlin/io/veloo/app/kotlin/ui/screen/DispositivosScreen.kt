@@ -451,16 +451,7 @@ private fun GatewayItem(
         title = apelido?.takeIf { it.isNotBlank() } ?: dispositivo.nomeExibicao,
         subtitle = subtituloGateway,
         trailing = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BadgePill(label = "Roteador", bg = LkColors.accent.copy(alpha = 0.10f), fg = LkColors.accent)
-                Spacer(Modifier.width(4.dp))
-                Icon(
-                    imageVector = Icons.Outlined.Router,
-                    contentDescription = null,
-                    tint = c.textTertiary,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
+            BadgePill(label = "Roteador", bg = LkColors.accent.copy(alpha = 0.10f), fg = LkColors.accent)
         },
         onTap = onTap,
     )
@@ -499,16 +490,7 @@ private fun ApMeshItem(
         title = apelido?.takeIf { it.isNotBlank() } ?: dispositivo.nomeExibicao,
         subtitle = dispositivo.ip ?: "",
         trailing = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BadgePill(label = "AP Mesh", bg = LkColors.success.copy(alpha = 0.10f), fg = LkColors.success)
-                Spacer(Modifier.width(4.dp))
-                Icon(
-                    imageVector = Icons.Outlined.CellTower,
-                    contentDescription = null,
-                    tint = c.textTertiary,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
+            BadgePill(label = "AP Mesh", bg = LkColors.success.copy(alpha = 0.10f), fg = LkColors.success)
         },
         onTap = onTap,
     )
@@ -823,8 +805,13 @@ private fun DeviceDetailSheet(
 // MeshApSheet — ponto de acesso / nó mesh
 // ---------------------------------------------------------------------------
 
+// GH#1025 — exposta (sem `private`) pra ser reaproveitada por SinalScreen.kt (mesmo pacote
+// ui.screen), que abre esta sheet quando um nó da árvore de topologia é correlacionado a um
+// DispositivoRede do scan LAN. Continua fisicamente aqui (não extraída pra ui/component/) porque
+// depende de vários helpers file-private deste arquivo (SheetDragHandle, LkListRow, mascaraMac
+// etc.) — extrair exigiria mover esse conjunto inteiro, refactor maior que o necessário pra #1025.
 @Composable
-private fun MeshApSheet(
+fun MeshApSheet(
     dispositivo: DispositivoRede,
     c: LkTokens,
     apelidoAtual: String,

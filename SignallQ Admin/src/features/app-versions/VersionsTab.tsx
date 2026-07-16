@@ -193,10 +193,14 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
       </div>
 
       {/* 2. Tabela de investigação — versões em produção, alinhada às colunas
-          do mockup (Versão / Base instalada / Crash rate / ANR rate / Status
-          / Lançamento). "Base instalada" e "ANR rate" ficam "Não disponível"
+          do mockup (Versão / Base instalada / Crash rate / Status /
+          Lançamento). Coluna "ANR rate" removida (#1047) — mostrava sempre
+          "Não disponível" e o dado já existe no KPI "ANR rate (release
+          atual)" acima, tornando a coluna redundante; ausente nos dois
+          protótipos (Md3AppVersionsContent.dc.html e
+          AppVersionsScreen.dc.html). "Base instalada" fica "Não disponível"
           quando a Android Publisher API não retorna o dado para a versão
-          (endpoints ainda não implementados — ver googlePlayAdapter.ts). */}
+          (endpoint ainda não implementado — ver googlePlayAdapter.ts). */}
       <SectionCard
         title="Versões em produção"
         description="Sessões de diagnóstico agrupadas por versão e build, direto do D1, cruzadas com Crashlytics e Google Play quando disponíveis."
@@ -252,15 +256,6 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
                 const crashCount = crashByVersion.get(v.appVersion)?.crashCount ?? 0;
                 return `${((crashCount / v.sessions) * 100).toFixed(2)}%`;
               },
-            },
-            {
-              header: "ANR rate",
-              accessor: () => (
-                <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: "var(--text-tertiary)" }}>
-                  <AlertTriangle className="w-3 h-3" />
-                  Não disponível
-                </span>
-              ),
             },
             {
               header: "Status",

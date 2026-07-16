@@ -61,6 +61,20 @@ class MedicaoEntityTest {
     }
 
     @Test
+    fun `bandaWifi tem default null (GH#1027)`() {
+        val e = entidadeMinima()
+
+        assertNull(e.bandaWifi)
+    }
+
+    @Test
+    fun `bandaWifi preserva valor ghz5 quando informado`() {
+        val e = entidadeMinima().copy(bandaWifi = "ghz5")
+
+        assertEquals("ghz5", e.bandaWifi)
+    }
+
+    @Test
     fun `entidade com todas as metricas preserva valores`() {
         val e = MedicaoEntity(
             id = "full-001",

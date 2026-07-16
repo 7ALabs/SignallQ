@@ -69,4 +69,17 @@ class ResultadoVelocidadeScreenTest {
         assertTrue(rotulos.all { it.isNotBlank() })
         assertEquals(rotulos.distinct().size, rotulos.size)
     }
+
+    // Follow-up Lia (PR #1013) — titulo do AnalisadorEntryRow deve diferenciar o laudo
+    // disparado automaticamente pela tela 1a (sem problema relatado) da analise que o
+    // usuario pediu por sintoma escolhido.
+    @Test
+    fun `sem problema relatado mostra laudo pronto`() {
+        assertEquals("Laudo pronto — toque para ver", tituloResultadoAnalisadorEntryRow(null))
+    }
+
+    @Test
+    fun `com problema relatado mostra ver analise completa`() {
+        assertEquals("Ver análise completa", tituloResultadoAnalisadorEntryRow("Baixa velocidade"))
+    }
 }

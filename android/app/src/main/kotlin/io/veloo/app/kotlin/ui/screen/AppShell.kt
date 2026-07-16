@@ -21,17 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -56,7 +46,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -90,6 +79,7 @@ import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.OperadoraSource
 import io.signallq.app.ui.ResolvedOperadoraContact
 import io.signallq.app.ui.ResolvedOperadoraIdentity
+import io.signallq.app.ui.component.LkSymbol
 import io.signallq.app.ui.resumoBandasWifi
 import io.signallq.app.ui.state.UiState
 import kotlinx.coroutines.delay
@@ -405,6 +395,14 @@ fun AppShell(
         onReconectarFibra(modemHost ?: "", modemUsername, modemPassword)
         if (Overlay.EquipamentoInternet !in overlayStack) overlayStack.add(Overlay.EquipamentoInternet)
     }
+    // GH#1031 — "Ver detalhes do Wi-Fi" na EquipamentoInternetScreen: aba Sinal é o único
+    // lugar do app com detalhe real de Wi-Fi (RSSI, banda, varredura) — fecha o(s) overlay(s)
+    // de equipamento e troca de aba em vez de empilhar mais um overlay.
+    val onVerDetalhesWifiDoEquipamento: () -> Unit = {
+        overlayStack.remove(Overlay.Fibra)
+        overlayStack.remove(Overlay.EquipamentoInternet)
+        selectedTab = 2
+    }
 
     // Callback unico chamado quando a GatewayConnectionSheet conecta com sucesso, em qualquer
     // um dos dois entry points — persiste a sessao e navega ao destino provisorio.
@@ -597,6 +595,9 @@ fun AppShell(
                             fotoUri = fotoUriUsuario,
                             onAbrirPerfil = onAbrirPerfilOverlay,
                             wifiLinkSnapshot = snapshotRede.wifiLinkSnapshot,
+                            dispositivosRede = snapshotDevices.dispositivos,
+                            apelidos = apelidos,
+                            onSalvarApelido = onSalvarApelido,
                         )
                     // Tab 3 — Historico (indice mantido conforme spec)
                     3 ->
@@ -787,6 +788,9 @@ fun AppShell(
                 onRetentar = { onReconectarFibra(modemHost ?: "", modemUsername, modemPassword) },
                 onAbrirAjustes = onAbrirPerfilOverlay,
                 onReiniciarEquipamento = onReiniciarEquipamento,
+                onVerDispositivos = onAbrirDispositivosOverlay,
+                onExecutarDiagnostico = onAbrirLaudoOverlay,
+                onVerDetalhesWifi = onVerDetalhesWifiDoEquipamento,
             )
         }
 
@@ -828,6 +832,9 @@ fun AppShell(
                 onRetentar = { onReconectarFibra(modemHost ?: "", modemUsername, modemPassword) },
                 onAbrirAjustes = onAbrirPerfilOverlay,
                 onReiniciarEquipamento = onReiniciarEquipamento,
+                onVerDispositivos = onAbrirDispositivosOverlay,
+                onExecutarDiagnostico = onAbrirLaudoOverlay,
+                onVerDetalhesWifi = onVerDetalhesWifiDoEquipamento,
             )
         }
 
@@ -1050,11 +1057,11 @@ private fun AppBottomNavBar(
             containerColor = c.surfaceContainer,
             tonalElevation = 0.dp,
         ) {
-            AppNavItem(c, selectedTab, 0, "Início", Icons.Outlined.Home, Icons.Filled.Home, onTabSelected)
-            AppNavItem(c, selectedTab, 1, "Velocidade", Icons.Outlined.Speed, Icons.Filled.Speed, onTabSelected, showBadge = testeAtivo)
-            AppNavItem(c, selectedTab, 2, "Sinal", Icons.Outlined.Wifi, Icons.Filled.Wifi, onTabSelected)
-            AppNavItem(c, selectedTab, 3, "Histórico", Icons.Outlined.History, Icons.Filled.History, onTabSelected)
-            AppNavItem(c, selectedTab, 4, "Ferramentas", Icons.Outlined.Build, Icons.Filled.Build, onTabSelected)
+            AppNavItem(c, selectedTab, 0, "Início", "home", onTabSelected)
+            AppNavItem(c, selectedTab, 1, "Velocidade", "speed", onTabSelected, showBadge = testeAtivo)
+            AppNavItem(c, selectedTab, 2, "Sinal", "wifi", onTabSelected)
+            AppNavItem(c, selectedTab, 3, "Histórico", "history", onTabSelected)
+            AppNavItem(c, selectedTab, 4, "Ferramentas", "build", onTabSelected)
         }
     }
 }
@@ -1065,8 +1072,7 @@ private fun RowScope.AppNavItem(
     selectedTab: Int,
     index: Int,
     label: String,
-    outlinedIcon: ImageVector,
-    filledIcon: ImageVector,
+    symbolName: String,
     onTabSelected: (Int) -> Unit,
     showBadge: Boolean = false,
 ) {
@@ -1088,9 +1094,9 @@ private fun RowScope.AppNavItem(
             BadgedBox(badge = {
                 if (showBadge) Badge(modifier = Modifier.graphicsLayer { alpha = badgePulseAlpha })
             }) {
-                Icon(
-                    imageVector = if (selectedTab == index) filledIcon else outlinedIcon,
-                    contentDescription = label,
+                LkSymbol(
+                    name = symbolName,
+                    filled = selectedTab == index,
                 )
             }
         },
