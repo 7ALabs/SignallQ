@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.signallq.app.feature.diagnostico.ai.AiAcaoRecomendada
+import io.signallq.app.feature.diagnostico.ai.ordenadasPorPrioridade
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
@@ -85,15 +86,6 @@ private val problemasPredefinidos =
         "Quedas constantes",
         "Travamentos em streaming ou jogos",
     )
-
-/** Menor valor = maior prioridade, para escolher a ação de destaque via sortedBy. */
-private fun prioridadeOrdem(prioridade: String): Int =
-    when (prioridade) {
-        "alta" -> 0
-        "media" -> 1
-        "baixa" -> 2
-        else -> 1
-    }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -188,7 +180,7 @@ private fun AnaliseDetalhadaConteudo(
                         )
 
                         val proximasAcoes: List<AiAcaoRecomendada> =
-                            state.acoes.sortedBy { prioridadeOrdem(it.prioridade) }.take(2)
+                            state.acoes.ordenadasPorPrioridade().take(2)
                         if (proximasAcoes.isNotEmpty()) {
                             Spacer(Modifier.height(LkSpacing.md))
                             Column(
