@@ -21,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import io.signallq.app.ui.LkRadius
 
 /**
  * Dialog de consentimento LGPD exibido no primeiro uso do app.
@@ -43,7 +44,7 @@ fun LgpdConsentDialog(
             ),
     ) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(LkRadius.dialog),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 2.dp,
         ) {

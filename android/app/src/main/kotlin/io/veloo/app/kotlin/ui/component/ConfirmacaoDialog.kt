@@ -1,11 +1,13 @@
 ﻿package io.signallq.app.ui.component
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import io.signallq.app.ui.LkRadius
 
 @Composable
 fun ConfirmacaoDialog(
@@ -18,6 +20,7 @@ fun ConfirmacaoDialog(
 ) {
     AlertDialog(
         onDismissRequest = onCancelar,
+        shape = RoundedCornerShape(LkRadius.dialog),
         title = { Text(titulo, fontWeight = FontWeight.W600) },
         text = { Text(mensagem, fontSize = 14.sp) },
         confirmButton = {

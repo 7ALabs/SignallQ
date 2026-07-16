@@ -579,7 +579,7 @@ private fun ReiniciarEquipamentoDialog(
     AlertDialog(
         onDismissRequest = onCancelar,
         containerColor = LocalLkTokens.current.surfaceContainerHigh,
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(LkRadius.dialog),
         title = { Text("Reiniciar equipamento?", fontWeight = FontWeight.W600) },
         text = {
             Text(
