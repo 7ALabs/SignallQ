@@ -130,6 +130,11 @@ fun EquipamentoInternetScreen(
     onRetentar: () -> Unit,
     onAbrirAjustes: () -> Unit,
     onReiniciarEquipamento: () -> Unit,
+    // GH#1031 — ações antes fantasmas (enabled=false): agora navegam para fluxos
+    // reais já existentes no app, sem duplicar telas/lógica.
+    onVerDispositivos: () -> Unit = {},
+    onExecutarDiagnostico: () -> Unit = {},
+    onVerDetalhesWifi: () -> Unit = {},
 ) {
     val c = LocalLkTokens.current
     var reiniciadoEmEpochMs by remember { mutableStateOf<Long?>(null) }
@@ -221,6 +226,9 @@ fun EquipamentoInternetScreen(
                     acesso = acesso,
                     doubleNatSuspeito = doubleNatSuspeito,
                     onSolicitarReiniciar = { mostrarDialogoReiniciar = true },
+                    onVerDispositivos = onVerDispositivos,
+                    onExecutarDiagnostico = onExecutarDiagnostico,
+                    onVerDetalhesWifi = onVerDetalhesWifi,
                     c = c,
                     modifier = Modifier.padding(padding),
                 )
@@ -274,6 +282,9 @@ private fun EquipamentoConectadoContent(
     acesso: AcessoEquipamento,
     doubleNatSuspeito: Boolean,
     onSolicitarReiniciar: () -> Unit,
+    onVerDispositivos: () -> Unit,
+    onExecutarDiagnostico: () -> Unit,
+    onVerDetalhesWifi: () -> Unit,
     c: LkTokens,
     modifier: Modifier = Modifier,
 ) {
@@ -348,7 +359,7 @@ private fun EquipamentoConectadoContent(
         )
 
         painelSelecionado.alerta?.let { alerta ->
-            AlertaCard(alerta = alerta)
+            AlertaCard(alerta = alerta, onAcionar = onExecutarDiagnostico)
         }
 
         if (painelSelecionado.mostrarAvisoLeituraParcial) {
@@ -386,6 +397,9 @@ private fun EquipamentoConectadoContent(
             ActionsSectionCard(
                 actions = painelSelecionado.actions,
                 onSolicitarReiniciar = onSolicitarReiniciar,
+                onVerDispositivos = onVerDispositivos,
+                onExecutarDiagnostico = onExecutarDiagnostico,
+                onVerDetalhesWifi = onVerDetalhesWifi,
                 c = c,
             )
         } else if (painelSelecionado.podeReiniciar) {
@@ -551,7 +565,10 @@ private fun AvisoAcessoCard(
  *  `onClick` real de propósito: nenhuma das ações candidatas ("Executar diagnóstico") está
  *  ligada a um fluxo de navegação real ainda (ver GH#1031). */
 @Composable
-private fun AlertaCard(alerta: EquipmentAlertUi) {
+private fun AlertaCard(
+    alerta: EquipmentAlertUi,
+    onAcionar: () -> Unit,
+) {
     val cor = LkColors.warning
     Column(
         modifier =
@@ -572,7 +589,7 @@ private fun AlertaCard(alerta: EquipmentAlertUi) {
                 Text(alerta.descricao, fontSize = 12.sp, color = LocalLkTokens.current.textSecondary, lineHeight = 17.sp)
             }
         }
-        FilledTonalButton(onClick = {}, enabled = false) {
+        FilledTonalButton(onClick = onAcionar) {
             Text(alerta.botaoLabel)
         }
     }
@@ -1047,6 +1064,9 @@ private fun DeviceInfoSectionCard(
 private fun ActionsSectionCard(
     actions: List<EquipmentActionUi>,
     onSolicitarReiniciar: () -> Unit,
+    onVerDispositivos: () -> Unit,
+    onExecutarDiagnostico: () -> Unit,
+    onVerDetalhesWifi: () -> Unit,
     c: LkTokens,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
@@ -1060,7 +1080,12 @@ private fun ActionsSectionCard(
                         .background(c.surfaceContainer)
                         .border(1.dp, c.outlineVariant, RoundedCornerShape(14.dp))
                         .clickable(enabled = action.enabled) {
-                            if (action.id == "restart") onSolicitarReiniciar()
+                            when (action.id) {
+                                "restart" -> onSolicitarReiniciar()
+                                "devices" -> onVerDispositivos()
+                                "diagnosis" -> onExecutarDiagnostico()
+                                "wifi" -> onVerDetalhesWifi()
+                            }
                         }.padding(horizontal = 14.dp, vertical = 13.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1265,7 +1290,7 @@ private fun buildOntPanel(snapshotFibra: SnapshotFibra): EquipmentPanelUi {
         secoesTecnicas = secoes,
         devicesSummary = snapshotFibra.toDevicesSummary(),
         infoRows = buildInfoRows(snapshotFibra.deviceInfo, snapshotFibra.gpon, snapshotFibra.wan, snapshotFibra.lan, snapshotFibra.gatewayIpDetectado),
-        actions = listOf(EquipmentActionUi(id = "diagnosis", label = "Executar diagnóstico", icon = Icons.Outlined.WarningAmber, enabled = false)),
+        actions = listOf(EquipmentActionUi(id = "diagnosis", label = "Executar diagnóstico", icon = Icons.Outlined.WarningAmber)),
         podeReiniciar = false,
     )
 }
@@ -1388,13 +1413,13 @@ private fun buildActions(
 ): List<EquipmentActionUi> =
     buildList {
         if (localDevice.clientes.isNotEmpty()) {
-            add(EquipmentActionUi(id = "devices", label = "Ver dispositivos", icon = Icons.Outlined.Devices, enabled = false))
+            add(EquipmentActionUi(id = "devices", label = "Ver dispositivos", icon = Icons.Outlined.Devices))
         }
         if (estadoSecao.suportaDiagnosticoNativo) {
-            add(EquipmentActionUi(id = "diagnosis", label = "Executar diagnóstico", icon = Icons.Outlined.Troubleshoot, enabled = false))
+            add(EquipmentActionUi(id = "diagnosis", label = "Executar diagnóstico", icon = Icons.Outlined.Troubleshoot))
         }
         if (localDevice.capabilities.suportaWifi) {
-            add(EquipmentActionUi(id = "wifi", label = "Ver detalhes do Wi-Fi", icon = Icons.Outlined.Wifi, enabled = false))
+            add(EquipmentActionUi(id = "wifi", label = "Ver detalhes do Wi-Fi", icon = Icons.Outlined.Wifi))
         }
         if (acesso == AcessoEquipamento.GERENCIAMENTO_DISPONIVEL) {
             add(EquipmentActionUi(id = "restart", label = "Reiniciar equipamento", icon = Icons.Outlined.RestartAlt, danger = true))

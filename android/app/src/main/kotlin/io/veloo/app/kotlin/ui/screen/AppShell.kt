@@ -395,6 +395,14 @@ fun AppShell(
         onReconectarFibra(modemHost ?: "", modemUsername, modemPassword)
         if (Overlay.EquipamentoInternet !in overlayStack) overlayStack.add(Overlay.EquipamentoInternet)
     }
+    // GH#1031 — "Ver detalhes do Wi-Fi" na EquipamentoInternetScreen: aba Sinal é o único
+    // lugar do app com detalhe real de Wi-Fi (RSSI, banda, varredura) — fecha o(s) overlay(s)
+    // de equipamento e troca de aba em vez de empilhar mais um overlay.
+    val onVerDetalhesWifiDoEquipamento: () -> Unit = {
+        overlayStack.remove(Overlay.Fibra)
+        overlayStack.remove(Overlay.EquipamentoInternet)
+        selectedTab = 2
+    }
 
     // Callback unico chamado quando a GatewayConnectionSheet conecta com sucesso, em qualquer
     // um dos dois entry points — persiste a sessao e navega ao destino provisorio.
@@ -777,6 +785,9 @@ fun AppShell(
                 onRetentar = { onReconectarFibra(modemHost ?: "", modemUsername, modemPassword) },
                 onAbrirAjustes = onAbrirPerfilOverlay,
                 onReiniciarEquipamento = onReiniciarEquipamento,
+                onVerDispositivos = onAbrirDispositivosOverlay,
+                onExecutarDiagnostico = onAbrirLaudoOverlay,
+                onVerDetalhesWifi = onVerDetalhesWifiDoEquipamento,
             )
         }
 
@@ -818,6 +829,9 @@ fun AppShell(
                 onRetentar = { onReconectarFibra(modemHost ?: "", modemUsername, modemPassword) },
                 onAbrirAjustes = onAbrirPerfilOverlay,
                 onReiniciarEquipamento = onReiniciarEquipamento,
+                onVerDispositivos = onAbrirDispositivosOverlay,
+                onExecutarDiagnostico = onAbrirLaudoOverlay,
+                onVerDetalhesWifi = onVerDetalhesWifiDoEquipamento,
             )
         }
 
