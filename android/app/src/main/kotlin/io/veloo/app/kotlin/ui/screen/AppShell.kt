@@ -595,6 +595,9 @@ fun AppShell(
                             fotoUri = fotoUriUsuario,
                             onAbrirPerfil = onAbrirPerfilOverlay,
                             wifiLinkSnapshot = snapshotRede.wifiLinkSnapshot,
+                            dispositivosRede = snapshotDevices.dispositivos,
+                            apelidos = apelidos,
+                            onSalvarApelido = onSalvarApelido,
                         )
                     // Tab 3 — Historico (indice mantido conforme spec)
                     3 ->

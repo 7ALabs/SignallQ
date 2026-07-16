@@ -108,6 +108,9 @@ import io.signallq.app.core.network.contracts.topologia.PapelTopologia
 import io.signallq.app.core.network.topologia.engine.TopologiaRedeEngine
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
+import io.signallq.app.feature.devices.DispositivoRede
+import io.signallq.app.feature.devices.chaveApelido
+import io.signallq.app.feature.devices.encontrarDispositivoPorBssid
 import io.signallq.app.feature.diagnostico.BandaWifi
 import io.signallq.app.feature.diagnostico.CanalStrings
 import io.signallq.app.feature.diagnostico.CanalTextGenerator
@@ -182,6 +185,38 @@ internal fun NivelConfianca.paraConfiancaTopologiaLegado(): ConfiancaTopologia =
         NivelConfianca.MEDIA -> ConfiancaTopologia.MEDIA
         NivelConfianca.BAIXA -> ConfiancaTopologia.BAIXA
     }
+
+// GH#1025 (3c) — tipos de nó que o protótipo trata como "ponto de acesso/mesh": abrem
+// MeshApSheet (dado real do DispositivoRede correlacionado) em vez de NetworkDetailSheet.
+// ROTEADOR fica de fora de propósito — é o próprio gateway conectado, tratado como "sua conexão"
+// (NetworkDetailSheet já é a sheet certa pra ele); DESCONHECIDO também fica de fora (rede vizinha
+// comum, sem classificação de topologia).
+private val TIPOS_TOPOLOGIA_AP_MESH =
+    setOf(
+        TipoTopologia.ROTEADOR_MESH,
+        TipoTopologia.NO_MESH,
+        TipoTopologia.REPETIDOR,
+        TipoTopologia.PONTO_DE_ACESSO,
+    )
+
+/**
+ * Decide qual [DispositivoRede] (se algum) deve abrir MeshApSheet pra um nó [rede] da árvore de
+ * topologia da tela Sinal — GH#1025. Só tenta correlacionar quando o nó já foi classificado como
+ * AP/mesh ([TIPOS_TOPOLOGIA_AP_MESH]); fora disso devolve null sempre, mesmo que por acaso exista
+ * um [DispositivoRede] com MAC batendo (evita abrir a sheet errada pra uma rede vizinha comum).
+ *
+ * Quando o nó é AP/mesh mas nenhum [DispositivoRede] correlaciona (scan LAN ainda não descobriu
+ * esse equipamento, ou MAC não resolvível via ARP) devolve null — o chamador mantém o fallback
+ * padrão (NetworkDetailSheet), nunca fabrica um [DispositivoRede] parcial.
+ */
+internal fun resolverDispositivoParaNoTopologia(
+    rede: RedeVizinha,
+    tipoTopologia: TipoTopologia?,
+    dispositivosRede: List<DispositivoRede>,
+): DispositivoRede? {
+    if (tipoTopologia !in TIPOS_TOPOLOGIA_AP_MESH) return null
+    return encontrarDispositivoPorBssid(dispositivosRede, rede.bssid)
+}
 
 private fun classificarComMotorUnificado(
     redes: List<RedeVizinha>,
@@ -327,6 +362,13 @@ fun SinalScreen(
     fotoUri: String? = null,
     onAbrirPerfil: () -> Unit = {},
     wifiLinkSnapshot: WifiLinkSnapshot? = null,
+    // GH#1025 — dado do scan LAN (mesmo carregado em Dispositivos/5a), usado só pra correlacionar
+    // um nó da árvore de topologia classificado como AP/mesh com o DispositivoRede real e abrir
+    // MeshApSheet em vez de NetworkDetailSheet. Não introduz lista de dispositivos-cliente nesta
+    // tela (3d segue fora de escopo, ver issue).
+    dispositivosRede: List<DispositivoRede> = emptyList(),
+    apelidos: Map<String, String> = emptyMap(),
+    onSalvarApelido: (mac: String, apelido: String) -> Unit = { _, _ -> },
     // Seam de teste (#893) — producao nunca passa isso, so os testes de auto-refresh
     // usam um intervalo curto pra nao esperar 30s reais por teste.
     autoRefreshIntervalMs: Long = SINAL_AUTO_REFRESH_INTERVAL_MS,
@@ -437,6 +479,9 @@ fun SinalScreen(
                             connectedNetwork = connectedNetwork,
                             onRefresh = onRefresh,
                             wifiLinkSnapshot = wifiLinkSnapshot,
+                            dispositivosRede = dispositivosRede,
+                            apelidos = apelidos,
+                            onSalvarApelido = onSalvarApelido,
                         )
                     } else {
                         WifiEmptyState()
@@ -1246,11 +1291,18 @@ private fun RedesTab(
     connectedNetwork: RedeVizinha?,
     onRefresh: () -> Unit,
     wifiLinkSnapshot: WifiLinkSnapshot? = null,
+    dispositivosRede: List<DispositivoRede> = emptyList(),
+    apelidos: Map<String, String> = emptyMap(),
+    onSalvarApelido: (mac: String, apelido: String) -> Unit = { _, _ -> },
 ) {
     val c = LocalLkTokens.current
     var selectedBanda by remember { mutableStateOf("Todos") }
     var selectedNetwork by remember { mutableStateOf<RedeVizinha?>(null) }
+    // GH#1025 (3c) — quando o nó tocado correlaciona com um DispositivoRede real, abre
+    // MeshApSheet em vez de NetworkDetailSheet (ver resolverDispositivoParaNoTopologia).
+    var selectedDispositivoMesh by remember { mutableStateOf<DispositivoRede?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val meshSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val isRefreshing = snapshotWifi.estado == EstadoScanWifi.scanning
 
     val filteredRedes =
@@ -1279,6 +1331,30 @@ private fun RedesTab(
                 classificadas.associate { it.rede.bssid to it.tipo }
             }.getOrElse { emptyMap() }
         }
+
+    // GH#1025 (3c) — clique num nó da árvore (conectado ou "outras redes"): abre MeshApSheet
+    // quando o nó correlaciona com um DispositivoRede real do scan LAN, senão mantém
+    // NetworkDetailSheet (comportamento de sempre). O nó conectado nunca abre MeshApSheet, mesmo
+    // quando o motor classifica ele como NO_MESH/SISTEMA_MESH_PROVAVEL sem confirmação de rota —
+    // "sua conexão" continua sendo a sua conexão, não um equipamento pra inspecionar.
+    val onNoOuRedeClick: (RedeVizinha) -> Unit = { rede ->
+        val ehRedeConectada = rede.bssid == connectedNetwork?.bssid
+        val dispositivo =
+            if (ehRedeConectada) {
+                null
+            } else {
+                resolverDispositivoParaNoTopologia(
+                    rede = rede,
+                    tipoTopologia = topologiaPorBssid[rede.bssid],
+                    dispositivosRede = dispositivosRede,
+                )
+            }
+        if (dispositivo != null) {
+            selectedDispositivoMesh = dispositivo
+        } else {
+            selectedNetwork = rede
+        }
+    }
 
     // Nós da mesma rede: conectado na frente + mesmo SSID ordenado por sinal
     val grupoNos =
@@ -1429,7 +1505,7 @@ private fun RedesTab(
                             ssid = connectedNetwork.ssid ?: "Rede oculta",
                             nos = grupoNos,
                             connectedBssid = connectedNetwork.bssid,
-                            onNoClick = { selectedNetwork = it },
+                            onNoClick = onNoOuRedeClick,
                             wifiLinkSnapshot = wifiLinkSnapshot,
                             topologiaPorBssid = topologiaPorBssid,
                             canalConectadoCongestionado = canalConectadoCongestionado,
@@ -1498,7 +1574,7 @@ private fun RedesTab(
                                     expandedSsids + grupo.ssid
                                 }
                         },
-                        onNetworkClick = { rede -> selectedNetwork = rede },
+                        onNetworkClick = onNoOuRedeClick,
                         topologiaPorBssid = topologiaPorBssid,
                         modifier = Modifier.padding(horizontal = LkSpacing.lg),
                     )
@@ -1559,6 +1635,27 @@ private fun RedesTab(
                 canalCongestionado = ehRedeConectada && canalConectadoCongestionado,
                 canalRecomendado = if (ehRedeConectada) canalRecomendadoConectado else null,
                 nivelCanalRecomendado = if (ehRedeConectada) dadoCanalRecomendadoConectado?.nivel else null,
+            )
+        }
+    }
+
+    // GH#1025 (3c) — sheet de detalhe de dispositivo AP/mesh, dado real correlacionado do
+    // scan LAN (ver onNoOuRedeClick/resolverDispositivoParaNoTopologia).
+    val dispositivoMesh = selectedDispositivoMesh
+    if (dispositivoMesh != null) {
+        ModalBottomSheet(
+            onDismissRequest = { selectedDispositivoMesh = null },
+            sheetState = meshSheetState,
+            containerColor = c.bgCard,
+            dragHandle = {},
+        ) {
+            MeshApSheet(
+                dispositivo = dispositivoMesh,
+                c = c,
+                apelidoAtual = dispositivoMesh.chaveApelido()?.let { apelidos[it] } ?: "",
+                onSalvarApelido = { apelido ->
+                    dispositivoMesh.chaveApelido()?.let { chave -> onSalvarApelido(chave, apelido) }
+                },
             )
         }
     }

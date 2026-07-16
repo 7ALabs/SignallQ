@@ -805,8 +805,13 @@ private fun DeviceDetailSheet(
 // MeshApSheet — ponto de acesso / nó mesh
 // ---------------------------------------------------------------------------
 
+// GH#1025 — exposta (sem `private`) pra ser reaproveitada por SinalScreen.kt (mesmo pacote
+// ui.screen), que abre esta sheet quando um nó da árvore de topologia é correlacionado a um
+// DispositivoRede do scan LAN. Continua fisicamente aqui (não extraída pra ui/component/) porque
+// depende de vários helpers file-private deste arquivo (SheetDragHandle, LkListRow, mascaraMac
+// etc.) — extrair exigiria mover esse conjunto inteiro, refactor maior que o necessário pra #1025.
 @Composable
-private fun MeshApSheet(
+fun MeshApSheet(
     dispositivo: DispositivoRede,
     c: LkTokens,
     apelidoAtual: String,
