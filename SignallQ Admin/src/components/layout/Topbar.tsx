@@ -1,5 +1,5 @@
 import React from "react";
-import { RefreshCw, Bell, Palette, LayoutGrid, Menu } from "lucide-react";
+import { RefreshCw, Bell, Palette, LogOut, Menu } from "lucide-react";
 import { AppEnvironment } from "../../types/admin";
 import { PERIOD_FILTERS } from "../../config/constants";
 import { adminMetricsService } from "../../services/adminMetricsService";
@@ -91,8 +91,8 @@ export const Topbar: React.FC<TopbarProps> = ({
               style={
                 environment === env
                   ? {
-                      backgroundColor: "var(--bg-sidebar-active)",
-                      color: "var(--text-primary)",
+                      backgroundColor: "var(--nav-active-bg)",
+                      color: "var(--nav-active-fg)",
                       fontWeight: 600,
                     }
                   : { color: "var(--text-secondary)" }
@@ -119,8 +119,8 @@ export const Topbar: React.FC<TopbarProps> = ({
               style={
                 period === f.value
                   ? {
-                      backgroundColor: "var(--bg-sidebar-active)",
-                      color: "var(--text-primary)",
+                      backgroundColor: "var(--nav-active-bg)",
+                      color: "var(--nav-active-fg)",
                       fontWeight: 500,
                     }
                   : { color: "var(--text-secondary)" }
@@ -183,7 +183,8 @@ export const Topbar: React.FC<TopbarProps> = ({
           <span>Design System</span>
         </a>
 
-        {/* Menu/Sair — mesmo slot do icone de apps do mockup, ligado a uma acao real */}
+        {/* Sair — LogOut (era LayoutGrid, reaproveitado indevidamente do slot
+            de app switcher do mockup original; ver AUDITORIA_CONSOLE_TELAS_00_01_2026-07-16.md) */}
         {onLogout && (
           <button
             onClick={onLogout}
@@ -195,7 +196,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             title="Sair"
             aria-label="Sair"
           >
-            <LayoutGrid className="w-4 h-4" />
+            <LogOut className="w-4 h-4" />
           </button>
         )}
       </div>

@@ -19,11 +19,17 @@ describe("index.css — paleta semântica (GH#552 Fase 3)", () => {
 
   it("define cor própria para --success e --attention no tema dark padrão", () => {
     const rootBlock = css.slice(css.indexOf(":root"), css.indexOf("[data-theme=\"dark\"]"));
-    expect(rootBlock).toMatch(/--success:\s*#34D399/i);
-    expect(rootBlock).toMatch(/--attention:\s*#F59E0B/i);
+    // Hex fechados 2026-07-16 a partir do protótipo `signallq-admin-md3-tobe`
+    // (ver docs_ai/design-system/FASE1_TOKENS_CONSOLE_MD3_TOBE_2026-07-16.md) —
+    // substitui a paleta anterior (#34D399/#F59E0B), mas mantém a garantia de
+    // que --success/--attention nunca voltam a ser cinza.
+    expect(rootBlock).toMatch(/--success:\s*#7DDB93/i);
+    expect(rootBlock).toMatch(/--attention:\s*#FFB955/i);
   });
 
-  it("mantém o acento de marca violeta (#6C2BFF) como --primary", () => {
+  it("mantém o acento de marca violeta (#6C2BFF) como --primary no tema claro", () => {
+    // Tema dark padrão usa o tom 80 do M3 baseline (#CFBCFF) para acessibilidade
+    // sobre superfície escura — o #6C2BFF de marca vive no tema claro.
     expect(css).toMatch(/--primary:\s*#6C2BFF/i);
   });
 

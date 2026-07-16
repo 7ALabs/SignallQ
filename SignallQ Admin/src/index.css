@@ -8,13 +8,16 @@
    Ref: SIG-156
    ============================================================ */
 
-/* Tema dark (padrão) */
+/* Tema dark (padrão) — hex fechados 2026-07-16 a partir do protótipo
+   `signallq-admin-md3-tobe` (Md3LoginForm/Md3TopAppBar/Md3NavDrawer/
+   Md3MetricCard/Md3DashboardContent), ver
+   docs_ai/design-system/FASE1_TOKENS_CONSOLE_MD3_TOBE_2026-07-16.md. */
 :root {
   /* Layout */
-  --sidebar-width:   264px;
+  --sidebar-width:   300px;
   --topbar-height:   56px;
-  --radius-card:     16px;
-  --radius-button:   12px;
+  --radius-card:     12px;
+  --radius-button:   9999px;
   --radius-input:    12px;
   --radius-pill:     999px;
   --space-xs:        4px;
@@ -25,53 +28,59 @@
   --space-2xl:       32px;
 
   /* Superfícies */
-  --bg-base:            #000000;
-  --bg-sidebar:         var(--bg-base);
-  --bg-content:         #1A1A1A;
-  --bg-topbar:          var(--bg-content);
-  --bg-surface:         #111111;
-  --bg-surface-muted:   #111111;
-  --bg-surface-hover:   #151515;
-  --bg-card-hover:      #151515;
-  --bg-sidebar-active:  #151515;
+  --bg-base:            #141019;
+  --bg-sidebar:         #1D1A22;
+  --bg-content:         var(--bg-base);
+  --bg-topbar:          var(--bg-base);
+  --bg-surface:         #2B2831;
+  --bg-surface-variant: #211E27;
+  --bg-surface-muted:   #211E27;
+  --bg-surface-hover:   #332F3B;
+  --bg-card-hover:      #332F3B;
+  --bg-sidebar-active:  #4A4458;
 
   /* Bordas */
-  --border:             #262626;
-  --border-subtle:      #1F1F1F;
+  --border:             #49454F;
+  --border-subtle:      #38343D;
 
   /* Texto */
-  --text-primary:       #F5F5F5;
-  --text-secondary:     #A3A3A3;
-  --text-tertiary:      #737373;
+  --text-primary:       #E6E0E9;
+  --text-secondary:     #CAC4D0;
+  --text-tertiary:      #938F99;
 
   /* Scrollbar */
-  --scrollbar-thumb:       #262626;
-  --scrollbar-thumb-hover: #333333;
+  --scrollbar-thumb:       #49454F;
+  --scrollbar-thumb-hover: #5C5763;
 
   /* Semântica funcional
      GH#552 (Fase 3 / #746 item 1) — antes, --success e --attention apontavam
      para --text-primary (cinza) em todos os temas: KPI "saudável" e "atenção"
      ficavam visualmente idênticos, e o código já contornava isso hardcodando
      Tailwind (text-emerald-400, text-amber-500) tela por tela. Paleta de status
-     agora é real (verde/âmbar/vermelho/azul), padrão dashboard Google
-     (Analytics/Cloud Console) pedido pelo Luiz para a Fase 3 — contraste
-     verificado para AA em texto pequeno sobre --bg-surface em ambos os temas. */
-  --primary:              #6C2BFF;
+     real (verde/âmbar/vermelho/azul) migrada em 2026-07-16 para os valores M3
+     baseline roxo do protótipo `md3-tobe` (fonte de verdade), substituindo a
+     paleta "Cloudflare Dashboard"-like anterior. */
+  --primary:              #CFBCFF;
+  --on-primary:           #38008C;
   --interactive:          var(--text-primary);
   --interactive-muted:    var(--text-secondary);
   --interactive-hover-bg: var(--bg-surface-hover);
   --focus-ring:           var(--primary);
-  --success:              #34D399;
-  --attention:            #F59E0B;
-  --error:                #FF4D4F;
-  --info:                 #60A5FA;
+  --success:              #7DDB93;
+  --attention:            #FFB955;
+  --error:                #FFB4AB;
+  --error-container:      #93000A;
+  --on-error-container:   #FFDAD6;
+  --info:                 #8AB4F8;
+  --nav-active-bg:        var(--bg-sidebar-active);
+  --nav-active-fg:        #E8DEF8;
   --chart-line-primary:   var(--primary);
   --chart-line-secondary: var(--info);
   --chart-line-tertiary:  var(--success);
 
   /* Aliases legados */
   --sq-accent:          var(--primary);
-  --sq-accent-blue:     #2563EB;
+  --sq-accent-blue:     var(--info);
   --sq-success:         var(--success);
   --sq-warning:         var(--attention);
   --sq-error:           var(--error);
@@ -86,7 +95,7 @@
   /* SIG-12: color-mix() nao existe em Safari < 16.2 (iPad 2012 roda no maximo
      Safari 9/10) -- fallback rgba() primeiro, cascade ignora o color-mix()
      invalido em navegadores antigos e mantem o fallback. */
-  --sq-border-subtle:   rgba(38, 38, 38, 0.6);
+  --sq-border-subtle:   rgba(73, 69, 79, 0.6);
   --sq-border-subtle:   color-mix(in srgb, var(--border) 60%, transparent);
 
   --sq-text-primary:    var(--text-primary);
@@ -111,51 +120,67 @@
   --sq-provider-local:      #71717A;
 }
 
-/* Tema dark explícito — sobrepõe prefers-color-scheme: light */
+/* Tema dark explícito — sobrepõe prefers-color-scheme: light. Mesmos hex do
+   :root (dark é o padrão), repetidos aqui para quando data-theme="dark" é
+   setado explicitamente sobre um SO em modo claro. */
 [data-theme="dark"] {
-  --bg-base:            #000000;
-  --bg-sidebar:         var(--bg-base);
-  --bg-content:         #1A1A1A;
-  --bg-topbar:          var(--bg-content);
-  --bg-surface:         #111111;
-  --bg-surface-muted:   #111111;
-  --bg-surface-hover:   #151515;
-  --bg-card-hover:      #151515;
-  --bg-sidebar-active:  #151515;
-  --border:             #262626;
-  --border-subtle:      #1F1F1F;
-  --text-primary:       #F5F5F5;
-  --text-secondary:     #A3A3A3;
-  --text-tertiary:      #737373;
-  --success:            #34D399;
-  --attention:          #F59E0B;
-  --error:              #FF4D4F;
-  --info:               #60A5FA;
+  --bg-base:            #141019;
+  --bg-sidebar:         #1D1A22;
+  --bg-content:         var(--bg-base);
+  --bg-topbar:          var(--bg-base);
+  --bg-surface:         #2B2831;
+  --bg-surface-variant: #211E27;
+  --bg-surface-muted:   #211E27;
+  --bg-surface-hover:   #332F3B;
+  --bg-card-hover:      #332F3B;
+  --bg-sidebar-active:  #4A4458;
+  --border:             #49454F;
+  --border-subtle:      #38343D;
+  --text-primary:       #E6E0E9;
+  --text-secondary:     #CAC4D0;
+  --text-tertiary:      #938F99;
+  --primary:            #CFBCFF;
+  --on-primary:         #38008C;
+  --success:            #7DDB93;
+  --attention:          #FFB955;
+  --error:              #FFB4AB;
+  --error-container:    #93000A;
+  --on-error-container: #FFDAD6;
+  --info:               #8AB4F8;
+  --nav-active-bg:      var(--bg-sidebar-active);
+  --nav-active-fg:      #E8DEF8;
 }
 
-/* Tema light */
+/* Tema light — hex fechados 2026-07-16, ver FASE1_TOKENS_CONSOLE_MD3_TOBE_2026-07-16.md */
 [data-theme="light"],
 .light {
-  --bg-base:            #FFFFFF;
-  --bg-sidebar:         var(--bg-base);
-  --bg-content:         #F3F4F6;
-  --bg-topbar:          var(--bg-content);
-  --bg-surface:         #FFFFFF;
-  --bg-surface-muted:   #F3F3F3;
-  --bg-surface-hover:   #F5F5F5;
-  --bg-card-hover:      #F5F5F5;
-  --bg-sidebar-active:  #EBEBEB;
-  --border:             #DCDCDC;
-  --border-subtle:      #E8E8E8;
-  --text-primary:       #111111;
-  --text-secondary:     #666666;
-  --text-tertiary:      #8A8A8A;
-  --error:              #D93025;
+  --bg-base:            #FEF7FF;
+  --bg-sidebar:         #F7F2FA;
+  --bg-content:         var(--bg-base);
+  --bg-topbar:          var(--bg-base);
+  --bg-surface:         #ECE6F0;
+  --bg-surface-variant: #FFFFFF;
+  --bg-surface-muted:   #F7F2FA;
+  --bg-surface-hover:   #E8E1EC;
+  --bg-card-hover:      #E8E1EC;
+  --bg-sidebar-active:  #E8DEF8;
+  --border:             #CAC4D0;
+  --border-subtle:      #E0DAE5;
+  --text-primary:       #1D1B20;
+  --text-secondary:     #49454F;
+  --text-tertiary:      #79747E;
+  --primary:            #6C2BFF;
+  --on-primary:         #FFFFFF;
+  --error:              #BA1A1A;
+  --error-container:    #FFDAD6;
+  --on-error-container: #410002;
   --success:            #1E8E3E;
-  --attention:          #B06000;
+  --attention:          #8A5300;
   --info:               #1A73E8;
-  --scrollbar-thumb:       #D4D4D4;
-  --scrollbar-thumb-hover: #A3A3A3;
+  --nav-active-bg:      #E8DEF8;
+  --nav-active-fg:      #1E192B;
+  --scrollbar-thumb:       #CAC4D0;
+  --scrollbar-thumb-hover: #938F99;
 
   --sq-bg-primary:      var(--bg-base);
   --sq-bg-secondary:    var(--bg-surface);
@@ -163,8 +188,9 @@
   --sq-bg-elevated:     var(--bg-surface);
   --sq-bg-overlay:      var(--bg-surface-hover);
   --sq-border:          var(--border);
+  --sq-accent-blue:     var(--info);
   /* SIG-12: fallback rgba() para Safari < 16.2 (ver comentario em :root) */
-  --sq-border-subtle:   rgba(220, 220, 220, 0.6);
+  --sq-border-subtle:   rgba(202, 196, 208, 0.6);
   --sq-border-subtle:   color-mix(in srgb, var(--border) 60%, transparent);
   --sq-text-primary:    var(--text-primary);
   --sq-text-secondary:  var(--text-secondary);
@@ -174,26 +200,33 @@
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]):not(.dark) {
-    --bg-base:            #FFFFFF;
-    --bg-sidebar:         var(--bg-base);
-    --bg-content:         #F3F4F6;
-    --bg-topbar:          var(--bg-content);
-    --bg-surface:         #FFFFFF;
-    --bg-surface-muted:   #F3F3F3;
-    --bg-surface-hover:   #F5F5F5;
-    --bg-card-hover:      #F5F5F5;
-    --bg-sidebar-active:  #EBEBEB;
-    --border:             #DCDCDC;
-    --border-subtle:      #E8E8E8;
-    --text-primary:       #111111;
-    --text-secondary:     #666666;
-    --text-tertiary:      #8A8A8A;
-    --error:              #D93025;
+    --bg-base:            #FEF7FF;
+    --bg-sidebar:         #F7F2FA;
+    --bg-content:         var(--bg-base);
+    --bg-topbar:          var(--bg-base);
+    --bg-surface:         #ECE6F0;
+    --bg-surface-variant: #FFFFFF;
+    --bg-surface-muted:   #F7F2FA;
+    --bg-surface-hover:   #E8E1EC;
+    --bg-card-hover:      #E8E1EC;
+    --bg-sidebar-active:  #E8DEF8;
+    --border:             #CAC4D0;
+    --border-subtle:      #E0DAE5;
+    --text-primary:       #1D1B20;
+    --text-secondary:     #49454F;
+    --text-tertiary:      #79747E;
+    --primary:            #6C2BFF;
+    --on-primary:         #FFFFFF;
+    --error:              #BA1A1A;
+    --error-container:    #FFDAD6;
+    --on-error-container: #410002;
     --success:            #1E8E3E;
-    --attention:          #B06000;
+    --attention:          #8A5300;
     --info:               #1A73E8;
-    --scrollbar-thumb:       #D4D4D4;
-    --scrollbar-thumb-hover: #A3A3A3;
+    --nav-active-bg:      #E8DEF8;
+    --nav-active-fg:      #1E192B;
+    --scrollbar-thumb:       #CAC4D0;
+    --scrollbar-thumb-hover: #938F99;
 
     --sq-bg-primary:      var(--bg-base);
     --sq-bg-secondary:    var(--bg-surface);
@@ -201,8 +234,9 @@
     --sq-bg-elevated:     var(--bg-surface);
     --sq-bg-overlay:      var(--bg-surface-hover);
     --sq-border:          var(--border);
+    --sq-accent-blue:     var(--info);
     /* SIG-12: fallback rgba() para Safari < 16.2 (ver comentario em :root) */
-    --sq-border-subtle:   rgba(220, 220, 220, 0.6);
+    --sq-border-subtle:   rgba(202, 196, 208, 0.6);
     --sq-border-subtle:   color-mix(in srgb, var(--border) 60%, transparent);
     --sq-text-primary:    var(--text-primary);
     --sq-text-secondary:  var(--text-secondary);
