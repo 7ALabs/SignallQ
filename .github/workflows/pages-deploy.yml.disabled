@@ -1,14 +1,30 @@
-name: Cloudflare Pages Deploy (signallq)
+name: Cloudflare Pages Deploy (signallq) [DESATIVADO 2026-07-16]
 
+# DESATIVADO em 2026-07-16 por decisao do Luiz: o projeto Cloudflare Pages
+# `signallq` deixou de ser producao real do Console. Producao unica agora e
+# `signallq-admin-panel.pages.dev` (fora deste workflow). Arquivo renomeado
+# para extensao `.disabled` (GitHub Actions so reconhece .yml/.yaml dentro de
+# .github/workflows/), entao ele nao aparece mais como workflow e nao dispara
+# em nenhum push, mesmo que alguem reative os triggers abaixo sem perceber a
+# extensao errada. O trigger interno tambem foi neutralizado (branch
+# inexistente) como segunda camada de seguranca.
+#
+# Pipeline arquivado em _archive/2026-07-16_deploy-pages-legado/ (era
+# deploy/pages/). Reativacao exige: renomear de volta para .yml, restaurar
+# deploy/pages/ do arquivo, e decisao explicita de que signallq.pages.dev
+# volta a ser producao.
+#
+# Historico original abaixo:
 # GH#443 / SIG-52: builda e publica o projeto Cloudflare Pages `signallq`,
-# que serve o Console Admin sob /console. Ver deploy/pages/README.md.
+# que serve o Console Admin sob /console. Ver
+# _archive/2026-07-16_deploy-pages-legado/README.md.
 #
 # O PWA (`pwa/`) foi descontinuado e removido do monorepo; este workflow nao
 # builda mais nada sob /app.
 
 on:
   push:
-    branches: [main]
+    branches: [__disabled_2026-07-16_nunca_dispara__]
     paths:
       - 'SignallQ Admin/**'
       - 'deploy/pages/**'

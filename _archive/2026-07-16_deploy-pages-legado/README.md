@@ -1,4 +1,22 @@
-# Cloudflare Pages — projeto `signallq`
+> **ARQUIVADO em 2026-07-16.** Pipeline desativado por decisão do Luiz: o
+> projeto Cloudflare Pages `signallq` (`signallq.pages.dev`) deixou de ser a
+> produção real do Console — **`signallq-admin-panel.pages.dev` é a única
+> produção oficial** a partir de agora. O workflow que buildava e publicava
+> aqui (`.github/workflows/pages-deploy.yml`) foi renomeado para
+> `pages-deploy.yml.disabled` e não dispara mais (GitHub Actions só reconhece
+> `.yml`/`.yaml` dentro de `.github/workflows/`).
+>
+> Confirmado antes do arquivamento (2026-07-16, validado contra produção real)
+> que `signallq.pages.dev` só servia o Console sob `/console` — raiz
+> redirecionava pra lá (302), `/app` do PWA legado já retornava 404. Nada mais
+> estava hospedado nesse projeto.
+>
+> O projeto Cloudflare Pages `signallq` em si (a infra fora do repo) **não**
+> foi excluído por esta mudança — isso é decisão separada do Luiz. Este
+> diretório fica só como histórico do pipeline; não usar como base pra novo
+> deploy sem antes reconfirmar com quem decidiu o desligamento.
+
+# Cloudflare Pages — projeto `signallq` (ARQUIVADO)
 
 Resolve GH#443 (duplicado: GH#440) e SIG-52.
 
