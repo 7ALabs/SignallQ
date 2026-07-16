@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.network.EstadoConexao
+import io.signallq.app.feature.diagnostico.BandaWifi
 import io.signallq.app.feature.diagnostico.MetricClassifier
 import io.signallq.app.feature.diagnostico.MetricStatus
 import io.signallq.app.feature.history.ResumoHistorico
@@ -129,12 +130,20 @@ private fun networkIcon(m: MedicaoEntity): ImageVector =
         else -> Icons.Outlined.Speed
     }
 
-private fun tipoLabel(m: MedicaoEntity): String =
+internal fun tipoLabel(m: MedicaoEntity): String =
     when (m.connectionType) {
-        "wifi" -> "Wi-Fi"
+        "wifi" -> "Wi-Fi" + bandaWifiSufixo(m.bandaWifi)
         EstadoConexao.movel.name -> "Celular"
         "ethernet" -> "Cabo"
         else -> m.connectionType
+    }
+
+/** GH#1027: " · 5GHz"/" · 2.4GHz" quando a banda foi capturada na medição, "" quando não (medição antiga). */
+internal fun bandaWifiSufixo(bandaWifi: String?): String =
+    when (bandaWifi) {
+        BandaWifi.ghz5.name -> " · 5GHz"
+        BandaWifi.ghz24.name -> " · 2.4GHz"
+        else -> ""
     }
 
 private fun formatDate(epochMs: Long): String {

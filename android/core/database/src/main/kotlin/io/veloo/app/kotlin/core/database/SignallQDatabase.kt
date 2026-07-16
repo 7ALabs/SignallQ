@@ -16,7 +16,7 @@ import io.signallq.app.core.database.recommendation.RecommendationHistoryEntity
         ChatMessageEntity::class,
         RecommendationHistoryEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
 )
 abstract class SignallQDatabase : RoomDatabase() {
