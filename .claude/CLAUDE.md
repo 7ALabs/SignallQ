@@ -259,7 +259,26 @@ Quando a tarefa for bem delimitada, os agentes operam em piloto automatico:
 
 ## Agentes
 
-Squad enxuto: 4 agentes ativos (Claudete, Camilo, Lia, Rhodolfo). Validacao de device/rede e planejamento tecnico viraram skills (`/regras-android`, `/regras-diagnostico-rede`); busca de codigo e documentacao sao nativas/skill (`/gerar-docs`).
+Squad enxuto: 5 agentes ativos (Claudete, Camilo, Lia, Rhodolfo, Juninho). Validacao de device/rede
+e planejamento tecnico viraram skills (`/regras-android`, `/regras-diagnostico-rede`); busca de
+codigo e documentacao sao nativas/skill (`/gerar-docs`).
+
+**Estrutura corporativa (revisao 2026-07-16)** — squad tratado como empresa, cargos em portugues no
+padrao TIM/Accenture (Analista → Consultor → Consultor Sr → Especialista → Especialista Sr →
+Gerente → Executivo → Diretor). Perfil completo (cargo, area, formacao, caracteristicas
+profissionais/tecnicas) em cada `.claude/agents/<nome>.md`, secao "Perfil Corporativo". Resumo:
+
+| Agente | Cargo | Area | Reporta a |
+|---|---|---|---|
+| Claudete | Diretora de Produto & Delivery | Diretoria | CEO (Luiz) |
+| Camilo | Especialista Sr de Engenharia (Full-Stack) | Engenharia | Claudete |
+| Lia | Especialista Sr de Produto & UX | Produto & Design | Claudete |
+| Rhodolfo | Consultor Sr de Qualidade & Release | Qualidade & Confiabilidade | Claudete |
+| Juninho | Analista Junior de Operacoes & Triagem (Estagiario) | Operacoes & Suporte (compartilhado) | Claudete |
+
+Todos os 5 podem delegar entre si (`Agent` tool liberado desde 2026-07-11, Juninho ganhou acesso
+restrito a handoff-only em 2026-07-16 — nunca orquestra fan-out, so escala pra cima). Ver
+`docs_ai/operations/PROCESSO_PR_E_AGENTES_2026-07-16.md` pro diagnostico completo da revisao.
 
 > **Felipe foi demitido em 2026-07-09.** Reportou "paridade total com o mockup" na PR #781 sem nunca validar contra a URL de producao com dado real (so contra mock local); Topbar com badge inventado e copy em ingles nunca reconferidos, labels de KPI do Worker nunca auditados contra o mockup, bloco de alertas sumindo em producao sem investigacao. Persona arquivada em `.claude/agents/_archive/felipe_2026-07-09_demitido.md`.
 >
@@ -306,6 +325,14 @@ Squad enxuto: 4 agentes ativos (Claudete, Camilo, Lia, Rhodolfo). Validacao de d
 - Unico agente alem da Claudete com Edit/Write, restrito a documentacao (CHANGELOG, docs_ai/,
   memory files) — nunca codigo de produto
 - Ferramentas: GitHub, Firebase/Crashlytics, Notion
+
+**Juninho / Analista Junior de Operacoes & Triagem (Estagiario)**
+- Criado em 2026-07-11 pra reduzir custo de tokens: trabalho mecanico e barato (triagem, checagem
+  de deploy real, busca de contexto, rascunho de changelog) antes de escalar pra agente caro
+- Nunca edita codigo de producao, nunca decide Done/Not Done, nunca aprova visual — so prepara,
+  verifica e escala
+- Ferramentas: leitura (Read/Grep/Glob/Bash/ToolSearch) + `Agent` restrito a 1 chamada de handoff
+  (2026-07-16) — nunca orquestra fan-out
 
 ---
 
