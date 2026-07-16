@@ -1,0 +1,55 @@
+openapi: 3.0.3
+info:
+  title: SignallQ Privacy Worker
+  description: >
+    Página pública estática de Política de Privacidade do SignallQ, servida como
+    HTML (não JSON). Nome técnico (wrangler.toml): `signallq-privacy`. Arquivo
+    fonte na raiz do worker (`worker.js`, sem `src/`).
+  version: "1"
+servers:
+  - url: https://signallq-privacy.<account>.workers.dev
+    description: URL de produção não confirmada — wrangler.toml não declara `routes`/custom domain.
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Worker saudável
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: ok
+
+  /{qualquerCaminho}:
+    get:
+      summary: Política de privacidade (qualquer path exceto /health cai aqui)
+      description: >
+        Não há roteamento real — qualquer path diferente de /health retorna o mesmo
+        HTML estático embutido no worker (const HTML), com status 200. Não há 404
+        dedicado nem outras rotas.
+      parameters:
+        - name: qualquerCaminho
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Documento HTML completo da política de privacidade (PT-BR), estático.
+          headers:
+            Cache-Control:
+              schema: { type: string, example: "public, max-age=86400" }
+            X-Content-Type-Options:
+              schema: { type: string, example: nosniff }
+          content:
+            text/html:
+              schema:
+                type: string
+                description: HTML estático — não é JSON, corpo fixo definido em worker.js.
+
+x-notes: >
+  Confirmado no worker.js: fetch() só distingue "/health" (texto "ok") de qualquer
+  outro pathname (retorna sempre o mesmo HTML). Sem parsing de request body, sem
+  autenticação, sem query params consumidos.

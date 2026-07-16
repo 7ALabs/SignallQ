@@ -28,8 +28,8 @@
 
 ## Docs de referência rápida
 
-- `technical/ARCHITECTURE.md` — design do sistema
-- `technical/MODULES.md` — breakdown de módulos
+- `ARQUITETURA/README.md` — design do sistema
+- `TECNICO.md / ARQUITETURA/MODULOS/` — breakdown de módulos
 - `technical/SCREEN_MAP.md` — localização de telas
 - `ai/HANDOFF_RULES.md` — protocolo de handoff
 - `ai/AGENT_WORKFLOW.md` — fluxo completo

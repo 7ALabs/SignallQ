@@ -71,5 +71,5 @@ feature-auth/               # Feature Auth (UI + lógica)
 
 - Issue #3: Feature home module + navigation
 - Issue #7: Feat(infra) abstrair Dispatchers
-- `ANDROID_TECNICO.md` — Seção 2: Arquitetura Modular
+- `TECNICO.md` — Seção 2: Arquitetura Modular
 - Google: Android App Modularity: https://developer.android.com/guide/app-bundle/dynamic-feature-modules

@@ -1,0 +1,1702 @@
+openapi: 3.0.3
+info:
+  title: SignallQ Diagnostic Worker
+  description: >
+    Worker Cloudflare (nome técnico `signallq-diagnostic`, wrangler.toml) que hospeda o motor de
+    diagnóstico determinístico (rulesets), o diretório de provedores (ISPs) e o catálogo de jogos
+    (GH#935/#951/#952/#956/#957/#960/#965/#971). Persistência em D1 (`signallq-diagnostic-db`).
+    CORS habilitado apenas para `/admin/*` (origem controlada por `ALLOWED_ORIGIN`, hoje
+    `https://signallq-admin-panel.pages.dev`) — o app Android consome o worker
+    server-to-server, fora de CORS.
+  version: "1"
+servers:
+  - url: https://signallq-diagnostic.giammattey-luiz.workers.dev
+    description: >
+      Produção — confirmado via `PROVIDER_LOGO_PUBLIC_BASE_URL` em wrangler.toml (usado para
+      montar URLs absolutas de `GET /providers/:id/logo`).
+security: []
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Healthcheck e mapa de rotas do worker
+      security: []
+      responses:
+        "200":
+          description: Worker operacional
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  worker: { type: string, example: signallq-diagnostic }
+                  routes:
+                    type: array
+                    items: { type: string }
+
+  /diagnostic/evaluate:
+    post:
+      operationId: postDiagnosticEvaluate
+      summary: Avalia um snapshot de diagnóstico e retorna o laudo completo (cards, score, IA assist)
+      description: >
+        Alias equivalente: `POST /api/diagnostic/evaluate`. Sem autenticação — endpoint público
+        consumido pelo app Android. Em caso de falha interna do motor (D1 indisponível, exceção),
+        NUNCA retorna 500 cru: cai para `buildInconclusiveReport`, ainda com status HTTP 200
+        (GH#959) — ver schema `DiagnosticReportInconclusive`.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiagnosticSnapshot"
+      responses:
+        "200":
+          description: Laudo gerado (caminho normal OU fallback inconclusivo em caso de falha interna)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagnosticReportPayload"
+        "400":
+          description: JSON inválido ou snapshot fora do contrato mínimo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+
+  /api/diagnostic/evaluate:
+    post:
+      operationId: postDiagnosticEvaluateAlias
+      summary: Alias de /diagnostic/evaluate
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiagnosticSnapshot"
+      responses:
+        "200":
+          description: Laudo gerado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagnosticReportPayload"
+        "400":
+          description: JSON inválido ou snapshot fora do contrato mínimo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+
+  /games/catalog:
+    get:
+      operationId: listGamesCatalog
+      summary: Lista jogos ativos do catálogo (opcionalmente filtrado por plataforma)
+      security: []
+      parameters:
+        - name: platform
+          in: query
+          required: false
+          schema: { type: string }
+          description: "Ex.: PC, PS5, XBOX (normalizado para uppercase no worker)."
+      responses:
+        "200":
+          description: Lista de jogos ativos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/GameCatalogRecord" }
+
+  /games/catalog/version:
+    get:
+      operationId: getGamesCatalogVersion
+      summary: Versão/contador do catálogo de jogos (para cache no cliente)
+      security: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GameCatalogVersion" }
+
+  /games/catalog/{gameId}:
+    get:
+      operationId: getGameCatalogItem
+      summary: Detalhe de um jogo do catálogo
+      security: []
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GameCatalogRecord" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /games/profiles:
+    get:
+      operationId: listGameProfiles
+      summary: Lista os perfis de sensibilidade de jogos (thresholds latência/jitter/perda/download)
+      security: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/GameProfileRecord" }
+
+  /providers/by-asn/{asn}:
+    get:
+      operationId: getProviderByAsn
+      summary: Busca provedor pelo ASN detectado
+      description: "Alias equivalente: `GET /api/providers/by-asn/{asn}`."
+      security: []
+      parameters:
+        - name: asn
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProviderRecord" }
+        "400":
+          description: ASN não é um inteiro válido
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /providers/search:
+    get:
+      operationId: searchProviders
+      summary: Busca provedores por nome/alias/domínio (fuzzy, normalizado sem acento)
+      description: "Alias equivalente: `GET /api/providers/search`."
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string, default: "" }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/ProviderRecord" }
+
+  /providers/{providerId}:
+    get:
+      operationId: getProviderById
+      summary: Detalhe de um provedor
+      description: "Alias equivalente: `GET /api/providers/{providerId}`."
+      security: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProviderRecord" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /providers/{providerId}/support:
+    get:
+      operationId: getProviderSupport
+      summary: Canais de suporte (SAC, WhatsApp, site) de um provedor
+      security: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProviderSupport" }
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /providers/{providerId}/logo:
+    get:
+      operationId: getProviderLogo
+      summary: Binário da logo do provedor (BLOB gravado no D1, GH#965)
+      description: >
+        Serve diretamente o conteúdo binário com o content-type real de upload. 404 quando o
+        provedor não tem blob gravado (ex.: logo seeded local apontando para `sourceUrl` externo).
+      security: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Imagem da logo
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Logo não encontrada
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /ingest/provider-detection:
+    post:
+      operationId: postProviderDetection
+      summary: Registra uma detecção de provedor (telemetria anônima do app, agregada por dia)
+      description: >
+        Alias equivalente: `POST /api/provider-detections`. Endpoint público/anônimo — payload
+        malformado nunca derruba o worker com 500 (GH#961).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProviderDetectionInput" }
+      responses:
+        "202":
+          description: Detecção registrada (agregada por dia + provedor/ASN/nome normalizado)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  detectionKey: { type: string }
+                  eligibleForEnrichment:
+                    type: boolean
+                    description: >
+                      Estimativa otimista single-day; a elegibilidade real cross-day só é avaliada
+                      nas rotas admin de review queue.
+        "400":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ValidationErrorResponse" }
+
+  /admin/auth/bootstrap:
+    post:
+      operationId: postAdminAuthBootstrap
+      summary: Cria o primeiro usuário admin (só funciona se admin_users estiver vazia)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bootstrapToken, email, password]
+              properties:
+                bootstrapToken: { type: string, description: "Deve bater com o secret ADMIN_BOOTSTRAP_TOKEN." }
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  id: { type: string }
+                  bootstrapped: { type: boolean, enum: [true] }
+        "401":
+          description: bootstrapToken inválido
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "409":
+          description: Bootstrap já foi concluído (já existe ao menos 1 admin_user)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: DB, ADMIN_AUTH_PEPPER ou ADMIN_BOOTSTRAP_TOKEN não configurados
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/auth/login:
+    post:
+      operationId: postAdminAuthLogin
+      summary: Autentica usuário admin e inicia sessão via cookie httpOnly
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        "200":
+          description: Login bem-sucedido. Cookie `session` (HttpOnly, Secure, SameSite=None, Max-Age=604800) setado via Set-Cookie.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  role: { type: string }
+        "401":
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "429":
+          description: "Rate limit: mais de 5 tentativas na janela de 15 minutos (por IP)"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: DB ou ADMIN_AUTH_PEPPER não configurados
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/auth/logout:
+    post:
+      operationId: postAdminAuthLogout
+      summary: Revoga a sessão atual e limpa o cookie
+      security: []
+      responses:
+        "200":
+          description: "Sempre 200, mesmo sem cookie válido. Header Set-Cookie zera o cookie session."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+
+  /admin/auth/me:
+    get:
+      operationId: getAdminAuthMe
+      summary: Retorna e-mail e papel do usuário autenticado
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email: { type: string, format: email }
+                  role: { type: string }
+        "401":
+          description: Sem cookie válido ou usuário inativo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: DB não configurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/auth/users:
+    post:
+      operationId: postAdminAuthUsers
+      summary: Cria novo usuário admin (role fixa "admin")
+      description: Requer sessão com role "admin" (403 se a sessão não for admin).
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  id: { type: string }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Sessão autenticada, mas role != admin
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: DB ou ADMIN_AUTH_PEPPER não configurados
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/diagnostic/rulesets:
+    get:
+      operationId: listRulesets
+      summary: Lista rulesets (versões) do motor de diagnóstico
+      description: "Alias equivalente: `GET /api/admin/diagnostic/rulesets`. Sem D1 configurado, retorna só o ruleset bundled local com status BUNDLED_LOCAL."
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/RulesetSummary" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: createRulesetDraft
+      summary: Cria um rascunho (DRAFT) de ruleset
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ruleset: { $ref: "#/components/schemas/DiagnosticRuleset" }
+                justification: { type: string }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  version: { type: integer }
+        "400":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ValidationErrorResponse" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          description: DB binding não configurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/diagnostic/rulesets/{version}:
+    get:
+      operationId: getRuleset
+      summary: Detalhe completo de um ruleset (inclui rules_json)
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: version
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiagnosticRuleset" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          description: DB binding não configurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/diagnostic/rulesets/{version}/publish:
+    post:
+      operationId: publishRuleset
+      summary: Publica um ruleset (torna-o o ativo; despublica o anterior)
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: version
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  version: { type: integer }
+                  status: { type: string, enum: [PUBLISHED] }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          description: DB binding não configurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/diagnostic/rulesets/{version}/rollback:
+    post:
+      operationId: rollbackRuleset
+      summary: Reverte um ruleset publicado (restaura a versão anterior, se existir)
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: version
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  version: { type: integer }
+                  status: { type: string, enum: [ROLLED_BACK] }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          description: DB binding não configurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/diagnostic/rulesets/validate:
+    post:
+      operationId: validateRuleset
+      summary: Valida um ruleset sem persistir
+      description: "Alias equivalente: `POST /api/admin/diagnostic/rulesets/validate`."
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DiagnosticRuleset" }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  version: { type: integer }
+                  rules: { type: integer }
+        "400":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [false] }
+                  errors:
+                    type: array
+                    items: { type: string }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /admin/diagnostic/simulate:
+    post:
+      operationId: simulateDiagnostic
+      summary: Avalia um snapshot contra um ruleset arbitrário (sem persistir, sem relatório completo)
+      description: "Alias equivalente: `POST /api/admin/diagnostic/simulate`. Retorna só o DiagnosticResult cru, não o DiagnosticReportPayload completo (sem cards/IA assist)."
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                snapshot: { $ref: "#/components/schemas/DiagnosticSnapshot" }
+                ruleset: { $ref: "#/components/schemas/DiagnosticRuleset" }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  result: { $ref: "#/components/schemas/DiagnosticResult" }
+        "400":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ValidationErrorResponse" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /admin/providers/review-queue:
+    get:
+      operationId: listProviderReviewQueue
+      summary: Fila de detecções de provedor elegíveis para revisão (agregado cross-day)
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/ProviderReviewQueueItem" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /admin/providers/stale:
+    get:
+      operationId: listStaleProviders
+      summary: Lista provedores com status STALE/DRAFT ou revisão vencida
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/ProviderRecord" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /admin/providers/sync-seed:
+    post:
+      operationId: syncProviderSeed
+      summary: Sincroniza o catálogo seeded local (código) para o D1
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  synced: { type: integer }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          description: DB binding não configurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/providers:
+    post:
+      operationId: upsertProvider
+      summary: Cria ou atualiza um provedor
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                provider:
+                  $ref: "#/components/schemas/ProviderAdminInput"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  providerId: { type: string }
+                  syncedIdentifiers: { type: integer }
+        "400":
+          description: provider.id ou provider.displayName ausentes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          description: DB binding não configurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/providers/{providerId}/review:
+    post:
+      operationId: reviewProvider
+      summary: Marca um provedor como revisado (status/verifiedAt/nextReviewAt)
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, default: VERIFIED }
+                verifiedAt: { type: string, format: date-time, nullable: true }
+                nextReviewAt: { type: string, format: date-time, nullable: true }
+                notes: { type: string, nullable: true }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  providerId: { type: string }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          description: DB binding não configurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/providers/{providerId}/support:
+    post:
+      operationId: updateProviderSupportPost
+      summary: Atualiza parcialmente os canais de suporte de um provedor
+      description: >
+        Método aceito também via PUT (mesmo handler). Atualização parcial real: campo ausente do
+        payload não é tocado; campo presente com `null`/vazio desativa o canal; campo presente com
+        valor novo substitui.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sacPhone: { type: string, nullable: true }
+                technicalSupportPhone: { type: string, nullable: true }
+                whatsappUrl: { type: string, nullable: true }
+                websiteUrl: { type: string, nullable: true }
+                customerAreaUrl: { type: string, nullable: true }
+                ombudsmanPhone: { type: string, nullable: true }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  providerId: { type: string }
+        "400":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ValidationErrorResponse" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          description: DB binding não configurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    put:
+      operationId: updateProviderSupportPut
+      summary: Igual a POST /admin/providers/{providerId}/support
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                sacPhone: { type: string, nullable: true }
+                technicalSupportPhone: { type: string, nullable: true }
+                whatsappUrl: { type: string, nullable: true }
+                websiteUrl: { type: string, nullable: true }
+                customerAreaUrl: { type: string, nullable: true }
+                ombudsmanPhone: { type: string, nullable: true }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  providerId: { type: string }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/providers/{providerId}/logo:
+    post:
+      operationId: uploadProviderLogo
+      summary: Faz upload da logo de um provedor (BLOB base64 gravado no D1, máx 500KB)
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: providerId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          image/png: { schema: { type: string, format: binary } }
+          image/jpeg: { schema: { type: string, format: binary } }
+          image/webp: { schema: { type: string, format: binary } }
+          image/svg+xml: { schema: { type: string, format: binary } }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  url: { type: string }
+                  version: { type: integer }
+        "400":
+          description: Content-Type não é image/*, corpo inválido ou vazio
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Provedor não encontrado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "413":
+          description: Logo maior que 500KB
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/games/sync-seed:
+    post:
+      operationId: syncGameSeed
+      summary: Sincroniza catálogo/perfis de jogos seeded (código) para o D1
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  syncedGames: { type: integer }
+                  syncedProfiles: { type: integer }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          description: DB binding não configurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/games/catalog:
+    post:
+      operationId: upsertGameCatalogPost
+      summary: Cria ou atualiza um item do catálogo de jogos
+      description: Método aceito também via PUT (mesmo handler).
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                game: { $ref: "#/components/schemas/GameCatalogAdminInput" }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  gameId: { type: string }
+        "400":
+          description: >
+            Payload incompleto (gameId, displayName, slug, profileCode, testStrategy, regionCode,
+            resultLabel e platforms não-vazio são todos obrigatórios)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          description: DB binding não configurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    put:
+      operationId: upsertGameCatalogPut
+      summary: Igual a POST /admin/games/catalog
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                game: { $ref: "#/components/schemas/GameCatalogAdminInput" }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  gameId: { type: string }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /admin/games/catalog/{gameId}/activate:
+    post:
+      operationId: activateGame
+      summary: Ativa um jogo do catálogo
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  gameId: { type: string }
+                  active: { type: boolean, enum: [true] }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          description: DB binding não configurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/games/catalog/{gameId}/deactivate:
+    post:
+      operationId: deactivateGame
+      summary: Desativa um jogo do catálogo
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: gameId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  gameId: { type: string }
+                  active: { type: boolean, enum: [false] }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          description: DB binding não configurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/games/profiles:
+    post:
+      operationId: upsertGameProfilePost
+      summary: Cria ou atualiza um perfil de sensibilidade de jogos
+      description: Método aceito também via PUT (mesmo handler).
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profile: { $ref: "#/components/schemas/GameProfileAdminInput" }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  profileCode: { type: string }
+        "400":
+          description: profile.profileCode ou profile.displayName ausentes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          description: DB binding não configurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    put:
+      operationId: upsertGameProfilePut
+      summary: Igual a POST /admin/games/profiles
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                profile: { $ref: "#/components/schemas/GameProfileAdminInput" }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  profileCode: { type: string }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /admin/games/audit:
+    get:
+      operationId: listGameAudit
+      summary: Log de auditoria de mudanças no catálogo/perfis de jogos
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/GameAuditEntry" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+      description: >
+        Cookie de sessão opaco (HttpOnly, Secure, SameSite=None), emitido por
+        `POST /admin/auth/login`. Validade 7 dias. Todas as rotas sob `/admin/*` exigem este
+        cookie, exceto as próprias `/admin/auth/login`, `/admin/auth/bootstrap`,
+        `/admin/auth/logout` e `/admin/auth/me` (que valida o cookie, mas não o exige como
+        pré-condição de roteamento).
+
+  responses:
+    Unauthorized:
+      description: Cookie session ausente ou inválido
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        error: { type: string }
+        details:
+          type: array
+          items: { type: string }
+
+    DiagnosticSnapshot:
+      type: object
+      required: [schemaVersion]
+      properties:
+        schemaVersion: { type: integer }
+        sessionId: { type: string }
+        appVersion: { type: string }
+        platform: { type: string }
+        connection:
+          type: object
+          properties:
+            type: { type: string }
+            hasInternet: { type: boolean }
+            ipv6Available: { type: boolean }
+        wifi:
+          type: object
+          properties:
+            band: { type: string }
+            rssiDbm: { type: number }
+            frequencyMhz: { type: number }
+            linkSpeedMbps: { type: number }
+            has5GhzAvailable: { type: boolean }
+            devicesOnNetwork: { type: integer }
+        wifiScan:
+          type: object
+          properties:
+            connectedChannel: { type: integer }
+            networks:
+              type: array
+              items:
+                type: object
+                properties:
+                  channel: { type: integer }
+                  frequencyMhz: { type: number }
+                  rssiDbm: { type: number }
+                  ssid: { type: string }
+        speed:
+          type: object
+          properties:
+            downloadMbps: { type: number }
+            uploadMbps: { type: number }
+        quality:
+          type: object
+          properties:
+            latencyMs: { type: number }
+            jitterMs: { type: number }
+            packetLossPercent: { type: number }
+            loadedLatencyMs: { type: number }
+        dns:
+          type: object
+          properties:
+            latencyMs: { type: number }
+            currentProvider: { type: string }
+          additionalProperties: true
+        fiber:
+          type: object
+          nullable: true
+          properties:
+            rxPowerDbm: { type: number }
+            txPowerDbm: { type: number }
+            temperatureCelsius: { type: number }
+          additionalProperties: true
+        mobile:
+          type: object
+          nullable: true
+          properties:
+            technology: { type: string }
+            rsrpDbm: { type: number }
+            rsrqDb: { type: number }
+            sinrDb: { type: number }
+            operatorName: { type: string }
+          additionalProperties: true
+        historical:
+          type: object
+          properties:
+            testsCount7d: { type: integer }
+            testsCount30d: { type: integer }
+            avgDownload7d: { type: number }
+            avgDownload30d: { type: number }
+            avgUpload7d: { type: number }
+            avgUpload30d: { type: number }
+            avgPing7d: { type: number }
+            avgPing30d: { type: number }
+            avgDns7d: { type: number }
+            avgDns30d: { type: number }
+            worstTimeWindow: { type: string }
+            bestTimeWindow: { type: string }
+        gateway:
+          type: object
+          properties:
+            rttMs: { type: number }
+        localEquipment:
+          type: object
+          nullable: true
+          additionalProperties: true
+      description: >
+        NÃO CONFIRMADO: as regras exatas de `validateSnapshot` (quais campos são estritamente
+        obrigatórios além de `schemaVersion`, e as mensagens de erro retornadas em
+        `details`) não foram lidas por completo em `diagnostic-engine.ts` — o schema acima reflete
+        a interface TypeScript `DiagnosticSnapshot` de `contracts.ts`, não a validação real.
+
+    DiagnosticFinding:
+      type: object
+      properties:
+        findingCode: { type: string }
+        category:
+          type: string
+          enum: [internet, wifi, dns, fibra, mobile, historico, wifi-canal, decisao]
+        severity: { type: string, enum: [INFO, WARNING, ERROR] }
+        confidence: { type: string, enum: [LOW, MEDIUM, HIGH] }
+        recommendationId: { type: string }
+        matchedRuleId: { type: string }
+        matchedRuleVersion: { type: integer }
+
+    DiagnosticResult:
+      type: object
+      properties:
+        resultSchemaVersion: { type: integer }
+        engineVersion: { type: integer }
+        rulesetVersion: { type: integer }
+        evaluationSource: { type: string, enum: [REMOTE, CACHED_LOCAL, BUNDLED_LOCAL] }
+        overallStatus: { type: string, enum: [OK, ATTENTION, CRITICAL, INCONCLUSIVE] }
+        score: { type: number }
+        confidence: { type: string, enum: [LOW, MEDIUM, HIGH] }
+        matchedRules:
+          type: array
+          items: { type: string }
+        findings:
+          type: array
+          items: { $ref: "#/components/schemas/DiagnosticFinding" }
+        recommendations:
+          type: array
+          items: { type: string }
+        primaryFlow: { $ref: "#/components/schemas/DiagnosticFlowCode" }
+        secondaryFlows:
+          type: array
+          items: { $ref: "#/components/schemas/DiagnosticFlowCode" }
+        humanSummary: { type: string }
+        humanResolution:
+          type: array
+          items: { type: string }
+        missingInputs:
+          type: array
+          items: { type: string }
+        nextBestChecks:
+          type: array
+          items: { type: string }
+        resolvableNow: { type: boolean }
+        evaluatedAt: { type: string, format: date-time }
+        traceId: { type: string }
+
+    DiagnosticFlowCode:
+      type: string
+      enum:
+        - isp_externo
+        - wifi_local
+        - dns
+        - fibra
+        - rede_movel
+        - historico_degradacao
+        - internet_instavel
+        - sem_dados_suficientes
+        - saudavel_monitorar
+
+    DiagnosticCard:
+      type: object
+      properties:
+        id: { type: string }
+        titulo: { type: string }
+        status: { type: string, enum: [ok, info, attention, critical, inconclusive] }
+        evidencia: { type: string, nullable: true }
+        mensagemUsuario: { type: string }
+        recomendacao: { type: string, nullable: true }
+        categoria: { type: string }
+        podeConcluir: { type: boolean }
+        categoriaOrigem: { type: string, nullable: true }
+
+    DiagnosticReportPayload:
+      type: object
+      description: >
+        Payload real de sucesso (`buildDiagnosticReport`). Em caso de falha interna (D1
+        indisponível, exceção), o worker devolve `DiagnosticReportInconclusive` com o mesmo shape,
+        mas listas vazias e `decisao.status = "inconclusive"` — ainda com HTTP 200.
+      properties:
+        evaluationSource: { type: string, enum: [REMOTE, CACHED_LOCAL, BUNDLED_LOCAL] }
+        wifiResultados: { type: array, items: { $ref: "#/components/schemas/DiagnosticCard" } }
+        internetResultados: { type: array, items: { $ref: "#/components/schemas/DiagnosticCard" } }
+        mobileResultados: { type: array, items: { $ref: "#/components/schemas/DiagnosticCard" } }
+        fibraResultados: { type: array, items: { $ref: "#/components/schemas/DiagnosticCard" } }
+        dnsResultados: { type: array, items: { $ref: "#/components/schemas/DiagnosticCard" } }
+        historicoResultados: { type: array, items: { $ref: "#/components/schemas/DiagnosticCard" } }
+        wifiCanalResultados: { type: array, items: { $ref: "#/components/schemas/DiagnosticCard" } }
+        redeResultados: { type: array, items: { $ref: "#/components/schemas/DiagnosticCard" } }
+        decisao: { $ref: "#/components/schemas/DiagnosticCard" }
+        achadosSecundarios: { type: array, items: { $ref: "#/components/schemas/DiagnosticCard" } }
+        hipotesesDescartadas: { type: array, items: { $ref: "#/components/schemas/DiagnosticCard" } }
+        dadosAusentes: { type: array, items: { type: string } }
+        limitacoesEquipamentoLocal: { type: array, items: { type: string } }
+        recomendacoes: { type: array, items: { $ref: "#/components/schemas/DiagnosticCard" } }
+        scoreEngineResultado:
+          type: object
+          properties:
+            score: { type: integer, minimum: 0, maximum: 100 }
+            veredictoHumano:
+              type: string
+              description: "Ex.: excelente/bom/regular/fraco — enum exato não confirmado (não li score-engine.ts por completo)."
+            dimensoes:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  score: { type: integer }
+        perfisUso:
+          type: array
+          items:
+            type: object
+            properties:
+              profileId: { type: string, enum: [navegacao, streaming, videochamada, jogos, trabalho] }
+              label: { type: string }
+              status: { type: string, enum: [ok, info, attention, critical, inconclusive] }
+        gameReadiness:
+          type: array
+          items:
+            type: object
+            properties:
+              profileCode: { type: string }
+              label: { type: string }
+              status: { type: string, enum: [bom, atencao, ruim, sem_dados] }
+        aiAssist:
+          type: object
+          nullable: true
+          properties:
+            version: { type: integer }
+            mode: { type: string, enum: [single_shot_explainer] }
+            shouldInvoke: { type: boolean }
+            reason: { type: string }
+            systemPrompt: { type: string }
+            userPrompt: { type: string }
+            expectedOutputSchema:
+              type: object
+              properties:
+                format: { type: string, enum: [json] }
+                fields:
+                  type: array
+                  items: { type: string }
+        geradoEmMs: { type: integer, format: int64 }
+
+    DiagnosticRuleset:
+      type: object
+      properties:
+        version: { type: integer }
+        schemaVersion: { type: integer }
+        engineVersion: { type: integer }
+        publishedAt: { type: string, format: date-time }
+        rules:
+          type: array
+          items:
+            type: object
+            properties:
+              ruleId: { type: string }
+              ruleVersion: { type: integer }
+              enabled: { type: boolean }
+              priority: { type: integer }
+              minimumSchemaVersion: { type: integer }
+              conditionGroup:
+                type: object
+                nullable: true
+                properties:
+                  operator: { type: string, enum: [ALL, ANY, NONE] }
+                  conditions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        field: { type: string }
+                        operator:
+                          type: string
+                          enum: [EQ, NEQ, GT, GTE, LT, LTE, IN, NOT_IN, EXISTS, NOT_EXISTS, BETWEEN]
+                        value: {}
+              result:
+                type: object
+                properties:
+                  findingCode: { type: string }
+                  category:
+                    type: string
+                    enum: [internet, wifi, dns, fibra, mobile, historico, wifi-canal, decisao]
+                  severity: { type: string, enum: [INFO, WARNING, ERROR] }
+                  confidence: { type: string, enum: [LOW, MEDIUM, HIGH] }
+                  recommendationId: { type: string }
+
+    RulesetSummary:
+      type: object
+      properties:
+        version: { type: integer }
+        schema_version: { type: integer }
+        engine_version: { type: integer }
+        status: { type: string, enum: [DRAFT, PUBLISHED, ROLLED_BACK, BUNDLED_LOCAL] }
+        rollout_percent: { type: integer }
+        published_at: { type: string, format: date-time, nullable: true }
+        updated_at: { type: string, format: date-time }
+      description: >
+        NÃO CONFIRMADO: nomenclatura das colunas é literal (snake_case) porque `listRulesets`
+        retorna as linhas do D1 sem remapear para camelCase (diferente do resto da API) — confirmado
+        em `ruleset-store.ts`, mas vale reconferir se isso é intencional ou uma inconsistência a
+        corrigir.
+
+    ProviderLogo:
+      type: object
+      properties:
+        url: { type: string }
+        version: { type: integer }
+        updatedAt: { type: string, format: date-time }
+
+    ProviderSupport:
+      type: object
+      properties:
+        sacPhone: { type: string, nullable: true }
+        technicalSupportPhone: { type: string, nullable: true }
+        whatsappUrl: { type: string, nullable: true }
+        websiteUrl: { type: string, nullable: true }
+        customerAreaUrl: { type: string, nullable: true }
+        ombudsmanPhone: { type: string, nullable: true }
+
+    ProviderRecord:
+      type: object
+      properties:
+        id: { type: string }
+        displayName: { type: string }
+        legalName: { type: string, nullable: true }
+        cnpj: { type: string, nullable: true }
+        officialDomain: { type: string, nullable: true }
+        providerType: { type: string }
+        status: { type: string }
+        logo:
+          allOf:
+            - $ref: "#/components/schemas/ProviderLogo"
+          nullable: true
+        support: { $ref: "#/components/schemas/ProviderSupport" }
+        aliases: { type: array, items: { type: string } }
+        asns: { type: array, items: { type: integer } }
+        verifiedAt: { type: string, format: date-time, nullable: true }
+        cacheVersion: { type: integer }
+        cacheExpiresAt: { type: string, format: date-time }
+
+    ProviderAdminInput:
+      type: object
+      required: [id, displayName]
+      properties:
+        id: { type: string }
+        displayName: { type: string }
+        legalName: { type: string, nullable: true }
+        cnpj: { type: string, nullable: true }
+        officialDomain: { type: string, nullable: true }
+        providerType: { type: string, default: UNKNOWN }
+        status: { type: string, default: DRAFT }
+        verifiedAt: { type: string, format: date-time, nullable: true }
+        nextReviewAt: { type: string, format: date-time, nullable: true }
+        aliases: { type: array, items: { type: string } }
+        asns: { type: array, items: { type: integer } }
+        support: { $ref: "#/components/schemas/ProviderSupport" }
+        logo:
+          type: object
+          nullable: true
+          properties:
+            sourceUrl: { type: string, nullable: true }
+            r2Key: { type: string, nullable: true }
+            version: { type: integer }
+
+    ProviderDetectionInput:
+      type: object
+      properties:
+        providerId: { type: string, nullable: true }
+        asn: { type: number, nullable: true }
+        rawNameSample: { type: string, nullable: true }
+        normalizedName: { type: string, nullable: true }
+        installationHash: { type: string, nullable: true }
+        appVersion: { type: string, nullable: true }
+        platform: { type: string, nullable: true }
+        detectedAt: { type: string, format: date-time, nullable: true }
+
+    ProviderReviewQueueItem:
+      type: object
+      properties:
+        detectionKey: { type: string }
+        providerId: { type: string, nullable: true }
+        providerDisplayName: { type: string, nullable: true }
+        asn: { type: integer, nullable: true }
+        normalizedName: { type: string, nullable: true }
+        testCountTotal: { type: integer }
+        testCountSinceReview: { type: integer }
+        distinctInstallationsApprox: { type: integer }
+        distinctDays: { type: integer }
+        firstSeenAt: { type: string, format: date-time }
+        lastSeenAt: { type: string, format: date-time }
+        lastEnrichmentQueuedAt: { type: string, format: date-time, nullable: true }
+        status: { type: string, enum: [QUEUED, PENDING_REVIEW] }
+
+    GameCatalogRecord:
+      type: object
+      properties:
+        gameId: { type: string }
+        displayName: { type: string }
+        slug: { type: string }
+        active: { type: boolean }
+        profileCode: { type: string }
+        testStrategy: { type: string, description: "Ex.: REGIONAL_ESTIMATE, PROVIDER_NETWORK." }
+        regionCode: { type: string, description: "Ex.: SOUTH_AMERICA, BRAZIL." }
+        resultLabel: { type: string }
+        providerNetworkMode: { type: string, default: fallback_regional }
+        sortOrder: { type: integer }
+        iconKey: { type: string, nullable: true }
+        platforms:
+          type: array
+          items: { type: string, description: "Ex.: PC, PS5, XBOX." }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    GameCatalogVersion:
+      type: object
+      properties:
+        version: { type: string }
+        totalGames: { type: integer }
+        generatedAt: { type: string, format: date-time }
+
+    GameCatalogAdminInput:
+      type: object
+      required: [gameId, displayName, slug, profileCode, testStrategy, regionCode, resultLabel, platforms]
+      properties:
+        gameId: { type: string }
+        displayName: { type: string }
+        slug: { type: string }
+        active: { type: boolean, default: true }
+        profileCode: { type: string }
+        testStrategy: { type: string }
+        regionCode: { type: string }
+        resultLabel: { type: string }
+        providerNetworkMode: { type: string, default: fallback_regional }
+        sortOrder: { type: integer, default: 0 }
+        iconKey: { type: string, nullable: true }
+        platforms:
+          type: array
+          minItems: 1
+          items: { type: string }
+
+    GameProfileRecord:
+      type: object
+      properties:
+        profileCode: { type: string }
+        displayName: { type: string }
+        latencyGoodMax: { type: number, nullable: true }
+        latencyAttentionMax: { type: number, nullable: true }
+        jitterGoodMax: { type: number, nullable: true }
+        jitterAttentionMax: { type: number, nullable: true }
+        lossGoodMax: { type: number, nullable: true }
+        lossAttentionMax: { type: number, nullable: true }
+        downloadGoodMin: { type: number, nullable: true }
+        downloadAttentionMin: { type: number, nullable: true }
+        bufferbloatGoodMax: { type: number, nullable: true }
+        bufferbloatAttentionMax: { type: number, nullable: true }
+        wifiPolicy: { type: string, nullable: true }
+        updatedAt: { type: string, format: date-time }
+
+    GameProfileAdminInput:
+      type: object
+      required: [profileCode, displayName]
+      properties:
+        profileCode: { type: string }
+        displayName: { type: string }
+        latencyGoodMax: { type: number, nullable: true }
+        latencyAttentionMax: { type: number, nullable: true }
+        jitterGoodMax: { type: number, nullable: true }
+        jitterAttentionMax: { type: number, nullable: true }
+        lossGoodMax: { type: number, nullable: true }
+        lossAttentionMax: { type: number, nullable: true }
+        downloadGoodMin: { type: number, nullable: true }
+        downloadAttentionMin: { type: number, nullable: true }
+        bufferbloatGoodMax: { type: number, nullable: true }
+        bufferbloatAttentionMax: { type: number, nullable: true }
+        wifiPolicy: { type: string, nullable: true }
+
+    GameAuditEntry:
+      type: object
+      properties:
+        id: { type: string }
+        entityType: { type: string, enum: [game_catalog, game_profile] }
+        entityId: { type: string }
+        action: { type: string, description: "Ex.: CREATE_GAME, UPSERT_GAME, ACTIVATE_GAME, DEACTIVATE_GAME, CREATE_PROFILE, UPSERT_PROFILE." }
+        actor: { type: string }
+        beforeJson: { type: string, nullable: true }
+        afterJson: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }

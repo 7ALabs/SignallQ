@@ -46,4 +46,4 @@ Busca de código/docs = ferramentas nativas ou skills; sem agente dedicado.
 
 - `ai/AGENT_WORKFLOW.md` — fluxo completo
 - `ai/HANDOFF_RULES.md` — protocolo de handoff
-- `technical/MODULES.md` — módulos Android
+- `TECNICO.md / ARQUITETURA/MODULOS/` — módulos Android

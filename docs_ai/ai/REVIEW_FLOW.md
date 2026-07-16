@@ -33,5 +33,5 @@ Ciclo Gema → implementador tem no máximo **2 rodadas**. Na 3ª divergência, 
 ## Referências
 
 - `ai/AGENT_WORKFLOW.md` — fluxo completo
-- `design-system/MD3_GUIDELINES.md` — referência de revisão visual
-- `technical/ARCHITECTURE.md` — referência de revisão técnica
+- `DESIGN_SYSTEM.md` — referência de revisão visual
+- `ARQUITETURA/README.md` — referência de revisão técnica

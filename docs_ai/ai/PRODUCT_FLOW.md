@@ -31,7 +31,7 @@
 
 ## Docs relacionados
 
-- `functional/AI_ASSISTANT.md` — detalhes da feature de IA
-- `functional/DIAGNOSTIC_FLOW.md` — fluxo de diagnóstico
-- `functional/SCREENS_ANDROID.md` — mapa completo de telas
+- `FUNCIONAL.md` — detalhes da feature de IA
+- `FUNCIONAL.md` — fluxo de diagnóstico
+- `FUNCIONAL.md` — mapa completo de telas
 - `technical/MONITORAMENTO_PASSIVO.md` — WorkManager, notificações

@@ -35,4 +35,4 @@ Roteamento: bug → GitHub Issues; feature/task/daily → Linear.
 - `.\android\gradlew.bat lint` — análise estática
 - `.\android\gradlew.bat test` — testes unitários
 
-Detalhes: `technical/BUILD_SYSTEM.md`.
+Detalhes: `TECNICO.md`.

@@ -211,7 +211,7 @@ Also missing: Request/response schemas, query parameters, examples for all exist
 
 ## Files to Update
 
-- `SignallQ Admin/docs/openapi/signallq-admin-api.yaml` — Add endpoints, schemas, examples
+- `docs_ai/CONTRATOS/openapi/signallq-admin-api.yaml` — Add endpoints, schemas, examples
 - `integrations/cloudflare/signallq-admin-worker/src/index.ts` — Consolidate paths (optional, if standardizing)
 
 ---

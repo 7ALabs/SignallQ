@@ -311,22 +311,40 @@ estratégia de rollback quando aplicável. Seguir `issue-conventions` para nomen
 
 ## 10. Documentação
 
-### Estrutura real (validada em 2026-07-15)
+### Estrutura real (validada em 2026-07-16, pós-consolidação)
 
 ```
 docs_ai/
-├── README.md
+├── README.md              (índice curto)
+├── FUNCIONAL.md            (o que o app faz)
+├── TECNICO.md               (como o app é construído/integrado)
+├── DESIGN_SYSTEM.md         (tokens/componentes Android)
+├── ARQUITETURA/
+│   ├── README.md            (visão de sistema, dependências entre módulos)
+│   └── MODULOS/              (um doc por módulo Gradle real — 16 arquivos)
+├── CONTRATOS/
+│   ├── openapi/               (contrato OpenAPI 3.0 por Worker Cloudflare — 5 arquivos)
+│   └── schemas/                (índice de schemas reais: Room, D1, analytics — referencia a origem)
+├── RELEASES.md
 ├── ai/
 ├── brand/
 ├── decisions/
-├── design-system/
-├── functional/
+├── design-system/            (histórico — conteúdo vigente em DESIGN_SYSTEM.md)
+├── functional/                (specs pontuais que não migraram para FUNCIONAL.md)
 ├── legal/
 ├── operations/
-├── technical/
+├── technical/                  (docs pontuais que não migraram para TECNICO.md/ARQUITETURA/)
 ├── testing/
 └── _archive/
 ```
+
+A árvore `FUNCIONAL.md`/`TECNICO.md`/`ARQUITETURA/`/`CONTRATOS/`/`DESIGN_SYSTEM.md` é o alvo para
+conteúdo funcional, técnico, arquitetural, de contrato e de design — não uma exigência de mover
+tudo para dentro dela. `ai/`, `decisions/`, `functional/` (residual), `legal/`, `operations/`,
+`technical/` (residual), `testing/`, `brand/` e `_archive/` continuam existindo para o que não se
+encaixa nessa árvore (processo do squad, ADRs, planos pontuais, mapas de campo de equipamento,
+runbooks, termos legais). Ver `docs_ai/README.md` para o índice completo e a justificativa de cada
+pasta residual.
 
 `docs_ai/README.md` deve funcionar como índice, não como uma segunda documentação completa.
 

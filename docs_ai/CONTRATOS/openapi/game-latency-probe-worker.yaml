@@ -1,0 +1,44 @@
+openapi: 3.0.3
+info:
+  title: SignallQ Game Latency Probe Worker
+  description: >
+    Sonda de latência para a tela Jogos (estratégia REGIONAL_ESTIMATE, GH#935).
+    Responsabilidade única: responder o mais rápido possível a GET/HEAD sem corpo
+    relevante, para o cliente medir round-trip time. Sem lógica de jogo, autenticação
+    ou estado. A Cloudflare roteia por anycast até o PoP mais próximo do usuário
+    (GRU para a maior parte do Brasil). Nome técnico (wrangler.toml):
+    `signallq-game-latency-probe`.
+  version: "1"
+servers:
+  - url: https://signallq-game-latency-probe.<account>.workers.dev
+    description: URL de produção não confirmada — wrangler.toml não declara `routes`/custom domain.
+
+paths:
+  /probe:
+    get:
+      summary: Sonda de latência (GET)
+      responses:
+        "204":
+          description: "Sem corpo. Header cache-control: no-store."
+    head:
+      summary: Sonda de latência (HEAD)
+      responses:
+        "204":
+          description: "Sem corpo. Header cache-control: no-store."
+
+  /:
+    get:
+      summary: Sonda de latência na raiz (equivalente a /probe)
+      responses:
+        "204":
+          description: "Sem corpo. Header cache-control: no-store."
+    head:
+      summary: Sonda de latência na raiz (equivalente a /probe)
+      responses:
+        "204":
+          description: "Sem corpo. Header cache-control: no-store."
+
+x-notes: >
+  Qualquer outro path retorna 404 sem corpo. Qualquer método diferente de GET/HEAD
+  (em /probe ou /) retorna 405 sem corpo. Confirmado lendo src/index.ts linha a linha —
+  não há rota de POST nem payload de request/response em nenhum caso.

@@ -1,0 +1,243 @@
+openapi: 3.0.3
+info:
+  title: SignallQ AI Diagnosis Worker
+  description: >
+    Worker Cloudflare que recebe dados brutos de diagnóstico de rede e retorna
+    laudo estruturado gerado por IA (schema v2). Nome técnico do worker
+    (wrangler.toml) é `linka-ai-diagnosis-worker` — legado, preservar.
+    Provider primário: Gemini 2.0 Flash (quando GEMINI_API_KEY configurada);
+    fallback automático: Qwen3 30B MoE FP8 via Cloudflare Workers AI. Sem a
+    secret, Qwen3/CF é o único provider. Ordem real em `providers.ts`.
+  version: "2"
+servers:
+  - url: https://linka-ai-diagnosis-worker.<account>.workers.dev
+    description: URL de produção não confirmada no wrangler.toml (sem `routes`/custom domain declarado) — worker consumido via BuildConfig.AI_WORKER_URL no app Android.
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: Worker saudável
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  worker: { type: string, example: ai-diagnosis-worker }
+                  timestamp: { type: string, format: date-time }
+
+  /api/ai/diagnostico-conexao:
+    post:
+      summary: Gera diagnóstico de conexão via IA (modo diagnóstico ou chat de follow-up)
+      description: >
+        Payload de entrada é JSON livre montado pelo cliente Android (dados brutos de
+        speedtest, Wi-Fi, rede móvel, histórico, achadosLocais opcional do motor
+        determinístico local). O Worker NÃO valida um schema de entrada rígido — apenas
+        limita o tamanho do corpo (64000 bytes) e repassa o JSON como contexto para o
+        prompt da IA. Quando o campo `feedbackUsuario` está presente, o Worker entra em
+        modo chat (schema de resposta simplificado, tom de resposta direta).
+      parameters:
+        - name: stream
+          in: query
+          required: false
+          schema: { type: boolean }
+          description: >
+            Quando "true", resposta é Server-Sent Events em vez de JSON único.
+            Modo diagnóstico: eventos "data: {\"response\":\"token\"}" e "data: [DONE]"
+            (tokens de <think> filtrados). Modo chat streaming: texto puro em PT-BR
+            (sem JSON), tokens de <think> preservados envolvidos em tags.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+              description: >
+                JSON livre — sem contrato rígido. Campos usados pelo Worker quando
+                presentes: connectionType/tipoConexao (string), metricasAtuais (objeto
+                com downloadMbps/uploadMbps/latenciaMs/jitterMs/perdaPacotes),
+                achadosLocais (objeto opcional do motor local determinístico),
+                feedbackUsuario (string — presença ativa modo chat).
+      responses:
+        "200":
+          description: >
+            Modo não-streaming: JSON schema v2 completo. Modo streaming: `text/event-stream`
+            (ver parâmetro `stream`).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiagnosticoResponse"
+            text/event-stream:
+              schema:
+                type: string
+                description: 'Eventos "data: {...}\n\n" terminando em "data: [DONE]\n\n"'
+        "400":
+          description: Payload inválido (não é JSON) ou corpo excede 64000 bytes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Rota inexistente
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "405":
+          description: Método diferente de POST
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "502":
+          description: Resposta da IA não é JSON parseável (`ai_json_parse_failed`)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "503":
+          description: Todos os providers de IA falharam (`ai_run_failed`)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "500":
+          description: Erro interno não tratado (`internal_error`)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - payload_invalid
+                - not_found
+                - method_not_allowed
+                - ai_run_failed
+                - ai_json_parse_failed
+                - internal_error
+
+    DiagnosticoResponse:
+      type: object
+      description: >
+        Schema v2. Campos schemaVersion/source/generatedAt/modeloIa são sempre
+        sobrescritos pelo Worker após o parse (defensivo — nunca confia no que a IA
+        retornou nesses 4 campos). Em modo chat, a IA usa um subset simplificado
+        deste mesmo schema (CHAT_SCHEMA_HINT no código).
+      required: [schemaVersion, source, generatedAt, modeloIa, status, titulo, resumo, textoLaudo]
+      properties:
+        schemaVersion: { type: string, example: "2" }
+        source: { type: string, example: cloudflare_ai }
+        generatedAt: { type: integer, format: int64, description: epoch ms }
+        modeloIa:
+          type: object
+          description: Metadados comerciais do modelo — nunca expõe id bruto do Cloudflare
+          properties:
+            idInterno: { type: string }
+            provedor: { type: string, example: google_generative_ai }
+            familia: { type: string, example: Gemini }
+            versao: { type: string, nullable: true }
+            tamanho: { type: string, nullable: true }
+            variante: { type: string, nullable: true }
+            nomeExibicao: { type: string }
+            nomeCompletoComercial: { type: string }
+            descricaoComercial: { type: string }
+            textoRodape: { type: string }
+        usage:
+          type: object
+          nullable: true
+          description: Presente quando o provider expõe consumo de tokens (GH#758)
+          properties:
+            promptTokens: { type: integer }
+            completionTokens: { type: integer }
+            totalTokens: { type: integer }
+        status:
+          type: string
+          enum: [excelente, bom, regular, ruim, critico, inconclusivo]
+        titulo: { type: string }
+        resumo: { type: string }
+        textoLaudo: { type: string }
+        classificacaoTecnica:
+          type: object
+          properties:
+            velocidade: { $ref: "#/components/schemas/Avaliacao" }
+            estabilidade: { $ref: "#/components/schemas/Avaliacao" }
+            wifi: { $ref: "#/components/schemas/Avaliacao" }
+            dns: { $ref: "#/components/schemas/Avaliacao" }
+            fibra: { $ref: "#/components/schemas/Avaliacao" }
+        problemaPrincipal:
+          type: object
+          properties:
+            tipo:
+              type: string
+              enum: [velocidade, estabilidade, wifi, roteador, isp, dns, fibra, dispositivo, historico, sem_problema, inconclusivo]
+            descricao: { type: string }
+            confianca: { type: number, minimum: 0, maximum: 1 }
+        hipotesesDescartadas:
+          type: array
+          items:
+            type: object
+            properties:
+              hipotese: { type: string }
+              motivo: { type: string }
+        impacto:
+          type: object
+          description: Vocabulário PRÓPRIO, separado do vocabulário de "status"
+          properties:
+            navegacao: { type: string, enum: [OK, Lento, Instavel, Indisponivel] }
+            streaming: { type: string, enum: [OK, Comprometido, Instavel, Indisponivel] }
+            videochamada: { type: string, enum: [OK, Comprometida, Instavel, Indisponivel] }
+            jogos: { type: string, enum: [OK, "Alta latencia", Instavel, Indisponivel] }
+            trabalho: { type: string, enum: [OK, Comprometido, Instavel, Indisponivel] }
+        acoesRecomendadas:
+          type: array
+          maxItems: 3
+          items:
+            type: object
+            properties:
+              titulo: { type: string }
+              descricao: { type: string }
+              prioridade: { type: string, enum: [alta, media, baixa] }
+              tipo:
+                type: string
+                enum: [validacao_local, ajuste_roteador, ajuste_dispositivo, contato_isp, observacao, reteste]
+              executavelNoApp: { type: boolean }
+        perguntasContextuais:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              tema: { type: string, description: "1-2 palavras, ex. Wi-Fi/ISP/Roteador/Dispositivo/Historico/Cobertura/Operadora/Geral" }
+              pergunta: { type: string }
+              opcoes:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: string }
+                    rotulo: { type: string }
+        evidencias:
+          type: array
+          items:
+            type: object
+            properties:
+              label: { type: string }
+              valor: { type: string }
+              interpretacao: { type: string }
+        limitesDaAnalise:
+          type: array
+          items: { type: string }
+
+    Avaliacao:
+      type: object
+      properties:
+        avaliacao: { type: string, enum: [boa, regular, ruim, inconclusiva] }
+        justificativa: { type: string }

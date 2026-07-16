@@ -643,7 +643,7 @@ paths:
 
 ## Next Steps
 
-1. Add this securitySchemes section to SignallQ Admin/docs/openapi/signallq-admin-api.yaml
+1. Add this securitySchemes section to docs_ai/CONTRATOS/openapi/signallq-admin-api.yaml
 2. Update all /admin/* and /auth/* paths with `security: [{ cookieAuth: [] }]`
 3. Update all /ingest/* paths with `security: [{ bearerAuth: [] }]`
 4. Update /health with `security: [{ adminSecretAuth: [] }]`
