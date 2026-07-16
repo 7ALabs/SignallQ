@@ -95,7 +95,7 @@ fun PrivacidadeScreen(
                             Modifier
                                 .size(56.dp)
                                 .clip(CircleShape)
-                                .background(LkColors.success.copy(alpha = 0.10f)),
+                                .background(LkColors.success.copy(alpha = 0.14f)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(

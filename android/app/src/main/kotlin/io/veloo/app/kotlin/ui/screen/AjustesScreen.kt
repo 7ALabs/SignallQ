@@ -1,9 +1,7 @@
 package io.signallq.app.ui.screen
 
 import android.annotation.SuppressLint
-import android.provider.Settings
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,11 +28,9 @@ import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material.icons.outlined.Router
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -158,6 +154,10 @@ fun AjustesScreen(
     var showMinhaConexaoSheet by remember { mutableStateOf(false) }
     // GH#936 — restaurado: tinha ficado sem entrada de UI (ver PreferenciasSheet.kt).
     var showPreferenciasSheet by remember { mutableStateOf(false) }
+    // Row "Tema" abria showPreferenciasSheet por engano (sheet de "Alertas de
+    // qualidade", sem relação com tema) — ThemeSelector existia pronto mas nunca
+    // tinha ponto de entrada. Ver TemaSheet.kt.
+    var showTemaSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = c.bgPrimary,
@@ -293,7 +293,7 @@ fun AjustesScreen(
                         icon = Icons.Outlined.DarkMode,
                         label = "Tema",
                         value = temaLabel(temaSelecionado),
-                        onClick = { showPreferenciasSheet = true },
+                        onClick = { showTemaSheet = true },
                     )
                 }
             }
@@ -430,6 +430,15 @@ fun AjustesScreen(
                 onSalvarLimiteAlerta(limite)
                 showPreferenciasSheet = false
             },
+        )
+    }
+
+    if (showTemaSheet) {
+        TemaSheet(
+            c = c,
+            temaSelecionado = temaSelecionado,
+            onSelecionarTema = onDefinirTemaSelecionado,
+            onDismiss = { showTemaSheet = false },
         )
     }
 }
@@ -659,69 +668,6 @@ internal fun ToggleItem(
                     uncheckedTrackColor = c.border,
                 ),
         )
-    }
-}
-
-@Composable
-private fun ThemeSelector(
-    selecionado: String,
-    onSelect: (String) -> Unit,
-    c: LkTokens,
-) {
-    val opcoes =
-        listOf(
-            Triple("sistema", "Sistema", Icons.Outlined.Settings),
-            Triple("claro", "Claro", Icons.Outlined.LightMode),
-            Triple("escuro", "Escuro", Icons.Outlined.DarkMode),
-        )
-
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = LkSpacing.lg)
-                .padding(bottom = LkSpacing.sm),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            opcoes.forEach { (valor, label, icone) ->
-                val selecionada = selecionado == valor
-                Box(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(LkRadius.card))
-                            .background(c.surfaceContainer)
-                            .border(
-                                width = if (selecionada) 2.dp else 1.dp,
-                                color = if (selecionada) LkColors.accent else c.border,
-                                shape = RoundedCornerShape(LkRadius.card),
-                            ).clickable { onSelect(valor) }
-                            .padding(vertical = LkSpacing.lg),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            imageVector = icone,
-                            contentDescription = label,
-                            tint = if (selecionada) LkColors.accent else c.textSecondary,
-                            modifier = Modifier.size(20.dp),
-                        )
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = if (selecionada) FontWeight.W600 else FontWeight.W400,
-                            color = if (selecionada) LkColors.accent else c.textSecondary,
-                        )
-                    }
-                }
-            }
-        }
     }
 }
 
