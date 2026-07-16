@@ -12,6 +12,8 @@ import {
   HeartPulse,
   Wrench,
   X,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { NAVIGATION_SECTIONS } from "../../config/navigation";
 import { AppEnvironment } from "../../types/admin";
@@ -246,9 +248,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             title={theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
             aria-label={theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: "16px", lineHeight: 1, display: "block" }}>
-              {theme === "dark" ? "light_mode" : "dark_mode"}
-            </span>
+            {theme === "dark" ? (
+              <Sun className="w-4 h-4" />
+            ) : (
+              <Moon className="w-4 h-4" />
+            )}
           </button>
         )}
       </div>

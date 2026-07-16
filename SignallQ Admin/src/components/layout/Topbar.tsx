@@ -1,5 +1,5 @@
 import React from "react";
-import { RefreshCw, Bell, Palette, LayoutGrid, Menu } from "lucide-react";
+import { RefreshCw, Bell, Palette, LogOut, Menu } from "lucide-react";
 import { AppEnvironment } from "../../types/admin";
 import { PERIOD_FILTERS } from "../../config/constants";
 import { adminMetricsService } from "../../services/adminMetricsService";
@@ -87,7 +87,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             <button
               key={env}
               onClick={() => onEnvironmentChange(env)}
-              className="px-2.5 lg:px-3 py-1.5 text-[11px] font-sans tracking-[0.04em] uppercase transition-all rounded-lg cursor-pointer"
+              className="px-2.5 lg:px-3 py-1.5 min-h-[44px] lg:min-h-0 flex items-center justify-center text-[11px] font-sans tracking-[0.04em] uppercase transition-all rounded-lg cursor-pointer"
               style={
                 environment === env
                   ? {
@@ -115,7 +115,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             <button
               key={f.value}
               onClick={() => onPeriodChange(f.value)}
-              className="px-3 py-1.5 text-[11px] font-sans rounded-lg transition-colors cursor-pointer"
+              className="px-3 py-1.5 min-h-[44px] lg:min-h-0 flex items-center justify-center text-[11px] font-sans rounded-lg transition-colors cursor-pointer"
               style={
                 period === f.value
                   ? {
@@ -183,7 +183,7 @@ export const Topbar: React.FC<TopbarProps> = ({
           <span>Design System</span>
         </a>
 
-        {/* Menu/Sair — mesmo slot do icone de apps do mockup, ligado a uma acao real */}
+        {/* Sair */}
         {onLogout && (
           <button
             onClick={onLogout}
@@ -195,7 +195,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             title="Sair"
             aria-label="Sair"
           >
-            <LayoutGrid className="w-4 h-4" />
+            <LogOut className="w-4 h-4" />
           </button>
         )}
       </div>

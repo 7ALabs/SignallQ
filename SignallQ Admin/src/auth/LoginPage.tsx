@@ -76,18 +76,20 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           className="rounded-[var(--radius-card)] p-6"
           style={{
             backgroundColor: "var(--sq-bg-elevated)",
-            border: `1px solid ${alpha("white", 8)}`,
+            border: "1px solid var(--sq-border)",
           }}
         >
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label
+                htmlFor="login-email"
                 className="block text-xs font-medium uppercase tracking-wider mb-2"
                 style={{ color: "var(--sq-text-secondary)" }}
               >
                 E-mail
               </label>
               <input
+                id="login-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -97,7 +99,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 className="w-full rounded-xl px-4 py-3 text-sm transition-colors focus:outline-none"
                 style={{
                   backgroundColor: "var(--sq-bg-primary)",
-                  border: `1px solid ${alpha("white", 10)}`,
+                  border: "1px solid var(--sq-border)",
                   color: "var(--sq-text-primary)",
                 }}
                 onFocus={(e) => {
@@ -105,7 +107,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   e.currentTarget.style.boxShadow = `0 0 0 2px ${alpha("var(--sq-accent)", 15)}`;
                 }}
                 onBlur={(e) => {
-                  e.currentTarget.style.borderColor = alpha("white", 10);
+                  e.currentTarget.style.borderColor = "var(--sq-border)";
                   e.currentTarget.style.boxShadow = "";
                 }}
               />
@@ -113,12 +115,14 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
             <div>
               <label
+                htmlFor="login-password"
                 className="block text-xs font-medium uppercase tracking-wider mb-2"
                 style={{ color: "var(--sq-text-secondary)" }}
               >
                 Senha
               </label>
               <input
+                id="login-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -127,7 +131,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 className="w-full rounded-xl px-4 py-3 text-sm transition-colors focus:outline-none"
                 style={{
                   backgroundColor: "var(--sq-bg-primary)",
-                  border: `1px solid ${alpha("white", 10)}`,
+                  border: "1px solid var(--sq-border)",
                   color: "var(--sq-text-primary)",
                 }}
                 onFocus={(e) => {
@@ -135,7 +139,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                   e.currentTarget.style.boxShadow = `0 0 0 2px ${alpha("var(--sq-accent)", 15)}`;
                 }}
                 onBlur={(e) => {
-                  e.currentTarget.style.borderColor = alpha("white", 10);
+                  e.currentTarget.style.borderColor = "var(--sq-border)";
                   e.currentTarget.style.boxShadow = "";
                 }}
               />
