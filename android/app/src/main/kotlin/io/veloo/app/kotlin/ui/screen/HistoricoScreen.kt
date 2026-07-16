@@ -1,9 +1,7 @@
 ﻿package io.signallq.app.ui.screen
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,12 +9,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,16 +21,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.TrendingDown
-import androidx.compose.material.icons.automirrored.outlined.TrendingFlat
-import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -59,23 +50,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.core.database.MedicaoEntity
@@ -83,20 +66,16 @@ import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.feature.diagnostico.MetricClassifier
 import io.signallq.app.feature.diagnostico.MetricStatus
 import io.signallq.app.feature.history.ResumoHistorico
-import io.signallq.app.feature.history.TendenciaEstado
-import io.signallq.app.feature.history.calcularTendencia
 import io.signallq.app.ui.FiltroConexaoHistorico
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
-import io.signallq.app.ui.component.LkPillBadge
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkSheetDivider
 import io.signallq.app.ui.component.LkSheetFrame
 import io.signallq.app.ui.component.LkSheetInfoRow
-import io.signallq.app.ui.component.LkStatusDot
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.Overline
 import io.signallq.app.ui.component.ProfileAvatarButton
@@ -104,8 +83,6 @@ import io.signallq.app.ui.component.ads.SimulatedOfferCard
 import io.signallq.app.ui.component.rememberTopBarAlpha
 import kotlinx.coroutines.launch
 import java.util.Calendar
-import kotlin.math.abs
-import kotlin.math.roundToInt
 
 // ─── Filtro enum ──────────────────────────────────────────────────────────────
 
@@ -221,374 +198,6 @@ private fun gargaloLabel(g: String?): String? =
         "bufferbloat" -> "Bufferbloat"
         else -> g
     }
-
-// ─── Tendência ────────────────────────────────────────────────────────────────
-
-@Composable
-private fun TendenciaCard(
-    resumo: ResumoHistorico,
-    c: LkTokens,
-) {
-    val tendencia = calcularTendencia(resumo) ?: return
-    val (estado, percentual) = tendencia
-    val icon =
-        when (estado) {
-            TendenciaEstado.MELHOROU -> Icons.AutoMirrored.Outlined.TrendingUp
-            TendenciaEstado.PIOROU -> Icons.AutoMirrored.Outlined.TrendingDown
-            TendenciaEstado.ESTAVEL -> Icons.AutoMirrored.Outlined.TrendingFlat
-        }
-    val iconColor =
-        when (estado) {
-            TendenciaEstado.MELHOROU -> LkColors.success
-            TendenciaEstado.PIOROU -> LkColors.error
-            TendenciaEstado.ESTAVEL -> c.textSecondary
-        }
-    val titulo =
-        when (estado) {
-            TendenciaEstado.MELHOROU -> "Download $percentual% acima da sua média"
-            TendenciaEstado.PIOROU -> "Download $percentual% abaixo da sua média"
-            TendenciaEstado.ESTAVEL -> "Velocidade dentro do esperado"
-        }
-    val subtexto =
-        when (estado) {
-            TendenciaEstado.MELHOROU, TendenciaEstado.PIOROU -> "Comparado às últimas 5 medições"
-            TendenciaEstado.ESTAVEL -> "Consistente com as últimas 5 medições"
-        }
-    val semanticDesc =
-        when (estado) {
-            TendenciaEstado.MELHOROU -> "Tendência de velocidade: download $percentual por cento acima da média"
-            TendenciaEstado.PIOROU -> "Tendência de velocidade: download $percentual por cento abaixo da média"
-            TendenciaEstado.ESTAVEL -> "Tendência de velocidade: estável"
-        }
-    Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .semantics { contentDescription = semanticDesc },
-        border = BorderStroke(1.dp, c.border),
-        colors = CardDefaults.cardColors(containerColor = c.bgCard),
-        shape = RoundedCornerShape(LkRadius.card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-    ) {
-        Row(
-            modifier = Modifier.padding(LkSpacing.lg),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Icon(imageVector = icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(20.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(titulo, style = MaterialTheme.typography.titleSmall, color = iconColor)
-                Text(subtexto, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
-            }
-        }
-    }
-}
-
-// ─── Gráfico de linha ─────────────────────────────────────────────────────────
-
-private data class TapLabel(
-    val text: String,
-    val x: Float,
-    val y: Float,
-)
-
-@Composable
-private fun LineChartGrafico(
-    medicoes: List<MedicaoEntity>,
-    c: LkTokens,
-) {
-    if (medicoes.isEmpty()) {
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(160.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                "Sem dados para o filtro selecionado",
-                style = MaterialTheme.typography.bodySmall,
-                color = c.textTertiary,
-                textAlign = TextAlign.Center,
-            )
-        }
-        return
-    }
-
-    val ordered = remember(medicoes) { medicoes.sortedBy { it.timestampEpochMs } }
-
-    val maxMbps =
-        remember(ordered) {
-            ordered
-                .flatMap { listOf(it.downloadMbps ?: 0.0, it.uploadMbps ?: 0.0) }
-                .maxOrNull()
-                ?.coerceAtLeast(1.0) ?: 1.0
-        }
-
-    var tapLabel by remember { mutableStateOf<TapLabel?>(null) }
-
-    val density = LocalDensity.current
-    val chartHeightDp = 160.dp
-    val yAxisWidthDp = 36.dp
-    val dotRadiusDp = 4.dp
-    val tapThresholdDp = 24.dp
-
-    val dlPoints = remember(ordered) { mutableListOf<Pair<Float, Float>>() }
-    val ulPoints = remember(ordered) { mutableListOf<Pair<Float, Float>>() }
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        // Legenda
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = LkSpacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
-            ) {
-                LkStatusDot(color = LkColors.accent)
-                Text("↓ Download", style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
-            ) {
-                LkStatusDot(color = LkColors.accentBlue)
-                Text("↑ Upload", style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
-            }
-        }
-
-        Spacer(Modifier.height(LkSpacing.xs))
-
-        Box(modifier = Modifier.fillMaxWidth().height(chartHeightDp)) {
-            val yAxisWidthPx = with(density) { yAxisWidthDp.toPx() }
-            val dotRadiusPx = with(density) { dotRadiusDp.toPx() }
-            val tapThresholdPx = with(density) { tapThresholdDp.toPx() }
-            val gridLevels = listOf(0.0, 0.33, 0.67, 1.0)
-
-            androidx.compose.foundation.Canvas(
-                modifier =
-                    Modifier.fillMaxSize().pointerInput(ordered) {
-                        detectTapGestures { tapOffset ->
-                            if (ordered.isEmpty()) return@detectTapGestures
-                            var closestDist = Float.MAX_VALUE
-                            var closestLabel: TapLabel? = null
-                            dlPoints.forEachIndexed { i, (px, py) ->
-                                val dist = abs(tapOffset.x - px) + abs(tapOffset.y - py)
-                                if (dist < closestDist && dist < tapThresholdPx * 2) {
-                                    closestDist = dist
-                                    val v = ordered.getOrNull(i)?.downloadMbps
-                                    if (v != null) closestLabel = TapLabel("↓ ${"%.0f".format(v)} Mbps", px, py)
-                                }
-                            }
-                            ulPoints.forEachIndexed { i, (px, py) ->
-                                val dist = abs(tapOffset.x - px) + abs(tapOffset.y - py)
-                                if (dist < closestDist && dist < tapThresholdPx * 2) {
-                                    closestDist = dist
-                                    val v = ordered.getOrNull(i)?.uploadMbps
-                                    if (v != null) closestLabel = TapLabel("↑ ${"%.0f".format(v)} Mbps", px, py)
-                                }
-                            }
-                            tapLabel = closestLabel
-                        }
-                    },
-            ) {
-                val w = size.width
-                val h = size.height
-                val chartW = w - yAxisWidthPx
-                val n = ordered.size
-                val dashEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 4f))
-                gridLevels.forEach { level ->
-                    val y = h - (level * h).toFloat()
-                    drawLine(
-                        color = c.border,
-                        start = Offset(yAxisWidthPx, y),
-                        end = Offset(w, y),
-                        strokeWidth = 1.dp.toPx(),
-                        pathEffect = dashEffect,
-                    )
-                }
-
-                fun drawPolyline(
-                    values: List<Double?>,
-                    color: Color,
-                    points: MutableList<Pair<Float, Float>>,
-                ) {
-                    points.clear()
-                    val path = Path()
-                    var firstPoint = true
-                    values.forEachIndexed { i, v ->
-                        val x = if (n == 1) yAxisWidthPx + chartW / 2f else yAxisWidthPx + (i.toFloat() / (n - 1)) * chartW
-                        val frac = ((v ?: 0.0) / maxMbps).coerceIn(0.0, 1.0).toFloat()
-                        val y = h - frac * h * 0.85f - h * 0.05f
-                        points.add(Pair(x, y))
-                        if (v != null) {
-                            if (firstPoint) {
-                                path.moveTo(x, y)
-                                firstPoint = false
-                            } else {
-                                path.lineTo(x, y)
-                            }
-                        }
-                    }
-                    drawPath(path = path, color = color, style = Stroke(width = 2.dp.toPx()))
-                    values.forEachIndexed { i, v ->
-                        if (v != null) {
-                            val (px, py) = points[i]
-                            drawCircle(color = color, radius = dotRadiusPx, center = Offset(px, py))
-                        }
-                    }
-                }
-
-                drawPolyline(ordered.map { it.downloadMbps }, LkColors.accent, dlPoints)
-                drawPolyline(ordered.map { it.uploadMbps }, LkColors.accentBlue, ulPoints)
-            }
-
-            // Y-axis labels
-            gridLevels.forEach { level ->
-                val valueMbps = (level * maxMbps).roundToInt()
-                val yFrac = (1.0 - level).toFloat()
-                val yOffsetDp = chartHeightDp * yFrac
-                Text(
-                    text = "$valueMbps",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = c.textTertiary,
-                    modifier =
-                        Modifier
-                            .align(Alignment.TopStart)
-                            .padding(top = yOffsetDp.coerceAtMost(chartHeightDp - 14.dp)),
-                )
-            }
-
-            // Tap label popup
-            val tl = tapLabel
-            if (tl != null) {
-                with(density) {
-                    Surface(
-                        modifier =
-                            Modifier
-                                .offset {
-                                    IntOffset(
-                                        (tl.x - 40.dp.toPx()).roundToInt().coerceAtLeast(0),
-                                        (tl.y - 32.dp.toPx()).roundToInt().coerceAtLeast(0),
-                                    )
-                                }.clickable { tapLabel = null },
-                        shape = RoundedCornerShape(6.dp),
-                        color = c.bgCard,
-                        shadowElevation = 4.dp,
-                        border = BorderStroke(1.dp, c.border),
-                    ) {
-                        Text(
-                            text = tl.text,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.W600,
-                            color = c.textPrimary,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        )
-                    }
-                }
-            }
-        }
-
-        // Eixo de tempo: sem isso, o gráfico não diz se cobre 3 dias ou 3 meses (P1)
-        Spacer(Modifier.height(2.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = yAxisWidthDp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                formatDateShort(ordered.first().timestampEpochMs),
-                style = MaterialTheme.typography.labelSmall,
-                color = c.textTertiary,
-            )
-            if (ordered.size > 1) {
-                Text(
-                    formatDateShort(ordered.last().timestampEpochMs),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = c.textTertiary,
-                )
-            }
-        }
-    }
-}
-
-private fun formatDateShort(epochMs: Long): String {
-    val cal = Calendar.getInstance().apply { timeInMillis = epochMs }
-    val today = Calendar.getInstance()
-    val yesterday = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
-    return when {
-        cal.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
-            cal.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR) -> "Hoje"
-        cal.get(Calendar.YEAR) == yesterday.get(Calendar.YEAR) &&
-            cal.get(Calendar.DAY_OF_YEAR) == yesterday.get(Calendar.DAY_OF_YEAR) -> "Ontem"
-        else -> "%02d/%02d".format(cal.get(Calendar.DAY_OF_MONTH), cal.get(Calendar.MONTH) + 1)
-    }
-}
-
-// ─── Cards de média ───────────────────────────────────────────────────────────
-
-@Composable
-private fun MediaCards(
-    medicoes: List<MedicaoEntity>,
-    c: LkTokens,
-) {
-    val validas = remember(medicoes) { medicoes.filter { !it.contaminado } }
-    val mediaDl =
-        remember(validas) {
-            val vals = validas.mapNotNull { it.downloadMbps }
-            if (vals.isEmpty()) null else vals.average()
-        }
-    val mediaUl =
-        remember(validas) {
-            val vals = validas.mapNotNull { it.uploadMbps }
-            if (vals.isEmpty()) null else vals.average()
-        }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-    ) {
-        MediaCard(
-            label = "DOWNLOAD MÉDIO",
-            value = mediaDl?.let { "%.0f Mbps".format(it) } ?: "--",
-            color = LkColors.accent,
-            modifier = Modifier.weight(1f),
-            c = c,
-        )
-        MediaCard(
-            label = "UPLOAD MÉDIO",
-            value = mediaUl?.let { "%.0f Mbps".format(it) } ?: "--",
-            color = LkColors.accentBlue,
-            modifier = Modifier.weight(1f),
-            c = c,
-        )
-    }
-}
-
-@Composable
-private fun MediaCard(
-    label: String,
-    value: String,
-    color: Color,
-    modifier: Modifier = Modifier,
-    c: LkTokens,
-) {
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = c.bgCard),
-        border = BorderStroke(1.dp, c.border),
-        shape = RoundedCornerShape(LkRadius.card),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-    ) {
-        Column(
-            modifier = Modifier.padding(LkSpacing.lg),
-            verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
-        ) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
-            Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = color)
-        }
-    }
-}
 
 // ─── Filtros de conexão ───────────────────────────────────────────────────────
 
@@ -960,82 +569,6 @@ private fun HistoricoCard(
     }
 }
 
-@Composable
-private fun SpeedBar(
-    value: Double?,
-    maxValue: Double,
-    color: Color,
-    arrowLabel: String,
-) {
-    val c = LocalLkTokens.current
-    val progress = if (value != null && maxValue > 0) (value / maxValue).coerceIn(0.0, 1.0).toFloat() else 0f
-    val valueStr = value?.let { "$arrowLabel ${"%.1f".format(it)} Mbps" } ?: "$arrowLabel -- Mbps"
-    val label = if (arrowLabel == "↓") "Download" else "Upload"
-    val barDesc = "$label ${value?.let { "%.1f".format(it) } ?: "sem dados"} Mbps"
-
-    Row(
-        modifier = Modifier.fillMaxWidth().semantics { contentDescription = barDesc },
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(c.bgSecondary),
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(progress)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(color),
-            )
-        }
-        Text(
-            valueStr,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.W600,
-            color = color,
-            maxLines = 1,
-            modifier = Modifier.width(100.dp),
-            textAlign = TextAlign.End,
-        )
-    }
-}
-
-@Composable
-private fun QualityBadge(
-    label: String,
-    color: Color,
-) {
-    LkPillBadge(
-        text = label,
-        containerColor = color.copy(alpha = 0.15f),
-        contentColor = color,
-    )
-}
-
-/**
- * Badge de origem "diagnóstico gerado por IA" -- autoexplicativo por design: o icone
- * de sparkle (mesmo usado em todo o app pra IA, ver DiagVerdictHeroCard)
- * + rotulo "IA" comunicam a origem sem precisar de nome de marca nem texto explicativo.
- */
-@Composable
-private fun IaBadge() {
-    // accent puro sobre fundo escuro cai a ~3.1:1 (falha WCAG AA) — em dark
-    // theme usa a variante clara accentOnDark p/ texto/ícone (ver GH#505).
-    val accentText = if (isSystemInDarkTheme()) LkColors.accentOnDark else LkColors.accent
-    LkPillBadge(
-        text = "IA",
-        containerColor = LkColors.accent.copy(alpha = 0.15f),
-        contentColor = accentText,
-    )
-}
-
 // ─── Detail sheet ─────────────────────────────────────────────────────────────
 
 @Composable
@@ -1100,7 +633,10 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
         LkSheetDivider()
 
         if (medicao.fonte == "orbit") {
-            LkSheetInfoRow("Origem", "Diagnóstico gerado por IA", valueColor = LkColors.accent)
+            // accent puro sobre fundo escuro cai a ~3.1:1 (falha WCAG AA) — em dark
+            // theme usa a variante clara accentOnDark p/ texto (ver GH#505).
+            val origemColor = if (isSystemInDarkTheme()) LkColors.accentOnDark else LkColors.accent
+            LkSheetInfoRow("Origem", "Diagnóstico gerado por IA", valueColor = origemColor)
             LkSheetDivider()
         }
         LkSheetInfoRow("Tipo de rede", tipoLabel(medicao))
@@ -1192,10 +728,18 @@ private fun DiagnosticoHistoricoSection(
             }
         }
         Spacer(Modifier.height(LkSpacing.sm))
+        // accent puro sobre fundo escuro cai a ~3.1:1 (falha WCAG AA) — em dark
+        // theme usa a variante clara accentOnDark p/ texto (ver GH#505).
+        val origemColor =
+            if (origem == "ia") {
+                if (isSystemInDarkTheme()) LkColors.accentOnDark else LkColors.accent
+            } else {
+                c.textTertiary
+            }
         Text(
             text = if (origem == "ia") "Gerado por IA" else "Diagnóstico local",
             style = MaterialTheme.typography.labelMedium,
-            color = if (origem == "ia") LkColors.accent else c.textTertiary,
+            color = origemColor,
             fontWeight = FontWeight.W500,
         )
     }
@@ -1205,7 +749,7 @@ private fun historicoVerdictColor(label: String): Color =
     when (label) {
         "Bom" -> LkColors.success
         "Aceitável" -> LkColors.warning
-        "Ruim" -> LkColors.warning
+        "Ruim" -> LkColors.error
         else -> LkColors.warning
     }
 
@@ -1244,29 +788,5 @@ private fun SecondaryMetric(
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
         Text(label, style = MaterialTheme.typography.labelMedium, color = c.textSecondary)
-    }
-}
-
-@Composable
-private fun SheetRow(
-    label: String,
-    value: String,
-    valueColor: Color? = null,
-) {
-    val c = LocalLkTokens.current
-    Row(
-        Modifier.fillMaxWidth().padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
-        Text(
-            value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = valueColor ?: c.textPrimary,
-            fontWeight = FontWeight.W500,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
     }
 }
