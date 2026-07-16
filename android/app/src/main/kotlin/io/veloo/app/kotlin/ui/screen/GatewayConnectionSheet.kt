@@ -16,11 +16,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -77,18 +75,6 @@ private sealed interface GatewayConnectionSheetState {
         val mensagem: String,
     ) : GatewayConnectionSheetState
 }
-
-private data class ModeloCompativelGateway(
-    val marca: String,
-    val modelo: String,
-    val tipo: String,
-)
-
-private val modelosCompativeisGateway =
-    listOf(
-        ModeloCompativelGateway("Nokia", "G-1425", "Roteador Wi-Fi 5"),
-        ModeloCompativelGateway("TP-Link", "Archer C6", "Roteador Wi-Fi 5 (AC1200)"),
-    )
 
 /**
  * Sheet de conexao ativa ao GPON/roteador (GH#526, epic #525).
@@ -474,6 +460,14 @@ internal fun toggleRowSwitchColors(c: LkTokens): SwitchColors =
         disabledUncheckedTrackColor = c.border,
     )
 
+/**
+ * Host da sheet real de "Modelos compatíveis" (GH#539) — o conteudo (catalogo
+ * [io.signallq.app.core.network.contracts.gateway.PublicCompatibilityCatalog],
+ * separacao validado/experimental) vive em [GatewayCompatibleModelsSheetContent],
+ * mesmo arquivo de tela dedicado `GatewayCompatibleModelsSheet.kt`. Aqui so o
+ * boilerplate de hospedagem (ModalBottomSheet + estado), igual ao padrao usado
+ * em [GatewayCredentialsGuideSheet].
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GatewayCompatibleModelsSheet(onDismissRequest: () -> Unit) {
@@ -483,110 +477,6 @@ private fun GatewayCompatibleModelsSheet(onDismissRequest: () -> Unit) {
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = c.bgSecondary,
     ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = LkSpacing.xl)
-                    .padding(top = LkSpacing.sm, bottom = LkSpacing.xxl)
-                    .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onDismissRequest) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowLeft,
-                        contentDescription = "Voltar",
-                        tint = c.textSecondary,
-                    )
-                }
-                Text(
-                    text = "Modelos compatíveis",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.W700,
-                    color = c.textPrimary,
-                )
-            }
-            Text(
-                text = "O SignallQ já testou a conexão automática com estes roteadores. Outros modelos também podem funcionar via usuário e senha manuais.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = c.textSecondary,
-            )
-            modelosCompativeisGateway.forEach { modelo ->
-                GatewayModelRow(
-                    marcaModelo = "${modelo.marca} ${modelo.modelo}",
-                    tipo = modelo.tipo,
-                    c = c,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun GatewayModelRow(
-    marcaModelo: String,
-    tipo: String,
-    c: LkTokens,
-) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.surfaceContainer)
-                .padding(LkSpacing.md),
-        horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        GatewayModelIcon(c = c)
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = marcaModelo,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.W600,
-                color = c.textPrimary,
-            )
-            Text(
-                text = tipo,
-                style = MaterialTheme.typography.bodySmall,
-                color = c.textSecondary,
-            )
-        }
-        Text(
-            text = "Compatível",
-            style = MaterialTheme.typography.labelMedium,
-            color = LkColors.success,
-            modifier =
-                Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(LkColors.success.copy(alpha = 0.14f))
-                    .padding(horizontal = LkSpacing.sm, vertical = 4.dp),
-        )
-    }
-}
-
-@Composable
-private fun GatewayModelIcon(c: LkTokens) {
-    Row(
-        modifier =
-            Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(LkColors.accent.copy(alpha = 0.14f)),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Router,
-            contentDescription = null,
-            modifier = Modifier.size(22.dp),
-            tint = LkColors.accent,
-        )
+        GatewayCompatibleModelsSheetContent(onBack = onDismissRequest, c = c)
     }
 }
