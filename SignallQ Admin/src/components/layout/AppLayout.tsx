@@ -1,5 +1,7 @@
 import React from "react";
 import { Sidebar } from "./Sidebar";
+import { NavRail } from "./NavRail";
+import { BottomNav } from "./BottomNav";
 import { Topbar } from "./Topbar";
 import { AppEnvironment } from "../../types/admin";
 
@@ -19,6 +21,16 @@ interface AppLayoutProps {
   id?: string;
 }
 
+/**
+ * GH#1041 — três estados de navegação, um só ativo por vez conforme a
+ * largura de viewport (breakpoint exato não definido pelo protótipo
+ * `md3-tobe`, decisão de engenharia documentada em
+ * FASE1_TOKENS_CONSOLE_MD3_TOBE_2026-07-16.md item 11):
+ *   - Desktop (>=1024px, `lg:`): Sidebar completa, 300px.
+ *   - Tablet (768-1024px, `md:` até `lg:`): NavRail colapsado, 88px, ícone-only.
+ *   - Mobile (<768px): BottomNav, 80px, substitui o antigo drawer/hambúrguer
+ *     (não coexistem — ver item 12 do mesmo doc).
+ */
 export const AppLayout: React.FC<AppLayoutProps> = ({
   currentPath,
   onNavigate,
@@ -34,38 +46,32 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   children,
   id,
 }) => {
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = React.useState(false);
-
-  const handleNavigate = React.useCallback((path: string) => {
-    onNavigate(path);
-    setIsMobileSidebarOpen(false);
-  }, [onNavigate]);
-
   return (
     <div
       id={id || "app-layout-root"}
       className="flex w-full h-screen overflow-hidden select-none font-sans"
       style={{ backgroundColor: "var(--bg-base)", color: "var(--text-primary)" }}
     >
-      {/* Mobile sidebar overlay */}
-      {isMobileSidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
-          onClick={() => setIsMobileSidebarOpen(false)}
-          aria-hidden="true"
+      {/* 1. Navegação — um único componente visível por breakpoint */}
+      <div className="hidden lg:block">
+        <Sidebar
+          currentPath={currentPath}
+          onNavigate={onNavigate}
+          environment={environment}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
         />
-      )}
-
-      {/* 1. Left Sidebar Navigation Panel */}
-      <Sidebar
-        currentPath={currentPath}
-        onNavigate={handleNavigate}
-        environment={environment}
-        isOpen={isMobileSidebarOpen}
-        onClose={() => setIsMobileSidebarOpen(false)}
-        theme={theme}
-        onToggleTheme={onToggleTheme}
-      />
+      </div>
+      <div className="hidden md:block lg:hidden">
+        <NavRail
+          currentPath={currentPath}
+          onNavigate={onNavigate}
+          environment={environment}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+          onLogout={onLogout}
+        />
+      </div>
 
       {/* 2. Main content container */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
@@ -78,21 +84,29 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           onRefresh={onRefresh}
           isRefreshing={isRefreshing}
           onLogout={onLogout}
-          onNavigate={handleNavigate}
-          onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
+          onNavigate={onNavigate}
           theme={theme}
         />
 
-        {/* Staging warning banner — removido em 2026-07-16: o protótipo
-            `md3-tobe` não tem banner equivalente, o chip PROD/STG segmentado
-            do Topbar já comunica o ambiente ativo (ver
-            FASE1_TOKENS_CONSOLE_MD3_TOBE_2026-07-16.md, item 4). */}
-
-        {/* 3. Main scrollable panel */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 lg:space-y-8" style={{ backgroundColor: "var(--bg-content)" }}>
+        {/* 3. Main scrollable panel — padding inferior extra no mobile pra não
+            ficar atrás do BottomNav fixo (80px + folga) */}
+        <main
+          className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pb-[calc(var(--bottom-nav-height)+16px)] md:pb-6 lg:pb-8 space-y-4 md:space-y-6 lg:space-y-8"
+          style={{ backgroundColor: "var(--bg-content)" }}
+        >
           {children}
         </main>
       </div>
+
+      {/* 4. Bottom Nav — mobile only, fixed, fora do fluxo de scroll */}
+      <BottomNav
+        currentPath={currentPath}
+        onNavigate={onNavigate}
+        environment={environment}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+        onLogout={onLogout}
+      />
     </div>
   );
 };

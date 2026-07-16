@@ -1,5 +1,5 @@
 import React from "react";
-import { RefreshCw, Bell, Palette, LogOut, Menu } from "lucide-react";
+import { RefreshCw, Bell, Palette, LogOut } from "lucide-react";
 import { AppEnvironment } from "../../types/admin";
 import { PERIOD_FILTERS } from "../../config/constants";
 import { adminMetricsService } from "../../services/adminMetricsService";
@@ -18,7 +18,6 @@ interface TopbarProps {
   onRefresh?: () => void;
   onLogout?: () => void;
   onNavigate?: (path: string) => void;
-  onOpenMobileSidebar?: () => void;
   isRefreshing?: boolean;
   theme?: "dark" | "light";
   id?: string;
@@ -32,7 +31,6 @@ export const Topbar: React.FC<TopbarProps> = ({
   onRefresh,
   onLogout,
   onNavigate,
-  onOpenMobileSidebar,
   isRefreshing = false,
   id,
 }) => {
@@ -58,23 +56,11 @@ export const Topbar: React.FC<TopbarProps> = ({
         backgroundColor: "var(--bg-topbar)",
       }}
     >
-      {/* Left: hamburger (mobile) + filtros globais (paridade com mockup) */}
+      {/* Left: filtros globais (paridade com mockup). Sem hamburger — o
+          BottomNav (mobile) e o NavRail (tablet) cobrem a navegação nesses
+          breakpoints, não sobra estado que precise abrir a Sidebar como
+          overlay (ver GH#1041). */}
       <div className="flex items-center gap-2 lg:gap-3.5 min-w-0">
-        {/* Hamburger — mobile only */}
-        {onOpenMobileSidebar && (
-          <button
-            onClick={onOpenMobileSidebar}
-            className="lg:hidden p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl transition-colors shrink-0"
-            style={{
-              backgroundColor: "var(--bg-surface)",
-              color: "var(--text-secondary)",
-            }}
-            aria-label="Abrir menu"
-          >
-            <Menu className="w-4 h-4" />
-          </button>
-        )}
-
         {/* Environment Filter */}
         <div
           className="flex p-0.5 rounded-xl"
