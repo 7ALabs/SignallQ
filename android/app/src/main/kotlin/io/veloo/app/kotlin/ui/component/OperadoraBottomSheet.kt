@@ -388,16 +388,15 @@ private fun OutraOperadoraRow(operadora: ContatoOperadora) {
                 style = MaterialTheme.typography.titleSmall,
                 color = c.textPrimary,
             )
-            val subtitulo =
-                when {
-                    operadora.whatsapp != null && operadora.sac != null -> "WhatsApp · ligar *${operadora.sac}"
-                    operadora.whatsapp != null -> "WhatsApp"
-                    operadora.sac != null -> "ligar *${operadora.sac}"
-                    else -> null
-                }
-            if (subtitulo != null) {
+            if (operadora.whatsapp != null) {
                 Text(
-                    text = subtitulo,
+                    text = "WhatsApp · ligar *${operadora.sac}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.textSecondary,
+                )
+            } else {
+                Text(
+                    text = "ligar *${operadora.sac}",
                     style = MaterialTheme.typography.bodySmall,
                     color = c.textSecondary,
                 )

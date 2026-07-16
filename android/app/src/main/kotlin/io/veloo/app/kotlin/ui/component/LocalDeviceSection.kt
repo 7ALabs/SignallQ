@@ -231,9 +231,7 @@ private fun GatewaySupportLevel.paraContratoLocal(): SupportLevel =
         GatewaySupportLevel.UNKNOWN -> SupportLevel.UNKNOWN
     }
 
-/** `internal` (GH#934) para ser reaproveitada por EquipamentoInternetScreen.kt
- *  (bloco Identification/DeviceSelector) sem duplicar a regra de nome. */
-internal fun tituloEquipamento(snapshot: LocalNetworkDeviceSnapshot): String {
+private fun tituloEquipamento(snapshot: LocalNetworkDeviceSnapshot): String {
     val vendor = snapshot.vendor?.trim().orEmpty()
     val modelo = snapshot.modelo?.trim().orEmpty()
     val vendorModelo = listOf(vendor, modelo).filter { it.isNotBlank() }.joinToString(" ")
@@ -593,10 +591,8 @@ private fun formatarUptime(segundos: Int): String {
 /** Formata o tempo decorrido desde a captura do snapshot em texto humano — a
  *  regra de expiracao ([DataFreshness.expirado]) e do motor, esta funcao so
  *  cobre o texto de "ha quanto tempo" quando a leitura ainda e considerada
- *  valida. `internal` (GH#934) — ver comentário de [deviceTypeIcon] acima
- *  (reaproveitada pelo stat "Atualizado" do StatusCard em
- *  EquipamentoInternetScreen.kt). */
-internal fun formatarFrescor(
+ *  valida. */
+private fun formatarFrescor(
     capturadoEmEpochMs: Long,
     agora: Long = System.currentTimeMillis(),
 ): String {
@@ -1075,9 +1071,7 @@ private fun SuporteBadge(
     )
 }
 
-/** `internal` (GH#934) para ser reaproveitada por EquipamentoInternetScreen.kt
- *  (nó de equipamento em Topology, ícone de Identification) sem duplicar. */
-internal fun deviceTypeIcon(deviceType: DeviceType): ImageVector =
+private fun deviceTypeIcon(deviceType: DeviceType): ImageVector =
     when (deviceType) {
         DeviceType.ONT_GPON -> Icons.Outlined.Cable
         DeviceType.ROUTER -> Icons.Outlined.Router
@@ -1085,8 +1079,7 @@ internal fun deviceTypeIcon(deviceType: DeviceType): ImageVector =
         DeviceType.UNKNOWN_SUPPORTED, DeviceType.UNKNOWN_UNSUPPORTED -> Icons.Outlined.DeviceUnknown
     }
 
-/** `internal` (GH#934) — ver comentário de [deviceTypeIcon] acima. */
-internal fun deviceTypeLabel(deviceType: DeviceType): String =
+private fun deviceTypeLabel(deviceType: DeviceType): String =
     when (deviceType) {
         DeviceType.ONT_GPON -> "ONT de fibra"
         DeviceType.ROUTER -> "Roteador"

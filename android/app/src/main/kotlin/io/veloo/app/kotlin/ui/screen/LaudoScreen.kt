@@ -437,31 +437,6 @@ fun LaudoScreen(
                     )
                 }
             }
-
-            // Botão de rodapé — spec 5e: "Compartilhar laudo em PDF"
-            item {
-                Button(
-                    onClick = compartilharLaudo,
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !gerando,
-                    shape = RoundedCornerShape(LkRadius.button),
-                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
-                ) {
-                    if (gerando) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            color = LkColors.Light.bgPrimary,
-                            strokeWidth = 2.dp,
-                        )
-                    } else {
-                        Text(
-                            "Compartilhar laudo em PDF",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.W600,
-                        )
-                    }
-                }
-            }
         }
     }
 }

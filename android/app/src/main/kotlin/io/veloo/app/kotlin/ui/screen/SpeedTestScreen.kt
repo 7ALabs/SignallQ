@@ -459,10 +459,7 @@ private fun SpeedTestCircle(
 ) {
     Box(
         contentAlignment = Alignment.Center,
-        // 250dp = botão 230dp (spec) + halo 20dp (10dp de espessura equivalente em
-        // cada lado, ver IdleCircle) -- reserva espaço suficiente pro halo não ser
-        // cortado, mesmo nos estados que não usam o halo (Erro/Concluído, 210dp).
-        modifier = Modifier.size(250.dp),
+        modifier = Modifier.size(230.dp),
     ) {
         when (estado) {
             EstadoExecucaoSpeedtest.idle -> {
@@ -515,8 +512,6 @@ private fun IdleCircle(
     val cdBotao = if (habilitado) "Iniciar teste de velocidade" else "Iniciar teste de velocidade, indisponível sem conexão"
 
     Box(contentAlignment = Alignment.Center) {
-        // Halo animado -- evolução aceitável do "box-shadow 0 0 0 10px" estático da
-        // spec: 250dp = botão 230dp + 10dp de halo em cada lado.
         Box(
             modifier =
                 Modifier
