@@ -99,11 +99,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -188,14 +184,6 @@ private fun topBarSubtitulo(
  * não informação acionável (GH#515, ver `movelSnapshot.tecnologia`/[MovelSnapshot]).
  */
 internal fun tecnologiaSimplificada(tec: String?): String? = tec?.ifBlank { null }?.substringBefore(" ")
-
-/**
- * GH#827 — exige 2+ pontos com dado valido (download ou upload) pra considerar que ha
- * grafico renderizavel. Com 1 unico ponto o [MiniLineChart] so tem um `moveTo` sem
- * `lineTo`/`cubicTo` — nao ha linha real pra desenhar, so espaco reservado vazio.
- */
-internal fun hasRenderableChartData(history: List<HistoryPoint>): Boolean =
-    history.count { it.downloadMbps != null || it.uploadMbps != null } >= 2
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1411,68 +1399,6 @@ private fun formatRelativeTimestamp(epochMs: Long): String {
 
 private fun formatSpeedValue(value: Double): String = if (value >= 100) value.toLong().toString() else "%.1f".format(value)
 
-// ─── Mini line chart ──────────────────────────────────────────────────────────
-
-@Composable
-private fun MiniLineChart(
-    history: List<HistoryPoint>,
-    modifier: Modifier,
-    c: LkTokens,
-) {
-    val phaseDownload = LkColors.phaseDownload
-    val phaseUpload = LkColors.phaseUpload
-    Canvas(modifier = modifier) {
-        val dlPairs = history.mapIndexedNotNull { i, p -> p.downloadMbps?.let { i.toFloat() to it.toFloat() } }
-        val ulPairs = history.mapIndexedNotNull { i, p -> p.uploadMbps?.let { i.toFloat() to it.toFloat() } }
-        val allVals = dlPairs.map { it.second } + ulPairs.map { it.second }
-        if (allVals.isEmpty()) return@Canvas
-        val maxY = allVals.max() * 1.2f
-        val n = (history.size - 1).coerceAtLeast(1).toFloat()
-
-        fun toX(i: Float) = i / n * size.width
-
-        fun toY(v: Float) = size.height - (v / maxY * size.height)
-
-        fun smoothPath(pts: List<Pair<Float, Float>>): Path {
-            val path = Path()
-            if (pts.isEmpty()) return path
-            path.moveTo(toX(pts[0].first), toY(pts[0].second))
-            for (k in 1 until pts.size) {
-                val prev = pts[k - 1]
-                val curr = pts[k]
-                val cpx = (toX(prev.first) + toX(curr.first)) / 2f
-                path.cubicTo(cpx, toY(prev.second), cpx, toY(curr.second), toX(curr.first), toY(curr.second))
-            }
-            return path
-        }
-
-        if (dlPairs.isNotEmpty()) {
-            val linePath = smoothPath(dlPairs)
-            val fillPath =
-                Path().also {
-                    it.addPath(linePath)
-                    it.lineTo(toX(dlPairs.last().first), size.height)
-                    it.lineTo(toX(dlPairs.first().first), size.height)
-                    it.close()
-                }
-            drawPath(fillPath, phaseDownload.copy(alpha = 0.1f))
-            drawPath(linePath, phaseDownload, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-        }
-        if (ulPairs.isNotEmpty()) {
-            val linePath = smoothPath(ulPairs)
-            val fillPath =
-                Path().also {
-                    it.addPath(linePath)
-                    it.lineTo(toX(ulPairs.last().first), size.height)
-                    it.lineTo(toX(ulPairs.first().first), size.height)
-                    it.close()
-                }
-            drawPath(fillPath, phaseUpload.copy(alpha = 0.07f))
-            drawPath(linePath, phaseUpload, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
-        }
-    }
-}
-
 // ─── Signal quality row ───────────────────────────────────────────────────────
 
 @Composable
@@ -1486,7 +1412,7 @@ private fun SignalQualityRow(
     val isWifi = snapshotRede.estadoConexao == EstadoConexao.wifi
     val isMobile = snapshotRede.estadoConexao == EstadoConexao.movel
     val wifiRssi = if (isWifi) (connectedNetwork?.rssiDbm ?: snapshotRede.wifiLinkSnapshot?.rssiDbm) else null
-    val wifiPct = wifiRssi?.let { ((it + 90) / 50.0).coerceIn(0.0, 1.0) * 100 }?.roundToInt()
+    val wifiPct = wifiSignalPercent(wifiRssi)
 
     if (wifiPct == null && !isMobile) return
 
@@ -1560,6 +1486,15 @@ private fun wifiSignalColor(rssiDbm: Int): Color =
         else -> LkColors.error
     }
 
+/**
+ * Higiene 2026-07-16 (varredura Fase 2, tela Início) — a mesma conversão RSSI→percentual
+ * estava copiada 3x dentro deste arquivo ([SignalQualityRow], [WifiSignalCard],
+ * [ConnectionContextCard]). Fonte única aqui; **não confundir** com o cálculo de
+ * `heightFraction` de `SinalScreen.kt` (escala 0..70 pra altura de barra, não percentual de
+ * qualidade) — telas diferentes, dominios visuais diferentes, fora do escopo desta varredura.
+ */
+private fun wifiSignalPercent(rssiDbm: Int?): Int? = rssiDbm?.let { ((it + 90) / 50.0).coerceIn(0.0, 1.0) * 100 }?.roundToInt()
+
 private fun wifiSignalQuality(rssiDbm: Int): String =
     when {
         rssiDbm >= -55 -> "Excelente"
@@ -1585,6 +1520,9 @@ private fun mobileSignalColor(rsrpDbm: Int?): Color =
         else -> LkColors.error
     }
 
+/** Mesma conversão RSRP→percentual estava copiada 2x ([MobileSignalCard], [SimChipCompact]). */
+private fun mobileSignalPercent(rsrpDbm: Int?): Int? = rsrpDbm?.let { ((it + 140) / 96.0).coerceIn(0.0, 1.0) * 100 }?.roundToInt()
+
 // ─── Wi-Fi signal card ───────────────────────────────────────────────────────
 
 @Composable
@@ -1597,7 +1535,7 @@ private fun WifiSignalCard(
     onTapDispositivos: () -> Unit = {},
 ) {
     val wifiRssi = connectedNetwork?.rssiDbm ?: snapshotRede.wifiLinkSnapshot?.rssiDbm
-    val wifiPct = wifiRssi?.let { ((it + 90) / 50.0).coerceIn(0.0, 1.0) * 100 }?.roundToInt()
+    val wifiPct = wifiSignalPercent(wifiRssi)
     val ssidResolvido = connectedNetwork?.ssid ?: snapshotRede.wifiLinkSnapshot?.ssid
     val ssid = ssidResolvido ?: "Wi-Fi"
     val freqMhz = connectedNetwork?.frequenciaMhz ?: snapshotRede.wifiLinkSnapshot?.frequenciaMhz
@@ -1883,8 +1821,7 @@ private fun MobileSignalCard(
                 }
             }
             if (rsrp != null) {
-                val mobilePct = ((rsrp + 140) / 96.0).coerceIn(0.0, 1.0) * 100
-                MiniSignalBars(pct = mobilePct.roundToInt(), color = mobileColor)
+                MiniSignalBars(pct = mobileSignalPercent(rsrp) ?: 0, color = mobileColor)
             }
         }
     }
@@ -2031,7 +1968,7 @@ private fun SimChipCompact(
 ) {
     val rsrpDbm = sim.rsrpDbm
     val rsrpColor = mobileSignalColor(rsrpDbm)
-    val rsrpPct = rsrpDbm?.let { ((it + 140) / 96.0).coerceIn(0.0, 1.0) * 100 }?.roundToInt() ?: 0
+    val rsrpPct = mobileSignalPercent(rsrpDbm) ?: 0
     val isActive = sim.tecnologiaRede != null
 
     Surface(
@@ -3532,7 +3469,7 @@ private fun ConnectionContextCard(
     when (snapshotRede.estadoConexao) {
         EstadoConexao.wifi -> {
             val rssiDbm = snapshotRede.wifiLinkSnapshot?.rssiDbm
-            val wifiPct = rssiDbm?.let { ((it + 90) / 50.0).coerceIn(0.0, 1.0) * 100 }?.roundToInt()
+            val wifiPct = wifiSignalPercent(rssiDbm)
             val ssid =
                 snapshotRede.wifiLinkSnapshot
                     ?.ssid

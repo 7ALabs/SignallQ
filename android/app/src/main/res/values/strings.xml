@@ -81,7 +81,7 @@
     <string name="onboarding_btn_continuar">Continuar</string>
 
     <!-- Home screen -->
-    <string name="home_titulo">Home</string>
+    <string name="home_titulo">Início</string>
     <string name="home_cgnat_titulo">Conexão compartilhada com vizinhos</string>
     <string name="home_cgnat_descricao">Seu provedor divide o acesso à internet entre vários clientes. Não afeta navegação e streaming, mas pode impactar jogos online e aplicativos de chamada.</string>
     <string name="home_medicoes_titulo">Medições</string>
