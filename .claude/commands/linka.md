@@ -34,9 +34,9 @@ Em seguida, pergunte: **"Em que vamos trabalhar hoje?"**
 | Skill / Comando | Quando usar automaticamente |
 |-------|-----------------------------|
 | `/linka` | Início de sessão nova sem contexto anterior |
-| `/linka-design create` | Criar nova tela ou componente Compose |
-| `/linka-design review` | Editar arquivo em `ui/screen/` ou `ui/component/` |
-| `/linka-design tokens` | Dúvida sobre cor, espaçamento ou tipografia |
+| `/SignallQ-design create` | Criar nova tela ou componente Compose |
+| `/SignallQ-design review` | Editar arquivo em `ui/screen/` ou `ui/component/` |
+| `/SignallQ-design tokens` | Dúvida sobre cor, espaçamento ou tipografia |
 | `/linka-arch create` | Criar módulo, ViewModel, DAO, serviço ou repositório |
 | `/linka-arch review` | Revisão arquitetural de arquivo Kotlin |
 | `/linka-arch map` | Dúvida sobre onde implementar algo |

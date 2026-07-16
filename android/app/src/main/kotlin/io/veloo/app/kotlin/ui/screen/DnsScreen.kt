@@ -12,6 +12,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,29 +20,36 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Button
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -56,7 +64,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.feature.dns.EstadoBenchmarkDns
 import io.signallq.app.feature.dns.ResultadoBenchmarkDns
@@ -64,54 +71,80 @@ import io.signallq.app.feature.dns.SnapshotBenchmarkDns
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
+import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.component.LkInlineBulletText
+import io.signallq.app.ui.component.LkNumberedStep
+import io.signallq.app.ui.component.LkPillBadge
+import io.signallq.app.ui.component.LkSheetDivider
+import io.signallq.app.ui.component.LkSheetSectionTitle
+import io.signallq.app.ui.component.LkSurfaceCard
 import kotlin.math.roundToInt
 
 // ─── Entry point ──────────────────────────────────────────────────────────────
 
+// GH#933 — Fase 4 MD3: migrou de ModalBottomSheet (antigo DnsSheetContent) para tela
+// cheia roteada (Overlay.Dns em AppShell). Lógica de benchmark/orientação de troca de
+// DNS preservada — só o container visual mudou de sheet para Scaffold+TopAppBar.
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DnsSheetContent(
+fun DnsScreen(
     snapshotDns: SnapshotBenchmarkDns,
     dnsResolverIp: String?,
     snapshotRede: SnapshotRede,
-    c: LkTokens,
     onIniciarBenchmark: () -> Unit,
+    onVoltar: () -> Unit,
 ) {
+    val c = LocalLkTokens.current
     val currentDnsName = resolveDnsName(dnsResolverIp)
     var showGuia by remember { mutableStateOf(false) }
 
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 32.dp)
-                .navigationBarsPadding(),
-    ) {
-        // drag handle
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            Box(
-                modifier =
-                    Modifier
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(c.border),
+    Scaffold(
+        containerColor = c.bgPrimary,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "DNS",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.W600,
+                        color = c.textPrimary,
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { if (showGuia) showGuia = false else onVoltar() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                            contentDescription = "Voltar",
+                            tint = c.textPrimary,
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
             )
-        }
-        Spacer(Modifier.height(20.dp))
-
-        if (showGuia) {
-            DnsGuideView(c = c, onVoltar = { showGuia = false })
-        } else {
-            DnsMainContent(
-                snapshotDns = snapshotDns,
-                dnsResolverIp = dnsResolverIp,
-                currentDnsName = currentDnsName,
-                snapshotRede = snapshotRede,
-                c = c,
-                onAbrirGuia = { showGuia = true },
-                onIniciarBenchmark = onIniciarBenchmark,
-            )
+        },
+    ) { padding ->
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 32.dp),
+        ) {
+            if (showGuia) {
+                DnsGuideView(c = c, onVoltar = { showGuia = false })
+            } else {
+                DnsMainContent(
+                    snapshotDns = snapshotDns,
+                    dnsResolverIp = dnsResolverIp,
+                    currentDnsName = currentDnsName,
+                    snapshotRede = snapshotRede,
+                    c = c,
+                    onAbrirGuia = { showGuia = true },
+                    onIniciarBenchmark = onIniciarBenchmark,
+                )
+            }
         }
     }
 }
@@ -130,11 +163,11 @@ private fun DnsMainContent(
 ) {
     val isLoading = snapshotDns.estado == EstadoBenchmarkDns.executando
 
-    Text("Comparativo de DNS", fontSize = 18.sp, fontWeight = FontWeight.W700, color = c.textPrimary)
+    Text("Comparativo de DNS", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.W700, color = c.textPrimary)
     Spacer(Modifier.height(4.dp))
     Text(
         "DNS afeta a abertura de sites, não a velocidade da sua conexão.",
-        fontSize = 12.sp,
+        style = MaterialTheme.typography.bodyMedium,
         color = c.textSecondary,
     )
     Spacer(Modifier.height(16.dp))
@@ -148,7 +181,7 @@ private fun DnsMainContent(
     )
 
     Spacer(Modifier.height(16.dp))
-    Text("Latência via DoH · menor é melhor", fontSize = 12.sp, color = c.textSecondary)
+    Text("Latência via DoH · menor é melhor", style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
     Spacer(Modifier.height(12.dp))
 
     // ── Bloco 2 — Benchmark ───────────────────────────────────────────────────
@@ -168,17 +201,13 @@ private fun DnsMainContent(
                 } else {
                     "Não consegui comparar DNS nesta conexão. Tente novamente quando a rede estabilizar."
                 }
-            Text(
-                text = mensagemErro,
-                fontSize = 13.sp,
-                color = LkColors.error,
-            )
+            Text(text = mensagemErro, style = MaterialTheme.typography.bodyMedium, color = LkColors.error)
         }
         isLoading && snapshotDns.resultados.isEmpty() -> {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = LkColors.accent)
                 Spacer(Modifier.width(10.dp))
-                Text("Medindo servidores...", fontSize = 13.sp, color = c.textSecondary)
+                Text("Medindo servidores...", style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
             }
         }
         else -> {
@@ -188,18 +217,19 @@ private fun DnsMainContent(
                     .minByOrNull { it.tempoMs!! }
                     ?.nomeProvedor
 
-            HorizontalDivider(color = c.border, thickness = 1.dp)
-
-            // LazyColumn com altura máxima para não crescer indefinidamente
-            LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
-                items(snapshotDns.resultados) { server ->
-                    DnsRowSheet(
-                        result = server,
-                        isCurrent = server.nomeProvedor == currentDnsName,
-                        isRecomendado = server.nomeProvedor == recomendadoNome,
-                        c = c,
-                    )
-                    HorizontalDivider(color = c.border, thickness = 1.dp)
+            LkSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+                Column {
+                    snapshotDns.resultados.forEachIndexed { index, server ->
+                        DnsRowSheet(
+                            result = server,
+                            isCurrent = server.nomeProvedor == currentDnsName,
+                            isRecomendado = server.nomeProvedor == recomendadoNome,
+                            c = c,
+                        )
+                        if (index < snapshotDns.resultados.lastIndex) {
+                            HorizontalDivider(color = c.border, thickness = 1.dp)
+                        }
+                    }
                 }
             }
 
@@ -212,7 +242,7 @@ private fun DnsMainContent(
                         color = LkColors.accent.copy(alpha = 0.6f),
                     )
                     Spacer(Modifier.width(8.dp))
-                    Text("Medindo...", fontSize = 11.sp, color = c.textTertiary)
+                    Text("Medindo...", style = MaterialTheme.typography.labelSmall, color = c.textTertiary)
                 }
             }
 
@@ -248,31 +278,24 @@ private fun DnsBloco1Atual(
     val isLoading = snapshotRede.dnsServidores.isEmpty() && snapshotRede.conectado
     val semDadosOffline = snapshotRede.dnsServidores.isEmpty() && !snapshotRede.conectado
 
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(c.bgPrimary)
-                .padding(12.dp),
-    ) {
+    LkSurfaceCard(modifier = Modifier.fillMaxWidth()) {
         if (semDadosOffline) {
             Text(
                 "Sem conexão para comparar DNS.",
-                fontSize = 13.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 color = LkColors.error,
             )
         } else if (isLoading) {
             DnsSkeletonBloco1(c = c)
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Seu DNS atual", fontSize = 11.sp, fontWeight = FontWeight.W500, color = c.textTertiary)
+                Text("Seu DNS atual", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.W500, color = c.textTertiary)
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(currentDnsName, fontSize = 14.sp, fontWeight = FontWeight.W600, color = c.textPrimary)
+                        Text(currentDnsName, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
                         if (dnsIp != null) {
-                            Text(dnsIp, fontSize = 11.sp, color = c.textSecondary)
+                            Text(dnsIp, style = MaterialTheme.typography.labelSmall, color = c.textSecondary)
                         }
                     }
 
@@ -286,7 +309,7 @@ private fun DnsBloco1Atual(
                         if (latenciaAtual != null) {
                             Text(
                                 "${latenciaAtual.roundToInt()} ms",
-                                fontSize = 13.sp,
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.W500,
                                 color = c.textSecondary,
                             )
@@ -298,7 +321,7 @@ private fun DnsBloco1Atual(
                 if (currentDnsName == "Roteador da rede") {
                     Text(
                         "O roteador repassa as consultas ao DNS real do provedor. A latência local não é comparável com DNS públicos externos.",
-                        fontSize = 11.sp,
+                        style = MaterialTheme.typography.labelSmall,
                         color = c.textTertiary,
                     )
                 }
@@ -306,23 +329,14 @@ private fun DnsBloco1Atual(
                 if (snapshotRede.privateDnsAtivo) {
                     Spacer(Modifier.height(2.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(LkColors.success.copy(alpha = 0.12f))
-                                    .padding(horizontal = LkSpacing.sm, vertical = 3.dp),
-                        ) {
-                            Text(
-                                "DNS Privado ativo",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.W600,
-                                color = LkColors.success,
-                            )
-                        }
+                        LkPillBadge(
+                            text = "DNS Privado ativo",
+                            containerColor = LkColors.success.copy(alpha = 0.12f),
+                            contentColor = LkColors.success,
+                        )
                         val hostname = snapshotRede.privateDnsHostname
                         if (!hostname.isNullOrBlank()) {
-                            Text(hostname, fontSize = 11.sp, color = c.textTertiary)
+                            Text(hostname, style = MaterialTheme.typography.labelSmall, color = c.textTertiary)
                         }
                     }
                 }
@@ -394,35 +408,34 @@ private fun DnsBloco3Recomendacao(
     melhor: ResultadoBenchmarkDns,
     c: LkTokens,
 ) {
-    Box(
+    Column(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(LkColors.success.copy(alpha = 0.08f))
-                .padding(12.dp),
+                .clip(RoundedCornerShape(16.dp))
+                .background(LkColors.success.copy(alpha = 0.10f))
+                .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                "Resultado do teste",
-                fontSize = 11.sp,
-                fontWeight = FontWeight.W500,
-                color = LkColors.success,
-            )
-            val tempo = melhor.tempoMs?.roundToInt()
-            Text(
-                "Neste teste, ${melhor.nomeProvedor} respondeu mais rápido." +
-                    if (tempo != null) " ($tempo ms)" else "",
-                fontSize = 13.sp,
-                fontWeight = FontWeight.W600,
-                color = c.textPrimary,
-            )
-            Text(
-                "Isso não troca o DNS automaticamente. Para alterar, você precisa configurar no Android ou no roteador.",
-                fontSize = 12.sp,
-                color = c.textSecondary,
-            )
-        }
+        Text(
+            "Resultado do teste",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.W500,
+            color = LkColors.success,
+        )
+        val tempo = melhor.tempoMs?.roundToInt()
+        Text(
+            "Neste teste, ${melhor.nomeProvedor} respondeu mais rápido." +
+                if (tempo != null) " ($tempo ms)" else "",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.W600,
+            color = c.textPrimary,
+        )
+        Text(
+            "Isso não troca o DNS automaticamente. Para alterar, você precisa configurar no Android ou no roteador.",
+            style = MaterialTheme.typography.bodySmall,
+            color = c.textSecondary,
+        )
     }
 }
 
@@ -441,14 +454,14 @@ private fun DnsBloco4Guia(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .clickable { expandido = !expandido }
-                    .padding(vertical = LkSpacing.sm),
+                    .padding(vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 "Quando vale a pena trocar DNS?",
-                fontSize = 13.sp,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.W600,
                 color = c.textPrimary,
                 modifier = Modifier.weight(1f),
@@ -473,27 +486,27 @@ private fun DnsBloco4Guia(
                 // Quando vale a pena
                 Text(
                     "Vale a pena trocar quando:",
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.W500,
                     color = c.textSecondary,
                 )
-                DnsGuiaBullet("Sites demoram para abrir mesmo com boa velocidade de download", c)
-                DnsGuiaBullet("O DNS atual apresentou latência alta neste comparativo", c)
-                DnsGuiaBullet("Você quer filtro de anúncios ou rastreadores (ex.: AdGuard, Quad9)", c)
-                DnsGuiaBullet("Está em rede que bloqueia domínios sem motivo aparente", c)
+                DnsGuiaBullet("Sites demoram para abrir mesmo com boa velocidade de download")
+                DnsGuiaBullet("O DNS atual apresentou latência alta neste comparativo")
+                DnsGuiaBullet("Você quer filtro de anúncios ou rastreadores (ex.: AdGuard, Quad9)")
+                DnsGuiaBullet("Está em rede que bloqueia domínios sem motivo aparente")
 
                 Spacer(Modifier.height(4.dp))
 
                 // Quando não faz diferença
                 Text(
                     "Quando não faz diferença:",
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.W500,
                     color = c.textSecondary,
                 )
-                DnsGuiaBullet("A lentidão é no download/upload — isso é velocidade de conexão, não DNS", c)
-                DnsGuiaBullet("Todos os DNS testados tiveram latência similar (< 10 ms de diferença)", c)
-                DnsGuiaBullet("O site que você acessa usa IP fixo em cache local", c)
+                DnsGuiaBullet("A lentidão é no download/upload — isso é velocidade de conexão, não DNS")
+                DnsGuiaBullet("Todos os DNS testados tiveram latência similar (< 10 ms de diferença)")
+                DnsGuiaBullet("O site que você acessa usa IP fixo em cache local")
 
                 Spacer(Modifier.height(8.dp))
             }
@@ -511,7 +524,19 @@ private fun DnsBloco4Guia(
                     .padding(vertical = LkSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Como alterar meu DNS", fontSize = 13.sp, color = LkColors.accent, fontWeight = FontWeight.W500)
+            Text(
+                "Como alterar meu DNS",
+                style = MaterialTheme.typography.labelLarge,
+                color = LkColors.accent,
+                fontWeight = FontWeight.W500,
+            )
+            Spacer(Modifier.width(4.dp))
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = LkColors.accent,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }
@@ -519,19 +544,8 @@ private fun DnsBloco4Guia(
 @Composable
 private fun DnsGuiaBullet(
     texto: String,
-    c: LkTokens,
 ) {
-    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Box(
-            modifier =
-                Modifier
-                    .padding(top = 5.dp)
-                    .size(5.dp)
-                    .clip(CircleShape)
-                    .background(c.textTertiary),
-        )
-        Text(texto, fontSize = 12.sp, color = c.textSecondary, modifier = Modifier.weight(1f))
-    }
+    LkInlineBulletText(text = texto)
 }
 
 // ─── Row de benchmark ─────────────────────────────────────────────────────────
@@ -544,48 +558,35 @@ private fun DnsRowSheet(
     c: LkTokens,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = LkSpacing.sm),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     result.nomeProvedor,
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.W600,
                     color = if (isRecomendado) LkColors.success else c.textPrimary,
                 )
                 if (isCurrent) {
                     Spacer(Modifier.width(LkSpacing.sm))
-                    Box(
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(LkColors.accent.copy(alpha = 0.12f))
-                                .padding(horizontal = LkSpacing.sm, vertical = 4.dp),
-                    ) {
-                        Text("atual", fontSize = 10.sp, fontWeight = FontWeight.W600, color = LkColors.accent)
-                    }
+                    LkPillBadge("atual", LkColors.accent.copy(alpha = 0.12f), LkColors.accent)
                 }
                 if (isRecomendado) {
                     Spacer(Modifier.width(LkSpacing.sm))
-                    Box(
-                        modifier =
-                            Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(LkColors.success.copy(alpha = 0.12f))
-                                .padding(horizontal = LkSpacing.sm, vertical = 4.dp),
-                    ) {
-                        Text("mais rápido", fontSize = 10.sp, fontWeight = FontWeight.W600, color = LkColors.success)
-                    }
+                    LkPillBadge("mais rápido", LkColors.success.copy(alpha = 0.12f), LkColors.success)
                 }
             }
         }
         val tempoMs = result.tempoMs
         if (result.erroMensagem != null && tempoMs == null) {
-            Text("Falhou", fontSize = 12.sp, color = LkColors.error)
+            Text("Falhou", style = MaterialTheme.typography.bodySmall, color = LkColors.error)
         } else if (tempoMs != null) {
-            Text("${tempoMs.roundToInt()} ms", fontSize = 13.sp, fontWeight = FontWeight.W500, color = c.textSecondary)
+            Text("${tempoMs.roundToInt()} ms", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
             Spacer(Modifier.width(8.dp))
             result.gradeRapidez?.let { DnsGradeBadge(grade = it, c = c) }
         }
@@ -614,7 +615,7 @@ private fun DnsGradeBadge(
                 .background(color.copy(alpha = 0.15f)),
         contentAlignment = Alignment.Center,
     ) {
-        Text(grade, fontSize = 12.sp, fontWeight = FontWeight.W700, color = color)
+        Text(grade, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.W700, color = color)
     }
 }
 
@@ -632,18 +633,23 @@ private fun DnsGuideView(
             contentPadding = PaddingValues(0.dp),
         ) {
             Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
+                Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
                 tint = c.textSecondary,
             )
             Spacer(Modifier.width(4.dp))
-            Text("Voltar ao comparativo", fontSize = 12.sp, color = c.textSecondary)
+            Text(
+                "Voltar ao comparativo",
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.textSecondary,
+            )
         }
         Spacer(Modifier.height(12.dp))
-        Text("Como alterar meu DNS", fontSize = 16.sp, fontWeight = FontWeight.W600, color = c.textPrimary)
-        Spacer(Modifier.height(4.dp))
-        Text("Escolha onde prefere alterar:", fontSize = 12.sp, color = c.textSecondary)
+        LkSheetSectionTitle(
+            title = "Como alterar meu DNS",
+            subtitle = "Escolha onde prefere alterar:",
+        )
         Spacer(Modifier.height(16.dp))
 
         val tabs = listOf("Dispositivo", "Roteador")
@@ -651,7 +657,14 @@ private fun DnsGuideView(
             selectedTabIndex = tabSelecionada,
             containerColor = c.bgPrimary,
             contentColor = LkColors.accent,
-            divider = { HorizontalDivider(color = c.border, thickness = 1.dp) },
+            divider = { LkSheetDivider() },
+            indicator = { tabPositions ->
+                TabRowDefaults.SecondaryIndicator(
+                    modifier = Modifier.tabIndicatorOffset(tabPositions[tabSelecionada]),
+                    color = LkColors.accent,
+                    height = 2.dp,
+                )
+            },
         ) {
             tabs.forEachIndexed { idx, label ->
                 Tab(
@@ -660,7 +673,7 @@ private fun DnsGuideView(
                     text = {
                         Text(
                             label,
-                            fontSize = 13.sp,
+                            style = MaterialTheme.typography.titleSmall,
                             fontWeight = if (tabSelecionada == idx) FontWeight.W600 else FontWeight.W400,
                             color = if (tabSelecionada == idx) LkColors.accent else c.textSecondary,
                         )
@@ -673,32 +686,42 @@ private fun DnsGuideView(
 
         if (tabSelecionada == 0) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Android · DNS Privado", fontSize = 13.sp, fontWeight = FontWeight.W600, color = c.textPrimary)
-                DnsGuideStep(1, "Abra as Configurações do sistema", c)
-                DnsGuideStep(2, "Vá em Rede e internet → DNS privado", c)
-                DnsGuideStep(3, "Selecione \"Nome do host do DNS privado\"", c)
-                DnsGuideStep(4, "Digite o hostname do servidor DNS desejado", c)
-                DnsGuideStep(5, "Toque em Salvar", c)
+                Text(
+                    "Android · DNS Privado",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.W600,
+                    color = c.textPrimary,
+                )
+                DnsGuideStep(1, "Abra as Configurações do sistema")
+                DnsGuideStep(2, "Vá em Rede e internet → DNS privado")
+                DnsGuideStep(3, "Selecione \"Nome do host do DNS privado\"")
+                DnsGuideStep(4, "Digite o hostname do servidor DNS desejado")
+                DnsGuideStep(5, "Toque em Salvar")
                 Spacer(Modifier.height(4.dp))
                 Text(
                     "Esta configuração afeta apenas este dispositivo.",
-                    fontSize = 11.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     color = c.textTertiary,
                 )
             }
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Configurações do Roteador", fontSize = 13.sp, fontWeight = FontWeight.W600, color = c.textPrimary)
-                DnsGuideStep(1, "Acesse o painel admin do roteador (geralmente 192.168.0.1 ou 192.168.1.1)", c)
-                DnsGuideStep(2, "Faça login com as credenciais (veja na etiqueta do roteador)", c)
-                DnsGuideStep(3, "Localize as configurações de Rede ou WAN", c)
-                DnsGuideStep(4, "Encontre o campo DNS primário e DNS secundário", c)
-                DnsGuideStep(5, "Insira os endereços do servidor DNS desejado", c)
-                DnsGuideStep(6, "Salve e aguarde o roteador reiniciar", c)
+                Text(
+                    "Configurações do Roteador",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.W600,
+                    color = c.textPrimary,
+                )
+                DnsGuideStep(1, "Acesse o painel admin do roteador (geralmente 192.168.0.1 ou 192.168.1.1)")
+                DnsGuideStep(2, "Faça login com as credenciais (veja na etiqueta do roteador)")
+                DnsGuideStep(3, "Localize as configurações de Rede ou WAN")
+                DnsGuideStep(4, "Encontre o campo DNS primário e DNS secundário")
+                DnsGuideStep(5, "Insira os endereços do servidor DNS desejado")
+                DnsGuideStep(6, "Salve e aguarde o roteador reiniciar")
                 Spacer(Modifier.height(4.dp))
                 Text(
                     "Esta configuração afeta todos os dispositivos conectados à rede.",
-                    fontSize = 11.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     color = c.textTertiary,
                 )
             }
@@ -710,22 +733,8 @@ private fun DnsGuideView(
 private fun DnsGuideStep(
     numero: Int,
     texto: String,
-    c: LkTokens,
 ) {
-    Row(verticalAlignment = Alignment.Top) {
-        Box(
-            modifier =
-                Modifier
-                    .size(20.dp)
-                    .clip(CircleShape)
-                    .background(LkColors.accent.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("$numero", fontSize = 11.sp, fontWeight = FontWeight.W600, color = LkColors.accent)
-        }
-        Spacer(Modifier.width(LkSpacing.sm))
-        Text(texto, fontSize = 13.sp, color = c.textSecondary, modifier = Modifier.weight(1f))
-    }
+    LkNumberedStep(number = numero, text = texto)
 }
 
 // ─── Utilitário ───────────────────────────────────────────────────────────────
@@ -740,8 +749,8 @@ internal fun resolveDnsName(dnsIp: String?): String {
         "9.9.9.9", "149.112.112.112" -> "Quad9"
         "208.67.222.222", "208.67.220.220" -> "OpenDNS"
         "94.140.14.14", "94.140.15.15" -> "AdGuard"
-        "200.160.0.80", "200.160.2.3" -> "Registro.br"
-        "191.234.170.40" -> "CETIC.br"
+        "76.76.2.0", "76.76.10.0" -> "Control D"
+        "185.228.168.9", "185.228.169.9" -> "CleanBrowsing"
         else -> "DNS do Provedor"
     }
 }

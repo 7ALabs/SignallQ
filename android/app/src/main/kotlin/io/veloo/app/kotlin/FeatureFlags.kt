@@ -18,7 +18,6 @@ object FeatureFlags {
     val SPEEDTEST: Boolean get() = BuildConfig.FEATURE_SPEEDTEST
     val DIAGNOSTICO_LOCAL: Boolean get() = BuildConfig.FEATURE_DIAGNOSTICO_LOCAL
     val DIAGNOSTICO_IA: Boolean get() = BuildConfig.FEATURE_DIAGNOSTICO_IA
-    val DIAGNOSTICO_CHAT: Boolean get() = BuildConfig.FEATURE_DIAGNOSTICO_CHAT
     val WIFI_ANALISE: Boolean get() = BuildConfig.FEATURE_WIFI_ANALISE
     val REDE_MOVEL_ANALISE: Boolean get() = BuildConfig.FEATURE_REDE_MOVEL_ANALISE
     val HISTORICO: Boolean get() = BuildConfig.FEATURE_HISTORICO
@@ -43,7 +42,6 @@ object FeatureFlags {
 
     // ─── Sprint 3 ─────────────────────────────────────────────────────────────
     val FIBRA_SCREEN: Boolean get() = BuildConfig.FEATURE_FIBRA_SCREEN
-    val DNS_SCREEN: Boolean get() = BuildConfig.FEATURE_DNS_SCREEN
     val DEVICES_SCREEN_V2: Boolean get() = BuildConfig.FEATURE_DEVICES_SCREEN_V2
     val TELEPHONY_AVANCADO: Boolean get() = BuildConfig.FEATURE_TELEPHONY_AVANCADO
 

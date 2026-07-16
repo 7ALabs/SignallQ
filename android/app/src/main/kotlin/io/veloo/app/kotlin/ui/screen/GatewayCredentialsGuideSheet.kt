@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -14,8 +13,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Label
 import androidx.compose.material.icons.outlined.Password
 import androidx.compose.material.icons.outlined.Rotate90DegreesCcw
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,7 +53,7 @@ private val passosCredenciais =
             descricao = "A etiqueta com os dados de acesso costuma ficar embaixo ou atrás do aparelho.",
         ),
         PassoCredencial(
-            icone = Icons.Outlined.Label,
+            icone = Icons.AutoMirrored.Outlined.Label,
             titulo = "Encontre a etiqueta",
             descricao = "Procure os campos \"Usuário\" e \"Senha\" (ou \"Login\" e \"Password\").",
         ),
@@ -102,10 +101,9 @@ internal fun GatewayCredentialsGuideSheetContent(c: LkTokens) {
                 .padding(horizontal = LkSpacing.xl)
                 .padding(bottom = LkSpacing.xxl)
                 .navigationBarsPadding(),
-        verticalArrangement = Arrangement.spacedBy(LkSpacing.lg),
+        verticalArrangement = Arrangement.spacedBy(LkSpacing.xl),
     ) {
         SheetDragHandle()
-        Spacer(Modifier.height(LkSpacing.sm))
         Text(
             text = "Como encontrar usuário e senha do roteador",
             style = MaterialTheme.typography.headlineSmall,
@@ -118,7 +116,7 @@ internal fun GatewayCredentialsGuideSheetContent(c: LkTokens) {
             color = c.textSecondary,
         )
 
-        Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.lg)) {
+        Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.xl)) {
             passosCredenciais.forEachIndexed { index, passo ->
                 PassoCredencialRow(numero = index + 1, passo = passo, c = c)
             }
@@ -161,13 +159,13 @@ private fun PassoCredencialRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = "Passo $numero",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.W600,
                 color = LkColors.accent,
             )
             Text(
                 text = passo.titulo,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.W600,
                 color = c.textPrimary,
             )

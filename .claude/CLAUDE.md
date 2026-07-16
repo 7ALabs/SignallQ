@@ -22,7 +22,7 @@ Na conversa principal, responda sempre como **Claudete** (PM & Tech Lead do Sign
 - Navegacao: `AppShell.kt` -- 5 abas (Inicio, Velocidade, Sinal, Historico, Ajustes). Diagnostico/IA, Dispositivos, Fibra sao overlays, nao abas.
 - Background: WorkManager `MonitoramentoWorker` (30 min).
 
-**Identificadores tecnicos a preservar** (parecem marca, sao tecnicos): `io.signallq.app`, repo `gmmattey/linka-android`, worker `linka-ai-diagnosis-worker`, skill `linka-design`, banco `linkaKotlin.db`, canais `linka_*`, DataStore `linkaPreferencias`.
+**Identificadores tecnicos a preservar** (parecem marca, sao tecnicos): `io.signallq.app`, repo `gmmattey/linka-android`, worker `linka-ai-diagnosis-worker`, banco `linkaKotlin.db`, canais `linka_*`, DataStore `linkaPreferencias`. A skill de design system foi renomeada de `linka-design` para `SignallQ-design` em 2026-07-11 -- essa e uma renomeacao de marca intencional, nao um identificador tecnico a preservar (ver secao Design System).
 
 ---
 
@@ -76,18 +76,22 @@ Na conversa principal, responda sempre como **Claudete** (PM & Tech Lead do Sign
 
 ## Design System
 
-Toda UI segue o **SignallQ Design System** (`.claude/skills/linka-design/`).
-Antes de criar ou editar telas/componentes, consulte a skill `linka-design` e use os tokens de `colors_and_type.css` / `SignallQTheme.kt` como fonte de verdade.
+Toda UI segue o **SignallQ Design System** (`.claude/skills/SignallQ-design/`), migrado em 2026-07-11 para
+**Material Design 3 estrito** (paleta tonal HCT, tipografia Google Sans/Roboto em 15 estilos, elevacao tonal
+em 5 niveis, state layers, motion, tokens `--md-sys-color-*`). Antes renomeada `linka-design` -- ver decisao
+registrada em `docs_ai/design-system/DECISAO_RENOMEACAO_SIGNALLQ_DESIGN_2026-07-11.md`.
+Antes de criar ou editar telas/componentes, consulte a skill `SignallQ-design` e use os tokens de
+`colors_and_type.css` / `SignallQTheme.kt` como fonte de verdade.
 
 Nao-negociaveis:
-- Material 3 claro, acento violeta `#6C2BFF`, semantica de status verde/ambar/vermelho
-- Icones Material Symbols (Outlined), tipo Roboto, grid 8dp, card radius 16dp, flat (sem sombras pesadas)
-- Superficies SignallQ (IA) sempre escuras (`#0D0D1A` / `#1A0B2E` / `#1E1130`)
-- Copy em PT-BR com voce, sentence case em titulos, UPPERCASE em overlines, SEM emoji
+- Material 3 estrito, tríade tonal derivada do acento violeta `#6C2BFF` (Primary/Secondary/Tertiary), semantica de status verde/ambar/vermelho
+- Icones Material Symbols (Outlined), tipo Google Sans (display/headline/title) + Roboto (body/label), grid 8dp, card radius 12dp (16dp reservado a sheets/dialogs), flat (elevacao tonal, sem sombra dura)
+- Superficies SignallQ (IA) sempre escuras (`#0D0D1A` / `#1A0B2E` / `#1E1130`) -- decisao de produto, nao afetada pelo MD3
+- Copy em PT-BR com voce, sentence case em titulos, UPPERCASE em overlines, SEM emoji -- decisao de produto, nao afetada pelo MD3
 - Metrica crua sempre acompanhada de veredito humano (Excelente/Bom/Regular/Fraco/Forte)
 - Separador inline: ponto medio
 
-Referencia rapida de tokens: `.claude/skills/linka-design/HANDOFF_README.md`.
+Referencia rapida de tokens: `.claude/skills/SignallQ-design/HANDOFF_README.md`.
 
 **Design Context (skill impeccable):** `PRODUCT.md` e `DESIGN.md` na raiz do repo formalizam esse mesmo sistema no formato impeccable/DESIGN.md spec (register: product; North Star "The Calm Translator"). Consultar antes de rodar `/impeccable craft|critique|audit|polish` em qualquer tela.
 

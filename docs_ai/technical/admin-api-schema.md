@@ -862,14 +862,41 @@ Total de crashes por `app_version` via BigQuery, mesmos estados de `source` da r
 
 ### POST /admin/integrations/firebase/sync
 
-Inicia job de sincronização. Resposta imediata (fire-and-forget).
+Roda a query de conectividade no BigQuery (conta `session_start` do dia anterior) e persiste `admin_settings/'firebase_sync'`. Também disparado pelo cron diário (`[triggers]` em `wrangler.toml`, 06:00 UTC) e pelo botão "Sincronizar telemetria" no Admin.
 
 ```json
 {
-  "jobId": "sync_1k3m9x",
-  "status": "started"
+  "ok": false,
+  "source": "disabled",
+  "message": "Firebase Analytics não configurado (export BigQuery ausente)."
 }
 ```
+
+| `source` | Significado |
+|---|---|
+| `disabled` | `FIREBASE_SYNC_ENABLED` != `"true"` em `wrangler.toml` — job pulado sem chamar BigQuery (ver decisão abaixo) |
+| `no_credentials` | `FIREBASE_CLIENT_EMAIL`/`FIREBASE_PRIVATE_KEY` ausentes |
+| `no_data_yet` | Query rodou mas a tabela `events_*` do BigQuery ainda não existe, ou não achou sessão no período — **não é falha** |
+| `bigquery` (`ok: true`) | Sync real, conta de sessões do dia anterior |
+| `error` | Falha real na query (auth, `bq_error_*`) — logado em `system_errors` (só quando `FIREBASE_SYNC_ENABLED=true`) |
+
+**Decisão 2026-07-11 (GH#877/#878) — sync de Firebase desligado por flag:** o job do cron
+começou (PR #878) a registrar corretamente os erros reais do BigQuery em vez de escondê-los
+como `no_data_yet`. Só que o export GA4→BigQuery (`analytics_542463828`) **nunca foi criado**
+— o projeto Firebase `signallq-app` está em modo Sandbox e o Luiz decidiu **não habilitar
+billing** (sem custo novo). Resultado: todo dia às 06:00 UTC o cron ia gravar um
+`bq_error_403` real em `system_errors`, ruído permanente sem solução no horizonte.
+
+Em vez de apagar `handleFirebaseSync`, o worker ganhou a env var `FIREBASE_SYNC_ENABLED`
+(`wrangler.toml`, default `"false"`). Com a flag desligada, o handler curto-circuita antes
+de chamar o BigQuery e devolve `source: "disabled"` — nem o cron nem o botão manual geram
+erro cru; os outros dois jobs agendados (`google-play`, `google-play-tracks`) continuam
+rodando normalmente.
+
+**Para reativar:** (1) habilitar billing no projeto `signallq-app`; (2) criar o vínculo
+GA4 → BigQuery no Firebase Console; (3) virar `FIREBASE_SYNC_ENABLED = "true"` em
+`wrangler.toml`; (4) conceder a role `dataViewer` do dataset recém-criado à service account
+`signallq-admin-bq`.
 
 ---
 

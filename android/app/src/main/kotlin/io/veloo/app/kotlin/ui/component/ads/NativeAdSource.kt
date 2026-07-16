@@ -14,4 +14,5 @@ package io.signallq.app.ui.component.ads
 enum class NativeAdSource {
     ADMOB,
     PARTNER,
+    SIMULATED,
 }

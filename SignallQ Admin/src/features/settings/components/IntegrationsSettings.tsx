@@ -57,6 +57,8 @@ export const IntegrationsSettings: React.FC = () => {
         ...prev,
         firebase: res.status === "error"
           ? (res.message || "Falha ao sincronizar — worker retornou erro.")
+          : res.source === "disabled"
+          ? (res.message || "Firebase Analytics não configurado (export BigQuery ausente).")
           : res.source === "no_data_yet"
           ? "Sincronizado — sem sessões novas no período consultado (não é falha)."
           : "Sincronizado com sucesso."

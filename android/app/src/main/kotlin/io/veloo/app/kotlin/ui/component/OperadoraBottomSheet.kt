@@ -20,14 +20,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Call
-import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -40,16 +39,31 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.signallq.app.R
 import io.signallq.app.ui.BancoOperadoras
 import io.signallq.app.ui.ContatoOperadora
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.OperadoraSource
+import io.signallq.app.ui.ResolvedOperadoraContact
+import io.signallq.app.ui.ResolvedOperadoraIdentity
+import io.signallq.app.ui.whatsappUrl
 
 private val idsMajores = listOf("vivo_fibra", "claro_net", "tim_live", "oi_fibra")
 
+// Verde oficial da marca WhatsApp — intencionalmente fora da paleta semantica SignallQ,
+// mesmo criterio de "cor de marca de terceiro" usado nos badges de operadora.
+private val whatsappGreen = Color(0xFF25D366)
+
+/**
+ * Bottom sheet "Falar com a operadora" — GH#970. A secao "Sua operadora" agora usa a
+ * cadeia local -> diretorio remoto (worker `signallq-diagnostic`) -> fallback generico
+ * ([io.signallq.app.ui.OperadoraDirectoryResolver]), via [resolveOperadoraIdentidadeLocal]/
+ * [resolveOperadoraIdentidadeRemota] (identidade) e [resolveOperadoraContatoLocal]/
+ * [resolveOperadoraContatoRemoto] (contato). A lista "Outras operadoras" continua 100%
+ * local (as ~12 principais, [BancoOperadoras.lista]) — sem mudanca de comportamento.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OperadoraBottomSheet(
@@ -57,17 +71,65 @@ fun OperadoraBottomSheet(
     ispNome: String?,
     operadoraMovel: String?,
     onDismiss: () -> Unit,
+    resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity? =
+        { _, _ -> null },
+    resolveOperadoraContatoLocal: (String?, Boolean) -> ResolvedOperadoraContact? =
+        { _, _ -> null },
+    resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity =
+        { nome, _ ->
+            ResolvedOperadoraIdentity(
+                displayName = nome ?: "Operadora",
+                monograma = nome?.firstOrNull()?.uppercase() ?: "?",
+                corMarca = null,
+                logoRes = null,
+                logoUrl = null,
+                source = OperadoraSource.FALLBACK,
+            )
+        },
+    resolveOperadoraContatoRemoto: suspend (String?, Boolean) -> ResolvedOperadoraContact =
+        { nome, _ ->
+            ResolvedOperadoraContact(
+                displayName = nome ?: "Operadora",
+                sacPhone = null,
+                whatsapp = null,
+                site = null,
+                source = OperadoraSource.FALLBACK,
+            )
+        },
 ) {
     val c = LocalLkTokens.current
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val nomeParaResolver = if (connectionType?.equals("movel", ignoreCase = true) == true) operadoraMovel else ispNome
-    val operadoraDetectada = BancoOperadoras.resolver(nomeParaResolver)
+    val viaMovel = connectionType?.equals("movel", ignoreCase = true) == true
+    val nomeParaResolver = if (viaMovel) operadoraMovel else ispNome
+
+    // So pra excluir da lista "Outras operadoras" (sempre local) quando o match tambem
+    // for local — operadora resolvida via diretorio remoto nunca esta em BancoOperadoras.lista.
+    val operadoraDetectadaLocal = BancoOperadoras.resolver(nomeParaResolver)
+
+    val identidadeDetectada =
+        rememberResolvedOperadoraIdentity(
+            ispNomeBruto = nomeParaResolver,
+            viaMovel = viaMovel,
+            resolveLocal = resolveOperadoraIdentidadeLocal,
+            resolveRemoteOrFallback = resolveOperadoraIdentidadeRemota,
+        )
+    val contatoDetectado =
+        rememberResolvedOperadoraContact(
+            ispNomeBruto = nomeParaResolver,
+            viaMovel = viaMovel,
+            resolveLocal = resolveOperadoraContatoLocal,
+            resolveRemoteOrFallback = resolveOperadoraContatoRemoto,
+        )
+    // FALLBACK = nem local nem diretorio remoto encontraram nada — trata como "nao detectada"
+    // (mesmo comportamento de antes, so que agora so decide depois de tentar o remoto tambem).
+    val operadoraDetectada =
+        contatoDetectado?.takeIf { it.source != OperadoraSource.FALLBACK && it.hasAnyContact }
 
     val subtituloConexao =
         when {
-            operadoraDetectada != null && connectionType?.equals("movel", ignoreCase = true) == true ->
+            operadoraDetectada != null && viaMovel ->
                 "Detectamos sua operadora pela rede móvel. Atendimento oficial."
             operadoraDetectada != null ->
                 "Detectamos sua operadora pela rede fixa. Atendimento oficial."
@@ -75,11 +137,10 @@ fun OperadoraBottomSheet(
                 "Não foi possível identificar sua operadora automaticamente. Escolha abaixo para ver os canais de atendimento."
         }
 
-    val legendaDetectada =
-        if (connectionType?.equals("movel", ignoreCase = true) == true) "SIM ativo · plano móvel" else "rede fixa"
+    val legendaDetectada = if (viaMovel) "SIM ativo · plano móvel" else "rede fixa"
 
     val outrasOperadoras =
-        BancoOperadoras.lista.filter { it.id != operadoraDetectada?.id }
+        BancoOperadoras.lista.filter { it.id != operadoraDetectadaLocal?.id }
 
     val outrasNacionais = outrasOperadoras.filter { it.id in idsMajores }
     val outrasRegionais = outrasOperadoras.filter { it.id !in idsMajores }
@@ -87,63 +148,39 @@ fun OperadoraBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = c.bgPrimary,
+        containerColor = c.surfaceContainerLow,
     ) {
         Column(
             modifier =
                 Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = LkSpacing.xl)
+                    .padding(horizontal = 24.dp)
                     .navigationBarsPadding(),
         ) {
-            // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = "Falar com a operadora",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = c.textPrimary,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Outlined.Close,
-                        contentDescription = "Fechar",
-                        tint = c.textSecondary,
-                    )
-                }
-            }
+            Text(
+                text = "Falar com a operadora",
+                style = MaterialTheme.typography.headlineSmall,
+                color = c.textPrimary,
+            )
 
-            Spacer(Modifier.height(LkSpacing.xs))
+            Spacer(Modifier.height(LkSpacing.sm))
 
             Text(
                 text = subtituloConexao,
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 color = c.textSecondary,
-                lineHeight = 20.sp,
             )
 
-            Spacer(Modifier.height(LkSpacing.lg))
-            HorizontalDivider(color = c.border, thickness = 1.dp)
-            Spacer(Modifier.height(LkSpacing.lg))
+            Spacer(Modifier.height(LkSpacing.xl))
 
-            if (operadoraDetectada != null) {
-                // Seção: operadora detectada
-                Text(
-                    text = "SUA OPERADORA",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.5.sp,
-                    letterSpacing = 0.8.sp,
-                    color = c.textTertiary,
-                )
+            if (operadoraDetectada != null && identidadeDetectada != null) {
+                // Seção: operadora detectada (local ou via diretorio remoto)
+                Overline(texto = "Sua operadora", color = c.textTertiary)
                 Spacer(Modifier.height(LkSpacing.md))
                 OperadoraDetectadaSection(
-                    operadora = operadoraDetectada,
+                    identidade = identidadeDetectada,
+                    contato = operadoraDetectada,
                     legenda = legendaDetectada,
                     onDismiss = onDismiss,
                 )
@@ -151,15 +188,8 @@ fun OperadoraBottomSheet(
 
                 // Seção: outras operadoras (só quando há detectada)
                 if (outrasOperadoras.isNotEmpty()) {
-                    HorizontalDivider(color = c.border, thickness = 1.dp)
                     Spacer(Modifier.height(LkSpacing.lg))
-                    Text(
-                        text = "NÃO É A SUA? OUTRAS OPERADORAS",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 10.5.sp,
-                        letterSpacing = 0.8.sp,
-                        color = c.textTertiary,
-                    )
+                    Overline(texto = "Não é a sua? Outras operadoras", color = c.textTertiary)
                     Spacer(Modifier.height(LkSpacing.md))
                     if (outrasNacionais.isNotEmpty()) {
                         outrasNacionais.forEach { op ->
@@ -170,13 +200,7 @@ fun OperadoraBottomSheet(
                     if (outrasRegionais.isNotEmpty()) {
                         if (outrasNacionais.isNotEmpty()) {
                             Spacer(Modifier.height(LkSpacing.xs))
-                            Text(
-                                text = "REGIONAIS",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp,
-                                letterSpacing = 0.6.sp,
-                                color = c.textTertiary,
-                            )
+                            Overline(texto = "Regionais", color = c.textTertiary)
                             Spacer(Modifier.height(LkSpacing.sm))
                         }
                         outrasRegionais.forEach { op ->
@@ -188,15 +212,7 @@ fun OperadoraBottomSheet(
                 }
             } else {
                 // Seção: nenhuma detectada — mostrar todas com divisão nacional/regional
-                HorizontalDivider(color = c.border, thickness = 1.dp)
-                Spacer(Modifier.height(LkSpacing.lg))
-                Text(
-                    text = "OPERADORAS DISPONÍVEIS",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.5.sp,
-                    letterSpacing = 0.8.sp,
-                    color = c.textTertiary,
-                )
+                Overline(texto = "Operadoras disponíveis", color = c.textTertiary)
                 Spacer(Modifier.height(LkSpacing.md))
                 val nacionais = BancoOperadoras.lista.filter { it.id in idsMajores }
                 val regionais = BancoOperadoras.lista.filter { it.id !in idsMajores }
@@ -206,13 +222,7 @@ fun OperadoraBottomSheet(
                 }
                 if (regionais.isNotEmpty()) {
                     Spacer(Modifier.height(LkSpacing.xs))
-                    Text(
-                        text = "REGIONAIS",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp,
-                        letterSpacing = 0.6.sp,
-                        color = c.textTertiary,
-                    )
+                    Overline(texto = "Regionais", color = c.textTertiary)
                     Spacer(Modifier.height(LkSpacing.sm))
                     regionais.forEach { op ->
                         OutraOperadoraRow(operadora = op)
@@ -222,14 +232,12 @@ fun OperadoraBottomSheet(
                 Spacer(Modifier.height(LkSpacing.md))
             }
 
-            HorizontalDivider(color = c.border, thickness = 1.dp)
             Spacer(Modifier.height(LkSpacing.md))
 
             Text(
                 text = "O SignallQ não tem vínculo com as operadoras. Você será levado ao canal oficial de cada uma.",
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.labelMedium,
                 color = c.textTertiary,
-                lineHeight = 17.sp,
             )
 
             Spacer(Modifier.height(LkSpacing.lg))
@@ -239,31 +247,36 @@ fun OperadoraBottomSheet(
 
 @Composable
 private fun OperadoraDetectadaSection(
-    operadora: ContatoOperadora,
+    identidade: ResolvedOperadoraIdentity,
+    contato: ResolvedOperadoraContact,
     legenda: String,
     onDismiss: () -> Unit,
 ) {
     val c = LocalLkTokens.current
     val context = LocalContext.current
+    val ehLocal = contato.source == OperadoraSource.LOCAL
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Identificacao
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .background(c.surfaceContainer, RoundedCornerShape(LkRadius.card))
+                    .padding(LkSpacing.base),
         ) {
-            OperadoraBadge(operadora = operadora, size = 40.dp)
+            OperadoraBadge(identidade = identidade, size = 40.dp)
             Spacer(Modifier.width(LkSpacing.md))
             Column {
                 Text(
-                    text = operadora.nome,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
+                    text = contato.displayName,
+                    style = MaterialTheme.typography.titleMedium,
                     color = c.textPrimary,
                 )
                 Text(
                     text = legenda,
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = c.textSecondary,
                 )
             }
@@ -272,75 +285,81 @@ private fun OperadoraDetectadaSection(
         Spacer(Modifier.height(LkSpacing.md))
 
         // WhatsApp primario
-        if (operadora.whatsapp != null) {
+        val waUrl = contato.whatsappUrl()
+        if (waUrl != null) {
             Button(
                 onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/55${operadora.whatsapp}"))
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(waUrl))
                     context.startActivity(intent)
                     onDismiss()
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(LkRadius.button),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF25D366)),
+                colors = ButtonDefaults.buttonColors(containerColor = whatsappGreen),
             ) {
                 Text(
                     text = "Falar no WhatsApp",
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp,
                     color = Color.White,
                 )
             }
             Spacer(Modifier.height(LkSpacing.sm))
         }
 
-        // Ligar + App
+        // Ligar + App (App so quando ha grupo conhecido — hoje so pra OperadoraSource.LOCAL,
+        // o diretorio remoto GH#965 nao tem esse dado, nunca inventamos)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
         ) {
-            OutlinedButton(
-                onClick = {
-                    val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${operadora.sac}"))
-                    context.startActivity(intent)
-                },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(LkRadius.button),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Call,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = c.textPrimary,
-                )
-                Spacer(Modifier.width(LkSpacing.xs))
-                Text(
-                    text = "Ligar *${operadora.sac}",
-                    fontSize = 13.sp,
-                    color = c.textPrimary,
-                    fontWeight = FontWeight.Medium,
-                )
+            if (contato.sacPhone != null) {
+                OutlinedButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${contato.sacPhone}"))
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(LkRadius.button),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Call,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = c.textPrimary,
+                    )
+                    Spacer(Modifier.width(LkSpacing.xs))
+                    Text(
+                        text = if (ehLocal) "Ligar *${contato.sacPhone}" else "Ligar ${contato.sacPhone}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = c.textPrimary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
             }
-            OutlinedButton(
-                onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://search?q=${operadora.grupo}"))
-                    context.startActivity(intent)
-                },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(LkRadius.button),
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.PhoneAndroid,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = c.textPrimary,
-                )
-                Spacer(Modifier.width(LkSpacing.xs))
-                Text(
-                    text = "App ${operadora.grupo}",
-                    fontSize = 13.sp,
-                    color = c.textPrimary,
-                    fontWeight = FontWeight.Medium,
-                )
+            if (contato.grupo != null) {
+                OutlinedButton(
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://search?q=${contato.grupo}"))
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(LkRadius.button),
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.PhoneAndroid,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = c.textPrimary,
+                    )
+                    Spacer(Modifier.width(LkSpacing.xs))
+                    Text(
+                        text = "App ${contato.grupo}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = c.textPrimary,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
             }
         }
     }
@@ -352,7 +371,11 @@ private fun OutraOperadoraRow(operadora: ContatoOperadora) {
     val context = LocalContext.current
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .background(c.surfaceContainer, RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.base),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         OperadoraBadge(operadora = operadora, size = 36.dp)
@@ -362,20 +385,19 @@ private fun OutraOperadoraRow(operadora: ContatoOperadora) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = operadora.nome,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.titleSmall,
                 color = c.textPrimary,
             )
             if (operadora.whatsapp != null) {
                 Text(
                     text = "WhatsApp · ligar *${operadora.sac}",
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     color = c.textSecondary,
                 )
             } else {
                 Text(
                     text = "ligar *${operadora.sac}",
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     color = c.textSecondary,
                 )
             }
@@ -392,7 +414,7 @@ private fun OutraOperadoraRow(operadora: ContatoOperadora) {
                     modifier =
                         Modifier
                             .size(36.dp)
-                            .background(Color(0xFF25D366), CircleShape),
+                            .background(whatsappGreen, CircleShape),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(

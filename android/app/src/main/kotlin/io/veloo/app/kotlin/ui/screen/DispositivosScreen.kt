@@ -3,6 +3,7 @@
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,18 +26,18 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.Devices
 import androidx.compose.material.icons.outlined.DevicesOther
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Laptop
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Print
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Smartphone
-import androidx.compose.material.icons.outlined.VerifiedUser
+import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -47,8 +49,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -69,15 +71,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import io.signallq.app.ads.AdSlot
-import io.signallq.app.ads.AdUnitIds
-import io.signallq.app.ads.NativeAdContentSignals
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
+import io.signallq.app.core.network.contracts.localdevice.TipoConexaoFisica
+import io.signallq.app.core.network.contracts.topologia.PapelTopologia
 import io.signallq.app.feature.devices.DispositivoRede
 import io.signallq.app.feature.devices.EstadoScanDispositivos
 import io.signallq.app.feature.devices.NamingPrioridade
+import io.signallq.app.feature.devices.ResultadoCorrelacaoTopologia
 import io.signallq.app.feature.devices.SnapshotScanDispositivos
 import io.signallq.app.feature.devices.TipoDispositivo
 import io.signallq.app.feature.devices.chaveApelido
@@ -87,11 +88,13 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
-import io.signallq.app.ui.ads.rememberNativeAd
+import io.signallq.app.ui.component.LkInfoCallout
+import io.signallq.app.ui.component.LkPillBadge
+import io.signallq.app.ui.component.LkSectionOverline
+import io.signallq.app.ui.component.LkStatusDot
 import io.signallq.app.ui.component.OfflineBanner
 import io.signallq.app.ui.component.SheetDragHandle
-import io.signallq.app.ui.component.ads.NativeAdListRow
-import io.signallq.app.ui.component.ads.NativeAdSource
+import io.signallq.app.ui.component.ads.SimulatedOfferListRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,15 +111,42 @@ fun DispositivosScreen(
     /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555.
      *  Default `false`: nunca mostra anuncio sem sinal explicito de que pode. */
     adsEnabled: Boolean = false,
+    /** #983 (Fase 4) — correlacao best-effort topologia/gateway, chaveada por id do dispositivo
+     *  (ver MainViewModel.correlacoesTopologia). Mapa vazio (default) preserva o comportamento
+     *  anterior a Fase 4 — nenhuma secao nova aparece no detalhe do dispositivo. */
+    correlacoesTopologia: Map<String, ResultadoCorrelacaoTopologia> = emptyMap(),
 ) {
     val c = LocalLkTokens.current
 
     Scaffold(
         containerColor = c.bgPrimary,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(c.bgPrimary),
+            ) {
+                Row(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        if (onVoltar != null) {
+                            IconButton(onClick = onVoltar) {
+                                Icon(imageVector = Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Voltar", tint = c.textPrimary)
+                            }
+                        } else {
+                            Spacer(Modifier.width(48.dp))
+                        }
+                        Spacer(Modifier.width(LkSpacing.xs))
                         Icon(
                             imageVector = Icons.Outlined.Devices,
                             contentDescription = null,
@@ -124,17 +154,13 @@ fun DispositivosScreen(
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(Modifier.width(LkSpacing.xs))
-                        Text("Dispositivos na rede", style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
+                        Text(
+                            "Dispositivos",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.W600,
+                            color = c.textPrimary,
+                        )
                     }
-                },
-                navigationIcon = {
-                    if (onVoltar != null) {
-                        IconButton(onClick = onVoltar) {
-                            Icon(imageVector = Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Voltar", tint = c.textPrimary)
-                        }
-                    }
-                },
-                actions = {
                     val escaneando = snapshotDevices.estado == EstadoScanDispositivos.varrendo
                     IconButton(onClick = onRefresh, enabled = !escaneando) {
                         if (escaneando) {
@@ -151,9 +177,9 @@ fun DispositivosScreen(
                             )
                         }
                     }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
-            )
+                }
+                HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
+            }
         },
     ) { padding ->
         Column(
@@ -165,6 +191,10 @@ fun DispositivosScreen(
             if (!snapshotRede.conectado) {
                 OfflineBanner()
             }
+            DevicesSegmentedState(
+                snapshotDevices = snapshotDevices,
+                c = c,
+            )
             Box(
                 modifier =
                     Modifier
@@ -198,48 +228,11 @@ fun DispositivosScreen(
                         onSalvarApelido = onSalvarApelido,
                         bandasWifi = bandasWifi,
                         adsEnabled = adsEnabled,
+                        correlacoesTopologia = correlacoesTopologia,
                     )
                 }
             } // Box
         } // Column
-    }
-}
-
-// ---------------------------------------------------------------------------
-// Tab content: usada em SinalScreen para aba Dispositivos
-// ---------------------------------------------------------------------------
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DispositivosTabContent(
-    snapshotDevices: SnapshotScanDispositivos,
-    onRefresh: () -> Unit,
-    apelidos: Map<String, String>,
-    onSalvarApelido: (mac: String, apelido: String) -> Unit,
-    c: LkTokens,
-) {
-    val dispositivos = snapshotDevices.dispositivos
-    val isLoading = snapshotDevices.estado == EstadoScanDispositivos.varrendo
-    val erro = snapshotDevices.erroMensagem
-
-    if (dispositivos.isEmpty()) {
-        EmptyStateDispositivos(
-            c = c,
-            isLoading = isLoading,
-            progresso = snapshotDevices.progressoPercentual,
-            erro = erro,
-            onRefresh = onRefresh,
-        )
-    } else {
-        DispositivosLista(
-            c = c,
-            dispositivos = dispositivos,
-            isLoading = isLoading,
-            erro = erro,
-            onRefresh = onRefresh,
-            apelidos = apelidos,
-            onSalvarApelido = onSalvarApelido,
-        )
     }
 }
 
@@ -259,6 +252,7 @@ private fun DispositivosLista(
     onSalvarApelido: (mac: String, apelido: String) -> Unit,
     bandasWifi: String? = null,
     adsEnabled: Boolean = false,
+    correlacoesTopologia: Map<String, ResultadoCorrelacaoTopologia> = emptyMap(),
 ) {
     val gateways = remember(dispositivos) { dispositivos.filter { it.fonteNome == "gateway" } }
     val aps =
@@ -300,7 +294,7 @@ private fun DispositivosLista(
             if (gateways.isNotEmpty()) {
                 item {
                     SectionHeaderRow(
-                        title = "INFRAESTRUTURA (${gateways.size})",
+                        title = "Infraestrutura (${gateways.size})",
                         c = c,
                     )
                 }
@@ -319,7 +313,7 @@ private fun DispositivosLista(
             // ── Pontos de acesso / nós mesh ───────────────────────────────
             if (aps.isNotEmpty()) {
                 item {
-                    SectionHeaderRow(title = "PONTOS DE ACESSO (${aps.size})", c = c)
+                    SectionHeaderRow(title = "Pontos de acesso (${aps.size})", c = c)
                 }
                 items(aps) { ap ->
                     ApMeshItem(
@@ -336,29 +330,26 @@ private fun DispositivosLista(
             item { Spacer(Modifier.height(topPadding)) }
 
             if (clientes.isNotEmpty()) {
+                val adIndex = clientes.size / 2
                 item {
-                    SectionHeaderRow(title = "DISPOSITIVOS (${clientes.size})", c = c)
+                    SectionHeaderRow(title = "Dispositivos (${clientes.size})", c = c)
                 }
-                items(clientes) { dev ->
+                itemsIndexed(clientes) { index, dev ->
+                    if (index == adIndex) {
+                        // TODO: substituir esta linha SIMULADA por rememberNativeAd +
+                        // NativeAdListRow quando o AdMob real deste slot estiver configurado.
+                        SimulatedOfferListRow(
+                            title = "Extensor Wi-Fi simulado para ampliar cobertura",
+                            body = "Indicado para ambientes com muitos cômodos e sinal irregular.",
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
                     DispositivoItem(
                         dispositivo = dev,
                         c = c,
                         apelido = dev.chaveApelido()?.let { apelidos[it] },
                         onTap = { deviceEmSheet = dev },
                     )
-                }
-                // Slot de anuncio nativo (issue #555, feedback do Luiz 2026-07-12) --
-                // dentro da lista de DISPOSITIVOS, nunca em INFRAESTRUTURA (misturar
-                // com "seu equipamento real" confunde "isso e meu / isso e anuncio").
-                // Tela nao roda diagnostico -- sem tag contextual, so o slot do topico.
-                item(key = "native_ad_dispositivos") {
-                    val nativeAd by
-                        rememberNativeAd(
-                            adUnitId = AdUnitIds.para(AdSlot.DISPOSITIVOS),
-                            contentSignal = NativeAdContentSignals.forSlot(AdSlot.DISPOSITIVOS),
-                            eligible = adsEnabled,
-                        )
-                    NativeAdListRow(nativeAd = nativeAd, source = NativeAdSource.ADMOB, modifier = Modifier.fillMaxWidth())
                 }
             }
 
@@ -406,6 +397,7 @@ private fun DispositivosLista(
                     onSalvarApelido = { apelido ->
                         dev.chaveApelido()?.let { chave -> onSalvarApelido(chave, apelido) }
                     },
+                    correlacao = correlacoesTopologia[dev.id],
                 )
             }
         }
@@ -536,30 +528,35 @@ private fun DispositivoItem(
     val iconBg = iconBgColor(dispositivo.tipoDispositivo, c)
     val iconFg = iconFgColor(dispositivo.tipoDispositivo, c)
     val icon = iconForTipo(dispositivo.tipoDispositivo)
+    val fabricante = dispositivo.fabricante?.takeIf { it.isNotBlank() }
 
     val nomeExibicao = apelido?.takeIf { it.isNotBlank() } ?: dispositivo.nomeExibicao
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .minimumInteractiveComponentSize()
-                .semantics {
-                    role = Role.Button
-                    contentDescription = nomeExibicao
-                }.clickable(onClick = onTap)
-                .border(
-                    width = 0.5.dp,
-                    color = c.border.copy(alpha = 0.5f),
-                    shape = RoundedCornerShape(0.dp),
-                ).padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 12.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // Ícone
+    val ehIpPuro = dispositivo.nomeExibicao.matches(Regex("""\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"""))
+    val nomeDisplay =
+        apelido?.takeIf { it.isNotBlank() }
+            ?: if (ehIpPuro) {
+                NamingPrioridade.rotuloFallbackGenerico(fabricante)
+            } else {
+                dispositivo.nomeExibicao
+            }
+    val subtitulo =
+        when {
+            dispositivo.esteDispositivo && !dispositivo.ip.isNullOrBlank() -> "${dispositivo.ip} · Este aparelho"
+            fabricante != null && nomeDisplay != fabricante -> fabricante
+            !dispositivo.ip.isNullOrBlank() -> dispositivo.ip
+            else -> "Fabricante desconhecido"
+        }
+
+    LkListRow(
+        c = c,
+        title = nomeDisplay,
+        subtitle = subtitulo,
+        leading = {
             Box(
                 modifier =
                     Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(LkRadius.button))
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
                         .background(iconBg),
                 contentAlignment = Alignment.Center,
             ) {
@@ -567,81 +564,70 @@ private fun DispositivoItem(
                     imageVector = icon,
                     contentDescription = null,
                     tint = iconFg,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(20.dp),
                 )
             }
+        },
+        trailing = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = dispositivo.ip ?: "",
+                    color = c.textTertiary,
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                Spacer(Modifier.width(4.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = c.textTertiary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        },
+        onTap = onTap,
+    )
+}
 
-            Spacer(Modifier.width(12.dp))
-
-            // Nome (apelido tem prioridade se definido) + fabricante
-            Column(modifier = Modifier.weight(1f)) {
-                val fabricante = dispositivo.fabricante?.takeIf { it.isNotBlank() }
-                // Quando nomeExibicao é um IP puro (fallback do scanner), preferir fabricante como título
-                val ehIpPuro = dispositivo.nomeExibicao.matches(Regex("""\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"""))
-                val nomeDisplay =
-                    apelido?.takeIf { it.isNotBlank() }
-                        ?: if (ehIpPuro) {
-                            NamingPrioridade.rotuloFallbackGenerico(fabricante)
-                        } else {
-                            dispositivo.nomeExibicao
-                        }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
+@Composable
+private fun DevicesSegmentedState(
+    snapshotDevices: SnapshotScanDispositivos,
+    c: LkTokens,
+) {
+    val activeLabel =
+        when {
+            !snapshotDevices.erroMensagem.isNullOrBlank() -> "Erro"
+            snapshotDevices.dispositivos.isEmpty() -> "Vazio"
+            else -> "Lista"
+        }
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm)
+                .clip(RoundedCornerShape(LkRadius.pill))
+                .background(c.surfaceContainer)
+                .padding(LkSpacing.xs),
+        horizontalArrangement =
+            androidx.compose.foundation.layout.Arrangement
+                .spacedBy(LkSpacing.xs),
+    ) {
+        listOf("Lista", "Vazio", "Erro").forEach { label ->
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(LkRadius.pill),
+                color = if (activeLabel == label) c.secondaryContainer else Color.Transparent,
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = nomeDisplay,
-                        color = c.textPrimary,
-                        style = MaterialTheme.typography.titleSmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    if (dispositivo.fonteNome == NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE) {
-                        Spacer(Modifier.width(4.dp))
-                        Icon(
-                            imageVector = Icons.Outlined.VerifiedUser,
-                            contentDescription = "Nome confirmado pelo roteador",
-                            tint = LkColors.accent,
-                            modifier = Modifier.size(14.dp),
-                        )
-                    }
-                }
-                // Exibe fabricante somente se disponível e não for o próprio título
-                if (fabricante != null && nomeDisplay != fabricante) {
-                    Text(
-                        text = fabricante,
-                        color = c.textTertiary,
+                        text = label,
                         style = MaterialTheme.typography.labelSmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                if (dispositivo.esteDispositivo) {
-                    Spacer(Modifier.height(4.dp))
-                    BadgePill(
-                        label = "Este aparelho",
-                        bg = LkColors.accent.copy(alpha = 0.10f),
-                        fg = LkColors.accent,
+                        color = if (activeLabel == label) c.onSecondaryContainer else c.textSecondary,
                     )
                 }
             }
-
-            Spacer(Modifier.width(8.dp))
-
-            // IP + chevron
-            Text(
-                text = dispositivo.ip ?: "",
-                color = c.textTertiary,
-                style = MaterialTheme.typography.labelSmall,
-            )
-            Spacer(Modifier.width(4.dp))
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                contentDescription = null,
-                tint = c.textTertiary,
-                modifier = Modifier.size(16.dp),
-            )
         }
     }
 }
@@ -656,11 +642,13 @@ private fun DeviceDetailSheet(
     c: LkTokens,
     apelidoAtual: String,
     onSalvarApelido: (String) -> Unit,
+    /** #983 (Fase 4) — correlacao best-effort com a topologia Wi-Fi/gateway pra este
+     *  dispositivo especifico. Null quando nao ha correlacao (comportamento pre-Fase 4). */
+    correlacao: ResultadoCorrelacaoTopologia? = null,
 ) {
     val iconBg = iconBgColor(dispositivo.tipoDispositivo, c)
     val iconFg = iconFgColor(dispositivo.tipoDispositivo, c)
     val icon = iconForTipo(dispositivo.tipoDispositivo)
-    val isGateway = dispositivo.fonteNome == "gateway"
     val mac = dispositivo.mac
     // #853 — a secao APELIDO usa a chave com fallback ip+nome (chaveApelido), nao so o MAC
     // cru, senao ela some sempre que o Android nao consegue resolver o MAC via ARP.
@@ -689,67 +677,44 @@ private fun DeviceDetailSheet(
         // Cabeçalho
         item {
             Row(
-                modifier = Modifier.padding(horizontal = 20.dp),
+                modifier = Modifier.padding(horizontal = LkSpacing.lg),
                 verticalAlignment = Alignment.Top,
             ) {
                 Box(
                     modifier =
                         Modifier
                             .size(48.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(iconBg),
+                            .clip(CircleShape)
+                            .background(LkColors.accent.copy(alpha = 0.14f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = iconFg,
+                        tint = LkColors.accent,
                         modifier = Modifier.size(24.dp),
                     )
                 }
                 Spacer(Modifier.width(12.dp))
                 Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = dispositivo.nomeExibicao,
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = c.textPrimary,
-                        )
-                        // #854: selo de confiabilidade em vez de expor a fonte tecnica crua
-                        // (ssdpXml/subnet) — mesmo padrao ja usado na linha da lista.
-                        if (dispositivo.fonteNome in FONTES_CONFIAVEIS) {
-                            Spacer(Modifier.width(6.dp))
-                            Icon(
-                                imageVector = Icons.Outlined.VerifiedUser,
-                                contentDescription = "Nome confirmado pelo equipamento de rede",
-                                tint = LkColors.accent,
-                                modifier = Modifier.size(16.dp),
-                            )
-                        }
-                    }
+                    Text(
+                        text = dispositivo.nomeExibicao,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = c.textPrimary,
+                    )
                     Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(LkColors.success),
-                        )
-                        Spacer(Modifier.width(5.dp))
+                        LkStatusDot(color = LkColors.success)
+                        Spacer(Modifier.width(LkSpacing.xs))
                         Text(
                             text = "Online",
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.labelMedium,
                             color = LkColors.success,
                         )
-                        if (isGateway) {
-                            Spacer(Modifier.width(8.dp))
-                            BadgePill(label = "Gateway", bg = LkColors.accent.copy(0.12f), fg = LkColors.accent)
-                        }
                     }
                 }
             }
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(LkSpacing.lg))
             HorizontalDivider(color = c.border)
         }
 
@@ -810,18 +775,45 @@ private fun DeviceDetailSheet(
         }
         item {
             LkListRow(c = c, title = "Tipo", trailing = {
-                Text(tipoLabel(dispositivo.tipoDispositivo), fontSize = 13.sp, color = c.textSecondary)
+                Text(
+                    tipoLabel(dispositivo.tipoDispositivo),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = c.textSecondary,
+                )
             })
+        }
+        // #983 (Fase 4) — so aparece quando ha correlacao confirmada (ClientSnapshot exato ou
+        // MAC==BSSID exato); correlacao fraca (so OUI) nunca chega aqui como papel/conexao,
+        // so como evidencia auxiliar (nao exibida, ver correlacionarDispositivoComTopologia).
+        correlacao?.tipoConexaoFisicaConfirmada?.let { tipoConexao ->
+            item {
+                LkListRow(c = c, title = "Conexão física", trailing = {
+                    Text(
+                        tipoConexaoFisicaLabel(tipoConexao),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = c.textSecondary,
+                    )
+                })
+            }
+        }
+        correlacao?.papelTopologiaHerdado?.let { papel ->
+            item {
+                LkListRow(c = c, title = "Papel na rede", trailing = {
+                    Text(
+                        papelTopologiaLabel(papel),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = c.textSecondary,
+                    )
+                })
+            }
         }
         item {
             LkListRow(c = c, title = "Descoberto via", showDivider = false, trailing = {
-                val corFonte =
-                    if (dispositivo.fonteNome == NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE) {
-                        LkColors.accent
-                    } else {
-                        c.textSecondary
-                    }
-                Text(fonteNomeLabel(dispositivo.fonteNome), fontSize = 13.sp, color = corFonte)
+                Text(
+                    fonteNomeLabel(dispositivo.fonteNome),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = LkColors.accent,
+                )
             })
         }
     }
@@ -863,7 +855,7 @@ private fun MeshApSheet(
         // Cabeçalho
         item {
             Row(
-                modifier = Modifier.padding(horizontal = 20.dp),
+                modifier = Modifier.padding(horizontal = LkSpacing.lg),
                 verticalAlignment = Alignment.Top,
             ) {
                 Box(
@@ -890,33 +882,28 @@ private fun MeshApSheet(
                     )
                     Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(LkColors.success),
-                        )
-                        Spacer(Modifier.width(5.dp))
+                        LkStatusDot(color = LkColors.success)
+                        Spacer(Modifier.width(LkSpacing.xs))
                         Text(text = "Online", style = MaterialTheme.typography.labelSmall, color = LkColors.success)
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(Modifier.width(LkSpacing.sm))
                         BadgePill(label = "AP Mesh", bg = LkColors.success.copy(0.12f), fg = LkColors.success)
                     }
                 }
             }
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(LkSpacing.lg))
             HorizontalDivider(color = c.border)
         }
 
         // Aviso sobre dados disponíveis
         item {
             Spacer(Modifier.height(LkSpacing.md))
-            Box(modifier = Modifier.padding(horizontal = LkSpacing.lg)) {
-                AlertBanner(
+            Row(modifier = Modifier.padding(horizontal = LkSpacing.lg)) {
+                LkInfoCallout(
+                    icon = Icons.Outlined.Info,
                     text =
                         "Sinal, banda e clientes conectados não estão disponíveis via varredura passiva. " +
                             "Para métricas detalhadas, acesse o painel do seu roteador mesh.",
-                    c = c,
+                    iconTint = c.textSecondary,
                 )
             }
             Spacer(Modifier.height(LkSpacing.sm))
@@ -1016,7 +1003,6 @@ private fun SemWifiFallback(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = c.textSecondary,
-                lineHeight = 20.sp,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
         }
@@ -1073,15 +1059,15 @@ private fun EmptyStateDispositivos(
             Spacer(Modifier.height(16.dp))
             Text(
                 text = titulo,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 color = c.textPrimary,
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 text = subtitulo,
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = c.textSecondary,
-                lineHeight = 18.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
             Spacer(Modifier.height(24.dp))
             if (isLoading) {
@@ -1115,15 +1101,8 @@ private fun SectionHeaderRow(
                 .padding(start = LkSpacing.lg, top = 20.dp, end = LkSpacing.lg, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelMedium,
-            color = c.textTertiary,
-            letterSpacing = 0.8.sp,
-            fontWeight = FontWeight.W700,
-        )
+        LkSectionOverline(title, modifier = Modifier.weight(1f))
         if (trailing != null) {
-            Spacer(Modifier.weight(1f))
             trailing()
         }
     }
@@ -1138,12 +1117,8 @@ private fun SheetSectionHeader(
     title: String,
     c: LkTokens,
 ) {
-    Text(
+    LkSectionOverline(
         text = title,
-        fontSize = 11.sp,
-        fontWeight = FontWeight.W700,
-        color = c.textTertiary,
-        letterSpacing = 0.8.sp,
         modifier = Modifier.padding(start = LkSpacing.lg, top = LkSpacing.lg, bottom = 4.dp),
     )
 }
@@ -1164,7 +1139,7 @@ private fun AlertBanner(
                 .clip(RoundedCornerShape(LkRadius.button))
                 .background(LkColors.warning.copy(alpha = 0.10f))
                 .border(1.dp, LkColors.warning.copy(alpha = 0.35f), RoundedCornerShape(LkRadius.button))
-                .padding(12.dp),
+                .padding(LkSpacing.md),
         verticalAlignment = Alignment.Top,
     ) {
         Icon(
@@ -1173,8 +1148,8 @@ private fun AlertBanner(
             tint = LkColors.warning,
             modifier = Modifier.size(18.dp),
         )
-        Spacer(Modifier.width(8.dp))
-        Text(text = text, style = MaterialTheme.typography.labelSmall, color = c.textPrimary, lineHeight = 16.sp)
+        Spacer(Modifier.width(LkSpacing.sm))
+        Text(text = text, style = MaterialTheme.typography.labelSmall, color = c.textPrimary)
     }
 }
 
@@ -1214,10 +1189,22 @@ private fun LkListRow(
                 Spacer(Modifier.width(LkSpacing.md))
             }
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, color = c.textPrimary, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    text = title,
+                    color = c.textPrimary,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 if (subtitle != null) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(text = subtitle, color = c.textSecondary, style = MaterialTheme.typography.labelSmall)
+                    Spacer(Modifier.height(LkSpacing.xs))
+                    Text(
+                        text = subtitle,
+                        color = c.textSecondary,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
             if (trailing != null) trailing()
@@ -1238,15 +1225,11 @@ private fun BadgePill(
     bg: Color,
     fg: Color,
 ) {
-    Box(
-        modifier =
-            Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(bg)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-    ) {
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = fg, fontWeight = FontWeight.W700)
-    }
+    LkPillBadge(
+        text = label,
+        containerColor = bg,
+        contentColor = fg,
+    )
 }
 
 // Padding16 helper
@@ -1269,6 +1252,7 @@ private fun iconForTipo(tipo: TipoDispositivo): ImageVector =
         TipoDispositivo.smartphone -> Icons.Outlined.Smartphone
         TipoDispositivo.smarthome -> Icons.Outlined.Lightbulb
         TipoDispositivo.impressora -> Icons.Outlined.Print
+        TipoDispositivo.console -> Icons.Outlined.SportsEsports
         TipoDispositivo.desconhecido -> Icons.Outlined.DevicesOther
     }
 
@@ -1308,7 +1292,33 @@ private fun tipoLabel(tipo: TipoDispositivo): String =
         TipoDispositivo.smartphone -> "Celular / Tablet"
         TipoDispositivo.smarthome -> "Dispositivo inteligente"
         TipoDispositivo.impressora -> "Impressora"
+        TipoDispositivo.console -> "Console de jogos"
         TipoDispositivo.desconhecido -> "Desconhecido"
+    }
+
+/** #983 (Fase 4) — traduz [TipoConexaoFisica] (confirmado por leitura direta do gateway,
+ *  [ResultadoCorrelacaoTopologia.tipoConexaoFisicaConfirmada]) pra rotulo exibido no detalhe
+ *  do dispositivo. `internal` pra ser testavel isoladamente (padrao ja usado em
+ *  `PapelParaTipoTopologiaLegadoTest`/`PapelParaConnectionNodeTypeTest`). */
+internal fun tipoConexaoFisicaLabel(tipo: TipoConexaoFisica): String =
+    when (tipo) {
+        TipoConexaoFisica.ETHERNET -> "Cabo (Ethernet)"
+        TipoConexaoFisica.WIFI -> "Wi-Fi"
+        TipoConexaoFisica.DESCONHECIDO -> "Desconhecida"
+    }
+
+/** #983 (Fase 4) — traduz [PapelTopologia] herdado por correlacao forte (MAC/ClientSnapshot
+ *  exato, [ResultadoCorrelacaoTopologia.papelTopologiaHerdado]) pra rotulo exibido no detalhe
+ *  do dispositivo. Nunca chamado com papel vindo de correlacao fraca (so OUI) — ver
+ *  [correlacionarDispositivoComTopologia]. */
+internal fun papelTopologiaLabel(papel: PapelTopologia): String =
+    when (papel) {
+        PapelTopologia.ROTEADOR -> "Roteador"
+        PapelTopologia.NO_MESH -> "Nó mesh"
+        PapelTopologia.REPETIDOR -> "Repetidor"
+        PapelTopologia.PONTO_DE_ACESSO -> "Ponto de acesso"
+        PapelTopologia.SISTEMA_MESH_PROVAVEL -> "Sistema mesh (provável)"
+        PapelTopologia.DESCONHECIDO -> "Desconhecido"
     }
 
 // #854: nunca expor o valor cru de fonteNome na UI (viola "métrica crua sempre

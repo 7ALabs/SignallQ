@@ -7,7 +7,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,7 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -63,19 +61,18 @@ import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import io.signallq.app.R
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.ConfirmacaoDialog
+import io.signallq.app.ui.component.LkSurfaceCard
 import kotlinx.coroutines.launch
 
 private const val TOTAL_SLIDES = 2
@@ -106,6 +103,7 @@ fun OnboardingScreen(
     var termosAceitos by remember { mutableStateOf(false) }
     var overlay by remember { mutableStateOf<OnboardingOverlay?>(null) }
     var mostrarAvisoSemPermissao by remember { mutableStateOf(false) }
+    var permissoesMarcadasAposSolicitacao by remember { mutableStateOf<OnboardingPermissoesMarcadas?>(null) }
 
     var permissoesConcedidas by remember {
         mutableStateOf(
@@ -129,28 +127,39 @@ fun OnboardingScreen(
 
     val solicitarPermissoesLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { resultado ->
-            permissoesConcedidas = aplicarResultadoPermissoesOnboarding(permissoesConcedidas, resultado)
+            val atualizadas = aplicarResultadoPermissoesOnboarding(permissoesConcedidas, resultado)
+            permissoesConcedidas = atualizadas
+            permissoesMarcadasAposSolicitacao?.let { alvo ->
+                permissoesMarcadas =
+                    OnboardingPermissoesMarcadas(
+                        wifiPerto = alvo.wifiPerto && atualizadas.wifiPerto,
+                        dispositivosRede = alvo.dispositivosRede && atualizadas.dispositivosRede,
+                        sinalChip = alvo.sinalChip && atualizadas.sinalChip,
+                        notificacoes = alvo.notificacoes && atualizadas.notificacoes,
+                    )
+            }
+            permissoesMarcadasAposSolicitacao = null
             val concedidasNestaRodada = resultado.filterValues { it }.keys
             if (concedidasNestaRodada.isNotEmpty()) onPermissoesConcedidas(concedidasNestaRodada)
-            if (permissoesConcedidas.nenhumaConcedida) {
-                mostrarAvisoSemPermissao = true
-            } else {
-                onConcluir()
-            }
         }
 
-    fun continuarDaTelaPermissoes() {
+    fun solicitarPermissoesDoOnboarding(marcadasDesejadas: OnboardingPermissoesMarcadas) {
         val paraSolicitar =
-            permissoesAndroidParaSolicitar(permissoesMarcadas)
+            permissoesAndroidParaSolicitar(marcadasDesejadas)
                 .filter { perm -> ContextCompat.checkSelfPermission(context, perm) != PackageManager.PERMISSION_GRANTED }
         if (paraSolicitar.isEmpty()) {
-            if (permissoesConcedidas.nenhumaConcedida) {
-                mostrarAvisoSemPermissao = true
-            } else {
-                onConcluir()
-            }
+            permissoesMarcadas = marcadasDesejadas
+            return
+        }
+        permissoesMarcadasAposSolicitacao = marcadasDesejadas
+        solicitarPermissoesLauncher.launch(paraSolicitar.toTypedArray())
+    }
+
+    fun continuarDaTelaPermissoes() {
+        if (permissoesConcedidas.nenhumaConcedida) {
+            mostrarAvisoSemPermissao = true
         } else {
-            solicitarPermissoesLauncher.launch(paraSolicitar.toTypedArray())
+            onConcluir()
         }
     }
 
@@ -205,7 +214,9 @@ fun OnboardingScreen(
                             c = c,
                             permissoesConcedidas = permissoesConcedidas,
                             permissoesMarcadas = permissoesMarcadas,
-                            onMarcadasChange = { permissoesMarcadas = it },
+                            onMarcadasChange = { marcadas ->
+                                solicitarPermissoesDoOnboarding(marcadas)
+                            },
                             onContinuar = { continuarDaTelaPermissoes() },
                         )
                 }
@@ -267,8 +278,7 @@ private fun OnboardingTelaBemVindo(
                     Modifier
                         .size(logoSizeDp)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(1.dp, c.border, CircleShape),
+                        .background(c.surfaceContainerHigh),
                 contentAlignment = Alignment.Center,
             ) {
                 Image(
@@ -291,15 +301,14 @@ private fun OnboardingTelaBemVindo(
             Text(
                 text = stringResource(R.string.onboarding_tela1_titulo),
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = c.textPrimary,
+                color = c.onSurface,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(LkSpacing.md))
             Text(
                 text = stringResource(R.string.onboarding_tela1_subtitulo),
                 style = MaterialTheme.typography.bodyLarge,
-                color = c.textSecondary,
+                color = c.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
 
@@ -311,7 +320,7 @@ private fun OnboardingTelaBemVindo(
                     withLink(
                         LinkAnnotation.Clickable(
                             tag = "termos_de_uso",
-                            styles = TextLinkStyles(style = SpanStyle(color = LkColors.accent, fontWeight = FontWeight.W600)),
+                            styles = TextLinkStyles(style = SpanStyle(color = c.primary, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)),
                         ) { onAbrirTermos() },
                     ) {
                         append("Termos de Uso")
@@ -320,38 +329,37 @@ private fun OnboardingTelaBemVindo(
                     withLink(
                         LinkAnnotation.Clickable(
                             tag = "politica_privacidade",
-                            styles = TextLinkStyles(style = SpanStyle(color = LkColors.accent, fontWeight = FontWeight.W600)),
+                            styles = TextLinkStyles(style = SpanStyle(color = c.primary, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)),
                         ) { onAbrirPrivacidade() },
                     ) {
                         append("Política de Privacidade")
                     }
                 }
 
-            Row(
+            LkSurfaceCard(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(LkRadius.card))
-                        .background(c.bgCard)
-                        .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-                        .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
+                        .clickable { onTermosAceitosChange(!termosAceitos) },
+                outlined = false,
             ) {
-                Checkbox(
-                    checked = termosAceitos,
-                    onCheckedChange = onTermosAceitosChange,
-                    modifier =
-                        Modifier.semantics {
-                            contentDescription = "Aceitar termos de uso e política de privacidade"
-                        },
-                )
-                Spacer(Modifier.width(LkSpacing.sm))
-                Text(
-                    text = textoTermos,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = c.textPrimary,
-                    modifier = Modifier.weight(1f),
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = termosAceitos,
+                        onCheckedChange = onTermosAceitosChange,
+                        modifier =
+                            Modifier.semantics {
+                                contentDescription = "Aceitar termos de uso e política de privacidade"
+                            },
+                    )
+                    Spacer(Modifier.width(LkSpacing.sm))
+                    Text(
+                        text = textoTermos,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.onSurface,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
         }
 
@@ -374,12 +382,11 @@ private fun OnboardingTelaBemVindo(
                         .semantics {
                             contentDescription = if (termosAceitos) "Continuar" else "Aceite os termos para continuar"
                         },
-                colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                colors = ButtonDefaults.buttonColors(containerColor = c.primary, contentColor = c.onPrimary),
             ) {
                 Text(
                     text = stringResource(R.string.onboarding_btn_continuar),
-                    color = LkColors.signallQTextOnDark,
-                    fontWeight = FontWeight.W600,
+                    color = c.onPrimary,
                 )
             }
         }
@@ -401,15 +408,14 @@ private fun OnboardingTelaPermissoes(
         Icon(
             imageVector = Icons.Outlined.Shield,
             contentDescription = null,
-            tint = LkColors.accent,
+            tint = c.primary,
             modifier = Modifier.size(48.dp),
         )
         Spacer(Modifier.height(LkSpacing.md))
         Text(
             text = stringResource(R.string.onboarding_tela2_titulo),
             style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = c.textPrimary,
+            color = c.onSurface,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = LkSpacing.xl),
         )
@@ -417,7 +423,7 @@ private fun OnboardingTelaPermissoes(
         Text(
             text = stringResource(R.string.onboarding_tela2_subtitulo),
             style = MaterialTheme.typography.bodyLarge,
-            color = c.textSecondary,
+            color = c.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = LkSpacing.xl),
         )
@@ -498,9 +504,8 @@ private fun OnboardingTelaPermissoes(
                 Spacer(Modifier.width(LkSpacing.sm))
                 Text(
                     text = "Permitir tudo",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.W600,
-                    color = c.textPrimary,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = c.onSurface,
                 )
             }
             Spacer(Modifier.height(LkSpacing.md))
@@ -516,12 +521,11 @@ private fun OnboardingTelaPermissoes(
             Button(
                 onClick = onContinuar,
                 modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Continuar" },
-                colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                colors = ButtonDefaults.buttonColors(containerColor = c.primary, contentColor = c.onPrimary),
             ) {
                 Text(
                     text = stringResource(R.string.onboarding_btn_continuar),
-                    color = LkColors.signallQTextOnDark,
-                    fontWeight = FontWeight.W600,
+                    color = c.onPrimary,
                 )
             }
         }
@@ -538,60 +542,58 @@ private fun PermissaoToggleCard(
     onMarcadoChange: (Boolean) -> Unit,
     c: LkTokens,
 ) {
-    Row(
+    LkSurfaceCard(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.bgCard)
-                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
-                .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
+                .padding(horizontal = 0.dp),
     ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(LkColors.accent.copy(alpha = 0.12f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = LkColors.accent,
-                modifier = Modifier.size(18.dp),
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier =
+                    Modifier
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(c.primary.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = c.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Spacer(Modifier.width(LkSpacing.md))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = titulo, style = MaterialTheme.typography.titleSmall, color = c.onSurface)
+                Spacer(Modifier.height(2.dp))
+                Text(text = descricao, style = MaterialTheme.typography.bodySmall, color = c.onSurfaceVariant)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = if (concedida) "Permitido" else "Não permitido",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (concedida) c.success else c.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.width(LkSpacing.sm))
+            Switch(
+                checked = marcado,
+                onCheckedChange = onMarcadoChange,
+                enabled = !concedida,
+                colors =
+                    SwitchDefaults.colors(
+                        checkedThumbColor = c.onPrimary,
+                        checkedTrackColor = c.primary,
+                        uncheckedThumbColor = c.outline,
+                        uncheckedTrackColor = c.surfaceContainerHighest,
+                        uncheckedBorderColor = c.outline,
+                    ),
+                modifier =
+                    Modifier.semantics {
+                        contentDescription = "$titulo: ${if (marcado) "marcado" else "não marcado"}"
+                    },
             )
         }
-        Spacer(Modifier.width(LkSpacing.md))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(text = titulo, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600, color = c.textPrimary)
-            Spacer(Modifier.height(2.dp))
-            Text(text = descricao, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = if (concedida) "Autorizado" else "Pendente",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.W600,
-                color = if (concedida) LkColors.success else c.textTertiary,
-            )
-        }
-        Spacer(Modifier.width(LkSpacing.sm))
-        Switch(
-            checked = marcado,
-            onCheckedChange = onMarcadoChange,
-            enabled = !concedida, // ja concedida no sistema: trava ligado, Android nao permite auto-revogar
-            colors =
-                SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                    checkedTrackColor = LkColors.accent,
-                    uncheckedThumbColor = c.textTertiary,
-                    uncheckedTrackColor = c.border,
-                ),
-            modifier =
-                Modifier.semantics {
-                    contentDescription = "$titulo: ${if (marcado) "marcado" else "não marcado"}"
-                },
-        )
     }
 }

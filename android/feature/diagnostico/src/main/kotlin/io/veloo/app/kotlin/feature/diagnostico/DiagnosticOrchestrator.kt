@@ -2,13 +2,23 @@ package io.signallq.app.feature.diagnostico
 
 import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.NoOpAnalyticsHelper
+import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
 import timber.log.Timber
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+/**
+ * [remoteDiagnosticRepository] — GH#969: liga o motor remoto (worker
+ * `signallq-diagnostic`) ao fluxo real de diagnostico. [RemoteDiagnosticRepository.evaluate]
+ * ja resolve toda a estrategia remoto-primeiro/fallback-local internamente (timeout curto,
+ * qualquer falha cai pro [DiagnosticRunner] local) — este orquestrador so delega, nao
+ * duplica a decisao remoto-vs-local.
+ */
 class DiagnosticOrchestrator(
     private val analyticsHelper: AnalyticsHelper = NoOpAnalyticsHelper,
+    private val remoteDiagnosticRepository: RemoteDiagnosticRepository =
+        RemoteDiagnosticRepository(baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL),
 ) {
 
     private val mutableSnapshotFlow = MutableStateFlow(
@@ -21,7 +31,7 @@ class DiagnosticOrchestrator(
 
     val snapshotFlow: StateFlow<SnapshotDiagnostico> = mutableSnapshotFlow.asStateFlow()
 
-    fun executar(
+    suspend fun executar(
         internetInput: InternetDiagnosticInput?,
         wifiInput: WifiDiagnosticInput?,
         fibraInput: FibraDiagnosticInput? = null,
@@ -42,7 +52,7 @@ class DiagnosticOrchestrator(
         )
     }
 
-    fun executar(
+    suspend fun executar(
         input: DiagnosticInput,
         enabledAreas: Set<DiagnosticArea> = DiagnosticArea.entries.toSet(),
     ) {
@@ -56,7 +66,7 @@ class DiagnosticOrchestrator(
                 "iniciando diagnostico tipo=${input.connectionType} dl=${input.internet?.downloadMbps} ul=${input.internet?.uploadMbps} lat=${input.internet?.latencyMs} rssi=${input.wifi?.rssiDbm} fibra=${input.fibra?.isUp} dnsMs=${input.dns?.currentDnsLatencyMs}",
             )
 
-            val relatorio = DiagnosticRunner.run(input, enabledAreas)
+            val relatorio = remoteDiagnosticRepository.evaluate(input, enabledAreas)
 
             Timber.i(
                 "diagnostico concluido decisao=${relatorio.decisao.id}(${relatorio.decisao.status}) " +

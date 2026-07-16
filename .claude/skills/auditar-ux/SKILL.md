@@ -28,14 +28,14 @@ $ARGUMENTS
 
 ## Fonte de verdade — Design System SignallQ
 
-O design system oficial está em `/linka-design` (`.claude/skills/linka-design/`):
+O design system oficial está em `/SignallQ-design` (`.claude/skills/SignallQ-design/`), Material Design 3 estrito:
 - `colors_and_type.css` — tokens de cores, tipografia, espaçamento e raios
 - `SignallQTheme.kt` (Android) — tema Compose com os mesmos tokens
 - `HANDOFF_README.md` — tabela de equivalência CSS → Compose
 - `ui_kits/android/` — componentes de referência em alta fidelidade
 - `README.md` — fundações visuais, iconografia e contexto de produto
 
-Toda auditoria deve comparar tokens implementados contra esta fonte de verdade. **Não copiar tokens para esta skill** — sempre consultar `/linka-design`.
+Toda auditoria deve comparar tokens implementados contra esta fonte de verdade. **Não copiar tokens para esta skill** — sempre consultar `/SignallQ-design`.
 
 ---
 

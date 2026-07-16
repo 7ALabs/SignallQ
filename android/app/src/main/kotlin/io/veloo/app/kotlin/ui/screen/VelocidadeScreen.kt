@@ -3,6 +3,7 @@
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,10 +14,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -40,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -50,7 +54,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.signallq.app.R
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.FaseSpeedtest
@@ -227,7 +230,7 @@ fun VelocidadeScreen(
                         Spacer(Modifier.width(LkSpacing.sm))
                         Text(
                             text = "download concluído",
-                            fontSize = 12.sp,
+                            style = MaterialTheme.typography.labelMedium,
                             color = c.textTertiary,
                         )
                     }
@@ -327,7 +330,7 @@ private fun LinhaServidor(
     }
     Text(
         text = partes.joinToString(" · "),
-        fontSize = 11.sp,
+        style = MaterialTheme.typography.labelSmall,
         color = c.textTertiary,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -347,6 +350,7 @@ private val fasePills =
         PillConfig(FaseSpeedtest.ping, "LATÊNCIA", 0),
         PillConfig(FaseSpeedtest.download, "DOWNLOAD", 1),
         PillConfig(FaseSpeedtest.upload, "UPLOAD", 2),
+        PillConfig(FaseSpeedtest.concluido, "CONCLUÍDO", 3),
     )
 
 @Composable
@@ -365,39 +369,42 @@ private fun PillsFase(faseAtual: FaseSpeedtest) {
 
             val corBorda =
                 when {
-                    concluido -> LkColors.phaseDownload
+                    concluido -> LkColors.success
                     ativo -> corDaFase(faseAtual)
-                    else -> c.border
+                    else -> Color.Transparent
                 }
             val corTexto =
                 when {
-                    concluido -> LkColors.phaseDownload
+                    concluido -> LkColors.success
                     ativo -> corDaFase(faseAtual)
-                    else -> c.textTertiary
+                    else -> c.onSurfaceVariant
                 }
             val bgColor =
                 when {
-                    concluido -> LkColors.phaseDownload.copy(alpha = 0.08f)
-                    ativo -> corDaFase(faseAtual).copy(alpha = 0.08f)
-                    else -> Color.Transparent
+                    concluido -> LkColors.success.copy(alpha = 0.16f)
+                    ativo -> corDaFase(faseAtual).copy(alpha = 0.16f)
+                    else -> c.surfaceContainer
                 }
 
             Box(
                 modifier =
                     Modifier
-                        .border(
-                            width = 1.dp,
-                            color = corBorda,
-                            shape = RoundedCornerShape(LkRadius.button),
-                        ).padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
+                        .clip(RoundedCornerShape(LkRadius.pill))
+                        .background(bgColor)
+                        .then(
+                            if (corBorda != Color.Transparent) {
+                                Modifier.border(1.dp, corBorda, RoundedCornerShape(LkRadius.pill))
+                            } else {
+                                Modifier
+                            },
+                        ).padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = pill.label,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.W600,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Medium,
                     color = corTexto,
-                    letterSpacing = 0.5.sp,
                 )
             }
         }
@@ -418,7 +425,12 @@ private fun ErroContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = "⚠", fontSize = 48.sp)
+        Icon(
+            imageVector = Icons.Outlined.ErrorOutline,
+            contentDescription = null,
+            tint = LkColors.error,
+            modifier = Modifier.size(48.dp),
+        )
         Spacer(Modifier.height(LkSpacing.lg))
         Text(
             text = "Não foi possível completar o teste",

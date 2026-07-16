@@ -4,13 +4,12 @@ import androidx.compose.runtime.Stable
 import io.signallq.app.ads.AdsFlags
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
+import io.signallq.app.feature.devices.ResultadoCorrelacaoTopologia
 import io.signallq.app.feature.devices.SnapshotScanDispositivos
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.diagnostico.ai.AiAcaoRecomendada
 import io.signallq.app.feature.diagnostico.ai.DiagChatEntry
-import io.signallq.app.feature.diagnostico.pulse.OpcaoResposta
 import io.signallq.app.feature.speedtest.ModoSpeedtest
-import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.signallq.app.feature.wifi.RedeVizinha
 import io.signallq.app.feature.wifi.SnapshotScanWifi
@@ -51,6 +50,9 @@ data class AppShellWifiState(
     val onRefreshDispositivos: () -> Unit,
     val onRefreshSinal: () -> Unit,
     val onSalvarApelido: (mac: String, apelido: String) -> Unit,
+    /** #983 (Fase 4) — correlacao best-effort topologia/gateway, chaveada por id do dispositivo
+     *  (ver MainViewModel.correlacoesTopologia). */
+    val correlacoesTopologia: Map<String, ResultadoCorrelacaoTopologia> = emptyMap(),
 )
 
 sealed class AnalisadorState {
@@ -99,20 +101,16 @@ data class AppShellDiagnosticoState(
 )
 
 /**
- * Agrupa parametros do fluxo SignallQ (IA conversacional).
+ * Agrupa parametros usados fora da tela SignallQ standalone (removida na Fase 8 MD3 —
+ * GH#937, decisao #2 do plano: dead code sem rota/overlay alcancavel desde a Fase 1).
+ * [operadoraMovel] alimenta a Analise Detalhada (1a) em ResultadoVelocidadeScreen;
+ * [onVerificarGemma]/[gemmaAvailable] fazem o healthcheck de IA ao entrar na tab Velocidade.
  */
 @Stable
 data class AppShellSignallQState(
-    val signallQUiState: SignallQUiState,
     val gemmaAvailable: Boolean = false,
     val operadoraMovel: String? = null,
-    val onIniciarSignallQ: (foco: String?) -> Unit,
-    val onResetSignallQ: () -> Unit,
-    val onSelecionarChip: (OpcaoResposta) -> Unit,
-    val onResponderPergunta: (OpcaoResposta) -> Unit,
-    val onEnviarMensagemTexto: (String) -> Unit = {},
     val onVerificarGemma: () -> Unit = {},
-    val onIniciarSignallQComResultado: (ResultadoSpeedtest, String?) -> Unit = { _, _ -> },
 )
 
 /**

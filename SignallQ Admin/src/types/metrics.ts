@@ -22,7 +22,7 @@ export interface MetricWithTrend {
 
 /**
  * GH#552: escala de veredito humano obrigatória para KPI — nunca número cru.
- * Mesma regra do app mobile (ver `.claude/skills/linka-design/HANDOFF_README.md`),
+ * Mesma regra do app mobile (ver `.claude/skills/SignallQ-design/HANDOFF_README.md`),
  * adaptada ao contexto de dashboard. "forte" e "excelente" têm o mesmo peso
  * semântico (tom positivo); mantidos como rótulos separados porque o contexto
  * de mercado às vezes pede um ou outro (ex.: "sinal forte" vs "retenção excelente").

@@ -90,6 +90,15 @@ android {
             "ADMIN_INGEST_KEY",
             "\"$adminIngestKey\"",
         )
+
+        // GH#935 — sonda regional (TCP/HTTPS) usada pela tela Jogos (REGIONAL_ESTIMATE).
+        // Worker leve, sem logica de jogo, so eco/latencia (integrations/cloudflare/game-latency-probe-worker).
+        // Nao e segredo — apenas infraestrutura.
+        buildConfigField(
+            "String",
+            "GAME_LATENCY_PROBE_URL",
+            "\"https://signallq-game-latency-probe.giammattey-luiz.workers.dev/probe\"",
+        )
     }
 
     signingConfigs {
@@ -134,7 +143,6 @@ android {
             buildConfigField("Boolean", "FEATURE_DIAGNOSTICO_ITERATIVO", "true")
             buildConfigField("Boolean", "FEATURE_TRACEROUTE", "true")
             buildConfigField("Boolean", "FEATURE_FIBRA_SCREEN", "true")
-            buildConfigField("Boolean", "FEATURE_DNS_SCREEN", "true")
             buildConfigField("Boolean", "FEATURE_DEVICES_SCREEN_V2", "true")
             buildConfigField("Boolean", "FEATURE_TELEPHONY_AVANCADO", "true")
             buildConfigField("Boolean", "FEATURE_MAPA_CALOR_WIFI", "true")
@@ -145,7 +153,6 @@ android {
             buildConfigField("Boolean", "FEATURE_CONTRIBUICAO_ANONIMA", "true")
             buildConfigField("Boolean", "FEATURE_RATE_US", "true")
             buildConfigField("Boolean", "FEATURE_ACESSIBILIDADE", "true")
-            buildConfigField("Boolean", "FEATURE_DIAGNOSTICO_CHAT", "true")
         }
         release {
             firebaseAppDistribution {
@@ -185,10 +192,8 @@ android {
             buildConfigField("Boolean", "FEATURE_NOVIDADES_TELA", "true")
             // Features adicionais aprovadas para release
             buildConfigField("Boolean", "FEATURE_FIBRA_SCREEN", "true")
-            buildConfigField("Boolean", "FEATURE_DNS_SCREEN", "true")
             // ─── FORA DO RELEASE ──────────────────────────────────────────
             // Chat IA (card e laudo ativos acima; só o chat desligado)
-            buildConfigField("Boolean", "FEATURE_DIAGNOSTICO_CHAT", "true")
             // Dispositivos (limitação de hostname conhecida)
             buildConfigField("Boolean", "FEATURE_DEVICES_SCREEN_V2", "false")
             // Monitoramento passivo e dependentes
@@ -312,6 +317,10 @@ dependencies {
     implementation(libs.timber)
     implementation(libs.androidx.profileinstaller)
     implementation(libs.okhttp)
+    // GH#970 — carrega logo remota de operadora de cauda longa (ProviderLogo.url,
+    // diretorio do worker signallq-diagnostic). So usado quando o catalogo local
+    // (OperadoraLogoCatalog) nao tem a operadora.
+    implementation(libs.coil.compose)
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)

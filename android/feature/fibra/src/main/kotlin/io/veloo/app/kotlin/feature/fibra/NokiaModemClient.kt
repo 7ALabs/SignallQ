@@ -97,7 +97,9 @@ internal class NokiaModemClient(private val host: String) {
             "0" -> "sessao em uso por outro acesso (err_t=0)"
             "1" -> "credenciais invalidas (err_t=1)"
             "2" -> "token expirado — retry necessario (err_t=2)"
-            else -> "login falhou: status=${resp.statusCode} err_t=$errT body=${resp.body.take(200)}"
+            // GH#983 Fase 4 (checklist de seguranca) — nunca logar/propagar HTML cru do gateway,
+            // so tamanho, seguindo o mesmo padrao ja usado pro SID (sid.take(8) acima).
+            else -> "login falhou: status=${resp.statusCode} err_t=$errT bodyLen=${resp.body.length}"
         }
         Timber.w("login: FALHA $mensagem")
         throw IOException(mensagem)
@@ -108,6 +110,40 @@ internal class NokiaModemClient(private val host: String) {
         val resp = httpGet(path, buildSessionHeaders())
         Timber.i("fetchPage: $path status=${resp.statusCode} bytes=${resp.body.length}")
         return resp.body
+    }
+
+    /**
+     * Solicita reboot do equipamento (`reboot.cgi`, GH#934) — ação documentada em
+     * `docs_ai/technical/NOKIA_GPON_FIELD_MAP.md` ("apenas ação, sem campos de
+     * leitura adicionais"), mas **nunca validada contra hardware real** neste
+     * levantamento (só o menu/rota foram confirmados, não o payload exato do
+     * POST). Best-effort: o equipamento tende a derrubar a conexão no meio da
+     * resposta por estar de fato reiniciando, então qualquer [IOException]
+     * durante a própria chamada é tratada como sinal de que o reboot
+     * provavelmente foi aceito, não como falha — só uma resposta HTTP de erro
+     * autenticação/sessão (401/403) antes da conexão cair é tratada como falha
+     * real. Chamador deve invalidar a sessão cacheada após chamar isto (a sessão
+     * não sobrevive ao reboot).
+     */
+    fun reboot(): Boolean {
+        if (!isLoggedIn) return false
+        val cookies = buildSessionCookies()
+        return try {
+            val resp = httpPost("/reboot.cgi", "", cookies, extraHeaders = mapOf("X-SID" to xSid))
+            Timber.i("reboot: resposta status=${resp.statusCode}")
+            resp.statusCode !in intArrayOf(401, 403)
+        } catch (t: IOException) {
+            Timber.i(t, "reboot: conexao encerrada durante a chamada — tratado como reboot aceito")
+            true
+        }
+    }
+
+    private fun buildSessionCookies(): Map<String, String> {
+        val cookies = mutableMapOf<String, String>()
+        if (sid.isNotEmpty()) cookies["sid"] = sid
+        if (lsid.isNotEmpty()) cookies["lsid"] = lsid
+        cookies["lang"] = lang
+        return cookies
     }
 
     private fun buildSessionHeaders(): Map<String, String> {
@@ -172,6 +208,7 @@ internal class NokiaModemClient(private val host: String) {
         path: String,
         body: String,
         initCookies: Map<String, String> = emptyMap(),
+        extraHeaders: Map<String, String> = emptyMap(),
     ): HttpResponse {
         val bodyBytes = body.toByteArray(Charsets.UTF_8)
         val conn = (URL("$baseUrl$path").openConnection() as HttpURLConnection).apply {
@@ -187,6 +224,7 @@ internal class NokiaModemClient(private val host: String) {
             setRequestProperty("Origin", baseUrl)
             setRequestProperty("Accept", "*/*")
             setRequestProperty("Connection", "close")
+            extraHeaders.forEach { (k, v) -> setRequestProperty(k, v) }
             setFixedLengthStreamingMode(bodyBytes.size)
             if (initCookies.isNotEmpty()) {
                 val cookieStr = initCookies.entries.joinToString("; ") { "${it.key}=${it.value}" }

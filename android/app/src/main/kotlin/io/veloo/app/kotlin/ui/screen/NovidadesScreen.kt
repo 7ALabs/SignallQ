@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,8 +40,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.signallq.app.R
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
@@ -101,33 +102,43 @@ fun NovidadesScreen(
     Scaffold(
         containerColor = c.bgPrimary,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            "Novidades",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.W600,
-                            color = c.textPrimary,
-                        )
-                        Text(
-                            "v$appVersion",
-                            fontSize = 12.sp,
-                            color = c.textTertiary,
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onVoltar) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.global_cd_voltar),
-                            tint = c.textPrimary,
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
-            )
+            Column {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Column(
+                            modifier = Modifier.fillMaxHeight(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Text(
+                                "Novidades",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.W600,
+                                color = c.textPrimary,
+                            )
+                            Text(
+                                "v$appVersion",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = c.textSecondary,
+                            )
+                        }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onVoltar) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.global_cd_voltar),
+                                tint = c.textPrimary,
+                            )
+                        }
+                    },
+                    actions = {
+                        Spacer(Modifier.width(40.dp))
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
+                )
+                HorizontalDivider(color = c.border, thickness = 1.dp)
+            }
         },
     ) { padding ->
         when {
@@ -136,7 +147,7 @@ fun NovidadesScreen(
                     modifier = Modifier.fillMaxSize().padding(padding),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(stringResource(R.string.novidades_carregando), style = MaterialTheme.typography.bodyMedium, color = c.textTertiary)
+                    Text(stringResource(R.string.novidades_carregando), style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
                 }
             }
             erro -> {
@@ -148,7 +159,7 @@ fun NovidadesScreen(
                         Text(
                             "Não foi possível carregar as novidades.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = c.textTertiary,
+                            color = c.textSecondary,
                         )
                         Spacer(Modifier.height(LkSpacing.md))
                         TextButton(onClick = { tentativa++ }) {
@@ -187,7 +198,7 @@ private fun NovidadeRow(
             "novo" -> "NOVO" to LkColors.success
             "melhoria" -> "MELHORIA" to LkColors.accent
             "correcao" -> "CORREÇÃO" to LkColors.error
-            else -> item.tipo.uppercase() to c.textTertiary
+            else -> item.tipo.uppercase() to c.textSecondary
         }
 
     Row(
@@ -201,12 +212,12 @@ private fun NovidadeRow(
             modifier =
                 Modifier
                     .clip(RoundedCornerShape(4.dp))
-                    .background(badgeCor.copy(alpha = 0.12f))
+                    .background(badgeCor.copy(alpha = 0.14f))
                     .padding(horizontal = LkSpacing.sm, vertical = 2.dp),
         ) {
             Text(
                 text = badgeLabel,
-                fontSize = 10.sp,
+                style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.W700,
                 color = badgeCor,
             )
@@ -215,16 +226,16 @@ private fun NovidadeRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = item.titulo,
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.W600,
                 color = c.textPrimary,
             )
             Spacer(Modifier.height(2.dp))
             Text(
                 text = item.descricao,
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.bodySmall,
                 color = c.textSecondary,
-                lineHeight = 17.sp,
+                textAlign = TextAlign.Start,
             )
         }
     }
