@@ -23,8 +23,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -236,10 +234,6 @@ internal fun GatewayConnectionSheetContent(
         verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
         SheetDragHandle()
-        GatewayConnectionSegmentedState(
-            estado = estado,
-            c = c,
-        )
         Text(
             text = "Conectar ao roteador",
             style = MaterialTheme.typography.headlineSmall,
@@ -395,41 +389,6 @@ internal fun GatewayConnectionSheetContent(
 
     if (mostrarModelosCompativeis) {
         GatewayCompatibleModelsSheet(onDismissRequest = { mostrarModelosCompativeis = false })
-    }
-}
-
-@Composable
-private fun GatewayConnectionSegmentedState(
-    estado: GatewayConnectionSheetState,
-    c: LkTokens,
-) {
-    val ativo =
-        when (estado) {
-            GatewayConnectionSheetState.Formulario -> "Formulário"
-            GatewayConnectionSheetState.Conectando -> "Conectando"
-            is GatewayConnectionSheetState.Erro -> "Erro"
-        }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-    ) {
-        listOf("Formulário", "Conectando", "Erro").forEach { label ->
-            FilterChip(
-                selected = ativo == label,
-                onClick = {},
-                enabled = false,
-                modifier = Modifier.weight(1f),
-                label = { Text(label) },
-                colors =
-                    FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = c.secondaryContainer,
-                        selectedLabelColor = c.onSecondaryContainer,
-                        disabledSelectedContainerColor = c.secondaryContainer,
-                        disabledContainerColor = c.surfaceContainer,
-                        disabledLabelColor = c.textTertiary,
-                    ),
-            )
-        }
     }
 }
 
