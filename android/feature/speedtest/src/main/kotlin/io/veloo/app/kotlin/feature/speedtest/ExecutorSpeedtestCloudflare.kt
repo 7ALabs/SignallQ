@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
-import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
@@ -704,20 +703,18 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
             onPingProgress?.invoke(i + 1, config.pingCount)
         }
 
-        val semPrimeiro = bruto.drop(1)
-        val timeouts = semPrimeiro.count { it == null }
-        val validos = semPrimeiro.filterNotNull()
-        val mediana = median(validos)
-        val filtrados = if (mediana > 0.0) validos.filter { it <= mediana * 3.0 } else validos
-        val usados = if (filtrados.isNotEmpty()) filtrados else validos
+        // Algoritmo de mediana/outlier/jitter/perda extraído para AnalisadorAmostragemPing
+        // (GH#1019) — reusado também por PingExecutor. Aqui só permanece o que é
+        // específico do speedtest: laço de coleta com corte por mudança de rede.
+        val resultado = AnalisadorAmostragemPing.analisar(bruto)
 
         return LatencyPhase(
-            latenciaMs = median(usados),
-            jitterMs = jitter(usados),
-            perdaPercentual = if (semPrimeiro.isNotEmpty()) (timeouts.toDouble() / semPrimeiro.size.toDouble()) * 100.0 else 0.0,
-            totalAmostras = semPrimeiro.size,
-            amostrasValidas = usados.size,
-            timeouts = timeouts,
+            latenciaMs = resultado.latenciaMs,
+            jitterMs = resultado.jitterMs,
+            perdaPercentual = resultado.perdaPercentual,
+            totalAmostras = resultado.totalAmostras,
+            amostrasValidas = resultado.amostrasValidas,
+            timeouts = resultado.timeouts,
         )
     }
 
@@ -1047,12 +1044,6 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
         val sorted = values.sorted()
         val m = sorted.size / 2
         return if (sorted.size % 2 == 0) (sorted[m - 1] + sorted[m]) / 2.0 else sorted[m]
-    }
-
-    private fun jitter(values: List<Double>): Double {
-        if (values.size < 2) return 0.0
-        val deltas = values.zipWithNext { a, b -> abs(b - a) }
-        return if (deltas.isEmpty()) 0.0 else deltas.average()
     }
 
     private fun mudouRede(
