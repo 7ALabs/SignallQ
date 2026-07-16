@@ -1,7 +1,7 @@
 # Regra permanente — Higiene e padronização do repositório
 
 - **Status:** ativo
-- **Última validação:** 2026-07-15
+- **Última validação:** 2026-07-16
 - **Fonte de verdade:** este arquivo (`.claude/rules/higiene-e-padronizacao-repositorio.md`) — não duplicar em `docs_ai/`, `AGENTS.md`, mirrors ou docs de módulo
 - **Escopo:** repositório `gmmattey/linka-android` (monorepo SignallQ) inteiro — Android, Admin, Cloudflare, docs
 - **Responsável:** Claudete (dono do processo), aplicado por todo agente (Camilo, Lia, Rhodolfo) e por qualquer sessão humana no repo
@@ -162,7 +162,43 @@ Ao tocar nele:
    `InternetProveedorSheet.kt`, `MedicaoTipoSheet.kt`);
 6. crie testes de caracterização antes de extrações com risco de comportamento visual ou estado.
 
-### 4.6 Identificação de topologia e dispositivos
+### 4.6 `EquipamentoInternetScreen.kt`
+
+Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/EquipamentoInternetScreen.kt` — **1549 linhas** (acima do limiar de "dívida crítica" da seção 7). Concentra a tela de equipamento de internet/fibra/roteador com múltiplos painéis por capacidade.
+
+Ao tocar nele:
+1. identifique qual painel ou seção de capacidade está sendo modificada;
+2. não adicione novo painel diretamente — extraia para componente dedicado antes;
+3. prefira separar: estado de cada painel, adaptadores de dados de equipamento, classificadores de capacidade, componentes de visualização, wiring com dados de rede;
+4. mantenha em `EquipamentoInternetScreen.kt` apenas a composição da tela principal e delegação dos painéis;
+5. cada painel independente deve ter seu próprio arquivo (ex.: `OntSheet.kt`, `RotadorSheet.kt`, `EquipamentoCapacidadePanel.kt`);
+6. crie testes de caracterização antes de extrações com risco de comportamento de dados ou estado.
+
+### 4.7 `DispositivosScreen.kt`
+
+Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/DispositivosScreen.kt` — **1386 linhas** (acima do limiar de "dívida crítica" da seção 7). Concentra a lista de dispositivos conectados com sheets de detalhe.
+
+Ao tocar nele:
+1. identifique qual sheet ou fluxo de detalhe está sendo modificado;
+2. não adicione nova sheet diretamente — extraia para arquivo dedicado antes;
+3. prefira separar: estado da lista, estado de cada sheet, adaptadores de dados de dispositivo, componentes de visualização, wiring com dados de rede;
+4. mantenha em `DispositivosScreen.kt` apenas a composição da lista principal e delegação das sheets;
+5. cada sheet independente deve ter seu próprio arquivo (ex.: `DispositivoDetalheSheet.kt`, `DispositivoConfiguracaoSheet.kt`);
+6. crie testes de caracterização antes de extrações com risco de comportamento de lista ou estado.
+
+### 4.8 `JogosScreen.kt`
+
+Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/JogosScreen.kt` — **1120 linhas** (acima do limiar de extração obrigatória da seção 7). Concentra o fluxo de teste direcionado por jogo com 5 etapas.
+
+Ao tocar nele:
+1. identifique qual etapa ou jogo está sendo modificado;
+2. não adicione nova etapa diretamente — extraia para componente dedicado antes;
+3. prefira separar: estado de cada etapa, orquestração de fluxo (navegação entre etapas), adaptadores de dados de jogo, componentes de visualização;
+4. mantenha em `JogosScreen.kt` apenas a composição do fluxo principal e delegação das etapas;
+5. cada etapa independente deve ter seu próprio arquivo (ex.: `JogoEtapa1Screen.kt`, `JogoEtapa2Screen.kt`) ou componente reutilizável;
+6. crie testes de caracterização antes de extrações com risco de comportamento de fluxo ou estado.
+
+### 4.9 Identificação de topologia e dispositivos
 
 Quando encontrar motores, heurísticas ou classificadores concorrentes:
 1. liste todos os consumidores;
@@ -176,7 +212,7 @@ Quando encontrar motores, heurísticas ou classificadores concorrentes:
 Features não podem depender diretamente de outras features. A composição entre domínios acontece em
 `:app` ou por contratos normalizados em um módulo `core` adequado.
 
-### 4.7 Documentação divergente
+### 4.10 Documentação divergente
 
 Valide antes de confiar: referências antigas a versões anteriores, quantidades antigas de módulos,
 caminhos `io/veloo`, nomes antigos da marca, navegação anterior, agentes arquivados, issues antigas,
