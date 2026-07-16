@@ -177,6 +177,18 @@ orfaos que a tarefa tenha iniciado (ex.: `wrangler dev`, servidores de teste). I
 obrigatorio do fechamento -- nao espera a rotina periodica de `/higiene`, que continua existindo
 so para pegar o que escapar dessa disciplina.
 
+**Batching -- nao abrir agente/PR novo por reflexo (revisao 2026-07-16):**
+Motivo: auditoria da sessao 2026-07-15/16 (`docs_ai/operations/PROCESSO_PR_E_AGENTES_2026-07-16.md`)
+encontrou 74 branches remotas ja mergeadas e nunca apagadas, e pelo menos 2 PRs da propria sessao
+que deveriam ter sido absorvidas por um dispatch ja em andamento em vez de virar agente+branch+PR
+novos. Antes de abrir `Agent` novo ou PR nova, todo agente confere:
+1. Ja existe branch/worktree/PR ativa desta sessao na mesma area/arquivo? Se sim, o achado entra
+   ali (mesmo commit ou proximo commit da mesma branch) -- nao abre dispatch novo.
+2. O achado depende de outra PR ainda nao mergeada? Espera mergear antes de despachar (evita
+   retrabalho de resolver na ordem errada).
+3. PR isolada so se justifica com: urgencia de producao diferente do resto, rollback precisa ser
+   independente, ou dominio/reviewer diferente. Fora isso, agrupa.
+
 ---
 
 ## Autonomia dos Agentes
