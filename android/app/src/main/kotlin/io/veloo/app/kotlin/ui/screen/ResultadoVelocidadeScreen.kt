@@ -83,7 +83,9 @@ import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnap
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
 import io.signallq.app.core.recommendation.RecommendationType
+import io.signallq.app.feature.diagnostico.DiagnosticStatus
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
+import io.signallq.app.feature.diagnostico.ai.ordenadasPorPrioridade
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 import io.signallq.app.feature.speedtest.VereditoUso
 import io.signallq.app.ui.IspInfo
@@ -135,7 +137,11 @@ fun ResultadoVelocidadeScreen(
     ispInfo: IspInfo? = null,
     operadoraMovel: String? = null,
     analisadorState: AnalisadorState = AnalisadorState.Inativo,
-    onAnalisarProblema: (String) -> Unit = {},
+    /** `null` quando acionado automaticamente ao abrir a tela 1a (Análise detalhada,
+     *  sem sintoma escolhido); preenchido quando vem do fluxo por sintoma
+     *  (`AnaliseDetalhadaBottomSheet`). Mesmo mecanismo (GH#design-tobe-alinhamento,
+     *  decisão do Luiz 2026-07-14) — ver `AppShellDiagnosticoState.onAnalisarProblema`. */
+    onAnalisarProblema: (String?) -> Unit = {},
     onResetarAnalisador: () -> Unit = {},
     /** Snapshot do equipamento local (ONT/roteador), quando disponivel — GH#544,
      *  epic #547. Null ate a leitura opcional de equipamento (GH#543) ser
@@ -589,11 +595,13 @@ fun ResultadoVelocidadeScreen(
                 decisaoTitulo = decisaoTitulo,
                 decisaoMensagem = decisaoMensagem,
                 decisaoRecomendacao = decisaoRecomendacao,
+                decisaoStatus = decisao?.status,
                 categoria = decisao?.categoriaOrigem,
                 ispInfo = ispInfo,
                 localizacaoServidor = localizacaoServidor,
                 localDevice = localDevice,
                 analisadorState = analisadorState,
+                onAnalisarProblema = onAnalisarProblema,
                 onAbrirAnalisador = { showAnalisadorSheet = true },
                 onFalarComOperadora = { showOperadoraSheet = true },
                 recommendationDecision = recommendationDecision,
@@ -639,6 +647,14 @@ fun ResultadoVelocidadeScreen(
  * prático, recomendações, orientação por tipo de rede) mais um atalho opcional pra
  * um diagnóstico mais específico por problema relatado (SIG-113, reaproveitado aqui
  * em vez de recriado).
+ *
+ * Título/mensagem/recomendação do banner e do card de Recomendações são gerados pela
+ * IA (`AnalisadorState.Resultado.titulo`/`resumo`/`acoes`, disparado automaticamente
+ * ao abrir via `onAnalisarProblema(null)` — decisão do Luiz, 2026-07-16). O motor
+ * determinístico local continua decidindo o veredito (`decisaoStatus`, cor/ícone do
+ * banner) e serve de fallback textual (`decisaoTitulo`/`decisaoMensagem`/
+ * `decisaoRecomendacao`) enquanto a IA carrega ou se a chamada falhar sem cair no
+ * fallback local do próprio repositório.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -647,11 +663,13 @@ private fun DiagnosticoDetalhadoSheet(
     decisaoTitulo: String?,
     decisaoMensagem: String?,
     decisaoRecomendacao: String?,
+    decisaoStatus: DiagnosticStatus?,
     categoria: String?,
     ispInfo: IspInfo?,
     localizacaoServidor: String?,
     localDevice: LocalNetworkDeviceSnapshot?,
     analisadorState: AnalisadorState,
+    onAnalisarProblema: (String?) -> Unit,
     onAbrirAnalisador: () -> Unit,
     onFalarComOperadora: () -> Unit,
     recommendationDecision: RecommendationDecision?,
@@ -666,6 +684,22 @@ private fun DiagnosticoDetalhadoSheet(
     resolveOperadoraContatoRemoto: suspend (String?, Boolean) -> ResolvedOperadoraContact,
 ) {
     var detalhesTecnicosExpandido by remember { mutableStateOf(false) }
+
+    // Dispara a analise por IA automaticamente ao abrir a sheet -- so quando ainda
+    // nao ha resultado (Inativo). Reaproveita o MESMO estado/mecanismo do fluxo
+    // "Analisar meu problema com IA" (problema = null aqui vs. sintoma escolhido la).
+    LaunchedEffect(Unit) {
+        if (analisadorState is AnalisadorState.Inativo) {
+            onAnalisarProblema(null)
+        }
+    }
+
+    val analiseIa = analisadorState as? AnalisadorState.Resultado
+    val carregandoAnalise = analisadorState is AnalisadorState.Inativo || analisadorState is AnalisadorState.Analisando
+    val tituloExibido = analiseIa?.titulo?.ifBlank { null } ?: decisaoTitulo
+    val mensagemExibida = analiseIa?.resumo?.ifBlank { null } ?: analiseIa?.texto?.ifBlank { null } ?: decisaoMensagem
+    val acaoPrincipal = analiseIa?.acoes?.ordenadasPorPrioridade()?.firstOrNull()
+    val recomendacaoExibida = acaoPrincipal?.descricao?.ifBlank { null } ?: decisaoRecomendacao
 
     Column(
         modifier =
@@ -691,7 +725,7 @@ private fun DiagnosticoDetalhadoSheet(
                     color = c.textPrimary,
                 )
                 Text(
-                    text = "Leitura objetiva do resultado — sem conversa livre",
+                    text = "Leitura objetiva do resultado",
                     style = MaterialTheme.typography.labelMedium,
                     color = c.textSecondary,
                 )
@@ -701,21 +735,26 @@ private fun DiagnosticoDetalhadoSheet(
         Spacer(Modifier.height(LkSpacing.xl))
 
         DiagnosticoStatusBanner(
-            categoria = categoria,
-            decisaoTitulo = decisaoTitulo,
-            decisaoMensagem = decisaoMensagem,
+            status = decisaoStatus,
+            titulo = tituloExibido,
+            mensagem = mensagemExibida,
+            carregando = carregandoAnalise,
             c = c,
         )
 
         Spacer(Modifier.height(LkSpacing.xl))
 
         // RECOMENDAÇÕES — o protótipo to-be abre direto daqui após o banner, sem
-        // blocos intermediários de causa/impacto dentro desta sheet.
-        LkSectionOverline(text = "Recomendações")
-        Spacer(Modifier.height(LkSpacing.sm))
-        if (!decisaoRecomendacao.isNullOrBlank()) {
-            RecomendacaoCard(texto = decisaoRecomendacao, c = c)
-            Spacer(Modifier.height(LkSpacing.md))
+        // blocos intermediários de causa/impacto dentro desta sheet. Enquanto a IA
+        // carrega, nao mostra recomendacao (evita exibir texto deterministico como
+        // se ja fosse a leitura final).
+        if (!carregandoAnalise) {
+            LkSectionOverline(text = "Recomendações")
+            Spacer(Modifier.height(LkSpacing.sm))
+            if (!recomendacaoExibida.isNullOrBlank()) {
+                RecomendacaoCard(texto = recomendacaoExibida, c = c)
+                Spacer(Modifier.height(LkSpacing.md))
+            }
         }
 
         if (recommendationDecision != null) {
@@ -1023,36 +1062,58 @@ private fun OperadoraResumoCard(
     }
 }
 
+/**
+ * Banner de veredito da tela 1a. `status` vem do motor determinístico local
+ * (`DiagnosticStatus` — ok/info/attention/critical/inconclusive) e decide cor/ícone;
+ * `titulo`/`mensagem` vêm humanizados pela IA (`AnalisadorState.Resultado`,
+ * ver [DiagnosticoDetalhadoSheet]). Antes, a cor era decidida por matching de texto
+ * em cima do próprio título/mensagem (`textoBase.contains("saud")`...) — gambiarra
+ * frágil que quebraria de vez com texto livre gerado pela IA; substituída por
+ * `status`, que é sempre o veredito determinístico real.
+ */
 @Composable
 private fun DiagnosticoStatusBanner(
-    categoria: String?,
-    decisaoTitulo: String?,
-    decisaoMensagem: String?,
+    status: DiagnosticStatus?,
+    titulo: String?,
+    mensagem: String?,
+    carregando: Boolean,
     c: LkTokens,
 ) {
-    val textoBase = listOfNotNull(categoria, decisaoTitulo, decisaoMensagem).joinToString(" ").lowercase()
-    val positivo =
-        textoBase.contains("saud") ||
-            textoBase.contains("estável") ||
-            textoBase.contains("estavel") ||
-            textoBase.contains("fora do esperado").not() &&
-            categoria.isNullOrBlank()
+    if (carregando) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(LkRadius.card))
+                    .background(c.surfaceContainer)
+                    .padding(LkSpacing.lg),
+            horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color = LkColors.accent,
+            )
+            Text(
+                text = "Analisando seu resultado com IA…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.textSecondary,
+            )
+        }
+        return
+    }
 
+    val positivo = status == DiagnosticStatus.ok || status == DiagnosticStatus.info
     val containerColor = if (positivo) c.successContainer else LkColors.error.copy(alpha = 0.12f)
     val contentColor = if (positivo) c.onSuccessContainer else LkColors.error
     val icon = if (positivo) Icons.Outlined.CheckCircle else Icons.Outlined.Error
-    val titulo =
-        if (positivo) {
-            "Conexão saudável"
-        } else {
-            decisaoTitulo ?: "Sinais de sobrecarga identificados"
-        }
-    val mensagem =
-        if (positivo) {
+    val tituloExibido = titulo ?: if (positivo) "Conexão saudável" else "Sinais de sobrecarga identificados"
+    val mensagemExibida =
+        mensagem ?: if (positivo) {
             "Não encontramos perda de pacotes, instabilidade ou latência fora do esperado nesta análise."
         } else {
-            decisaoMensagem
-                ?: "A latência sob carga subiu além do esperado, indicando disputa de banda ou saturação da conexão."
+            "A latência sob carga subiu além do esperado, indicando disputa de banda ou saturação da conexão."
         }
 
     Row(
@@ -1073,14 +1134,14 @@ private fun DiagnosticoStatusBanner(
         )
         Column {
             Text(
-                text = titulo,
+                text = tituloExibido,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.W600,
                 color = contentColor,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = mensagem,
+                text = mensagemExibida,
                 style = MaterialTheme.typography.bodyMedium,
                 color = contentColor,
             )

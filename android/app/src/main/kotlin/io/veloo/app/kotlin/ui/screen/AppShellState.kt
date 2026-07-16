@@ -73,6 +73,13 @@ sealed class AnalisadorState {
         val texto: String,
         val origem: String,
         val acoes: List<AiAcaoRecomendada> = emptyList(),
+        /** Titulo curto humanizado (AiDiagnosisResult.titulo, "5-8 palavras"). Usado
+         *  pelo banner compacto da tela 1a. Vazio em respostas antigas/nao populadas. */
+        val titulo: String = "",
+        /** Resumo em 1-2 frases (AiDiagnosisResult.resumo) — mais compacto que [texto]
+         *  (que prioriza textoLaudo, um paragrafo). A tela 1a usa [resumo] primeiro;
+         *  o sheet "Analisar meu problema com IA" continua usando [texto]. */
+        val resumo: String = "",
     ) : AnalisadorState()
 
     data class Erro(
