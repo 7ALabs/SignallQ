@@ -91,8 +91,8 @@ export const Topbar: React.FC<TopbarProps> = ({
               style={
                 environment === env
                   ? {
-                      backgroundColor: "var(--bg-sidebar-active)",
-                      color: "var(--text-primary)",
+                      backgroundColor: "var(--nav-active-bg)",
+                      color: "var(--nav-active-fg)",
                       fontWeight: 600,
                     }
                   : { color: "var(--text-secondary)" }
@@ -119,8 +119,8 @@ export const Topbar: React.FC<TopbarProps> = ({
               style={
                 period === f.value
                   ? {
-                      backgroundColor: "var(--bg-sidebar-active)",
-                      color: "var(--text-primary)",
+                      backgroundColor: "var(--nav-active-bg)",
+                      color: "var(--nav-active-fg)",
                       fontWeight: 500,
                     }
                   : { color: "var(--text-secondary)" }

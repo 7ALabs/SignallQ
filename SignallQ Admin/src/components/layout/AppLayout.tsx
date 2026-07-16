@@ -83,12 +83,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           theme={theme}
         />
 
-        {/* Staging warning banner */}
-        {environment === "staging" && (
-          <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-1.5 text-amber-400 text-xs text-center">
-            Modo Homologacao — dados de staging. Alterne para Producao para ver dados reais.
-          </div>
-        )}
+        {/* Staging warning banner — removido em 2026-07-16: o protótipo
+            `md3-tobe` não tem banner equivalente, o chip PROD/STG segmentado
+            do Topbar já comunica o ambiente ativo (ver
+            FASE1_TOKENS_CONSOLE_MD3_TOBE_2026-07-16.md, item 4). */}
 
         {/* 3. Main scrollable panel */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6 lg:space-y-8" style={{ backgroundColor: "var(--bg-content)" }}>

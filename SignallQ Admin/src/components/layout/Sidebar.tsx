@@ -79,7 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <div
       id={id || "sidebar-container"}
       className={`
-        w-[264px] h-screen flex flex-col justify-between shrink-0 select-none
+        w-[var(--sidebar-width)] h-screen flex flex-col justify-between shrink-0 select-none
         fixed lg:relative z-50 lg:z-auto
         transition-transform duration-200 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -173,8 +173,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     style={
                       isActive
                         ? {
-                            backgroundColor: "var(--bg-sidebar-active)",
-                            color: "var(--primary)",
+                            backgroundColor: "var(--nav-active-bg)",
+                            color: "var(--nav-active-fg)",
                             borderColor: "transparent",
                           }
                         : {
@@ -187,7 +187,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       {IconComponent && (
                         <IconComponent
                           className="w-4 h-4 shrink-0 transition-colors"
-                          style={{ color: isActive ? "var(--primary)" : "var(--text-secondary)" }}
+                          style={{ color: isActive ? "var(--nav-active-fg)" : "var(--text-secondary)" }}
                         />
                       )}
                       <span>{item.name}</span>

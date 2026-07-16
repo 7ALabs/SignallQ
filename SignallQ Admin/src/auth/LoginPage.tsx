@@ -57,7 +57,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             <img
               src={`${import.meta.env.BASE_URL}icon-192.png`}
               alt="SignallQ"
-              className="w-16 h-16 rounded-[var(--radius-button)]"
+              className="w-16 h-16 rounded-[var(--radius-card)]"
             />
           </div>
           <h1
@@ -96,7 +96,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 placeholder="admin@exemplo.com"
                 autoFocus
                 autoComplete="email"
-                className="w-full rounded-xl px-4 py-3 text-sm transition-colors focus:outline-none"
+                className="w-full rounded-[var(--radius-input)] px-4 py-3 text-sm transition-colors focus:outline-none"
                 style={{
                   backgroundColor: "var(--sq-bg-primary)",
                   border: "1px solid var(--sq-border)",
@@ -128,7 +128,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
                 autoComplete="current-password"
-                className="w-full rounded-xl px-4 py-3 text-sm transition-colors focus:outline-none"
+                className="w-full rounded-[var(--radius-input)] px-4 py-3 text-sm transition-colors focus:outline-none"
                 style={{
                   backgroundColor: "var(--sq-bg-primary)",
                   border: "1px solid var(--sq-border)",
@@ -161,8 +161,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             <button
               type="submit"
               disabled={loading || !email.trim() || !password.trim()}
-              className="w-full text-white font-medium text-sm rounded-xl py-3 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ backgroundColor: "var(--sq-accent)" }}
+              className="w-full font-medium text-sm rounded-[var(--radius-button)] py-3 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ backgroundColor: "var(--sq-accent)", color: "var(--on-primary)" }}
             >
               {loading ? "Verificando..." : "Entrar"}
             </button>
