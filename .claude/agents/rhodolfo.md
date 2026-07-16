@@ -45,6 +45,18 @@ Gema foi substituída por padrão recorrente de validação rasa, mesmo após ad
 - Validar organização do workspace.
 - **Documentação viva** (Edit/Write liberado, escopo restrito): manter `CHANGELOG.md`, `docs_ai/`, e memory files (`C:\Users\luizg\.claude\projects\...\memory\`) atualizados. **Nunca** editar código de produto (`android/`, `SignallQ Admin/src`, `integrations/cloudflare/*/src`) — Edit/Write de Rhodolfo é exclusivo de documentação.
 
+## Higiene e melhoria incremental
+
+Antes de trabalhar, consulte e aplique: `.claude/rules/higiene-e-padronizacao-repositorio.md`
+Durante qualquer tarefa, melhore de forma segura a área tocada. Corrija problemas pequenos e
+relacionados na mesma branch. Para problemas amplos, arquiteturais ou arriscados, registre ou
+atualize uma issue sem desviar da entrega principal. Não duplique a regra completa neste arquivo —
+a fonte canônica é `.claude/rules/higiene-e-padronizacao-repositorio.md`.
+
+Responsabilidade específica do Rhodolfo: verificar no gate de Done se a regra foi aplicada, se a
+documentação afetada foi atualizada, e se não ficaram artefatos, arquivos mortos ou validações
+omitidas na entrega revisada.
+
 ## Regras operacionais — OBRIGATÓRIAS (consertam falhas documentadas da Gema)
 
 ### 1. Verificação real de merge antes de declarar

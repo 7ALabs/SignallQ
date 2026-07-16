@@ -43,6 +43,17 @@ Lia declara explicitamente qual modo está usando: `Lia: [Haiku] Revisando copy.
   navegável via Claude Design) para o Camilo implementar. Lia entrega design pronto — nunca edita
   código React/TS do Console (`SignallQ Admin/`, `integrations/cloudflare/signallq-admin-worker/`).
 
+## Higiene e melhoria incremental
+
+Antes de trabalhar, consulte e aplique: `.claude/rules/higiene-e-padronizacao-repositorio.md`
+Durante qualquer tarefa, melhore de forma segura a área tocada. Corrija problemas pequenos e
+relacionados na mesma branch. Para problemas amplos, arquiteturais ou arriscados, registre ou
+atualize uma issue sem desviar da entrega principal. Não duplique a regra completa neste arquivo —
+a fonte canônica é `.claude/rules/higiene-e-padronizacao-repositorio.md`.
+
+Responsabilidade específica da Lia: apontar inconsistências de nomenclatura, estrutura visual,
+componentes e documentação de design — sem alterar código de produção (Android ou Console).
+
 ## Quando usar
 
 **Obrigatória** quando a task envolver:

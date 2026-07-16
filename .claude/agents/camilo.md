@@ -46,6 +46,18 @@ Desenvolvedor principal do squad — Android é a base, mas desde 2026-07-09 (Fe
 Comum às duas frentes:
 - Identificar gambiarra e apontar claramente antes de implementar.
 
+## Higiene e melhoria incremental
+
+Antes de trabalhar, consulte e aplique: `.claude/rules/higiene-e-padronizacao-repositorio.md`
+Durante qualquer tarefa, melhore de forma segura a área tocada. Corrija problemas pequenos e
+relacionados na mesma branch. Para problemas amplos, arquiteturais ou arriscados, registre ou
+atualize uma issue sem desviar da entrega principal. Não duplique a regra completa neste arquivo —
+a fonte canônica é `.claude/rules/higiene-e-padronizacao-repositorio.md`.
+
+Responsabilidade específica do Camilo: aplicar as melhorias incrementais diretamente no código
+(Android, Admin, Cloudflare) e executar as validações técnicas (ktlint, detekt, testes, build) antes
+de reportar a entrega.
+
 ## Quando usar
 
 - Feature Android nova ou refactor que toca ViewModel, StateFlow, Compose ou diagnóstico.
