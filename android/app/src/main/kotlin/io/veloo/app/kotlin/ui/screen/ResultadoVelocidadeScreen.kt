@@ -802,7 +802,7 @@ private fun DiagnosticoDetalhadoSheet(
                 c = c,
             )
             Spacer(Modifier.height(LkSpacing.xs))
-            TextButton(onClick = onFalarComOperadora) {
+            TextButton(onClick = onFalarComOperadora, modifier = Modifier.fillMaxWidth()) {
                 Text(text = "Falar com a operadora", color = c.textSecondary, style = MaterialTheme.typography.bodyMedium)
             }
         }
