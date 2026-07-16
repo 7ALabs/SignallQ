@@ -39,7 +39,6 @@ object OperadoraLogoCatalog {
             "vivo_fibra" to OperadoraVisualIdentity(Color(0xFF660099), "V", R.drawable.operator_vivo_fibra),
             "claro_net" to OperadoraVisualIdentity(Color(0xFFED1C24), "C", R.drawable.operator_claro_net),
             "tim_live" to OperadoraVisualIdentity(Color(0xFF003D8F), "T", R.drawable.operator_tim_live),
-            "oi_fibra" to OperadoraVisualIdentity(Color(0xFFFF8C00), "O", R.drawable.operator_oi_fibra),
             "nio" to OperadoraVisualIdentity(Color(0xFF00B4D8), "N", R.drawable.operator_nio),
             "algar" to OperadoraVisualIdentity(Color(0xFF0066CC), "A", R.drawable.operator_algar),
             "unifique" to OperadoraVisualIdentity(Color(0xFF00A651), "U", R.drawable.operator_unifique),
@@ -48,6 +47,14 @@ object OperadoraLogoCatalog {
             "ligga" to OperadoraVisualIdentity(Color(0xFF8BC53F), "L", R.drawable.operator_ligga),
             "vero" to OperadoraVisualIdentity(Color(0xFF7B2D8E), "V", R.drawable.operator_vero),
             "giga_mais" to OperadoraVisualIdentity(Color(0xFF00AEEF), "G", R.drawable.operator_giga_mais),
+            "wlinks" to OperadoraVisualIdentity(Color(0xFFFF6600), "W", R.drawable.operator_wlinks),
+            "amigo" to OperadoraVisualIdentity(Color(0xFF00B0D7), "A", R.drawable.operator_amigo),
+            "viamar" to OperadoraVisualIdentity(Color(0xFF8B0000), "V", R.drawable.operator_viamar),
+            "west_telecom" to OperadoraVisualIdentity(Color(0xFF2184BD), "W", R.drawable.operator_westtelecom),
+            "west_fibra" to OperadoraVisualIdentity(Color(0xFF1D3E70), "W", R.drawable.operator_westfibra),
+            "fhp_fibra" to OperadoraVisualIdentity(Color(0xFFC9584C), "F", R.drawable.operator_fhpfibra),
+            "topfibra" to OperadoraVisualIdentity(Color(0xFF007545), "T", R.drawable.operator_topfibra),
+            "coopertec_speed" to OperadoraVisualIdentity(Color(0xFF151ADA), "C", R.drawable.operator_coopertec_speed),
         )
 
     private val padrao = OperadoraVisualIdentity(LkColors.accent, "?", R.drawable.operator_generic)

@@ -210,12 +210,6 @@
     <string name="operadora_contact_nao_lista">Sua operadora não está na lista</string>
     <string name="operadora_contact_buscar_anatel">Buscar operadora na Anatel</string>
 
-    <!-- SignallQInputArea -->
-    <string name="signallq_input_placeholder">Pergunte sobre sua conexão…</string>
-    <string name="signallq_input_limite_mensagens">Limite de mensagens atingido</string>
-    <string name="signallq_input_limite">Inicie um novo diagnóstico para continuar</string>
-    <string name="signallq_input_enviar">Enviar</string>
-
     <!-- Acessibilidade -->
     <string name="cd_toggle_ativado">Ativado</string>
     <string name="cd_toggle_desativado">Desativado</string>
@@ -223,13 +217,9 @@
     <string name="cd_detalhes_tecnicos_recolher">Recolher detalhes técnicos</string>
     <string name="cd_analise_ia_expandida">Análise IA expandida</string>
     <string name="cd_analise_ia_recolhida">Análise IA recolhida</string>
-    <string name="cd_pensamento_expandido">Recolher raciocínio</string>
-    <string name="cd_pensamento_recolhido">Expandir raciocínio</string>
     <string name="cd_abrir_whatsapp">Abrir WhatsApp</string>
     <string name="cd_rede_aberta">Rede aberta</string>
     <string name="cd_rede_protegida">Rede protegida</string>
-    <string name="cd_recolher_raciocinio">Recolher raciocínio da IA</string>
-    <string name="cd_expandir_raciocinio">Expandir raciocínio da IA</string>
     <string name="cd_fibra_erro_icone">Ícone de erro</string>
     <string name="cd_expandir_detalhes_medicoes">Expandir detalhes das medições</string>
     <string name="cd_recolher_detalhes_medicoes">Recolher detalhes das medições</string>

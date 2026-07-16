@@ -2,6 +2,8 @@
 
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.database.chat.ChatSessionEntity
+import io.signallq.app.core.database.recommendation.RecommendationHistoryEntity
+import java.util.UUID
 
 // ---------------------------------------------------------------------------
 // Utilitarios de serialização — usados por SignallQOrchestrator ao montar payloads.
@@ -229,6 +231,38 @@ fun ChatSessionEntity.toIngestPayload(
     completionTokens = completionTokens,
     totalTokens = totalTokens,
     costUsd = null,
+    environment = environment,
+    distChannel = distChannel,
+    buildType = buildType,
+    versionCode = versionCode,
+    deviceId = deviceId,
+)
+
+/**
+ * Converte [RecommendationHistoryEntity] (com feedback ja dado) para [AnalyticsEventIngestPayload]
+ * -- design-tobe-alinhamento, tela 1a. Reaproveita o evento `feature_used` (ja aceito pelo worker,
+ * `VALID_ANALYTICS_EVENTS`) em vez de um endpoint/schema novo: `featureId` carrega
+ * `"recommendation_feedback:<recommendationId>:<feedback>"`, parseavel no dashboard.
+ * Compromisso conhecido -- ver PR/relatorio da tela 1a: dedicar coluna propria no D1
+ * (`recommendationId`/`feedback` separados) fica para uma migracao futura, se o Admin
+ * precisar filtrar/agrupar por feedback com mais frequencia do que hoje.
+ *
+ * Precondição: chamador DEVE garantir que [RecommendationHistoryEntity.feedback] e
+ * [RecommendationHistoryEntity.feedbackAtEpochMs] não sejam null antes de invocar.
+ */
+fun RecommendationHistoryEntity.toIngestPayload(
+    appVersion: String? = null,
+    environment: String? = null,
+    distChannel: String? = null,
+    buildType: String? = null,
+    versionCode: Int? = null,
+    deviceId: String? = null,
+) = AnalyticsEventIngestPayload(
+    id = UUID.nameUUIDFromBytes("$id-$feedback".toByteArray()).toString(),
+    name = "feature_used",
+    createdAt = (feedbackAtEpochMs ?: shownAtEpochMs) / 1000,
+    appVersion = appVersion,
+    featureId = "recommendation_feedback:$recommendationId:$feedback",
     environment = environment,
     distChannel = distChannel,
     buildType = buildType,

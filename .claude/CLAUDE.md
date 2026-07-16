@@ -76,17 +76,21 @@ Na conversa principal, responda sempre como **Claudete** (PM & Tech Lead do Sign
 
 ## Design System
 
-Toda UI segue o **SignallQ Design System** (`.claude/skills/SignallQ-design/`), migrado em 2026-07-11 para
-**Material Design 3 estrito** (paleta tonal HCT, tipografia Google Sans/Roboto em 15 estilos, elevacao tonal
-em 5 niveis, state layers, motion, tokens `--md-sys-color-*`). Antes renomeada `linka-design` -- ver decisao
-registrada em `docs_ai/design-system/DECISAO_RENOMEACAO_SIGNALLQ_DESIGN_2026-07-11.md`.
+Toda UI segue o **SignallQ Design System** (`.claude/skills/SignallQ-design/`), alinhado em
+2026-07-13 ao documento **"SignallQ App - Fluxo de Telas.dc.html"** (Claude Design, projeto
+`e77ea465-291f-4bf5-930c-a267680da04e`) -- documento mais recente do mesmo projeto que havia
+orientado a migracao MD3 estrito de 2026-07-11 (paleta tonal HCT, `primary=#6C2BFF`), que continha
+uma paleta diferente e contraditoria. Ver
+`docs_ai/design-system/DECISAO_ALINHAMENTO_TOBE_2026-07-13.md` (correcao) e
+`docs_ai/design-system/DECISAO_RENOMEACAO_SIGNALLQ_DESIGN_2026-07-11.md` (renomeacao original de
+`linka-design`).
 Antes de criar ou editar telas/componentes, consulte a skill `SignallQ-design` e use os tokens de
 `colors_and_type.css` / `SignallQTheme.kt` como fonte de verdade.
 
 Nao-negociaveis:
-- Material 3 estrito, tríade tonal derivada do acento violeta `#6C2BFF` (Primary/Secondary/Tertiary), semantica de status verde/ambar/vermelho
-- Icones Material Symbols (Outlined), tipo Google Sans (display/headline/title) + Roboto (body/label), grid 8dp, card radius 12dp (16dp reservado a sheets/dialogs), flat (elevacao tonal, sem sombra dura)
-- Superficies SignallQ (IA) sempre escuras (`#0D0D1A` / `#1A0B2E` / `#1E1130`) -- decisao de produto, nao afetada pelo MD3
+- Material 3, acento violeta `#5B21D6` (Primary), secondary azul FIXO `#2851B8` (nao deriva mais do primary), semantica de status verde/ambar/vermelho
+- Icones Material Symbols (Outlined, variable font), tipo unica Google Sans Flex (fallback Roboto) em todos os estilos, grid 8dp (8 degraus: xs 4 / sm 8 / md 12 / base 16 / lg 20 / xl 24 / xxl 32 / xxxl 40), radius por componente (Card 16px / SheetFrame 28px / Button 20px / Field 12px / Chip-Badge 999px / Dialog 24px), flat (elevacao tonal, sem sombra dura)
+- Superficie SignallQ (IA) e DESCONTINUADA no To-Be -- nao implementar rota/componente novo
 - Copy em PT-BR com voce, sentence case em titulos, UPPERCASE em overlines, SEM emoji -- decisao de produto, nao afetada pelo MD3
 - Metrica crua sempre acompanhada de veredito humano (Excelente/Bom/Regular/Fraco/Forte)
 - Separador inline: ponto medio
@@ -103,19 +107,20 @@ mas nunca criar um novo sem checar se o que voce precisa ja existe em algum dest
 
 | Onde | Escopo | Finalidade |
 |---|---|---|
-| `.claude/skills/linka-design/` | Android (app real) | Skill do Claude Code -- ativa sozinha ao pedir UI Android, fonte de verdade pra gerar codigo/protótipo on-brand |
+| `.claude/skills/SignallQ-design/` | Android (app real) | Skill do Claude Code -- ativa sozinha ao pedir UI Android, fonte de verdade pra gerar codigo/protótipo on-brand |
 | `packages/design-system/` | Android (app real) | "Gemeo digital" React, sincronizado com o projeto **"SignallQ Design System"** (`e77ea465-291f-4bf5-930c-a267680da04e`) no Claude Design -- unico projeto Claude Design valido, nao criar outro (ver `.design-sync/conventions.md`) |
 | `docs_ai/design-system/` | Android (app real) | Documentacao formal de tokens/componentes Android (markdown), referenciada pela skill |
 | `DESIGN.md` / `PRODUCT.md` (raiz) | Android (app real) | Spec no formato da skill `impeccable`, usado por `/impeccable craft\|critique\|audit\|polish` |
 | `SignallQ Admin/DESIGN.md` / `SignallQ Admin/PRODUCT.md` | SignallQ Console (Admin) | Mesmo formato impeccable, mas do Admin -- North Star propria ("The Operator's Console"), paleta propria; nao confundir com o par acima |
 | `.claude/design-specs/` | Prototipagem avulsa | Handoffs/protótipos pontuais por feature (ex: monetizacao nativa, diagnostico IA) -- nao e sistema reutilizavel, curar/arquivar specs velhas periodicamente |
 
-`.claude/skills/` e a fonte canonica de toda skill (inclusive `linka-design`).
+`.claude/skills/` e a fonte canonica de toda skill (inclusive `SignallQ-design`).
 `.agents/skills/` e `.github/skills/` sao mirrors intencionais pra outros harnesses (Codex
 e hooks do GitHub respectivamente, ver `.codex/hooks.json` / `.github/hooks/*.json`) --
 existem de proposito, nao apagar, mas **sempre resincronizar a partir de `.claude/skills/`
 apos editar uma skill**, nunca editar o mirror direto (fica dessincronizado, como aconteceu
-com `.agents/skills/linka-design/` ate 2026-07-12).
+com `.agents/skills/linka-design/` ate 2026-07-12, e resincronizado/renomeado para
+`SignallQ-design` em 2026-07-13).
 
 ---
 

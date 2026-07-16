@@ -230,8 +230,6 @@ class MainActivity : ComponentActivity() {
             val gemmaAvailable = viewModel.gemmaAvailable.collectAsStateWithLifecycle().value
             val onboardingConcluido = viewModel.onboardingConcluido.collectAsStateWithLifecycle().value
             val consentimentoLgpd = viewModel.consentimentoLgpd.collectAsStateWithLifecycle().value
-            val diagChatHistorico by viewModel.diagChatHistorico.collectAsStateWithLifecycle()
-            val diagChatCarregando by viewModel.diagChatCarregando.collectAsStateWithLifecycle()
             val analisadorState by viewModel.analisadorState.collectAsStateWithLifecycle()
             val recommendationDecision by viewModel.recommendationDecision.collectAsStateWithLifecycle()
             val recommendationFeedback by viewModel.recommendationFeedback.collectAsStateWithLifecycle()
@@ -361,10 +359,6 @@ class MainActivity : ComponentActivity() {
                                     // de "feature usada" com um session_id generico e sem correlacao.
                                     viewModel.iniciarDiagnostico()
                                 },
-                                diagChatHistorico = diagChatHistorico,
-                                diagChatCarregando = diagChatCarregando,
-                                onEnviarPerguntaDiagnostico = { pergunta -> viewModel.enviarPerguntaDiagnostico(pergunta) },
-                                onLimparDiagChat = { viewModel.limparDiagChat() },
                                 analisadorState = analisadorState,
                                 onAnalisarProblema = { problema -> viewModel.analisarProblema(problema) },
                                 onResetarAnalisador = { viewModel.resetarAnalisador() },

@@ -8,25 +8,29 @@ import org.junit.Test
  * Regressão GH#411 — operadora "Oi" era resolvida/exibida como "Nio" porque o
  * matcher usava `String.contains` puro sobre termos curtos, permitindo colisão
  * de substring entre nomes parecidos (ex.: "oi" dentro de outra palavra).
+ *
+ * A Oi (fibra/fixo) foi rebrandeada para Nio — não existe mais como marca separada
+ * no catálogo (2026-07-14). "oi"/"oi fibra"/"telemar" agora resolvem para o cadastro
+ * "nio", cobrindo dado legado de roteador/API que ainda reporta o nome antigo.
  */
 class BancoOperadorasTest {
     @Test
-    fun `ISP oi resolve para operadora Oi, nunca Nio`() {
+    fun `ISP oi resolve para operadora Nio (rebrand), nunca um cadastro Oi separado`() {
         val resultado = BancoOperadoras.resolver("Oi")
-        assertEquals("oi_fibra", resultado?.id)
-        assertEquals("Oi", resultado?.nome)
+        assertEquals("nio", resultado?.id)
+        assertEquals("Nio Fibra", resultado?.nome)
     }
 
     @Test
-    fun `ISP oi fibra resolve para operadora Oi`() {
+    fun `ISP oi fibra resolve para operadora Nio (rebrand)`() {
         val resultado = BancoOperadoras.resolver("Oi Fibra")
-        assertEquals("oi_fibra", resultado?.id)
+        assertEquals("nio", resultado?.id)
     }
 
     @Test
-    fun `ISP telemar resolve para operadora Oi`() {
+    fun `ISP telemar resolve para operadora Nio (rebrand)`() {
         val resultado = BancoOperadoras.resolver("Telemar Norte Leste S.A")
-        assertEquals("oi_fibra", resultado?.id)
+        assertEquals("nio", resultado?.id)
     }
 
     @Test
@@ -102,9 +106,10 @@ class BancoOperadorasTest {
     }
 
     @Test
-    fun `nome de operadora movel OI resolve para Oi`() {
-        val resultado = BancoOperadoras.resolverMovel("OI")
-        assertEquals("oi_fibra", resultado?.id)
+    fun `nome de operadora movel OI nao resolve (Nio e fibra-only, sem produto movel)`() {
+        // A Nio (rebrand da Oi fixa) nao tem produto movel conhecido sob a mesma marca --
+        // "Oi Movel" seria uma operadora separada, de grupo diferente, nao cadastrada aqui.
+        assertNull(BancoOperadoras.resolverMovel("OI"))
     }
 
     @Test

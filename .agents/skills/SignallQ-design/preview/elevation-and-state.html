@@ -1,0 +1,33 @@
+<!-- @dsCard group="Elevação e Estado" -->
+<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:var(--md-sys-color-surface-container-low);font-family:var(--font-sans);padding:22px;}
+  .cap{font:500 11px/16px var(--font-sans);color:var(--md-sys-color-on-surface-variant-2);letter-spacing:.3px;text-transform:uppercase;margin-bottom:12px;}
+  .row{display:flex;gap:16px;margin-bottom:26px;}
+  .lvl{width:88px;height:64px;border-radius:var(--md-sys-shape-corner-md);display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;}
+  .lvl-lbl{font:500 11px/16px var(--font-sans);color:var(--md-sys-color-on-surface-variant);}
+  .state-row{display:flex;gap:16px;align-items:center;}
+  .state-demo{
+    width:140px;height:44px;border-radius:var(--md-sys-shape-corner-md);
+    background:var(--md-sys-color-primary-container);
+    color:var(--md-sys-color-on-primary-container);
+    display:flex;align-items:center;justify-content:center;
+    font:500 13px/20px var(--font-sans);
+  }
+</style></head><body>
+  <div class="cap">Elevação tonal — 5 níveis (tint, não sombra dura)</div>
+  <div class="row">
+    <div class="lvl md-elevation-0" style="border:1px solid var(--md-sys-color-outline-variant)"><span class="lvl-lbl">level 0</span></div>
+    <div class="lvl md-elevation-1"><span class="lvl-lbl">level 1</span></div>
+    <div class="lvl md-elevation-2"><span class="lvl-lbl">level 2</span></div>
+    <div class="lvl md-elevation-3"><span class="lvl-lbl">level 3</span></div>
+    <div class="lvl md-elevation-4"><span class="lvl-lbl">level 4</span></div>
+  </div>
+
+  <div class="cap">State layers — overlay de opacidade sobre onSurface/onPrimary (passe o mouse)</div>
+  <div class="state-row">
+    <div class="state-demo md-state-layer">default</div>
+  </div>
+  <div class="cap" style="margin-top:18px">Motion — 100/200/300/400ms · easing emphasized &amp; standard (cubic-bezier(.2,0,0,1))</div>
+</body></html>

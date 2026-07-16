@@ -72,6 +72,23 @@ fun permissoesAndroidParaSolicitar(
 }
 
 /**
+ * Sincroniza os toggles marcados na UI com o resultado real do RequestMultiplePermissions —
+ * se o usuario negou no dialogo do sistema, o switch correspondente volta a desligado em vez de
+ * ficar "ligado" so visualmente. Permissoes ausentes do mapa (nao solicitadas nesta rodada)
+ * preservam o valor marcado atual.
+ */
+fun sincronizarPermissoesMarcadasComResultado(
+    marcadas: OnboardingPermissoesMarcadas,
+    resultado: Map<String, Boolean>,
+): OnboardingPermissoesMarcadas =
+    OnboardingPermissoesMarcadas(
+        wifiPerto = resultado[Manifest.permission.ACCESS_FINE_LOCATION] ?: marcadas.wifiPerto,
+        dispositivosRede = resultado[Manifest.permission.NEARBY_WIFI_DEVICES] ?: marcadas.dispositivosRede,
+        sinalChip = resultado[Manifest.permission.READ_PHONE_STATE] ?: marcadas.sinalChip,
+        notificacoes = resultado[Manifest.permission.POST_NOTIFICATIONS] ?: marcadas.notificacoes,
+    )
+
+/**
  * Atualiza o estado de concessao com o resultado real do RequestMultiplePermissions.
  * Permissoes ausentes do mapa (nao solicitadas nesta rodada) preservam o valor anterior.
  */

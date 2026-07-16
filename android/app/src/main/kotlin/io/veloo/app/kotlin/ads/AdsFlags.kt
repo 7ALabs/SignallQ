@@ -14,6 +14,7 @@ data class AdsFlags(
     val resultado: Boolean = false,
     val dispositivos: Boolean = false,
     val historico: Boolean = false,
+    val jogos: Boolean = false,
 ) {
     fun habilitadoPara(slot: AdSlot): Boolean {
         if (!masterEnabled) return false
@@ -22,6 +23,7 @@ data class AdsFlags(
             AdSlot.RESULTADO -> resultado
             AdSlot.DISPOSITIVOS -> dispositivos
             AdSlot.HISTORICO -> historico
+            AdSlot.JOGOS -> jogos
         }
     }
 

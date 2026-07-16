@@ -5,7 +5,7 @@ data class ContatoOperadora(
     val nome: String,
     val grupo: String,
     val detectarPor: List<String>,
-    val sac: String,
+    val sac: String?,
     val whatsapp: String?,
     val site: String,
 )
@@ -41,19 +41,12 @@ object BancoOperadoras {
                 site = "https://www.tim.com.br",
             ),
             ContatoOperadora(
-                "oi_fibra",
-                "Oi",
-                "Oi",
-                listOf("oi fibra", "oi", "telemar"),
-                sac = "10331",
-                whatsapp = null,
-                site = "https://www.oi.com.br",
-            ),
-            ContatoOperadora(
                 "nio",
                 "Nio Fibra",
                 "Nio",
-                listOf("nio", "nio internet", "nio fibra"),
+                // "oi"/"oi fibra"/"telemar" cobrem dado legado de roteador/API que ainda reporta o
+                // nome antigo -- a Oi foi rebrandeada para Nio, nao existe mais como marca separada.
+                listOf("nio", "nio internet", "nio fibra", "oi fibra", "oi", "telemar"),
                 sac = "08000011000",
                 whatsapp = "2136051000",
                 site = "https://www.niointernet.com.br",
@@ -121,6 +114,82 @@ object BancoOperadoras {
                 whatsapp = "22920410350",
                 site = "https://www.sumicity.com.br",
             ),
+            ContatoOperadora(
+                "wlinks",
+                "WLINKS",
+                "Wlinks Internet",
+                listOf("wlinks", "wlinks internet"),
+                sac = "08000420227",
+                whatsapp = "08000420227",
+                site = "https://www.wlinks.com.br",
+            ),
+            ContatoOperadora(
+                "amigo",
+                "Amigo Internet",
+                "Brasil TecPar",
+                listOf("amigo", "amigo internet", "brasil tecpar"),
+                sac = "08006454200",
+                whatsapp = "8006454200",
+                site = "https://www.sejaamigo.com.br",
+            ),
+            ContatoOperadora(
+                "viamar",
+                "Viamar Telecom",
+                "Viamar Internet Banda Larga / NWA Telecomunicações",
+                listOf("viamar", "viamar telecom", "nwa telecomunicacoes"),
+                sac = "2226305230",
+                whatsapp = "22988328168",
+                site = "https://www.viamartelecom.com.br",
+            ),
+            ContatoOperadora(
+                "west_telecom",
+                "West Telecom",
+                "West Comércio e Serviços de Telecomunicações",
+                listOf("west telecom", "westtelecom"),
+                sac = "2124066200",
+                whatsapp = "21985219472",
+                site = "https://westtelecom.net",
+            ),
+            ContatoOperadora(
+                "west_fibra",
+                "West Fibra",
+                "West Fibra",
+                // Empresa distinta da "West Telecom" acima (CNPJ diferente), confirmado no site.
+                listOf("west fibra", "westfibra"),
+                sac = "2138339001",
+                whatsapp = null,
+                site = "https://westfibra.com.br",
+            ),
+            ContatoOperadora(
+                "fhp_fibra",
+                "FHP Fibra",
+                "FHP Telecomunicações",
+                listOf("fhp fibra", "fhp telecomunicacoes", "fhp"),
+                sac = "2135128383",
+                whatsapp = "2135128383",
+                site = "https://www.fhpfibra.com.br",
+            ),
+            ContatoOperadora(
+                "topfibra",
+                "Top Fibra",
+                "Top Fibra Internet",
+                listOf("top fibra", "topfibra", "top fibra internet"),
+                sac = "2231990001",
+                whatsapp = "2231990001",
+                site = "https://topfibrarj.net.br",
+            ),
+            ContatoOperadora(
+                "coopertec_speed",
+                "Coopertec SPEED",
+                "NC Brasil Telecom e Serviços",
+                // ISP local que revende a rede da Turbi (por isso a logo é a da Turbi, não uma
+                // marca própria) -- mantém "turbi" nas palavras-chave pois é o que pode aparecer
+                // em lookup de rede/WHOIS, mesmo com o nome exibido sendo "Coopertec SPEED".
+                listOf("coopertec speed", "coopertec", "nc brasil telecom", "turbi"),
+                sac = null,
+                whatsapp = "21971609082",
+                site = "https://coopertec.atlaz.com.br",
+            ),
         )
 
     fun resolver(ispNome: String?): ContatoOperadora? {
@@ -146,7 +215,10 @@ object BancoOperadoras {
             "vivo_fibra" to listOf("vivo"),
             "claro_net" to listOf("claro"),
             "tim_live" to listOf("tim"),
-            "oi_fibra" to listOf("oi"),
+            // "oi_fibra" removido (rebrand pra Nio, fibra-only) -- Nio nao tem produto movel
+            // conhecido sob a mesma marca, entao nao redireciona "oi" pra "nio" aqui. Se a Oi
+            // Movel (marca separada, grupo diferente) precisar de deteccao propria, cadastrar
+            // como operadora nova, nao reaproveitar o id "nio".
         )
 
     /**

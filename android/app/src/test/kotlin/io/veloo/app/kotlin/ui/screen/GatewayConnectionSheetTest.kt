@@ -46,6 +46,10 @@ class GatewayConnectionSheetTest {
         manterConectadoInicial: Boolean = false,
         conectar: GatewayConnectionService = GatewayConnectionService { _, _, _ -> GatewayConnectionResultado.Sucesso },
         onConectado: (String, String, String, Boolean, Boolean) -> Unit = { _, _, _, _, _ -> },
+        // Stub por padrao: sem isso os testes fariam Socket.connect() real contra
+        // a rede da maquina de teste (lento e nao-hermetico). Reachability real
+        // (Socket) e testada separadamente, sem depender de rede de verdade.
+        verificarAlcancabilidade: suspend (String) -> Boolean = { true },
     ) {
         composeRule.setContent {
             SignallQTheme {
@@ -58,6 +62,7 @@ class GatewayConnectionSheetTest {
                     conectar = conectar,
                     onConectado = onConectado,
                     c = LocalLkTokens.current,
+                    verificarAlcancabilidade = verificarAlcancabilidade,
                 )
             }
         }
@@ -135,6 +140,41 @@ class GatewayConnectionSheetTest {
         assertEquals(c.checkedBorderColor, c.disabledCheckedBorderColor)
         assertEquals(c.uncheckedThumbColor, c.disabledUncheckedThumbColor)
         assertEquals(c.uncheckedTrackColor, c.disabledUncheckedTrackColor)
+    }
+
+    @Test
+    fun `endereco inalcancavel mostra erro especifico e nao chega a tentar autenticar`() {
+        var autenticacaoTentada = false
+        renderContent(
+            ipInicial = "192.168.1.1",
+            conectar =
+                GatewayConnectionService { _, _, _ ->
+                    autenticacaoTentada = true
+                    GatewayConnectionResultado.Sucesso
+                },
+            verificarAlcancabilidade = { false },
+        )
+
+        composeRule.onNodeWithTag("gateway_connect_button").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("gateway_error_message").assertIsDisplayed()
+        composeRule.onNodeWithText(MENSAGEM_ERRO_ALCANCABILIDADE).assertIsDisplayed()
+        assertEquals(false, autenticacaoTentada)
+    }
+
+    @Test
+    fun `endereco alcancavel segue para autenticacao normalmente`() {
+        renderContent(
+            ipInicial = "192.168.1.1",
+            conectar = GatewayConnectionService { _, _, _ -> GatewayConnectionResultado.Sucesso },
+            verificarAlcancabilidade = { true },
+        )
+
+        composeRule.onNodeWithTag("gateway_connect_button").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("gateway_error_message").assertDoesNotExist()
     }
 
     @Test

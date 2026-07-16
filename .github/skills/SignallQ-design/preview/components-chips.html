@@ -1,0 +1,19 @@
+<!-- @dsCard group="Components" -->
+<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:var(--bg-primary);font-family:var(--font-sans);padding:22px 24px;}
+  .cap{font:600 11px/1.3 var(--font-sans);color:var(--text-tertiary);letter-spacing:.3px;text-transform:uppercase;margin-bottom:10px;}
+  /* segmented */
+  .seg{display:flex;background:var(--bg-secondary);border-radius:999px;padding:3px;width:100%;box-sizing:border-box;margin-bottom:20px;}
+  .seg div{flex:1;text-align:center;padding:10px;border-radius:999px;font:600 14px/1 var(--font-sans);color:var(--text-secondary);}
+  .seg .on{background:var(--bg-card);color:var(--text-primary);box-shadow:0 1px 3px rgba(0,0,0,.12);}
+  /* filter chips */
+  .chips{display:flex;gap:10px;}
+  .chip{flex:1;text-align:center;padding:13px;border-radius:999px;background:var(--bg-secondary);font:500 14px/1 var(--font-sans);color:var(--text-secondary);}
+  .chip.on{background:rgba(108,43,255,.12);color:var(--accent);font-weight:600;}
+</style></head><body>
+  <div class="cap">ModeSelector (neutro) · filtros de banda</div>
+  <div class="seg"><div>Rápido</div><div class="on">Completo</div><div>Triplo</div></div>
+  <div class="chips"><div class="chip on">Todos</div><div class="chip">2.4GHz</div><div class="chip">5GHz</div><div class="chip">6GHz</div></div>
+</body></html>

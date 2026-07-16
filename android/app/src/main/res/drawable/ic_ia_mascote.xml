@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Mascote SignallQ IA — rostinho robô arredondado com "rabinho" de balão de chat
+    e faísca (echo do auto_awesome que ele substitui). Design original, não deriva
+    de nenhuma referência de banco de imagens — só a ideia geral "mascote roxo de IA"
+    foi usada como direção de estilo.
+
+    Uso: Icon(painterResource(R.drawable.ic_ia_mascote), tint = LkColors.accent, ...)
+    Funciona tintado em mono (cabeçalho 24dp) ou sem tint, mostrando a cor de marca
+    default (#5B21D6) em contextos maiores (48-64dp) se reaproveitado.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Cabeça: retângulo arredondado, apenas contorno (estilo Material Symbols Outlined) -->
+    <path
+        android:strokeColor="#5B21D6"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M8,6 L16,6 A3,3 0 0 1 19,9 L19,14 A3,3 0 0 1 16,17 L8,17 A3,3 0 0 1 5,14 L5,9 A3,3 0 0 1 8,6 Z" />
+
+    <!-- Olho esquerdo -->
+    <path
+        android:fillColor="#5B21D6"
+        android:pathData="M8.05,10.6 A1.15,1.15 0 1 0 10.35,10.6 A1.15,1.15 0 1 0 8.05,10.6 Z" />
+
+    <!-- Olho direito -->
+    <path
+        android:fillColor="#5B21D6"
+        android:pathData="M13.65,10.6 A1.15,1.15 0 1 0 15.95,10.6 A1.15,1.15 0 1 0 13.65,10.6 Z" />
+
+    <!-- Sorriso -->
+    <path
+        android:strokeColor="#5B21D6"
+        android:strokeWidth="1.3"
+        android:strokeLineCap="round"
+        android:pathData="M9.3,13.6 Q12,15.4 14.7,13.6" />
+
+    <!-- Rabinho de balão de chat (referência de conversa/IA), colado na base da cabeça -->
+    <path
+        android:fillColor="#5B21D6"
+        android:pathData="M10.4,17 L13.6,17 L12,19.4 Z" />
+
+    <!-- Faísca (echo do auto_awesome que este ícone substitui) -->
+    <path
+        android:fillColor="#5B21D6"
+        android:pathData="M18.2,2.3 L18.62,3.88 L20.2,4.3 L18.62,4.72 L18.2,6.3 L17.78,4.72 L16.2,4.3 L17.78,3.88 Z" />
+
+</vector>

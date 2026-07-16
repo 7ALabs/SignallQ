@@ -1,0 +1,21 @@
+<!-- @dsCard group="Components" -->
+<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  body{margin:0;background:var(--bg-primary);font-family:var(--font-sans);padding:22px 24px;}
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+  .btn{border:0;cursor:pointer;font:500 14px/1 var(--font-sans);border-radius:var(--radius-button);padding:13px 22px;}
+  .primary{background:var(--accent);color:#fff;}
+  .outline{background:transparent;border:1px solid var(--border);color:var(--text-primary);}
+  .outline-warn{background:transparent;border:1px solid var(--warning);color:var(--warning);}
+  .text{background:transparent;color:var(--accent);padding:13px 10px;}
+  .disc{width:70px;height:70px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font:700 16px/1 var(--font-sans);box-shadow:0 0 0 8px rgba(108,43,255,.16);}
+</style></head><body>
+  <div class="row">
+    <button class="btn primary">Medir velocidade</button>
+    <button class="btn outline">Testar novamente</button>
+    <button class="btn outline-warn">Cancelar teste</button>
+    <button class="btn text">Agora não</button>
+    <div class="disc">Iniciar</div>
+  </div>
+</body></html>

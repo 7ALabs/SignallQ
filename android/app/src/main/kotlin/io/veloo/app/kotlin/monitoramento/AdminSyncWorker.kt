@@ -13,6 +13,7 @@ import io.signallq.app.analytics.distributionChannel
 import io.signallq.app.analytics.environmentFor
 import io.signallq.app.core.database.MedicaoDao
 import io.signallq.app.core.database.chat.ChatSessionDao
+import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.ingest.toIngestPayload
@@ -39,6 +40,7 @@ internal class AdminSyncWorker
         private val preferenciasAppRepository: PreferenciasAppRepository,
         private val medicaoDao: MedicaoDao,
         private val chatSessionDao: ChatSessionDao,
+        private val recommendationHistoryDao: RecommendationHistoryDao,
         private val adminIngestRepository: AdminIngestRepository,
     ) : CoroutineWorker(appContext, params) {
         internal companion object {
@@ -62,6 +64,7 @@ internal class AdminSyncWorker
                 val appVersion = BuildConfig.VERSION_NAME
                 syncMedicoes(environment, distChannel, buildType, versionCode, deviceId, deviceModel, osVersion, appVersion)
                 syncChatSessions(environment, distChannel, buildType, versionCode, deviceId)
+                syncRecommendationFeedback(environment, distChannel, buildType, versionCode, deviceId, appVersion)
                 Log.d(TAG, "Sync retroativo concluido com sucesso")
                 Result.success()
             } catch (e: Exception) {
@@ -159,6 +162,51 @@ internal class AdminSyncWorker
                 val maxEpoch = batch.maxOf { it.criadoEmEpochMs }
                 preferenciasAppRepository.salvarAdminSyncChatLastEpochMs(maxEpoch)
                 Log.d(TAG, "syncChatSessions: batch de ${batch.size} enviado, checkpoint=$maxEpoch")
+            }
+        }
+
+        /**
+         * Sincroniza feedback (util/nao util/ocultar) de recomendacoes do Recommendation
+         * Engine desde o ultimo checkpoint -- design-tobe-alinhamento, tela 1a. A persistencia
+         * local (Room, issue #812) ja existia e funcionava; só faltava entrar no sync
+         * retroativo pro signallq-admin-worker.
+         */
+        private suspend fun syncRecommendationFeedback(
+            environment: String,
+            distChannel: String,
+            buildType: String,
+            versionCode: Int,
+            deviceId: String,
+            appVersion: String,
+        ) {
+            val lastEpoch = preferenciasAppRepository.buscarAdminSyncRecommendationFeedbackLastEpochMs()
+            Log.d(TAG, "syncRecommendationFeedback: checkpoint=$lastEpoch")
+
+            val pendentes = recommendationHistoryDao.buscarComFeedbackDesde(lastEpoch)
+
+            if (pendentes.isEmpty()) {
+                Log.d(TAG, "syncRecommendationFeedback: nenhum feedback pendente")
+                return
+            }
+
+            Log.d(TAG, "syncRecommendationFeedback: ${pendentes.size} feedbacks pendentes")
+
+            pendentes.chunked(BATCH_SIZE).forEach { batch ->
+                batch.forEach { entrada ->
+                    adminIngestRepository.sendAnalyticsEvent(
+                        entrada.toIngestPayload(
+                            appVersion = appVersion,
+                            environment = environment,
+                            distChannel = distChannel,
+                            buildType = buildType,
+                            versionCode = versionCode,
+                            deviceId = deviceId,
+                        ),
+                    )
+                }
+                val maxEpoch = batch.mapNotNull { it.feedbackAtEpochMs }.maxOrNull() ?: lastEpoch
+                preferenciasAppRepository.salvarAdminSyncRecommendationFeedbackLastEpochMs(maxEpoch)
+                Log.d(TAG, "syncRecommendationFeedback: batch de ${batch.size} enviado, checkpoint=$maxEpoch")
             }
         }
     }

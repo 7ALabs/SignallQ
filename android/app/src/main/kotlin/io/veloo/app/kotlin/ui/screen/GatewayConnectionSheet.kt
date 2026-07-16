@@ -16,11 +16,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -62,7 +60,11 @@ import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.SheetDragHandle
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.InetSocketAddress
+import java.net.Socket
 
 /**
  * Estado interno da sheet de conexao ao gateway (GH#526). Nao ha estado de
@@ -78,17 +80,27 @@ private sealed interface GatewayConnectionSheetState {
     ) : GatewayConnectionSheetState
 }
 
-private data class ModeloCompativelGateway(
-    val marca: String,
-    val modelo: String,
-    val tipo: String,
-)
+internal const val MENSAGEM_ERRO_ALCANCABILIDADE = "Não foi possível alcançar esse endereço na rede."
 
-private val modelosCompativeisGateway =
-    listOf(
-        ModeloCompativelGateway("Nokia", "G-1425", "Roteador Wi-Fi 5"),
-        ModeloCompativelGateway("TP-Link", "Archer C6", "Roteador Wi-Fi 5 (AC1200)"),
-    )
+private const val TIMEOUT_ALCANCABILIDADE_MS = 2000
+private val PORTAS_ADMIN_ROTEADOR = listOf(80, 443)
+
+/**
+ * Alcancabilidade real do gateway (2b-i To-Be) — connect TCP com timeout curto
+ * nas portas comuns de admin de roteador (80/443), em vez de
+ * [java.net.InetAddress.isReachable] (ICMP, costuma vir bloqueado em rede
+ * movel/Wi-Fi Android). Alcancavel se QUALQUER uma das portas aceitar conexao;
+ * refused/timeout em ambas = inalcancavel.
+ */
+private suspend fun alcancavelViaSocket(ip: String): Boolean =
+    withContext(Dispatchers.IO) {
+        PORTAS_ADMIN_ROTEADOR.any { porta ->
+            runCatching {
+                Socket().use { it.connect(InetSocketAddress(ip, porta), TIMEOUT_ALCANCABILIDADE_MS) }
+                true
+            }.getOrDefault(false)
+        }
+    }
 
 /**
  * Sheet de conexao ativa ao GPON/roteador (GH#526, epic #525).
@@ -158,6 +170,10 @@ internal fun GatewayConnectionSheetContent(
     conectar: GatewayConnectionService,
     onConectado: (ip: String, usuario: String, senha: String, lembrarSenha: Boolean, manterConectado: Boolean) -> Unit,
     c: LkTokens,
+    // 2b-i To-Be: alcancabilidade real via TCP connect (porta 80/443). Seam de
+    // teste — producao usa o default (Socket real), testes injetam um stub pra
+    // nao depender de rede real no Robolectric.
+    verificarAlcancabilidade: suspend (String) -> Boolean = ::alcancavelViaSocket,
 ) {
     var ipInput by remember { mutableStateOf(ipInicial.orEmpty()) }
     var usuarioInput by remember { mutableStateOf(usuarioInicial) }
@@ -178,10 +194,18 @@ internal fun GatewayConnectionSheetContent(
         if (!podeConectar) return
         estado = GatewayConnectionSheetState.Conectando
         escopo.launch {
-            when (val resultado = conectar.conectar(ipInput.trim(), usuarioInput, senhaInput)) {
+            val ipAlvo = ipInput.trim()
+            // 2b-i To-Be: alcancabilidade antes de autenticar — diferencia "nao
+            // alcancei o roteador" (rede errada, roteador desligado) de
+            // "usuario/senha errados", que so faz sentido testar depois.
+            if (!verificarAlcancabilidade(ipAlvo)) {
+                estado = GatewayConnectionSheetState.Erro(MENSAGEM_ERRO_ALCANCABILIDADE)
+                return@launch
+            }
+            when (val resultado = conectar.conectar(ipAlvo, usuarioInput, senhaInput)) {
                 is GatewayConnectionResultado.Sucesso -> {
                     estado = GatewayConnectionSheetState.Formulario
-                    onConectado(ipInput.trim(), usuarioInput, senhaInput, lembrarSenha, manterConectado)
+                    onConectado(ipAlvo, usuarioInput, senhaInput, lembrarSenha, manterConectado)
                 }
                 is GatewayConnectionResultado.Falha -> {
                     estado = GatewayConnectionSheetState.Erro(resultado.mensagemUsuario)
@@ -474,6 +498,14 @@ internal fun toggleRowSwitchColors(c: LkTokens): SwitchColors =
         disabledUncheckedTrackColor = c.border,
     )
 
+/**
+ * Host da sheet real de "Modelos compatíveis" (GH#539) — o conteudo (catalogo
+ * [io.signallq.app.core.network.contracts.gateway.PublicCompatibilityCatalog],
+ * separacao validado/experimental) vive em [GatewayCompatibleModelsSheetContent],
+ * mesmo arquivo de tela dedicado `GatewayCompatibleModelsSheet.kt`. Aqui so o
+ * boilerplate de hospedagem (ModalBottomSheet + estado), igual ao padrao usado
+ * em [GatewayCredentialsGuideSheet].
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GatewayCompatibleModelsSheet(onDismissRequest: () -> Unit) {
@@ -483,110 +515,6 @@ private fun GatewayCompatibleModelsSheet(onDismissRequest: () -> Unit) {
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = c.bgSecondary,
     ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = LkSpacing.xl)
-                    .padding(top = LkSpacing.sm, bottom = LkSpacing.xxl)
-                    .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onDismissRequest) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowLeft,
-                        contentDescription = "Voltar",
-                        tint = c.textSecondary,
-                    )
-                }
-                Text(
-                    text = "Modelos compatíveis",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.W700,
-                    color = c.textPrimary,
-                )
-            }
-            Text(
-                text = "O SignallQ já testou a conexão automática com estes roteadores. Outros modelos também podem funcionar via usuário e senha manuais.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = c.textSecondary,
-            )
-            modelosCompativeisGateway.forEach { modelo ->
-                GatewayModelRow(
-                    marcaModelo = "${modelo.marca} ${modelo.modelo}",
-                    tipo = modelo.tipo,
-                    c = c,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun GatewayModelRow(
-    marcaModelo: String,
-    tipo: String,
-    c: LkTokens,
-) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.surfaceContainer)
-                .padding(LkSpacing.md),
-        horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        GatewayModelIcon(c = c)
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = marcaModelo,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.W600,
-                color = c.textPrimary,
-            )
-            Text(
-                text = tipo,
-                style = MaterialTheme.typography.bodySmall,
-                color = c.textSecondary,
-            )
-        }
-        Text(
-            text = "Compatível",
-            style = MaterialTheme.typography.labelMedium,
-            color = LkColors.success,
-            modifier =
-                Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(LkColors.success.copy(alpha = 0.14f))
-                    .padding(horizontal = LkSpacing.sm, vertical = 4.dp),
-        )
-    }
-}
-
-@Composable
-private fun GatewayModelIcon(c: LkTokens) {
-    Row(
-        modifier =
-            Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(LkColors.accent.copy(alpha = 0.14f)),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.Router,
-            contentDescription = null,
-            modifier = Modifier.size(22.dp),
-            tint = LkColors.accent,
-        )
+        GatewayCompatibleModelsSheetContent(onBack = onDismissRequest, c = c)
     }
 }

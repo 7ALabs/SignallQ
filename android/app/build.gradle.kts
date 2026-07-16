@@ -193,7 +193,6 @@ android {
             // Features adicionais aprovadas para release
             buildConfigField("Boolean", "FEATURE_FIBRA_SCREEN", "true")
             // ─── FORA DO RELEASE ──────────────────────────────────────────
-            // Chat IA (card e laudo ativos acima; só o chat desligado)
             // Dispositivos (limitação de hostname conhecida)
             buildConfigField("Boolean", "FEATURE_DEVICES_SCREEN_V2", "false")
             // Monitoramento passivo e dependentes

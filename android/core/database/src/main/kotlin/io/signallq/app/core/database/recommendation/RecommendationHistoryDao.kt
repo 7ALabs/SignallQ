@@ -24,4 +24,14 @@ interface RecommendationHistoryDao {
             "WHERE id = :id",
     )
     suspend fun atualizarFeedback(id: String, feedback: String, feedbackAtEpochMs: Long)
+
+    /** Feedback (util/nao util/ocultar) registrado desde o checkpoint -- usado pelo sync
+     *  retroativo para o signallq-admin-worker (design-tobe-alinhamento, tela 1a). Só
+     *  entradas com feedback de fato dado (`feedbackAtEpochMs` preenchido); exibições sem
+     *  feedback não sincronizam (nada de novo pro admin analisar). */
+    @Query(
+        "SELECT * FROM recommendation_history WHERE feedbackAtEpochMs IS NOT NULL " +
+            "AND feedbackAtEpochMs >= :desdeEpochMs ORDER BY feedbackAtEpochMs ASC",
+    )
+    suspend fun buscarComFeedbackDesde(desdeEpochMs: Long): List<RecommendationHistoryEntity>
 }

@@ -1,0 +1,30 @@
+<!-- @dsCard group="Components" -->
+<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0">
+<style>
+  body{margin:0;background:var(--bg-primary);font-family:var(--font-sans);padding:22px 24px;}
+  .material-symbols-outlined{font-size:22px;}
+  .card{display:flex;align-items:center;gap:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-card);padding:14px 16px;}
+  .ic{width:44px;height:44px;border-radius:50%;background:rgba(34,197,94,.10);color:var(--success);display:flex;align-items:center;justify-content:center;flex:none;}
+  .mid{flex:1;}
+  .ov{font:600 11px/1.3 var(--font-sans);color:var(--text-tertiary);letter-spacing:.3px;}
+  .ssid{font:600 15px/1.3 var(--font-sans);color:var(--text-primary);margin:1px 0;}
+  .met{font:400 11px/1.3 var(--font-sans);color:var(--text-secondary);}
+  .bars{display:flex;align-items:flex-end;gap:3px;height:16px;}
+  .bars i{width:3px;border-radius:1px;background:var(--success);}
+  .q{font:600 10px/1 var(--font-sans);color:var(--success);margin-top:5px;text-align:right;}
+</style></head><body>
+  <div class="card">
+    <div class="ic"><span class="material-symbols-outlined">wifi</span></div>
+    <div class="mid">
+      <div class="ov">WI-FI · 5 GHZ</div>
+      <div class="ssid">Luiz-5G</div>
+      <div class="met">RSSI −27 dBm · Canal 36 · 433 Mbps</div>
+    </div>
+    <div>
+      <div class="bars"><i style="height:6px"></i><i style="height:9px"></i><i style="height:12px"></i><i style="height:16px"></i></div>
+      <div class="q">Forte</div>
+    </div>
+  </div>
+</body></html>

@@ -58,9 +58,6 @@ import io.signallq.app.feature.diagnostico.ai.AiFallbackFactory
 import io.signallq.app.feature.diagnostico.ai.AiMovelInfo
 import io.signallq.app.feature.diagnostico.ai.AiRedeVizinha
 import io.signallq.app.feature.diagnostico.ai.AiTesteHistorico
-import io.signallq.app.feature.diagnostico.ai.DiagChatAutor
-import io.signallq.app.feature.diagnostico.ai.DiagChatEntry
-import io.signallq.app.feature.diagnostico.ai.DiagnosisAiContext
 import io.signallq.app.feature.diagnostico.ai.DiagnosisAiContextFactory
 import io.signallq.app.feature.diagnostico.banda
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
@@ -109,6 +106,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
 import timber.log.Timber
 import java.net.HttpURLConnection
@@ -140,8 +138,7 @@ class MainViewModel
          *  Antes era instanciada manualmente via lazy (segunda instancia alem da do Orchestrator). */
         val diagAiRepository: AiDiagnosisRepository,
         /** DiagnosticOrchestrator injetado pelo Hilt como @Singleton (DiagnosticoModule).
-         *  Antes era instanciado via lazy: `by lazy { DiagnosticOrchestrator() }`.
-         *  Agora e singleton compartilhado com DiagnosticoViewModel. */
+         *  Antes era instanciado via lazy: `by lazy { DiagnosticOrchestrator() }`. */
         _diagnosticOrchestrator: DiagnosticOrchestrator,
         /** Repositorio de telemetria para o painel admin SignallQ. */
         private val adminIngestRepository: AdminIngestRepository,
@@ -199,7 +196,7 @@ class MainViewModel
                 "unknown"
             }
 
-        // DiagnosticOrchestrator injetado via Hilt como @Singleton — compartilhado com DiagnosticoViewModel.
+        // DiagnosticOrchestrator injetado via Hilt como @Singleton.
         // O underscore no construtor e convencao para parametros que viram val publico.
         val diagnosticOrchestrator: DiagnosticOrchestrator = _diagnosticOrchestrator
         val movelSnapshot: StateFlow<MovelSnapshot?> get() = monitorTelephony.snapshotFlow
@@ -302,6 +299,40 @@ class MainViewModel
             viewModelScope.launch { preferenciasAppRepository.definirAnatelBannerDismissed(true) }
         }
 
+        // Auditoria design To-Be 2026-07-13 — dismiss persistido das sheets contextuais de
+        // permissao (localizacao/telefonia), pra nao reabrir sozinha em toda nova sessao.
+        val localizacaoSheetDismissed: StateFlow<Boolean> by lazy {
+            preferenciasAppRepository.localizacaoSheetDismissedFlow
+                .distinctUntilChanged()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+        }
+
+        val telefoniaSheetDismissed: StateFlow<Boolean> by lazy {
+            preferenciasAppRepository.telefoniaSheetDismissedFlow
+                .distinctUntilChanged()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+        }
+
+        fun dispensarSheetLocalizacao() {
+            viewModelScope.launch { preferenciasAppRepository.definirLocalizacaoSheetDismissed(true) }
+        }
+
+        fun dispensarSheetTelefonia() {
+            viewModelScope.launch { preferenciasAppRepository.definirTelefoniaSheetDismissed(true) }
+        }
+
+        // Rastreia se READ_PHONE_STATE ja foi solicitada alguma vez (onboarding ou lazy) --
+        // distingue "nunca pedimos" de "negada permanentemente" pra gate de reabertura da sheet.
+        val telefoniaPermissaoJaSolicitada: StateFlow<Boolean> by lazy {
+            preferenciasAppRepository.telefoniaPermissaoJaSolicitadaFlow
+                .distinctUntilChanged()
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+        }
+
+        fun marcarTelefoniaPermissaoJaSolicitada() {
+            viewModelScope.launch { preferenciasAppRepository.definirTelefoniaPermissaoJaSolicitada() }
+        }
+
         fun marcarOnboardingConcluido() {
             viewModelScope.launch { preferenciasAppRepository.definirOnboardingConcluido(true) }
         }
@@ -339,15 +370,6 @@ class MainViewModel
         }
 
         val gemmaAvailable = MutableStateFlow(false)
-
-        // ── DiagChat ──────────────────────────────────────────────────────────────
-        private val _diagChatHistorico = MutableStateFlow<List<DiagChatEntry>>(emptyList())
-        val diagChatHistorico: StateFlow<List<DiagChatEntry>> = _diagChatHistorico
-
-        private val _diagChatCarregando = MutableStateFlow(false)
-        val diagChatCarregando: StateFlow<Boolean> = _diagChatCarregando
-
-        private var diagAiContext: DiagnosisAiContext? = null
 
         // -------------------------------------------------------------------------
         // Flows combinados — agrupam preferencias do mesmo dominio para reduzir o
@@ -1098,162 +1120,7 @@ class MainViewModel
             }
         }
 
-        fun enviarPerguntaDiagnostico(pergunta: String) {
-            val historicoAtual = _diagChatHistorico.value
-            val perguntasUsuario = historicoAtual.count { it.autor == DiagChatAutor.Usuario }
-            if (perguntasUsuario >= 5) return
-            if (_diagChatCarregando.value) return
-
-            viewModelScope.launch {
-                _diagChatHistorico.value = historicoAtual +
-                    DiagChatEntry(autor = DiagChatAutor.Usuario, texto = pergunta)
-                _diagChatCarregando.value = true
-
-                val ctx =
-                    diagAiContext ?: run {
-                        val snap = diagnosticOrchestrator.snapshotFlow.value
-                        val relatorio =
-                            snap.relatorio ?: run {
-                                _diagChatCarregando.value = false
-                                return@launch
-                            }
-                        val connectionType =
-                            snap.input?.connectionType
-                                ?: io.signallq.app.feature.diagnostico.ConnectionType.desconhecido
-                        DiagnosisAiContextFactory
-                            .from(relatorio, snap.input, connectionType)
-                            .also { diagAiContext = it }
-                    }
-
-                // Inclui histórico recente para dar contexto conversacional ao Worker.
-                // O Worker detecta feedbackUsuario e muda para modo chat (resposta direta).
-                val historicoContexto =
-                    historicoAtual.takeLast(6).joinToString("\n") { entry ->
-                        if (entry.autor == DiagChatAutor.Usuario) {
-                            "Usuário: ${entry.texto.take(200)}"
-                        } else {
-                            "IA: ${entry.texto.take(300)}"
-                        }
-                    }
-                val feedbackComHistorico =
-                    if (historicoContexto.isNotBlank()) {
-                        "Histórico:\n$historicoContexto\n\nPergunta atual: $pergunta"
-                    } else {
-                        pergunta
-                    }
-                val ctxComPergunta = ctx.copy(feedbackUsuario = feedbackComHistorico.take(1000))
-                val snapAtual = diagnosticOrchestrator.snapshotFlow.value
-                val relatorio = snapAtual.relatorio
-
-                // Cria entrada parcial da IA ANTES de receber dados
-                val tsEntradaIa = System.currentTimeMillis()
-                val entradaIa =
-                    DiagChatEntry(
-                        autor = DiagChatAutor.Ia,
-                        texto = "",
-                        nomeModelo = "SignallQ IA",
-                        isParcial = true,
-                        timestamp = tsEntradaIa,
-                    )
-                _diagChatHistorico.value = _diagChatHistorico.value + entradaIa
-
-                var textoAcumulado = ""
-                var primeiroChunk = true
-
-                try {
-                    diagAiRepository.explainDiagnosisStream(ctxComPergunta).collect { token ->
-                        textoAcumulado += token
-                        if (primeiroChunk) {
-                            _diagChatCarregando.value = false // dots pulsantes somem no 1o chunk
-                            primeiroChunk = false
-                        }
-                        _diagChatHistorico.value = _diagChatHistorico.value.dropLast(1) +
-                            entradaIa.copy(texto = textoAcumulado, isParcial = true)
-                    }
-                    // Stream completo — marcar como nao-parcial
-                    if (textoAcumulado.isNotBlank()) {
-                        _diagChatHistorico.value = _diagChatHistorico.value.dropLast(1) +
-                            entradaIa.copy(texto = textoAcumulado, isParcial = false)
-                    } else {
-                        // Stream vazio (Worker nao suporta SSE) — fallback para resposta completa
-                        _diagChatHistorico.value = _diagChatHistorico.value.dropLast(1)
-                        val resultado =
-                            if (relatorio != null) {
-                                diagAiRepository.explainDiagnosis(ctxComPergunta) {
-                                    AiFallbackFactory.fromLocal(relatorio)
-                                }
-                            } else {
-                                AiDiagnosisState.error("sem_relatorio")
-                            }
-                        val (textoResposta, nomeModelo, isErro) =
-                            when (resultado) {
-                                is AiDiagnosisState.success ->
-                                    Triple(
-                                        resultado.result.textoLaudo.ifBlank { resultado.result.resumo },
-                                        resultado.result.modeloIa.nomeExibicao
-                                            .ifBlank { "SignallQ IA" },
-                                        false,
-                                    )
-                                else -> Triple("", null, true)
-                            }
-                        _diagChatHistorico.value = _diagChatHistorico.value +
-                            DiagChatEntry(
-                                autor = DiagChatAutor.Ia,
-                                texto = textoResposta,
-                                nomeModelo = nomeModelo,
-                                isErro = isErro,
-                            )
-                    }
-                } catch (e: Exception) {
-                    if (e is kotlinx.coroutines.CancellationException) throw e
-                    // Fallback: stream falhou — tenta resposta completa via explainDiagnosis()
-                    _diagChatHistorico.value = _diagChatHistorico.value.dropLast(1)
-                    try {
-                        val resultado =
-                            if (relatorio != null) {
-                                diagAiRepository.explainDiagnosis(ctxComPergunta) {
-                                    AiFallbackFactory.fromLocal(relatorio)
-                                }
-                            } else {
-                                AiDiagnosisState.error("sem_relatorio")
-                            }
-                        val (textoResposta, nomeModelo, isErro) =
-                            when (resultado) {
-                                is AiDiagnosisState.success ->
-                                    Triple(
-                                        resultado.result.textoLaudo.ifBlank { resultado.result.resumo },
-                                        resultado.result.modeloIa.nomeExibicao
-                                            .ifBlank { "SignallQ IA" },
-                                        false,
-                                    )
-                                else -> Triple("", null, true)
-                            }
-                        _diagChatHistorico.value = _diagChatHistorico.value +
-                            DiagChatEntry(
-                                autor = DiagChatAutor.Ia,
-                                texto = textoResposta,
-                                nomeModelo = nomeModelo,
-                                isErro = isErro,
-                            )
-                    } catch (e: Exception) {
-                        if (e is kotlinx.coroutines.CancellationException) throw e
-                        _diagChatHistorico.value = _diagChatHistorico.value +
-                            DiagChatEntry(autor = DiagChatAutor.Ia, texto = "", isErro = true)
-                    }
-                } finally {
-                    _diagChatCarregando.value = false
-                }
-            }
-        }
-
-        fun limparDiagChat() {
-            _diagChatHistorico.value = emptyList()
-            _diagChatCarregando.value = false
-            diagAiContext = null
-        }
-
         fun iniciarDiagnostico() {
-            limparDiagChat()
             viewModelScope.launch {
                 // Acao explicita do usuario ("Analisar problema") — vale coletar a
                 // topologia agora se ainda nao rodou nesta sessao (SIG-279).
@@ -1873,7 +1740,21 @@ class MainViewModel
             )
         }
 
-        fun analisarProblema(problema: String) {
+        /**
+         * Chamada de IA de diagnostico -- mecanismo UNICO (decisao do Luiz, 2026-07-14)
+         * reaproveitado tanto pela tela 1a "Analise detalhada" (spec To-Be -- acionada
+         * automaticamente ao abrir o sheet a partir do Resultado, `problema = null`)
+         * quanto pelo fluxo legado "Analisar meu problema com IA" por sintoma escolhido
+         * (`AnaliseDetalhadaBottomSheet.kt`, `problema` preenchido). Os cards da 1a
+         * (banner de veredito, Recomendacoes, Configuracoes) sao montados a partir do
+         * MESMO [AnalisadorState.Resultado] que essa funcao produz.
+         *
+         * Timeout de UI proprio (~5s, spec da 1a) por cima do timeout interno do
+         * repository (40s): se a IA nao respondeu em 5s, cai pro fallback local
+         * (`AiFallbackFactory.fromLocal`, sincrono/zero rede) em vez de deixar o usuario
+         * esperando o teto de 40s do repository -- vale pros dois gatilhos.
+         */
+        fun analisarProblema(problema: String? = null) {
             val snap = diagnosticOrchestrator.snapshotFlow.value
             val relatorio =
                 snap.relatorio ?: run {
@@ -1913,22 +1794,47 @@ class MainViewModel
                             wifiPadrao = extra.wifiPadrao,
                             wifiLinkSpeedMbps = extra.wifiLinkSpeedMbps,
                         )
-                    val resultado = diagAiRepository.explainDiagnosis(ctx) { AiFallbackFactory.fromLocal(relatorio) }
+                    val resultado =
+                        withTimeoutOrNull(45_000L) {
+                            diagAiRepository.explainDiagnosis(
+                                context = ctx,
+                                decisaoLocalStatus = relatorio.decisao.status.name,
+                            ) { AiFallbackFactory.fromLocal(relatorio) }
+                        }
                     when (resultado) {
                         is AiDiagnosisState.success -> {
                             val texto = resultado.result.textoLaudo.ifBlank { resultado.result.resumo }
                             _analisadorState.value =
-                                AnalisadorState.Resultado(texto, "ia", resultado.result.acoesRecomendadas)
+                                AnalisadorState.Resultado(
+                                    texto = texto,
+                                    origem = "ia",
+                                    acoes = resultado.result.acoesRecomendadas,
+                                )
                             speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
                         }
                         is AiDiagnosisState.fallback -> {
                             val texto = resultado.result.textoLaudo.ifBlank { resultado.result.resumo }
                             _analisadorState.value =
-                                AnalisadorState.Resultado(texto, "local", resultado.result.acoesRecomendadas)
+                                AnalisadorState.Resultado(
+                                    texto = texto,
+                                    origem = "local",
+                                    acoes = resultado.result.acoesRecomendadas,
+                                )
                             speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
                         }
+                        // Timeout de UI (5s) estourado, ou repository devolveu timeout/error/idle/loading:
+                        // cai pro fallback local sincrono em vez de erro -- o app consegue responder
+                        // sozinho a partir do relatorio ja calculado, sem depender da rede.
                         else -> {
-                            _analisadorState.value = AnalisadorState.Erro("Não foi possível analisar o problema agora.")
+                            val local = AiFallbackFactory.fromLocal(relatorio)
+                            val texto = local.textoLaudo.ifBlank { local.resumo }
+                            _analisadorState.value =
+                                AnalisadorState.Resultado(
+                                    texto = texto,
+                                    origem = "local",
+                                    acoes = local.acoesRecomendadas,
+                                )
+                            speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
                         }
                     }
                 } catch (e: Exception) {

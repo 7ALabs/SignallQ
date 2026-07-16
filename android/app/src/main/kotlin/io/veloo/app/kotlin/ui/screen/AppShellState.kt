@@ -8,7 +8,6 @@ import io.signallq.app.feature.devices.ResultadoCorrelacaoTopologia
 import io.signallq.app.feature.devices.SnapshotScanDispositivos
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.diagnostico.ai.AiAcaoRecomendada
-import io.signallq.app.feature.diagnostico.ai.DiagChatEntry
 import io.signallq.app.feature.speedtest.ModoSpeedtest
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.signallq.app.feature.wifi.RedeVizinha
@@ -55,6 +54,16 @@ data class AppShellWifiState(
     val correlacoesTopologia: Map<String, ResultadoCorrelacaoTopologia> = emptyMap(),
 )
 
+/**
+ * Estado da chamada de IA de diagnostico -- mecanismo UNICO reaproveitado tanto pela
+ * tela 1a "Analise detalhada" (spec To-Be, GH#design-tobe-alinhamento -- aberta
+ * automaticamente ao abrir o sheet, sem escolha de sintoma, `problema = null`) quanto
+ * pelo fluxo legado "Analisar meu problema com IA" por sintoma escolhido
+ * (`AnaliseDetalhadaBottomSheet.kt`, `problema` preenchido). Confirmado por decisao do
+ * Luiz (2026-07-14): nao sao dois recursos paralelos, e a MESMA chamada
+ * (`AiDiagnosisRepository.explainDiagnosis` + `AiFallbackFactory.fromLocal` no
+ * fallback), so com gatilho diferente.
+ */
 sealed class AnalisadorState {
     data object Inativo : AnalisadorState()
 
@@ -72,18 +81,17 @@ sealed class AnalisadorState {
 }
 
 /**
- * Agrupa parametros do diagnostico e do chat inline de diagnostico.
+ * Agrupa parametros do diagnostico.
  */
 @Stable
 data class AppShellDiagnosticoState(
     val snapshotDiagnostico: SnapshotDiagnostico,
     val onIniciarDiagnostico: () -> Unit,
-    val diagChatHistorico: List<DiagChatEntry> = emptyList(),
-    val diagChatCarregando: Boolean = false,
-    val onEnviarPerguntaDiagnostico: (String) -> Unit = {},
-    val onLimparDiagChat: () -> Unit = {},
     val analisadorState: AnalisadorState = AnalisadorState.Inativo,
-    val onAnalisarProblema: (String) -> Unit = {},
+    /** `problema = null` quando acionado automaticamente pela tela 1a (sem sintoma
+     *  escolhido); `problema` preenchido quando vem do fluxo por sintoma
+     *  (`AnaliseDetalhadaBottomSheet`). Mesmo mecanismo, gatilhos diferentes. */
+    val onAnalisarProblema: (String?) -> Unit = {},
     val onResetarAnalisador: () -> Unit = {},
     /** SIG-173/#664 — chamado quando o usuario fecha o LaudoScreen. Avalia elegibilidade
      *  para o prompt nativo de avaliacao do Google Play (nunca bloqueia o fechamento). */
