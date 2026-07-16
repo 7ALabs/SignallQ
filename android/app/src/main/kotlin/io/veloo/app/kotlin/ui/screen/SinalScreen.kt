@@ -2230,7 +2230,7 @@ private fun NetworkDetailSheet(
         LkSheetInfoRow(
             label = "Sinal",
             value = "${rede.rssiDbm} dBm — ${signalQuality(rede.rssiDbm, bandaDetail)}",
-            valueColor = LkColors.success,
+            valueColor = signalColor(rede.rssiDbm, bandaDetail),
         )
         LkSheetDivider()
         LkSheetInfoRow(label = "Banda", value = rede.banda)
