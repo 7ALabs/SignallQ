@@ -451,16 +451,7 @@ private fun GatewayItem(
         title = apelido?.takeIf { it.isNotBlank() } ?: dispositivo.nomeExibicao,
         subtitle = subtituloGateway,
         trailing = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BadgePill(label = "Roteador", bg = LkColors.accent.copy(alpha = 0.10f), fg = LkColors.accent)
-                Spacer(Modifier.width(4.dp))
-                Icon(
-                    imageVector = Icons.Outlined.Router,
-                    contentDescription = null,
-                    tint = c.textTertiary,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
+            BadgePill(label = "Roteador", bg = LkColors.accent.copy(alpha = 0.10f), fg = LkColors.accent)
         },
         onTap = onTap,
     )
@@ -499,16 +490,7 @@ private fun ApMeshItem(
         title = apelido?.takeIf { it.isNotBlank() } ?: dispositivo.nomeExibicao,
         subtitle = dispositivo.ip ?: "",
         trailing = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BadgePill(label = "AP Mesh", bg = LkColors.success.copy(alpha = 0.10f), fg = LkColors.success)
-                Spacer(Modifier.width(4.dp))
-                Icon(
-                    imageVector = Icons.Outlined.CellTower,
-                    contentDescription = null,
-                    tint = c.textTertiary,
-                    modifier = Modifier.size(16.dp),
-                )
-            }
+            BadgePill(label = "AP Mesh", bg = LkColors.success.copy(alpha = 0.10f), fg = LkColors.success)
         },
         onTap = onTap,
     )

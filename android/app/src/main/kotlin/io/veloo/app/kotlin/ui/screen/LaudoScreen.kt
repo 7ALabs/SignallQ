@@ -209,8 +209,22 @@ fun LaudoScreen(
             // Banner de status — colorido por severidade da decisão
             if (decisao != null) {
                 item {
-                    val containerColor = c.successContainer
-                    val textColor = c.onSuccessContainer
+                    val containerColor =
+                        when (decisao.status) {
+                            DiagnosticStatus.ok -> c.successContainer
+                            DiagnosticStatus.attention -> c.warningContainer
+                            DiagnosticStatus.critical -> c.errorContainer
+                            DiagnosticStatus.inconclusive -> c.warningContainer
+                            DiagnosticStatus.info -> c.primaryContainer
+                        }
+                    val textColor =
+                        when (decisao.status) {
+                            DiagnosticStatus.ok -> c.onSuccessContainer
+                            DiagnosticStatus.attention -> c.onWarningContainer
+                            DiagnosticStatus.critical -> c.onErrorContainer
+                            DiagnosticStatus.inconclusive -> c.onWarningContainer
+                            DiagnosticStatus.info -> c.onPrimaryContainer
+                        }
                     val labelStatus =
                         when (decisao.status) {
                             DiagnosticStatus.ok -> "Conexão saudável"
