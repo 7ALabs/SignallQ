@@ -337,10 +337,6 @@ class MainViewModel
             viewModelScope.launch { preferenciasAppRepository.definirOnboardingConcluido(true) }
         }
 
-        fun concluirOnboarding() {
-            viewModelScope.launch { preferenciasAppRepository.definirOnboardingConcluido(true) }
-        }
-
         fun definirConsentimentoLgpd(aceito: Boolean) {
             viewModelScope.launch { preferenciasAppRepository.definirConsentimentoLgpd(aceito) }
         }
