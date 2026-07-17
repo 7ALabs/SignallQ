@@ -40,7 +40,7 @@ pequeno, seguro e relacionado à tarefa, ou registrá-lo em uma issue quando amp
 - MVVM + StateFlow, Hilt DI (`AppModule.kt` + `DiagnosticoModule.kt`), Room v12 (`SignallQDatabase`), DataStore `linkaPreferencias`.
 - IA: Worker Cloudflare (`integrations/cloudflare/ai-diagnosis-worker/`), URL via `BuildConfig.AI_WORKER_URL`, persona SignallQ. Provider: **Gemini 2.0 Flash é o primário** quando `GEMINI_API_KEY` está configurada (produção); Qwen3 30B MoE FP8 (Cloudflare Workers AI) é o fallback automático. Sem a secret, Qwen3/CF é o único provider cloud. Ordem definida em `providers.ts` (array `providers[]`, tentado em sequência) — ver `docs_ai/TECNICO.md` (seção 7).
 - **Analytics**: Firebase Analytics (events) + Crashlytics (error logs). **NOT using**: Realtime DB.
-- Navegacao: `AppShell.kt` -- 5 abas (Inicio, Velocidade, Sinal, Historico, Ajustes). Diagnostico/IA, Dispositivos, Fibra sao overlays, nao abas.
+- Navegacao: `AppShell.kt` -- 5 abas (Inicio, Velocidade, Sinal, Historico, Ferramentas). Desde GH#936 (Fase 7), Ajustes deixou de ser aba e virou overlay (`Overlay.Perfil`) alcancado pelo avatar no TopBar -- confirmado em `AppShell.kt:1055-1059`. Diagnostico/IA, Dispositivos, Fibra sao overlays, nao abas.
 - Background: WorkManager `MonitoramentoWorker` (30 min).
 
 **Identificadores tecnicos a preservar** (parecem marca, sao tecnicos): `io.signallq.app`, repo `gmmattey/linka-android`, worker `linka-ai-diagnosis-worker`, banco `linkaKotlin.db`, canais `linka_*`, DataStore `linkaPreferencias`. A skill de design system foi renomeada de `linka-design` para `SignallQ-design` em 2026-07-11 -- essa e uma renomeacao de marca intencional, nao um identificador tecnico a preservar (ver secao Design System).
