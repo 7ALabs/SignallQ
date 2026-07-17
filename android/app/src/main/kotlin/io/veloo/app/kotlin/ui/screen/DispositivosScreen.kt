@@ -3,7 +3,6 @@
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -51,6 +50,8 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -121,63 +122,61 @@ fun DispositivosScreen(
     Scaffold(
         containerColor = c.bgPrimary,
         topBar = {
+            // GH#1079: migrado de Column/Row cru para TopAppBar real do M3 -- o layout
+            // manual nao aplicava inset de status bar/notch (`.statusBarsPadding()`),
+            // diferente das outras 14 telas do app que ja usam TopAppBar/
+            // CenterAlignedTopAppBar reais.
             Column(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .background(c.bgPrimary),
             ) {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
+                TopAppBar(
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Outlined.Devices,
+                                contentDescription = null,
+                                tint = c.textPrimary,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Spacer(Modifier.width(LkSpacing.xs))
+                            Text(
+                                "Dispositivos",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.W600,
+                                color = c.textPrimary,
+                            )
+                        }
+                    },
+                    navigationIcon = {
                         if (onVoltar != null) {
                             IconButton(onClick = onVoltar) {
                                 Icon(imageVector = Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Voltar", tint = c.textPrimary)
                             }
-                        } else {
-                            Spacer(Modifier.width(48.dp))
                         }
-                        Spacer(Modifier.width(LkSpacing.xs))
-                        Icon(
-                            imageVector = Icons.Outlined.Devices,
-                            contentDescription = null,
-                            tint = c.textPrimary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(LkSpacing.xs))
-                        Text(
-                            "Dispositivos",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.W600,
-                            color = c.textPrimary,
-                        )
-                    }
-                    val escaneando = snapshotDevices.estado == EstadoScanDispositivos.varrendo
-                    IconButton(onClick = onRefresh, enabled = !escaneando) {
-                        if (escaneando) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = c.primary,
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Outlined.Refresh,
-                                contentDescription = "Escanear Rede",
-                                tint = c.textPrimary,
-                            )
+                    },
+                    actions = {
+                        val escaneando = snapshotDevices.estado == EstadoScanDispositivos.varrendo
+                        IconButton(onClick = onRefresh, enabled = !escaneando) {
+                            if (escaneando) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = c.primary,
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Outlined.Refresh,
+                                    contentDescription = "Escanear Rede",
+                                    tint = c.textPrimary,
+                                )
+                            }
                         }
-                    }
-                }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = c.bgPrimary),
+                )
                 HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
             }
         },

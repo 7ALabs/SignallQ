@@ -488,6 +488,13 @@ private fun IdleCircle(
     habilitado: Boolean = true,
 ) {
     val c = LocalLkTokens.current
+    // #1074 (SPD-019) — sem guarda local, um duplo toque rapido disparava onIniciarTeste()
+    // duas vezes antes da recomposicao trocar o estado para `executando` (que desmonta este
+    // Composable). O AtomicBoolean do ExecutorSpeedtest ja bloqueia a segunda execucao real,
+    // mas o clique fantasma ainda resetava flags e duplicava contagem de MB no ViewModel.
+    // `remember` sem chave: uma nova instancia de IdleCircle (e portanto um novo flag "false")
+    // so aparece quando o estado volta a idle, que e exatamente o reset que queremos.
+    var cliqueDisparado by remember { mutableStateOf(false) }
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -528,7 +535,10 @@ private fun IdleCircle(
                     .clip(CircleShape)
                     .background(corBotao)
                     .semantics { contentDescription = cdBotao }
-                    .clickable(enabled = habilitado, onClick = onIniciarTeste),
+                    .clickable(enabled = habilitado && !cliqueDisparado) {
+                        cliqueDisparado = true
+                        onIniciarTeste()
+                    },
             contentAlignment = Alignment.Center,
         ) {
             Text(

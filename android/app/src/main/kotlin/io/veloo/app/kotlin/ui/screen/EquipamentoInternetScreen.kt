@@ -55,6 +55,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -165,32 +167,18 @@ fun EquipamentoInternetScreen(
     Scaffold(
         containerColor = c.bgPrimary,
         topBar = {
+            // GH#1079: migrado de Column/Row cru para TopAppBar real do M3 -- o layout
+            // manual nao aplicava inset de status bar/notch (`.statusBarsPadding()`),
+            // diferente das outras 14 telas do app que ja usam TopAppBar/
+            // CenterAlignedTopAppBar reais.
             Column(
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .background(c.bgPrimary),
             ) {
-                Row(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        IconButton(onClick = onVoltar) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = "Voltar",
-                                tint = c.textPrimary,
-                            )
-                        }
-                        Spacer(Modifier.width(LkSpacing.xs))
+                TopAppBar(
+                    title = {
                         Column {
                             Text(
                                 "Equipamento de internet",
@@ -204,11 +192,23 @@ fun EquipamentoInternetScreen(
                                 color = c.textSecondary,
                             )
                         }
-                    }
-                    IconButton(onClick = onRetentar) {
-                        Icon(Icons.Outlined.Refresh, contentDescription = "Atualizar", tint = c.textPrimary)
-                    }
-                }
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onVoltar) {
+                            Icon(
+                                Icons.AutoMirrored.Outlined.ArrowBack,
+                                contentDescription = "Voltar",
+                                tint = c.textPrimary,
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onRetentar) {
+                            Icon(Icons.Outlined.Refresh, contentDescription = "Atualizar", tint = c.textPrimary)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = c.bgPrimary),
+                )
                 HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
             }
         },

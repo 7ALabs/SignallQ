@@ -533,6 +533,18 @@ fun HomeScreen(
                 )
             }
 
+            // 3. Mini-cards DNS / Ping / Diagnóstico IA
+            // #1070 (HOME-011) — composable ficou orfao (definido mas nunca chamado) desde
+            // e1aa9f3e (alinhamento ao design system), derrubando o atalho de DNS da Home.
+            item {
+                MiniCardsRow(
+                    c = c,
+                    onAbrirDns = onAbrirDns,
+                    onAbrirPing = onAbrirPing,
+                    onAbrirDiagnostico = onAbrirDiagnostico,
+                )
+            }
+
             // 4a. Wi-Fi SignalCard
             if (snapshotRede.estadoConexao == EstadoConexao.wifi) {
                 item {
@@ -924,161 +936,163 @@ private fun NetworkPath(
     val mobileGateway = gateways.singleOrNull { it.type == ConnectionNodeType.Mobile }
 
     SignallQCard(c) {
-        Text(
-            text = "CAMINHO DA SUA INTERNET",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.W600,
-            color = c.textTertiary,
-        )
-        Spacer(modifier = Modifier.height(LkSpacing.md))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                PathNode(
-                    icon = Icons.Outlined.Smartphone,
-                    iconColor = LkColors.success,
-                    label = "Seu aparelho",
-                    subLabel =
-                        when {
-                            localIp != null -> stringResource(R.string.home_network_conectado)
-                            isConectado -> stringResource(R.string.home_network_buscando)
-                            else -> stringResource(R.string.home_network_desconectado)
-                        },
-                    subLabelColor = if (hasLocalError) LkColors.error else null,
-                    c = c,
-                    onTap = onDeviceTap,
-                )
-            }
-            if (isMobileConnection && mobileGateway != null) {
-                PathConnector(
-                    c = c,
-                    active = !hasLocalError && !loadingLocal && !hasInternetError && !loadingInternet,
-                    hasError = hasLocalError || hasInternetError,
-                    loading = loadingLocal || loadingInternet,
-                )
+        Column {
+            Text(
+                text = "CAMINHO DA SUA INTERNET",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.W600,
+                color = c.textTertiary,
+            )
+            Spacer(modifier = Modifier.height(LkSpacing.md))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    val nomeOperadora =
-                        movelSnapshot?.operadora?.ifBlank { null }
-                            ?: ispInfo?.isp?.ifBlank { null }
-                            ?: mobileGateway.name.takeIf { it != "Antena movel" && it != "Antena móvel" }
-                    val identidadeOperadora =
-                        rememberResolvedOperadoraIdentity(
-                            ispNomeBruto = nomeOperadora,
-                            viaMovel = true,
-                            resolveLocal = resolveOperadoraIdentidadeLocal,
-                            resolveRemoteOrFallback = resolveOperadoraIdentidadeRemota,
-                        )
-                    val nodeLabel = nomeOperadora ?: "Operadora"
-                    val tec = tecnologiaSimplificada(movelSnapshot?.tecnologia)
-                    val statusLabel =
-                        when {
-                            hasInternetError -> stringResource(R.string.home_network_sem_conexao)
-                            loadingInternet -> stringResource(R.string.home_network_conectando)
-                            else -> stringResource(R.string.home_network_conectado)
-                        }
-                    val nodeSubLabel = if (tec != null && !hasInternetError) "$tec · $statusLabel" else statusLabel
                     PathNode(
-                        icon = Icons.Outlined.CellTower,
-                        iconColor = if (hasInternetError) c.textTertiary else c.textSecondary,
-                        label = nodeLabel,
-                        subLabel = nodeSubLabel,
-                        subLabelColor = if (hasInternetError) LkColors.error else null,
-                        c = c,
-                        onTap = { onGatewayTap(mobileGateway) },
-                        iconContent =
-                            identidadeOperadora?.let { identidade ->
-                                { OperadoraBadge(identidade = identidade, size = 34.dp) }
+                        icon = Icons.Outlined.Smartphone,
+                        iconColor = LkColors.success,
+                        label = "Seu aparelho",
+                        subLabel =
+                            when {
+                                localIp != null -> stringResource(R.string.home_network_conectado)
+                                isConectado -> stringResource(R.string.home_network_buscando)
+                                else -> stringResource(R.string.home_network_desconectado)
                             },
+                        subLabelColor = if (hasLocalError) LkColors.error else null,
+                        c = c,
+                        onTap = onDeviceTap,
                     )
                 }
-            } else {
-                gateways.forEachIndexed { i, gw ->
+                if (isMobileConnection && mobileGateway != null) {
                     PathConnector(
                         c = c,
-                        active = if (i == 0) !hasLocalError && !loadingLocal else true,
-                        hasError = i == 0 && hasLocalError,
-                        loading = i == 0 && loadingLocal,
+                        active = !hasLocalError && !loadingLocal && !hasInternetError && !loadingInternet,
+                        hasError = hasLocalError || hasInternetError,
+                        loading = loadingLocal || loadingInternet,
                     )
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        val (icon, _) = nodeDisplay(gw.type)
+                        val nomeOperadora =
+                            movelSnapshot?.operadora?.ifBlank { null }
+                                ?: ispInfo?.isp?.ifBlank { null }
+                                ?: mobileGateway.name.takeIf { it != "Antena movel" && it != "Antena móvel" }
+                        val identidadeOperadora =
+                            rememberResolvedOperadoraIdentity(
+                                ispNomeBruto = nomeOperadora,
+                                viaMovel = true,
+                                resolveLocal = resolveOperadoraIdentidadeLocal,
+                                resolveRemoteOrFallback = resolveOperadoraIdentidadeRemota,
+                            )
+                        val nodeLabel = nomeOperadora ?: "Operadora"
+                        val tec = tecnologiaSimplificada(movelSnapshot?.tecnologia)
+                        val statusLabel =
+                            when {
+                                hasInternetError -> stringResource(R.string.home_network_sem_conexao)
+                                loadingInternet -> stringResource(R.string.home_network_conectando)
+                                else -> stringResource(R.string.home_network_conectado)
+                            }
+                        val nodeSubLabel = if (tec != null && !hasInternetError) "$tec · $statusLabel" else statusLabel
                         PathNode(
-                            icon = icon,
-                            iconColor = c.textSecondary,
-                            label = "Roteador",
-                            subLabel = if (gw.ip != null) stringResource(R.string.home_network_conectado) else "—",
+                            icon = Icons.Outlined.CellTower,
+                            iconColor = if (hasInternetError) c.textTertiary else c.textSecondary,
+                            label = nodeLabel,
+                            subLabel = nodeSubLabel,
+                            subLabelColor = if (hasInternetError) LkColors.error else null,
                             c = c,
-                            onTap = { onGatewayTap(gw) },
+                            onTap = { onGatewayTap(mobileGateway) },
+                            iconContent =
+                                identidadeOperadora?.let { identidade ->
+                                    { OperadoraBadge(identidade = identidade, size = 34.dp) }
+                                },
+                        )
+                    }
+                } else {
+                    gateways.forEachIndexed { i, gw ->
+                        PathConnector(
+                            c = c,
+                            active = if (i == 0) !hasLocalError && !loadingLocal else true,
+                            hasError = i == 0 && hasLocalError,
+                            loading = i == 0 && loadingLocal,
+                        )
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            val (icon, _) = nodeDisplay(gw.type)
+                            PathNode(
+                                icon = icon,
+                                iconColor = c.textSecondary,
+                                label = "Roteador",
+                                subLabel = if (gw.ip != null) stringResource(R.string.home_network_conectado) else "—",
+                                c = c,
+                                onTap = { onGatewayTap(gw) },
+                            )
+                        }
+                    }
+                    PathConnector(
+                        c = c,
+                        active = !hasInternetError && !loadingInternet,
+                        hasError = hasInternetError,
+                        loading = loadingInternet,
+                    )
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        val internetLabel =
+                            ispInfo?.isp?.takeIf { it.isNotEmpty() }
+                                ?: ispName?.takeIf { it.isNotEmpty() }
+                                ?: "Provedor"
+                        val identidadeInternet =
+                            rememberResolvedOperadoraIdentity(
+                                ispNomeBruto = ispInfo?.isp ?: ispName,
+                                viaMovel = false,
+                                resolveLocal = resolveOperadoraIdentidadeLocal,
+                                resolveRemoteOrFallback = resolveOperadoraIdentidadeRemota,
+                            )
+                        val internetSubLabel =
+                            if ((ispInfo?.ip ?: publicIp) != null) {
+                                stringResource(R.string.home_network_conectado)
+                            } else {
+                                when {
+                                    hasInternetError -> stringResource(R.string.home_network_sem_conexao)
+                                    isIspInfoLoading -> stringResource(R.string.home_network_conectando)
+                                    else -> "IP indisponível"
+                                }
+                            }
+                        val internetSubColor: Color? =
+                            when {
+                                hasInternetError -> LkColors.error
+                                (ispInfo?.ip ?: publicIp) != null -> LkColors.success
+                                else -> null
+                            }
+                        PathNode(
+                            icon = Icons.Outlined.Language,
+                            iconColor = if (hasInternetError) c.textTertiary else LkColors.success,
+                            label = internetLabel,
+                            subLabel = internetSubLabel,
+                            subLabelColor = internetSubColor,
+                            c = c,
+                            onTap = onInternetTap,
+                            iconContent =
+                                identidadeInternet?.let { identidade ->
+                                    { OperadoraBadge(identidade = identidade, size = 34.dp) }
+                                },
                         )
                     }
                 }
-                PathConnector(
-                    c = c,
-                    active = !hasInternetError && !loadingInternet,
-                    hasError = hasInternetError,
-                    loading = loadingInternet,
-                )
-                Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    val internetLabel =
-                        ispInfo?.isp?.takeIf { it.isNotEmpty() }
-                            ?: ispName?.takeIf { it.isNotEmpty() }
-                            ?: "Provedor"
-                    val identidadeInternet =
-                        rememberResolvedOperadoraIdentity(
-                            ispNomeBruto = ispInfo?.isp ?: ispName,
-                            viaMovel = false,
-                            resolveLocal = resolveOperadoraIdentidadeLocal,
-                            resolveRemoteOrFallback = resolveOperadoraIdentidadeRemota,
-                        )
-                    val internetSubLabel =
-                        if ((ispInfo?.ip ?: publicIp) != null) {
-                            stringResource(R.string.home_network_conectado)
-                        } else {
-                            when {
-                                hasInternetError -> stringResource(R.string.home_network_sem_conexao)
-                                isIspInfoLoading -> stringResource(R.string.home_network_conectando)
-                                else -> "IP indisponível"
-                            }
-                        }
-                    val internetSubColor: Color? =
-                        when {
-                            hasInternetError -> LkColors.error
-                            (ispInfo?.ip ?: publicIp) != null -> LkColors.success
-                            else -> null
-                        }
-                    PathNode(
-                        icon = Icons.Outlined.Language,
-                        iconColor = if (hasInternetError) c.textTertiary else LkColors.success,
-                        label = internetLabel,
-                        subLabel = internetSubLabel,
-                        subLabelColor = internetSubColor,
-                        c = c,
-                        onTap = onInternetTap,
-                        iconContent =
-                            identidadeInternet?.let { identidade ->
-                                { OperadoraBadge(identidade = identidade, size = 34.dp) }
-                            },
-                    )
-                }
             }
+            Spacer(modifier = Modifier.height(LkSpacing.md))
+            Text(
+                text =
+                    if (!hasLocalError && !hasInternetError && !loadingLocal && !loadingInternet) {
+                        "Tudo conectado. Sua conexão chega até o provedor sem falhas."
+                    } else if (loadingLocal || loadingInternet) {
+                        "Estamos confirmando cada etapa da sua conexão."
+                    } else {
+                        "Há uma falha em um dos pontos da sua conexão."
+                    },
+                style = MaterialTheme.typography.bodySmall,
+                color = c.textSecondary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
-        Spacer(modifier = Modifier.height(LkSpacing.md))
-        Text(
-            text =
-                if (!hasLocalError && !hasInternetError && !loadingLocal && !loadingInternet) {
-                    "Tudo conectado. Sua conexão chega até o provedor sem falhas."
-                } else if (loadingLocal || loadingInternet) {
-                    "Estamos confirmando cada etapa da sua conexão."
-                } else {
-                    "Há uma falha em um dos pontos da sua conexão."
-                },
-            style = MaterialTheme.typography.bodySmall,
-            color = c.textSecondary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(),
-        )
     }
 }
 
