@@ -3,12 +3,6 @@ package io.signallq.app.ui.screen
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -295,39 +289,6 @@ private fun securityLabel(s: SegurancaWifi): String =
 
 private const val SINAL_AUTO_REFRESH_INTERVAL_MS = 30_000L
 
-/**
- * Indicador discreto de atualizacao automatica: ponto pulsante + "Ao vivo" em
- * `colorScheme.tertiary` — nao usa accent/success/warning/error de proposito pra
- * nao competir visualmente com badges de status reais da tela.
- */
-@Composable
-private fun LiveIndicator(modifier: Modifier = Modifier) {
-    val transicaoInfinita = rememberInfiniteTransition(label = "sinal-live-pulse")
-    val alpha by transicaoInfinita.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 1f,
-        animationSpec =
-            infiniteRepeatable(
-                animation = tween(durationMillis = 900, easing = LinearEasing),
-                repeatMode = RepeatMode.Reverse,
-            ),
-        label = "sinal-live-pulse-alpha",
-    )
-    val corAoVivo = MaterialTheme.colorScheme.tertiary
-    Row(
-        modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
-    ) {
-        LkStatusDot(color = corAoVivo.copy(alpha = alpha))
-        Text(
-            "Ao vivo",
-            style = MaterialTheme.typography.labelSmall,
-            color = corAoVivo,
-        )
-    }
-}
-
 // ─── ConexaoTipo ──────────────────────────────────────────────────────────────
 
 private enum class ConexaoTipo { WIFI, MOBILE, CABO, DESCONHECIDO }
@@ -467,11 +428,6 @@ fun SinalScreen(
                 connectedNetwork = connectedNetwork,
                 c = c,
             )
-            if (autoRefreshAtivo) {
-                Box(Modifier.fillMaxWidth().padding(horizontal = LkSpacing.lg, vertical = 4.dp), contentAlignment = Alignment.CenterEnd) {
-                    LiveIndicator()
-                }
-            }
             when (selectedTab) {
                 0 -> {
                     if (conexaoTipo == ConexaoTipo.WIFI) {
@@ -2608,15 +2564,6 @@ private fun CanalTab(
             }
         }
 
-        val canalAtualInfo = connectedNetwork?.canal
-        val dadoCanalAtual = if (canalAtualInfo != null) espectro.dadosPorCanal.find { it.canal == canalAtualInfo } else null
-        if (dadoCanalAtual?.nivel == NivelCongestionamento.congestionado) {
-            item {
-                CanalCongestionadoBanner(dadoCanal = dadoCanalAtual)
-                Spacer(Modifier.height(LkSpacing.md))
-            }
-        }
-
         item {
             Row(
                 modifier =
@@ -2687,7 +2634,22 @@ private fun CanalTab(
         val nivelCanalRec = dadoCanalRec?.nivel
         val dadoCanalAtualParaCard = espectro.dadosPorCanal.find { it.canal == canalAtualParaCard }
         val canalAtualJaLivre = dadoCanalAtualParaCard?.nivel == NivelCongestionamento.livre
-        if (canalAtualParaCard != null &&
+
+        // #1088 — bloco unico de aviso de canal: antes, o banner de congestionamento (canal
+        // atual) e o card "Troque de canal" (recomendacao) podiam aparecer juntos na tela,
+        // duplicando a mesma orientacao. Agora sao mutuamente exclusivos.
+        if (dadoCanalAtualParaCard != null && dadoCanalAtualParaCard.nivel == NivelCongestionamento.congestionado) {
+            item {
+                CanalCongestionadoBanner(
+                    dadoCanal = dadoCanalAtualParaCard,
+                    canalRecomendado =
+                        canalRecParaCard?.takeIf {
+                            it != canalAtualParaCard && nivelCanalRec != NivelCongestionamento.congestionado
+                        },
+                )
+                Spacer(Modifier.height(LkSpacing.lg))
+            }
+        } else if (canalAtualParaCard != null &&
             (canalRecParaCard == null || canalRecParaCard == canalAtualParaCard || canalAtualJaLivre)
         ) {
             item {
@@ -2716,8 +2678,7 @@ private fun CanalTab(
                 }
                 Spacer(Modifier.height(LkSpacing.lg))
             }
-        }
-        if (canalAtualParaCard != null &&
+        } else if (canalAtualParaCard != null &&
             canalRecParaCard != null &&
             canalRecParaCard != canalAtualParaCard &&
             !canalAtualJaLivre &&
@@ -2778,8 +2739,22 @@ private fun CanalTab(
 // ─── Canal: banner de congestionamento ───────────────────────────────────────
 
 @Composable
-private fun CanalCongestionadoBanner(dadoCanal: DadoCanal) {
+private fun CanalCongestionadoBanner(
+    dadoCanal: DadoCanal,
+    canalRecomendado: Int? = null,
+) {
     val c = LocalLkTokens.current
+    // #1088 — aviso unico: quando ha um canal recomendado melhor, a orientacao de troca vai
+    // aqui mesmo, em vez de duplicar num CanalRecomendadoCard separado logo abaixo.
+    val descricao =
+        buildString {
+            append("${dadoCanal.countTerceiros} redes vizinhas dividem o canal ${dadoCanal.canal}.")
+            if (canalRecomendado != null) {
+                append(" Troque para o canal $canalRecomendado, que está mais livre agora.")
+            } else {
+                append(" Considere ativar o modo automático no roteador.")
+            }
+        }
     Row(
         modifier =
             Modifier
@@ -2805,7 +2780,7 @@ private fun CanalCongestionadoBanner(dadoCanal: DadoCanal) {
                 color = c.onWarningContainer,
             )
             Text(
-                "${dadoCanal.countTerceiros} redes vizinhas dividem o canal ${dadoCanal.canal}.",
+                descricao,
                 style = MaterialTheme.typography.bodySmall,
                 color = c.onWarningContainer,
             )
@@ -3216,48 +3191,6 @@ private fun CanalRecomendadoCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = c.textSecondary,
                     )
-                }
-            }
-        }
-    }
-}
-
-// ─── Recommendation card ──────────────────────────────────────────────────────
-
-@Composable
-private fun RecommendationCard(
-    channel: Int,
-    reason: String,
-    banda: String,
-) {
-    val c = LocalLkTokens.current
-    Row(
-        Modifier
-            .padding(horizontal = LkSpacing.lg)
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(LkRadius.card)),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        LkSurfaceCard(modifier = Modifier.fillMaxWidth(), outlined = false) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(LkColors.success.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(channel.toString(), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = LkColors.success)
-                }
-                Spacer(Modifier.width(LkSpacing.md))
-                Column {
-                    Text(
-                        "Canal recomendado · $banda",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.W600,
-                        color = c.textPrimary,
-                    )
-                    Text(reason, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
                 }
             }
         }
