@@ -86,12 +86,33 @@ pequeno, seguro e relacionado à tarefa, ou registrá-lo em uma issue quando amp
 
 ## Milestones
 
-| Milestone | Data |
-|---|---|
-| M0 -- Fundacao e Setup | 27/06/2026 |
-| M1 -- App pronto para Beta | 17/07/2026 |
-| M2 -- Beta Fechado | 31/07/2026 |
-| M3 -- Lancamento Play Store | 07/08/2026 |
+**Revisado em 2026-07-17** para lançamento em produção dia **07/08/2026** (pedido do Luiz).
+Cronograma comprimido de ~1 mes: a trilha `alpha` (teste fechado) ja esta ativa desde
+10/07 -- mais cedo do que o plano original assumia (M1 concluido so hoje) -- entao o Open
+Beta (M4) pode comecar antes do previsto, sem cortar o minimo de 14 dias que o proprio time
+definiu como gate de qualidade (`docs_ai/operations/ROLLOUT_TRANSITION.md`). Detalhe
+completo, riscos e criterios de Go/No-Go em `docs_ai/operations/GO_NOGO_CHECKLIST.md`.
+
+| Milestone | Data | Status em 17/07 |
+|---|---|---|
+| M0 -- Fundacao e Setup | 27/06/2026 | Concluido |
+| M1 -- App pronto para Beta | 17/07/2026 | Concluido hoje |
+| M2 -- Beta Fechado (trilha `internal`/`alpha`) | 21/07/2026 | 6 issues de QA abertas -- muito provavelmente ja cobertas pela varredura de QA de hoje (`android/tests/`, `SignallQ Admin/tests/`); Rhodolfo precisa cruzar evidencia e fechar ate essa data |
+| M4 -- Open Beta (trilha `beta`) | 04/08/2026 (inicio ~21/07, 14 dias min.) | Nao iniciado -- depende de M2 fechado e da guardrail de `promote-release.yml` ser ampliada pra aceitar `beta` |
+| M5 -- Producao (trilha `production`, staged rollout) | **07/08/2026** | Nao iniciado -- gate final, ver riscos abaixo |
+
+**Riscos reais desse cronograma (nao escondidos, pra decisao informada):**
+- Depende de fechar as 6 issues de QA de M2 ainda esta semana -- sem isso, o inicio do Open
+  Beta atrasa e o efeito cascateia pro dia 07/08.
+- Requisito real do Google pra elegibilidade de producao (duracao/numero minimo de
+  testadores no teste fechado, contas pessoais criadas apos nov/2023) nao foi confirmado com
+  precisao -- nao encontrei o numero exato na documentacao publica consultada. Se a conta for
+  enquadrada nessa regra, validar direto no Play Console antes de prometer a data.
+- Primeira vez usando a trilha `beta` (teste aberto) exige review do Google -- latencia nao
+  totalmente previsivel, pode comer parte da folga.
+- `promote-release.yml` (`.github/workflows/`) hoje so aceita `internal`/`alpha` como
+  destino -- precisa de uma mudanca deliberada (ampliar o guardrail) quando o squad decidir
+  abrir o Open Beta, nao e automatico.
 
 ---
 
