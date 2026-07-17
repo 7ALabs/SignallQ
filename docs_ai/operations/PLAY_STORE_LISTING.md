@@ -64,6 +64,19 @@ suporte@signallq.com
 
 ## URL da Política de Privacidade
 
+> **Corrigido em 2026-07-17** — a URL anterior (`signallq-privacy.pages.dev/privacy`) não
+> resolve (domínio Pages inexistente). O conteúdo é servido pelo Worker Cloudflare
+> `signallq-privacy` (`integrations/cloudflare/signallq-privacy-worker/`), no domínio
+> `workers.dev` — confirmado ao vivo (HTTP 200) antes de corrigir aqui.
+
 ```
-https://signallq-privacy.pages.dev/privacy
+https://signallq-privacy.giammattey-luiz.workers.dev/privacy
+```
+
+## URL dos Termos de Uso
+
+Mesmo worker, confirmado ao vivo (HTTP 200):
+
+```
+https://signallq-privacy.giammattey-luiz.workers.dev/terms
 ```

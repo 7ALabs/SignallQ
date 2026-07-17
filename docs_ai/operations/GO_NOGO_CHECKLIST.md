@@ -1,8 +1,13 @@
 # Checklist Go/No-Go — SignallQ
 
-> Atualizado em 2026-06-28. Usar antes de cada fase de lançamento.
+> Atualizado em 2026-07-17. Cronograma comprimido pra produção em 07/08/2026 (pedido do
+> Luiz) — a trilha `alpha` já está ativa desde 10/07, mais cedo do que o plano original
+> (datado 2026-06-28) assumia, o que abre espaço pra antecipar o Open Beta sem cortar o
+> mínimo de 14 dias. Riscos reais dessa compressão documentados em `.claude/CLAUDE.md`
+> (seção "Milestones") — não repetidos aqui, só as datas revisadas. Usar antes de cada fase
+> de lançamento.
 
-## M2 — Beta Fechado (31/07/2026)
+## M2 — Beta Fechado (21/07/2026)
 
 ### Go Criteria (todos obrigatórios)
 
@@ -42,7 +47,10 @@
 
 ---
 
-## M3 — Play Store (07/08/2026)
+## M3 — Play Store, listing/compliance pronto (concluído — 21/21 issues fechadas em 2026-07-17)
+
+Este milestone cobre a prontidão de listagem/compliance (Data Safety, IARC, política de
+privacidade, docs de lançamento) — não é o go-live em produção em si, que é o M5 abaixo.
 
 ### Go Criteria (todos obrigatórios — inclui todos do M2 +)
 
@@ -79,19 +87,21 @@
 
 ---
 
-## M4 — Open Beta (21/08/2026)
+## M4 — Open Beta (início ~21/07/2026, mínimo 14 dias → conclui ~04/08/2026)
 
-### Go Criteria (todos do M3 +)
+### Go Criteria (todos do M2 +)
 
-- [ ] Beta fechado rodou por >= 14 dias
+- [ ] Beta fechado (trilha `alpha`) rodou por >= 14 dias (já satisfeito — ativa desde 10/07)
 - [ ] Feedback dos beta testers processado
 - [ ] Bugs P0/P1 do beta corrigidos
 - [ ] Métricas de retenção D1/D7 estáveis
 - [ ] Procedimento de hotfix testado
+- [ ] `promote-release.yml` ampliado pra aceitar `beta` como destino (guardrail hoje só
+      permite `internal`/`alpha`)
 
 ---
 
-## M5 — Produção (04/09/2026)
+## M5 — Produção (07/08/2026)
 
 ### Go Criteria (todos do M4 +)
 
@@ -101,3 +111,6 @@
 - [ ] Daily review de crashes configurado
 - [ ] Runbook de lançamento revisado
 - [ ] Email de suporte configurado
+- [ ] Requisito real do Google pra elegibilidade de produção (duração/testadores mínimos em
+      teste fechado, contas pessoais pós nov/2023) confirmado direto no Play Console — não
+      verificado com precisão na documentação pública consultada em 2026-07-17

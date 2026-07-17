@@ -1,14 +1,17 @@
 # Transição Closed Beta → Open Beta → Produção
 
-> Atualizado em 2026-06-28.
+> **Atualizado em 2026-07-17** — cronograma comprimido pra produção em 07/08/2026 (pedido do
+> Luiz). Viável sem cortar o mínimo de 14 dias de cada fase porque a trilha `alpha` já está
+> ativa desde 10/07 — mais cedo do que o plano original (28/06) assumia. Riscos reais dessa
+> compressão em `.claude/CLAUDE.md` (seção "Milestones") e `GO_NOGO_CHECKLIST.md`.
 
 ## Visão Geral
 
 | Fase | Track Play Store | Audiência | Duração mín. | Milestone |
 |---|---|---|---|---|
-| Closed Beta | Teste interno/fechado | 10-30 convidados | 14 dias | M2 (31/07) |
-| Open Beta | Teste aberto | Qualquer pessoa | 14 dias | M4 (21/08) |
-| Produção | Produção (staged) | Público | Permanente | M5 (04/09) |
+| Closed Beta | `internal` → `alpha` | 10-30 convidados | 14 dias | M2 (21/07, já satisfeito — ativo desde 10/07) |
+| Open Beta | `beta` (teste aberto) | Qualquer pessoa | 14 dias | M4 (início ~21/07, conclui ~04/08) |
+| Produção | `production` (staged) | Público | Permanente | M5 (07/08) |
 
 ## Closed Beta → Open Beta
 
