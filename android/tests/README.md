@@ -45,7 +45,6 @@ Total atual: **37 classes de teste** em `*/src/test/`, distribuídas por módulo
 | `MainViewModelHistoricoTest` | Estado/lógica de histórico no ViewModel principal |
 | `DnsScreenTest` | Estados e comportamento da tela de DNS |
 | `FibraModemUiStateTest` | UiState da análise de modem/ONT (Fibra) |
-| `InferirTipoGatewayTest` | Inferência do tipo de gateway a partir da rede |
 | `monitoramento/DeteccaoDispositivoNovoTest` | Detecção de dispositivo novo na rede local |
 | `monitoramento/MonitoramentoWorkerHistereseTest` | Histerese do worker de monitoramento (evita alertas por oscilação) |
 | `monitoramento/MonitoramentoWorkerMedicaoTest` | Lógica de medição do worker de monitoramento passivo |
@@ -98,11 +97,6 @@ Total atual: **37 classes de teste** em `*/src/test/`, distribuídas por módulo
 | Teste | O que cobre |
 |-------|-------------|
 | `SpeedtestQualityClassifierTest` | Classificação de qualidade do speedtest (veredito humano) |
-
-### Módulo `featureWifi`
-| Teste | O que cobre |
-|-------|-------------|
-| `TopologiaWifiEngineTest` | Inferência de topologia da rede Wi-Fi |
 
 ---
 

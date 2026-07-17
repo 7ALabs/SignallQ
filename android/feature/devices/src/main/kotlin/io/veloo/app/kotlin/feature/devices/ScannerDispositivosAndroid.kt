@@ -9,6 +9,7 @@ import android.net.wifi.WifiManager
 import android.os.Build
 import timber.log.Timber
 import io.signallq.app.core.network.contracts.localdevice.ClientSnapshot
+import io.signallq.app.core.network.topologia.oui.OuiCatalog
 import com.stealthcopter.networktools.ARPInfo
 import com.stealthcopter.networktools.SubnetDevices
 import kotlinx.coroutines.Dispatchers
@@ -320,7 +321,7 @@ class ScannerDispositivosAndroid(
                                 NamingPrioridade.resolverNomeRouterActive(macResolvido, clientesGateway, d.ip)
 
                             // Prioridade de fabricante: manufacturer UPnP(XML) > fabricante mDNS TXT > OUI(MAC)
-                            val fabricanteOui = OuiDatabase.lookupFabricante(macResolvido)
+                            val fabricanteOui = OuiCatalog.lookup(macResolvido)?.fabricante
                             val fabricanteResolvido = d.fabricante ?: fabricanteOui
                             val tipo = ClassificadorDispositivoRede.classificar(d, fabricanteResolvido)
                             val ehGateway = d.fonteNome == "gateway"
@@ -851,7 +852,7 @@ class ScannerDispositivosAndroid(
 
     private fun enriquecer(dispositivos: List<DispositivoRede>): List<DispositivoRede> =
         dispositivos.map { d ->
-            val fabricanteOui = OuiDatabase.lookupFabricante(d.mac)
+            val fabricanteOui = OuiCatalog.lookup(d.mac)?.fabricante
             val fabricante = d.fabricante ?: fabricanteOui
             d.copy(
                 fabricante = fabricante,

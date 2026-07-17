@@ -15,12 +15,12 @@ import io.signallq.app.core.network.topologia.oui.OuiCatalog
  * Motor de topologia unificado — Fase 2A do plano de unificação de topologia Wi-Fi
  * (issue #975/#979).
  *
- * Roda em paralelo aos três motores antigos ([io.signallq.app.feature.wifi.TopologiaWifiEngine],
- * `GatewayHeuristica`, `ClassificadorDispositivoRede`) — nenhuma tela consome este motor ainda
- * (isso é Fase 2B). Absorve:
- * - Agrupamento por SSID + OUI + banda (mesma análise do `TopologiaWifiEngine`), mas usando o
- *   catálogo único ([OuiCatalog]) e expressando cada sinal como [Evidencia] com peso.
- * - Palavra-chave de SSID (mesma lista de `GatewayHeuristica`) como evidência adicional — nunca
+ * Rodou em paralelo aos três motores antigos (`TopologiaWifiEngine`, `GatewayHeuristica`,
+ * `ClassificadorDispositivoRede`) até a Fase 2B migrar Home/Sinal/Recomendação para este motor
+ * único; `TopologiaWifiEngine` e `GatewayHeuristica` foram removidos na Fase 2C (#981). Absorve:
+ * - Agrupamento por SSID + OUI + banda (mesma análise do antigo `TopologiaWifiEngine`), mas usando
+ *   o catálogo único ([OuiCatalog]) e expressando cada sinal como [Evidencia] com peso.
+ * - Palavra-chave de SSID (mesma lista do antigo `GatewayHeuristica`) como evidência adicional — nunca
  *   sobrescreve sozinha um sinal de OUI/banda mais forte; quando os dois concordam a confiança
  *   sobe, quando divergem vira [ConflitoSinal] com o OUI/banda priorizado (é sinal de hardware;
  *   SSID é configurável pelo usuário).
@@ -31,8 +31,8 @@ import io.signallq.app.core.network.topologia.oui.OuiCatalog
  *   revisão do plano).
  */
 object TopologiaRedeEngine {
-    // Mesmas listas de `GatewayHeuristica.kt` (app module) — duplicadas aqui porque
-    // `:coreNetwork` não pode depender de `:app`. `GatewayHeuristica` é removida na Fase 2C.
+    // Mesmas listas do antigo `GatewayHeuristica.kt` (app module) — duplicadas aqui porque
+    // `:coreNetwork` não pode depender de `:app`. `GatewayHeuristica` foi removida na Fase 2C (#981).
     private val SSID_MESH_EXATOS = listOf("MESH", "DECO", "EERO", "VELOP")
     private val SSID_MESH_PREFIXO = listOf("ORBI")
     private val SSID_EXTENSOR_EXATOS = listOf("EXTENSOR", "REPEATER")

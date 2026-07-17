@@ -18,9 +18,9 @@ import io.signallq.app.core.network.contracts.topologia.PapelTopologia
  * catálogo só declara o que é *possível*; qual papel vale em cada contexto é decisão do motor de
  * topologia (Fase 2A), nunca deste catálogo.
  *
- * `OuiDatabase.lookupFabricante` (feature/devices) e `MeshOuiDatabase.isMeshNo`/`isGatewayIsp`
- * (coreNetwork) viram wrappers finos sobre [lookup] — mesma assinatura pública de antes, nenhum
- * call site quebra.
+ * `OuiDatabase` e `MeshOuiDatabase` foram wrappers finos de transição sobre [lookup] durante as
+ * Fases 1/2A/2B e foram removidos na Fase 2C (#981) — os call sites (`ScannerDispositivosAndroid`,
+ * `TopologiaRedeEngine`) chamam [lookup] diretamente agora.
  */
 object OuiCatalog {
 
