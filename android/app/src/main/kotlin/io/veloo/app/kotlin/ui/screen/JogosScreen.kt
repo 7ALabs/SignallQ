@@ -924,15 +924,24 @@ private fun GameArtworkBadge(
     val artwork = remember(jogo.gameId) { GameArtworkCatalog.forGame(jogo.gameId) }
 
     if (artwork != null) {
-        Image(
-            painter = painterResource(id = artwork.drawableRes),
-            contentDescription = jogo.nome,
+        Box(
             modifier =
                 Modifier
                     .size(size)
-                    .clip(RoundedCornerShape(cornerRadius)),
-            contentScale = ContentScale.Crop,
-        )
+                    .background(Color.White, RoundedCornerShape(cornerRadius))
+                    .border(1.dp, c.border, RoundedCornerShape(cornerRadius)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                painter = painterResource(id = artwork.drawableRes),
+                contentDescription = jogo.nome,
+                modifier =
+                    Modifier
+                        .size(size)
+                        .clip(RoundedCornerShape(cornerRadius)),
+                contentScale = ContentScale.Crop,
+            )
+        }
         return
     }
 
@@ -941,13 +950,13 @@ private fun GameArtworkBadge(
             Modifier
                 .size(size)
                 .clip(RoundedCornerShape(cornerRadius))
-                .background(c.primary.copy(alpha = 0.12f)),
+                .background(c.primary),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = jogoSigla(jogo.nome),
             style = if (size > 40.dp) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelMedium,
-            color = c.primary,
+            color = Color.White,
             fontWeight = FontWeight.W700,
         )
     }
