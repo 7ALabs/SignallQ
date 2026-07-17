@@ -141,7 +141,7 @@ fun LkInlineBulletText(
                 Modifier
                     .padding(top = 5.dp)
                     .size(5.dp)
-                    .clip(RoundedCornerShape(999.dp))
+                    .clip(RoundedCornerShape(LkRadius.pill))
                     .background(c.onSurfaceVariant),
         )
         Text(

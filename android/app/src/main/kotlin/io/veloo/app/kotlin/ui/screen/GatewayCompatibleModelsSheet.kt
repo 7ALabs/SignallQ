@@ -32,6 +32,7 @@ import io.signallq.app.core.network.contracts.gateway.DeviceType
 import io.signallq.app.core.network.contracts.gateway.PublicCompatibilityCatalog
 import io.signallq.app.core.network.contracts.gateway.PublicCompatibilityEntry
 import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.component.Overline
@@ -121,7 +122,7 @@ private fun CompatibleModelCard(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(LkRadius.card))
                 .background(c.bgCard)
                 .padding(LkSpacing.base),
         verticalAlignment = Alignment.CenterVertically,
@@ -131,7 +132,7 @@ private fun CompatibleModelCard(
                 Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(LkColors.accent.copy(alpha = 0.14f)),
+                    .background(c.primary.copy(alpha = 0.14f)),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().height(44.dp),
@@ -141,7 +142,7 @@ private fun CompatibleModelCard(
                 Icon(
                     imageVector = Icons.Outlined.Router,
                     contentDescription = null,
-                    tint = LkColors.accent,
+                    tint = c.primary,
                     modifier = Modifier.size(22.dp),
                 )
             }
@@ -163,7 +164,7 @@ private fun CompatibleModelCard(
         Row(
             modifier =
                 Modifier
-                    .clip(RoundedCornerShape(999.dp))
+                    .clip(RoundedCornerShape(LkRadius.pill))
                     .background(seloColor.copy(alpha = 0.14f))
                     .padding(horizontal = LkSpacing.sm, vertical = 4.dp),
         ) {

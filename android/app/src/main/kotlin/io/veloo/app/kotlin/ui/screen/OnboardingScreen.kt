@@ -553,7 +553,7 @@ private fun PermissaoToggleCard(
                 modifier =
                     Modifier
                         .size(36.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(LkRadius.input))
                         .background(c.primary.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center,
             ) {

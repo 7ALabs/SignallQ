@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
@@ -190,9 +191,9 @@ fun SpeedBarsChart(
         modifier =
             modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(LkRadius.input))
                 .background(c.bgCard)
-                .border(1.dp, c.border, RoundedCornerShape(12.dp))
+                .border(1.dp, c.border, RoundedCornerShape(LkRadius.input))
                 .padding(vertical = LkSpacing.md),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
@@ -216,7 +217,7 @@ fun SpeedBarsChart(
                     horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    LegendaDot(color = LkColors.accent, label = "Wi-Fi", c = c)
+                    LegendaDot(color = c.primary, label = "Wi-Fi", c = c)
                     LegendaDot(color = LkColors.accentBlue, label = "Móvel", c = c)
                 }
             }
@@ -238,15 +239,15 @@ fun SpeedBarsChart(
                         },
                         colors =
                             FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
-                                selectedLabelColor = LkColors.accent,
+                                selectedContainerColor = c.primary.copy(alpha = 0.15f),
+                                selectedLabelColor = c.primary,
                             ),
                         border =
                             FilterChipDefaults.filterChipBorder(
                                 enabled = true,
                                 selected = filtroSelecionado == filtro,
                                 borderColor = c.border,
-                                selectedBorderColor = LkColors.accent,
+                                selectedBorderColor = c.primary,
                             ),
                     )
                 }
@@ -270,7 +271,7 @@ fun SpeedBarsChart(
                             val dl = medicao.downloadMbps
                             val fraction = if (dl != null) (dl / maxMbps).toFloat().coerceIn(0f, 1f) else 0f
                             val isWifi = medicao.connectionType == "wifi"
-                            val barColor = if (isWifi) LkColors.accent else LkColors.accentBlue
+                            val barColor = if (isWifi) c.primary else LkColors.accentBlue
                             val typeLabel = if (isWifi) "W" else medicao.operadoraMovel?.take(4) ?: "M"
                             val valueLabel = if (dl != null) "%.0f".format(dl) else "--"
 

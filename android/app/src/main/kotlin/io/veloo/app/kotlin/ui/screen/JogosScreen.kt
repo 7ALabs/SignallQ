@@ -353,7 +353,7 @@ private fun EtapaSelecaoJogo(
                 },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(LkRadius.input),
                 colors =
                     OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = c.outline,
@@ -593,7 +593,7 @@ private fun ProgressoStepRow(
             Modifier
                 .fillMaxWidth()
                 .alpha(if (ativa) pulseAlpha else 1f)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(LkRadius.input))
                 .background(
                     when {
                         ativa -> c.primary.copy(alpha = 0.10f)
@@ -901,7 +901,7 @@ private fun PlatformBadge(plataforma: Plataforma) {
     Box(
         modifier =
             Modifier
-                .clip(RoundedCornerShape(999.dp))
+                .clip(RoundedCornerShape(LkRadius.pill))
                 .background(c.primary.copy(alpha = 0.10f))
                 .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {

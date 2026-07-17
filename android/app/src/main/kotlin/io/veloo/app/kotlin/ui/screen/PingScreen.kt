@@ -134,7 +134,7 @@ fun PingScreen(onDismiss: () -> Unit) {
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(LkRadius.pill))
                         .background(c.surfaceContainer)
                         .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
