@@ -380,12 +380,12 @@ private fun OnboardingTelaBemVindo(
                     Modifier
                         .fillMaxWidth()
                         .semantics {
-                            contentDescription = if (termosAceitos) "Continuar" else "Aceite os termos para continuar"
+                            contentDescription = if (termosAceitos) "Começar" else "Aceite os termos para continuar"
                         },
                 colors = ButtonDefaults.buttonColors(containerColor = c.primary, contentColor = c.onPrimary),
             ) {
                 Text(
-                    text = stringResource(R.string.onboarding_btn_continuar),
+                    text = stringResource(R.string.onboarding_tela1_btn_comecar),
                     color = c.onPrimary,
                 )
             }

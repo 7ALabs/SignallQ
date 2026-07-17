@@ -75,7 +75,8 @@
 
     <!-- Onboarding screen (redesign 2 telas, GH#128) -->
     <string name="onboarding_tela1_titulo">Bem-vindo ao SignallQ</string>
-    <string name="onboarding_tela1_subtitulo">Diagnóstico de conectividade direto ao ponto, sem enrolação.</string>
+    <string name="onboarding_tela1_subtitulo">Entenda como está sua internet, descubra problemas e veja o que fazer para melhorar.</string>
+    <string name="onboarding_tela1_btn_comecar">Começar</string>
     <string name="onboarding_tela2_titulo">Permitir acesso</string>
     <string name="onboarding_tela2_subtitulo">Essas permissões deixam o diagnóstico mais completo — nenhuma é obrigatória.</string>
     <string name="onboarding_btn_continuar">Continuar</string>
