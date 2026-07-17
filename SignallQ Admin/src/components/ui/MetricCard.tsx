@@ -83,25 +83,30 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         }}
       />
 
-      {source && (
-        <span
-          className="absolute top-3 right-3 text-[9px] font-mono px-1.5 py-0.5 rounded select-none"
-          style={{
-            color: "var(--text-tertiary)",
-            backgroundColor: "var(--bg-base)",
-            border: `1px solid ${alpha("var(--border)", 60)}`,
-          }}
+      {/* GH#1081: label + badge de fonte num flex justify-between em vez do badge em
+          position:absolute -- antes o badge não reservava espaço horizontal e o
+          truncate do label media contra a largura total do card, cortando o texto
+          bruscamente (sem reticências) bem onde o badge começava. */}
+      <div className="flex items-start justify-between gap-2">
+        <p
+          className="min-w-0 flex-1 text-[11px] font-sans uppercase tracking-[0.08em] font-semibold select-none truncate"
+          style={{ color: "var(--text-secondary)" }}
         >
-          {source}
-        </span>
-      )}
-
-      <p
-        className="text-[11px] font-sans uppercase tracking-[0.08em] font-semibold select-none truncate"
-        style={{ color: "var(--text-secondary)" }}
-      >
-        {label}
-      </p>
+          {label}
+        </p>
+        {source && (
+          <span
+            className="shrink-0 text-[9px] font-mono px-1.5 py-0.5 rounded select-none"
+            style={{
+              color: "var(--text-tertiary)",
+              backgroundColor: "var(--bg-base)",
+              border: `1px solid ${alpha("var(--border)", 60)}`,
+            }}
+          >
+            {source}
+          </span>
+        )}
+      </div>
 
       {/* Valor + veredito inline na mesma linha de base — spec KpiCard.dc.html
           ("486 Mbps · Excelente"), não em bloco separado abaixo. */}
