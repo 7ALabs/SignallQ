@@ -181,6 +181,8 @@ Motivo: em 2026-07-04 uma auditoria encontrou 69+ branches locais acumuladas (wo
 
 **Higiene periodica:** rodar a skill `higiene` (secao Branches e worktrees) pelo menos uma vez por semana ou sempre que houver uso de worktrees em paralelo. Antes de apagar qualquer branch nao obviamente mergeada, verificar por diff direto (`git diff main..branch`) se o conteudo ja esta em main por outro caminho -- nunca decidir por nome ou por suposicao.
 
+**Merge sempre seguido de `/higiene`:** o agente que fizer o merge de uma PR (`gh pr merge`) roda a skill `higiene` logo em seguida, na mesma sessao -- nao espera a rotina periodica semanal. Vale pra qualquer agente (Claudete, Camilo, Lia, Rhodolfo), sem excecao.
+
 **Verificacao real antes de declarar (regra transversal, todos os agentes):**
 Nunca declarar "PR mergeada", "teste passou", "publicado em producao" ou qualquer variacao sem
 verificacao executada de fato -- nao por inferencia, nao por confiar no relato de outro agente:
