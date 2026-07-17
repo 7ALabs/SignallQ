@@ -97,13 +97,27 @@ completo, riscos e criterios de Go/No-Go em `docs_ai/operations/GO_NOGO_CHECKLIS
 |---|---|---|
 | M0 -- Fundacao e Setup | 27/06/2026 | Concluido |
 | M1 -- App pronto para Beta | 17/07/2026 | Concluido hoje |
-| M2 -- Beta Fechado (trilha `internal`/`alpha`) | 21/07/2026 | 6 issues de QA abertas -- muito provavelmente ja cobertas pela varredura de QA de hoje (`android/tests/`, `SignallQ Admin/tests/`); Rhodolfo precisa cruzar evidencia e fechar ate essa data |
+| M2 -- Beta Fechado (trilha `internal`/`alpha`) | 21/07/2026 | 6 issues de QA abertas -- **cruzadas contra o caderno de hoje em 2026-07-17 e NAO cobertas** (ver risco abaixo); precisam de rodada dedicada, varios cenarios exigem device real |
 | M4 -- Open Beta (trilha `beta`) | 04/08/2026 (inicio ~21/07, 14 dias min.) | Nao iniciado -- depende de M2 fechado e da guardrail de `promote-release.yml` ser ampliada pra aceitar `beta` |
 | M5 -- Producao (trilha `production`, staged rollout) | **07/08/2026** | Nao iniciado -- gate final, ver riscos abaixo |
 
 **Riscos reais desse cronograma (nao escondidos, pra decisao informada):**
-- Depende de fechar as 6 issues de QA de M2 ainda esta semana -- sem isso, o inicio do Open
-  Beta atrasa e o efeito cascateia pro dia 07/08.
+- **Confirmado em 2026-07-17** (cruzamento linha a linha do caderno real, nao suposicao): as
+  6 issues de QA de M2 NAO estao cobertas pela varredura de hoje. A varredura foi regressao
+  visual/estrutural do redesign MD3, nao os cenarios funcionais profundos que essas issues
+  pedem:
+  - #618 (Speedtest e2e): 15 de 24 cenarios `Bloqueado` + 4 `Falhou` -- emulador nao completa
+    teste real de 10+ min, cascateando bloqueio em metricas/historico/compartilhar.
+  - #620 (Fresh install/update): so "instalacao limpa abre sem erro" foi testado -- update de
+    versao anterior preservando dados/migracao de Room nunca foi exercitado.
+  - #616 (Permissoes): fluxo consolidado negar/recuperar/continuar ficou bloqueado.
+  - #614 (Offline/timeout/retry): parcial -- alguns cenarios passaram, mas timeout/sem-internet
+    explicitos ficaram bloqueados (nao alcancavel em emulador).
+  - #615 (Diagnostico IA e2e): so navegacao e estrutura estatica do Laudo passaram -- chat com
+    streaming e fallback de IA offline nao tem teste correspondente.
+  - **Isso e um bloqueio real pro M2 fechar em 21/07** -- precisa de rodada de QA dedicada em
+    device real (SIM fisico, controle de conectividade, app de versao anterior instalado), nao
+    so cruzamento de evidencia. Sem isso, o inicio do Open Beta atrasa e cascateia pro 07/08.
 - Requisito real do Google pra elegibilidade de producao (duracao/numero minimo de
   testadores no teste fechado, contas pessoais criadas apos nov/2023) nao foi confirmado com
   precisao -- nao encontrei o numero exato na documentacao publica consultada. Se a conta for
