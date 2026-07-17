@@ -2,6 +2,7 @@ package io.signallq.app.ui.component
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
 import io.signallq.app.ui.ContatoOperadora
 import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.OperadoraLogoCatalog
 import io.signallq.app.ui.ResolvedOperadoraIdentity
 
@@ -45,7 +47,11 @@ fun OperadoraBadge(
 
     if (logoRes != null) {
         Box(
-            modifier = modifier.size(size),
+            modifier =
+                modifier
+                    .size(size)
+                    .background(Color.White, CircleShape)
+                    .border(1.dp, LocalLkTokens.current.border, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Image(
@@ -80,7 +86,11 @@ fun OperadoraBadge(
     when {
         identidade.logoRes != null -> {
             Box(
-                modifier = modifier.size(size),
+                modifier =
+                    modifier
+                        .size(size)
+                        .background(Color.White, CircleShape)
+                        .border(1.dp, LocalLkTokens.current.border, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Image(
