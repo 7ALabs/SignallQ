@@ -1,0 +1,88 @@
+name: Firebase Distribution
+
+# Canal de debug/validacao rapida (nao e o release oficial — isso e o release.yml, que
+# publica na Play Console). Disparo sob demanda: "quando o Luiz pede pra subir uma versao
+# pra testar", nao em todo push.
+#
+# Pre-requisito antes de disparar: incrementar versionCode (e versionName se for o caso)
+# em android/gradle/libs.versions.toml e dar commit/push — nunca subir um build sem bump
+# de versao antes, mesmo em debug (evita dois uploads com o mesmo numero).
+#
+# Requer o secret FIREBASE_TOKEN (gerado via 'firebase login:ci' na sessao ja autenticada
+# localmente e configurado com 'gh secret set FIREBASE_TOKEN --repo gmmattey/linka-android').
+
+on:
+  workflow_dispatch:
+    inputs:
+      buildType:
+        description: 'Build type a distribuir'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
+
+permissions:
+  contents: read
+
+jobs:
+  distribute:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Decodificar google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
+
+      - name: Decodificar keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/segredos/signallq.jks
+
+      - name: Criar key.properties
+        run: |
+          cat > android/key.properties <<PROPS
+          storePassword=${{ secrets.STORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=segredos/signallq.jks
+          PROPS
+
+      - name: Permissao gradlew
+        run: chmod +x android/gradlew
+
+      - name: Extrair versao
+        id: versao
+        run: |
+          NAME=$(grep 'versionName' android/gradle/libs.versions.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+          CODE=$(grep 'versionCode' android/gradle/libs.versions.toml | head -1 | sed 's/.*= *"\(.*\)"/\1/')
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+
+      - name: Clean build
+        run: cd android && ./gradlew clean --no-build-cache --no-daemon
+
+      - name: Build e distribuir (release)
+        if: ${{ inputs.buildType == 'release' }}
+        run: cd android && ./gradlew assembleRelease appDistributionUploadRelease --no-build-cache --no-daemon
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
+
+      - name: Build e distribuir (debug)
+        if: ${{ inputs.buildType == 'debug' }}
+        run: cd android && ./gradlew assembleDebug appDistributionUploadDebug --no-build-cache --no-daemon
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
+
+      - name: Resumo
+        run: echo "Distribuido SignallQ ${{ steps.versao.outputs.name }} (build ${{ steps.versao.outputs.code }}) — ${{ inputs.buildType }} — via Firebase App Distribution"

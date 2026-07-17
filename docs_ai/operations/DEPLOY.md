@@ -4,61 +4,74 @@
 
 This document outlines the deployment process for the SignallQ Android Kotlin application, detailing how new versions are released to end-users.
 
-> Versao atual: **0.23.0** (versionCode 56), release 2026-07-05.
+> Versao atual: **0.26.0** (versionCode 61), release 2026-07-17.
 > Namespace/applicationId atual: **`io.signallq.app`** (renomeado de `io.veloo.app`
 > em 2026-06-28; caminho fisico do codigo do `:app` continua `io/veloo/app/kotlin/`).
 > Demais identificadores tecnicos permanecem: repo `gmmattey/linka-android`, worker
-> `linka-ai-diagnosis-worker`. A partir de 0.22.1 ha publicacao automatizada na Play
-> Console (trilha de teste fechado) via gradle-play-publisher no release por tag.
+> `linka-ai-diagnosis-worker`. Publicacao na Play Console e distribuicao Firebase sao
+> automatizadas via GitHub Actions — nao ha upload manual pela UI (ver abaixo).
 
 ## Deployment Target
 
-O canal **primário** de distribuição é o **Firebase App Distribution** (builds
-internos). O **Google Play Store** é o alvo para publicação pública em loja.
+Dois canais, os dois via **GitHub Actions**:
+- **Firebase App Distribution** — validação rápida/debug, sob demanda.
+- **Google Play Console** — release oficial, trilha `internal` → `alpha`. Beta e produção
+  ainda não liberados.
 
-## Processo Canônico (Firebase) — ordem obrigatória
+## Processo Canônico (atualizado 2026-07-17) — os dois canais via CI
 
-NUNCA pular etapas. NUNCA rodar `assembleRelease` sem `clean` + `--no-build-cache`.
+**Regra única pros dois canais**: nunca subir um build sem incrementar `versionCode` em
+`android/gradle/libs.versions.toml` antes, commitado e pushado.
 
-1. **Commit** — stage e commit de todos os arquivos modificados.
-2. **Push** — `git push origin main`.
-3. **Clean build** — `./gradlew clean assembleRelease --no-build-cache`.
-4. **Upload** — `./gradlew appDistributionUploadRelease`.
+### Firebase App Distribution
+
+Workflow `.github/workflows/firebase-distribution.yml` (`workflow_dispatch` manual):
+`clean` → `assembleRelease` (ou `assembleDebug`) → `appDistributionUploadRelease`/`...Debug`.
+Depende do secret `FIREBASE_TOKEN` (gerado localmente via `firebase login:ci` — exige TTY
+interativo, configurado uma vez com `gh secret set FIREBASE_TOKEN --repo
+gmmattey/linka-android`).
 
 **Worker Cloudflare:** se houver mudanças em
 `integrations/cloudflare/ai-diagnosis-worker/src/`, rodar `npx wrangler deploy`
 **ANTES** do commit.
 
-## Deployment Steps
-
-The deployment process involves several key steps:
+## Deployment Steps (Play Console)
 
 1.  **Prepare Release Build**:
     -   Ensure the application has gone through development, testing, and quality assurance.
-    -   Generate a release-ready APK (or App Bundle) following the procedures in `operations/APK_BUILD.md`.
     -   Verify that versioning (`operations/VERSIONING.md`) is correctly applied for the release.
 
 2.  **Sign the Application**:
-    -   The release APK/App Bundle must be signed with a release keystore, as configured and managed according to `operations/APK_BUILD.md` and security best practices.
+    -   Feito automaticamente pelo workflow, via os secrets `KEYSTORE_BASE64`/
+        `STORE_PASSWORD`/`KEY_ALIAS`/`KEY_PASSWORD` já configurados no repo.
 
-3.  **Upload to Google Play Console**:
-    -   Log in to the Google Play Console.
-    -   Navigate to the app's release management section.
-    -   Upload the signed release APK or App Bundle.
+3.  **Upload to Google Play Console** — automatizado, não é login manual:
+    -   `git tag vX.Y.Z && git push origin vX.Y.Z` dispara `.github/workflows/release.yml`.
+    -   O workflow builda, assina, cria o GitHub Release, e publica o AAB direto na trilha
+        `internal` via `gradlew publishReleaseBundle` (`gradle-play-publisher`, credencial
+        `PLAY_SERVICE_ACCOUNT_JSON`).
 
-4.  **Manage Release Tracks**:
-    -   **Internal Testing**: For immediate distribution to a small internal team for basic validation.
-    -   **Closed/Open Beta Testing**: For distributing to a larger group of testers before a full rollout.
-    -   **Production**: The final release track for all users.
-    -   The new build is assigned to one or more of these tracks.
+4.  **Manage Release Tracks** — fluxo real do produto, não o genérico:
+    -   **`internal`** (Teste interno): destino de todo `release.yml` — só o Luiz valida,
+        sem review do Google, disponível quase na hora.
+    -   **`alpha`** (Teste fechado): promovido a partir de `internal` via
+        `.github/workflows/promote-release.yml` (`workflow_dispatch` manual,
+        `gradlew promoteReleaseArtifact` — mesmo AAB, sem rebuild) depois que o Luiz validar
+        o teste interno.
+    -   **`beta`/`production`**: **ainda não liberados**. `promote-release.yml` tem um
+        guardrail técnico que falha o workflow se alguém tentar essas trilhas — exige
+        decisão explícita do Luiz, não é autonomia do squad. Primeiro publish em
+        `production` deve ser versionado **1.0.0** (ver `VERSIONING.md`).
 
 5.  **Configure Release**:
-    -   **Release Notes**: Draft and add release notes detailing new features, bug fixes, and improvements for the current version.
-    -   **Staged Rollouts**: Configure a phased rollout (e.g., releasing to a percentage of users gradually) to monitor for issues before a full rollout.
-    -   **Targeting**: Define target countries, devices, or user segments if applicable.
+    -   **Release Notes**: lidas de `android/app/src/main/play/release-notes/pt-BR/
+        default.txt` pelo próprio `release.yml`.
+    -   **Staged Rollouts / Targeting**: ainda não configurado — não relevante enquanto o
+        app estiver só em `internal`/`alpha`.
 
 6.  **Rollout**:
-    -   Initiate the release to the chosen track(s). The Google Play Store then manages the distribution to users based on the selected rollout strategy.
+    -   `internal` e `alpha` são 100% rollout por padrão (trilhas de teste). Rollout
+        gradual (`userFraction`) só entra em jogo quando `production` for liberado.
 
 ## Backend Service Deployment
 

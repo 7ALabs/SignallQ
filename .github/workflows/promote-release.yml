@@ -1,0 +1,81 @@
+name: Promote Release Track
+
+# Promove um release JA publicado de uma trilha da Play Console para outra, sem rebuild
+# nem reassinatura — usa o mesmo AAB (padrao recomendado pelo Google: testar um binario,
+# promover o mesmo binario entre trilhas).
+#
+# Fluxo do produto: release.yml publica sempre em 'internal' (teste interno, so o Luiz
+# valida). Depois de validado, dispare este workflow manualmente pra promover pra 'alpha'
+# (teste fechado). Beta e producao ainda NAO estao liberados — o guardrail abaixo bloqueia
+# qualquer tentativa nessas trilhas ate decisao explicita do Luiz.
+
+on:
+  workflow_dispatch:
+    inputs:
+      fromTrack:
+        description: 'Trilha de origem'
+        required: true
+        default: 'internal'
+        type: choice
+        options:
+          - internal
+          - alpha
+      toTrack:
+        description: 'Trilha de destino'
+        required: true
+        default: 'alpha'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Guardrail — beta/producao exigem decisao explicita do Luiz
+        run: |
+          if [ "${{ inputs.toTrack }}" != "internal" ] && [ "${{ inputs.toTrack }}" != "alpha" ]; then
+            echo "::error::Trilha '${{ inputs.toTrack }}' bloqueada. O app ainda nao foi liberado para beta/producao — essa promocao exige decisao explicita do Luiz, nao e uma acao automatizada do squad."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Decodificar google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > android/app/google-services.json
+
+      - name: Decodificar keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/segredos/signallq.jks
+
+      - name: Criar key.properties
+        run: |
+          cat > android/key.properties <<PROPS
+          storePassword=${{ secrets.STORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=segredos/signallq.jks
+          PROPS
+
+      - name: Permissao gradlew
+        run: chmod +x android/gradlew
+
+      - name: Promover release entre trilhas
+        run: cd android && ./gradlew promoteReleaseArtifact --no-daemon -PfromTrack=${{ inputs.fromTrack }} -PpromoteTrack=${{ inputs.toTrack }}
+        env:
+          ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}

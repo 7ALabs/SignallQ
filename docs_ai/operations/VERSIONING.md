@@ -27,28 +27,41 @@ Sufixos pre-release seguem SemVer:
 ## versionCode
 
 - Inteiro crescente. **Nunca reutilizar** — requisito da Play Store.
-- Incrementar em 1 para cada build enviado a Play Store.
-- Builds internos (Firebase App Distribution) tambem incrementam, mas nao precisam ser consecutivos com a Play Store.
+- **Regra reforcada em 2026-07-17**: incrementar SEMPRE antes de qualquer build publicado
+  em qualquer canal — Play Console (`internal`/`alpha`/`beta`/`production`) OU Firebase App
+  Distribution (`workflow_dispatch` do `firebase-distribution.yml`). E um campo global unico
+  em `libs.versions.toml` — nao existe contador separado por canal. Gaps sao normais (nem
+  todo build de debug vira release), mas **nunca subir um build sem bumpar antes** — dois
+  uploads com o mesmo numero quebram rastreabilidade.
 
 ## Quando v1.0.0
 
-O app sobe para **v1.0.0** no Beta Fechado (M2), que marca o primeiro upload a Play Store.
+**Corrigido em 2026-07-17**: `1.0.0` e reservado pro **primeiro publish na trilha
+`production`** da Play Console — nao antes. Enquanto o app estiver em qualquer trilha de
+teste (`internal`, `alpha`, `beta`), `versionName` continua `0.x.y`, independente de quantas
+features/milestones do roadmap ja tiverem sido entregues.
 
-Antes disso (M0/M1), o app permanece em `0.x.y` — versao de desenvolvimento.
+> Historico: a versao anterior deste doc amarrava 1.0.0 ao "Beta Fechado (M2)" — essa regra
+> nunca foi seguida na pratica (a v0.26.0 ja passou esse marco do roadmap e segue `0.x`).
+> Trilha atual do produto (ver `docs_ai/operations/DEPLOY.md`): `release.yml` publica
+> sempre em `internal`; `promote-release.yml` promove pra `alpha` sob demanda; `beta` e
+> `production` ainda nao liberados (guardrail tecnico no workflow de promocao).
 
 ## Tabela de fases
 
-| Fase | versionName | versionCode | Notas |
-|------|-------------|-------------|-------|
-| Desenvolvimento (M0/M1) | 0.x.y | 56+ | Firebase App Distribution + Play Console (teste fechado desde 0.22.1) |
-| Beta Fechado (M2) | 1.0.0-beta.1+ | 57+ | Primeiro upload de versao 1.x na Play Store |
-| Open Beta | 1.0.0-rc.1+ | 60+ | Track aberto na Play Store |
-| Producao (M3) | 1.0.0 | 70+ | Release publico |
+| Trilha Play Console | versionName | Notas |
+|------|-------------|-------|
+| `internal` (teste interno) | 0.x.y | Destino de todo `release.yml`, so o Luiz valida |
+| `alpha` (teste fechado) | 0.x.y | Promovido de `internal` via `promote-release.yml` |
+| `beta` (teste aberto) | 0.x.y | Ainda nao liberado — guardrail bloqueia |
+| `production` | **1.0.0** (no primeiro publish) | Ainda nao liberado — guardrail bloqueia |
 
 ## Regras
 
-- `versionName` muda apenas em releases significativos (feature, correcao, milestone).
-- `versionCode` incrementa em todo build publicado (Play Store ou Firebase).
+- `versionName` muda apenas em releases significativos (feature, correcao, milestone) — nao
+  em toda iteracao de debug.
+- `versionCode` incrementa em todo build publicado, em qualquer canal (Play Console ou
+  Firebase App Distribution) — ver regra reforcada acima.
 - APKs refletem a versao no nome conforme `docs_ai/operations/APK_OUTPUT_POLICY.md`.
 
 ## Comandos

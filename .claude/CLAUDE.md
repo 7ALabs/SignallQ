@@ -147,14 +147,42 @@ com `.agents/skills/linka-design/` ate 2026-07-12, e resincronizado/renomeado pa
 
 ## Release Process
 
-Quando o usuario pedir para subir/deploy/publicar no Firebase, seguir OBRIGATORIAMENTE nesta ordem:
+Dois canais, os dois via GitHub Actions (nao mais comando local manual) -- atualizado em
+2026-07-17 apos descobrir na pratica que a publicacao na Play Console ja roda por CI, nao e
+acao exclusiva do Luiz como a skill `protocolo-play-store` registrava antes. Detalhe
+completo em `docs_ai/operations/RELEASE.md` e `docs_ai/operations/DEPLOY.md`.
 
-1. **Commit** -- stage todos os arquivos modificados, commit com mensagem descritiva
-2. **Push** -- `git push origin main`
-3. **Clean build** -- `.\android\gradlew.bat clean assembleRelease --no-build-cache` (NUNCA usar cache em release)
-4. **Upload** -- `.\android\gradlew.bat appDistributionUploadRelease`
+**Regra unica pros dois canais: nunca subir um build (debug ou release) sem incrementar
+`versionCode` em `android/gradle/libs.versions.toml` antes**, commitado e pushado. Nao
+existe contador separado pra debug -- e o mesmo campo global, e dois uploads com o mesmo
+numero quebram rastreabilidade. `versionName` so muda em cortes de release reais (nao em
+toda iteracao de debug). `versionName` fica em `0.x.y` enquanto o app estiver em qualquer
+trilha de teste (internal, alpha, beta) -- **1.0.0 e reservado pro primeiro publish na
+trilha `production`**, nao antes.
 
-Nunca pular etapas. Nunca fazer assembleRelease sem clean + --no-build-cache antes. O cache do Gradle ja causou builds desatualizados no Firebase.
+### Canal 1 -- Firebase App Distribution (debug/validacao rapida)
+
+Workflow `firebase-distribution.yml`, `workflow_dispatch` manual (sob demanda, nao em todo
+push). Builda `assembleRelease` (ou `assembleDebug` via input), assina, e sobe via
+`appDistributionUploadRelease`/`...Debug`. Depende do secret `FIREBASE_TOKEN` (gerado via
+`firebase login:ci` numa sessao interativa real -- esse comando exige TTY, nao roda dentro
+do Claude Code; quem gerar deve rodar localmente e configurar com `gh secret set
+FIREBASE_TOKEN --repo gmmattey/linka-android`).
+
+### Canal 2 -- Play Console (release oficial), trilha em 2 etapas
+
+1. Bump de versao (`libs.versions.toml`, `CHANGELOG.md`, `docs_ai/RELEASES.md`) -- escopo
+   real desde a ultima versao **realmente publicada** (nunca so o trabalho da sessao atual,
+   ver `docs_ai/operations/VERSIONING.md`).
+2. `git tag vX.Y.Z && git push origin vX.Y.Z` -- dispara `release.yml`: build, assinatura,
+   GitHub Release, e publica direto na trilha **`internal`** (teste interno, sem review do
+   Google, so o Luiz valida).
+3. Depois de validado, `promote-release.yml` (`workflow_dispatch` manual) promove o MESMO
+   AAB de `internal` pra `alpha` (`gradlew promoteReleaseArtifact`) -- sem rebuild, sem
+   reassinar.
+4. **Guardrail tecnico**: `promote-release.yml` so aceita `internal`/`alpha` como destino.
+   Beta e producao ainda nao estao liberados -- qualquer tentativa nessas trilhas falha o
+   workflow e exige decisao explicita do Luiz, nao e autonomia do squad.
 
 Worker Cloudflare: quando houver mudancas em `integrations/cloudflare/ai-diagnosis-worker/src/`, fazer `npx wrangler deploy` ANTES do commit.
 

@@ -4,31 +4,50 @@
 
 This document outlines the process for releasing new versions of the SignallQ Android Kotlin application, covering the steps from build to deployment.
 
-> Versao atual: **0.23.0** (versionCode 56), release 2026-07-05.
+> Versao atual: **0.26.0** (versionCode 61), release 2026-07-17.
 > Namespace/applicationId atual: **`io.signallq.app`** (renomeado de `io.veloo.app`
 > em 2026-06-28). O caminho fisico do codigo do modulo `:app` continua sendo
 > `io/veloo/app/kotlin/` — nao alterar. Demais identificadores tecnicos de infra
 > permanecem: repo `gmmattey/linka-android`, worker `linka-ai-diagnosis-worker`.
 > Historico autoritativo de versoes Android: `android/CHANGELOG.md`.
 
-## Processo Canônico do Projeto (Firebase App Distribution)
+## Processo Canônico do Projeto (atualizado 2026-07-17)
 
-Este é o fluxo **obrigatório** quando o pedido é subir/deploy/publicar no Firebase.
-NUNCA pule etapas. NUNCA rode `assembleRelease` sem `clean` + `--no-build-cache`
-(o cache do Gradle já causou builds desatualizados no Firebase).
+Dois canais, os dois via **GitHub Actions** — não mais comando local manual. Regra única
+para os dois: **nunca subir um build (debug ou release) sem incrementar `versionCode`** em
+`android/gradle/libs.versions.toml` antes, commitado e pushado (mesmo campo global, sem
+contador separado por canal — evita dois uploads com o mesmo número).
 
-1. **Commit** — stage de todos os arquivos modificados e commit com mensagem descritiva.
-2. **Push** — `git push origin main` para sincronizar o GitHub.
-3. **Clean build** — `./gradlew clean assembleRelease --no-build-cache` (sem cache em release).
-4. **Upload** — `./gradlew appDistributionUploadRelease`.
+### Canal 1 — Firebase App Distribution (debug/validação rápida)
+
+Workflow `.github/workflows/firebase-distribution.yml`, `workflow_dispatch` manual (sob
+demanda, não em todo push). Builda `assembleRelease` (ou `assembleDebug` via input), assina,
+sobe via `appDistributionUploadRelease`/`...Debug`. Depende do secret `FIREBASE_TOKEN`
+(gerado com `firebase login:ci` numa sessão interativa real — precisa de TTY, não roda em
+CI headless nem via agente — configurado com `gh secret set FIREBASE_TOKEN --repo
+gmmattey/linka-android`).
+
+### Canal 2 — Play Console (release oficial), trilha em 2 etapas
+
+1. Bump de versão (`libs.versions.toml`, `CHANGELOG.md`, `docs_ai/RELEASES.md`) — escopo
+   real desde a última versão **realmente publicada** (ver `VERSIONING.md`).
+2. `git tag vX.Y.Z && git push origin vX.Y.Z` — dispara `.github/workflows/release.yml`:
+   build, assinatura, GitHub Release, e publica direto na trilha **`internal`** (teste
+   interno, sem review do Google, só o Luiz valida).
+3. Depois de validado, `.github/workflows/promote-release.yml` (`workflow_dispatch` manual)
+   promove o MESMO AAB de `internal` pra `alpha` (`gradlew promoteReleaseArtifact`) — sem
+   rebuild, sem reassinar (padrão recomendado pelo Google: testar um binário, promover o
+   mesmo binário entre trilhas).
+4. **Guardrail técnico**: `promote-release.yml` só aceita `internal`/`alpha` como destino.
+   Beta e produção ainda não estão liberados — qualquer tentativa nessas trilhas falha o
+   workflow e exige decisão explícita do Luiz.
 
 **Worker Cloudflare:** quando houver mudanças em
 `integrations/cloudflare/ai-diagnosis-worker/src/`, rodar `npx wrangler deploy`
 **ANTES** do commit.
 
-> O fluxo de Play Store descrito em `operations/DEPLOY.md` permanece válido para
-> publicação em loja, mas o canal primário de distribuição interna é o Firebase
-> App Distribution, conforme os passos acima.
+> Detalhe completo do fluxo Play Store (incluindo o guardrail de trilhas) em
+> `operations/DEPLOY.md`.
 
 ## Release Stages
 
