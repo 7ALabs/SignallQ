@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS diagnostic_sessions (
   id           TEXT    PRIMARY KEY,
   created_at   INTEGER NOT NULL,          -- Unix timestamp (segundos)
   network_type TEXT    NOT NULL DEFAULT 'unknown', -- wifi | fibra | celular | ethernet | unknown
-  status       TEXT    NOT NULL DEFAULT 'unknown', -- bom | regular | ruim | critico | inconclusivo
-  score        INTEGER,                   -- 0-100, calculado pelo worker
+  status       TEXT    NOT NULL DEFAULT 'unknown', -- excelente | bom | regular | critico | inconclusivo | failed
+  score        INTEGER,                   -- 0-100, calculado pelo motor local Android (ScoreEngine); o worker so armazena o valor recebido, nao recalcula
   download_mbps REAL,
   upload_mbps   REAL,
   latency_ms    INTEGER,

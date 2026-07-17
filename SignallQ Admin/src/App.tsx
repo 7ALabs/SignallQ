@@ -38,8 +38,15 @@ export default function App() {
   // SIG-136: verifica sessão via cookie httpOnly na montagem.
   // AbortController garante que o fetch seja cancelado no cleanup (evita atualização
   // de estado em componente desmontado e race condition do StrictMode).
-  // Functional update `prev => r.ok || prev` impede que um fetch obsoleto
+  // Functional update `prev => autenticado || prev` impede que um fetch obsoleto
   // sobrescreva um isAuthenticated=true definido por um login explícito.
+  //
+  // GH#1054 — só `r.ok` (status 2xx) não basta: em dev local sem VITE_ADMIN_API_BASE_URL
+  // configurada, `baseUrl` fica vazio, o fetch vira same-origin e o fallback SPA do Vite
+  // responde 200 text/html pra qualquer rota não mapeada (inclusive /admin/auth/me),
+  // autenticando sem nenhuma credencial real. Confere content-type JSON e a forma real
+  // do corpo (`{ email, role }`, ver handleAuthMe no signallq-admin-worker) antes de
+  // considerar autenticado.
   useEffect(() => {
     let cancelled = false;
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
@@ -48,8 +55,16 @@ export default function App() {
       credentials: "include",
       ...(controller ? { signal: controller.signal } : {}),
     })
-      .then((r) => {
-        if (!cancelled) setIsAuthenticated((prev) => r.ok || prev);
+      .then(async (r) => {
+        if (cancelled) return;
+        const contentType = r.headers.get("content-type") ?? "";
+        if (!r.ok || !contentType.includes("application/json")) {
+          setIsAuthenticated((prev) => prev);
+          return;
+        }
+        const body = await r.json().catch(() => null);
+        const autenticado = typeof body?.email === "string" && body.email.length > 0;
+        setIsAuthenticated((prev) => autenticado || prev);
       })
       .catch((e) => {
         if (!cancelled && e.name !== "AbortError") setIsAuthenticated(false);

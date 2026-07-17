@@ -25,14 +25,25 @@ export function playTrackLabel(track?: string | null): string {
   return PLAY_TRACK_LABELS[track as PlayTrack] ?? track;
 }
 
+// GH#881 — vocabulario canonico de issue de diagnostico, decidido em 2026-07-16
+// (docs_ai/decisions/ADR-009-vocabulario-diagnostic-issue.md). Espelha 1:1 o que o
+// Android realmente envia hoje (`idParaIssueLabel` em AdminIngestPayloads.kt): 12 categorias
+// snake_case + "none" (sem issue detectado) + "unknown" (fallback para tag nao reconhecida,
+// incluindo dado legado pre-normalizacao como "Resposta").
 export type DiagnosisIssue =
-  | "wifi_signal_weak"
-  | "bufferbloat_upload"
-  | "dns_latency_high"
-  | "mobile_congestion_suspected"
-  | "gateway_slow"
-  | "packet_loss"
-  | "upload_bottleneck"
+  | "sinal_fraco"
+  | "alta_latencia"
+  | "falha_dns"
+  | "jitter_alto"
+  | "perda_de_pacotes"
+  | "upload_lento"
+  | "download_lento"
+  | "problema_fibra"
+  | "gateway_inacessivel"
+  | "bufferbloat"
+  | "interferencia_canal_wifi"
+  | "problema_banda"
+  | "none"
   | "unknown";
 
 export type Severity = "ok" | "attention" | "critical";

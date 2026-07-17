@@ -1,6 +1,7 @@
 # Admin API — Schema de Contratos
 
-**Última atualização:** 2026-07-05 (v0.23.0, versionCode 56)
+**Última atualização:** 2026-07-16 (v0.23.0, versionCode 56) — GH#1043: cobre `play_track`,
+`system_health_snapshots`, `uf` e corrige vocabulário de `status`
 **Versão do worker:** 1.x (Cloudflare Worker — name `signallq-admin`, diretório `signallq-admin-worker`)
 **Base URL (produção):** `https://signallq-admin.giammattey-luiz.workers.dev`
 **Configurada no frontend via:** `VITE_ADMIN_API_BASE_URL`
@@ -226,7 +227,7 @@ Lista de sessões de diagnóstico com payload completo.
       "latency_ms": 18,
       "jitter_ms": 2.4,
       "packet_loss": 0.1,
-      "issues": ["wifi_signal_weak"],
+      "issues": ["sinal_fraco"],
       "resolved": 0,
       "operator": "Vivo",
       "device_model": "Pixel 8 Pro",
@@ -250,14 +251,14 @@ Lista de sessões de diagnóstico com payload completo.
 | `id` | string | ID único da sessão |
 | `created_at` | integer | Unix timestamp em segundos |
 | `network_type` | string | `wifi` \| `fibra` \| `celular` \| `ethernet` \| `unknown` |
-| `status` | string | `bom` \| `regular` \| `ruim` \| `critico` \| `inconclusivo` \| `unknown` |
+| `status` | string | `excelente` \| `bom` \| `regular` \| `critico` \| `inconclusivo` \| `failed` \| `unknown` |
 | `score` | integer\|null | Score 0–100 |
 | `download_mbps` | number\|null | Velocidade de download |
 | `upload_mbps` | number\|null | Velocidade de upload |
 | `latency_ms` | integer\|null | Latência em ms |
 | `jitter_ms` | number\|null | Jitter em ms |
 | `packet_loss` | number\|null | Perda de pacotes em % |
-| `issues` | string[] | Array de issue keys (ex.: `["wifi_signal_weak", "dns_latency_high"]`) |
+| `issues` | string[] | Array de issue keys, vocabulario canonico GH#881 (ex.: `["sinal_fraco", "falha_dns"]`) — ver ADR-009 |
 | `resolved` | integer | `0` = aberto, `1` = resolvido |
 | `operator` | string | Operadora detectada (ex.: `"Claro"`, `"Vivo"`) |
 | `device_model` | string | Modelo do dispositivo |
@@ -363,9 +364,9 @@ Top 5 problemas mais frequentes no período.
   "period": "7d",
   "environment": "production",
   "items": [
-    { "id": "issue_1", "problem": "wifi_signal_weak", "count": 284, "percentage": 38 },
-    { "id": "issue_2", "problem": "dns_latency_high", "count": 201, "percentage": 27 },
-    { "id": "issue_3", "problem": "bufferbloat_upload", "count": 143, "percentage": 19 }
+    { "id": "issue_1", "problem": "sinal_fraco", "count": 284, "percentage": 38 },
+    { "id": "issue_2", "problem": "falha_dns", "count": 201, "percentage": 27 },
+    { "id": "issue_3", "problem": "bufferbloat", "count": 143, "percentage": 19 }
   ]
 }
 ```
@@ -900,6 +901,26 @@ GA4 → BigQuery no Firebase Console; (3) virar `FIREBASE_SYNC_ENABLED = "true"`
 
 ---
 
+## Endpoints de integração Google Play (`/admin/integrations/google-play/*`)
+
+**GH#1042/#1043 — já integrado**, ao contrário do que a versão anterior deste documento (05/07)
+listava em "Endpoints planejados". Exige sessão.
+
+| Endpoint | Método | Descrição |
+|---|---|---|
+| `/admin/integrations/google-play/status` | GET | Status do último sync de reviews/rating |
+| `/admin/integrations/google-play/sync` | POST | Sincroniza rating médio via Play Developer Reviews API. Também roda no cron diário (`google-play`) |
+| `/admin/integrations/google-play/tracks/status` | GET | Status do último sync de `play_console_tracks` |
+| `/admin/integrations/google-play/tracks/sync` | POST | Sincroniza `play_console_tracks` (version_code → trilha) via Android Publisher API. Também roda no cron diário (`google-play-tracks`) |
+| `/admin/integrations/google-play/tracks/backfill` | POST | Preenche `play_track` retroativamente em `diagnostic_sessions`/`ai_usage`/`analytics_events` a partir de `play_console_tracks` — **manual**, não automático. Idempotente (só atualiza linhas com `play_track IS NULL`) |
+
+**Limitação conhecida (GH#1042):** os handlers de métrica (`/admin/metrics/*`) ainda **não filtram
+por `play_track`** — só por `environment`. Até o app passar pelo M3 (lançamento Play Store), nenhuma
+trilha `production` existe em `play_console_tracks`, então o efeito prático do filtro seria nulo;
+o mecanismo (tabela, backfill, sync) já está pronto para quando isso mudar.
+
+---
+
 ## Endpoints de configuração
 
 ### GET /admin/settings
@@ -1032,7 +1053,7 @@ Persiste uma sessão de diagnóstico. Autenticação: `Authorization: Bearer <IN
   "latency_ms": 18,
   "jitter_ms": 2.4,
   "packet_loss": 0.1,
-  "issues": ["wifi_signal_weak"],
+  "issues": ["sinal_fraco"],
   "operator": "Vivo",
   "device_model": "Pixel 8 Pro",
   "os_version": "Android 15",
@@ -1132,7 +1153,7 @@ Todos os erros seguem o schema:
 | `id` | TEXT PK | ID único da sessão |
 | `created_at` | INTEGER | Unix timestamp (segundos) |
 | `network_type` | TEXT | Tipo de rede |
-| `status` | TEXT | Veredito: `bom \| regular \| ruim \| critico \| inconclusivo \| unknown` |
+| `status` | TEXT | Veredito: `excelente \| bom \| regular \| critico \| inconclusivo \| failed \| unknown` (GH#764 — mapeia a decisao real do motor local, nao o ciclo de vida da sessao) |
 | `score` | INTEGER | 0–100 |
 | `download_mbps` | REAL | — |
 | `upload_mbps` | REAL | — |
@@ -1151,6 +1172,9 @@ Todos os erros seguem o schema:
 | `os_version` | TEXT | Versão do Android |
 | `app_version` | TEXT | Ex.: `"0.21.0"` |
 | `ai_summary_report` | TEXT | Laudo gerado pela IA |
+| `platform` | TEXT | `android` \| `web` (GH#442 — `web` é dado histórico do extinto PWA; default `android`) |
+| `play_track` | TEXT\|NULL | Trilha do Play Console (`internal`\|`alpha`\|`beta`\|`production`\|outra trilha custom) resolvida via `play_console_tracks.version_code`. `NULL` = ainda não mapeada — **nunca assumir `production`** quando ausente (migration `012_play_track.sql`, GH#1042: hoje 100% do dado `environment=production` está com `play_track=null` ou é trilha fechada, porque nenhuma trilha `production` existe até o app passar pelo M3) |
+| `uf` | TEXT | UF brasileira aproximada (2 letras), derivada de `request.cf.regionCode` no momento do ingest — nunca o IP em si. `''` se fora da whitelist de 27 UFs (`UF_WHITELIST`, migration `014_gh786.sql`) |
 
 ### Tabela `ai_usage`
 
@@ -1168,6 +1192,35 @@ Todos os erros seguem o schema:
 | `version_code` | INTEGER | — |
 | `status` | TEXT | `success` \| `error`. Default `success` (GH#421, migration `009_gh421.sql`) |
 | `error_message` | TEXT | Mensagem de erro quando `status = 'error'`; vazio caso contrário |
+| `platform` | TEXT | `android` \| `web` (GH#442, default `android`) |
+| `play_track` | TEXT\|NULL | Idem `diagnostic_sessions.play_track` (migration `012_play_track.sql`) |
+
+### Tabela `play_console_tracks`
+
+Mapeamento `version_code` → trilha do Play Console, sincronizado via Android Publisher API
+(migration `012_play_track.sql`, GH#1042). Alimenta o backfill de `play_track` nas três tabelas de
+telemetria (`diagnostic_sessions`, `ai_usage`, `analytics_events`) — o backfill é **manual**
+(`POST /admin/integrations/google-play/tracks/backfill`), não roda automaticamente a cada sync.
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `version_code` | INTEGER PK | versionCode do app (Android) |
+| `track` | TEXT | Trilha real do Play Console — `internal`\|`alpha`\|`beta`\|`production`\| trilha custom de teste fechado/aberto (não restrito às 4 padrão) |
+| `synced_at` | INTEGER | Unix timestamp (segundos) da última sincronização via `POST /admin/integrations/google-play/tracks/sync` |
+
+### Tabela `system_health_snapshots`
+
+Série histórica de latência/status por dependência (GH#788), gravada a cada execução do Cron
+Trigger do worker (ver `scheduled` em `src/index.ts`) — alimenta o histórico da aba "Saúde do
+Sistema" (o endpoint `GET /admin/system-health` acima só reflete o instante atual).
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `id` | TEXT PK | ID único do snapshot |
+| `service` | TEXT | `d1` \| `firebase` \| `bigquery` |
+| `status` | TEXT | `ok` \| `error` \| `not_configured` |
+| `latency_ms` | INTEGER\|NULL | Latência medida no snapshot |
+| `created_at` | INTEGER | Unix timestamp (segundos) |
 
 ### Tabela `admin_settings`
 
@@ -1200,7 +1253,6 @@ Os endpoints abaixo são necessários para completar o painel mas **ainda não e
 | `GET /admin/metrics/diagnostics/:id` | Detalhe de uma sessão específica | Worker só tem listagem, sem endpoint de detalhe individual |
 | `POST /admin/errors/:id/resolve` | Marcar erro como resolvido | Retorna `{ success: false, message: "Em implementação" }` |
 | `POST /diagnosis/explain` | Rediagnóstico remoto | Retorna `{ success: false }` com mensagem informativa |
-| `GET /admin/integrations/google-play` | Status Play Console | Não integrado — apenas no OpenAPI spec |
 
 **Nota (GH#423):** `GET /admin/metrics/app-versions`, `GET /admin/integrations/firebase/crashlytics` e `GET /admin/integrations/firebase/versions` já existem no worker (ver seções acima) — retiradas desta tabela. A aba "Versões" do painel usa o primeiro para versão/canal/sessões reais (D1) e o segundo para crash rate real quando o Firebase está configurado.
 

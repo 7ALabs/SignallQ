@@ -195,13 +195,20 @@ export const DiagnosticsFilters: React.FC<DiagnosticsFiltersProps> = ({
             onChange={(e) => onIssueChange(e.target.value)}
             className="w-full bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl px-3 py-2 text-xs text-[var(--text-secondary)] focus:outline-none focus:border-[var(--primary)] cursor-pointer"
           >
+            {/* GH#881 — vocabulario canonico, ver docs_ai/decisions/ADR-009-vocabulario-diagnostic-issue.md */}
             <option value="all">Sem problemas</option>
-            <option value="wifi_signal_weak">Wi-Fi fraco</option>
-            <option value="bufferbloat_upload">Bufferbloat upload</option>
-            <option value="dns_latency_high">DNS lento</option>
-            <option value="mobile_congestion_suspected">Rede móvel congestionada</option>
-            <option value="gateway_slow">Gateway lento</option>
-            <option value="upload_bottleneck">Upload bottleneck</option>
+            <option value="sinal_fraco">Sinal fraco</option>
+            <option value="alta_latencia">Alta latência</option>
+            <option value="falha_dns">Falha de DNS</option>
+            <option value="jitter_alto">Jitter alto</option>
+            <option value="perda_de_pacotes">Perda de pacotes</option>
+            <option value="upload_lento">Upload lento</option>
+            <option value="download_lento">Download lento</option>
+            <option value="problema_fibra">Problema de fibra</option>
+            <option value="gateway_inacessivel">Gateway inacessível</option>
+            <option value="bufferbloat">Bufferbloat</option>
+            <option value="interferencia_canal_wifi">Interferência de canal Wi-Fi</option>
+            <option value="problema_banda">Problema de banda</option>
           </select>
         </div>
 

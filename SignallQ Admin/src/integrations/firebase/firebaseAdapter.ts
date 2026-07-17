@@ -224,6 +224,7 @@ export async function getFirebaseAppVersions(
   const raw = await apiClient.request<{
     source: string;
     versions: Array<{ version: string; totalCrashes: number; affectedUsers: number }>;
+    environmentScope?: "all";
   }>("GET", `/admin/integrations/firebase/versions${buildQuery(filters)}`);
 
   const source = raw.source as FirebaseAppVersionsResult["source"];
@@ -235,7 +236,7 @@ export async function getFirebaseAppVersions(
   // quando as credenciais estavam OK e só faltava volume. Agora o `source` real
   // do worker é propagado pra UI escolher a mensagem certa (crashFreeReason).
   if (source === "no_credentials" || source === "no_data_yet" || source === "error") {
-    return { source, versions: [] };
+    return { source, versions: [], environmentScope: raw.environmentScope };
   }
 
   return {
@@ -247,6 +248,10 @@ export async function getFirebaseAppVersions(
       crashFreeUsersPercentage: 100, // worker não calcula base de usuários por versão ainda.
       status: (v.totalCrashes ?? 0) > 100 ? "critical" : (v.totalCrashes ?? 0) > 20 ? "unstable" : "stable",
     })),
+    // GH#1042 — repassa o sinal de honestidade do worker (#879): o export do
+    // Crashlytics/BigQuery não filtra por environment. Antes esse campo nunca
+    // era lido pelo frontend, então nenhuma tela avisava o usuário.
+    environmentScope: raw.environmentScope,
   };
 }
 

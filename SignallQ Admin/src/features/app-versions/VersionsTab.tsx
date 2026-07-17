@@ -203,7 +203,11 @@ export const VersionsTab: React.FC<VersionsTabProps> = ({
           (endpoint ainda não implementado — ver googlePlayAdapter.ts). */}
       <SectionCard
         title="Versões em produção"
-        description="Sessões de diagnóstico agrupadas por versão e build, direto do D1, cruzadas com Crashlytics e Google Play quando disponíveis."
+        description={
+          crashResultState?.environmentScope === "all"
+            ? "Sessões de diagnóstico agrupadas por versão e build, direto do D1 (filtradas por ambiente). Crash rate vem do Crashlytics/BigQuery, que não distingue produção de staging — coluna reflete todos os ambientes."
+            : "Sessões de diagnóstico agrupadas por versão e build, direto do D1, cruzadas com Crashlytics e Google Play quando disponíveis."
+        }
       >
         <DataTable
           data={versions}

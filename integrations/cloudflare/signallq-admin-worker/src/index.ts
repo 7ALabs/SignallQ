@@ -283,6 +283,24 @@ function getPlayTrackFilter(url: URL): string | null {
   return playTrack === "all" || !playTrack ? null : playTrack;
 }
 
+/**
+ * GH#1042 — quando o filtro de ambiente for exatamente "production", exclui registros cuja
+ * play_track já foi resolvida (via backfill, migration 012_play_track.sql) para uma trilha de
+ * teste fechada/aberta do Play Console (internal/alpha/beta, ou qualquer trilha != "production").
+ * Essas sessões têm environment="production" (dist_channel=play_store) mas não são usuário real
+ * — são tester de trilha fechada. play_track ainda NULL (não mapeado pelo backfill) continua
+ * contando como produção, preservando o comportamento anterior até o backfill rodar — nunca
+ * assume "não é produção" só por ausência de dado.
+ *
+ * Não filtra nada quando envFilter é staging/all/null — só "production" recebe este refinamento
+ * (play_track é irrelevante para as outras leituras). `columnPrefix` cobre queries com alias de
+ * tabela (ex.: "au." em handleAiUsageRecords).
+ */
+function productionTrackClause(envFilter: string | null, columnPrefix = ""): string {
+  if (envFilter !== "production") return "";
+  return ` AND (${columnPrefix}play_track IS NULL OR ${columnPrefix}play_track = 'production')`;
+}
+
 async function getFirebaseAccessToken(env: Env): Promise<string> {
   const now = nowSec();
   const payload = {
@@ -411,16 +429,14 @@ async function queryCloudflareGraphQL<T = unknown>(
 
 // --- handlers /admin ---
 
-// PRÓXIMO PASSO (não implementado nesta rodada, migration 012_play_track.sql):
-// os ~20 handlers abaixo que filtram por `environment = ?` (envFilter) tratam
-// environment=production como produção real. Depois do backfill, uma sessão pode
-// ter environment="production" (gravado pelo app) e play_track="internal"/"alpha"/
-// "beta" (tester de trilha fechada) — hoje essa sessão ainda entra na contagem de
-// "produção" em todos esses handlers. Ajustar cada query para excluir
-// `play_track IS NOT NULL AND play_track != 'production'` do filtro de produção é
-// uma mudança de escopo maior (toca ~20 call sites, risco de regressão nas métricas
-// centrais do painel) — fica para uma issue separada, depois de validar o primeiro
-// sync/backfill reais em produção.
+// GH#1042 (implementado): os handlers abaixo que filtram por `environment = ?` (envFilter)
+// agora também aplicam `productionTrackClause()` quando envFilter === "production" — exclui
+// sessões cuja play_track já foi resolvida para trilha de teste fechada/aberta (internal/
+// alpha/beta), que hoje contavam como "produção" só por dist_channel=play_store. Efeito
+// prático nulo até o app passar pelo M3 (nenhuma trilha "production" existe em
+// play_console_tracks ainda), mas o mecanismo fica pronto pro lançamento — ver ADR/issue #1042.
+// Rodar `POST /admin/integrations/google-play/tracks/backfill` (idempotente) continua sendo
+// passo manual separado, não automático.
 async function handleOverview(request: Request, env: Env): Promise<Response> {
   const url       = new URL(request.url);
   const period    = url.searchParams.get("period") ?? "7d";
@@ -433,7 +449,8 @@ async function handleOverview(request: Request, env: Env): Promise<Response> {
   const envBinds     = envFilter ? [envFilter]            : [];
   const platformClause = platformFilter ? " AND platform = ?" : "";
   const platformBinds  = platformFilter ? [platformFilter]    : [];
-  const filterClause = `${envClause}${platformClause}`;
+  const trackClause  = productionTrackClause(envFilter);
+  const filterClause = `${envClause}${platformClause}${trackClause}`;
   const filterBinds  = [...envBinds, ...platformBinds];
 
   const [sessions, aiRows, successRows, networkRows, issueRows] = await Promise.all([
@@ -525,7 +542,11 @@ async function handleDiagnostics(request: Request, env: Env): Promise<Response> 
   const platformBinds  = platformFilter ? [platformFilter]    : [];
   const playTrackClause = playTrackFilter ? " AND play_track = ?" : "";
   const playTrackBinds  = playTrackFilter ? [playTrackFilter]    : [];
-  const filterClause = `${envClause}${platformClause}${playTrackClause}`;
+  // GH#1042 — só aplica a exclusão implícita de trilha de teste quando o caller NÃO pediu
+  // uma play_track explícita (evita contradição: ?environment=production&play_track=internal
+  // precisa continuar retornando o tester pedido de propósito).
+  const trackClause = playTrackFilter ? "" : productionTrackClause(envFilter);
+  const filterClause = `${envClause}${platformClause}${playTrackClause}${trackClause}`;
   const filterBinds  = [...envBinds, ...platformBinds, ...playTrackBinds];
 
   const rows = await env.DB.prepare(
@@ -583,7 +604,7 @@ async function handleAiCost(request: Request, env: Env): Promise<Response> {
   const since     = nowSec() - periodToSeconds(period);
   const envFilter = getEnvironmentFilter(url);
 
-  const envClause = envFilter ? " AND environment = ?" : "";
+  const envClause = `${envFilter ? " AND environment = ?" : ""}${productionTrackClause(envFilter)}`;
   const envBinds  = envFilter ? [envFilter]            : [];
 
   // SIG-125: inclui contagem de chamadas com resposta real (completion_tokens > 0)
@@ -646,7 +667,7 @@ async function handleTimeline(request: Request, env: Env): Promise<Response> {
   const since     = nowSec() - periodToSeconds(period);
   const envFilter = getEnvironmentFilter(url);
 
-  const envClause = envFilter ? " AND environment = ?" : "";
+  const envClause = `${envFilter ? " AND environment = ?" : ""}${productionTrackClause(envFilter)}`;
   const envBinds  = envFilter ? [envFilter]            : [];
 
   // Agrega diagnostic_sessions por dia (DATE unix→ISO via strftime).
@@ -684,7 +705,7 @@ async function handleNetworkInsights(request: Request, env: Env): Promise<Respon
   const since     = nowSec() - periodToSeconds(period);
   const envFilter = getEnvironmentFilter(url);
 
-  const envClause = envFilter ? " AND environment = ?" : "";
+  const envClause = `${envFilter ? " AND environment = ?" : ""}${productionTrackClause(envFilter)}`;
   const envBinds  = envFilter ? [envFilter]            : [];
 
   // SIG-132: stats completas por network_type.
@@ -737,7 +758,7 @@ async function handleRegionInsights(request: Request, env: Env): Promise<Respons
   const since     = nowSec() - periodToSeconds(period);
   const envFilter = getEnvironmentFilter(url);
 
-  const envClause = envFilter ? " AND environment = ?" : "";
+  const envClause = `${envFilter ? " AND environment = ?" : ""}${productionTrackClause(envFilter)}`;
   const envBinds  = envFilter ? [envFilter]            : [];
 
   const rows = await env.DB.prepare(
@@ -776,7 +797,7 @@ async function handleTopIssues(request: Request, env: Env): Promise<Response> {
   const since     = nowSec() - periodToSeconds(period);
   const envFilter = getEnvironmentFilter(url);
 
-  const envClause = envFilter ? " AND environment = ?" : "";
+  const envClause = `${envFilter ? " AND environment = ?" : ""}${productionTrackClause(envFilter)}`;
   const envBinds  = envFilter ? [envFilter]            : [];
 
   // Busca todas as sessões do período para explodir o array JSON de issues.
@@ -1246,7 +1267,7 @@ async function handleAiCostMetrics(request: Request, env: Env): Promise<Response
   const since     = nowSec() - periodToSeconds(period);
   const envFilter = getEnvironmentFilter(url);
 
-  const envClause = envFilter ? " AND environment = ?" : "";
+  const envClause = `${envFilter ? " AND environment = ?" : ""}${productionTrackClause(envFilter)}`;
   const envBinds  = envFilter ? [envFilter]            : [];
 
   const row = await env.DB.prepare(
@@ -1334,7 +1355,8 @@ async function handleDiagnosticsSummary(request: Request, env: Env): Promise<Res
   const envBinds  = envFilter ? [envFilter]            : [];
   const platformClause = platformFilter ? " AND platform = ?" : "";
   const platformBinds  = platformFilter ? [platformFilter]    : [];
-  const filterClause = `${envClause}${platformClause}`;
+  const trackClause  = productionTrackClause(envFilter);
+  const filterClause = `${envClause}${platformClause}${trackClause}`;
   const filterBinds  = [...envBinds, ...platformBinds];
 
   const row = await env.DB.prepare(
@@ -1387,7 +1409,7 @@ async function handleAiProviders(request: Request, env: Env): Promise<Response> 
   const since     = nowSec() - periodToSeconds(period);
   const envFilter = getEnvironmentFilter(url);
 
-  const envClause = envFilter ? " AND environment = ?" : "";
+  const envClause = `${envFilter ? " AND environment = ?" : ""}${productionTrackClause(envFilter)}`;
   const envBinds  = envFilter ? [envFilter]            : [];
 
   const rows = await env.DB.prepare(
@@ -1519,7 +1541,7 @@ async function handleAiUsageTimeline(request: Request, env: Env): Promise<Respon
   const since     = nowSec() - days * 86400;
   const envFilter = getEnvironmentFilter(url);
 
-  const envClause = envFilter ? " AND environment = ?" : "";
+  const envClause = `${envFilter ? " AND environment = ?" : ""}${productionTrackClause(envFilter)}`;
   const envBinds  = envFilter ? [envFilter]            : [];
 
   // Agrega total_tokens por dia × provedor (via providerName).
@@ -1561,7 +1583,7 @@ async function handleAiUsageRecords(request: Request, env: Env): Promise<Respons
   const envFilter = getEnvironmentFilter(url);
   const limit     = Math.min(Math.max(parseInt(url.searchParams.get("limit") ?? "100"), 1), 500);
 
-  const envClause = envFilter ? " AND au.environment = ?" : "";
+  const envClause = `${envFilter ? " AND au.environment = ?" : ""}${productionTrackClause(envFilter, "au.")}`;
   const envBinds  = envFilter ? [envFilter]               : [];
 
   const rows = await env.DB.prepare(
@@ -1603,7 +1625,7 @@ async function handleOperators(request: Request, env: Env): Promise<Response> {
   const since     = nowSec() - periodToSeconds(period);
   const envFilter = getEnvironmentFilter(url);
 
-  const envClause = envFilter ? " AND environment = ?" : "";
+  const envClause = `${envFilter ? " AND environment = ?" : ""}${productionTrackClause(envFilter, "s1.")}`;
   const envBinds  = envFilter ? [envFilter]            : [];
 
   // Gap 4/5 (SIG-164): packetLossAverage calculado do D1; type derivado do network_type
@@ -1659,7 +1681,7 @@ async function handleAppVersions(request: Request, env: Env): Promise<Response> 
   const since     = nowSec() - periodToSeconds(period);
   const envFilter = getEnvironmentFilter(url);
 
-  const envClause = envFilter ? " AND environment = ?" : "";
+  const envClause = `${envFilter ? " AND environment = ?" : ""}${productionTrackClause(envFilter)}`;
   const envBinds  = envFilter ? [envFilter]            : [];
 
   const rows = await env.DB.prepare(
@@ -1710,7 +1732,7 @@ async function handleDiagnosticsIntelligence(request: Request, env: Env): Promis
   const since     = nowSec() - periodToSeconds(period);
   const envFilter = getEnvironmentFilter(url);
 
-  const envClause = envFilter ? " AND environment = ?" : "";
+  const envClause = `${envFilter ? " AND environment = ?" : ""}${productionTrackClause(envFilter)}`;
   const envBinds  = envFilter ? [envFilter]            : [];
 
   const rows = await env.DB.prepare(
@@ -3099,7 +3121,7 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
   const since     = nowSec() - periodToSeconds(period);
   const envFilter = getEnvironmentFilter(url);
 
-  const envClause = envFilter ? ' AND environment = ?' : '';
+  const envClause = `${envFilter ? ' AND environment = ?' : ''}${productionTrackClause(envFilter)}`;
   const envBinds  = envFilter ? [envFilter]            : [];
 
   const [featureRows, screenRows, crashRows, totalRows] = await Promise.all([
@@ -3309,7 +3331,7 @@ async function handleSpeedtestFunnel(request: Request, env: Env): Promise<Respon
   const since     = nowSec() - periodToSeconds(period);
   const envFilter = getEnvironmentFilter(url);
 
-  const envClause = envFilter ? ' AND environment = ?' : '';
+  const envClause = `${envFilter ? ' AND environment = ?' : ''}${productionTrackClause(envFilter)}`;
   const envBinds  = envFilter ? [envFilter]            : [];
 
   const [abriuRow, estagiosRows] = await Promise.all([
@@ -3388,7 +3410,7 @@ async function handleDeviceBreakdown(request: Request, env: Env): Promise<Respon
   const since     = nowSec() - periodToSeconds(period);
   const envFilter = getEnvironmentFilter(url);
 
-  const envClause = envFilter ? " AND environment = ?" : "";
+  const envClause = `${envFilter ? " AND environment = ?" : ""}${productionTrackClause(envFilter)}`;
   const envBinds  = envFilter ? [envFilter]            : [];
 
   const rows = await env.DB.prepare(

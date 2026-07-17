@@ -62,6 +62,11 @@ export interface FirebaseAppVersionCrashStats {
 export interface FirebaseAppVersionsResult {
   source: "bigquery" | "no_credentials" | "no_data_yet" | "error";
   versions: FirebaseAppVersionCrashStats[];
+  // GH#1042 (achado colateral): o worker já expõe `environmentScope: "all"` desde a #879 —
+  // o export do Crashlytics/BigQuery não tem coluna equivalente a `environment` do D1, então
+  // esse dado nunca é filtrado por production/staging, mesmo quando o painel está em modo
+  // "Produção". Antes o frontend nunca lia esse campo (sinal de honestidade morria no caminho).
+  environmentScope?: "all";
 }
 
 // Espelha o shape real de GET /admin/integrations/firebase/crash-issues.

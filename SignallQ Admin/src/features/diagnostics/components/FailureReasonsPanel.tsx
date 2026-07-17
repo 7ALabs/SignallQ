@@ -7,6 +7,9 @@ interface FailureReasonsPanelProps {
   sessions: DiagnosticSession[];
 }
 
+// GH#881 — vocabulario canonico (ver types/diagnostics.ts DiagnosisIssue e
+// docs_ai/decisions/ADR-009-vocabulario-diagnostic-issue.md). Cobre 100% das
+// categorias que o Android realmente envia hoje.
 const ISSUE_LABELS: Record<string, string> = {
   sinal_fraco: "Sinal fraco",
   alta_latencia: "Alta latência",
@@ -20,7 +23,12 @@ const ISSUE_LABELS: Record<string, string> = {
   bufferbloat: "Bufferbloat",
   interferencia_canal_wifi: "Interferência de canal Wi-Fi",
   problema_banda: "Problema de banda",
+  unknown: "Outro problema não classificado",
 };
+
+// "none" nao e uma falha — sessao sem problema detectado. Excluido do ranking e do total
+// usado no calculo de percentual (GH#881, criterio de aceite 3).
+const NO_ISSUE_TAG = "none";
 
 // GH#781 (paridade mockup) — "Motivos de falha" a partir das issues já
 // carregadas nas sessões de diagnóstico (mesma fonte da tabela de
@@ -31,7 +39,11 @@ export const FailureReasonsPanel: React.FC<FailureReasonsPanelProps> = ({ sessio
   let total = 0;
   sessions.forEach((s) => {
     s.issues.forEach((i) => {
-      counts.set(i.issue, (counts.get(i.issue) ?? 0) + 1);
+      if (i.issue === NO_ISSUE_TAG) return;
+      // Tag fora do vocabulario canonico (dado legado pre-normalizacao, ex: "Resposta")
+      // cai no bucket "unknown" — nunca exibida crua na UI (GH#881, criterio de aceite 2).
+      const key = ISSUE_LABELS[i.issue] ? i.issue : "unknown";
+      counts.set(key, (counts.get(key) ?? 0) + 1);
       total += 1;
     });
   });
@@ -56,7 +68,7 @@ export const FailureReasonsPanel: React.FC<FailureReasonsPanelProps> = ({ sessio
               <div key={issue}>
                 <div className="flex justify-between items-baseline mb-1">
                   <span className="text-xs font-sans text-[var(--text-secondary)]">
-                    {ISSUE_LABELS[issue] ?? issue.replace(/_/g, " ")}
+                    {ISSUE_LABELS[issue]}
                   </span>
                   <span className="text-xs font-semibold font-sans text-[var(--text-primary)]">{pct}%</span>
                 </div>

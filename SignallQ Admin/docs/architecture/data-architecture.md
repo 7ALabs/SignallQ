@@ -302,8 +302,14 @@ seções que espelham a proveniência dos dados (ver `NAVIGATION_SECTIONS`):
 - **Operação** — feature flags, saúde do sistema e configurações (D1 + checagem
   ativa de integrações).
 
-Cada página do painel agora expõe, no cabeçalho (`PageHeader`), uma legenda de
-"Fonte de dados" — o objetivo é que nenhuma tela deixe implícito de onde o
-número vem (crítico para não repetir o problema descrito em #415/#416: dado
-mockado indistinguível de dado real). Isso é incremental — não um redesenho
-visual completo.
+**Correção GH#1043 (2026-07-16):** o parágrafo abaixo descrevia um componente `PageHeader` com
+legenda "Fonte de dados" como já implementado. Auditoria de 2026-07-16 não encontrou `PageHeader`,
+"Fonte de dados" nem `dataSource` em nenhum lugar de `SignallQ Admin/src` — não foi implementado
+(ou foi removido sem atualizar esta doc; não há como distinguir os dois casos retroativamente).
+Registrado como pendente, não como concluído:
+
+Cada página do painel **deveria expor**, no cabeçalho, uma legenda de "Fonte de dados" — o
+objetivo é que nenhuma tela deixe implícito de onde o número vem (crítico para não repetir o
+problema descrito em #415/#416: dado mockado indistinguível de dado real). Isso seria incremental
+— não um redesenho visual completo. Pendente de implementação; se for retomado, criar/atualizar
+issue própria em vez de assumir que já existe.
