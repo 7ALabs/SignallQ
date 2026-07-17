@@ -144,10 +144,12 @@ import io.signallq.app.ui.OperadoraSource
 import io.signallq.app.ui.ResolvedOperadoraIdentity
 import io.signallq.app.ui.component.LkSheetDivider
 import io.signallq.app.ui.component.LkSheetFrame
+import io.signallq.app.ui.component.LkSheetInfoRow
 import io.signallq.app.ui.component.LkSheetSectionTitle
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.OperadoraBadge
 import io.signallq.app.ui.component.ProfileAvatarButton
+import io.signallq.app.ui.component.SheetDragHandle
 import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
 import io.signallq.app.ui.component.rememberTopBarAlpha
 import java.util.concurrent.TimeUnit
@@ -374,7 +376,7 @@ fun HomeScreen(
         )
     }
 
-    val profileBrush = remember { Brush.linearGradient(colors = listOf(LkColors.accent, LkColors.accentBlue)) }
+    val profileBrush = remember { Brush.linearGradient(colors = listOf(c.primary, LkColors.accentBlue)) }
     val listState = rememberLazyListState()
     val topBarAlpha = listState.rememberTopBarAlpha()
     Scaffold(
@@ -611,6 +613,7 @@ private fun CardMedicoes(
                 LastResultHero(
                     downloadMbps = effectiveDl,
                     uploadMbps = effectiveUl,
+                    c = c,
                 )
                 Spacer(modifier = Modifier.height(LkSpacing.lg))
             } else {
@@ -636,7 +639,7 @@ private fun CardMedicoes(
                 onClick = onIniciarTeste,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(LkRadius.card),
-                colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                colors = ButtonDefaults.buttonColors(containerColor = c.primary),
                 contentPadding = PaddingValues(vertical = 14.dp),
             ) {
                 Text(
@@ -762,7 +765,7 @@ internal fun BufferbloatCard(
             Icon(
                 imageVector = Icons.Outlined.Wifi,
                 contentDescription = null,
-                tint = LkColors.accent,
+                tint = c.primary,
                 modifier = Modifier.size(20.dp),
             )
             Column(modifier = Modifier.weight(1f)) {
@@ -782,7 +785,7 @@ internal fun BufferbloatCard(
                 Box(
                     modifier =
                         Modifier
-                            .clip(RoundedCornerShape(999.dp))
+                            .clip(RoundedCornerShape(LkRadius.pill))
                             .background(badgeBg)
                             .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
                 ) {
@@ -860,7 +863,7 @@ private fun MiniCard(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = LkColors.accent,
+                tint = c.primary,
                 modifier = Modifier.size(18.dp),
             )
             Text(
@@ -1208,7 +1211,7 @@ private fun PathConnector(
     val lineColor =
         when {
             hasError -> LkColors.error.copy(alpha = 0.3f)
-            loading -> LkColors.accent.copy(alpha = animatedAlpha)
+            loading -> c.primary.copy(alpha = animatedAlpha)
             active -> LkColors.success
             else -> c.border
         }
@@ -1248,7 +1251,7 @@ private fun PathConnector(
                 }
             } else {
                 drawLine(
-                    brush = Brush.horizontalGradient(listOf(LkColors.success, LkColors.accent)),
+                    brush = Brush.horizontalGradient(listOf(LkColors.success, c.primary)),
                     start = Offset.Zero,
                     end = Offset(size.width, 0f),
                     strokeWidth = 2.dp.toPx(),
@@ -1277,6 +1280,7 @@ private fun PathConnector(
 private fun LastResultHero(
     downloadMbps: Double,
     uploadMbps: Double,
+    c: LkTokens,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -1292,7 +1296,7 @@ private fun LastResultHero(
         HeroMetric(
             label = "Upload",
             value = uploadMbps,
-            color = LkColors.accent,
+            color = c.primary,
             modifier = Modifier.weight(1f),
         )
     }
@@ -1435,7 +1439,7 @@ private fun SignalQualityRow(
                 Spacer(modifier = Modifier.width(LkSpacing.sm))
                 LinearProgressIndicator(
                     progress = { wifiPct / 100f },
-                    modifier = Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(999.dp)),
+                    modifier = Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(LkRadius.pill)),
                     color = wifiColor,
                     trackColor = c.border,
                 )
@@ -1512,9 +1516,12 @@ private fun mobileSignalQuality(rsrpDbm: Int?): String =
         else -> "Fraco"
     }
 
-private fun mobileSignalColor(rsrpDbm: Int?): Color =
+private fun mobileSignalColor(
+    rsrpDbm: Int?,
+    c: LkTokens,
+): Color =
     when {
-        rsrpDbm == null -> LkColors.accent
+        rsrpDbm == null -> c.primary
         rsrpDbm > -80 -> LkColors.success
         rsrpDbm > -100 -> LkColors.warning
         else -> LkColors.error
@@ -1547,7 +1554,7 @@ private fun WifiSignalCard(
         } else if (wifiRssi != null) {
             wifiSignalColor(wifiRssi)
         } else {
-            LkColors.accent
+            c.primary
         }
     val qualityLabel =
         when {
@@ -1595,7 +1602,7 @@ private fun WifiSignalCard(
                         Text(
                             stringResource(R.string.home_network_habilitar_localizacao),
                             style = MaterialTheme.typography.bodySmall,
-                            color = LkColors.accent,
+                            color = c.primary,
                             fontWeight = FontWeight.W500,
                             modifier =
                                 Modifier.clickable {
@@ -1758,7 +1765,7 @@ private fun MobileSignalCard(
     val tec = tecnologiaSimplificada(movelSnapshot.tecnologia)
     val tecLabel = tec?.uppercase() ?: "LTE"
     val rsrp = movelSnapshot.rsrpDbm
-    val mobileColor = mobileSignalColor(rsrp)
+    val mobileColor = mobileSignalColor(rsrp, c)
 
     SignallQCard(c) {
         Row(
@@ -1967,15 +1974,15 @@ private fun SimChipCompact(
     modifier: Modifier = Modifier,
 ) {
     val rsrpDbm = sim.rsrpDbm
-    val rsrpColor = mobileSignalColor(rsrpDbm)
+    val rsrpColor = mobileSignalColor(rsrpDbm, c)
     val rsrpPct = mobileSignalPercent(rsrpDbm) ?: 0
     val isActive = sim.tecnologiaRede != null
 
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(LkRadius.card),
-        color = if (isActive) LkColors.accent.copy(alpha = 0.06f) else c.bgCard,
-        border = androidx.compose.foundation.BorderStroke(1.dp, if (isActive) LkColors.accent.copy(alpha = 0.20f) else c.border),
+        color = if (isActive) c.primary.copy(alpha = 0.06f) else c.bgCard,
+        border = androidx.compose.foundation.BorderStroke(1.dp, if (isActive) c.primary.copy(alpha = 0.20f) else c.border),
     ) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
             Row(
@@ -1985,7 +1992,7 @@ private fun SimChipCompact(
                 Icon(
                     imageVector = Icons.Outlined.Smartphone,
                     contentDescription = null,
-                    tint = if (isActive) LkColors.accent else c.textTertiary,
+                    tint = if (isActive) c.primary else c.textTertiary,
                     modifier = Modifier.size(14.dp),
                 )
                 if (showSlot) {
@@ -1993,22 +2000,22 @@ private fun SimChipCompact(
                         "SIM ${sim.simIndex}",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.W700,
-                        color = if (isActive) LkColors.accent else c.textTertiary,
+                        color = if (isActive) c.primary else c.textTertiary,
                     )
                 }
                 if (isActive) {
                     Box(
                         modifier =
                             Modifier
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(LkColors.accent.copy(alpha = 0.12f))
+                                .clip(RoundedCornerShape(LkRadius.pill))
+                                .background(c.primary.copy(alpha = 0.12f))
                                 .padding(horizontal = 6.dp, vertical = 1.dp),
                     ) {
                         Text(
                             "ATIVO",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.W700,
-                            color = LkColors.accent,
+                            color = c.primary,
                             fontSize = 9.sp,
                         )
                     }
@@ -2017,7 +2024,7 @@ private fun SimChipCompact(
                     Box(
                         modifier =
                             Modifier
-                                .clip(RoundedCornerShape(999.dp))
+                                .clip(RoundedCornerShape(LkRadius.pill))
                                 .background(MaterialTheme.colorScheme.errorContainer)
                                 .padding(horizontal = 6.dp, vertical = 1.dp),
                     ) {
@@ -2203,7 +2210,7 @@ private fun ExperienciaDeUsoSection(
                     modifier = Modifier.fillMaxWidth().padding(vertical = LkSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(useCase.icon, contentDescription = null, tint = LkColors.accent, modifier = Modifier.size(20.dp))
+                    Icon(useCase.icon, contentDescription = null, tint = c.primary, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(LkSpacing.md))
                     Text(
                         useCase.label,
@@ -2216,7 +2223,7 @@ private fun ExperienciaDeUsoSection(
                         modifier =
                             Modifier
                                 .clip(
-                                    RoundedCornerShape(999.dp),
+                                    RoundedCornerShape(LkRadius.pill),
                                 ).background(badgeBg)
                                 .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
                     ) {
@@ -2316,7 +2323,7 @@ private fun WifiQualityBadge(
     Box(
         modifier =
             Modifier
-                .clip(RoundedCornerShape(999.dp))
+                .clip(RoundedCornerShape(LkRadius.pill))
                 .background(color.copy(alpha = 0.15f))
                 .padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
     ) {
@@ -2398,13 +2405,13 @@ private fun DeviceInfoSheet(
     LkSheetFrame(modifier = Modifier.navigationBarsPadding()) {
         LkSheetSectionTitle(title = stringResource(R.string.home_sheet_meu_dispositivo))
         Spacer(modifier = Modifier.height(LkSpacing.lg))
-        SheetInfoRow("Modelo", deviceName, c)
+        LkSheetInfoRow("Modelo", deviceName)
         LkSheetDivider()
-        SheetInfoRow("Sistema", "Android", c)
+        LkSheetInfoRow("Sistema", "Android")
         LkSheetDivider()
-        SheetInfoRow("IP Local", localIp?.takeIf { it.isNotEmpty() } ?: "Não disponível", c)
+        LkSheetInfoRow("IP Local", localIp?.takeIf { it.isNotEmpty() } ?: "Não disponível")
         LkSheetDivider()
-        SheetInfoRow("Tipo de conexão", if (isMobile) "Dados móveis" else "Wi-Fi", c)
+        LkSheetInfoRow("Tipo de conexão", if (isMobile) "Dados móveis" else "Wi-Fi")
     }
 }
 
@@ -2451,31 +2458,30 @@ private fun GatewayInfoSheet(
     LkSheetFrame(modifier = Modifier.navigationBarsPadding()) {
         LkSheetSectionTitle(title = "Roteador da casa")
         Spacer(modifier = Modifier.height(LkSpacing.lg))
-        SheetInfoRow("Tipo detectado", typeLabel, c)
+        LkSheetInfoRow("Tipo detectado", typeLabel)
         LkSheetDivider()
-        SheetInfoRow("IP do roteador", gateway.ip ?: "Não detectado", c)
+        LkSheetInfoRow("IP do roteador", gateway.ip ?: "Não detectado")
         LkSheetDivider()
-        SheetInfoRow("SSID", connectedNetwork?.ssid?.takeIf { it.isNotBlank() } ?: "Não detectado", c)
+        LkSheetInfoRow("SSID", connectedNetwork?.ssid?.takeIf { it.isNotBlank() } ?: "Não detectado")
         LkSheetDivider()
-        SheetInfoRow("Sinal", connectedNetwork?.let { "${it.rssiDbm} dBm" } ?: "Não detectado", c)
+        LkSheetInfoRow("Sinal", connectedNetwork?.let { "${it.rssiDbm} dBm" } ?: "Não detectado")
         LkSheetDivider()
-        SheetInfoRow("Banda", connectedNetwork?.let { freqDisplay(it.frequenciaMhz) } ?: "Não detectado", c)
+        LkSheetInfoRow("Banda", connectedNetwork?.let { freqDisplay(it.frequenciaMhz) } ?: "Não detectado")
         LkSheetDivider()
-        SheetInfoRow(
+        LkSheetInfoRow(
             "Velocidade do link",
             if (!isMeshOrExtensor) {
                 linkSpeedMbps?.let { "$it Mbps" } ?: "Não detectado"
             } else {
                 "Não detectado"
             },
-            c,
         )
         LkSheetDivider()
-        SheetInfoRow("Canal", connectedNetwork?.canal?.toString() ?: "Não detectado", c)
+        LkSheetInfoRow("Canal", connectedNetwork?.canal?.toString() ?: "Não detectado")
         LkSheetDivider()
-        SheetInfoRow("Largura de canal", connectedNetwork?.larguraCanalMhz?.let { "$it MHz" } ?: "Não detectado", c)
+        LkSheetInfoRow("Largura de canal", connectedNetwork?.larguraCanalMhz?.let { "$it MHz" } ?: "Não detectado")
         LkSheetDivider()
-        SheetInfoRow("Segurança", connectedNetwork?.let { wifiSecurityLabel(it.seguranca) } ?: "Não detectada", c)
+        LkSheetInfoRow("Segurança", connectedNetwork?.let { wifiSecurityLabel(it.seguranca) } ?: "Não detectada")
     }
 }
 
@@ -2500,7 +2506,7 @@ private fun InternetInfoSheet(
     LkSheetFrame(modifier = Modifier.navigationBarsPadding()) {
         LkSheetSectionTitle(title = stringResource(R.string.home_sheet_internet))
         Spacer(modifier = Modifier.height(LkSpacing.lg))
-        SheetInfoRow("IP Público", publicIpValue, c)
+        LkSheetInfoRow("IP Público", publicIpValue)
         if (isCgNat(ispInfo?.ip ?: publicIp)) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
@@ -2511,9 +2517,9 @@ private fun InternetInfoSheet(
             )
         }
         LkSheetDivider()
-        SheetInfoRow("Provedor", provedorValue, c)
+        LkSheetInfoRow("Provedor", provedorValue)
         LkSheetDivider()
-        SheetInfoRow("País / Região", regionValue, c)
+        LkSheetInfoRow("País / Região", regionValue)
         val dnsPrivadoValor =
             if (privateDnsAtivo) {
                 privateDnsHostname?.takeIf { it.isNotEmpty() } ?: "Ativo"
@@ -2521,10 +2527,10 @@ private fun InternetInfoSheet(
                 "Padrão do provedor"
             }
         LkSheetDivider()
-        SheetInfoRow("DNS Privado", dnsPrivadoValor, c, valueColor = if (privateDnsAtivo) LkColors.success else null)
+        LkSheetInfoRow("DNS Privado", dnsPrivadoValor, valueColor = if (privateDnsAtivo) LkColors.success else null)
         val servidoresDnsStr = dnsServidores.take(2).joinToString(" / ").ifEmpty { "Não disponível" }
         LkSheetDivider()
-        SheetInfoRow("Servidores DNS", servidoresDnsStr, c)
+        LkSheetInfoRow("Servidores DNS", servidoresDnsStr)
     }
 }
 
@@ -2544,7 +2550,7 @@ private fun SignalQualitySheet(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp).navigationBarsPadding(),
     ) {
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            SheetDragHandle(c)
+            SheetDragHandle()
         }
         Spacer(modifier = Modifier.height(16.dp))
         Text(
@@ -2555,19 +2561,19 @@ private fun SignalQualitySheet(
         )
         Spacer(modifier = Modifier.height(20.dp))
         if (isWifi && connectedNetwork != null) {
-            connectedNetwork.ssid?.let { SheetInfoRow("Nome da rede", it, c) }
-            SheetInfoRow("Qualidade do sinal", "$pct%", c)
-            SheetInfoRow("Força do sinal", "${connectedNetwork.rssiDbm} dBm", c)
-            linkSpeedMbps?.let { SheetInfoRow("Velocidade de conexão", "$it Mbps", c) }
-            SheetInfoRow("Frequência", "${connectedNetwork.frequenciaMhz} MHz", c)
-            SheetInfoRow("Banda", freqDisplay(connectedNetwork.frequenciaMhz), c)
+            connectedNetwork.ssid?.let { LkSheetInfoRow("Nome da rede", it) }
+            LkSheetInfoRow("Qualidade do sinal", "$pct%")
+            LkSheetInfoRow("Força do sinal", "${connectedNetwork.rssiDbm} dBm")
+            linkSpeedMbps?.let { LkSheetInfoRow("Velocidade de conexão", "$it Mbps") }
+            LkSheetInfoRow("Frequência", "${connectedNetwork.frequenciaMhz} MHz")
+            LkSheetInfoRow("Banda", freqDisplay(connectedNetwork.frequenciaMhz))
             val ch = freqToChannel(connectedNetwork.frequenciaMhz)
-            if (ch > 0) SheetInfoRow("Canal", "$ch", c)
-            connectedNetwork.larguraCanalMhz?.let { SheetInfoRow("Largura de canal", "$it MHz", c) }
-            SheetInfoRow("Segurança", wifiSecurityLabel(connectedNetwork.seguranca), c)
+            if (ch > 0) LkSheetInfoRow("Canal", "$ch")
+            connectedNetwork.larguraCanalMhz?.let { LkSheetInfoRow("Largura de canal", "$it MHz") }
+            LkSheetInfoRow("Segurança", wifiSecurityLabel(connectedNetwork.seguranca))
             val gw = gateways.firstOrNull()
-            gw?.ip?.let { SheetInfoRow("IP do roteador", it, c) }
-            localIp?.let { SheetInfoRow("IP do dispositivo", it, c) }
+            gw?.ip?.let { LkSheetInfoRow("IP do roteador", it) }
+            localIp?.let { LkSheetInfoRow("IP do dispositivo", it) }
         }
     }
 }
@@ -2585,20 +2591,20 @@ private fun QualidadePlaceholderSheet(c: LkTokens) {
                 .navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        SheetDragHandle(c)
+        SheetDragHandle()
         Spacer(Modifier.height(LkSpacing.xxl))
         Box(
             modifier =
                 Modifier
                     .size(64.dp)
                     .clip(RoundedCornerShape(LkRadius.card))
-                    .background(LkColors.accent.copy(alpha = 0.1f)),
+                    .background(c.primary.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Outlined.Insights,
                 contentDescription = null,
-                tint = LkColors.accent,
+                tint = c.primary,
                 modifier = Modifier.size(32.dp),
             )
         }
@@ -2615,7 +2621,7 @@ private fun QualidadePlaceholderSheet(c: LkTokens) {
             text = stringResource(R.string.home_qualidade_em_breve),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.W600,
-            color = LkColors.accent,
+            color = c.primary,
         )
         Spacer(Modifier.height(LkSpacing.lg))
         Text(
@@ -2652,7 +2658,7 @@ private fun CellularInfoSheet(
     val mnc = movelSnapshot?.mnc
 
     val qualityLabel = rsrp?.let { "${mobileSignalQuality(it)} ($it dBm)" }
-    val qualityColor = rsrp?.let { mobileSignalColor(it) }
+    val qualityColor = rsrp?.let { mobileSignalColor(it, c) }
     val asuValue = rsrp?.let { "${it + 140}" } ?: "Não disponível"
     val sinrValue = sinr?.let { "$it dB" } ?: "Não disponível"
     val sinrColor =
@@ -2682,13 +2688,13 @@ private fun CellularInfoSheet(
                         Modifier
                             .size(44.dp)
                             .clip(CircleShape)
-                            .background(LkColors.accent.copy(alpha = 0.10f)),
+                            .background(c.primary.copy(alpha = 0.10f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         Icons.Outlined.SignalCellularAlt,
                         contentDescription = null,
-                        tint = LkColors.accent,
+                        tint = c.primary,
                         modifier = Modifier.size(22.dp),
                     )
                 }
@@ -2711,7 +2717,7 @@ private fun CellularInfoSheet(
                 Box(
                     modifier =
                         Modifier
-                            .clip(RoundedCornerShape(999.dp))
+                            .clip(RoundedCornerShape(LkRadius.pill))
                             .background(LkColors.success.copy(alpha = 0.10f))
                             .padding(horizontal = 10.dp, vertical = 4.dp),
                 ) {
@@ -2727,26 +2733,25 @@ private fun CellularInfoSheet(
 
         Spacer(Modifier.height(LkSpacing.lg))
 
-        SheetInfoRow("Tecnologia", tec ?: "Não disponível", c)
+        LkSheetInfoRow("Tecnologia", tec ?: "Não disponível")
         LkSheetDivider()
-        SheetInfoRow("Operadora", operadora ?: "Não disponível", c)
+        LkSheetInfoRow("Operadora", operadora ?: "Não disponível")
         LkSheetDivider()
-        SheetInfoRow("IP público", ip ?: "Não disponível", c)
+        LkSheetInfoRow("IP público", ip ?: "Não disponível")
         LkSheetDivider()
-        SheetInfoRow("Qualidade do sinal", qualityLabel ?: "Não disponível", c, valueColor = qualityColor)
+        LkSheetInfoRow("Qualidade do sinal", qualityLabel ?: "Não disponível", valueColor = qualityColor)
         LkSheetDivider()
-        SheetInfoRow("ASU", asuValue, c)
+        LkSheetInfoRow("ASU", asuValue)
         LkSheetDivider()
-        SheetInfoRow("SINR", sinrValue, c, valueColor = sinrColor)
+        LkSheetInfoRow("SINR", sinrValue, valueColor = sinrColor)
         LkSheetDivider()
-        SheetInfoRow(
+        LkSheetInfoRow(
             "Roaming",
             if (movelSnapshot?.roaming == true) "Sim" else "Não",
-            c,
             valueColor = if (movelSnapshot?.roaming == true) LkColors.warning else null,
         )
         LkSheetDivider()
-        SheetInfoRow("MCC / MNC", if (mcc != null && mnc != null) "$mcc / $mnc" else "Não disponível", c)
+        LkSheetInfoRow("MCC / MNC", if (mcc != null && mnc != null) "$mcc / $mnc" else "Não disponível")
 
         Spacer(Modifier.height(LkSpacing.md))
         Text(
@@ -2763,59 +2768,6 @@ private fun CellularInfoSheet(
                 color = c.textTertiary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-            )
-        }
-    }
-}
-
-// ─── Sheet helpers ────────────────────────────────────────────────────────────
-
-@Composable
-private fun SheetDragHandle(c: LkTokens) {
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        Box(
-            modifier =
-                Modifier
-                    .width(40.dp)
-                    .height(4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(c.border),
-        )
-    }
-}
-
-@Composable
-private fun SheetInfoRow(
-    key: String,
-    value: String,
-    c: LkTokens,
-    valueColor: Color? = null,
-    caption: String? = null,
-) {
-    Column(modifier = Modifier.fillMaxWidth().padding(bottom = LkSpacing.md)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top,
-        ) {
-            Text(key, style = MaterialTheme.typography.bodyMedium, color = c.textSecondary, modifier = Modifier.padding(end = LkSpacing.lg))
-            Text(
-                value,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.W600,
-                color = valueColor ?: c.textPrimary,
-                textAlign = TextAlign.End,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        caption?.let {
-            Text(
-                it,
-                style = MaterialTheme.typography.labelSmall,
-                color = c.textSecondary,
-                modifier = Modifier.padding(top = 2.dp),
             )
         }
     }
@@ -2901,7 +2853,7 @@ internal fun GamerSheet(
                 .padding(bottom = 32.dp)
                 .navigationBarsPadding(),
     ) {
-        SheetDragHandle(c)
+        SheetDragHandle()
         Spacer(Modifier.height(20.dp))
 
         // Header
@@ -2961,7 +2913,7 @@ internal fun GamerSheet(
                 Spacer(Modifier.height(24.dp))
                 Button(
                     onClick = onIrParaTeste,
-                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                    colors = ButtonDefaults.buttonColors(containerColor = c.primary),
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(stringResource(R.string.home_gamer_btn_iniciar_teste)) }
             }
@@ -3161,7 +3113,7 @@ private fun GamerMetricRow(
         Box(
             modifier =
                 Modifier
-                    .clip(RoundedCornerShape(999.dp))
+                    .clip(RoundedCornerShape(LkRadius.pill))
                     .background(cor.copy(alpha = 0.12f))
                     .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
         ) {
@@ -3211,7 +3163,7 @@ private fun GamerJogoRow(
         Box(
             modifier =
                 Modifier
-                    .clip(RoundedCornerShape(999.dp))
+                    .clip(RoundedCornerShape(LkRadius.pill))
                     .background(cor.copy(alpha = 0.12f))
                     .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
         ) {
@@ -3318,7 +3270,7 @@ private fun MedicaoTipoSheet(
                     .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
         ) {
-            SheetDragHandle(c)
+            SheetDragHandle()
             Text(
                 "Tipo de medição",
                 style = MaterialTheme.typography.headlineSmall,
@@ -3347,7 +3299,7 @@ private fun MedicaoTipoSheet(
                 titulo = "Completo",
                 descricao = "Download e upload · ~90 seg",
                 badge = "Recomendado",
-                badgeColor = LkColors.accent,
+                badgeColor = c.primary,
                 disponivel = true,
                 c = c,
                 onClick = { onIniciarTeste(ModoSpeedtest.complete) },
@@ -3381,14 +3333,14 @@ private fun MedicaoOpcaoItem(
     titulo: String,
     descricao: String,
     badge: String?,
-    badgeColor: Color = LkColors.accent,
+    badgeColor: Color = c.primary,
     disponivel: Boolean,
     c: LkTokens,
     onClick: () -> Unit,
 ) {
     val textColor = if (disponivel) c.textPrimary else c.textTertiary
     val subTextColor = if (disponivel) c.textSecondary else c.textTertiary
-    val iconColor = if (disponivel) LkColors.accent else c.textTertiary
+    val iconColor = if (disponivel) c.primary else c.textTertiary
 
     Row(
         modifier =
@@ -3439,7 +3391,7 @@ private fun MedicaoOpcaoItem(
             Box(
                 modifier =
                     Modifier
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(LkRadius.pill))
                         .background(badgeColor.copy(alpha = 0.12f))
                         .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
             ) {
@@ -3477,7 +3429,7 @@ private fun ConnectionContextCard(
                     ?: stringResource(R.string.home_context_wifi_ssid_desconhecido)
             val qualidadeColor =
                 when {
-                    wifiPct == null -> LkColors.accent
+                    wifiPct == null -> c.primary
                     wifiPct >= 70 -> LkColors.success
                     wifiPct >= 40 -> LkColors.warning
                     else -> LkColors.error
@@ -3494,13 +3446,13 @@ private fun ConnectionContextCard(
                                 Modifier
                                     .size(36.dp)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(LkColors.accent.copy(alpha = 0.1f)),
+                                    .background(c.primary.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Wifi,
                                 contentDescription = null,
-                                tint = LkColors.accent,
+                                tint = c.primary,
                                 modifier = Modifier.size(18.dp),
                             )
                         }
@@ -3527,7 +3479,7 @@ private fun ConnectionContextCard(
                         ) {
                             LinearProgressIndicator(
                                 progress = { wifiPct / 100f },
-                                modifier = Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(999.dp)),
+                                modifier = Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(LkRadius.pill)),
                                 color = qualidadeColor,
                                 trackColor = c.border,
                             )
@@ -3543,7 +3495,7 @@ private fun ConnectionContextCard(
                         onClick = onMedirVelocidade,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(LkRadius.card),
-                        colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                        colors = ButtonDefaults.buttonColors(containerColor = c.primary),
                         contentPadding = PaddingValues(vertical = 12.dp),
                     ) {
                         Text(
@@ -3575,13 +3527,13 @@ private fun ConnectionContextCard(
                                 Modifier
                                     .size(36.dp)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(LkColors.accent.copy(alpha = 0.1f)),
+                                    .background(c.primary.copy(alpha = 0.1f)),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.SignalCellularAlt,
                                 contentDescription = null,
-                                tint = LkColors.accent,
+                                tint = c.primary,
                                 modifier = Modifier.size(18.dp),
                             )
                         }
@@ -3608,7 +3560,7 @@ private fun ConnectionContextCard(
                         onClick = onMedirVelocidade,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(LkRadius.card),
-                        colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                        colors = ButtonDefaults.buttonColors(containerColor = c.primary),
                         contentPadding = PaddingValues(vertical = 12.dp),
                     ) {
                         Text(
