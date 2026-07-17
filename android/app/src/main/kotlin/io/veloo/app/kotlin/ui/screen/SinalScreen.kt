@@ -154,11 +154,11 @@ private data class TopologiaIconData(
     val cor: Color,
 )
 
-private fun TipoTopologia.toIconData(): TopologiaIconData? =
+private fun TipoTopologia.toIconData(c: LkTokens): TopologiaIconData? =
     when (this) {
-        TipoTopologia.ROTEADOR -> TopologiaIconData(Icons.Outlined.Router, LkColors.accent)
-        TipoTopologia.ROTEADOR_MESH -> TopologiaIconData(Icons.Outlined.Hub, LkColors.accent)
-        TipoTopologia.NO_MESH -> TopologiaIconData(Icons.Outlined.Hub, LkColors.accent)
+        TipoTopologia.ROTEADOR -> TopologiaIconData(Icons.Outlined.Router, c.primary)
+        TipoTopologia.ROTEADOR_MESH -> TopologiaIconData(Icons.Outlined.Hub, c.primary)
+        TipoTopologia.NO_MESH -> TopologiaIconData(Icons.Outlined.Hub, c.primary)
         TipoTopologia.REPETIDOR -> TopologiaIconData(Icons.Outlined.CellTower, LkColors.warning)
         TipoTopologia.PONTO_DE_ACESSO -> TopologiaIconData(Icons.Outlined.Lan, LkColors.signallQTextSecondaryOnDark)
         TipoTopologia.DESCONHECIDO -> null
@@ -602,12 +602,12 @@ private fun SinalTopTabRow(
     TabRow(
         selectedTabIndex = selectedTab,
         containerColor = c.bgPrimary,
-        contentColor = LkColors.accent,
+        contentColor = c.primary,
         divider = { HorizontalDivider(color = c.outlineVariant, thickness = 1.dp) },
         indicator = {
             TabRowDefaults.SecondaryIndicator(
                 height = 3.dp,
-                color = LkColors.accent,
+                color = c.primary,
             )
         },
     ) {
@@ -627,7 +627,7 @@ private fun SinalTopTabRow(
                                 maxLines = 1,
                                 softWrap = false,
                                 fontWeight = if (selectedTab == index) FontWeight.W600 else FontWeight.W500,
-                                color = if (selectedTab == index) LkColors.accent else c.textSecondary,
+                                color = if (selectedTab == index) c.primary else c.textSecondary,
                             )
                             Icon(
                                 imageVector = Icons.Outlined.Warning,
@@ -643,7 +643,7 @@ private fun SinalTopTabRow(
                             maxLines = 1,
                             softWrap = false,
                             fontWeight = if (selectedTab == index) FontWeight.W600 else FontWeight.W500,
-                            color = if (selectedTab == index) LkColors.accent else c.textSecondary,
+                            color = if (selectedTab == index) c.primary else c.textSecondary,
                         )
                     }
                 },
@@ -730,7 +730,7 @@ private fun SimCard(
     val operadoraLocal = remember(operadora) { BancoOperadoras.resolverMovel(operadora) }
     val resumoRede = buildMobileSummary(sim = sim, summarySnapshot = summarySnapshot)
     val qualidade = mobileSignalQuality(sim.rsrpDbm, sim.radioDesligado)
-    val tipoConexao = mobileConnectionType(sim = sim, summarySnapshot = summarySnapshot)
+    val tipoConexao = mobileConnectionType(sim = sim, summarySnapshot = summarySnapshot, c = tokens)
     val experiencia = mobileExpectedExperience(sim = sim, summarySnapshot = summarySnapshot)
     val suporteUrl = operadoraLocal?.site
     val context = LocalContext.current
@@ -895,6 +895,7 @@ private fun mobileSignalQuality(
 private fun mobileConnectionType(
     sim: MovelSimSnapshot,
     summarySnapshot: MovelSnapshot?,
+    c: LkTokens,
 ): MobileInsight {
     val tecnologia = sim.tecnologiaRede ?: summarySnapshot?.tecnologia
     return when {
@@ -908,7 +909,7 @@ private fun mobileConnectionType(
             MobileInsight(
                 label = "5G",
                 description = "5G NR - tecnologia mais rápida disponível para este chip.",
-                color = LkColors.accent,
+                color = c.primary,
             )
         tecnologia?.contains("4G", ignoreCase = true) == true ->
             MobileInsight(
@@ -1023,7 +1024,10 @@ private fun snapshotSignalQuality(snapshot: MovelSnapshot): MobileInsight =
         }
     }
 
-private fun snapshotConnectionType(snapshot: MovelSnapshot): MobileInsight {
+private fun snapshotConnectionType(
+    snapshot: MovelSnapshot,
+    c: LkTokens,
+): MobileInsight {
     val tecnologia = snapshot.tecnologia
     return when {
         snapshot.radioDesligado ->
@@ -1036,7 +1040,7 @@ private fun snapshotConnectionType(snapshot: MovelSnapshot): MobileInsight {
             MobileInsight(
                 label = "5G",
                 description = "5G NR — a tecnologia mais rápida disponível.",
-                color = LkColors.accent,
+                color = c.primary,
             )
         tecnologia?.contains("4G", ignoreCase = true) == true ->
             MobileInsight(
@@ -1167,9 +1171,9 @@ private fun PlaceholderOperadoraBadge(tokens: LkTokens) {
         modifier =
             Modifier
                 .size(48.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(LkRadius.input))
                 .background(tokens.surfaceContainerHigh)
-                .border(1.dp, tokens.outlineVariant, RoundedCornerShape(12.dp)),
+                .border(1.dp, tokens.outlineVariant, RoundedCornerShape(LkRadius.input)),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -1187,7 +1191,7 @@ private fun MobileSnapshotCard(
 ) {
     val operadora = snapshot.operadora ?: "Operadora"
     val qualidade = snapshotSignalQuality(snapshot)
-    val tipoConexao = snapshotConnectionType(snapshot)
+    val tipoConexao = snapshotConnectionType(snapshot, tokens)
     val experiencia = snapshotExpectedExperience(snapshot)
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -1525,9 +1529,9 @@ private fun RedesTab(
                             Modifier
                                 .padding(horizontal = LkSpacing.lg)
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(LkRadius.input))
                                 .background(c.bgSecondary)
-                                .border(1.dp, c.border, RoundedCornerShape(12.dp))
+                                .border(1.dp, c.border, RoundedCornerShape(LkRadius.input))
                                 .padding(LkSpacing.md),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
@@ -1594,7 +1598,7 @@ private fun RedesTab(
                                 "Mostrar Mais (${otherClassificadas.size - 5})",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.W600,
-                                color = LkColors.accent,
+                                color = c.primary,
                             )
                         }
                     }
@@ -1872,7 +1876,7 @@ private fun NoTreeItem(
                     .weight(1f)
                     .padding(top = 4.dp, bottom = 4.dp, end = LkSpacing.sm)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(if (isConnected) LkColors.accent.copy(alpha = 0.12f) else Color.Transparent)
+                    .background(if (isConnected) c.primary.copy(alpha = 0.12f) else Color.Transparent)
                     .minimumInteractiveComponentSize()
                     .clickable(onClick = onClick)
                     .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.sm),
@@ -1886,7 +1890,7 @@ private fun NoTreeItem(
             Icon(
                 imageVector = if (isConnected) Icons.Outlined.Router else Icons.Outlined.Wifi,
                 contentDescription = null,
-                tint = if (isConnected) LkColors.accent else c.textSecondary,
+                tint = if (isConnected) c.primary else c.textSecondary,
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(LkSpacing.sm))
@@ -1896,7 +1900,7 @@ private fun NoTreeItem(
                         label,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.W600,
-                        color = if (isConnected) LkColors.accent else c.textPrimary,
+                        color = if (isConnected) c.primary else c.textPrimary,
                     )
                     if (isConnected) {
                         Spacer(Modifier.width(LkSpacing.sm))
@@ -1915,13 +1919,13 @@ private fun NoTreeItem(
                             modifier = Modifier.size(16.dp),
                         )
                     }
-                    val topologiaIcon = tipoTopologia?.toIconData()
+                    val topologiaIcon = tipoTopologia?.toIconData(c)
                     if (topologiaIcon != null) {
                         Spacer(Modifier.width(LkSpacing.xs))
                         Icon(
                             imageVector = topologiaIcon.icon,
                             contentDescription = null,
-                            tint = if (isConnected) LkColors.accent else topologiaIcon.cor,
+                            tint = if (isConnected) c.primary else topologiaIcon.cor,
                             modifier = Modifier.size(16.dp),
                         )
                     }
@@ -1995,7 +1999,7 @@ private fun OtherNetworkGroupItem(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false),
                         )
-                        val topologiaIcon = redeClass.tipo.toIconData()
+                        val topologiaIcon = redeClass.tipo.toIconData(c)
                         if (topologiaIcon != null) {
                             Spacer(Modifier.width(LkSpacing.xs))
                             Icon(
@@ -2161,7 +2165,7 @@ private fun NetworkListItem(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                val topologiaIcon = tipoTopologia?.toIconData()
+                val topologiaIcon = tipoTopologia?.toIconData(c)
                 if (topologiaIcon != null) {
                     Spacer(Modifier.width(LkSpacing.xs))
                     Icon(
@@ -2268,8 +2272,8 @@ private fun EmptyStateBandaVazia(
             Box(
                 modifier =
                     Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(LkColors.accent.copy(alpha = 0.12f))
+                        .clip(RoundedCornerShape(LkRadius.pill))
+                        .background(c.primary.copy(alpha = 0.12f))
                         .minimumInteractiveComponentSize()
                         .clickable { onTrocarFaixa(targetBanda) }
                         .padding(horizontal = 20.dp, vertical = 10.dp),
@@ -2279,7 +2283,7 @@ private fun EmptyStateBandaVazia(
                     stringResource(R.string.sinal_trocar_faixa),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.W600,
-                    color = LkColors.accent,
+                    color = c.primary,
                 )
             }
         }
@@ -2311,7 +2315,7 @@ private fun NetworkDetailSheet(
             Icon(
                 imageVector = if (rede.seguranca == SegurancaWifi.aberta) Icons.Filled.LockOpen else Icons.Filled.Lock,
                 contentDescription = null,
-                tint = LkColors.accent,
+                tint = c.primary,
                 modifier = Modifier.size(20.dp),
             )
             Spacer(Modifier.width(LkSpacing.sm))
@@ -2397,7 +2401,7 @@ private fun NetworkDetailSheet(
                         Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(LkRadius.card))
-                            .background(LkColors.accent.copy(alpha = 0.12f))
+                            .background(c.primary.copy(alpha = 0.12f))
                             .padding(LkSpacing.lg),
                 ) {
                     Row(
@@ -2407,7 +2411,7 @@ private fun NetworkDetailSheet(
                         Icon(
                             imageVector = Icons.Outlined.Lightbulb,
                             contentDescription = null,
-                            tint = LkColors.accent,
+                            tint = c.primary,
                             modifier = Modifier.size(20.dp),
                         )
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -2415,7 +2419,7 @@ private fun NetworkDetailSheet(
                                 "Troque de canal",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.W600,
-                                color = LkColors.accent,
+                                color = c.primary,
                             )
                             Text(
                                 "Mude para o canal $canalRecomendado no roteador. Ele está mais livre agora.",
@@ -2925,7 +2929,7 @@ private fun SpectrumChart(
 ) {
     val c = LocalLkTokens.current
     val dados = espectro.dadosPorCanal
-    val accentColor = LkColors.accent
+    val accentColor = c.primary
     val gridColor = c.border.copy(alpha = 0.35f)
     val textTertiary = c.textTertiary
     val textMeasurer = rememberTextMeasurer()
@@ -3181,13 +3185,13 @@ private fun CanalRecomendadoCard(
                         Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(LkColors.accent.copy(alpha = 0.12f)),
+                            .background(c.primary.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Wifi,
                         contentDescription = null,
-                        tint = LkColors.accent,
+                        tint = c.primary,
                         modifier = Modifier.size(20.dp),
                     )
                 }
@@ -3197,7 +3201,7 @@ private fun CanalRecomendadoCard(
                         "Troque de canal",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.W600,
-                        color = LkColors.accent,
+                        color = c.primary,
                     )
                     Spacer(Modifier.height(LkSpacing.xs))
                     Text(
@@ -3284,13 +3288,13 @@ private fun ChannelItem(
             "Canal ${dado.canal}",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = if (isConnected) FontWeight.W700 else FontWeight.W500,
-            color = if (isConnected) LkColors.accent else c.textPrimary,
+            color = if (isConnected) c.primary else c.textPrimary,
             modifier = Modifier.widthIn(min = 60.dp),
         )
         if (isConnected) {
-            InlineBadge("SEU CANAL", LkColors.accent)
+            InlineBadge("SEU CANAL", c.primary)
         } else if (dado.ehCanalRecomendado) {
-            InlineBadge("RECOMENDADO", LkColors.accent)
+            InlineBadge("RECOMENDADO", c.primary)
         }
         LinearProgressBar(
             fraction = fracaoUso,
@@ -3511,8 +3515,8 @@ private fun ChannelDetailSheet(
             if (isRecommended) {
                 LkPillBadge(
                     text = "Recomendado",
-                    containerColor = LkColors.accent.copy(alpha = 0.14f),
-                    contentColor = LkColors.accent,
+                    containerColor = c.primary.copy(alpha = 0.14f),
+                    contentColor = c.primary,
                 )
             }
         }
@@ -3522,7 +3526,7 @@ private fun ChannelDetailSheet(
         Spacer(Modifier.height(LkSpacing.md))
         if (dado.countProprios > 0) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                LkStatusDot(color = LkColors.accent)
+                LkStatusDot(color = c.primary)
                 Spacer(Modifier.width(8.dp))
                 Text(
                     "Você (${dado.countProprios} nó${if (dado.countProprios != 1) "s" else ""})",
@@ -3680,7 +3684,7 @@ private fun LocPermissaoBanner(onClick: () -> Unit) {
         modifier =
             Modifier
                 .fillMaxWidth()
-                .background(LkColors.accent.copy(alpha = 0.08f))
+                .background(c.primary.copy(alpha = 0.08f))
                 .clickable(onClick = onClick)
                 .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm)
                 .minimumInteractiveComponentSize(),
@@ -3690,13 +3694,13 @@ private fun LocPermissaoBanner(onClick: () -> Unit) {
         Icon(
             imageVector = Icons.Outlined.WifiFind,
             contentDescription = null,
-            tint = LkColors.accent,
+            tint = c.primary,
             modifier = Modifier.size(18.dp),
         )
         Text(
             "Permissão de localização necessária para escanear redes",
             style = MaterialTheme.typography.bodySmall,
-            color = LkColors.accent,
+            color = c.primary,
             modifier = Modifier.weight(1f),
         )
     }
@@ -3711,7 +3715,7 @@ private fun MovelSemPermissaoBanner(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .background(LkColors.accent.copy(alpha = 0.08f))
+                .background(tokens.primary.copy(alpha = 0.08f))
                 .clickable(onClick = onClick)
                 .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm)
                 .minimumInteractiveComponentSize(),
@@ -3721,13 +3725,13 @@ private fun MovelSemPermissaoBanner(
         Icon(
             imageVector = Icons.Outlined.SignalCellularAlt,
             contentDescription = null,
-            tint = LkColors.accent,
+            tint = tokens.primary,
             modifier = Modifier.size(18.dp),
         )
         Text(
             "Toque para ver qualidade do sinal móvel",
             style = MaterialTheme.typography.bodySmall,
-            color = LkColors.accent,
+            color = tokens.primary,
             modifier = Modifier.weight(1f),
         )
     }

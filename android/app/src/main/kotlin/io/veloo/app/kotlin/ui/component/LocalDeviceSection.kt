@@ -673,7 +673,7 @@ fun LocalDeviceSection(
                     descricao =
                         "Encontramos um " + deviceTypeLabel(state.deviceType).lowercase() +
                             " na rede. Conecte para ver dados detalhados.",
-                    accent = LkColors.accent,
+                    accent = c.primary,
                 )
 
             is LocalDeviceSectionUiState.LoginFalhou ->
@@ -750,7 +750,7 @@ private fun LocalDeviceConectadoContent(
     refazerDisponivel: Boolean,
 ) {
     var detalhesExpandidos by remember { mutableStateOf(false) }
-    val statusColor = statusParaCor(state.resumoStatus)
+    val statusColor = statusParaCor(state.resumoStatus, c)
 
     LkSurfaceCard(modifier = Modifier.fillMaxWidth(), outlined = true) {
         // Cabecalho: nome do equipamento + tipo (GH#538, deixa claro se e ONT ou
@@ -783,7 +783,7 @@ private fun LocalDeviceConectadoContent(
             }
             if (state.suportaDiagnosticoNativo) {
                 Spacer(Modifier.width(LkSpacing.xs))
-                SuporteBadge(texto = "Diagnóstico avançado", cor = LkColors.accent)
+                SuporteBadge(texto = "Diagnóstico avançado", cor = c.primary)
             }
         }
 
@@ -943,7 +943,7 @@ private fun EquipamentoSecaoRow(
                     item.valor,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.W600,
-                    color = item.statusValor?.let { statusParaCor(it) } ?: c.textPrimary,
+                    color = item.statusValor?.let { statusParaCor(it, c) } ?: c.textPrimary,
                     modifier = Modifier.weight(1.3f),
                     textAlign = TextAlign.End,
                     maxLines = 3,
@@ -1108,12 +1108,15 @@ private fun notaSemLeituraDeFibra(deviceType: DeviceType): String? =
         else -> null
     }
 
-private fun statusParaCor(status: DiagnosticStatus): Color =
+private fun statusParaCor(
+    status: DiagnosticStatus,
+    c: io.signallq.app.ui.LkTokens,
+): Color =
     when (status) {
         DiagnosticStatus.ok -> LkColors.success
         DiagnosticStatus.attention -> LkColors.warning
         DiagnosticStatus.critical -> LkColors.error
-        DiagnosticStatus.inconclusive, DiagnosticStatus.info -> LkColors.accent
+        DiagnosticStatus.inconclusive, DiagnosticStatus.info -> c.primary
     }
 
 // ─── Previews — cobrem os 7 estados obrigatorios do GH#544 ─────────────────

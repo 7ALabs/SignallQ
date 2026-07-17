@@ -64,6 +64,7 @@ import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
+import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.GaugeCircular
 import io.signallq.app.ui.component.MiniGrafico
@@ -85,7 +86,7 @@ fun VelocidadeScreen(
     var mostrarConfirmarCancelar by remember { mutableStateOf(false) }
 
     val fase = snapshot.faseAtual
-    val corFase = corDaFase(fase)
+    val corFase = corDaFase(fase, c)
 
     // Haptics nas transições de fase
     LaunchedEffect(fase) {
@@ -386,19 +387,19 @@ private fun PillsFase(faseAtual: FaseSpeedtest) {
             val corBorda =
                 when {
                     concluido -> LkColors.success
-                    ativo -> corDaFase(faseAtual)
+                    ativo -> corDaFase(faseAtual, c)
                     else -> Color.Transparent
                 }
             val corTexto =
                 when {
                     concluido -> LkColors.success
-                    ativo -> corDaFase(faseAtual)
+                    ativo -> corDaFase(faseAtual, c)
                     else -> c.onSurfaceVariant
                 }
             val bgColor =
                 when {
                     concluido -> LkColors.success.copy(alpha = 0.16f)
-                    ativo -> corDaFase(faseAtual).copy(alpha = 0.16f)
+                    ativo -> corDaFase(faseAtual, c).copy(alpha = 0.16f)
                     else -> c.surfaceContainer
                 }
 
@@ -486,7 +487,7 @@ private fun ErroContent(
         Spacer(Modifier.height(LkSpacing.xl))
         Button(
             onClick = onReiniciar,
-            colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+            colors = ButtonDefaults.buttonColors(containerColor = c.primary),
         ) {
             Text("Testar novamente")
         }
@@ -497,12 +498,15 @@ private fun ErroContent(
     }
 }
 
-fun corDaFase(fase: FaseSpeedtest): Color =
+fun corDaFase(
+    fase: FaseSpeedtest,
+    c: LkTokens,
+): Color =
     when (fase) {
         FaseSpeedtest.ping -> LkColors.phaseLatencia
         FaseSpeedtest.download -> LkColors.phaseDownload
         FaseSpeedtest.upload -> LkColors.phaseUpload
-        else -> LkColors.accent
+        else -> c.primary
     }
 
 private fun rotuloFase(fase: FaseSpeedtest): String =

@@ -69,6 +69,7 @@ import io.signallq.app.feature.dns.EstadoBenchmarkDns
 import io.signallq.app.feature.dns.ResultadoBenchmarkDns
 import io.signallq.app.feature.dns.SnapshotBenchmarkDns
 import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
@@ -205,7 +206,7 @@ private fun DnsMainContent(
         }
         isLoading && snapshotDns.resultados.isEmpty() -> {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = LkColors.accent)
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = c.primary)
                 Spacer(Modifier.width(10.dp))
                 Text("Medindo servidores...", style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
             }
@@ -239,7 +240,7 @@ private fun DnsMainContent(
                     CircularProgressIndicator(
                         modifier = Modifier.size(12.dp),
                         strokeWidth = 1.5.dp,
-                        color = LkColors.accent.copy(alpha = 0.6f),
+                        color = c.primary.copy(alpha = 0.6f),
                     )
                     Spacer(Modifier.width(8.dp))
                     Text("Medindo...", style = MaterialTheme.typography.labelSmall, color = c.textTertiary)
@@ -412,7 +413,7 @@ private fun DnsBloco3Recomendacao(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(LkRadius.card))
                 .background(LkColors.success.copy(alpha = 0.10f))
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -454,7 +455,7 @@ private fun DnsBloco4Guia(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(LkRadius.input))
                     .clickable { expandido = !expandido }
                     .padding(vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -527,14 +528,14 @@ private fun DnsBloco4Guia(
             Text(
                 "Como alterar meu DNS",
                 style = MaterialTheme.typography.labelLarge,
-                color = LkColors.accent,
+                color = c.primary,
                 fontWeight = FontWeight.W500,
             )
             Spacer(Modifier.width(4.dp))
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 contentDescription = null,
-                tint = LkColors.accent,
+                tint = c.primary,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -574,7 +575,7 @@ private fun DnsRowSheet(
                 )
                 if (isCurrent) {
                     Spacer(Modifier.width(LkSpacing.sm))
-                    LkPillBadge("atual", LkColors.accent.copy(alpha = 0.12f), LkColors.accent)
+                    LkPillBadge("atual", c.primary.copy(alpha = 0.12f), c.primary)
                 }
                 if (isRecomendado) {
                     Spacer(Modifier.width(LkSpacing.sm))
@@ -603,7 +604,7 @@ private fun DnsGradeBadge(
     val color =
         when (grade) {
             "A" -> LkColors.success
-            "B" -> LkColors.accent
+            "B" -> c.primary
             "C" -> LkColors.warning
             else -> LkColors.error
         }
@@ -656,12 +657,12 @@ private fun DnsGuideView(
         TabRow(
             selectedTabIndex = tabSelecionada,
             containerColor = c.bgPrimary,
-            contentColor = LkColors.accent,
+            contentColor = c.primary,
             divider = { LkSheetDivider() },
             indicator = { tabPositions ->
                 TabRowDefaults.SecondaryIndicator(
                     modifier = Modifier.tabIndicatorOffset(tabPositions[tabSelecionada]),
-                    color = LkColors.accent,
+                    color = c.primary,
                     height = 2.dp,
                 )
             },
@@ -675,7 +676,7 @@ private fun DnsGuideView(
                             label,
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = if (tabSelecionada == idx) FontWeight.W600 else FontWeight.W400,
-                            color = if (tabSelecionada == idx) LkColors.accent else c.textSecondary,
+                            color = if (tabSelecionada == idx) c.primary else c.textSecondary,
                         )
                     },
                 )

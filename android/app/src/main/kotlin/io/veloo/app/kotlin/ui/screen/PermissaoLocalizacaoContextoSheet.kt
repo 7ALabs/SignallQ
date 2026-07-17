@@ -29,7 +29,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
@@ -80,9 +79,9 @@ fun PermissaoLocalizacaoContextoSheet(
                     label = { Text(label) },
                     colors =
                         FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
-                            selectedLabelColor = LkColors.accent,
-                            disabledSelectedContainerColor = LkColors.accent.copy(alpha = 0.15f),
+                            selectedContainerColor = c.primary.copy(alpha = 0.15f),
+                            selectedLabelColor = c.primary,
+                            disabledSelectedContainerColor = c.primary.copy(alpha = 0.15f),
                             disabledContainerColor = c.bgSecondary,
                             disabledLabelColor = c.textTertiary,
                         ),
@@ -93,7 +92,7 @@ fun PermissaoLocalizacaoContextoSheet(
         Icon(
             imageVector = Icons.Outlined.LocationOn,
             contentDescription = null,
-            tint = LkColors.accent,
+            tint = c.primary,
             modifier = Modifier.size(64.dp),
         )
         Spacer(Modifier.height(LkSpacing.lg))
@@ -125,7 +124,7 @@ fun PermissaoLocalizacaoContextoSheet(
                         onClick = onConceder,
                         modifier = m,
                         shape = RoundedCornerShape(LkRadius.button),
-                        colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                        colors = ButtonDefaults.buttonColors(containerColor = c.primary),
                     ) {
                         Text("Abrir ajustes do Android")
                     }
@@ -166,7 +165,7 @@ fun PermissaoLocalizacaoContextoSheet(
                         onClick = onConceder,
                         modifier = m,
                         shape = RoundedCornerShape(LkRadius.button),
-                        colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                        colors = ButtonDefaults.buttonColors(containerColor = c.primary),
                     ) {
                         Text("Entendi, conceder")
                     }

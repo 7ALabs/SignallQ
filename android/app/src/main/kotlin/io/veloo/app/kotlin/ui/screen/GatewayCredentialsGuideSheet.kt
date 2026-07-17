@@ -30,7 +30,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
@@ -140,7 +139,7 @@ private fun PassoCredencialRow(
                 Modifier
                     .size(44.dp)
                     .clip(CircleShape)
-                    .background(LkColors.accent.copy(alpha = 0.12f)),
+                    .background(c.primary.copy(alpha = 0.12f)),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(
@@ -151,7 +150,7 @@ private fun PassoCredencialRow(
                 Icon(
                     imageVector = passo.icone,
                     contentDescription = null,
-                    tint = LkColors.accent,
+                    tint = c.primary,
                     modifier = Modifier.size(22.dp),
                 )
             }
@@ -161,7 +160,7 @@ private fun PassoCredencialRow(
                 text = "Passo $numero",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.W600,
-                color = LkColors.accent,
+                color = c.primary,
             )
             Text(
                 text = passo.titulo,

@@ -26,7 +26,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
@@ -58,7 +57,7 @@ fun PermissaoTelefoniaContextoSheet(
         Icon(
             imageVector = Icons.Outlined.CellTower,
             contentDescription = null,
-            tint = LkColors.accent,
+            tint = c.primary,
             modifier = Modifier.size(64.dp),
         )
         Spacer(Modifier.height(LkSpacing.lg))
@@ -95,7 +94,7 @@ fun PermissaoTelefoniaContextoSheet(
                     onClick = onConceder,
                     modifier = m,
                     shape = RoundedCornerShape(LkRadius.button),
-                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                    colors = ButtonDefaults.buttonColors(containerColor = c.primary),
                 ) {
                     Text("Entendi, conceder")
                 }

@@ -66,7 +66,7 @@ fun <T> StatefulScreen(
                             .size(40.dp)
                             .align(Alignment.Center)
                             .semantics { contentDescription = "Carregando" },
-                    color = LkColors.accent,
+                    color = c.primary,
                     strokeWidth = 3.dp,
                 )
             }
@@ -143,7 +143,7 @@ fun <T> StatefulScreen(
                         onClick = onRetry,
                         colors =
                             ButtonDefaults.buttonColors(
-                                containerColor = LkColors.accent,
+                                containerColor = c.primary,
                             ),
                     ) {
                         Text(text = "Tentar novamente")

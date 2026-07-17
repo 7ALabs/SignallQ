@@ -98,7 +98,7 @@ fun WifiChannelGuide() {
                     Icon(
                         imageVector = if (opcao == DispositivoGuia.Android) Icons.Outlined.Smartphone else Icons.Outlined.Router,
                         contentDescription = null,
-                        tint = if (ativo) LkColors.accent else c.textTertiary,
+                        tint = if (ativo) c.primary else c.textTertiary,
                         modifier = Modifier.size(14.dp),
                     )
                     Spacer(Modifier.size(LkSpacing.xs))
@@ -240,7 +240,7 @@ internal fun GuideSection(
                 Modifier
                     .size(28.dp)
                     .clip(RoundedCornerShape(50))
-                    .background(LkColors.accent),
+                    .background(c.primary),
             contentAlignment = Alignment.Center,
         ) {
             Text(

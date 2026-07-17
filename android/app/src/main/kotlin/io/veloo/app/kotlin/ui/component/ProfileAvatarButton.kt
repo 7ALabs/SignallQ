@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LocalLkTokens
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -39,6 +40,7 @@ fun ProfileAvatarButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val c = LocalLkTokens.current
     val context = LocalContext.current
     val fotoBitmap: ImageBitmap? by produceState<ImageBitmap?>(initialValue = null, key1 = fotoUri) {
         value =
@@ -52,7 +54,7 @@ fun ProfileAvatarButton(
                 }
             }
     }
-    val profileBrush = Brush.linearGradient(colors = listOf(LkColors.accent, LkColors.accentBlue))
+    val profileBrush = Brush.linearGradient(colors = listOf(c.primary, LkColors.accentBlue))
 
     val descPerfil = if (nomeUsuario.isNotBlank()) "Foto de perfil de $nomeUsuario" else "Foto de perfil"
     Box(

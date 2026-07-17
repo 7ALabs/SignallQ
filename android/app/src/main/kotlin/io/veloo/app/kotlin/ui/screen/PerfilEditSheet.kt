@@ -54,7 +54,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -145,11 +144,11 @@ internal fun PerfilEditSheet(
 
             val fieldColors =
                 OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = LkColors.accent,
+                    focusedBorderColor = c.primary,
                     unfocusedBorderColor = c.border,
-                    focusedLabelColor = LkColors.accent,
+                    focusedLabelColor = c.primary,
                     unfocusedLabelColor = c.textSecondary,
-                    cursorColor = LkColors.accent,
+                    cursorColor = c.primary,
                     focusedTextColor = c.textPrimary,
                     unfocusedTextColor = c.textPrimary,
                 )
@@ -162,7 +161,7 @@ internal fun PerfilEditSheet(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 colors = fieldColors,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(LkRadius.input),
             )
 
             Spacer(Modifier.height(LkSpacing.sm))
@@ -172,7 +171,7 @@ internal fun PerfilEditSheet(
                     Modifier
                         .fillMaxWidth()
                         .height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                colors = ButtonDefaults.buttonColors(containerColor = c.primary),
                 shape = RoundedCornerShape(LkRadius.button),
             ) {
                 Text("Salvar perfil")
@@ -234,7 +233,7 @@ internal fun UserAvatar(
                         .offset(x = 2.dp, y = 2.dp)
                         .size(26.dp)
                         .clip(CircleShape)
-                        .background(LkColors.accent)
+                        .background(MaterialTheme.colorScheme.primary)
                         .border(2.dp, MaterialTheme.colorScheme.surfaceContainerLow, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {

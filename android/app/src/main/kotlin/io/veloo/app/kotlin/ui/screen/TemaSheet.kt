@@ -33,7 +33,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -129,7 +128,7 @@ private fun ThemeSelector(
                         .background(c.surfaceContainer)
                         .border(
                             width = if (selecionada) 2.dp else 1.dp,
-                            color = if (selecionada) LkColors.accent else c.border,
+                            color = if (selecionada) c.primary else c.border,
                             shape = RoundedCornerShape(LkRadius.card),
                         ).clickable { onSelect(valor) }
                         .padding(vertical = LkSpacing.lg),
@@ -142,14 +141,14 @@ private fun ThemeSelector(
                     Icon(
                         imageVector = icone,
                         contentDescription = label,
-                        tint = if (selecionada) LkColors.accent else c.textSecondary,
+                        tint = if (selecionada) c.primary else c.textSecondary,
                         modifier = Modifier.size(20.dp),
                     )
                     Text(
                         text = label,
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = if (selecionada) FontWeight.W600 else FontWeight.W400,
-                        color = if (selecionada) LkColors.accent else c.textSecondary,
+                        color = if (selecionada) c.primary else c.textSecondary,
                     )
                 }
             }

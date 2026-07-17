@@ -70,6 +70,7 @@ import io.signallq.app.feature.speedtest.ResultadoRodadaTriplo
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
@@ -378,7 +379,7 @@ private fun BlocoCirculoSpeedTest(
         TextButton(onClick = onVerResultado) {
             Text(
                 text = "Ver resultado",
-                color = LkColors.accent,
+                color = c.primary,
                 style = MaterialTheme.typography.titleSmall,
             )
         }
@@ -486,6 +487,7 @@ private fun IdleCircle(
     onIniciarTeste: () -> Unit,
     habilitado: Boolean = true,
 ) {
+    val c = LocalLkTokens.current
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val scale by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -508,7 +510,7 @@ private fun IdleCircle(
         label = "glow",
     )
 
-    val corBotao = if (habilitado) LkColors.accent else LkColors.accent.copy(alpha = 0.4f)
+    val corBotao = if (habilitado) c.primary else c.primary.copy(alpha = 0.4f)
     val cdBotao = if (habilitado) "Iniciar teste de velocidade" else "Iniciar teste de velocidade, indisponível sem conexão"
 
     Box(contentAlignment = Alignment.Center) {
@@ -618,8 +620,8 @@ private fun ModeSelector(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(999.dp))
-                .border(1.dp, c.outline, RoundedCornerShape(999.dp))
+                .clip(RoundedCornerShape(LkRadius.pill))
+                .border(1.dp, c.outline, RoundedCornerShape(LkRadius.pill))
                 .padding(2.dp)
                 .semantics { contentDescription = "Modo do teste" },
     ) {
@@ -629,7 +631,7 @@ private fun ModeSelector(
                 modifier =
                     Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(LkRadius.pill))
                         .background(if (selected) c.secondaryContainer else Color.Transparent)
                         .clickable { onSelect(modo) }
                         .padding(vertical = LkSpacing.sm, horizontal = LkSpacing.xs)
@@ -656,6 +658,7 @@ private fun IndicadorRodadaTriplo(
     rodadaAtual: Int,
     aguardando: Boolean,
 ) {
+    val c = LocalLkTokens.current
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
             repeat(3) { index ->
@@ -667,9 +670,9 @@ private fun IndicadorRodadaTriplo(
                             .clip(CircleShape)
                             .background(
                                 if (ativo) {
-                                    LkColors.accent
+                                    c.primary
                                 } else {
-                                    LkColors.accent.copy(alpha = 0.2f)
+                                    c.primary.copy(alpha = 0.2f)
                                 },
                             ),
                 )
@@ -734,7 +737,7 @@ private fun CardRodadasTriplo(
                         )} · ↑ ${"%.0f".format(rodada.uploadMbps)} Mbps · ${rodada.latenciaMs.toInt()} ms",
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.W600,
-                        color = LkColors.accent,
+                        color = c.primary,
                     )
                 }
             }
@@ -807,7 +810,7 @@ private fun LastResultCard(
             horizontalArrangement = Arrangement.spacedBy(LkSpacing.lg),
         ) {
             MetricColumn("Download", "%.0f".format(downloadMbps), "Mbps", LkColors.success, Modifier.weight(1f))
-            MetricColumn("Upload", "%.0f".format(uploadMbps), "Mbps", LkColors.accent, Modifier.weight(1f))
+            MetricColumn("Upload", "%.0f".format(uploadMbps), "Mbps", c.primary, Modifier.weight(1f))
             MetricColumn("Latência", "%.0f".format(latencyMs), "ms", LkColors.success, Modifier.weight(1f))
         }
     }

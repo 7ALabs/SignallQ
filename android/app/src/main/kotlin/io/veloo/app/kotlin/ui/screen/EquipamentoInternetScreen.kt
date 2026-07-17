@@ -421,7 +421,7 @@ private fun SaudeOpticaBadge(status: GponSaudeStatus) {
     Row(
         modifier =
             Modifier
-                .clip(RoundedCornerShape(999.dp))
+                .clip(RoundedCornerShape(LkRadius.pill))
                 .background(cor.copy(alpha = 0.10f))
                 .padding(horizontal = LkSpacing.md, vertical = LkSpacing.xs),
         verticalAlignment = Alignment.CenterVertically,
@@ -669,7 +669,7 @@ private fun DeviceSelectorCard(
         OutlinedButton(
             onClick = { expandido = !expandido },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(LkRadius.input),
         ) {
             Text(
                 text = "${selecionado.vendor} ${selecionado.modelo} — ${selecionado.papel}",
@@ -691,8 +691,8 @@ private fun DeviceSelectorCard(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .border(1.dp, c.outlineVariant, RoundedCornerShape(12.dp)),
+                        .clip(RoundedCornerShape(LkRadius.input))
+                        .border(1.dp, c.outlineVariant, RoundedCornerShape(LkRadius.input)),
             ) {
                 paineis.forEachIndexed { index, painel ->
                     val ativo = painel.id == selecionadoId
@@ -814,13 +814,13 @@ private fun CompactTopologyNode(
                 Modifier
                     .size(34.dp)
                     .clip(CircleShape)
-                    .background(if (highlighted) LkColors.accent.copy(alpha = 0.16f) else c.surfaceContainerHigh),
+                    .background(if (highlighted) c.primary.copy(alpha = 0.16f) else c.surfaceContainerHigh),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (highlighted) LkColors.accent else c.textSecondary,
+                tint = if (highlighted) c.primary else c.textSecondary,
                 modifier = Modifier.size(17.dp),
             )
         }
@@ -828,7 +828,7 @@ private fun CompactTopologyNode(
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            color = if (highlighted) LkColors.accent else c.textPrimary,
+            color = if (highlighted) c.primary else c.textPrimary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -846,13 +846,13 @@ private fun TopologyNodeRow(
                 Modifier
                     .size(34.dp)
                     .clip(CircleShape)
-                    .background(if (node.highlighted) LkColors.accent.copy(alpha = 0.16f) else c.surfaceContainerHigh),
+                    .background(if (node.highlighted) c.primary.copy(alpha = 0.16f) else c.surfaceContainerHigh),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = node.icon,
                 contentDescription = null,
-                tint = if (node.highlighted) LkColors.accent else c.textSecondary,
+                tint = if (node.highlighted) c.primary else c.textSecondary,
                 modifier = Modifier.size(17.dp),
             )
         }
@@ -888,7 +888,7 @@ private fun ModuloTecnicoCard(
                 Text(
                     text = if (expandido) "Ocultar" else toggleLabel,
                     style = MaterialTheme.typography.labelLarge,
-                    color = LkColors.accent,
+                    color = c.primary,
                     modifier = Modifier.clickable { expandido = !expandido },
                 )
             }
@@ -941,7 +941,7 @@ private fun DataRowCard(
             text = item.valor,
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.labelLarge,
-            color = item.statusValor?.let(::statusColor) ?: c.textPrimary,
+            color = item.statusValor?.let { statusColor(it, c) } ?: c.textPrimary,
             textAlign = TextAlign.End,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
@@ -1017,7 +1017,7 @@ private fun DeviceInfoSectionCard(
             Text(
                 text = if (expandido) "Ocultar informações" else "Ver informações",
                 style = MaterialTheme.typography.labelLarge,
-                color = LkColors.accent,
+                color = c.primary,
                 modifier = Modifier.clickable { expandido = !expandido },
             )
         }
@@ -1519,10 +1519,13 @@ private fun freshnessLabel(capturadoEmEpochMs: Long): String {
     }
 }
 
-private fun statusColor(status: DiagnosticStatus): Color =
+private fun statusColor(
+    status: DiagnosticStatus,
+    c: LkTokens,
+): Color =
     when (status) {
         DiagnosticStatus.ok -> LkColors.success
-        DiagnosticStatus.info -> LkColors.accent
+        DiagnosticStatus.info -> c.primary
         DiagnosticStatus.attention -> LkColors.warning
         DiagnosticStatus.critical -> LkColors.error
         DiagnosticStatus.inconclusive -> LkColors.warning
@@ -1602,7 +1605,7 @@ private fun EquipamentoAcessoIndisponivelContent(
             Button(
                 onClick = onRetentar,
                 modifier = Modifier.fillMaxWidth().height(44.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                colors = ButtonDefaults.buttonColors(containerColor = c.primary),
                 shape = RoundedCornerShape(LkRadius.button),
             ) {
                 Text("Tentar novamente", fontSize = 14.sp, fontWeight = FontWeight.W600)

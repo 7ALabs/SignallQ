@@ -52,7 +52,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionResultado
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionService
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -214,11 +213,11 @@ internal fun GatewayConnectionSheetContent(
 
     val fieldColors =
         OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = LkColors.accent,
+            focusedBorderColor = c.primary,
             unfocusedBorderColor = c.border,
-            focusedLabelColor = LkColors.accent,
+            focusedLabelColor = c.primary,
             unfocusedLabelColor = c.textSecondary,
-            cursorColor = LkColors.accent,
+            cursorColor = c.primary,
             focusedTextColor = c.textPrimary,
             unfocusedTextColor = c.textPrimary,
         )
@@ -293,7 +292,7 @@ internal fun GatewayConnectionSheetContent(
             Text(
                 text = "Não sabe o usuário e a senha?",
                 style = MaterialTheme.typography.bodyMedium,
-                color = LkColors.accent,
+                color = c.primary,
             )
         }
 
@@ -304,7 +303,7 @@ internal fun GatewayConnectionSheetContent(
             Text(
                 text = "Ver modelos de roteador compatíveis",
                 style = MaterialTheme.typography.bodyMedium,
-                color = LkColors.accent,
+                color = c.primary,
             )
         }
 
@@ -367,7 +366,7 @@ internal fun GatewayConnectionSheetContent(
             enabled = podeConectar,
             modifier = Modifier.fillMaxWidth().testTag("gateway_connect_button"),
             shape = RoundedCornerShape(LkRadius.button),
-            colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+            colors = ButtonDefaults.buttonColors(containerColor = c.primary),
         ) {
             if (conectando) {
                 CircularProgressIndicator(
@@ -446,12 +445,12 @@ private fun ToggleRow(
 internal fun toggleRowSwitchColors(c: LkTokens): SwitchColors =
     SwitchDefaults.colors(
         checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-        checkedTrackColor = LkColors.accent,
+        checkedTrackColor = c.primary,
         checkedBorderColor = Color.Transparent,
         uncheckedThumbColor = c.textTertiary,
         uncheckedTrackColor = c.border,
         disabledCheckedThumbColor = MaterialTheme.colorScheme.onPrimary,
-        disabledCheckedTrackColor = LkColors.accent,
+        disabledCheckedTrackColor = c.primary,
         disabledCheckedBorderColor = Color.Transparent,
         disabledUncheckedThumbColor = c.textTertiary,
         disabledUncheckedTrackColor = c.border,

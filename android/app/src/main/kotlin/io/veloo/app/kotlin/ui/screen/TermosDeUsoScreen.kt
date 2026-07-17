@@ -31,7 +31,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
@@ -89,13 +88,13 @@ fun TermosDeUsoScreen(onVoltar: () -> Unit) {
                             Modifier
                                 .size(56.dp)
                                 .clip(CircleShape)
-                                .background(LkColors.accent.copy(alpha = 0.10f)),
+                                .background(c.primary.copy(alpha = 0.10f)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Description,
                             contentDescription = null,
-                            tint = LkColors.accent,
+                            tint = c.primary,
                             modifier = Modifier.size(28.dp),
                         )
                     }

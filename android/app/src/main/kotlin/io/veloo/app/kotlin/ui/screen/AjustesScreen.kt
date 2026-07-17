@@ -574,7 +574,7 @@ private fun SettingItem(
     badge: String? = null,
     tintError: Boolean = false,
 ) {
-    val iconTint = if (tintError) LkColors.error else LkColors.accent
+    val iconTint = if (tintError) LkColors.error else c.primary
     val labelColor = if (tintError) LkColors.error else c.textPrimary
 
     Row(
@@ -589,7 +589,7 @@ private fun SettingItem(
             modifier =
                 Modifier
                     .size(36.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(LkRadius.input))
                     .background(c.primary.copy(alpha = 0.14f)),
             contentAlignment = Alignment.Center,
         ) {
@@ -653,7 +653,7 @@ internal fun ToggleItem(
             modifier =
                 Modifier
                     .size(36.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(LkRadius.input))
                     .background(c.primary.copy(alpha = 0.14f)),
             contentAlignment = Alignment.Center,
         ) {
@@ -679,7 +679,7 @@ internal fun ToggleItem(
             colors =
                 SwitchDefaults.colors(
                     checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                    checkedTrackColor = LkColors.accent,
+                    checkedTrackColor = c.primary,
                     uncheckedThumbColor = c.textTertiary,
                     uncheckedTrackColor = c.border,
                 ),

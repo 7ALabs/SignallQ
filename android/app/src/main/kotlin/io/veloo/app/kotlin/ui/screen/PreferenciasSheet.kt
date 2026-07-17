@@ -37,7 +37,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 
@@ -64,11 +63,11 @@ internal fun PreferenciasSheet(
 
     val fieldColors =
         OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = LkColors.accent,
+            focusedBorderColor = c.primary,
             unfocusedBorderColor = c.border,
-            focusedLabelColor = LkColors.accent,
+            focusedLabelColor = c.primary,
             unfocusedLabelColor = c.textSecondary,
-            cursorColor = LkColors.accent,
+            cursorColor = c.primary,
             focusedTextColor = c.textPrimary,
             unfocusedTextColor = c.textPrimary,
         )
@@ -134,7 +133,7 @@ internal fun PreferenciasSheet(
             Button(
                 onClick = { onSalvar(limiteInput.toIntOrNull() ?: 0) },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                colors = ButtonDefaults.buttonColors(containerColor = c.primary),
             ) {
                 Text("Salvar")
             }

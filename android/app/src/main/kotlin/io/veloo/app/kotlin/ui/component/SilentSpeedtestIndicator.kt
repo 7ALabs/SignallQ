@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LocalLkTokens
 
 @Composable
@@ -48,7 +47,7 @@ fun SilentSpeedtestIndicator(modifier: Modifier = Modifier) {
                     .size(6.dp)
                     .clip(CircleShape)
                     .alpha(alpha)
-                    .background(LkColors.accent),
+                    .background(c.primary),
         )
         Text("Teste em andamento", style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
     }

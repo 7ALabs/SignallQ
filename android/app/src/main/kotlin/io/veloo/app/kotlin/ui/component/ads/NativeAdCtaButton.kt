@@ -13,8 +13,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
+import io.signallq.app.ui.LocalLkTokens
 
 /**
  * CTA do anuncio nativo -- registrado como `callToActionView` do NativeAdView,
@@ -27,16 +27,17 @@ import io.signallq.app.ui.LkRadius
  */
 @Composable
 fun NativeAdCtaButton(label: String) {
+    val c = LocalLkTokens.current
     Text(
         text = label,
         modifier =
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.button))
-                .border(BorderStroke(1.dp, LkColors.accent.copy(alpha = 0.35f)), RoundedCornerShape(LkRadius.button))
+                .border(BorderStroke(1.dp, c.primary.copy(alpha = 0.35f)), RoundedCornerShape(LkRadius.button))
                 .padding(vertical = 11.dp),
         textAlign = TextAlign.Center,
-        color = LkColors.accent,
+        color = c.primary,
         fontSize = 13.sp,
         fontWeight = FontWeight.SemiBold,
     )

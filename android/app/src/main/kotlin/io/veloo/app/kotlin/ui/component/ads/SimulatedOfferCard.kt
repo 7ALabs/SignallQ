@@ -29,7 +29,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
@@ -60,13 +59,13 @@ fun SimulatedOfferCard(
                     Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(LkColors.accent.copy(alpha = 0.12f)),
+                        .background(c.primary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Router,
                     contentDescription = null,
-                    tint = LkColors.accent,
+                    tint = c.primary,
                     modifier = Modifier.size(22.dp),
                 )
             }
@@ -90,7 +89,7 @@ fun SimulatedOfferCard(
             onClick = {},
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(LkRadius.card),
-            colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+            colors = ButtonDefaults.buttonColors(containerColor = c.primary),
         ) {
             Text(text = cta, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600)
         }
@@ -112,13 +111,13 @@ fun SimulatedOfferRow(
                     Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(LkColors.accent.copy(alpha = 0.12f)),
+                        .background(c.primary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Campaign,
                     contentDescription = null,
-                    tint = LkColors.accent,
+                    tint = c.primary,
                     modifier = Modifier.size(18.dp),
                 )
             }
@@ -173,13 +172,13 @@ fun SimulatedOfferListRow(
                     Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(LkColors.accent.copy(alpha = 0.12f)),
+                        .background(c.primary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Router,
                     contentDescription = null,
-                    tint = LkColors.accent,
+                    tint = c.primary,
                     modifier = Modifier.size(18.dp),
                 )
             }

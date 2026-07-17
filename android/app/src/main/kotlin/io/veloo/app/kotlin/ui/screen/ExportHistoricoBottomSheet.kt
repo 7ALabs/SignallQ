@@ -39,7 +39,6 @@ import androidx.core.content.FileProvider
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.feature.history.ExportadorHistoricoCSV
 import io.signallq.app.feature.history.ExportadorHistoricoPDF
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
@@ -105,7 +104,7 @@ fun ExportHistoricoBottomSheet(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(LkRadius.pill))
                         .background(c.surfaceContainer)
                         .padding(4.dp),
                 horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs),
@@ -115,7 +114,7 @@ fun ExportHistoricoBottomSheet(
                         modifier =
                             Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(999.dp))
+                                .clip(RoundedCornerShape(LkRadius.pill))
                                 .background(if (ativo) c.secondaryContainer else androidx.compose.ui.graphics.Color.Transparent)
                                 .padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center,
@@ -227,7 +226,7 @@ fun ExportHistoricoBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = historico.isNotEmpty() && !exportando,
                 shape = RoundedCornerShape(LkRadius.button),
-                colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                colors = ButtonDefaults.buttonColors(containerColor = c.primary),
             ) {
                 Text(
                     text = if (exportando) "Exportando..." else "Exportar",
@@ -244,7 +243,7 @@ fun ExportHistoricoBottomSheet(
                             .fillMaxWidth()
                             .height(4.dp)
                             .clip(RoundedCornerShape(2.dp)),
-                    color = LkColors.accent,
+                    color = c.primary,
                     trackColor = c.surfaceContainerHighest,
                 )
             }

@@ -167,7 +167,7 @@ fun DispositivosScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp,
-                                color = LkColors.accent,
+                                color = c.primary,
                             )
                         } else {
                             Icon(
@@ -284,7 +284,7 @@ private fun DispositivosLista(
                             Modifier
                                 .fillMaxWidth()
                                 .height(2.dp),
-                        color = LkColors.accent,
+                        color = c.primary,
                         trackColor = c.bgSecondary,
                     )
                 }
@@ -419,8 +419,8 @@ private fun GatewayItem(
     bandasWifi: String? = null,
     clientesCount: Int = 0,
 ) {
-    val iconColor = LkColors.accent
-    val bgColor = LkColors.accent.copy(alpha = 0.12f)
+    val iconColor = c.primary
+    val bgColor = c.primary.copy(alpha = 0.12f)
     val ip = dispositivo.ip ?: ""
     val subtituloGateway =
         if (bandasWifi.isNullOrBlank()) {
@@ -451,7 +451,7 @@ private fun GatewayItem(
         title = apelido?.takeIf { it.isNotBlank() } ?: dispositivo.nomeExibicao,
         subtitle = subtituloGateway,
         trailing = {
-            BadgePill(label = "Roteador", bg = LkColors.accent.copy(alpha = 0.10f), fg = LkColors.accent)
+            BadgePill(label = "Roteador", bg = c.primary.copy(alpha = 0.10f), fg = c.primary)
         },
         onTap = onTap,
     )
@@ -538,7 +538,7 @@ private fun DispositivoItem(
                 modifier =
                     Modifier
                         .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(LkRadius.input))
                         .background(iconBg),
                 contentAlignment = Alignment.Center,
             ) {
@@ -640,11 +640,11 @@ private fun DeviceDetailSheet(
 
     val fieldColors =
         OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = LkColors.accent,
+            focusedBorderColor = c.primary,
             unfocusedBorderColor = c.border,
-            focusedLabelColor = LkColors.accent,
+            focusedLabelColor = c.primary,
             unfocusedLabelColor = c.textSecondary,
-            cursorColor = LkColors.accent,
+            cursorColor = c.primary,
             focusedTextColor = c.textPrimary,
             unfocusedTextColor = c.textPrimary,
         )
@@ -667,13 +667,13 @@ private fun DeviceDetailSheet(
                         Modifier
                             .size(48.dp)
                             .clip(CircleShape)
-                            .background(LkColors.accent.copy(alpha = 0.14f)),
+                            .background(c.primary.copy(alpha = 0.14f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = LkColors.accent,
+                        tint = c.primary,
                         modifier = Modifier.size(24.dp),
                     )
                 }
@@ -723,7 +723,7 @@ private fun DeviceDetailSheet(
                     Button(
                         onClick = { onSalvarApelido(apelidoInput.trim()) },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                        colors = ButtonDefaults.buttonColors(containerColor = c.primary),
                     ) {
                         Text("Salvar apelido")
                     }
@@ -794,7 +794,7 @@ private fun DeviceDetailSheet(
                 Text(
                     fonteNomeLabel(dispositivo.fonteNome),
                     style = MaterialTheme.typography.titleSmall,
-                    color = LkColors.accent,
+                    color = c.primary,
                 )
             })
         }
@@ -825,11 +825,11 @@ fun MeshApSheet(
 
     val fieldColors =
         OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = LkColors.accent,
+            focusedBorderColor = c.primary,
             unfocusedBorderColor = c.border,
-            focusedLabelColor = LkColors.accent,
+            focusedLabelColor = c.primary,
             unfocusedLabelColor = c.textSecondary,
-            cursorColor = LkColors.accent,
+            cursorColor = c.primary,
             focusedTextColor = c.textPrimary,
             unfocusedTextColor = c.textPrimary,
         )
@@ -849,7 +849,7 @@ fun MeshApSheet(
                     modifier =
                         Modifier
                             .size(48.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(LkRadius.input))
                             .background(LkColors.success.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -915,7 +915,7 @@ fun MeshApSheet(
                     Button(
                         onClick = { onSalvarApelido(apelidoInput.trim()) },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                        colors = ButtonDefaults.buttonColors(containerColor = c.primary),
                     ) { Text("Salvar apelido") }
                 }
             }
@@ -1058,11 +1058,11 @@ private fun EmptyStateDispositivos(
             )
             Spacer(Modifier.height(24.dp))
             if (isLoading) {
-                CircularProgressIndicator(color = LkColors.accent)
+                CircularProgressIndicator(color = c.primary)
             } else {
                 Button(
                     onClick = onRefresh,
-                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                    colors = ButtonDefaults.buttonColors(containerColor = c.primary),
                 ) {
                     Text("Escanear Rede")
                 }
@@ -1249,9 +1249,9 @@ private fun iconBgColor(
     c: LkTokens,
 ): Color =
     when (tipo) {
-        TipoDispositivo.smartphone -> LkColors.accent.copy(alpha = 0.12f)
+        TipoDispositivo.smartphone -> c.primary.copy(alpha = 0.12f)
         TipoDispositivo.computador -> LkColors.success.copy(alpha = 0.12f)
-        TipoDispositivo.roteador -> LkColors.accent.copy(alpha = 0.12f)
+        TipoDispositivo.roteador -> c.primary.copy(alpha = 0.12f)
         TipoDispositivo.pontoAcesso -> LkColors.success.copy(alpha = 0.12f)
         TipoDispositivo.smarthome -> LkColors.warning.copy(alpha = 0.12f)
         else -> c.bgSecondary
@@ -1263,9 +1263,9 @@ private fun iconFgColor(
     c: LkTokens,
 ): Color =
     when (tipo) {
-        TipoDispositivo.smartphone -> LkColors.accent
+        TipoDispositivo.smartphone -> c.primary
         TipoDispositivo.computador -> LkColors.success
-        TipoDispositivo.roteador -> LkColors.accent
+        TipoDispositivo.roteador -> c.primary
         TipoDispositivo.pontoAcesso -> LkColors.success
         TipoDispositivo.smarthome -> LkColors.warning
         else -> c.textSecondary

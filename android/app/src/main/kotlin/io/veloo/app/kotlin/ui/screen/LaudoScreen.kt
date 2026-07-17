@@ -426,7 +426,7 @@ fun LaudoScreen(
                     enabled = !gerando,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(LkRadius.button),
-                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                    colors = ButtonDefaults.buttonColors(containerColor = c.primary),
                     contentPadding = PaddingValues(vertical = 14.dp),
                 ) {
                     if (gerando) {

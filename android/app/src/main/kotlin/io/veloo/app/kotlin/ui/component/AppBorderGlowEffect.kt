@@ -19,13 +19,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
-import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LocalLkTokens
 
 @Composable
 fun AppBorderGlowEffect(
     active: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    val c = LocalLkTokens.current
     val alphaTarget = if (active) 0.55f else 0f
     val alpha by animateFloatAsState(
         targetValue = alphaTarget,
@@ -46,7 +47,7 @@ fun AppBorderGlowEffect(
     )
 
     if (alpha > 0f) {
-        val baseColor = LkColors.accent
+        val baseColor = c.primary
         val hue = baseColor.toHsl().let { (h, s, l) -> Color.hsl((h + hueShift) % 360f, s, l) }
         val strokeColor = hue.copy(alpha = alpha)
 

@@ -171,7 +171,7 @@ private fun AnaliseDetalhadaConteudo(
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
                         strokeWidth = 2.dp,
-                        color = LkColors.accent,
+                        color = c.primary,
                     )
                     Text(
                         text = "Analisando seu problema...",
@@ -183,7 +183,7 @@ private fun AnaliseDetalhadaConteudo(
 
             is AnalisadorState.Resultado -> {
                 val origemLabel = if (state.origem == "ia") "Análise por IA" else "Diagnóstico local"
-                val origemCor = if (state.origem == "ia") LkColors.accent else c.textTertiary
+                val origemCor = if (state.origem == "ia") c.primary else c.textTertiary
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(LkRadius.card),
@@ -210,7 +210,7 @@ private fun AnaliseDetalhadaConteudo(
                                     Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(LkRadius.card))
-                                        .background(LkColors.accent.copy(alpha = 0.08f))
+                                        .background(c.primary.copy(alpha = 0.08f))
                                         .padding(LkSpacing.md),
                                 verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
                             ) {
@@ -219,7 +219,7 @@ private fun AnaliseDetalhadaConteudo(
                                         Icon(
                                             imageVector = Icons.Outlined.Info,
                                             contentDescription = null,
-                                            tint = LkColors.accent,
+                                            tint = c.primary,
                                             modifier = Modifier.size(18.dp),
                                         )
                                         Spacer(Modifier.width(LkSpacing.sm))

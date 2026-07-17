@@ -164,7 +164,7 @@ fun NovidadesScreen(
                         )
                         Spacer(Modifier.height(LkSpacing.md))
                         TextButton(onClick = { tentativa++ }) {
-                            Text(stringResource(R.string.global_btn_tentar_novamente), color = LkColors.accent)
+                            Text(stringResource(R.string.global_btn_tentar_novamente), color = c.primary)
                         }
                     }
                 }
@@ -197,7 +197,7 @@ private fun NovidadeRow(
     val (badgeLabel, badgeCor) =
         when (item.tipo) {
             "novo" -> "NOVO" to LkColors.success
-            "melhoria" -> "MELHORIA" to LkColors.accent
+            "melhoria" -> "MELHORIA" to c.primary
             "correcao" -> "CORREÇÃO" to LkColors.error
             else -> item.tipo.uppercase() to c.textSecondary
         }

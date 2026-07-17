@@ -46,7 +46,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -113,11 +112,11 @@ fun MinhaConexaoSheet(
     }
     val fieldColors =
         OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = LkColors.accent,
+            focusedBorderColor = c.primary,
             unfocusedBorderColor = c.border,
-            focusedLabelColor = LkColors.accent,
+            focusedLabelColor = c.primary,
             unfocusedLabelColor = c.textSecondary,
-            cursorColor = LkColors.accent,
+            cursorColor = c.primary,
             focusedTextColor = c.textPrimary,
             unfocusedTextColor = c.textPrimary,
         )
@@ -168,7 +167,7 @@ fun MinhaConexaoSheet(
                     modifier = Modifier.fillMaxWidth(),
                     colors = fieldColors,
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(LkRadius.input),
                 )
             }
 
@@ -183,7 +182,7 @@ fun MinhaConexaoSheet(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = fieldColors,
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(LkRadius.input),
                     )
                     OutlinedTextField(
                         value = upMbpsEdit,
@@ -193,7 +192,7 @@ fun MinhaConexaoSheet(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = fieldColors,
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(LkRadius.input),
                     )
                 }
             }
@@ -213,7 +212,7 @@ fun MinhaConexaoSheet(
                     modifier = Modifier.fillMaxWidth(),
                     colors = fieldColors,
                     singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(LkRadius.input),
                 )
             }
 
@@ -233,7 +232,7 @@ fun MinhaConexaoSheet(
                     Modifier
                         .fillMaxWidth()
                         .height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                colors = ButtonDefaults.buttonColors(containerColor = c.primary),
                 shape = RoundedCornerShape(LkRadius.button),
             ) {
                 Text(
@@ -326,16 +325,16 @@ private fun EstadoUfDropdown(
                     .menuAnchor(type = MenuAnchorType.PrimaryNotEditable),
             colors =
                 OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = LkColors.accent,
+                    focusedBorderColor = c.primary,
                     unfocusedBorderColor = c.border,
-                    focusedLabelColor = LkColors.accent,
+                    focusedLabelColor = c.primary,
                     unfocusedLabelColor = c.textSecondary,
-                    cursorColor = LkColors.accent,
+                    cursorColor = c.primary,
                     focusedTextColor = c.textPrimary,
                     unfocusedTextColor = c.textPrimary,
                 ),
             singleLine = true,
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(LkRadius.input),
         )
         ExposedDropdownMenu(
             expanded = expanded,
@@ -347,7 +346,7 @@ private fun EstadoUfDropdown(
                     text = {
                         Text(
                             uf,
-                            color = if (uf == estadoUf) LkColors.accent else c.textPrimary,
+                            color = if (uf == estadoUf) c.primary else c.textPrimary,
                             fontWeight = if (uf == estadoUf) FontWeight.W600 else FontWeight.W400,
                         )
                     },
@@ -357,7 +356,7 @@ private fun EstadoUfDropdown(
                     },
                     modifier =
                         Modifier.background(
-                            if (uf == estadoUf) LkColors.accent.copy(alpha = 0.08f) else c.bgSecondary,
+                            if (uf == estadoUf) c.primary.copy(alpha = 0.08f) else c.bgSecondary,
                         ),
                 )
             }

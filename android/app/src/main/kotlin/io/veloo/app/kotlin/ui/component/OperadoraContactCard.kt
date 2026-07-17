@@ -105,7 +105,7 @@ fun OperadoraContactCard(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(LkRadius.button),
-                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.accent),
+                    colors = ButtonDefaults.buttonColors(containerColor = c.primary),
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Call,
@@ -245,7 +245,7 @@ fun OperadoraContactCard(
                     text = stringResource(R.string.operadora_contact_buscar_anatel),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.W600,
-                    color = LkColors.accent,
+                    color = c.primary,
                 )
             }
         }

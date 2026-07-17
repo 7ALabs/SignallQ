@@ -2,7 +2,6 @@
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -118,7 +117,7 @@ private fun qualidadeColor(
     val dl = m.downloadMbps ?: return c.textTertiary
     return when {
         dl >= 100 -> LkColors.success
-        dl >= 25 -> LkColors.accent
+        dl >= 25 -> c.primary
         dl >= 10 -> LkColors.warning
         else -> LkColors.error
     }
@@ -188,12 +187,15 @@ private fun vereditoLabel(v: String?): String? =
     }
 
 /** Veredito humano do bufferbloat -- mesma regua canonica de [MetricClassifier.classificarBufferbloat]. */
-private fun bufferbloatVeredito(deltaMs: Double): Pair<String, Color> =
+private fun bufferbloatVeredito(
+    deltaMs: Double,
+    c: LkTokens,
+): Pair<String, Color> =
     when (MetricClassifier.classificarBufferbloat(deltaMs)) {
         MetricStatus.excelente, MetricStatus.bom -> "Baixo" to LkColors.success
         MetricStatus.regular -> "Moderado" to LkColors.warning
         MetricStatus.ruim, MetricStatus.critico -> "Alto" to LkColors.error
-        MetricStatus.inconclusivo -> "—" to LkColors.accent
+        MetricStatus.inconclusivo -> "—" to c.primary
     }
 
 private fun gargaloLabel(g: String?): String? =
@@ -223,7 +225,7 @@ private fun FiltrosConexao(
             if (compact) {
                 Modifier
                     .width(220.dp)
-                    .clip(RoundedCornerShape(999.dp))
+                    .clip(RoundedCornerShape(LkRadius.pill))
                     .background(c.surfaceContainer)
                     .padding(4.dp)
             } else {
@@ -237,7 +239,7 @@ private fun FiltrosConexao(
                     modifier =
                         Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(999.dp))
+                            .clip(RoundedCornerShape(LkRadius.pill))
                             .clickable { onFiltroChange(filtro) },
                     color = if (filtroSelecionado == filtro) c.secondaryContainer else Color.Transparent,
                 ) {
@@ -612,7 +614,7 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
         Row(Modifier.fillMaxWidth()) {
             PrimaryMetric(
                 arrow = "↓",
-                arrowColor = LkColors.accent,
+                arrowColor = c.primary,
                 value = dl?.let { "%.1f".format(it) } ?: "--",
                 label = "Download",
                 modifier = Modifier.weight(1f),
@@ -642,9 +644,9 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
         LkSheetDivider()
 
         if (medicao.fonte == "orbit") {
-            // accent puro sobre fundo escuro cai a ~3.1:1 (falha WCAG AA) — em dark
-            // theme usa a variante clara accentOnDark p/ texto (ver GH#505).
-            val origemColor = if (isSystemInDarkTheme()) LkColors.accentOnDark else LkColors.accent
+            // GH#505: accent puro sobre fundo escuro cai a ~3.1:1 (falha WCAG AA) — c.primary
+            // já resolve para a variante clara em dark theme (SignallQTheme.kt), sem check manual.
+            val origemColor = c.primary
             LkSheetInfoRow("Origem", "Diagnóstico gerado por IA", valueColor = origemColor)
             LkSheetDivider()
         }
@@ -655,7 +657,7 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
             LkSheetDivider()
         }
         if (bufferbloat != null) {
-            val (bloatVeredito, bloatColor) = bufferbloatVeredito(bufferbloat)
+            val (bloatVeredito, bloatColor) = bufferbloatVeredito(bufferbloat, c)
             LkSheetInfoRow("Bufferbloat", "${"%.0f".format(bufferbloat)} ms — $bloatVeredito", valueColor = bloatColor)
             LkSheetDivider()
         }
@@ -737,14 +739,9 @@ private fun DiagnosticoHistoricoSection(
             }
         }
         Spacer(Modifier.height(LkSpacing.sm))
-        // accent puro sobre fundo escuro cai a ~3.1:1 (falha WCAG AA) — em dark
-        // theme usa a variante clara accentOnDark p/ texto (ver GH#505).
-        val origemColor =
-            if (origem == "ia") {
-                if (isSystemInDarkTheme()) LkColors.accentOnDark else LkColors.accent
-            } else {
-                c.textTertiary
-            }
+        // GH#505: accent puro sobre fundo escuro cai a ~3.1:1 (falha WCAG AA) — c.primary
+        // já resolve para a variante clara em dark theme (SignallQTheme.kt), sem check manual.
+        val origemColor = if (origem == "ia") c.primary else c.textTertiary
         Text(
             text = if (origem == "ia") "Gerado por IA" else "Diagnóstico local",
             style = MaterialTheme.typography.labelMedium,

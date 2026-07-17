@@ -273,7 +273,7 @@ fun ResultadoVelocidadeScreen(
                                     .size(24.dp)
                                     .padding(end = 8.dp),
                             strokeWidth = 2.dp,
-                            color = LkColors.accent,
+                            color = c.primary,
                         )
                     } else {
                         IconButton(onClick = {
@@ -372,13 +372,13 @@ fun ResultadoVelocidadeScreen(
                     Text(
                         text = if (metricasDetalhadasAbertas) "Ocultar métricas detalhadas" else "Ver métricas detalhadas",
                         style = MaterialTheme.typography.labelLarge,
-                        color = LkColors.accent,
+                        color = c.primary,
                     )
                     Spacer(Modifier.width(4.dp))
                     Icon(
                         imageVector = Icons.Outlined.ExpandMore,
                         contentDescription = null,
-                        tint = LkColors.accent,
+                        tint = c.primary,
                         modifier = Modifier.size(18.dp).rotate(if (metricasDetalhadasAbertas) 180f else 0f),
                     )
                 }
@@ -714,7 +714,7 @@ private fun DiagnosticoDetalhadoSheet(
             Icon(
                 imageVector = Icons.Outlined.AutoAwesome,
                 contentDescription = null,
-                tint = LkColors.accent,
+                tint = c.primary,
                 modifier = Modifier.size(24.dp),
             )
             Spacer(Modifier.width(LkSpacing.sm))
@@ -1093,7 +1093,7 @@ private fun DiagnosticoStatusBanner(
             CircularProgressIndicator(
                 modifier = Modifier.size(20.dp),
                 strokeWidth = 2.dp,
-                color = LkColors.accent,
+                color = c.primary,
             )
             Text(
                 text = "Analisando seu resultado com IA…",
@@ -1278,7 +1278,7 @@ private fun RecomendacaoCard(
         Icon(
             imageVector = Icons.Outlined.Info,
             contentDescription = null,
-            tint = LkColors.accent,
+            tint = c.primary,
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(LkSpacing.sm))
@@ -1331,7 +1331,7 @@ private fun RecommendationEngineCard(
             Icon(
                 imageVector = Icons.Outlined.AutoAwesome,
                 contentDescription = null,
-                tint = LkColors.accent,
+                tint = c.primary,
                 modifier = Modifier.size(18.dp),
             )
             Spacer(Modifier.width(LkSpacing.sm))
@@ -1407,7 +1407,7 @@ private fun RecommendationFeedbackButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        shape = RoundedCornerShape(999.dp),
+        shape = RoundedCornerShape(LkRadius.pill),
         contentPadding = ButtonDefaults.TextButtonContentPadding,
         border = BorderStroke(1.dp, c.border),
     ) {
@@ -1469,7 +1469,7 @@ private fun AnalisadorEntryRow(
                 Icon(
                     imageVector = Icons.Outlined.AutoAwesome,
                     contentDescription = null,
-                    tint = LkColors.accent,
+                    tint = c.primary,
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.width(LkSpacing.sm))
@@ -1510,7 +1510,7 @@ private fun AnalisadorEntryRow(
                 CircularProgressIndicator(
                     modifier = Modifier.size(16.dp),
                     strokeWidth = 2.dp,
-                    color = LkColors.accent,
+                    color = c.primary,
                 )
                 Text(
                     text = "Preparando o diagnóstico da IA…",

@@ -167,7 +167,7 @@ fun PrivacidadeScreen(
                     Icon(
                         imageVector = Icons.Outlined.Delete,
                         contentDescription = null,
-                        tint = LkColors.accent,
+                        tint = c.primary,
                         modifier = Modifier.size(20.dp),
                     )
                     Column(modifier = Modifier.weight(1f)) {
