@@ -50,6 +50,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import io.signallq.app.BuildConfig
 import io.signallq.app.R
 import io.signallq.app.ads.AdSlot
@@ -112,6 +113,29 @@ private enum class Overlay {
 
     // GH#936 — Fase 7: reorganização 6a-6f concluída (ver AjustesScreen.kt).
     Perfil,
+}
+
+/**
+ * GH#1098 — zIndex real do overlay dentro da `Box`, baseado na posição em [overlayStack] (não na
+ * ordem de declaração no arquivo). Sem isso, o Z-order de desenho seguia a ordem em que cada
+ * bloco `AnimatedVisibility` aparece no código-fonte — um overlay empilhado por cima de outro
+ * declarado DEPOIS dele desenhava por baixo (ex.: abrir Perfil e depois Novidades por cima
+ * escondia a tela nova, mesmo com `overlayStack` correto).
+ *
+ * Guarda o último índice válido (>= 0) para não derrubar o zIndex no instante em que o overlay
+ * é removido de [overlayStack] — sem isso, a animação de saída (`AnimatedVisibility` com
+ * `exit = slideOutVertically`) cairia atrás do conteúdo principal no meio da transição, em vez
+ * de continuar visível por cima até terminar.
+ */
+@Composable
+private fun rememberOverlayZIndex(
+    overlay: Overlay,
+    overlayStack: List<Overlay>,
+): Float {
+    val indiceAtual = overlayStack.indexOf(overlay)
+    val ultimoIndiceValido = remember { mutableIntStateOf(0) }
+    if (indiceAtual >= 0) ultimoIndiceValido.intValue = indiceAtual
+    return (ultimoIndiceValido.intValue + 1).toFloat()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -369,6 +393,15 @@ fun AppShell(
         onReconectarFibra(modemHost ?: "", modemUsername, modemPassword)
         if (Overlay.Fibra !in overlayStack) overlayStack.add(Overlay.Fibra)
     }
+
+    // GH#1099 — CTA "Configure o acesso ao equipamento" (EquipamentoInternetScreen, estado
+    // AcessoEquipamento.CREDENCIAIS_NECESSARIAS) abria Ajustes genérico via onAbrirPerfilOverlay
+    // em vez do formulário real de credenciais — mesma GatewayConnectionSheet já usada pelo nó
+    // do gateway na Home (ver HomeScreen.kt). Como o usuário já está dentro do overlay de
+    // equipamento, aqui não empilha Overlay.Fibra de novo — só persiste a credencial e
+    // reconecta com o dado novo, deixando a tela por trás atualizar sozinha.
+    var showEquipamentoCredenciaisSheet by remember { mutableStateOf(false) }
+    val onAbrirCredenciaisEquipamento: () -> Unit = { showEquipamentoCredenciaisSheet = true }
 
     // GH#933 — Fase 4: callbacks de overlay compartilhados entre os entry points antigos
     // (Home, SpeedTest, Ajustes) e os novos atalhos do hub Ferramentas — evita duplicar a
@@ -680,6 +713,7 @@ fun AppShell(
 
         AnimatedVisibility(
             visible = Overlay.ResultadoVelocidade in overlayStack && snapshotSpeedtest.resultado != null,
+            modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.ResultadoVelocidade, overlayStack)),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
@@ -718,6 +752,7 @@ fun AppShell(
 
         AnimatedVisibility(
             visible = Overlay.Laudo in overlayStack,
+            modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Laudo, overlayStack)),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
@@ -740,6 +775,7 @@ fun AppShell(
 
         AnimatedVisibility(
             visible = Overlay.Privacidade in overlayStack,
+            modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Privacidade, overlayStack)),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
@@ -754,6 +790,7 @@ fun AppShell(
 
         AnimatedVisibility(
             visible = Overlay.Novidades in overlayStack,
+            modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Novidades, overlayStack)),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
@@ -764,11 +801,14 @@ fun AppShell(
         }
 
         if (Overlay.Ping in overlayStack) {
-            PingScreen(onDismiss = { overlayStack.remove(Overlay.Ping) })
+            Box(modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Ping, overlayStack))) {
+                PingScreen(onDismiss = { overlayStack.remove(Overlay.Ping) })
+            }
         }
 
         AnimatedVisibility(
             visible = Overlay.Fibra in overlayStack,
+            modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Fibra, overlayStack)),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
@@ -781,7 +821,7 @@ fun AppShell(
                 modemPassword = modemPassword,
                 onVoltar = { overlayStack.remove(Overlay.Fibra) },
                 onRetentar = { onReconectarFibra(modemHost ?: "", modemUsername, modemPassword) },
-                onAbrirAjustes = onAbrirPerfilOverlay,
+                onAbrirAjustes = onAbrirCredenciaisEquipamento,
                 onReiniciarEquipamento = onReiniciarEquipamento,
                 onVerDispositivos = onAbrirDispositivosOverlay,
                 onExecutarDiagnostico = onAbrirLaudoOverlay,
@@ -791,6 +831,7 @@ fun AppShell(
 
         AnimatedVisibility(
             visible = Overlay.Dispositivos in overlayStack,
+            modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Dispositivos, overlayStack)),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
@@ -813,6 +854,7 @@ fun AppShell(
         // (engine plugável Nokia, unico provider real hoje — ver decisao #1 do plano).
         AnimatedVisibility(
             visible = Overlay.EquipamentoInternet in overlayStack,
+            modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.EquipamentoInternet, overlayStack)),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
@@ -825,7 +867,7 @@ fun AppShell(
                 modemPassword = modemPassword,
                 onVoltar = { overlayStack.remove(Overlay.EquipamentoInternet) },
                 onRetentar = { onReconectarFibra(modemHost ?: "", modemUsername, modemPassword) },
-                onAbrirAjustes = onAbrirPerfilOverlay,
+                onAbrirAjustes = onAbrirCredenciaisEquipamento,
                 onReiniciarEquipamento = onReiniciarEquipamento,
                 onVerDispositivos = onAbrirDispositivosOverlay,
                 onExecutarDiagnostico = onAbrirLaudoOverlay,
@@ -838,6 +880,7 @@ fun AppShell(
         // 4 usa FerramentasScreen diretamente, sem passar por este overlay.
         AnimatedVisibility(
             visible = Overlay.Ferramentas in overlayStack,
+            modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Ferramentas, overlayStack)),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
@@ -859,6 +902,7 @@ fun AppShell(
         // roteada — lógica de benchmark preservada, ver DnsScreen.kt.
         AnimatedVisibility(
             visible = Overlay.Dns in overlayStack,
+            modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Dns, overlayStack)),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
@@ -874,6 +918,7 @@ fun AppShell(
         // GH#935 — Fase 6: tela real de Jogos (fluxo de 5 etapas).
         AnimatedVisibility(
             visible = Overlay.Jogos in overlayStack,
+            modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Jogos, overlayStack)),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
@@ -890,6 +935,7 @@ fun AppShell(
         // avatar no TopBar em vez da antiga tab 4.
         AnimatedVisibility(
             visible = Overlay.Perfil in overlayStack,
+            modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Perfil, overlayStack)),
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
         ) {
@@ -1033,6 +1079,25 @@ fun AppShell(
                 onDefinirNotificacaoDnsAtiva = onDefinirNotificacaoDnsAtiva,
                 onDefinirNotificacaoRssiAtiva = onDefinirNotificacaoRssiAtiva,
                 onDefinirNotificacaoSemInternetAtiva = onDefinirNotificacaoSemInternetAtiva,
+            )
+        }
+
+        // GH#1099 — formulário real de credenciais do equipamento, aberto pelo CTA "Revisar
+        // configurações"/"Configure o acesso" dentro do overlay de Fibra/EquipamentoInternet.
+        // Mesmo componente e mecânica do nó do gateway na Home (GatewayConnectionSheet).
+        if (showEquipamentoCredenciaisSheet) {
+            GatewayConnectionSheet(
+                ipInicial = modemHost,
+                usuarioInicial = modemUsername,
+                senhaInicial = modemPassword,
+                lembrarSenhaInicial = modemUsername.isNotBlank() || modemPassword.isNotBlank(),
+                manterConectadoInicial = modemPermanecerConectado,
+                onDismissRequest = { showEquipamentoCredenciaisSheet = false },
+                conectar = gatewayConnectionServiceMock,
+                onConectado = { ip, usuario, senha, lembrarSenha, manterConectado ->
+                    onRegistrarConexaoGateway(ip, usuario, senha, lembrarSenha, manterConectado, bssidAtual)
+                    onReconectarFibra(ip, usuario, senha)
+                },
             )
         }
     }
