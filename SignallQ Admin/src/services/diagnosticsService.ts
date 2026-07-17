@@ -89,13 +89,19 @@ export const diagnosticsService = {
         averageJitterMs: 11,
         averagePacketLossPercentage: 1.2,
         issueDistribution: {
-          wifi_signal_weak: 120,
-          bufferbloat_upload: 98,
-          dns_latency_high: 140,
-          mobile_congestion_suspected: 15,
-          gateway_slow: 45,
-          packet_loss: 12,
-          upload_bottleneck: 58,
+          sinal_fraco: 120,
+          bufferbloat: 98,
+          falha_dns: 140,
+          alta_latencia: 0,
+          jitter_alto: 15,
+          gateway_inacessivel: 45,
+          perda_de_pacotes: 12,
+          upload_lento: 58,
+          download_lento: 0,
+          problema_fibra: 0,
+          interferencia_canal_wifi: 0,
+          problema_banda: 0,
+          none: 0,
           unknown: 8
         }
       };

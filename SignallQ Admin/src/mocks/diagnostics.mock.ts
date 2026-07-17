@@ -29,12 +29,12 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
     },
     issues: [
       {
-        issue: "upload_bottleneck",
+        issue: "upload_lento",
         severity: "critical",
         description: "Taxa de upload inferior a 2 Mbps impede streaming ou uploads pesados.",
       },
       {
-        issue: "mobile_congestion_suspected",
+        issue: "perda_de_pacotes",
         severity: "attention",
         description: "Latência elevada e perda de pacotes indicam possível congestionamento na ERB de celular.",
       }
@@ -72,12 +72,12 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
     },
     issues: [
       {
-        issue: "wifi_signal_weak",
+        issue: "sinal_fraco",
         severity: "critical",
         description: "Sinal de Wi-Fi fraco (-82 dBm) no canal 6 altamente congestionado.",
       },
       {
-        issue: "bufferbloat_upload",
+        issue: "bufferbloat",
         severity: "attention",
         description: "Aumento drástico de latência durante transferência simultânea na rede local.",
       }
@@ -143,7 +143,7 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
     },
     issues: [
       {
-        issue: "dns_latency_high",
+        issue: "falha_dns",
         severity: "attention",
         description: "Tempo de resposta do servidor DNS está acima do limiar crítico de 100ms.",
       }
@@ -202,7 +202,7 @@ export const mockDiagnosticSessions: DiagnosticSession[] = [
     },
     issues: [
       {
-        issue: "gateway_slow",
+        issue: "gateway_inacessivel",
         severity: "attention",
         description: "O primeiro salto da conexão (gateway padrão) está apresentando latência de rádio acima de 45ms.",
       }
@@ -225,13 +225,19 @@ export const mockDiagnosticsSummary: DiagnosticsSummary = {
   averageJitterMs: 8,
   averagePacketLossPercentage: 0.7,
   issueDistribution: {
-    wifi_signal_weak: 12450,
-    bufferbloat_upload: 9812,
-    dns_latency_high: 8011,
-    mobile_congestion_suspected: 7120,
-    gateway_slow: 4120,
-    packet_loss: 3450,
-    upload_bottleneck: 5880,
+    sinal_fraco: 12450,
+    bufferbloat: 9812,
+    falha_dns: 8011,
+    alta_latencia: 0,
+    jitter_alto: 7120,
+    gateway_inacessivel: 4120,
+    perda_de_pacotes: 3450,
+    upload_lento: 5880,
+    download_lento: 0,
+    problema_fibra: 0,
+    interferencia_canal_wifi: 0,
+    problema_banda: 0,
+    none: 0,
     unknown: 1420
   }
 };
