@@ -68,6 +68,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -604,8 +605,14 @@ private fun SinalTopTabRow(
         containerColor = c.bgPrimary,
         contentColor = c.primary,
         divider = { HorizontalDivider(color = c.outlineVariant, thickness = 1.dp) },
-        indicator = {
+        // GH#1080 (P0): faltava `modifier = Modifier.tabIndicatorOffset(...)` -- sem ele o
+        // TabRow mede o indicador com Constraints.fixed(larguraTotal, alturaTotal) da propria
+        // TabRow (nao so a altura de 3dp pedida), entao o indicador cobre a faixa inteira com
+        // cor solida por cima dos 3 labels (Wi-Fi/Canal/Movel), que continuam compostos --
+        // so ficam visualmente cobertos. Padrao correto ja existia em DnsScreen.kt:657-668.
+        indicator = { tabPositions ->
             TabRowDefaults.SecondaryIndicator(
+                modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
                 height = 3.dp,
                 color = c.primary,
             )
