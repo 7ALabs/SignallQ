@@ -1,6 +1,5 @@
 ﻿package io.signallq.app.ui.component
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
@@ -27,11 +25,8 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LocalLkTokens
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 @Composable
 fun ProfileAvatarButton(
@@ -43,16 +38,7 @@ fun ProfileAvatarButton(
     val c = LocalLkTokens.current
     val context = LocalContext.current
     val fotoBitmap: ImageBitmap? by produceState<ImageBitmap?>(initialValue = null, key1 = fotoUri) {
-        value =
-            fotoUri?.let { uriStr ->
-                withContext(Dispatchers.IO) {
-                    runCatching {
-                        context.contentResolver
-                            .openInputStream(uriStr.toUri())
-                            ?.use { stream -> BitmapFactory.decodeStream(stream)?.asImageBitmap() }
-                    }.getOrNull()
-                }
-            }
+        value = fotoUri?.let { uriStr -> decodificarBitmapPerfil(context, uriStr) }
     }
     val profileBrush = Brush.linearGradient(colors = listOf(c.primary, LkColors.accentBlue))
 
@@ -79,7 +65,7 @@ fun ProfileAvatarButton(
             )
         } else {
             Text(
-                text = nomeUsuario.firstOrNull()?.uppercaseChar()?.toString() ?: "L",
+                text = inicialFallbackAvatar(nomeUsuario),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.W700,
                 color = LkColors.signallQTextOnDark,

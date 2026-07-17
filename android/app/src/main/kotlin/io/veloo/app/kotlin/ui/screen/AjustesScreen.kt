@@ -70,6 +70,7 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.component.UserAvatar
 
 @SuppressLint("InlinedApi")
 @OptIn(ExperimentalMaterial3Api::class)
