@@ -47,4 +47,4 @@ Instâncias:
 ## Referências
 
 - Issue #7: Feat(infra) abstrair Dispatchers com DispatcherProvider
-- `ANDROID_TECNICO.md` Seção 3.2 — Injeção: "manual por construtor"
+- `TECNICO.md` Seção 3.2 — Injeção: "manual por construtor"

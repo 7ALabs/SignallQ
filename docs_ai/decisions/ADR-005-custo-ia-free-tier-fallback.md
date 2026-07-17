@@ -42,4 +42,4 @@ O app continua enviando apenas `model` + tokens em `AiUsageIngestPayload`. O pro
 
 - GitHub #234 — `cost_usd` nunca calculado; custo de IA sempre zero no D1.
 - `docs_ai/technical/AI_FLOW.md` — fluxo de IA e fallback.
-- `docs_ai/technical/CLOUDFLARE.md` — workers e ingest do painel admin.
+- `docs_ai/TECNICO.md` — workers e ingest do painel admin.

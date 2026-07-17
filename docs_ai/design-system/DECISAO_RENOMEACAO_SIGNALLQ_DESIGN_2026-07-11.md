@@ -3,6 +3,10 @@
 **Data:** 2026-07-11
 **Responsáveis:** Lia (conteúdo da skill + protótipo), Claudete (varredura de referências e registro)
 
+> **Nota (2026-07-16):** `docs_ai/AGENTS_QUICK_REFERENCE.md` citado abaixo foi arquivado na
+> consolidação de documentação (squad atual documentado em `.claude/CLAUDE.md`, seção "Agentes").
+> Registro preservado como histórico, não como pointer ativo.
+
 ## O que mudou
 
 1. A skill de design system do projeto foi renomeada de `.claude/skills/linka-design/` para

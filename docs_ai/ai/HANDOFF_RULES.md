@@ -2,15 +2,15 @@
 
 > **Fonte da verdade:** `.claude/CLAUDE.md` + `.claude/agents/*.md`. Este arquivo é um resumo apontador.
 > Decisão de fluxo: `docs_ai/decisions/ADR-006-workflow-squad-5-agentes.md`.
-> Versão: v0.23.0 · 2026-07-05.
+> Versão: v0.25.0 · 2026-07-16.
 
 ## Onde vive o handoff
 
-O estado do trabalho vive no **Linear** (status da issue) + **GitHub** (PR). O Linear notifica o Slack diretamente — não criar fluxo manual paralelo.
+O estado do trabalho vive no **GitHub Issues** (status da issue) + **GitHub** (PR). O GitHub notifica o Slack diretamente — não criar fluxo manual paralelo. (Correção 2026-07-16: migração de Linear para GitHub Issues em 2026-07-09 — ver `.claude/CLAUDE.md` seção "Fontes da Verdade".)
 
 Os scripts `agent-handoff.sh`, `notify.sh`, `discord_notify.sh` e o board Discord estão **depreciados**: não são o mecanismo de handoff. Não documentar como fluxo.
 
-Roteamento: **bug → GitHub Issues** (formato `[BUG]`); **feature / task / daily → Linear** (projeto SignallQ).
+Roteamento: **bug → GitHub Issues** (formato `[BUG]`); **feature / task → GitHub Issues** (título `Task - <descrição>`). Linear deixou de ser fonte da verdade de tarefas em 2026-07-09; issues anteriores a essa data (IDs `SIG-XXX`) continuam válidas como referência histórica.
 
 ## Fluxo de handoff (squad de 5)
 

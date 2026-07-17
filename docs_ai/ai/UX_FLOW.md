@@ -7,8 +7,8 @@
 
 ## Objetivos de UX
 
-- **Consistência**: aderência estrita a Material Design 3 (`design-system/MD3_GUIDELINES.md`).
-- **Acessibilidade**: contraste (`design-system/COLORS.md`) e targets de toque adequados.
+- **Consistência**: aderência estrita a Material Design 3 (`DESIGN_SYSTEM.md`).
+- **Acessibilidade**: contraste (`DESIGN_SYSTEM.md`) e targets de toque adequados.
 - **Clareza de diagnóstico**: métrica crua sempre com veredito humano (Excelente/Bom/Regular/Fraco/Forte).
 
 ## Gate de UX condicional
@@ -37,6 +37,6 @@ Bug ou lógica pura, e mudanças em `:core*` sem reflexo visual, **pulam a Lia**
 
 ## Referências
 
-- `design-system/COMPONENTS_ANDROID.md`, `MD3_GUIDELINES.md`, `COLORS.md`, `TYPOGRAPHY.md`, `NAVIGATION.md`
-- `functional/AI_ASSISTANT.md` — apresentação de respostas de IA
-- `functional/DIAGNOSTIC_FLOW.md` — fluxo de diagnóstico
+- `DESIGN_SYSTEM.md` (consolida COMPONENTS_ANDROID/MD3_GUIDELINES/COLORS/TYPOGRAPHY antigos)
+- `FUNCIONAL.md` — apresentação de respostas de IA
+- `FUNCIONAL.md` — fluxo de diagnóstico

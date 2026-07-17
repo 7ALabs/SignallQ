@@ -3,6 +3,12 @@
 **Data:** 2026-07-13
 **Responsável:** Lia (conteúdo da skill, tokens, docs)
 
+> **Nota (2026-07-16):** os arquivos `docs_ai/design-system/COLORS.md`, `DESIGN_TOKENS.md`,
+> `TYPOGRAPHY.md`, `SPACING.md`, `MD3_GUIDELINES.md` e `COMPONENTS_ANDROID.md` citados abaixo foram
+> arquivados em `docs_ai/_archive/` na consolidação de documentação — conteúdo vigente hoje em
+> `docs_ai/DESIGN_SYSTEM.md`. O registro abaixo é preservado como histórico da decisão original,
+> não como pointer ativo.
+
 ## O que aconteceu
 
 Uma auditoria (`docs_ai/operations/AUDITORIA_DESIGN_TOBE_2026-07-13.md`) comparou o app Android

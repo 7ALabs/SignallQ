@@ -12,10 +12,10 @@ App Android de **diagnóstico de conectividade** com IA — analisa Wi-Fi, fibra
 - **Analytics** Firebase Analytics + Crashlytics
 - minSdk 24 · target/compileSdk 36 · JVM 17 (alvo de build) · CI roda em Java 21
 
-## Arquitetura (15 módulos Gradle)
+## Arquitetura (16 módulos Gradle)
 
-- **app** — shell, navegação (`AppShell.kt`, 5 abas: Início, Velocidade, Sinal, Histórico, Ajustes), DI
-- **core** (5): `coreNetwork`, `coreDatabase`, `coreDatastore`, `coreTelephony`, `corePermissions`
+- **app** — shell, navegação (`AppShell.kt`, 5 abas: Início, Velocidade, Sinal, Histórico, Ferramentas), DI
+- **core** (6): `coreNetwork`, `coreDatabase`, `coreDatastore`, `coreTelephony`, `corePermissions`, `coreRecommendation`
 - **feature** (9): `featureHome`, `featureSpeedtest`, `featureWifi`, `featureDevices`, `featureDns`, `featureFibra`, `featureDiagnostico`, `featureHistory`, `featureSettings`
 
 Features são independentes entre si (sem dependência cruzada `:feature*` → `:feature*`).

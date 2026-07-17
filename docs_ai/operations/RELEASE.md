@@ -71,7 +71,7 @@ Quando uma feature flag pós-MVP deve ser ativada no release:
 - [ ] Testes E2E passando
 - [ ] Code review aprovado
 - [ ] Arquivo `.changelog` adicionado descrevendo a feature
-- [ ] ANDROID_TECNICO.md e ANDROID_FUNCIONAL.md atualizados (se necessário)
+- [ ] TECNICO.md e FUNCIONAL.md atualizados (se necessário)
 
 ### Passos
 

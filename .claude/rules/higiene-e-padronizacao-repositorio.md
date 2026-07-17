@@ -111,7 +111,7 @@ subdiretórios `io/veloo`.
 
 ### 4.2 `MainViewModel.kt`
 
-Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/MainViewModel.kt` — **2186 linhas**
+Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/MainViewModel.kt` — **2191 linhas**
 (acima do limiar de "dívida crítica" da seção 7). Concentra responsabilidades demais e não deve
 continuar crescendo indiscriminadamente.
 
@@ -126,7 +126,7 @@ Ao tocar nele:
 
 ### 4.3 `AppShell.kt`
 
-Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/AppShell.kt` — **1140
+Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/AppShell.kt` — **1146
 linhas** (acima do limiar de extração obrigatória da seção 7). Deve ser shell de composição e
 navegação, não depósito de regras de negócio.
 
@@ -137,8 +137,8 @@ chamar isso de modularização.
 
 ### 4.4 `AjustesScreen.kt`
 
-Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/AjustesScreen.kt` — **809
-linhas** (acima do limiar de extração obrigatória da seção 7). Ainda contém múltiplos fluxos e
+Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/AjustesScreen.kt` — **771
+linhas** (acima do limiar de extração obrigatória da seção 7, mas diminuiu de 809 em relação ao último audit). Ainda contém múltiplos fluxos e
 componentes.
 
 Ao tocar em uma seção de Ajustes: extraia sheets e fluxos independentes para arquivos próprios,
@@ -364,22 +364,40 @@ estratégia de rollback quando aplicável. Seguir `issue-conventions` para nomen
 
 ## 10. Documentação
 
-### Estrutura real (validada em 2026-07-15)
+### Estrutura real (validada em 2026-07-16, pós-consolidação)
 
 ```
 docs_ai/
-├── README.md
+├── README.md              (índice curto)
+├── FUNCIONAL.md            (o que o app faz)
+├── TECNICO.md               (como o app é construído/integrado)
+├── DESIGN_SYSTEM.md         (tokens/componentes Android)
+├── ARQUITETURA/
+│   ├── README.md            (visão de sistema, dependências entre módulos)
+│   └── MODULOS/              (um doc por módulo Gradle real — 16 arquivos)
+├── CONTRATOS/
+│   ├── openapi/               (contrato OpenAPI 3.0 por Worker Cloudflare — 5 arquivos)
+│   └── schemas/                (índice de schemas reais: Room, D1, analytics — referencia a origem)
+├── RELEASES.md
 ├── ai/
 ├── brand/
 ├── decisions/
-├── design-system/
-├── functional/
+├── design-system/            (histórico — conteúdo vigente em DESIGN_SYSTEM.md)
+├── functional/                (specs pontuais que não migraram para FUNCIONAL.md)
 ├── legal/
 ├── operations/
-├── technical/
+├── technical/                  (docs pontuais que não migraram para TECNICO.md/ARQUITETURA/)
 ├── testing/
 └── _archive/
 ```
+
+A árvore `FUNCIONAL.md`/`TECNICO.md`/`ARQUITETURA/`/`CONTRATOS/`/`DESIGN_SYSTEM.md` é o alvo para
+conteúdo funcional, técnico, arquitetural, de contrato e de design — não uma exigência de mover
+tudo para dentro dela. `ai/`, `decisions/`, `functional/` (residual), `legal/`, `operations/`,
+`technical/` (residual), `testing/`, `brand/` e `_archive/` continuam existindo para o que não se
+encaixa nessa árvore (processo do squad, ADRs, planos pontuais, mapas de campo de equipamento,
+runbooks, termos legais). Ver `docs_ai/README.md` para o índice completo e a justificativa de cada
+pasta residual.
 
 `docs_ai/README.md` deve funcionar como índice, não como uma segunda documentação completa.
 

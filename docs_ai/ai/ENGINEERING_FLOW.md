@@ -41,7 +41,7 @@ Skills de plataforma: `/regras-android`, `/regras-diagnostico-rede`, `/motor-dia
 
 ## Referências
 
-- `technical/BUILD_SYSTEM.md` — sistema de build, dependências
-- `technical/ARCHITECTURE.md` — arquitetura do sistema
-- `technical/MODULES.md` — módulos e responsabilidades
+- `TECNICO.md` — sistema de build, dependências
+- `ARQUITETURA/README.md` — arquitetura do sistema
+- `TECNICO.md / ARQUITETURA/MODULOS/` — módulos e responsabilidades
 - `ai/TASK_BREAKDOWN.md` — decomposição de tasks

@@ -88,6 +88,6 @@ O SignallQ opera **inteiramente em free tiers** na fase atual. Custos reais surg
 
 ## Decisões Registradas
 
-1. **Modelo AI:** Qwen3 30B escolhido por qualidade de resposta em PT-BR. Se custo escalar, considerar downgrade para modelo menor. *(Atualização: Gemini 2.0 Flash passou a ser o provider primário quando `GEMINI_API_KEY` está configurada; Qwen3 é o fallback — ver `docs_ai/technical/CLOUDFLARE.md`.)*
+1. **Modelo AI:** Qwen3 30B escolhido por qualidade de resposta em PT-BR. Se custo escalar, considerar downgrade para modelo menor. *(Atualização: Gemini 2.0 Flash passou a ser o provider primário quando `GEMINI_API_KEY` está configurada; Qwen3 é o fallback — ver `docs_ai/TECNICO.md`.)*
 2. **Sem banco pago:** D1 (SQLite) atende a necessidade. Sem Supabase, PlanetScale ou similar.
 3. **Sem CDN adicional:** Cloudflare já serve como CDN para Workers e pages.
