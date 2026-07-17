@@ -28,6 +28,7 @@ class MainViewModelHistoricoTest {
     private fun medicao(
         connectionType: String,
         operadoraMovel: String? = null,
+        fonte: String? = null,
     ) = MedicaoEntity(
         id = UUID.randomUUID().toString(),
         timestampEpochMs = System.currentTimeMillis(),
@@ -48,6 +49,7 @@ class MainViewModelHistoricoTest {
         vereditoGamer = null,
         vereditoVideoChamada = null,
         gargaloPrimario = null,
+        fonte = fonte,
         operadoraMovel = operadoraMovel,
     )
 
@@ -69,6 +71,9 @@ class MainViewModelHistoricoTest {
             filtroOpFlow,
         ) { medicoes, fc, op ->
             medicoes
+                // #1096 -- medicoes sinteticas do MonitoramentoWorker (fonte="monitor")
+                // nao devem aparecer no Historico visivel.
+                .filter { m -> m.fonte != "monitor" }
                 .filter { m ->
                     when (fc) {
                         FiltroConexaoHistorico.TODOS -> true
@@ -122,6 +127,20 @@ class MainViewModelHistoricoTest {
         runTest {
             val resultado = filtrar(listaCompleta, FiltroConexaoHistorico.TODOS, null)
             assertEquals(listaCompleta.size, resultado.size)
+        }
+
+    @Test
+    fun `historicoFiltrado com filtro TODOS exclui medicoes sinteticas do monitoramento passivo`() =
+        runTest {
+            val lista =
+                listaCompleta +
+                    listOf(
+                        medicao("wifi", fonte = "monitor"),
+                        medicao(EstadoConexao.movel.name, fonte = "monitor"),
+                    )
+            val resultado = filtrar(lista, FiltroConexaoHistorico.TODOS, null)
+            assertEquals(listaCompleta.size, resultado.size)
+            assertTrue(resultado.none { it.fonte == "monitor" })
         }
 
     @Test

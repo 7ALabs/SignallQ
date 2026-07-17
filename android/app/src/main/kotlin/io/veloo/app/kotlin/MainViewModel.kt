@@ -546,6 +546,10 @@ class MainViewModel
                 _filtroOperadoraHistorico,
             ) { lista, filtroConexao, filtroOp ->
                 lista
+                    // #1096 -- medicoes sinteticas do MonitoramentoWorker (fonte="monitor")
+                    // nao tem download/upload e nao devem poluir a lista visivel do Historico,
+                    // mas continuam no banco alimentando o grafico de uptime.
+                    .filter { m -> m.fonte != "monitor" }
                     .filter { m ->
                         when (filtroConexao) {
                             FiltroConexaoHistorico.TODOS -> true
