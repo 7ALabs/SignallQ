@@ -72,7 +72,6 @@ class OperadoraLogoCatalogTest {
                 "vero",
                 "giga_mais",
                 "topfibra",
-                "coopertec_speed",
                 "viamar",
                 "west_telecom",
                 "west_fibra",
@@ -85,5 +84,16 @@ class OperadoraLogoCatalogTest {
             val identidade = OperadoraLogoCatalog.identidadePara(operadora)
             assertTrue("Operadora $id deveria ter logoRes", identidade.logoRes != null)
         }
+    }
+
+    @Test
+    fun `coopertec_speed nao usa o banner de marketing como logoRes (#1087)`() {
+        // operator_coopertec_speed.webp e um banner completo (tagline + selo "ULTRA FIBRA"),
+        // nao um icone isolado — usa-lo no badge circular pequeno cortava o texto ("Turbi").
+        // Ate a Lia entregar um recorte icon-only seguro, cai no fallback de cor+monograma.
+        val coopertec = BancoOperadoras.lista.first { it.id == "coopertec_speed" }
+        val identidade = OperadoraLogoCatalog.identidadePara(coopertec)
+        assertEquals(null, identidade.logoRes)
+        assertEquals("C", identidade.monograma)
     }
 }

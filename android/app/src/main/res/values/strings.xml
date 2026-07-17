@@ -171,9 +171,6 @@
     <string name="home_atraso_extra_otimo">Ótimo</string>
     <string name="home_atraso_extra_aceitavel">Aceitável</string>
     <string name="home_atraso_extra_alto">Alto</string>
-    <string name="home_minicard_dns">DNS</string>
-    <string name="home_minicard_ping">Ping</string>
-    <string name="home_minicard_diagnostico">Diagnóstico</string>
 
     <!-- Fibra: erros de conexão com o modem -->
     <string name="fibra_erro_modem_inacessivel">A análise de fibra depende de acesso ao modem pela rede local.</string>

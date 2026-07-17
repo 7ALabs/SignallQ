@@ -534,11 +534,6 @@ fun AppShell(
                             onAbrirRedes = { selectedTab = 2 },
                             anatelBannerDismissed = anatelBannerDismissed,
                             onDismissAnatelBanner = onDispensarBannerAnatel,
-                            onAbrirDns = onAbrirDnsOverlay,
-                            onAbrirPing = onAbrirPingOverlay,
-                            onAbrirDiagnostico = onAbrirLaudoOverlay,
-                            snapshotDispositivos = snapshotDevices,
-                            onAbrirDispositivos = onAbrirDispositivosOverlay,
                             resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
                             resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
                         )

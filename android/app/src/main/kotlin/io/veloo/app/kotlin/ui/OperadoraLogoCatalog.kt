@@ -54,7 +54,13 @@ object OperadoraLogoCatalog {
             "west_fibra" to OperadoraVisualIdentity(Color(0xFF1D3E70), "W", R.drawable.operator_westfibra),
             "fhp_fibra" to OperadoraVisualIdentity(Color(0xFFC9584C), "F", R.drawable.operator_fhpfibra),
             "topfibra" to OperadoraVisualIdentity(Color(0xFF007545), "T", R.drawable.operator_topfibra),
-            "coopertec_speed" to OperadoraVisualIdentity(Color(0xFF151ADA), "C", R.drawable.operator_coopertec_speed),
+            // #1087 — operator_coopertec_speed.webp e um banner de marketing completo (com
+            // tagline "Voce conectado, sempre!" e "ULTRA FIBRA"), nao um icone/logomark
+            // isolado; renderizado no badge circular pequeno, aparecia cortado como texto
+            // solto ("Turbi"). Sem asset icon-only seguro pra usar aqui, cai no fallback de
+            // cor+monograma ate a Lia entregar um recorte proprio (nao usar o banner direto —
+            // ver memoria "Imagem de banco sem licenca").
+            "coopertec_speed" to OperadoraVisualIdentity(Color(0xFF151ADA), "C"),
         )
 
     private val padrao = OperadoraVisualIdentity(LkColors.accent, "?", R.drawable.operator_generic)

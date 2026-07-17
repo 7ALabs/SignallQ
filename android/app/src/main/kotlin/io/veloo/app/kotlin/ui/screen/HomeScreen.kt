@@ -217,15 +217,10 @@ fun HomeScreen(
         { _, _, _, _, _ -> },
     anatelBannerDismissed: Boolean,
     onDismissAnatelBanner: () -> Unit,
-    onAbrirDns: () -> Unit,
-    onAbrirPing: () -> Unit,
     onIniciarTeste: (ModoSpeedtest) -> Unit,
     onAbrirHistorico: () -> Unit,
     onAbrirPerfil: () -> Unit,
     onAbrirRedes: () -> Unit,
-    onAbrirDiagnostico: () -> Unit,
-    snapshotDispositivos: io.signallq.app.feature.devices.SnapshotScanDispositivos? = null,
-    onAbrirDispositivos: () -> Unit = {},
     /** GH#970 — resolucao de identidade de operadora (nivel 1, catalogo local, sincrono).
      *  Sem I/O, sem corrotina — mesmo comportamento de sempre pras ~12 operadoras principais. */
     resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity? =
@@ -533,18 +528,6 @@ fun HomeScreen(
                 )
             }
 
-            // 3. Mini-cards DNS / Ping / Diagnóstico IA
-            // #1070 (HOME-011) — composable ficou orfao (definido mas nunca chamado) desde
-            // e1aa9f3e (alinhamento ao design system), derrubando o atalho de DNS da Home.
-            item {
-                MiniCardsRow(
-                    c = c,
-                    onAbrirDns = onAbrirDns,
-                    onAbrirPing = onAbrirPing,
-                    onAbrirDiagnostico = onAbrirDiagnostico,
-                )
-            }
-
             // 4a. Wi-Fi SignalCard
             if (snapshotRede.estadoConexao == EstadoConexao.wifi) {
                 item {
@@ -553,13 +536,6 @@ fun HomeScreen(
                         connectedNetwork = connectedNetwork,
                         c = c,
                         onTap = onAbrirRedes,
-                        quantidadeDispositivos =
-                            snapshotDispositivos
-                                ?.takeIf { it.estado == io.signallq.app.feature.devices.EstadoScanDispositivos.concluido }
-                                ?.dispositivos
-                                ?.size
-                                ?.takeIf { it > 0 },
-                        onTapDispositivos = onAbrirDispositivos,
                     )
                 }
             }
@@ -809,84 +785,6 @@ internal fun BufferbloatCard(
                     color = c.textTertiary,
                 )
             }
-        }
-    }
-}
-
-// ─── #82 MiniCardsRow ─────────────────────────────────────────────────────────
-
-@Composable
-private fun MiniCardsRow(
-    c: LkTokens,
-    onAbrirDns: () -> Unit,
-    onAbrirPing: () -> Unit,
-    onAbrirDiagnostico: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-    ) {
-        MiniCard(
-            icon = Icons.Outlined.Language,
-            label = stringResource(R.string.home_minicard_dns),
-            onClick = onAbrirDns,
-            modifier = Modifier.weight(1f),
-            c = c,
-        )
-        MiniCard(
-            icon = Icons.Outlined.Wifi,
-            label = stringResource(R.string.home_minicard_ping),
-            onClick = onAbrirPing,
-            modifier = Modifier.weight(1f),
-            c = c,
-        )
-        MiniCard(
-            icon = Icons.Outlined.Insights,
-            label = stringResource(R.string.home_minicard_diagnostico),
-            onClick = onAbrirDiagnostico,
-            modifier = Modifier.weight(1f),
-            c = c,
-        )
-    }
-}
-
-@Composable
-private fun MiniCard(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    c: LkTokens,
-) {
-    Surface(
-        modifier =
-            modifier
-                .clip(RoundedCornerShape(LkRadius.card))
-                .clickable(onClick = onClick),
-        shape = RoundedCornerShape(LkRadius.card),
-        color = c.bgCard,
-        border = androidx.compose.foundation.BorderStroke(1.dp, c.border),
-    ) {
-        Row(
-            modifier = Modifier.padding(vertical = LkSpacing.sm, horizontal = LkSpacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = c.primary,
-                modifier = Modifier.size(18.dp),
-            )
-            Text(
-                label,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.W600,
-                color = c.textPrimary,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
         }
     }
 }
@@ -1552,8 +1450,6 @@ private fun WifiSignalCard(
     connectedNetwork: RedeVizinha?,
     c: LkTokens,
     onTap: () -> Unit,
-    quantidadeDispositivos: Int? = null,
-    onTapDispositivos: () -> Unit = {},
 ) {
     val wifiRssi = connectedNetwork?.rssiDbm ?: snapshotRede.wifiLinkSnapshot?.rssiDbm
     val wifiPct = wifiSignalPercent(wifiRssi)
@@ -1664,50 +1560,6 @@ private fun WifiSignalCard(
                     fontWeight = FontWeight.W700,
                     color = iconColor,
                 )
-            }
-            if (!localizacaoDesligada && connectedNetwork != null) {
-                Spacer(Modifier.height(LkSpacing.sm))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
-                ) {
-                    if (wifiRssi != null) {
-                        Text(
-                            text = "RSSI $wifiRssi dBm",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = c.textSecondary,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    ChipSegurancaWifi(seguranca = connectedNetwork.seguranca)
-                    if (quantidadeDispositivos != null) {
-                        val labelDispositivos =
-                            if (quantidadeDispositivos == 1) {
-                                "1 dispositivo na rede"
-                            } else {
-                                "$quantidadeDispositivos dispositivos na rede"
-                            }
-                        AssistChip(
-                            onClick = onTapDispositivos,
-                            label = { Text(labelDispositivos, style = MaterialTheme.typography.labelSmall) },
-                            leadingIcon = {
-                                Icon(Icons.Outlined.DeviceHub, contentDescription = null, modifier = Modifier.size(14.dp))
-                            },
-                            colors =
-                                AssistChipDefaults.assistChipColors(
-                                    containerColor = c.surfaceContainerHigh,
-                                    labelColor = c.onSurfaceVariant,
-                                    leadingIconContentColor = c.onSurfaceVariant,
-                                ),
-                            border =
-                                AssistChipDefaults.assistChipBorder(
-                                    borderColor = c.outlineVariant,
-                                    enabled = true,
-                                ),
-                        )
-                    }
-                }
             }
         }
     }
@@ -3716,19 +3568,6 @@ private fun MobileChipsCard(
 
     if (linhas.isEmpty()) return
 
-    val operadoraPrincipal =
-        remember(movelSnapshot, simsAtivos) {
-            simsAtivos.firstOrNull { !it.operadora.isNullOrBlank() }?.operadora
-                ?: movelSnapshot?.operadora
-        }
-    val identidadePrincipal =
-        rememberResolvedOperadoraIdentity(
-            ispNomeBruto = operadoraPrincipal,
-            viaMovel = true,
-            resolveLocal = resolveOperadoraIdentidadeLocal,
-            resolveRemoteOrFallback = resolveOperadoraIdentidadeRemota,
-        )
-
     SignallQCard(c) {
         Column {
             Text(
@@ -3738,37 +3577,23 @@ private fun MobileChipsCard(
                 color = c.textTertiary,
             )
             Spacer(Modifier.height(LkSpacing.md))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
-            ) {
-                if (identidadePrincipal != null) {
-                    OperadoraBadge(identidade = identidadePrincipal, size = 32.dp)
-                } else {
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(c.surfaceContainerHighest),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Smartphone,
-                            contentDescription = null,
-                            tint = c.textSecondary,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                }
-                Text(
-                    text = "Operadoras detectadas",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textSecondary,
-                )
-            }
+            Text(
+                text = "Operadoras detectadas",
+                style = MaterialTheme.typography.bodySmall,
+                color = c.textSecondary,
+            )
             Spacer(Modifier.height(LkSpacing.md))
             linhas.forEachIndexed { index, (operadora, status) ->
+                // #1087 — logo real da operadora (catalogo local, fallback operator_generic
+                // via OperadoraBadge/OperadoraLogoCatalog), uma resolucao por linha porque cada
+                // SIM pode ser de uma operadora diferente (nao reusa so a "principal").
+                val identidadeLinha =
+                    rememberResolvedOperadoraIdentity(
+                        ispNomeBruto = operadora,
+                        viaMovel = true,
+                        resolveLocal = resolveOperadoraIdentidadeLocal,
+                        resolveRemoteOrFallback = resolveOperadoraIdentidadeRemota,
+                    )
                 Row(
                     modifier =
                         Modifier
@@ -3777,34 +3602,24 @@ private fun MobileChipsCard(
                             .padding(vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(c.surfaceContainerHighest),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Canvas(modifier = Modifier.matchParentSize()) {
-                            val stripeColor = c.surfaceContainerHigh
-                            val gap = 6.dp.toPx()
-                            var startX = -size.height
-                            while (startX < size.width) {
-                                drawLine(
-                                    color = stripeColor,
-                                    start = Offset(startX, size.height),
-                                    end = Offset(startX + size.height, 0f),
-                                    strokeWidth = 3.dp.toPx(),
-                                )
-                                startX += gap
-                            }
+                    if (identidadeLinha != null) {
+                        OperadoraBadge(identidade = identidadeLinha, size = 40.dp)
+                    } else {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(c.surfaceContainerHighest),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Smartphone,
+                                contentDescription = null,
+                                tint = c.textSecondary,
+                                modifier = Modifier.size(18.dp),
+                            )
                         }
-                        Icon(
-                            imageVector = Icons.Outlined.Smartphone,
-                            contentDescription = null,
-                            tint = c.textSecondary,
-                            modifier = Modifier.size(18.dp),
-                        )
                     }
                     Spacer(Modifier.width(LkSpacing.md))
                     Text(

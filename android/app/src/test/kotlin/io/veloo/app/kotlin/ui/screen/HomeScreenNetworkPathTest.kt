@@ -55,13 +55,10 @@ class HomeScreenNetworkPathTest {
                     simsAtivos = emptyList(),
                     anatelBannerDismissed = true,
                     onDismissAnatelBanner = {},
-                    onAbrirDns = {},
-                    onAbrirPing = {},
                     onIniciarTeste = {},
                     onAbrirHistorico = {},
                     onAbrirPerfil = {},
                     onAbrirRedes = {},
-                    onAbrirDiagnostico = {},
                 )
             }
         }

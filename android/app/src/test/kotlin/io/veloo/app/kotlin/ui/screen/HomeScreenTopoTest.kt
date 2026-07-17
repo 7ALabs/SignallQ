@@ -10,6 +10,7 @@ import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import io.signallq.app.ui.SignallQTheme
+import org.junit.Assert.assertThrows
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -17,9 +18,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * #1069 (HOME-002) e #1070 (HOME-011) — caracteriza o avatar do TopAppBar e o atalho de
- * DNS na tela Início. O atalho ficou orfao (composable definido, nunca chamado) desde
- * e1aa9f3e; este teste trava a regressão.
+ * #1069 (HOME-002) — caracteriza o avatar do TopAppBar na tela Início.
+ * #1086 — os pills DNS/Ping/Diagnóstico foram removidos da Home de vez (viraram overlays/
+ * Ferramentas, não fazem mais parte da tela Início); trava a regressão do pill DNS não voltar.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp")
@@ -28,7 +29,7 @@ class HomeScreenTopoTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `avatar do perfil e atalho de DNS aparecem na tela Inicio`() {
+    fun `avatar do perfil aparece e pill DNS nao aparece mais na tela Inicio`() {
         composeRule.setContent {
             SignallQTheme {
                 HomeScreen(
@@ -54,18 +55,17 @@ class HomeScreenTopoTest {
                     simsAtivos = emptyList(),
                     anatelBannerDismissed = true,
                     onDismissAnatelBanner = {},
-                    onAbrirDns = {},
-                    onAbrirPing = {},
                     onIniciarTeste = {},
                     onAbrirHistorico = {},
                     onAbrirPerfil = {},
                     onAbrirRedes = {},
-                    onAbrirDiagnostico = {},
                 )
             }
         }
 
         composeRule.onNodeWithContentDescription("Foto de perfil de Luiz").assertIsDisplayed().assertHasClickAction()
-        composeRule.onNodeWithText("DNS").assertIsDisplayed().assertHasClickAction()
+        assertThrows(AssertionError::class.java) {
+            composeRule.onNodeWithText("DNS").assertIsDisplayed()
+        }
     }
 }
