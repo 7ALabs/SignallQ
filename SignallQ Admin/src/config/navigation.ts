@@ -18,30 +18,55 @@ export interface NavigationSection {
 }
 
 /**
- * GH#552 (Fase 1) — menu redesenhado como console operacional, 9 entradas
- * (uma por pergunta-guia), sem agrupamento por seção — ver
- * `docs_ai/_archive/2026-07-12_WIREFRAME_ADMIN_REDESIGN_552.md`.
+ * Alinhado ao NAV.map do protótipo To-Be MD3 confirmado em 2026-07-17
+ * (`docs_ai/design-system/PLANO_APLICACAO_TOBE_CONSOLE_2026-07-17.md`, achado
+ * transversal #1 — fonte: `Md3NavDrawer.dc.html`/`Md3NavRail.dc.html`, projeto
+ * Claude Design "SignallQ Design System", pasta `signallq-admin-fluxo-tobe-md3`).
+ * 5 seções: "Centro de Controle" solta no topo (sem rótulo de grupo), depois
+ * "App", "Rede & Operadora", "Custos & Sistema", "Administração" — substitui o
+ * agrupamento flat de 9/10 entradas do GH#552 (Fase 1, ver
+ * `docs_ai/_archive/2026-07-12_WIREFRAME_ADMIN_REDESIGN_552.md`), que usava a
+ * referência de design errada.
  *
  * Cada item ainda aponta para a rota/slug técnico atual (`/overview`, `/errors`
- * etc.) — a migração de rótulo é feita aqui, a migração de CONTEÚDO de tela é
- * Fase 2/3, fora deste escopo. "Redes & Provedores" e "Configurações" são
- * fusões previstas (networks+operators, settings+feature-flags): por ora
- * apontam para a rota primária (`/networks`, `/settings`); `/operators` e
- * `/feature-flags` continuam existindo e acessíveis por hash direto até a
- * fusão de conteúdo acontecer.
+ * etc.). "Redes & Provedores" e "Configurações" são fusões previstas
+ * (networks+operators, settings+feature-flags): por ora apontam para a rota
+ * primária (`/networks`, `/settings`); `/operators` e `/feature-flags`
+ * continuam existindo e acessíveis por hash direto até a fusão de conteúdo
+ * acontecer.
  */
 export const NAVIGATION_SECTIONS: NavigationSection[] = [
   {
     label: "",
     items: [
       { name: "Centro de Controle", path: "/overview", iconName: "LayoutDashboard" },
-      { name: "Diagnósticos", path: "/diagnostics", iconName: "Activity" },
-      { name: "Problemas & Incidentes", path: "/errors", iconName: "AlertTriangle", badgeType: "error" },
-      { name: "Redes & Provedores", path: "/networks", iconName: "Wifi" },
+    ],
+  },
+  {
+    label: "App",
+    items: [
       { name: "Uso do App", path: "/product-analytics", iconName: "LineChart" },
       { name: "Releases & Qualidade", path: "/app-versions", iconName: "GitBranch" },
+      { name: "Problemas & Incidentes", path: "/errors", iconName: "AlertTriangle", badgeType: "error" },
+    ],
+  },
+  {
+    label: "Rede & Operadora",
+    items: [
+      { name: "Diagnósticos", path: "/diagnostics", iconName: "Activity" },
+      { name: "Redes & Provedores", path: "/networks", iconName: "Wifi" },
+    ],
+  },
+  {
+    label: "Custos & Sistema",
+    items: [
       { name: "IA & Custos", path: "/ai-cost", iconName: "BrainCircuit" },
       { name: "Saúde do Sistema", path: "/system-health", iconName: "HeartPulse" },
+    ],
+  },
+  {
+    label: "Administração",
+    items: [
       { name: "Configurações", path: "/settings", iconName: "Settings" },
       { name: "Ferramentas", path: "/tools", iconName: "Wrench" },
     ],
