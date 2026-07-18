@@ -36,6 +36,12 @@ Comece por dois documentos:
 - **Órfãos atualizados:** Design System, Jornada, Governança (eram v3) e Roadmap (era v2) trazidos à v5. O detalhe de Arquitetura Android, que o v4 havia perdido, foi reincorporado ao doc 01.
 - **Atual vs. Alvo:** cada documento marca o que existe hoje (SignallQ consumer 0.26.0/vc62, Admin React 19, 5 workers Cloudflare, 13 tabelas D1 do Admin, telemetria Firebase) e o que é proposta (SignallQ Pro, Portal, monorepo `signallq-platform`, modelo D1 Pro, pipeline de telemetria Cloudflare, Nethal internalizado).
 
+## Auditorias pontuais (fora do pacote v5, mas informam corte de escopo)
+
+| Documento | Data | Escopo |
+|---|---|---|
+| `12_SignallQ_Pro_Auditoria_Cobertura_Repositorios_2026-07-18.md` | 18/07/2026 | Cruza os 16 gaps de uma pesquisa de mercado do SignallQ Pro contra o código real dos 13 repositórios do GitHub — o que já existe, o que evolui, o que constrói do zero. |
+
 ## Pendências que o v5 expõe (não resolve — exigem decisão)
 
 Preço do Pro; domínio `signallq.app`; provedor de identidade; conectores de nuvem além do SAF; política de retenção; ADRs e contratos OpenAPI a materializar. Ver `00_CANONICO_v5.md §8`.
