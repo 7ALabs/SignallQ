@@ -337,6 +337,28 @@ uppercase tertiary à esquerda, chevron à direita, anel de foco na cor do acent
 GlobalFilters, compartilhado por todas as telas do painel. Sem divergência confirmada contra o
 `md3-tobe`.
 
+### Quota Row (componente novo, 2026-07-18)
+Padrão para "uso vs. teto de recurso limitado" (free tier, cota de API) — usado em duas telas:
+IA & Custos (`GeminiQuotaCard`, GH#884) e Saúde do Sistema (`CloudflareUsagePanel`, GH#883).
+Card `bg-surface` + borda 1px (mesmo card padrão), com N linhas empilhadas (`gap:12px`), cada linha:
+- Header: label à esquerda (`text-primary`, 12px, peso 500) + `usado / limite` em mono
+  (`text-secondary`) + percentual em negrito na cor semântica à direita.
+- Barra de progresso fina: `height:6px`, `border-radius:3px`, trilho `bg-surface-variant`,
+  preenchimento na cor semântica — **mais fina que a barra de 10px do card "Orçamento mensal de
+  IA"**, deliberado: sinaliza que é métrica secundária/nested dentro da tela, não o KPI principal.
+- Cor semântica por faixa (mesma regra nas duas telas, vem do `barColor()` já implementado no
+  React): `success` (`#1E8E3E`/`#7DDB93`) abaixo de 80%, `attention` (`#8A5300`/`#FFB955`) de 80% a
+  99%, `error` (`#BA1A1A`/`#FFB4AB`) a partir de 100%.
+- Estado "Não disponível": quando o teto não está configurado ou o dado não pode ser calculado, a
+  linha troca a barra por um texto `text-tertiary` de 1-2 linhas explicando o motivo — nunca número
+  fabricado. Mesmo padrão honesto do resto do sistema (KPIs "Não disponível" de Saúde do Sistema,
+  cards `Md3ComingSoonCard`).
+
+Ver `docs_ai/design-system/DECISAO_TRES_SECOES_REAIS_CONSOLE_2026-07-18.md` para o racional
+completo e a aplicação nas duas telas (mais a terceira seção incorporada, "Uso do App —
+detalhamento" em Ferramentas, que reaproveita tabela/badge/card já existentes no sistema em vez do
+padrão Quota Row).
+
 ## 6. Do's and Don'ts
 
 ### Do:
