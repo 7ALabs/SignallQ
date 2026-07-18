@@ -42,68 +42,17 @@ import io.signallq.app.ui.component.LkSurfaceCard
  * `EquipamentoInternetScreen.kt` (dívida crítica, ver
  * `.claude/rules/higiene-e-padronizacao-repositorio.md` seção 4.6).
  *
- * ## Wi-Fi 2,4GHz | Wi-Fi 5/6GHz (2-col condicional)
- * A spec da Lia pede 2 colunas simétricas quando as duas bandas existem,
- * com "mesmos campos: canal, sinal, clientes". O contrato real
- * ([io.signallq.app.core.network.contracts.localdevice.WifiRadioSnapshot])
- * **não tem RSSI/potência de recepção para os próprios rádios do
- * equipamento** — só existe RSSI para redes vizinhas escaneadas pelo celular
- * ([io.signallq.app.core.network.contracts.wifi.RedeVizinha]), que é uma
- * fonte de dado totalmente diferente. "Clientes por banda" também não é um
- * campo modelado (a contagem de clientes existe só agregada, não por rádio).
- * Sem inventar contrato/dado (regra explícita da tarefa), a coluna usa os
- * campos reais já computados para cada rádio (canal + configuração —
- * segurança/largura/potência já concatenados em [EquipamentoItemTecnico.valor])
- * particionados por banda — mesma origem de dado nos dois lados, estrutura
- * idêntica, só sem a linha de "sinal"/"clientes" que não existe na fonte.
+ * ## Wi-Fi — full-width (revisão Lia 2026-07-18)
+ * A primeira versão desta tela particionava Wi-Fi em 2 colunas por banda
+ * (2,4GHz | 5/6GHz). Reavaliado: com só 1 item de dado por banda (canal +
+ * configuração — o contrato
+ * [io.signallq.app.core.network.contracts.localdevice.WifiRadioSnapshot] não
+ * modela sinal/clientes por rádio), os dois cards lado a lado ficavam ~90%
+ * vazios e recriavam a poluição visual que o redesign eliminou. Wi-Fi passou
+ * a ser um card full-width único, com as duas bandas como linhas dentro do
+ * mesmo card (2,4GHz antes de 5/6GHz — ordem já preservada pelo mapper, 1
+ * item por rádio), no mesmo formato dos demais itens técnicos.
  */
-@Composable
-internal fun ModuloTecnicoOuWifiBandasCard(
-    secao: EquipamentoSecaoTecnica,
-    c: LkTokens,
-) {
-    if (secao.titulo != "Wi-Fi") {
-        ModuloTecnicoCard(secao = secao, c = c)
-        return
-    }
-    val bandas = particionarWifiPorBanda(secao.itens)
-    if (bandas.banda24.isEmpty() || bandas.banda5ou6.isEmpty()) {
-        ModuloTecnicoCard(secao = secao, c = c)
-        return
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.md)) {
-        ModuloTecnicoCard(
-            secao = secao.copy(titulo = "Wi-Fi 2,4GHz", itens = bandas.banda24),
-            c = c,
-            modifier = Modifier.weight(1f),
-        )
-        ModuloTecnicoCard(
-            secao = secao.copy(titulo = "Wi-Fi 5/6GHz", itens = bandas.banda5ou6),
-            c = c,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-private data class WifiBandasParticionadas(
-    val banda24: List<EquipamentoItemTecnico>,
-    val banda5ou6: List<EquipamentoItemTecnico>,
-)
-
-private fun particionarWifiPorBanda(itens: List<EquipamentoItemTecnico>): WifiBandasParticionadas {
-    val banda24 = mutableListOf<EquipamentoItemTecnico>()
-    val banda5ou6 = mutableListOf<EquipamentoItemTecnico>()
-    itens.forEach { item ->
-        val valorLower = item.valor.lowercase()
-        if (valorLower.contains("2.4") || valorLower.contains("2,4")) {
-            banda24.add(item)
-        } else {
-            banda5ou6.add(item)
-        }
-    }
-    return WifiBandasParticionadas(banda24, banda5ou6)
-}
-
 @Composable
 internal fun ModuloTecnicoCard(
     secao: EquipamentoSecaoTecnica,

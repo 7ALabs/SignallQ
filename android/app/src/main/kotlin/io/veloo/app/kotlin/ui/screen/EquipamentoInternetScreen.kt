@@ -419,12 +419,13 @@ private fun EquipamentoConectadoContent(
             c = c,
         )
 
-        // 9, 10, 11 — módulos técnicos (Wi-Fi vira 2-col por banda quando ambas existem;
-        // Fibra óptica/WAN/LAN ficam full — conteúdo assimétrico não força 2-col).
+        // 9, 10, 11 — módulos técnicos, todos full-width (Wi-Fi deixou de ser
+        // 2-col por banda em 2026-07-18, revisão Lia — ver KDoc em
+        // EquipamentoModuloTecnicoCard.kt).
         painelSelecionado.secoesTecnicas
             .filterNot { it.titulo == "Dispositivos conectados" }
             .forEach { secao ->
-                ModuloTecnicoOuWifiBandasCard(secao = secao, c = c)
+                ModuloTecnicoCard(secao = secao, c = c)
             }
 
         // 12. Dispositivos conectados (resumo)

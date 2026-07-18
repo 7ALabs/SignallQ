@@ -31,8 +31,9 @@ import org.robolectric.annotation.Config
  * spec Lia 2026-07-18) — protege a extração de `EquipamentoInternetScreen.kt`
  * (dívida crítica) em 6 componentes novos (`Equipamento*Card.kt`) e a nova
  * ordem narrativa: identidade → status (absorve saúde óptica) → disponibilidade
- * → uso → alerta → aviso → topologia → módulos técnicos (Wi-Fi em 2-col por
- * banda) → dispositivos → info técnica → ações.
+ * → uso → alerta → aviso → topologia → módulos técnicos (Wi-Fi full-width, com
+ * as duas bandas como linhas — revisão Lia 2026-07-18) → dispositivos → info
+ * técnica → ações.
  *
  * Escrito ANTES da extração (`.claude/rules/higiene-e-padronizacao-repositorio.md`
  * seção 4.6, "crie testes de caracterização antes de extrações com risco de
@@ -44,9 +45,9 @@ class EquipamentoInternetScreenLayoutTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    /** Roteador com fibra, Wi-Fi 2,4/5GHz, LAN e 2 clientes — cobre as duas
-     *  ramificações de 2-col (Disponibilidade/Uso sempre; Wi-Fi por banda só
-     *  quando as duas bandas existem, como aqui) e o módulo full de LAN. */
+    /** Roteador com fibra, Wi-Fi 2,4/5GHz, LAN e 2 clientes — cobre o par 2-col
+     *  de Disponibilidade/Uso, o card único full-width de Wi-Fi (com as duas
+     *  bandas como linhas) e o módulo full de LAN. */
     private fun localDeviceCompleto() =
         LocalNetworkDeviceSnapshot(
             deviceType = DeviceType.ROUTER,
@@ -158,18 +159,27 @@ class EquipamentoInternetScreenLayoutTest {
 
         // Par 2-col Disponibilidade: Fibra e Wi-Fi renderizam em cards próprios,
         // os dois com "Disponível" (a fixture habilita as duas capacidades).
+        // Esse par NÃO mudou nesta revisão (só o par de bandas Wi-Fi virou full).
         composeRule.onAllNodesWithText("Disponível").assertCountEquals(2)
 
-        // Wi-Fi 2,4GHz | Wi-Fi 5/6GHz em 2-col (as duas bandas existem na fixture).
-        composeRule.onNodeWithText("Wi-Fi 2,4GHz").assertExists()
-        composeRule.onNodeWithText("Wi-Fi 5/6GHz").assertExists()
+        // "Wi-Fi" aparece 2x: o label do par Disponibilidade (item 4) e o
+        // título do card técnico full-width (item 9-11) — não virou 2 cards
+        // "Wi-Fi 2,4GHz"/"Wi-Fi 5/6GHz" como antes da revisão da Lia.
+        composeRule.onAllNodesWithText("Wi-Fi").assertCountEquals(2)
+        composeRule.onNodeWithText("Wi-Fi 2,4GHz").assertDoesNotExist()
+        composeRule.onNodeWithText("Wi-Fi 5/6GHz").assertDoesNotExist()
+
+        // As duas bandas viram linhas (label = SSID) dentro do MESMO card,
+        // 2,4GHz antes de 5/6GHz — ordem preservada pelo mapper.
+        composeRule.onNodeWithText("Casa_24").assertExists()
+        composeRule.onNodeWithText("Casa_5G").assertExists()
 
         val arvore = composeRule.onRoot().printToString()
         val idxIdentidade = arvore.indexOf("TP-Link Archer C6")
         val idxStatus = arvore.indexOf("Conectado ao equipamento")
         val idxTopologia = arvore.indexOf("Como sua rede está conectada")
-        val idxWifi24 = arvore.indexOf("Wi-Fi 2,4GHz")
-        val idxWifi56 = arvore.indexOf("Wi-Fi 5/6GHz")
+        val idxWifi24 = arvore.indexOf("Casa_24")
+        val idxWifi56 = arvore.indexOf("Casa_5G")
         val idxLan = arvore.indexOf("Rede local (LAN)")
         val idxDispositivos = arvore.indexOf("Dispositivos conectados")
         // LkSectionOverline aplica .uppercase() de verdade (design system) — o
@@ -180,8 +190,8 @@ class EquipamentoInternetScreenLayoutTest {
             "identidade" to idxIdentidade,
             "status" to idxStatus,
             "topologia" to idxTopologia,
-            "wifi 2,4GHz" to idxWifi24,
-            "wifi 5/6GHz" to idxWifi56,
+            "wifi 2,4GHz (linha Casa_24)" to idxWifi24,
+            "wifi 5/6GHz (linha Casa_5G)" to idxWifi56,
             "LAN" to idxLan,
             "dispositivos" to idxDispositivos,
             "ações" to idxAcoes,
@@ -190,7 +200,7 @@ class EquipamentoInternetScreenLayoutTest {
         assert(idxIdentidade < idxStatus) { "Identidade deveria vir antes do Status." }
         assert(idxStatus < idxTopologia) { "Status (com Disponibilidade/Uso/Alerta/Aviso) deveria vir antes da Topologia." }
         assert(idxTopologia < idxWifi24) { "Topologia deveria vir antes dos módulos técnicos (Wi-Fi)." }
-        assert(idxWifi24 < idxWifi56) { "Coluna Wi-Fi 2,4GHz deveria vir antes da coluna Wi-Fi 5/6GHz." }
+        assert(idxWifi24 < idxWifi56) { "Linha da banda 2,4GHz deveria vir antes da linha 5/6GHz, dentro do mesmo card Wi-Fi." }
         assert(idxWifi56 < idxLan) { "Wi-Fi deveria vir antes do módulo full de LAN." }
         assert(idxLan < idxDispositivos) { "Módulos técnicos deveriam vir antes do resumo de Dispositivos conectados." }
         assert(idxDispositivos < idxAcoes) { "Dispositivos conectados deveria vir antes de Ações disponíveis." }
