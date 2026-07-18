@@ -11,6 +11,18 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ## [Unreleased]
 
+## [0.28.0] — 2026-07-18
+
+Ciclo de correção funcional do motor de diagnóstico, redesign completo da tela Equipamento de internet e limpeza sistêmica de contraste no modo escuro.
+
+### Alterado
+- Redesign completo da distribuição de cards da tela Equipamento de internet: nova ordem narrativa (identidade → status → disponibilidade/uso em pares 2-col → alerta → topologia → módulos técnicos → dispositivos → ações), grid consistente (card ocupa tudo ou par simétrico, nunca card mais largo que outro), tela extraída de 1549 para 549 linhas em 6 componentes dedicados (#1116)
+
+### Corrigido
+- Latência do Speedtest passa a medir contra a sonda dedicada (mesma usada pela tela Jogos) em vez do host público, que sofria degradação silenciosa e inflava o número em até ~30x; corrige divergência entre a tela Resultado e a tela Jogos, e restaura o cálculo de atraso sob carga (bufferbloat), que antes sempre dava zero (#1118/#1125)
+- Contraste de status (verde/âmbar/vermelho) corrigido em todo o app no modo escuro: texto e ícone de veredito (Excelente/Bom/Regular/Fraco) deixavam de ser legíveis sobre o próprio fundo colorido em dezenas de telas — diagnóstico, Equipamento de internet, Início, DNS, Ping, Sinal, Ajustes, Speedtest e outras (#1115/#1126/#1127/#1128/#1129)
+- 5 bugs de UI: filtro de segmento cortado no Histórico (realocado abaixo do subtítulo "Medições recentes"); placeholders de protótipo "Lista/Vazio/Erro" removidos de Dispositivos; anel verde de "conectado" do roteador corrigido no Início (Caminho da sua Internet); card de Medição do Início agora navega para o Histórico; contraste dos botões de Ajustes > Dados e privacidade corrigido no modo escuro (Resetar app) (#1114)
+
 ## [0.27.0] — 2026-07-18
 
 Ciclo curto de correções pontuais e padronização de UI sobre o redesign da 0.26.0 — TopBar, tela Sinal, Histórico, Onboarding e Equipamento de internet.
