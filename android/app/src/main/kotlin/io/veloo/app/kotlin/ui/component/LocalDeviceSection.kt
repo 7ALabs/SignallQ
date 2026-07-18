@@ -62,7 +62,6 @@ import io.signallq.app.core.network.contracts.localdevice.SupportLevel
 import io.signallq.app.feature.diagnostico.DiagnosticStatus
 import io.signallq.app.feature.diagnostico.FibraDiagnosticInput
 import io.signallq.app.feature.diagnostico.FibraSignalQualityEngine
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.SignallQTheme
@@ -681,7 +680,7 @@ fun LocalDeviceSection(
                     icon = Icons.Outlined.ErrorOutline,
                     titulo = "Não foi possível conectar ao equipamento",
                     descricao = state.mensagem,
-                    accent = LkColors.warning,
+                    accent = c.warning,
                 )
 
             is LocalDeviceSectionUiState.SemSuporte ->
@@ -779,7 +778,7 @@ private fun LocalDeviceConectadoContent(
             FrescorIndicator(freshness = state.freshness, c = c)
             if (!state.completo) {
                 Spacer(Modifier.width(LkSpacing.xs))
-                SuporteBadge(texto = "Parcial", cor = LkColors.warning)
+                SuporteBadge(texto = "Parcial", cor = c.warning)
             }
             if (state.suportaDiagnosticoNativo) {
                 Spacer(Modifier.width(LkSpacing.xs))
@@ -809,11 +808,11 @@ private fun LocalDeviceConectadoContent(
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
-                        .background(LkColors.warning.copy(alpha = 0.08f))
+                        .background(c.warning.copy(alpha = 0.08f))
                         .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Outlined.Science, contentDescription = null, tint = LkColors.warning, modifier = Modifier.size(14.dp))
+                Icon(Icons.Outlined.Science, contentDescription = null, tint = c.warning, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(LkSpacing.xs))
                 Text(
                     "Suporte experimental. Alguns dados podem não aparecer ou estar incompletos.",
@@ -854,7 +853,7 @@ private fun LocalDeviceConectadoContent(
                 "Estes dados podem não refletir o estado atual do equipamento — " +
                     "toque em Atualizar para uma nova leitura.",
                 style = MaterialTheme.typography.bodySmall,
-                color = LkColors.warning,
+                color = c.warning,
             )
         }
 
@@ -1039,7 +1038,7 @@ private fun FrescorIndicator(
             Icon(
                 Icons.Outlined.ErrorOutline,
                 contentDescription = null,
-                tint = LkColors.warning,
+                tint = c.warning,
                 modifier = Modifier.size(12.dp),
             )
             Spacer(Modifier.width(LkSpacing.xs))
@@ -1047,7 +1046,7 @@ private fun FrescorIndicator(
                 "Leitura desatualizada",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.W600,
-                color = LkColors.warning,
+                color = c.warning,
             )
         }
     } else {
@@ -1113,9 +1112,9 @@ private fun statusParaCor(
     c: io.signallq.app.ui.LkTokens,
 ): Color =
     when (status) {
-        DiagnosticStatus.ok -> LkColors.success
-        DiagnosticStatus.attention -> LkColors.warning
-        DiagnosticStatus.critical -> LkColors.error
+        DiagnosticStatus.ok -> c.success
+        DiagnosticStatus.attention -> c.warning
+        DiagnosticStatus.critical -> c.error
         DiagnosticStatus.inconclusive, DiagnosticStatus.info -> c.primary
     }
 

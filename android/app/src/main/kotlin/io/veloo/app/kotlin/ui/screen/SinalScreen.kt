@@ -252,27 +252,31 @@ private fun signalQuality(
 private fun signalColor(
     rssiDbm: Int,
     banda: BandaWifi = BandaWifi.desconhecida,
+    c: LkTokens,
 ): Color =
     when (banda) {
         BandaWifi.ghz5 ->
             when {
-                rssiDbm >= -65 -> LkColors.success
-                rssiDbm >= -75 -> LkColors.warning
-                else -> LkColors.error
+                rssiDbm >= -65 -> c.success
+                rssiDbm >= -75 -> c.warning
+                else -> c.error
             }
         else ->
             when {
-                rssiDbm >= -60 -> LkColors.success
-                rssiDbm >= -70 -> LkColors.warning
-                else -> LkColors.error
+                rssiDbm >= -60 -> c.success
+                rssiDbm >= -70 -> c.warning
+                else -> c.error
             }
     }
 
-private fun congestionColor(nivel: NivelCongestionamento): Color =
+private fun congestionColor(
+    nivel: NivelCongestionamento,
+    c: LkTokens,
+): Color =
     when (nivel) {
-        NivelCongestionamento.livre -> LkColors.success
-        NivelCongestionamento.moderado -> LkColors.warning
-        NivelCongestionamento.congestionado -> LkColors.error
+        NivelCongestionamento.livre -> c.success
+        NivelCongestionamento.moderado -> c.warning
+        NivelCongestionamento.congestionado -> c.error
     }
 
 private fun securityLabel(s: SegurancaWifi): String =
@@ -692,9 +696,9 @@ private fun SimCard(
     val operadora = sim.operadora ?: summarySnapshot?.operadora ?: "Operadora"
     val operadoraLocal = remember(operadora) { BancoOperadoras.resolverMovel(operadora) }
     val resumoRede = buildMobileSummary(sim = sim, summarySnapshot = summarySnapshot)
-    val qualidade = mobileSignalQuality(sim.rsrpDbm, sim.radioDesligado)
+    val qualidade = mobileSignalQuality(sim.rsrpDbm, sim.radioDesligado, tokens)
     val tipoConexao = mobileConnectionType(sim = sim, summarySnapshot = summarySnapshot, c = tokens)
-    val experiencia = mobileExpectedExperience(sim = sim, summarySnapshot = summarySnapshot)
+    val experiencia = mobileExpectedExperience(sim = sim, summarySnapshot = summarySnapshot, c = tokens)
     val suporteUrl = operadoraLocal?.site
     val context = LocalContext.current
 
@@ -826,13 +830,14 @@ private fun buildMobileSummary(
 private fun mobileSignalQuality(
     rsrpDbm: Int?,
     radioDesligado: Boolean,
+    c: LkTokens,
 ): MobileInsight =
     when {
         radioDesligado ->
             MobileInsight(
                 label = "Sem sinal",
                 description = "Rádio celular desligado. Ative a rede móvel para medir chamadas e dados.",
-                color = LkColors.warning,
+                color = c.warning,
             )
         rsrpDbm == null ->
             MobileInsight(
@@ -844,19 +849,19 @@ private fun mobileSignalQuality(
             MobileInsight(
                 label = "Bom",
                 description = "Bom - chamadas e vídeos tendem a ocorrer sem cortes.",
-                color = LkColors.success,
+                color = c.success,
             )
         rsrpDbm >= -105 ->
             MobileInsight(
                 label = "Regular",
                 description = "Regular - pode oscilar em chamadas e vídeo em movimento.",
-                color = LkColors.warning,
+                color = c.warning,
             )
         else ->
             MobileInsight(
                 label = "Ruim",
                 description = "Ruim - maior chance de falhas em chamadas, uploads e streaming.",
-                color = LkColors.error,
+                color = c.error,
             )
     }
 
@@ -871,7 +876,7 @@ private fun mobileConnectionType(
             MobileInsight(
                 label = "Off",
                 description = "Rádio desligado. Não há tecnologia ativa neste momento.",
-                color = LkColors.warning,
+                color = c.warning,
             )
         tecnologia?.contains("5G", ignoreCase = true) == true ->
             MobileInsight(
@@ -883,19 +888,19 @@ private fun mobileConnectionType(
             MobileInsight(
                 label = "4G",
                 description = "4G LTE - bom equilíbrio entre cobertura e velocidade.",
-                color = LkColors.warning,
+                color = c.warning,
             )
         tecnologia?.contains("3G", ignoreCase = true) == true ->
             MobileInsight(
                 label = "3G",
                 description = "3G - tecnologia legada com menor capacidade para vídeo e uploads.",
-                color = LkColors.warning,
+                color = c.warning,
             )
         tecnologia?.contains("2G", ignoreCase = true) == true ->
             MobileInsight(
                 label = "2G",
                 description = "2G - suficiente para voz e mensagens básicas, mas limitada para internet.",
-                color = LkColors.error,
+                color = c.error,
             )
         else ->
             MobileInsight(
@@ -909,6 +914,7 @@ private fun mobileConnectionType(
 private fun mobileExpectedExperience(
     sim: MovelSimSnapshot,
     summarySnapshot: MovelSnapshot?,
+    c: LkTokens,
 ): MobileInsight {
     val tecnologia = sim.tecnologiaRede ?: summarySnapshot?.tecnologia
     val rsrp = sim.rsrpDbm ?: summarySnapshot?.rsrpDbm
@@ -917,31 +923,31 @@ private fun mobileExpectedExperience(
             MobileInsight(
                 label = "Indisponível",
                 description = "Sem rede ativa para estimar experiência de uso.",
-                color = LkColors.warning,
+                color = c.warning,
             )
         tecnologia?.contains("5G", ignoreCase = true) == true && (rsrp == null || rsrp >= -95) ->
             MobileInsight(
                 label = "Ótima",
                 description = "Ótima para streaming, jogos e videochamadas com boa estabilidade.",
-                color = LkColors.success,
+                color = c.success,
             )
         tecnologia?.contains("4G", ignoreCase = true) == true && (rsrp == null || rsrp >= -100) ->
             MobileInsight(
                 label = "Boa",
                 description = "Boa para navegação, mensagens e vídeo em qualidade padrão.",
-                color = LkColors.success,
+                color = c.success,
             )
         tecnologia?.contains("3G", ignoreCase = true) == true || (rsrp != null && rsrp < -105) ->
             MobileInsight(
                 label = "Limitada",
                 description = "Melhor para mensagens e navegação leve; chamadas e vídeo podem oscilar.",
-                color = LkColors.warning,
+                color = c.warning,
             )
         else ->
             MobileInsight(
                 label = "Regular",
                 description = "Uso cotidiano possível, mas com chance de lentidão em horários de pico.",
-                color = LkColors.warning,
+                color = c.warning,
             )
     }
 }
@@ -955,7 +961,10 @@ private fun buildSnapshotMobileSummary(snapshot: MovelSnapshot): String =
         append(snapshot.tecnologia ?: "Rede móvel")
     }
 
-private fun snapshotSignalQuality(snapshot: MovelSnapshot): MobileInsight =
+private fun snapshotSignalQuality(
+    snapshot: MovelSnapshot,
+    c: LkTokens,
+): MobileInsight =
     run {
         val rsrp = snapshot.rsrpDbm
         when {
@@ -963,7 +972,7 @@ private fun snapshotSignalQuality(snapshot: MovelSnapshot): MobileInsight =
                 MobileInsight(
                     label = "Sem sinal",
                     description = "Rádio celular desligado. Ative a rede móvel para medir chamadas e dados.",
-                    color = LkColors.warning,
+                    color = c.warning,
                 )
             rsrp == null ->
                 MobileInsight(
@@ -975,19 +984,19 @@ private fun snapshotSignalQuality(snapshot: MovelSnapshot): MobileInsight =
                 MobileInsight(
                     label = "Bom",
                     description = "Bom — chamadas e vídeos tendem a ficar estáveis.",
-                    color = LkColors.success,
+                    color = c.success,
                 )
             rsrp >= -105 ->
                 MobileInsight(
                     label = "Regular",
                     description = "Regular — pode haver variação em chamadas, uploads e streaming.",
-                    color = LkColors.warning,
+                    color = c.warning,
                 )
             else ->
                 MobileInsight(
                     label = "Ruim",
                     description = "Ruim — maior chance de falhas em chamadas, uploads e streaming.",
-                    color = LkColors.error,
+                    color = c.error,
                 )
         }
     }
@@ -1002,7 +1011,7 @@ private fun snapshotConnectionType(
             MobileInsight(
                 label = "Off",
                 description = "Rádio desligado. Não há tecnologia ativa neste momento.",
-                color = LkColors.warning,
+                color = c.warning,
             )
         tecnologia?.contains("5G", ignoreCase = true) == true ->
             MobileInsight(
@@ -1014,13 +1023,13 @@ private fun snapshotConnectionType(
             MobileInsight(
                 label = "4G",
                 description = "4G LTE — bom equilíbrio entre cobertura e velocidade.",
-                color = LkColors.warning,
+                color = c.warning,
             )
         tecnologia?.contains("3G", ignoreCase = true) == true ->
             MobileInsight(
                 label = "3G",
                 description = "3G — tecnologia legada com menor capacidade para vídeo e uploads.",
-                color = LkColors.warning,
+                color = c.warning,
             )
         else ->
             MobileInsight(
@@ -1031,7 +1040,10 @@ private fun snapshotConnectionType(
     }
 }
 
-private fun snapshotExpectedExperience(snapshot: MovelSnapshot): MobileInsight {
+private fun snapshotExpectedExperience(
+    snapshot: MovelSnapshot,
+    c: LkTokens,
+): MobileInsight {
     val tecnologia = snapshot.tecnologia
     val rsrp = snapshot.rsrpDbm
     return when {
@@ -1039,31 +1051,31 @@ private fun snapshotExpectedExperience(snapshot: MovelSnapshot): MobileInsight {
             MobileInsight(
                 label = "Indisponível",
                 description = "Sem rede ativa para estimar experiência de uso.",
-                color = LkColors.warning,
+                color = c.warning,
             )
         tecnologia?.contains("5G", ignoreCase = true) == true && (rsrp == null || rsrp >= -95) ->
             MobileInsight(
                 label = "Ótima",
                 description = "Ótima para streaming, jogos e videochamadas com boa estabilidade.",
-                color = LkColors.success,
+                color = c.success,
             )
         tecnologia?.contains("4G", ignoreCase = true) == true && (rsrp == null || rsrp >= -100) ->
             MobileInsight(
                 label = "Boa",
                 description = "Boa para navegação, mensagens e vídeo em qualidade padrão.",
-                color = LkColors.success,
+                color = c.success,
             )
         tecnologia?.contains("3G", ignoreCase = true) == true || (rsrp != null && rsrp < -105) ->
             MobileInsight(
                 label = "Limitada",
                 description = "Melhor para mensagens e navegação leve; chamadas e vídeo podem oscilar.",
-                color = LkColors.warning,
+                color = c.warning,
             )
         else ->
             MobileInsight(
                 label = "Regular",
                 description = "Uso cotidiano possível, mas com chance de lentidão em horários de pico.",
-                color = LkColors.warning,
+                color = c.warning,
             )
     }
 }
@@ -1160,9 +1172,9 @@ private fun MobileSnapshotCard(
     tokens: LkTokens,
 ) {
     val operadora = snapshot.operadora ?: "Operadora"
-    val qualidade = snapshotSignalQuality(snapshot)
+    val qualidade = snapshotSignalQuality(snapshot, tokens)
     val tipoConexao = snapshotConnectionType(snapshot, tokens)
-    val experiencia = snapshotExpectedExperience(snapshot)
+    val experiencia = snapshotExpectedExperience(snapshot, tokens)
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
@@ -1433,17 +1445,17 @@ private fun RedesTab(
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .background(LkColors.error.copy(alpha = 0.1f))
+                            .background(c.error.copy(alpha = 0.1f))
                             .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Outlined.WifiFind, null, tint = LkColors.error, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Outlined.WifiFind, null, tint = c.error, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(LkSpacing.sm))
                         Text(
                             msg ?: "Erro ao escanear redes",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Normal,
-                            color = LkColors.error,
+                            color = c.error,
                         )
                     }
                 }
@@ -1878,8 +1890,8 @@ private fun NoTreeItem(
                         Spacer(Modifier.width(LkSpacing.sm))
                         LkPillBadge(
                             text = "Conectado",
-                            containerColor = LkColors.success.copy(alpha = 0.2f),
-                            contentColor = LkColors.success,
+                            containerColor = c.success.copy(alpha = 0.2f),
+                            contentColor = c.success,
                         )
                     }
                     if (canalCongestionado) {
@@ -1887,7 +1899,7 @@ private fun NoTreeItem(
                         Icon(
                             imageVector = Icons.Outlined.Warning,
                             contentDescription = "Canal congestionado",
-                            tint = LkColors.warning,
+                            tint = c.warning,
                             modifier = Modifier.size(16.dp),
                         )
                     }
@@ -1908,7 +1920,7 @@ private fun NoTreeItem(
                     Text(
                         signalQuality(rede.rssiDbm, bandaVizinha),
                         style = MaterialTheme.typography.bodySmall,
-                        color = signalColor(rede.rssiDbm, bandaVizinha),
+                        color = signalColor(rede.rssiDbm, bandaVizinha, c),
                     )
                 }
                 if (wifiLinkSnapshot != null) {
@@ -1926,7 +1938,7 @@ private fun NoTreeItem(
             SignalBars(
                 rssiDbm = rede.rssiDbm,
                 banda = bandaVizinha,
-                overrideColor = if (isConnected) null else LkColors.warning,
+                overrideColor = if (isConnected) null else c.warning,
             )
         }
     }
@@ -1993,7 +2005,7 @@ private fun OtherNetworkGroupItem(
                         Text(
                             signalQuality(rede.rssiDbm, bandaSingle),
                             style = MaterialTheme.typography.bodySmall,
-                            color = signalColor(rede.rssiDbm, bandaSingle),
+                            color = signalColor(rede.rssiDbm, bandaSingle, c),
                         )
                     }
                 }
@@ -2180,8 +2192,8 @@ private fun SignalBars(
             rssiDbm >= -70 -> 2
             else -> 1
         }
-    val color = overrideColor ?: signalColor(rssiDbm, banda)
     val c = LocalLkTokens.current
+    val color = overrideColor ?: signalColor(rssiDbm, banda, c)
     Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.Bottom) {
         for (i in 1..4) {
             Box(
@@ -2303,7 +2315,7 @@ private fun NetworkDetailSheet(
         LkSheetInfoRow(
             label = "Sinal",
             value = "${rede.rssiDbm} dBm — ${signalQuality(rede.rssiDbm, bandaDetail)}",
-            valueColor = signalColor(rede.rssiDbm, bandaDetail),
+            valueColor = signalColor(rede.rssiDbm, bandaDetail, c),
         )
         LkSheetDivider()
         LkSheetInfoRow(label = "Banda", value = rede.banda)
@@ -2545,17 +2557,17 @@ private fun CanalTab(
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .background(LkColors.error.copy(alpha = 0.1f))
+                        .background(c.error.copy(alpha = 0.1f))
                         .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Outlined.WifiFind, null, tint = LkColors.error, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Outlined.WifiFind, null, tint = c.error, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(LkSpacing.sm))
                     Text(
                         "Não foi possível atualizar agora. Mostrando o último dado válido.",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Normal,
-                        color = LkColors.error,
+                        color = c.error,
                     )
                 }
             }
@@ -2850,7 +2862,7 @@ private fun CanalErroState(
             Icon(
                 imageVector = Icons.Outlined.WifiFind,
                 contentDescription = null,
-                tint = LkColors.error,
+                tint = c.error,
                 modifier = Modifier.size(48.dp),
             )
             Spacer(Modifier.height(LkSpacing.md))
@@ -3215,7 +3227,7 @@ private fun ChannelItem(
     onClick: () -> Unit,
 ) {
     val c = LocalLkTokens.current
-    val corStatus = congestionColor(dado.nivel)
+    val corStatus = congestionColor(dado.nivel, c)
     val labelStatus =
         when (dado.nivel) {
             NivelCongestionamento.livre -> "Livre"
@@ -3436,7 +3448,7 @@ private fun ChannelDetailSheet(
     espectro: SnapshotEspectroCanal,
 ) {
     val c = LocalLkTokens.current
-    val corCongestionamento = congestionColor(dado.nivel)
+    val corCongestionamento = congestionColor(dado.nivel, c)
     val isCurrentChannel = dado.ehCanalAtual
     val isRecommended = dado.ehCanalRecomendado
 

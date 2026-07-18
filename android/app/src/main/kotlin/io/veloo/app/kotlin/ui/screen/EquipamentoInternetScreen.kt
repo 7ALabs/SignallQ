@@ -56,7 +56,6 @@ import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnap
 import io.signallq.app.feature.diagnostico.topology.model.NatStatus
 import io.signallq.app.feature.fibra.EstadoFibra
 import io.signallq.app.feature.fibra.SnapshotFibra
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -333,13 +332,14 @@ private fun EquipamentoConectadoContent(
     }
 
     val paineis =
-        remember(localDevice, estadoSecao, snapshotFibra, acesso, doubleNatSuspeito) {
+        remember(localDevice, estadoSecao, snapshotFibra, acesso, doubleNatSuspeito, c) {
             buildEquipmentPanels(
                 localDevice = localDevice,
                 estadoSecao = estadoSecao,
                 snapshotFibra = snapshotFibra,
                 acesso = acesso,
                 doubleNatSuspeito = doubleNatSuspeito,
+                c = c,
             )
         }
     var painelSelecionadoId by remember(paineis) { mutableStateOf(paineis.firstOrNull()?.id.orEmpty()) }
@@ -406,7 +406,7 @@ private fun EquipamentoConectadoContent(
         if (painelSelecionado.mostrarAvisoLeituraParcial) {
             AvisoAcessoCard(
                 icone = Icons.Outlined.ErrorOutline,
-                cor = LkColors.warning,
+                cor = c.warning,
                 texto = "Leitura parcial — algumas seções deste equipamento não vieram preenchidas nesta captura.",
             )
         }
@@ -510,10 +510,10 @@ private fun EquipamentoAcessoIndisponivelContent(
                     Modifier
                         .size(80.dp)
                         .clip(CircleShape)
-                        .background(LkColors.warning.copy(alpha = 0.10f)),
+                        .background(c.warning.copy(alpha = 0.10f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(icone, contentDescription = null, tint = LkColors.warning, modifier = Modifier.size(36.dp))
+                Icon(icone, contentDescription = null, tint = c.warning, modifier = Modifier.size(36.dp))
             }
             Spacer(Modifier.height(LkSpacing.lg))
             Text(titulo, fontSize = 17.sp, fontWeight = FontWeight.W600, color = c.textPrimary)

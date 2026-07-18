@@ -41,7 +41,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.signallq.app.feature.diagnostico.ai.AiAcaoRecomendada
 import io.signallq.app.feature.diagnostico.ai.ordenadasPorPrioridade
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -265,7 +264,7 @@ private fun AnaliseDetalhadaConteudo(
 
             is AnalisadorState.Erro -> {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(text = state.mensagem, style = MaterialTheme.typography.bodySmall, color = LkColors.error)
+                    Text(text = state.mensagem, style = MaterialTheme.typography.bodySmall, color = c.error)
                     Spacer(Modifier.height(LkSpacing.xs))
                     TextButton(onClick = {
                         selecionandoProblema = true

@@ -88,7 +88,6 @@ import io.signallq.app.feature.diagnostico.ai.ordenadasPorPrioridade
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 import io.signallq.app.feature.speedtest.VereditoUso
 import io.signallq.app.ui.IspInfo
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -208,44 +207,44 @@ fun ResultadoVelocidadeScreen(
     val context = LocalContext.current
 
     val corDownload =
-        remember(resultado.downloadMbps) {
+        remember(resultado.downloadMbps, c) {
             when {
-                resultado.downloadMbps >= 50.0 -> LkColors.success
-                resultado.downloadMbps >= 25.0 -> LkColors.warning
-                else -> LkColors.error
+                resultado.downloadMbps >= 50.0 -> c.success
+                resultado.downloadMbps >= 25.0 -> c.warning
+                else -> c.error
             }
         }
     val corUpload =
-        remember(resultado.uploadMbps, resultado.uploadNaoDetectado) {
+        remember(resultado.uploadMbps, resultado.uploadNaoDetectado, c) {
             when {
-                resultado.uploadNaoDetectado -> LkColors.warning
-                resultado.uploadMbps >= 10.0 -> LkColors.success
-                resultado.uploadMbps >= 3.0 -> LkColors.warning
-                else -> LkColors.error
+                resultado.uploadNaoDetectado -> c.warning
+                resultado.uploadMbps >= 10.0 -> c.success
+                resultado.uploadMbps >= 3.0 -> c.warning
+                else -> c.error
             }
         }
     val corPerda =
-        remember(resultado.perdaPercentual) {
+        remember(resultado.perdaPercentual, c) {
             when {
-                resultado.perdaPercentual < 1.0 -> LkColors.success
-                resultado.perdaPercentual < 3.0 -> LkColors.warning
-                else -> LkColors.error
+                resultado.perdaPercentual < 1.0 -> c.success
+                resultado.perdaPercentual < 3.0 -> c.warning
+                else -> c.error
             }
         }
     val corLatencia =
-        remember(resultado.latenciaMs) {
+        remember(resultado.latenciaMs, c) {
             when {
-                resultado.latenciaMs < 20.0 -> LkColors.success
-                resultado.latenciaMs < 60.0 -> LkColors.warning
-                else -> LkColors.error
+                resultado.latenciaMs < 20.0 -> c.success
+                resultado.latenciaMs < 60.0 -> c.warning
+                else -> c.error
             }
         }
     val corJitter =
-        remember(resultado.jitterMs) {
+        remember(resultado.jitterMs, c) {
             when {
-                resultado.jitterMs < 10.0 -> LkColors.success
-                resultado.jitterMs < 30.0 -> LkColors.warning
-                else -> LkColors.error
+                resultado.jitterMs < 10.0 -> c.success
+                resultado.jitterMs < 30.0 -> c.warning
+                else -> c.error
             }
         }
 
@@ -417,9 +416,9 @@ fun ResultadoVelocidadeScreen(
                                 unit = "ms",
                                 cor =
                                     when {
-                                        resultado.bufferbloatMs < 15 -> LkColors.success
-                                        resultado.bufferbloatMs < 40 -> LkColors.warning
-                                        else -> LkColors.error
+                                        resultado.bufferbloatMs < 15 -> c.success
+                                        resultado.bufferbloatMs < 40 -> c.warning
+                                        else -> c.error
                                     },
                                 c = c,
                                 modifier = Modifier.weight(1f),
@@ -435,14 +434,14 @@ fun ResultadoVelocidadeScreen(
                             Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(LkRadius.card))
-                                .background(LkColors.warning.copy(alpha = 0.12f))
+                                .background(c.warning.copy(alpha = 0.12f))
                                 .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         LkInfoCallout(
                             icon = Icons.Outlined.Info,
                             text = "Upload não detectado — verifique a conexão",
-                            iconTint = LkColors.warning,
+                            iconTint = c.warning,
                         )
                     }
                 }
@@ -464,14 +463,14 @@ fun ResultadoVelocidadeScreen(
                             Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(LkRadius.card))
-                                .background(LkColors.warning.copy(alpha = 0.12f))
+                                .background(c.warning.copy(alpha = 0.12f))
                                 .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         LkInfoCallout(
                             icon = Icons.Outlined.Warning,
                             text = mensagemContaminacao,
-                            iconTint = LkColors.warning,
+                            iconTint = c.warning,
                         )
                     }
                 }
@@ -982,9 +981,9 @@ private fun ImpactoPraticoChip(
 ) {
     val (cor, badgeLabel) =
         when (veredito) {
-            VereditoUso.good -> LkColors.success to "Boa"
-            VereditoUso.acceptable -> LkColors.warning to "Aceitável"
-            VereditoUso.poor -> LkColors.error to "Ruim"
+            VereditoUso.good -> c.success to "Boa"
+            VereditoUso.acceptable -> c.warning to "Aceitável"
+            VereditoUso.poor -> c.error to "Ruim"
         }
     // Compacta os 3 vereditos de Impacto prático numa única linha (#833): o nome
     // completo ("Streaming", "Gaming"...) só existe pro leitor de tela, na tela
@@ -1101,8 +1100,8 @@ private fun DiagnosticoStatusBanner(
     }
 
     val positivo = status == DiagnosticStatus.ok || status == DiagnosticStatus.info
-    val containerColor = if (positivo) c.successContainer else LkColors.error.copy(alpha = 0.12f)
-    val contentColor = if (positivo) c.onSuccessContainer else LkColors.error
+    val containerColor = if (positivo) c.successContainer else c.errorContainer
+    val contentColor = if (positivo) c.onSuccessContainer else c.onErrorContainer
     val icon = if (positivo) Icons.Outlined.CheckCircle else Icons.Outlined.Error
     val tituloExibido = titulo ?: if (positivo) "Conexão saudável" else "Sinais de sobrecarga identificados"
     val mensagemExibida =
@@ -1154,9 +1153,9 @@ private fun ImpactoPraticoLinha(
 ) {
     val (cor, badgeLabel) =
         when (veredito) {
-            VereditoUso.good -> LkColors.success to "Ótimo"
-            VereditoUso.acceptable -> LkColors.warning to "Bom"
-            VereditoUso.poor -> LkColors.error to "Ruim"
+            VereditoUso.good -> c.success to "Ótimo"
+            VereditoUso.acceptable -> c.warning to "Bom"
+            VereditoUso.poor -> c.error to "Ruim"
         }
 
     Row(
@@ -1550,7 +1549,7 @@ private fun AnalisadorEntryRow(
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(LkRadius.card))
-                        .background(LkColors.error.copy(alpha = 0.08f))
+                        .background(c.error.copy(alpha = 0.08f))
                         .clickable(onClick = onAbrir)
                         .padding(LkSpacing.lg),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1558,14 +1557,14 @@ private fun AnalisadorEntryRow(
                 Icon(
                     imageVector = Icons.Outlined.Warning,
                     contentDescription = null,
-                    tint = LkColors.error,
+                    tint = c.error,
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.width(LkSpacing.sm))
                 Text(
                     text = "A análise falhou — toque para tentar novamente",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = LkColors.error,
+                    color = c.error,
                 )
             }
         }

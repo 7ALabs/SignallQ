@@ -311,7 +311,7 @@ fun LaudoScreen(
                             "Sem conexão no momento · exibindo última medição salva",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.W600,
-                            color = LkColors.error,
+                            color = c.error,
                         )
                     }
                 }
@@ -411,7 +411,7 @@ fun LaudoScreen(
                     Text(
                         erro!!,
                         style = MaterialTheme.typography.bodySmall,
-                        color = LkColors.error,
+                        color = c.error,
                     )
                 }
             }

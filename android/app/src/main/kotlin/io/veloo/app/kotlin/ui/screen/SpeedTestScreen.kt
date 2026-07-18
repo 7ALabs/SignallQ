@@ -128,7 +128,8 @@ fun SpeedTestScreen(
                     },
                     colors =
                         androidx.compose.material3.ButtonDefaults.buttonColors(
-                            containerColor = LkColors.error,
+                            containerColor = c.error,
+                            contentColor = c.onError,
                         ),
                 ) { Text("Interromper") }
             },
@@ -590,13 +591,14 @@ private fun ConcluidoCircle(onIniciarTeste: () -> Unit) {
 
 @Composable
 private fun ErrorCircle(onTentarNovamente: () -> Unit) {
+    val c = LocalLkTokens.current
     Box(
         modifier =
             Modifier
                 .size(210.dp)
                 .clip(CircleShape)
-                .background(LkColors.error.copy(alpha = 0.1f))
-                .border(2.dp, LkColors.error, CircleShape)
+                .background(c.error.copy(alpha = 0.1f))
+                .border(2.dp, c.error, CircleShape)
                 .semantics { contentDescription = "Erro no teste. Toque para tentar novamente." }
                 .clickable(onClick = onTentarNovamente),
         contentAlignment = Alignment.Center,
@@ -605,14 +607,14 @@ private fun ErrorCircle(onTentarNovamente: () -> Unit) {
             Icon(
                 imageVector = Icons.Filled.Close,
                 contentDescription = null,
-                tint = LkColors.error,
+                tint = c.error,
                 modifier = Modifier.size(40.dp),
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = "Tentar novamente",
                 style = MaterialTheme.typography.titleLarge,
-                color = LkColors.error,
+                color = c.error,
                 fontWeight = FontWeight.W600,
             )
         }

@@ -18,7 +18,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
 
@@ -30,14 +29,14 @@ fun OfflineBanner(modifier: Modifier = Modifier) {
             modifier
                 .semantics(mergeDescendants = true) {}
                 .fillMaxWidth()
-                .background(LkColors.warning.copy(alpha = 0.12f))
+                .background(c.warning.copy(alpha = 0.12f))
                 .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = Icons.Outlined.WifiOff,
             contentDescription = null,
-            tint = LkColors.warning,
+            tint = c.warning,
             modifier = Modifier.size(16.dp),
         )
         Spacer(Modifier.width(LkSpacing.sm))
@@ -45,7 +44,7 @@ fun OfflineBanner(modifier: Modifier = Modifier) {
             "Sem conexão ativa",
             fontSize = 13.sp,
             fontWeight = FontWeight.W500,
-            color = LkColors.warning,
+            color = c.warning,
         )
     }
 }

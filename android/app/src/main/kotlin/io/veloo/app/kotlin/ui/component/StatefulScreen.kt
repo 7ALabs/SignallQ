@@ -26,7 +26,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.state.UiState
@@ -122,7 +121,7 @@ fun <T> StatefulScreen(
                         imageVector = Icons.Outlined.ErrorOutline,
                         contentDescription = "Erro",
                         modifier = Modifier.size(56.dp),
-                        tint = LkColors.error,
+                        tint = c.error,
                     )
                     Spacer(modifier = Modifier.height(LkSpacing.lg))
                     Text(

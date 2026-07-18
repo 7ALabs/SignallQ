@@ -68,7 +68,6 @@ import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.feature.dns.EstadoBenchmarkDns
 import io.signallq.app.feature.dns.ResultadoBenchmarkDns
 import io.signallq.app.feature.dns.SnapshotBenchmarkDns
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -202,7 +201,7 @@ private fun DnsMainContent(
                 } else {
                     "Não consegui comparar DNS nesta conexão. Tente novamente quando a rede estabilizar."
                 }
-            Text(text = mensagemErro, style = MaterialTheme.typography.bodyMedium, color = LkColors.error)
+            Text(text = mensagemErro, style = MaterialTheme.typography.bodyMedium, color = c.error)
         }
         isLoading && snapshotDns.resultados.isEmpty() -> {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -284,7 +283,7 @@ private fun DnsBloco1Atual(
             Text(
                 "Sem conexão para comparar DNS.",
                 style = MaterialTheme.typography.bodyMedium,
-                color = LkColors.error,
+                color = c.error,
             )
         } else if (isLoading) {
             DnsSkeletonBloco1(c = c)
@@ -332,8 +331,8 @@ private fun DnsBloco1Atual(
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         LkPillBadge(
                             text = "DNS Privado ativo",
-                            containerColor = LkColors.success.copy(alpha = 0.12f),
-                            contentColor = LkColors.success,
+                            containerColor = c.success.copy(alpha = 0.12f),
+                            contentColor = c.success,
                         )
                         val hostname = snapshotRede.privateDnsHostname
                         if (!hostname.isNullOrBlank()) {
@@ -414,7 +413,7 @@ private fun DnsBloco3Recomendacao(
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
-                .background(LkColors.success.copy(alpha = 0.10f))
+                .background(c.success.copy(alpha = 0.10f))
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -422,7 +421,7 @@ private fun DnsBloco3Recomendacao(
             "Resultado do teste",
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.W500,
-            color = LkColors.success,
+            color = c.success,
         )
         val tempo = melhor.tempoMs?.roundToInt()
         Text(
@@ -571,7 +570,7 @@ private fun DnsRowSheet(
                     result.nomeProvedor,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.W600,
-                    color = if (isRecomendado) LkColors.success else c.textPrimary,
+                    color = if (isRecomendado) c.success else c.textPrimary,
                 )
                 if (isCurrent) {
                     Spacer(Modifier.width(LkSpacing.sm))
@@ -579,13 +578,13 @@ private fun DnsRowSheet(
                 }
                 if (isRecomendado) {
                     Spacer(Modifier.width(LkSpacing.sm))
-                    LkPillBadge("mais rápido", LkColors.success.copy(alpha = 0.12f), LkColors.success)
+                    LkPillBadge("mais rápido", c.success.copy(alpha = 0.12f), c.success)
                 }
             }
         }
         val tempoMs = result.tempoMs
         if (result.erroMensagem != null && tempoMs == null) {
-            Text("Falhou", style = MaterialTheme.typography.bodySmall, color = LkColors.error)
+            Text("Falhou", style = MaterialTheme.typography.bodySmall, color = c.error)
         } else if (tempoMs != null) {
             Text("${tempoMs.roundToInt()} ms", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
             Spacer(Modifier.width(8.dp))
@@ -603,10 +602,10 @@ private fun DnsGradeBadge(
 ) {
     val color =
         when (grade) {
-            "A" -> LkColors.success
+            "A" -> c.success
             "B" -> c.primary
-            "C" -> LkColors.warning
-            else -> LkColors.error
+            "C" -> c.warning
+            else -> c.error
         }
     Box(
         modifier =

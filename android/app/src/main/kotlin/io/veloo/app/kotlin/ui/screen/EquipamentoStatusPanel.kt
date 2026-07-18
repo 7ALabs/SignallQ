@@ -33,7 +33,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.core.network.contracts.fibra.GponSaudeStatus
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -67,8 +66,8 @@ internal fun StatusEquipamentoCard(
             Icon(
                 imageVector =
                     when (cor) {
-                        LkColors.success -> Icons.Outlined.CheckCircle
-                        LkColors.error -> Icons.Outlined.ErrorOutline
+                        c.success -> Icons.Outlined.CheckCircle
+                        c.error -> Icons.Outlined.ErrorOutline
                         else -> Icons.Outlined.WarningAmber
                     },
                 contentDescription = null,
@@ -92,7 +91,7 @@ internal fun StatusEquipamentoCard(
         }
         gponSaude?.let { status ->
             Spacer(Modifier.height(LkSpacing.sm))
-            val (label, corSaude) = saudeOpticaTextoECor(status)
+            val (label, corSaude) = saudeOpticaTextoECor(status, c)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(corSaude))
                 Spacer(Modifier.width(LkSpacing.xs))
@@ -124,11 +123,14 @@ private fun LkSurfaceCardComCor(
     )
 }
 
-private fun saudeOpticaTextoECor(status: GponSaudeStatus): Pair<String, Color> =
+private fun saudeOpticaTextoECor(
+    status: GponSaudeStatus,
+    c: LkTokens,
+): Pair<String, Color> =
     when (status) {
-        GponSaudeStatus.boa -> "Bom" to LkColors.success
-        GponSaudeStatus.regular -> "Regular" to LkColors.warning
-        GponSaudeStatus.ruim -> "Ruim" to LkColors.error
+        GponSaudeStatus.boa -> "Bom" to c.success
+        GponSaudeStatus.regular -> "Regular" to c.warning
+        GponSaudeStatus.ruim -> "Ruim" to c.error
     }
 
 /** Card compacto de um único par label/valor — usado pelos pares
@@ -207,7 +209,8 @@ internal fun AlertaCard(
     alerta: EquipmentAlertUi,
     onAcionar: () -> Unit,
 ) {
-    val cor = LkColors.warning
+    val c = LocalLkTokens.current
+    val cor = c.warning
     Column(
         modifier =
             Modifier
@@ -222,9 +225,9 @@ internal fun AlertaCard(
             Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = cor, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(LkSpacing.sm))
             Column(modifier = Modifier.weight(1f)) {
-                Text(alerta.titulo, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = LocalLkTokens.current.textPrimary)
+                Text(alerta.titulo, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
                 Spacer(Modifier.height(2.dp))
-                Text(alerta.descricao, fontSize = 12.sp, color = LocalLkTokens.current.textSecondary, lineHeight = 17.sp)
+                Text(alerta.descricao, fontSize = 12.sp, color = c.textSecondary, lineHeight = 17.sp)
             }
         }
         FilledTonalButton(onClick = onAcionar) {

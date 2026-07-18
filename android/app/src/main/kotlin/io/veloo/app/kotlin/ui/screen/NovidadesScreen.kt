@@ -43,7 +43,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.signallq.app.R
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -196,9 +195,9 @@ private fun NovidadeRow(
 ) {
     val (badgeLabel, badgeCor) =
         when (item.tipo) {
-            "novo" -> "NOVO" to LkColors.success
+            "novo" -> "NOVO" to c.success
             "melhoria" -> "MELHORIA" to c.primary
-            "correcao" -> "CORREÇÃO" to LkColors.error
+            "correcao" -> "CORREÇÃO" to c.error
             else -> item.tipo.uppercase() to c.textSecondary
         }
 

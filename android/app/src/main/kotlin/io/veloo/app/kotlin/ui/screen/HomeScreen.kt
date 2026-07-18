@@ -726,20 +726,20 @@ internal fun BufferbloatCard(
             bufferbloatMs <= 5.0 ->
                 Triple(
                     stringResource(R.string.home_atraso_extra_otimo),
-                    LkColors.success,
-                    LkColors.success.copy(alpha = 0.12f),
+                    c.success,
+                    c.success.copy(alpha = 0.12f),
                 )
             bufferbloatMs <= 30.0 ->
                 Triple(
                     stringResource(R.string.home_atraso_extra_aceitavel),
-                    LkColors.warning,
-                    LkColors.warning.copy(alpha = 0.12f),
+                    c.warning,
+                    c.warning.copy(alpha = 0.12f),
                 )
             else ->
                 Triple(
                     stringResource(R.string.home_atraso_extra_alto),
-                    LkColors.error,
-                    LkColors.error.copy(alpha = 0.12f),
+                    c.error,
+                    c.error.copy(alpha = 0.12f),
                 )
         }
     SignallQCard(c) {
@@ -2033,16 +2033,16 @@ private fun ExperienciaDeUsoSection(
                 badgeColor =
                     when (vereditoGamer) {
                         null -> c.textTertiary
-                        VereditoUso.good -> LkColors.success
-                        VereditoUso.acceptable -> LkColors.warning
-                        VereditoUso.poor -> LkColors.error
+                        VereditoUso.good -> c.success
+                        VereditoUso.acceptable -> c.warning
+                        VereditoUso.poor -> c.error
                     }
                 badgeBg =
                     when (vereditoGamer) {
                         null -> c.bgSecondary
-                        VereditoUso.good -> LkColors.success.copy(alpha = 0.12f)
-                        VereditoUso.acceptable -> LkColors.warning.copy(alpha = 0.12f)
-                        VereditoUso.poor -> LkColors.error.copy(alpha = 0.12f)
+                        VereditoUso.good -> c.success.copy(alpha = 0.12f)
+                        VereditoUso.acceptable -> c.warning.copy(alpha = 0.12f)
+                        VereditoUso.poor -> c.error.copy(alpha = 0.12f)
                     }
             } else {
                 val downloadOk = downloadMbps == null || downloadMbps >= useCase.minDownload
@@ -2059,16 +2059,16 @@ private fun ExperienciaDeUsoSection(
                 badgeColor =
                     when {
                         downloadMbps == null -> c.textTertiary
-                        isInstavel -> LkColors.warning
-                        downloadOk -> LkColors.success
-                        else -> LkColors.error
+                        isInstavel -> c.warning
+                        downloadOk -> c.success
+                        else -> c.error
                     }
                 badgeBg =
                     when {
                         downloadMbps == null -> c.bgSecondary
-                        isInstavel -> LkColors.warning.copy(alpha = 0.12f)
-                        downloadOk -> LkColors.success.copy(alpha = 0.12f)
-                        else -> LkColors.error.copy(alpha = 0.12f)
+                        isInstavel -> c.warning.copy(alpha = 0.12f)
+                        downloadOk -> c.success.copy(alpha = 0.12f)
+                        else -> c.error.copy(alpha = 0.12f)
                     }
             }
             Column {

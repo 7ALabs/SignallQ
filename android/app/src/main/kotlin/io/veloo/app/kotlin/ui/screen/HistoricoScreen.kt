@@ -68,7 +68,6 @@ import io.signallq.app.feature.diagnostico.MetricClassifier
 import io.signallq.app.feature.diagnostico.MetricStatus
 import io.signallq.app.feature.history.ResumoHistorico
 import io.signallq.app.ui.FiltroConexaoHistorico
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -116,10 +115,10 @@ private fun qualidadeColor(
 ): Color {
     val dl = m.downloadMbps ?: return c.textTertiary
     return when {
-        dl >= 100 -> LkColors.success
+        dl >= 100 -> c.success
         dl >= 25 -> c.primary
-        dl >= 10 -> LkColors.warning
-        else -> LkColors.error
+        dl >= 10 -> c.warning
+        else -> c.error
     }
 }
 
@@ -192,9 +191,9 @@ private fun bufferbloatVeredito(
     c: LkTokens,
 ): Pair<String, Color> =
     when (MetricClassifier.classificarBufferbloat(deltaMs)) {
-        MetricStatus.excelente, MetricStatus.bom -> "Baixo" to LkColors.success
-        MetricStatus.regular -> "Moderado" to LkColors.warning
-        MetricStatus.ruim, MetricStatus.critico -> "Alto" to LkColors.error
+        MetricStatus.excelente, MetricStatus.bom -> "Baixo" to c.success
+        MetricStatus.regular -> "Moderado" to c.warning
+        MetricStatus.ruim, MetricStatus.critico -> "Alto" to c.error
         MetricStatus.inconclusivo -> "—" to c.primary
     }
 
@@ -547,7 +546,7 @@ private fun HistoricoCard(
     val cardDesc = "Medição de ${formatDate(medicao.timestampEpochMs)}, download ${dl?.let { "%.0f".format(it) } ?: "sem dados"} Mbps"
     val valorPrincipal = dl ?: medicao.uploadMbps
     val valorCor =
-        if ((valorPrincipal ?: 0.0) >= 30.0) LkColors.success else LkColors.warning
+        if ((valorPrincipal ?: 0.0) >= 30.0) c.success else c.warning
 
     LkSurfaceCard(
         modifier =
@@ -634,7 +633,7 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
             )
             PrimaryMetric(
                 arrow = "↑",
-                arrowColor = LkColors.success,
+                arrowColor = c.success,
                 value = ul?.let { "%.1f".format(it) } ?: "--",
                 label = "Upload",
                 modifier = Modifier.weight(1f),
@@ -659,7 +658,7 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
         LkSheetInfoRow("Tipo de rede", tipoLabel(medicao))
         LkSheetDivider()
         if (medicao.contaminado) {
-            LkSheetInfoRow("Resultado", "Pode não ser confiável", valueColor = LkColors.warning)
+            LkSheetInfoRow("Resultado", "Pode não ser confiável", valueColor = c.warning)
             LkSheetDivider()
         }
         if (bufferbloat != null) {
@@ -668,19 +667,19 @@ private fun HistoricoDetailSheet(medicao: MedicaoEntity) {
             LkSheetDivider()
         }
         if (streaming != null) {
-            LkSheetInfoRow("Streaming", streaming, valueColor = historicoVerdictColor(streaming))
+            LkSheetInfoRow("Streaming", streaming, valueColor = historicoVerdictColor(streaming, c))
             LkSheetDivider()
         }
         if (gamer != null) {
-            LkSheetInfoRow("Games", gamer, valueColor = historicoVerdictColor(gamer))
+            LkSheetInfoRow("Games", gamer, valueColor = historicoVerdictColor(gamer, c))
             LkSheetDivider()
         }
         if (videoChamada != null) {
-            LkSheetInfoRow("Vídeo chamada", videoChamada, valueColor = historicoVerdictColor(videoChamada))
+            LkSheetInfoRow("Vídeo chamada", videoChamada, valueColor = historicoVerdictColor(videoChamada, c))
             LkSheetDivider()
         }
         if (gargalo != null) {
-            LkSheetInfoRow("Gargalo identificado", gargalo, valueColor = LkColors.warning)
+            LkSheetInfoRow("Gargalo identificado", gargalo, valueColor = c.warning)
         }
 
         val diagTexto = medicao.diagnosticoTexto
@@ -732,7 +731,7 @@ private fun DiagnosticoHistoricoSection(
                             Modifier
                                 .size(4.dp)
                                 .clip(RoundedCornerShape(2.dp))
-                                .background(LkColors.warning),
+                                .background(c.warning),
                         )
                         Spacer(Modifier.width(LkSpacing.xs))
                         Text(
@@ -757,12 +756,15 @@ private fun DiagnosticoHistoricoSection(
     }
 }
 
-private fun historicoVerdictColor(label: String): Color =
+private fun historicoVerdictColor(
+    label: String,
+    c: LkTokens,
+): Color =
     when (label) {
-        "Bom" -> LkColors.success
-        "Aceitável" -> LkColors.warning
-        "Ruim" -> LkColors.error
-        else -> LkColors.warning
+        "Bom" -> c.success
+        "Aceitável" -> c.warning
+        "Ruim" -> c.error
+        else -> c.warning
     }
 
 @Composable

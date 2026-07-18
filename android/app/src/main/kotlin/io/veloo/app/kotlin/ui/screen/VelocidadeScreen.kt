@@ -305,7 +305,7 @@ fun VelocidadeScreen(
                         mostrarConfirmarCancelar = false
                         onCancelar()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = LkColors.error),
+                    colors = ButtonDefaults.buttonColors(containerColor = c.error, contentColor = c.onError),
                 ) { Text("Interromper") }
             },
             dismissButton = {

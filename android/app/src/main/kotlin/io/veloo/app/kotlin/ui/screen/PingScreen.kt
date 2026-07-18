@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import io.signallq.app.R
 import io.signallq.app.feature.speedtest.PingExecutor
 import io.signallq.app.feature.speedtest.PingResultado
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -195,7 +194,7 @@ fun PingScreen(onDismiss: () -> Unit) {
                                 Text(
                                     text = stringResource(R.string.ping_falha_perda_total),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = LkColors.error,
+                                    color = c.error,
                                     modifier = Modifier.padding(bottom = LkSpacing.md),
                                 )
                             } else {
@@ -256,7 +255,7 @@ fun PingScreen(onDismiss: () -> Unit) {
                     Text(
                         text = currentState.message,
                         style = MaterialTheme.typography.bodySmall,
-                        color = LkColors.error,
+                        color = c.error,
                         modifier = Modifier.padding(bottom = LkSpacing.md),
                     )
                     Button(
@@ -288,8 +287,8 @@ private fun PingMetricCard(
         modifier =
             modifier
                 .clip(RoundedCornerShape(LkRadius.card))
-                .border(1.dp, if (destacarErro) LkColors.error.copy(alpha = 0.30f) else c.outlineVariant, RoundedCornerShape(LkRadius.card))
-                .background(if (destacarErro) LkColors.error.copy(alpha = 0.08f) else c.surfaceContainer)
+                .border(1.dp, if (destacarErro) c.error.copy(alpha = 0.30f) else c.outlineVariant, RoundedCornerShape(LkRadius.card))
+                .background(if (destacarErro) c.error.copy(alpha = 0.08f) else c.surfaceContainer)
                 .padding(LkSpacing.md),
         contentAlignment = Alignment.Center,
     ) {
@@ -306,7 +305,7 @@ private fun PingMetricCard(
                 text = valor,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = if (destacarErro) LkColors.error else c.textPrimary,
+                color = if (destacarErro) c.error else c.textPrimary,
                 textAlign = TextAlign.Center,
             )
         }

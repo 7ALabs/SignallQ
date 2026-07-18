@@ -35,7 +35,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -154,8 +153,8 @@ private fun ConteudoAndroid(c: LkTokens) {
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(LkRadius.card))
-                    .background(LkColors.warning.copy(alpha = 0.08f))
-                    .border(1.dp, LkColors.warning.copy(alpha = 0.30f), RoundedCornerShape(LkRadius.card))
+                    .background(c.warning.copy(alpha = 0.08f))
+                    .border(1.dp, c.warning.copy(alpha = 0.30f), RoundedCornerShape(LkRadius.card))
                     .padding(LkSpacing.md),
         ) {
             Text(

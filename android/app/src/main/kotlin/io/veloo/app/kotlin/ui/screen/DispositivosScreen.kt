@@ -82,7 +82,6 @@ import io.signallq.app.feature.devices.SnapshotScanDispositivos
 import io.signallq.app.feature.devices.TipoDispositivo
 import io.signallq.app.feature.devices.chaveApelido
 import io.signallq.app.feature.devices.ehClienteFinal
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -460,13 +459,13 @@ private fun ApMeshItem(
                     Modifier
                         .size(40.dp)
                         .clip(RoundedCornerShape(LkRadius.button))
-                        .background(LkColors.success.copy(alpha = 0.12f)),
+                        .background(c.success.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.CellTower,
                     contentDescription = null,
-                    tint = LkColors.success,
+                    tint = c.success,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -474,7 +473,7 @@ private fun ApMeshItem(
         title = apelido?.takeIf { it.isNotBlank() } ?: dispositivo.nomeExibicao,
         subtitle = dispositivo.ip ?: "",
         trailing = {
-            BadgePill(label = "AP Mesh", bg = LkColors.success.copy(alpha = 0.10f), fg = LkColors.success)
+            BadgePill(label = "AP Mesh", bg = c.success.copy(alpha = 0.10f), fg = c.success)
         },
         onTap = onTap,
     )
@@ -626,12 +625,12 @@ private fun DeviceDetailSheet(
                     )
                     Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        LkStatusDot(color = LkColors.success)
+                        LkStatusDot(color = c.success)
                         Spacer(Modifier.width(LkSpacing.xs))
                         Text(
                             text = "Online",
                             style = MaterialTheme.typography.labelMedium,
-                            color = LkColors.success,
+                            color = c.success,
                         )
                     }
                 }
@@ -790,13 +789,13 @@ fun MeshApSheet(
                         Modifier
                             .size(48.dp)
                             .clip(RoundedCornerShape(LkRadius.input))
-                            .background(LkColors.success.copy(alpha = 0.12f)),
+                            .background(c.success.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.CellTower,
                         contentDescription = null,
-                        tint = LkColors.success,
+                        tint = c.success,
                         modifier = Modifier.size(24.dp),
                     )
                 }
@@ -809,11 +808,11 @@ fun MeshApSheet(
                     )
                     Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        LkStatusDot(color = LkColors.success)
+                        LkStatusDot(color = c.success)
                         Spacer(Modifier.width(LkSpacing.xs))
-                        Text(text = "Online", style = MaterialTheme.typography.labelSmall, color = LkColors.success)
+                        Text(text = "Online", style = MaterialTheme.typography.labelSmall, color = c.success)
                         Spacer(Modifier.width(LkSpacing.sm))
-                        BadgePill(label = "AP Mesh", bg = LkColors.success.copy(0.12f), fg = LkColors.success)
+                        BadgePill(label = "AP Mesh", bg = c.success.copy(0.12f), fg = c.success)
                     }
                 }
             }
@@ -959,7 +958,7 @@ private fun EmptyStateDispositivos(
         titulo = ttl
         subtitulo = sbt
         icone = Icons.Outlined.WarningAmber
-        iconColor = LkColors.warning
+        iconColor = c.warning
     } else if (isLoading) {
         titulo = "Procurando dispositivos..."
         subtitulo = "Aguarde alguns instantes."
@@ -1064,15 +1063,15 @@ private fun AlertBanner(
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.button))
-                .background(LkColors.warning.copy(alpha = 0.10f))
-                .border(1.dp, LkColors.warning.copy(alpha = 0.35f), RoundedCornerShape(LkRadius.button))
+                .background(c.warning.copy(alpha = 0.10f))
+                .border(1.dp, c.warning.copy(alpha = 0.35f), RoundedCornerShape(LkRadius.button))
                 .padding(LkSpacing.md),
         verticalAlignment = Alignment.Top,
     ) {
         Icon(
             imageVector = Icons.Outlined.WarningAmber,
             contentDescription = null,
-            tint = LkColors.warning,
+            tint = c.warning,
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(LkSpacing.sm))
@@ -1190,10 +1189,10 @@ private fun iconBgColor(
 ): Color =
     when (tipo) {
         TipoDispositivo.smartphone -> c.primary.copy(alpha = 0.12f)
-        TipoDispositivo.computador -> LkColors.success.copy(alpha = 0.12f)
+        TipoDispositivo.computador -> c.success.copy(alpha = 0.12f)
         TipoDispositivo.roteador -> c.primary.copy(alpha = 0.12f)
-        TipoDispositivo.pontoAcesso -> LkColors.success.copy(alpha = 0.12f)
-        TipoDispositivo.smarthome -> LkColors.warning.copy(alpha = 0.12f)
+        TipoDispositivo.pontoAcesso -> c.success.copy(alpha = 0.12f)
+        TipoDispositivo.smarthome -> c.warning.copy(alpha = 0.12f)
         else -> c.bgSecondary
     }
 
@@ -1204,10 +1203,10 @@ private fun iconFgColor(
 ): Color =
     when (tipo) {
         TipoDispositivo.smartphone -> c.primary
-        TipoDispositivo.computador -> LkColors.success
+        TipoDispositivo.computador -> c.success
         TipoDispositivo.roteador -> c.primary
-        TipoDispositivo.pontoAcesso -> LkColors.success
-        TipoDispositivo.smarthome -> LkColors.warning
+        TipoDispositivo.pontoAcesso -> c.success
+        TipoDispositivo.smarthome -> c.warning
         else -> c.textSecondary
     }
 

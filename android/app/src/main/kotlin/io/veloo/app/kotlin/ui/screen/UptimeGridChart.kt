@@ -26,7 +26,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.signallq.app.feature.history.BlocoUptime
 import io.signallq.app.feature.history.StatusUptime
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
@@ -100,10 +99,10 @@ fun UptimeGridChart(
             val barCor =
                 when {
                     uptimePct == null -> c.textTertiary
-                    uptimePct == 100 -> LkColors.success
-                    uptimePct >= 95 -> LkColors.success.copy(alpha = 0.7f)
-                    uptimePct >= 80 -> LkColors.warning
-                    else -> LkColors.error
+                    uptimePct == 100 -> c.success
+                    uptimePct >= 95 -> c.success.copy(alpha = 0.7f)
+                    uptimePct >= 80 -> c.warning
+                    else -> c.error
                 }
             val pctCor = barCor
 

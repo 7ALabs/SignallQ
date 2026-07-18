@@ -20,7 +20,7 @@ import io.signallq.app.feature.fibra.GponStatus
 import io.signallq.app.feature.fibra.LanStatus
 import io.signallq.app.feature.fibra.SnapshotFibra
 import io.signallq.app.feature.fibra.WanStatus
-import io.signallq.app.ui.LkColors
+import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.component.EquipamentoItemTecnico
 import io.signallq.app.ui.component.EquipamentoSecaoTecnica
 import io.signallq.app.ui.component.LocalDeviceSectionUiState
@@ -103,6 +103,7 @@ internal fun buildEquipmentPanels(
     snapshotFibra: SnapshotFibra,
     acesso: AcessoEquipamento,
     doubleNatSuspeito: Boolean,
+    c: LkTokens,
 ): List<EquipmentPanelUi> {
     val paineis = mutableListOf<EquipmentPanelUi>()
     val gponSaudeAtual =
@@ -132,7 +133,7 @@ internal fun buildEquipmentPanels(
             atualizacaoLabel = freshnessLabel(localDevice.freshness.capturadoEmEpochMs),
             statusTitulo = accessTitle(acesso),
             statusDescricao = accessDescription(acesso),
-            statusColor = accessColor(acesso),
+            statusColor = accessColor(acesso, c),
             suportaFibra = localDevice.capabilities.suportaFibra,
             suportaWifi = localDevice.capabilities.suportaWifi,
             totalClientes = localDevice.clientes.size,
@@ -158,12 +159,15 @@ internal fun buildEquipmentPanels(
             snapshotFibra.deviceInfo != null &&
             snapshotFibra.gpon != null
     if (deveCriarPainelOnt) {
-        paineis += buildOntPanel(snapshotFibra)
+        paineis += buildOntPanel(snapshotFibra, c)
     }
     return paineis
 }
 
-private fun buildOntPanel(snapshotFibra: SnapshotFibra): EquipmentPanelUi {
+private fun buildOntPanel(
+    snapshotFibra: SnapshotFibra,
+    c: LkTokens,
+): EquipmentPanelUi {
     val info = requireNotNull(snapshotFibra.deviceInfo)
     val gpon = requireNotNull(snapshotFibra.gpon)
     val secoes = buildSectionsFromFibra(snapshotFibra)
@@ -184,7 +188,7 @@ private fun buildOntPanel(snapshotFibra: SnapshotFibra): EquipmentPanelUi {
         atualizacaoLabel = "Atualizado nesta leitura",
         statusTitulo = if (gpon.isUp) "Conectado ao equipamento" else "Leitura parcial",
         statusDescricao = if (gpon.isUp) "A ONT está respondendo e a fibra foi lida com sucesso." else "A ONT respondeu, mas o link óptico ou parte da leitura exige atenção.",
-        statusColor = if (gpon.isUp) LkColors.success else LkColors.warning,
+        statusColor = if (gpon.isUp) c.success else c.warning,
         suportaFibra = true,
         suportaWifi = snapshotFibra.wifi?.radios?.isNotEmpty() == true,
         totalClientes = snapshotFibra.clientes.size,
@@ -368,17 +372,20 @@ private fun accessDescription(acesso: AcessoEquipamento): String =
         AcessoEquipamento.CREDENCIAIS_NECESSARIAS -> "As credenciais do equipamento ainda precisam ser configuradas."
     }
 
-private fun accessColor(acesso: AcessoEquipamento): Color =
+private fun accessColor(
+    acesso: AcessoEquipamento,
+    c: LkTokens,
+): Color =
     when (acesso) {
         AcessoEquipamento.LEITURA_COMPLETA,
         AcessoEquipamento.GERENCIAMENTO_DISPONIVEL,
-        -> LkColors.success
+        -> c.success
         AcessoEquipamento.LEITURA_PARCIAL,
         AcessoEquipamento.SOMENTE_IDENTIFICACAO,
-        -> LkColors.warning
+        -> c.warning
         AcessoEquipamento.SESSAO_EXPIRADA,
         AcessoEquipamento.CREDENCIAIS_NECESSARIAS,
-        -> LkColors.error
+        -> c.error
     }
 
 private fun deviceRole(deviceType: io.signallq.app.core.network.contracts.localdevice.DeviceType): String =
