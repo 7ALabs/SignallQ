@@ -11,6 +11,28 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ## [Unreleased]
 
+## [0.27.0] — 2026-07-18
+
+Ciclo curto de correções pontuais e padronização de UI sobre o redesign da 0.26.0 — TopBar, tela Sinal, Histórico, Onboarding e Equipamento de internet.
+
+### Adicionado
+- Padronização de ícone no título da TopBar por raiz de aba (#1100)
+
+### Corrigido
+- TopBar 100% estática, sem reação a scroll (#1100)
+- Botão Fechar de Ajustes movido para `navigationIcon` (#1100)
+- Container branco+borda para logo de operadora e arte de jogos (#1106)
+- `GatewayConnectionSheet` órfã removida de `AjustesScreen` (#1099)
+- Z-order de overlays empilhados e CTA de credenciais do equipamento corrigidos
+- Artwork não oficial de jogos desativado, fallback de cor+sigla (#1097)
+- Medições do Monitoramento passivo excluídas da lista do Histórico (#1096)
+- Scroll vertical adicionado ao detalhe do teste no Histórico (#1095)
+- Texto quebrando linha na aba Móvel da tela Sinal (#1089)
+- Comunicação visual de permissão já concedida no toggle de onboarding
+- Trava em "Sessão expirada" na tela Equipamento de internet (#1090)
+- Indicador "Ao vivo" removido e aviso de canal consolidado na tela Sinal (#1088)
+- Pills DNS/Ping/Diagnóstico e info técnica removidos do card Wi-Fi da Home (#1086)
+
 ## [0.26.0] — 2026-07-17
 
 Acumula todo o trabalho desde a 0.25.0 (publicada na trilha alpha do Play Console em 10/07) — 7 dias de trabalho intenso do squad, ~100 PRs. Destaques: redesign completo de UI (Material 3 To-Be), motor de topologia de rede unificado, monetização nativa (AdMob) e integração com diagnóstico remoto.

@@ -14,6 +14,10 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 
 ---
 
+## [0.27.0] — 2026-07-18
+
+Ciclo curto de correções pontuais e padronização de UI sobre o redesign da 0.26.0 (TopBar, Sinal, Histórico, Onboarding, Equipamento de internet). Ver [`android/CHANGELOG.md`](android/CHANGELOG.md#0270--2026-07-18).
+
 ## [0.25.0] — 2026-07-10
 
 Recommendation Engine integrado à experiência pós-diagnóstico, avaliação nativa do Google Play, autoconexão do gateway, dado real de Wi-Fi/LAN/clientes do roteador Nokia GPON e ~20 correções acumuladas desde a 0.24.1 (nunca publicada como release própria). Ver [`android/CHANGELOG.md`](android/CHANGELOG.md#0250--2026-07-10).

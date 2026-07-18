@@ -1,13 +1,29 @@
 # Histórico de Releases — SignallQ Android
 
-**Mantido por:** Gema
-**Última atualização:** 2026-07-05
+**Mantido por:** Rhodolfo
+**Última atualização:** 2026-07-18
 **Referência:** `android/CHANGELOG.md` (fonte autoritativa do histórico Android) + `git log --oneline`
 
 > Nota de marca: o namespace/applicationId atual é **`io.signallq.app`** (renomeado de
 > `io.veloo.app` em 2026-06-28; o caminho físico do código do `:app` continua
 > `io/veloo/app/kotlin/`). Demais identificadores técnicos permanecem por compatibilidade
 > de infra — repo `gmmattey/linka-android`, worker `linka-ai-diagnosis-worker`.
+
+---
+
+## v0.27.0 (versionCode 63) — 2026-07-18
+
+**Correções pontuais e padronização de UI sobre o redesign da 0.26.0**
+
+- TopBar padronizada: ícone por raiz de aba, 100% estática (sem reação a scroll), botão Fechar de Ajustes movido para `navigationIcon` (#1100)
+- Container branco+borda para logo de operadora e arte de jogos (#1106); artwork não oficial de jogos desativado (#1097)
+- Tela Sinal: texto quebrando linha na aba Móvel corrigido (#1089), indicador "Ao vivo" removido e aviso de canal consolidado (#1088)
+- Histórico: medições do Monitoramento passivo excluídas da lista (#1096), scroll vertical no detalhe do teste (#1095)
+- Trava em "Sessão expirada" na tela Equipamento de internet corrigida (#1090); z-order de overlays empilhados e CTA de credenciais corrigidos
+- `GatewayConnectionSheet` órfã removida de Ajustes (#1099); pills DNS/Ping/Diagnóstico removidos do card Wi-Fi da Home (#1086)
+- Onboarding: comunicação visual de permissão já concedida no toggle
+
+**Publicação:** trilha internal do Play Console, via `release.yml`
 
 ---
 
