@@ -1,0 +1,33 @@
+import React from 'react';
+import { LK } from '../tokens.js';
+
+export interface TabsProps {
+  /** Cada opção é `[id, label]`. */
+  options: [string, string][];
+  value: string;
+  onChange?: (id: string) => void;
+}
+
+/** Tabs com sublinhado (nav topo dentro de uma tela, ex.: Wi-Fi / Canal / Móvel). */
+export function Tabs({ options, value, onChange }: TabsProps) {
+  return (
+    <div style={{ display: 'flex', borderBottom: `1px solid ${LK.outlineVariant}`, flex: 'none' }}>
+      {options.map(([id, label]) => {
+        const on = id === value;
+        return (
+          <button
+            key={id}
+            onClick={() => onChange && onChange(id)}
+            style={{
+              font: `500 14px/20px ${LK.font}`, letterSpacing: '.1px', flex: 1, background: 'none', border: 0, cursor: 'pointer',
+              padding: '16px 0', color: on ? LK.primary : LK.onSurfaceVariant,
+              borderBottom: on ? `3px solid ${LK.primary}` : '3px solid transparent', marginBottom: -1,
+            }}
+          >
+            {label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
