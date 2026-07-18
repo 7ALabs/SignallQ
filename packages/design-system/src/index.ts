@@ -1,5 +1,5 @@
 // Tokens
-export { LK, ORB } from './tokens.js';
+export { LK, LK_DARK, SPACE, STATE, ORB } from './tokens.js';
 
 // Utils
 export { hexA } from './utils.js';
@@ -15,6 +15,10 @@ export * from './animations/index.js';
 
 // Brand — marca oficial (símbolo). Fundação de marca do DS.
 export * from './brand/index.js';
+
+// Controls — primitivos interativos (Button, IconButton, TextField, Switch, Checkbox,
+// Chip, SegmentedControl, Tabs, Dialog).
+export * from './controls/index.js';
 
 // Telas/fluxos NÃO fazem parte do design system — são composições de produto,
 // vivem como protótipos (tobe/ + templates/ no Claude Design), não como componentes
