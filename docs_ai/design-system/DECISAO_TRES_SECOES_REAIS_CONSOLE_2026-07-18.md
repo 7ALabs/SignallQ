@@ -1,8 +1,9 @@
 # Decisão — três seções reais do Console incorporadas ao protótipo To-Be MD3 (2026-07-18)
 
 **Responsável:** Lia
-**Status:** ativo — decisão de design tomada e aplicada no cache local do protótipo; **push real
-para o Claude Design ainda pendente** (ver "Pendência de execução" no fim deste documento)
+**Status:** CONCLUÍDO — decisão aplicada E push verificado no Claude Design em 2026-07-18. Os 5
+arquivos de conteúdo estão presentes no projeto remoto `e77ea465` (conferidos um a um via
+`DesignSync get_file` pela Claudete). NÃO repetir a alegação de "push pendente" — está desatualizada.
 **Última validação:** 2026-07-18 (versão 2 — correção de redistribuição temática)
 **Fonte de verdade:** projeto Claude Design `SignallQ Design System`
 (`e77ea465-291f-4bf5-930c-a267680da04e`), pasta `templates/signallq-admin-fluxo-tobe-md3/`
@@ -179,7 +180,14 @@ equivalente — Claudete ou Camilo, verificar antes.
 
 ---
 
-## Pendência de execução — IMPORTANTE
+## Pendência de execução — RESOLVIDA (verificado 2026-07-18)
+
+> **Atualização (Claudete, 2026-07-18):** o push FOI feito. Conferi via `DesignSync get_file` que os
+> 5 arquivos de conteúdo no projeto remoto `e77ea465` (pasta `templates/signallq-admin-fluxo-tobe-md3/`)
+> já contêm as seções decididas: `Md3AiCostContent` (Quota Gemini), `Md3SystemHealthContent` (Uso
+> Cloudflare), `Md3ProductAnalyticsContent` (Engajamento por funcionalidade + Navegação entre telas +
+> cohort de retenção D30), `Md3ErrorsContent` (Crashes por funcionalidade) e `Md3ToolsContent` (de
+> volta às 4 seções originais, sem "Uso do App"). O texto abaixo é histórico.
 
 As seções foram desenhadas e **já aplicadas nos arquivos de conteúdo do protótipo salvos
 localmente** em

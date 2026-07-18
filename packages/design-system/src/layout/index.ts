@@ -12,3 +12,5 @@ export { Overline } from './Overline.js';
 export type { OverlineProps } from './Overline.js';
 export { ScreenScroll } from './ScreenScroll.js';
 export type { ScreenScrollProps } from './ScreenScroll.js';
+export { SheetFrame } from './SheetFrame.js';
+export type { SheetFrameProps } from './SheetFrame.js';

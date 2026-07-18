@@ -1,6 +1,6 @@
 # SignallQ Design System — Conventions
 
-> **Projeto canônico no Claude Design: `SignallQ Design System` (projectId `e77ea465-291f-4bf5-930c-a267680da04e`)**, o mesmo já fixado em `.design-sync/config.json`. É o único projeto ativo — nunca crie um novo projeto para este pacote via `DesignSync.create_project`; sempre reuse este `projectId`. Em 2026-07-12 encontramos 6 outros projetos "Design System"/"Linka Design System"/"Copy of..." no workspace, todos duplicatas ou legado da era Linka — foram esvaziados (conteúdo removido via `delete_files`, projeto ainda aparece na lista até o Luiz apagar manualmente em claude.ai/design, já que a API não expõe `delete_project`). Se sua listagem de projetos mostrar mais de um "SignallQ Design System" no futuro, pare e confirme com a Claudete antes de sincronizar em qualquer um deles.
+> **Projeto canônico no Claude Design: `SignallQ Design System` (projectId `2d25d7a1-31b2-4ac3-881f-72dbc8f35a29`)** — o mesmo fixado em `.design-sync/config.json`. Criado em 2026-07-18 na **separação DS/protótipos** (ver `docs_ai/design-system/DECISAO_SEPARACAO_DS_PROTOTIPOS_2026-07-18.md`): este projeto contém **só o DS reutilizável** (tokens + primitivos + layout + animações, 14 componentes). O projeto antigo `e77ea465-291f-4bf5-930c-a267680da04e` foi renomeado para **"SignallQ — Protótipos"** e agora hospeda os fluxos (`tobe/`, `templates/`, `uploads/`), NÃO o DS — não sincronizar o pacote nele. Reuse sempre este `projectId`; o workspace tem vários "...Design System" (SignallQ PRO, Speedtest by SignallQ, 7Agents) — se a listagem mostrar mais de um **"SignallQ Design System"** exato, pare e confirme com a Claudete antes de sincronizar.
 
 ## Setup
 
@@ -23,11 +23,11 @@ import { LK, hexA } from '@signallq/design-system';
 style={{ color: LK.textPrimary, background: LK.bgCard, borderRadius: LK.rCard }}
 
 // Semantic colors
-LK.accent      // #6C2BFF — primary CTA, selection, active nav
-LK.success     // #22C55E — good connection, tests OK
-LK.warning     // #F5A623 — moderate alerts
-LK.error       // #FF4D4F — critical failures
-LK.accentBlue  // #2563EB — informational badges
+LK.accent      // #5B21D6 — primary CTA, selection, active nav (era #6C2BFF)
+LK.success     // #146C2E — good connection, tests OK
+LK.warning     // #8A5000 — moderate alerts
+LK.error       // #BA1A1A — critical failures
+LK.accentBlue  // #2851B8 — secondary FIXO (não deriva mais do accent), badges informativos
 
 // Alpha tints (color at 10–30% opacity)
 hexA(LK.success, 0.12)   // e.g. card fill
@@ -57,7 +57,10 @@ style={{ font: `400 14px/1.5 ${LK.font}` }}   // body-medium
 style={{ font: `600 11px/1.3 ${LK.font}`, letterSpacing: '.4px', textTransform: 'uppercase' }}  // overline
 ```
 
-Use the `Overline` component for section labels. Typography sizes: display 34, headline 24/20/18, title 16/15/14, body 16/14/12, label 14/12/11.
+Use the `Overline` component for section labels. Typography sizes (12 estilos MD3, Fluxo de Telas
+2026-07-13 — display-large/display-medium/headline-medium foram removidos, maior estilo real é
+displaySmall/34): display-small 34, headline large/small 26/22, title 20/16/14, body 16/14/12,
+label 14/12/11.
 
 ## Idiomatic example
 
@@ -82,11 +85,19 @@ import { Card, Overline, Badge, Icon, LK, hexA } from '@signallq/design-system';
 
 ## Non-negotiables
 
-- Single accent: `#6C2BFF`. No secondary accents.
-- Status colors carry meaning: green = good, amber = moderate, red = critical.
+> **Atualizado em 2026-07-18** — a paleta abaixo estava presa na era Linka (`#6C2BFF`, sem
+> secondary fixo, 15 estilos de tipo, Roboto-only) mesmo após a migração MD3 de 2026-07-13.
+> Corrigido para bater com `.claude/skills/SignallQ-design/colors_and_type.css` (fonte de
+> verdade real) — ver `.claude/CLAUDE.md`, seção "Design System".
+
+- Primary (accent): `#5B21D6`. Secondary: azul FIXO `#2851B8` — não deriva mais do primary.
+- Status colors carry meaning: green `#146C2E` = good, amber `#8A5000` = moderate, red `#BA1A1A` = critical.
 - Icons: Material Symbols Outlined only, 24dp default.
+- Fonte única do app: Google Sans Flex (fallback Google Sans, Roboto) — não mais Roboto-only.
 - Copy: Brazilian Portuguese, sentence case, UPPERCASE overlines, no emoji.
 - Raw metric always with human verdict: "486 Mbps · Excelente".
 - Separator: middle dot `·`.
-- Grid: 8dp base (4/8/12/16/24/32px).
-- Cards: flat, 16dp radius, hairline border, no drop shadows.
+- Grid: 8dp base, 8 degraus (4/8/12/16/20/24/32/40px).
+- Radius por componente: Card 16 / SheetFrame 28 / Button 20 / Field 12 / Chip-Badge 999 / Dialog 24.
+- Cards: flat, 16dp radius, hairline border, no drop shadows (elevação tonal, sem sombra dura).
+- Superfície SignallQ (IA, tokens `ORB`) é DESCONTINUADA no To-Be — não implementar rota/componente novo.

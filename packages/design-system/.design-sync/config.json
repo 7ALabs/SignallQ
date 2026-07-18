@@ -1,9 +1,17 @@
 {
-  "projectId": "e77ea465-291f-4bf5-930c-a267680da04e",
+  "projectId": "2d25d7a1-31b2-4ac3-881f-72dbc8f35a29",
   "pkg": "@signallq/design-system",
   "shape": "package",
   "buildCmd": "npm run build",
   "cssEntry": "./styles/tokens.css",
   "runtimeFontPrefixes": ["Roboto"],
-  "readmeHeader": ".design-sync/conventions.md"
+  "readmeHeader": ".design-sync/conventions.md",
+  "componentSrcMap": {
+    "AjustesScreen": null,
+    "HistoricoScreen": null,
+    "HomeScreen": null,
+    "SignallQScreen": null,
+    "SinalScreen": null,
+    "SpeedFlow": null
+  }
 }
