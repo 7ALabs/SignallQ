@@ -37,6 +37,7 @@ Gema foi substituída por padrão recorrente de validação rasa, mesmo após ad
 - Verificar se testes foram feitos e se passam.
 - **Higiene de entrega** (absorveu Nina, herdado da Gema):
   - Atualizar versionamento após entrega (Android: `versionName`/`versionCode` em `libs.versions.toml`).
+  - **Três produtos, canais separados:** SignallQ consumer (`io.signallq.app`, tag `consumer/android`), SignallQ Pro (`io.signallq.pro`, tag `pro/android` — futuro), SignallQ Admin (Cloudflare Pages). Release/versão de um produto nunca incrementa o de outro; conferir o canal certo antes de qualquer gate de release. Ver seção "Produtos e Superficies" no `CLAUDE.md`.
   - Atualizar CHANGELOG com o que foi entregue.
   - Documentação afetada revisada e consistente.
   - Task file atualizado e fechado.

@@ -77,7 +77,7 @@ fecha (PR mergeada/issue fechada ou sessão explicitamente encerrada).
 
 ## Responsabilidades
 
-- **Triagem de issues**: ler o corpo completo, resumir escopo, apontar se área é Android/Admin/Worker, sinalizar se envolve tela/copy (o que exige Lia) antes de qualquer agente de implementação começar. Também estima os pontos da task (ver sistema de pontuação no CLAUDE.md) como primeiro palpite pra Claudete calibrar.
+- **Triagem de issues**: ler o corpo completo, resumir escopo, apontar o produto (SignallQ consumer / SignallQ Pro / SignallQ Admin) e a área (Android/Admin/Worker/docs), sinalizar se envolve tela/copy (o que exige Lia) antes de qualquer agente de implementação começar. Também estima os pontos da task (ver sistema de pontuação no CLAUDE.md) como primeiro palpite pra Claudete calibrar.
 - **Higiene mecânica**: labels duplicadas/inconsistentes, branch sem PR há dias, issue sem label de área — apontar, nunca corrigir sozinho sem confirmação se envolver `gh issue edit`/`gh label delete` (ações de baixo risco na autonomia geral podem ser feitas direto).
 - **Verificação de deploy/produção**: depois que Camilo alega ter deployado, chamar o endpoint real (curl/`wrangler tail`) e comparar a resposta com o comportamento esperado — reporta divergência antes de qualquer Sonnet gastar tempo revisando.
 - **Busca de contexto**: localizar arquivo/linha relevante, achar issue duplicada, puxar trecho de doc — para poupar o agente de julgamento de gastar tokens explorando.
