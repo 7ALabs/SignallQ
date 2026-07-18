@@ -1,5 +1,25 @@
 [
   {
+    "tipo": "melhoria",
+    "titulo": "Equipamento de internet reorganizado",
+    "descricao": "A tela do seu equipamento ganhou um layout mais claro: identidade do aparelho, status, uso e ações agora aparecem em blocos fáceis de encontrar."
+  },
+  {
+    "tipo": "correcao",
+    "titulo": "Medição de latência mais precisa",
+    "descricao": "O teste de velocidade agora mede a latência de forma mais confiável, incluindo o atraso sob carga (bufferbloat) durante download e upload."
+  },
+  {
+    "tipo": "melhoria",
+    "titulo": "Legibilidade no modo escuro",
+    "descricao": "Textos e ícones de status (Excelente, Bom, Regular, Fraco) ganharam mais contraste no modo escuro em várias telas do app."
+  },
+  {
+    "tipo": "correcao",
+    "titulo": "Navegação e exibição mais consistentes",
+    "descricao": "Corrigidos pontos de navegação e exibição no Início, Histórico e Dispositivos — cards, filtros e indicadores agora respondem como esperado."
+  },
+  {
     "tipo": "novo",
     "titulo": "Teste de velocidade completo",
     "descricao": "Mede download, upload, latência e jitter em tempo real via Cloudflare. Resultado em segundos, sem anúncios."
@@ -8,11 +28,6 @@
     "tipo": "novo",
     "titulo": "Diagnóstico com IA na nuvem",
     "descricao": "Motor Qwen3 30B interpreta suas métricas e entrega um laudo em linguagem simples: causa provável, impacto por uso e recomendações priorizadas."
-  },
-  {
-    "tipo": "novo",
-    "titulo": "Assistente on-device",
-    "descricao": "Chat com Gemma 4.2B rodando direto no aparelho — sem internet, sem servidor. Tire dúvidas sobre sua conexão sem enviar dados para fora."
   },
   {
     "tipo": "novo",

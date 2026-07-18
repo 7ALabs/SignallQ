@@ -11,6 +11,19 @@
 
 ---
 
+## v0.28.0 (versionCode 64) — 2026-07-18
+
+**Fix de latência do motor de diagnóstico, redesign do Equipamento de internet e limpeza de contraste dark**
+
+- Speedtest passa a medir latência contra a sonda dedicada da tela Jogos em vez do host público — corrige inflação de até ~30x e restaura o cálculo de bufferbloat, antes sempre zero (#1118/#1125)
+- Tela Equipamento de internet redesenhada: nova ordem narrativa e grid consistente, extraída de 1549 para 549 linhas em 6 componentes dedicados (#1116)
+- Contraste de status (verde/âmbar/vermelho) corrigido no modo escuro em dezenas de telas do app (#1115/#1126–#1129)
+- 5 bugs de UI corrigidos: filtro do Histórico, placeholders de protótipo em Dispositivos, anel de conectado no roteador, navegação do card de Medição, contraste dos botões de Ajustes (#1114)
+
+**Publicação:** trilha internal do Play Console, via `release.yml`
+
+---
+
 ## v0.27.0 (versionCode 63) — 2026-07-18
 
 **Correções pontuais e padronização de UI sobre o redesign da 0.26.0**

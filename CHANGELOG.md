@@ -14,6 +14,10 @@ O formato é baseado em [Keep a Changelog](https://keepachangelog.com/) e este p
 
 ---
 
+## [0.28.0] — 2026-07-18
+
+Correção funcional do motor de diagnóstico (latência do Speedtest), redesign completo da tela Equipamento de internet e limpeza sistêmica de contraste de status no modo escuro. Ver [`android/CHANGELOG.md`](android/CHANGELOG.md#0280--2026-07-18).
+
 ## [0.27.0] — 2026-07-18
 
 Ciclo curto de correções pontuais e padronização de UI sobre o redesign da 0.26.0 (TopBar, Sinal, Histórico, Onboarding, Equipamento de internet). Ver [`android/CHANGELOG.md`](android/CHANGELOG.md#0270--2026-07-18).
