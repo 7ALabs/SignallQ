@@ -31,7 +31,6 @@ import androidx.compose.ui.unit.dp
 import io.signallq.app.core.network.contracts.gateway.DeviceType
 import io.signallq.app.core.network.contracts.gateway.PublicCompatibilityCatalog
 import io.signallq.app.core.network.contracts.gateway.PublicCompatibilityEntry
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -93,7 +92,7 @@ internal fun GatewayCompatibleModelsSheetContent(
             Spacer(Modifier.height(LkSpacing.sm))
             Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
                 catalogo.validado.forEach { entry ->
-                    CompatibleModelCard(entry = entry, selo = "Compatível", seloColor = LkColors.success, c = c)
+                    CompatibleModelCard(entry = entry, selo = "Compatível", seloColor = c.success, c = c)
                 }
             }
         }
@@ -104,7 +103,7 @@ internal fun GatewayCompatibleModelsSheetContent(
             Spacer(Modifier.height(LkSpacing.sm))
             Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
                 catalogo.experimental.forEach { entry ->
-                    CompatibleModelCard(entry = entry, selo = "Experimental", seloColor = LkColors.warning, c = c)
+                    CompatibleModelCard(entry = entry, selo = "Experimental", seloColor = c.warning, c = c)
                 }
             }
         }

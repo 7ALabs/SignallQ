@@ -154,7 +154,7 @@ private fun TipoTopologia.toIconData(c: LkTokens): TopologiaIconData? =
         TipoTopologia.ROTEADOR -> TopologiaIconData(Icons.Outlined.Router, c.primary)
         TipoTopologia.ROTEADOR_MESH -> TopologiaIconData(Icons.Outlined.Hub, c.primary)
         TipoTopologia.NO_MESH -> TopologiaIconData(Icons.Outlined.Hub, c.primary)
-        TipoTopologia.REPETIDOR -> TopologiaIconData(Icons.Outlined.CellTower, LkColors.warning)
+        TipoTopologia.REPETIDOR -> TopologiaIconData(Icons.Outlined.CellTower, c.warning)
         TipoTopologia.PONTO_DE_ACESSO -> TopologiaIconData(Icons.Outlined.Lan, LkColors.signallQTextSecondaryOnDark)
         TipoTopologia.DESCONHECIDO -> null
     }
@@ -599,7 +599,7 @@ private fun SinalTopTabRow(
                             Icon(
                                 imageVector = Icons.Outlined.Warning,
                                 contentDescription = "Canal congestionado",
-                                tint = LkColors.warning,
+                                tint = c.warning,
                                 modifier = Modifier.size(12.dp),
                             )
                         }
@@ -742,7 +742,7 @@ private fun SimCard(
                         if (sim.isDefaultData) {
                             MobileStatusBadge(
                                 label = "EM USO",
-                                color = LkColors.success,
+                                color = tokens.success,
                             )
                         }
                     }
@@ -1482,10 +1482,10 @@ private fun RedesTab(
                             Modifier
                                 .padding(horizontal = LkSpacing.lg)
                                 .clip(RoundedCornerShape(LkRadius.card))
-                                .background(LkColors.success.copy(alpha = 0.12f))
+                                .background(c.success.copy(alpha = 0.12f))
                                 .border(
                                     1.dp,
-                                    LkColors.success.copy(alpha = 0.24f),
+                                    c.success.copy(alpha = 0.24f),
                                     RoundedCornerShape(LkRadius.card),
                                 ),
                     ) {
@@ -1759,8 +1759,8 @@ private fun GrupoRedeTree(
                             )
                             LkPillBadge(
                                 text = "Conectado",
-                                containerColor = LkColors.success.copy(alpha = 0.15f),
-                                contentColor = LkColors.success,
+                                containerColor = c.success.copy(alpha = 0.15f),
+                                contentColor = c.success,
                             )
                         }
                     } else {
@@ -2680,21 +2680,21 @@ private fun CanalTab(
                             .padding(horizontal = LkSpacing.lg)
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(LkRadius.card))
-                            .background(LkColors.success.copy(alpha = 0.08f))
+                            .background(c.success.copy(alpha = 0.08f))
                             .padding(LkSpacing.lg),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.CheckCircle,
                         contentDescription = null,
-                        tint = LkColors.success,
+                        tint = c.success,
                         modifier = Modifier.size(20.dp),
                     )
                     Spacer(Modifier.width(LkSpacing.sm))
                     Text(
                         "Você está no canal ideal — não é necessário mudar.",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = LkColors.success,
+                        color = c.success,
                     )
                 }
                 Spacer(Modifier.height(LkSpacing.lg))
@@ -3113,7 +3113,7 @@ private fun BandSteeringCard() {
                 .padding(horizontal = LkSpacing.lg)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
-                .background(LkColors.warning.copy(alpha = 0.10f))
+                .background(c.warning.copy(alpha = 0.10f))
                 .padding(LkSpacing.lg),
     ) {
         Row(verticalAlignment = Alignment.Top) {
@@ -3122,13 +3122,13 @@ private fun BandSteeringCard() {
                     Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(LkColors.warning.copy(alpha = 0.15f)),
+                        .background(c.warning.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Lightbulb,
                     contentDescription = null,
-                    tint = LkColors.warning,
+                    tint = c.warning,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -3324,13 +3324,13 @@ private fun EmptyStatePermissaoTelefonia(
                 Modifier
                     .size(80.dp)
                     .clip(CircleShape)
-                    .background(LkColors.warning.copy(alpha = 0.10f)),
+                    .background(tokens.warning.copy(alpha = 0.10f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Outlined.SignalCellularAlt,
                 contentDescription = null,
-                tint = LkColors.warning,
+                tint = tokens.warning,
                 modifier = Modifier.size(36.dp),
             )
         }
@@ -3369,13 +3369,13 @@ private fun EmptyStateMobile(tokens: LkTokens) {
                 Modifier
                     .size(80.dp)
                     .clip(CircleShape)
-                    .background(LkColors.warning.copy(alpha = 0.10f)),
+                    .background(tokens.warning.copy(alpha = 0.10f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Outlined.SignalCellularOff,
                 contentDescription = null,
-                tint = LkColors.warning,
+                tint = tokens.warning,
                 modifier = Modifier.size(36.dp),
             )
         }
@@ -3469,8 +3469,8 @@ private fun ChannelDetailSheet(
             if (isCurrentChannel) {
                 LkPillBadge(
                     text = "Seu canal",
-                    containerColor = LkColors.success.copy(alpha = 0.14f),
-                    contentColor = LkColors.success,
+                    containerColor = c.success.copy(alpha = 0.14f),
+                    contentColor = c.success,
                 )
             }
             if (isRecommended) {
@@ -3500,7 +3500,7 @@ private fun ChannelDetailSheet(
         }
         if (dado.countTerceiros > 0) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                LkStatusDot(color = LkColors.warning)
+                LkStatusDot(color = c.warning)
                 Spacer(Modifier.width(8.dp))
                 Text(
                     "${dado.countTerceiros} rede${if (dado.countTerceiros != 1) "s" else ""} de terceiros",
@@ -3533,7 +3533,7 @@ private fun ChannelDetailSheet(
                     Icon(
                         imageVector = Icons.Outlined.CheckCircle,
                         contentDescription = null,
-                        tint = LkColors.success,
+                        tint = c.success,
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.width(8.dp))
@@ -3549,7 +3549,7 @@ private fun ChannelDetailSheet(
                     Icon(
                         imageVector = Icons.Outlined.CheckCircle,
                         contentDescription = null,
-                        tint = LkColors.success,
+                        tint = c.success,
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.width(8.dp))
@@ -3575,7 +3575,7 @@ private fun ChannelDetailSheet(
                         Icon(
                             imageVector = Icons.Outlined.CheckCircle,
                             contentDescription = null,
-                            tint = LkColors.success,
+                            tint = c.success,
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(Modifier.width(8.dp))
@@ -3592,7 +3592,7 @@ private fun ChannelDetailSheet(
                         Icon(
                             imageVector = Icons.Outlined.Warning,
                             contentDescription = null,
-                            tint = LkColors.warning,
+                            tint = c.warning,
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(Modifier.width(8.dp))

@@ -27,7 +27,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.signallq.app.feature.diagnostico.DiagnosticStatus
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.component.ClienteConectadoUi
@@ -185,7 +184,7 @@ internal fun DevicesSummaryCard(
         if (summary.flags.isNotEmpty()) {
             Spacer(Modifier.height(LkSpacing.sm))
             summary.flags.forEachIndexed { index, flag ->
-                Text(flag, style = MaterialTheme.typography.labelMedium, color = LkColors.warning)
+                Text(flag, style = MaterialTheme.typography.labelMedium, color = c.warning)
                 if (index < summary.flags.lastIndex) Spacer(Modifier.height(4.dp))
             }
         }
@@ -197,9 +196,9 @@ private fun statusColor(
     c: LkTokens,
 ): Color =
     when (status) {
-        DiagnosticStatus.ok -> LkColors.success
+        DiagnosticStatus.ok -> c.success
         DiagnosticStatus.info -> c.primary
-        DiagnosticStatus.attention -> LkColors.warning
-        DiagnosticStatus.critical -> LkColors.error
-        DiagnosticStatus.inconclusive -> LkColors.warning
+        DiagnosticStatus.attention -> c.warning
+        DiagnosticStatus.critical -> c.error
+        DiagnosticStatus.inconclusive -> c.warning
     }

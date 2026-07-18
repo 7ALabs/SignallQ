@@ -353,13 +353,13 @@ private fun BlocoCirculoSpeedTest(
             Icon(
                 imageVector = Icons.Outlined.WifiOff,
                 contentDescription = null,
-                tint = LkColors.warning,
+                tint = c.warning,
                 modifier = Modifier.size(14.dp),
             )
             Text(
                 "Sem conexão — teste indisponível",
                 style = MaterialTheme.typography.labelSmall,
-                color = LkColors.warning,
+                color = c.warning,
             )
         }
     }
@@ -413,7 +413,7 @@ private fun BlocoCirculoSpeedTest(
         Text(
             text = erroMsg,
             style = MaterialTheme.typography.titleSmall,
-            color = LkColors.error,
+            color = c.error,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = LkSpacing.xl),
         )
@@ -560,13 +560,14 @@ private fun IdleCircle(
 
 @Composable
 private fun ConcluidoCircle(onIniciarTeste: () -> Unit) {
+    val c = LocalLkTokens.current
     Box(
         modifier =
             Modifier
                 .size(210.dp)
                 .clip(CircleShape)
-                .background(LkColors.success.copy(alpha = 0.1f))
-                .border(2.dp, LkColors.success, CircleShape)
+                .background(c.success.copy(alpha = 0.1f))
+                .border(2.dp, c.success, CircleShape)
                 .semantics { contentDescription = "Iniciar novo teste" }
                 .clickable(onClick = onIniciarTeste),
         contentAlignment = Alignment.Center,
@@ -575,14 +576,14 @@ private fun ConcluidoCircle(onIniciarTeste: () -> Unit) {
             Icon(
                 imageVector = Icons.Filled.Check,
                 contentDescription = null,
-                tint = LkColors.success,
+                tint = c.success,
                 modifier = Modifier.size(40.dp),
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = "Iniciar teste",
                 style = MaterialTheme.typography.titleLarge,
-                color = LkColors.success,
+                color = c.success,
                 fontWeight = FontWeight.W600,
             )
         }
@@ -827,9 +828,9 @@ private fun LastResultCard(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(LkSpacing.lg),
         ) {
-            MetricColumn("Download", "%.0f".format(downloadMbps), "Mbps", LkColors.success, Modifier.weight(1f))
+            MetricColumn("Download", "%.0f".format(downloadMbps), "Mbps", c.success, Modifier.weight(1f))
             MetricColumn("Upload", "%.0f".format(uploadMbps), "Mbps", c.primary, Modifier.weight(1f))
-            MetricColumn("Latência", "%.0f".format(latencyMs), "ms", LkColors.success, Modifier.weight(1f))
+            MetricColumn("Latência", "%.0f".format(latencyMs), "ms", c.success, Modifier.weight(1f))
         }
     }
 }

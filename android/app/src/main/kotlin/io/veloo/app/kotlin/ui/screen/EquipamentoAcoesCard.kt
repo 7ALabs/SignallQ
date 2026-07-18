@@ -28,7 +28,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -71,7 +70,7 @@ internal fun ActionsSectionCard(
                         }.padding(horizontal = 14.dp, vertical = 13.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(action.icon, contentDescription = null, tint = if (action.danger) LkColors.error else c.textSecondary, modifier = Modifier.size(19.dp))
+                Icon(action.icon, contentDescription = null, tint = if (action.danger) c.error else c.textSecondary, modifier = Modifier.size(19.dp))
                 Spacer(Modifier.width(LkSpacing.md))
                 Text(
                     text = action.label,
@@ -79,7 +78,7 @@ internal fun ActionsSectionCard(
                     color =
                         when {
                             !action.enabled -> c.textTertiary
-                            action.danger -> LkColors.error
+                            action.danger -> c.error
                             else -> c.textPrimary
                         },
                     modifier = Modifier.weight(1f),
@@ -121,7 +120,7 @@ internal fun ReiniciarEquipamentoRow(
                 color = c.textSecondary,
             )
         }
-        OutlinedButton(onClick = onClick, shape = RoundedCornerShape(14.dp)) { Text("Reiniciar", color = LkColors.error) }
+        OutlinedButton(onClick = onClick, shape = RoundedCornerShape(14.dp)) { Text("Reiniciar", color = c.error) }
     }
 }
 
@@ -130,9 +129,10 @@ internal fun ReiniciarEquipamentoDialog(
     onConfirmar: () -> Unit,
     onCancelar: () -> Unit,
 ) {
+    val c = LocalLkTokens.current
     AlertDialog(
         onDismissRequest = onCancelar,
-        containerColor = LocalLkTokens.current.surfaceContainerHigh,
+        containerColor = c.surfaceContainerHigh,
         shape = RoundedCornerShape(LkRadius.dialog),
         title = { Text("Reiniciar equipamento?", fontWeight = FontWeight.W600) },
         text = {
@@ -145,7 +145,7 @@ internal fun ReiniciarEquipamentoDialog(
         },
         confirmButton = {
             TextButton(onClick = onConfirmar) {
-                Text("Reiniciar", color = LkColors.error)
+                Text("Reiniciar", color = c.error)
             }
         },
         dismissButton = {

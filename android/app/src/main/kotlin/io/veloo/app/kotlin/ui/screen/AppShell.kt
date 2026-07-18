@@ -74,7 +74,6 @@ import io.signallq.app.ui.FiltroConexaoHistorico
 import io.signallq.app.ui.GatewayInfo
 import io.signallq.app.ui.HistoryPoint
 import io.signallq.app.ui.IspInfo
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.OperadoraSource
@@ -697,14 +696,14 @@ fun AppShell(
                     Icon(
                         imageVector = Icons.Outlined.CheckCircle,
                         contentDescription = stringResource(R.string.appshell_cd_concluido),
-                        tint = LkColors.success,
+                        tint = cLocal.success,
                         modifier = Modifier.size(56.dp),
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
                         text = stringResource(R.string.appshell_concluido),
                         style = MaterialTheme.typography.titleLarge,
-                        color = LkColors.success,
+                        color = cLocal.success,
                         fontWeight = FontWeight.W600,
                     )
                 }
@@ -1185,6 +1184,7 @@ private fun ForaDoWifiDialog(
     onContinuar: () -> Unit,
     onCancelar: () -> Unit,
 ) {
+    val c = LocalLkTokens.current
     AlertDialog(
         onDismissRequest = onCancelar,
         title = { Text(stringResource(R.string.appshell_sem_wifi), fontWeight = FontWeight.W600) },
@@ -1196,7 +1196,7 @@ private fun ForaDoWifiDialog(
         },
         confirmButton = {
             TextButton(onClick = onContinuar) {
-                Text(stringResource(R.string.appshell_continuar_mesmo_assim), color = LkColors.warning)
+                Text(stringResource(R.string.appshell_continuar_mesmo_assim), color = c.warning)
             }
         },
         dismissButton = {

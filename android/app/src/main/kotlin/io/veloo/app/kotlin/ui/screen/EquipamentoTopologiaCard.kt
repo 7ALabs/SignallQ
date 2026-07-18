@@ -29,7 +29,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.component.LkSurfaceCard
@@ -104,9 +103,9 @@ internal fun TopologiaRedeCard(
         warning?.let {
             Spacer(Modifier.height(LkSpacing.sm))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = LkColors.warning, modifier = Modifier.size(14.dp))
+                Icon(Icons.Outlined.WarningAmber, contentDescription = null, tint = c.warning, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(6.dp))
-                Text(it, style = MaterialTheme.typography.bodySmall, color = LkColors.warning)
+                Text(it, style = MaterialTheme.typography.bodySmall, color = c.warning)
             }
         }
     }

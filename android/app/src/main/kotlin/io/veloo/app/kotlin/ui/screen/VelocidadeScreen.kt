@@ -386,19 +386,19 @@ private fun PillsFase(faseAtual: FaseSpeedtest) {
 
             val corBorda =
                 when {
-                    concluido -> LkColors.success
+                    concluido -> c.success
                     ativo -> corDaFase(faseAtual, c)
                     else -> Color.Transparent
                 }
             val corTexto =
                 when {
-                    concluido -> LkColors.success
+                    concluido -> c.success
                     ativo -> corDaFase(faseAtual, c)
                     else -> c.onSurfaceVariant
                 }
             val bgColor =
                 when {
-                    concluido -> LkColors.success.copy(alpha = 0.16f)
+                    concluido -> c.success.copy(alpha = 0.16f)
                     ativo -> corDaFase(faseAtual, c).copy(alpha = 0.16f)
                     else -> c.surfaceContainer
                 }
@@ -422,7 +422,7 @@ private fun PillsFase(faseAtual: FaseSpeedtest) {
                         Icon(
                             imageVector = Icons.Filled.Check,
                             contentDescription = null,
-                            tint = LkColors.success,
+                            tint = c.success,
                             modifier = Modifier.size(13.dp),
                         )
                         Spacer(Modifier.width(LkSpacing.xs))
@@ -456,7 +456,7 @@ private fun ErroContent(
         Icon(
             imageVector = Icons.Outlined.ErrorOutline,
             contentDescription = null,
-            tint = LkColors.error,
+            tint = c.error,
             modifier = Modifier.size(48.dp),
         )
         Spacer(Modifier.height(LkSpacing.lg))

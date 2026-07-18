@@ -477,8 +477,8 @@ fun HomeScreen(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .border(1.dp, LkColors.warning.copy(alpha = 0.50f), RoundedCornerShape(LkRadius.card)),
-                        colors = CardDefaults.cardColors(containerColor = LkColors.warning.copy(alpha = 0.08f)),
+                                .border(1.dp, c.warning.copy(alpha = 0.50f), RoundedCornerShape(LkRadius.card)),
+                        colors = CardDefaults.cardColors(containerColor = c.warning.copy(alpha = 0.08f)),
                         shape = RoundedCornerShape(LkRadius.card),
                     ) {
                         Row(
@@ -489,7 +489,7 @@ fun HomeScreen(
                             Icon(
                                 imageVector = Icons.Outlined.Info,
                                 contentDescription = null,
-                                tint = LkColors.warning,
+                                tint = c.warning,
                                 modifier = Modifier.size(20.dp),
                             )
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -668,8 +668,8 @@ internal fun AnatelBanner(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .border(1.dp, LkColors.warning.copy(alpha = 0.50f), RoundedCornerShape(LkRadius.card)),
-        colors = CardDefaults.cardColors(containerColor = LkColors.warning.copy(alpha = 0.08f)),
+                .border(1.dp, c.warning.copy(alpha = 0.50f), RoundedCornerShape(LkRadius.card)),
+        colors = CardDefaults.cardColors(containerColor = c.warning.copy(alpha = 0.08f)),
         shape = RoundedCornerShape(LkRadius.card),
     ) {
         Row(
@@ -680,7 +680,7 @@ internal fun AnatelBanner(
             Icon(
                 imageVector = Icons.Outlined.CellTower,
                 contentDescription = null,
-                tint = LkColors.warning,
+                tint = c.warning,
                 modifier = Modifier.size(20.dp),
             )
             Column(
@@ -848,7 +848,7 @@ private fun NetworkPath(
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                     PathNode(
                         icon = Icons.Outlined.Smartphone,
-                        iconColor = LkColors.success,
+                        iconColor = c.success,
                         label = "Seu aparelho",
                         subLabel =
                             when {
@@ -856,7 +856,7 @@ private fun NetworkPath(
                                 isConectado -> stringResource(R.string.home_network_buscando)
                                 else -> stringResource(R.string.home_network_desconectado)
                             },
-                        subLabelColor = if (hasLocalError) LkColors.error else null,
+                        subLabelColor = if (hasLocalError) c.error else null,
                         c = c,
                         onTap = onDeviceTap,
                     )
@@ -894,7 +894,7 @@ private fun NetworkPath(
                             iconColor = if (hasInternetError) c.textTertiary else c.textSecondary,
                             label = nodeLabel,
                             subLabel = nodeSubLabel,
-                            subLabelColor = if (hasInternetError) LkColors.error else null,
+                            subLabelColor = if (hasInternetError) c.error else null,
                             c = c,
                             onTap = { onGatewayTap(mobileGateway) },
                             iconContent =
@@ -916,10 +916,10 @@ private fun NetworkPath(
                             val gatewayConectado = gw.ip != null
                             PathNode(
                                 icon = icon,
-                                iconColor = if (gatewayConectado) LkColors.success else c.textSecondary,
+                                iconColor = if (gatewayConectado) c.success else c.textSecondary,
                                 label = "Roteador",
                                 subLabel = if (gatewayConectado) stringResource(R.string.home_network_conectado) else "—",
-                                subLabelColor = if (gatewayConectado) LkColors.success else null,
+                                subLabelColor = if (gatewayConectado) c.success else null,
                                 c = c,
                                 onTap = { onGatewayTap(gw) },
                             )
@@ -955,13 +955,13 @@ private fun NetworkPath(
                             }
                         val internetSubColor: Color? =
                             when {
-                                hasInternetError -> LkColors.error
-                                (ispInfo?.ip ?: publicIp) != null -> LkColors.success
+                                hasInternetError -> c.error
+                                (ispInfo?.ip ?: publicIp) != null -> c.success
                                 else -> null
                             }
                         PathNode(
                             icon = Icons.Outlined.Language,
-                            iconColor = if (hasInternetError) c.textTertiary else LkColors.success,
+                            iconColor = if (hasInternetError) c.textTertiary else c.success,
                             label = internetLabel,
                             subLabel = internetSubLabel,
                             subLabelColor = internetSubColor,
@@ -1122,9 +1122,9 @@ private fun PathConnector(
     }
     val lineColor =
         when {
-            hasError -> LkColors.error.copy(alpha = 0.3f)
+            hasError -> c.error.copy(alpha = 0.3f)
             loading -> c.primary.copy(alpha = animatedAlpha)
-            active -> LkColors.success
+            active -> c.success
             else -> c.border
         }
     val dashed = !active || hasError || loading
@@ -1163,7 +1163,7 @@ private fun PathConnector(
                 }
             } else {
                 drawLine(
-                    brush = Brush.horizontalGradient(listOf(LkColors.success, c.primary)),
+                    brush = Brush.horizontalGradient(listOf(c.success, c.primary)),
                     start = Offset.Zero,
                     end = Offset(size.width, 0f),
                     strokeWidth = 2.dp.toPx(),
@@ -1178,7 +1178,7 @@ private fun PathConnector(
                 Icon(
                     Icons.Outlined.Close,
                     contentDescription = null,
-                    tint = LkColors.error,
+                    tint = c.error,
                     modifier = Modifier.size(14.dp),
                 )
             }
@@ -1202,7 +1202,7 @@ private fun LastResultHero(
         HeroMetric(
             label = "Download",
             value = downloadMbps,
-            color = LkColors.success,
+            color = c.success,
             modifier = Modifier.weight(1f),
         )
         HeroMetric(
@@ -1221,13 +1221,16 @@ private fun LastResultHero(
  * ScoreEvidenceBuilder.velocidade() (:featureDiagnostico), duplicados aqui de proposito
  * para nao acoplar a tela Home ao motor de diagnostico so por causa de um rotulo.
  */
-private fun veredictoVelocidade(mbps: Double): Pair<String, Color> =
+private fun veredictoVelocidade(
+    mbps: Double,
+    c: LkTokens,
+): Pair<String, Color> =
     when {
-        mbps >= 100.0 -> "Excelente" to LkColors.success
-        mbps >= 50.0 -> "Bom" to LkColors.success
-        mbps >= 25.0 -> "Regular" to LkColors.warning
-        mbps >= 10.0 -> "Fraco" to LkColors.error
-        else -> "Fraco" to LkColors.error
+        mbps >= 100.0 -> "Excelente" to c.success
+        mbps >= 50.0 -> "Bom" to c.success
+        mbps >= 25.0 -> "Regular" to c.warning
+        mbps >= 10.0 -> "Fraco" to c.error
+        else -> "Fraco" to c.error
     }
 
 @Composable
@@ -1239,8 +1242,9 @@ private fun HeroSpeed(
     labelColor: Color,
     modifier: Modifier = Modifier,
 ) {
+    val c = LocalLkTokens.current
     val formatted = if (value >= 100) value.toLong().toString() else "%.1f".format(value)
-    val (veredicto, veredictoColor) = veredictoVelocidade(value)
+    val (veredicto, veredictoColor) = veredictoVelocidade(value, c)
     Column(modifier = modifier) {
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
@@ -1334,10 +1338,10 @@ private fun SignalQualityRow(
 
     val wifiColor =
         when {
-            wifiPct == null -> LkColors.success
-            wifiPct >= 70 -> LkColors.success
-            wifiPct >= 40 -> LkColors.warning
-            else -> LkColors.error
+            wifiPct == null -> c.success
+            wifiPct >= 70 -> c.success
+            wifiPct >= 40 -> c.warning
+            else -> c.error
         }
 
     Column(modifier = Modifier.clickable { onTap() }) {
@@ -1368,7 +1372,7 @@ private fun SignalQualityRow(
                     ),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Outlined.SignalCellularAlt, contentDescription = null, tint = LkColors.success, modifier = Modifier.size(20.dp))
+                Icon(Icons.Outlined.SignalCellularAlt, contentDescription = null, tint = c.success, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = mobileName?.takeIf { it.isNotBlank() } ?: stringResource(R.string.home_network_rede_movel),
@@ -1383,7 +1387,7 @@ private fun SignalQualityRow(
                     stringResource(R.string.home_network_conectado),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.W600,
-                    color = LkColors.success,
+                    color = c.success,
                 )
             }
         }
@@ -1394,13 +1398,15 @@ private fun SignalQualityRow(
 // ─── Wifi signal helpers ─────────────────────────────────────────────────────
 
 @Composable
-private fun wifiSignalColor(rssiDbm: Int): Color =
-    when {
-        rssiDbm >= -55 -> LkColors.success
-        rssiDbm >= -70 -> LkColors.success
-        rssiDbm >= -80 -> LkColors.warning
-        else -> LkColors.error
+private fun wifiSignalColor(rssiDbm: Int): Color {
+    val c = LocalLkTokens.current
+    return when {
+        rssiDbm >= -55 -> c.success
+        rssiDbm >= -70 -> c.success
+        rssiDbm >= -80 -> c.warning
+        else -> c.error
     }
+}
 
 /**
  * Higiene 2026-07-16 (varredura Fase 2, tela Início) — a mesma conversão RSSI→percentual
@@ -1434,9 +1440,9 @@ private fun mobileSignalColor(
 ): Color =
     when {
         rsrpDbm == null -> c.primary
-        rsrpDbm > -80 -> LkColors.success
-        rsrpDbm > -100 -> LkColors.warning
-        else -> LkColors.error
+        rsrpDbm > -80 -> c.success
+        rsrpDbm > -100 -> c.warning
+        else -> c.error
     }
 
 /** Mesma conversão RSRP→percentual estava copiada 2x ([MobileSignalCard], [SimChipCompact]). */
@@ -2174,10 +2180,10 @@ private fun WifiQualityBadge(
 ) {
     val color =
         when (quality) {
-            WifiQuality.Excelente -> LkColors.success
-            WifiQuality.Bom -> LkColors.success.copy(alpha = 0.65f)
-            WifiQuality.Razoavel -> LkColors.warning
-            WifiQuality.Ruim -> LkColors.error
+            WifiQuality.Excelente -> c.success
+            WifiQuality.Bom -> c.success.copy(alpha = 0.65f)
+            WifiQuality.Razoavel -> c.warning
+            WifiQuality.Ruim -> c.error
         }
     val label =
         when (quality) {
@@ -2206,10 +2212,10 @@ private fun FactorRow(
 ) {
     val statusColor =
         when (status) {
-            WifiQuality.Excelente -> LkColors.success
-            WifiQuality.Bom -> LkColors.success.copy(alpha = 0.65f)
-            WifiQuality.Razoavel -> LkColors.warning
-            WifiQuality.Ruim -> LkColors.error
+            WifiQuality.Excelente -> c.success
+            WifiQuality.Bom -> c.success.copy(alpha = 0.65f)
+            WifiQuality.Razoavel -> c.warning
+            WifiQuality.Ruim -> c.error
         }
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = LkSpacing.md),
@@ -2378,7 +2384,7 @@ private fun InternetInfoSheet(
             Text(
                 stringResource(R.string.home_sheet_ip_compartilhado),
                 style = MaterialTheme.typography.labelSmall,
-                color = LkColors.warning,
+                color = c.warning,
                 modifier = Modifier.padding(bottom = LkSpacing.md),
             )
         }
@@ -2393,7 +2399,7 @@ private fun InternetInfoSheet(
                 "Padrão do provedor"
             }
         LkSheetDivider()
-        LkSheetInfoRow("DNS Privado", dnsPrivadoValor, valueColor = if (privateDnsAtivo) LkColors.success else null)
+        LkSheetInfoRow("DNS Privado", dnsPrivadoValor, valueColor = if (privateDnsAtivo) c.success else null)
         val servidoresDnsStr = dnsServidores.take(2).joinToString(" / ").ifEmpty { "Não disponível" }
         LkSheetDivider()
         LkSheetInfoRow("Servidores DNS", servidoresDnsStr)
@@ -2530,9 +2536,9 @@ private fun CellularInfoSheet(
     val sinrColor =
         sinr?.let { s ->
             when {
-                s > 10 -> LkColors.success
-                s > 0 -> LkColors.warning
-                else -> LkColors.error
+                s > 10 -> c.success
+                s > 0 -> c.warning
+                else -> c.error
             }
         }
 
@@ -2584,14 +2590,14 @@ private fun CellularInfoSheet(
                     modifier =
                         Modifier
                             .clip(RoundedCornerShape(LkRadius.pill))
-                            .background(LkColors.success.copy(alpha = 0.10f))
+                            .background(c.success.copy(alpha = 0.10f))
                             .padding(horizontal = 10.dp, vertical = 4.dp),
                 ) {
                     Text(
                         "Conectado",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.W700,
-                        color = LkColors.success,
+                        color = c.success,
                     )
                 }
             }
@@ -2614,7 +2620,7 @@ private fun CellularInfoSheet(
         LkSheetInfoRow(
             "Roaming",
             if (movelSnapshot?.roaming == true) "Sim" else "Não",
-            valueColor = if (movelSnapshot?.roaming == true) LkColors.warning else null,
+            valueColor = if (movelSnapshot?.roaming == true) c.warning else null,
         )
         LkSheetDivider()
         LkSheetInfoRow("MCC / MNC", if (mcc != null && mnc != null) "$mcc / $mnc" else "Não disponível")
@@ -2662,13 +2668,13 @@ internal fun GamerShortcutCard(
                     Modifier
                         .size(40.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(LkColors.success.copy(alpha = 0.12f)),
+                        .background(c.success.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Outlined.SportsEsports,
                     contentDescription = null,
-                    tint = LkColors.success,
+                    tint = c.success,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -2732,10 +2738,10 @@ internal fun GamerSheet(
                     Modifier
                         .size(44.dp)
                         .clip(RoundedCornerShape(LkRadius.button))
-                        .background(LkColors.success.copy(alpha = 0.12f)),
+                        .background(c.success.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Outlined.SportsEsports, null, tint = LkColors.success, modifier = Modifier.size(24.dp))
+                Icon(Icons.Outlined.SportsEsports, null, tint = c.success, modifier = Modifier.size(24.dp))
             }
             Spacer(Modifier.width(12.dp))
             Column {
@@ -2909,19 +2915,19 @@ private fun GamerVeredictCard(
                 Triple(
                     stringResource(R.string.home_gamer_veredito_otimo_label),
                     stringResource(R.string.home_gamer_veredito_otimo_desc),
-                    LkColors.success,
+                    c.success,
                 )
             VereditoUso.acceptable ->
                 Triple(
                     stringResource(R.string.home_gamer_veredito_bom_label),
                     stringResource(R.string.home_gamer_veredito_bom_desc),
-                    LkColors.warning,
+                    c.warning,
                 )
             VereditoUso.poor ->
                 Triple(
                     stringResource(R.string.home_gamer_veredito_ruim_label),
                     stringResource(R.string.home_gamer_veredito_ruim_desc),
-                    LkColors.error,
+                    c.error,
                 )
         }
     Box(
@@ -2962,9 +2968,9 @@ private fun GamerMetricRow(
 ) {
     val cor =
         when (veredito) {
-            VereditoUso.good -> LkColors.success
-            VereditoUso.acceptable -> LkColors.warning
-            VereditoUso.poor -> LkColors.error
+            VereditoUso.good -> c.success
+            VereditoUso.acceptable -> c.warning
+            VereditoUso.poor -> c.error
         }
     Row(
         modifier =
@@ -3006,9 +3012,9 @@ private fun GamerJogoRow(
 ) {
     val cor =
         when (veredito) {
-            VereditoUso.good -> LkColors.success
-            VereditoUso.acceptable -> LkColors.warning
-            VereditoUso.poor -> LkColors.error
+            VereditoUso.good -> c.success
+            VereditoUso.acceptable -> c.warning
+            VereditoUso.poor -> c.error
         }
     val label =
         when (veredito) {
@@ -3056,12 +3062,12 @@ private fun GargaloGamerNote(
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
-                .background(LkColors.warning.copy(alpha = 0.08f))
-                .border(1.dp, LkColors.warning.copy(alpha = 0.30f), RoundedCornerShape(10.dp))
+                .background(c.warning.copy(alpha = 0.08f))
+                .border(1.dp, c.warning.copy(alpha = 0.30f), RoundedCornerShape(10.dp))
                 .padding(LkSpacing.md),
         verticalAlignment = Alignment.Top,
     ) {
-        Icon(Icons.Outlined.Insights, null, tint = LkColors.warning, modifier = Modifier.size(16.dp))
+        Icon(Icons.Outlined.Insights, null, tint = c.warning, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(LkSpacing.sm))
         Text(texto, style = MaterialTheme.typography.bodySmall, color = c.textPrimary, lineHeight = 16.sp)
     }
@@ -3296,9 +3302,9 @@ private fun ConnectionContextCard(
             val qualidadeColor =
                 when {
                     wifiPct == null -> c.primary
-                    wifiPct >= 70 -> LkColors.success
-                    wifiPct >= 40 -> LkColors.warning
-                    else -> LkColors.error
+                    wifiPct >= 70 -> c.success
+                    wifiPct >= 40 -> c.warning
+                    else -> c.error
                 }
 
             SignallQCard(c) {
@@ -3459,8 +3465,8 @@ private fun ConnectionContextCard(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .border(1.dp, LkColors.warning.copy(alpha = 0.50f), RoundedCornerShape(LkRadius.card)),
-                colors = CardDefaults.cardColors(containerColor = LkColors.warning.copy(alpha = 0.08f)),
+                        .border(1.dp, c.warning.copy(alpha = 0.50f), RoundedCornerShape(LkRadius.card)),
+                colors = CardDefaults.cardColors(containerColor = c.warning.copy(alpha = 0.08f)),
                 shape = RoundedCornerShape(LkRadius.card),
             ) {
                 Column(
@@ -3474,7 +3480,7 @@ private fun ConnectionContextCard(
                         Icon(
                             imageVector = Icons.Outlined.WifiOff,
                             contentDescription = null,
-                            tint = LkColors.warning,
+                            tint = c.warning,
                             modifier = Modifier.size(20.dp),
                         )
                         Text(
@@ -3550,17 +3556,17 @@ private fun MobileChipsCard(
     resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
 ) {
     val linhas: List<Pair<String, Pair<String, Color>>> =
-        remember(movelSnapshot, simsAtivos) {
+        remember(movelSnapshot, simsAtivos, c) {
             when {
                 simsAtivos.isNotEmpty() ->
                     simsAtivos.map { sim ->
                         (sim.operadora?.takeIf { it.isNotBlank() } ?: "SIM ${sim.simIndex}") to
-                            simStatusLabel(sim.rsrpDbm, sim.radioDesligado)
+                            simStatusLabel(sim.rsrpDbm, sim.radioDesligado, c)
                     }
                 movelSnapshot != null ->
                     listOf(
                         (movelSnapshot.operadora?.takeIf { it.isNotBlank() } ?: "Rede móvel") to
-                            simStatusLabel(movelSnapshot.rsrpDbm, movelSnapshot.radioDesligado),
+                            simStatusLabel(movelSnapshot.rsrpDbm, movelSnapshot.radioDesligado, c),
                     )
                 else -> emptyList<Pair<String, Pair<String, Color>>>()
             }
@@ -3646,11 +3652,12 @@ private fun MobileChipsCard(
 private fun simStatusLabel(
     rsrpDbm: Int?,
     radioDesligado: Boolean,
+    c: LkTokens,
 ): Pair<String, Color> =
     when {
-        radioDesligado -> "Sem sinal" to LkColors.error
-        rsrpDbm == null -> "Sem leitura" to LkColors.warning
-        rsrpDbm > -85 -> "Bom" to LkColors.success
-        rsrpDbm > -100 -> "Regular" to LkColors.warning
-        else -> "Ruim" to LkColors.error
+        radioDesligado -> "Sem sinal" to c.error
+        rsrpDbm == null -> "Sem leitura" to c.warning
+        rsrpDbm > -85 -> "Bom" to c.success
+        rsrpDbm > -100 -> "Regular" to c.warning
+        else -> "Ruim" to c.error
     }

@@ -29,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.signallq.app.monitoramento.OemKillInfo
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.component.ConfirmacaoDialog
@@ -170,7 +169,7 @@ internal fun MonitoramentoSheet(
                 LkSheetDivider()
                 LkInfoCallout(
                     icon = Icons.Outlined.Info,
-                    iconTint = LkColors.warning,
+                    iconTint = c.warning,
                     text =
                         "Em alguns dispositivos ${OemKillInfo.nomeFabricante}, o sistema pode reduzir a frequência " +
                             "das verificações para economizar bateria. Para garantir o funcionamento, mantenha o SignallQ " +

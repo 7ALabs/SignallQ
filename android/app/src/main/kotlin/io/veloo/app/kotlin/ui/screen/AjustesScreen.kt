@@ -65,7 +65,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.R
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -567,8 +566,8 @@ private fun SettingItem(
     badge: String? = null,
     tintError: Boolean = false,
 ) {
-    val iconTint = if (tintError) LkColors.error else c.primary
-    val labelColor = if (tintError) LkColors.error else c.textPrimary
+    val iconTint = if (tintError) c.error else c.primary
+    val labelColor = if (tintError) c.error else c.textPrimary
 
     Row(
         modifier =
@@ -589,7 +588,7 @@ private fun SettingItem(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (tintError) LkColors.error else c.primary,
+                tint = if (tintError) c.error else c.primary,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -746,13 +745,13 @@ private fun DiagnosticoAppSheet(
                 Icon(
                     imageVector = Icons.Outlined.VerifiedUser,
                     contentDescription = null,
-                    tint = LkColors.success,
+                    tint = c.success,
                     modifier = Modifier.size(16.dp),
                 )
                 Text(
                     text = "Binários íntegros · Nenhuma anomalia detectada",
                     style = MaterialTheme.typography.bodySmall,
-                    color = LkColors.success,
+                    color = c.success,
                 )
             }
             Spacer(Modifier.height(LkSpacing.md))

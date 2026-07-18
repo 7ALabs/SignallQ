@@ -35,7 +35,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.R
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
@@ -138,14 +137,14 @@ fun OperadoraContactCard(
                         imageVector = Icons.Outlined.Chat,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = LkColors.success,
+                        tint = c.success,
                     )
                     Spacer(Modifier.width(LkSpacing.xs))
                     Text(
                         text = stringResource(R.string.operadora_contact_whatsapp),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.W600,
-                        color = LkColors.success,
+                        color = c.success,
                     )
                 }
             }

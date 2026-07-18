@@ -41,7 +41,7 @@ fun AdBadge(
     val isSimulated = source == NativeAdSource.SIMULATED
     val tone =
         when {
-            isSimulated -> LkColors.warning
+            isSimulated -> c.warning
             isPartner -> LkColors.accentBlue
             else -> c.textTertiary
         }
