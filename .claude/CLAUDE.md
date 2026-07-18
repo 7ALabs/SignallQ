@@ -48,6 +48,26 @@ pequeno, seguro e relacionado à tarefa, ou registrá-lo em uma issue quando amp
 
 ---
 
+## Produtos e Superficies (ecossistema)
+
+A squad opera **tres produtos** sob o **mesmo fluxo de trabalho** (piloto automatico, classificacao de tamanho, disciplina de branch/PR, rotinas, autonomia) -- squad unica, cada produto tratado como **linha de produto**, nao como squad separada (decisao 2026-07-18, mesma logica do Console). Nao "contratar" agentes novos por ora; derivar squad Pro dedicada so quando os roadmaps consumer e Pro rodarem em paralelo de verdade (pos-MVP1). A visao-alvo consolidada esta em `docs_ai/plataforma/` (pacote **v5** -- comecar por `LEIA-ME_v5.md` + `00_CANONICO_v5.md`, que e a fonte unica de nomes/eventos/tabelas/paleta e do mapa ATUAL vs ALVO).
+
+| Produto | Estado | Stack / identificador | Design (fonte) | Release |
+|---|---|---|---|---|
+| **SignallQ** (consumer) | **ATUAL** -- 0.26.0/vc62, 16 modulos | Kotlin/Compose/M3, `io.signallq.app`, primary violeta `#5B21D6` / secondary azul `#2851B8` | skill `/SignallQ-design`; projeto Claude Design `2d25d7a1-…` | `consumer/android/vX.Y.Z` -> Play (internal->alpha…) |
+| **SignallQ Pro** | **ALVO** -- app nao existe (spec/design) | Kotlin/Compose/M3 (alvo), `io.signallq.pro`, Firebase/Play proprios, identidade **azul `#0B6CFF`** (marca) + ciano `#006B76` + roxo `#6558E8` de apoio, 2 temas oficiais | skill `/signallq-pro-design`; projeto Claude Design `77a19317-…` (fonte visual viva); `docs_ai/plataforma/08..11_*` | `pro/android/vX.Y.Z` (futuro) |
+| **SignallQ Admin** (Console) | **ATUAL** -- React 19/Vite 6/TS 5.8/Tailwind 4 | `SignallQ Admin/` + `signallq-admin-worker` (backend); 13 tabelas D1 reais; 5 workers Cloudflare | design da Lia (Claude Design); `docs_ai/plataforma/07_*` | Cloudflare Pages / ambiente protegido |
+
+Nao-negociaveis por produto:
+- **SignallQ Pro esta em fase de spec/design -- nao criar codigo Android do Pro sem instrucao explicita do Luiz** (2026-07-18). O trabalho atual do Pro e documentacao, design (protótipo/skill) e planejamento de MVP1, nao implementacao.
+- **Nunca misturar marca/paleta entre produtos:** consumer e violeta (`#5B21D6`); Pro e azul (`#0B6CFF`, com ciano `#006B76` e roxo `#6558E8` de apoio). `#6C2BFF` e a antiga paleta teal-dominante do Pro (`#006B73` como primary) estao **mortos**. Paleta do Pro evolui no projeto Claude Design `77a19317` -- fonte da verdade visual, reler antes de desenhar.
+- **Release e identidade sao separados por produto** (applicationId, Firebase, Play listing, tag, canal). Uma mudanca num produto nao incrementa versao de outro.
+- **SignallQ Nethal** e alvo de plataforma, mas hoje vive em **repo separado** (`gmmattey/nethal`) com **squad propria** -- fora do escopo desta squad; so entra aqui quando/se for internalizado no monorepo-alvo.
+
+O monorepo-alvo `signallq-platform` (que unifica os tres + Portal + Nethal) e **proposta** -- hoje o codigo vive no `linka-android` (+ `SignallQ Admin/` dentro dele) e em repos separados. Ver `docs_ai/plataforma/01_..._Arquitetura_v5.md` e `00_CHANGELOG_e_Validacao_Cruzada_v5.md` para o gap doc-vs-realidade validado.
+
+---
+
 ## Fontes da Verdade
 
 > **Migracao 2026-07-09:** execucao/backlog saiu do Linear e passou para **GitHub Issues** (repo `gmmattey/linka-android`). Linear deixou de ser fonte da verdade de tarefas — historico anterior a essa data (IDs `SIG-XXX`) continua valido como referencia, mas qualquer issue nova, prioridade ou status de trabalho vive no GitHub a partir de agora.

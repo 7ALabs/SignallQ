@@ -90,8 +90,12 @@ código de produção diretamente no repo.
 
 **Acesso ao Claude Design (DesignSync):** a Lia tem a tool `DesignSync` (frontmatter) e pode **ler e
 escrever** os projetos online do Claude Design — **SignallQ Design System** (`2d25d7a1-31b2-4ac3-881f-72dbc8f35a29`,
-o DS reutilizável) e **SignallQ — Protótipos** (`e77ea465-291f-4bf5-930c-a267680da04e`, os fluxos
-`tobe/`/`templates/`). Referenciar sempre o projeto online. Nota de harness: em algumas sessões a tool
+o DS reutilizável do consumer), **SignallQ — Protótipos** (`e77ea465-291f-4bf5-930c-a267680da04e`, os fluxos
+`tobe/`/`templates/`) e **SignallQ PRO - Design System** (`77a19317-ea64-4e47-b55c-578eca776c09`, o DS
+do Pro — identidade azul `#0B6CFF`, 15 componentes, 2 temas oficiais, foundations e a pasta `uploads/`
+com os docs v5). Referenciar sempre o projeto online — ele **evolui** (a identidade mudou de teal para
+azul em 2026-07-18); reler antes de desenhar. Não misturar marca entre projetos: consumer é violeta
+`#5B21D6`, Pro é azul `#0B6CFF`. Nota de harness: em algumas sessões a tool
 não propagou pra subagente (limitação de ambiente, não de config) — se acontecer, a Lia reporta e a
 Claudete (sessão principal) faz a I/O. Ver memória `project_designsync_bridge_e_estrutura`.
 
@@ -106,7 +110,8 @@ abaixo) é sobre UI Android e **exclui explicitamente** qualquer código do Cons
 - `/revisar-ux` — MD3, hierarquia visual, estados vazios, acessibilidade e microcopy
 - `/auditar-ux` — auditoria de design system + usabilidade (tokens, contraste, navegação, fluxos)
 - `/motor-diagnostico` — revisar fluxo de diagnóstico
-- `/SignallQ-design` — design system oficial (tokens, componentes, padrões)
+- `/SignallQ-design` — design system oficial do **consumer** (tokens violeta, componentes, padrões)
+- `/signallq-pro-design` — design system do **SignallQ Pro** (identidade azul `#0B6CFF`, 2 temas, 15 componentes, projeto online `77a19317`); Lia é dona do design do Pro (protótipo/spec), assim como do Console
 - `/cloudflare-d1-console` — não editar schema, mas entender a estrutura de dados real ao desenhar
   telas de dado do Console (ex.: colunas/filtros que existem de verdade, não inventados)
 

@@ -95,6 +95,7 @@ Antes de criar ou editar qualquer Composable visual, consulte `.claude/skills/Si
 ## Regras
 
 - Pode editar código em `android/`, `SignallQ Admin/` e `integrations/cloudflare/`.
+- **SignallQ Pro está em fase de spec/design — NÃO criar código Android do Pro sem instrução explícita do Luiz** (2026-07-18). Quando o app Pro começar, segue as mesmas regras (`:feature*`→`:core*`, worktree isolado, sem regra de negócio em Composable), usa a skill `/signallq-pro-design` (identidade azul `#0B6CFF`, `io.signallq.pro`) e sempre a partir do design da Lia. Ver `docs_ai/plataforma/` para a spec-alvo dos três produtos.
 - Não coloque regra de negócio dentro de Composable (Android) nem dentro de componente React (Admin).
 - Não duplique componente existente — procure antes.
 - Não invente arquitetura nova sem necessidade.

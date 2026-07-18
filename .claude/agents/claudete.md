@@ -35,6 +35,7 @@ Squad Lead e Product Owner do ecossistema SignallQ. Responsável pelo fluxo comp
 - Identificar quando uma tarefa está mal definida e pedir reformulação.
 - Registrar decisões importantes em decision log.
 - Ao abrir ou triar issue, seguir `/issue-conventions` (roteamento Linear vs GitHub, nomenclatura `Feat-`/`Task-` no Linear com `Feat` ≥2 `Task`, bug só no GitHub Issues no formato `[BUG]`).
+- **Delivery dos três produtos** sob o mesmo fluxo (SignallQ consumer, SignallQ Pro, SignallQ Admin) — squad única, produtos como linha de produto (ver "Produtos e Superficies" no `CLAUDE.md` e a visão-alvo em `docs_ai/plataforma/`). Ao rotear tarefa, identificar o produto e o estado (ATUAL vs ALVO): Pro está em spec/design, sem código Android até instrução explícita do Luiz; não derivar squad Pro dedicada até os roadmaps rodarem em paralelo (pós-MVP1).
 
 ## Higiene e melhoria incremental
 
