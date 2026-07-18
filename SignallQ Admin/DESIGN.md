@@ -1,7 +1,12 @@
 ---
 name: SignallQ Admin
 description: Console técnico do SignallQ — uso, diagnósticos, IA/custos, erros e saúde do sistema em um só painel.
-status: realinhado ao protótipo md3-tobe (fonte de verdade) em 2026-07-16 — ver docs_ai/design-system/FASE1_TOKENS_CONSOLE_MD3_TOBE_2026-07-16.md
+status: realinhado ao protótipo To-Be MD3 (fonte de verdade) em 2026-07-17 — pasta confirmada
+  `signallq-admin-fluxo-tobe-md3` no projeto Claude Design "SignallQ Design System"
+  (e77ea465-291f-4bf5-930c-a267680da04e), NÃO o mirror local desatualizado
+  `signallq-admin-md3-tobe` (sem "fluxo") usado na passagem anterior de 2026-07-16 — ver
+  docs_ai/design-system/PLANO_APLICACAO_TOBE_CONSOLE_2026-07-17.md (correção) e
+  docs_ai/design-system/FASE1_TOKENS_CONSOLE_MD3_TOBE_2026-07-16.md (tokens de cor, ainda válidos)
 colors:
   primary-light: "#6C2BFF"
   primary-dark: "#CFBCFF"

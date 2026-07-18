@@ -460,7 +460,7 @@ Público (sem autenticação), rate-limitado por device_id.
    EOF
    ```
 
-5. **Confirmar login:** abrir `https://signallq-admin.pages.dev/login`, digitar email e senha.
+5. **Confirmar login:** abrir `https://signallq-admin-panel.pages.dev/login`, digitar email e senha.
 
 ---
 
@@ -482,7 +482,9 @@ Público (sem autenticação), rate-limitado por device_id.
    - Variável de ambiente: `VITE_ENABLE_MOCKS=false` (desativa mocks em produção)
    - Deploy
 
-2. **Confirmar deploy:** abrir URL pública do painel (ex: `signallq-admin.pages.dev`), logar, ver dashboard.
+2. **Confirmar deploy:** abrir URL pública do painel (produção real: `signallq-admin-panel.pages.dev` —
+   confirmado em 2026-07-17 via `SignallQ Admin/tests/README.md`; não confundir com
+   `signallq.pages.dev/console/`, legada e desativada desde 2026-07-16), logar, ver dashboard.
 
 ---
 

@@ -12,12 +12,6 @@ interface SectionIntroProps {
   description: string;
   /** Ausente apenas em Configurações — o mockup não lista fonte para essa tela. */
   source?: string;
-  /** Bloco de identidade do produto — só usado no Centro de Controle (Overview). */
-  hero?: {
-    iconSrc: string;
-    title: string;
-    subtitle: string;
-  };
   id?: string;
 }
 
@@ -26,30 +20,10 @@ export const SectionIntro: React.FC<SectionIntroProps> = ({
   question,
   description,
   source,
-  hero,
   id,
 }) => {
   return (
     <div id={id} className="mb-2">
-      {hero && (
-        <div className="flex items-center gap-4 mb-5">
-          <img
-            src={hero.iconSrc}
-            alt=""
-            className="w-14 h-14 rounded-2xl shrink-0 object-cover"
-            draggable={false}
-          />
-          <div>
-            <div className="text-[22px] font-sans font-bold leading-tight" style={{ color: "var(--text-primary)" }}>
-              {hero.title}
-            </div>
-            <div className="text-[13px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
-              {hero.subtitle}
-            </div>
-          </div>
-        </div>
-      )}
-
       <div
         className="text-[11px] font-sans font-semibold uppercase tracking-[0.08em]"
         style={{ color: "var(--text-tertiary)" }}
@@ -57,7 +31,7 @@ export const SectionIntro: React.FC<SectionIntroProps> = ({
         {overline}
       </div>
       <h1
-        className="text-[26px] font-sans font-bold leading-[1.25] tracking-[-0.02em] mt-1.5 mb-1.5"
+        className="text-[24px] font-sans font-medium leading-[1.25] tracking-[-0.02em] mt-1.5 mb-1.5"
         style={{ color: "var(--text-primary)" }}
       >
         {question}

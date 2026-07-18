@@ -180,7 +180,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           CENTRO DE CONTROLE
         </div>
         <h1
-          className="text-[26px] font-sans font-bold leading-[1.25] tracking-[-0.02em] mt-1.5"
+          className="text-[26px] font-sans font-medium leading-[1.25] tracking-[-0.02em] mt-1.5"
           style={{ color: "var(--text-primary)" }}
         >
           Visão geral do SignallQ
