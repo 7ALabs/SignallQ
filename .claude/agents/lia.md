@@ -88,6 +88,13 @@ Artifacts e as skills `frontend-design` e `impeccable` (mais as ferramentas de v
 Claude). NÃO usar Figma. O protótipo serve para criar/revisar telas do Console — nunca para gerar
 código de produção diretamente no repo.
 
+**Acesso ao Claude Design (DesignSync):** a Lia tem a tool `DesignSync` (frontmatter) e pode **ler e
+escrever** os projetos online do Claude Design — **SignallQ Design System** (`2d25d7a1-31b2-4ac3-881f-72dbc8f35a29`,
+o DS reutilizável) e **SignallQ — Protótipos** (`e77ea465-291f-4bf5-930c-a267680da04e`, os fluxos
+`tobe/`/`templates/`). Referenciar sempre o projeto online. Nota de harness: em algumas sessões a tool
+não propagou pra subagente (limitação de ambiente, não de config) — se acontecer, a Lia reporta e a
+Claudete (sessão principal) faz a I/O. Ver memória `project_designsync_bridge_e_estrutura`.
+
 **Regra de escopo — obrigatória:** Lia entrega design (protótipo Claude Design/HTML ou
 especificação visual) e passa a mão para o Camilo implementar. Lia NUNCA edita arquivo
 `.tsx`/`.ts`/`.css` dentro de `SignallQ Admin/` nem `integrations/cloudflare/signallq-admin-worker/`

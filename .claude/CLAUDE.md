@@ -33,12 +33,13 @@ pequeno, seguro e relacionado à tarefa, ou registrá-lo em uma issue quando amp
 - Estrutura: **monorepo** — `android/` (Kotlin), `integrations/` (Cloudflare), `scripts/`, `docs_ai/`.
 - Package/applicationId/namespace: **`io.signallq.app`** -- identificador tecnico, **NAO renomear jamais** (quebra Firebase/assinatura). Renomeado de `io.veloo.app` em 2026-06-28 (antes de qualquer publicacao na Play Store).
 - Marca anterior: Linka -> Veloo -> **SignallQ** (rebrand em 0.16.0).
-- Versao atual: **0.25.0** (versionCode 60), em `android/gradle/libs.versions.toml`. minSdk 24, targetSdk 36, compileSdk 37, JVM 17.
+- Versao atual: **0.26.0** (versionCode 62), em `android/gradle/libs.versions.toml`. minSdk 24, targetSdk 36, compileSdk 37, JVM 17.
 - **Android Stack**: Kotlin, Jetpack Compose, Hilt, Room, DataStore, WorkManager.
 - 16 modulos Gradle: `app` + core(6): `coreNetwork`, `coreDatabase`, `coreDatastore`, `coreTelephony`, `corePermissions`, `coreRecommendation` + feature(9): `featureHome`, `featureSpeedtest`, `featureWifi`, `featureDevices`, `featureDns`, `featureFibra`, `featureDiagnostico`, `featureHistory`, `featureSettings`.
 - `coreRecommendation` (issue #790): Recommendation Engine desacoplado do motor de diagnostico — engine deterministica que ranqueia recomendacoes (`free_tip`/`tutorial`/`configuration`/`affiliate_product`/`partner_offer`/`operator_offer`/`native_ad_fallback`) por tags de diagnostico, com cooldown/frequencia e contrato de analytics. Ja integrado a UI via `RecommendationEngineCard` em `ResultadoVelocidadeScreen.kt` (GH#813) — nao integrado a AdMob/afiliados reais ainda. Nao confundir com o `RecommendationEngine` de `featureDiagnostico` (gera as 14 regras (REC-01..REC-14) de dicas praticas do diagnostico local, sem monetizacao/catalogo).
 - MVVM + StateFlow, Hilt DI (`AppModule.kt` + `DiagnosticoModule.kt`), Room v12 (`SignallQDatabase`), DataStore `linkaPreferencias`.
 - IA: Worker Cloudflare (`integrations/cloudflare/ai-diagnosis-worker/`), URL via `BuildConfig.AI_WORKER_URL`, persona SignallQ. Provider: **Gemini 2.0 Flash é o primário** quando `GEMINI_API_KEY` está configurada (produção); Qwen3 30B MoE FP8 (Cloudflare Workers AI) é o fallback automático. Sem a secret, Qwen3/CF é o único provider cloud. Ordem definida em `providers.ts` (array `providers[]`, tentado em sequência) — ver `docs_ai/TECNICO.md` (seção 7).
+- **Workers Cloudflare (5)** em `integrations/cloudflare/`: `ai-diagnosis-worker` (IA de diagnostico), `signallq-admin-worker` (backend do Console/Admin), `signallq-diagnostic-worker`, `signallq-privacy-worker`, `game-latency-probe-worker`.
 - **Analytics**: Firebase Analytics (events) + Crashlytics (error logs). **NOT using**: Realtime DB.
 - Navegacao: `AppShell.kt` -- 5 abas (Inicio, Velocidade, Sinal, Historico, Ferramentas). Desde GH#936 (Fase 7), Ajustes deixou de ser aba e virou overlay (`Overlay.Perfil`) alcancado pelo avatar no TopBar -- confirmado em `AppShell.kt:1055-1059`. Diagnostico/IA, Dispositivos, Fibra sao overlays, nao abas.
 - Background: WorkManager `MonitoramentoWorker` (30 min).
@@ -164,11 +165,27 @@ mas nunca criar um novo sem checar se o que voce precisa ja existe em algum dest
 | Onde | Escopo | Finalidade |
 |---|---|---|
 | `.claude/skills/SignallQ-design/` | Android (app real) | Skill do Claude Code -- ativa sozinha ao pedir UI Android, fonte de verdade pra gerar codigo/protótipo on-brand |
-| `packages/design-system/` | Android (app real) | "Gemeo digital" React, sincronizado com o projeto **"SignallQ Design System"** (`e77ea465-291f-4bf5-930c-a267680da04e`) no Claude Design -- unico projeto Claude Design valido, nao criar outro (ver `.design-sync/conventions.md`) |
+| `packages/design-system/` | Android (app real) | Pacote React **fonte do Design System**; sincroniza via `/design-sync` com o projeto Claude Design **"SignallQ Design System"** (`2d25d7a1-31b2-4ac3-881f-72dbc8f35a29`) — só componentes reutilizáveis (14 + marca `<Logo>`). Ver `.design-sync/conventions.md` e o bloco "Projetos no Claude Design" abaixo |
 | `docs_ai/design-system/` | Android (app real) | Documentacao formal de tokens/componentes Android (markdown), referenciada pela skill |
 | `DESIGN.md` / `PRODUCT.md` (raiz) | Android (app real) | Spec no formato da skill `impeccable`, usado por `/impeccable craft\|critique\|audit\|polish` |
 | `SignallQ Admin/DESIGN.md` / `SignallQ Admin/PRODUCT.md` | SignallQ Console (Admin) | Mesmo formato impeccable, mas do Admin -- North Star propria ("The Operator's Console"), paleta propria; nao confundir com o par acima |
 | `.claude/design-specs/` | Prototipagem avulsa | Handoffs/protótipos pontuais por feature (ex: monetizacao nativa, diagnostico IA) -- nao e sistema reutilizavel, curar/arquivar specs velhas periodicamente |
+
+### Projetos no Claude Design (online — fonte da verdade pra visualizar)
+
+Separação DS × protótipos feita em 2026-07-18 (ver
+`docs_ai/design-system/DECISAO_SEPARACAO_DS_PROTOTIPOS_2026-07-18.md`). **Referenciar sempre o projeto
+online** — o repo `packages/design-system/` é só a fonte que gera o DS via `/design-sync`; quem vê/consome
+usa o projeto online:
+
+| Projeto Claude Design | ID | Papel |
+|---|---|---|
+| **SignallQ Design System** | `2d25d7a1-31b2-4ac3-881f-72dbc8f35a29` | DS puro — 14 componentes reutilizáveis + marca (`<Logo>`), paleta `#5B21D6`. É o que o `/design-sync` fixa e o agente de design consome. |
+| **SignallQ — Protótipos** | `e77ea465-291f-4bf5-930c-a267680da04e` | Fluxos do app + Admin (`tobe/`, `templates/`). Renomeado do antigo DS; segue tipo Design System por limitação de plataforma (tipo é imutável), mas hospeda só protótipo. |
+| **SignallQ PRO - Design System** | `77a19317-ea64-4e47-b55c-578eca776c09` | DS **separado** do SignallQ PRO (versão pra profissionais de telecom/instaladores). Marca/paleta próprias — não misturar com o DS consumer. |
+
+URL de cada um: `https://claude.ai/design/p/<ID>`. Read/write via a tool `DesignSync` (ver memória
+`project_designsync_bridge_e_estrutura` pro que consegue mexer e como).
 
 `.claude/skills/` e a fonte canonica de toda skill (inclusive `SignallQ-design`).
 `.agents/skills/` e `.github/skills/` sao mirrors intencionais pra outros harnesses (Codex
