@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 import { Icon } from '../primitives/Icon.js';
 
 export interface StatusBarProps {
@@ -9,6 +9,7 @@ export interface StatusBarProps {
 
 /** Android-style status bar with clock, Wi-Fi, 5G, and battery indicators. */
 export function StatusBar({ time = '18:28' }: StatusBarProps) {
+  const LK = useTokens();
   return (
     <div
       style={{

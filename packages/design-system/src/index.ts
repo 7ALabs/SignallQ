@@ -1,5 +1,9 @@
 // Tokens
 export { LK, LK_DARK, SPACE, STATE, ORB } from './tokens.js';
+export type { TokenSet } from './tokens.js';
+
+// Theme — provedor de claro/escuro. Componentes consomem via useTokens(); sem provedor, LK (claro) é o default.
+export * from './theme/index.js';
 
 // Utils
 export { hexA } from './utils.js';

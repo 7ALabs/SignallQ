@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 import { Icon } from '../primitives/Icon.js';
 import { Button } from './Button.js';
 
@@ -18,6 +18,7 @@ export interface DialogProps {
 
 /** Diálogo MD3 (radius 24) com scrim, sobre um container `position: relative`. */
 export function Dialog({ icon, title, description, confirmLabel = 'Confirmar', cancelLabel = 'Cancelar', danger, onConfirm, onCancel, children }: DialogProps) {
+  const LK = useTokens();
   return (
     <div style={{ position: 'absolute', inset: 0, background: LK.scrim, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, zIndex: 5 }}>
       <div style={{ background: LK.surfaceContainerHigh, borderRadius: LK.rDialog, padding: 24, width: '100%', maxWidth: 300, display: 'flex', flexDirection: 'column', gap: 12 }}>

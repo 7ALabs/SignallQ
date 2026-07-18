@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 
 export interface SignalBarsProps {
   /** Signal level 1–4 */
@@ -11,7 +11,9 @@ export interface SignalBarsProps {
 }
 
 /** 4-bar signal-strength glyph matching the Android SignallQ custom icon. */
-export function SignalBars({ level = 4, color = LK.success, big = false }: SignalBarsProps) {
+export function SignalBars({ level = 4, color, big = false }: SignalBarsProps) {
+  const LK = useTokens();
+  const resolvedColor = color ?? LK.success;
   const hs = big ? [7, 11, 15, 20] : [6, 9, 12, 16];
   const w = big ? 4 : 3;
   return (
@@ -24,7 +26,7 @@ export function SignalBars({ level = 4, color = LK.success, big = false }: Signa
             height: h,
             borderRadius: 1,
             display: 'block',
-            background: i < level ? color : LK.border,
+            background: i < level ? resolvedColor : LK.border,
           }}
         />
       ))}

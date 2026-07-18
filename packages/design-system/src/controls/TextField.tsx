@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 
 export interface TextFieldProps {
   label?: string;
@@ -12,6 +12,7 @@ export interface TextFieldProps {
 
 /** Campo de texto MD3: label overline + input com borda 1px, radius 12. */
 export function TextField({ label, value, placeholder, disabled, onChange, style = {} }: TextFieldProps) {
+  const LK = useTokens();
   return (
     <div style={{ marginBottom: 12, ...style }}>
       {label && (

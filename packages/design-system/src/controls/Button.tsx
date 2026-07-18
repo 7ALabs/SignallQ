@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 import { Icon } from '../primitives/Icon.js';
 
 export type ButtonVariant = 'filled' | 'tonal' | 'outlined' | 'text' | 'danger';
@@ -17,6 +17,7 @@ export interface ButtonProps {
 
 /** Botão MD3: filled / tonal / outlined / text / danger. Altura 40, radius 20. */
 export function Button({ variant = 'filled', icon, disabled, fullWidth = true, onClick, children, style = {} }: ButtonProps) {
+  const LK = useTokens();
   const base: React.CSSProperties = {
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
     height: 40, borderRadius: LK.rBtn, padding: '0 24px', border: 0,

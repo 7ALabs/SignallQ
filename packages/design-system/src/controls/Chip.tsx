@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 
 export interface ChipProps {
   active?: boolean;
@@ -10,6 +10,7 @@ export interface ChipProps {
 
 /** Chip (filtro/seleção) MD3, pill 999. */
 export function Chip({ active, disabled, onClick, children }: ChipProps) {
+  const LK = useTokens();
   return (
     <button
       disabled={disabled}

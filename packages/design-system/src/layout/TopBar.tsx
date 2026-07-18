@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 import { Avatar } from '../primitives/Avatar.js';
 import { Icon } from '../primitives/Icon.js';
 
@@ -16,6 +16,7 @@ export interface TopBarProps {
 
 /** CenterAligned top app bar with leading avatar, centered title+icon, and optional action. */
 export function TopBar({ title, icon, leading, action }: TopBarProps) {
+  const LK = useTokens();
   return (
     <div
       style={{

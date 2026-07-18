@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 
 export interface CardProps {
   children?: React.ReactNode;
@@ -9,6 +9,7 @@ export interface CardProps {
 
 /** Surface card: white background, 1px border, 16dp radius, flat (no shadow). */
 export function Card({ children, style = {}, onClick }: CardProps) {
+  const LK = useTokens();
   return (
     <div
       onClick={onClick}

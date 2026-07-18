@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 import { Icon } from '../primitives/Icon.js';
 
 export interface IconButtonProps {
@@ -10,13 +10,14 @@ export interface IconButtonProps {
 }
 
 /** Botão só de ícone, circular 40dp. */
-export function IconButton({ name, color = LK.onSurfaceVariant, onClick, style = {} }: IconButtonProps) {
+export function IconButton({ name, color, onClick, style = {} }: IconButtonProps) {
+  const LK = useTokens();
   return (
     <button
       onClick={onClick}
       style={{ width: 40, height: 40, borderRadius: 20, background: 'none', border: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', ...style }}
     >
-      <Icon name={name} size={22} color={color} />
+      <Icon name={name} size={22} color={color ?? LK.onSurfaceVariant} />
     </button>
   );
 }

@@ -4,7 +4,16 @@
 
 ## Setup
 
-No provider or context wrapper required. Components are self-contained with inline styles.
+Provider opcional. Sem `SignallQThemeProvider`, todo componente usa `LK` (tema claro) por
+padrão — nada quebra em consumidores que não sabem que o tema escuro existe.
+
+```tsx
+import { SignallQThemeProvider } from '@signallq/design-system';
+
+<SignallQThemeProvider mode="system">  {/* 'light' | 'dark' | 'system' (default) */}
+  <App />
+</SignallQThemeProvider>
+```
 
 Load Roboto and Material Symbols from Google Fonts (already in `styles.css`). For icons to display, the page must have the Material Symbols font loaded — it is included via the `styles.css` `@import` closure.
 
@@ -35,6 +44,24 @@ hexA(LK.success, 0.3)    // e.g. card border
 ```
 
 **Token files:** `tokens/` in the bundle, `styles.css`, `_ds_bundle.css`. Read `styles.css` for the full token list.
+
+### Dark mode
+
+Todo componente do DS já resolve o tema sozinho via `useTokens()` internamente — nada a fazer
+para consumi-los. Para compor um componente novo no mesmo idioma (claro/escuro reativo), use
+`useTokens()` em vez de importar `LK` estático:
+
+```tsx
+import { useTokens } from '@signallq/design-system';
+
+function MeuComponente() {
+  const LK = useTokens(); // LK (claro) fora de um SignallQThemeProvider, LK_DARK dentro de um com mode="dark"
+  return <div style={{ background: LK.surface, color: LK.onSurface }} />;
+}
+```
+
+`LK`/`LK_DARK` estáticos continuam exportados para exemplos/protótipos que fixam um tema
+deliberadamente (ex.: `ORB`, sempre escuro).
 
 **Per-component docs:** each `components/<group>/<Name>/<Name>.prompt.md`.
 

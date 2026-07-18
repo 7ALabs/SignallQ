@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 
 export interface TabsProps {
   /** Cada opção é `[id, label]`. */
@@ -10,6 +10,7 @@ export interface TabsProps {
 
 /** Tabs com sublinhado (nav topo dentro de uma tela, ex.: Wi-Fi / Canal / Móvel). */
 export function Tabs({ options, value, onChange }: TabsProps) {
+  const LK = useTokens();
   return (
     <div style={{ display: 'flex', borderBottom: `1px solid ${LK.outlineVariant}`, flex: 'none' }}>
       {options.map(([id, label]) => {

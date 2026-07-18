@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 import { Icon } from '../primitives/Icon.js';
 
 export interface CheckboxProps {
@@ -9,6 +9,7 @@ export interface CheckboxProps {
 
 /** Checkbox MD3. */
 export function Checkbox({ checked = false, onChange }: CheckboxProps) {
+  const LK = useTokens();
   return (
     <div
       onClick={() => onChange && onChange(!checked)}

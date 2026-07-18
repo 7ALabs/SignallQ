@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 
 export interface SegmentedControlProps {
   options: string[];
@@ -10,6 +10,7 @@ export interface SegmentedControlProps {
 
 /** Seletor segmentado MD3 (2-3 opções), pill com opção ativa em secondaryContainer. */
 export function SegmentedControl({ options, value, onChange, style = {} }: SegmentedControlProps) {
+  const LK = useTokens();
   return (
     <div style={{ display: 'flex', border: `1px solid ${LK.outline}`, borderRadius: 20, padding: 2, gap: 2, ...style }}>
       {options.map((opt) => {

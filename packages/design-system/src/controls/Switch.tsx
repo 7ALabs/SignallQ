@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 
 export interface SwitchProps {
   on?: boolean;
@@ -8,6 +8,7 @@ export interface SwitchProps {
 
 /** Toggle MD3. */
 export function Switch({ on = false, onChange }: SwitchProps) {
+  const LK = useTokens();
   return (
     <button
       onClick={() => onChange && onChange(!on)}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 
 export interface ScreenScrollProps {
   children?: React.ReactNode;
@@ -7,6 +7,7 @@ export interface ScreenScrollProps {
 
 /** Scrollable screen body with standard padding and vertical gap between sections. */
 export function ScreenScroll({ children }: ScreenScrollProps) {
+  const LK = useTokens();
   return (
     <div
       style={{

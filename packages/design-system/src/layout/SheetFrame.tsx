@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 import { hexA } from '../utils.js';
 
 export interface SheetFrameProps {
@@ -9,6 +9,7 @@ export interface SheetFrameProps {
 
 /** Bottom-sheet chrome: superfície baixa, cantos superiores 28dp, alça (grab handle) e conteúdo rolável. */
 export function SheetFrame({ children, style = {} }: SheetFrameProps) {
+  const LK = useTokens();
   return (
     <div
       style={{

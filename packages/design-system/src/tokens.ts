@@ -33,7 +33,14 @@ export const LK = {
   border: '#79747E',
 } as const;
 
-export const LK_DARK: Record<keyof typeof LK, string | number> = {
+/**
+ * Forma de qualquer conjunto de tokens de tema (LK ou LK_DARK) — usada pelo ThemeProvider.
+ * Preserva string/number por chave (em vez de uma união solta) para que cores continuem
+ * tipadas como string e radii como number.
+ */
+export type TokenSet = { [K in keyof typeof LK]: (typeof LK)[K] extends number ? number : string };
+
+export const LK_DARK: TokenSet = {
   primary: '#D0BCFF', onPrimary: '#38137E', primaryContainer: '#4F2FA8', onPrimaryContainer: '#EADDFF',
   secondary: '#AAC7FF', onSecondary: '#002E69', secondaryContainer: '#1E427A', onSecondaryContainer: '#D9E2FF',
   success: '#83DA99', onSuccess: '#00390F', successContainer: '#0A5321', onSuccessContainer: '#9DF4AC',

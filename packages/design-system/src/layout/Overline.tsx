@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 
 export interface OverlineProps {
   children?: React.ReactNode;
@@ -8,6 +8,7 @@ export interface OverlineProps {
 
 /** Section label: 11px semibold, tertiary color, UPPERCASE with letter-spacing. */
 export function Overline({ children, style }: OverlineProps) {
+  const LK = useTokens();
   return (
     <div
       style={{

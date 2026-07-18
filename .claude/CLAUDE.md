@@ -180,7 +180,7 @@ usa o projeto online:
 
 | Projeto Claude Design | ID | Papel |
 |---|---|---|
-| **SignallQ Design System** | `2d25d7a1-31b2-4ac3-881f-72dbc8f35a29` | DS puro — 14 componentes reutilizáveis + marca (`<Logo>`), paleta `#5B21D6`. É o que o `/design-sync` fixa e o agente de design consome. |
+| **SignallQ Design System** | `2d25d7a1-31b2-4ac3-881f-72dbc8f35a29` | DS puro — 25 componentes (primitivos + interativos + marca `<Logo>` + `SignallQThemeProvider`), paleta `#5B21D6`, dark mode via `useTokens()`. É o que o `/design-sync` fixa e o agente de design consome. |
 | **SignallQ — Protótipos** | `e77ea465-291f-4bf5-930c-a267680da04e` | Fluxos do app + Admin (`tobe/`, `templates/`). Renomeado do antigo DS; segue tipo Design System por limitação de plataforma (tipo é imutável), mas hospeda só protótipo. |
 | **SignallQ PRO - Design System** | `77a19317-ea64-4e47-b55c-578eca776c09` | DS **separado** do SignallQ PRO (versão pra profissionais de telecom/instaladores). Marca/paleta próprias — não misturar com o DS consumer. |
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Overline, Badge, Icon, LK, hexA } from '@signallq/design-system';
+import { Card, Overline, Badge, Icon, LK, hexA, SignallQThemeProvider, useTokens } from '@signallq/design-system';
 
 export const Default = () => (
   <div style={{ padding: 16, background: LK.bgPrimary, fontFamily: LK.font }}>
@@ -40,6 +40,43 @@ export const StatusCard = () => (
       <Badge color={LK.success}>Forte</Badge>
     </Card>
   </div>
+);
+
+function DarkStatusCard() {
+  const LK = useTokens();
+  return (
+    <div style={{ padding: 16, background: LK.bgPrimary, fontFamily: LK.font }}>
+      <Card style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: '50%',
+            background: hexA(LK.success, 0.16),
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Icon name="wifi" size={22} color={LK.success} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ font: `600 15px/1.3 ${LK.font}`, color: LK.textPrimary }}>Luiz-5G</div>
+          <div style={{ font: `400 11px/1.3 ${LK.font}`, color: LK.textSecondary }}>
+            RSSI −27 dBm · Canal 36 · 433 Mbps
+          </div>
+        </div>
+        <Badge color={LK.success}>Forte</Badge>
+      </Card>
+    </div>
+  );
+}
+
+/** Mesmo card, tema escuro — via SignallQThemeProvider (gap 3: dark mode de verdade). */
+export const Escuro = () => (
+  <SignallQThemeProvider mode="dark">
+    <DarkStatusCard />
+  </SignallQThemeProvider>
 );
 
 export const WarningCard = () => (

@@ -1,5 +1,6 @@
 import React from 'react';
-import { LK, ORB } from '../tokens.js';
+import { ORB } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 
 export interface ThinkingProps {
   style?: React.CSSProperties;
@@ -7,6 +8,7 @@ export interface ThinkingProps {
 
 /** Three-dot pulsing animation shown while SignallQ AI is processing. */
 export function Thinking({ style }: ThinkingProps) {
+  const LK = useTokens();
   return (
     <>
       <style>{`

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 
 export interface AvatarProps {
   /** Diameter in dp */
@@ -10,6 +10,7 @@ export interface AvatarProps {
 
 /** Circular gradient avatar (accent → blue). Used in the top bar leading slot. */
 export function Avatar({ size = 44, letter = 'L' }: AvatarProps) {
+  const LK = useTokens();
   return (
     <div
       style={{

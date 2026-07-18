@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 import { Icon } from '../primitives/Icon.js';
 import { hexA } from '../utils.js';
 
@@ -22,6 +22,7 @@ export interface BottomNavProps {
 
 /** 5-tab bottom navigation bar with accent highlight and pill indicator. */
 export function BottomNav({ active = 'home', onChange }: BottomNavProps) {
+  const LK = useTokens();
   return (
     <div
       style={{

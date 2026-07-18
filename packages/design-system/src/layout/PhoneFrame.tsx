@@ -1,5 +1,5 @@
 import React from 'react';
-import { LK } from '../tokens.js';
+import { useTokens } from '../theme/ThemeProvider.js';
 
 export interface PhoneFrameProps {
   children?: React.ReactNode;
@@ -7,6 +7,7 @@ export interface PhoneFrameProps {
 
 /** 390×820 device frame for previewing screens in the design system viewer. */
 export function PhoneFrame({ children }: PhoneFrameProps) {
+  const LK = useTokens();
   return (
     <div
       style={{
