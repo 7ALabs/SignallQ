@@ -71,6 +71,22 @@ A pesquisa está certa sobre o que falta, mas subestimou o que já existe. O mot
 2. Aplicar o corte de escopo que a pesquisa recomenda antes de abrir qualquer issue de UI — o MVP1 documentado hoje carrega ~30% a mais do que deveria.
 3. Não integrar Nethal no MVP1 — inventário manual simples, revisitar quando houver driver em estágio beta.
 
+## Adendo — 18/07/2026 (mesmo dia, sessão de design)
+
+A partir do prompt gerado deste documento, a sessão de Claude Design no projeto de Protótipos ("SignallQ PRO app Android", `69e53070-6aa8-485a-8d0a-5bfa36e1a08c`) fez sua própria auto-auditoria e reportou 44 telas existentes (vs. as ~33 identificadas aqui por leitura parcial), e desenhou 4 telas novas cobrindo os gaps de **design** (não de código) para P0.3, P0.4, P0.6 e P11.
+
+**Importante — isso fecha o gap de DESIGN, não o de CÓDIGO.** Os vereditos "Do zero" da tabela P0 acima continuam corretos para implementação Android — nenhuma dessas telas tem código por trás ainda (o Pro segue sem app implementado). O que mudou é que agora existe protótipo navegável para orientar essa implementação futura.
+
+| Item | Veredito de código (mantido) | Veredito de design (atualizado) |
+|---|---|---|
+| P0.3 Modo de visita rápida | Do zero | Desenhado — tela 2.12, confirmado por mim via leitura direta do arquivo |
+| P0.4 Checklist por tipo de serviço | Do zero | Desenhado — tela 2.13, confirmado por mim via leitura direta do arquivo |
+| P0.6 Conclusão padronizada | Evoluir (padrão arquitetural existe no código, enum específico não) | Desenhado — tela 3.10 "Conclusão da visita", **reportado pela sessão de design, não confirmado por mim** (arquivo do protótipo cresceu e ultrapassa o limite de leitura da minha ferramenta — só consegui ler até a tela 3.9 nesta verificação) |
+| P11 Resumo técnico (catálogo doc 09) | — (item de design, não de código) | Desenhado — tela 3.11, **reportado pela sessão de design, não confirmado por mim**, mesma limitação acima |
+| P12 Editor de laudo (catálogo doc 09) | — | **Decisão: não é gap do MVP1.** Roadmap v5 já classifica edição de seções/templates de laudo como MVP2 ("Laudo Pro", modelos avançados); MVP1 é PDF padrão + identidade básica (já resolvida em 4.6 Perfil profissional). Ver `09_SignallQ_Pro_Jornada_e_Fluxo_de_Telas_v5.md`. |
+
+Catálogo de telas atualizado com o detalhe completo em `09_SignallQ_Pro_Jornada_e_Fluxo_de_Telas_v5.md` (seção "Nota de sincronização").
+
 ## Documentos relacionados
 
 - `00_CANONICO_v5.md` — dicionário canônico do ecossistema.
