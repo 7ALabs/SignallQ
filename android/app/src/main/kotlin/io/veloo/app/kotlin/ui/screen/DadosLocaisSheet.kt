@@ -41,7 +41,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -109,8 +108,8 @@ internal fun DadosLocaisSheet(
             OutlinedButton(
                 onClick = { showConfirmLimpar = true },
                 modifier = Modifier.fillMaxWidth(),
-                border = BorderStroke(1.dp, LkColors.warning),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = LkColors.warning),
+                border = BorderStroke(1.dp, c.warning),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = c.warning),
                 shape = RoundedCornerShape(LkRadius.button),
             ) {
                 Icon(Icons.Outlined.History, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -120,8 +119,8 @@ internal fun DadosLocaisSheet(
             OutlinedButton(
                 onClick = { showConfirmApagar = true },
                 modifier = Modifier.fillMaxWidth(),
-                border = BorderStroke(1.dp, LkColors.error),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = LkColors.error),
+                border = BorderStroke(1.dp, c.error),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = c.error),
                 shape = RoundedCornerShape(LkRadius.button),
             ) {
                 Icon(Icons.Outlined.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -131,7 +130,11 @@ internal fun DadosLocaisSheet(
             Button(
                 onClick = { showConfirmResetar = true },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = LkColors.error),
+                // GH: faltava contentColor -- fallback do M3 nao batia com a cor fixa antiga
+                // (LkColors.error), resultando em contraste ruim no dark. c.error/c.onError
+                // sao o par tema-aware do design system (dark usa vermelho mais claro/saturado
+                // pra manter contraste contra fundo escuro).
+                colors = ButtonDefaults.buttonColors(containerColor = c.error, contentColor = c.onError),
                 shape = RoundedCornerShape(LkRadius.button),
             ) {
                 Icon(Icons.Outlined.RestartAlt, contentDescription = null, modifier = Modifier.size(16.dp))

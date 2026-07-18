@@ -47,7 +47,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -180,10 +179,6 @@ fun DispositivosScreen(
             if (!snapshotRede.conectado) {
                 OfflineBanner()
             }
-            DevicesSegmentedState(
-                snapshotDevices = snapshotDevices,
-                c = c,
-            )
             Box(
                 modifier =
                     Modifier
@@ -557,50 +552,6 @@ private fun DispositivoItem(
         },
         onTap = onTap,
     )
-}
-
-@Composable
-private fun DevicesSegmentedState(
-    snapshotDevices: SnapshotScanDispositivos,
-    c: LkTokens,
-) {
-    val activeLabel =
-        when {
-            !snapshotDevices.erroMensagem.isNullOrBlank() -> "Erro"
-            snapshotDevices.dispositivos.isEmpty() -> "Vazio"
-            else -> "Lista"
-        }
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm)
-                .clip(RoundedCornerShape(LkRadius.pill))
-                .background(c.surfaceContainer)
-                .padding(LkSpacing.xs),
-        horizontalArrangement =
-            androidx.compose.foundation.layout.Arrangement
-                .spacedBy(LkSpacing.xs),
-    ) {
-        listOf("Lista", "Vazio", "Erro").forEach { label ->
-            Surface(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(LkRadius.pill),
-                color = if (activeLabel == label) c.secondaryContainer else Color.Transparent,
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = label,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (activeLabel == label) c.onSecondaryContainer else c.textSecondary,
-                    )
-                }
-            }
-        }
-    }
 }
 
 // ---------------------------------------------------------------------------

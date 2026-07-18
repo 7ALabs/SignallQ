@@ -569,7 +569,10 @@ private fun CardMedicoes(
     c: LkTokens,
 ) {
     SignallQCard(c) {
-        Column {
+        // GH: card inteiro nao navegava para o Historico -- onAbrirHistorico chegava como
+        // parametro mas nunca era usado. Card clicavel; os botoes internos (onIniciarTeste)
+        // consomem o toque antes de propagar, entao continuam funcionando normalmente.
+        Column(modifier = Modifier.clickable(onClick = onAbrirHistorico)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -910,11 +913,13 @@ private fun NetworkPath(
                         )
                         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                             val (icon, _) = nodeDisplay(gw.type)
+                            val gatewayConectado = gw.ip != null
                             PathNode(
                                 icon = icon,
-                                iconColor = c.textSecondary,
+                                iconColor = if (gatewayConectado) LkColors.success else c.textSecondary,
                                 label = "Roteador",
-                                subLabel = if (gw.ip != null) stringResource(R.string.home_network_conectado) else "—",
+                                subLabel = if (gatewayConectado) stringResource(R.string.home_network_conectado) else "—",
+                                subLabelColor = if (gatewayConectado) LkColors.success else null,
                                 c = c,
                                 onTap = { onGatewayTap(gw) },
                             )

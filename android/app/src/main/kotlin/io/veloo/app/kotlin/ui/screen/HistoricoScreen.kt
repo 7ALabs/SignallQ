@@ -414,12 +414,12 @@ fun HistoricoScreen(
                     }
                 }
                 item(key = "medicoes_header") {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
+                    // GH: filtros ficavam na mesma Row do overline (SpaceBetween) e estouravam a
+                    // largura em telas menores, cortando o grupo "Todos | WiFi | Rede Móvel".
+                    // Movidos para abaixo do subtítulo, em largura total.
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         LkSectionOverline("Medições recentes")
+                        Spacer(Modifier.height(LkSpacing.sm))
                         FiltrosConexao(
                             filtroSelecionado = filtroConexaoAtivo,
                             onFiltroChange = { novo ->
