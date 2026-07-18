@@ -222,11 +222,14 @@ private fun FiltrosConexao(
     Row(
         modifier =
             if (compact) {
+                // #1131 (bug 2) — largura fixa (220.dp) dividida em 3 pills de peso igual
+                // forcava "Rede movel" a quebrar em duas linhas (nao cabia no espaco
+                // reservado). Cada pill agora usa a largura do proprio conteudo em vez de
+                // peso igual, e a Row inteira acompanha a soma dos filhos.
                 Modifier
-                    .width(220.dp)
                     .clip(RoundedCornerShape(LkRadius.pill))
                     .background(c.surfaceContainer)
-                    .padding(4.dp)
+                    .padding(LkSpacing.xs)
             } else {
                 Modifier
             },
@@ -237,19 +240,20 @@ private fun FiltrosConexao(
                 Surface(
                     modifier =
                         Modifier
-                            .weight(1f)
                             .clip(RoundedCornerShape(LkRadius.pill))
                             .clickable { onFiltroChange(filtro) },
                     color = if (filtroSelecionado == filtro) c.secondaryContainer else Color.Transparent,
                 ) {
                     Box(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        modifier = Modifier.padding(horizontal = LkSpacing.md, vertical = LkSpacing.sm),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             filtro.label,
                             style = MaterialTheme.typography.labelSmall,
                             color = if (filtroSelecionado == filtro) c.onSecondaryContainer else c.textSecondary,
+                            maxLines = 1,
+                            softWrap = false,
                         )
                     }
                 }

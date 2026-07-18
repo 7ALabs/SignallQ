@@ -3050,6 +3050,13 @@ private fun SpectrumChart(
                 drawPath(fillPath, color = rede.cor.copy(alpha = 0.15f), style = Fill)
             }
 
+            // #1131 (bug 1) — canalToX posiciona pelo VALOR numerico do canal, nao pelo indice.
+            // Com muitos canais proximos (ex.: 36,40,44,48 em 5GHz) os rotulos colam uns nos
+            // outros virando uma sequencia ilegivel. Desenha em ordem crescente e so escreve
+            // o proximo rotulo quando ele nao invade o espaco do ultimo rotulo desenhado —
+            // reduz a quantidade de numeros exibidos sem afetar as curvas do espectro.
+            val labelMinGapPx = LkSpacing.xs.toPx()
+            var lastLabelRight = Float.NEGATIVE_INFINITY
             canais.forEach { canal ->
                 val x = canalToX(canal.toFloat())
                 val isAtual = canal == espectro.canalAtual
@@ -3060,10 +3067,14 @@ private fun SpectrumChart(
                         "$canal",
                         chartLabelStyle.copy(color = xLabelColor, fontWeight = xLabelWeight),
                     )
-                drawText(
-                    xLayout,
-                    topLeft = Offset(x - xLayout.size.width / 2, chartH + (xAxisH - xLayout.size.height) / 2),
-                )
+                val labelLeft = x - xLayout.size.width / 2f
+                if (labelLeft >= lastLabelRight + labelMinGapPx) {
+                    drawText(
+                        xLayout,
+                        topLeft = Offset(labelLeft, chartH + (xAxisH - xLayout.size.height) / 2),
+                    )
+                    lastLabelRight = labelLeft + xLayout.size.width
+                }
             }
         }
 
