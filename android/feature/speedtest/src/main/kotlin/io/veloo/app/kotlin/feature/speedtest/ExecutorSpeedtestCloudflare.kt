@@ -27,9 +27,29 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
 
-class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest {
+/**
+ * @param latencyProbeUrl Endpoint usado para medir a fase de latência BASE (a que vira
+ * `latenciaMs`/jitter/perda do resultado). GH#1118: até esta correção, a latência base
+ * era medida contra [HOST_PUBLICO_LATENCIA] (CDN pública, sujeita a throttling/anti-abuso
+ * em rajada de requisições idênticas — evidência real: 408ms medidos vs. 11ms no Ookla e
+ * no `game-latency-probe-worker` dedicado, no mesmo device/rede). O default preserva o
+ * host público (comportamento antigo) para quem não injeta explicitamente a URL do worker;
+ * o `:app` passa `BuildConfig.GAME_LATENCY_PROBE_URL` (mesmo worker que a tela Jogos usa,
+ * GH#935) via [FeatureSpeedtestModulo]. A latência SOB CARGA (medida durante download/
+ * upload, usada no cálculo de bufferbloat) continua contra o host público de propósito —
+ * ela precisa competir por banda no mesmo pool HTTP usado pela transferência real.
+ */
+class ExecutorSpeedtestCloudflare(
+    isMobile: Boolean = false,
+    private val latencyProbeUrl: String = HOST_PUBLICO_LATENCIA,
+) : ExecutorSpeedtest {
     private companion object {
         private const val UA = "Mozilla/5.0 (Linux; Android 14; SM-A256E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
+
+        // Host público usado para: (a) fallback quando o worker dedicado de latência não
+        // responde, (b) latência SOB CARGA durante download/upload (medida de propósito
+        // contra o mesmo host da transferência), (c) default de [latencyProbeUrl].
+        const val HOST_PUBLICO_LATENCIA = "https://speed.cloudflare.com/__down?bytes=0"
 
         // Pool adaptativo: móvel usa menos conexões e keep-alive curto para poupar bateria/dados.
         // Wi-Fi/fixo usa pool maior para throughput máximo no speedtest.
@@ -331,12 +351,22 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
                 val redeFinal = connectionTypeProvider?.invoke() ?: connectionType
                 val contaminado = redeInicial != null && redeFinal != null && redeInicial != redeFinal
 
+                val latencyPhaseValidada =
+                    validarBaselineLatencia(
+                        latencyPhase = latencyPhase,
+                        pingDownload = pingDownload,
+                        pingUpload = pingUpload,
+                        config = config,
+                        redeInicial = redeInicial,
+                        connectionTypeProvider = connectionTypeProvider,
+                    )
+
                 val resultado =
                     construirResultado(
                         modo = modo,
                         redeInicial = redeInicial,
                         redeFinal = redeFinal,
-                        latencyPhase = latencyPhase,
+                        latencyPhase = latencyPhaseValidada,
                         downloadPhase = downloadPhase,
                         uploadPhase = uploadPhase,
                         pingDownload = pingDownload,
@@ -696,17 +726,18 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
         connectionTypeProvider: (() -> String?)?,
         onPingProgress: ((Int, Int) -> Unit)? = null,
     ): LatencyPhase {
-        val bruto = mutableListOf<Double?>()
-        repeat(config.pingCount) { i ->
-            if (mudouRede(redeInicial, connectionTypeProvider)) return@repeat
-            bruto.add(medirPing())
-            onPingProgress?.invoke(i + 1, config.pingCount)
-        }
+        val resultadoProbe = coletarAmostrasLatencia(latencyProbeUrl, config, redeInicial, connectionTypeProvider, onPingProgress)
 
-        // Algoritmo de mediana/outlier/jitter/perda extraído para AnalisadorAmostragemPing
-        // (GH#1019) — reusado também por PingExecutor. Aqui só permanece o que é
-        // específico do speedtest: laço de coleta com corte por mudança de rede.
-        val resultado = AnalisadorAmostragemPing.analisar(bruto)
+        // GH#1118: worker dedicado sem resposta (perda total) — cai pro host público em
+        // vez de devolver latência sem dado. Se o probe já É o host público (default sem
+        // override), não há para onde cair — usa o resultado como veio.
+        val resultado =
+            if (latencyProbeUrl != HOST_PUBLICO_LATENCIA && ValidadorBaselineLatencia.probeIndisponivel(resultadoProbe)) {
+                Timber.w("latenciaBase: probe dedicado sem resposta ($latencyProbeUrl), fallback para host publico")
+                coletarAmostrasLatencia(HOST_PUBLICO_LATENCIA, config, redeInicial, connectionTypeProvider, onPingProgress)
+            } else {
+                resultadoProbe
+            }
 
         return LatencyPhase(
             latenciaMs = resultado.latenciaMs,
@@ -715,6 +746,58 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
             totalAmostras = resultado.totalAmostras,
             amostrasValidas = resultado.amostrasValidas,
             timeouts = resultado.timeouts,
+        )
+    }
+
+    private suspend fun coletarAmostrasLatencia(
+        url: String,
+        config: SpeedtestConfig,
+        redeInicial: String?,
+        connectionTypeProvider: (() -> String?)?,
+        onPingProgress: ((Int, Int) -> Unit)?,
+    ): ResultadoAmostragemPing {
+        val bruto = mutableListOf<Double?>()
+        repeat(config.pingCount) { i ->
+            if (mudouRede(redeInicial, connectionTypeProvider)) return@repeat
+            bruto.add(medirPing(url))
+            onPingProgress?.invoke(i + 1, config.pingCount)
+        }
+
+        // Algoritmo de mediana/outlier/jitter/perda extraído para AnalisadorAmostragemPing
+        // (GH#1019) — reusado também por PingExecutor. Aqui só permanece o que é
+        // específico do speedtest: laço de coleta com corte por mudança de rede.
+        return AnalisadorAmostragemPing.analisar(bruto)
+    }
+
+    /**
+     * GH#1118: se a latência base medida ficar maior que a latência sob carga, a medição
+     * está fisicamente invertida (a rede não fica mais rápida sob carga) — sinal de que o
+     * baseline foi contaminado (ex.: throttling pontual do host de latência). Remede a fase
+     * de latência uma única vez, com a conexão já ociosa (download/upload terminados), em
+     * vez de aceitar/exibir o número bruto absurdo. Se a remedição continuar implausível,
+     * aceita o resultado mesmo assim — o cálculo de bufferbloat já grampeia em 0 (não há
+     * como inflar negativamente o resultado final) e insistir indefinidamente arriscaria
+     * atrasar a conclusão do teste sem garantia de convergência.
+     */
+    private suspend fun validarBaselineLatencia(
+        latencyPhase: LatencyPhase,
+        pingDownload: List<Double>,
+        pingUpload: List<Double>,
+        config: SpeedtestConfig,
+        redeInicial: String?,
+        connectionTypeProvider: (() -> String?)?,
+    ): LatencyPhase {
+        val latenciaSobCarga = max(median(pingDownload), median(pingUpload))
+        if (!ValidadorBaselineLatencia.baselineImplausivel(latencyPhase.latenciaMs, latenciaSobCarga)) {
+            return latencyPhase
+        }
+        Timber.w(
+            "latenciaBase implausivel: base=${latencyPhase.latenciaMs}ms > sobCarga=${latenciaSobCarga}ms — remedindo uma vez",
+        )
+        return executarFaseLatencia(
+            config = config,
+            redeInicial = redeInicial,
+            connectionTypeProvider = connectionTypeProvider,
         )
     }
 
@@ -966,8 +1049,9 @@ class ExecutorSpeedtestCloudflare(isMobile: Boolean = false) : ExecutorSpeedtest
         return (totalBytes * 8.0) / (elapsedMs.toDouble() / 1000.0) / 1_000_000.0
     }
 
-    private fun medirPing(): Double? {
-        val url = "https://speed.cloudflare.com/__down?bytes=0&_cb=${cacheBust()}"
+    private fun medirPing(baseUrl: String = HOST_PUBLICO_LATENCIA): Double? {
+        val separador = if (baseUrl.contains("?")) "&" else "?"
+        val url = "$baseUrl${separador}_cb=${cacheBust()}"
         val request = Request.Builder().url(url).get().build()
         val inicio = System.nanoTime()
         return try {

@@ -152,6 +152,9 @@ object AppModule {
     fun provideExecutorSpeedtest(networkCapabilitiesProvider: NetworkCapabilitiesProvider): ExecutorSpeedtest =
         FeatureSpeedtestModulo.criarExecutorSpeedtest(
             isMobile = networkCapabilitiesProvider.isMeteredNetwork(),
+            // GH#1118: mesmo worker dedicado que a tela Jogos usa (GH#935) — as duas telas
+            // passam a medir latência base contra a mesma fonte confiável.
+            latencyProbeUrl = BuildConfig.GAME_LATENCY_PROBE_URL,
         )
 
     @Provides
