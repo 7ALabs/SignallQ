@@ -1,6 +1,5 @@
 import { Route, Routes } from 'react-router-dom'
-import { InstallPwaPrompt } from './components/InstallPwaPrompt'
-import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
+import { PwaToastStack } from './components/PwaToastStack'
 import HistoricoPage from './pages/HistoricoPage'
 import HomePage from './pages/HomePage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -21,8 +20,7 @@ export default function App() {
         <Route path="/termos" element={<TermosPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
-      <PwaUpdatePrompt />
-      <InstallPwaPrompt />
+      <PwaToastStack />
     </>
   )
 }

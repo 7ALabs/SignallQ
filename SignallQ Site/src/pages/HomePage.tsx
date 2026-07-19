@@ -1,7 +1,8 @@
-import { AdSlot } from '../components/AdSlot'
-import { SiteFooter } from '../components/SiteFooter'
-import { SiteNav } from '../components/SiteNav'
-import { DownloadAppCallout } from '../components/speedtest/DownloadAppCallout'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { AdBanner } from '../components/AdBanner'
+import { DetailTopBar, FlowTopBar } from '../components/AppTopBar'
+import { IdleStart, type ModoTeste } from '../components/speedtest/IdleStart'
 import { ProblemPanel } from '../components/speedtest/ProblemPanel'
 import { ResultPanel } from '../components/speedtest/ResultPanel'
 import { SpeedGauge } from '../components/speedtest/SpeedGauge'
@@ -23,12 +24,6 @@ const PHASE_LABELS: Record<string, string> = {
   processando: 'Processando resultado',
 }
 
-const DIFERENCIAIS = [
-  'Entenda se sua conexão está estável',
-  'Descubra o que pode estar prejudicando seu Wi-Fi',
-  'Receba recomendações em linguagem simples no aplicativo',
-]
-
 function phaseColorVar(phase: FasePainel): string {
   if (phase === 'latencia') return 'var(--phase-latencia)'
   if (phase === 'download') return 'var(--phase-download)'
@@ -36,6 +31,10 @@ function phaseColorVar(phase: FasePainel): string {
   return 'var(--accent)'
 }
 
+// Fluxo do PWA (Tela 1 "Velocidade" + Tela 2 "Resultado" do protótipo
+// "SignallQ WebApp.dc.html" do Luiz, GH#1186) — uma única rota "/" com
+// máquina de estados por fase, chrome mínimo (FlowTopBar/DetailTopBar em vez
+// do SiteNav/SiteFooter institucional) e AdBanner fixo no rodapé.
 export default function HomePage() {
   useDocumentMeta({
     title: 'Teste de velocidade real — SignallQ',
@@ -44,29 +43,24 @@ export default function HomePage() {
     path: '/',
   })
 
-  const { phase, liveValue, phaseResults, result, cancelTest, retry, forceStart } = useSpeedTest()
+  const navigate = useNavigate()
+  const { phase, liveValue, phaseResults, result, connectionKind, cancelTest, retry, forceStart, goToIdle } = useSpeedTest()
+  const [modo, setModo] = useState<ModoTeste>('rapido')
 
+  const isIdle = phase === 'idle'
   const isRunning = RUNNING_PHASES.includes(phase)
   const isResult = phase === 'concluido' || phase === 'parcial'
   const isProblem = PROBLEM_PHASES.includes(phase as ProblemPhase)
-  const showGauge = isRunning || isResult
   const stepIdx = RUNNING_PHASES.indexOf(phase)
   const phaseColor = phaseColorVar(phase)
 
   const downloadVerdict = result ? classifyDownload(result.download.mbps) : null
-  const verdictColorVar: Record<string, string> = { success: 'var(--success)', warning: 'var(--warning)', error: 'var(--error)', indisponivel: 'var(--text-tertiary)' }
 
   let fraction = 0
   let gaugeCenterValue = ''
   let gaugeCenterUnit = ''
-  let gaugeColor = phaseColor
 
-  if (isResult && result) {
-    fraction = fractionForThroughput(result.download.mbps)
-    gaugeCenterValue = result.download.mbps.toFixed(1)
-    gaugeCenterUnit = 'Mbps'
-    gaugeColor = downloadVerdict ? verdictColorVar[downloadVerdict.nivel] : phaseColor
-  } else if (phase === 'latencia') {
+  if (phase === 'latencia') {
     fraction = fractionForLatency(liveValue)
     gaugeCenterValue = liveValue ? Math.round(liveValue).toString() : '—'
     gaugeCenterUnit = 'ms'
@@ -94,93 +88,56 @@ export default function HomePage() {
     }
   })
 
-  const heroGlow = isProblem ? 'var(--error)' : gaugeColor
-  const heroBg = `radial-gradient(ellipse 900px 480px at 50% 0%, color-mix(in srgb, ${heroGlow} 14%, transparent), transparent 70%), var(--bg-primary)`
+  const handleIniciar = () => {
+    // "PRO" não roda teste nenhum — ver comentário em IdleStart.tsx.
+    if (modo === 'pro') return
+    forceStart()
+  }
+
+  const irParaHistorico = () => navigate('/historico')
 
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden" style={{ background: 'var(--bg-primary)' }}>
-      <div className="relative w-full overflow-hidden" style={{ background: heroBg }}>
+      {isResult ? (
+        <DetailTopBar title="Resultado" onBack={goToIdle} rightIcon="history" rightLabel="Ver histórico" onRightClick={irParaHistorico} />
+      ) : (
+        <FlowTopBar onHistoryClick={irParaHistorico} />
+      )}
+
+      <div className="mx-auto flex w-full max-w-[560px] flex-1 flex-col items-center gap-4 px-5 pb-6 pt-2 box-border">
+        {isIdle && <IdleStart modo={modo} onModoChange={setModo} onIniciar={handleIniciar} />}
+
         {isRunning && (
           <>
-            <div
-              className="sq-ring pointer-events-none absolute rounded-full"
-              style={{ left: '50%', top: 260, width: 480, height: 480, marginLeft: -240, border: `1px solid color-mix(in srgb, ${phaseColor} 22%, transparent)` }}
-            />
-            <div
-              className="sq-ring pointer-events-none absolute rounded-full"
-              style={{
-                left: '50%',
-                top: 260,
-                width: 660,
-                height: 660,
-                marginLeft: -330,
-                marginTop: -90,
-                border: `1px solid color-mix(in srgb, ${phaseColor} 14%, transparent)`,
-                animationDelay: '1.2s',
-              }}
-            />
+            <div className="max-w-[420px] pt-2.5 text-center body-small">
+              Este teste usa dados da sua conexão para medir a velocidade — nenhum valor é simulado.
+            </div>
+            <SpeedGauge fraction={fraction} color={phaseColor} centerValue={gaugeCenterValue} centerUnit={gaugeCenterUnit} showTicks pulse />
+            <div className="overline">{PHASE_LABELS[phase] ?? ''}</div>
+            <StepRow steps={steps} />
+            <button onClick={cancelTest} className="flex h-10 items-center gap-1.5 border-none bg-transparent">
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                close
+              </span>
+              <span className="label-large">Cancelar teste</span>
+            </button>
           </>
         )}
 
-        <SiteNav active="home" heroMode />
+        {isProblem && <ProblemPanel phase={phase as ProblemPhase} onAction={phase === 'bloqueado-outra-aba' ? forceStart : retry} />}
 
-        <div className="relative z-[1] mx-auto flex max-w-[980px] flex-col items-center gap-4 px-5 pb-14 pt-2 box-border">
-          {showGauge && (
-            <>
-              {isRunning && (
-                <div className="max-w-[420px] pt-2.5 text-center body-small">
-                  Este teste usa dados da sua conexão para medir a velocidade — nenhum valor é simulado.
-                </div>
-              )}
-
-              <SpeedGauge fraction={fraction} color={gaugeColor} centerValue={gaugeCenterValue} centerUnit={gaugeCenterUnit} showTicks={isRunning} pulse={isRunning} />
-
-              {isRunning && (
-                <>
-                  <div className="overline">{PHASE_LABELS[phase] ?? ''}</div>
-                  <StepRow steps={steps} />
-                  <button onClick={cancelTest} className="flex h-10 items-center gap-1.5 border-none bg-transparent">
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                      close
-                    </span>
-                    <span className="label-large">Cancelar teste</span>
-                  </button>
-                </>
-              )}
-
-              {isResult && result && downloadVerdict && <ResultPanel result={result} downloadVerdict={downloadVerdict} onRetry={retry} />}
-            </>
-          )}
-
-          {isProblem && <ProblemPanel phase={phase as ProblemPhase} onAction={phase === 'bloqueado-outra-aba' ? forceStart : retry} />}
-        </div>
+        {isResult && result && downloadVerdict && (
+          <ResultPanel
+            result={result}
+            downloadVerdict={downloadVerdict}
+            connectionKind={connectionKind}
+            onRetry={retry}
+            onVerHistorico={irParaHistorico}
+          />
+        )}
       </div>
 
-      {isResult && (
-        <div className="mx-auto flex w-full max-w-[640px] flex-col items-center gap-8 px-5 py-10 box-border">
-          <DownloadAppCallout />
-
-          <div className="flex flex-col items-center gap-4 text-center">
-            <div className="title-large">Velocidade não conta a história toda.</div>
-            <div className="flex max-w-[460px] flex-col gap-2.5">
-              {DIFERENCIAIS.map((item) => (
-                <div key={item} className="flex items-center gap-2.5 text-left">
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--accent)' }}>
-                    check_circle
-                  </span>
-                  <div className="body-medium">{item}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="w-full">
-            <AdSlot format="horizontal" />
-          </div>
-        </div>
-      )}
-
-      <SiteFooter />
+      <AdBanner />
     </div>
   )
 }

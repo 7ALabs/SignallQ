@@ -10,8 +10,14 @@
 //      "Atualizar" (força reload) ou "Fechar" (adia até a próxima visita).
 //
 // Sem reload-surpresa: o usuário escolhe quando aplicar a atualização.
+//
+// Casca visual unificada com InstallPwaPrompt (bg-card + borda + pill, ícone
+// Material Symbol único, nunca bloco `--accent` sólido) — os dois vivem
+// dentro do `PwaToastStack` (fix da Lia, ver
+// .claude/design-specs/2026-07-19-site-pwa-redesign/SPEC.md). Antes disso
+// este componente tinha seu próprio CSS com bloco de cor sólida e o
+// glifo "×" cru — removido.
 import { useRegisterSW } from 'virtual:pwa-register/react'
-import './PwaUpdatePrompt.css'
 
 const UPDATE_CHECK_INTERVAL_MS = 60_000
 
@@ -36,13 +42,39 @@ export function PwaUpdatePrompt() {
   if (!needRefresh) return null
 
   return (
-    <div className="sq-pwa-update" role="status" aria-live="polite">
-      <span className="sq-pwa-update__text">Nova versão disponível</span>
-      <button type="button" className="sq-pwa-update__button" onClick={() => { void updateServiceWorker(true) }}>
-        Atualizar
+    <div
+      className="sq-fade-up flex items-center gap-1.5 rounded-full border py-2 pl-3.5 pr-2"
+      style={{ borderColor: 'color-mix(in srgb, var(--border) 40%, transparent)', background: 'var(--bg-card)' }}
+      role="status"
+      aria-live="polite"
+    >
+      <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--accent)' }}>
+        sync
+      </span>
+      <span className="label-medium" style={{ color: 'var(--text-primary)' }}>
+        Nova versão disponível
+      </span>
+      <button
+        type="button"
+        onClick={() => {
+          void updateServiceWorker(true)
+        }}
+        className="border-none bg-transparent p-0"
+      >
+        <span className="label-medium" style={{ color: 'var(--accent)' }}>
+          Atualizar
+        </span>
       </button>
-      <button type="button" className="sq-pwa-update__close" onClick={() => setNeedRefresh(false)} aria-label="Fechar">
-        ×
+      <button
+        type="button"
+        onClick={() => setNeedRefresh(false)}
+        aria-label="Fechar"
+        className="flex h-5 w-5 items-center justify-center border-none bg-transparent p-0"
+        style={{ color: 'var(--text-tertiary)' }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+          close
+        </span>
       </button>
     </div>
   )

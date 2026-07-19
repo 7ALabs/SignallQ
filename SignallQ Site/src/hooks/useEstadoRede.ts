@@ -8,8 +8,7 @@
 // (ex.: Wi-Fi conectado a um roteador sem internet, portal cativo).
 import { useCallback, useEffect, useState } from 'react'
 import { SPEEDTEST_DOWNLOAD_URL } from '../lib/config'
-
-export type TipoRede = 'wifi' | 'celular' | 'ethernet' | 'nenhuma' | 'desconhecida'
+import type { TipoRede } from '../lib/connection'
 
 export interface EstadoRede {
   tipo: TipoRede

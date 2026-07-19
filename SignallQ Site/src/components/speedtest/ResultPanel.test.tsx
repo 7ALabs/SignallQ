@@ -1,11 +1,11 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { ResultPanel } from './ResultPanel'
 import { classifyDownload } from '../../lib/classification'
 import type { SpeedTestResult } from '../../lib/speedEngine'
 
-function makeResult(overrides: Partial<{ download: number; upload: number; latency: number; jitter: number | null }> = {}): SpeedTestResult {
-  const { download = 80, upload = 20, latency = 15, jitter = 5 } = overrides
+function makeResult(overrides: Partial<{ download: number; upload: number; latency: number; jitter: number | null; partial: boolean }> = {}): SpeedTestResult {
+  const { download = 80, upload = 20, latency = 15, jitter = 5, partial = false } = overrides
   return {
     id: 'r1',
     timestamp: Date.now(),
@@ -16,25 +16,45 @@ function makeResult(overrides: Partial<{ download: number; upload: number; laten
     loadedLatency: null,
     connectionType: null,
     server: 'teste',
-    partial: false,
+    partial,
   }
 }
 
-describe('ResultPanel — card de recomendações', () => {
-  it('resultado com download baixo -> mostra o card de recomendações', async () => {
-    const result = makeResult({ download: 10 })
-    render(<ResultPanel result={result} downloadVerdict={classifyDownload(result.download.mbps)} onRetry={vi.fn()} />)
+describe('ResultPanel — versão enxuta do PWA (sem recomendações/casos de uso)', () => {
+  it('conexão boa -> mostra veredito positivo, métricas principais e chip de conexão', () => {
+    const result = makeResult()
+    render(
+      <ResultPanel
+        result={result}
+        downloadVerdict={classifyDownload(result.download.mbps)}
+        connectionKind="wifi"
+        onRetry={vi.fn()}
+        onVerHistorico={vi.fn()}
+      />
+    )
 
-    await waitFor(() => expect(screen.getByText('Recomendações')).toBeInTheDocument())
-    expect(screen.getByText(/feche outros apps que usam internet/i)).toBeInTheDocument()
+    expect(screen.getByText('Sua conexão está boa')).toBeInTheDocument()
+    expect(screen.getByText(/Teste realizado via Wi-Fi/)).toBeInTheDocument()
+    expect(screen.getByText('Download')).toBeInTheDocument()
+    expect(screen.getByText('Upload')).toBeInTheDocument()
+    expect(screen.getByText('Testar novamente')).toBeInTheDocument()
+    expect(screen.getByText('Ver histórico')).toBeInTheDocument()
+    expect(screen.queryByText('Recomendações')).not.toBeInTheDocument()
   })
 
-  it('resultado excelente -> nenhum card de recomendações (motor nunca força card sem problema)', async () => {
-    const result = makeResult()
-    render(<ResultPanel result={result} downloadVerdict={classifyDownload(result.download.mbps)} onRetry={vi.fn()} />)
+  it('resultado parcial -> mostra aviso de resultado parcial e esconde o chip de conexão quando desconhecida', () => {
+    const result = makeResult({ download: 10, partial: true })
+    render(
+      <ResultPanel
+        result={result}
+        downloadVerdict={classifyDownload(result.download.mbps)}
+        connectionKind={null}
+        onRetry={vi.fn()}
+        onVerHistorico={vi.fn()}
+      />
+    )
 
-    // espera o efeito assíncrono (leitura de histórico) resolver antes de afirmar ausência
-    await waitFor(() => expect(screen.getByText('Testar novamente')).toBeInTheDocument())
-    expect(screen.queryByText('Recomendações')).not.toBeInTheDocument()
+    expect(screen.getByText(/Resultado parcial\./)).toBeInTheDocument()
+    expect(screen.queryByText(/Teste realizado via/)).not.toBeInTheDocument()
   })
 })

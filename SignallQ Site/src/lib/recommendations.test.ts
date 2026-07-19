@@ -28,6 +28,7 @@ function makeHistoryRecord(overrides: Partial<MedicaoRegistro> = {}): MedicaoReg
     latency: 40,
     jitter: 10,
     connectionType: null,
+    connectionKind: null,
     server: 'teste',
     ...overrides,
   }
