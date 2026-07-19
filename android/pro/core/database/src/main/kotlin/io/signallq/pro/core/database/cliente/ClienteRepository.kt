@@ -1,5 +1,7 @@
 package io.signallq.pro.core.database.cliente
 
+import androidx.room.withTransaction
+import io.signallq.pro.core.database.SignallQProDatabase
 import io.signallq.pro.core.database.local.LocalRepository
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
@@ -8,6 +10,7 @@ import javax.inject.Inject
 class ClienteRepository
     @Inject
     constructor(
+        private val db: SignallQProDatabase,
         private val dao: ClienteDao,
         private val localRepository: LocalRepository,
     ) {
@@ -16,10 +19,12 @@ class ClienteRepository
         suspend fun buscarPorId(id: String): ClienteEntity? = dao.buscarPorId(id)
 
         /**
-         * Cria o cliente e o local "Principal" associado -- todo cliente do MVP0 nasce com
-         * exatamente um local (issue #1166: "local" e entidade propria no dicionario
-         * canonico, ausente ate aqui do fluxo cliente -> visita). [endereco] pode ficar em
-         * branco (cadastro rapido, doc 09 §11: "endereco completo pode ser concluido depois").
+         * Cria o cliente e o local "Principal" associado, na MESMA transacao Room -- achado do
+         * Rhodolfo na PR #1167: sem transacao, morte do processo entre os dois inserts deixava
+         * um cliente persistido sem local, cenario alcancavel em producao (nao teorico) que
+         * quebra o invariante que [io.signallq.pro.core.database.visita.VisitaRepository]
+         * assume (todo cliente tem >= 1 local). [endereco] pode ficar em branco (cadastro
+         * rapido, doc 09 §11: "endereco completo pode ser concluido depois").
          * @return id do cliente criado.
          */
         suspend fun criarCliente(
@@ -34,8 +39,10 @@ class ClienteRepository
                     telefone = telefone,
                     criadoEmEpochMs = System.currentTimeMillis(),
                 )
-            dao.salvar(entidade)
-            localRepository.criarLocal(clienteId = entidade.id, nome = "Principal", endereco = endereco)
+            db.withTransaction {
+                dao.salvar(entidade)
+                localRepository.criarLocal(clienteId = entidade.id, nome = "Principal", endereco = endereco)
+            }
             return entidade.id
         }
     }
