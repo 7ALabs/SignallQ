@@ -16,6 +16,8 @@ import io.signallq.pro.core.database.diagnostico.DiagnosticoProEntity
 import io.signallq.pro.core.database.evidencia.EvidenciaDao
 import io.signallq.pro.core.database.evidencia.EvidenciaEntity
 import io.signallq.pro.core.database.evidencia.TipoEvidencia
+import io.signallq.pro.core.database.local.LocalDao
+import io.signallq.pro.core.database.local.LocalEntity
 import io.signallq.pro.core.database.medicao.MedicaoProDao
 import io.signallq.pro.core.database.medicao.MedicaoProEntity
 import io.signallq.pro.core.database.profissional.ProfissionalDao
@@ -35,6 +37,7 @@ import io.signallq.pro.core.database.visita.VisitaEntity
     entities = [
         ProfissionalEntity::class,
         ClienteEntity::class,
+        LocalEntity::class,
         VisitaEntity::class,
         AmbienteEntity::class,
         MedicaoProEntity::class,
@@ -43,7 +46,7 @@ import io.signallq.pro.core.database.visita.VisitaEntity
         EvidenciaEntity::class,
         ChecklistItemEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(SignallQProTypeConverters::class)
@@ -51,6 +54,8 @@ abstract class SignallQProDatabase : RoomDatabase() {
     abstract fun profissionalDao(): ProfissionalDao
 
     abstract fun clienteDao(): ClienteDao
+
+    abstract fun localDao(): LocalDao
 
     abstract fun visitaDao(): VisitaDao
 
