@@ -67,7 +67,7 @@ fun NovaVisitaScreen(
             ) {
                 TipoVisita.entries.forEach { tipo ->
                     StatusChip(
-                        texto = tipo.name,
+                        texto = rotuloTipoVisita(tipo),
                         tone =
                             if (tipo == uiState.tipoSelecionado) {
                                 StatusChipTone.POSITIVO
@@ -130,3 +130,14 @@ fun NovaVisitaScreen(
         }
     }
 }
+
+// #1180 -- chip mostrava o nome cru do enum (INSTALACAO, MANUTENCAO...). Mesmo mapeamento
+// de LaudoHtmlGenerator.rotuloTipoVisita, duplicado aqui porque feature:visita e feature:laudo
+// nao podem depender uma da outra (lei de dependencia :feature* -> :core* apenas).
+private fun rotuloTipoVisita(tipo: TipoVisita): String =
+    when (tipo) {
+        TipoVisita.INSTALACAO -> "Instalação"
+        TipoVisita.MANUTENCAO -> "Manutenção"
+        TipoVisita.VISTORIA -> "Vistoria"
+        TipoVisita.SUPORTE -> "Suporte"
+    }

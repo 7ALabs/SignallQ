@@ -151,7 +151,7 @@ private fun ConteudoLaudo(
             )
             HorizontalDivider()
             ListRow(
-                titulo = "Evidencias",
+                titulo = "Evidências",
                 subtitulo = "${dados.totalEvidencias} registrada(s)",
                 icone = Icons.Outlined.PhotoCamera,
                 trailing = { IndicadorPresenca(dados.totalEvidencias > 0) },
