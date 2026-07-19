@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { classifyJitter, classifyLatency, classifyUpload, interpretUseCases, type Classificacao } from '../../lib/classification'
+import { PlayStoreBadge } from '../PlayStoreBadge'
+import { classifyLatency, type Classificacao } from '../../lib/classification'
+import { iconeConexao, labelConexao, type TipoRede } from '../../lib/connection'
 import { FEATURE_SPEEDTEST_COMPARTILHOU, trackFeatureUsed } from '../../lib/telemetry'
 import type { SpeedTestResult } from '../../lib/speedEngine'
 
@@ -10,44 +12,42 @@ const NIVEL_COR: Record<string, string> = {
   indisponivel: 'var(--text-tertiary)',
 }
 
+// Frase-veredito da tela de Resultado — protótipo "SignallQ WebApp.dc.html"
+// do Luiz pede "frase direta" (ex.: "Sua conexão está boa"), não um label
+// solto tipo Excelente/Boa/Ruim. Copy é decisão de produto minha (Camilo),
+// não vinha especificada linha a linha no handoff — sinalizada no resumo da
+// entrega, Claudete/Lia podem querer revisar o texto.
+const VEREDITO: Record<string, { titulo: string; subtitulo: string }> = {
+  success: { titulo: 'Sua conexão está boa', subtitulo: 'Dá para navegar, assistir e jogar sem grandes travamentos.' },
+  warning: { titulo: 'Sua conexão está aceitável', subtitulo: 'Funciona para a maioria dos usos, mas pode engasgar em tarefas mais pesadas.' },
+  error: { titulo: 'Sua conexão está fraca', subtitulo: 'Streaming, chamadas e jogos online podem travar ou ficar lentos.' },
+  indisponivel: { titulo: 'Não deu para avaliar sua conexão', subtitulo: 'Tente novamente para ver um veredito completo.' },
+}
+
 function formattedSummary(result: SpeedTestResult): string {
   const when = new Date(result.timestamp).toLocaleString('pt-BR')
   return `Meu teste de velocidade SignallQ (${when}): Download ${result.download.mbps.toFixed(1)} Mbps · Upload ${result.upload.mbps.toFixed(1)} Mbps · Latência ${Math.round(result.latency.ms)} ms. Teste a sua em ${location.origin}${location.pathname}`
 }
 
-const USE_CASE_ICONS: Record<keyof ReturnType<typeof interpretUseCases>, string> = {
-  navegacao: 'travel_explore',
-  streaming: 'movie',
-  videochamada: 'videocam',
-  jogosOnline: 'sports_esports',
-}
-
-const USE_CASE_LABELS: Record<keyof ReturnType<typeof interpretUseCases>, string> = {
-  navegacao: 'Navegação',
-  streaming: 'Streaming',
-  videochamada: 'Videochamadas',
-  jogosOnline: 'Jogos online',
-}
-
 interface ResultPanelProps {
   result: SpeedTestResult
   downloadVerdict: Classificacao
+  connectionKind: TipoRede | null
   onRetry: () => void
+  onVerHistorico: () => void
 }
 
-export function ResultPanel({ result, downloadVerdict, onRetry }: ResultPanelProps) {
-  const [detailsOpen, setDetailsOpen] = useState(false)
+// Versão enxuta da tela de Resultado do PWA (Tela 2 do protótipo "SignallQ
+// WebApp.dc.html", GH#1186) — sem recomendações, sem grid de casos de uso,
+// sem jitter, sem toggle de "detalhes técnicos" (removidos por decisão
+// explícita do Luiz, não é engano/regressão). O motor de recomendações
+// (lib/recommendations.ts) e o card (RecommendationsCard.tsx) continuam no
+// código, só desconectados desta tela — podem voltar a ser usados depois.
+export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, onVerHistorico }: ResultPanelProps) {
   const [copied, setCopied] = useState(false)
-
-  const upload = classifyUpload(result.upload.mbps)
   const latency = classifyLatency(result.latency.ms)
-  const jitter = result.jitter ? classifyJitter(result.jitter.ms) : null
-  const useCases = interpretUseCases({
-    download: result.download.mbps,
-    upload: result.upload.mbps,
-    latency: result.latency.ms,
-    jitter: result.jitter ? result.jitter.ms : null,
-  })
+  const veredito = VEREDITO[downloadVerdict.nivel] ?? VEREDITO.indisponivel
+  const mostrarChipConexao = connectionKind != null && connectionKind !== 'nenhuma' && connectionKind !== 'desconhecida'
 
   const copySummary = async (fromShareFallback: boolean) => {
     const text = formattedSummary(result)
@@ -76,28 +76,10 @@ export function ResultPanel({ result, downloadVerdict, onRetry }: ResultPanelPro
     await copySummary(true)
   }
 
-  const secondaryRow = [
-    { label: 'Upload', value: result.upload.mbps.toFixed(1), unit: 'Mbps', verdict: upload },
-    { label: 'Latência', value: Math.round(result.latency.ms).toString(), unit: 'ms', verdict: latency },
-    { label: 'Jitter', value: jitter ? result.jitter!.ms.toFixed(1) : '—', unit: 'ms', verdict: jitter ?? { label: 'Não disponível', nivel: 'indisponivel' as const } },
-  ]
-
-  const detailMetrics = [
-    { label: 'Latência sob carga', value: result.loadedLatency ? `${Math.round(result.loadedLatency.ms)} ms` : 'Não disponível' },
-    { label: 'Tipo de conexão', value: result.connectionType || 'Não disponível' },
-    { label: 'Servidor', value: result.server },
-    { label: 'Data e horário', value: new Date(result.timestamp).toLocaleString('pt-BR') },
-  ]
-
   return (
-    <div className="sq-fade-up flex w-full flex-col items-center gap-[22px]">
-      <div className="title-medium">
-        Download <span style={{ color: 'var(--text-tertiary)' }}>·</span>{' '}
-        <span style={{ color: NIVEL_COR[downloadVerdict.nivel] }}>{downloadVerdict.label}</span>
-      </div>
-
+    <div className="sq-fade-up flex w-full max-w-[460px] flex-col items-center gap-5 pt-2">
       {result.partial && (
-        <div className="flex max-w-[560px] items-center gap-2">
+        <div className="flex items-center gap-2 text-center">
           <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--warning)' }}>
             warning
           </span>
@@ -108,61 +90,53 @@ export function ResultPanel({ result, downloadVerdict, onRetry }: ResultPanelPro
         </div>
       )}
 
-      <div className="flex w-full max-w-[560px] overflow-hidden rounded-2xl border" style={{ borderColor: 'color-mix(in srgb, var(--border) 18%, transparent)' }}>
-        {secondaryRow.map((s, i) => (
-          <div
-            key={s.label}
-            className="flex flex-1 flex-col items-center gap-1 px-2 py-3.5"
-            style={{ borderLeft: i === 0 ? 'none' : '1px solid color-mix(in srgb, var(--border) 18%, transparent)' }}
-          >
-            <div className="overline">{s.label}</div>
-            <div className="title-large">
-              {s.value} <span className="label-medium">{s.unit}</span>
-            </div>
-            <div className="label-small" style={{ color: NIVEL_COR[s.verdict.nivel] }}>
-              {s.verdict.label}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex max-w-[640px] flex-wrap justify-center gap-x-8 gap-y-5">
-        {(Object.keys(useCases) as (keyof typeof useCases)[]).map((key) => (
-          <div key={key} className="flex w-[92px] flex-col items-center gap-1.5">
-            <span className="material-symbols-outlined" style={{ fontSize: 22, color: NIVEL_COR[useCases[key].nivel] }}>
-              {USE_CASE_ICONS[key]}
+      <div className="flex flex-col items-center gap-2 text-center">
+        <div className="headline-small">{veredito.titulo}</div>
+        <div className="body-medium">{veredito.subtitulo}</div>
+        {mostrarChipConexao && (
+          <div className="mt-1 flex items-center gap-1.5 rounded-full border px-3 py-1" style={{ borderColor: 'var(--border)' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'var(--text-tertiary)' }}>
+              {iconeConexao(connectionKind)}
             </span>
-            <div className="body-small text-center">{USE_CASE_LABELS[key]}</div>
-            <div className="label-medium text-center" style={{ color: NIVEL_COR[useCases[key].nivel] }}>
-              {useCases[key].label}
-            </div>
+            <span className="label-small">Teste realizado via {labelConexao(connectionKind)}</span>
           </div>
-        ))}
+        )}
       </div>
 
-      <button onClick={() => setDetailsOpen((v) => !v)} className="flex items-center gap-1.5 border-none bg-transparent">
-        <span className="label-large" style={{ color: 'var(--accent)' }}>
-          Detalhes técnicos
-        </span>
-        <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--accent)' }}>
-          {detailsOpen ? 'expand_less' : 'expand_more'}
-        </span>
-      </button>
-
-      {detailsOpen && (
-        <div className="-mt-2 flex max-w-[640px] flex-wrap justify-center gap-x-[22px] gap-y-1.5">
-          {detailMetrics.map((d) => (
-            <div key={d.label} className="body-small">
-              <span style={{ color: 'var(--text-secondary)' }}>{d.label}:</span> {d.value}
-            </div>
-          ))}
+      <div className="flex w-full gap-3">
+        <div className="flex flex-1 flex-col items-center gap-1 rounded-2xl py-4" style={{ background: 'var(--bg-secondary)' }}>
+          <div className="overline">Download</div>
+          <div className="title-large" style={{ color: 'var(--success)' }}>
+            {result.download.mbps.toFixed(1)} <span className="label-medium">Mbps</span>
+          </div>
         </div>
-      )}
+        <div className="flex flex-1 flex-col items-center gap-1 rounded-2xl py-4" style={{ background: 'var(--bg-secondary)' }}>
+          <div className="overline">Upload</div>
+          <div className="title-large" style={{ color: 'var(--warning)' }}>
+            {result.upload.mbps.toFixed(1)} <span className="label-medium">Mbps</span>
+          </div>
+        </div>
+      </div>
 
-      <div className="mt-1.5 flex w-full max-w-[460px] flex-col items-center gap-3.5">
+      <div className="flex w-full items-center justify-between px-1">
+        <span className="body-medium">Latência</span>
+        <span className="label-large" style={{ color: NIVEL_COR[latency.nivel] }}>
+          {Math.round(result.latency.ms)} ms · {latency.label}
+        </span>
+      </div>
+
+      <div className="flex w-full items-center gap-3 rounded-2xl p-4" style={{ background: 'color-mix(in srgb, var(--accent) 8%, transparent)' }}>
+        <div className="flex flex-1 flex-col gap-0.5">
+          <div className="label-large">Quer saber o motivo da sua velocidade?</div>
+          <div className="body-small">Diagnóstico completo no app SignallQ.</div>
+        </div>
+        <PlayStoreBadge height={40} source="resultado-cta" />
+      </div>
+
+      <div className="flex w-full flex-col gap-2.5">
         <button
           onClick={onRetry}
-          className="flex h-[46px] w-full items-center justify-center gap-2 rounded-[var(--radius-button)] text-white sm:w-auto sm:px-6"
+          className="flex h-[46px] w-full items-center justify-center gap-2 rounded-[var(--radius-button)] text-white"
           style={{ background: 'var(--accent)' }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
@@ -172,30 +146,43 @@ export function ResultPanel({ result, downloadVerdict, onRetry }: ResultPanelPro
             Testar novamente
           </span>
         </button>
-        <div className="flex flex-wrap justify-center gap-2.5">
-          <button onClick={share} className="flex h-10 items-center gap-1.5 border-none bg-transparent px-2">
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--accent)' }}>
-              share
-            </span>
-            <span className="label-large" style={{ color: 'var(--accent)' }}>
-              Compartilhar
-            </span>
-          </button>
-          <button onClick={() => copySummary(false)} className="flex h-10 items-center gap-1.5 border-none bg-transparent px-2">
-            <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--accent)' }}>
-              content_copy
-            </span>
-            <span className="label-large" style={{ color: 'var(--accent)' }}>
-              Copiar resumo
-            </span>
-          </button>
-        </div>
-        {copied && (
-          <div className="label-medium" style={{ color: 'var(--success)' }}>
-            Copiado!
-          </div>
-        )}
+        <button
+          onClick={onVerHistorico}
+          className="flex h-[46px] w-full items-center justify-center gap-2 rounded-[var(--radius-button)] border"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--accent)' }}>
+            history
+          </span>
+          <span className="label-large" style={{ color: 'var(--accent)' }}>
+            Ver histórico
+          </span>
+        </button>
       </div>
+
+      <div className="flex flex-wrap justify-center gap-2.5">
+        <button onClick={share} className="flex h-9 items-center gap-1.5 border-none bg-transparent px-2">
+          <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--accent)' }}>
+            share
+          </span>
+          <span className="label-medium" style={{ color: 'var(--accent)' }}>
+            Compartilhar
+          </span>
+        </button>
+        <button onClick={() => copySummary(false)} className="flex h-9 items-center gap-1.5 border-none bg-transparent px-2">
+          <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--accent)' }}>
+            content_copy
+          </span>
+          <span className="label-medium" style={{ color: 'var(--accent)' }}>
+            Copiar resumo
+          </span>
+        </button>
+      </div>
+      {copied && (
+        <div className="label-medium" style={{ color: 'var(--success)' }}>
+          Copiado!
+        </div>
+      )}
     </div>
   )
 }

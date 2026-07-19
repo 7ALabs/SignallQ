@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEstadoRede } from './useEstadoRede'
+import type { TipoRede } from '../lib/connection'
 import { addRecord, resultToRecord } from '../lib/historyStore'
 import { createSpeedTest, SpeedTestError, type SpeedTestPhase, type SpeedTestResult } from '../lib/speedEngine'
 import { FEATURE_SPEEDTEST_COMPLETOU, FEATURE_SPEEDTEST_INICIADO, trackFeatureUsed } from '../lib/telemetry'
@@ -15,7 +17,10 @@ const LOCK_TTL_MS = 4000
 // versão com o mapeamento abaixo.
 export type ProblemPhase = 'sem-conexao' | 'conexao-interrompida' | 'endpoint-indisponivel' | 'erro-inesperado' | 'cancelado' | 'bloqueado-outra-aba'
 
-export type FasePainel = SpeedTestPhase | 'concluido' | 'parcial' | ProblemPhase
+// 'idle' é o estado inicial real desde o redesign do PWA (protótipo "SignallQ
+// WebApp.dc.html" do Luiz, GH#1186) — o teste deixou de disparar sozinho ao
+// abrir a tela; só começa quando o usuário toca em "Iniciar teste".
+export type FasePainel = SpeedTestPhase | 'idle' | 'concluido' | 'parcial' | ProblemPhase
 
 const CODE_TO_PROBLEM_PHASE: Record<string, ProblemPhase> = {
   'no-connection': 'sem-conexao',
@@ -32,10 +37,20 @@ export interface PhaseResults {
 }
 
 export function useSpeedTest() {
-  const [phase, setPhase] = useState<FasePainel>('preparando')
+  const [phase, setPhase] = useState<FasePainel>('idle')
   const [liveValue, setLiveValue] = useState(0)
   const [phaseResults, setPhaseResults] = useState<PhaseResults>({})
   const [result, setResult] = useState<SpeedTestResult | null>(null)
+  // Tipo de rede detectado no início do teste (wifi/celular/ethernet) — usado
+  // no chip da tela de Resultado e salvo no registro do Histórico. Distinto
+  // de `result.connectionType` (effectiveType da Network Information API).
+  const [connectionKind, setConnectionKind] = useState<TipoRede | null>(null)
+
+  const { revalidarAgora } = useEstadoRede()
+  const revalidarAgoraRef = useRef(revalidarAgora)
+  useEffect(() => {
+    revalidarAgoraRef.current = revalidarAgora
+  }, [revalidarAgora])
 
   const engineRef = useRef<ReturnType<typeof createSpeedTest> | null>(null)
   const tabIdRef = useRef(Math.random().toString(36).slice(2))
@@ -43,8 +58,9 @@ export function useSpeedTest() {
   // Espelham o state síncronamente para o callback onPhase do motor (precisa
   // ler a fase/valor "atuais" no exato instante da transição, antes do
   // próximo render — useState sozinho não garante isso dentro do mesmo tick).
-  const phaseRef = useRef<FasePainel>('preparando')
+  const phaseRef = useRef<FasePainel>('idle')
   const liveValueRef = useRef(0)
+  const connectionKindRef = useRef<TipoRede | null>(null)
 
   const acquireLock = useCallback(() => {
     try {
@@ -97,6 +113,21 @@ export function useSpeedTest() {
       setResult(null)
       trackFeatureUsed(FEATURE_SPEEDTEST_INICIADO)
 
+      // Checagem ativa antes de medir: navigator.onLine sozinho não detecta
+      // Wi-Fi conectado sem internet real (ex.: portal cativo) — evita esperar
+      // o motor de medição falhar por timeout pra só então mostrar a mensagem
+      // de "sem conexão". Aproveitada também para capturar o tipo de rede
+      // (wifi/celular/ethernet) exibido no resultado e salvo no histórico.
+      const rede = await revalidarAgoraRef.current()
+      connectionKindRef.current = rede.tipo
+      setConnectionKind(rede.tipo)
+      if (!rede.internet) {
+        phaseRef.current = 'sem-conexao'
+        setPhase('sem-conexao')
+        releaseLock()
+        return
+      }
+
       const STEP_ORDER: FasePainel[] = ['latencia', 'download', 'upload']
       const engine = createSpeedTest()
       engineRef.current = engine
@@ -127,7 +158,7 @@ export function useSpeedTest() {
         setPhase(phaseRef.current)
         trackFeatureUsed(FEATURE_SPEEDTEST_COMPLETOU)
         try {
-          await addRecord(resultToRecord(r))
+          await addRecord(resultToRecord(r, connectionKindRef.current))
         } catch {
           // histórico é best-effort — falha aqui não derruba o resultado exibido
         }
@@ -148,7 +179,8 @@ export function useSpeedTest() {
       phaseRef.current = 'bloqueado-outra-aba'
       setPhase('bloqueado-outra-aba')
     } else {
-      startTest(false)
+      phaseRef.current = 'idle'
+      setPhase('idle')
     }
 
     const onVisibilityChange = () => {
@@ -177,5 +209,13 @@ export function useSpeedTest() {
   const retry = useCallback(() => startTest(true), [startTest])
   const forceStart = useCallback(() => startTest(false), [startTest])
 
-  return { phase, liveValue, phaseResults, result, cancelTest, retry, forceStart }
+  // Volta pro estado idle sem rodar o motor — usado pela seta "voltar" da
+  // tela de Resultado (Tela 2 -> Tela 1), não é engano com cancelTest/retry.
+  const goToIdle = useCallback(() => {
+    phaseRef.current = 'idle'
+    setPhase('idle')
+    setResult(null)
+  }, [])
+
+  return { phase, liveValue, phaseResults, result, connectionKind, cancelTest, retry, forceStart, goToIdle }
 }

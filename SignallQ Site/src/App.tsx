@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router-dom'
+import { PwaToastStack } from './components/PwaToastStack'
 import HistoricoPage from './pages/HistoricoPage'
 import HomePage from './pages/HomePage'
 import NotFoundPage from './pages/NotFoundPage'
@@ -9,14 +10,17 @@ import TermosPage from './pages/TermosPage'
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/pro" element={<ProPage />} />
-      <Route path="/historico" element={<HistoricoPage />} />
-      <Route path="/quem-somos" element={<QuemSomosPage />} />
-      <Route path="/privacidade" element={<PrivacidadePage />} />
-      <Route path="/termos" element={<TermosPage />} />
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/pro" element={<ProPage />} />
+        <Route path="/historico" element={<HistoricoPage />} />
+        <Route path="/quem-somos" element={<QuemSomosPage />} />
+        <Route path="/privacidade" element={<PrivacidadePage />} />
+        <Route path="/termos" element={<TermosPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+      <PwaToastStack />
+    </>
   )
 }

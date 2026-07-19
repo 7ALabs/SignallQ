@@ -3,6 +3,7 @@
 // shared/history-store.js do protótipo — implementação real já usava
 // IndexedDB, não localStorage (README do protótipo mencionava localStorage,
 // era o texto que estava desatualizado, não o código).
+import type { TipoRede } from './connection'
 import type { SpeedTestResult } from './speedEngine'
 
 const DB_NAME = 'signallq-site-history'
@@ -17,6 +18,12 @@ export interface MedicaoRegistro {
   latency: number
   jitter: number | null
   connectionType: string | null
+  // Tipo de rede (wifi/celular/ethernet) no início do teste — distinto de
+  // `connectionType` (effectiveType da Network Information API, ex. "4g"),
+  // que não distingue Wi-Fi de dados móveis. Usado pelo filtro do Histórico
+  // (Todos/Wi-Fi/Rede móvel). Registros salvos antes desta mudança ficam
+  // `null` e só aparecem em "Todos".
+  connectionKind: TipoRede | null
   server: string
 }
 
@@ -79,7 +86,7 @@ export async function clearAll(): Promise<void> {
   })
 }
 
-export function resultToRecord(result: SpeedTestResult): MedicaoRegistro {
+export function resultToRecord(result: SpeedTestResult, connectionKind: TipoRede | null = null): MedicaoRegistro {
   return {
     id: result.id,
     timestamp: result.timestamp,
@@ -88,6 +95,7 @@ export function resultToRecord(result: SpeedTestResult): MedicaoRegistro {
     latency: result.latency.ms,
     jitter: result.jitter ? result.jitter.ms : null,
     connectionType: result.connectionType,
+    connectionKind,
     server: result.server,
   }
 }
