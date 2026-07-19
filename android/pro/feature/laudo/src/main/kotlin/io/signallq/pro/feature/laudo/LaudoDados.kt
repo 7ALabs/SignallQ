@@ -24,6 +24,8 @@ data class LaudoDados(
     val profissionalNome: String,
     val clienteNome: String,
     val clienteTelefone: String?,
+    val localNome: String,
+    val localEndereco: String,
     val tipoVisita: TipoVisita,
     val dataVisitaEpochMs: Long,
     val ambientes: List<LaudoAmbienteDados>,

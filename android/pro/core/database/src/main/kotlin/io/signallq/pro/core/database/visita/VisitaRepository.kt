@@ -2,6 +2,7 @@ package io.signallq.pro.core.database.visita
 
 import io.signallq.pro.core.database.checklist.ChecklistItemDao
 import io.signallq.pro.core.database.checklist.ChecklistItemEntity
+import io.signallq.pro.core.database.local.LocalRepository
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 import javax.inject.Inject
@@ -42,6 +43,7 @@ class VisitaRepository
     constructor(
         private val visitaDao: VisitaDao,
         private val checklistItemDao: ChecklistItemDao,
+        private val localRepository: LocalRepository,
     ) {
         fun observarVisita(id: String): Flow<VisitaEntity?> = visitaDao.observarPorId(id)
 
@@ -53,17 +55,29 @@ class VisitaRepository
 
         fun observarRecentes(limite: Int = 10): Flow<List<VisitaEntity>> = visitaDao.observarRecentes(limite)
 
-        /** Cria a visita + o checklist padrao do tipo escolhido. @return id da visita criada. */
+        /**
+         * Cria a visita + o checklist padrao do tipo escolhido. O local da visita e resolvido
+         * implicitamente a partir do cliente -- MVP0 garante que todo cliente tem exatamente um
+         * local "Principal" (`ClienteRepository.criarCliente`, issue #1166), entao nao ha tela
+         * de selecao de local separada por ora.
+         * @return id da visita criada.
+         */
         suspend fun criarVisita(
             clienteId: String,
             tipo: TipoVisita,
             modoRapido: Boolean = false,
         ): String {
+            val localId =
+                requireNotNull(localRepository.buscarPrimeiroPorCliente(clienteId)?.id) {
+                    "Cliente $clienteId sem local cadastrado -- todo cliente deve ter ao menos " +
+                        "um local (issue #1166)."
+                }
             val agora = System.currentTimeMillis()
             val visita =
                 VisitaEntity(
                     id = UUID.randomUUID().toString(),
                     clienteId = clienteId,
+                    localId = localId,
                     tipo = tipo,
                     status = StatusVisita.EM_ANDAMENTO,
                     etapaAtual = EtapaVisita.CHECKLIST,

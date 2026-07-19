@@ -60,6 +60,13 @@ fun NovoClienteScreen(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth(),
             )
+            OutlinedTextField(
+                value = uiState.endereco,
+                onValueChange = viewModel::atualizarEndereco,
+                label = { Text("Endereço do local (opcional)") },
+                supportingText = { Text("Pode ser preenchido depois, na visita") },
+                modifier = Modifier.fillMaxWidth(),
+            )
             Button(onClick = viewModel::salvar, modifier = Modifier.fillMaxWidth()) {
                 Text("Salvar")
             }

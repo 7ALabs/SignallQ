@@ -61,6 +61,8 @@ class LaudoHtmlGeneratorTest {
                 profissionalNome = "Joao Tecnico",
                 clienteNome = "Maria Cliente",
                 clienteTelefone = "11999999999",
+                localNome = "Principal",
+                localEndereco = "Rua das Flores, 123",
                 tipoVisita = TipoVisita.INSTALACAO,
                 dataVisitaEpochMs = 1_716_000_000_000L,
                 ambientes =
@@ -94,6 +96,7 @@ class LaudoHtmlGeneratorTest {
         assertTrue(html.contains("Latencia elevada"))
         assertTrue(html.contains("Reposicionar o roteador."))
         assertTrue(html.contains("Critico"))
+        assertTrue(html.contains("Rua das Flores, 123"))
     }
 
     @Test
@@ -104,6 +107,8 @@ class LaudoHtmlGeneratorTest {
                 profissionalNome = "Joao Tecnico",
                 clienteNome = "Cliente Sem Dado",
                 clienteTelefone = null,
+                localNome = "Principal",
+                localEndereco = "",
                 tipoVisita = TipoVisita.VISTORIA,
                 dataVisitaEpochMs = 1_716_000_000_000L,
                 ambientes =
@@ -123,6 +128,7 @@ class LaudoHtmlGeneratorTest {
         assertTrue(html.contains("Quarto"))
         assertTrue(html.contains("Nenhuma medicao registrada"))
         assertTrue(html.contains("Nenhum problema relevante identificado"))
+        assertTrue(html.contains("Endereco nao informado"))
         assertFalse(html.contains("null"))
     }
 }
