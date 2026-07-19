@@ -10,7 +10,7 @@ versionName = "0.28.0"
 # Mesma regra do consumidor (ver secao "Release Process" do CLAUDE.md): nunca gerar/distribuir
 # um APK do Pro sem incrementar proVersionCode antes. proVersionName sobe em marco funcional
 # real (nao a cada build), fica em 0.x.y ate o primeiro release em trilha real.
-proVersionCode = "7"
+proVersionCode = "8"
 proVersionName = "0.3.0"
 coreKtx = "1.19.0"
 activityKtx = "1.9.3"
