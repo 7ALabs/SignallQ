@@ -1,0 +1,60 @@
+name: Site CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  changes:
+    name: Detect Site changes
+    runs-on: ubuntu-latest
+    outputs:
+      site: ${{ steps.filter.outputs.site }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            site:
+              - 'SignallQ Site/**'
+              - 'packages/design-system/styles/**'
+              - '.github/workflows/site-ci.yml'
+
+  test-and-build:
+    name: Test + Build
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: "SignallQ Site"
+    steps:
+      - uses: actions/checkout@v4
+        if: needs.changes.outputs.site == 'true'
+
+      - name: Setup Node.js
+        if: needs.changes.outputs.site == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: "SignallQ Site/package-lock.json"
+
+      - name: Install dependencies
+        if: needs.changes.outputs.site == 'true'
+        run: npm ci
+
+      - name: Typecheck
+        if: needs.changes.outputs.site == 'true'
+        run: npm run lint
+
+      - name: Unit tests
+        if: needs.changes.outputs.site == 'true'
+        run: npm run test
+
+      - name: Build
+        if: needs.changes.outputs.site == 'true'
+        run: npm run build

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://signallq.pages.dev/sitemap.xml

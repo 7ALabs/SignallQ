@@ -1,0 +1,4 @@
+# SPA fallback — React Router cuida do roteamento client-side (BrowserRouter).
+# Sem isso, recarregar/entrar direto em /pro, /historico etc. cai em 404 do Pages
+# antes mesmo do React montar.
+/*    /index.html   200

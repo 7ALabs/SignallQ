@@ -1,0 +1,66 @@
+name: Site Deploy (Cloudflare Pages)
+
+# Publica o site institucional público no projeto Cloudflare Pages já
+# existente `signallq` (signallq.pages.dev) — reaproveitado, estava
+# desativado desde 2026-07-16 quando o Console migrou pra
+# signallq-admin-panel.pages.dev (ver docs_ai/operations/ADMIN_PANEL.md).
+# Nao confundir com o antigo pages-deploy.yml.disabled, que publicava o
+# Console sob /console nesse mesmo projeto — esse uso foi descontinuado;
+# agora o projeto serve o site institucional na raiz.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'SignallQ Site/**'
+      - '.github/workflows/site-deploy.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-deploy-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build e deploy do site
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required secrets
+        id: gate
+        run: |
+          if [ -n "$CLOUDFLARE_ACCOUNT_ID" ] && [ -n "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Faltam secrets (CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN); pulando build+deploy do site."
+          fi
+
+      - name: Setup Node.js
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        if: steps.gate.outputs.enabled == 'true'
+        working-directory: "SignallQ Site"
+        run: npm ci
+
+      - name: Build
+        if: steps.gate.outputs.enabled == 'true'
+        working-directory: "SignallQ Site"
+        run: npm run build
+
+      - name: Deploy to Cloudflare Pages (project signallq)
+        if: steps.gate.outputs.enabled == 'true'
+        working-directory: "SignallQ Site"
+        run: npx wrangler pages deploy dist --project-name signallq
