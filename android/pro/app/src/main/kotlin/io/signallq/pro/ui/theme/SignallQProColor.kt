@@ -71,10 +71,17 @@ val ProSuccessDark = Color(0xFF32D978)
 // slot nativo em `ColorScheme` (exceto `scrim`, ver `SignallQProTheme.kt`) -- consumidas
 // direto pelos componentes que precisarem, mesmo padrao de `ProSuccess`/`ProWarning`.
 val ProSurfaceSelected = Color(0xFFEAF2FF)
-val ProDarkSurfaceSelected = Color(0xFF1A2C42)
+
+// Corrigido em #1170 item 1: PR #1187 mergeou 0xFF1A2C42 como aproximacao (sem acesso ao CSS
+// real na hora). Valor canonico de `--sqp-color-surface-selected` em `[data-theme="dark"]`.
+val ProDarkSurfaceSelected = Color(0xFF192739)
 
 val ProSurfaceOverlay = Color(0xFFFFFFFF)
 val ProDarkSurfaceOverlay = Color(0xFF20262E)
 
 val ProScrim = Color(0x80000000)
 val ProScrimDark = Color(0x99000000)
+
+// Par claro/escuro de `ProWarning` (issue #1170 item 1) -- faltava o par escuro, mesmo padrao
+// de `ProSuccess`/`ProSuccessDark`. Consumido pelo `TopBar` (save-dot em estado OFFLINE).
+val ProDarkWarning = Color(0xFFF5C451)
