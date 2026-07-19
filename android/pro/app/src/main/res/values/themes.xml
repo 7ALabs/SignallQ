@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tema de sistema (splash/launch) — a UI real e toda Compose via SignallQProTheme.kt.
+         Cor de marca do Pro (#0B6CFF), nao confundir com o violeta do consumidor. -->
+    <style name="Theme.SignallQPro" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:colorBackground">#F7F9FC</item>
+        <item name="android:statusBarColor">#0B6CFF</item>
+    </style>
+</resources>
