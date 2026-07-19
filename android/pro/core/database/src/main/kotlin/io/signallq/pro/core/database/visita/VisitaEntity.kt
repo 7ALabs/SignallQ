@@ -24,6 +24,7 @@ enum class EtapaVisita { CHECKLIST, AMBIENTES, CONCLUSAO }
 data class VisitaEntity(
     @PrimaryKey val id: String,
     val clienteId: String,
+    val localId: String,
     val tipo: TipoVisita,
     val status: StatusVisita,
     val etapaAtual: EtapaVisita,

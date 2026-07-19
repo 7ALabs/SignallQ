@@ -6,6 +6,8 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.signallq.pro.core.database.checklist.ChecklistItemDao
 import io.signallq.pro.core.database.checklist.ChecklistItemEntity
+import io.signallq.pro.core.database.local.LocalEntity
+import io.signallq.pro.core.database.local.LocalRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -19,7 +21,19 @@ import org.junit.Test
 class VisitaRepositoryTest {
     private val visitaDao = mockk<VisitaDao>(relaxed = true)
     private val checklistItemDao = mockk<ChecklistItemDao>(relaxed = true)
-    private val repository = VisitaRepository(visitaDao, checklistItemDao)
+    private val localRepository = mockk<LocalRepository>(relaxed = true)
+    private val repository = VisitaRepository(visitaDao, checklistItemDao, localRepository)
+
+    init {
+        coEvery { localRepository.buscarPrimeiroPorCliente("cliente-1") } returns
+            LocalEntity(
+                id = "local-1",
+                clienteId = "cliente-1",
+                nome = "Principal",
+                endereco = "",
+                criadoEmEpochMs = 0L,
+            )
+    }
 
     @Test
     fun `criarVisita insere visita EM_ANDAMENTO na etapa CHECKLIST`() =
@@ -32,6 +46,15 @@ class VisitaRepositoryTest {
             assertEquals(StatusVisita.EM_ANDAMENTO, visitaSlot.captured.status)
             assertEquals(EtapaVisita.CHECKLIST, visitaSlot.captured.etapaAtual)
             assertEquals("cliente-1", visitaSlot.captured.clienteId)
+            assertEquals("local-1", visitaSlot.captured.localId)
+        }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `criarVisita falha quando cliente nao tem local cadastrado`() =
+        runTest {
+            coEvery { localRepository.buscarPrimeiroPorCliente("cliente-sem-local") } returns null
+
+            repository.criarVisita(clienteId = "cliente-sem-local", tipo = TipoVisita.INSTALACAO)
         }
 
     @Test
