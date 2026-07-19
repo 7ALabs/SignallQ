@@ -45,7 +45,11 @@ fun PermissoesScreen(
     val activity = LocalContext.current as? androidx.activity.ComponentActivity
 
     val launcher =
-        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { resultados ->
+            // Marca "ja solicitada" so apos a resposta do usuario (nao antes do launch) --
+            // e o que permite diferenciar "nunca pedida" de "negada permanentemente" na
+            // proxima vez que o switch for ligado (#1179).
+            resultados.keys.forEach { permissao -> viewModel.marcarPermissaoSolicitada(permissao) }
             viewModel.atualizarEstados()
         }
 
@@ -75,11 +79,17 @@ fun PermissoesScreen(
                             checked = item.concedida,
                             onCheckedChange = { ligar ->
                                 if (ligar && !item.concedida) {
-                                    val jaNegadaPermanente =
-                                        activity != null &&
-                                            !activity.shouldShowRequestPermissionRationale(item.manifestPermission) &&
-                                            !item.concedida
-                                    if (jaNegadaPermanente) {
+                                    // shouldShowRequestPermissionRationale() sozinho nao distingue
+                                    // "nunca pedida" (deve abrir o dialogo do SO) de "negada
+                                    // permanentemente" (deve ir direto pro bloqueio) -- os dois
+                                    // retornam false. So trata como bloqueio quando ja houve uma
+                                    // solicitacao anterior registrada E o SO nao mostra mais o
+                                    // rationale (#1179).
+                                    val jaSolicitadaAntes = viewModel.permissaoJaSolicitada(item.manifestPermission)
+                                    val podeMostrarRationale =
+                                        activity?.shouldShowRequestPermissionRationale(item.manifestPermission) ?: true
+                                    val bloqueadaPermanentemente = jaSolicitadaAntes && !podeMostrarRationale
+                                    if (bloqueadaPermanentemente) {
                                         onPermissaoBloqueada()
                                     } else {
                                         launcher.launch(arrayOf(item.manifestPermission))

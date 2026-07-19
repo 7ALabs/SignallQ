@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.os.Build
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -13,6 +14,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
+
+private const val PREFS_PERMISSOES_NOME = "signallq_pro_permissoes"
 
 data class PermissaoItemUiState(
     val manifestPermission: String,
@@ -43,9 +46,26 @@ class PermissoesViewModel
         private val _uiState = MutableStateFlow(PermissoesUiState())
         val uiState: StateFlow<PermissoesUiState> = _uiState
 
+        // #1179 -- shouldShowRequestPermissionRationale() retorna false tanto para "nunca
+        // pedida" quanto para "negada permanentemente", entao precisa de estado proprio pra
+        // distinguir os dois casos (mesmo problema e solucao ja aplicados no app consumidor,
+        // ver chaveTelefoniaPermissaoJaSolicitada em PreferenciasAppRepository). SharedPreferences
+        // simples aqui porque o Pro ainda nao tem modulo :pro:core:datastore.
+        private val preferenciasPermissoes =
+            context.getSharedPreferences(PREFS_PERMISSOES_NOME, Context.MODE_PRIVATE)
+
         init {
             atualizarEstados()
         }
+
+        fun permissaoJaSolicitada(manifestPermission: String): Boolean =
+            preferenciasPermissoes.getBoolean(chaveJaSolicitada(manifestPermission), false)
+
+        fun marcarPermissaoSolicitada(manifestPermission: String) {
+            preferenciasPermissoes.edit { putBoolean(chaveJaSolicitada(manifestPermission), true) }
+        }
+
+        private fun chaveJaSolicitada(manifestPermission: String) = "ja_solicitada_$manifestPermission"
 
         fun atualizarEstados() {
             val redeSnapshot = GerenciadorPermissoesRedeAndroid(context).avaliar()
