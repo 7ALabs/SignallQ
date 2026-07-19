@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Engineering
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -15,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.signallq.pro.core.designsystem.ProButton
 
 /**
  * Tela 1.2 do protótipo -- boas-vindas simples (reduzida do carrossel de vendas original,
@@ -46,9 +46,7 @@ fun ApresentacaoScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Button(onClick = onContinuar, modifier = Modifier.padding(top = 16.dp)) {
-                Text("Começar")
-            }
+            ProButton(texto = "Começar", onClick = onContinuar, modifier = Modifier.padding(top = 16.dp))
         }
     }
 }

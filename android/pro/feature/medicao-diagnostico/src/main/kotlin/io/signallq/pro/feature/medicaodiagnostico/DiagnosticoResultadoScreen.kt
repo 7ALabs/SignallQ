@@ -6,22 +6,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.signallq.pro.core.designsystem.ProButton
+import io.signallq.pro.core.designsystem.ProButtonVariant
 import io.signallq.pro.core.designsystem.RecommendationBlock
 import io.signallq.pro.core.designsystem.StateCard
 import io.signallq.pro.core.designsystem.StateCardVariant
+import io.signallq.pro.core.designsystem.TopBar
 
 /**
  * Tela 2.16 -- [RecommendationBlock] por achado (problema/impacto/ação/prioridade), mapeado
@@ -43,7 +43,7 @@ fun DiagnosticoResultadoScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Resultado do diagnóstico") }) },
+        topBar = { TopBar(titulo = "Resultado do diagnóstico", leading = null) },
     ) { paddingValues ->
         LazyColumn(
             modifier = modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
@@ -74,14 +74,15 @@ fun DiagnosticoResultadoScreen(
                 }
             }
             item {
-                Button(onClick = onConcluir, modifier = Modifier.fillMaxWidth()) {
-                    Text("Concluir")
-                }
+                ProButton(texto = "Concluir", onClick = onConcluir, modifier = Modifier.fillMaxWidth())
             }
             item {
-                OutlinedButton(onClick = onVerLaudo, modifier = Modifier.fillMaxWidth()) {
-                    Text("Ver laudo")
-                }
+                ProButton(
+                    texto = "Ver laudo",
+                    onClick = onVerLaudo,
+                    variant = ProButtonVariant.SECUNDARIO,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
     }

@@ -14,16 +14,13 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.MeetingRoom
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.TipsAndUpdates
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -32,10 +29,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.signallq.pro.core.designsystem.ListRow
+import io.signallq.pro.core.designsystem.ProButton
+import io.signallq.pro.core.designsystem.ProButtonVariant
 import io.signallq.pro.core.designsystem.StateCard
 import io.signallq.pro.core.designsystem.StateCardVariant
 import io.signallq.pro.core.designsystem.StatusChip
 import io.signallq.pro.core.designsystem.StatusChipTone
+import io.signallq.pro.core.designsystem.TopBar
 
 /**
  * Tela 3.2 -- lista única com [ListRow] + divisores finos por seção do laudo (resumo,
@@ -51,27 +51,26 @@ fun LaudoScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Laudo técnico") }) },
+        topBar = { TopBar(titulo = "Laudo técnico", leading = null) },
         bottomBar = {
             if (uiState.estado == LaudoEstado.PRONTO) {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Button(
+                    ProButton(
+                        texto = if (uiState.gerandoPdf) "Gerando PDF..." else "Gerar PDF",
                         onClick = viewModel::gerarPdf,
-                        enabled = !uiState.gerandoPdf,
+                        habilitado = !uiState.gerandoPdf,
                         modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(if (uiState.gerandoPdf) "Gerando PDF..." else "Gerar PDF")
-                    }
-                    OutlinedButton(
+                    )
+                    ProButton(
+                        texto = "Compartilhar",
                         onClick = viewModel::compartilhar,
-                        enabled = uiState.pdfUri != null,
+                        habilitado = uiState.pdfUri != null,
+                        variant = ProButtonVariant.SECUNDARIO,
                         modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Compartilhar")
-                    }
+                    )
                 }
             }
         },

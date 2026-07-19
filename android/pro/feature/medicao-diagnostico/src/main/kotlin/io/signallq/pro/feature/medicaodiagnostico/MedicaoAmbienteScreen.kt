@@ -10,12 +10,8 @@ import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,9 +21,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.signallq.pro.core.designsystem.ListRow
+import io.signallq.pro.core.designsystem.ProButton
+import io.signallq.pro.core.designsystem.ProButtonVariant
 import io.signallq.pro.core.designsystem.QualityGauge
 import io.signallq.pro.core.designsystem.StateCard
 import io.signallq.pro.core.designsystem.StateCardVariant
+import io.signallq.pro.core.designsystem.TopBar
 
 private const val DOWNLOAD_REFERENCIA_MBPS = 200.0
 
@@ -51,7 +50,7 @@ fun MedicaoAmbienteScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Medição do ambiente") }) },
+        topBar = { TopBar(titulo = "Medição do ambiente", leading = null) },
     ) { paddingValues ->
         Column(
             modifier =
@@ -104,18 +103,17 @@ fun MedicaoAmbienteScreen(
                         subtitulo = "%.1f%%".format(uiState.perdaPercentual),
                         icone = Icons.Outlined.Warning,
                     )
-                    Button(
+                    ProButton(
+                        texto = "Continuar para diagnóstico",
                         onClick = { onMedicaoConcluida(viewModel.ambienteId) },
                         modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Continuar para diagnóstico")
-                    }
-                    OutlinedButton(
+                    )
+                    ProButton(
+                        texto = "Fazer walk test",
                         onClick = onIniciarWalkTest,
+                        variant = ProButtonVariant.SECUNDARIO,
                         modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("Fazer walk test")
-                    }
+                    )
                 }
             }
         }

@@ -1,14 +1,15 @@
 package io.signallq.pro.feature.ambiente
 
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import io.signallq.pro.core.designsystem.ProButton
+import io.signallq.pro.core.designsystem.ProButtonVariant
+import io.signallq.pro.core.designsystem.ProTextField
 import io.signallq.pro.core.designsystem.corSurfaceOverlay
 
 /** Tela 2.7 -- renomear ambiente. */
@@ -25,15 +26,17 @@ fun RenomearAmbienteDialog(
         containerColor = corSurfaceOverlay(),
         title = { Text("Renomear ambiente") },
         text = {
-            OutlinedTextField(value = nome, onValueChange = { nome = it })
+            ProTextField(valor = nome, onValorChange = { nome = it })
         },
         confirmButton = {
-            TextButton(onClick = { if (nome.isNotBlank()) onConfirmar(nome.trim()) }) {
-                Text("Salvar")
-            }
+            ProButton(
+                texto = "Salvar",
+                onClick = { if (nome.isNotBlank()) onConfirmar(nome.trim()) },
+                variant = ProButtonVariant.TEXTO,
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
+            ProButton(texto = "Cancelar", onClick = onDismiss, variant = ProButtonVariant.TEXTO)
         },
     )
 }

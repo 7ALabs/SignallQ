@@ -9,13 +9,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,8 +22,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.signallq.pro.core.designsystem.ListRow
+import io.signallq.pro.core.designsystem.ProButton
 import io.signallq.pro.core.designsystem.StateCard
 import io.signallq.pro.core.designsystem.StateCardVariant
+import io.signallq.pro.core.designsystem.TopBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,7 +42,7 @@ fun VisitaRapidaScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Atendimento rápido") }) },
+        topBar = { TopBar(titulo = "Atendimento rápido", leading = null) },
     ) { paddingValues ->
         Column(
             modifier = modifier.fillMaxSize().padding(paddingValues),
@@ -80,13 +80,12 @@ fun VisitaRapidaScreen(
                     }
                 }
             }
-            Button(
+            ProButton(
+                texto = "Iniciar",
                 onClick = viewModel::iniciarVisitaRapida,
-                enabled = uiState.clienteSelecionadoId != null,
+                habilitado = uiState.clienteSelecionadoId != null,
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
-            ) {
-                Text("Iniciar")
-            }
+            )
         }
     }
 }

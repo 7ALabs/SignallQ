@@ -15,8 +15,6 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,8 +26,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.signallq.pro.core.designsystem.EnvironmentCard
+import io.signallq.pro.core.designsystem.ProButton
+import io.signallq.pro.core.designsystem.ProButtonVariant
 import io.signallq.pro.core.designsystem.StateCard
 import io.signallq.pro.core.designsystem.StateCardVariant
+import io.signallq.pro.core.designsystem.TopBar
 import io.signallq.pro.core.designsystem.corSurfaceOverlay
 
 private sealed interface DialogoAmbiente {
@@ -68,17 +69,13 @@ fun AmbientesScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Ambientes") },
-                actions = {
-                    TextButton(
-                        onClick = {
-                            viewModel.concluirVisita()
-                            onConcluirVisita()
-                        },
-                    ) {
-                        Text("Concluir")
-                    }
+            TopBar(
+                titulo = "Ambientes",
+                leading = null,
+                acao = "Concluir",
+                onAcao = {
+                    viewModel.concluirVisita()
+                    onConcluirVisita()
                 },
             )
         },
@@ -157,14 +154,18 @@ private fun DialogoAmbienteHost(
                 title = { Text(dialogo.nome) },
                 text = {},
                 confirmButton = {
-                    TextButton(
+                    ProButton(
+                        texto = "Renomear",
                         onClick = { onDialogoChange(DialogoAmbiente.Renomear(dialogo.id, dialogo.nome)) },
-                    ) { Text("Renomear") }
+                        variant = ProButtonVariant.TEXTO,
+                    )
                 },
                 dismissButton = {
-                    TextButton(
+                    ProButton(
+                        texto = "Excluir",
                         onClick = { onDialogoChange(DialogoAmbiente.Excluir(dialogo.id, dialogo.nome)) },
-                    ) { Text("Excluir") }
+                        variant = ProButtonVariant.DESTRUTIVO,
+                    )
                 },
             )
         is DialogoAmbiente.Renomear ->

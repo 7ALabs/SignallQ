@@ -10,22 +10,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.NetworkWifi
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.SwapHoriz
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.signallq.pro.core.designsystem.ListRow
+import io.signallq.pro.core.designsystem.ProButton
+import io.signallq.pro.core.designsystem.ProButtonVariant
 import io.signallq.pro.core.designsystem.QualityGauge
 import io.signallq.pro.core.designsystem.RecommendationBlock
 import io.signallq.pro.core.designsystem.RecommendationPriority
@@ -45,6 +41,8 @@ import io.signallq.pro.core.designsystem.StateCard
 import io.signallq.pro.core.designsystem.StateCardVariant
 import io.signallq.pro.core.designsystem.StatusChip
 import io.signallq.pro.core.designsystem.StatusChipTone
+import io.signallq.pro.core.designsystem.TopBar
+import io.signallq.pro.core.designsystem.TopBarLeading
 
 private const val RSSI_PROGRESSO_MIN_DBM = -90.0
 private const val RSSI_PROGRESSO_MAX_DBM = -30.0
@@ -67,22 +65,11 @@ fun WalkTestScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text("Walk Test", style = MaterialTheme.typography.titleLarge)
-                        Text(
-                            text = "Sessão: ${uiState.tempoSessaoFormatado}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onVoltar) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Voltar")
-                    }
-                },
+            TopBar(
+                titulo = "Walk Test",
+                subtitulo = "Sessão: ${uiState.tempoSessaoFormatado}",
+                leading = TopBarLeading.VOLTAR,
+                onLeadingClick = onVoltar,
             )
         },
     ) { paddingValues ->
@@ -148,20 +135,19 @@ private fun AcoesSessao(
     onMarcarCandidato: () -> Unit,
     onSalvarMedicao: () -> Unit,
 ) {
-    Button(
+    ProButton(
+        texto = "Marcar ponto candidato",
         onClick = onMarcarCandidato,
-        enabled = uiState.rssiAtual != null,
+        habilitado = uiState.rssiAtual != null,
         modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text("Marcar ponto candidato")
-    }
-    OutlinedButton(
+    )
+    ProButton(
+        texto = "Salvar medição",
         onClick = onSalvarMedicao,
-        enabled = uiState.rssiAtual != null,
+        habilitado = uiState.rssiAtual != null,
+        variant = ProButtonVariant.SECUNDARIO,
         modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text("Salvar medição")
-    }
+    )
     if (uiState.pontosSalvosNaSessao > 0) {
         Text(
             text = "${uiState.pontosSalvosNaSessao} ponto(s) salvo(s) nesta sessão",

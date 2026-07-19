@@ -2,8 +2,9 @@ package io.signallq.pro.feature.ambiente
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import io.signallq.pro.core.designsystem.ProButton
+import io.signallq.pro.core.designsystem.ProButtonVariant
 import io.signallq.pro.core.designsystem.corSurfaceOverlay
 
 /**
@@ -23,10 +24,10 @@ fun ExcluirAmbienteDialog(
         title = { Text("Excluir ambiente") },
         text = { Text("Tem certeza que deseja excluir \"$nomeAmbiente\"?") },
         confirmButton = {
-            TextButton(onClick = onConfirmar) { Text("Excluir") }
+            ProButton(texto = "Excluir", onClick = onConfirmar, variant = ProButtonVariant.DESTRUTIVO)
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancelar") }
+            ProButton(texto = "Cancelar", onClick = onDismiss, variant = ProButtonVariant.TEXTO)
         },
     )
 }

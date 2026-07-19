@@ -12,13 +12,8 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,8 +26,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.signallq.pro.core.database.evidencia.TipoEvidencia
 import io.signallq.pro.core.designsystem.EvidenceChip
 import io.signallq.pro.core.designsystem.EvidenceType
+import io.signallq.pro.core.designsystem.ProButton
+import io.signallq.pro.core.designsystem.ProButtonVariant
+import io.signallq.pro.core.designsystem.ProTextField
 import io.signallq.pro.core.designsystem.StateCard
 import io.signallq.pro.core.designsystem.StateCardVariant
+import io.signallq.pro.core.designsystem.TopBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,33 +49,36 @@ fun EvidenciasScreen(
         }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Evidências") }) },
+        topBar = { TopBar(titulo = "Evidências", leading = null) },
     ) { paddingValues ->
         Column(
             modifier = modifier.fillMaxSize().padding(paddingValues).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { launcherCamera.launch(null) }) {
-                    Text("Tirar foto")
-                }
+                ProButton(
+                    texto = "Tirar foto",
+                    onClick = { launcherCamera.launch(null) },
+                    variant = ProButtonVariant.SECUNDARIO,
+                )
             }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                OutlinedTextField(
-                    value = nota,
-                    onValueChange = { nota = it },
-                    label = { Text("Nota") },
+                ProTextField(
+                    valor = nota,
+                    onValorChange = { nota = it },
+                    rotulo = "Nota",
                     modifier = Modifier.wrapContentWidth().padding(bottom = 4.dp),
                 )
-                Button(onClick = {
-                    viewModel.salvarNota(nota)
-                    nota = ""
-                }) {
-                    Text("Adicionar")
-                }
+                ProButton(
+                    texto = "Adicionar",
+                    onClick = {
+                        viewModel.salvarNota(nota)
+                        nota = ""
+                    },
+                )
             }
 
             if (uiState.itens.isEmpty()) {
@@ -101,9 +103,7 @@ fun EvidenciasScreen(
                 }
             }
 
-            Button(onClick = onContinuar, modifier = Modifier.fillMaxWidth()) {
-                Text("Concluir visita")
-            }
+            ProButton(texto = "Concluir visita", onClick = onContinuar, modifier = Modifier.fillMaxWidth())
         }
     }
 }

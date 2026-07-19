@@ -12,13 +12,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Wifi
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -28,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.signallq.pro.core.designsystem.ListRow
+import io.signallq.pro.core.designsystem.ProButton
+import io.signallq.pro.core.designsystem.TopBar
 
 /**
  * Tela 1.7 -- ListRow (ícone+texto+toggle) por permissão, nunca 1 card por item (handoff
@@ -54,7 +54,7 @@ fun PermissoesScreen(
         }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Permissões") }) },
+        topBar = { TopBar(titulo = "Permissões", leading = null) },
     ) { paddingValues ->
         Column(
             modifier =
@@ -100,13 +100,12 @@ fun PermissoesScreen(
                     },
                 )
             }
-            Button(
+            ProButton(
+                texto = "Continuar",
                 onClick = onContinuar,
-                enabled = uiState.todasConcedidas,
+                habilitado = uiState.todasConcedidas,
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
-            ) {
-                Text("Continuar")
-            }
+            )
         }
     }
 }

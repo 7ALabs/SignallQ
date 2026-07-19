@@ -6,13 +6,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -21,8 +19,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.signallq.pro.core.database.visita.EtapaVisita
+import io.signallq.pro.core.designsystem.ProButton
 import io.signallq.pro.core.designsystem.StatusChip
 import io.signallq.pro.core.designsystem.StatusChipTone
+import io.signallq.pro.core.designsystem.TopBar
 
 private val ETAPAS_EM_ORDEM = listOf(EtapaVisita.CHECKLIST, EtapaVisita.AMBIENTES, EtapaVisita.CONCLUSAO)
 
@@ -51,13 +51,10 @@ fun AtendimentoScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(uiState.clienteNome, style = MaterialTheme.typography.titleMedium)
-                        Text(uiState.tipo, style = MaterialTheme.typography.bodySmall)
-                    }
-                },
+            TopBar(
+                titulo = uiState.clienteNome,
+                subtitulo = uiState.tipo,
+                leading = null,
             )
         },
     ) { paddingValues ->
@@ -95,7 +92,8 @@ fun AtendimentoScreen(
                 }
             }
 
-            Button(
+            ProButton(
+                texto = "Continuar",
                 onClick = {
                     when (uiState.etapaAtual) {
                         EtapaVisita.CHECKLIST -> onContinuarChecklist()
@@ -104,9 +102,7 @@ fun AtendimentoScreen(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("Continuar")
-            }
+            )
         }
     }
 }
