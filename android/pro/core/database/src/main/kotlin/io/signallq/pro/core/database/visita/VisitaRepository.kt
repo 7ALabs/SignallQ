@@ -96,6 +96,12 @@ class VisitaRepository
             visitaDao.atualizarStatus(visitaId, StatusVisita.CONCLUIDA, System.currentTimeMillis())
         }
 
+        /** Retomada de visita interrompida (issue #1119) -- volta o status para EM_ANDAMENTO
+         *  sem alterar a etapa salva. */
+        suspend fun retomarVisita(visitaId: String) {
+            visitaDao.atualizarStatus(visitaId, StatusVisita.EM_ANDAMENTO, System.currentTimeMillis())
+        }
+
         suspend fun marcarInterrompida(visitaId: String) {
             visitaDao.atualizarStatus(visitaId, StatusVisita.INTERROMPIDA, System.currentTimeMillis())
         }

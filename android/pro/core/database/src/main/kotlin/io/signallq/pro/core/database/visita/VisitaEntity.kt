@@ -7,7 +7,13 @@ enum class StatusVisita { EM_ANDAMENTO, CONCLUIDA, INTERROMPIDA }
 
 enum class TipoVisita { INSTALACAO, MANUTENCAO, VISTORIA, SUPORTE }
 
-enum class EtapaVisita { CHECKLIST, AMBIENTES, MEDICAO, DIAGNOSTICO, EVIDENCIAS, CONCLUSAO }
+/**
+ * Etapa "macro" da visita, no nivel do fluxo geral -- nao confundir com o trabalho por
+ * ambiente (medicao/diagnostico/evidencias), que acontece dentro de AMBIENTES e e
+ * rastreado por ambiente (`:pro:core:database` ambiente/medicao/diagnostico/evidencia),
+ * nao no nivel da visita.
+ */
+enum class EtapaVisita { CHECKLIST, AMBIENTES, CONCLUSAO }
 
 /**
  * Visita de um profissional a um cliente/local. [etapaAtual] e a chave da retomada de visita
