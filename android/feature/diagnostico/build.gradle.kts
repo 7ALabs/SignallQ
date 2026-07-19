@@ -1,4 +1,4 @@
-﻿plugins {
+plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.kapt")
@@ -75,7 +75,7 @@ dependencies {
     // nos unit tests JVM (testDebugUnitTest). Sem este dep, qualquer teste que
     // chame AiDiagnosisRepository.parseResult cai no `catch (Throwable)` e
     // recebe null. Ref: https://stackoverflow.com/q/24197773
-    testImplementation("org.json:json:20240303")
+    testImplementation("org.json:json:20260522")
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
     androidTestImplementation(libs.androidx.junit)
