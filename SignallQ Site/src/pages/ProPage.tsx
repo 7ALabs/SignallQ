@@ -5,6 +5,7 @@ import { SiteFooter } from '../components/SiteFooter'
 import { SiteNav } from '../components/SiteNav'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
 import { FEATURE_PRO_LISTA_ESPERA, trackFeatureUsed, trackScreenView } from '../lib/telemetry'
+import { submitWaitlistSignup } from '../lib/waitlist'
 
 const PRO_GRADIENT = 'linear-gradient(135deg, #0B6CFF, #6558E8)'
 
@@ -86,12 +87,9 @@ export default function ProPage() {
     setModalOpen(true)
   }
 
-  const registrarInteresse = () => {
-    // Captura de e-mail ainda não tem destino real (sem tabela D1/CRM decidido para
-    // a lista de espera do PRO) — registra só o clique via telemetria por ora.
-    // Pendência explícita: decidir e implementar o armazenamento real do e-mail
-    // antes de anunciar a lista de espera publicamente.
+  const registrarInteresse = (email: string) => {
     trackFeatureUsed(FEATURE_PRO_LISTA_ESPERA)
+    submitWaitlistSignup(email, 'pro', 'pro_page')
   }
 
   return (

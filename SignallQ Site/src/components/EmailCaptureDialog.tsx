@@ -5,10 +5,10 @@ import { useState } from 'react'
 // também no PlayStoreBadge (fallback do SignallQ gratuito). Copy e cor de acento
 // vêm por props: cada produto mantém sua própria identidade visual e tom.
 //
-// Pendência conhecida (mesma do modal original do PRO): captura de e-mail ainda
-// não tem destino real (sem tabela D1/CRM decidida) — hoje só dispara telemetria
-// via onSubmit. Decidir e implementar o armazenamento real antes de anunciar a
-// lista de espera publicamente, senão a mensagem de sucesso vira promessa vazia.
+// Destino real do e-mail (GH#1155): cada `onSubmit` chama `submitWaitlistSignup`
+// (lib/waitlist.ts), que grava em `waitlist_signups` no D1 do signallq-admin-worker
+// via proxy server-side. `onSubmit` continua também disparando telemetria de funil —
+// os dois não se substituem.
 
 interface EmailCaptureDialogProps {
   icon: string

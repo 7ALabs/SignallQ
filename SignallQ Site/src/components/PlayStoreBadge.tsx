@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { EmailCaptureDialog } from './EmailCaptureDialog'
 import { SIGNALLQ_BETA_DOWNLOAD_URL } from '../lib/config'
 import { FEATURE_DOWNLOAD_APP_CLICADO, FEATURE_SIGNALLQ_LISTA_ESPERA_EMAIL_CAPTURADO, trackFeatureUsed } from '../lib/telemetry'
+import { submitWaitlistSignup } from '../lib/waitlist'
 
 interface PlayStoreBadgeProps {
   height?: number
@@ -23,10 +24,9 @@ export function PlayStoreBadge({ height = 44, source }: PlayStoreBadgeProps) {
     }
   }
 
-  const registrarInteresse = () => {
-    // Mesma pendência já documentada no EmailCaptureDialog/ProPage: sem destino
-    // real (D1/CRM) pro e-mail ainda, só telemetria por ora.
+  const registrarInteresse = (email: string) => {
     trackFeatureUsed(FEATURE_SIGNALLQ_LISTA_ESPERA_EMAIL_CAPTURADO)
+    submitWaitlistSignup(email, 'signallq', source)
   }
 
   return (

@@ -3107,6 +3107,41 @@ async function handleIngestAnalytics(request: Request, env: Env): Promise<Respon
   return json({ ok: true, inserted: stmts.length }, 201, env);
 }
 
+const WAITLIST_PRODUCTS = new Set(['signallq', 'pro']);
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// GH#1155 — lista de espera dos modais "avisar quando lançar" do site
+// institucional (EmailCaptureDialog). Reaproveita o rate limit por IP já
+// usado em /admin/auth/login (auth_rate_limit) para conter spam do formulário
+// — não é sobre credenciais aqui, é sobre não deixar o mesmo IP martelar o
+// endpoint. INSERT OR IGNORE + UNIQUE(email, product) tornam o clique
+// duplicado idempotente: sempre responde sucesso, nunca vaza se o e-mail já
+// estava cadastrado.
+async function handleIngestWaitlist(request: Request, env: Env): Promise<Response> {
+  const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  if (await checkRateLimit(ip, env.DB)) {
+    return err('Muitas tentativas. Tente novamente em 15 minutos.', 429, env);
+  }
+  await incrementRateLimit(ip, env.DB);
+
+  let body: any;
+  try { body = await request.json(); } catch { return err('body JSON inválido', 400, env); }
+
+  const email      = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+  const product    = body.product;
+  const sourcePage = typeof body.source_page === 'string' ? body.source_page : '';
+
+  if (!EMAIL_REGEX.test(email)) return err('e-mail inválido', 400, env);
+  if (!WAITLIST_PRODUCTS.has(product)) return err('product inválido', 400, env);
+
+  await env.DB.prepare(
+    `INSERT OR IGNORE INTO waitlist_signups (id, email, product, platform, source_page, created_at)
+     VALUES (?, ?, ?, 'web', ?, ?)`
+  ).bind(crypto.randomUUID(), email, product, sourcePage, nowSec()).run();
+
+  return json({ ok: true }, 201, env);
+}
+
 // GH#784 — feature_id das 3 etapas do funil de speedtest via feature_used
 // (iniciou/completou/compartilhou; "abriu" usa screen_view("speedtest"), já
 // existente). Reaproveita o mesmo evento/schema de "wifi"/"historico"/etc —
@@ -3614,6 +3649,7 @@ const INGEST_ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }
   { method: "POST", pattern: /^\/ingest\/diagnostic$/, handler: handleIngestDiagnostic },
   { method: "POST", pattern: /^\/ingest\/ai-usage$/,   handler: handleIngestAiUsage },
   { method: "POST", pattern: /^\/ingest\/analytics$/,  handler: withErrorLogging('analytics', handleIngestAnalytics) },
+  { method: "POST", pattern: /^\/ingest\/waitlist$/,   handler: withErrorLogging('waitlist', handleIngestWaitlist) },
 ];
 
 // GH#877 — automatiza o sync de telemetria (Firebase Analytics + Google Play

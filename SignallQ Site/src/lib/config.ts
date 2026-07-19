@@ -25,3 +25,6 @@ export const SPEEDTEST_SERVER_LABEL: string =
 // Proxy server-side de telemetria (Pages Function) — nunca chama o admin-worker
 // direto do navegador (exigiria expor a INGEST_KEY no client).
 export const TELEMETRY_ENDPOINT = '/api/track'
+
+// Proxy server-side da lista de espera (GH#1155) — mesmo motivo do endpoint acima.
+export const WAITLIST_ENDPOINT = '/api/waitlist'

@@ -28,6 +28,10 @@ const SECTIONS: LegalSection[] = [
     body: 'Usamos o Cloudflare Web Analytics para métricas agregadas de tráfego e desempenho (páginas visitadas, tempo de carregamento). Esse serviço não usa cookies nem identifica visitantes individualmente.',
   },
   {
+    title: 'Lista de espera por e-mail',
+    body: 'Se você pedir para ser avisado quando o SignallQ ou o SignallQ PRO lançarem, coletamos o e-mail informado só para esse fim (avisar sobre o lançamento). Ele fica armazenado em nossa infraestrutura de dados, não é compartilhado com terceiros e não é usado para qualquer outra finalidade. Para pedir a remoção, escreva para giammattey.luiz@gmail.com.',
+  },
+  {
     title: 'Google AdSense',
     body: 'Este site pode exibir anúncios via Google AdSense, carregados somente depois que uma medição termina. A Google pode processar dados de acordo com sua própria política de privacidade e uso de cookies.',
   },
