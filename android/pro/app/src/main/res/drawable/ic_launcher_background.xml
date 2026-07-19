@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Placeholder do MVP0 — cor de marca do Pro (#0B6CFF). Icone final fica pra fase de branding
-     dedicada, nao e foco desta fase (Fase 0 do esqueleto). -->
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#0B6CFF" />
-</shape>
