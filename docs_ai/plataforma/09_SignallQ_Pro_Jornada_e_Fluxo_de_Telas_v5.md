@@ -171,25 +171,36 @@ A navegação principal organiza o histórico e a operação, enquanto a visita 
 | Perfil | Identidade profissional | Logo, assinatura e contatos |
 | Configurações | Preferências | Unidades, privacidade e sincronização |
 
-**IDs de tela (protótipo P01..P15)**
+**IDs de tela (catálogo original P01..P15 — ver nota de sincronização abaixo)**
 
-| ID | Tela | Objetivo |
+| ID | Tela | Objetivo | Status no protótipo (18/07/2026) |
+|---|---|---|---|
+| P01 | Onboarding profissional | Apresentação, cadastro e permissão de uso | Coberto — Etapa 1 (1.1–1.10), mais granular que o catálogo original |
+| P02 | Início | Agenda operacional e atalhos | Coberto — 2.1 Painel inicial |
+| P03 | Clientes | Busca, filtros e cadastro | Coberto — 4.1 Lista de clientes, 4.2 Busca |
+| P04 | Detalhe do cliente | Locais, contatos e histórico | Coberto — 4.3 Detalhe do cliente |
+| P05 | Detalhe do local | Rede, equipamentos e visitas | Coberto — 4.4 Detalhe do local |
+| P06 | Criar visita | Objetivo, escopo e dados iniciais | Coberto — 2.3 Nova visita |
+| P07 | Ambientes | Lista e progresso por cômodo | Coberto — 2.5 Ambientes, 2.6/2.7/2.8 |
+| P08 | Medição do ambiente | Sinal, velocidade, estabilidade e observações | Coberto — 2.9 Medição do ambiente, 2.10 Walk Test |
+| P09 | Evidências | Fotos, legendas e anexos | Coberto — 2.11 Evidências |
+| P10 | Comparação | Antes × depois por ambiente e indicador | Coberto — 3.1 Antes × depois |
+| P11 | Resumo técnico | Achados, causas e recomendações | Coberto — **3.11 Resumo técnico** (adicionado 2026-07-18; 3.2 Laudo técnico sozinho era só sumário/exportação, sem achados de causa raiz) |
+| P12 | Editor de laudo | Identidade, seções e prévia | **Não desenhado — decisão de escopo, não lacuna.** Edição de seções/identidade por visita não é MVP1: linha 66 do Roadmap v5 define MVP1 como "PDF padrão, compartilhamento e identidade profissional básica"; "Modelos" de laudo é explicitamente MVP2 ("Laudo Pro", linha 116). Identidade/marca já é resolvida uma vez em 4.6 Perfil profissional, aplicada automaticamente — não precisa reeditar por visita no MVP1. |
+| P13 | Laudo concluído | PDF, compartilhamento e aceite | Coberto — 3.2 Laudo técnico, 3.3 Compartilhar laudo, 3.4 Aceite do laudo (cliente) |
+| P14 | Histórico | Visitas e relatórios anteriores | Coberto — 3.8 Histórico de visitas |
+| P15 | Perfil profissional | Logo, assinatura, contato e plano | Coberto — 4.6 Perfil profissional / Ajustes, 4.7 Gerenciar assinatura |
+
+**Telas novas (fora do catálogo original, adicionadas 2026-07-18)** — nasceram do cruzamento entre a auditoria de código (`12_SignallQ_Pro_Auditoria_Cobertura_Repositorios_2026-07-18.md`) e o protótipo, cobrindo 3 gaps que o catálogo original P01–P15 nunca tinha mapeado:
+
+| Tela no protótipo | Cobre | Regra de negócio |
 |---|---|---|
-| P01 | Onboarding profissional | Apresentação, cadastro e permissão de uso |
-| P02 | Início | Agenda operacional e atalhos |
-| P03 | Clientes | Busca, filtros e cadastro |
-| P04 | Detalhe do cliente | Locais, contatos e histórico |
-| P05 | Detalhe do local | Rede, equipamentos e visitas |
-| P06 | Criar visita | Objetivo, escopo e dados iniciais |
-| P07 | Ambientes | Lista e progresso por cômodo |
-| P08 | Medição do ambiente | Sinal, velocidade, estabilidade e observações |
-| P09 | Evidências | Fotos, legendas e anexos |
-| P10 | Comparação | Antes × depois por ambiente e indicador |
-| P11 | Resumo técnico | Achados, causas e recomendações |
-| P12 | Editor de laudo | Identidade, seções e prévia |
-| P13 | Laudo concluído | PDF, compartilhamento e aceite |
-| P14 | Histórico | Visitas e relatórios anteriores |
-| P15 | Perfil profissional | Logo, assinatura, contato e plano |
+| 2.12 Modo de visita rápida | P0.3 do doc 12 | Atalho com nome/telefone/tipo de problema — cadastro completo do cliente/local fica para depois; 2.3 Nova visita continua exigindo cliente/local já escolhidos. |
+| 2.13 Checklist por tipo de serviço | P0.4 do doc 12 | Roteiro específico por tipo de visita (diagnóstico inicial / instalação-otimização / validação pós-serviço / vistoria técnica, ver doc 10 §6), substituindo o checklist genérico de 3 itens que existia em 2.4 Atendimento. |
+| 3.10 Conclusão da visita | P0.6 do doc 12 | Enum fechado — resolvido / parcialmente resolvido / depende de fator externo (operadora) / cliente recusou intervenção / diagnóstico inconclusivo — com ícone + rótulo + justificativa obrigatória (exceto em "Resolvido"). Nenhum enum equivalente existia antes em nenhuma tela. |
+| 3.11 Resumo técnico | P11 do catálogo original | Achados de causa raiz com prioridade e nível de confiança (medida/estimada), como passo anterior ao laudo — preenche a lacuna que 3.2 Laudo técnico não cobria sozinho. |
+
+**Nota de sincronização.** O protótipo Claude Design ("SignallQ PRO app Android", projeto `69e53070-6aa8-485a-8d0a-5bfa36e1a08c`) hoje tem **44 telas em 6 Etapas** (1. Acesso, 2. Núcleo operacional, 3. Entrega/financeiro, 4. Clientes/conta, 5. Ferramentas, 6. Estados transversais) — mais completo e mais granular que este catálogo P01–P15, que descrevia a intenção original. Em caso de divergência sobre o que existe, **o protótipo é a fonte viva** (`data-screen-label="N.M Nome"` dentro do arquivo `SignallQ Pro - Protótipos.dc.html`); este documento continua sendo a fonte da *jornada e das regras*, não do inventário exato de telas.
 
 ### 11. Regras de navegação por tela
 
