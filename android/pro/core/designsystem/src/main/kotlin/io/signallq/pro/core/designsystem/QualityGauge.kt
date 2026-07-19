@@ -35,12 +35,7 @@ fun QualityGauge(
     modifier: Modifier = Modifier,
 ) {
     val progressoClamped = progresso.coerceIn(0f, 1f)
-    val corAtiva =
-        when {
-            progressoClamped >= 0.7f -> MaterialTheme.colorScheme.primary
-            progressoClamped >= 0.4f -> MaterialTheme.colorScheme.tertiary
-            else -> MaterialTheme.colorScheme.error
-        }
+    val corAtiva = corVereditoQualidade(veredito)
     val corTrilha = MaterialTheme.colorScheme.surfaceContainerHigh
 
     Column(
@@ -83,11 +78,20 @@ fun QualityGauge(
     }
 }
 
-/** Cor exposta para composables que precisem sincronizar tonalidade com o gauge (ex.: chip). */
+/**
+ * Cor de status a partir do texto do veredito (Excelente/Bom/Regular/Fraco/Forte, vocabulario
+ * canonico do produto -- ver .claude/CLAUDE.md, secao Design System), nao do valor cru de
+ * [progresso]. Corrige #1170 item 6: cada tela calibra sua propria faixa de progresso pro
+ * [QualityGauge] (ex.: 100 Mbps = "Excelente" no texto, mas so 0.5 de progresso numa referencia
+ * de 200 Mbps) -- decidir a cor por faixa de progresso fazia "Excelente" cair na faixa do meio
+ * (roxo/tertiary) em vez do verde de sucesso. Exposta para composables que precisem sincronizar
+ * tonalidade com o gauge (ex.: chip).
+ */
 @Composable
-fun corVereditoQualidade(progresso: Float): Color =
-    when {
-        progresso.coerceIn(0f, 1f) >= 0.7f -> MaterialTheme.colorScheme.primary
-        progresso.coerceIn(0f, 1f) >= 0.4f -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.error
+fun corVereditoQualidade(veredito: String): Color =
+    when (veredito) {
+        "Excelente", "Bom", "Boa", "Forte" -> corStatusSucesso()
+        "Regular" -> corStatusAtencao()
+        "Fraco", "Fraca", "Ruim" -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
