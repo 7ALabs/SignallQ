@@ -27,6 +27,8 @@ import io.signallq.pro.core.database.visita.StatusVisita
 import io.signallq.pro.core.database.visita.TipoVisita
 import io.signallq.pro.core.database.visita.VisitaDao
 import io.signallq.pro.core.database.visita.VisitaEntity
+import io.signallq.pro.core.database.walktest.PontoWalkTestDao
+import io.signallq.pro.core.database.walktest.PontoWalkTestEntity
 
 /**
  * Banco Room greenfield do SignallQ Pro -- issue #1161 (Fase 2). Sem qualquer relação com
@@ -45,8 +47,9 @@ import io.signallq.pro.core.database.visita.VisitaEntity
         DiagnosticoAchadoProEntity::class,
         EvidenciaEntity::class,
         ChecklistItemEntity::class,
+        PontoWalkTestEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 @TypeConverters(SignallQProTypeConverters::class)
@@ -68,6 +71,8 @@ abstract class SignallQProDatabase : RoomDatabase() {
     abstract fun evidenciaDao(): EvidenciaDao
 
     abstract fun checklistItemDao(): ChecklistItemDao
+
+    abstract fun pontoWalkTestDao(): PontoWalkTestDao
 
     companion object {
         const val NOME_ARQUIVO = "signallqPro.db"

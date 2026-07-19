@@ -12,11 +12,14 @@ private const val ARG_AMBIENTE_ID = "ambienteId"
 object MedicaoDiagnosticoRoutes {
     const val GRAFO = "medicao-diagnostico"
     const val MEDICAO = "medicao-diagnostico/medicao/{$ARG_AMBIENTE_ID}"
+    const val WALK_TEST = "medicao-diagnostico/walk-test/{$ARG_AMBIENTE_ID}"
     const val DIAGNOSTICO_MEDINDO = "medicao-diagnostico/diagnostico-medindo/{$ARG_AMBIENTE_ID}"
     const val DIAGNOSTICO_RESULTADO = "medicao-diagnostico/diagnostico-resultado/{$ARG_AMBIENTE_ID}"
     const val EVIDENCIAS = "medicao-diagnostico/evidencias/{$ARG_AMBIENTE_ID}"
 
     fun medicao(ambienteId: String) = "medicao-diagnostico/medicao/$ambienteId"
+
+    fun walkTest(ambienteId: String) = "medicao-diagnostico/walk-test/$ambienteId"
 
     private fun argumento() = navArgument(ARG_AMBIENTE_ID) { type = NavType.StringType }
 
@@ -42,7 +45,13 @@ fun NavGraphBuilder.medicaoDiagnosticoGraph(
                         MedicaoDiagnosticoRoutes.DIAGNOSTICO_MEDINDO.replace("{$ARG_AMBIENTE_ID}", ambienteId),
                     )
                 },
+                onIniciarWalkTest = {
+                    navController.navigate(MedicaoDiagnosticoRoutes.walkTest(ambienteId))
+                },
             )
+        }
+        composable(MedicaoDiagnosticoRoutes.WALK_TEST, arguments = MedicaoDiagnosticoRoutes.argumentos()) {
+            WalkTestScreen(onVoltar = { navController.popBackStack() })
         }
         composable(
             MedicaoDiagnosticoRoutes.DIAGNOSTICO_MEDINDO,

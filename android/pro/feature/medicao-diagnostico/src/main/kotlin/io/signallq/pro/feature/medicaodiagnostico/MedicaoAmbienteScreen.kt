@@ -12,6 +12,7 @@ import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -39,6 +40,7 @@ private const val DOWNLOAD_REFERENCIA_MBPS = 200.0
 @Composable
 fun MedicaoAmbienteScreen(
     onMedicaoConcluida: (ambienteId: String) -> Unit,
+    onIniciarWalkTest: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MedicaoAmbienteViewModel = hiltViewModel(),
 ) {
@@ -107,6 +109,12 @@ fun MedicaoAmbienteScreen(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Text("Continuar para diagnóstico")
+                    }
+                    OutlinedButton(
+                        onClick = onIniciarWalkTest,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text("Fazer walk test")
                     }
                 }
             }
