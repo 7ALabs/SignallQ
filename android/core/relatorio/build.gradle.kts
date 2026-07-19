@@ -1,10 +1,10 @@
-﻿plugins {
+plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
 }
 
 android {
-    namespace = "io.signallq.app.feature.history"
+    namespace = "io.signallq.app.core.relatorio"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
@@ -16,12 +16,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
-    testOptions {
-        unitTests {
-            isReturnDefaultValues = true
-        }
-    }
 }
 
 kotlin {
@@ -31,9 +25,6 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":coreDatabase"))
-    // Motor de paginacao HTML->PDF via WebView (issue #1157 Fase 1b).
-    implementation(project(":core:relatorio"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.junit)

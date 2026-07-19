@@ -36,9 +36,10 @@ include(
     ":featureSettings",
     // SignallQ Pro (MVP0, issue #1157) — modulos novos nascem hierarquicos
     // (":pro:app", nao ":proApp"), conforme .claude/rules/higiene-e-padronizacao-repositorio.md §5.
-    // Pasta fisica ja bate com o alias por convencao padrao do Gradle (pro/app) — sem
-    // override de projectDir, ao contrario dos aliases flat legados abaixo.
+    // Pasta fisica ja bate com o alias por convencao padrao do Gradle (pro/app e core/relatorio)
+    // — sem override de projectDir, ao contrario dos aliases flat legados abaixo.
     ":pro:app",
+    ":core:relatorio",
 )
 
 project(":coreNetwork").projectDir    = File("core/network")

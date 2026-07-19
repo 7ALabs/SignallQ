@@ -1,6 +1,6 @@
-﻿@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+@file:Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 
-package io.signallq.app.feature.history
+package io.signallq.app.core.relatorio
 
 import android.os.Bundle
 import android.os.CancellationSignal
@@ -20,6 +20,10 @@ import java.io.File
  * precisa de um [ParcelFileDescriptor] — não escreve diretamente em OutputStream.
  *
  * minSdk do projeto = 24 — PrintDocumentAdapter disponível desde API 19.
+ *
+ * Movido de :featureHistory para :core:relatorio (issue #1157 Fase 1b) — zero acoplamento a
+ * MedicaoEntity ou qualquer schema do consumidor, reuso direto pelo Pro na Fase 3
+ * (:pro:feature:laudo).
  */
 internal object PdfPrintHelper {
 

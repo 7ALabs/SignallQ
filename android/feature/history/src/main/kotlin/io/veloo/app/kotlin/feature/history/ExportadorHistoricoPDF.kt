@@ -1,23 +1,18 @@
 ﻿package io.signallq.app.feature.history
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.pdf.PdfDocument
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.core.relatorio.exportarHtmlComoPdf
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.coroutines.resume
 
 // v2.0 — Layout rico: HTML/CSS embutido + paginação automática via WebView ou PdfDocument multi-página.
 // Assinatura original mantida para compatibilidade com testes JVM existentes.
@@ -35,8 +30,11 @@ private const val LINHAS_UTEIS_POR_PAGINA = 44 // ~(842 - 2*40) / 16
  *
  * Versão 2.0:
  *  - [exportar] (sem Context): PdfDocument multi-página com layout melhorado — compatível com JVM tests.
- *  - [exportarComWebView] (com Context): WebView.createPrintDocumentAdapter() para HTML/CSS rico.
- *  - [gerarHtml]: função interna pura e testável — gera o template HTML/CSS.
+ *  - [exportarComWebView] (com Context): gera o HTML do relatório e delega a paginação ao motor
+ *    generico [io.signallq.app.core.relatorio.exportarHtmlComoPdf] (:core:relatorio, extraído na
+ *    issue #1157 Fase 1b — o motor não conhece MedicaoEntity, só recebe HTML pronto).
+ *  - [gerarHtml]: função interna pura e testável — gera o template HTML/CSS especifico do
+ *    consumidor. NAO migra para o core — o Pro gera o proprio HTML de laudo tecnico.
  */
 class ExportadorHistoricoPDF {
 
@@ -148,57 +146,13 @@ class ExportadorHistoricoPDF {
     /**
      * Exporta usando WebView.createPrintDocumentAdapter() para layout HTML/CSS rico.
      * Requer Context Android (UI thread para criar WebView).
-     * Paginação automática gerenciada pelo WebView.
+     * Paginação automática gerenciada pelo motor generico [exportarHtmlComoPdf].
      */
-    @SuppressLint("SetJavaScriptEnabled")
     suspend fun exportarComWebView(
         medicoes: List<MedicaoEntity>,
         arquivo: File,
         context: Context,
-    ): Boolean {
-        return try {
-            val html = gerarHtml(medicoes)
-
-            val resultado = withContext(Dispatchers.Main) {
-                withTimeoutOrNull(10_000L) {
-                    suspendCancellableCoroutine { cont ->
-                        val webView = WebView(context).apply {
-                            settings.javaScriptEnabled = false
-                            setBackgroundColor(Color.WHITE)
-                        }
-
-                        webView.webViewClient = object : WebViewClient() {
-                            override fun onPageFinished(view: WebView?, url: String?) {
-                                if (!cont.isActive) return
-
-                                try {
-                                    // minSdk=24 > LOLLIPOP(21) — createPrintDocumentAdapter(String) sempre disponível
-                                    val printAdapter = view?.createPrintDocumentAdapter("historico_signallq")
-
-                                    if (printAdapter == null) {
-                                        cont.resume(false)
-                                        return
-                                    }
-
-                                    // Escreve o PDF usando PdfPrint helper
-                                    PdfPrintHelper.imprimir(printAdapter, arquivo) { sucesso ->
-                                        cont.resume(sucesso)
-                                    }
-                                } catch (e: Exception) {
-                                    cont.resume(false)
-                                }
-                            }
-                        }
-
-                        webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null)
-                    }
-                }
-            }
-            resultado ?: false  // timeout → falha graceful
-        } catch (e: Exception) {
-            false
-        }
-    }
+    ): Boolean = exportarHtmlComoPdf(html = gerarHtml(medicoes), arquivo = arquivo, context = context)
 
     // ─── Geração de HTML (pura — testável em JVM) ─────────────────────────────
 
