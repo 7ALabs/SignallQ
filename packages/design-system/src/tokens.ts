@@ -65,6 +65,12 @@ export const LK_DARK: TokenSet = {
   inverseSurface: '#E6E0E9', inverseOnSurface: '#313033',
   scrim: 'rgba(0,0,0,.6)',
 
+  depthLevel0Tint: '#131217', depthLevel0Shadow: 'none',
+  depthLevel1Tint: '#211F26', depthLevel1Shadow: 'none',
+  depthLevel2Tint: '#2B2930', depthLevel2Shadow: '0 1px 3px rgba(0,0,0,.30)',
+  depthLevel3Tint: '#36343B', depthLevel3Shadow: '0 4px 12px rgba(0,0,0,.40)',
+  surfaceSelectedBg: '#2B2930', surfaceSelectedBorder: 'rgba(208,188,255,.28)', // primary @28%
+
   rCard: 16, rBtn: 20, rField: 12, rSheet: 28, rDialog: 24, rPill: 999,
   font: "'Google Sans Flex', 'Google Sans', 'Roboto', system-ui, sans-serif",
 

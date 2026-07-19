@@ -75,6 +75,17 @@
 
   /* ---- Type — fonte única do app (nenhuma segunda família em nenhuma tela) */
   --font-sans: 'Google Sans Flex', 'Google Sans', 'Roboto', system-ui, sans-serif;
+
+  /* ---- Profundidade (4 níveis — ver docs_ai/DESIGN_SYSTEM.md seção 6) ---
+     level0 fundo · level1 conteúdo agrupado · level2 interativo/destacado · level3 sobreposto.
+     Sombra é reforço discreto, nunca a forma principal de separação — tint vem primeiro. */
+  --depth-level0-tint:   #FFFFFF; --depth-level0-shadow: none;
+  --depth-level1-tint:   #F3EEFA; --depth-level1-shadow: none;
+  --depth-level2-tint:   #ECE5F5; --depth-level2-shadow: 0 1px 3px rgba(0,0,0,.12);
+  --depth-level3-tint:   #E6DDF2; --depth-level3-shadow: 0 4px 12px rgba(0,0,0,.20);
+  --surface-selected-bg:     #ECE5F5;
+  --surface-selected-border: rgba(91,33,214,.28);  /* accent @28% */
+  --scrim: rgba(0,0,0,.5);
 }
 
 /* ---- Surface — Dark (apply .dark to a container) ----------------------- */
