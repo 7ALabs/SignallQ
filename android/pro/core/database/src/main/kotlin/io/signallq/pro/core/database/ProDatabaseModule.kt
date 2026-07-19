@@ -18,6 +18,7 @@ import io.signallq.pro.core.database.local.LocalDao
 import io.signallq.pro.core.database.medicao.MedicaoProDao
 import io.signallq.pro.core.database.profissional.ProfissionalDao
 import io.signallq.pro.core.database.visita.VisitaDao
+import io.signallq.pro.core.database.walktest.PontoWalkTestDao
 import javax.inject.Singleton
 
 /**
@@ -47,6 +48,22 @@ private val migracaoLocal1Para2 =
         }
     }
 
+/**
+ * Issue #1176: cria `ponto_walktest_pro` -- tabela aditiva nova, sem tocar em nenhuma
+ * tabela existente. Persiste as amostras de RSSI marcadas pelo tecnico durante a Walk Test
+ * (tela 2.11), tanto "ponto candidato" quanto "medição" simples.
+ */
+private val migracaoWalkTest2Para3 =
+    object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `ponto_walktest_pro` (`id` TEXT NOT NULL, " +
+                    "`ambienteId` TEXT NOT NULL, `rssiDbm` INTEGER NOT NULL, `candidato` INTEGER NOT NULL, " +
+                    "`criadoEmEpochMs` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+            )
+        }
+    }
+
 @Module
 @InstallIn(SingletonComponent::class)
 object ProDatabaseModule {
@@ -57,7 +74,7 @@ object ProDatabaseModule {
     ): SignallQProDatabase =
         Room
             .databaseBuilder(context, SignallQProDatabase::class.java, SignallQProDatabase.NOME_ARQUIVO)
-            .addMigrations(migracaoLocal1Para2)
+            .addMigrations(migracaoLocal1Para2, migracaoWalkTest2Para3)
             .build()
 
     @Provides
@@ -86,4 +103,7 @@ object ProDatabaseModule {
 
     @Provides
     fun provideChecklistItemDao(db: SignallQProDatabase): ChecklistItemDao = db.checklistItemDao()
+
+    @Provides
+    fun providePontoWalkTestDao(db: SignallQProDatabase): PontoWalkTestDao = db.pontoWalkTestDao()
 }

@@ -68,6 +68,10 @@ dependencies {
     implementation(project(":pro:core:database"))
     implementation(project(":featureSpeedtest"))
     implementation(project(":core:diagnostico"))
+    // Walk Test (#1176) -- reaproveita freqToChannel (canal/banda) de :coreNetwork e o
+    // gate de permissao de rede ja usado pelo onboarding do Pro (:corePermissions).
+    implementation(project(":coreNetwork"))
+    implementation(project(":corePermissions"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
