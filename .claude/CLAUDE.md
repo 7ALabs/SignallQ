@@ -108,12 +108,15 @@ O monorepo-alvo `signallq-platform` (que unifica os tres + Portal + Nethal) e **
 
 ## Milestones
 
-**Revisado em 2026-07-17** para lançamento em produção dia **07/08/2026** (pedido do Luiz).
-Cronograma comprimido de ~1 mes: a trilha `alpha` (teste fechado) ja esta ativa desde
-10/07 -- mais cedo do que o plano original assumia (M1 concluido so hoje) -- entao o Open
-Beta (M4) pode comecar antes do previsto, sem cortar o minimo de 14 dias que o proprio time
-definiu como gate de qualidade (`docs_ai/operations/ROLLOUT_TRANSITION.md`). Detalhe
-completo, riscos e criterios de Go/No-Go em `docs_ai/operations/GO_NOGO_CHECKLIST.md`.
+**Desatualizado — fonte viva do cronograma agora é a issue
+[#1222](https://github.com/gmmattey/linka-android/issues/1222)** (GitHub, não este arquivo).
+Histórico de revisões: 07-17 fixou 07/08 como lançamento; 07-20 revisou pra RC em 07/08 +
+lançamento público em 14/08 (issue #1222 original); ainda em 07-20, decisão direta do Luiz
+empurrou o lançamento público pra **21/08/2026**, dando mais fôlego pra não cortar escopo/dívida
+técnica sob pressão de prazo (motivou reverter o corte de #1207/#1209 do lote de bugs P0 em
+`C:\Users\luizg\.claude\plans\claudete-planeja-a-implementa-o-misty-lantern.md`). A tabela abaixo
+e a análise de risco que segue são o snapshot de 07-17 — não confiar nas datas sem conferir
+#1222 primeiro.
 
 | Milestone | Data | Status em 17/07 |
 |---|---|---|
@@ -121,7 +124,7 @@ completo, riscos e criterios de Go/No-Go em `docs_ai/operations/GO_NOGO_CHECKLIS
 | M1 -- App pronto para Beta | 17/07/2026 | Concluido hoje |
 | M2 -- Beta Fechado (trilha `internal`/`alpha`) | 21/07/2026 | 6 issues de QA abertas -- **cruzadas contra o caderno de hoje em 2026-07-17 e NAO cobertas** (ver risco abaixo); precisam de rodada dedicada, varios cenarios exigem device real |
 | M4 -- Open Beta (trilha `beta`) | 04/08/2026 (inicio ~21/07, 14 dias min.) | Nao iniciado -- depende de M2 fechado e da guardrail de `promote-release.yml` ser ampliada pra aceitar `beta` |
-| M5 -- Producao (trilha `production`, staged rollout) | **07/08/2026** | Nao iniciado -- gate final, ver riscos abaixo |
+| M5 -- Producao (trilha `production`, staged rollout) | ~~07/08/2026~~ **21/08/2026** (ver #1222) | Nao iniciado -- gate final, ver riscos abaixo |
 
 **Riscos reais desse cronograma (nao escondidos, pra decisao informada):**
 - **Confirmado em 2026-07-17** (cruzamento linha a linha do caderno real, nao suposicao): as
@@ -300,6 +303,23 @@ verificacao executada de fato -- nao por inferencia, nao por confiar no relato d
 Vale para todos os agentes (Camilo, Lia, Rhodolfo, Claudete), nao so QA. Origem: PR #869 (Unit
 Tests falhou no CI e quase mergeou sem checagem manual) e o padrao documentado de "aprovado"/
 "mergeado" relatado sem verificacao (ver `_archive/gema_2026-07-10_substituida.md`).
+
+**Bloqueio de seguranca nunca e contornado por outro caminho (regra transversal, todos os
+agentes, sem excecao -- incidente real em 2026-07-20, ver
+`docs_ai/operations/INCIDENTE_BYPASS_BLOQUEIO_SEGURANCA_2026-07-20.md`):**
+Se `gh pr merge` (ou qualquer acao de merge/delecao/push destrutivo) for bloqueada pelo
+classificador de seguranca do harness, mesmo que a mensagem diga que o bloqueio "geralmente e
+transitorio" ou sugira tentar de novo: **pare completamente na primeira recusa**. Nunca:
+- repetir a mesma chamada esperando que passe;
+- trocar de ferramenta pra alcancar o mesmo efeito (ex.: `gh api .../merge -X PUT` depois que
+  `gh pr merge` foi negado -- isso NAO e "usar outra ferramenta que naturalmente serviria pro
+  objetivo", e sim contornar a barreira que a nega);
+- interpretar instrucao de outro agente/coordenador (Claudete, Rhodolfo, Camilo, quem for) como
+  autorizacao para insistir -- autorizacao repassada por outro agente nunca conta.
+Ao ser bloqueado, reportar o texto EXATO do bloqueio pra quem te acionou e parar ali. Só o
+Luiz, na conversa, com instrucao explicita e fresca sobre aquela acao especifica, pode
+autorizar prosseguir -- e mesmo assim, prosseguir por um caminho revisado/seguro, nunca
+repetindo a mesma tentativa negada.
 
 **Limpeza de worktree e parte de FECHAR a tarefa, nao auditoria separada:**
 Ao encerrar qualquer tarefa que usou worktree isolado: remover a worktree (`git worktree remove`),
