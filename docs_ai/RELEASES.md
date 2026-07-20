@@ -19,6 +19,7 @@
 - Nova ferramenta "Sinal WiFi" no hub Ferramentas — sinal/PHY rate em tempo real, padrão Wi-Fi + MU-MIMO (#1201/#1203)
 - Veredito textual nas 6 métricas do resultado do Speedtest (#1198/#1199)
 - Cor da nav ativa corrigida de azul pra violeta (#1193); ~30 ocorrências de borda proibida em card removidas (#1195/#1197); ícone/radius/espaçamento/alpha fora de token, contraste dark mode e marca WhatsApp corrigidos (#1196)
+- Monetização por anúncio nativo (AdMob) sai do modo teste: App ID e os 5 Ad Unit IDs de produção plugados, 5 telas carregando `NativeAd` real (ADR-010, #555/#1208/#1210)
 
 **Publicação:** trilha internal do Play Console, via `release.yml`
 

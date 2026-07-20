@@ -26,6 +26,10 @@ features novas na aba Jogos e no hub Ferramentas.
   Walk Test do SignallQ Pro (#1201/#1203)
 - Veredito textual (Excelente/Regular/Ruim) nas 6 métricas da tela de resultado do Speedtest —
   antes só a cor comunicava a faixa, agora vem com rótulo, inclusive acessibilidade (#1198/#1199)
+- Monetização por anúncio nativo (AdMob) sai do modo teste: App ID e os 5 Ad Unit IDs de
+  produção plugados, e as 5 telas com slot reservado (Resultado, Histórico, Jogos,
+  Dispositivos, Speedtest) passam a carregar `NativeAd` real em vez do card simulado —
+  decisão de monetização registrada em ADR-010 (#555/#1208/#1210)
 
 ### Corrigido
 - Cor da aba ativa da navegação inferior corrigida de azul para violeta, alinhada à regra do
