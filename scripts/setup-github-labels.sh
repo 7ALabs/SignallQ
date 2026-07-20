@@ -12,13 +12,11 @@ label() {
 
 # Agentes (donos da task)
 label "agent:claudete"  "1f6feb" "Diretora de Produto & Delivery"
-label "agent:claudio"   "0e8a16" "Líder Técnico (planejamento)"
 label "agent:camilo"    "d93f0b" "Especialista Android (implementação)"
 label "agent:lia"       "f29ddc" "UX/UI Material 3"
 label "agent:gema"      "0e8a16" "QA & Release"
-label "agent:marcelo"   "fbca04" "Analista Júnior (scout + tasks pequenas)"
-label "agent:nina"      "fef2c0" "Documentação operacional"
-label "agent:taisa"     "5319e7" "Documentação estratégica"
+label "agent:rhodolfo"  "0e8a16" "Qualidade & Confiabilidade (QA, release, higiene, docs)"
+label "agent:juninho"   "c5def5" "Analista Júnior de Operações & Triagem (Estagiário)"
 
 # Consultivos (não donos, mas precisam aprovar)
 label "needs:bernardo"  "006b75" "Validação de telecom (WiFi/Fibra/4G/5G)"

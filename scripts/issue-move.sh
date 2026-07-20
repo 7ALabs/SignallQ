@@ -13,10 +13,11 @@
 #   done          | Done
 #
 # Efeitos por coluna:
+#   triagem      +agent:juninho (triagem mecânica antes de virar ready)
 #   ready        +status:agent-ready
 #   in-progress  +agent:<agente>  -status:agent-ready  +status:in-progress (cria se faltar)
 #   review       +status:waiting-review  -status:in-progress
-#   docs         -status:waiting-review  +agent:nina (se nenhum agent: presente)
+#   docs         -status:waiting-review  +agent:rhodolfo (se nenhum agent: presente)
 #   done         fecha a issue, remove status:*
 set -e
 
@@ -66,7 +67,7 @@ case "$(echo "$COL_RAW" | tr '[:upper:]' '[:lower:]')" in
   ready|pronta*|"pronta para dev") COL=ready ;;
   in-progress|in_progress|inprogress|"em andamento"|wip|doing) COL=in-progress ;;
   review|"em review"|waiting-review) COL=review ;;
-  docs|"docs & higiene"|hygiene|nina) COL=docs ;;
+  docs|"docs & higiene"|hygiene|rhodolfo) COL=docs ;;
   done|"feito") COL=done ;;
   *) echo "coluna inválida: $COL_RAW" >&2; exit 2 ;;
 esac
@@ -106,13 +107,16 @@ case "$COL" in
       "$GH" issue edit "$NUM" --repo "$REPO" --add-label "agent:$AGENT" >/dev/null 2>&1 || true
     fi
     ;;
+  triagem)
+    "$GH" issue edit "$NUM" --repo "$REPO" --add-label "agent:juninho" >/dev/null 2>&1 || true
+    ;;
   review)
     "$GH" issue edit "$NUM" --repo "$REPO" \
-      --remove-label "status:in-progress" --add-label "status:waiting-review,agent:gema" >/dev/null 2>&1 || true
+      --remove-label "status:in-progress" --add-label "status:waiting-review,agent:rhodolfo" >/dev/null 2>&1 || true
     ;;
   docs)
     "$GH" issue edit "$NUM" --repo "$REPO" \
-      --remove-label "status:waiting-review" --add-label "agent:nina" >/dev/null 2>&1 || true
+      --remove-label "status:waiting-review" --add-label "agent:rhodolfo" >/dev/null 2>&1 || true
     ;;
   done)
     "$GH" issue close "$NUM" --repo "$REPO" --reason completed >/dev/null 2>&1 || true
