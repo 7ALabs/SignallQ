@@ -61,6 +61,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.signallq.app.ads.AdSlot
+import io.signallq.app.ads.AdUnitIds
+import io.signallq.app.ads.NativeAdContentSignals
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.diagnostico.BandaWifi
 import io.signallq.app.core.diagnostico.MetricClassifier
@@ -72,6 +75,7 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.ads.rememberNativeAd
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkSheetDivider
 import io.signallq.app.ui.component.LkSheetFrame
@@ -79,7 +83,8 @@ import io.signallq.app.ui.component.LkSheetInfoRow
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.Overline
 import io.signallq.app.ui.component.ProfileAvatarButton
-import io.signallq.app.ui.component.ads.SimulatedOfferCard
+import io.signallq.app.ui.component.ads.NativeAdCard
+import io.signallq.app.ui.component.ads.NativeAdSource
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -407,12 +412,15 @@ fun HistoricoScreen(
             ) {
                 if (!nativeAdDismissedHistorico) {
                     item(key = "native_ad_historico") {
-                        // TODO: substituir este card SIMULADO por rememberNativeAd +
-                        // NativeAdCard quando o AdMob real deste slot estiver configurado.
-                        SimulatedOfferCard(
-                            title = "Plano gamer simulado com rota otimizada para menor latência",
-                            body = "Oferta de teste para quem quer comparar estabilidade entre horários e sessões.",
-                            cta = "Ver simulação",
+                        val nativeAd by rememberNativeAd(
+                            adUnitId = AdUnitIds.para(AdSlot.HISTORICO),
+                            contentSignal = NativeAdContentSignals.forSlot(AdSlot.HISTORICO),
+                            eligible = adsEnabled,
+                        )
+                        NativeAdCard(
+                            nativeAd = nativeAd,
+                            source = NativeAdSource.ADMOB,
+                            onDismiss = { nativeAdDismissedHistorico = true },
                         )
                     }
                 }

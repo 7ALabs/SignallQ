@@ -935,6 +935,7 @@ fun AppShell(
                 tipoConexaoAtual = snapshotRede.estadoConexao,
                 wifiLinkSnapshot = snapshotRede.wifiLinkSnapshot,
                 onVoltar = { overlayStack.remove(Overlay.Jogos) },
+                adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.JOGOS),
             )
         }
 

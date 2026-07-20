@@ -61,6 +61,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.R
+import io.signallq.app.ads.AdSlot
+import io.signallq.app.ads.AdUnitIds
+import io.signallq.app.ads.NativeAdContentSignals
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.telephony.MovelSnapshot
@@ -74,10 +77,12 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.ads.rememberNativeAd
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.ProfileAvatarButton
-import io.signallq.app.ui.component.ads.SimulatedOfferRow
+import io.signallq.app.ui.component.ads.NativeAdRow
+import io.signallq.app.ui.component.ads.NativeAdSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -301,12 +306,14 @@ private fun ConteudoSpeedTest(
 
         if (estadoIdle) {
             Spacer(Modifier.height(LkSpacing.md))
-            // TODO: substituir o card SIMULADO abaixo por rememberNativeAd + NativeAdRow
-            // quando o AdMob real deste slot estiver configurado. Enquanto isso, manter
-            // visivel para espelhar a spec mesmo sem inventario real.
-            SimulatedOfferRow(
-                title = "Oferta simulada de roteador Wi-Fi 6",
-                body = "Melhore cobertura e estabilidade em casas com muitos dispositivos.",
+            val nativeAd by rememberNativeAd(
+                adUnitId = AdUnitIds.para(AdSlot.VELOCIDADE),
+                contentSignal = NativeAdContentSignals.forSlot(AdSlot.VELOCIDADE),
+                eligible = adsEnabled,
+            )
+            NativeAdRow(
+                nativeAd = nativeAd,
+                source = NativeAdSource.ADMOB,
                 modifier = Modifier.fillMaxWidth(),
             )
         }

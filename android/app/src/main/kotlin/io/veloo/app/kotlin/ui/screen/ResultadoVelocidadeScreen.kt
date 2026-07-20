@@ -78,6 +78,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.signallq.app.ads.AdSlot
+import io.signallq.app.ads.AdUnitIds
+import io.signallq.app.ads.NativeAdContentSignals
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
 import io.signallq.app.core.recommendation.RecommendationDecision
@@ -96,6 +99,7 @@ import io.signallq.app.ui.OperadoraSource
 import io.signallq.app.ui.ResolvedOperadoraContact
 import io.signallq.app.ui.ResolvedOperadoraIdentity
 import io.signallq.app.ui.ResultadoPdfGenerator
+import io.signallq.app.ui.ads.rememberNativeAd
 import io.signallq.app.ui.component.AnaliseDetalhadaBottomSheet
 import io.signallq.app.ui.component.LkInfoCallout
 import io.signallq.app.ui.component.LkSectionOverline
@@ -103,7 +107,8 @@ import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.LocalDeviceSection
 import io.signallq.app.ui.component.OperadoraBadge
 import io.signallq.app.ui.component.OperadoraBottomSheet
-import io.signallq.app.ui.component.ads.SimulatedOfferCard
+import io.signallq.app.ui.component.ads.NativeAdCard
+import io.signallq.app.ui.component.ads.NativeAdSource
 import io.signallq.app.ui.component.mapLocalDeviceSectionUiState
 import io.signallq.app.ui.component.rememberResolvedOperadoraContact
 import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
@@ -536,12 +541,19 @@ fun ResultadoVelocidadeScreen(
                 if (!metricasDetalhadasAbertas) {
                     Spacer(Modifier.height(LkSpacing.sm))
                     if (!nativeAdDismissedResultado) {
-                        // TODO: substituir este card SIMULADO por rememberNativeAd +
-                        // NativeAdCard quando o AdMob real deste slot estiver configurado.
-                        SimulatedOfferCard(
-                            title = "Oferta simulada de Wi-Fi mesh para eliminar pontos cegos",
-                            body = "Cobertura mais estável para streaming, videochamadas e jogos em toda a casa.",
-                            cta = "Ver oferta simulada",
+                        val nativeAd by rememberNativeAd(
+                            adUnitId = AdUnitIds.para(AdSlot.RESULTADO),
+                            contentSignal =
+                                NativeAdContentSignals.forSlot(
+                                    AdSlot.RESULTADO,
+                                    recommendationDecision?.matchedTags?.map { it.id }?.toSet() ?: emptySet(),
+                                ),
+                            eligible = adsEnabled,
+                        )
+                        NativeAdCard(
+                            nativeAd = nativeAd,
+                            source = NativeAdSource.ADMOB,
+                            onDismiss = { nativeAdDismissedResultado = true },
                         )
                     }
                 }

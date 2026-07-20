@@ -70,6 +70,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.signallq.app.ads.AdSlot
+import io.signallq.app.ads.AdUnitIds
+import io.signallq.app.ads.NativeAdContentSignals
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.network.contracts.localdevice.TipoConexaoFisica
@@ -86,13 +89,15 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.ads.rememberNativeAd
 import io.signallq.app.ui.component.LkInfoCallout
 import io.signallq.app.ui.component.LkPillBadge
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkStatusDot
 import io.signallq.app.ui.component.OfflineBanner
 import io.signallq.app.ui.component.SheetDragHandle
-import io.signallq.app.ui.component.ads.SimulatedOfferListRow
+import io.signallq.app.ui.component.ads.NativeAdListRow
+import io.signallq.app.ui.component.ads.NativeAdSource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -249,6 +254,11 @@ private fun DispositivosLista(
 
     var deviceEmSheet by remember { mutableStateOf<DispositivoRede?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val nativeAd by rememberNativeAd(
+        adUnitId = AdUnitIds.para(AdSlot.DISPOSITIVOS),
+        contentSignal = NativeAdContentSignals.forSlot(AdSlot.DISPOSITIVOS),
+        eligible = adsEnabled,
+    )
 
     PullToRefreshBox(
         isRefreshing = isLoading,
@@ -319,11 +329,9 @@ private fun DispositivosLista(
                 }
                 itemsIndexed(clientes) { index, dev ->
                     if (index == adIndex) {
-                        // TODO: substituir esta linha SIMULADA por rememberNativeAd +
-                        // NativeAdListRow quando o AdMob real deste slot estiver configurado.
-                        SimulatedOfferListRow(
-                            title = "Extensor Wi-Fi simulado para ampliar cobertura",
-                            body = "Indicado para ambientes com muitos cômodos e sinal irregular.",
+                        NativeAdListRow(
+                            nativeAd = nativeAd,
+                            source = NativeAdSource.ADMOB,
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }

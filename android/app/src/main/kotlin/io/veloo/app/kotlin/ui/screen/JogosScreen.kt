@@ -60,9 +60,11 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -77,6 +79,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.signallq.app.BuildConfig
+import io.signallq.app.ads.AdSlot
+import io.signallq.app.ads.AdUnitIds
+import io.signallq.app.ads.NativeAdContentSignals
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.WifiLinkSnapshot
 import io.signallq.app.feature.diagnostico.topology.lan.NatUdpTipo
@@ -95,9 +100,11 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.ads.rememberNativeAd
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.Overline
-import io.signallq.app.ui.component.ads.SimulatedOfferCard
+import io.signallq.app.ui.component.ads.NativeAdCard
+import io.signallq.app.ui.component.ads.NativeAdSource
 import kotlinx.coroutines.launch
 
 /**
@@ -110,6 +117,9 @@ fun JogosScreen(
     tipoConexaoAtual: EstadoConexao,
     wifiLinkSnapshot: WifiLinkSnapshot?,
     onVoltar: () -> Unit,
+    /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555.
+     *  Default `false`: nunca mostra anuncio sem sinal explicito de que pode. */
+    adsEnabled: Boolean = false,
 ) {
     val c = LocalLkTokens.current
     val scope = rememberCoroutineScope()
@@ -213,6 +223,7 @@ fun JogosScreen(
                         }
                     },
                     onEscolherOutroJogo = viewModel::escolherOutroJogo,
+                    adsEnabled = adsEnabled,
                     modifier = Modifier.padding(padding),
                 )
 
@@ -624,10 +635,15 @@ private fun EtapaResultado(
     resultado: ResultadoTesteJogo,
     onTestarNovamente: () -> Unit,
     onEscolherOutroJogo: () -> Unit,
+    /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555.
+     *  Default `false`: nunca mostra anuncio sem sinal explicito de que pode. */
+    adsEnabled: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val c = LocalLkTokens.current
     val tone = verdictTone(resultado.nivel, c)
+    // Issue #555 -- dispensar o anuncio e estado de sessao desta etapa, nunca persistido.
+    var nativeAdDismissedJogos by remember { mutableStateOf(false) }
     val metricas =
         listOf(
             MetricUi("Latência", "${resultado.latenciaMs.toInt()} ms"),
@@ -683,13 +699,18 @@ private fun EtapaResultado(
             }
         }
 
-        // TODO: substituir este card SIMULADO por rememberNativeAd + NativeAdCard
-        // quando o slot real do AdMob desta tela estiver configurado.
-        SimulatedOfferCard(
-            title = "Plano gamer com Wi-Fi 6",
-            body = "Oferta simulada para melhorar estabilidade e cobertura perto do console ou PC.",
-            cta = "Conhecer oferta",
-        )
+        if (!nativeAdDismissedJogos) {
+            val nativeAd by rememberNativeAd(
+                adUnitId = AdUnitIds.para(AdSlot.JOGOS),
+                contentSignal = NativeAdContentSignals.forSlot(AdSlot.JOGOS),
+                eligible = adsEnabled,
+            )
+            NativeAdCard(
+                nativeAd = nativeAd,
+                source = NativeAdSource.ADMOB,
+                onDismiss = { nativeAdDismissedJogos = true },
+            )
+        }
 
         Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.base)) {
             resultado.avisos.forEach { aviso ->
