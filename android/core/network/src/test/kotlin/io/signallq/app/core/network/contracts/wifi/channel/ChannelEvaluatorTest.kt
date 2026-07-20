@@ -1,4 +1,4 @@
-﻿package io.signallq.app.feature.wifi.channel
+package io.signallq.app.core.network.contracts.wifi.channel
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
