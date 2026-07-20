@@ -53,12 +53,12 @@ jobs:
         run: cd android && ./gradlew clean --no-build-cache --no-daemon
 
       - name: Build APK release
-        run: cd android && ./gradlew assembleRelease --no-build-cache --no-daemon
+        run: cd android && ./gradlew :app:assembleRelease --no-build-cache --no-daemon
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
 
       - name: Build AAB release
-        run: cd android && ./gradlew bundleRelease --no-build-cache --no-daemon
+        run: cd android && ./gradlew :app:bundleRelease --no-build-cache --no-daemon
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
 
@@ -70,7 +70,7 @@ jobs:
              android/app/build/outputs/apk/release/signallq-${{ steps.versao.outputs.name }}.apk
 
       - name: Upload mapping.txt para Crashlytics
-        run: cd android && ./gradlew uploadCrashlyticsMappingFileRelease --no-daemon
+        run: cd android && ./gradlew :app:uploadCrashlyticsMappingFileRelease --no-daemon
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
 
@@ -104,7 +104,7 @@ jobs:
       # Requer o app criado na Play e um primeiro upload manual na trilha (a API nao cria o app do zero).
       # Roda por ultimo: uma falha aqui nao invalida o GitHub Release nem os artefatos ja gerados.
       - name: Publicar na Play Console
-        run: cd android && ./gradlew publishReleaseBundle --no-daemon -PplayTrack=${{ vars.PLAY_TRACK || 'internal' }}
+        run: cd android && ./gradlew :app:publishReleaseBundle --no-daemon -PplayTrack=${{ vars.PLAY_TRACK || 'internal' }}
         env:
           ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}

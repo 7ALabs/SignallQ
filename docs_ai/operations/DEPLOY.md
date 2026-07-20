@@ -48,8 +48,14 @@ gmmattey/linka-android`).
 3.  **Upload to Google Play Console** — automatizado, não é login manual:
     -   `git tag vX.Y.Z && git push origin vX.Y.Z` dispara `.github/workflows/release.yml`.
     -   O workflow builda, assina, cria o GitHub Release, e publica o AAB direto na trilha
-        `internal` via `gradlew publishReleaseBundle` (`gradle-play-publisher`, credencial
+        `internal` via `gradlew :app:publishReleaseBundle` (`gradle-play-publisher`, credencial
         `PLAY_SERVICE_ACCOUNT_JSON`).
+    -   **Desacoplamento de produtos** (desde 2026-07-20): o release do consumer (SignallQ)
+        é escopado exclusivamente ao módulo `:app`, evitando que mudanças ou problemas no
+        módulo `:pro:app` (SignallQ Pro) bloqueiem publicações do consumer. O workflow roda
+        `:app:assembleRelease`, `:app:bundleRelease`, `:app:uploadCrashlyticsMappingFileRelease`,
+        e `:app:publishReleaseBundle` em vez de taskname sem prefixo. O Pro terá seu próprio
+        pipeline de release quando precisar publicar.
 
 4.  **Manage Release Tracks** — fluxo real do produto, não o genérico:
     -   **`internal`** (Teste interno): destino de todo `release.yml` — só o Luiz valida,
