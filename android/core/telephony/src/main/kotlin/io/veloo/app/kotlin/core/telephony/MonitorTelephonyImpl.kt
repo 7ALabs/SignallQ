@@ -134,25 +134,20 @@ class MonitorTelephonyImpl(
 
                 val tecnologiaRede = runCatching { derivarTecnologiaSim(tmSub) }.getOrNull()
 
-                // RSRP via allCellInfo do TM do sub — pode retornar vazio em alguns OEMs.
-                // Se o radio esta desligado (modo aviao), nao ha medicao real possivel.
-                val rsrpDbm = if (radioDesligadoGlobal) {
+                // RSRP/RSRQ/SINR via allCellInfo do TM do sub — pode retornar vazio em
+                // alguns OEMs. Se o radio esta desligado (modo aviao), nao ha medicao real
+                // possivel. GH#1206: antes so RSRP era capturado por SIM -- a qualificacao
+                // visual (SinalScreen) so considerava RSRP, mesmo o motor de diagnostico
+                // (MobileSignalDiagnosticEngine) ja usando RSRP+RSRQ+SINR (pior das 3).
+                val servidoraSub = if (radioDesligadoGlobal) {
                     null
                 } else {
                     runCatching {
-                        val cellInfos = tmSub.allCellInfo.orEmpty()
-                        val servidora = cellInfos.firstOrNull { it.isRegistered }
-                        when (servidora) {
-                            is CellInfoLte -> servidora.cellSignalStrength.rsrp.takeIf { it != Int.MAX_VALUE }
-                            is CellInfoNr -> {
-                                val s = servidora.cellSignalStrength as? CellSignalStrengthNr
-                                s?.csiRsrp?.takeIf { it != Int.MAX_VALUE }
-                                    ?: s?.ssRsrp?.takeIf { it != Int.MAX_VALUE }
-                            }
-                            else -> null
-                        }
+                        tmSub.allCellInfo.orEmpty().firstOrNull { it.isRegistered }
                     }.getOrNull()
                 }
+                val rsrpDbm = extrairRsrpPorSim(servidoraSub)
+                val (rsrqDb, sinrDb) = extrairRsrqSinrPorSim(servidoraSub)
 
                 MovelSimSnapshot(
                     subId = subId,
@@ -163,9 +158,45 @@ class MonitorTelephonyImpl(
                     emRoaming = emRoaming,
                     isDefaultData = subId == defaultDataSubId,
                     radioDesligado = radioDesligadoGlobal,
+                    rsrqDb = rsrqDb,
+                    sinrDb = sinrDb,
                 )
             }.getOrNull()
         }
+    }
+
+    /** GH#1206 — extracao de RSRP isolada por SIM, reaproveitando o mesmo tratamento de
+     *  sentinela (`Int.MAX_VALUE` = indisponivel) ja usado no snapshot geral. */
+    private fun extrairRsrpPorSim(servidora: android.telephony.CellInfo?): Int? = when (servidora) {
+        is CellInfoLte -> servidora.cellSignalStrength.rsrp.takeIf { it != Int.MAX_VALUE }
+        is CellInfoNr -> {
+            val s = servidora.cellSignalStrength as? CellSignalStrengthNr
+            s?.csiRsrp?.takeIf { it != Int.MAX_VALUE } ?: s?.ssRsrp?.takeIf { it != Int.MAX_VALUE }
+        }
+        else -> null
+    }
+
+    /** GH#1206 — RSRQ/SINR por SIM, mesma extracao ja usada no snapshot geral (linhas
+     *  ~400-421), agora tambem disponivel por assinatura pra alimentar
+     *  MetricClassifier.classificarRsrq/classificarSinr no card de cada chip. */
+    private fun extrairRsrqSinrPorSim(servidora: android.telephony.CellInfo?): Pair<Int?, Int?> = when (servidora) {
+        is CellInfoLte -> {
+            val s: CellSignalStrengthLte = servidora.cellSignalStrength
+            val rsrq = s.rsrq.takeIf { it != Int.MAX_VALUE }
+            val sinr = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                s.rssnr.takeIf { it != Int.MAX_VALUE }
+            } else {
+                null
+            }
+            rsrq to sinr
+        }
+        is CellInfoNr -> {
+            val s = servidora.cellSignalStrength as? CellSignalStrengthNr
+            val rsrq = s?.csiRsrq?.takeIf { it != Int.MAX_VALUE } ?: s?.ssRsrq?.takeIf { it != Int.MAX_VALUE }
+            val sinr = s?.csiSinr?.takeIf { it != Int.MAX_VALUE } ?: s?.ssSinr?.takeIf { it != Int.MAX_VALUE }
+            rsrq to sinr
+        }
+        else -> null to null
     }
 
     @Suppress("DEPRECATION", "MissingPermission")
