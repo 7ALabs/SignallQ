@@ -2162,7 +2162,6 @@ private fun NetworkListItem(
 }
 
 @Composable
-@Composable
 private fun EmptyStateWifi() {
     val c = LocalLkTokens.current
     Box(Modifier.fillMaxWidth().padding(vertical = 80.dp), contentAlignment = Alignment.Center) {
