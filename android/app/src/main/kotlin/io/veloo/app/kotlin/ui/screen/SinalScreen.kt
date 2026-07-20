@@ -139,6 +139,8 @@ import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.OfflineBanner
 import io.signallq.app.ui.component.OperadoraBadge
 import io.signallq.app.ui.component.ProfileAvatarButton
+import io.signallq.app.ui.component.SignalBars
+import io.signallq.app.ui.component.signalColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
@@ -246,26 +248,6 @@ private fun signalQuality(
                 rssiDbm >= -60 -> "Bom"
                 rssiDbm >= -70 -> "Regular"
                 else -> "Fraco"
-            }
-    }
-
-private fun signalColor(
-    rssiDbm: Int,
-    banda: BandaWifi = BandaWifi.desconhecida,
-    c: LkTokens,
-): Color =
-    when (banda) {
-        BandaWifi.ghz5 ->
-            when {
-                rssiDbm >= -65 -> c.success
-                rssiDbm >= -75 -> c.warning
-                else -> c.error
-            }
-        else ->
-            when {
-                rssiDbm >= -60 -> c.success
-                rssiDbm >= -70 -> c.warning
-                else -> c.error
             }
     }
 
@@ -2180,33 +2162,6 @@ private fun NetworkListItem(
 }
 
 @Composable
-private fun SignalBars(
-    rssiDbm: Int,
-    banda: BandaWifi = BandaWifi.desconhecida,
-    overrideColor: Color? = null,
-) {
-    val bars =
-        when {
-            rssiDbm >= -50 -> 4
-            rssiDbm >= -60 -> 3
-            rssiDbm >= -70 -> 2
-            else -> 1
-        }
-    val c = LocalLkTokens.current
-    val color = overrideColor ?: signalColor(rssiDbm, banda, c)
-    Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.Bottom) {
-        for (i in 1..4) {
-            Box(
-                Modifier
-                    .width(4.dp)
-                    .height((4 + i * 3).dp)
-                    .clip(RoundedCornerShape(1.dp))
-                    .background(if (i <= bars) color else c.border),
-            )
-        }
-    }
-}
-
 @Composable
 private fun EmptyStateWifi() {
     val c = LocalLkTokens.current
