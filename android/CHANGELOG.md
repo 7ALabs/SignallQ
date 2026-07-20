@@ -11,6 +11,32 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ## [Unreleased]
 
+## [0.29.0] — 2026-07-20
+
+Auditoria de design completa contra o Design System vivo (12 lotes de varredura) e duas
+features novas na aba Jogos e no hub Ferramentas.
+
+### Adicionado
+- Detecção de tipo de NAT (Aberto/Moderado/Restrito) via STUN (RFC 5389) na tela Jogos — sonda
+  roda em paralelo à medição de latência, nunca bloqueia nem atrasa o resultado, card
+  informativo dedicado com linguagem reconhecível por quem já viu isso em console (#1200/#1202)
+- Nova ferramenta "Sinal WiFi" no hub Ferramentas: indicador dinâmico de sinal e velocidade de
+  link (PHY rate) via amostragem em tempo real enquanto o usuário se move pela casa, mais
+  identificação do padrão Wi-Fi (4/5/6/6E/7) e selo de suporte a MU-MIMO — versão contida do
+  Walk Test do SignallQ Pro (#1201/#1203)
+- Veredito textual (Excelente/Regular/Ruim) nas 6 métricas da tela de resultado do Speedtest —
+  antes só a cor comunicava a faixa, agora vem com rótulo, inclusive acessibilidade (#1198/#1199)
+
+### Corrigido
+- Cor da aba ativa da navegação inferior corrigida de azul para violeta, alinhada à regra do
+  acento único do Design System (#1193)
+- ~30 ocorrências de borda proibida em cards removidas em 10+ arquivos (Home, Sinal, Velocidade,
+  Jogos, Equipamento, Ajustes) — padrão que zerava contraste card/fundo no tema claro (#1195/#1196/#1197)
+- Ícones fora do padrão Material Symbols Outlined, radius/espaçamento/alpha fora de token, cor
+  de seleção do seletor de equipamento, acentuação faltando no guia de canal Wi-Fi, contraste
+  quebrado no modo escuro de um badge, e inconsistência de cor/ícone da marca WhatsApp entre
+  duas telas — pente fino completo do achado #1196
+
 ## [0.28.0] — 2026-07-18
 
 Ciclo de correção funcional do motor de diagnóstico, redesign completo da tela Equipamento de internet e limpeza sistêmica de contraste no modo escuro.

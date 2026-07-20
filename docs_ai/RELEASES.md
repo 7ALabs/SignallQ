@@ -1,13 +1,26 @@
 # Histórico de Releases — SignallQ Android
 
 **Mantido por:** Rhodolfo
-**Última atualização:** 2026-07-18
+**Última atualização:** 2026-07-20
 **Referência:** `android/CHANGELOG.md` (fonte autoritativa do histórico Android) + `git log --oneline`
 
 > Nota de marca: o namespace/applicationId atual é **`io.signallq.app`** (renomeado de
 > `io.veloo.app` em 2026-06-28; o caminho físico do código do `:app` continua
 > `io/veloo/app/kotlin/`). Demais identificadores técnicos permanecem por compatibilidade
 > de infra — repo `gmmattey/linka-android`, worker `linka-ai-diagnosis-worker`.
+
+---
+
+## v0.29.0 (versionCode 65) — 2026-07-20
+
+**Auditoria de design completa contra o Design System vivo + NAT Type na aba Jogos + ferramenta Sinal WiFi**
+
+- Detecção de tipo de NAT (Aberto/Moderado/Restrito) via STUN na tela Jogos, não bloqueante (#1200/#1202)
+- Nova ferramenta "Sinal WiFi" no hub Ferramentas — sinal/PHY rate em tempo real, padrão Wi-Fi + MU-MIMO (#1201/#1203)
+- Veredito textual nas 6 métricas do resultado do Speedtest (#1198/#1199)
+- Cor da nav ativa corrigida de azul pra violeta (#1193); ~30 ocorrências de borda proibida em card removidas (#1195/#1197); ícone/radius/espaçamento/alpha fora de token, contraste dark mode e marca WhatsApp corrigidos (#1196)
+
+**Publicação:** trilha internal do Play Console, via `release.yml`
 
 ---
 
