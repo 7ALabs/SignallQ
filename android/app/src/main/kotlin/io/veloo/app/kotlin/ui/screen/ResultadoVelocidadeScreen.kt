@@ -214,6 +214,14 @@ fun ResultadoVelocidadeScreen(
                 else -> c.error
             }
         }
+    val veredictoDownload =
+        remember(resultado.downloadMbps) {
+            when {
+                resultado.downloadMbps >= 50.0 -> "Excelente"
+                resultado.downloadMbps >= 25.0 -> "Regular"
+                else -> "Ruim"
+            }
+        }
     val corUpload =
         remember(resultado.uploadMbps, resultado.uploadNaoDetectado, c) {
             when {
@@ -221,6 +229,15 @@ fun ResultadoVelocidadeScreen(
                 resultado.uploadMbps >= 10.0 -> c.success
                 resultado.uploadMbps >= 3.0 -> c.warning
                 else -> c.error
+            }
+        }
+    val veredictoUpload =
+        remember(resultado.uploadMbps, resultado.uploadNaoDetectado) {
+            when {
+                resultado.uploadNaoDetectado -> "Inconclusivo"
+                resultado.uploadMbps >= 10.0 -> "Excelente"
+                resultado.uploadMbps >= 3.0 -> "Regular"
+                else -> "Ruim"
             }
         }
     val corPerda =
@@ -231,6 +248,14 @@ fun ResultadoVelocidadeScreen(
                 else -> c.error
             }
         }
+    val veredictoPerda =
+        remember(resultado.perdaPercentual) {
+            when {
+                resultado.perdaPercentual < 1.0 -> "Excelente"
+                resultado.perdaPercentual < 3.0 -> "Regular"
+                else -> "Ruim"
+            }
+        }
     val corLatencia =
         remember(resultado.latenciaMs, c) {
             when {
@@ -239,12 +264,44 @@ fun ResultadoVelocidadeScreen(
                 else -> c.error
             }
         }
+    val veredictoLatencia =
+        remember(resultado.latenciaMs) {
+            when {
+                resultado.latenciaMs < 20.0 -> "Excelente"
+                resultado.latenciaMs < 60.0 -> "Regular"
+                else -> "Ruim"
+            }
+        }
     val corJitter =
         remember(resultado.jitterMs, c) {
             when {
                 resultado.jitterMs < 10.0 -> c.success
                 resultado.jitterMs < 30.0 -> c.warning
                 else -> c.error
+            }
+        }
+    val veredictoJitter =
+        remember(resultado.jitterMs) {
+            when {
+                resultado.jitterMs < 10.0 -> "Excelente"
+                resultado.jitterMs < 30.0 -> "Regular"
+                else -> "Ruim"
+            }
+        }
+    val corBufferbloat =
+        remember(resultado.bufferbloatMs, c) {
+            when {
+                resultado.bufferbloatMs < 15 -> c.success
+                resultado.bufferbloatMs < 40 -> c.warning
+                else -> c.error
+            }
+        }
+    val veredictoBufferbloat =
+        remember(resultado.bufferbloatMs) {
+            when {
+                resultado.bufferbloatMs < 15 -> "Excelente"
+                resultado.bufferbloatMs < 40 -> "Regular"
+                else -> "Ruim"
             }
         }
 
@@ -348,6 +405,7 @@ fun ResultadoVelocidadeScreen(
                         value = "%.1f".format(resultado.downloadMbps),
                         unit = "Mbps",
                         cor = corDownload,
+                        veredito = veredictoDownload,
                         c = c,
                         modifier = Modifier.weight(1f),
                     )
@@ -357,6 +415,7 @@ fun ResultadoVelocidadeScreen(
                         value = if (resultado.uploadNaoDetectado) "—" else "%.1f".format(resultado.uploadMbps),
                         unit = if (resultado.uploadNaoDetectado) "não detectado" else "Mbps",
                         cor = corUpload,
+                        veredito = veredictoUpload,
                         c = c,
                         modifier = Modifier.weight(1f),
                     )
@@ -386,6 +445,7 @@ fun ResultadoVelocidadeScreen(
                                 value = "%.0f".format(resultado.latenciaMs),
                                 unit = "ms",
                                 cor = corLatencia,
+                                veredito = veredictoLatencia,
                                 c = c,
                                 modifier = Modifier.weight(1f),
                             )
@@ -395,6 +455,7 @@ fun ResultadoVelocidadeScreen(
                                 value = "%.0f".format(resultado.jitterMs),
                                 unit = "ms",
                                 cor = corJitter,
+                                veredito = veredictoJitter,
                                 c = c,
                                 modifier = Modifier.weight(1f),
                             )
@@ -406,6 +467,7 @@ fun ResultadoVelocidadeScreen(
                                 value = "%.1f".format(resultado.perdaPercentual),
                                 unit = "%",
                                 cor = corPerda,
+                                veredito = veredictoPerda,
                                 c = c,
                                 modifier = Modifier.weight(1f),
                             )
@@ -414,12 +476,8 @@ fun ResultadoVelocidadeScreen(
                                 label = "Atraso sob carga",
                                 value = "%.0f".format(resultado.bufferbloatMs),
                                 unit = "ms",
-                                cor =
-                                    when {
-                                        resultado.bufferbloatMs < 15 -> c.success
-                                        resultado.bufferbloatMs < 40 -> c.warning
-                                        else -> c.error
-                                    },
+                                cor = corBufferbloat,
+                                veredito = veredictoBufferbloat,
                                 c = c,
                                 modifier = Modifier.weight(1f),
                             )
@@ -1225,6 +1283,7 @@ private fun MetricCard(
     value: String,
     unit: String,
     cor: Color,
+    veredito: String,
     c: LkTokens,
     modifier: Modifier = Modifier,
 ) {
@@ -1234,7 +1293,7 @@ private fun MetricCard(
                 .clip(RoundedCornerShape(LkRadius.card))
                 .background(c.surfaceContainer)
                 .padding(LkSpacing.lg)
-                .semantics(mergeDescendants = true) { contentDescription = "$label: $value $unit" },
+                .semantics(mergeDescendants = true) { contentDescription = "$label: $value $unit, $veredito" },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
@@ -1252,6 +1311,12 @@ private fun MetricCard(
             text = unit,
             style = MaterialTheme.typography.labelSmall,
             color = c.textTertiary,
+        )
+        Spacer(Modifier.height(LkSpacing.xs))
+        Text(
+            text = veredito,
+            style = MaterialTheme.typography.labelSmall,
+            color = cor,
         )
     }
 }
