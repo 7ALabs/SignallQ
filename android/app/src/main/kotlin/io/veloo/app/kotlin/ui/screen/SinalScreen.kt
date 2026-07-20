@@ -30,8 +30,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.outlined.Cable
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -41,6 +39,8 @@ import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.Lan
 import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.SignalCellularAlt
@@ -2006,7 +2006,7 @@ private fun OtherNetworkGroupItem(
                 }
                 Spacer(Modifier.width(LkSpacing.sm))
                 Icon(
-                    imageVector = if (rede.seguranca == SegurancaWifi.aberta) Icons.Filled.LockOpen else Icons.Filled.Lock,
+                    imageVector = if (rede.seguranca == SegurancaWifi.aberta) Icons.Outlined.LockOpen else Icons.Outlined.Lock,
                     contentDescription = if (rede.seguranca == SegurancaWifi.aberta) stringResource(R.string.cd_rede_aberta) else stringResource(R.string.cd_rede_protegida),
                     tint = c.textTertiary,
                     modifier = Modifier.size(16.dp),
@@ -2159,7 +2159,7 @@ private fun NetworkListItem(
         }
         Spacer(Modifier.width(LkSpacing.sm))
         Icon(
-            imageVector = if (isOpen) Icons.Filled.LockOpen else Icons.Filled.Lock,
+            imageVector = if (isOpen) Icons.Outlined.LockOpen else Icons.Outlined.Lock,
             contentDescription = if (isOpen) stringResource(R.string.cd_rede_aberta) else stringResource(R.string.cd_rede_protegida),
             tint = c.textTertiary,
             modifier = Modifier.size(16.dp),
@@ -2292,7 +2292,7 @@ private fun NetworkDetailSheet(
     LkSheetFrame {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(
-                imageVector = if (rede.seguranca == SegurancaWifi.aberta) Icons.Filled.LockOpen else Icons.Filled.Lock,
+                imageVector = if (rede.seguranca == SegurancaWifi.aberta) Icons.Outlined.LockOpen else Icons.Outlined.Lock,
                 contentDescription = null,
                 tint = c.primary,
                 modifier = Modifier.size(20.dp),

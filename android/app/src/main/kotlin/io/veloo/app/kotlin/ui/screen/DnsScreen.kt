@@ -32,8 +32,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
@@ -467,7 +467,7 @@ private fun DnsBloco4Guia(
                 modifier = Modifier.weight(1f),
             )
             Icon(
-                imageVector = if (expandido) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                imageVector = if (expandido) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                 contentDescription = if (expandido) "Recolher" else "Expandir",
                 tint = c.textSecondary,
                 modifier = Modifier.size(20.dp),

@@ -16,9 +16,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -274,7 +274,7 @@ internal fun GatewayConnectionSheetContent(
             trailingIcon = {
                 IconButton(onClick = { mostrarSenha = !mostrarSenha }) {
                     Icon(
-                        imageVector = if (mostrarSenha) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                        imageVector = if (mostrarSenha) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
                         contentDescription = if (mostrarSenha) "Ocultar senha" else "Mostrar senha",
                         tint = c.textSecondary,
                     )
