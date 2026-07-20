@@ -144,6 +144,32 @@ object MetricClassifier {
         }
     }
 
+    // ── Download / Upload (throughput do speedtest) ─────────────────────────
+    // Fonte: limiares ja em producao na tela de Resultado do speedtest (ate a
+    // issue #1221/#1225), reorganizados nas 6 faixas canonicas (antes eram so
+    // 3: Excelente/Regular/Ruim, sem "bom" nem "critico"). Preserva os cortes
+    // de negocio existentes (50/25 download, 10/3 upload) como fronteiras
+    // bom/regular e regular/ruim -- so adiciona a faixa superior (excelente)
+    // e a faixa inferior (critico) que faltavam pra fechar o vocabulario de 6
+    // valores. GH#1221 RF-06: unico ponto de verdade, tela de Resultado nao
+    // pode mais ter sua propria regua.
+
+    fun classificarDownload(mbps: Double): MetricStatus = when {
+        mbps >= 100.0 -> MetricStatus.excelente
+        mbps >= 50.0 -> MetricStatus.bom
+        mbps >= 25.0 -> MetricStatus.regular
+        mbps >= 10.0 -> MetricStatus.ruim
+        else -> MetricStatus.critico
+    }
+
+    fun classificarUpload(mbps: Double): MetricStatus = when {
+        mbps >= 20.0 -> MetricStatus.excelente
+        mbps >= 10.0 -> MetricStatus.bom
+        mbps >= 3.0 -> MetricStatus.regular
+        mbps >= 1.0 -> MetricStatus.ruim
+        else -> MetricStatus.critico
+    }
+
     // ── DNS (latencia) ───────────────────────────────────────────────────────
     // Sem tabela dedicada de 4 faixas na skill para DNS — reaproveita os limiares
     // ja em producao em DnsDiagnosticEngine (50/150/300ms), remapeados para o

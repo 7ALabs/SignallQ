@@ -39,6 +39,8 @@ data class MedicaoEntity(
     val diagnosticoProblemas: String? = null,
     /** Score 0–100 calculado pelo engine local após o diagnóstico. Null enquanto diagnóstico não foi executado. */
     val score: Double? = null,
-    /** Status da medição: "completed", "failed", "partial" ou "timeout". */
+    /** Status da medição: "completed", "failed", "partial", "timeout", "contaminated"
+     *  (rede mudou durante o teste, GH#1221/#1225) ou "inconclusive" (amostras de
+     *  latência abaixo do mínimo estatístico, GH#1221 RF-08). */
     val status: String = "completed",
 )

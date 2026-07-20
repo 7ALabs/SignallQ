@@ -11,6 +11,20 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ## [Unreleased]
 
+### Corrigido
+- Perfil de rede do Speedtest (tamanho do pool HTTP para rede medida/Wi-Fi) deixa de ficar
+  congelado no valor resolvido na criação do executor — agora é resolvido no início de cada
+  execução, refletindo a rede atual mesmo depois de trocar sem reiniciar o app (#1221)
+- Resultado de Speedtest contaminado por troca de rede, parcial ou com poucas amostras válidas
+  deixa de ser tratado como diagnóstico conclusivo: novo `MeasurementStatus`
+  (Completo/Parcial/Inconclusivo/Contaminado) e `executionId` vinculam Resultado, Diagnóstico,
+  IA e Recomendação à mesma execução, bloqueando análise automática por IA, Recommendation
+  Engine e contato com operadora quando o teste não é confiável (#1225)
+- Consolidados os dois geradores de PDF divergentes (pós-Speedtest e Laudo de diagnóstico) num
+  motor único (`core/relatorio`), removendo a seção regulatória desatualizada "Conformidade
+  ANATEL" (mínimo garantido 40%, Resolução nº 574/2011) e renomeando o documento do app
+  consumidor de "Laudo Técnico" para "Relatório de diagnóstico da conexão" (#1219)
+
 ## [0.29.0] — 2026-07-20
 
 Auditoria de design completa contra o Design System vivo (12 lotes de varredura) e duas

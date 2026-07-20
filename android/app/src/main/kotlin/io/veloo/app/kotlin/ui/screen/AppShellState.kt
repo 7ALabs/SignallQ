@@ -118,7 +118,6 @@ data class AppShellDiagnosticoState(
     val onRecommendationShown: () -> Unit = {},
     val onRecommendationClicked: () -> Unit = {},
     val onRecommendationFeedback: (RecommendationFeedbackType) -> Unit = {},
-    val onRecommendationDismissed: () -> Unit = {},
 )
 
 /**

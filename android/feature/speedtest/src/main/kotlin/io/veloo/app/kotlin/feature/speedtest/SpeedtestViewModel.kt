@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 /**
@@ -62,6 +63,15 @@ class SpeedtestViewModel
         var onSpeedtestConcluido: (() -> Unit)? = null
 
         /**
+         * GH#1221 RF-09 — trava de concorrencia no dominio, independente do estado visual
+         * do botao. O executor ja rejeita silenciosamente uma segunda execucao concorrente
+         * ([ExecutorSpeedtestCloudflare.emExecucao]), mas sem essa trava aqui o SEGUNDO clique
+         * ainda dispararia sua propria corrotina ate o fim (acumulando MB consumidos em
+         * dobro e chamando [onSpeedtestConcluido] duas vezes para uma unica medicao real).
+         */
+        private val execucaoEmAndamento = AtomicBoolean(false)
+
+        /**
          * Inicia ou enfileira um speedtest.
          *
          * Em rede medida com modo pesado (complete/triplo) e sem permissao previa,
@@ -69,11 +79,16 @@ class SpeedtestViewModel
          * Caso contrario, executa imediatamente.
          */
         fun reiniciarSuite(modo: ModoSpeedtest) {
+            if (!execucaoEmAndamento.compareAndSet(false, true)) {
+                Timber.w("$LOG_TAG: reiniciarSuite ignorado — ja ha execucao em andamento")
+                return
+            }
             viewModelScope.launch {
                 if (modo != ModoSpeedtest.fast && networkCapabilitiesProvider.isMeteredNetwork()) {
                     val permiteHeavy = preferenciasAppRepository.speedtestPermiteHeavyMovel.first()
                     if (!permiteHeavy) {
                         _speedtestPendenteModoMovel.value = modo
+                        execucaoEmAndamento.set(false)
                         return@launch
                     }
                 }
@@ -83,6 +98,7 @@ class SpeedtestViewModel
                     Timber.e(t, "$LOG_TAG: erro ao executar speedtest modo=${modo.name}")
                 } finally {
                     acumularMbConsumidos(modo)
+                    execucaoEmAndamento.set(false)
                     onSpeedtestConcluido?.invoke()
                 }
             }
@@ -91,6 +107,10 @@ class SpeedtestViewModel
         /** Confirma execucao do speedtest pendente (usuario aceitou usar dados moveis). */
         fun confirmarSpeedtestEmMovel() {
             val modo = _speedtestPendenteModoMovel.value ?: return
+            if (!execucaoEmAndamento.compareAndSet(false, true)) {
+                Timber.w("$LOG_TAG: confirmarSpeedtestEmMovel ignorado — ja ha execucao em andamento")
+                return
+            }
             _speedtestPendenteModoMovel.value = null
             viewModelScope.launch {
                 try {
@@ -99,6 +119,7 @@ class SpeedtestViewModel
                     Timber.e(t, "$LOG_TAG: erro ao confirmar speedtest em rede movel modo=${modo.name}")
                 } finally {
                     acumularMbConsumidos(modo)
+                    execucaoEmAndamento.set(false)
                     onSpeedtestConcluido?.invoke()
                 }
             }
@@ -129,6 +150,9 @@ class SpeedtestViewModel
                 connectionType = connectionType,
                 connectionTypeProvider = { monitorRede.snapshotFlow.value.estadoConexao.name },
                 tecnologiaProvider = { monitorTelefony.snapshotFlow.value?.tecnologia },
+                // GH#1221 RF-01 — resolve o perfil de pool (metered/movel) no momento do
+                // teste, nao no valor congelado na criacao do singleton via AppModule.
+                isMobileProvider = { networkCapabilitiesProvider.isMeteredNetwork() },
             )
             Timber.i("$LOG_TAG: finalizado modo=${modo.name}")
             registrarSpeedtestConcluidoSeDisponivel(modo, System.currentTimeMillis() - inicioMs)

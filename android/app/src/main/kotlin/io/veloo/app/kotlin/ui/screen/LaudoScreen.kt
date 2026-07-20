@@ -1,11 +1,6 @@
 ﻿package io.signallq.app.ui.screen
 
 import android.content.Context
-import android.content.Intent
-import android.graphics.Paint
-import android.graphics.pdf.PdfDocument
-import android.net.Uri
-import android.os.Environment
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -45,15 +40,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
+import io.signallq.app.BuildConfig
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -61,11 +54,10 @@ import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkStatusDot
 import io.signallq.app.ui.component.LkSurfaceCard
-import kotlinx.coroutines.Dispatchers
+import io.signallq.app.ui.relatorio.RelatorioDiagnosticoExporter
+import io.signallq.app.ui.relatorio.RelatorioDiagnosticoSnapshot
+import io.signallq.app.ui.relatorio.RelatorioPrivacidade
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -103,7 +95,6 @@ fun LaudoScreen(
                     context = context,
                     snapshotDiagnostico = snapshotDiagnostico,
                     ultimaMedicao = ultimaMedicao,
-                    nomeUsuario = nomeUsuario,
                     operadora = operadora,
                     ssid = ssid,
                     ipLocal = ipLocal,
@@ -148,8 +139,11 @@ fun LaudoScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
+                    // GH#1219 item 2 — "Laudo Técnico"/"Laudo de diagnóstico" sugere documento
+                    // pericial (responsável técnico, metodologia completa, cadeia de custódia),
+                    // que este relatório B2C não tem. Nome reservado ao SignallQ Pro.
                     Text(
-                        "Laudo de diagnóstico",
+                        "Relatório de diagnóstico",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.W600,
                     )
@@ -284,7 +278,7 @@ fun LaudoScreen(
             item {
                 Column {
                     Text(
-                        "LAUDO TÉCNICO · $dataHora",
+                        "RELATÓRIO DE DIAGNÓSTICO · $dataHora",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.W600,
                         color = c.textTertiary,
@@ -508,11 +502,21 @@ private fun LaudoMetrica(
     }
 }
 
+/**
+ * GH#1219 — antes gerava o PDF direto via `PdfDocument`/`Canvas` manual, com texto
+ * truncado por limite de caracteres, sem paginação e com a seção "CONFORMIDADE ANATEL"
+ * (mínimo garantido 40%/meta 80%/Resolução 574/2011 — afirmações regulatórias
+ * desatualizadas, removidas nesta correção; ver critérios de aceite da issue). Agora monta
+ * um [RelatorioDiagnosticoSnapshot] com SSID/IPs já mascarados e delega pro renderer único
+ * ([RelatorioDiagnosticoExporter], mesmo motor HTML→PDF do `ResultadoPdfGenerator`).
+ */
 private suspend fun gerarECompartilharLaudo(
     context: Context,
     snapshotDiagnostico: SnapshotDiagnostico,
     ultimaMedicao: MedicaoEntity?,
-    nomeUsuario: String,
+    // GH#1219 item 11 — nome do usuario (PII) deliberadamente NAO entra no snapshot
+    // compartilhado; o parametro so existe no cabecalho da tela (LaudoScreen), nunca no
+    // arquivo PDF gerado.
     operadora: String,
     ssid: String?,
     ipLocal: String?,
@@ -520,213 +524,58 @@ private suspend fun gerarECompartilharLaudo(
     velocidadeContratadaMbps: Int? = null,
     conectado: Boolean = true,
 ) {
-    val uri: Uri =
-        withContext(Dispatchers.IO) {
-            val document = PdfDocument()
-            val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
-            val page = document.startPage(pageInfo)
-            val canvas = page.canvas
+    // #375: offline reaproveita a ultima medicao salva — o horario exibido precisa ser o
+    // da MEDICAO real, nunca o momento da geracao do PDF (GH#1219 item 5).
+    val medidoEmEpochMs = if (!conectado) ultimaMedicao?.timestampEpochMs ?: System.currentTimeMillis() else System.currentTimeMillis()
+    val decisao = snapshotDiagnostico.relatorio?.decisao
 
-            // #375: offline reaproveita a ultima medicao salva — o comprovante (usado para
-            // reclamacao formal na Anatel) precisa exibir o timestamp real da medicao.
-            val dataHoraBase = if (!conectado) ultimaMedicao?.timestampEpochMs?.let { Date(it) } ?: Date() else Date()
-            val dataHora = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.of("pt", "BR")).format(dataHoraBase)
-            val margem = 40f
-            val colValor = 180f
-
-            val paintTitulo =
-                Paint().apply {
-                    textSize = 20f
-                    isFakeBoldText = true
-                    color = LkColors.Light.textPrimary.toArgb()
-                }
-            val paintSubtitulo =
-                Paint().apply {
-                    textSize = 10f
-                    color = LkColors.Light.textSecondary.toArgb()
-                }
-            val paintSecao =
-                Paint().apply {
-                    textSize = 12f
-                    isFakeBoldText = true
-                    color = LkColors.Light.textPrimary.toArgb()
-                }
-            val paintLabel =
-                Paint().apply {
-                    textSize = 10f
-                    color = LkColors.Light.textSecondary.toArgb()
-                }
-            val paintValor =
-                Paint().apply {
-                    textSize = 10f
-                    color = LkColors.Light.textPrimary.toArgb()
-                }
-            val paintLinha =
-                Paint().apply {
-                    color = LkColors.Light.border.toArgb()
-                    strokeWidth = 0.5f
-                    style = Paint.Style.STROKE
-                }
-            val paintFooter =
-                Paint().apply {
-                    textSize = 8f
-                    color = LkColors.Light.textTertiary.toArgb()
-                }
-
-            fun truncar(
-                texto: String,
-                max: Int = 65,
-            ) = if (texto.length > max) texto.take(max - 1) + "…" else texto
-
-            var y = 55f
-
-            // Cabeçalho
-            canvas.drawText("SignallQ — Laudo Técnico", margem, y, paintTitulo)
-            y += 18f
-            canvas.drawText("Diagnóstico de rede doméstica", margem, y, paintSubtitulo)
-            y += 14f
-            val metaLinha =
-                buildString {
-                    append("Data: $dataHora")
-                    if (nomeUsuario.isNotBlank()) append("   |   Usuário: $nomeUsuario")
-                }
-            canvas.drawText(metaLinha, margem, y, paintSubtitulo)
-            y += 14f
-            if (!conectado) {
-                canvas.drawText(
-                    "Sem conexão no momento da geração — dados da última medição salva.",
-                    margem,
-                    y,
-                    paintFooter,
-                )
-                y += 14f
-            }
-            canvas.drawLine(margem, y, 595f - margem, y, paintLinha)
-            y += 18f
-
-            // Seção: Teste de Velocidade
-            if (ultimaMedicao != null) {
-                canvas.drawText("TESTE DE VELOCIDADE", margem, y, paintSecao)
-                y += 16f
-                listOf(
-                    "Download" to (ultimaMedicao.downloadMbps?.let { "%.1f Mbps".format(it) } ?: "—"),
-                    "Upload" to (ultimaMedicao.uploadMbps?.let { "%.1f Mbps".format(it) } ?: "—"),
-                    "Latência" to (ultimaMedicao.latencyMs?.let { "%.0f ms".format(it) } ?: "—"),
-                    "Oscilação" to (ultimaMedicao.jitterMs?.let { "%.0f ms".format(it) } ?: "—"),
-                    "Perda de pacotes" to (ultimaMedicao.perdaPercentual?.let { "%.1f%%".format(it) } ?: "—"),
-                ).forEach { (label, valor) ->
-                    canvas.drawText(label, margem, y, paintLabel)
-                    canvas.drawText(valor, colValor, y, paintValor)
-                    y += 16f
-                }
-                y += 6f
-                canvas.drawLine(margem, y, 595f - margem, y, paintLinha)
-                y += 16f
-            }
-
-            // Seção: Diagnóstico
-            val decisao = snapshotDiagnostico.relatorio?.decisao
-            if (decisao != null) {
-                canvas.drawText("DIAGNÓSTICO", margem, y, paintSecao)
-                y += 16f
-                val linhasDiagnostico =
-                    buildList {
-                        add("Veredito" to truncar(decisao.titulo))
-                        add("Resumo" to truncar(decisao.mensagemUsuario))
-                        decisao.recomendacao?.let { add("Recomendação" to truncar(it)) }
-                        ultimaMedicao?.gargaloPrimario?.let { add("Gargalo primário" to it) }
-                    }
-                linhasDiagnostico.forEach { (label, valor) ->
-                    canvas.drawText(label, margem, y, paintLabel)
-                    canvas.drawText(valor, colValor, y, paintValor)
-                    y += 16f
-                }
-                y += 6f
-                canvas.drawLine(margem, y, 595f - margem, y, paintLinha)
-                y += 16f
-            }
-
-            // Seção: Rede
-            val linhasRede =
-                buildList {
-                    ssid?.let { add("Wi-Fi (SSID)" to it) }
-                    ipLocal?.let { add("IP local" to mascaraIpLocal(it)) }
-                    ipPublico?.let { add("IP público" to it) }
-                    if (operadora.isNotBlank()) add("Operadora" to operadora)
-                }
-            if (linhasRede.isNotEmpty()) {
-                canvas.drawText("REDE", margem, y, paintSecao)
-                y += 16f
-                linhasRede.forEach { (label, valor) ->
-                    canvas.drawText(label, margem, y, paintLabel)
-                    canvas.drawText(valor, colValor, y, paintValor)
-                    y += 16f
-                }
-            }
-
-            // Seção: Conformidade ANATEL
-            if (velocidadeContratadaMbps != null && velocidadeContratadaMbps > 0) {
-                val downloadMedido = ultimaMedicao?.downloadMbps
-                val minimoAnatel = velocidadeContratadaMbps * 0.40
-                val metaIdeal = velocidadeContratadaMbps * 0.80
-                val percentualEntregue = downloadMedido?.let { (it / velocidadeContratadaMbps.toDouble()) * 100 }
-
-                if (y + 140f < 790f) {
-                    y += 6f
-                    canvas.drawLine(margem, y, 595f - margem, y, paintLinha)
-                    y += 16f
-                    canvas.drawText("CONFORMIDADE ANATEL", margem, y, paintSecao)
-                    y += 16f
-                    listOf(
-                        "Velocidade contratada" to "$velocidadeContratadaMbps Mbps",
-                        "Mínimo garantido ANATEL (40%)" to "%.1f Mbps".format(minimoAnatel),
-                        "Meta ideal (80%)" to "%.1f Mbps".format(metaIdeal),
-                        "Velocidade medida (download)" to (downloadMedido?.let { "%.1f Mbps".format(it) } ?: "—"),
-                        "Entrega" to (percentualEntregue?.let { "%.0f%% do plano contratado".format(it) } ?: "—"),
-                    ).forEach { (label, valor) ->
-                        canvas.drawText(label, margem, y, paintLabel)
-                        canvas.drawText(valor, colValor, y, paintValor)
-                        y += 16f
-                    }
-                }
-
-                // Rodapé ANATEL (texto longo — desenhar manualmente com quebra)
-                val rodapeAnatel = "De acordo com as normas da ANATEL, sua operadora é obrigada a entregar pelo menos 80% da velocidade contratada."
-                val rodapeAnatel2 =
-                    "Se ficar abaixo do mínimo por período prolongado, você tem direito a desconto ou cancelamento " +
-                        "sem multa (Res. nº 574/2011, RQUAL)."
-                if (y + 40f < 795f) {
-                    y += 8f
-                    canvas.drawText(rodapeAnatel, margem, y, paintFooter)
-                    y += 12f
-                    canvas.drawText(rodapeAnatel2, margem, y, paintFooter)
-                }
-            }
-
-            // Rodapé
-            canvas.drawLine(margem, 800f, 595f - margem, 800f, paintLinha)
-            canvas.drawText("Gerado pelo app SignallQ", margem, 818f, paintFooter)
-
-            document.finishPage(page)
-
-            val dir =
-                context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
-                    ?: context.cacheDir.resolve("laudos").also { it.mkdirs() }
-            val arquivo = File(dir, "laudo_signallq_${System.currentTimeMillis()}.pdf")
-            FileOutputStream(arquivo).use { document.writeTo(it) }
-            document.close()
-
-            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", arquivo)
+    val operadoraOuIsp = (operadora.ifBlank { null } ?: ultimaMedicao?.operadoraMovel)
+    val planoInfo =
+        if (velocidadeContratadaMbps != null && velocidadeContratadaMbps > 0) {
+            "Plano contratado informado: $velocidadeContratadaMbps Mbps (comparação apenas informativa, não é aferição oficial)."
+        } else {
+            null
         }
 
-    val intent =
-        Intent(Intent.ACTION_SEND).apply {
-            type = "application/pdf"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-    context.startActivity(Intent.createChooser(intent, "Compartilhar laudo"))
+    val snapshot =
+        RelatorioDiagnosticoSnapshot(
+            executionId = "",
+            nomeDocumento = "Relatório de diagnóstico da conexão",
+            medidoEmEpochMs = medidoEmEpochMs,
+            tipoRede = ultimaMedicao?.connectionType?.let { tipoRedeLabelLaudo(it) } ?: "Não identificado",
+            downloadMbps = ultimaMedicao?.downloadMbps,
+            uploadMbps = ultimaMedicao?.uploadMbps,
+            latenciaMs = ultimaMedicao?.latencyMs,
+            jitterMs = ultimaMedicao?.jitterMs,
+            perdaPercentual = ultimaMedicao?.perdaPercentual,
+            perdaEstimada = ultimaMedicao?.packetLossSource == "estimated",
+            bufferbloatMs = ultimaMedicao?.bufferbloatMs,
+            veredito = decisao?.titulo,
+            resumo = decisao?.mensagemUsuario?.ifBlank { null },
+            recomendacao = listOfNotNull(decisao?.recomendacao, planoInfo).joinToString(" ").ifBlank { null },
+            diagnosticoOrigem = ultimaMedicao?.diagnosticoOrigem,
+            ssidMascarado = RelatorioPrivacidade.mascararSsid(ssid),
+            ipLocalMascarado = RelatorioPrivacidade.mascararIpLocal(ipLocal),
+            ipPublicoMascarado = RelatorioPrivacidade.mascararIpPublico(ipPublico),
+            operadora = operadoraOuIsp,
+            versaoApp = BuildConfig.VERSION_NAME,
+            versaoMotor = ultimaMedicao?.specVersion ?: "n/d",
+            offline = !conectado,
+        )
+
+    RelatorioDiagnosticoExporter.gerarECompartilhar(
+        context = context,
+        snapshot = snapshot,
+        nomeArquivoPrefixo = "laudo_signallq",
+    )
 }
+
+private fun tipoRedeLabelLaudo(connectionType: String): String =
+    when {
+        connectionType.equals("wifi", ignoreCase = true) -> "Wi-Fi"
+        connectionType.equals("movel", ignoreCase = true) -> "Rede móvel"
+        else -> "Não identificado"
+    }
 
 /** Mascara o último octeto de um IPv4 para proteger dados sensíveis no laudo.
  * Ex: "192.168.1.100" → "192.168.1.*"

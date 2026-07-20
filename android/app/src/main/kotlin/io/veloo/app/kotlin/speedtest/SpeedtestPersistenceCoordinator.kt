@@ -12,6 +12,7 @@ import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
 import io.signallq.app.feature.diagnostico.EstadoDiagnostico
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.ExecutorSpeedtest
+import io.signallq.app.feature.speedtest.MeasurementStatus
 import io.signallq.app.network.IspInfoCache
 import io.signallq.app.ui.BancoOperadoras
 import kotlinx.coroutines.CoroutineScope
@@ -57,6 +58,23 @@ internal fun resolverBandaWifiPersistencia(
         else -> BandaWifi.ghz5.name
     }
 }
+
+/**
+ * Resolve o valor a persistir no campo `status` da [MedicaoEntity] a partir do
+ * [MeasurementStatus] canonico (GH#1221/#1225) — antes o campo era sempre hardcoded
+ * "completed", mesmo para resultado contaminado. Valores conhecidos previamente
+ * documentados no KDoc de [MedicaoEntity.status]: "completed"/"failed"/"partial"/
+ * "timeout". Acrescenta "contaminated"/"inconclusive" como novos valores validos —
+ * campo e String livre (sem enum no Room), sem necessidade de migration.
+ */
+internal fun statusPersistenciaParaMeasurementStatus(status: MeasurementStatus): String =
+    when (status) {
+        MeasurementStatus.COMPLETE -> "completed"
+        MeasurementStatus.PARTIAL -> "partial"
+        MeasurementStatus.INCONCLUSIVE -> "inconclusive"
+        MeasurementStatus.CONTAMINATED -> "contaminated"
+        MeasurementStatus.CANCELLED -> "failed"
+    }
 
 /**
  * Responsável único por persistir resultados do speedtest no Room.
@@ -143,12 +161,21 @@ class SpeedtestPersistenceCoordinator
                                             monitorRede.snapshotFlow.value.wifiLinkSnapshot
                                                 ?.frequenciaMhz,
                                     ),
-                                status = "completed",
+                                status = statusPersistenciaParaMeasurementStatus(resultado.status),
                             ),
                         )
                         ultimaMedicaoId = novoId
-                        aguardandoDiagnostico = true
-                        Timber.d("SpeedtestPersistenceCoordinator: salvo ts=${resultado.timestampEpochMs} id=$novoId")
+                        // GH#1225 criterio D — resultado CONTAMINATED/INCONCLUSIVE nao pode
+                        // alimentar diagnostico conclusivo (rede mudou no meio do teste, ou
+                        // amostras insuficientes p/ confianca estatistica). PARTIAL ainda
+                        // libera diagnostico (so nao permite conclusao causal forte na UI).
+                        aguardandoDiagnostico =
+                            resultado.status != MeasurementStatus.CONTAMINATED &&
+                            resultado.status != MeasurementStatus.INCONCLUSIVE
+                        Timber.d(
+                            "SpeedtestPersistenceCoordinator: salvo ts=${resultado.timestampEpochMs} " +
+                                "id=$novoId status=${resultado.status}",
+                        )
                     } catch (e: Exception) {
                         Timber.e(e, "SpeedtestPersistenceCoordinator: falha ao salvar medicao")
                     }

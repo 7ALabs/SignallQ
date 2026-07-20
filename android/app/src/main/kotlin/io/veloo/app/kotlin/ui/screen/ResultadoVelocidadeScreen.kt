@@ -33,6 +33,7 @@ import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material.icons.outlined.Tv
 import androidx.compose.material.icons.outlined.Videocam
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material.icons.rounded.CellTower
 import androidx.compose.material.icons.rounded.Refresh
@@ -82,12 +83,15 @@ import io.signallq.app.ads.AdSlot
 import io.signallq.app.ads.AdUnitIds
 import io.signallq.app.ads.NativeAdContentSignals
 import io.signallq.app.core.diagnostico.DiagnosticStatus
+import io.signallq.app.core.diagnostico.MetricClassifier
+import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
 import io.signallq.app.core.recommendation.RecommendationDecision
 import io.signallq.app.core.recommendation.RecommendationFeedbackType
 import io.signallq.app.core.recommendation.RecommendationType
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.diagnostico.ai.ordenadasPorPrioridade
+import io.signallq.app.feature.speedtest.MeasurementStatus
 import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 import io.signallq.app.feature.speedtest.VereditoUso
 import io.signallq.app.ui.IspInfo
@@ -109,6 +113,8 @@ import io.signallq.app.ui.component.OperadoraBadge
 import io.signallq.app.ui.component.OperadoraBottomSheet
 import io.signallq.app.ui.component.ads.NativeAdCard
 import io.signallq.app.ui.component.ads.NativeAdSource
+import io.signallq.app.ui.component.corSemantica
+import io.signallq.app.ui.component.labelPt
 import io.signallq.app.ui.component.mapLocalDeviceSectionUiState
 import io.signallq.app.ui.component.rememberResolvedOperadoraContact
 import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
@@ -157,7 +163,6 @@ fun ResultadoVelocidadeScreen(
     onRecommendationShown: () -> Unit = {},
     onRecommendationClicked: () -> Unit = {},
     onRecommendationFeedback: (RecommendationFeedbackType) -> Unit = {},
-    onRecommendationDismissed: () -> Unit = {},
     /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555.
      *  Default `false`: nunca mostra anuncio sem sinal explicito de que pode. */
     adsEnabled: Boolean = false,
@@ -211,104 +216,38 @@ fun ResultadoVelocidadeScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    val corDownload =
-        remember(resultado.downloadMbps, c) {
-            when {
-                resultado.downloadMbps >= 50.0 -> c.success
-                resultado.downloadMbps >= 25.0 -> c.warning
-                else -> c.error
-            }
-        }
-    val veredictoDownload =
-        remember(resultado.downloadMbps) {
-            when {
-                resultado.downloadMbps >= 50.0 -> "Excelente"
-                resultado.downloadMbps >= 25.0 -> "Regular"
-                else -> "Ruim"
-            }
-        }
-    val corUpload =
-        remember(resultado.uploadMbps, resultado.uploadNaoDetectado, c) {
-            when {
-                resultado.uploadNaoDetectado -> c.warning
-                resultado.uploadMbps >= 10.0 -> c.success
-                resultado.uploadMbps >= 3.0 -> c.warning
-                else -> c.error
-            }
-        }
-    val veredictoUpload =
+    // GH#1221 RF-06 / GH#1225 item C — classificador UNICO (core/diagnostico), a tela nao
+    // mantem mais sua propria regua numerica (antes divergia do motor de diagnostico: 3
+    // faixas Excelente/Regular/Ruim aqui vs. 6 faixas canonicas em MetricClassifier, com
+    // limiares numericos diferentes para a MESMA metrica). "Perda" e rotulada como
+    // ESTIMADA — GH#1221 RF-04, o metodo e por timeout de probes HTTP, nao medicao direta
+    // de perda de pacotes IP.
+    val statusDownload = remember(resultado.downloadMbps) { MetricClassifier.classificarDownload(resultado.downloadMbps) }
+    val corDownload = statusDownload.corSemantica(c)
+    val veredictoDownload = statusDownload.labelPt()
+
+    val statusUpload =
         remember(resultado.uploadMbps, resultado.uploadNaoDetectado) {
-            when {
-                resultado.uploadNaoDetectado -> "Inconclusivo"
-                resultado.uploadMbps >= 10.0 -> "Excelente"
-                resultado.uploadMbps >= 3.0 -> "Regular"
-                else -> "Ruim"
-            }
+            if (resultado.uploadNaoDetectado) MetricStatus.inconclusivo else MetricClassifier.classificarUpload(resultado.uploadMbps)
         }
-    val corPerda =
-        remember(resultado.perdaPercentual, c) {
-            when {
-                resultado.perdaPercentual < 1.0 -> c.success
-                resultado.perdaPercentual < 3.0 -> c.warning
-                else -> c.error
-            }
-        }
-    val veredictoPerda =
-        remember(resultado.perdaPercentual) {
-            when {
-                resultado.perdaPercentual < 1.0 -> "Excelente"
-                resultado.perdaPercentual < 3.0 -> "Regular"
-                else -> "Ruim"
-            }
-        }
-    val corLatencia =
-        remember(resultado.latenciaMs, c) {
-            when {
-                resultado.latenciaMs < 20.0 -> c.success
-                resultado.latenciaMs < 60.0 -> c.warning
-                else -> c.error
-            }
-        }
-    val veredictoLatencia =
-        remember(resultado.latenciaMs) {
-            when {
-                resultado.latenciaMs < 20.0 -> "Excelente"
-                resultado.latenciaMs < 60.0 -> "Regular"
-                else -> "Ruim"
-            }
-        }
-    val corJitter =
-        remember(resultado.jitterMs, c) {
-            when {
-                resultado.jitterMs < 10.0 -> c.success
-                resultado.jitterMs < 30.0 -> c.warning
-                else -> c.error
-            }
-        }
-    val veredictoJitter =
-        remember(resultado.jitterMs) {
-            when {
-                resultado.jitterMs < 10.0 -> "Excelente"
-                resultado.jitterMs < 30.0 -> "Regular"
-                else -> "Ruim"
-            }
-        }
-    val corBufferbloat =
-        remember(resultado.bufferbloatMs, c) {
-            when {
-                resultado.bufferbloatMs < 15 -> c.success
-                resultado.bufferbloatMs < 40 -> c.warning
-                else -> c.error
-            }
-        }
-    val veredictoBufferbloat =
-        remember(resultado.bufferbloatMs) {
-            when {
-                resultado.bufferbloatMs < 15 -> "Excelente"
-                resultado.bufferbloatMs < 40 -> "Regular"
-                else -> "Ruim"
-            }
-        }
+    val corUpload = statusUpload.corSemantica(c)
+    val veredictoUpload = statusUpload.labelPt()
+
+    val statusPerda = remember(resultado.perdaPercentual) { MetricClassifier.classificarPerdaPacotes(resultado.perdaPercentual) }
+    val corPerda = statusPerda.corSemantica(c)
+    val veredictoPerda = statusPerda.labelPt()
+
+    val statusLatencia = remember(resultado.latenciaMs) { MetricClassifier.classificarLatencia(resultado.latenciaMs) }
+    val corLatencia = statusLatencia.corSemantica(c)
+    val veredictoLatencia = statusLatencia.labelPt()
+
+    val statusJitter = remember(resultado.jitterMs) { MetricClassifier.classificarJitter(resultado.jitterMs) }
+    val corJitter = statusJitter.corSemantica(c)
+    val veredictoJitter = statusJitter.labelPt()
+
+    val statusBufferbloat = remember(resultado.bufferbloatMs) { MetricClassifier.classificarBufferbloat(resultado.bufferbloatMs) }
+    val corBufferbloat = statusBufferbloat.corSemantica(c)
+    val veredictoBufferbloat = statusBufferbloat.labelPt()
 
     Scaffold(
         containerColor = c.bgPrimary,
@@ -468,7 +407,12 @@ fun ResultadoVelocidadeScreen(
                         Spacer(Modifier.height(LkSpacing.md))
                         Row(modifier = Modifier.fillMaxWidth()) {
                             MetricCard(
-                                label = "Perda de pacotes",
+                                // GH#1221 RF-04/#1219 — "perda de pacotes" sugere medicao direta;
+                                // o metodo real e taxa de falha/timeout de probes HTTP (ver
+                                // ResultadoSpeedtest.packetLossSource == "estimated"). Rotulo
+                                // honesto sobre a metodologia, sem prometer mais precisao do
+                                // que o teste realmente mede.
+                                label = "Perda estimada",
                                 value = "%.1f".format(resultado.perdaPercentual),
                                 unit = "%",
                                 cor = corPerda,
@@ -648,10 +592,12 @@ fun ResultadoVelocidadeScreen(
 
     if (showDiagnosticoSheet) {
         ModalBottomSheet(
-            onDismissRequest = {
-                showDiagnosticoSheet = false
-                onRecommendationDismissed()
-            },
+            // GH#1225 item H — fechar esta sheet (swipe, tap fora, voltar) NAO e uma acao
+            // explicita sobre a recomendacao especifica: o usuario pode ter fechado sem
+            // nunca ter rolado ate o card, ou so terminado de ler o resto do diagnostico.
+            // O dismiss so deve ser registrado pelo botao "Ocultar" dentro do proprio
+            // RecommendationEngineCard (ver onFeedback(HIDE) abaixo).
+            onDismissRequest = { showDiagnosticoSheet = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
             containerColor = c.surfaceContainerLow,
         ) {
@@ -750,11 +696,17 @@ private fun DiagnosticoDetalhadoSheet(
 ) {
     var detalhesTecnicosExpandido by remember { mutableStateOf(false) }
 
+    // GH#1225 criterio D — resultado CONTAMINATED/INCONCLUSIVE/PARTIAL nao pode alimentar
+    // IA, Recommendation Engine ou contato com operadora como se fosse uma conclusao
+    // confiavel. So MeasurementStatus.COMPLETE libera a analise conclusiva desta sheet.
+    val resultadoValidoParaConclusao = resultado.status.liberaConclusaoCompleta
+
     // Dispara a analise por IA automaticamente ao abrir a sheet -- so quando ainda
-    // nao ha resultado (Inativo). Reaproveita o MESMO estado/mecanismo do fluxo
-    // "Analisar meu problema com IA" (problema = null aqui vs. sintoma escolhido la).
+    // nao ha resultado (Inativo) E o resultado e valido o suficiente para uma conclusao.
+    // Reaproveita o MESMO estado/mecanismo do fluxo "Analisar meu problema com IA"
+    // (problema = null aqui vs. sintoma escolhido la).
     LaunchedEffect(Unit) {
-        if (analisadorState is AnalisadorState.Inativo) {
+        if (resultadoValidoParaConclusao && analisadorState is AnalisadorState.Inativo) {
             onAnalisarProblema(null)
         }
     }
@@ -799,21 +751,26 @@ private fun DiagnosticoDetalhadoSheet(
 
         Spacer(Modifier.height(LkSpacing.xl))
 
-        DiagnosticoStatusBanner(
-            status = decisaoStatus,
-            titulo = tituloExibido,
-            mensagem = mensagemExibida,
-            carregando = carregandoAnalise,
-            c = c,
-        )
+        if (!resultadoValidoParaConclusao) {
+            ResultadoInvalidoBanner(status = resultado.status, c = c)
+        } else {
+            DiagnosticoStatusBanner(
+                status = decisaoStatus,
+                titulo = tituloExibido,
+                mensagem = mensagemExibida,
+                carregando = carregandoAnalise,
+                c = c,
+            )
+        }
 
         Spacer(Modifier.height(LkSpacing.xl))
 
         // RECOMENDAÇÕES — o protótipo to-be abre direto daqui após o banner, sem
         // blocos intermediários de causa/impacto dentro desta sheet. Enquanto a IA
         // carrega, nao mostra recomendacao (evita exibir texto deterministico como
-        // se ja fosse a leitura final).
-        if (!carregandoAnalise) {
+        // se ja fosse a leitura final). GH#1225 criterio D — resultado invalido
+        // (contaminado/inconclusivo/parcial) nunca mostra recomendacao como conclusiva.
+        if (resultadoValidoParaConclusao && !carregandoAnalise) {
             LkSectionOverline(text = "Recomendações")
             Spacer(Modifier.height(LkSpacing.sm))
             if (!recomendacaoExibida.isNullOrBlank()) {
@@ -822,7 +779,7 @@ private fun DiagnosticoDetalhadoSheet(
             }
         }
 
-        if (recommendationDecision != null) {
+        if (resultadoValidoParaConclusao && recommendationDecision != null) {
             LkSectionOverline(text = "Configurações")
             Spacer(Modifier.height(LkSpacing.sm))
             RecommendationEngineCard(
@@ -842,7 +799,9 @@ private fun DiagnosticoDetalhadoSheet(
             c = c,
         )
 
-        val mostrarContato = categoria == "isp" || categoria == "fibra"
+        // GH#1225 criterio D/K — contato com operadora exige resultado completo (nunca
+        // sugerir escalonamento a partir de teste contaminado/inconclusivo/parcial).
+        val mostrarContato = resultadoValidoParaConclusao && (categoria == "isp" || categoria == "fibra")
         if (mostrarContato) {
             Spacer(Modifier.height(LkSpacing.md))
             // GH#970 — local (sincrono, sem mudanca pras ~12 operadoras principais) ->
@@ -1213,6 +1172,53 @@ private fun DiagnosticoStatusBanner(
     }
 }
 
+/**
+ * GH#1225 criterio D — banner exibido no lugar de [DiagnosticoStatusBanner] quando o
+ * resultado NAO e [MetricStatus] COMPLETE (a analise por IA/Recommendation Engine/contato
+ * com operadora nem chega a ser disparada nesse caso — ver `resultadoValidoParaConclusao`
+ * em [DiagnosticoDetalhadoSheet]). Mensagem varia por [MeasurementStatus] pra nao tratar
+ * "rede mudou" e "poucas amostras" como o mesmo problema.
+ */
+@Composable
+private fun ResultadoInvalidoBanner(
+    status: MeasurementStatus,
+    c: LkTokens,
+) {
+    val mensagem =
+        when (status) {
+            MeasurementStatus.CONTAMINATED ->
+                "A conexão mudou durante o teste. Execute novamente mantendo a mesma rede para obter um resultado confiável."
+            MeasurementStatus.INCONCLUSIVE ->
+                "Poucas respostas válidas para calcular um resultado com confiança. Execute o teste novamente."
+            MeasurementStatus.PARTIAL ->
+                "Uma das fases do teste não foi concluída — os números acima refletem só o que foi medido de fato."
+            MeasurementStatus.CANCELLED, MeasurementStatus.COMPLETE ->
+                "Não foi possível concluir uma análise confiável para este teste."
+        }
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.warningContainer)
+                .padding(LkSpacing.lg),
+        horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Warning,
+            contentDescription = null,
+            tint = c.onWarningContainer,
+            modifier = Modifier.size(22.dp),
+        )
+        Text(
+            text = mensagem,
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.onWarningContainer,
+        )
+    }
+}
+
 @Composable
 private fun ImpactoPraticoLinha(
     label: String,
@@ -1457,6 +1463,15 @@ private fun RecommendationEngineCard(
                     icon = Icons.Outlined.ThumbDown,
                     c = c,
                     onClick = { onFeedback(RecommendationFeedbackType.NOT_HELPFUL) },
+                )
+                // GH#1225 item H — unica acao EXPLICITA que deve registrar "dismiss" desta
+                // recomendacao (nao fechar a sheet de diagnostico como um todo, que pode nem
+                // ter chegado a mostrar este card na tela).
+                RecommendationFeedbackButton(
+                    texto = "Ocultar",
+                    icon = Icons.Outlined.VisibilityOff,
+                    c = c,
+                    onClick = { onFeedback(RecommendationFeedbackType.HIDE) },
                 )
             }
         } else {

@@ -319,7 +319,6 @@ fun AppShell(
     val onRecommendationShown = diagnostico.onRecommendationShown
     val onRecommendationClicked = diagnostico.onRecommendationClicked
     val onRecommendationFeedback = diagnostico.onRecommendationFeedback
-    val onRecommendationDismissed = diagnostico.onRecommendationDismissed
 
     val operadoraMovel = signallQ.operadoraMovel
     val onVerificarGemma = signallQ.onVerificarGemma
@@ -747,7 +746,6 @@ fun AppShell(
                     onRecommendationShown = onRecommendationShown,
                     onRecommendationClicked = onRecommendationClicked,
                     onRecommendationFeedback = onRecommendationFeedback,
-                    onRecommendationDismissed = onRecommendationDismissed,
                     localDevice = localDevice,
                     adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.RESULTADO),
                     resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,

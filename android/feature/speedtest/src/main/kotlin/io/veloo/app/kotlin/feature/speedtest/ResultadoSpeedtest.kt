@@ -28,4 +28,14 @@ data class ResultadoSpeedtest(
     val uploadNaoDetectado: Boolean = false,
     val connectionType: String? = null,
     val tecnologia: String? = null,
+    /** GH#1221/#1225 — identificador unico desta execucao (UUID), gerado no inicio de
+     *  [io.signallq.app.feature.speedtest.ExecutorSpeedtestCloudflare.executar]. E o elo
+     *  que Resultado/Diagnostico/IA/Recomendacao/PDF usam para confirmar que pertencem
+     *  a MESMA execucao — respostas assincronas com [executionId] diferente do resultado
+     *  atualmente exibido devem ser descartadas pelo consumidor. */
+    val executionId: String = "",
+    /** GH#1221/#1225 — integridade desta execucao (ver [MeasurementStatus]). Unica fonte
+     *  de verdade sobre "posso tratar isto como medicao valida" — substitui a checagem
+     *  isolada de [contaminado]/[uploadNaoDetectado] pelos consumidores. */
+    val status: MeasurementStatus = MeasurementStatus.COMPLETE,
 )

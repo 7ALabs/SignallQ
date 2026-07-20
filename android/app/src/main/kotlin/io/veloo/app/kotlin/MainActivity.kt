@@ -368,7 +368,6 @@ class MainActivity : ComponentActivity() {
                                 onRecommendationShown = { viewModel.registrarRecomendacaoMostrada() },
                                 onRecommendationClicked = { viewModel.registrarRecomendacaoClicada() },
                                 onRecommendationFeedback = { feedback -> viewModel.registrarFeedbackRecomendacao(feedback) },
-                                onRecommendationDismissed = { viewModel.registrarRecomendacaoDispensada() },
                             ),
                         signallQ =
                             io.signallq.app.ui.screen.AppShellSignallQState(

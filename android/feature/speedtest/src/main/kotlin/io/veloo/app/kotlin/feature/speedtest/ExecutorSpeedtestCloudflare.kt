@@ -61,56 +61,88 @@ class ExecutorSpeedtestCloudflare(
             }
     }
 
+    // GH#1221 RF-01: os 3 clients eram `val` fixados na construcao do singleton — o
+    // perfil de pool (isMobile) ficava "congelado" no tipo de rede ativo quando o app
+    // abriu, nunca no tipo de rede do teste em si. Agora sao `var` reconstruidos por
+    // [garantirPerfilRede] sempre que o perfil resolvido no INICIO de [executar] diverge
+    // do perfil usado para construir o pool atual.
+    @Volatile private var perfilMovelAtual: Boolean = isMobile
+
     // Client HTTP/2 para upload e ping — múltiplos streams em uma conexão TCP.
-    private val client: OkHttpClient = OkHttpClient.Builder()
-        .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
-        .connectTimeout(5, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .writeTimeout(15, TimeUnit.SECONDS)
-        .connectionPool(criarConnectionPool(isMobile))
-        .addInterceptor { chain ->
-            chain.proceed(
-                chain.request().newBuilder()
-                    .header("User-Agent", UA)
-                    .header("Cache-Control", "no-store")
-                    .build(),
-            )
-        }
-        .build()
+    private var client: OkHttpClient = criarClientTransferencia(perfilMovelAtual)
 
     // Client HTTP/1.1 para download — cada worker usa conexão TCP própria,
     // com headers de contexto de browser para evitar rate-limit 429/403 do Cloudflare
     // no endpoint /__down (que bloqueia clientes HTTP/2 sem contexto de origem).
     // Pool adaptado ao tipo de rede: móvel=2 conexões, Wi-Fi=8 conexões.
-    private val downloadClient: OkHttpClient = OkHttpClient.Builder()
-        .protocols(listOf(Protocol.HTTP_1_1))
-        .connectTimeout(5, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(15, TimeUnit.SECONDS)
-        .connectionPool(criarConnectionPool(isMobile))
-        .addInterceptor { chain ->
-            chain.proceed(
-                chain.request().newBuilder()
-                    .header("User-Agent", UA)
-                    .header("Accept", "*/*")
-                    .header("Accept-Language", "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7")
-                    .header("Cache-Control", "no-store")
-                    .header("Origin", "https://speed.cloudflare.com")
-                    .header("Referer", "https://speed.cloudflare.com/")
-                    .header("Sec-Fetch-Dest", "empty")
-                    .header("Sec-Fetch-Mode", "cors")
-                    .header("Sec-Fetch-Site", "same-origin")
-                    .build(),
-            )
-        }
-        .build()
+    private var downloadClient: OkHttpClient = criarClientDownload(perfilMovelAtual)
 
     // Client separado para pings — timeout menor, reusa o mesmo pool H2.
-    private val pingClient: OkHttpClient = client.newBuilder()
-        .connectTimeout(4, TimeUnit.SECONDS)
-        .readTimeout(4, TimeUnit.SECONDS)
-        .callTimeout(4, TimeUnit.SECONDS)
-        .build()
+    private var pingClient: OkHttpClient = criarClientPing(client)
+
+    private fun criarClientTransferencia(isMobileAtual: Boolean): OkHttpClient =
+        OkHttpClient.Builder()
+            .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .connectionPool(criarConnectionPool(isMobileAtual))
+            .addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .header("User-Agent", UA)
+                        .header("Cache-Control", "no-store")
+                        .build(),
+                )
+            }
+            .build()
+
+    private fun criarClientDownload(isMobileAtual: Boolean): OkHttpClient =
+        OkHttpClient.Builder()
+            .protocols(listOf(Protocol.HTTP_1_1))
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .connectionPool(criarConnectionPool(isMobileAtual))
+            .addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .header("User-Agent", UA)
+                        .header("Accept", "*/*")
+                        .header("Accept-Language", "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7")
+                        .header("Cache-Control", "no-store")
+                        .header("Origin", "https://speed.cloudflare.com")
+                        .header("Referer", "https://speed.cloudflare.com/")
+                        .header("Sec-Fetch-Dest", "empty")
+                        .header("Sec-Fetch-Mode", "cors")
+                        .header("Sec-Fetch-Site", "same-origin")
+                        .build(),
+                )
+            }
+            .build()
+
+    private fun criarClientPing(base: OkHttpClient): OkHttpClient =
+        base.newBuilder()
+            .connectTimeout(4, TimeUnit.SECONDS)
+            .readTimeout(4, TimeUnit.SECONDS)
+            .callTimeout(4, TimeUnit.SECONDS)
+            .build()
+
+    /**
+     * GH#1221 RF-01 — resolve o perfil de pool (metered/movel vs Wi-Fi) no INICIO de cada
+     * execucao, nunca so na construcao do singleton. So reconstroi os clients quando o
+     * perfil realmente mudou desde a ultima execucao — evita descartar conexoes
+     * keep-alive vivas em testes consecutivos na mesma rede. Chamado antes de qualquer
+     * fase iniciar, com [emExecucao] ja travado (sem concorrencia possivel aqui).
+     */
+    private fun garantirPerfilRede(isMobileAtual: Boolean) {
+        if (isMobileAtual == perfilMovelAtual) return
+        Timber.i("perfilRede: mudou isMobile=$perfilMovelAtual -> $isMobileAtual, recriando pool HTTP")
+        perfilMovelAtual = isMobileAtual
+        client = criarClientTransferencia(isMobileAtual)
+        downloadClient = criarClientDownload(isMobileAtual)
+        pingClient = criarClientPing(client)
+    }
 
     private val emExecucao = AtomicBoolean(false)
     private val cancelFlag = AtomicBoolean(false)
@@ -155,10 +187,18 @@ class ExecutorSpeedtestCloudflare(
         connectionType: String?,
         connectionTypeProvider: (() -> String?)?,
         tecnologiaProvider: (() -> String?)?,
+        isMobileProvider: (() -> Boolean)?,
     ) {
         if (!emExecucao.compareAndSet(false, true)) return
         withContext(Dispatchers.IO) {
             try {
+                // GH#1221 RF-01 — resolve o perfil de rede ATUAL antes de qualquer fase,
+                // nunca reaproveita so o valor congelado na construcao do singleton.
+                garantirPerfilRede(isMobileProvider?.invoke() ?: perfilMovelAtual)
+                // GH#1221/#1225 RF-02 — identificador unico desta execucao, usado por
+                // Resultado/Diagnostico/IA/Recomendacao/PDF para confirmar que pertencem
+                // a mesma execucao (descartar respostas assincronas de execucoes antigas).
+                val executionId = java.util.UUID.randomUUID().toString()
                 cancelFlag.set(false)
                 bytesConsumidosTotal.set(0L)
                 faseAtualInterna = FaseSpeedtest.idle
@@ -172,6 +212,7 @@ class ExecutorSpeedtestCloudflare(
                         connectionType = connectionType,
                         connectionTypeProvider = connectionTypeProvider,
                         tecnologiaProvider = tecnologiaProvider,
+                        executionId = executionId,
                     )
                     return@withContext
                 }
@@ -214,6 +255,7 @@ class ExecutorSpeedtestCloudflare(
                             contaminado = true,
                             faseInterrompida = faseInterrompida,
                             tecnologia = tecnologiaProvider?.invoke(),
+                            executionId = executionId,
                         )
                     registrarDiagnostico(resultadoContaminado)
                     faseAtualInterna = FaseSpeedtest.concluido
@@ -295,6 +337,7 @@ class ExecutorSpeedtestCloudflare(
                             contaminado = true,
                             faseInterrompida = faseInterrompida,
                             tecnologia = tecnologiaProvider?.invoke(),
+                            executionId = executionId,
                         )
                     registrarDiagnostico(resultadoContaminado)
                     faseAtualInterna = FaseSpeedtest.concluido
@@ -376,6 +419,7 @@ class ExecutorSpeedtestCloudflare(
                         faseInterrompida = faseInterrompida,
                         uploadNaoDetectado = uploadNaoDetectado,
                         tecnologia = tecnologiaProvider?.invoke(),
+                        executionId = executionId,
                     )
 
                 registrarDiagnostico(resultado)
@@ -401,6 +445,7 @@ class ExecutorSpeedtestCloudflare(
         connectionType: String?,
         connectionTypeProvider: (() -> String?)?,
         tecnologiaProvider: (() -> String?)? = null,
+        executionId: String = "",
     ) {
         val redeInicial = connectionType
         val config = SpeedtestConfig.fromModo(ModoSpeedtest.triplo)
@@ -613,6 +658,13 @@ class ExecutorSpeedtestCloudflare(
                 uploadUltimoErro = null,
                 dnsErroMensagem = null,
             ),
+            executionId = executionId,
+            // GH#1221/#1225 — modo triplo so chega aqui apos as 3 rodadas completarem sem
+            // cancelamento (early-return acima cobre cancelamento); nao usa
+            // calcularMeasurementStatus porque latenciaAmostrasValidas=0 e um valor
+            // hardcoded de "nao calculado por rodada" aqui, nao uma amostragem real que o
+            // limiar de INCONCLUSIVE deveria avaliar.
+            status = MeasurementStatus.COMPLETE,
         )
 
         Timber.i("triplo concluido dl=${downloadMediana} ul=${uploadMediana} lat=${latenciaMediana} rodadas=${rodadas.size}")
@@ -1197,11 +1249,21 @@ class ExecutorSpeedtestCloudflare(
         faseInterrompida: String,
         uploadNaoDetectado: Boolean = false,
         tecnologia: String? = null,
+        executionId: String = "",
     ): ResultadoSpeedtest {
         val latencyDownload = median(pingDownload)
         val latencyUpload = median(pingUpload)
         val bufferbloatMs = max(max(latencyDownload, latencyUpload) - latencyPhase.latenciaMs, 0.0)
         val severidadeBufferbloat = SpeedtestQualityClassifier.classificarBufferbloat(bufferbloatMs)
+        // GH#1221/#1225 — status canonico de integridade (ver MeasurementStatus.kt).
+        val status =
+            calcularMeasurementStatus(
+                contaminado = contaminado,
+                amostrasValidasLatencia = latencyPhase.amostrasValidas,
+                uploadNaoDetectado = uploadNaoDetectado,
+                downloadEncerradaPor = downloadPhase.faseEncerradaPor,
+                uploadEncerradaPor = uploadPhase.faseEncerradaPor,
+            )
         val estabilidade = calcularEstabilidade(downloadPhase.amostrasInstantaneas + uploadPhase.amostrasInstantaneas)
         val diagnostico =
             SpeedtestQualityClassifier.classificarQualidade(
@@ -1266,6 +1328,8 @@ class ExecutorSpeedtestCloudflare(
             // ao que o diagnostico local/IA ja usam (connectionTypeEnd).
             connectionType = redeFinal ?: redeInicial,
             tecnologia = tecnologia,
+            executionId = executionId,
+            status = status,
         )
     }
 

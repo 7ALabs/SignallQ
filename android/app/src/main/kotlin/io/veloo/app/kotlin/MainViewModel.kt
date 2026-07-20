@@ -111,6 +111,7 @@ import org.json.JSONObject
 import timber.log.Timber
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 @HiltViewModel
@@ -240,7 +241,6 @@ class MainViewModel
         // sem side effect se o id ja foi processado).
         private val recommendationShownTrackingIds = mutableSetOf<String>()
         private val recommendationClickedTrackingIds = mutableSetOf<String>()
-        private val recommendationDismissedTrackingIds = mutableSetOf<String>()
 
         // Id do diagnostico que originou _recommendationDecision -- guardado a parte porque
         // RecommendationDecision (coreRecommendation) nao carrega o diagnosticId, so o
@@ -820,10 +820,33 @@ class MainViewModel
         // _speedtestPendenteModoMovel deste ViewModel quando a migracao for concluida.
         // -------------------------------------------------------------------------
 
+        /** GH#1221 RF-09 — trava de concorrencia no dominio (ver kdoc equivalente em
+         *  SpeedtestViewModel.execucaoEmAndamento). Sem isso, duplo clique dispara duas
+         *  corrotinas de `reiniciarSuite` — o executor ja rejeita a 2a execucao concorrente,
+         *  mas esta funcao ainda contaria MB consumidos em dobro e chamaria
+         *  [iniciarRotinasNaoSpeedtest] duas vezes para uma unica medicao real. */
+        private val execucaoSpeedtestEmAndamento = AtomicBoolean(false)
+
+        /** GH#1225 item G — ao iniciar um novo teste, cancela a analise por IA anterior
+         *  (job cancelavel em [analisarProblema]) e reseta a recomendacao/feedback da
+         *  execucao anterior. Sem isso, uma resposta tardia da IA ou uma recomendacao de
+         *  um diagnostico anterior podia aparecer junto do resultado do teste novo. */
+        private fun resetarEstadoPosSpeedtestAnterior() {
+            analisarProblemaJob?.cancel()
+            _analisadorState.value = AnalisadorState.Inativo
+            _recommendationDecision.value = null
+            _recommendationFeedback.value = null
+            recommendationDiagnosticId = null
+        }
+
         fun reiniciarSuite(
             modo: ModoSpeedtest,
             jaConfirmadoRedeMovel: Boolean = false,
         ) {
+            if (!execucaoSpeedtestEmAndamento.compareAndSet(false, true)) {
+                Timber.w("reiniciarSuite ignorado — ja ha execucao em andamento")
+                return
+            }
             scannerDispositivosDisparado = false
             scanWifiDisparado = false
             benchmarkDnsDisparado = false
@@ -832,6 +855,7 @@ class MainViewModel
             infoLocalRedeColetada = false
             ispInfoColetada = false
             localizacaoServidorColetada = false
+            resetarEstadoPosSpeedtestAnterior()
             viewModelScope.launch {
                 // Guarda de rede medida: se movel, modo pesado e usuario nao autorizou,
                 // suspende e aguarda confirmacao via dialog (Task 4). Sem dialog agora.
@@ -854,6 +878,7 @@ class MainViewModel
                     val permiteHeavy = preferenciasAppRepository.speedtestPermiteHeavyMovel.first()
                     if (!permiteHeavy) {
                         _speedtestPendenteModoMovel.value = modo
+                        execucaoSpeedtestEmAndamento.set(false)
                         return@launch
                     }
                 }
@@ -861,6 +886,7 @@ class MainViewModel
                     executarSpeedtest(modo)
                 } finally {
                     acumularMbConsumidos(modo)
+                    execucaoSpeedtestEmAndamento.set(false)
                     iniciarRotinasNaoSpeedtest()
                 }
             }
@@ -869,12 +895,18 @@ class MainViewModel
         /** Chamada pelo dialog de confirmacao (Task 4 — Lia) quando usuario aceita usar dados moveis. */
         fun confirmarSpeedtestEmMovel() {
             val modo = _speedtestPendenteModoMovel.value ?: return
+            if (!execucaoSpeedtestEmAndamento.compareAndSet(false, true)) {
+                Timber.w("confirmarSpeedtestEmMovel ignorado — ja ha execucao em andamento")
+                return
+            }
             _speedtestPendenteModoMovel.value = null
+            resetarEstadoPosSpeedtestAnterior()
             viewModelScope.launch {
                 try {
                     executarSpeedtest(modo)
                 } finally {
                     acumularMbConsumidos(modo)
+                    execucaoSpeedtestEmAndamento.set(false)
                     iniciarRotinasNaoSpeedtest()
                 }
             }
@@ -1624,6 +1656,9 @@ class MainViewModel
                 connectionType = connectionType,
                 connectionTypeProvider = { monitorRede.snapshotFlow.value.estadoConexao.name },
                 tecnologiaProvider = { monitorTelephony.snapshotFlow.value?.tecnologia },
+                // GH#1221 RF-01 — resolve o perfil de pool (metered/movel) no momento do
+                // teste, nao no valor congelado na criacao do singleton via AppModule.
+                isMobileProvider = { networkCapabilitiesProvider.isMeteredNetwork() },
             )
             Timber.i("finalizado modo=${modo.name}")
         }
@@ -1740,6 +1775,13 @@ class MainViewModel
             )
         }
 
+        /** GH#1225 item 7/G — job em andamento de [analisarProblema], cancelado antes de
+         *  iniciar uma nova analise. Sem isso, uma resposta tardia (ate 45s de timeout
+         *  interno) de uma chamada anterior podia sobrescrever `_analisadorState` DEPOIS
+         *  de uma analise mais nova ja ter concluido, mostrando texto de uma execucao
+         *  velha por cima do resultado atual. */
+        private var analisarProblemaJob: kotlinx.coroutines.Job? = null
+
         /**
          * Chamada de IA de diagnostico -- mecanismo UNICO (decisao do Luiz, 2026-07-14)
          * reaproveitado tanto pela tela 1a "Analise detalhada" (spec To-Be -- acionada
@@ -1762,99 +1804,104 @@ class MainViewModel
                     return
                 }
             _analisadorState.value = AnalisadorState.Analisando
-            viewModelScope.launch {
-                try {
-                    val connectionType =
-                        snap.input?.connectionType
-                            ?: io.signallq.app.core.diagnostico.ConnectionType.desconhecido
-                    val extra = coletarContextoAdicionalIa()
-                    val ctx =
-                        DiagnosisAiContextFactory.fromRaw(
-                            report = relatorio,
-                            input = snap.input,
-                            connectionType = connectionType,
-                            feedbackUsuario = problema,
-                            ispNome = extra.ispNome,
-                            ispAsn = extra.ispAsn,
-                            ipPublico = extra.ipPublico,
-                            ipLocal = extra.ipLocal,
-                            pais = extra.pais,
-                            regiao = extra.regiao,
-                            gatewayIp = extra.gatewayIp,
-                            dnsResolverIp = extra.dnsResolverIp,
-                            dnsResolverProvider = extra.dnsResolverProvider,
-                            servidorTesteCidade = extra.servidorTesteCidade,
-                            ultimosTestesHistorico = extra.ultimosTestesHistorico,
-                            redesProximas = extra.redesProximas,
-                            movel = extra.movel,
-                            dispositivos = extra.dispositivos,
-                            privateDnsAtivo = extra.privateDnsAtivo,
-                            privateDnsHostname = extra.privateDnsHostname,
-                            wifiLinkBssid = extra.wifiBssid,
-                            wifiPadrao = extra.wifiPadrao,
-                            wifiLinkSpeedMbps = extra.wifiLinkSpeedMbps,
-                        )
-                    val resultado =
-                        withTimeoutOrNull(45_000L) {
-                            diagAiRepository.explainDiagnosis(
-                                context = ctx,
-                                decisaoLocalStatus = relatorio.decisao.status.name,
-                            ) { AiFallbackFactory.fromLocal(relatorio) }
+            // GH#1225 — cancela qualquer analise anterior ainda em voo antes de iniciar
+            // esta, para a resposta tardia dela nunca sobrescrever o estado atual.
+            analisarProblemaJob?.cancel()
+            analisarProblemaJob =
+                viewModelScope.launch {
+                    try {
+                        val connectionType =
+                            snap.input?.connectionType
+                                ?: io.signallq.app.core.diagnostico.ConnectionType.desconhecido
+                        val extra = coletarContextoAdicionalIa()
+                        val ctx =
+                            DiagnosisAiContextFactory.fromRaw(
+                                report = relatorio,
+                                input = snap.input,
+                                connectionType = connectionType,
+                                feedbackUsuario = problema,
+                                ispNome = extra.ispNome,
+                                ispAsn = extra.ispAsn,
+                                ipPublico = extra.ipPublico,
+                                ipLocal = extra.ipLocal,
+                                pais = extra.pais,
+                                regiao = extra.regiao,
+                                gatewayIp = extra.gatewayIp,
+                                dnsResolverIp = extra.dnsResolverIp,
+                                dnsResolverProvider = extra.dnsResolverProvider,
+                                servidorTesteCidade = extra.servidorTesteCidade,
+                                ultimosTestesHistorico = extra.ultimosTestesHistorico,
+                                redesProximas = extra.redesProximas,
+                                movel = extra.movel,
+                                dispositivos = extra.dispositivos,
+                                privateDnsAtivo = extra.privateDnsAtivo,
+                                privateDnsHostname = extra.privateDnsHostname,
+                                wifiLinkBssid = extra.wifiBssid,
+                                wifiPadrao = extra.wifiPadrao,
+                                wifiLinkSpeedMbps = extra.wifiLinkSpeedMbps,
+                            )
+                        val resultado =
+                            withTimeoutOrNull(45_000L) {
+                                diagAiRepository.explainDiagnosis(
+                                    context = ctx,
+                                    decisaoLocalStatus = relatorio.decisao.status.name,
+                                ) { AiFallbackFactory.fromLocal(relatorio) }
+                            }
+                        when (resultado) {
+                            is AiDiagnosisState.success -> {
+                                val texto = resultado.result.textoLaudo.ifBlank { resultado.result.resumo }
+                                _analisadorState.value =
+                                    AnalisadorState.Resultado(
+                                        texto = texto,
+                                        origem = "ia",
+                                        acoes = resultado.result.acoesRecomendadas,
+                                        titulo = resultado.result.titulo,
+                                        resumo = resultado.result.resumo,
+                                        problemaRelatado = problema,
+                                    )
+                                speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
+                            }
+                            is AiDiagnosisState.fallback -> {
+                                val texto = resultado.result.textoLaudo.ifBlank { resultado.result.resumo }
+                                _analisadorState.value =
+                                    AnalisadorState.Resultado(
+                                        texto = texto,
+                                        origem = "local",
+                                        acoes = resultado.result.acoesRecomendadas,
+                                        titulo = resultado.result.titulo,
+                                        resumo = resultado.result.resumo,
+                                        problemaRelatado = problema,
+                                    )
+                                speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
+                            }
+                            // Timeout de UI (5s) estourado, ou repository devolveu timeout/error/idle/loading:
+                            // cai pro fallback local sincrono em vez de erro -- o app consegue responder
+                            // sozinho a partir do relatorio ja calculado, sem depender da rede.
+                            else -> {
+                                val local = AiFallbackFactory.fromLocal(relatorio)
+                                val texto = local.textoLaudo.ifBlank { local.resumo }
+                                _analisadorState.value =
+                                    AnalisadorState.Resultado(
+                                        texto = texto,
+                                        origem = "local",
+                                        acoes = local.acoesRecomendadas,
+                                        titulo = local.titulo,
+                                        resumo = local.resumo,
+                                        problemaRelatado = problema,
+                                    )
+                                speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
+                            }
                         }
-                    when (resultado) {
-                        is AiDiagnosisState.success -> {
-                            val texto = resultado.result.textoLaudo.ifBlank { resultado.result.resumo }
-                            _analisadorState.value =
-                                AnalisadorState.Resultado(
-                                    texto = texto,
-                                    origem = "ia",
-                                    acoes = resultado.result.acoesRecomendadas,
-                                    titulo = resultado.result.titulo,
-                                    resumo = resultado.result.resumo,
-                                    problemaRelatado = problema,
-                                )
-                            speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
-                        }
-                        is AiDiagnosisState.fallback -> {
-                            val texto = resultado.result.textoLaudo.ifBlank { resultado.result.resumo }
-                            _analisadorState.value =
-                                AnalisadorState.Resultado(
-                                    texto = texto,
-                                    origem = "local",
-                                    acoes = resultado.result.acoesRecomendadas,
-                                    titulo = resultado.result.titulo,
-                                    resumo = resultado.result.resumo,
-                                    problemaRelatado = problema,
-                                )
-                            speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
-                        }
-                        // Timeout de UI (5s) estourado, ou repository devolveu timeout/error/idle/loading:
-                        // cai pro fallback local sincrono em vez de erro -- o app consegue responder
-                        // sozinho a partir do relatorio ja calculado, sem depender da rede.
-                        else -> {
-                            val local = AiFallbackFactory.fromLocal(relatorio)
-                            val texto = local.textoLaudo.ifBlank { local.resumo }
-                            _analisadorState.value =
-                                AnalisadorState.Resultado(
-                                    texto = texto,
-                                    origem = "local",
-                                    acoes = local.acoesRecomendadas,
-                                    titulo = local.titulo,
-                                    resumo = local.resumo,
-                                    problemaRelatado = problema,
-                                )
-                            speedtestPersistenceCoordinator.atualizarDiagnosticoIa(texto, problema)
-                        }
+                    } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) throw e
+                        Timber.e(e, "analisarProblema falhou")
+                        _analisadorState.value = AnalisadorState.Erro("Erro ao analisar. Tente novamente.")
                     }
-                } catch (e: Exception) {
-                    if (e is kotlinx.coroutines.CancellationException) throw e
-                    Timber.e(e, "analisarProblema falhou")
-                    _analisadorState.value = AnalisadorState.Erro("Erro ao analisar. Tente novamente.")
                 }
-            }
         }
 
         fun resetarAnalisador() {
+            analisarProblemaJob?.cancel()
             _analisadorState.value = AnalisadorState.Inativo
         }
 
@@ -1934,19 +1981,6 @@ class MainViewModel
                     diagnosticId = recommendationDiagnosticId,
                     feedback = feedback,
                 ),
-            )
-        }
-
-        /** Chamada quando o usuario fecha a experiencia pos-diagnostico sem dar nenhum
-         *  feedback explicito para a recomendacao atual -- "ignorou/fechou" (#790). Nao
-         *  dispara se o usuario ja deu feedback (util/nao util/ocultar), pra nao contar a
-         *  mesma interacao como dismissed e feedback ao mesmo tempo. */
-        fun registrarRecomendacaoDispensada() {
-            val decisao = _recommendationDecision.value ?: return
-            if (_recommendationFeedback.value != null) return
-            if (!recommendationDismissedTrackingIds.add(decisao.trackingId)) return
-            recommendationAnalyticsTracker.track(
-                decisao.toAnalyticsPayload(RecommendationAnalyticsEventName.DISMISSED, diagnosticId = recommendationDiagnosticId),
             )
         }
 
