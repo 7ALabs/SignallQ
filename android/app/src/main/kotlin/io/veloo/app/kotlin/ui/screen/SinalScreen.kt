@@ -843,7 +843,7 @@ private fun mobileSignalQuality(
             MobileInsight(
                 label = "Indisponível",
                 description = "O Android não expôs a intensidade deste chip agora.",
-                color = LkColors.accentBlue,
+                color = c.secondary,
             )
         rsrpDbm >= -90 ->
             MobileInsight(
@@ -906,7 +906,7 @@ private fun mobileConnectionType(
             MobileInsight(
                 label = "Móvel",
                 description = "Tecnologia não identificada pelo Android neste momento.",
-                color = LkColors.accentBlue,
+                color = c.secondary,
             )
     }
 }
@@ -978,7 +978,7 @@ private fun snapshotSignalQuality(
                 MobileInsight(
                     label = "Sem leitura",
                     description = "O Android não forneceu leitura precisa do sinal neste momento.",
-                    color = LkColors.accentBlue,
+                    color = c.secondary,
                 )
             rsrp >= -90 ->
                 MobileInsight(
@@ -1035,7 +1035,7 @@ private fun snapshotConnectionType(
             MobileInsight(
                 label = "Móvel",
                 description = "Tecnologia não identificada pelo Android neste momento.",
-                color = LkColors.accentBlue,
+                color = c.secondary,
             )
     }
 }

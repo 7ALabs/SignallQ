@@ -19,7 +19,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
@@ -42,7 +41,7 @@ fun AdBadge(
     val tone =
         when {
             isSimulated -> c.warning
-            isPartner -> LkColors.accentBlue
+            isPartner -> c.secondary
             else -> c.textTertiary
         }
     val label =

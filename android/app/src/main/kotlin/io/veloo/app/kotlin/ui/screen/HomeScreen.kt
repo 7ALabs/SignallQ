@@ -134,7 +134,6 @@ import io.signallq.app.ui.ConnectionNodeType
 import io.signallq.app.ui.GatewayInfo
 import io.signallq.app.ui.HistoryPoint
 import io.signallq.app.ui.IspInfo
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -369,7 +368,7 @@ fun HomeScreen(
         )
     }
 
-    val profileBrush = remember { Brush.linearGradient(colors = listOf(c.primary, LkColors.accentBlue)) }
+    val profileBrush = remember { Brush.linearGradient(colors = listOf(c.primary, c.secondary)) }
     val listState = rememberLazyListState()
     Scaffold(
         topBar = {

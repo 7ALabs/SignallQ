@@ -33,7 +33,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.network.EstadoConexao
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -217,7 +216,7 @@ fun SpeedBarsChart(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     LegendaDot(color = c.primary, label = "Wi-Fi", c = c)
-                    LegendaDot(color = LkColors.accentBlue, label = "Móvel", c = c)
+                    LegendaDot(color = c.secondary, label = "Móvel", c = c)
                 }
             }
 
@@ -270,7 +269,7 @@ fun SpeedBarsChart(
                             val dl = medicao.downloadMbps
                             val fraction = if (dl != null) (dl / maxMbps).toFloat().coerceIn(0f, 1f) else 0f
                             val isWifi = medicao.connectionType == "wifi"
-                            val barColor = if (isWifi) c.primary else LkColors.accentBlue
+                            val barColor = if (isWifi) c.primary else c.secondary
                             val typeLabel = if (isWifi) "W" else medicao.operadoraMovel?.take(4) ?: "M"
                             val valueLabel = if (dl != null) "%.0f".format(dl) else "--"
 

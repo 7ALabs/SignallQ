@@ -15,7 +15,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.nativead.NativeAd
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LocalLkTokens
 
 /**
@@ -42,7 +41,7 @@ fun NativeAdIconChip(
             Modifier
                 .size(size)
                 .clip(RoundedCornerShape(cornerRadius))
-                .background(if (icon == null) LkColors.accentBlue.copy(alpha = 0.14f) else c.bgSecondary),
+                .background(if (icon == null) c.secondary.copy(alpha = 0.14f) else c.bgSecondary),
         contentAlignment = Alignment.Center,
     ) {
         if (icon != null) {
@@ -59,7 +58,7 @@ fun NativeAdIconChip(
             Icon(
                 imageVector = Icons.Outlined.Campaign,
                 contentDescription = null,
-                tint = LkColors.accentBlue,
+                tint = c.secondary,
                 modifier = Modifier.size(size / 2),
             )
         }

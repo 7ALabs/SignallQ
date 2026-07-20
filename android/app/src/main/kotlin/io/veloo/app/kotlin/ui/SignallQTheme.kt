@@ -25,7 +25,6 @@ object LkColors {
     val success = Color(0xFF146C2E)
     val warning = Color(0xFF8A5000)
     val error = Color(0xFFBA1A1A)
-    val accentBlue = Color(0xFF2563EB)
 
     val signallQBlack = Color(0xFF0D0D1A)
     val signallQDarkSurface = Color(0xFF1A0B2E)

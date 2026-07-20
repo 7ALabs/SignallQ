@@ -40,7 +40,7 @@ fun ProfileAvatarButton(
     val fotoBitmap: ImageBitmap? by produceState<ImageBitmap?>(initialValue = null, key1 = fotoUri) {
         value = fotoUri?.let { uriStr -> decodificarBitmapPerfil(context, uriStr) }
     }
-    val profileBrush = Brush.linearGradient(colors = listOf(c.primary, LkColors.accentBlue))
+    val profileBrush = Brush.linearGradient(colors = listOf(c.primary, c.secondary))
 
     val descPerfil = if (nomeUsuario.isNotBlank()) "Foto de perfil de $nomeUsuario" else "Foto de perfil"
     Box(
