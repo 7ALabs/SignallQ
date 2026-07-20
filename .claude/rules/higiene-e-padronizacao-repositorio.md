@@ -198,6 +198,23 @@ Ao tocar nele:
 5. cada etapa independente deve ter seu próprio arquivo (ex.: `JogoEtapa1Screen.kt`, `JogoEtapa2Screen.kt`) ou componente reutilizável;
 6. crie testes de caracterização antes de extrações com risco de comportamento de fluxo ou estado.
 
+### 4.8b `SinalScreen.kt`
+
+Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/SinalScreen.kt` —
+**3672 linhas** (acima do limiar de "dívida crítica" da seção 7). Encontrado em 2026-07-20
+durante a implementação das issues #1207/#1209 (auditoria de Sinal Canal/Wi-Fi), não
+documentado antes. Concentra as abas de Sinal Móvel, Canal e Wi-Fi/topologia.
+
+Ao tocar nele:
+1. identifique qual aba (Móvel/Canal/Wi-Fi) está sendo modificada;
+2. não adicione lógica de classificação nova diretamente na tela — motores/classificadores
+   pertencem a `core/diagnostico` ou `core/network`, não à Screen;
+3. prefira separar por aba: estado de cada aba, adaptadores de dados, componentes de
+   visualização (ex.: `SinalMovelSection.kt`, `SinalCanalSection.kt`, `SinalWifiSection.kt`);
+4. mantenha em `SinalScreen.kt` apenas a composição das abas e navegação entre elas;
+5. crie testes de caracterização antes de extrações com risco de comportamento visual ou de
+   estado — a implementação de #1207/#1209 é candidata natural a já fazer parte dessa extração.
+
 ### 4.9 Identificação de topologia e dispositivos
 
 Quando encontrar motores, heurísticas ou classificadores concorrentes:
