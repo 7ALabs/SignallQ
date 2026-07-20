@@ -312,6 +312,63 @@ class MetricClassifierTest {
         assertEquals(MetricStatus.bom, MetricClassifier.classificarSinr(12, RadioTech.NR_5G))
     }
 
+    // ── Download (throughput) ────────────────────────────────────────────────
+
+    @Test
+    fun `download excelente a partir de 100mbps`() {
+        assertEquals(MetricStatus.excelente, MetricClassifier.classificarDownload(100.0))
+    }
+
+    @Test
+    fun `download bom entre 50 e 100mbps`() {
+        assertEquals(MetricStatus.bom, MetricClassifier.classificarDownload(50.0))
+        assertEquals(MetricStatus.bom, MetricClassifier.classificarDownload(99.9))
+    }
+
+    @Test
+    fun `download regular entre 25 e 50mbps`() {
+        assertEquals(MetricStatus.regular, MetricClassifier.classificarDownload(25.0))
+        assertEquals(MetricStatus.regular, MetricClassifier.classificarDownload(49.9))
+    }
+
+    @Test
+    fun `download ruim entre 10 e 25mbps`() {
+        assertEquals(MetricStatus.ruim, MetricClassifier.classificarDownload(10.0))
+        assertEquals(MetricStatus.ruim, MetricClassifier.classificarDownload(24.9))
+    }
+
+    @Test
+    fun `download critico abaixo de 10mbps`() {
+        assertEquals(MetricStatus.critico, MetricClassifier.classificarDownload(9.9))
+    }
+
+    // ── Upload (throughput) ──────────────────────────────────────────────────
+
+    @Test
+    fun `upload excelente a partir de 20mbps`() {
+        assertEquals(MetricStatus.excelente, MetricClassifier.classificarUpload(20.0))
+    }
+
+    @Test
+    fun `upload bom entre 10 e 20mbps`() {
+        assertEquals(MetricStatus.bom, MetricClassifier.classificarUpload(10.0))
+    }
+
+    @Test
+    fun `upload regular entre 3 e 10mbps`() {
+        assertEquals(MetricStatus.regular, MetricClassifier.classificarUpload(3.0))
+    }
+
+    @Test
+    fun `upload ruim entre 1 e 3mbps`() {
+        assertEquals(MetricStatus.ruim, MetricClassifier.classificarUpload(1.0))
+    }
+
+    @Test
+    fun `upload critico abaixo de 1mbps`() {
+        assertEquals(MetricStatus.critico, MetricClassifier.classificarUpload(0.9))
+    }
+
     // ── DNS (latencia) ───────────────────────────────────────────────────────
 
     @Test
