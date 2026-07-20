@@ -1026,7 +1026,6 @@ private fun OperadoraResumoCard(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
                 .background(c.bgSecondary)
-                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
                 .padding(LkSpacing.lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {

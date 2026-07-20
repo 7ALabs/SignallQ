@@ -474,10 +474,7 @@ fun HomeScreen(
             if (isCgNat(ispInfo?.ip ?: publicIp)) {
                 item {
                     Card(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .border(1.dp, c.warning.copy(alpha = 0.50f), RoundedCornerShape(LkRadius.card)),
+                        modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = c.warning.copy(alpha = 0.08f)),
                         shape = RoundedCornerShape(LkRadius.card),
                     ) {
@@ -649,7 +646,6 @@ private fun SignallQCard(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(LkRadius.card),
         color = c.bgCard,
-        border = androidx.compose.foundation.BorderStroke(1.dp, c.border),
     ) {
         Box(modifier = Modifier.padding(LkSpacing.lg)) {
             content()
@@ -665,10 +661,7 @@ internal fun AnatelBanner(
     c: LkTokens,
 ) {
     Card(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .border(1.dp, c.warning.copy(alpha = 0.50f), RoundedCornerShape(LkRadius.card)),
+        modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = c.warning.copy(alpha = 0.08f)),
         shape = RoundedCornerShape(LkRadius.card),
     ) {
@@ -2658,7 +2651,6 @@ internal fun GamerShortcutCard(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
                 .background(c.bgCard)
-                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
                 .clickable(onClick = onClick)
                 .padding(LkSpacing.lg),
     ) {
@@ -3220,7 +3212,6 @@ private fun MedicaoOpcaoItem(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
                 .background(c.bgCard)
-                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
                 .then(
                     if (disponivel) {
                         Modifier.clickable { onClick() }
@@ -3462,10 +3453,7 @@ private fun ConnectionContextCard(
             }
 
             Card(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, c.warning.copy(alpha = 0.50f), RoundedCornerShape(LkRadius.card)),
+                modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = c.warning.copy(alpha = 0.08f)),
                 shape = RoundedCornerShape(LkRadius.card),
             ) {

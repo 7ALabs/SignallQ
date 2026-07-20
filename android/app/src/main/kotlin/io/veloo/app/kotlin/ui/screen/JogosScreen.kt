@@ -277,31 +277,27 @@ private fun PlataformaOptionCard(
     onClick: () -> Unit,
 ) {
     val c = LocalLkTokens.current
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.surface)
-                .border(1.dp, c.outlineVariant, RoundedCornerShape(LkRadius.card))
-                .clickable(onClick = onClick)
-                .padding(horizontal = LkSpacing.base, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+    LkSurfaceCard(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
     ) {
-        Icon(
-            imageVector = plataformaIcon(plataforma),
-            contentDescription = null,
-            tint = c.textSecondary,
-            modifier = Modifier.size(20.dp),
-        )
-        Text(
-            text = plataformaTitulo(plataforma),
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.titleSmall,
-            color = c.textPrimary,
-            fontWeight = FontWeight.W500,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+        ) {
+            Icon(
+                imageVector = plataformaIcon(plataforma),
+                contentDescription = null,
+                tint = c.textSecondary,
+                modifier = Modifier.size(20.dp),
+            )
+            Text(
+                text = plataformaTitulo(plataforma),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleSmall,
+                color = c.textPrimary,
+                fontWeight = FontWeight.W500,
+            )
+        }
     }
 }
 

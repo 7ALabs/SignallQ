@@ -191,9 +191,8 @@ fun SpeedBarsChart(
         modifier =
             modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.input))
+                .clip(RoundedCornerShape(LkRadius.card))
                 .background(c.bgCard)
-                .border(1.dp, c.border, RoundedCornerShape(LkRadius.input))
                 .padding(vertical = LkSpacing.md),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {

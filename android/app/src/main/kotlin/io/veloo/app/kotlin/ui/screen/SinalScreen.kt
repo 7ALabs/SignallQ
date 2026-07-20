@@ -1482,12 +1482,7 @@ private fun RedesTab(
                             Modifier
                                 .padding(horizontal = LkSpacing.lg)
                                 .clip(RoundedCornerShape(LkRadius.card))
-                                .background(c.success.copy(alpha = 0.12f))
-                                .border(
-                                    1.dp,
-                                    c.success.copy(alpha = 0.24f),
-                                    RoundedCornerShape(LkRadius.card),
-                                ),
+                                .background(c.success.copy(alpha = 0.12f)),
                     ) {
                         GrupoRedeTree(
                             ssid = connectedNetwork.ssid ?: "Rede oculta",
@@ -2593,7 +2588,6 @@ private fun CanalTab(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(LkRadius.card))
                         .background(c.surfaceContainer)
-                        .border(1.dp, c.outlineVariant, RoundedCornerShape(LkRadius.card))
                         .padding(LkSpacing.lg),
                 horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
                 verticalAlignment = Alignment.Top,
@@ -2629,7 +2623,6 @@ private fun CanalTab(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(LkRadius.card))
                             .background(c.surfaceContainer)
-                            .border(1.dp, c.outlineVariant, RoundedCornerShape(LkRadius.card))
                             .padding(LkSpacing.md),
                 ) {
                     SpectrumChart(

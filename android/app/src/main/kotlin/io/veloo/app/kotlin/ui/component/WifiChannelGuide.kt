@@ -53,7 +53,6 @@ fun WifiChannelGuide() {
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
                 .background(c.bgCard)
-                .border(1.dp, c.border, RoundedCornerShape(LkRadius.card))
                 .padding(LkSpacing.lg),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
     ) {
@@ -154,11 +153,10 @@ private fun ConteudoAndroid(c: LkTokens) {
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(LkRadius.card))
                     .background(c.warning.copy(alpha = 0.08f))
-                    .border(1.dp, c.warning.copy(alpha = 0.30f), RoundedCornerShape(LkRadius.card))
                     .padding(LkSpacing.md),
         ) {
             Text(
-                "Observacao: o Android nao permite forcar o canal diretamente. " +
+                "Observação: o Android não permite forçar o canal diretamente. " +
                     "Para mudar o canal da sua rede, use o painel do roteador.",
                 fontSize = 12.sp,
                 color = c.textSecondary,
@@ -174,14 +172,14 @@ private fun ConteudoRoteador(c: LkTokens) {
         GuideSection(
             number = 1,
             title = "Acesse o painel do roteador",
-            description = "Abra o navegador e digite o endereco:",
+            description = "Abra o navegador e digite o endereço:",
             details = "* http://192.168.0.1\n* http://192.168.1.1\n* ou consulte o adesivo do roteador",
             c = c,
         )
 
         GuideSection(
             number = 2,
-            title = "Va em Wireless / Wi-Fi",
+            title = "Vá em Wireless / Wi-Fi",
             description = "Procure por:",
             details = "* Wireless Settings\n* Wi-Fi Configuration\n* 2.4GHz ou 5GHz Settings",
             c = c,
@@ -190,7 +188,7 @@ private fun ConteudoRoteador(c: LkTokens) {
         GuideSection(
             number = 3,
             title = "Selecione \"Canal\"",
-            description = "Localize o campo de selecao de canal (Channel).",
+            description = "Localize o campo de seleção de canal (Channel).",
             details = "* 2.4GHz: prefira canais 1, 6 ou 11\n* 5GHz: prefira canais 36, 100, 149 ou 165",
             c = c,
         )
@@ -198,7 +196,7 @@ private fun ConteudoRoteador(c: LkTokens) {
         GuideSection(
             number = 4,
             title = "Escolha o canal recomendado ou \"Auto\"",
-            description = "Se nao souber qual escolher, use o canal sugerido acima ou deixe em Auto.",
+            description = "Se não souber qual escolher, use o canal sugerido acima ou deixe em Auto.",
             details = "",
             c = c,
         )
@@ -207,13 +205,13 @@ private fun ConteudoRoteador(c: LkTokens) {
             number = 5,
             title = "Salve e reinicie o roteador",
             description = "Clique em Salvar (Save / Apply).",
-            details = "O roteador pode reiniciar por 5-10 segundos.\nSeu mesh ou extensor sincronizara automaticamente.",
+            details = "O roteador pode reiniciar por 5-10 segundos.\nSeu mesh ou extensor sincronizará automaticamente.",
             c = c,
         )
 
         Spacer(Modifier.height(LkSpacing.sm))
         Text(
-            "Dica: execute um novo scan de canais apos a mudanca para confirmar a melhoria.",
+            "Dica: execute um novo scan de canais após a mudança para confirmar a melhoria.",
             fontSize = 12.sp,
             color = c.textSecondary,
             fontWeight = FontWeight.W500,
@@ -244,7 +242,7 @@ internal fun GuideSection(
         ) {
             Text(
                 number.toString(),
-                color = Color.White,
+                color = c.onPrimary,
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.sp,
             )

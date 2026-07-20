@@ -1,7 +1,6 @@
 package io.signallq.app.ui.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -125,12 +124,8 @@ private fun ThemeSelector(
                     Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(LkRadius.card))
-                        .background(c.surfaceContainer)
-                        .border(
-                            width = if (selecionada) 2.dp else 1.dp,
-                            color = if (selecionada) c.primary else c.border,
-                            shape = RoundedCornerShape(LkRadius.card),
-                        ).clickable { onSelect(valor) }
+                        .background(if (selecionada) c.primaryContainer else c.surfaceContainer)
+                        .clickable { onSelect(valor) }
                         .padding(vertical = LkSpacing.lg),
                 contentAlignment = Alignment.Center,
             ) {

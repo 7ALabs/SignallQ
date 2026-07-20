@@ -1,7 +1,6 @@
 package io.signallq.app.ui.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -57,9 +56,8 @@ internal fun ActionsSectionCard(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(LkRadius.card))
                         .background(c.surfaceContainer)
-                        .border(1.dp, c.outlineVariant, RoundedCornerShape(14.dp))
                         .clickable(enabled = action.enabled) {
                             when (action.id) {
                                 "restart" -> onSolicitarReiniciar()
@@ -67,7 +65,7 @@ internal fun ActionsSectionCard(
                                 "diagnosis" -> onExecutarDiagnostico()
                                 "wifi" -> onVerDetalhesWifi()
                             }
-                        }.padding(horizontal = 14.dp, vertical = 13.dp),
+                        }.padding(horizontal = LkSpacing.base, vertical = LkSpacing.md),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(action.icon, contentDescription = null, tint = if (action.danger) c.error else c.textSecondary, modifier = Modifier.size(19.dp))
@@ -105,7 +103,6 @@ internal fun ReiniciarEquipamentoRow(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
                 .background(c.surfaceContainer)
-                .border(1.dp, c.outlineVariant, RoundedCornerShape(LkRadius.card))
                 .padding(LkSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -120,7 +117,7 @@ internal fun ReiniciarEquipamentoRow(
                 color = c.textSecondary,
             )
         }
-        OutlinedButton(onClick = onClick, shape = RoundedCornerShape(14.dp)) { Text("Reiniciar", color = c.error) }
+        OutlinedButton(onClick = onClick, shape = RoundedCornerShape(LkRadius.button)) { Text("Reiniciar", color = c.error) }
     }
 }
 

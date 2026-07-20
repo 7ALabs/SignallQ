@@ -1,7 +1,6 @@
 package io.signallq.app.ui.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -115,10 +114,7 @@ private fun LkSurfaceCardComCor(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     LkSurfaceCard(
-        modifier =
-            Modifier
-                .background(cor.copy(alpha = 0.10f), RoundedCornerShape(LkRadius.card))
-                .border(1.dp, cor.copy(alpha = 0.30f), RoundedCornerShape(LkRadius.card)),
+        modifier = Modifier.background(cor.copy(alpha = 0.10f), RoundedCornerShape(LkRadius.card)),
         content = content,
     )
 }
@@ -217,7 +213,6 @@ internal fun AlertaCard(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
                 .background(cor.copy(alpha = 0.10f))
-                .border(1.dp, cor.copy(alpha = 0.30f), RoundedCornerShape(LkRadius.card))
                 .padding(LkSpacing.base),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
     ) {
@@ -248,7 +243,6 @@ internal fun AvisoAcessoCard(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
                 .background(cor.copy(alpha = 0.10f))
-                .border(1.dp, cor.copy(alpha = 0.30f), RoundedCornerShape(LkRadius.card))
                 .padding(LkSpacing.md),
         verticalAlignment = Alignment.Top,
     ) {

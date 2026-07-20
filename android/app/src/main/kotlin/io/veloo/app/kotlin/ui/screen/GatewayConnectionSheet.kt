@@ -406,7 +406,6 @@ private fun ToggleRow(
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.card))
-                .border(1.dp, c.outlineVariant, RoundedCornerShape(LkRadius.card))
                 .background(c.surfaceContainer)
                 .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
