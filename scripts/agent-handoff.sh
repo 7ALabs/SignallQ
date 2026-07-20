@@ -7,8 +7,8 @@
 # Eventos:
 #   start        — começou a trabalhar       → coluna "Em andamento"     (notif: progress)
 #   handoff      — passou para outro agente  → coluna depende do destino (notif: success)
-#   review       — implementação pronta      → coluna "Em review"        (notif: success → gema)
-#   docs         — review aprovado           → coluna "Docs & Higiene"   (notif: info → nina)
+#   review       — implementação pronta      → coluna "Em review"        (notif: success → rhodolfo revisa)
+#   docs         — review aprovado           → coluna "Docs & Higiene"   (notif: info → rhodolfo consolida)
 #   done         — fechado                   → coluna "Done"             (notif: success)
 #   block        — bloqueado                 → mantém coluna             (notif: warning)
 #   refine       — voltando para triagem     → coluna "Triagem"          (notif: info → claudete)
