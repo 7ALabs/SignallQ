@@ -98,6 +98,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import io.signallq.app.R
 import io.signallq.app.core.diagnostico.BandaWifi
 import io.signallq.app.core.diagnostico.DadoCanal
+import io.signallq.app.core.diagnostico.MetricClassifier
+import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.core.diagnostico.NivelCongestionamento
 import io.signallq.app.core.diagnostico.RedeWifiVizinha
 import io.signallq.app.core.diagnostico.SnapshotEspectroCanal
@@ -675,12 +677,17 @@ private fun SimCard(
     cardLabel: String,
     tokens: LkTokens,
 ) {
-    val operadora = sim.operadora ?: summarySnapshot?.operadora ?: "Operadora"
+    // GH#1206 item 1 — summarySnapshot representa o SIM PADRAO de dados (o
+    // TelephonyManager que o produz nunca e criado com createForSubscriptionId). So pode
+    // complementar dados deste card quando `sim` e de fato o SIM padrao — nunca pra um SIM
+    // secundario, senao o Chip 2 pode exibir operadora/tecnologia/RSRP do Chip 1.
+    val operadora = sim.operadora ?: summarySnapshot?.operadora?.takeIf { sim.isDefaultData } ?: "Operadora"
     val operadoraLocal = remember(operadora) { BancoOperadoras.resolverMovel(operadora) }
-    val resumoRede = buildMobileSummary(sim = sim, summarySnapshot = summarySnapshot)
-    val qualidade = mobileSignalQuality(sim.rsrpDbm, sim.radioDesligado, tokens)
-    val tipoConexao = mobileConnectionType(sim = sim, summarySnapshot = summarySnapshot, c = tokens)
-    val experiencia = mobileExpectedExperience(sim = sim, summarySnapshot = summarySnapshot, c = tokens)
+    val dadosSinal = sim.paraDadosSinalMovel(summarySnapshot)
+    val resumoRede = buildMobileSummary(dadosSinal)
+    val qualidade = classificarQualidadeSinalMovel(dadosSinal, tokens)
+    val tipoConexao = classificarTipoConexaoMovel(dadosSinal, tokens)
+    val experiencia = classificarExperienciaMovel(dadosSinal, tokens)
     val suporteUrl = operadoraLocal?.site
     val context = LocalContext.current
 
@@ -789,276 +796,185 @@ private fun SimCard(
     }
 }
 
-private data class MobileInsight(
+internal data class MobileInsight(
     val label: String,
     val description: String,
     val color: Color,
 )
 
-private fun buildMobileSummary(
-    sim: MovelSimSnapshot,
-    summarySnapshot: MovelSnapshot?,
-): String {
-    if (sim.radioDesligado) return "Modo avião ativo · rádio celular desligado"
-    val rsrp = sim.rsrpDbm ?: summarySnapshot?.rsrpDbm
-    val tecnologia = sim.tecnologiaRede ?: summarySnapshot?.tecnologia ?: "Rede móvel"
+/**
+ * GH#1206 — dados de sinal ja normalizados de UMA fonte (SIM especifico ou snapshot
+ * geral), usados pelas funcoes de classificacao abaixo. Existe pra eliminar a duplicacao
+ * entre as antigas mobileX()/snapshotX() (item 6 da issue) -- agora ha uma unica
+ * implementacao de qualidade/tipo de conexao/experiencia, alimentada por qualquer uma
+ * das duas fontes.
+ */
+internal data class DadosSinalMovel(
+    val rsrpDbm: Int?,
+    val rsrqDb: Int?,
+    val sinrDb: Int?,
+    val tecnologia: String?,
+    val radioDesligado: Boolean,
+)
+
+/**
+ * GH#1206 item 1 — so usa [summarySnapshot] como fallback quando ele inequivocamente
+ * representa o MESMO SIM ([MovelSimSnapshot.isDefaultData]). O TelephonyManager que
+ * produz o snapshot geral nunca e criado com `createForSubscriptionId`, entao ele reflete
+ * o SIM padrao de dados -- usa-lo pra completar um SIM secundario misturaria dados de
+ * chips diferentes (Chip 2 exibindo tecnologia/RSRP do Chip 1).
+ */
+internal fun MovelSimSnapshot.paraDadosSinalMovel(summarySnapshot: MovelSnapshot?): DadosSinalMovel {
+    val podeUsarFallback = isDefaultData
+    return DadosSinalMovel(
+        rsrpDbm = rsrpDbm ?: summarySnapshot?.rsrpDbm.takeIf { podeUsarFallback },
+        rsrqDb = rsrqDb ?: summarySnapshot?.rsrqDb.takeIf { podeUsarFallback },
+        sinrDb = sinrDb ?: summarySnapshot?.sinrDb.takeIf { podeUsarFallback },
+        tecnologia = tecnologiaRede ?: summarySnapshot?.tecnologia.takeIf { podeUsarFallback },
+        radioDesligado = radioDesligado,
+    )
+}
+
+internal fun MovelSnapshot.paraDadosSinalMovel(): DadosSinalMovel =
+    DadosSinalMovel(
+        rsrpDbm = rsrpDbm,
+        rsrqDb = rsrqDb,
+        sinrDb = sinrDb,
+        tecnologia = tecnologia,
+        radioDesligado = radioDesligado,
+    )
+
+internal fun buildMobileSummary(dados: DadosSinalMovel): String {
+    if (dados.radioDesligado) return "Modo avião ativo · rádio celular desligado"
     return buildString {
-        if (rsrp != null) append("RSRP $rsrp dBm")
-        if (rsrp != null) append(" · ")
-        append(tecnologia)
+        if (dados.rsrpDbm != null) append("RSRP ${dados.rsrpDbm} dBm")
+        if (dados.rsrpDbm != null) append(" · ")
+        append(dados.tecnologia ?: "Rede móvel")
     }
 }
 
-private fun mobileSignalQuality(
-    rsrpDbm: Int?,
-    radioDesligado: Boolean,
+/** GH#1206 item 2 — deriva o [MetricClassifier.RadioTech] a partir do texto de
+ *  tecnologia, mesmo criterio ja usado por `MobileSignalDiagnosticEngine` (nao inventa
+ *  regra nova): tecnologia contendo "5G" vira NR_5G, qualquer outra vira LTE_4G. */
+internal fun radioTechDeTecnologia(tecnologia: String?): MetricClassifier.RadioTech =
+    if (tecnologia?.contains("5G", ignoreCase = true) == true) {
+        MetricClassifier.RadioTech.NR_5G
+    } else {
+        MetricClassifier.RadioTech.LTE_4G
+    }
+
+/** Pior status entre RSRP (obrigatorio) e RSRQ/SINR (quando disponiveis) — mesmo
+ *  criterio de "assume a pior metrica" do `MobileSignalDiagnosticEngine` (GH#1206 item 6).
+ *  `null` quando RSRP nao esta disponivel (nunca vira classificacao positiva por padrao). */
+internal fun piorMetricStatusSinalMovel(dados: DadosSinalMovel): MetricStatus? {
+    val rsrp = dados.rsrpDbm ?: return null
+    val tech = radioTechDeTecnologia(dados.tecnologia)
+    val statuses =
+        buildList {
+            add(MetricClassifier.classificarRsrp(rsrp, tech))
+            dados.rsrqDb?.let { add(MetricClassifier.classificarRsrq(it, tech)) }
+            dados.sinrDb?.let { add(MetricClassifier.classificarSinr(it, tech)) }
+        }
+    return statuses.maxBy { it.ordinal }
+}
+
+/** GH#1206 item 2/3 — substitui `mobileSignalQuality`/`snapshotSignalQuality` (limiares
+ *  proprios -90/-105 dBm, iguais pra 4G e 5G) por `MetricClassifier.classificarRsrp`
+ *  (limiares corretos por tecnologia) + RSRQ/SINR quando disponiveis. RSRP ausente NUNCA
+ *  vira classificacao positiva -- fica "Indisponível". */
+internal fun classificarQualidadeSinalMovel(
+    dados: DadosSinalMovel,
     c: LkTokens,
-): MobileInsight =
-    when {
-        radioDesligado ->
-            MobileInsight(
-                label = "Sem sinal",
-                description = "Rádio celular desligado. Ative a rede móvel para medir chamadas e dados.",
-                color = c.warning,
-            )
-        rsrpDbm == null ->
-            MobileInsight(
+): MobileInsight {
+    if (dados.radioDesligado) {
+        return MobileInsight(
+            label = "Sem sinal",
+            description = "Rádio celular desligado. Ative a rede móvel para medir chamadas e dados.",
+            color = c.warning,
+        )
+    }
+    val pior =
+        piorMetricStatusSinalMovel(dados)
+            ?: return MobileInsight(
                 label = "Indisponível",
                 description = "O Android não expôs a intensidade deste chip agora.",
                 color = c.secondary,
             )
-        rsrpDbm >= -90 ->
-            MobileInsight(
-                label = "Bom",
-                description = "Bom - chamadas e vídeos tendem a ocorrer sem cortes.",
-                color = c.success,
-            )
-        rsrpDbm >= -105 ->
-            MobileInsight(
-                label = "Regular",
-                description = "Regular - pode oscilar em chamadas e vídeo em movimento.",
-                color = c.warning,
-            )
-        else ->
-            MobileInsight(
-                label = "Ruim",
-                description = "Ruim - maior chance de falhas em chamadas, uploads e streaming.",
-                color = c.error,
-            )
+    return when (pior) {
+        MetricStatus.excelente ->
+            MobileInsight("Excelente", "Excelente — chamadas e vídeos tendem a ficar estáveis mesmo sob uso pesado.", c.success)
+        MetricStatus.bom ->
+            MobileInsight("Bom", "Bom — chamadas e vídeos tendem a ocorrer sem cortes.", c.success)
+        MetricStatus.regular ->
+            MobileInsight("Regular", "Regular — pode oscilar em chamadas e vídeo em movimento.", c.warning)
+        MetricStatus.ruim, MetricStatus.critico ->
+            MobileInsight("Ruim", "Ruim — maior chance de falhas em chamadas, uploads e streaming.", c.error)
+        MetricStatus.inconclusivo ->
+            MobileInsight("Inconclusivo", "Amostra insuficiente para classificar a qualidade do sinal.", c.secondary)
     }
+}
 
-private fun mobileConnectionType(
-    sim: MovelSimSnapshot,
-    summarySnapshot: MovelSnapshot?,
+internal fun classificarTipoConexaoMovel(
+    dados: DadosSinalMovel,
     c: LkTokens,
 ): MobileInsight {
-    val tecnologia = sim.tecnologiaRede ?: summarySnapshot?.tecnologia
+    val tecnologia = dados.tecnologia
     return when {
-        sim.radioDesligado ->
-            MobileInsight(
-                label = "Off",
-                description = "Rádio desligado. Não há tecnologia ativa neste momento.",
-                color = c.warning,
-            )
+        dados.radioDesligado ->
+            MobileInsight("Off", "Rádio desligado. Não há tecnologia ativa neste momento.", c.warning)
         tecnologia?.contains("5G", ignoreCase = true) == true ->
-            MobileInsight(
-                label = "5G",
-                description = "5G NR - tecnologia mais rápida disponível para este chip.",
-                color = c.primary,
-            )
+            MobileInsight("5G", "5G NR — tecnologia mais rápida disponível para este chip.", c.primary)
         tecnologia?.contains("4G", ignoreCase = true) == true ->
-            MobileInsight(
-                label = "4G",
-                description = "4G LTE - bom equilíbrio entre cobertura e velocidade.",
-                color = c.warning,
-            )
+            MobileInsight("4G", "4G LTE — bom equilíbrio entre cobertura e velocidade.", c.warning)
         tecnologia?.contains("3G", ignoreCase = true) == true ->
-            MobileInsight(
-                label = "3G",
-                description = "3G - tecnologia legada com menor capacidade para vídeo e uploads.",
-                color = c.warning,
-            )
+            MobileInsight("3G", "3G — tecnologia legada com menor capacidade para vídeo e uploads.", c.warning)
         tecnologia?.contains("2G", ignoreCase = true) == true ->
-            MobileInsight(
-                label = "2G",
-                description = "2G - suficiente para voz e mensagens básicas, mas limitada para internet.",
-                color = c.error,
-            )
+            MobileInsight("2G", "2G — suficiente para voz e mensagens básicas, mas limitada para internet.", c.error)
         else ->
-            MobileInsight(
-                label = "Móvel",
-                description = "Tecnologia não identificada pelo Android neste momento.",
+            MobileInsight("Móvel", "Tecnologia não identificada pelo Android neste momento.", c.secondary)
+    }
+}
+
+/** GH#1206 item 4/7 — RSRP ausente deixa de virar "Ótima"/"Boa" (o app afirmava
+ *  experiencia excelente sem medicao alguma). Copy deixa explicito que e ESTIMATIVA
+ *  baseada so no sinal (RSRP/RSRQ/SINR nao medem velocidade real, latencia, jitter ou
+ *  perda), sem prometer estabilidade que os dados nao sustentam. */
+internal fun classificarExperienciaMovel(
+    dados: DadosSinalMovel,
+    c: LkTokens,
+): MobileInsight {
+    if (dados.radioDesligado) {
+        return MobileInsight("Indisponível", "Sem rede ativa para estimar experiência de uso.", c.warning)
+    }
+    val pior =
+        piorMetricStatusSinalMovel(dados)
+            ?: return MobileInsight(
+                label = "Inconclusivo",
+                description = "Sinal não medido pelo Android neste momento — não é possível estimar a experiência.",
                 color = c.secondary,
             )
-    }
-}
-
-private fun mobileExpectedExperience(
-    sim: MovelSimSnapshot,
-    summarySnapshot: MovelSnapshot?,
-    c: LkTokens,
-): MobileInsight {
-    val tecnologia = sim.tecnologiaRede ?: summarySnapshot?.tecnologia
-    val rsrp = sim.rsrpDbm ?: summarySnapshot?.rsrpDbm
-    return when {
-        sim.radioDesligado ->
+    return when (pior) {
+        MetricStatus.excelente, MetricStatus.bom ->
             MobileInsight(
-                label = "Indisponível",
-                description = "Sem rede ativa para estimar experiência de uso.",
-                color = c.warning,
+                "Boa (estimativa)",
+                "Sinal indica boa experiência estimada para navegação, vídeo e chamadas — estimativa baseada só " +
+                    "no sinal, não mede velocidade real, latência ou perda.",
+                c.success,
             )
-        tecnologia?.contains("5G", ignoreCase = true) == true && (rsrp == null || rsrp >= -95) ->
+        MetricStatus.regular ->
             MobileInsight(
-                label = "Ótima",
-                description = "Ótima para streaming, jogos e videochamadas com boa estabilidade.",
-                color = c.success,
+                "Regular (estimativa)",
+                "Uso cotidiano possível, com chance de oscilação em horários de pico — estimativa baseada só no sinal.",
+                c.warning,
             )
-        tecnologia?.contains("4G", ignoreCase = true) == true && (rsrp == null || rsrp >= -100) ->
+        MetricStatus.ruim, MetricStatus.critico ->
             MobileInsight(
-                label = "Boa",
-                description = "Boa para navegação, mensagens e vídeo em qualidade padrão.",
-                color = c.success,
+                "Limitada (estimativa)",
+                "Sinal fraco — chamadas e vídeo tendem a oscilar. Estimativa baseada só no sinal.",
+                c.warning,
             )
-        tecnologia?.contains("3G", ignoreCase = true) == true || (rsrp != null && rsrp < -105) ->
-            MobileInsight(
-                label = "Limitada",
-                description = "Melhor para mensagens e navegação leve; chamadas e vídeo podem oscilar.",
-                color = c.warning,
-            )
-        else ->
-            MobileInsight(
-                label = "Regular",
-                description = "Uso cotidiano possível, mas com chance de lentidão em horários de pico.",
-                color = c.warning,
-            )
-    }
-}
-
-private fun buildSnapshotMobileSummary(snapshot: MovelSnapshot): String =
-    buildString {
-        snapshot.rsrpDbm?.let {
-            append("RSRP $it dBm")
-            append(" · ")
-        }
-        append(snapshot.tecnologia ?: "Rede móvel")
-    }
-
-private fun snapshotSignalQuality(
-    snapshot: MovelSnapshot,
-    c: LkTokens,
-): MobileInsight =
-    run {
-        val rsrp = snapshot.rsrpDbm
-        when {
-            snapshot.radioDesligado ->
-                MobileInsight(
-                    label = "Sem sinal",
-                    description = "Rádio celular desligado. Ative a rede móvel para medir chamadas e dados.",
-                    color = c.warning,
-                )
-            rsrp == null ->
-                MobileInsight(
-                    label = "Sem leitura",
-                    description = "O Android não forneceu leitura precisa do sinal neste momento.",
-                    color = c.secondary,
-                )
-            rsrp >= -90 ->
-                MobileInsight(
-                    label = "Bom",
-                    description = "Bom — chamadas e vídeos tendem a ficar estáveis.",
-                    color = c.success,
-                )
-            rsrp >= -105 ->
-                MobileInsight(
-                    label = "Regular",
-                    description = "Regular — pode haver variação em chamadas, uploads e streaming.",
-                    color = c.warning,
-                )
-            else ->
-                MobileInsight(
-                    label = "Ruim",
-                    description = "Ruim — maior chance de falhas em chamadas, uploads e streaming.",
-                    color = c.error,
-                )
-        }
-    }
-
-private fun snapshotConnectionType(
-    snapshot: MovelSnapshot,
-    c: LkTokens,
-): MobileInsight {
-    val tecnologia = snapshot.tecnologia
-    return when {
-        snapshot.radioDesligado ->
-            MobileInsight(
-                label = "Off",
-                description = "Rádio desligado. Não há tecnologia ativa neste momento.",
-                color = c.warning,
-            )
-        tecnologia?.contains("5G", ignoreCase = true) == true ->
-            MobileInsight(
-                label = "5G",
-                description = "5G NR — a tecnologia mais rápida disponível.",
-                color = c.primary,
-            )
-        tecnologia?.contains("4G", ignoreCase = true) == true ->
-            MobileInsight(
-                label = "4G",
-                description = "4G LTE — bom equilíbrio entre cobertura e velocidade.",
-                color = c.warning,
-            )
-        tecnologia?.contains("3G", ignoreCase = true) == true ->
-            MobileInsight(
-                label = "3G",
-                description = "3G — tecnologia legada com menor capacidade para vídeo e uploads.",
-                color = c.warning,
-            )
-        else ->
-            MobileInsight(
-                label = "Móvel",
-                description = "Tecnologia não identificada pelo Android neste momento.",
-                color = c.secondary,
-            )
-    }
-}
-
-private fun snapshotExpectedExperience(
-    snapshot: MovelSnapshot,
-    c: LkTokens,
-): MobileInsight {
-    val tecnologia = snapshot.tecnologia
-    val rsrp = snapshot.rsrpDbm
-    return when {
-        snapshot.radioDesligado ->
-            MobileInsight(
-                label = "Indisponível",
-                description = "Sem rede ativa para estimar experiência de uso.",
-                color = c.warning,
-            )
-        tecnologia?.contains("5G", ignoreCase = true) == true && (rsrp == null || rsrp >= -95) ->
-            MobileInsight(
-                label = "Ótima",
-                description = "Ótima para streaming, jogos e videochamadas com boa estabilidade.",
-                color = c.success,
-            )
-        tecnologia?.contains("4G", ignoreCase = true) == true && (rsrp == null || rsrp >= -100) ->
-            MobileInsight(
-                label = "Boa",
-                description = "Boa para navegação, mensagens e vídeo em qualidade padrão.",
-                color = c.success,
-            )
-        tecnologia?.contains("3G", ignoreCase = true) == true || (rsrp != null && rsrp < -105) ->
-            MobileInsight(
-                label = "Limitada",
-                description = "Melhor para mensagens e navegação leve; chamadas e vídeo podem oscilar.",
-                color = c.warning,
-            )
-        else ->
-            MobileInsight(
-                label = "Regular",
-                description = "Uso cotidiano possível, mas com chance de lentidão em horários de pico.",
-                color = c.warning,
-            )
+        MetricStatus.inconclusivo ->
+            MobileInsight("Inconclusivo", "Dados insuficientes para estimar a experiência de uso.", c.secondary)
     }
 }
 
@@ -1154,9 +1070,10 @@ private fun MobileSnapshotCard(
     tokens: LkTokens,
 ) {
     val operadora = snapshot.operadora ?: "Operadora"
-    val qualidade = snapshotSignalQuality(snapshot, tokens)
-    val tipoConexao = snapshotConnectionType(snapshot, tokens)
-    val experiencia = snapshotExpectedExperience(snapshot, tokens)
+    val dadosSinal = snapshot.paraDadosSinalMovel()
+    val qualidade = classificarQualidadeSinalMovel(dadosSinal, tokens)
+    val tipoConexao = classificarTipoConexaoMovel(dadosSinal, tokens)
+    val experiencia = classificarExperienciaMovel(dadosSinal, tokens)
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(LkSpacing.sm),
@@ -1185,7 +1102,7 @@ private fun MobileSnapshotCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = buildSnapshotMobileSummary(snapshot),
+                        text = buildMobileSummary(dadosSinal),
                         style = MaterialTheme.typography.bodySmall,
                         color = tokens.textSecondary,
                     )

@@ -24,6 +24,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
   motor único (`core/relatorio`), removendo a seção regulatória desatualizada "Conformidade
   ANATEL" (mínimo garantido 40%, Resolução nº 574/2011) e renomeando o documento do app
   consumidor de "Laudo Técnico" para "Relatório de diagnóstico da conexão" (#1219)
+- Unificada a classificação de sinal móvel por SIM (tela Sinal > Móvel) via `MetricClassifier`
+  (RSRP/RSRQ/SINR, pior métrica vence — mesmos limiares corretos por tecnologia já usados pelo
+  motor de diagnóstico), substituindo os limiares próprios divergentes que existiam na tela.
+  Corrige também a mistura de dados entre chips em aparelhos dual SIM: o SIM secundário deixa
+  de herdar operadora/tecnologia/RSRP do chip padrão de dados quando não tem leitura própria.
+  RSRP ausente nunca mais é classificado como "Ótima"/"Boa" experiência (#1206)
 
 ## [0.29.0] — 2026-07-20
 

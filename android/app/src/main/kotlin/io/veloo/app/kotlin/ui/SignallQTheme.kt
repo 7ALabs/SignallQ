@@ -178,7 +178,10 @@ data class LkTokens(
     val amberSurface: Color get() = warningContainer
 }
 
-private fun lightTokens() =
+// GH#1206 — internal (nao mais private) pra permitir testes unitarios de funcoes que
+// recebem LkTokens (ex.: classificadores de sinal movel em SinalScreen.kt) construirem um
+// LkTokens real sem precisar duplicar os ~30 campos manualmente em cada teste.
+internal fun lightTokens() =
     LkTokens(
         primary = LkColors.Light.primary,
         onPrimary = LkColors.Light.onPrimary,
