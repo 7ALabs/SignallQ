@@ -41,12 +41,13 @@
             </intent-filter>
         </activity>
 
-        <!-- AdMob (issue #555): ID DE TESTE do Google, nao o app real.
-             BLOQUEIO EXTERNO: Luiz precisa criar o app no console AdMob e substituir
-             por um App ID de producao antes do release (ver ads/AdUnitIds.kt). -->
+        <!-- AdMob (issue #555): App ID de producao (Luiz criou a conta AdMob em 2026-07-20).
+             PENDENTE: Ad Unit ID de anuncio nativo (NATIVE_TESTE em ads/AdUnitIds.kt) ainda
+             esta em modo teste, Luiz ainda nao passou o(s) Ad Unit ID(s) de Native Advanced,
+             nao trocar sem instrucao explicita. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-5542349230926522~3068481614" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
