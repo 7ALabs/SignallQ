@@ -36,11 +36,17 @@
     <string name="ping_btn_iniciar">Iniciar teste de latência</string>
     <string name="ping_coletando_amostras">Coletando amostras… %1$d/20</string>
     <string name="ping_resultados_titulo">Resultados do teste</string>
+    <!-- GH#1211: medição real é HTTPS, não ICMP — disclosure explícito de método+destino. -->
+    <string name="ping_metodo_destino">Via HTTPS · %1$s</string>
     <string name="ping_metrica_latencia">Latência</string>
     <string name="ping_metrica_jitter">Jitter</string>
-    <string name="ping_metrica_perda">Perda</string>
+    <string name="ping_metrica_perda">Falhas</string>
+    <string name="ping_amostras_info">%1$d de %2$d tentativas com resposta válida</string>
+    <string name="ping_picos_info">%1$d pico(s) acima de 3x a latência típica · máx. %2$.0f ms · P95 %3$.0f ms</string>
     <string name="ping_btn_testar_novamente">Testar novamente</string>
     <string name="ping_falha_perda_total">Não foi possível medir a latência — nenhuma resposta da rede.</string>
+    <string name="ping_rede_indisponivel">Teste interrompido — a rede parece estar sem conexão (falhas consecutivas de DNS/rede).</string>
+    <string name="ping_execucao_parcial">Teste encerrado antes do previsto (tempo máximo atingido). Resultado calculado com as amostras coletadas até aqui.</string>
 
     <!-- Diagnóstico screen -->
     <string name="diagnostico_titulo">Diagnóstico</string>

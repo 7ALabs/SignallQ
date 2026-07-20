@@ -43,6 +43,32 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
   única entrada falsa; banda de 6GHz deixa de cair no "else" genérico (2,4GHz); grupo
   dual/tri-band agora mostra as bandas combinadas ("2,4 + 5 GHz") em vez de só uma; RSSI da rede
   conectada passa a priorizar o link ao vivo sobre o valor do último scan (#1209)
+- Ferramentas > Ping: a ferramenta nunca mediu ICMP real (Android não permite socket ICMP bruto
+  sem privilégio elevado) — a tela agora informa explicitamente método (HTTPS) e destino da
+  medição, renomeia "Perda" para "Falhas" (tentativas sem resposta, não perda de pacote
+  comprovada), nunca mais absorve `CancellationException` como falha comum, ganha timeout
+  global (30s) e aborto antecipado após falhas consecutivas de rede/DNS (distinto de falha do
+  destino), e exibe amostras válidas, picos, máximo e P95 — a mediana pós-filtro de outlier não
+  esconde mais os picos que caracterizam instabilidade (#1211)
+- Ferramentas > DNS: benchmark deixa de comparar o DNS ativo do sistema com DNS públicos usando
+  métodos incompatíveis (agora todos os provedores usam RFC 8484 binário, Cloudflare/Google
+  migrados de JSON), decodifica e valida semanticamente a resposta DNS (NXDOMAIN/SERVFAIL/sem
+  answer deixam de contar como sucesso mesmo com HTTP 200), corrige o cálculo de mediana (P50
+  antigo devolvia o maior valor com 2 amostras, não a mediana real), aumenta a amostragem de 2
+  para 5 tentativas avaliadas por resolvedor, corrige a taxa de sucesso (antes fixa sobre
+  denominador "2"), varia o hostname consultado no DNS do sistema pra reduzir efeito de cache,
+  só declara um "mais rápido" quando há vencedor técnico real (fora de uma margem de 10ms e com
+  taxa de sucesso mínima — empate técnico não declara vencedor), consolida a detecção de
+  IP privado/local (agora cobre IPv6 além de IPv4, existia duplicada e só-IPv4 em dois lugares),
+  e corrige o guia citando Quad9 como bloqueador de anúncios (é proteção contra domínios
+  maliciosos) (#1212)
+- Equipamento de internet (Nokia G-1425G-B): `NokiaModemClient` valida que o host informado é
+  um IP privado/local (IPv4 RFC-1918/loopback/link-local, IPv6 loopback/link-local/ULA) antes de
+  qualquer chamada de rede — falha rápido em vez de enviar credenciais a qualquer host; host
+  inválido é tratado como erro de configuração permanente (sem retry) em vez de gastar as 3
+  tentativas normais. Item isolado do lote maior da issue (GPON já desduplicado na Fase 0); demais
+  itens (diferenciação completa de estados de sessão/erro, módulos independentes, reboot
+  protegido) seguem fora do escopo desta correção (#1213)
 
 ## [0.29.0] — 2026-07-20
 

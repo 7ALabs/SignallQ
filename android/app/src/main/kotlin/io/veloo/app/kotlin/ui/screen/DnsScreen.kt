@@ -65,7 +65,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.signallq.app.core.network.SnapshotRede
+import io.signallq.app.feature.dns.AvaliadorRecomendacaoDns
+import io.signallq.app.feature.dns.DetectorEnderecoIpPrivado
 import io.signallq.app.feature.dns.EstadoBenchmarkDns
+import io.signallq.app.feature.dns.RecomendacaoDns
 import io.signallq.app.feature.dns.ResultadoBenchmarkDns
 import io.signallq.app.feature.dns.SnapshotBenchmarkDns
 import io.signallq.app.ui.LkRadius
@@ -211,11 +214,11 @@ private fun DnsMainContent(
             }
         }
         else -> {
-            val recomendadoNome =
-                snapshotDns.resultados
-                    .filter { it.tempoMs != null }
-                    .minByOrNull { it.tempoMs!! }
-                    ?.nomeProvedor
+            // GH#1212 item 8/12/13 — "mais rápido" só quando há vencedor técnico real
+            // (fora da margem de empate e com taxa de sucesso mínima), não o menor tempo
+            // bruto entre quaisquer dois valores.
+            val recomendacao = AvaliadorRecomendacaoDns.avaliar(snapshotDns.resultados)
+            val recomendadoNome = (recomendacao as? RecomendacaoDns.Vencedor)?.resultado?.nomeProvedor
 
             LkSurfaceCard(modifier = Modifier.fillMaxWidth()) {
                 Column {
@@ -233,6 +236,18 @@ private fun DnsMainContent(
                 }
             }
 
+            if (!isLoading) {
+                Spacer(Modifier.height(6.dp))
+                // GH#1212 item 14 — nota/grade se refere só a este teste, nesta conexão;
+                // rota até o provedor (VPN, rede móvel, distância) influencia o resultado
+                // tanto quanto a qualidade do resolvedor em si.
+                Text(
+                    "Notas refletem apenas este teste, nesta conexão — rota, VPN ou rede móvel também influenciam.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.textTertiary,
+                )
+            }
+
             if (isLoading) {
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -247,10 +262,13 @@ private fun DnsMainContent(
             }
 
             // ── Bloco 3 — Recomendação ────────────────────────────────────────
-            val melhor = snapshotDns.resultados.filter { it.tempoMs != null }.minByOrNull { it.tempoMs!! }
-            if (melhor != null && snapshotDns.estado != EstadoBenchmarkDns.executando) {
+            if (snapshotDns.estado != EstadoBenchmarkDns.executando) {
                 Spacer(Modifier.height(16.dp))
-                DnsBloco3Recomendacao(melhor = melhor, c = c)
+                when (recomendacao) {
+                    is RecomendacaoDns.Vencedor -> DnsBloco3Recomendacao(melhor = recomendacao.resultado, c = c)
+                    is RecomendacaoDns.EmpateTecnico -> DnsBloco3EmpateTecnico(c = c)
+                    RecomendacaoDns.SemDadosSuficientes -> {}
+                }
             }
         }
     }
@@ -439,6 +457,40 @@ private fun DnsBloco3Recomendacao(
     }
 }
 
+// GH#1212 item 8 — quando os candidatos mais rápidos ficam dentro da margem de empate
+// técnico (10ms), a tela não declara vencedor: notas absolutas de poucos ms de diferença
+// não representam ganho real de experiência de navegação.
+@Composable
+private fun DnsBloco3EmpateTecnico(c: LkTokens) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.surfaceContainer)
+                .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            "Resultado do teste",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.W500,
+            color = c.textSecondary,
+        )
+        Text(
+            "Empate técnico entre os servidores mais rápidos nesta conexão.",
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.W600,
+            color = c.textPrimary,
+        )
+        Text(
+            "A diferença medida foi pequena demais pra indicar um vencedor real neste teste.",
+            style = MaterialTheme.typography.bodySmall,
+            color = c.textSecondary,
+        )
+    }
+}
+
 // ─── Bloco 4 — Guia colapsável ────────────────────────────────────────────────
 
 @Composable
@@ -492,7 +544,9 @@ private fun DnsBloco4Guia(
                 )
                 DnsGuiaBullet("Sites demoram para abrir mesmo com boa velocidade de download")
                 DnsGuiaBullet("O DNS atual apresentou latência alta neste comparativo")
-                DnsGuiaBullet("Você quer filtro de anúncios ou rastreadores (ex.: AdGuard, Quad9)")
+                // GH#1212 item 11 — Quad9 é proteção contra domínios maliciosos/phishing,
+                // não bloqueio de anúncios (isso é AdGuard). Texto antigo misturava as duas.
+                DnsGuiaBullet("Você quer bloqueio de anúncios e rastreadores (ex.: AdGuard) ou proteção contra domínios maliciosos (ex.: Quad9)")
                 DnsGuiaBullet("Está em rede que bloqueia domínios sem motivo aparente")
 
                 Spacer(Modifier.height(4.dp))
@@ -755,17 +809,7 @@ internal fun resolveDnsName(dnsIp: String?): String {
     }
 }
 
-// IP RFC-1918, link-local ou loopback — não é um DNS público real.
-internal fun isDnsIpPrivado(ip: String): Boolean {
-    val partes = ip.split(".").mapNotNull { it.toIntOrNull() }
-    if (partes.size != 4) return false
-    val (a, b) = partes
-    return when {
-        a == 10 -> true
-        a == 172 && b in 16..31 -> true
-        a == 192 && b == 168 -> true
-        a == 169 && b == 254 -> true
-        a == 127 -> true
-        else -> false
-    }
-}
+// GH#1212 item 10 — antes era uma segunda implementação manual (só IPv4, com comentário
+// pedindo sincronia com BenchmarkDnsDoh.isIpPrivado, a primeira). Consolidado num único
+// detector compartilhado ([DetectorEnderecoIpPrivado], feature/dns) que também cobre IPv6.
+internal fun isDnsIpPrivado(ip: String): Boolean = DetectorEnderecoIpPrivado.ehPrivadoOuLocal(ip)

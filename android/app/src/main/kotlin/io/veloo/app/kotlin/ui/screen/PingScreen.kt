@@ -47,6 +47,7 @@ import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.LkSheetFrame
 import io.signallq.app.ui.state.UiState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -84,6 +85,10 @@ class PingScreenViewModel {
                     mutableStateFlow.value = UiState.Success(PingUiData.Executando(progresso))
                 }
             mutableStateFlow.value = UiState.Success(PingUiData.Concluido(resultado))
+        } catch (e: CancellationException) {
+            // GH#1211 item 5 — nunca vira estado de erro na UI: fechar a tela/cancelar o
+            // teste precisa propagar o cancelamento cooperativo, não ser tratado como falha.
+            throw e
         } catch (e: Exception) {
             mutableStateFlow.value = UiState.Error(e.message ?: "Erro ao executar ping")
         }
@@ -190,21 +195,53 @@ fun PingScreen(onDismiss: () -> Unit) {
                             // "0,0 ms" sem destaque parecia o melhor resultado possível.
                             val falhaTotal = resultado.perdaPercentual >= 100.0
 
-                            if (falhaTotal) {
+                            // GH#1211: item 6/7 — rede caída (abortado cedo) e execução
+                            // parcial por timeout global são estados diferentes de "falha
+                            // total" (destino respondeu ruim) e diferentes entre si.
+                            when {
+                                resultado.abortadoPorRede -> {
+                                    Text(
+                                        text = stringResource(R.string.ping_rede_indisponivel),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = c.error,
+                                        modifier = Modifier.padding(bottom = LkSpacing.sm),
+                                    )
+                                }
+                                falhaTotal -> {
+                                    Text(
+                                        text = stringResource(R.string.ping_falha_perda_total),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = c.error,
+                                        modifier = Modifier.padding(bottom = LkSpacing.sm),
+                                    )
+                                }
+                                else -> {
+                                    Text(
+                                        text = stringResource(R.string.ping_resultados_titulo),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = c.textSecondary,
+                                        modifier = Modifier.padding(bottom = LkSpacing.sm),
+                                    )
+                                }
+                            }
+
+                            if (resultado.execucaoParcial && !resultado.abortadoPorRede) {
                                 Text(
-                                    text = stringResource(R.string.ping_falha_perda_total),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = c.error,
-                                    modifier = Modifier.padding(bottom = LkSpacing.md),
-                                )
-                            } else {
-                                Text(
-                                    text = stringResource(R.string.ping_resultados_titulo),
-                                    style = MaterialTheme.typography.labelMedium,
+                                    text = stringResource(R.string.ping_execucao_parcial),
+                                    style = MaterialTheme.typography.bodySmall,
                                     color = c.textSecondary,
-                                    modifier = Modifier.padding(bottom = LkSpacing.md),
+                                    modifier = Modifier.padding(bottom = LkSpacing.sm),
                                 )
                             }
+
+                            // GH#1211 item 1/7 — disclosure explícito de método e destino:
+                            // isso não é ICMP, é latência HTTPS até o host informado.
+                            Text(
+                                text = stringResource(R.string.ping_metodo_destino, resultado.destino),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = c.textSecondary,
+                                modifier = Modifier.padding(bottom = LkSpacing.md),
+                            )
 
                             Row(
                                 modifier =
@@ -233,6 +270,35 @@ fun PingScreen(onDismiss: () -> Unit) {
                                     valor = "%.0f%%".format(resultado.perdaPercentual),
                                     destacarErro = falhaTotal,
                                     modifier = Modifier.weight(1f),
+                                )
+                            }
+
+                            if (!falhaTotal) {
+                                // GH#1211 item 10/12 — quantidade de tentativas/amostras
+                                // válidas e picos não desaparecem só porque a mediana os
+                                // filtrou; ficam visíveis como informação de estabilidade.
+                                Text(
+                                    text =
+                                        stringResource(
+                                            R.string.ping_amostras_info,
+                                            resultado.amostrasValidas,
+                                            resultado.amostras,
+                                        ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = c.textSecondary,
+                                    modifier = Modifier.padding(bottom = 2.dp),
+                                )
+                                Text(
+                                    text =
+                                        stringResource(
+                                            R.string.ping_picos_info,
+                                            resultado.picos,
+                                            resultado.maxMs,
+                                            resultado.p95Ms,
+                                        ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = c.textSecondary,
+                                    modifier = Modifier.padding(bottom = LkSpacing.md),
                                 )
                             }
 

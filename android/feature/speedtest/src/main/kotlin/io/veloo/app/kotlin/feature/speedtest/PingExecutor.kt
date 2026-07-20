@@ -1,17 +1,53 @@
-﻿package io.signallq.app.feature.speedtest
+package io.signallq.app.feature.speedtest
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
+import java.io.IOException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.util.concurrent.TimeUnit
 
+/**
+ * GH#1211 — motivo de uma amostra individual não ter retornado latência válida. Usado só
+ * para diagnóstico agregado ([PingResultado.abortadoPorRede]) — o cálculo de perda em si
+ * continua tratando qualquer amostra nula como uma coisa só (ver [AnalisadorAmostragemPing]).
+ */
+private enum class MotivoFalhaPing {
+    SEM_REDE_OU_DNS,
+    TIMEOUT,
+    DESTINO_INDISPONIVEL,
+}
+
+/**
+ * GH#1211 — esta ferramenta NUNCA mede ICMP real. Android proíbe socket ICMP bruto sem
+ * privilégio elevado (CAP_NET_RAW não é concedido a apps); a alternativa de shell-exec do
+ * `/system/bin/ping` do sistema é frágil entre OEMs/versões e não seria "a própria app"
+ * medindo — decisão registrada: manter Estratégia A (latência HTTPS), nunca chamar isso de
+ * ping ICMP na UI, e corrigir a semântica ao redor (perda, cancelamento, timeout, picos).
+ *
+ * [latenciaMs]/[jitterMs] vêm da mediana pós-filtro de outlier (ver [AnalisadorAmostragemPing]).
+ * [maxMs]/[p95Ms]/[picos] preservam os picos que esse filtro descarta, pra análise de
+ * estabilidade não escondê-los. [perdaPercentual] mede tentativas HTTPS sem resposta válida,
+ * não perda de pacote ICMP comprovada — a UI é responsável por rotular isso corretamente.
+ */
 data class PingResultado(
     val latenciaMs: Double,
     val jitterMs: Double,
     val perdaPercentual: Double,
     val amostras: Int,
+    val amostrasValidas: Int = 0,
+    val timeouts: Int = 0,
+    val maxMs: Double = 0.0,
+    val p95Ms: Double = 0.0,
+    val picos: Int = 0,
+    val destino: String = "",
+    val abortadoPorRede: Boolean = false,
+    val execucaoParcial: Boolean = false,
 )
 
 /**
@@ -25,6 +61,14 @@ class PingExecutor(
 ) {
     private companion object {
         const val UA = "Mozilla/5.0 (Linux; Android 14; SM-A256E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36"
+
+        // GH#1211 item 4 — timeout global explícito pra execução inteira (antes só existia
+        // timeout por amostra; pior caso de 20 tentativas x 4s podia passar de 1 minuto).
+        const val TIMEOUT_GLOBAL_MS = 30_000L
+
+        // GH#1211 item 6/7 — 3 falhas consecutivas de rede/DNS é sinal forte de rede caída,
+        // não de instabilidade do destino; aborta cedo em vez de esgotar as 20 tentativas.
+        const val FALHAS_REDE_CONSECUTIVAS_PARA_ABORTAR = 3
 
         val pingClient: OkHttpClient = OkHttpClient.Builder()
             .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
@@ -47,11 +91,29 @@ class PingExecutor(
         onProgresso: (Int) -> Unit = {},
     ): PingResultado = withContext(Dispatchers.IO) {
         val bruto = mutableListOf<Double?>()
+        var falhasRedeConsecutivas = 0
+        var abortadoPorRede = false
 
-        repeat(count) { i ->
-            bruto.add(medirPing())
-            onProgresso(i + 1)
-        }
+        val concluiuDentroDoPrazo =
+            withTimeoutOrNull(TIMEOUT_GLOBAL_MS) {
+                var i = 0
+                while (i < count) {
+                    val (ms, motivo) = medirPingComMotivo()
+                    bruto.add(ms)
+                    onProgresso(i + 1)
+                    i++
+
+                    if (ms == null && motivo == MotivoFalhaPing.SEM_REDE_OU_DNS) {
+                        falhasRedeConsecutivas++
+                        if (falhasRedeConsecutivas >= FALHAS_REDE_CONSECUTIVAS_PARA_ABORTAR) {
+                            abortadoPorRede = true
+                            break
+                        }
+                    } else {
+                        falhasRedeConsecutivas = 0
+                    }
+                }
+            } != null
 
         // Algoritmo de mediana/outlier/jitter/perda extraído para AnalisadorAmostragemPing
         // (GH#1019) — reusado também por ExecutorSpeedtestCloudflare. Decisão de
@@ -65,11 +127,28 @@ class PingExecutor(
             latenciaMs = resultado.latenciaMs,
             jitterMs = resultado.jitterMs,
             perdaPercentual = resultado.perdaPercentual,
-            amostras = count,
+            amostras = bruto.size,
+            amostrasValidas = resultado.amostrasValidas,
+            timeouts = resultado.timeouts,
+            maxMs = resultado.maxMs,
+            p95Ms = resultado.p95Ms,
+            picos = resultado.picos,
+            destino = destinoLegivel(),
+            abortadoPorRede = abortadoPorRede,
+            execucaoParcial = abortadoPorRede || !concluiuDentroDoPrazo,
         )
     }
 
-    private fun medirPing(): Double? {
+    private fun destinoLegivel(): String =
+        runCatching { java.net.URI(targetUrl).host }.getOrNull() ?: targetUrl
+
+    /**
+     * GH#1211 item 5 — `CancellationException` nunca pode ser absorvida por este método:
+     * fechar a tela ou cancelar o teste precisa propagar de verdade, não virar "mais uma
+     * amostra falhou". Todo `catch` abaixo é de tipo concreto, nunca `Throwable`/`Exception`
+     * genérico que capturaria cancelamento por engano.
+     */
+    private fun medirPingComMotivo(): Pair<Double?, MotivoFalhaPing?> {
         val cb = "${System.currentTimeMillis()}_${kotlin.random.Random.nextInt(10_000, 99_999)}"
         val separador = if (targetUrl.contains("?")) "&" else "?"
         val url = "$targetUrl${separador}_cb=$cb"
@@ -78,12 +157,18 @@ class PingExecutor(
         return try {
             val response = pingClient.newCall(request).execute()
             response.use { resp ->
-                if (!resp.isSuccessful) return null
+                if (!resp.isSuccessful) return null to MotivoFalhaPing.DESTINO_INDISPONIVEL
                 resp.body?.bytes()
-                (System.nanoTime() - inicio) / 1_000_000.0
+                ((System.nanoTime() - inicio) / 1_000_000.0) to null
             }
-        } catch (_: Throwable) {
-            null
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: UnknownHostException) {
+            null to MotivoFalhaPing.SEM_REDE_OU_DNS
+        } catch (_: SocketTimeoutException) {
+            null to MotivoFalhaPing.TIMEOUT
+        } catch (_: IOException) {
+            null to MotivoFalhaPing.DESTINO_INDISPONIVEL
         }
     }
 }

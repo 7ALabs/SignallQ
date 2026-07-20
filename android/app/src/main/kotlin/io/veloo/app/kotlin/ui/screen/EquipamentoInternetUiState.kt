@@ -49,6 +49,10 @@ fun mapAcessoEquipamento(
             // nao suportado, nao de sessao/senha (ver limitacao no KDoc acima).
             "erroRespostaModemInvalida" -> AcessoEquipamento.SOMENTE_IDENTIFICACAO
             "erroCredenciaisInvalidas" -> AcessoEquipamento.CREDENCIAIS_NECESSARIAS
+            // GH#1213 item 2 — host configurado nao e um IP privado/local valido
+            // (ValidadorHostEquipamento). Nao e "sessao expirada" (reautenticar nao
+            // resolve) nem "credenciais necessarias" (usuario/senha podem estar certos).
+            "erroHostInvalido" -> AcessoEquipamento.SOMENTE_IDENTIFICACAO
             else -> AcessoEquipamento.SESSAO_EXPIRADA
         }
     }
