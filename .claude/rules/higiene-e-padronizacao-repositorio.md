@@ -200,20 +200,28 @@ Ao tocar nele:
 
 ### 4.8b `SinalScreen.kt`
 
-Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/SinalScreen.kt` —
-**3672 linhas** (acima do limiar de "dívida crítica" da seção 7). Encontrado em 2026-07-20
-durante a implementação das issues #1207/#1209 (auditoria de Sinal Canal/Wi-Fi), não
-documentado antes. Concentra as abas de Sinal Móvel, Canal e Wi-Fi/topologia.
+**3503 linhas** (acima do limiar de "dívida crítica" da seção 7; era 3672 antes da primeira
+extração incremental, PR #1237). Encontrado em 2026-07-20 durante a implementação das issues
+#1207/#1209 (auditoria de Sinal Canal/Wi-Fi), não documentado antes. Concentra as três abas da
+tela Sinal (Móvel, Canal, Wi-Fi), cada uma com Composables, sheets de detalhe e, até #1237,
+também toda a lógica de classificação/topologia/banda misturada com composição visual.
+
+A PR #1237 (#1207/#1209) deu o primeiro passo de separação: funções puras de classificação de
+topologia, ícone, banda e segurança (sem nenhum `@Composable`) foram extraídas para
+`SinalTopologiaHelpers.kt` (mesmo pacote, ~190 linhas). As três seções Composable (Móvel/Canal/
+Wi-Fi) continuam no arquivo principal — extraí-las é o próximo passo, de risco maior por mexer
+em estado e composição visual.
 
 Ao tocar nele:
-1. identifique qual aba (Móvel/Canal/Wi-Fi) está sendo modificada;
-2. não adicione lógica de classificação nova diretamente na tela — motores/classificadores
-   pertencem a `core/diagnostico` ou `core/network`, não à Screen;
-3. prefira separar por aba: estado de cada aba, adaptadores de dados, componentes de
-   visualização (ex.: `SinalMovelSection.kt`, `SinalCanalSection.kt`, `SinalWifiSection.kt`);
-4. mantenha em `SinalScreen.kt` apenas a composição das abas e navegação entre elas;
-5. crie testes de caracterização antes de extrações com risco de comportamento visual ou de
-   estado — a implementação de #1207/#1209 é candidata natural a já fazer parte dessa extração.
+1. identifique qual aba (Móvel/Canal/Wi-Fi) ou sheet está sendo modificada;
+2. motor/classificador real (regra de negócio de diagnóstico, ex. limiares RSRP/canal/topologia)
+   pertence a `core/diagnostico` ou `core/network`, não à Screen; função pura só de apoio visual
+   da própria tela (ícone, rótulo, cor, agrupamento) vai em `SinalTopologiaHelpers.kt` — não
+   adicione nenhuma das duas direto no Composable;
+3. prefira separar por aba quando extrair Composables: `SinalMovelSection.kt`,
+   `SinalCanalSection.kt`, `SinalWifiSection.kt` são os nomes-alvo sugeridos;
+4. mantenha em `SinalScreen.kt` apenas a composição do Scaffold, TabRow e delegação das abas;
+5. crie testes de caracterização antes de extrações com risco de comportamento visual ou estado.
 
 ### 4.9 Identificação de topologia e dispositivos
 

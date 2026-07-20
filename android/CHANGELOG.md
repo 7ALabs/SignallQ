@@ -30,6 +30,19 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
   Corrige também a mistura de dados entre chips em aparelhos dual SIM: o SIM secundário deixa
   de herdar operadora/tecnologia/RSRP do chip padrão de dados quando não tem leitura própria.
   RSRP ausente nunca mais é classificado como "Ótima"/"Boa" experiência (#1206)
+- Sinal > Canal: recomendação de canal deixa de misturar redes próprias e de terceiros na
+  mesma contagem de interferência, para de colidir canais de mesmo número em bandas diferentes
+  no modo "Todos" (agora chave composta banda+canal), passa a usar a largura de canal real do
+  scan em vez de assumir 20MHz sempre, unifica status/barra/recomendação sob uma única conversão
+  de score físico (dBm equivalente) em vez de duas fórmulas divergentes, e ganha nível de
+  confiança (amostra pequena ou dado estimado nunca reporta confiança ALTA) (#1207)
+- Sinal > Wi-Fi (árvore de topologia): nó só é tratado como parte da própria estrutura de rede
+  quando o motor de topologia unificado (`TopologiaRedeEngine`) encontra evidência real (OUI,
+  banda, padrão de SSID) — SSID igual sozinho não basta mais; rótulo "Roteador" só aparece com
+  confiança ALTA confirmada; redes ocultas com o mesmo placeholder deixam de ser agrupadas numa
+  única entrada falsa; banda de 6GHz deixa de cair no "else" genérico (2,4GHz); grupo
+  dual/tri-band agora mostra as bandas combinadas ("2,4 + 5 GHz") em vez de só uma; RSSI da rede
+  conectada passa a priorizar o link ao vivo sobre o valor do último scan (#1209)
 
 ## [0.29.0] — 2026-07-20
 

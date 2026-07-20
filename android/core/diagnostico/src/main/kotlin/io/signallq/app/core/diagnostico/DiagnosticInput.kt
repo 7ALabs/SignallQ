@@ -121,6 +121,10 @@ data class RedeWifiVizinha(
     // direto pra decidir se vale afirmar "OUI conhecido" nas evidencias.
     val papelTopologia: PapelTopologia? = null,
     val confiancaTopologia: NivelConfianca? = null,
+    // GH#1207 item 3 — largura real do canal (20/40/80/160 MHz) quando o scan Android
+    // reportou (RedeVizinha.larguraCanalMhz, ja disponivel na origem). Null faz o motor
+    // assumir 20 MHz e marcar o DadoCanal correspondente como `larguraEstimada=true`.
+    val larguraCanalMhz: Int? = null,
 )
 
 data class SpeedtestQualityInput(

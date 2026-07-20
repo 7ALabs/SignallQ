@@ -16,8 +16,10 @@ class CanalTextGeneratorTest {
         nivel: NivelCongestionamento = NivelCongestionamento.livre,
         ehCanalAtual: Boolean = false,
         ehCanalRecomendado: Boolean = false,
+        banda: String = "2.4GHz",
     ) = DadoCanal(
         canal = canal,
+        banda = banda,
         count = count,
         countProprios = 0,
         countTerceiros = count,
