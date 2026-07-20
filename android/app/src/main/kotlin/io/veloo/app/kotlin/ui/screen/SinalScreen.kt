@@ -36,8 +36,6 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.DeviceHub
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.Hub
-import androidx.compose.material.icons.outlined.Lan
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
@@ -104,16 +102,12 @@ import io.signallq.app.core.diagnostico.SnapshotEspectroCanal
 import io.signallq.app.core.diagnostico.WifiChannelDiagnosticEngine
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.WifiLinkSnapshot
-import io.signallq.app.core.network.contracts.topologia.NivelConfianca
-import io.signallq.app.core.network.contracts.topologia.PapelTopologia
-import io.signallq.app.core.network.topologia.engine.TopologiaRedeEngine
 import io.signallq.app.core.network.wifi.EstadoScanWifi
 import io.signallq.app.core.network.wifi.SnapshotScanWifi
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
 import io.signallq.app.feature.devices.DispositivoRede
 import io.signallq.app.feature.devices.chaveApelido
-import io.signallq.app.feature.devices.encontrarDispositivoPorBssid
 import io.signallq.app.feature.diagnostico.CanalStrings
 import io.signallq.app.feature.diagnostico.CanalTextGenerator
 import io.signallq.app.feature.wifi.ConfiancaTopologia
@@ -123,7 +117,6 @@ import io.signallq.app.feature.wifi.RedeVizinha
 import io.signallq.app.feature.wifi.SegurancaWifi
 import io.signallq.app.feature.wifi.TipoTopologia
 import io.signallq.app.ui.BancoOperadoras
-import io.signallq.app.ui.LkColors
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -143,133 +136,6 @@ import io.signallq.app.ui.component.SignalBars
 import io.signallq.app.ui.component.signalColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-private data class TopologiaIconData(
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val cor: Color,
-)
-
-private fun TipoTopologia.toIconData(c: LkTokens): TopologiaIconData? =
-    when (this) {
-        TipoTopologia.ROTEADOR -> TopologiaIconData(Icons.Outlined.Router, c.primary)
-        TipoTopologia.ROTEADOR_MESH -> TopologiaIconData(Icons.Outlined.Hub, c.primary)
-        TipoTopologia.NO_MESH -> TopologiaIconData(Icons.Outlined.Hub, c.primary)
-        TipoTopologia.REPETIDOR -> TopologiaIconData(Icons.Outlined.CellTower, c.warning)
-        TipoTopologia.PONTO_DE_ACESSO -> TopologiaIconData(Icons.Outlined.Lan, LkColors.signallQTextSecondaryOnDark)
-        TipoTopologia.DESCONHECIDO -> null
-    }
-
-// #980 (Fase 2B) — adapta o resultado do motor unificado (TopologiaRedeEngine, Fase 2A/#979)
-// pro shape legado (RedeClassificada/TipoTopologia/ConfiancaTopologia) que esta tela ja consome,
-// pra nao precisar reescrever icone/agrupamento/renderizacao — so troca a fonte da classificacao.
-// SISTEMA_MESH_PROVAVEL vira NO_MESH (mesmo icone de hoje; a incerteza ja e comunicada pelo aviso
-// "* Gateway estimado pelo sinal mais forte" em GrupoRedeTree, calculado independente do motor).
-internal fun PapelTopologia.paraTipoTopologiaLegado(): TipoTopologia =
-    when (this) {
-        PapelTopologia.ROTEADOR -> TipoTopologia.ROTEADOR
-        PapelTopologia.NO_MESH -> TipoTopologia.NO_MESH
-        PapelTopologia.SISTEMA_MESH_PROVAVEL -> TipoTopologia.NO_MESH
-        PapelTopologia.REPETIDOR -> TipoTopologia.REPETIDOR
-        PapelTopologia.PONTO_DE_ACESSO -> TipoTopologia.PONTO_DE_ACESSO
-        PapelTopologia.DESCONHECIDO -> TipoTopologia.DESCONHECIDO
-    }
-
-internal fun NivelConfianca.paraConfiancaTopologiaLegado(): ConfiancaTopologia =
-    when (this) {
-        NivelConfianca.ALTA -> ConfiancaTopologia.ALTA
-        NivelConfianca.MEDIA -> ConfiancaTopologia.MEDIA
-        NivelConfianca.BAIXA -> ConfiancaTopologia.BAIXA
-    }
-
-// GH#1025 (3c) — tipos de nó que o protótipo trata como "ponto de acesso/mesh": abrem
-// MeshApSheet (dado real do DispositivoRede correlacionado) em vez de NetworkDetailSheet.
-// ROTEADOR fica de fora de propósito — é o próprio gateway conectado, tratado como "sua conexão"
-// (NetworkDetailSheet já é a sheet certa pra ele); DESCONHECIDO também fica de fora (rede vizinha
-// comum, sem classificação de topologia).
-private val TIPOS_TOPOLOGIA_AP_MESH =
-    setOf(
-        TipoTopologia.ROTEADOR_MESH,
-        TipoTopologia.NO_MESH,
-        TipoTopologia.REPETIDOR,
-        TipoTopologia.PONTO_DE_ACESSO,
-    )
-
-/**
- * Decide qual [DispositivoRede] (se algum) deve abrir MeshApSheet pra um nó [rede] da árvore de
- * topologia da tela Sinal — GH#1025. Só tenta correlacionar quando o nó já foi classificado como
- * AP/mesh ([TIPOS_TOPOLOGIA_AP_MESH]); fora disso devolve null sempre, mesmo que por acaso exista
- * um [DispositivoRede] com MAC batendo (evita abrir a sheet errada pra uma rede vizinha comum).
- *
- * Quando o nó é AP/mesh mas nenhum [DispositivoRede] correlaciona (scan LAN ainda não descobriu
- * esse equipamento, ou MAC não resolvível via ARP) devolve null — o chamador mantém o fallback
- * padrão (NetworkDetailSheet), nunca fabrica um [DispositivoRede] parcial.
- */
-internal fun resolverDispositivoParaNoTopologia(
-    rede: RedeVizinha,
-    tipoTopologia: TipoTopologia?,
-    dispositivosRede: List<DispositivoRede>,
-): DispositivoRede? {
-    if (tipoTopologia !in TIPOS_TOPOLOGIA_AP_MESH) return null
-    return encontrarDispositivoPorBssid(dispositivosRede, rede.bssid)
-}
-
-private fun classificarComMotorUnificado(
-    redes: List<RedeVizinha>,
-    connectedBssid: String?,
-): List<RedeClassificada> =
-    TopologiaRedeEngine
-        .classificar(redes = redes, connectedBssid = connectedBssid)
-        .map { (rede, classificacao) ->
-            RedeClassificada(
-                rede = rede,
-                tipo = classificacao.papelProvavel.paraTipoTopologiaLegado(),
-                confianca = classificacao.confianca.paraConfiancaTopologiaLegado(),
-                motivo = "",
-            )
-        }
-
-private fun signalQuality(
-    rssiDbm: Int,
-    banda: BandaWifi = BandaWifi.desconhecida,
-): String =
-    when (banda) {
-        BandaWifi.ghz5 ->
-            when {
-                rssiDbm >= -55 -> "Excelente"
-                rssiDbm >= -65 -> "Bom"
-                rssiDbm >= -75 -> "Regular"
-                else -> "Fraco"
-            }
-        else ->
-            when {
-                rssiDbm >= -50 -> "Excelente"
-                rssiDbm >= -60 -> "Bom"
-                rssiDbm >= -70 -> "Regular"
-                else -> "Fraco"
-            }
-    }
-
-private fun congestionColor(
-    nivel: NivelCongestionamento,
-    c: LkTokens,
-): Color =
-    when (nivel) {
-        NivelCongestionamento.livre -> c.success
-        NivelCongestionamento.moderado -> c.warning
-        NivelCongestionamento.congestionado -> c.error
-    }
-
-private fun securityLabel(s: SegurancaWifi): String =
-    when (s) {
-        SegurancaWifi.aberta -> "Aberta"
-        SegurancaWifi.wep -> "WEP"
-        SegurancaWifi.wpa -> "WPA"
-        SegurancaWifi.wpa2 -> "WPA2"
-        SegurancaWifi.wpa3 -> "WPA3"
-        SegurancaWifi.desconhecida -> "Desconhecida"
-    }
 
 // ─── Auto-refresh (#893) ──────────────────────────────────────────────────────
 
@@ -531,6 +397,7 @@ private fun SinalTopTabRow(
                                 frequenciaMhz = it.frequenciaMhz,
                                 ssid = it.ssid,
                                 bssid = it.bssid,
+                                larguraCanalMhz = it.larguraCanalMhz,
                             )
                         },
                     canalAtual = connectedNetwork.canal,
@@ -1290,17 +1157,19 @@ private fun RedesTab(
 
     // Classificação de topologia para todas as redes visíveis — motor unificado (Fase 2A/#979,
     // Fase 2B/#980): ve OUI e banda, resolve o conflito Intelbras por contexto.
-    val topologiaPorBssid =
+    val classificacaoPorBssid =
         remember(snapshotWifi.redes, connectedNetwork) {
             runCatching {
-                val classificadas =
-                    classificarComMotorUnificado(
-                        redes = snapshotWifi.redes,
-                        connectedBssid = connectedNetwork?.bssid,
-                    )
-                classificadas.associate { it.rede.bssid to it.tipo }
+                classificarComMotorUnificado(
+                    redes = snapshotWifi.redes,
+                    connectedBssid = connectedNetwork?.bssid,
+                ).associateBy { it.rede.bssid }
             }.getOrElse { emptyMap() }
         }
+    val topologiaPorBssid = remember(classificacaoPorBssid) { classificacaoPorBssid.mapValues { it.value.tipo } }
+    // GH#1209 item 8 — confiança por BSSID, usada pro rótulo "Gateway" só afirmar o papel de
+    // roteador quando o motor tem confiança suficiente (nunca por "sinal mais forte").
+    val confiancaPorBssid = remember(classificacaoPorBssid) { classificacaoPorBssid.mapValues { it.value.confianca } }
 
     // GH#1025 (3c) — clique num nó da árvore (conectado ou "outras redes"): abre MeshApSheet
     // quando o nó correlaciona com um DispositivoRede real do scan LAN, senão mantém
@@ -1326,16 +1195,26 @@ private fun RedesTab(
         }
     }
 
-    // Nós da mesma rede: conectado na frente + mesmo SSID ordenado por sinal
+    // Nós da mesma rede: conectado na frente + mesmo SSID ordenado por sinal.
+    // GH#1209 item 1 (bug principal) — mesmo SSID sozinho não comprova mesma infraestrutura
+    // (rede de vizinho com nome igual, SSID público/padrão, hotspot falso). Antes desta
+    // correção, qualquer BSSID com o mesmo SSID do conectado entrava aqui direto. Agora só
+    // entra quando o motor de topologia unificado (TopologiaRedeEngine) já classificou o BSSID
+    // com alguma evidência (OUI/banda/SSID) — DESCONHECIDO (sem evidência) fica em "outras
+    // redes", mesmo com SSID idêntico.
     val grupoNos =
-        remember(filteredRedes, connectedNetwork) {
+        remember(filteredRedes, connectedNetwork, topologiaPorBssid) {
             if (connectedNetwork == null) return@remember emptyList()
             buildList {
                 add(connectedNetwork)
                 addAll(
                     filteredRedes
-                        .filter { it.bssid != connectedNetwork.bssid && it.ssid != null && it.ssid == connectedNetwork.ssid }
-                        .sortedByDescending { it.rssiDbm },
+                        .filter { it.bssid != connectedNetwork.bssid }
+                        .filter { rede ->
+                            rede.ssid != null &&
+                                rede.ssid == connectedNetwork.ssid &&
+                                ehMembroDaEstruturaPropria(topologiaPorBssid[rede.bssid])
+                        }.sortedByDescending { it.rssiDbm },
                 )
             }
         }
@@ -1355,6 +1234,7 @@ private fun RedesTab(
                             frequenciaMhz = it.frequenciaMhz,
                             ssid = it.ssid,
                             bssid = it.bssid,
+                            larguraCanalMhz = it.larguraCanalMhz,
                         )
                     },
                 canalAtual = canal,
@@ -1373,14 +1253,20 @@ private fun RedesTab(
             espectroConectado?.dadosPorCanal?.find { it.canal == canalRecomendadoConectado }
         }
 
-    // Redes de outros SSIDs (exclui nós da mesma rede) — classificadas e agrupadas por SSID
+    // Redes de outros SSIDs/BSSIDs não correlacionados — classificadas e agrupadas.
+    // GH#1209 — antes excluía qualquer BSSID de mesmo SSID daqui (mesmo sem correlação de
+    // topologia), fazendo uma rede de vizinho homônima sumir da tela inteira. Agora só exclui
+    // quem de fato entrou no grupo "sua conexão" (mesmo critério de [grupoNos]).
     val otherClassificadas =
-        remember(filteredRedes, connectedNetwork, filteredRedes.size) {
+        remember(filteredRedes, connectedNetwork, filteredRedes.size, topologiaPorBssid) {
             val connSsid = connectedNetwork?.ssid
             val filtered =
                 filteredRedes
                     .filter { it.bssid != connectedNetwork?.bssid }
-                    .filter { rede -> connSsid == null || rede.ssid == null || rede.ssid != connSsid }
+                    .filter { rede ->
+                        val mesmoSsidDoConectado = connSsid != null && rede.ssid == connSsid
+                        !(mesmoSsidDoConectado && ehMembroDaEstruturaPropria(topologiaPorBssid[rede.bssid]))
+                    }
 
             // Classificar via motor unificado (TopologiaRedeEngine, Fase 2A/#979); fallback
             // gracioso para lista vazia
@@ -1396,9 +1282,11 @@ private fun RedesTab(
                     }
                 }
 
-            // Agrupar por SSID (SSIDs nulos vão para "[Ocultas]")
+            // GH#1209 item 4 — redes ocultas (SSID nulo) diferentes não são a mesma rede só por
+            // não terem nome; agrupar todas como "[Ocultas]" fabricava uma rede falsa com vários
+            // APs. Cada BSSID oculto vira seu próprio grupo, salvo correlação futura do motor.
             classificadas
-                .groupBy { it.rede.ssid ?: "[Ocultas]" }
+                .groupBy { it.rede.ssid ?: "[Oculta] ${it.rede.bssid}" }
                 .map { (ssid, redes) ->
                     GrupoRedeWifi(
                         ssid = ssid,
@@ -1473,6 +1361,7 @@ private fun RedesTab(
                             onNoClick = onNoOuRedeClick,
                             wifiLinkSnapshot = wifiLinkSnapshot,
                             topologiaPorBssid = topologiaPorBssid,
+                            confiancaPorBssid = confiancaPorBssid,
                             canalConectadoCongestionado = canalConectadoCongestionado,
                         )
                     }
@@ -1687,6 +1576,7 @@ private fun GrupoRedeTree(
     modifier: Modifier = Modifier,
     wifiLinkSnapshot: WifiLinkSnapshot? = null,
     topologiaPorBssid: Map<String, TipoTopologia> = emptyMap(),
+    confiancaPorBssid: Map<String, ConfiancaTopologia> = emptyMap(),
     canalConectadoCongestionado: Boolean = false,
 ) {
     val c = LocalLkTokens.current
@@ -1765,32 +1655,42 @@ private fun GrupoRedeTree(
 
             Spacer(Modifier.height(LkSpacing.xs))
 
-            // Nós em árvore
+            // Nós em árvore.
+            // GH#1209 item 8 — o rótulo "Gateway" só é usado quando o motor de topologia
+            // unificado classificou o nó como ROTEADOR com confiança ALTA (evidência real de
+            // OUI/banda/SSID) — nunca inferido pela posição na lista ou pelo sinal mais forte,
+            // que é tecnicamente inválido (em mesh, o nó de sinal mais forte pode ser um
+            // satélite, não o gateway).
             nos.forEachIndexed { index, no ->
                 val isConnected = no.bssid == connectedBssid
+                val tipoDoNo = topologiaPorBssid[no.bssid]
+                val ehRoteadorConfirmado = tipoDoNo == TipoTopologia.ROTEADOR && confiancaPorBssid[no.bssid] == ConfiancaTopologia.ALTA
                 NoTreeItem(
                     rede = no,
                     label =
                         when {
                             isConnected -> "Conectado agora"
                             ehDualBandUnico -> "Mesma rede · ${no.banda}"
-                            index == 0 -> "Gateway"
+                            ehRoteadorConfirmado -> "Roteador"
                             else -> "Nó #$index"
                         },
                     isConnected = isConnected,
                     isLast = index == nos.size - 1,
                     onClick = { onNoClick(no) },
                     wifiLinkSnapshot = if (isConnected) wifiLinkSnapshot else null,
-                    tipoTopologia = topologiaPorBssid[no.bssid],
+                    tipoTopologia = tipoDoNo,
                     canalCongestionado = isConnected && canalConectadoCongestionado,
                 )
             }
 
-            // Aviso de estimativa quando há mais de um nó
-            if (nos.size > 1 && !ehDualBandUnico) {
+            // GH#1209 item 8 — só mostra o aviso de incerteza quando existe de fato ambiguidade
+            // (algum nó com confiança abaixo de ALTA); quando o motor confirma os papéis com
+            // confiança alta, não há necessidade de alertar sobre estimativa.
+            val temNoAmbiguo = nos.any { no -> confiancaPorBssid[no.bssid] != ConfiancaTopologia.ALTA }
+            if (nos.size > 1 && !ehDualBandUnico && temNoAmbiguo) {
                 Spacer(Modifier.height(LkSpacing.sm))
                 Text(
-                    "* Gateway estimado pelo sinal mais forte",
+                    "* Estrutura estimada por fabricante/sinal — sem confirmação de rota de rede",
                     style = MaterialTheme.typography.labelSmall,
                     color = c.textTertiary,
                     modifier = Modifier.padding(horizontal = LkSpacing.sm),
@@ -1843,11 +1743,12 @@ private fun NoTreeItem(
                     .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val bandaVizinha =
-                when {
-                    rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
-                    else -> BandaWifi.ghz5
-                }
+            val bandaVizinha = rede.paraBandaWifi()
+            // GH#1209 item 5 — pro nó conectado, prioriza o RSSI ao vivo (WifiInfo/
+            // WifiLinkSnapshot) sobre o valor do ScanResult, que pode estar atrasado. Nunca
+            // mistura RSSI de outro BSSID — só usa o snapshot quando ESTE nó é o conectado
+            // (o chamador já garante isso, passando wifiLinkSnapshot=null pra nós não conectados).
+            val rssiEfetivo = if (isConnected) (wifiLinkSnapshot?.rssiDbm ?: rede.rssiDbm) else rede.rssiDbm
             Icon(
                 imageVector = if (isConnected) Icons.Outlined.Router else Icons.Outlined.Wifi,
                 contentDescription = null,
@@ -1895,9 +1796,9 @@ private fun NoTreeItem(
                     Text(rede.banda, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
                     Text("  ·  ", style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
                     Text(
-                        signalQuality(rede.rssiDbm, bandaVizinha),
+                        signalQuality(rssiEfetivo, bandaVizinha),
                         style = MaterialTheme.typography.bodySmall,
-                        color = signalColor(rede.rssiDbm, bandaVizinha, c),
+                        color = signalColor(rssiEfetivo, bandaVizinha, c),
                     )
                 }
                 if (wifiLinkSnapshot != null) {
@@ -1912,10 +1813,13 @@ private fun NoTreeItem(
                     }
                 }
             }
+            // GH#1209 item 9 — antes forçava cor de warning (âmbar) pra qualquer nó não
+            // conectado, mesmo com sinal excelente. A cor da barra agora sempre reflete a
+            // qualidade real do sinal (SignalBars já calcula isso sozinho); "conectado" é
+            // comunicado só pelo badge/ícone/destaque de fundo, nunca pela cor da barra.
             SignalBars(
-                rssiDbm = rede.rssiDbm,
+                rssiDbm = rssiEfetivo,
                 banda = bandaVizinha,
-                overrideColor = if (isConnected) null else c.warning,
             )
         }
     }
@@ -1932,7 +1836,9 @@ private fun OtherNetworkGroupItem(
 ) {
     val c = LocalLkTokens.current
     val isSingleBssid = grupo.redes.size == 1
-    val isOculta = grupo.ssid == "[Ocultas]"
+    // GH#1209 item 4 — cada rede oculta agora tem sua própria chave "[Oculta] <bssid>"
+    // (ver otherClassificadas), em vez do bucket único "[Ocultas]" de antes.
+    val isOculta = grupo.ssid.startsWith("[Oculta]")
 
     Column(modifier = modifier.fillMaxWidth()) {
         if (isSingleBssid) {
@@ -1971,11 +1877,7 @@ private fun OtherNetworkGroupItem(
                             )
                         }
                     }
-                    val bandaSingle =
-                        when {
-                            rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
-                            else -> BandaWifi.ghz5
-                        }
+                    val bandaSingle = rede.paraBandaWifi()
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(rede.banda, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
                         Text("  ·  ", style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
@@ -1994,12 +1896,7 @@ private fun OtherNetworkGroupItem(
                     modifier = Modifier.size(16.dp),
                 )
                 Spacer(Modifier.width(LkSpacing.sm))
-                val banda =
-                    when {
-                        rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
-                        else -> BandaWifi.ghz5
-                    }
-                SignalBars(rssiDbm = rede.rssiDbm, banda = banda)
+                SignalBars(rssiDbm = rede.rssiDbm, banda = rede.paraBandaWifi())
             }
         } else {
             // Multi-BSSID: cabeçalho com chevron expansível
@@ -2040,11 +1937,10 @@ private fun OtherNetworkGroupItem(
                             .maxByOrNull { it.rede.rssiDbm }
                             ?.rede
                             ?.rssiDbm ?: 0
-                    val banda =
-                        when {
-                            grupo.redes.any { it.rede.frequenciaMhz < 3000 } -> "2.4GHz"
-                            else -> "5GHz"
-                        }
+                    // GH#1209 item 7 — antes mostrava só a banda de UM BSSID do grupo (2,4GHz
+                    // se existisse, senão qualquer outra), mesmo quando o grupo tinha várias
+                    // bandas presentes (ex.: roteador dual/tri-band). Agora combina todas.
+                    val banda = grupo.redes.map { it.rede }.bandaCombinadaLabel()
                     Text(banda, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
                 }
                 Spacer(Modifier.width(LkSpacing.sm))
@@ -2055,12 +1951,11 @@ private fun OtherNetworkGroupItem(
                     modifier = Modifier.size(24.dp),
                 )
                 Spacer(Modifier.width(LkSpacing.sm))
-                val bestBanda =
-                    when {
-                        grupo.redes.any { it.rede.frequenciaMhz < 3000 } -> BandaWifi.ghz24
-                        else -> BandaWifi.ghz5
-                    }
-                SignalBars(rssiDbm = grupo.redes.maxOfOrNull { it.rede.rssiDbm } ?: 0, banda = bestBanda)
+                val melhorRedeGrupo = grupo.redes.maxByOrNull { it.rede.rssiDbm }?.rede
+                SignalBars(
+                    rssiDbm = grupo.redes.maxOfOrNull { it.rede.rssiDbm } ?: 0,
+                    banda = melhorRedeGrupo?.paraBandaWifi() ?: BandaWifi.desconhecida,
+                )
             }
 
             // Expandido: resumo (não lista cada nó técnico -- ver # de pontos de acesso
@@ -2068,11 +1963,7 @@ private fun OtherNetworkGroupItem(
             if (isExpanded) {
                 val melhorRede = grupo.redes.maxByOrNull { it.rede.rssiDbm }?.rede
                 if (melhorRede != null) {
-                    val bandaMelhor =
-                        when {
-                            melhorRede.frequenciaMhz < 3000 -> BandaWifi.ghz24
-                            else -> BandaWifi.ghz5
-                        }
+                    val bandaMelhor = melhorRede.paraBandaWifi()
                     Row(
                         modifier =
                             Modifier
@@ -2147,12 +2038,7 @@ private fun NetworkListItem(
             modifier = Modifier.size(16.dp),
         )
         Spacer(Modifier.width(LkSpacing.sm))
-        val bandaNetworkListItem =
-            when {
-                rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
-                else -> BandaWifi.ghz5
-            }
-        SignalBars(rssiDbm = rede.rssiDbm, banda = bandaNetworkListItem)
+        SignalBars(rssiDbm = rede.rssiDbm, banda = rede.paraBandaWifi())
     }
 }
 
@@ -2237,11 +2123,7 @@ private fun NetworkDetailSheet(
     val largura = rede.larguraCanalMhz
     val channel = rede.canal
 
-    val bandaDetail =
-        when {
-            rede.frequenciaMhz < 3000 -> BandaWifi.ghz24
-            else -> BandaWifi.ghz5
-        }
+    val bandaDetail = rede.paraBandaWifi()
 
     LkSheetFrame {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -2402,6 +2284,16 @@ private fun CanalTab(
     val c = LocalLkTokens.current
     val bandasDisponiveis = listOf("Todos", "2.4GHz", "5GHz", "6GHz")
     var selectedBanda by remember { mutableStateOf(connectedNetwork?.banda ?: "Todos") }
+    // GH#1207 item 6 — sem isso, o filtro ficava preso na banda de quando a tela abriu: se a
+    // conexão trocar de 2,4 GHz pra 5 GHz (roaming/troca manual) com a tela aberta, o filtro,
+    // o gráfico e a recomendação continuavam na banda antiga. So reage a mudança de banda
+    // conectada quando o usuário não escolheu manualmente uma banda diferente.
+    var bandaEscolhidaManualmente by remember { mutableStateOf(false) }
+    LaunchedEffect(connectedNetwork?.banda) {
+        if (!bandaEscolhidaManualmente) {
+            selectedBanda = connectedNetwork?.banda ?: "Todos"
+        }
+    }
     var selectedCanal by remember { mutableStateOf<Int?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -2429,11 +2321,16 @@ private fun CanalTab(
                             frequenciaMhz = it.frequenciaMhz,
                             ssid = it.ssid,
                             bssid = it.bssid,
+                            larguraCanalMhz = it.larguraCanalMhz,
                         )
                     },
                 canalAtual = canalAtual,
                 banda = selectedBanda,
                 seuSSID = connectedNetwork?.ssid,
+                // GH#1207 item 2 — banda da rede conectada, distinta do filtro "Todos"
+                // selecionado pelo usuario; sem isso, `ehCanalAtual` no modo Todos nao sabia em
+                // qual banda o canal atual realmente esta.
+                bandaConectada = connectedNetwork?.banda,
             )
         }
     val canalOrdenados =
@@ -2527,7 +2424,10 @@ private fun CanalTab(
                 BandFilterRow(
                     selected = selectedBanda,
                     bands = bandasDisponiveis,
-                    onSelect = { selectedBanda = it },
+                    onSelect = {
+                        selectedBanda = it
+                        bandaEscolhidaManualmente = true
+                    },
                     counts = bandaCounts + ("Todos" to redes.size),
                     modifier = Modifier.padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
                 )
@@ -2639,7 +2539,10 @@ private fun CanalTab(
                     )
                     Spacer(Modifier.width(LkSpacing.sm))
                     Text(
-                        "Você está no canal ideal — não é necessário mudar.",
+                        // GH#1207 item 5 — "canal ideal" afirma mais do que um unico scan
+                        // sustenta; troca por texto proporcional a evidencia real (nenhum
+                        // ganho relevante encontrado agora, nao "ideal" para sempre).
+                        "O canal atual apresentou baixa interferência no scan realizado.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = c.success,
                     )
@@ -2671,7 +2574,10 @@ private fun CanalTab(
                 )
                 Spacer(Modifier.height(LkSpacing.sm))
             }
-            items(canalOrdenados, key = { it.canal }) { dado ->
+            // GH#1207 item 2 — chave composta banda+canal: no modo "Todos" o mesmo número de
+            // canal pode existir em bandas diferentes (ex.: 149 em 5GHz e em 6GHz), o que antes
+            // colidia como chave duplicada no LazyColumn.
+            items(canalOrdenados, key = { "${it.banda}_${it.canal}" }) { dado ->
                 ChannelItem(
                     dado = dado,
                     isConnected = dado.ehCanalAtual,
@@ -3100,7 +3006,12 @@ private fun BandSteeringCard() {
                 )
                 Spacer(Modifier.height(LkSpacing.xs))
                 Text(
-                    "Seu aparelho está em 2,4 GHz. Seu roteador também tem 5 GHz, que é mais rápido e menos congestionado.",
+                    // GH#1207 item 7 — a checagem so confirma "mesmo SSID em frequencia mais
+                    // alta", nao que o BSSID pertence ao mesmo equipamento/mesh, nem que a
+                    // outra banda esta de fato menos congestionada. Copy nao afirma band
+                    // steering nem "seu roteador" como fato.
+                    "Seu aparelho está em 2,4 GHz. Foi encontrada outra rede com o mesmo nome em " +
+                        "uma frequência mais alta, que costuma ser mais rápida e menos congestionada.",
                     style = MaterialTheme.typography.bodySmall,
                     color = c.textSecondary,
                 )
@@ -3192,7 +3103,10 @@ private fun ChannelItem(
             NivelCongestionamento.moderado -> "Moderado"
             NivelCongestionamento.congestionado -> "Congestionado"
         }
-    val fracaoUso = (dado.count / 8f).coerceIn(0f, 1f)
+    // GH#1207 item 4 — a barra usava `count / 8`, independente do nível classificado (podia
+    // mostrar barra cheia num canal marcado como livre). Agora usa a mesma fração de score
+    // espectral (fracaoInterferencia) que decide `nivel` e a recomendação.
+    val fracaoUso = dado.fracaoInterferencia.toFloat().coerceIn(0f, 1f)
 
     Row(
         Modifier

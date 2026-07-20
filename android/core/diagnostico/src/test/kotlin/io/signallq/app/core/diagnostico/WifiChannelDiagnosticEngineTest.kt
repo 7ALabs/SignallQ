@@ -1,5 +1,6 @@
 ﻿package io.signallq.app.core.diagnostico
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -237,6 +238,166 @@ class WifiChannelDiagnosticEngineTest {
             )
         val r2 = WifiChannelDiagnosticEngine.avaliar(wifi, scanSuficiente)
         assertTrue(r2.isEmpty() || r2.any { it.status == DiagnosticStatus.attention })
+    }
+
+    // ── GH#1207 item 1: rede propria nao e mais sempre contada como terceiro ───
+
+    @Test
+    fun `computarEspectro separa rede propria de terceiros por SSID`() {
+        val ssid = "MinhaRede"
+        val redes = listOf(
+            RedeWifiVizinha(canal = 1, rssiDbm = -55, frequenciaMhz = 2412, ssid = ssid, bssid = "AA:BB"),
+            RedeWifiVizinha(canal = 1, rssiDbm = -60, frequenciaMhz = 2412, ssid = "Viz_A", bssid = "CC:DD"),
+        )
+        val snapshot = WifiChannelDiagnosticEngine.computarEspectro(
+            redes = redes,
+            canalAtual = 1,
+            banda = "2.4GHz",
+            seuSSID = ssid,
+        )
+        val dadoCanal1 = snapshot.dadosPorCanal.first { it.canal == 1 }
+        assertEquals(1, dadoCanal1.countProprios)
+        assertEquals(1, dadoCanal1.countTerceiros)
+    }
+
+    @Test
+    fun `computarEspectro usa papelTopologia quando SSID nao bate mas o motor ja classificou`() {
+        // Nó mesh com SSID diferente (ex.: repetidor com SSID próprio) mas já classificado
+        // pelo motor de topologia unificado como parte da estrutura — GH#1207 item 1 combina os
+        // dois sinais (SSID OU papelTopologia), não só SSID.
+        val redes = listOf(
+            RedeWifiVizinha(
+                canal = 1,
+                rssiDbm = -55,
+                frequenciaMhz = 2412,
+                ssid = "Repetidor_SSID_Proprio",
+                bssid = "AA:BB",
+                papelTopologia = io.signallq.app.core.network.contracts.topologia.PapelTopologia.REPETIDOR,
+                confiancaTopologia = io.signallq.app.core.network.contracts.topologia.NivelConfianca.ALTA,
+            ),
+        )
+        val snapshot = WifiChannelDiagnosticEngine.computarEspectro(
+            redes = redes,
+            canalAtual = 1,
+            banda = "2.4GHz",
+            seuSSID = "MinhaRede",
+        )
+        val dadoCanal1 = snapshot.dadosPorCanal.first { it.canal == 1 }
+        assertEquals(1, dadoCanal1.countProprios)
+        assertEquals(0, dadoCanal1.countTerceiros)
+    }
+
+    // ── GH#1207 item 2: identidade banda+canal no modo "Todos" ─────────────────
+
+    @Test
+    fun `computarEspectro modo Todos nao colide canal de mesmo numero em bandas diferentes`() {
+        // Canal 149 existe tanto em 5GHz (U-NII-3, freq 5745) quanto na lista PSC de 6GHz
+        // (freq 6695) — mesmo numero de canal, bandas fisicamente distintas. Antes do fix,
+        // o modo "Todos" usava so `canal` como chave e colidia os dois.
+        val redes = listOf(
+            RedeWifiVizinha(canal = 149, rssiDbm = -50, frequenciaMhz = 5745, ssid = "A"),
+            RedeWifiVizinha(canal = 149, rssiDbm = -50, frequenciaMhz = 6695, ssid = "B"),
+        )
+        val snapshot = WifiChannelDiagnosticEngine.computarEspectro(
+            redes = redes,
+            canalAtual = 149,
+            banda = "Todos",
+            seuSSID = "MinhaRede",
+            bandaConectada = "5GHz",
+        )
+        val doisCanal149 = snapshot.dadosPorCanal.filter { it.canal == 149 }
+        // Duas entradas com canal=149, mas bandas diferentes — nao devem colapsar numa so
+        assertTrue("Esperado 2 entradas de canal 149 em bandas diferentes, achou ${doisCanal149.size}", doisCanal149.size >= 2)
+        val bandasDistintas = doisCanal149.map { it.banda }.toSet()
+        assertTrue("Bandas devem ser distintas", bandasDistintas.size >= 2)
+    }
+
+    @Test
+    fun `computarEspectro modo Todos marca ehCanalAtual so na banda conectada`() {
+        val redes = listOf(
+            RedeWifiVizinha(canal = 6, rssiDbm = -50, frequenciaMhz = 2437, ssid = "A"),
+        )
+        val snapshot = WifiChannelDiagnosticEngine.computarEspectro(
+            redes = redes,
+            canalAtual = 6,
+            banda = "Todos",
+            seuSSID = "A",
+            bandaConectada = "2.4GHz",
+        )
+        val atual = snapshot.dadosPorCanal.filter { it.ehCanalAtual }
+        assertTrue("So deve marcar ehCanalAtual na banda 2.4GHz", atual.all { it.banda == "2.4GHz" })
+    }
+
+    // ── GH#1207 item 3: largura real do canal propagada quando disponivel ──────
+
+    @Test
+    fun `toNeighbors usa largura real quando informada e nao marca estimada`() {
+        val redes = listOf(
+            RedeWifiVizinha(canal = 36, rssiDbm = -50, frequenciaMhz = 5180, ssid = "A", larguraCanalMhz = 80),
+            RedeWifiVizinha(canal = 149, rssiDbm = -55, frequenciaMhz = 5745, ssid = "B", larguraCanalMhz = 80),
+        )
+        val snapshot = WifiChannelDiagnosticEngine.computarEspectro(
+            redes = redes,
+            canalAtual = 36,
+            banda = "5GHz",
+            seuSSID = "A",
+        )
+        assertFalse("Largura informada para todos os vizinhos nao deveria marcar estimativa", snapshot.dadosPorCanal.any { it.larguraEstimada })
+    }
+
+    @Test
+    fun `toNeighbors marca largura estimada quando scan nao reporta largura`() {
+        val redes = listOf(
+            RedeWifiVizinha(canal = 36, rssiDbm = -50, frequenciaMhz = 5180, ssid = "A"),
+        )
+        val snapshot = WifiChannelDiagnosticEngine.computarEspectro(
+            redes = redes,
+            canalAtual = 36,
+            banda = "5GHz",
+            seuSSID = "A",
+        )
+        assertTrue("Sem largura no scan, deve marcar estimativa", snapshot.dadosPorCanal.any { it.larguraEstimada })
+    }
+
+    // ── GH#1207 item 4: nivel/barra vem do mesmo score, nao de contagem crua ───
+
+    @Test
+    fun `classificarPorScore reflete o mesmo score que decide a recomendacao`() {
+        assertEquals(NivelCongestionamento.livre, WifiChannelDiagnosticEngine.classificarPorScore(0.0))
+        // ~-51.7 dBm equivalente (5 redes -55..-65 dBm sobrepostas) -> moderado
+        assertEquals(NivelCongestionamento.moderado, WifiChannelDiagnosticEngine.classificarPorScore(6.7e-6))
+        // ~-30 dBm equivalente (muitas redes fortes) -> congestionado
+        assertEquals(NivelCongestionamento.congestionado, WifiChannelDiagnosticEngine.classificarPorScore(1.0e-3))
+    }
+
+    @Test
+    fun `fracaoDeScore cresce conforme o score aumenta, alimentando a mesma barra`() {
+        val fracaoBaixa = WifiChannelDiagnosticEngine.fracaoDeScore(1.0e-9)
+        val fracaoAlta = WifiChannelDiagnosticEngine.fracaoDeScore(1.0e-3)
+        assertTrue(fracaoAlta > fracaoBaixa)
+        assertEquals(0.0, WifiChannelDiagnosticEngine.fracaoDeScore(0.0), 0.0001)
+    }
+
+    // ── GH#1207 (robustez): confianca e estabilidade ────────────────────────────
+
+    @Test
+    fun `confianca fica BAIXA com amostra pequena`() {
+        val redes = listOf(RedeWifiVizinha(canal = 1, rssiDbm = -55, frequenciaMhz = 2412, ssid = "A"))
+        val snapshot = WifiChannelDiagnosticEngine.computarEspectro(
+            redes = redes,
+            canalAtual = 1,
+            banda = "2.4GHz",
+            seuSSID = "A",
+        )
+        assertEquals(io.signallq.app.core.network.contracts.topologia.NivelConfianca.BAIXA, snapshot.confianca)
+    }
+
+    @Test
+    fun `avaliarEstabilidadeRecomendacao detecta recomendacao instavel entre scans`() {
+        val historicoEstavel = listOf(6, 6, 6, 11)
+        val historicoInstavel = listOf(6, 11, 1, 6)
+        assertTrue(WifiChannelDiagnosticEngine.avaliarEstabilidadeRecomendacao(historicoEstavel))
+        assertFalse(WifiChannelDiagnosticEngine.avaliarEstabilidadeRecomendacao(historicoInstavel))
     }
 }
 
