@@ -14,6 +14,14 @@ private const val USER_AGENT =
 // Protocolo: GET page → extrair crypto material → POST login → usar sid/X-SID para páginas.
 internal class NokiaModemClient(private val host: String) {
 
+    init {
+        // GH#1213 item 2 — nunca conectar (nem enviar credenciais) a um host que não seja
+        // um IP privado/local. Falha rápido, antes de qualquer chamada de rede.
+        require(ValidadorHostEquipamento.ehIpPrivadoValido(host)) {
+            "host invalido ou nao-privado para NokiaModemClient"
+        }
+    }
+
     private val baseUrl = "http://$host"
     private var sid = ""
     private var lsid = ""

@@ -58,7 +58,7 @@ class ExecutorFibra {
         }
 
         var ultimoErro: Throwable? = null
-        repeat(3) { tentativa ->
+        for (tentativa in 0 until 3) {
             if (tentativa > 0) delay(1_000L * tentativa)
             try {
                 val client = NokiaModemClient(host)
@@ -70,6 +70,13 @@ class ExecutorFibra {
                 credenciaisCache = credenciaisAtuais
                 mutableSnapshotFlow.value = snapshot
                 return@withContext
+            } catch (t: IllegalArgumentException) {
+                // GH#1213 item 2/4 — host invalido/nao-privado (ValidadorHostEquipamento)
+                // e erro de configuracao permanente, nao transitorio: retry nao vai
+                // resolver, entao para na primeira tentativa em vez de gastar as 3.
+                ultimoErro = t
+                Timber.w("executar[${tentativa + 1}]: host invalido, sem retry — ${t.message}")
+                break
             } catch (t: Throwable) {
                 ultimoErro = t
                 Timber.w("executar[${tentativa + 1}]: falhou — ${t.message}")
@@ -77,6 +84,8 @@ class ExecutorFibra {
         }
         val t = ultimoErro ?: return@withContext
         val chave = when {
+            // GH#1213 item 2 — host informado nao e um IP privado/local valido.
+            t is IllegalArgumentException -> "erroHostInvalido"
             t is ConnectException -> "erroModemInacessivel"
             t is SocketTimeoutException -> "erroTimeout"
             t.message?.contains("timed out", ignoreCase = true) == true -> "erroTimeout"

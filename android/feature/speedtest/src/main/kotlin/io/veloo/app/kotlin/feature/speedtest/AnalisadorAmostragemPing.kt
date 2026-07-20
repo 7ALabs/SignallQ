@@ -5,6 +5,11 @@ import kotlin.math.abs
 /**
  * Resultado do algoritmo puro de amostragem de ping: mediana de latência, jitter,
  * percentual de perda de pacote e contagem de amostras/timeouts.
+ *
+ * [maxMs] e [p95Ms] são calculados sobre TODAS as amostras válidas, antes do filtro de
+ * outlier que produz [latenciaMs] — GH#1211 item 3: o filtro de outlier é adequado para a
+ * latência-base, mas não pode fazer os picos desaparecerem da análise de estabilidade.
+ * [picos] é quantas amostras válidas foram descartadas pelo filtro (`> 3x` a mediana bruta).
  */
 data class ResultadoAmostragemPing(
     val latenciaMs: Double,
@@ -13,6 +18,9 @@ data class ResultadoAmostragemPing(
     val totalAmostras: Int,
     val amostrasValidas: Int,
     val timeouts: Int,
+    val maxMs: Double = 0.0,
+    val p95Ms: Double = 0.0,
+    val picos: Int = 0,
 )
 
 /**
@@ -53,6 +61,9 @@ object AnalisadorAmostragemPing {
             totalAmostras = semPrimeiro.size,
             amostrasValidas = usados.size,
             timeouts = timeouts,
+            maxMs = validos.maxOrNull() ?: 0.0,
+            p95Ms = percentil95(validos),
+            picos = validos.size - usados.size,
         )
     }
 
@@ -71,5 +82,14 @@ object AnalisadorAmostragemPing {
         if (valores.size < 2) return 0.0
         val deltas = valores.zipWithNext { a, b -> abs(b - a) }
         return if (deltas.isEmpty()) 0.0 else deltas.average()
+    }
+
+    // Método do posto mais próximo (nearest-rank) — suficiente para o volume de amostras
+    // de um ping/speedtest (dezenas, não milhares), sem depender de biblioteca estatística.
+    private fun percentil95(valores: List<Double>): Double {
+        if (valores.isEmpty()) return 0.0
+        val ordenadas = valores.sorted()
+        val posto = kotlin.math.ceil(0.95 * ordenadas.size).toInt().coerceIn(1, ordenadas.size)
+        return ordenadas[posto - 1]
     }
 }

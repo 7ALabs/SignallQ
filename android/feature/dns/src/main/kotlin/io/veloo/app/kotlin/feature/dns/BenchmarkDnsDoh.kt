@@ -1,4 +1,4 @@
-﻿package io.signallq.app.feature.dns
+package io.signallq.app.feature.dns
 
 import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
@@ -19,10 +19,30 @@ import kotlin.math.min
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
-// #378: suite inteira (sistema + 7 provedores x 3 rounds) tinha timeout apenas por
+// #378: suite inteira (sistema + 7 provedores x rounds) tinha timeout apenas por
 // tentativa individual — sem rede, a soma das tentativas travava o sheet no skeleton
 // por muito além do razoável. Timeout global garante feedback rápido ao usuário.
-private const val TIMEOUT_SUITE_DNS_MS = 15_000L
+// GH#1212: aumentado de 15s pra 25s pra acomodar a amostragem maior (6 rounds em vez de 3).
+private const val TIMEOUT_SUITE_DNS_MS = 25_000L
+
+// GH#1212 item 5 — antes eram 3 rounds (1 warmup + 2 avaliados), insuficiente pra uma
+// recomendação confiável. Agora 6 rounds (1 warmup + 5 avaliados), igual pro sistema e
+// pros provedores públicos.
+private const val ROUNDS_POR_MEDICAO = 6
+
+// GH#1212 item 8 — diferença abaixo desse valor não justifica declarar um vencedor.
+private const val MARGEM_EMPATE_TECNICO_MS = 10.0
+
+/**
+ * GH#1212 item 2/4 — hostnames reais e estáveis usados em rotação pra medir o DNS do
+ * SISTEMA (via [InetAddress.getByName]). Rotacionar evita que os rounds 2..6 batam sempre
+ * na mesma entrada do cache do resolvedor Android/roteador — cada round consulta um nome
+ * diferente. Só se aplica à medição do sistema: os provedores DoH públicos já fazem uma
+ * consulta de rede de verdade a cada chamada HTTP, então repetir o mesmo hostname neles
+ * mede o comportamento real de cache do PRÓPRIO provedor (não é um artefato de teste).
+ */
+private val HOSTNAMES_ROTACAO_SISTEMA =
+    listOf("example.com", "cloudflare.com", "one.one.one.one", "google.com", "iana.org")
 
 @OptIn(ExperimentalEncodingApi::class)
 class BenchmarkDnsDoh : BenchmarkDns {
@@ -59,7 +79,7 @@ class BenchmarkDnsDoh : BenchmarkDns {
                         Timber.i("iniciando benchmark DNS host=$hostConsulta resolvedores=$resolvedoresAtivos privateDns=$privateDnsHostname")
                         publicar(EstadoBenchmarkDns.executando, 5, emptyList(), null)
 
-                        val resultadoSistema = medirSistemaDns(hostConsulta, resolvedoresAtivos, privateDnsHostname)
+                        val resultadoSistema = medirSistemaDns(resolvedoresAtivos, privateDnsHostname)
                         Timber.i("sistema dns: nome=${resultadoSistema.nomeProvedor} tempo=${resultadoSistema.tempoMs} grade=${resultadoSistema.gradeRapidez} amostras=${resultadoSistema.amostrasMs}")
                         val acumulados = mutableListOf<ResultadoBenchmarkDns>()
                         publicar(
@@ -71,7 +91,10 @@ class BenchmarkDnsDoh : BenchmarkDns {
 
                         provedoresPublicos.forEachIndexed { idx, provedor ->
                             val resultado = medirProvedor(provedor, hostConsulta)
-                            Timber.i("provedor ${provedor.nome}: tempo=${resultado.tempoMs} grade=${resultado.gradeRapidez} amostras=${resultado.amostrasMs} erro=${resultado.erroMensagem}")
+                            Timber.i(
+                                "provedor ${provedor.nome}: tempo=${resultado.tempoMs} grade=${resultado.gradeRapidez} " +
+                                    "amostras=${resultado.amostrasMs} erro=${resultado.erroMensagem} invalida=${resultado.respostaInvalida}",
+                            )
                             acumulados.add(resultado)
                             val progresso = 20 + (((idx + 1).toDouble() / provedoresPublicos.size.toDouble()) * 75.0).toInt()
                             publicar(
@@ -114,6 +137,11 @@ class BenchmarkDnsDoh : BenchmarkDns {
             )
     }
 
+    /**
+     * GH#1212 item 8/13 — mantém provedores que falharam (comportamento preservado dos
+     * testes de caracterização), mas o "melhor" pra recomendação (usado pelo [DnsScreen])
+     * não é mais simplesmente o menor tempo: ver [melhorComMargem].
+     */
     internal fun combinarResultados(
         resultadoSistema: ResultadoBenchmarkDns,
         resultadosPublicos: List<ResultadoBenchmarkDns>,
@@ -129,86 +157,112 @@ class BenchmarkDnsDoh : BenchmarkDns {
         )
     }
 
-    // Mede o DNS do sistema via InetAddress com mesma metodologia dos publicos:
-    // 3 rounds, descarta round 0 (warmup) + filtra <3ms (cache SO), P50 dos validos.
+    // Mede o DNS do sistema via InetAddress com metodologia equivalente aos públicos:
+    // ROUNDS_POR_MEDICAO rounds, descarta round 0 (warmup), mediana dos válidos.
+    // GH#1212 item 2 — cada round consulta um hostname diferente (rotação), não sempre o
+    // mesmo, pra reduzir o efeito do cache do resolvedor Android/roteador.
     private fun medirSistemaDns(
-        hostConsulta: String,
         resolvedoresAtivos: List<String>,
         privateDnsHostname: String?,
     ): ResultadoBenchmarkDns {
         val amostras = mutableListOf<Double>()
-        repeat(3) { round ->
+        repeat(ROUNDS_POR_MEDICAO) { round ->
+            val host = HOSTNAMES_ROTACAO_SISTEMA[round % HOSTNAMES_ROTACAO_SISTEMA.size]
             try {
                 val inicio = System.nanoTime()
-                InetAddress.getByName(hostConsulta)
+                InetAddress.getByName(host)
                 val ms = (System.nanoTime() - inicio) / 1_000_000.0
-                // Round 0 descartado como warmup. Rounds 1-2 sempre incluídos —
-                // o filtro anterior (>= 3ms) excluía DNS rápidos de operadora falsamente
-                // considerando-os "cache do SO". Latência real < 3ms é válida.
+                // Round 0 descartado como warmup. Rounds seguintes sempre incluídos —
+                // latência real < 3ms é válida (não é necessariamente cache).
                 if (round > 0) amostras.add(ms)
             } catch (_: Throwable) { }
         }
-        val tempo = calcularP50(amostras)
+        val tentativasAvaliadas = ROUNDS_POR_MEDICAO - 1
+        val tempo = calcularMediana(amostras)
         val nome = inferirNomeSistemaDns(resolvedoresAtivos, privateDnsHostname)
         val gatewayLocal = nome == "Roteador da rede"
         return ResultadoBenchmarkDns(
             nomeProvedor = nome,
-            hostConsulta = hostConsulta,
+            hostConsulta = HOSTNAMES_ROTACAO_SISTEMA.first(),
             tempoMs = tempo,
             amostrasMs = amostras,
-            tentativas = 3,
+            tentativas = ROUNDS_POR_MEDICAO,
             sucessos = amostras.size,
-            taxaSucessoPercentual = if (amostras.isEmpty()) 0.0 else (amostras.size.toDouble() / 2.0) * 100.0,
+            taxaSucessoPercentual = taxaSucesso(amostras.size, tentativasAvaliadas),
             erroMensagem = if (tempo == null) "semResposta" else null,
             gradeRapidez = if (gatewayLocal) null else tempo?.let { calcularGrade(it) },
             isGatewayLocal = gatewayLocal,
+            tentativasAvaliadas = tentativasAvaliadas,
         )
     }
 
-    // 3 rounds, descarta round 0 (warmup), P50 dos rounds 1-2.
+    // ROUNDS_POR_MEDICAO rounds, descarta round 0 (warmup), mediana dos rounds avaliados.
     private fun medirProvedor(
         provedor: DnsPublico,
         hostConsulta: String,
     ): ResultadoBenchmarkDns {
         val amostras = mutableListOf<Double>()
         var ultimoErro: String? = null
+        var teveRespostaInvalida = false
 
-        repeat(3) { round ->
-            val tempo = medirTentativa(provedor, hostConsulta)
+        repeat(ROUNDS_POR_MEDICAO) { round ->
+            val tentativa = medirTentativa(provedor, hostConsulta)
             if (round > 0) {
-                if (tempo != null) amostras.add(tempo)
-                else if (ultimoErro == null) ultimoErro = "semResposta"
+                when {
+                    tentativa is TentativaDns.Sucesso -> amostras.add(tentativa.ms)
+                    tentativa is TentativaDns.RespostaInvalida -> {
+                        teveRespostaInvalida = true
+                        if (ultimoErro == null) ultimoErro = tentativa.motivo
+                    }
+                    else -> if (ultimoErro == null) ultimoErro = "semResposta"
+                }
             }
         }
 
-        val tempo = calcularP50(amostras)
+        val tentativasAvaliadas = ROUNDS_POR_MEDICAO - 1
+        val tempo = calcularMediana(amostras)
         return ResultadoBenchmarkDns(
             nomeProvedor = provedor.nome,
             hostConsulta = hostConsulta,
             tempoMs = tempo,
             amostrasMs = amostras,
-            tentativas = 3,
+            tentativas = ROUNDS_POR_MEDICAO,
             sucessos = amostras.size,
-            taxaSucessoPercentual = if (amostras.isEmpty()) 0.0 else (amostras.size.toDouble() / 2.0) * 100.0,
+            taxaSucessoPercentual = taxaSucesso(amostras.size, tentativasAvaliadas),
             erroMensagem = if (tempo == null) (ultimoErro ?: "erroConsulta") else null,
             gradeRapidez = tempo?.let { calcularGrade(it) },
+            tentativasAvaliadas = tentativasAvaliadas,
+            respostaInvalida = teveRespostaInvalida,
         )
     }
+
+    internal fun taxaSucesso(
+        sucessos: Int,
+        tentativasAvaliadas: Int,
+    ): Double = if (tentativasAvaliadas <= 0) 0.0 else (sucessos.toDouble() / tentativasAvaliadas.toDouble()) * 100.0
 
     private fun medirTentativa(
         provedor: DnsPublico,
         hostConsulta: String,
-    ): Double? {
+    ): TentativaDns {
         val inicio = System.nanoTime()
         return try {
             val request = construirRequest(provedor, hostConsulta)
             httpClient.newCall(request).execute().use { response ->
                 val elapsed = (System.nanoTime() - inicio) / 1_000_000.0
-                response.body?.bytes()
-                if (response.isSuccessful) elapsed else null
+                val corpo = response.body?.bytes()
+                if (!response.isSuccessful || corpo == null) return TentativaDns.Falha
+                // GH#1212 item 6 — HTTP 200 não é sinônimo de resposta DNS válida: decodifica
+                // o cabeçalho RFC 1035 (RCODE nos 4 bits baixos do byte 3, ANCOUNT nos bytes
+                // 6-7) e só conta como sucesso quando RCODE=0 (NOERROR) e há ao menos 1 answer.
+                val validacao = validarRespostaDnsBinaria(corpo)
+                when (validacao) {
+                    ValidacaoDns.Valida -> TentativaDns.Sucesso(elapsed)
+                    else -> TentativaDns.RespostaInvalida(validacao.motivo)
+                }
             }
         } catch (_: Throwable) {
-            null
+            TentativaDns.Falha
         }
     }
 
@@ -217,32 +271,16 @@ class BenchmarkDnsDoh : BenchmarkDns {
         hostConsulta: String,
     ): Request {
         val url =
-            when (provedor.modoConsulta) {
-                DnsQueryMode.Json ->
-                    provedor.endpoint
-                        .toHttpUrl()
-                        .newBuilder()
-                        .addQueryParameter("name", hostConsulta)
-                        .addQueryParameter("type", "A")
-                        .build()
-                DnsQueryMode.Rfc8484 ->
-                    provedor.endpoint
-                        .toHttpUrl()
-                        .newBuilder()
-                        .addQueryParameter("dns", construirDnsQueryBase64Url(hostConsulta))
-                        .build()
-            }
-
-        val acceptHeader =
-            when (provedor.modoConsulta) {
-                DnsQueryMode.Json -> "application/dns-json, application/json"
-                DnsQueryMode.Rfc8484 -> "application/dns-message"
-            }
+            provedor.endpoint
+                .toHttpUrl()
+                .newBuilder()
+                .addQueryParameter("dns", construirDnsQueryBase64Url(hostConsulta))
+                .build()
 
         return Request.Builder()
             .url(url)
             .get()
-            .header("accept", acceptHeader)
+            .header("accept", "application/dns-message")
             .build()
     }
 
@@ -266,11 +304,37 @@ class BenchmarkDnsDoh : BenchmarkDns {
         return Base64.UrlSafe.encode(saida.toByteArray()).trimEnd('=')
     }
 
-    // P50 identico ao Flutter: sorted[size / 2] (divisao inteira).
-    private fun calcularP50(amostras: List<Double>): Double? {
+    /**
+     * GH#1212 item 6/9 — valida o cabeçalho RFC 1035 de uma resposta DNS binária (RFC 8484).
+     * Não faz parsing completo de records (nomes com compressão de ponteiros, TTL, RDATA) —
+     * suficiente pra distinguir NOERROR-com-resposta de NXDOMAIN/SERVFAIL/REFUSED/vazio, que
+     * é exatamente o que o critério de aceite pede (não tratar essas respostas como sucesso).
+     */
+    internal fun validarRespostaDnsBinaria(corpo: ByteArray): ValidacaoDns {
+        if (corpo.size < 12) return ValidacaoDns.Malformada
+        val rcode = corpo[3].toInt() and 0x0F
+        val ancount = ((corpo[6].toInt() and 0xFF) shl 8) or (corpo[7].toInt() and 0xFF)
+        return when {
+            rcode == 3 -> ValidacaoDns.Nxdomain
+            rcode == 2 -> ValidacaoDns.Servfail
+            rcode == 5 -> ValidacaoDns.Refused
+            rcode != 0 -> ValidacaoDns.OutroErro(rcode)
+            ancount == 0 -> ValidacaoDns.SemResposta
+            else -> ValidacaoDns.Valida
+        }
+    }
+
+    // Mediana correta pra quantidade par e ímpar de amostras (GH#1212 item 4 — o antigo
+    // "P50" fazia sorted[size/2], que pra 2 amostras devolve a MAIOR, não uma mediana real).
+    internal fun calcularMediana(amostras: List<Double>): Double? {
         if (amostras.isEmpty()) return null
         val ordenadas = amostras.sorted()
-        return ordenadas[ordenadas.size / 2]
+        val m = ordenadas.size / 2
+        return if (ordenadas.size % 2 == 0) {
+            (ordenadas[m - 1] + ordenadas[m]) / 2.0
+        } else {
+            ordenadas[m]
+        }
     }
 
     private fun calcularGrade(ms: Double): String = when {
@@ -289,37 +353,25 @@ class BenchmarkDnsDoh : BenchmarkDns {
             mapaHostParaProvedor.entries.firstOrNull { h.contains(it.key) }?.value?.let { return it }
         }
         for (ip in resolvedoresAtivos.map { it.trim() }.filter { it.isNotBlank() }) {
-            if (isIpPrivado(ip)) return "Roteador da rede"
+            if (DetectorEnderecoIpPrivado.ehPrivadoOuLocal(ip)) return "Roteador da rede"
             mapaIpParaProvedor[ip]?.let { return it }
         }
         return "DNS do Provedor"
     }
 
-    // Retorna true para IPs RFC-1918, link-local e loopback — não são DNS públicos reais.
-    private fun isIpPrivado(ip: String): Boolean {
-        val partes = ip.split(".").mapNotNull { it.toIntOrNull() }
-        if (partes.size != 4) return false
-        val (a, b) = partes
-        return when {
-            a == 10 -> true
-            a == 172 && b in 16..31 -> true
-            a == 192 && b == 168 -> true
-            a == 169 && b == 254 -> true  // link-local
-            a == 127 -> true               // loopback
-            else -> false
-        }
-    }
-
     private companion object {
+        // GH#1212 item 1/7 — Cloudflare e Google migrados de DoH JSON pra RFC 8484 binário,
+        // igual aos outros 5 provedores. Endpoint do Google muda de `dns.google/resolve`
+        // (só JSON) pra `dns.google/dns-query` (suporta RFC 8484).
         val provedoresPublicos =
             listOf(
-                DnsPublico("Cloudflare", "https://cloudflare-dns.com/dns-query", DnsQueryMode.Json),
-                DnsPublico("Google DNS", "https://dns.google/resolve", DnsQueryMode.Json),
-                DnsPublico("Quad9", "https://dns.quad9.net/dns-query", DnsQueryMode.Rfc8484),
-                DnsPublico("OpenDNS", "https://doh.opendns.com/dns-query", DnsQueryMode.Rfc8484),
-                DnsPublico("AdGuard", "https://dns.adguard-dns.com/dns-query", DnsQueryMode.Rfc8484),
-                DnsPublico("Control D", "https://freedns.controld.com/p0", DnsQueryMode.Rfc8484),
-                DnsPublico("CleanBrowsing", "https://doh.cleanbrowsing.org/doh/security-filter/", DnsQueryMode.Rfc8484),
+                DnsPublico("Cloudflare", "https://cloudflare-dns.com/dns-query"),
+                DnsPublico("Google DNS", "https://dns.google/dns-query"),
+                DnsPublico("Quad9", "https://dns.quad9.net/dns-query"),
+                DnsPublico("OpenDNS", "https://doh.opendns.com/dns-query"),
+                DnsPublico("AdGuard", "https://dns.adguard-dns.com/dns-query"),
+                DnsPublico("Control D", "https://freedns.controld.com/p0"),
+                DnsPublico("CleanBrowsing", "https://doh.cleanbrowsing.org/doh/security-filter/"),
             )
 
         val mapaIpParaProvedor = mapOf(
@@ -353,13 +405,24 @@ class BenchmarkDnsDoh : BenchmarkDns {
     }
 }
 
-private enum class DnsQueryMode {
-    Json,
-    Rfc8484,
+/** GH#1212 item 6 — resultado de decodificar o cabeçalho RFC 1035 de uma resposta DoH binária. */
+internal sealed class ValidacaoDns(val motivo: String) {
+    data object Valida : ValidacaoDns("valida")
+    data object Nxdomain : ValidacaoDns("nxdomain")
+    data object Servfail : ValidacaoDns("servfail")
+    data object Refused : ValidacaoDns("refused")
+    data object SemResposta : ValidacaoDns("semRespostaTipo")
+    data object Malformada : ValidacaoDns("respostaMalformada")
+    data class OutroErro(val rcode: Int) : ValidacaoDns("rcode$rcode")
+}
+
+private sealed interface TentativaDns {
+    data class Sucesso(val ms: Double) : TentativaDns
+    data class RespostaInvalida(val motivo: String) : TentativaDns
+    data object Falha : TentativaDns
 }
 
 private data class DnsPublico(
     val nome: String,
     val endpoint: String,
-    val modoConsulta: DnsQueryMode,
 )
