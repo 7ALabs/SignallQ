@@ -79,6 +79,7 @@ import androidx.compose.ui.unit.dp
 import io.signallq.app.BuildConfig
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.WifiLinkSnapshot
+import io.signallq.app.feature.diagnostico.topology.lan.NatUdpTipo
 import io.signallq.app.jogos.CatalogoJogos
 import io.signallq.app.jogos.EstrategiaTeste
 import io.signallq.app.jogos.GameArtworkCatalog
@@ -672,6 +673,10 @@ private fun EtapaResultado(
             }
         }
 
+        if (resultado.natUdp != null) {
+            NatUdpCard(resultado = resultado)
+        }
+
         val cardsRecomendacao = recommendationCards(resultado)
         if (cardsRecomendacao.isNotEmpty()) {
             Overline(texto = "Recomendações", color = c.textTertiary)
@@ -810,6 +815,78 @@ private fun RecommendationCard(recommendation: RecommendationUi) {
         }
     }
 }
+
+/**
+ * Card informativo do NAT Type detectado via STUN (#1200). Tom neutro/informativo — não
+ * reusa [VerdictTone] (reservado pra qualidade de conexão): NAT restrito é frequentemente
+ * estrutural (CGNAT de operadora/rede móvel), não deve soar como "seu Wi-Fi está ruim".
+ */
+@Composable
+private fun NatUdpCard(resultado: ResultadoTesteJogo) {
+    val natUdp = resultado.natUdp ?: return
+    val c = LocalLkTokens.current
+    val (rotulo, descricao) = textoNatUdp(natUdp.tipo)
+    val corTipo = corNatUdp(natUdp.tipo, c)
+
+    LkSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Tipo de NAT",
+            style = MaterialTheme.typography.labelMedium,
+            color = c.textSecondary,
+        )
+        Spacer(Modifier.height(LkSpacing.sm))
+        Box(
+            modifier =
+                Modifier
+                    .clip(RoundedCornerShape(LkRadius.pill))
+                    .background(corTipo.copy(alpha = 0.12f))
+                    .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
+        ) {
+            Text(
+                text = rotulo,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.W600,
+                color = corTipo,
+            )
+        }
+        Spacer(Modifier.height(LkSpacing.sm))
+        Text(
+            text = descricao,
+            style = MaterialTheme.typography.bodySmall,
+            color = c.textSecondary,
+        )
+    }
+}
+
+/** Rótulo do chip + descrição por estado — copiar literalmente (issue #1200). */
+private fun textoNatUdp(tipo: NatUdpTipo): Pair<String, String> =
+    when (tipo) {
+        NatUdpTipo.ABERTO ->
+            "NAT aberto" to
+                "Sua conexão costuma aceitar bem partidas multiplayer, hospedar salas e chat de voz."
+        NatUdpTipo.MODERADO ->
+            "NAT moderado" to
+                "O multiplayer deve funcionar bem na maioria das partidas, mas entrar ou hospedar algumas salas pode ser mais lento."
+        NatUdpTipo.RESTRITO ->
+            "NAT restrito" to
+                "Pode haver dificuldade para hospedar partidas, usar chat de voz ou entrar em algumas salas. Isso é comum em redes " +
+                "com CGNAT ou internet móvel, e não indica um problema no seu Wi-Fi."
+        NatUdpTipo.BLOQUEADO ->
+            "Não foi possível confirmar" to
+                "Esta rede parece estar bloqueando esse tipo de teste (comum em Wi-Fi público ou redes corporativas). Isso não " +
+                "significa que sua conexão está ruim."
+        NatUdpTipo.NAO_VERIFICADO ->
+            "Não verificado" to "Não foi possível verificar o tipo de NAT desta vez. Você pode tentar novamente mais tarde."
+    }
+
+/** Cor do chip por estado — tom neutro/informativo, nunca reusa [VerdictTone]. */
+private fun corNatUdp(tipo: NatUdpTipo, c: LkTokens): Color =
+    when (tipo) {
+        NatUdpTipo.ABERTO -> c.success
+        NatUdpTipo.MODERADO -> c.textSecondary
+        NatUdpTipo.RESTRITO -> c.warning
+        NatUdpTipo.BLOQUEADO, NatUdpTipo.NAO_VERIFICADO -> c.textTertiary
+    }
 
 @Composable
 private fun InfoNote(text: String) {
