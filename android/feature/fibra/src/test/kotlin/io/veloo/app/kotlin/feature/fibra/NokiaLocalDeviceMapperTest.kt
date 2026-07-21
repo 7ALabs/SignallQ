@@ -88,7 +88,11 @@ class NokiaLocalDeviceMapperTest {
         assertTrue(resultado.capabilities.suportaWifi)
         assertTrue(resultado.capabilities.suportaLan)
         assertTrue(resultado.capabilities.suportaClientes)
-        assertTrue(resultado.capabilities.suportaGerenciamento)
+        // GH#1213 item 12 — gerenciamento (reboot) segue o gate de RebootLabFlags, não mais
+        // hardcoded como sempre-true: reboot não validado em hardware fica indisponível em
+        // produção. Compara contra a própria flag (não contra um literal) pra este teste não
+        // quebrar no dia em que a validação real acontecer e a flag virar true.
+        assertEquals(RebootLabFlags.HABILITADO_SEM_VALIDACAO_HARDWARE, resultado.capabilities.suportaGerenciamento)
 
         requireNotNull(resultado.fiber)
         assertEquals(true, resultado.fiber?.linkAtivo)

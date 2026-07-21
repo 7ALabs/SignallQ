@@ -53,6 +53,14 @@ fun mapAcessoEquipamento(
             // (ValidadorHostEquipamento). Nao e "sessao expirada" (reautenticar nao
             // resolve) nem "credenciais necessarias" (usuario/senha podem estar certos).
             "erroHostInvalido" -> AcessoEquipamento.SOMENTE_IDENTIFICACAO
+            // GH#1213 (final) — err_t=0 (sessao ocupada por outro acesso) e err_t=2 (token
+            // expirado) sao causas internas distintas entre si e de falha de rede/timeout,
+            // mas as tres compartilham o mesmo tratamento de UI hoje: reautenticar resolve
+            // sozinho, nao e senha errada nem equipamento nao suportado. Listadas explicitamente
+            // (em vez do "else" generico) pra documentar que a chave existe e foi considerada,
+            // nao que caiu aqui por omissao.
+            "erroSessaoOcupada", "erroTokenExpirado", "erroComunicacaoModem", "erroTimeout", "erroModemInacessivel" ->
+                AcessoEquipamento.SESSAO_EXPIRADA
             else -> AcessoEquipamento.SESSAO_EXPIRADA
         }
     }

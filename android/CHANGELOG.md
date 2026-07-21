@@ -116,6 +116,61 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
   (#1213, resto do escopo maior segue pendente — módulos GPON/WAN/PPP independentes, estados
   de sessão diferenciados, reboot protegido — sem hardware físico G-1425G-B disponível para
   validar em device real)
+- Dispositivos na rede: nova varredura ganha nível de confiança por dispositivo (`NivelConfiancaIdentidade`:
+  CONFIRMADA/PROVÁVEL/TEMPORÁRIA/DESCONHECIDA — este dispositivo ou MAC real é sempre confirmado,
+  nome genérico sem fabricante corroborante nunca finge certeza), estados de resultado tipados
+  (concluído, concluído parcial — ao menos uma fase de varredura falhou mas houve resultado —,
+  sem-Wi-Fi, timeout e cancelado deixam de colapsar em "erro" genérico), e cada fase de descoberta
+  (subnet/ARP/mDNS/SSDP/TCP probe) passa a ser isolada — falha de uma fase não derruba as demais
+  nem esconde os dispositivos já encontrados (#1217, fechamento do escopo completo — dedup mDNS
+  multi-serviço e limite de host por prefixo já existiam corretos, confirmados por leitura de
+  código, não pela abertura de PR nova)
+- Operadora ("Falar com a operadora"): estado de UI tipado (`OperadoraUiState` sealed —
+  Loading/IdentifiedWithContacts/IdentifiedWithoutContacts/NotIdentified/Error) substitui
+  combinação solta de booleans — identidade detectada sem nenhum canal de contato agora vira
+  "identificada, sem contato disponível" e nunca mais "não identificada" (a mentira que a issue
+  descrevia); `ConnectionType`/`OperatorScope` tipam o meio de conexão e o alcance da operadora
+  (nacional/regional) a partir do catálogo local já existente (`BancoOperadoras.lista`), sem
+  diretório remoto novo (#1226, fechamento do escopo completo)
+- Ajustes: `ConnectionProfile` ganha persistência real por rede (`ConnectionProfilePersistido`,
+  `core/datastore`, chave `connection_profiles_v1`) — provedor fixo e plano contratado deixam de
+  viver em chaves DataStore globais (`velocidadeContratadaDown/UpMbps`), migração automática do
+  valor legado global para o primeiro perfil por rede (`migrarPerfilGlobalLegado`); nova função
+  pura `DetectorDivergenciaPerfilConexao` decide se uma divergência entre provedor salvo e
+  detectado deve ser sobrescrita silenciosamente (usuário nunca confirmou) ou sinalizada ao
+  usuário (confirmação explícita anterior não pode ser descartada sem aviso) — (#1227, wiring da
+  camada de dados completo; consumo na UI do `AjustesScreen.kt` e as 3 seções novas "Permissões e
+  acesso"/"Privacidade e anúncios"/"Suporte e sobre" — pedido explícito da issue, não escopo
+  inventado — ficam pendentes: exigem leitura real de permissão/notificação do Android e não
+  couberam com segurança nesta rodada; ver comentário na issue)
+- Equipamento de internet (Nokia G-1425G-B): sessão/erro ganham diferenciação completa —
+  "sessão ocupada por outro acesso" (err_t=0) e "token expirado" (err_t=2) deixam de colapsar no
+  bucket genérico `erroComunicacaoModem`, cada um com sua própria chave (`chaveErroFibra`, extraída
+  como função pura testável); novo perfil técnico versionado `NokiaG1425GBProfile` (GPON classe
+  B+, ITU-T G.984.2 Amd.1) com classificação de RX em 4 níveis (fora de especificação/próximo ao
+  limite/dentro da faixa com margem/não informado) e TX em 3 níveis, usando as faixas literais da
+  issue (RX -27 a -8 dBm, TX +0,5 a +5,0 dBm) e nunca tratando ausência de dado como falha; reboot
+  (`reboot.cgi`) passa a ficar indisponível em produção por trás de uma flag única e documentada
+  (`RebootLabFlags.HABILITADO_SEM_VALIDACAO_HARDWARE = false`) até validação real contra hardware
+  físico acontecer — não removido, só desligado (#1213, este item fecha; validação de reboot em
+  hardware físico do G-1425G-B continua não realizada nesta sessão e não deve ser considerada
+  fechada — ver comentário na issue)
+
+### Investigado (sem mudança de código shipada)
+- Gate de QA visual (#1245): tentativa de resolver via Paparazzi (screenshot testing headless)
+  revertida após quebrar o CI real — nenhuma versão publicada do plugin serve simultaneamente
+  para os três requisitos deste projeto (Java 17 do CI, AGP 9.2.1, Gradle 9.4.1). Confirmado por
+  teste real, não suposição: `1.3.5` (mínimo JVM 11, compatível com Java 17) e `2.0.0-alpha01`/
+  `alpha02` (mínimo JVM 17) quebram com `NoSuchMethodError`/`NoClassDefFoundError` contra APIs
+  internas de teste do Gradle 9.4.1 (`TestResultsProvider`/`PaparazziTestReporter`); o fix desse
+  problema só chegou no `2.0.0-alpha03`, que ao mesmo tempo elevou o mínimo de JVM pra 21 —
+  incompatível com o Java 17 fixado no CI (`android-ci.yml`, 4 jobs). Bump do CI inteiro pra
+  Java 21 só por causa do Paparazzi está fora de escopo (mudança de infra maior que o problema).
+  Antes de reverter, os 3 estados do `CardMedicoes` (Home) e o `ThemeSelector` (Ajustes) foram
+  confirmados visualmente uma vez, manualmente, contra os 7 snapshots gerados localmente — não
+  substitui gate automatizado em CI, mas documenta que a renderização estava correta no momento
+  da tentativa. Issue #1245 permanece aberta; ver comentário com recomendação (ex.: avaliar
+  Roborazzi como alternativa, ou revisitar quando o projeto migrar para JVM 21 por outro motivo)
 
 ## [0.29.0] — 2026-07-20
 

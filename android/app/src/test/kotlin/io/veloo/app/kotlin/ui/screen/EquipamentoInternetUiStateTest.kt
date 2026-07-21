@@ -92,6 +92,34 @@ class EquipamentoInternetUiStateTest {
         assertEquals(AcessoEquipamento.SESSAO_EXPIRADA, acesso)
     }
 
+    @Test
+    fun `erro erroSessaoOcupada (err_t=0) vira SESSAO_EXPIRADA, nao credenciais`() {
+        // GH#1213 (final) — sessao ocupada por outro acesso e distinta internamente de erro de
+        // rede generico, mas ambas resultam em "precisa reautenticar", nunca senha errada.
+        val acesso =
+            mapAcessoEquipamento(
+                snapshotErro("erroSessaoOcupada"),
+                localDevice = null,
+                modemHost = "192.168.1.1",
+                modemUsername = "admin",
+                modemPassword = "certa",
+            )
+        assertEquals(AcessoEquipamento.SESSAO_EXPIRADA, acesso)
+    }
+
+    @Test
+    fun `erro erroTokenExpirado (err_t=2) vira SESSAO_EXPIRADA, nao credenciais`() {
+        val acesso =
+            mapAcessoEquipamento(
+                snapshotErro("erroTokenExpirado"),
+                localDevice = null,
+                modemHost = "192.168.1.1",
+                modemUsername = "admin",
+                modemPassword = "certa",
+            )
+        assertEquals(AcessoEquipamento.SESSAO_EXPIRADA, acesso)
+    }
+
     // ── Somente identificacao ───────────────────────────────────────────────
 
     @Test

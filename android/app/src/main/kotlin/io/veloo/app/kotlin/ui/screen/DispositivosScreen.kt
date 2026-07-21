@@ -202,6 +202,7 @@ fun DispositivosScreen(
                         c = c,
                         isLoading = isLoading,
                         progresso = snapshotDevices.progressoPercentual,
+                        estado = snapshotDevices.estado,
                         erro = erro,
                         onRefresh = onRefresh,
                     )
@@ -210,6 +211,7 @@ fun DispositivosScreen(
                         c = c,
                         dispositivos = dispositivos,
                         isLoading = isLoading,
+                        resultadoParcial = snapshotDevices.estado == EstadoScanDispositivos.concluidoParcial,
                         erro = erro,
                         onRefresh = onRefresh,
                         apelidos = apelidos,
@@ -234,6 +236,10 @@ private fun DispositivosLista(
     c: LkTokens,
     dispositivos: List<DispositivoRede>,
     isLoading: Boolean,
+    // GH#1217 item 3 — quando o scan termina em concluidoParcial (dado válido, porém
+    // incompleto porque alguma fase falhou), a lista continua sendo mostrada normalmente,
+    // mas com um aviso discreto — nunca finge que a varredura foi 100% completa.
+    resultadoParcial: Boolean = false,
     erro: String?,
     onRefresh: () -> Unit,
     apelidos: Map<String, String>,
@@ -280,6 +286,30 @@ private fun DispositivosLista(
                         color = c.primary,
                         trackColor = c.bgSecondary,
                     )
+                }
+            }
+            if (resultadoParcial && !isLoading) {
+                item {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.xs),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.WarningAmber,
+                            contentDescription = null,
+                            tint = c.warning,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(LkSpacing.xs))
+                        Text(
+                            "Resultado parcial — uma etapa da varredura não respondeu",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = c.textSecondary,
+                        )
+                    }
                 }
             }
 
@@ -952,17 +982,21 @@ private fun EmptyStateDispositivos(
     c: LkTokens,
     isLoading: Boolean,
     progresso: Int,
+    // GH#1217 item 3 — estado tipado tem prioridade sobre a string de erro legada: cada
+    // estado (semWifi/timeout/cancelado/erro) agora tem mensagem própria, não precisa mais
+    // interpretar substring de erroMensagem pros casos já cobertos pelo enum.
+    estado: EstadoScanDispositivos,
     erro: String?,
     onRefresh: () -> Unit,
 ) {
-    val temErro = !erro.isNullOrBlank()
+    val temErro = !erro.isNullOrBlank() || estado in ESTADOS_COM_MENSAGEM_PROPRIA
     val titulo: String
     val subtitulo: String
     val icone: androidx.compose.ui.graphics.vector.ImageVector
     val iconColor: androidx.compose.ui.graphics.Color
 
     if (temErro) {
-        val (ttl, sbt) = traduzirErroParaPortugues(checkNotNull(erro) { "invariante: temErro=true implica erro não-nulo" })
+        val (ttl, sbt) = tituloSubtituloParaEstado(estado, erro)
         titulo = ttl
         subtitulo = sbt
         icone = Icons.Outlined.WarningAmber
@@ -1293,6 +1327,35 @@ private val FONTES_CONFIAVEIS =
         "mdnsJmDns",
     )
 
+// GH#1217 item 3 — estados que sempre têm mensagem própria, independente de erroMensagem
+// estar preenchido (o scanner não seta mais string pra esses casos, só o enum).
+private val ESTADOS_COM_MENSAGEM_PROPRIA =
+    setOf(
+        EstadoScanDispositivos.semWifi,
+        EstadoScanDispositivos.timeout,
+        EstadoScanDispositivos.cancelado,
+        EstadoScanDispositivos.erro,
+    )
+
+/**
+ * Título/subtítulo pro estado vazio — prioriza o [EstadoScanDispositivos] tipado; só cai pra
+ * interpretação de string ([erro]) no estado genérico `erro`, preservando as mensagens mais
+ * específicas (permissão de localização, erro de rede) que só existem como string hoje.
+ */
+private fun tituloSubtituloParaEstado(
+    estado: EstadoScanDispositivos,
+    erro: String?,
+): Pair<String, String> =
+    when (estado) {
+        EstadoScanDispositivos.semWifi ->
+            "Sem conexão Wi-Fi" to "Conecte-se a uma rede Wi-Fi para escanear dispositivos."
+        EstadoScanDispositivos.timeout ->
+            "Tempo limite excedido" to "O escaneamento levou muito tempo. Tente novamente."
+        EstadoScanDispositivos.cancelado ->
+            "Escaneamento cancelado" to "Toque em atualizar para escanear novamente."
+        else -> traduzirErroParaPortugues(erro ?: "")
+    }
+
 private fun traduzirErroParaPortugues(erro: String): Pair<String, String> =
     when {
         erro.contains("semPermissaoLocalizacao", ignoreCase = true) -> {
@@ -1300,12 +1363,6 @@ private fun traduzirErroParaPortugues(erro: String): Pair<String, String> =
         }
         erro.contains("erroRede", ignoreCase = true) -> {
             "Erro de conexão de rede" to "Verifique se sua conexão Wi-Fi está estável e tente novamente."
-        }
-        erro.contains("semWifi", ignoreCase = true) -> {
-            "Sem conexão Wi-Fi" to "Conecte-se a uma rede Wi-Fi para escanear dispositivos."
-        }
-        erro.contains("timeout", ignoreCase = true) -> {
-            "Tempo limite excedido" to "O escanear levou muito tempo. Tente novamente."
         }
         else -> {
             "Erro ao escanear" to "Não foi possível escanear a rede. Tente novamente."

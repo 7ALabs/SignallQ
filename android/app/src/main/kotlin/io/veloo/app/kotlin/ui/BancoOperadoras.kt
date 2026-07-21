@@ -8,6 +8,10 @@ data class ContatoOperadora(
     val sac: String?,
     val whatsapp: String?,
     val site: String,
+    /** GH#1226 item 9/RF-I — cobertura declarada explicitamente no catálogo, não mais uma
+     *  lista hardcoded de IDs na UI. Default REGIONAL porque a maioria das ~18 operadoras
+     *  cadastradas hoje são ISPs regionais/locais; as 4 nacionais setam NATIONAL explicitamente. */
+    val scope: OperatorScope = OperatorScope.REGIONAL,
 )
 
 object BancoOperadoras {
@@ -21,6 +25,7 @@ object BancoOperadoras {
                 sac = "10315",
                 whatsapp = "11999151515",
                 site = "https://www.vivo.com.br",
+                scope = OperatorScope.NATIONAL,
             ),
             ContatoOperadora(
                 "claro_net",
@@ -30,6 +35,7 @@ object BancoOperadoras {
                 sac = "10621",
                 whatsapp = "11999910621",
                 site = "https://www.claro.com.br",
+                scope = OperatorScope.NATIONAL,
             ),
             ContatoOperadora(
                 "tim_live",
@@ -39,6 +45,7 @@ object BancoOperadoras {
                 sac = "10341",
                 whatsapp = "4141414141",
                 site = "https://www.tim.com.br",
+                scope = OperatorScope.NATIONAL,
             ),
             ContatoOperadora(
                 "nio",
@@ -50,6 +57,7 @@ object BancoOperadoras {
                 sac = "08000011000",
                 whatsapp = "2136051000",
                 site = "https://www.niointernet.com.br",
+                scope = OperatorScope.NATIONAL,
             ),
             ContatoOperadora(
                 "algar",

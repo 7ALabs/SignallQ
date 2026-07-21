@@ -13,5 +13,8 @@ data class DispositivoRede(
     val esteDispositivo: Boolean = false,
     val tiposServicoMdns: Set<String> = emptySet(),
     val portasAbertas: Set<Int> = emptySet(),
+    /** GH#1217 item 1 — nível de confiança da identidade deste registro entre scans (ver
+     *  [NivelConfiancaIdentidade]). Computado no enriquecimento final do scan. */
+    val confiancaIdentidade: NivelConfiancaIdentidade = NivelConfiancaIdentidade.DESCONHECIDA,
 )
 
