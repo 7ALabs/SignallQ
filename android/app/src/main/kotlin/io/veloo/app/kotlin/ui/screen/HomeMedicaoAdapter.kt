@@ -41,3 +41,15 @@ internal fun MedicaoEntity.paraMetricasMedicaoHome(): MetricasMedicaoHome =
         gargaloPrimario = gargaloPrimario,
         utilizavel = status == "completed",
     )
+
+/**
+ * GH#1265 — escolhe o "resultado anterior" (mais recente por timestamp) pra Home/Laudo,
+ * excluindo pings sintéticos do `MonitoramentoWorker` (`fonte == "monitor"`, sem download/
+ * upload). Sem esse filtro, o ping mais recente do monitor (mais frequente que um teste real
+ * de speedtest) vencia por timestamp e virava o resultado exibido — header "há X min" setado,
+ * mas download/upload nulos, caindo no estado vazio. Mesmo filtro que a tela Histórico já
+ * aplica (`historicoFiltrado` em `MainViewModel.kt`), mas sem os filtros de conexão/operadora
+ * escolhidos pelo usuário, que não fazem sentido pro "último resultado" da Home/Laudo.
+ */
+internal fun List<MedicaoEntity>.resolverPrimeiraHistoria(): MedicaoEntity? =
+    filter { it.fonte != "monitor" }.maxByOrNull { it.timestampEpochMs }

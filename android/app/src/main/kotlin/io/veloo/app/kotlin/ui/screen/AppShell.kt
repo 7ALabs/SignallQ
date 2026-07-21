@@ -464,7 +464,12 @@ fun AppShell(
     // por posição na lista (frágil se a ordenação da query/filtro mudar no futuro). A query
     // real (MedicaoDao.observarUltimas) já é ORDER BY timestampEpochMs DESC, então isso não
     // muda o comportamento hoje — é a rede de segurança que a issue pede.
-    val primeiraHistoria = remember(historico) { historico.maxByOrNull { it.timestampEpochMs } }
+    // GH#1265 — exclui `fonte == "monitor"` (ping sintético do MonitoramentoWorker, sem
+    // download/upload) antes de escolher o "resultado anterior": sem isso, o ping mais recente
+    // (mais frequente que um teste real) vencia por timestamp e virava o resultado exibido na
+    // Home/Laudo com header "há X min" mas corpo vazio. Ver `resolverPrimeiraHistoria` em
+    // HomeMedicaoAdapter.kt.
+    val primeiraHistoria = remember(historico) { historico.resolverPrimeiraHistoria() }
     val tabScreenNames = listOf("home", "speedtest", "sinal_wifi", "historico", "ferramentas")
 
     // NAV-D: verifica IA ao entrar na tab Velocidade (índice 1)
