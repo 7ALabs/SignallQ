@@ -22,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Error
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -793,11 +794,20 @@ private fun DiagnosticoDetalhadoSheet(
             Spacer(Modifier.height(LkSpacing.md))
         }
 
-        AnalisadorEntryRow(
-            state = analisadorState,
-            onAbrir = onAbrirAnalisador,
-            c = c,
-        )
+        // GH#1245 -- quando o banner de veredito acima ja esta mostrando "carregando"
+        // (mesmo `analisadorState`), este card mostraria o mesmo spinner/copy logo
+        // abaixo -- duplicacao visual sem informacao nova. So esconde quando o
+        // resultado e valido E o banner acima esta na fase de carregamento; no caso de
+        // resultado invalido (banner acima nao renderiza loading, mostra
+        // ResultadoInvalidoBanner) o convite manual continua visivel normalmente.
+        val ocultarEntryRowPorDuplicacao = resultadoValidoParaConclusao && carregandoAnalise
+        if (!ocultarEntryRowPorDuplicacao) {
+            AnalisadorEntryRow(
+                state = analisadorState,
+                onAbrir = onAbrirAnalisador,
+                c = c,
+            )
+        }
 
         // GH#1225 criterio D/K — contato com operadora exige resultado completo (nunca
         // sugerir escalonamento a partir de teste contaminado/inconclusivo/parcial).
@@ -826,8 +836,18 @@ private fun DiagnosticoDetalhadoSheet(
                 c = c,
             )
             Spacer(Modifier.height(LkSpacing.xs))
-            TextButton(onClick = onFalarComOperadora, modifier = Modifier.fillMaxWidth()) {
-                Text(text = "Falar com a operadora", color = c.textSecondary, style = MaterialTheme.typography.bodyMedium)
+            OutlinedButton(
+                onClick = onFalarComOperadora,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(LkRadius.button),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Call,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(LkSpacing.sm))
+                Text(text = "Falar com a operadora", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.W600)
             }
         }
 
