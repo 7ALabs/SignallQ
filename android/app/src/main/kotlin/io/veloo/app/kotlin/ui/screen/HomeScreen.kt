@@ -32,39 +32,29 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
 import androidx.compose.material.icons.outlined.Adjust
 import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Construction
 import androidx.compose.material.icons.outlined.DeviceHub
-import androidx.compose.material.icons.outlined.GpsFixed
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Language
-import androidx.compose.material.icons.outlined.Laptop
-import androidx.compose.material.icons.outlined.LocalFireDepartment
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
-import androidx.compose.material.icons.outlined.Public
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.SettingsInputAntenna
-import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.SportsEsports
-import androidx.compose.material.icons.outlined.Tv
-import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.AssistChip
@@ -123,11 +113,10 @@ import io.signallq.app.core.network.contracts.gateway.GatewayConnectionService
 import io.signallq.app.core.network.contracts.topologia.NivelConfianca
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
-import io.signallq.app.feature.speedtest.GargaloPrimario
+import io.signallq.app.feature.home.OrigemMedicaoHome
+import io.signallq.app.feature.home.ResolvedorMedicaoHome
 import io.signallq.app.feature.speedtest.ModoSpeedtest
-import io.signallq.app.feature.speedtest.ResultadoSpeedtest
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
-import io.signallq.app.feature.speedtest.VereditoUso
 import io.signallq.app.feature.wifi.RedeVizinha
 import io.signallq.app.feature.wifi.SegurancaWifi
 import io.signallq.app.ui.ConnectionNodeType
@@ -248,37 +237,34 @@ fun HomeScreen(
                 }.getOrNull()
             }
         }
-    val lastResult = snapshotSpeedtest.resultado
-    val lastHistoryPoint = remember(history) { history.firstOrNull() }
-    val effectiveDl = remember(lastResult, lastHistoryPoint) { lastResult?.downloadMbps ?: lastHistoryPoint?.downloadMbps }
-    val effectiveUl = remember(lastResult, lastHistoryPoint) { lastResult?.uploadMbps ?: lastHistoryPoint?.uploadMbps }
-    val effectiveTs = remember(lastResult, lastHistoryPoint) { lastResult?.timestampEpochMs ?: lastHistoryPoint?.timestampEpochMs }
-    val hasEffectiveResult =
-        remember(effectiveDl, effectiveUl, effectiveTs) {
-            effectiveDl != null &&
-                effectiveUl != null &&
-                effectiveTs != null
-        }
     val isOnWifi = snapshotRede.estadoConexao == EstadoConexao.wifi
     val ssid = snapshotRede.wifiLinkSnapshot?.ssid
     val linkSpeedMbps = snapshotRede.wifiLinkSnapshot?.linkSpeedMbps
 
-    val lat = remember(lastResult, ultimaMedicao) { lastResult?.latenciaMs ?: ultimaMedicao?.latencyMs }
-    val jit = remember(lastResult, ultimaMedicao) { lastResult?.jitterMs ?: ultimaMedicao?.jitterMs }
-    val loss = remember(lastResult, ultimaMedicao) { lastResult?.perdaPercentual ?: ultimaMedicao?.perdaPercentual }
-    val vereditoGamer: VereditoUso? =
-        remember(lat, jit, loss, lastResult) {
-            if (lat != null && jit != null && loss != null) {
-                lastResult?.diagnosticoQualidade?.vereditoGamer
-                    ?: when {
-                        lat <= 50 && jit <= 15 && loss <= 0.5 -> VereditoUso.good
-                        lat <= 100 && jit <= 30 && loss <= 1.5 -> VereditoUso.acceptable
-                        else -> VereditoUso.poor
-                    }
-            } else {
-                null
-            }
+    // GH#1223 item 1/RF-02/RF-03 — antes download/upload/timestamp vinham de uma cadeia de
+    // fallback (resultado atual -> history.firstOrNull()) e latência/jitter/perda vinham de
+    // OUTRA cadeia (resultado atual -> ultimaMedicao), totalmente independentes. Isso permitia
+    // exibir download do teste A com latência do teste B. Agora uma única resolução: usa o
+    // resultado atual por inteiro quando MeasurementStatus.COMPLETE, senão usa ultimaMedicao
+    // por inteiro (nunca mistura os dois), e o veredito gamer vem sempre do motor canônico
+    // (diagnosticoQualidade / MedicaoEntity.vereditoGamer já persistido) — nunca recalculado
+    // por threshold local (RF-04).
+    val medicaoAtual =
+        remember(snapshotSpeedtest.resultado, ssid) {
+            snapshotSpeedtest.resultado?.paraMetricasMedicaoHome(ssid)
         }
+    val medicaoAnterior = remember(ultimaMedicao) { ultimaMedicao?.paraMetricasMedicaoHome() }
+    val medicaoResolvida =
+        remember(medicaoAtual, medicaoAnterior) {
+            ResolvedorMedicaoHome.resolver(medicaoAtual, medicaoAnterior)
+        }
+    val effectiveDl = medicaoResolvida?.metricas?.downloadMbps
+    val effectiveUl = medicaoResolvida?.metricas?.uploadMbps
+    val effectiveTs = medicaoResolvida?.metricas?.timestampEpochMs
+    val hasEffectiveResult = medicaoResolvida != null && effectiveDl != null && effectiveUl != null && effectiveTs != null
+    // RF-06 — quando o resultado exibido não é da execução atual, a UI precisa deixar isso
+    // explícito (não pode parecer que representa a conexão agora).
+    val resultadoEhAnterior = medicaoResolvida?.origem == OrigemMedicaoHome.ANTERIOR
 
     var showDeviceSheet by remember { mutableStateOf(false) }
     var showGatewaySheet by remember { mutableStateOf<GatewayInfo?>(null) }
@@ -512,7 +498,7 @@ fun HomeScreen(
                     effectiveDl = effectiveDl,
                     effectiveUl = effectiveUl,
                     hasEffectiveResult = hasEffectiveResult,
-                    history = history,
+                    resultadoEhAnterior = resultadoEhAnterior,
                     onAbrirHistorico = onAbrirHistorico,
                     onIniciarTeste = { showMedicaoTipoSheet = true },
                     c = c,
@@ -559,7 +545,9 @@ private fun CardMedicoes(
     effectiveDl: Double?,
     effectiveUl: Double?,
     hasEffectiveResult: Boolean,
-    history: List<HistoryPoint>,
+    // GH#1223 RF-06 — quando o resultado exibido vem do histórico (não da execução atual),
+    // a UI precisa deixar isso explícito para não parecer que representa a conexão agora.
+    resultadoEhAnterior: Boolean,
     onAbrirHistorico: () -> Unit,
     onIniciarTeste: () -> Unit,
     c: LkTokens,
@@ -582,8 +570,14 @@ private fun CardMedicoes(
                         color = c.textTertiary,
                     )
                     effectiveTs?.let {
+                        val prefixo =
+                            if (resultadoEhAnterior) {
+                                stringResource(R.string.home_medicoes_resultado_anterior_prefixo) + " · "
+                            } else {
+                                ""
+                            }
                         Text(
-                            formatRelativeTimestamp(it),
+                            prefixo + formatRelativeTimestamp(it),
                             style = MaterialTheme.typography.labelMedium,
                             color = c.textTertiary,
                         )
@@ -599,21 +593,19 @@ private fun CardMedicoes(
                 )
                 Spacer(modifier = Modifier.height(LkSpacing.lg))
             } else {
+                // GH#1223 item 9/RF-10 — antes mostrava "Fazer teste agora" aqui E "Medir
+                // velocidade" no botão principal logo abaixo: dois CTAs equivalentes na
+                // mesma seção. Mantido só o botão principal como CTA único.
                 Box(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            stringResource(R.string.home_medicoes_sem_dados),
-                            style = MaterialTheme.typography.titleSmall,
-                            color = c.textTertiary,
-                            textAlign = TextAlign.Center,
-                        )
-                        TextButton(onClick = onIniciarTeste) {
-                            Text(stringResource(R.string.home_btn_fazer_teste_agora))
-                        }
-                    }
+                    Text(
+                        stringResource(R.string.home_medicoes_sem_dados),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = c.textTertiary,
+                        textAlign = TextAlign.Center,
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(LkSpacing.lg))
@@ -1933,173 +1925,6 @@ private fun SimChipCompact(
     }
 }
 
-// ─── Qualidade shortcut row ───────────────────────────────────────────────────
-
-@Composable
-private fun QualidadeShortcutRow(
-    history: List<HistoryPoint>,
-    c: LkTokens,
-    onClick: () -> Unit,
-) {
-    val subtexto = stringResource(R.string.home_shortcut_diagnostico_descricao)
-    val subtextoColor = c.textSecondary
-
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.surfaceContainer)
-                .clickable(onClick = onClick)
-                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            modifier =
-                Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(c.primary.copy(alpha = 0.14f)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(Icons.Outlined.Insights, contentDescription = null, tint = c.primary, modifier = Modifier.size(18.dp))
-        }
-        Spacer(modifier = Modifier.width(LkSpacing.md))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                stringResource(R.string.home_shortcut_diagnostico_titulo),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.W600,
-                color = c.textPrimary,
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(subtexto, style = MaterialTheme.typography.labelMedium, color = subtextoColor)
-        }
-        Spacer(modifier = Modifier.width(LkSpacing.sm))
-        Icon(Icons.AutoMirrored.Outlined.ArrowForwardIos, contentDescription = null, tint = c.textTertiary, modifier = Modifier.size(18.dp))
-    }
-}
-
-// ─── Experiência de uso ───────────────────────────────────────────────────────
-
-@Composable
-private fun ExperienciaDeUsoSection(
-    downloadMbps: Double?,
-    lat: Double?,
-    jit: Double?,
-    vereditoGamer: VereditoUso?,
-    c: LkTokens,
-) {
-    // Cada entry: (icon, label, minDownload, maxLatencia?, maxJitter?)
-    data class UseCase(
-        val icon: androidx.compose.ui.graphics.vector.ImageVector,
-        val label: String,
-        val minDownload: Double,
-        val maxLatencia: Double? = null,
-        val maxJitter: Double? = null,
-    )
-    val useCases =
-        listOf(
-            UseCase(Icons.Outlined.SportsEsports, stringResource(R.string.home_uso_jogos), 5.0),
-            UseCase(Icons.Outlined.Tv, stringResource(R.string.home_uso_streaming), 3.0),
-            UseCase(Icons.Outlined.Laptop, stringResource(R.string.home_uso_home_office), 2.0, maxLatencia = 150.0, maxJitter = 30.0),
-            UseCase(Icons.Outlined.Videocam, stringResource(R.string.home_uso_chamadas), 1.0, maxLatencia = 100.0, maxJitter = 20.0),
-        )
-    Column {
-        Text(
-            stringResource(R.string.home_secao_experiencia),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.W700,
-            color = c.textTertiary,
-            letterSpacing = 0.8.sp,
-        )
-        Spacer(modifier = Modifier.height(LkSpacing.sm))
-        HorizontalDivider(color = c.border, thickness = 1.dp)
-        useCases.forEach { useCase ->
-            val isGaming = useCase.label == "Jogos"
-            val badgeLabel: String
-            val badgeColor: Color
-            val badgeBg: Color
-            if (isGaming) {
-                badgeLabel =
-                    when (vereditoGamer) {
-                        null -> "–"
-                        VereditoUso.good -> stringResource(R.string.home_status_ok)
-                        VereditoUso.acceptable -> stringResource(R.string.home_status_regular)
-                        VereditoUso.poor -> stringResource(R.string.home_status_ruim)
-                    }
-                badgeColor =
-                    when (vereditoGamer) {
-                        null -> c.textTertiary
-                        VereditoUso.good -> c.success
-                        VereditoUso.acceptable -> c.warning
-                        VereditoUso.poor -> c.error
-                    }
-                badgeBg =
-                    when (vereditoGamer) {
-                        null -> c.bgSecondary
-                        VereditoUso.good -> c.success.copy(alpha = 0.12f)
-                        VereditoUso.acceptable -> c.warning.copy(alpha = 0.12f)
-                        VereditoUso.poor -> c.error.copy(alpha = 0.12f)
-                    }
-            } else {
-                val downloadOk = downloadMbps == null || downloadMbps >= useCase.minDownload
-                val latOk = useCase.maxLatencia == null || lat == null || lat <= useCase.maxLatencia
-                val jitOk = useCase.maxJitter == null || jit == null || jit <= useCase.maxJitter
-                val isInstavel = downloadMbps != null && downloadOk && (!latOk || !jitOk)
-                badgeLabel =
-                    when {
-                        downloadMbps == null -> "–"
-                        isInstavel -> stringResource(R.string.home_status_instavel)
-                        downloadOk -> stringResource(R.string.home_status_ok)
-                        else -> stringResource(R.string.home_status_lento)
-                    }
-                badgeColor =
-                    when {
-                        downloadMbps == null -> c.textTertiary
-                        isInstavel -> c.warning
-                        downloadOk -> c.success
-                        else -> c.error
-                    }
-                badgeBg =
-                    when {
-                        downloadMbps == null -> c.bgSecondary
-                        isInstavel -> c.warning.copy(alpha = 0.12f)
-                        downloadOk -> c.success.copy(alpha = 0.12f)
-                        else -> c.error.copy(alpha = 0.12f)
-                    }
-            }
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = LkSpacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(useCase.icon, contentDescription = null, tint = c.primary, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(LkSpacing.md))
-                    Text(
-                        useCase.label,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.W600,
-                        color = c.textPrimary,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Box(
-                        modifier =
-                            Modifier
-                                .clip(
-                                    RoundedCornerShape(LkRadius.pill),
-                                ).background(badgeBg)
-                                .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
-                    ) {
-                        Text(badgeLabel, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.W600, color = badgeColor)
-                    }
-                }
-                HorizontalDivider(color = c.border, thickness = 1.dp)
-            }
-        }
-    }
-}
-
 // ─── WiFi factors ─────────────────────────────────────────────────────────────
 
 private enum class WifiQuality { Excelente, Bom, Razoavel, Ruim }
@@ -2692,421 +2517,6 @@ internal fun GamerShortcutCard(
         }
     }
 }
-
-// ─── GamerSheet ───────────────────────────────────────────────────────────────
-
-@Composable
-internal fun GamerSheet(
-    resultado: ResultadoSpeedtest?,
-    ultimaMedicao: MedicaoEntity?,
-    c: LkTokens,
-    onIrParaTeste: () -> Unit,
-) {
-    val lat = resultado?.latenciaMs ?: ultimaMedicao?.latencyMs
-    val jit = resultado?.jitterMs ?: ultimaMedicao?.jitterMs
-    val loss = resultado?.perdaPercentual ?: ultimaMedicao?.perdaPercentual
-    val dl = resultado?.downloadMbps ?: ultimaMedicao?.downloadMbps
-    val ul = resultado?.uploadMbps ?: ultimaMedicao?.uploadMbps
-    val temDados = lat != null && jit != null && loss != null && dl != null && ul != null
-    Column(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 32.dp)
-                .navigationBarsPadding(),
-    ) {
-        SheetDragHandle()
-        Spacer(Modifier.height(20.dp))
-
-        // Header
-        Row(
-            modifier = Modifier.padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(LkRadius.button))
-                        .background(c.success.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Outlined.SportsEsports, null, tint = c.success, modifier = Modifier.size(24.dp))
-            }
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(
-                    stringResource(R.string.home_shortcut_gaming_titulo),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.W700,
-                    color = c.textPrimary,
-                )
-                Text(
-                    stringResource(R.string.home_shortcut_gaming_descricao),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = c.textSecondary,
-                )
-            }
-        }
-
-        Spacer(Modifier.height(20.dp))
-        HorizontalDivider(color = c.border)
-
-        if (!temDados) {
-            // Empty state
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 40.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Icon(Icons.Outlined.SportsEsports, null, tint = c.textTertiary, modifier = Modifier.size(52.dp))
-                Spacer(Modifier.height(16.dp))
-                Text(stringResource(R.string.home_gamer_sem_medicao), style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    stringResource(R.string.home_gamer_sem_medicao_descricao),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = c.textSecondary,
-                    lineHeight = 18.sp,
-                    textAlign = TextAlign.Center,
-                )
-                Spacer(Modifier.height(24.dp))
-                Button(
-                    onClick = onIrParaTeste,
-                    colors = ButtonDefaults.buttonColors(containerColor = c.primary),
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text(stringResource(R.string.home_gamer_btn_iniciar_teste)) }
-            }
-        } else {
-            val latV = checkNotNull(lat) { "lat deve ser non-null quando temDados=true" }
-            val jitV = checkNotNull(jit) { "jit deve ser non-null quando temDados=true" }
-            val lossV = checkNotNull(loss) { "loss deve ser non-null quando temDados=true" }
-            val dlV = checkNotNull(dl) { "dl deve ser non-null quando temDados=true" }
-            val ulV = checkNotNull(ul) { "ul deve ser non-null quando temDados=true" }
-
-            val vereditoGamer =
-                resultado?.diagnosticoQualidade?.vereditoGamer
-                    ?: when {
-                        latV <= 50 && jitV <= 15 && lossV <= 0.5 -> VereditoUso.good
-                        latV <= 100 && jitV <= 30 && lossV <= 1.5 -> VereditoUso.acceptable
-                        else -> VereditoUso.poor
-                    }
-            val gargalo =
-                resultado?.diagnosticoQualidade?.gargaloPrimario
-                    ?: ultimaMedicao?.gargaloPrimario?.let { s ->
-                        GargaloPrimario.entries.firstOrNull { it.name == s } ?: GargaloPrimario.none
-                    }
-                    ?: GargaloPrimario.none
-
-            // Verdict card
-            Spacer(Modifier.height(LkSpacing.md))
-            Box(modifier = Modifier.padding(horizontal = 20.dp)) {
-                GamerVeredictCard(veredito = vereditoGamer, c = c)
-            }
-            Spacer(Modifier.height(LkSpacing.lg))
-
-            // Metrics section
-            Text(
-                stringResource(R.string.home_gamer_secao_metricas),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.W700,
-                color = c.textTertiary,
-                letterSpacing = 0.8.sp,
-                modifier = Modifier.padding(start = 20.dp, bottom = 4.dp),
-            )
-            GamerMetricRow(stringResource(R.string.home_gamer_metrica_latencia), "${latV.roundToInt()} ms", vereditoFromLatency(latV), c)
-            HorizontalDivider(color = c.border.copy(alpha = 0.5f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 20.dp))
-            GamerMetricRow(stringResource(R.string.home_gamer_metrica_oscilacao), "${jitV.roundToInt()} ms", vereditoFromJitter(jitV), c)
-            HorizontalDivider(color = c.border.copy(alpha = 0.5f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 20.dp))
-            GamerMetricRow(stringResource(R.string.home_gamer_metrica_perda), "%.1f%%".format(lossV), vereditoFromLoss(lossV), c)
-            HorizontalDivider(color = c.border.copy(alpha = 0.5f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 20.dp))
-            GamerMetricRow(
-                stringResource(R.string.home_gamer_metrica_download),
-                "%.0f Mbps".format(dlV),
-                if (dlV >=
-                    10
-                ) {
-                    VereditoUso.good
-                } else if (dlV >= 5) {
-                    VereditoUso.acceptable
-                } else {
-                    VereditoUso.poor
-                },
-                c,
-            )
-            HorizontalDivider(color = c.border.copy(alpha = 0.5f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 20.dp))
-            GamerMetricRow(
-                stringResource(R.string.home_gamer_metrica_upload),
-                "%.0f Mbps".format(ulV),
-                if (ulV >= 3) {
-                    VereditoUso.good
-                } else if (ulV >= 1) {
-                    VereditoUso.acceptable
-                } else {
-                    VereditoUso.poor
-                },
-                c,
-            )
-
-            Spacer(Modifier.height(LkSpacing.lg))
-            HorizontalDivider(color = c.border)
-
-            // Games table
-            Text(
-                stringResource(R.string.home_gamer_secao_jogos),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.W700,
-                color = c.textTertiary,
-                letterSpacing = 0.8.sp,
-                modifier = Modifier.padding(start = 20.dp, top = LkSpacing.md, bottom = 4.dp),
-            )
-            val jogos =
-                listOf(
-                    Triple("VALORANT", Icons.Outlined.Adjust, avaliarJogo(latV, jitV, lossV, 50, 80, 12, 25, 0.3, 0.8)),
-                    Triple("CS2", Icons.Outlined.Shield, avaliarJogo(latV, jitV, lossV, 50, 80, 12, 25, 0.3, 0.8)),
-                    Triple("CoD Warzone", Icons.Outlined.GpsFixed, avaliarJogo(latV, jitV, lossV, 70, 100, 20, 35, 0.5, 1.0)),
-                    Triple("Fortnite", Icons.Outlined.Construction, avaliarJogo(latV, jitV, lossV, 70, 100, 20, 35, 0.5, 1.0)),
-                    Triple("Free Fire", Icons.Outlined.LocalFireDepartment, avaliarJogo(latV, jitV, lossV, 90, 130, 25, 40, 0.8, 1.5)),
-                    Triple("Minecraft", Icons.Outlined.Public, avaliarJogo(latV, jitV, lossV, 120, 180, 35, 60, 1.0, 2.0)),
-                )
-            jogos.forEachIndexed { i, (nome, icon, veredito) ->
-                GamerJogoRow(nome = nome, icon = icon, veredito = veredito, c = c)
-                if (i < jogos.lastIndex) {
-                    HorizontalDivider(
-                        color = c.border.copy(alpha = 0.5f),
-                        thickness = 0.5.dp,
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                    )
-                }
-            }
-
-            // Gargalo note
-            if (gargalo != GargaloPrimario.none) {
-                Spacer(Modifier.height(LkSpacing.md))
-                Box(modifier = Modifier.padding(horizontal = 20.dp)) {
-                    GargaloGamerNote(gargalo = gargalo, c = c)
-                }
-            }
-            Spacer(Modifier.height(LkSpacing.md))
-        }
-    }
-}
-
-@Composable
-private fun GamerVeredictCard(
-    veredito: VereditoUso,
-    c: LkTokens,
-) {
-    val (label, desc, cor) =
-        when (veredito) {
-            VereditoUso.good ->
-                Triple(
-                    stringResource(R.string.home_gamer_veredito_otimo_label),
-                    stringResource(R.string.home_gamer_veredito_otimo_desc),
-                    c.success,
-                )
-            VereditoUso.acceptable ->
-                Triple(
-                    stringResource(R.string.home_gamer_veredito_bom_label),
-                    stringResource(R.string.home_gamer_veredito_bom_desc),
-                    c.warning,
-                )
-            VereditoUso.poor ->
-                Triple(
-                    stringResource(R.string.home_gamer_veredito_ruim_label),
-                    stringResource(R.string.home_gamer_veredito_ruim_desc),
-                    c.error,
-                )
-        }
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.button))
-                .background(cor.copy(alpha = 0.10f))
-                .border(1.dp, cor.copy(alpha = 0.30f), RoundedCornerShape(LkRadius.button))
-                .padding(LkSpacing.lg),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(cor.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Outlined.SportsEsports, null, tint = cor, modifier = Modifier.size(22.dp))
-            }
-            Spacer(Modifier.width(LkSpacing.md))
-            Column {
-                Text(label, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.W800, color = cor)
-                Text(desc, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
-            }
-        }
-    }
-}
-
-@Composable
-private fun GamerMetricRow(
-    label: String,
-    value: String,
-    veredito: VereditoUso,
-    c: LkTokens,
-) {
-    val cor =
-        when (veredito) {
-            VereditoUso.good -> c.success
-            VereditoUso.acceptable -> c.warning
-            VereditoUso.poor -> c.error
-        }
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = LkSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = c.textPrimary, modifier = Modifier.weight(1f))
-        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.W600, color = c.textSecondary)
-        Spacer(Modifier.width(LkSpacing.sm))
-        Box(
-            modifier =
-                Modifier
-                    .clip(RoundedCornerShape(LkRadius.pill))
-                    .background(cor.copy(alpha = 0.12f))
-                    .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
-        ) {
-            Text(
-                when (veredito) {
-                    VereditoUso.good -> stringResource(R.string.home_status_ok)
-                    VereditoUso.acceptable -> stringResource(R.string.home_status_regular)
-                    else -> stringResource(R.string.home_status_ruim)
-                },
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.W600,
-                color = cor,
-            )
-        }
-    }
-}
-
-@Composable
-private fun GamerJogoRow(
-    nome: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    veredito: VereditoUso,
-    c: LkTokens,
-) {
-    val cor =
-        when (veredito) {
-            VereditoUso.good -> c.success
-            VereditoUso.acceptable -> c.warning
-            VereditoUso.poor -> c.error
-        }
-    val label =
-        when (veredito) {
-            VereditoUso.good -> stringResource(R.string.home_gamer_status_otimo)
-            VereditoUso.acceptable -> stringResource(R.string.home_gamer_status_jogavel)
-            else -> stringResource(R.string.home_status_ruim)
-        }
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = LkSpacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(imageVector = icon, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(LkSpacing.sm))
-        Text(nome, style = MaterialTheme.typography.bodyMedium, color = c.textPrimary, modifier = Modifier.weight(1f))
-        Box(
-            modifier =
-                Modifier
-                    .clip(RoundedCornerShape(LkRadius.pill))
-                    .background(cor.copy(alpha = 0.12f))
-                    .padding(horizontal = LkSpacing.sm, vertical = LkSpacing.xs),
-        ) {
-            Text(label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.W600, color = cor)
-        }
-    }
-}
-
-@Composable
-private fun GargaloGamerNote(
-    gargalo: GargaloPrimario,
-    c: LkTokens,
-) {
-    val texto =
-        when (gargalo) {
-            GargaloPrimario.latency -> stringResource(R.string.home_gamer_gargalo_latencia)
-            GargaloPrimario.packetLoss -> stringResource(R.string.home_gamer_gargalo_perda)
-            GargaloPrimario.bufferbloat -> stringResource(R.string.home_gamer_gargalo_bufferbloat)
-            GargaloPrimario.upload -> stringResource(R.string.home_gamer_gargalo_upload)
-            GargaloPrimario.none -> return
-        }
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(10.dp))
-                .background(c.warning.copy(alpha = 0.08f))
-                .border(1.dp, c.warning.copy(alpha = 0.30f), RoundedCornerShape(10.dp))
-                .padding(LkSpacing.md),
-        verticalAlignment = Alignment.Top,
-    ) {
-        Icon(Icons.Outlined.Insights, null, tint = c.warning, modifier = Modifier.size(16.dp))
-        Spacer(Modifier.width(LkSpacing.sm))
-        Text(texto, style = MaterialTheme.typography.bodySmall, color = c.textPrimary, lineHeight = 16.sp)
-    }
-}
-
-private fun avaliarJogo(
-    latenciaMs: Double,
-    jitterMs: Double,
-    lossPercent: Double,
-    latOtimo: Int,
-    latBom: Int,
-    jitOtimo: Int,
-    jitBom: Int,
-    lossOtimo: Double,
-    lossBom: Double,
-): VereditoUso =
-    when {
-        latenciaMs <= latOtimo && jitterMs <= jitOtimo && lossPercent <= lossOtimo -> VereditoUso.good
-        latenciaMs <= latBom && jitterMs <= jitBom && lossPercent <= lossBom -> VereditoUso.acceptable
-        else -> VereditoUso.poor
-    }
-
-private fun vereditoFromLatency(ms: Double): VereditoUso =
-    if (ms <= 50) {
-        VereditoUso.good
-    } else if (ms <= 100) {
-        VereditoUso.acceptable
-    } else {
-        VereditoUso.poor
-    }
-
-private fun vereditoFromJitter(ms: Double): VereditoUso =
-    if (ms <= 15) {
-        VereditoUso.good
-    } else if (ms <= 30) {
-        VereditoUso.acceptable
-    } else {
-        VereditoUso.poor
-    }
-
-private fun vereditoFromLoss(pct: Double): VereditoUso =
-    if (pct <= 0.5) {
-        VereditoUso.good
-    } else if (pct <= 1.5) {
-        VereditoUso.acceptable
-    } else {
-        VereditoUso.poor
-    }
 
 // ─── MedicaoTipoSheet ─────────────────────────────────────────────────────────
 

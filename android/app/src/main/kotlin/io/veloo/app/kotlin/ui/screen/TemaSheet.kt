@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.signallq.app.feature.settings.ThemePreference
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -105,10 +106,14 @@ private fun ThemeSelector(
 ) {
     val opcoes =
         listOf(
-            Triple("sistema", "Sistema", Icons.Outlined.Settings),
-            Triple("claro", "Claro", Icons.Outlined.LightMode),
-            Triple("escuro", "Escuro", Icons.Outlined.DarkMode),
+            Triple(ThemePreference.SYSTEM, "Sistema", Icons.Outlined.Settings),
+            Triple(ThemePreference.LIGHT, "Claro", Icons.Outlined.LightMode),
+            Triple(ThemePreference.DARK, "Escuro", Icons.Outlined.DarkMode),
         )
+    // GH#1227 item 14/RF-I — antes comparava a string crua diretamente (`selecionado ==
+    // "sistema"`); qualquer valor não reconhecido fazia NENHUMA opção aparecer selecionada.
+    // ThemePreference.parse nunca devolve "nenhuma" -- cai em SYSTEM por padrão.
+    val temaAtual = ThemePreference.parse(selecionado)
 
     Row(
         modifier =
@@ -117,15 +122,15 @@ private fun ThemeSelector(
                 .padding(horizontal = LkSpacing.lg),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        opcoes.forEach { (valor, label, icone) ->
-            val selecionada = selecionado == valor
+        opcoes.forEach { (tema, label, icone) ->
+            val selecionada = temaAtual == tema
             Box(
                 modifier =
                     Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(LkRadius.card))
                         .background(if (selecionada) c.primaryContainer else c.surfaceContainer)
-                        .clickable { onSelect(valor) }
+                        .clickable { onSelect(tema.chaveDataStore) }
                         .padding(vertical = LkSpacing.lg),
                 contentAlignment = Alignment.Center,
             ) {

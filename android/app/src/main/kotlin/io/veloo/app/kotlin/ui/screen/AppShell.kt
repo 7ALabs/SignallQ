@@ -461,7 +461,11 @@ fun AppShell(
     var showGerenciarDadosSheet by remember { mutableStateOf(false) }
     var testeAtivo by remember { mutableStateOf(false) }
     var mostrarConcluido by remember { mutableStateOf(false) }
-    val primeiraHistoria = remember(historico) { historico.firstOrNull() }
+    // GH#1223 RF-05 — resolução explícita do último resultado por timestamp, não implícita
+    // por posição na lista (frágil se a ordenação da query/filtro mudar no futuro). A query
+    // real (MedicaoDao.observarUltimas) já é ORDER BY timestampEpochMs DESC, então isso não
+    // muda o comportamento hoje — é a rede de segurança que a issue pede.
+    val primeiraHistoria = remember(historico) { historico.maxByOrNull { it.timestampEpochMs } }
     val tabScreenNames = listOf("home", "speedtest", "sinal_wifi", "historico", "ferramentas")
 
     // NAV-D: verifica IA ao entrar na tab Velocidade (índice 1)

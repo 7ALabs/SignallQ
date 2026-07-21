@@ -94,11 +94,10 @@
     <string name="home_medicoes_titulo">Medições</string>
     <string name="home_btn_ver_historico">Ver histórico</string>
     <string name="home_medicoes_sem_dados">Faça um teste para ver o histórico de velocidade aqui.</string>
-    <string name="home_btn_fazer_teste_agora">Fazer teste agora</string>
+    <!-- GH#1223 RF-06 — prefixo exibido antes do horário quando o resultado mostrado não é
+         da execução atual, e sim de uma medição anterior salva no histórico. -->
+    <string name="home_medicoes_resultado_anterior_prefixo">Resultado anterior</string>
     <string name="home_btn_medir_velocidade">Medir velocidade</string>
-    <string name="home_secao_experiencia">O QUE VOCÊ CONSEGUE FAZER</string>
-    <string name="home_shortcut_diagnostico_titulo">Diagnóstico Inteligente</string>
-    <string name="home_shortcut_diagnostico_descricao">Realize o diagnóstico da sua rede com IA</string>
     <string name="home_shortcut_gaming_titulo">Jogar Online</string>
     <string name="home_shortcut_gaming_descricao">Análise da conexão para gaming</string>
     <string name="home_uso_jogos">Jogos</string>

@@ -78,8 +78,22 @@ class ExecutorFibra {
                 Timber.w("executar[${tentativa + 1}]: host invalido, sem retry — ${t.message}")
                 break
             } catch (t: Throwable) {
+                if (t is kotlinx.coroutines.CancellationException) throw t
                 ultimoErro = t
                 Timber.w("executar[${tentativa + 1}]: falhou — ${t.message}")
+                // GH#1213 item 4 — credenciais invalidas (err_t=1) e driver incompativel
+                // (pagina de login sem pubkey/nonce/csrf -- nao e um Nokia, ou firmware com
+                // layout diferente) sao erros PERMANENTES: repetir 3x com a MESMA senha
+                // errada ou o MESMO host incompativel nunca muda o resultado. So timeout/
+                // conexao recusada/sessao ocupada (err_t=0) sao transitorios de verdade e
+                // continuam com retry normal.
+                val ehErroPermanente =
+                    t.message?.contains("credenciais invalidas", ignoreCase = true) == true ||
+                        t.message?.contains("err_t=1", ignoreCase = true) == true ||
+                        t.message?.contains("pubkey", ignoreCase = true) == true ||
+                        t.message?.contains("nonce", ignoreCase = true) == true ||
+                        t.message?.contains("csrf", ignoreCase = true) == true
+                if (ehErroPermanente) break
             }
         }
         val t = ultimoErro ?: return@withContext

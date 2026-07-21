@@ -89,6 +89,33 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
   uma delas nunca protegida contra número já vindo com `+55`); todas as ações externas
   (WhatsApp/ligar/site/Play Store) protegidas contra `ActivityNotFoundException` e URI
   inválida — antes qualquer app ausente (WhatsApp, navegador, Play Store) derrubava o app (#1226)
+- Início: card de medições deixa de misturar métricas de execuções diferentes — download/
+  upload/timestamp vinham de uma cadeia de fallback e latência/jitter/perda de outra,
+  totalmente independente, podendo exibir download de um teste com latência de outro. Agora
+  uma única resolução (`ResolvedorMedicaoHome`, `feature/home`): usa o resultado atual por
+  inteiro quando `MeasurementStatus.COMPLETE`, senão usa a última medição salva por inteiro,
+  nunca mistura; veredito gamer sempre vem do motor canônico, nunca mais recalculado por
+  threshold local na tela; resultado exibido a partir do histórico mostra "Resultado
+  anterior" explicitamente; estado vazio do card passa a ter um único CTA ("Medir
+  velocidade") em vez de dois botões equivalentes; removida uma sheet de veredito gamer
+  inteira (`GamerSheet`, ~360 linhas) e duas seções (`ExperienciaDeUsoSection`,
+  `QualidadeShortcutRow`) que nunca tinham ponto de entrada na tela, cada uma com sua
+  própria cópia do mesmo bug de mistura de métricas (#1223)
+- Ajustes: tema deixa de comparar string crua diretamente — valor não reconhecido no
+  DataStore fazia nenhuma opção aparecer selecionada no seletor; `ThemePreference` (novo,
+  `feature/settings`) sempre resolve para uma opção válida. Base para vincular plano
+  contratado à rede (não mais global): `ConnectionProfile`/`ResolvedorNetworkId` (novos,
+  `feature/settings`) definem identificador estável de rede (BSSID > SSID > operadora móvel)
+  e validação de velocidade contratada (zero/negativo/valores absurdos rejeitados) — ainda
+  não migrado o armazenamento real (`velocidadeContratadaDown/UpMbps` no DataStore continuam
+  globais nesta PR, wiring completo fica para ciclo dedicado) (#1227)
+- Equipamento de internet (Nokia G-1425G-B): credenciais inválidas (err_t=1) e driver
+  incompatível (página de login sem pubkey/nonce/csrf) deixam de receber retry automático —
+  eram erros permanentes, repetir 3x com a mesma senha errada não muda o resultado.
+  `CancellationException` também deixa de ser absorvida pelo catch genérico do executor
+  (#1213, resto do escopo maior segue pendente — módulos GPON/WAN/PPP independentes, estados
+  de sessão diferenciados, reboot protegido — sem hardware físico G-1425G-B disponível para
+  validar em device real)
 
 ## [0.29.0] — 2026-07-20
 
