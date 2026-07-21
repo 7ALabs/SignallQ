@@ -2,8 +2,8 @@
 compileSdk = "37"
 minSdk = "24"
 targetSdk = "36"
-versionCode = "65"
-versionName = "0.29.0"
+versionCode = "66"
+versionName = "0.30.0"
 # SignallQ Pro (io.signallq.pro) — contador PROPRIO, separado do consumidor acima (issue
 # #1157/#1119). Nunca incrementar junto com versionCode/versionName do consumidor: sao produtos,
 # Firebase/Play e trilhas de release distintos (ver docs_ai/plataforma/13_..._v1.md §1.3).

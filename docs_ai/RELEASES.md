@@ -1,13 +1,30 @@
 # Histórico de Releases — SignallQ Android
 
 **Mantido por:** Rhodolfo
-**Última atualização:** 2026-07-20
+**Última atualização:** 2026-07-21
 **Referência:** `android/CHANGELOG.md` (fonte autoritativa do histórico Android) + `git log --oneline`
 
 > Nota de marca: o namespace/applicationId atual é **`io.signallq.app`** (renomeado de
 > `io.veloo.app` em 2026-06-28; o caminho físico do código do `:app` continua
 > `io/veloo/app/kotlin/`). Demais identificadores técnicos permanecem por compatibilidade
 > de infra — repo `gmmattey/linka-android`, worker `linka-ai-diagnosis-worker`.
+
+---
+
+## v0.30.0 (versionCode 66) — 2026-07-21
+
+**Fecha o lote de 14 correções P0 da auditoria de 20/07/2026 (Fases 0-4 completas)**
+
+- Sinal: classificação de sinal móvel unificada via `MetricClassifier` (#1206); recomendação de canal Wi-Fi e nível de confiança corrigidos (#1207); topologia Wi-Fi exige evidência real do motor unificado, corrige rótulos de banda e agrupamento (#1209)
+- Ferramentas: Ping renomeado/documentado como medição HTTPS (nunca foi ICMP real), timeout e estatísticas corrigidas (#1211); benchmark de DNS corrigido (protocolo, decodificação semântica, mediana, amostragem) (#1212)
+- Equipamento (Nokia G-1425G-B): validação de host privado, sem retry em erro permanente, diferenciação completa de sessão/erro, perfil técnico GPON classe B+, reboot desligado por flag até validação em hardware real (#1213)
+- Speedtest/PDF: perfil de rede resolvido por execução, status canônico (Completo/Parcial/Inconclusivo/Contaminado) evita diagnóstico sobre teste não confiável, dois geradores de PDF consolidados num só motor (#1219/#1221/#1225)
+- Dispositivos: nível de confiança por dispositivo, estados de resultado tipados, fases de descoberta isoladas (#1217)
+- Operadoras: estado de UI tipado, ações externas protegidas contra app ausente (#1226)
+- Início: card de medições nunca mais mistura métricas de execuções diferentes (#1223)
+- Ajustes: `ConnectionProfile` por rede com persistência real e migração do valor legado global, tema corrigido no seletor (#1227/#1249)
+
+**Publicação:** trilha internal do Play Console, via `release.yml`
 
 ---
 

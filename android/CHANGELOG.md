@@ -11,6 +11,12 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ## [Unreleased]
 
+## [0.30.0] — 2026-07-21
+
+Fecha o lote de 14 correções P0 da auditoria de 20/07/2026 (Fases 0-4 completas): Sinal (móvel,
+canal, topologia Wi-Fi), Ferramentas (Ping, DNS), Equipamento (Nokia G-1425G-B), Speedtest/PDF,
+Dispositivos, Operadoras, Início e Ajustes (perfil de conexão por rede).
+
 ### Corrigido
 - Perfil de rede do Speedtest (tamanho do pool HTTP para rede medida/Wi-Fi) deixa de ficar
   congelado no valor resolvido na criação do executor — agora é resolvido no início de cada
