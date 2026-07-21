@@ -14,10 +14,21 @@ import kotlin.coroutines.resumeWithException
 /**
  * Le o toggle remoto de anuncios nativos (issue #555) via Firebase Remote Config.
  *
- * Chave mestra `ads_native_enabled` + 4 chaves por tela. Qualquer falha de fetch
+ * Chave mestra `ads_native_enabled` + 4 chaves por tela. Qualquer FALHA REAL de fetch
  * (rede, timeout, Remote Config nao inicializado) cai no fallback local seguro
  * [AdsFlags.DESLIGADO] -- nunca mostra anuncio por engano, nunca trava a tela
  * esperando a config (regra explicita do plano de implementacao da #555).
+ *
+ * GH#1224 -- correcao: `fetchAndActivate()` retornar `false` NAO e uma falha. O SDK
+ * documenta esse retorno como "nao havia configuracao nova pra ativar" (valores atuais
+ * ja estavam ativos, ou nao mudaram desde o ultimo fetch) -- e um resultado normal e
+ * frequente, nao um erro. Antes, qualquer `false` desligava TODAS as flags
+ * silenciosamente (regressao real: anuncio aparecia so na primeira execucao e sumia
+ * depois). Agora o booleano de ativacao so e logado como diagnostico
+ * (`novaConfiguracaoAtivada`) -- os valores ativos/cacheados sao sempre lidos apos o
+ * fetch completar sem excecao. So excecao/timeout real aciona o fallback
+ * [AdsFlags.DESLIGADO], e mesmo assim so quando a propria leitura dos valores ja
+ * ativados tambem falhar (RF-03).
  *
  * Recebe [FirebaseRemoteConfig] como `dagger.Lazy` de proposito (nao `kotlin.Lazy` --
  * variancia do tipo Kotlin gera wildcard que o Dagger nao consegue casar com o binding):
@@ -32,28 +43,55 @@ class AdsRemoteConfigRepository(
 ) {
     suspend fun buscarFlags(): AdsFlags =
         withContext(Dispatchers.IO) {
-            val sucesso =
-                runCatching {
-                    withTimeoutOrNull(FETCH_TIMEOUT_MS) {
-                        remoteConfig.get().fetchAndActivate().aguardar()
-                    }
-                }.onFailure { e -> Timber.w(e, "Falha ao buscar Remote Config de anuncios") }
-                    .getOrNull() ?: false
-
-            if (!sucesso) return@withContext AdsFlags.DESLIGADO
-
-            runCatching {
-                val rc = remoteConfig.get()
-                AdsFlags(
-                    masterEnabled = rc.getBoolean(CHAVE_MASTER),
-                    velocidade = rc.getBoolean(CHAVE_VELOCIDADE),
-                    resultado = rc.getBoolean(CHAVE_RESULTADO),
-                    dispositivos = rc.getBoolean(CHAVE_DISPOSITIVOS),
-                    historico = rc.getBoolean(CHAVE_HISTORICO),
-                    jogos = rc.getBoolean(CHAVE_JOGOS),
-                )
-            }.getOrElse { AdsFlags.DESLIGADO }
+            // GH#1224 -- `remoteConfig.get()` precisa estar DENTRO da protecao contra
+            // excecao tambem: `dagger.Lazy.get()` pode lancar se o FirebaseApp ainda nao
+            // foi inicializado (ambiente de teste, ou corrida de inicializacao real). O
+            // contrato deste metodo e nunca lancar excecao -- isso vale pra QUALQUER
+            // etapa dele, nao so pro fetch em si.
+            runCatching { remoteConfig.get() }
+                .onFailure { erro -> Timber.w(erro, "Falha ao obter instancia de Remote Config -- usando fallback desligado") }
+                .getOrNull()
+                ?.let { rc -> resolverFlags(rc) }
+                ?: AdsFlags.DESLIGADO
         }
+
+    private suspend fun resolverFlags(rc: FirebaseRemoteConfig): AdsFlags {
+        // RF-01/RF-02 -- o booleano de fetchAndActivate() so diz se uma config NOVA
+        // foi ativada, nao se a operacao "deu certo". So entra no ramo de erro se a
+        // chamada lancar excecao/timeout de verdade.
+        val fetchResult =
+            runCatching {
+                withTimeoutOrNull(FETCH_TIMEOUT_MS) { rc.fetchAndActivate().aguardar() }
+            }
+        val novaConfiguracaoAtivada = fetchResult.getOrNull()
+        if (fetchResult.isFailure || novaConfiguracaoAtivada == null) {
+            Timber.w(
+                fetchResult.exceptionOrNull(),
+                "Fetch de Remote Config de anuncios falhou/expirou -- tentando usar valores ja ativos",
+            )
+        } else {
+            Timber.i("Remote Config de anuncios: fetchAndActivate concluido, novaConfiguracaoAtivada=$novaConfiguracaoAtivada")
+        }
+
+        // RF-03/RF-04 -- le os valores ATIVOS/cacheados do SDK independente do
+        // resultado do fetch acima (com sucesso, timeout ou excecao): o
+        // FirebaseRemoteConfig sempre tem algum valor ativo (default local ou
+        // ultima config buscada com sucesso), e so nao ha nada utilizavel se essa
+        // propria leitura falhar (ex.: Remote Config nunca inicializado).
+        return runCatching { lerFlagsAtivas(rc) }
+            .onFailure { erro -> Timber.w(erro, "Falha ao ler flags ativas de anuncios -- usando fallback desligado") }
+            .getOrElse { AdsFlags.DESLIGADO }
+    }
+
+    private fun lerFlagsAtivas(rc: FirebaseRemoteConfig): AdsFlags =
+        AdsFlags(
+            masterEnabled = rc.getBoolean(CHAVE_MASTER),
+            velocidade = rc.getBoolean(CHAVE_VELOCIDADE),
+            resultado = rc.getBoolean(CHAVE_RESULTADO),
+            dispositivos = rc.getBoolean(CHAVE_DISPOSITIVOS),
+            historico = rc.getBoolean(CHAVE_HISTORICO),
+            jogos = rc.getBoolean(CHAVE_JOGOS),
+        )
 
     companion object {
         private const val FETCH_TIMEOUT_MS = 8_000L

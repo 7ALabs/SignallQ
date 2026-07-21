@@ -1263,6 +1263,9 @@ internal fun papelTopologiaLabel(papel: PapelTopologia): String =
 private fun fonteNomeLabel(fonte: String) =
     when (fonte) {
         NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE -> "Confirmado pelo roteador"
+        // GH#1217 item 2 — associação só por IP (sem MAC batendo) é provável, não
+        // confirmada: o IP pode ter sido reatribuído por DHCP entre os dois snapshots.
+        NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE_IP -> "Provável (roteador · por IP)"
         "gateway" -> "Roteador (gateway)"
         "mdns" -> "mDNS · Bonjour"
         "mdnsJmDns" -> "mDNS · Bonjour"

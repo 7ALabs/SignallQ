@@ -39,13 +39,27 @@ data class ResolvedOperadoraContact(
 }
 
 /**
+ * GH#1226 item D — única função de normalização de WhatsApp cru (DDD+número local, sem `55`
+ * nem `+`/espaços/hífens/parênteses) pra URL `wa.me` acionável. Antes, [whatsappUrl] e
+ * `OutraOperadoraRow` (`OperadoraBottomSheet.kt`) faziam essa conta cada um por conta própria
+ * de forma diferente — esta função é a única fonte, usada pelos dois. Filtra tudo que não for
+ * dígito primeiro (protege contra número já vindo com `+55`, `(11) 99999-9999` etc. de uma
+ * fonte remota futura) e só então decide se precisa prefixar `55`.
+ */
+fun normalizarWhatsappLocal(numeroCru: String?): String? {
+    val digitos = numeroCru?.filter { it.isDigit() }?.takeIf { it.isNotBlank() } ?: return null
+    val comCodigoPais = if (digitos.startsWith("55")) digitos else "55$digitos"
+    return "https://wa.me/$comCodigoPais"
+}
+
+/**
  * Normaliza [ResolvedOperadoraContact.whatsapp] pra URL abrivel — o campo carrega numero
  * cru (DDD+numero, sem `55`/`https://wa.me/`) quando [OperadoraSource.LOCAL] ([BancoOperadoras])
  * e URL completa quando [OperadoraSource.REMOTE] (formato ja devolvido pelo worker
  * `signallq-diagnostic`, ver [io.signallq.app.feature.diagnostico.remote.RemoteProviderInfo.whatsappUrl]).
  */
 fun ResolvedOperadoraContact.whatsappUrl(): String? =
-    whatsapp?.let { if (source == OperadoraSource.LOCAL) "https://wa.me/55$it" else it }
+    whatsapp?.let { if (source == OperadoraSource.LOCAL) normalizarWhatsappLocal(it) else it }
 
 /**
  * Resolve identidade visual (logo) e contato de uma operadora a partir do nome

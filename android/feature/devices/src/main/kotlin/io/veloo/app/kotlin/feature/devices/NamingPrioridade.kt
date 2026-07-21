@@ -36,6 +36,15 @@ object NamingPrioridade {
      */
     const val FONTE_NOME_ROUTER_ACTIVE = "routerActive"
 
+    /**
+     * GH#1217 item 2 — associação com o gateway feita SÓ por IP (sem MAC disponível/batendo)
+     * nunca tem a mesma confiança de uma associação por MAC exato: o IP pode ter sido
+     * reatribuído por DHCP entre o snapshot do gateway e o scan local, e nesse cenário o
+     * selo "Confirmado pelo roteador" apontaria pro aparelho errado. Fonte distinta pra UI
+     * rotular como "provável", não "confirmado".
+     */
+    const val FONTE_NOME_ROUTER_ACTIVE_IP = "routerActiveIp"
+
     /** Nomes que não carregam informação útil — tratados como ausentes na priorização. */
     val NOMES_GENERICOS = setOf(
         "Dispositivo não identificado",
@@ -78,6 +87,13 @@ object NamingPrioridade {
         return fallback
     }
 
+    /** GH#1217 item 2 — resultado de [resolverNomeRouterActive], carregando também o
+     *  nível de confiança da associação (MAC exato = confirmada, só IP = provável). */
+    data class NomeRouterActive(
+        val nome: String,
+        val fonte: String,
+    )
+
     /**
      * Resolve nome via **leitura ativa do gateway** (issue #839) — bypass de [resolverNome],
      * não parte dele. Casa o dispositivo contra a lista de [ClientSnapshot] reportada pelo
@@ -88,6 +104,12 @@ object NamingPrioridade {
      *  2. O hostname desse cliente não é nulo, não é branco e não está em [NOMES_GENERICOS].
      *
      * MAC tem prioridade sobre IP quando ambos batem (IP muda por lease DHCP, MAC não).
+     *
+     * GH#1217 item 2 — a associação só por IP NÃO tem a mesma confiança de uma associação
+     * por MAC exato (o IP pode ter sido reatribuído por DHCP entre o snapshot do gateway e
+     * o scan local). Por isso o retorno inclui a [NomeRouterActive.fonte]: MAC exato produz
+     * [FONTE_NOME_ROUTER_ACTIVE] ("confirmado"), só IP produz [FONTE_NOME_ROUTER_ACTIVE_IP]
+     * ("provável") — o chamador nunca deve tratar as duas fontes como equivalentes.
      *
      * Retorna `null` em qualquer outro caso (sem MAC/IP, sem match, hostname ausente/genérico)
      * — o chamador deve manter o nome/fonte já resolvidos pela varredura passiva, sem
@@ -101,14 +123,20 @@ object NamingPrioridade {
         macDispositivo: String?,
         clientesGateway: List<ClientSnapshot>,
         ipDispositivo: String? = null,
-    ): String? {
+    ): NomeRouterActive? {
         val macNormalizado = normalizarMac(macDispositivo)
-        val cliente = macNormalizado?.let { mac -> clientesGateway.firstOrNull { normalizarMac(it.mac) == mac } }
-            ?: ipDispositivo?.let { ip -> clientesGateway.firstOrNull { it.ip == ip } }
-            ?: return null
-        return cliente.hostname?.takeIf {
+        val clientePorMac = macNormalizado?.let { mac -> clientesGateway.firstOrNull { normalizarMac(it.mac) == mac } }
+        val (cliente, fonte) =
+            when {
+                clientePorMac != null -> clientePorMac to FONTE_NOME_ROUTER_ACTIVE
+                ipDispositivo != null ->
+                    (clientesGateway.firstOrNull { it.ip == ipDispositivo } ?: return null) to FONTE_NOME_ROUTER_ACTIVE_IP
+                else -> return null
+            }
+        val nome = cliente.hostname?.takeIf {
             it.isNotBlank() && it !in NOMES_GENERICOS && !it.startsWith(PREFIXO_HOSTNAME_ROUTER_SINTETICO)
-        }
+        } ?: return null
+        return NomeRouterActive(nome = nome, fonte = fonte)
     }
 
     /** Normaliza MAC para comparação: lowercase, sem separador (`:`/`-`). */

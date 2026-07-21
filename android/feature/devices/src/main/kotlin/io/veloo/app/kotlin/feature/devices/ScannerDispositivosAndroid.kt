@@ -107,6 +107,11 @@ class ScannerDispositivosAndroid(
          * uma fase individual pendure.
          */
         private const val TIMEOUT_SCAN_MS = 30_000L
+
+        // GH#1217 item 7 — /22 = ate 1024 enderecos e o teto seguro pra varredura completa de
+        // sub-rede via SubnetDevices; redes maiores (/21, /16...) pulam essa fase (ver
+        // descobrirViaSubnetDevices) e dependem de ARP/mDNS/SSDP/TCP-probe do /24 do gateway.
+        private const val PREFIX_MINIMO_VARREDURA_COMPLETA = 22
     }
 
     private val scanEmAndamento = AtomicBoolean(false)
@@ -339,7 +344,7 @@ class ScannerDispositivosAndroid(
                             // como último recurso — mDNS/SSDP/reverse-DNS já tiveram chance de resolver
                             // o nome real antes deste ponto (NetBIOS fica fora, ver NamingPrioridade).
                             val nomeResolvido = when {
-                                nomeRouterActive != null -> nomeRouterActive
+                                nomeRouterActive != null -> nomeRouterActive.nome
                                 d.nomeExibicao !in genericosParaResolver -> d.nomeExibicao
                                 hostname != null -> hostname
                                 ehGateway -> fabricanteResolvido?.let { "Roteador $it" } ?: "Roteador"
@@ -350,11 +355,7 @@ class ScannerDispositivosAndroid(
                                 fabricante = fabricanteResolvido,
                                 tipoDispositivo = tipo,
                                 nomeExibicao = nomeResolvido,
-                                fonteNome = if (nomeRouterActive != null) {
-                                    NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE
-                                } else {
-                                    d.fonteNome
-                                },
+                                fonteNome = nomeRouterActive?.fonte ?: d.fonteNome,
                                 esteDispositivo = false,
                             )
                         }
@@ -387,7 +388,40 @@ class ScannerDispositivosAndroid(
 
     // ── Descoberta via SubnetDevices (AndroidNetworkTools) ────────────────────
 
-    private suspend fun descobrirViaSubnetDevices(): List<DispositivoRede> =
+    /**
+     * GH#1217 item 7 — `SubnetDevices.fromLocalAddress()` deriva a mascara de sub-rede real
+     * do DHCP e varre TODOS os hosts dessa faixa, sem teto proprio. Uma rede `/16` (65534
+     * enderecos) ou `/22`/`/23` gera milhares/centenas de sockets simultaneos so nessa fase —
+     * risco real de bateria, pressao de memoria e demora, exatamente o cenario da issue.
+     * Antes de varrer, checa o prefixo real via [ConnectivityManager]/[LinkProperties] (mesma
+     * fonte de [inferirPrefixoRedeCorreto]) e pula esta fase inteira se a rede for maior que
+     * o teto seguro — as outras fases (ARP, mDNS, SSDP, TCP probe no /24 do gateway) continuam
+     * rodando normalmente, entao o scan nao fica vazio, so essa varredura de faixa completa e
+     * que e pulada.
+     */
+    private fun prefixLengthReal(): Int? =
+        try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val network: Network = cm.activeNetwork ?: return null
+            val lp: LinkProperties = cm.getLinkProperties(network) ?: return null
+            lp.linkAddresses.firstOrNull { la -> la.address is Inet4Address && !la.address.isLoopbackAddress }?.prefixLength
+        } catch (_: Throwable) {
+            null
+        }
+
+    private suspend fun descobrirViaSubnetDevices(): List<DispositivoRede> {
+        val prefix = prefixLengthReal()
+        if (prefix != null && prefix < PREFIX_MINIMO_VARREDURA_COMPLETA) {
+            Timber.w(
+                "descobrirViaSubnetDevices: rede /$prefix maior que o limite seguro " +
+                    "(/$PREFIX_MINIMO_VARREDURA_COMPLETA) -- pulando varredura completa de sub-rede",
+            )
+            return emptyList()
+        }
+        return descobrirViaSubnetDevicesSemLimite()
+    }
+
+    private suspend fun descobrirViaSubnetDevicesSemLimite(): List<DispositivoRede> =
         suspendCancellableCoroutine { cont ->
             val resultados = mutableListOf<DispositivoRede>()
             val scanner = SubnetDevices.fromLocalAddress()
@@ -852,7 +886,10 @@ class ScannerDispositivosAndroid(
 
     private fun enriquecer(dispositivos: List<DispositivoRede>): List<DispositivoRede> =
         dispositivos.map { d ->
-            val fabricanteOui = OuiCatalog.lookup(d.mac)?.fabricante
+            // GH#1217 item 5/9 — MAC localmente administrado (randomizado) nunca gera lookup
+            // de fabricante por OUI: nao existe fabricante real associado a esse endereco.
+            val macRealOui = d.mac?.takeIf { !MacAddressUtil.ehLocalmenteAdministrado(it) }
+            val fabricanteOui = OuiCatalog.lookup(macRealOui)?.fabricante
             val fabricante = d.fabricante ?: fabricanteOui
             d.copy(
                 fabricante = fabricante,

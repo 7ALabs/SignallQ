@@ -1,8 +1,7 @@
 ﻿package io.signallq.app.ui.component
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.material.icons.outlined.Language
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -41,14 +41,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.signallq.app.R
+import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.ui.BancoOperadoras
 import io.signallq.app.ui.ContatoOperadora
+import io.signallq.app.ui.ExternalActionLauncher
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.OperadoraSource
 import io.signallq.app.ui.ResolvedOperadoraContact
 import io.signallq.app.ui.ResolvedOperadoraIdentity
+import io.signallq.app.ui.normalizarWhatsappLocal
 import io.signallq.app.ui.whatsappUrl
 
 private val idsMajores = listOf("vivo_fibra", "claro_net", "tim_live", "oi_fibra")
@@ -102,7 +105,12 @@ fun OperadoraBottomSheet(
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val viaMovel = connectionType?.equals("movel", ignoreCase = true) == true
+    // GH#1226 item 10/J — antes comparava contra o literal "movel" solto; agora referencia
+    // a mesma fonte de verdade que produz o valor (EstadoConexao.name, ver MainViewModel),
+    // sem inventar um enum novo pra um campo que já é serialização controlada de um
+    // enum existente. Migrar o CAMPO em si (persistência/PDF/histórico) pra um tipo em vez
+    // de String? é mudança maior, adiada — ver nota na issue.
+    val viaMovel = connectionType?.equals(EstadoConexao.movel.name, ignoreCase = true) == true
     val nomeParaResolver = if (viaMovel) operadoraMovel else ispNome
 
     // So pra excluir da lista "Outras operadoras" (sempre local) quando o match tambem
@@ -260,7 +268,6 @@ private fun OperadoraDetectadaSection(
 ) {
     val c = LocalLkTokens.current
     val context = LocalContext.current
-    val ehLocal = contato.source == OperadoraSource.LOCAL
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Identificacao
@@ -295,9 +302,7 @@ private fun OperadoraDetectadaSection(
         if (waUrl != null) {
             Button(
                 onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(waUrl))
-                    context.startActivity(intent)
-                    onDismiss()
+                    if (ExternalActionLauncher.abrirView(context, waUrl)) onDismiss()
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(LkRadius.button),
@@ -322,8 +327,10 @@ private fun OperadoraDetectadaSection(
             if (contato.sacPhone != null) {
                 OutlinedButton(
                     onClick = {
-                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${contato.sacPhone}"))
-                        context.startActivity(intent)
+                        // GH#1226 item 3 — texto exibido e numero discado sao exatamente o
+                        // mesmo, sem "*" inventado so pela UI (o "*" nunca fez parte do
+                        // numero real, so era mostrado -- discava sem ele).
+                        if (ExternalActionLauncher.abrirDiscador(context, contato.sacPhone)) onDismiss()
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(LkRadius.button),
@@ -336,7 +343,7 @@ private fun OperadoraDetectadaSection(
                     )
                     Spacer(Modifier.width(LkSpacing.xs))
                     Text(
-                        text = if (ehLocal) "Ligar *${contato.sacPhone}" else "Ligar ${contato.sacPhone}",
+                        text = "Ligar ${contato.sacPhone}",
                         style = MaterialTheme.typography.labelLarge,
                         color = c.textPrimary,
                         fontWeight = FontWeight.Medium,
@@ -346,8 +353,7 @@ private fun OperadoraDetectadaSection(
             if (contato.grupo != null) {
                 OutlinedButton(
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://search?q=${contato.grupo}"))
-                        context.startActivity(intent)
+                        if (ExternalActionLauncher.abrirView(context, "market://search?q=${contato.grupo}")) onDismiss()
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(LkRadius.button),
@@ -368,6 +374,34 @@ private fun OperadoraDetectadaSection(
                 }
             }
         }
+
+        // GH#1226 item 1/B — quando o unico canal disponivel e o site (ex.: diretorio
+        // remoto so devolveu isso), a secao nao pode ficar sem nenhuma acao. Antes, uma
+        // operadora so-com-site aparecia como "detectada" mas sem nenhum botao.
+        if (contato.whatsapp == null && contato.sacPhone == null && contato.grupo == null && contato.site != null) {
+            Spacer(Modifier.height(LkSpacing.sm))
+            OutlinedButton(
+                onClick = {
+                    if (ExternalActionLauncher.abrirView(context, contato.site)) onDismiss()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(LkRadius.button),
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Language,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = c.textPrimary,
+                )
+                Spacer(Modifier.width(LkSpacing.xs))
+                Text(
+                    text = "Acessar site",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = c.textPrimary,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+        }
     }
 }
 
@@ -375,6 +409,7 @@ private fun OperadoraDetectadaSection(
 private fun OutraOperadoraRow(operadora: ContatoOperadora) {
     val c = LocalLkTokens.current
     val context = LocalContext.current
+    val temSac = operadora.sac != null
 
     Row(
         modifier =
@@ -387,21 +422,40 @@ private fun OutraOperadoraRow(operadora: ContatoOperadora) {
 
         Spacer(Modifier.width(LkSpacing.md))
 
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .let { base ->
+                        // GH#1226 item 2/C — telefone da operadora secundária precisa ser
+                        // acionável mesmo sem WhatsApp: toque na linha já disca. Antes só o
+                        // ícone de WhatsApp era clicável; sem WhatsApp, a linha inteira ficava
+                        // sem nenhuma ação.
+                        if (temSac) {
+                            base.clickable { ExternalActionLauncher.abrirDiscador(context, operadora.sac) }
+                        } else {
+                            base
+                        }
+                    },
+        ) {
             Text(
                 text = operadora.nome,
                 style = MaterialTheme.typography.titleSmall,
                 color = c.textPrimary,
             )
-            if (operadora.whatsapp != null) {
+            // GH#1226 item 3 — texto exibido é exatamente o número discado, sem "*" inventado.
+            // GH#1226 (bug latente) — operadora sem SAC cadastrado (ex.: Coopertec SPEED)
+            // não mostra mais "ligar *null".
+            val textoContato =
+                when {
+                    operadora.whatsapp != null && temSac -> "WhatsApp · ligar ${operadora.sac}"
+                    operadora.whatsapp != null -> "WhatsApp"
+                    temSac -> "ligar ${operadora.sac}"
+                    else -> null
+                }
+            if (textoContato != null) {
                 Text(
-                    text = "WhatsApp · ligar *${operadora.sac}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textSecondary,
-                )
-            } else {
-                Text(
-                    text = "ligar *${operadora.sac}",
+                    text = textoContato,
                     style = MaterialTheme.typography.bodySmall,
                     color = c.textSecondary,
                 )
@@ -410,10 +464,7 @@ private fun OutraOperadoraRow(operadora: ContatoOperadora) {
 
         if (operadora.whatsapp != null) {
             IconButton(
-                onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/55${operadora.whatsapp}"))
-                    context.startActivity(intent)
-                },
+                onClick = { ExternalActionLauncher.abrirView(context, normalizarWhatsappLocal(operadora.whatsapp)) },
             ) {
                 Box(
                     modifier =

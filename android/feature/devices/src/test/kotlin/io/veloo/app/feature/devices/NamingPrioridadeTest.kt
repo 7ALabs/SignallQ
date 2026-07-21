@@ -50,65 +50,68 @@ class NamingPrioridadeTest {
     }
 
     @Test
-    fun `resolverNomeRouterActive retorna hostname quando MAC bate e hostname e valido`() {
+    fun `resolverNomeRouterActive retorna hostname e fonte confirmada quando MAC bate e hostname e valido`() {
         val clientes = listOf(ClientSnapshot(mac = "AA:BB:CC:DD:EE:FF", ip = "192.168.1.10", hostname = "notebook-camilo", tipoConexao = "wired"))
-        val nome = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
-        assertEquals("notebook-camilo", nome)
+        val resultado = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
+        assertEquals("notebook-camilo", resultado?.nome)
+        assertEquals(NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE, resultado?.fonte)
     }
 
     @Test
     fun `resolverNomeRouterActive normaliza MAC ignorando case e separador`() {
         val clientes = listOf(ClientSnapshot(mac = "aabbccddeeff", ip = "192.168.1.10", hostname = "tablet-cozinha", tipoConexao = "wifi"))
-        val nome = NamingPrioridade.resolverNomeRouterActive("AA-BB-CC-DD-EE-FF", clientes)
-        assertEquals("tablet-cozinha", nome)
+        val resultado = NamingPrioridade.resolverNomeRouterActive("AA-BB-CC-DD-EE-FF", clientes)
+        assertEquals("tablet-cozinha", resultado?.nome)
     }
 
     @Test
     fun `resolverNomeRouterActive retorna null quando MAC nao bate com nenhum cliente`() {
         val clientes = listOf(ClientSnapshot(mac = "11:22:33:44:55:66", ip = "192.168.1.5", hostname = "outro-device", tipoConexao = "wired"))
-        val nome = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
-        assertNull(nome)
+        val resultado = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
+        assertNull(resultado)
     }
 
     @Test
     fun `resolverNomeRouterActive retorna null quando hostname do cliente e nulo`() {
         val clientes = listOf(ClientSnapshot(mac = "aa:bb:cc:dd:ee:ff", ip = "192.168.1.10", hostname = null, tipoConexao = "wired"))
-        val nome = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
-        assertNull(nome)
+        val resultado = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
+        assertNull(resultado)
     }
 
     @Test
     fun `resolverNomeRouterActive retorna null quando hostname do cliente e em branco`() {
         val clientes = listOf(ClientSnapshot(mac = "aa:bb:cc:dd:ee:ff", ip = "192.168.1.10", hostname = "   ", tipoConexao = "wired"))
-        val nome = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
-        assertNull(nome)
+        val resultado = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
+        assertNull(resultado)
     }
 
     @Test
     fun `resolverNomeRouterActive retorna null quando hostname do cliente e generico`() {
         val clientes = listOf(ClientSnapshot(mac = "aa:bb:cc:dd:ee:ff", ip = "192.168.1.10", hostname = "Host ativo", tipoConexao = "wired"))
-        val nome = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
-        assertNull(nome)
+        val resultado = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
+        assertNull(resultado)
     }
 
     @Test
     fun `resolverNomeRouterActive retorna null quando MAC do dispositivo e nulo`() {
         val clientes = listOf(ClientSnapshot(mac = "aa:bb:cc:dd:ee:ff", ip = "192.168.1.10", hostname = "notebook", tipoConexao = "wired"))
-        val nome = NamingPrioridade.resolverNomeRouterActive(null, clientes)
-        assertNull(nome)
+        val resultado = NamingPrioridade.resolverNomeRouterActive(null, clientes)
+        assertNull(resultado)
     }
 
     @Test
     fun `resolverNomeRouterActive retorna null quando lista de clientes esta vazia`() {
-        val nome = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", emptyList())
-        assertNull(nome)
+        val resultado = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", emptyList())
+        assertNull(resultado)
     }
 
     @Test
-    fun `resolverNomeRouterActive casa por IP quando MAC do dispositivo e nulo`() {
+    fun `resolverNomeRouterActive casa por IP quando MAC do dispositivo e nulo -- fonte e provavel, nao confirmada`() {
         val clientes = listOf(ClientSnapshot(mac = "aa:bb:cc:dd:ee:ff", ip = "192.168.1.66", hostname = "ESP_7FE810", tipoConexao = "wifi"))
-        val nome = NamingPrioridade.resolverNomeRouterActive(macDispositivo = null, clientesGateway = clientes, ipDispositivo = "192.168.1.66")
-        assertEquals("ESP_7FE810", nome)
+        val resultado = NamingPrioridade.resolverNomeRouterActive(macDispositivo = null, clientesGateway = clientes, ipDispositivo = "192.168.1.66")
+        assertEquals("ESP_7FE810", resultado?.nome)
+        // GH#1217 item 2 -- match só por IP nunca é "confirmado", só "provável".
+        assertEquals(NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE_IP, resultado?.fonte)
     }
 
     @Test
@@ -117,26 +120,28 @@ class NamingPrioridadeTest {
             ClientSnapshot(mac = "aa:bb:cc:dd:ee:ff", ip = "192.168.1.66", hostname = "por-mac", tipoConexao = "wifi"),
             ClientSnapshot(mac = "11:22:33:44:55:66", ip = "192.168.1.67", hostname = "por-ip", tipoConexao = "wifi"),
         )
-        val nome = NamingPrioridade.resolverNomeRouterActive(
+        val resultado = NamingPrioridade.resolverNomeRouterActive(
             macDispositivo = "aa:bb:cc:dd:ee:ff",
             clientesGateway = clientes,
             ipDispositivo = "192.168.1.67",
         )
-        assertEquals("por-mac", nome)
+        assertEquals("por-mac", resultado?.nome)
+        // Match por MAC vence e é confirmado, mesmo com um IP também disponível na lista.
+        assertEquals(NamingPrioridade.FONTE_NOME_ROUTER_ACTIVE, resultado?.fonte)
     }
 
     @Test
     fun `resolverNomeRouterActive retorna null quando IP nao bate com nenhum cliente`() {
         val clientes = listOf(ClientSnapshot(mac = null, ip = "192.168.1.10", hostname = "notebook", tipoConexao = "wired"))
-        val nome = NamingPrioridade.resolverNomeRouterActive(macDispositivo = null, clientesGateway = clientes, ipDispositivo = "192.168.1.99")
-        assertNull(nome)
+        val resultado = NamingPrioridade.resolverNomeRouterActive(macDispositivo = null, clientesGateway = clientes, ipDispositivo = "192.168.1.99")
+        assertNull(resultado)
     }
 
     @Test
     fun `resolverNomeRouterActive trata hostname sintetico Unknown_MAC do roteador como generico`() {
         val clientes = listOf(ClientSnapshot(mac = "aa:bb:cc:dd:ee:ff", ip = "192.168.1.10", hostname = "Unknown_aa:bb:cc:dd:ee:ff", tipoConexao = "wifi"))
-        val nome = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
-        assertNull(nome)
+        val resultado = NamingPrioridade.resolverNomeRouterActive("aa:bb:cc:dd:ee:ff", clientes)
+        assertNull(resultado)
     }
 
     @Test

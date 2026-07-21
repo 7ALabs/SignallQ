@@ -1,7 +1,5 @@
 package io.signallq.app.ui.component
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -32,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.R
+import io.signallq.app.ui.ExternalActionLauncher
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
@@ -91,13 +90,7 @@ fun OperadoraContactCard(
 
             if (contato.sacPhone != null) {
                 Button(
-                    onClick = {
-                        val intent =
-                            Intent(Intent.ACTION_DIAL).apply {
-                                data = Uri.parse("tel:${contato.sacPhone}")
-                            }
-                        context.startActivity(intent)
-                    },
+                    onClick = { ExternalActionLauncher.abrirDiscador(context, contato.sacPhone) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(LkRadius.button),
                     colors = ButtonDefaults.buttonColors(containerColor = c.primary),
@@ -119,13 +112,7 @@ fun OperadoraContactCard(
             if (contato.whatsapp != null) {
                 Spacer(Modifier.height(LkSpacing.sm))
                 OutlinedButton(
-                    onClick = {
-                        val intent =
-                            Intent(Intent.ACTION_VIEW).apply {
-                                data = Uri.parse(contato.whatsappUrl())
-                            }
-                        context.startActivity(intent)
-                    },
+                    onClick = { ExternalActionLauncher.abrirView(context, contato.whatsappUrl()) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(LkRadius.button),
                 ) {
@@ -153,13 +140,7 @@ fun OperadoraContactCard(
                 ) {
                     if (contato.site != null) {
                         OutlinedButton(
-                            onClick = {
-                                val intent =
-                                    Intent(Intent.ACTION_VIEW).apply {
-                                        data = Uri.parse(contato.site)
-                                    }
-                                context.startActivity(intent)
-                            },
+                            onClick = { ExternalActionLauncher.abrirView(context, contato.site) },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(LkRadius.button),
                         ) {
@@ -180,13 +161,7 @@ fun OperadoraContactCard(
                     }
                     if (contato.grupo != null) {
                         OutlinedButton(
-                            onClick = {
-                                val intent =
-                                    Intent(Intent.ACTION_VIEW).apply {
-                                        data = Uri.parse("market://search?q=${contato.grupo}")
-                                    }
-                                context.startActivity(intent)
-                            },
+                            onClick = { ExternalActionLauncher.abrirView(context, "market://search?q=${contato.grupo}") },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(LkRadius.button),
                         ) {
@@ -227,11 +202,7 @@ fun OperadoraContactCard(
             Spacer(Modifier.height(LkSpacing.md))
             OutlinedButton(
                 onClick = {
-                    val intent =
-                        Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://www.anatel.gov.br/consumidor/acessar-central")
-                        }
-                    context.startActivity(intent)
+                    ExternalActionLauncher.abrirView(context, "https://www.anatel.gov.br/consumidor/acessar-central")
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(LkRadius.button),

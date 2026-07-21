@@ -69,6 +69,26 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
   tentativas normais. Item isolado do lote maior da issue (GPON já desduplicado na Fase 0); demais
   itens (diferenciação completa de estados de sessão/erro, módulos independentes, reboot
   protegido) seguem fora do escopo desta correção (#1213)
+- Anúncios nativos (AdMob) podiam ser desligados silenciosamente: `fetchAndActivate()` retornar
+  `false` (que só significa "nenhuma configuração nova pra ativar", não falha) era tratado como
+  erro e substituía todas as flags por desligado. Agora só exceção/timeout real aciona o
+  fallback, e mesmo assim os valores já ativados no SDK são lidos antes de desistir — falha
+  temporária de rede não apaga mais uma config válida carregada anteriormente (#1224)
+- Dispositivos na rede: MAC localmente administrado (randomizado, Android 10+) deixa de
+  disparar lookup de fabricante por OUI (não existe fabricante real associado); redes maiores
+  que `/22` deixam de disparar varredura completa de sub-rede via SubnetDevices (risco de
+  bateria/memória com milhares de hosts, ex. `/16`) — as demais fases (ARP/mDNS/SSDP/TCP
+  probe) continuam normalmente; associação com o gateway só por IP (sem MAC batendo) passa a
+  ser rotulada como "provável", não mais "confirmado" (IP pode ter sido reatribuído por DHCP
+  entre os dois snapshots) (#1217)
+- Operadoras ("Falar com a operadora"): operadora com apenas site cadastrado ganha botão
+  "Acessar site" (antes ficava sem nenhuma ação); telefone de operadora secundária agora é
+  acionável (toque na linha disca, antes só o ícone de WhatsApp funcionava); texto do telefone
+  exibido não inventa mais `*` que não existia no número realmente discado; WhatsApp
+  centralizado numa única função de normalização (antes duas implementações divergentes,
+  uma delas nunca protegida contra número já vindo com `+55`); todas as ações externas
+  (WhatsApp/ligar/site/Play Store) protegidas contra `ActivityNotFoundException` e URI
+  inválida — antes qualquer app ausente (WhatsApp, navegador, Play Store) derrubava o app (#1226)
 
 ## [0.29.0] — 2026-07-20
 
