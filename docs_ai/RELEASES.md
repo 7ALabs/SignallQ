@@ -11,6 +11,22 @@
 
 ---
 
+## v0.30.1 (versionCode 67) — 2026-07-21
+
+**Lote de bug fixes pós-congelamento de escopo (sem funcionalidade nova)**
+
+- Home e Sinal > Móvel deixam de divergir na classificação de sinal do mesmo chip — Home passa
+  a usar o `MetricClassifier` canônico (#1258)
+- Sheet "Análise detalhada": botão da operadora com affordance real, loading duplicado removido (#1262)
+- Motor de diagnóstico remoto não usa mais vocabulário de rede fixa doméstica em teste via rede móvel (#1263)
+- Card "Medições" da Home não mostra mais "resultado anterior" vazio (ping de monitoramento em
+  background deixa de ser elegível como resultado de speedtest); card "Caminho da sua internet"
+  não trava mais em cold start genuíno (#1265)
+
+**Publicação:** trilha internal do Play Console, via `release.yml`
+
+---
+
 ## v0.30.0 (versionCode 66) — 2026-07-21
 
 **Fecha o lote de 14 correções P0 da auditoria de 20/07/2026 (Fases 0-4 completas)**

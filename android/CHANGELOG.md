@@ -11,6 +11,26 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ## [Unreleased]
 
+## [0.30.1] — 2026-07-21
+
+### Corrigido
+- Home e Sinal > Móvel deixam de divergir na classificação de qualidade de sinal do mesmo chip
+  no mesmo instante: Home usava dois classificadores próprios (só RSRP, limiares iguais pra
+  4G/5G) em vez do `MetricClassifier` canônico com pior métrica entre RSRP/RSRQ/SINR já usado
+  pela Sinal (#1258)
+- Sheet "Análise detalhada" (Resultado do Speedtest): botão "Falar com a operadora" sem
+  affordance de clique (`TextButton` com cor de texto secundário) e dois cards de carregamento
+  redundantes durante a análise por IA (#1262)
+- Motor de diagnóstico remoto (Cloudflare) deixa de usar vocabulário de "rede local"/"provedor"
+  doméstico em testes via rede móvel — mensagem "problema no provedor" não fazia sentido
+  conceitual numa conexão celular (#1263)
+- Card "Medições" da Home deixa de mostrar "Resultado anterior · há X min" sem os números:
+  ping de monitoramento em background (`MonitoramentoWorker`, sem download/upload) não é mais
+  elegível como resultado de speedtest exibível (Home e Laudo) (#1265)
+- Card "Caminho da sua internet" da Home podia nunca resolver "Seu aparelho"/"Provedor" num
+  cold start genuíno — gate síncrono contra `onboardingConcluido` (StateFlow que nasce `null`)
+  trocado por efeito reativo (#1265)
+
 ## [0.30.0] — 2026-07-21
 
 Fecha o lote de 14 correções P0 da auditoria de 20/07/2026 (Fases 0-4 completas): Sinal (móvel,
