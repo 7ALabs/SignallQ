@@ -269,6 +269,56 @@ test("diagnostic evaluate returns isp_externo flow with partial but decisive gat
   assert.ok(payload.dadosAusentes.includes("packet_loss_percent"));
 });
 
+// GH#1263 — mesma condicao de gateway/latencia, mas com connection.type
+// explicito "WIFI": a copy domestica ("rede local"/"provedor") deve
+// continuar exatamente como esta hoje. Regressao contra a correcao de #1263.
+test("diagnostic evaluate keeps 'rede local'/'provedor' copy for isp_externo on WIFI connection", async () => {
+  const response = await worker.fetch(
+    jsonRequest("https://example.com/diagnostic/evaluate", {
+      schemaVersion: 6,
+      connection: { type: "WIFI" },
+      gateway: { rttMs: 4 },
+      quality: { latencyMs: 260 },
+      wifi: { band: "5_GHZ", rssiDbm: -58 },
+    }),
+    {},
+  );
+  const payload = await response.json() as {
+    decisao: { categoriaOrigem: string | null; titulo: string; mensagemUsuario: string };
+  };
+  assert.equal(response.status, 200);
+  assert.equal(payload.decisao.categoriaOrigem, "isp");
+  assert.match(payload.decisao.titulo, /rede local/i);
+  assert.match(payload.decisao.mensagemUsuario, /rede local/i);
+  assert.match(payload.decisao.mensagemUsuario, /provedor/i);
+});
+
+// GH#1263 — mesmo padrao de gatewayRtt baixo + latencia alta, mas via rede
+// movel (5G): nao pode mencionar "rede local"/"provedor" (vocabulario de
+// banda fixa que nao existe em conexao movel).
+test("diagnostic evaluate uses carrier-aware copy for isp_externo pattern on MOBILE connection", async () => {
+  const response = await worker.fetch(
+    jsonRequest("https://example.com/diagnostic/evaluate", {
+      schemaVersion: 6,
+      connection: { type: "MOBILE" },
+      gateway: { rttMs: 4 },
+      quality: { latencyMs: 260 },
+      mobile: { technology: "5G", rsrpDbm: -85, sinrDb: 18 },
+    }),
+    {},
+  );
+  const payload = await response.json() as {
+    decisao: { categoriaOrigem: string | null; titulo: string; mensagemUsuario: string; recomendacao: string | null };
+  };
+  assert.equal(response.status, 200);
+  assert.equal(payload.decisao.categoriaOrigem, "isp");
+  assert.doesNotMatch(payload.decisao.titulo, /rede local/i);
+  assert.doesNotMatch(payload.decisao.mensagemUsuario, /rede local/i);
+  assert.doesNotMatch(payload.decisao.mensagemUsuario, /caminho do provedor/i);
+  assert.match(payload.decisao.mensagemUsuario, /operadora/i);
+  assert.doesNotMatch(payload.decisao.recomendacao ?? "", /roteador/i);
+});
+
 test("diagnostic evaluate returns sem_dados_suficientes when there is no useful telemetry", async () => {
   const response = await worker.fetch(
     jsonRequest("https://example.com/diagnostic/evaluate", {

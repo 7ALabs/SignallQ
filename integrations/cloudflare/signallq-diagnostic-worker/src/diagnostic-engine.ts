@@ -130,6 +130,16 @@ function calculateDegradation(avg30?: number, avg7?: number, higherIsBetter = tr
   return higherIsBetter ? ((avg30 - avg7) / avg30) * 100 : ((avg7 - avg30) / avg30) * 100;
 }
 
+/**
+ * GH#1263 — o padrao gatewayRtt baixo + latencia alta (`ISP_PROBLEM_DETECTED`)
+ * so significa "rede local doméstica saudavel, problema no provedor" quando a
+ * conexao e Wi-Fi/Ethernet. Em rede movel nao existe "rede local" separada da
+ * operadora — o vocabulario e o de resolucao precisam ser outros.
+ */
+export function isMobileConnection(snapshot: DiagnosticSnapshot): boolean {
+  return snapshot.connection?.type === "MOBILE";
+}
+
 function wifiWeak(snapshot: DiagnosticSnapshot): boolean {
   const rssi = snapshot.wifi?.rssiDbm;
   const band = snapshot.wifi?.band;
@@ -448,22 +458,38 @@ function buildFlowDecision(snapshot: DiagnosticSnapshot, findings: DiagnosticFin
   }
 
   if (ispDetected) {
+    const mobile = isMobileConnection(snapshot);
     return {
       primaryFlow: "isp_externo",
       secondaryFlows: secondaryFlows.filter((flow) => flow !== "isp_externo"),
-      humanSummary: hasPartialData
-        ? "Mesmo sem todos os sinais, o padrao atual indica que sua rede local responde bem e o problema esta mais para fora de casa, no caminho do provedor."
-        : "Sua rede local responde bem e o problema parece estar no caminho do provedor.",
-      humanResolution: [
-        "Guarde a evidencia de gateway baixo com internet alta ou instavel.",
-        "Reteste por cabo ou perto do roteador so para descartar variacao local.",
-        "Se repetir, abra chamado com o provedor informando horario, latencia e perda observados.",
-      ],
+      humanSummary: mobile
+        ? (hasPartialData
+          ? "Mesmo sem todos os sinais, o padrao atual indica que a operadora entrega bem ate a borda da rede dela, mas a degradacao aparece mais adiante, no caminho ate a internet."
+          : "A operadora entrega bem ate a borda da rede dela, mas a degradacao aparece mais adiante, no caminho ate a internet.")
+        : (hasPartialData
+          ? "Mesmo sem todos os sinais, o padrao atual indica que sua rede local responde bem e o problema esta mais para fora de casa, no caminho do provedor."
+          : "Sua rede local responde bem e o problema parece estar no caminho do provedor."),
+      humanResolution: mobile
+        ? [
+          "Guarde a evidencia de resposta rapida da operadora com internet alta ou instavel.",
+          "Reteste em outro local ou alternando 4G/5G so para descartar variacao de cobertura.",
+          "Se repetir, registre operadora, tecnologia, horario, latencia e perda observados para o suporte.",
+        ]
+        : [
+          "Guarde a evidencia de gateway baixo com internet alta ou instavel.",
+          "Reteste por cabo ou perto do roteador so para descartar variacao local.",
+          "Se repetir, abra chamado com o provedor informando horario, latencia e perda observados.",
+        ],
       missingInputs,
-      nextBestChecks: [
-        "validar packet_loss_percent e loaded_latency_ms em novo teste",
-        "comparar o comportamento em outro horario para confirmar recorrencia",
-      ],
+      nextBestChecks: mobile
+        ? [
+          "validar packet_loss_percent e loaded_latency_ms em novo teste",
+          "comparar o comportamento em outro horario ou local para confirmar recorrencia",
+        ]
+        : [
+          "validar packet_loss_percent e loaded_latency_ms em novo teste",
+          "comparar o comportamento em outro horario para confirmar recorrencia",
+        ],
       resolvableNow: true,
     };
   }
