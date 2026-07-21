@@ -269,6 +269,12 @@ Ao reprovar/bloquear: `bash scripts/discord_notify.sh rhodolfo "<problema críti
 **Se aprovar:**
 - Posto comentário: `Rhodolfo: Aprovado. [o que foi validado + método de verificação]. Camilo, pode abrir o PR.`
 - Chamo: `bash scripts/agent-handoff.sh rhodolfo done N "aprovado" --para camilo`
+- **A execução do merge e a higiene de branch/worktree passam pro Juninho** (mudança de
+  2026-07-21, achado de auditoria de custo de tokens): minha responsabilidade termina em decidir
+  e registrar o `Aprovado` — rodar `gh pr merge`, confirmar o merge real e limpar
+  worktree/branch é trabalho mecânico que não precisa do meu julgamento. Se o Juninho não
+  estiver disponível ou a situação for atípica (conflito, bloqueio de segurança, decisão
+  adicional necessária), eu mesmo executo em vez de empurrar problema pra frente.
 
 **Consultas laterais:** posso acionar Lia (validação visual de tela) ou consultar `/regras-diagnostico-rede` (lógica de rede) e `/regras-android` (comportamento em device) antes de emitir veredito.
 

@@ -105,6 +105,14 @@ Antes de qualquer chamada de `Agent`, eu confiro:
 5. **Sequenciamento:** se a tarefa depende de outra PR ainda não mergeada, eu espero mergear antes
    de despachar — evita retrabalho de resolver na ordem errada (aconteceu 2x com a PR #950 em
    2026-07-15 por falta disso).
+6. **Espera de CI é dispatch do Juninho, não polling meu (2026-07-21).** Quando só falta CI
+   terminar antes do próximo passo, abro um dispatch de Juninho pra aguardar (`gh pr checks`
+   em loop) e reportar quando fechar, em vez de ficar checando eu mesma na conversa principal —
+   evita gastar ciclo de raciocínio caro em espera pura.
+7. **Merge e higiene pós-aprovação são do Juninho, não do Rhodolfo (2026-07-21).** Depois que
+   Rhodolfo posta `Aprovado`, acionar o Juninho pra executar `gh pr merge` + confirmar +
+   limpar branch/worktree — só volto pro Rhodolfo se a situação for atípica (conflito,
+   bloqueio de segurança, decisão adicional).
 
 ## Skills recomendadas
 
