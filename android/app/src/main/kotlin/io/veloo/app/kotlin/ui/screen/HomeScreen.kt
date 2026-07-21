@@ -1409,26 +1409,6 @@ private fun wifiSignalQuality(rssiDbm: Int): String =
         else -> "Fraco"
     }
 
-private fun mobileSignalQuality(rsrpDbm: Int?): String =
-    when {
-        rsrpDbm == null -> "Conectado"
-        rsrpDbm > -80 -> "Excelente"
-        rsrpDbm > -90 -> "Bom"
-        rsrpDbm > -100 -> "Regular"
-        else -> "Fraco"
-    }
-
-private fun mobileSignalColor(
-    rsrpDbm: Int?,
-    c: LkTokens,
-): Color =
-    when {
-        rsrpDbm == null -> c.primary
-        rsrpDbm > -80 -> c.success
-        rsrpDbm > -100 -> c.warning
-        else -> c.error
-    }
-
 /** Mesma conversão RSRP→percentual estava copiada 2x ([MobileSignalCard], [SimChipCompact]). */
 private fun mobileSignalPercent(rsrpDbm: Int?): Int? = rsrpDbm?.let { ((it + 140) / 96.0).coerceIn(0.0, 1.0) * 100 }?.roundToInt()
 
@@ -1621,7 +1601,10 @@ private fun MobileSignalCard(
     val tec = tecnologiaSimplificada(movelSnapshot.tecnologia)
     val tecLabel = tec?.uppercase() ?: "LTE"
     val rsrp = movelSnapshot.rsrpDbm
-    val mobileColor = mobileSignalColor(rsrp, c)
+    // GH#1258 — mesmo caminho canonico da aba Sinal (classificarQualidadeSinalMovel), nao
+    // mais um limiar proprio so de RSRP: evita a Home discordar da Sinal pro mesmo chip.
+    val qualidadeInsight = classificarQualidadeSinalMovel(movelSnapshot.paraDadosSinalMovel(), c)
+    val mobileColor = qualidadeInsight.color
 
     SignallQCard(c) {
         Row(
@@ -1675,7 +1658,7 @@ private fun MobileSignalCard(
                         )
                         Text("  ·  ", style = MaterialTheme.typography.bodySmall, color = c.textTertiary)
                         Text(
-                            mobileSignalQuality(rsrp),
+                            qualidadeInsight.label,
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.W600,
                             color = mobileColor,
@@ -1830,7 +1813,8 @@ private fun SimChipCompact(
     modifier: Modifier = Modifier,
 ) {
     val rsrpDbm = sim.rsrpDbm
-    val rsrpColor = mobileSignalColor(rsrpDbm, c)
+    // GH#1258 — mesmo caminho canonico da aba Sinal, nao mais o limiar proprio de RSRP.
+    val rsrpColor = classificarQualidadeSinalMovel(sim.paraDadosSinalMovel(null), c).color
     val rsrpPct = mobileSignalPercent(rsrpDbm) ?: 0
     val isActive = sim.tecnologiaRede != null
 
@@ -2346,8 +2330,12 @@ private fun CellularInfoSheet(
     val mcc = movelSnapshot?.mcc
     val mnc = movelSnapshot?.mnc
 
-    val qualityLabel = rsrp?.let { "${mobileSignalQuality(it)} ($it dBm)" }
-    val qualityColor = rsrp?.let { mobileSignalColor(it, c) }
+    // GH#1258 — mesmo caminho canonico da aba Sinal (pior status entre RSRP/RSRQ/SINR por
+    // tecnologia), nao mais um limiar proprio so de RSRP: era o que fazia esta sheet
+    // divergir do veredito mostrado em Sinal -> Movel pro mesmo chip.
+    val qualidadeInsight = movelSnapshot?.paraDadosSinalMovel()?.let { classificarQualidadeSinalMovel(it, c) }
+    val qualityLabel = rsrp?.let { "${qualidadeInsight?.label ?: "Indisponível"} ($it dBm)" }
+    val qualityColor = qualidadeInsight?.color
     val asuValue = rsrp?.let { "${it + 140}" } ?: "Não disponível"
     val sinrValue = sinr?.let { "$it dB" } ?: "Não disponível"
     val sinrColor =
@@ -2952,19 +2940,26 @@ private fun MobileChipsCard(
     resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity?,
     resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
 ) {
+    // GH#1258 — mesmo caminho canonico da aba Sinal (classificarQualidadeSinalMovel via
+    // piorMetricStatusSinalMovel), nao mais o limiar proprio de simStatusLabel (so RSRP,
+    // sem RSRQ/SINR, sem diferenciar 4G/5G) que fazia este card ("CHIP MÓVEL") divergir
+    // do veredito da tela Sinal -> Movel pro mesmo chip.
     val linhas: List<Pair<String, Pair<String, Color>>> =
         remember(movelSnapshot, simsAtivos, c) {
             when {
                 simsAtivos.isNotEmpty() ->
                     simsAtivos.map { sim ->
+                        val insight = classificarQualidadeSinalMovel(sim.paraDadosSinalMovel(movelSnapshot), c)
                         (sim.operadora?.takeIf { it.isNotBlank() } ?: "SIM ${sim.simIndex}") to
-                            simStatusLabel(sim.rsrpDbm, sim.radioDesligado, c)
+                            (insight.label to insight.color)
                     }
-                movelSnapshot != null ->
+                movelSnapshot != null -> {
+                    val insight = classificarQualidadeSinalMovel(movelSnapshot.paraDadosSinalMovel(), c)
                     listOf(
                         (movelSnapshot.operadora?.takeIf { it.isNotBlank() } ?: "Rede móvel") to
-                            simStatusLabel(movelSnapshot.rsrpDbm, movelSnapshot.radioDesligado, c),
+                            (insight.label to insight.color),
                     )
+                }
                 else -> emptyList<Pair<String, Pair<String, Color>>>()
             }
         }
@@ -3045,16 +3040,3 @@ private fun MobileChipsCard(
         }
     }
 }
-
-private fun simStatusLabel(
-    rsrpDbm: Int?,
-    radioDesligado: Boolean,
-    c: LkTokens,
-): Pair<String, Color> =
-    when {
-        radioDesligado -> "Sem sinal" to c.error
-        rsrpDbm == null -> "Sem leitura" to c.warning
-        rsrpDbm > -85 -> "Bom" to c.success
-        rsrpDbm > -100 -> "Regular" to c.warning
-        else -> "Ruim" to c.error
-    }

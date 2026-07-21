@@ -162,5 +162,35 @@ class SinalMovelClassificacaoTest {
         assertEquals("4G", dados.tecnologia)
     }
 
+    // ── GH#1258 — Home e Sinal devem concordar pro mesmo chip (print real do Luiz,
+    // 2026-07-21: RSRP -79 dBm 5G NSA, RSRQ/SINR ruins o bastante pra puxar o veredito
+    // geral pra Regular. Antes, Home usava mobileSignalQuality/simStatusLabel (so RSRP,
+    // sem olhar RSRQ/SINR) e mostrava "Bom"; Sinal ja usava o caminho abaixo e mostrava
+    // "Regular" -- corretamente rebaixado pelo pior status entre as 3 metricas). ────────
+
+    @Test
+    fun `rsrp -79 5G isolado e excelente mas rsrq e sinr ruins rebaixam para regular`() {
+        val dadosViaSnapshot =
+            snapshot(rsrpDbm = -79, tecnologia = "5G NSA", rsrqDb = -18, sinrDb = 5).paraDadosSinalMovel()
+        assertEquals("Regular", classificarQualidadeSinalMovel(dadosViaSnapshot, tokensFake()).label)
+    }
+
+    @Test
+    fun `Home (card CHIP MOVEL via sim) e Sinal (aba Movel via snapshot) concordam no mesmo veredito`() {
+        // MobileChipsCard (Home, "CHIP MÓVEL") consome MovelSimSnapshot.paraDadosSinalMovel();
+        // MobileSnapshotCard (SinalScreen, aba Móvel) consome MovelSnapshot.paraDadosSinalMovel().
+        // Pro mesmo chip/instante, os dois caminhos tem que bater no mesmo veredito.
+        val snapshotGeral = snapshot(rsrpDbm = -79, tecnologia = "5G NSA", rsrqDb = -18, sinrDb = 5)
+        val simDoMesmoChip =
+            sim(rsrpDbm = -79, tecnologiaRede = "5G NSA", rsrqDb = -18, sinrDb = 5, isDefaultData = true)
+
+        val insightHome = classificarQualidadeSinalMovel(simDoMesmoChip.paraDadosSinalMovel(snapshotGeral), tokensFake())
+        val insightSinal = classificarQualidadeSinalMovel(snapshotGeral.paraDadosSinalMovel(), tokensFake())
+
+        assertEquals("Regular", insightHome.label)
+        assertEquals(insightSinal.label, insightHome.label)
+        assertEquals(insightSinal.color, insightHome.color)
+    }
+
     private fun tokensFake() = lightTokens()
 }
