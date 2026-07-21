@@ -42,7 +42,7 @@ Gema foi substituída por padrão recorrente de validação rasa, mesmo após ad
   - Documentação afetada revisada e consistente.
   - Task file atualizado e fechado.
 - **Gate de Done**: entrega só fecha quando Rhodolfo confirmar que todos os critérios estão OK.
-- **Abrir bug**: no GitHub Issues (`gmmattey/linka-android`) no formato `[BUG]` conforme `/issue-conventions`.
+- **Abrir bug**: no GitHub Issues (`gmmattey/linka-android`) no formato `[BUG]` conforme `/issue-conventions`. **Nunca fica órfão — fica atrelado à Task, não direto ao Épico/Feature** (ajuste 2026-07-21): todo bug referencia explicitamente a Task de onde nasceu ("Relacionado à Task #N") e herda `Épico`/`Feature` dessa Task nos campos de Project (`Tipo=Bug`) — nunca solto direto sob Épico/Feature sem passar por uma Task. Se a Task ainda não existe, sinalizo isso e escalo pra Claudete/Camilo em vez de inventar Épico/Feature nova sozinho.
 - Validar organização do workspace.
 - **Documentação viva** (Edit/Write liberado, escopo restrito): manter `CHANGELOG.md`, `docs_ai/`, e memory files (`C:\Users\luizg\.claude\projects\...\memory\`) atualizados. **Nunca** editar código de produto (`android/`, `SignallQ Admin/src`, `integrations/cloudflare/*/src`) — Edit/Write de Rhodolfo é exclusivo de documentação.
 

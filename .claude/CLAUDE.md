@@ -86,7 +86,48 @@ O monorepo-alvo `signallq-platform` (que unifica os tres + Portal + Nethal) e **
 
 **Regra Slack:** o GitHub notifica o Slack diretamente. Decisao que surgir no Slack vira issue no GitHub ou pagina no Notion. Slack e saida, nao fonte da verdade.
 
-**Convencao de issue no GitHub:** titulo `Task - <descricao>` para trabalho planejado e `[BUG] <descricao>` para defeito, label `enhancement`/`bug` conforme o caso, mais labels de `area:*`/`priority:*` quando fizer sentido (ver `gh label list --repo gmmattey/linka-android`). Ver skill `issue-conventions` para o detalhe completo.
+**Convencao de issue no GitHub:** titulo `Task - <descricao>` para trabalho planejado e `[BUG] <descricao>` para defeito, label `enhancement`/`bug` conforme o caso, mais labels de `area:*`/`priority:*` quando fizer sentido (ver `gh label list --repo gmmattey/linka-android`). Ver skill `issue-conventions` para o detalhe completo (roteamento/titulo/corpo, agnostico de projeto).
+
+**Hierarquia obrigatoria por Project — Epico > Feature > Task (decisao 2026-07-21):** toda issue nova nasce ja
+classificada num dos 4 GitHub Projects do repo, segmentados por produto -- **SignallQ** (#10),
+**SignallQ PRO** (#11), **SignallQ Admin** (#12), **SignallQ Site** (#13). Nao fica pra depois, nao
+fica "sem epico" por preguica de classificar.
+
+Mecanismo (campos de Project, nao labels -- decisao deliberada pra nao colidir com o uso de labels
+do Luiz pra outra classificacao em paralelo):
+- Campo `Tipo`: Epico / Feature / Historia de Usuario / Bug / Tarefa.
+- Campo `Epico`: agrupamento por modulo/funcionalidade, nomes funcionais (nao narrativos) -- ex.:
+  `Sinal e Rede`, `Equipamento e Dispositivos`, `Motor de Diagnostico`, `Ajustes`, `Debito Tecnico e
+  Design`, `Release e Lancamento`, `SignallQ Pro`, `Plataforma de Dados e Console`, `Site
+  Institucional`, `Sem epico` (lista viva -- adicionar opcao nova quando um modulo genuinamente
+  novo aparecer, mas sem inflar granularidade por reflexo).
+- Campo `Feature`: recorte mais fino dentro do Epico (ex.: Epico `Sinal e Rede` > Feature `Topologia
+  Wi-Fi`; Epico `Ajustes` > Feature `Alertas de Qualidade`).
+- Ao criar a issue: identificar o(s) produto(s) -> adicionar ao(s) Project(s) certo(s) (issue
+  compartilhada entre produtos pode entrar em mais de um Project) -> preencher Tipo/Epico/Feature
+  na hora, nao depois.
+
+**Divisao de responsabilidade na criacao (decisao 2026-07-21):**
+- **Claudete** cria ate o nivel de **Feature** (Epico ja existente ou novo, Feature nova dentro dele)
+  -- ela nao quebra em Task, isso e granularidade de execucao, nao de planejamento de produto.
+- **O agente responsavel pela implementacao** (normalmente Camilo, pode ser Lia pra design) abre as
+  **Tasks** dentro da Feature conforme quebra o trabalho em pedacos executaveis -- mesma
+  classificacao obrigatoria (Tipo=Tarefa, Epico/Feature herdados da Feature-mae).
+- **Bug nunca fica orfao -- fica atrelado a Task, nao direto ao Epico/Feature (decisao 2026-07-21,
+  ajustada).** Bug vive no contexto de uma Task especifica (a Task onde foi encontrado, ou a Task
+  mais proxima do comportamento quebrado) -- referenciar essa Task explicitamente no corpo do bug
+  ("Relacionado a Task #N") alem de herdar Epico/Feature da mesma Task pros campos de Project. Se
+  nao existir Task especifica ainda, o bug PRIMEIRO vira/gera a Task correspondente (ou o agente
+  encaixa numa existente), nunca fica solto direto sob o Epico/Feature sem passar por uma Task. Se
+  genuinamente nao se encaixa em nenhuma Feature existente, escala pra Claudete decidir antes de
+  inventar Epico/Feature nova sozinho.
+
+**Pendente, registrado como divida de tooling (nao bloqueia o uso atual):** o modelo de campo plano
+acima e um degrau deliberado -- mais facil de executar em massa (sem precisar de node ID de issue
+nem mutacao GraphQL de vinculo pai/filho). O alvo real e migrar Epico/Feature pra **sub-issues
+nativas do GitHub** (parent/child de verdade, visivel na propria issue, com progresso agregado) --
+ver issue de acompanhamento (criar/referenciar quando a API nao estiver rate-limited) antes de
+tratar o campo plano como definitivo.
 
 ---
 ## Infraestrutura e Contas Legadas

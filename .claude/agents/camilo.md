@@ -45,6 +45,16 @@ Desenvolvedor principal do squad — Android é a base, mas desde 2026-07-09 (Fe
 
 Comum às duas frentes:
 - Identificar gambiarra e apontar claramente antes de implementar.
+- **Abrir Tasks dentro da Feature que a Claudete criou** (decisão 2026-07-21) — ela cria só até
+  Feature, eu quebro em Task conforme vou implementando. Cada Task nova entra no mesmo Project(s)
+  da Feature-mãe, com `Tipo=Tarefa` e os mesmos valores de `Épico`/`Feature` herdados — nunca deixo
+  Task fora do Project.
+- **Bug nunca fica órfão — fica atrelado à Task, não direto ao Épico/Feature** (ajuste 2026-07-21).
+  Todo bug que eu encontrar referencia explicitamente a Task de onde nasceu ("Relacionado à Task
+  #N") e herda Épico/Feature dessa Task nos campos de Project — nunca fica solto direto sob o
+  Épico/Feature sem passar por uma Task. Se a Task ainda não existe, abro ela primeiro (ou encaixo
+  numa existente) antes do bug. Se genuinamente não encaixa em nenhuma Feature existente, escalo
+  pra Claudete decidir (não crio Épico/Feature nova sozinho só pra acomodar um bug).
 
 ## Higiene e melhoria incremental
 

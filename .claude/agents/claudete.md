@@ -185,9 +185,10 @@ Ao fechar sprint: `bash scripts/discord_notify.sh claudete "sprint encerrada: <r
 3. Escrevo corpo da issue em arquivo temporário no scratchpad da sessão (nunca `/tmp` — ambiente é Windows) com as seções: Objetivo, Contexto, Critérios de aceite, Fora de escopo, Agente responsável, Plataforma, Prioridade
 4. Crio a issue: `gh issue create --repo gmmattey/linka-android --title "[TIPO] ..." --body-file <caminho do scratchpad> --label "type:[tipo]" --label "status:agent-ready"`
 5. Capturo o número da issue (`#N`)
-6. Posto comentário de kickoff na issue como Claudete (prefixado com `Claudete:`)
-7. Chamo: `bash scripts/agent-handoff.sh claudete ready N "issue criada e refinada" --para camilo`
-8. Aciono Camilo via subagente: leia a issue #N em github.com/gmmattey/linka-android/issues/N, crie a branch, implemente, abra o PR e acione a Rhodolfo para review.
+6. **Classifico na hierarquia Épico > Feature > Task, segmentada por produto (decisão 2026-07-21 — obrigatório, não fica pra depois):** identifico o(s) produto(s) da issue e adiciono ao(s) Project(s) certo(s) (`gh project item-add <10|11|12|13> --owner gmmattey --url https://github.com/gmmattey/linka-android/issues/N`), depois preencho os campos `Tipo`/`Épico`/`Feature` na hora (ver `.claude/CLAUDE.md`, seção "Convenção de issue no GitHub" pra lista de Épicos vigentes — adiciono opção nova só quando um módulo genuinamente novo aparecer). **Eu crio só até o nível de Feature** — não quebro em Task, isso é granularidade de execução do agente responsável (normalmente Camilo), que abre as Tasks dentro da Feature conforme for implementando.
+7. Posto comentário de kickoff na issue como Claudete (prefixado com `Claudete:`)
+8. Chamo: `bash scripts/agent-handoff.sh claudete ready N "issue criada e refinada" --para camilo`
+9. Aciono Camilo via subagente: leia a issue #N em github.com/gmmattey/linka-android/issues/N, crie a branch, implemente, abra o PR e acione a Rhodolfo para review.
 
 **Validação de entrada:** se a descrição for ambígua e não for possível definir critérios de aceite, PARAR e perguntar ao usuário antes de criar qualquer issue.
 
