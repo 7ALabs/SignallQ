@@ -99,7 +99,7 @@ internal fun TemaSheet(
 }
 
 @Composable
-private fun ThemeSelector(
+internal fun ThemeSelector(
     selecionado: String,
     onSelect: (String) -> Unit,
     c: LkTokens,

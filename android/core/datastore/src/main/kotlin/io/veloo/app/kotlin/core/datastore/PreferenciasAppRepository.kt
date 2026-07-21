@@ -94,6 +94,17 @@ class PreferenciasAppRepository(
      */
     private val chaveDispositivosConhecidos = stringPreferencesKey("dispositivos_conhecidos_set")
 
+    /**
+     * GH#1227 item 3/RF-A — perfis de conexão vinculados por rede (`networkId`), substituindo
+     * as antigas chaves globais [chaveOperadora]/[chavePlanoInternet]/
+     * [chaveVelocidadeContratadaDownMbps]/[chaveVelocidadeContratadaUpMbps]/[chaveEstadoUf]/
+     * [chaveCidadeNome] — que continuam existindo só como fonte de migração (leitura, nunca
+     * mais escrita) via [migrarPerfilGlobalLegado]. Serializado como lista de registros
+     * delimitados (mesmo estilo de [chaveDispositivosConhecidos]), sem trazer dependência nova
+     * de JSON só pra isto.
+     */
+    private val chaveConnectionProfiles = stringPreferencesKey("connection_profiles_v1")
+
     // Feature flags remotas — JSON serializado: {"ai_diagnosis_enabled":true,...}
     private val chaveFeatureFlagsJson = stringPreferencesKey("feature_flags_json")
 
@@ -261,6 +272,58 @@ class PreferenciasAppRepository(
             context.dataStore.edit { it[chaveDispositivosConhecidos] = identidades.joinToString(",") }
         }
     }
+
+    // ── ConnectionProfile por rede (GH#1227 item 3/RF-A) ────────────────────────
+
+    /** Todos os perfis de conexão já persistidos, um por rede. */
+    suspend fun buscarTodosConnectionProfiles(): List<ConnectionProfilePersistido> =
+        withContext(ioDispatcher) {
+            val raw = context.dataStore.data.first()[chaveConnectionProfiles] ?: ""
+            if (raw.isBlank()) return@withContext emptyList()
+            raw.split(SEP_REGISTRO_CONNECTION_PROFILE).mapNotNull { desserializarConnectionProfile(it) }
+        }
+
+    /** Perfil de conexão de UMA rede específica, ou `null` se nunca foi salvo. */
+    suspend fun buscarConnectionProfile(networkId: String): ConnectionProfilePersistido? =
+        buscarTodosConnectionProfiles().firstOrNull { it.networkId == networkId }
+
+    /** Salva (ou substitui) o perfil de UMA rede — nunca afeta o perfil de outra rede. */
+    suspend fun salvarConnectionProfile(perfil: ConnectionProfilePersistido) {
+        withContext(ioDispatcher) {
+            val atuais = buscarTodosConnectionProfiles().filterNot { it.networkId == perfil.networkId }
+            val novos = atuais + perfil
+            context.dataStore.edit {
+                it[chaveConnectionProfiles] = novos.joinToString(SEP_REGISTRO_CONNECTION_PROFILE) { p -> p.serializar() }
+            }
+        }
+    }
+
+    /**
+     * GH#1227 item 3 — migração única do perfil GLOBAL legado (chaves antigas, sem vínculo de
+     * rede) pra um [ConnectionProfilePersistido] vinculado ao [networkId] atual. Só lê as
+     * chaves antigas, nunca mais escreve nelas — a partir da primeira chamada desta função pra
+     * um dado [networkId], o perfil por rede passa a ser a única fonte de verdade pra ele.
+     * Retorna `null` quando não havia nenhum dado legado utilizável (nada pra migrar).
+     */
+    suspend fun migrarPerfilGlobalLegado(networkId: String): ConnectionProfilePersistido? =
+        withContext(ioDispatcher) {
+            val prefs = context.dataStore.data.first()
+            val provedor = prefs[chaveOperadora]?.takeIf { it.isNotBlank() }
+            val down = prefs[chaveVelocidadeContratadaDownMbps]?.takeIf { it > 0 }
+            val up = prefs[chaveVelocidadeContratadaUpMbps]?.takeIf { it > 0 }
+            val cidade = prefs[chaveCidadeNome]?.takeIf { it.isNotBlank() }
+            val uf = prefs[chaveEstadoUf]?.takeIf { it.isNotBlank() }
+            if (provedor == null && down == null && up == null && cidade == null && uf == null) return@withContext null
+            ConnectionProfilePersistido(
+                networkId = networkId,
+                providerFixed = provedor,
+                contractedDownloadMbps = down,
+                contractedUploadMbps = up,
+                city = cidade,
+                state = uf,
+                userConfirmed = false,
+            )
+        }
 
     // Flows de controles granulares do usuário (default: ativo)
     val notificacaoLatenciaAtivaFlow: Flow<Boolean> =

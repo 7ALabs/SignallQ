@@ -41,20 +41,21 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.signallq.app.R
-import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.ui.BancoOperadoras
+import io.signallq.app.ui.ConnectionType
 import io.signallq.app.ui.ContatoOperadora
 import io.signallq.app.ui.ExternalActionLauncher
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.OperadoraSource
+import io.signallq.app.ui.OperadoraUiState
+import io.signallq.app.ui.OperatorScope
 import io.signallq.app.ui.ResolvedOperadoraContact
 import io.signallq.app.ui.ResolvedOperadoraIdentity
 import io.signallq.app.ui.normalizarWhatsappLocal
+import io.signallq.app.ui.resolverOperadoraUiState
 import io.signallq.app.ui.whatsappUrl
-
-private val idsMajores = listOf("vivo_fibra", "claro_net", "tim_live", "oi_fibra")
 
 // Verde oficial da marca WhatsApp — intencionalmente fora da paleta semantica SignallQ,
 // mesmo criterio de "cor de marca de terceiro" usado nos badges de operadora.
@@ -105,12 +106,8 @@ fun OperadoraBottomSheet(
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // GH#1226 item 10/J — antes comparava contra o literal "movel" solto; agora referencia
-    // a mesma fonte de verdade que produz o valor (EstadoConexao.name, ver MainViewModel),
-    // sem inventar um enum novo pra um campo que já é serialização controlada de um
-    // enum existente. Migrar o CAMPO em si (persistência/PDF/histórico) pra um tipo em vez
-    // de String? é mudança maior, adiada — ver nota na issue.
-    val viaMovel = connectionType?.equals(EstadoConexao.movel.name, ignoreCase = true) == true
+    // GH#1226 item 10/J — ConnectionType tipado em vez de comparar string livre direto.
+    val viaMovel = ConnectionType.parse(connectionType) == ConnectionType.MOBILE
     val nomeParaResolver = if (viaMovel) operadoraMovel else ispNome
 
     // So pra excluir da lista "Outras operadoras" (sempre local) quando o match tambem
@@ -131,17 +128,23 @@ fun OperadoraBottomSheet(
             resolveLocal = resolveOperadoraContatoLocal,
             resolveRemoteOrFallback = resolveOperadoraContatoRemoto,
         )
-    // FALLBACK = nem local nem diretorio remoto encontraram nada — trata como "nao detectada"
-    // (mesmo comportamento de antes, so que agora so decide depois de tentar o remoto tambem).
-    val operadoraDetectada =
-        contatoDetectado?.takeIf { it.source != OperadoraSource.FALLBACK && it.hasAnyContact }
+    // GH#1226 item 6/RF-A — antes "operadora detectada" só existia quando havia CONTATO
+    // acionável, então uma identidade conhecida sem nenhum canal (ex.: diretório remoto só
+    // devolveu o site) caía como "não identificada" — uma mentira. Estado tipado separa os
+    // dois conceitos. "Carregando" só quando há nome pra resolver e a identidade ainda não
+    // chegou (nível 1 síncrono já teria resolvido; null aqui significa corrotina em voo).
+    val carregando = !nomeParaResolver.isNullOrBlank() && identidadeDetectada == null
+    val operadoraUiState = resolverOperadoraUiState(carregando, identidadeDetectada, contatoDetectado)
+    val operadoraDetectada = (operadoraUiState as? OperadoraUiState.IdentifiedWithContacts)?.contact
 
     val subtituloConexao =
         when {
-            operadoraDetectada != null && viaMovel ->
+            operadoraUiState is OperadoraUiState.IdentifiedWithContacts && viaMovel ->
                 "Detectamos sua operadora pela rede móvel. Atendimento oficial."
-            operadoraDetectada != null ->
+            operadoraUiState is OperadoraUiState.IdentifiedWithContacts ->
                 "Detectamos sua operadora pela rede fixa. Atendimento oficial."
+            operadoraUiState is OperadoraUiState.IdentifiedWithoutContacts ->
+                "Identificamos sua operadora, mas nenhum canal de atendimento está disponível no momento."
             else ->
                 "Não foi possível identificar sua operadora automaticamente. Escolha abaixo para ver os canais de atendimento."
         }
@@ -151,8 +154,10 @@ fun OperadoraBottomSheet(
     val outrasOperadoras =
         BancoOperadoras.lista.filter { it.id != operadoraDetectadaLocal?.id }
 
-    val outrasNacionais = outrasOperadoras.filter { it.id in idsMajores }
-    val outrasRegionais = outrasOperadoras.filter { it.id !in idsMajores }
+    // GH#1226 item 9/RF-I — divisão nacional/regional vem do campo declarado no catálogo
+    // (ContatoOperadora.scope), não mais de uma lista hardcoded de IDs na UI.
+    val outrasNacionais = outrasOperadoras.filter { it.scope == OperatorScope.NATIONAL }
+    val outrasRegionais = outrasOperadoras.filter { it.scope != OperatorScope.NATIONAL }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -183,14 +188,23 @@ fun OperadoraBottomSheet(
 
             Spacer(Modifier.height(LkSpacing.xl))
 
-            if (operadoraDetectada != null && identidadeDetectada != null) {
+            // GH#1226 item 6 — a seção "Sua operadora" aparece pra IdentifiedWithContacts E
+            // IdentifiedWithoutContacts (identidade sabida, sem canal — mostra isso
+            // explicitamente, não vira "não identificada").
+            val identidadeParaExibir =
+                when (operadoraUiState) {
+                    is OperadoraUiState.IdentifiedWithContacts -> operadoraUiState.identity
+                    is OperadoraUiState.IdentifiedWithoutContacts -> operadoraUiState.identity
+                    else -> null
+                }
+            if (identidadeParaExibir != null) {
                 // Seção: operadora detectada (local ou via diretorio remoto)
                 LkSheetDivider()
                 Spacer(Modifier.height(LkSpacing.lg))
                 Overline(texto = "Sua operadora", color = c.textTertiary)
                 Spacer(Modifier.height(LkSpacing.md))
                 OperadoraDetectadaSection(
-                    identidade = identidadeDetectada,
+                    identidade = identidadeParaExibir,
                     contato = operadoraDetectada,
                     legenda = legendaDetectada,
                     onDismiss = onDismiss,
@@ -226,8 +240,8 @@ fun OperadoraBottomSheet(
                 // Seção: nenhuma detectada — mostrar todas com divisão nacional/regional
                 Overline(texto = "Operadoras disponíveis", color = c.textTertiary)
                 Spacer(Modifier.height(LkSpacing.md))
-                val nacionais = BancoOperadoras.lista.filter { it.id in idsMajores }
-                val regionais = BancoOperadoras.lista.filter { it.id !in idsMajores }
+                val nacionais = BancoOperadoras.lista.filter { it.scope == OperatorScope.NATIONAL }
+                val regionais = BancoOperadoras.lista.filter { it.scope != OperatorScope.NATIONAL }
                 nacionais.forEach { op ->
                     OutraOperadoraRow(operadora = op)
                     Spacer(Modifier.height(LkSpacing.sm))
@@ -262,7 +276,10 @@ fun OperadoraBottomSheet(
 @Composable
 private fun OperadoraDetectadaSection(
     identidade: ResolvedOperadoraIdentity,
-    contato: ResolvedOperadoraContact,
+    // GH#1226 item 6 — nulo quando a operadora foi identificada mas nenhum canal de contato
+    // está disponível (OperadoraUiState.IdentifiedWithoutContacts). A seção ainda mostra a
+    // identidade, só sem nenhum botão de ação — nunca finge ter um canal que não existe.
+    contato: ResolvedOperadoraContact?,
     legenda: String,
     onDismiss: () -> Unit,
 ) {
@@ -283,7 +300,7 @@ private fun OperadoraDetectadaSection(
             Spacer(Modifier.width(LkSpacing.md))
             Column {
                 Text(
-                    text = contato.displayName,
+                    text = contato?.displayName ?: identidade.displayName,
                     style = MaterialTheme.typography.titleMedium,
                     color = c.textPrimary,
                 )
@@ -296,6 +313,15 @@ private fun OperadoraDetectadaSection(
         }
 
         Spacer(Modifier.height(LkSpacing.md))
+
+        if (contato == null) {
+            Text(
+                text = "Nenhum canal de atendimento disponível no momento.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.textSecondary,
+            )
+            return
+        }
 
         // WhatsApp primario
         val waUrl = contato.whatsappUrl()

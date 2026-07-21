@@ -42,7 +42,12 @@ object NokiaLocalDeviceMapper {
                 suportaDiagnosticoNativo = false,
                 // Nokia G-1425G-B é o único provider real com ação de gerência
                 // implementada hoje (reboot.cgi, GH#934) — ver NokiaModemClient.reboot.
-                suportaGerenciamento = true,
+                // GH#1213 item 12/critério "Reboot não validado fica indisponível em
+                // produção": a rota/payload nunca foram confirmados contra hardware físico
+                // (ver KDoc de NokiaModemClient.reboot). Gate único e explícito — não
+                // remover a capability do fluxo/testes, só desligar em produção até a
+                // validação real acontecer (flip pra `true` nesse dia, nada mais).
+                suportaGerenciamento = RebootLabFlags.HABILITADO_SEM_VALIDACAO_HARDWARE,
             ),
             vendor = "Nokia",
             modelo = snapshot.deviceInfo?.model,

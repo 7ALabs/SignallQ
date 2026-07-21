@@ -45,6 +45,7 @@ mockk = "1.14.11"
 playServicesAds = "25.4.0"
 userMessagingPlatform = "4.0.0"
 coil = "2.7.0"
+paparazzi = "2.0.0-alpha05"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -101,3 +102,4 @@ detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "12.1.1" }
 firebase-crashlytics-plugin = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlytics" }
 play-publisher = { id = "com.github.triplet.play", version.ref = "playPublisher" }
+paparazzi = { id = "app.cash.paparazzi", version.ref = "paparazzi" }

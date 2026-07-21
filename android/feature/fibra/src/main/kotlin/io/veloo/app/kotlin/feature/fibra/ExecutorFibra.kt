@@ -97,22 +97,7 @@ class ExecutorFibra {
             }
         }
         val t = ultimoErro ?: return@withContext
-        val chave = when {
-            // GH#1213 item 2 — host informado nao e um IP privado/local valido.
-            t is IllegalArgumentException -> "erroHostInvalido"
-            t is ConnectException -> "erroModemInacessivel"
-            t is SocketTimeoutException -> "erroTimeout"
-            t.message?.contains("timed out", ignoreCase = true) == true -> "erroTimeout"
-            t.message?.contains("refused", ignoreCase = true) == true -> "erroModemInacessivel"
-            // GH#934 — err_t=1 do firmware Nokia = usuario/senha incorretos, distinto
-            // de falha generica de comunicacao (ver AcessoEquipamento.CREDENCIAIS_NECESSARIAS).
-            t.message?.contains("credenciais invalidas") == true
-                || t.message?.contains("err_t=1") == true -> "erroCredenciaisInvalidas"
-            t.message?.contains("pubkey") == true
-                || t.message?.contains("nonce") == true
-                || t.message?.contains("csrf") == true -> "erroRespostaModemInvalida"
-            else -> "erroComunicacaoModem"
-        }
+        val chave = chaveErroFibra(t)
         Timber.e(t, "executar: $chave após 3 tentativas — ${t.message}")
         mutableSnapshotFlow.value = SnapshotFibra(
             estado = EstadoFibra.erro,
@@ -228,4 +213,36 @@ class ExecutorFibra {
             erroMensagem = null,
         )
     }
+}
+
+/**
+ * GH#1213 (dispatch final) — diferenciação completa de estados de sessão/erro. Antes,
+ * "sessão ocupada" (`err_t=0`) e "token expirado" (`err_t=2`) caíam ambos no bucket genérico
+ * `erroComunicacaoModem`, misturados com falha de rede real — mesmo os dois já sendo,
+ * internamente no firmware Nokia, causas bem diferentes de uma leitura falhar. Extraído da
+ * função [ExecutorFibra.executar] pra função pura testável sem HTTP/coroutines.
+ */
+internal fun chaveErroFibra(t: Throwable): String = when {
+    // GH#1213 item 2 — host informado nao e um IP privado/local valido.
+    t is IllegalArgumentException -> "erroHostInvalido"
+    t is ConnectException -> "erroModemInacessivel"
+    t is SocketTimeoutException -> "erroTimeout"
+    t.message?.contains("timed out", ignoreCase = true) == true -> "erroTimeout"
+    t.message?.contains("refused", ignoreCase = true) == true -> "erroModemInacessivel"
+    // GH#934 — err_t=1 do firmware Nokia = usuario/senha incorretos, distinto
+    // de falha generica de comunicacao (ver AcessoEquipamento.CREDENCIAIS_NECESSARIAS).
+    t.message?.contains("credenciais invalidas") == true ||
+        t.message?.contains("err_t=1") == true -> "erroCredenciaisInvalidas"
+    // GH#1213 (final) — err_t=0: outra sessao ja esta logada no equipamento. Transitorio
+    // (a sessao concorrente tende a expirar sozinha), mas NAO e a mesma causa de "token
+    // expirado" nem de falha de rede -- nao pode continuar caindo no bucket generico.
+    t.message?.contains("err_t=0") == true -> "erroSessaoOcupada"
+    // GH#1213 (final) — err_t=2: token/nonce da tentativa de login expirou antes do POST
+    // (janela de uso unico do nonce). Um novo login() (que sempre busca nonce novo) resolve
+    // sozinho -- mas e uma causa distinta de "sessao ocupada" e de erro de comunicacao.
+    t.message?.contains("err_t=2") == true -> "erroTokenExpirado"
+    t.message?.contains("pubkey") == true ||
+        t.message?.contains("nonce") == true ||
+        t.message?.contains("csrf") == true -> "erroRespostaModemInvalida"
+    else -> "erroComunicacaoModem"
 }

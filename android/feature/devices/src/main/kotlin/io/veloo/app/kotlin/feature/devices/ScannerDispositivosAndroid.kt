@@ -139,17 +139,27 @@ class ScannerDispositivosAndroid(
                     true
                 }
                 if (concluiuDentroDoPrazo == null) {
-                    // #887 — nenhuma fase respondeu a tempo (ex.: callback de dependência externa
-                    // nunca disparou). Sem isto, `varrendo` fica congelado e o pull-to-refresh trava.
+                    // #887/GH#1217 — nenhuma fase respondeu a tempo (ex.: callback de dependência
+                    // externa nunca disparou). Sem isto, `varrendo` fica congelado e o
+                    // pull-to-refresh trava. Estado tipado proprio, nao mais erro generico.
                     Timber.e("scan excedeu ${TIMEOUT_SCAN_MS}ms sem concluir — reportando timeout")
                     mutableSnapshotFlow.value =
                         mutableSnapshotFlow.value.copy(
-                            estado = EstadoScanDispositivos.erro,
-                            erroMensagem = "timeout",
+                            estado = EstadoScanDispositivos.timeout,
+                            erroMensagem = null,
                         )
                 }
+            } catch (t: kotlinx.coroutines.CancellationException) {
+                // GH#1217 — cancelamento cooperativo (ex.: sair da tela) tem estado proprio,
+                // nao fica indefinidamente em "varrendo" nem vira "erro". Publicar ANTES do
+                // rethrow (esta atribuicao nao e suspend, roda mesmo com o job ja cancelado).
+                mutableSnapshotFlow.value =
+                    mutableSnapshotFlow.value.copy(
+                        estado = EstadoScanDispositivos.cancelado,
+                        erroMensagem = null,
+                    )
+                throw t
             } catch (t: Throwable) {
-                if (t is kotlinx.coroutines.CancellationException) throw t
                 Timber.e(t, "scan falhou")
                 val erroSemantico = when {
                     t is SecurityException -> "semPermissaoLocalizacao"
@@ -170,13 +180,14 @@ class ScannerDispositivosAndroid(
 
     /** Corpo do scan propriamente dito — extraído para rodar sob [withTimeoutOrNull] em [iniciarScan]. */
     private suspend fun executarScan(profundo: Boolean, clientesGateway: List<ClientSnapshot>) {
-        // Guarda Wi-Fi: só escanear em Wi-Fi
+        // Guarda Wi-Fi: só escanear em Wi-Fi — GH#1217 estado tipado proprio (semWifi), nao
+        // mais erro generico com string "naoWifi".
         if (!estaEmWifi()) {
             mutableSnapshotFlow.value =
                 mutableSnapshotFlow.value.copy(
-                    estado = EstadoScanDispositivos.erro,
+                    estado = EstadoScanDispositivos.semWifi,
                     progressoPercentual = 0,
-                    erroMensagem = "naoWifi",
+                    erroMensagem = null,
                 )
             return
         }
@@ -185,6 +196,20 @@ class ScannerDispositivosAndroid(
                 atualizarEstado(EstadoScanDispositivos.varrendo, 5, null)
                 val dispositivos = linkedMapOf<String, DispositivoRede>()
                 val localIp = detectarIpLocal()
+                // GH#1217 item 3 — cada fase concorrente que lançar exceção (em vez de
+                // simplesmente não achar nada) registra o próprio nome aqui. No final, se
+                // houver dispositivos E alguma fase falhou, o estado é `concluidoParcial`,
+                // nunca silenciosamente `concluido` como se tudo tivesse funcionado.
+                val falhasFase = ConcurrentHashMap.newKeySet<String>()
+                suspend fun <T> tentarFase(nome: String, bloco: suspend () -> List<T>): List<T> =
+                    try {
+                        bloco()
+                    } catch (t: Throwable) {
+                        if (t is kotlinx.coroutines.CancellationException) throw t
+                        Timber.w(t, "fase '$nome' falhou")
+                        falhasFase.add(nome)
+                        emptyList()
+                    }
 
                 val gatewayIp = detectarGatewayIp()
                 if (!gatewayIp.isNullOrBlank()) {
@@ -222,31 +247,31 @@ class ScannerDispositivosAndroid(
                     coroutineScope {
                         // Fase 1 — SubnetDevices (ping nativo): ~2–4s
                         launch {
-                            val hosts = descobrirViaSubnetDevices()
+                            val hosts = tentarFase("subnet") { descobrirViaSubnetDevices() }
                             mergeEPublicar(hosts, 40)
                         }
 
                         // Fase 2 — ARP legado (/proc/net/arp): barato, instantâneo
                         launch {
-                            val arp = coletarViaArpLegado()
+                            val arp = tentarFase("arp") { coletarViaArpLegado() }
                             mergeEPublicar(arp, 45)
                         }
 
                         // Fase 3 — mDNS via jmDNS: janela fixa ~4,5s
                         launch {
-                            val mdns = coletarViaMdnsJmDns()
+                            val mdns = tentarFase("mdns") { coletarViaMdnsJmDns() }
                             mergeEPublicar(mdns, 65)
                         }
 
                         // Fase 4 — SSDP/UPnP + fetch XML: ~1–2s
                         launch {
-                            val ssdp = coletarViaSsdp()
+                            val ssdp = tentarFase("ssdp") { coletarViaSsdp() }
                             mergeEPublicar(ssdp, 75)
                         }
 
                         // Fase 5 — TCP probe (hosts que bloqueiam ICMP): ~3–5s, Semaphore(50) interno
                         launch {
-                            val tcp = coletarViaTcpProbe(gatewayIp, localIp)
+                            val tcp = tentarFase("tcpProbe") { coletarViaTcpProbe(gatewayIp, localIp) }
                             mergeEPublicar(tcp, 85)
                         }
                     }
@@ -256,11 +281,11 @@ class ScannerDispositivosAndroid(
                     // Scan leve: SubnetDevices + ARP em paralelo
                     coroutineScope {
                         launch {
-                            val hosts = descobrirViaSubnetDevices()
+                            val hosts = tentarFase("subnet") { descobrirViaSubnetDevices() }
                             mergeEPublicar(hosts, 50)
                         }
                         launch {
-                            val arp = coletarViaArpLegado()
+                            val arp = tentarFase("arp") { coletarViaArpLegado() }
                             mergeEPublicar(arp, 55)
                         }
                     }
@@ -360,10 +385,23 @@ class ScannerDispositivosAndroid(
                             )
                         }
                     }.awaitAll()
+                        // GH#1217 item 1 — nível de confiança da identidade computado sobre o
+                        // dispositivo já totalmente enriquecido (MAC/nome/fabricante finais).
+                        .map { it.copy(confiancaIdentidade = AvaliadorConfiancaIdentidade.avaliar(it)) }
                 }
+                // GH#1217 item 3 — se pelo menos uma fase concorrente falhou (exceção real,
+                // não "não achou nada") mas ainda assim há dispositivos no resultado, o estado
+                // é concluidoParcial: dado válido, porém incompleto. Nunca silenciosamente
+                // "concluido" como se todas as fontes tivessem funcionado.
+                val estadoFinal =
+                    if (falhasFase.isNotEmpty() && dispositivosEnriquecidos.isNotEmpty()) {
+                        EstadoScanDispositivos.concluidoParcial
+                    } else {
+                        EstadoScanDispositivos.concluido
+                    }
                 mutableSnapshotFlow.value =
                     mutableSnapshotFlow.value.copy(
-                        estado = EstadoScanDispositivos.concluido,
+                        estado = estadoFinal,
                         progressoPercentual = 100,
                         dispositivos = dispositivosEnriquecidos,
                         erroMensagem = null,
