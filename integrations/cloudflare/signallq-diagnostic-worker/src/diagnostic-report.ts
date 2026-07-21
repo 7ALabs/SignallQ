@@ -5,6 +5,7 @@ import type {
   DiagnosticSnapshot,
   GameProfileRecord,
 } from "./contracts.ts";
+import { isMobileConnection } from "./diagnostic-engine.ts";
 import { veredictoHumanoDoScore, type VeredictoHumano } from "./score-engine.ts";
 
 type ReportStatus = "ok" | "info" | "attention" | "critical" | "inconclusive";
@@ -100,6 +101,18 @@ const FLOW_TITLES: Record<DiagnosticFlowCode, string> = {
   sem_dados_suficientes: "Dados insuficientes para concluir",
   saudavel_monitorar: "Conexão saudável no momento",
 };
+
+/**
+ * GH#1263 — "isp_externo" e titulado com vocabulario de rede local/domestica
+ * (Wi-Fi + roteador). Em conexao movel isso nao faz sentido conceitual;
+ * usa titulo proprio quando `snapshot.connection.type === "MOBILE"`.
+ */
+function flowTitle(flow: DiagnosticFlowCode, snapshot: DiagnosticSnapshot): string {
+  if (flow === "isp_externo" && isMobileConnection(snapshot)) {
+    return "Degradação além da rede da operadora";
+  }
+  return FLOW_TITLES[flow];
+}
 
 const FLOW_ORIGIN: Record<DiagnosticFlowCode, string | null> = {
   isp_externo: "isp",
@@ -347,11 +360,19 @@ function prettyEvidence(snapshot: DiagnosticSnapshot, finding: DiagnosticFinding
 }
 
 function buildCardFromFinding(snapshot: DiagnosticSnapshot, finding: DiagnosticFinding): DiagnosticCard {
-  const copy = FINDING_COPY[finding.findingCode] ?? {
-    titulo: finding.findingCode.replaceAll("_", " "),
-    mensagem: "Foi detectado um achado técnico que merece atenção.",
-    origem: null,
-  };
+  // GH#1263 — mesmo problema de vocabulario domestico do ISP_PROBLEM_DETECTED,
+  // desta vez no card isolado do finding (nao no card de decisao).
+  const copy = finding.findingCode === "ISP_PROBLEM_DETECTED" && isMobileConnection(snapshot)
+    ? {
+      titulo: "Rede da operadora respondeu bem",
+      mensagem: "O acesso ate a borda da rede da operadora parece saudavel e o gargalo esta mais adiante, no caminho ate a internet.",
+      origem: "isp",
+    }
+    : FINDING_COPY[finding.findingCode] ?? {
+      titulo: finding.findingCode.replaceAll("_", " "),
+      mensagem: "Foi detectado um achado técnico que merece atenção.",
+      origem: null,
+    };
 
   return {
     id: finding.matchedRuleId,
@@ -366,10 +387,10 @@ function buildCardFromFinding(snapshot: DiagnosticSnapshot, finding: DiagnosticF
   };
 }
 
-function buildDecisionCard(result: DiagnosticResult): DiagnosticCard {
+function buildDecisionCard(result: DiagnosticResult, snapshot: DiagnosticSnapshot): DiagnosticCard {
   return {
     id: `DECISAO-${result.primaryFlow.toUpperCase()}`,
-    titulo: FLOW_TITLES[result.primaryFlow],
+    titulo: flowTitle(result.primaryFlow, snapshot),
     status: result.primaryFlow === "sem_dados_suficientes" ? "inconclusive" : mapStatus(result.overallStatus),
     evidencia: null,
     mensagemUsuario: result.humanSummary,
@@ -380,13 +401,14 @@ function buildDecisionCard(result: DiagnosticResult): DiagnosticCard {
   };
 }
 
-function buildSecondaryCard(flow: DiagnosticFlowCode, result: DiagnosticResult): DiagnosticCard {
+function buildSecondaryCard(flow: DiagnosticFlowCode, result: DiagnosticResult, snapshot: DiagnosticSnapshot): DiagnosticCard {
+  const titulo = flowTitle(flow, snapshot);
   return {
     id: `SEC-${flow.toUpperCase()}`,
-    titulo: FLOW_TITLES[flow],
+    titulo,
     status: flow === "sem_dados_suficientes" ? "inconclusive" : mapStatus(result.overallStatus),
     evidencia: null,
-    mensagemUsuario: `Além da decisão principal, há evidências compatíveis com ${FLOW_TITLES[flow].toLowerCase()}.`,
+    mensagemUsuario: `Além da decisão principal, há evidências compatíveis com ${titulo.toLowerCase()}.`,
     recomendacao: result.humanResolution[1] ?? result.humanResolution[0] ?? null,
     categoria: "decisao",
     podeConcluir: flow !== "sem_dados_suficientes",
@@ -408,16 +430,17 @@ function buildRecommendationCards(result: DiagnosticResult): DiagnosticCard[] {
   }));
 }
 
-function buildDiscardedHypotheses(result: DiagnosticResult): DiagnosticCard[] {
+function buildDiscardedHypotheses(result: DiagnosticResult, snapshot: DiagnosticSnapshot): DiagnosticCard[] {
+  const primaryTitulo = flowTitle(result.primaryFlow, snapshot);
   return result.secondaryFlows
     .filter((flow) => flow !== result.primaryFlow)
     .slice(1)
     .map((flow, index) => ({
     id: `HIP-${index + 1}`,
-    titulo: `${FLOW_TITLES[flow]} não foi a hipótese principal`,
+    titulo: `${flowTitle(flow, snapshot)} não foi a hipótese principal`,
     status: "info",
     evidencia: null,
-    mensagemUsuario: `Esse caminho foi considerado, mas perdeu prioridade para ${FLOW_TITLES[result.primaryFlow].toLowerCase()}.`,
+    mensagemUsuario: `Esse caminho foi considerado, mas perdeu prioridade para ${primaryTitulo.toLowerCase()}.`,
     recomendacao: null,
     categoria: "decisao",
     podeConcluir: true,
@@ -572,11 +595,11 @@ export function buildDiagnosticReport(
   return {
     evaluationSource: result.evaluationSource,
     ...buckets,
-    decisao: buildDecisionCard(result),
+    decisao: buildDecisionCard(result, snapshot),
     achadosSecundarios: result.secondaryFlows
       .filter((flow) => flow !== result.primaryFlow)
-      .map((flow) => buildSecondaryCard(flow, result)),
-    hipotesesDescartadas: buildDiscardedHypotheses(result),
+      .map((flow) => buildSecondaryCard(flow, result, snapshot)),
+    hipotesesDescartadas: buildDiscardedHypotheses(result, snapshot),
     dadosAusentes: result.missingInputs,
     limitacoesEquipamentoLocal: buildEquipmentLimitations(snapshot, result),
     recomendacoes: buildRecommendationCards(result),
