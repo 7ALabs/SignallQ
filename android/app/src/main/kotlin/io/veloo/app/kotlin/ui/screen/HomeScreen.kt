@@ -540,7 +540,7 @@ fun HomeScreen(
  * Recebe apenas os dados que a secao precisa — nao o estado inteiro da tela.
  */
 @Composable
-internal fun CardMedicoes(
+private fun CardMedicoes(
     effectiveTs: Long?,
     effectiveDl: Double?,
     effectiveUl: Double?,

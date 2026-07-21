@@ -156,15 +156,21 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
   hardware físico do G-1425G-B continua não realizada nesta sessão e não deve ser considerada
   fechada — ver comentário na issue)
 
-### Testado
-- Gate de QA visual (#1245) resolvido via Paparazzi (screenshot testing headless, sem device/
-  emulador): `CardMedicoesScreenshotTest` cobre os 3 estados do card de medições da Home
-  (resultado atual, "Resultado anterior ·" com prefixo distintivo, sem-dados com CTA único) e
-  `ThemeSelectorScreenshotTest` cobre o seletor de tema incluindo o cenário do bug corrigido em
-  #1227 (valor salvo não reconhecido resolve para "Sistema" destacado, nunca sem seleção nenhuma)
-  — 7 snapshots gerados e confirmados visualmente, versão do plugin `2.0.0-alpha05` (única
-  compatível encontrada com AGP 9.2.1/Gradle 9.4.1 deste projeto; 1.3.5 falha no reporter do
-  Gradle)
+### Investigado (sem mudança de código shipada)
+- Gate de QA visual (#1245): tentativa de resolver via Paparazzi (screenshot testing headless)
+  revertida após quebrar o CI real — nenhuma versão publicada do plugin serve simultaneamente
+  para os três requisitos deste projeto (Java 17 do CI, AGP 9.2.1, Gradle 9.4.1). Confirmado por
+  teste real, não suposição: `1.3.5` (mínimo JVM 11, compatível com Java 17) e `2.0.0-alpha01`/
+  `alpha02` (mínimo JVM 17) quebram com `NoSuchMethodError`/`NoClassDefFoundError` contra APIs
+  internas de teste do Gradle 9.4.1 (`TestResultsProvider`/`PaparazziTestReporter`); o fix desse
+  problema só chegou no `2.0.0-alpha03`, que ao mesmo tempo elevou o mínimo de JVM pra 21 —
+  incompatível com o Java 17 fixado no CI (`android-ci.yml`, 4 jobs). Bump do CI inteiro pra
+  Java 21 só por causa do Paparazzi está fora de escopo (mudança de infra maior que o problema).
+  Antes de reverter, os 3 estados do `CardMedicoes` (Home) e o `ThemeSelector` (Ajustes) foram
+  confirmados visualmente uma vez, manualmente, contra os 7 snapshots gerados localmente — não
+  substitui gate automatizado em CI, mas documenta que a renderização estava correta no momento
+  da tentativa. Issue #1245 permanece aberta; ver comentário com recomendação (ex.: avaliar
+  Roborazzi como alternativa, ou revisitar quando o projeto migrar para JVM 21 por outro motivo)
 
 ## [0.29.0] — 2026-07-20
 

@@ -14,7 +14,6 @@ plugins {
     alias(libs.plugins.detekt)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.play.publisher)
-    alias(libs.plugins.paparazzi)
 }
 
 configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
