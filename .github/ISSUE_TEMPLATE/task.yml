@@ -1,0 +1,84 @@
+name: Tarefa técnica
+description: Registrar trabalho técnico delimitado, preferencialmente ligado a uma feature ou bug.
+title: "[TASK] "
+labels:
+  - "type:task"
+assignees: []
+body:
+  - type: dropdown
+    id: produto
+    attributes:
+      label: Produto
+      multiple: true
+      options:
+        - SignallQ
+        - SignallQ PRO
+        - SignallQ Admin
+        - SignallQ Agente
+        - SignallQ NetHAL / NetHAL Lab
+        - Plataforma compartilhada
+    validations:
+      required: true
+
+  - type: input
+    id: parent
+    attributes:
+      label: Issue-mãe
+      description: Informe a feature, épico ou bug relacionado. Use “Não se aplica” somente quando for realmente independente.
+      placeholder: "#123 ou Não se aplica"
+    validations:
+      required: true
+
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo técnico
+      description: Defina a mudança concreta e o motivo.
+    validations:
+      required: true
+
+  - type: textarea
+    id: escopo
+    attributes:
+      label: Escopo de implementação
+      value: "- Alterar...\n- Criar...\n- Remover..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: fora_escopo
+    attributes:
+      label: Fora do escopo
+    validations:
+      required: true
+
+  - type: textarea
+    id: modulos
+    attributes:
+      label: Módulos, arquivos ou integrações afetados
+
+  - type: textarea
+    id: validacao
+    attributes:
+      label: Validação e testes
+      value: "- [ ] Teste unitário...\n- [ ] Teste de integração...\n- [ ] Validação manual..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: aceite
+    attributes:
+      label: Critérios de aceite
+      value: "- [ ] \n- [ ] "
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: verificacoes
+    attributes:
+      label: Verificações
+      options:
+        - label: O trabalho está delimitado e não mistura correções ou refatorações não relacionadas.
+          required: true
+        - label: Pesquisei tarefas equivalentes antes de abrir esta issue.
+          required: true
