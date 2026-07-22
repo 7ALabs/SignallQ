@@ -1,0 +1,120 @@
+name: Auditoria ou divergência
+description: Registrar divergência entre implementação, protótipo, documentação, código ou comportamento real.
+title: "[AUDITORIA] "
+labels:
+  - "type:task"
+assignees: []
+body:
+  - type: dropdown
+    id: produto
+    attributes:
+      label: Produto auditado
+      multiple: true
+      options:
+        - SignallQ
+        - SignallQ PRO
+        - SignallQ Admin
+        - SignallQ Agente
+        - SignallQ NetHAL / NetHAL Lab
+        - Plataforma compartilhada
+    validations:
+      required: true
+
+  - type: input
+    id: alvo
+    attributes:
+      label: Tela, fluxo ou componente
+      placeholder: "Ex.: Home > card Medições"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: fontes
+    attributes:
+      label: Fontes comparadas
+      options:
+        - label: Implementação executada
+        - label: Design System ou protótipo oficial
+        - label: Documentação funcional
+        - label: Comportamento e regras do código
+        - label: Issues abertas e fechadas
+        - label: Evidência em aparelho ou ambiente real
+
+  - type: dropdown
+    id: classificacao
+    attributes:
+      label: Classificação preliminar
+      options:
+        - Bug funcional
+        - Divergência visual ou de Design System
+        - Divergência de navegação ou fluxo
+        - Documentação desatualizada
+        - Necessidade de feature
+        - Débito técnico
+        - Ainda não classificado
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementado
+    attributes:
+      label: Estado atual observado
+    validations:
+      required: true
+
+  - type: textarea
+    id: referencia
+    attributes:
+      label: Estado esperado e fonte da verdade
+      description: Cite a tela, documento, regra ou trecho de código que sustenta o esperado.
+    validations:
+      required: true
+
+  - type: textarea
+    id: divergencia
+    attributes:
+      label: Divergência objetiva
+      description: Explique exatamente onde atual e esperado não batem. Não registre gosto pessoal como defeito.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidencias
+    attributes:
+      label: Evidências
+      description: Prints, gravação, logs, coordenadas, versão, aparelho e links.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impacto
+    attributes:
+      label: Impacto
+    validations:
+      required: true
+
+  - type: textarea
+    id: acao
+    attributes:
+      label: Encaminhamento recomendado
+      description: Corrigir, atualizar documentação, complementar issue existente ou concluir que não há divergência.
+    validations:
+      required: true
+
+  - type: input
+    id: issue_relacionada
+    attributes:
+      label: Issue equivalente ou relacionada
+      placeholder: "#123 ou Não encontrada"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: verificacoes
+    attributes:
+      label: Verificações
+      options:
+        - label: Pesquisei issues abertas e fechadas antes de registrar esta divergência.
+          required: true
+        - label: A divergência está sustentada por evidência ou fonte oficial, não por preferência subjetiva.
+          required: true
