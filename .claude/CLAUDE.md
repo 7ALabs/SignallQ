@@ -92,7 +92,7 @@ O monorepo-alvo `signallq-platform` (que unifica os tres + Portal + SignallQ Net
 
 **Regra Slack:** o GitHub notifica o Slack diretamente. Decisao que surgir no Slack vira issue no GitHub ou pagina no Notion. Slack e saida, nao fonte da verdade.
 
-**Convencao de issue no GitHub:** titulo `Task - <descricao>` para trabalho planejado e `[BUG] <descricao>` para defeito, label `enhancement`/`bug` conforme o caso, mais labels de `area:*`/`priority:*` quando fizer sentido (ver `gh label list --repo 7ALabs/SignallQ`). Ver skill `issue-conventions` para o detalhe completo (roteamento/titulo/corpo, agnostico de projeto).
+**Convencao de issue no GitHub:** titulo `Task - <descricao>` para trabalho planejado e `[BUG] <descricao>` para defeito, label `enhancement`/`bug` conforme o caso, mais labels de `area:*`/`priority:*` quando fizer sentido (ver `gh label list --repo 7ALabs/SignallQ`). Ver skill `abrir-issue` para o detalhe completo (roteamento/titulo/corpo, agnostico de projeto).
 
 **Hierarquia obrigatoria por Project — Epico > Feature > Task (decisao 2026-07-21):** toda issue nova nasce ja
 classificada num dos 4 GitHub Projects do repo, segmentados por produto -- **SignallQ** (#10),

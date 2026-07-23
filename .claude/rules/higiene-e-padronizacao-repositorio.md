@@ -383,7 +383,7 @@ problemas relacionados por domínio — não abrir uma issue para cada arquivo r
 
 A issue deve conter: contexto, evidências, arquivos e módulos afetados, comportamento atual, risco,
 destino arquitetural, plano incremental, critérios de aceite, testes necessários, dependências,
-estratégia de rollback quando aplicável. Seguir `issue-conventions` para nomenclatura e roteamento.
+estratégia de rollback quando aplicável. Seguir `abrir-issue` para nomenclatura e roteamento.
 
 ---
 
