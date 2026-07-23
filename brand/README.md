@@ -12,6 +12,8 @@ em CSS/SVG à mão, não usar a marca anterior "linka/veloo".
 | `signallq-symbol-512.png` | Mesmo símbolo, 512px (usos menores / web). |
 | `signallq-lockup-light-bg.png` | Lockup horizontal (símbolo + wordmark) para **fundos claros** — "Signall" em quase-preto, "Q" em violeta. |
 | `signallq-lockup-dark-bg.png` | Lockup horizontal para **fundos escuros** — "Signall" em branco, "Q" em violeta. |
+| `signallq-feature-graphic-1024x500.png` | Feature graphic da Play Store (banner 1024×500). |
+| `signallq-icon-512-play-store.png` | Ícone de app para listagem da Play Store (512×512). |
 
 ## Anatomia
 

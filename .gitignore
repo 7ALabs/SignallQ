@@ -71,3 +71,7 @@ integrations/cloudflare/signallq-admin-worker/dist/
 
 # Claude Code runtime lock files
 **/.claude/scheduled_tasks.lock
+
+# Worktrees e backups locais (não versionam)
+.claude/worktrees/
+_backups/

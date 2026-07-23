@@ -32,6 +32,13 @@ Toda Screen deve tratar:
 - ❌ Hardcodar cor sem usar token do tema.
 - ❌ `feature*` dependendo de outro `feature*`.
 
+### DI e instanciação (absorvido de `arquitetura-android`, fundida em 2026-07-23)
+- Hilt em toda a cadeia. `@Singleton` para repositórios e clientes HTTP compartilhados — nunca instanciar manualmente (ex.: `AiDiagnosisRepository`, `OkHttpClient` de UPnP/scan, via `AppModule`).
+- ViewModel por feature via `@HiltViewModel` — sem god ViewModel. Exceções documentadas: `MainViewModel` (estado de navegação) e `ChatDiagnosticoIaViewModel` (chat de IA), justificadas por escopo transversal real.
+- `SignallQOrchestrator` vive em `:featureDiagnostico` — nunca mover para `:app`.
+- URL de Worker Cloudflare sempre via `BuildConfig`, nunca hardcoded.
+- Para módulos Gradle reais (contagem, nomes, dependências permitidas) e identificadores técnicos preservados, a fonte é `.claude/CLAUDE.md` (seção Identidade) e `.claude/rules/higiene-e-padronizacao-repositorio.md` (seção 5) — não duplicar aqui, eles mudam com o projeto e esta skill não é a fonte de verdade desses números.
+
 ## Limites
 - Esta skill orienta, não implementa.
 - Implementação → Camilo.

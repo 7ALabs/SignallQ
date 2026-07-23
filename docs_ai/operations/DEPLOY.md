@@ -4,7 +4,14 @@
 
 This document outlines the deployment process for the SignallQ Android Kotlin application, detailing how new versions are released to end-users.
 
-> Versao atual: **0.26.0** (versionCode 61), release 2026-07-17.
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Fonte de verdade:** versão real em `android/gradle/libs.versions.toml` (não fixar número
+  aqui, muda a cada release); trilhas/canais reais em `.github/workflows/release.yml` e
+  `promote-release.yml`
+- **Escopo:** deploy Android (Firebase App Distribution + Play Console) e worker de IA
+- **Responsável:** Camilo (build/deploy), Rhodolfo (gate de release)
+
 > Namespace/applicationId atual: **`io.signallq.app`** (renomeado de `io.veloo.app`
 > em 2026-06-28; caminho fisico do codigo do `:app` continua `io/veloo/app/kotlin/`).
 > Demais identificadores tecnicos permanecem: repo `7ALabs/SignallQ`, worker

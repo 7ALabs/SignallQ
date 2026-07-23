@@ -1,147 +1,125 @@
-# Monitoramento Passivo — MonitoramentoWorker (v0.16.0)
+# Monitoramento Passivo — MonitoramentoWorker
 
-**Escopo:** Background monitoring de qualidade internet, alertas inteligentes  
-**Stack:** WorkManager 2+, Kotlin Coroutines, Room DAO
+**Status:** ativo
+**Última validação:** 2026-07-23 (contra `android/app/src/main/kotlin/io/veloo/app/kotlin/monitoramento/`)
+**Fonte de verdade:** código real — `MonitoramentoWorker.kt`, `MonitoramentoScheduler.kt`, `HisteresiHelper.kt`
+**Escopo:** background monitoring de qualidade de rede (latência, DNS, Wi-Fi) e notificações de alerta
+**Responsável:** Camilo (Backend Android)
 
----
-
-## Arquivos Principais
-
-| Arquivo | Localização | Propósito |
-| --- | --- | --- |
-| `MonitoramentoScheduler.kt` | `io.signallq.app.monitoramento` | Agenda/cancela periodic work |
-| `MonitoramentoWorker.kt` | `io.signallq.app.monitoramento` | Worker executa background speedtest |
-| `SignallQOrchestrator.kt` | `io.signallq.app.pulse` | Orquestra diagnóstico + IA (renomeado de LinkaPulseOrchestrator na v0.15.0) |
-| `LinkaPulseScreen.kt` | `ui.screen` | UI exibição resultados |
-| `SignallQSnapshot.kt` | `io.signallq.app.pulse` | Data class estado do fluxo (renomeado de SnapshotLinkaPulse) |
+> Este documento substitui uma versão anterior (v0.16.0) que descrevia um fluxo de 3 fases
+> (Collecting/Thinking/Analyzing) com chamada a IA e uma tabela `AlerteLinkaPulse`. Nenhum dos
+> dois existe no código atual — foram removidos/nunca migrados para o `MonitoramentoWorker`
+> real. A descrição abaixo reflete o worker de fato implementado.
 
 ---
 
-## Comportamento
+## 1. Objetivo técnico
 
-### Scheduling
+Detectar degradação de conectividade em background (sem o usuário abrir o app) e notificar
+apenas em transições de estado (ok → alerta), evitando spam de notificação.
 
-**Framework:** WorkManager (Android Jetpack)
+## 2. Visão geral da solução
 
-- **Período:** 30 minutos
-- **Constraints:**
-  - Rede conectada (`NetworkType.CONNECTED`)
-  - Bateria não baixa (`requiresBatteryNotLow=true`)
-- **Tipo:** `PeriodicWorkRequest` único (policy `KEEP` evita duplicatas)
+```
+WorkManager (PeriodicWorkRequest, 30 min, policy KEEP)
+  ↓
+MonitoramentoWorker.doWork()
+  ├─ medirLatenciaHttp()   — 3 amostras paralelas a speed.cloudflare.com, mediana
+  ├─ medirDnsResolveTime() — InetAddress.getByName("cloudflare.com"), timeout 5s
+  ├─ medirRssiWifi()       — RSSI do Wi-Fi conectado (ConnectivityManager/WifiManager)
+  ↓
+aplicarHisterese(latencia, dns, rssi) — HisteresiHelper (lógica pura)
+  ↓
+persistirMedicaoMonitor() — grava MedicaoEntity (fonte="monitor") no Room via MedicaoDao
+```
+
+Não há chamada a IA nem orquestração de fases neste worker — é uma medição direta + histerese +
+persistência. O fluxo de IA (`SignallQOrchestrator`, worker `linka-ai-diagnosis-worker`) é
+acionado pelo usuário na tela de diagnóstico, não pelo monitoramento passivo — ver
+`docs_ai/technical/AI_FLOW.md`.
+
+## 3. Scheduling
+
+**Framework:** WorkManager (`MonitoramentoScheduler.kt`)
+
+- **Período:** 30 minutos (`PeriodicWorkRequestBuilder<MonitoramentoWorker>(30, TimeUnit.MINUTES)`)
 - **Tag:** `linka_monitoramento_passivo`
+- **Policy:** `ExistingPeriodicWorkPolicy.KEEP` (evita duplicar o work já agendado)
+- **Toggle do usuário:** `PreferenciasAppRepository.monitoramentoAtivoFlow`
 
-### Execução — 3 Fases
+## 4. Medições por execução
 
-#### Fase 1: Collecting
-- Executa speedtest silencioso (sem UI)
-- Coleta snapshot Wi-Fi (RSSI, freq, link speed)
-- Tempo típico: 30–60 segundos
+| Medição | Método | Timeout | Detalhe |
+|---|---|---|---|
+| Latência HTTP | `medirLatenciaHttp()` | 10s/amostra (connect 5s + read 5s) | 3 amostras paralelas (`async`/`awaitAll`) contra `https://speed.cloudflare.com/__down?bytes=0`, usa a mediana |
+| DNS | `medirDnsResolveTime()` | 5s | `InetAddress.getByName("cloudflare.com")`, mede tempo de resolução |
+| RSSI Wi-Fi | `medirRssiWifi()` | — | Via `ConnectivityManager`/`WifiInfo` (Android 12+) ou `WifiManager` (legado). Retorna motivo (`SemWifi`/`SemPermissao`/`Invalido`) quando não há valor |
 
-#### Fase 2: Thinking
-- Executa diagnostic orchestrator (engines locais)
-- Gera relatório diagnóstico
-- Sem IA ainda — processamento local
+## 5. Histerese e thresholds (`aplicarHisterese`)
 
-#### Fase 3: Analyzing
-- Chama IA via endpoint `/diagnosis`
-- Gateway: `https://linka-ai-diagnosis-worker.giammattey-luiz.workers.dev/api/ai/diagnostico-conexao`
-- Recebe análise estruturada
+Notifica **apenas na transição** ok→alerta (nunca repete enquanto o estado permanecer em
+alerta). Estados anteriores/atuais persistidos via `PreferenciasAppRepository` (DataStore).
 
-### Tipos de Alerta (4)
+| Alerta | Entra em alerta | Sai do alerta | Notificação |
+|---|---|---|---|
+| Latência alta | > 400ms | < 300ms | `notificarLatenciaAlta` |
+| DNS lento | > 2500ms | < 1800ms | `notificarDnsLento` |
+| Wi-Fi fraco | RSSI < -75dBm | RSSI > -68dBm | `notificarWifiFraco` |
+| Sem internet | sem latência **e** sem DNS | qualquer um voltando | `notificarSemInternet` (prioridade sobre os demais) |
 
-Gerados pelo `LinkaPulseOrchestrator`:
+Métrica `null` (ex.: Doze Mode interrompeu a medição) mantém o estado anterior — não força
+transição. Cada tipo de notificação tem um controle granular próprio do usuário
+(`notificacaoLatenciaAtivaFlow`, `notificacaoDnsAtivaFlow`, `notificacaoRssiAtivaFlow`,
+`notificacaoSemInternetAtivaFlow`) — o usuário pode desligar um tipo sem desligar o
+monitoramento inteiro.
 
-| Alerta | Condição | Severidade |
-| --- | --- | --- |
-| **Velocidade Baixa** | DL < 25 Mbps | Warn |
-| **Latência Alta** | Latência > 80 ms | Warn |
-| **Instabilidade** | Jitter > 50 ms OU Perda > 2% | Fail |
-| **Wi-Fi Fraco** | RSSI < -70 dBm | Warn |
+**Não existe** cooldown temporal fixo nem teto de N alertas/dia — o único mecanismo de
+contenção é a histerese por transição de estado.
 
-### Cooldown & Teto
+## 6. Persistência
 
-- **Cooldown:** Não exibir alerta repetido por 2 horas
-- **Teto:** Máximo 3 alertas por dia
-- **Storage:** LocalDB (Room) `AlerteLinkaPulse` table
+`persistirMedicaoMonitor()` grava uma `MedicaoEntity` no Room (`MedicaoDao`) com
+`fonte = "monitor"` e `connectionType = "monitor"` — usada para compor o gráfico de
+uptime/histórico junto com as medições de speedtest completo. `downloadMbps`/`uploadMbps`
+ficam `null` (o monitor não mede throughput, só latência/DNS/RSSI).
 
----
+Não existe tabela dedicada de alertas (`AlerteLinkaPulse`, citada em versão anterior deste
+documento, não existe no schema atual do Room).
 
-## Permissões & Constraints
-
-### Permissões Obrigatórias
+## 7. Permissões & Constraints
 
 ```xml
 <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
 <uses-permission android:name="android.permission.INTERNET" />
-<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 ```
 
 ### OEM Quirks
 
-- **Samsung:** RequiresDeviceIdleExemption — pode não rodar em Doze sem configuração explícita
-- **Xiaomi:** MIUI pode aguardar até 6 horas para iniciar work — documentar ao usuário
-- **Moto:** Respeitam WorkManager constraints normalmente
+- **Samsung:** pode não rodar em Doze sem exceção de bateria configurada pelo usuário.
+- **Xiaomi:** MIUI pode atrasar o disparo do work por horas — comportamento da plataforma, não
+  do app.
+- **Moto/AOSP:** respeitam as constraints padrão do WorkManager.
 
----
+## 8. Configuração do usuário
 
-## Testes (14 casos JUnit 4)
+Toggle de monitoramento e notificações vivem em Ajustes/Perfil (overlay `Overlay.Perfil`,
+GH#936 — ver `docs_ai/technical/SCREEN_MAP.md`), não em uma tela dedicada `LinkaPulseScreen`
+(citada em versão anterior deste documento — não existe mais como tela própria).
 
-**Arquivo:** `src/test/kotlin/io/signallq/app/kotlin/pulse/LinkaPulseOrchestratorTest.kt`
+## 9. Testes
 
-| # | Caso | Verifica |
-| --- | --- | --- |
-| 1 | Iniciar diagnóstico com sucesso | Transição Collecting → Thinking → Analyzing |
-| 2 | Falha speedtest usa última medição | Se speedtest falhar, cai para BD |
-| 3 | Speedtest silencioso não exibe UI | Sem callbacks de UI |
-| 4 | Cooldown de 2h respeitado | Alerta repetido bloqueado |
-| 5 | Teto de 3 alertas/dia | 4º alerta do dia rejeitado |
-| 6 | Severidade "Velocidade Baixa" com DL < 25 | Correto |
-| 7 | Severidade "Instabilidade" com Jitter > 50 | Correto |
-| 8 | Wi-Fi Fraco com RSSI < -70 dBm | Correto |
-| 9 | Latência Alta com latência > 80 ms | Correto |
-| 10 | IA gateway endpoint chamado corretamente | URL + payload |
-| 11 | Contexto acumulador build com todos os campos | Sem nulls |
-| 12 | Rotating messages no estado Collecting | Interval 2.5s |
-| 13 | Snapshot salvo em DB após análise | Record em AlerteLinkaPulse |
-| 14 | Scheduler cancela work corretamente | Tag removido |
+`android/app/src/test/kotlin/io/veloo/app/kotlin/monitoramento/`:
+`MonitoramentoWorkerHistereseTest.kt` (transições de estado/thresholds) e
+`MonitoramentoWorkerMedicaoTest.kt` (persistência da medição sintética). Não confirmado o
+número exato de casos em cada um — `[a confirmar]` se precisar do total exato.
 
----
+## 10. Riscos técnicos
 
-## Fluxo Resumido
-
-```
-WorkManager (30 min) 
-  ↓
-MonitoramentoWorker.doWork()
-  ↓
-LinkaPulseOrchestrator.iniciarDiagnostico()
-  ├─ Fase 1: Collecting (speedtest silencioso)
-  ├─ Fase 2: Thinking (diagnostico local)
-  └─ Fase 3: Analyzing (IA gateway)
-  ↓
-Gerar Alerta? (cooldown + teto)
-  ↓
-Salvar em DB + Notificação
-```
-
----
-
-## Configuração Usuário
-
-UI em `LinkaPulseScreen`:
-
-- Habilitar/desabilitar monitoramento
-- Intervalo (padrão 30 min, opções: 15, 30, 60 min)
-- Notificações on/off
-- Visualizar histórico alertas
-
----
-
-## Notas
-
-- **Background:** Não usa foreground service — apenas WorkManager periódico.
-- **Battery:** Respeita constraints de bateria/rede; não desperdiça recursos.
-- **Privacy:** Nenhum dado pessoal enviado — apenas métricas técnicas + config rede.
-- **Play Store:** Conformidade WorkManager — sem problemas conhecidos.
+- Sem foreground service: em dispositivos muito agressivos com Doze/battery-saver (alguns OEMs
+  Android), o intervalo real pode variar bem além dos 30 minutos nominais — comportamento da
+  plataforma, não um bug do worker.
+- Medição de latência/DNS usa domínio fixo (`speed.cloudflare.com`, `cloudflare.com`) — uma
+  degradação isolada da Cloudflare (rara, mas possível) apareceria como falso alerta de rede do
+  usuário.

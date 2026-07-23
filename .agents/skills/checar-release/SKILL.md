@@ -93,6 +93,67 @@ Antes de gerar APK/AAB de release, fazer deploy no Cloudflare Pages ou submeter 
 
 ---
 
+## Execução automatizada (absorvido de `validar-release`, fundida em 2026-07-23)
+
+As checagens abaixo rodam de forma programável — use depois de percorrer o checklist manual acima, antes de dar "pronto para release".
+
+### 1. Versionamento
+```bash
+grep "versionCode" android/gradle/libs.versions.toml | grep -v "^#"
+grep "versionName" android/gradle/libs.versions.toml | grep -E '"[0-9]+\.[0-9]+\.[0-9]+"'
+VERSION=$(grep 'versionName' android/gradle/libs.versions.toml | sed 's/.*"\([^"]*\)".*/\1/')
+grep "\[$VERSION\]" CHANGELOG.md
+```
+Se a versão não aparecer no CHANGELOG: **bloqueador** — adicione antes de seguir.
+
+### 2. Build limpo
+```bash
+.\android\gradlew.bat clean assembleRelease --no-build-cache
+```
+Validar `BUILD SUCCESSFUL`, sem warning/error crítico, APK gerado em `app/build/outputs/apk/release/`.
+
+### 3. Testes unitários
+```bash
+.\android\gradlew.bat test
+```
+Validar `BUILD SUCCESSFUL` e nenhum `FAILED` em Test Results.
+
+### 4. Lint Kotlin
+```bash
+.\android\gradlew.bat ktlintCheck
+```
+Erros → `ktlintFormat`, commitar, rerun (ver skill `/protocolo-ktlint` para supressão/cleanup em escala).
+
+### 5. Higiene de código
+```bash
+find android -name "*.kt" -type f | xargs grep -l "^[[:space:]]*//.*TODO\|^[[:space:]]*//.*FIXME" | head -5
+find android -name "*.old" -o -name "*.bak" -o -name "*.tmp" | wc -l
+```
+TODO/FIXME crítico deve ter issue aberta no GitHub; contagem de `.old`/`.bak`/`.tmp` deve ser `0`.
+
+### 6. Upload (após todas as checagens acima passarem)
+```bash
+.\android\gradlew.bat appDistributionUploadRelease
+```
+Validar `BUILD SUCCESSFUL` e URL de upload retornada no log.
+
+### Validação estrutural do changelog
+```bash
+head -30 CHANGELOG.md | grep -E "^## \[[0-9]+\.[0-9]+\.[0-9]+\].*—.*[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+```
+Confirma seção de versão no formato correto, com ao menos um `### Added`/`### Fixed`/`### Changed`, descrições em PT-BR legíveis para usuário final.
+
+### Escalada
+- **Build falha:** `.\android\gradlew.bat clean` + limpar `build/`, retry.
+- **Testes falham:** investigar stacktrace, corrigir em dev branch, merge, rerun.
+- **ktlint falha:** `ktlintFormat`, commit, rerun.
+- **Versão não está no CHANGELOG:** adicionar no topo antes do build.
+- **Crashlytics com crash rate > 1%:** não lançar — investigar e corrigir primeiro.
+
+O pre-commit hook em `scripts/pre-commit-android.sh` automatiza parte deste checklist no momento do commit.
+
+---
+
 ## Changelog
 
 Atualizar após aprovar a entrega, antes do build final.

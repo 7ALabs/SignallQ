@@ -4,7 +4,13 @@ Instructions here apply to this project and are shared with team members.
 
 ## Persona padrao da sessao
 
-Na conversa principal, responda sempre como **Claudete** (PM & Tech Lead do SignallQ). Prefixe toda mensagem com `Claudete:`. Tom executivo, objetivo, estrategico — sem rodeios, sem romantizar feature, sem microgerenciar codigo. Ao receber tarefa, identifique-se e diga algo em character antes de trabalhar; ao encerrar ou repassar, dirija-se ao proximo agente pelo nome. Persona completa em `.claude/agents/claudete.md`. Quando invocar um subagente (Camilo, Lia, Rhodolfo), ele responde com a propria persona — a sessao principal volta a ser a Claudete.
+Na conversa principal, responda sempre como **Claudete** (PM & Tech Lead do SignallQ). Prefixe toda mensagem com `Claudete:`. Tom executivo, objetivo, estrategico — sem rodeios, sem romantizar feature, sem microgerenciar codigo. Ao receber tarefa, identifique-se e diga algo em character antes de trabalhar; ao encerrar ou repassar, dirija-se ao proximo agente pelo nome. Quando invocar um subagente (Camilo, Lia, Rhodolfo), ele responde com a propria persona — a sessao principal volta a ser a Claudete.
+
+**Consolidação de squad (2026-07-23):** Claudete, Camilo, Lia, Rhodolfo e Juninho deixaram de ser
+agentes só deste repo — agora são **agentes de nível de usuário** (`~/.claude/agents/<nome>.md`),
+compartilhados com o squad do SignallQ Nethal (que teve seu squad próprio aposentado no mesmo movimento).
+Os arquivos antigos ficam em `.claude/agents/_archive/*_2026-07-23_consolidado.md`, só como
+histórico. Ver `docs_ai/decisions/DECISAO_CONSOLIDACAO_SQUAD_7ALABS_2026-07-23.md`.
 
 ## Higiene e padronização do repositório
 
@@ -63,9 +69,9 @@ Nao-negociaveis por produto:
 - **SignallQ Pro ja tem codigo real e substancial em `android/pro/` (NAO e mais "so spec/design" -- estado/progresso real: ver issues #1157/#1159/#1161/#1164 e `android/settings.gradle.kts`) -- mas qualquer ampliacao de escopo alem do que ja foi aprovado (novas fases do MVP0, MVP1, mudanca arquitetural) continua exigindo instrucao explicita do Luiz.** Corrigir qualquer persona/doc que ainda diga "Pro sem codigo Android" -- e um erro factual desatualizado, nao mais o estado real.
 - **Nunca misturar marca/paleta entre produtos:** consumer e violeta, Pro e azul. Nao fixar hex aqui -- cada paleta evolui no seu projeto Claude Design (fonte da verdade visual, reler antes de desenhar): [SignallQ Design System](https://claude.ai/design/p/2d25d7a1-31b2-4ac3-881f-72dbc8f35a29) (consumer), [SignallQ PRO - Design System](https://claude.ai/design/p/77a19317-ea64-4e47-b55c-578eca776c09) (Pro).
 - **Release e identidade sao separados por produto** (applicationId, Firebase, Play listing, tag, canal). Uma mudanca num produto nao incrementa versao de outro.
-- **SignallQ Nethal** e alvo de plataforma, mas hoje vive em **repo separado** (`gmmattey/nethal`) com **squad propria** -- fora do escopo desta squad; so entra aqui quando/se for internalizado no monorepo-alvo.
+- **SignallQ Nethal** e alvo de plataforma, mas hoje vive em **repo separado** (`gmmattey/signallq-nethal`) com **squad propria** -- fora do escopo desta squad; so entra aqui quando/se for internalizado no monorepo-alvo.
 
-O monorepo-alvo `signallq-platform` (que unifica os tres + Portal + Nethal) e **proposta** -- hoje o codigo vive no `SignallQ` (+ `SignallQ Admin/` dentro dele) e em repos separados. Ver `docs_ai/plataforma/01_..._Arquitetura_v5.md` e `00_CHANGELOG_e_Validacao_Cruzada_v5.md` para o gap doc-vs-realidade validado.
+O monorepo-alvo `signallq-platform` (que unifica os tres + Portal + SignallQ Nethal) e **proposta** -- hoje o codigo vive no `SignallQ` (+ `SignallQ Admin/` dentro dele) e em repos separados. Ver `docs_ai/plataforma/01_..._Arquitetura_v5.md` e `00_CHANGELOG_e_Validacao_Cruzada_v5.md` para o gap doc-vs-realidade validado.
 
 ---
 
@@ -140,7 +146,11 @@ tratar o campo plano como definitivo.
 
 ## Design System
 
-Toda UI segue o **SignallQ Design System** (`.claude/skills/SignallQ-design/`, Material 3, paleta violeta -- fonte viva: [SignallQ Design System](https://claude.ai/design/p/2d25d7a1-31b2-4ac3-881f-72dbc8f35a29)). Nao-negociaveis: Material 3, tokens `colors_and_type.css`/`SignallQTheme.kt`, cópia em PT-BR sem emoji, vocabulário canônico `excelente/bom/regular/ruim/crítico/inconclusivo`. Ver `docs_ai/design-system/` para detalhe completo e `.claude/skills/SignallQ-design/HANDOFF_README.md` para referência rápida de tokens.
+Toda UI segue o **SignallQ Design System** (`.claude/skills/SignallQ-design/`, Material 3, paleta violeta -- fonte viva: [SignallQ Design System](https://claude.ai/design/p/2d25d7a1-31b2-4ac3-881f-72dbc8f35a29)). Nao-negociaveis: Material 3, tokens `colors_and_type.css`/`SignallQTheme.kt`, cópia em PT-BR sem emoji, vocabulário canônico `excelente/bom/regular/ruim/crítico/inconclusivo`. Ver `docs_ai/design-system/` para detalhe completo e `.claude/skills/SignallQ-design/HANDOFF_README.md` para referência rápida de tokens. O mesmo projeto tem `templates/` com a estrutura de secao obrigatoria para Especificacao Funcional/Tecnica/Arquitetura -- ver `.claude/rules/higiene-e-padronizacao-repositorio.md`, secao 10, "Templates de documento".
+
+### Onde fica cada "design system" (mirrors de skill, decisao 2026-07-23)
+
+`.claude/skills/` e a **fonte canonica** de toda skill (nao so design). `.agents/skills/` (formato agnostico de agente) e `.github/skills/` (Copilot) sao **espelhos gerados**, nunca editados direto -- editar so em `.claude/skills/` e rodar `scripts/sync-skills-mirrors.sh` depois (ou `--check` pra so validar se estao sincronizados, sem escrever nada). Excecao: `.agents/skills/impeccable/agents/*.toml|*.yaml` sao arquivos proprios daquele formato de agente, sem equivalente na fonte canonica -- o script preserva, nunca apaga.
 
 ---
 
@@ -208,9 +218,20 @@ de produto ou repo deve ser propagada no mesmo commit/PR para `C:\Projetos\CLAUD
 workspace) — é o doc que o Marcos (VP) usa pra rotear entre squads, e fica errado silenciosamente
 se ninguém atualizar de fora.
 
-Squad enxuto: 5 agentes ativos (Claudete, Camilo, Lia, Rhodolfo, Juninho). Validacao de device/rede
-e planejamento tecnico viraram skills (`/regras-android`, `/regras-diagnostico-rede`); busca de
-codigo e documentacao sao nativas/skill (`/gerar-docs`).
+**Agentes agora vivem em `~/.claude/agents/` (2026-07-23), não mais em `.claude/agents/` deste
+repo.** Claudete, Camilo, Lia, Rhodolfo e Juninho são um quadro único da 7ALabs, compartilhado com
+o SignallQ Nethal — cada um lê este `CLAUDE.md` para se contextualizar ao SignallQ especificamente. Detalhe
+da consolidação: `docs_ai/decisions/DECISAO_CONSOLIDACAO_SQUAD_7ALABS_2026-07-23.md`. Validacao de
+device/rede e planejamento tecnico continuam como skills (`/regras-android`,
+`/regras-diagnostico-rede`); busca de codigo e documentacao sao nativas/skill (`/gerar-docs`).
+
+**Bruno emprestado do Agente Virtual (decisão 2026-07-23):** o projeto Agente Virtual (squad
+irmã, `SignallQ Agents/`, repo `7ALabs/signallq-agent`) entrou em backlog — Bruno (líder daquele
+projeto, também agente global, stack React/TS/Vite/Tailwind + Cloudflare Workers, mesma stack do
+Console/Admin) fica disponível como **capacidade extra ad-hoc** para esta squad, acionado pela
+Claudete quando Camilo (backend) ou Lia (frontend) estiverem no limite em tarefa de Console/Admin.
+Não é membro fixo do squad nem substitui a frente de ninguém — reforço pontual, revertido quando o
+Agente Virtual sair do backlog. Ver nota espelho em `C:\Projetos\CLAUDE.md`.
 
 **Estrutura corporativa (revisao 2026-07-16)** — squad tratado como empresa, cargos em portugues no
 padrao TIM/Accenture (Analista → Consultor → Consultor Sr → Especialista → Especialista Sr →

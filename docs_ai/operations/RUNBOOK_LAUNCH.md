@@ -3,7 +3,14 @@
 **Projeto:** SignallQ (diagnóstico de conectividade)
 **Package:** `io.signallq.app`
 **Criado:** 2026-06-28
-**Responsáveis:** Claudete (PM), Gema (QA/Release), Camilo (Dev Android)
+**Responsáveis:** Claudete (PM), Rhodolfo (QA/Release), Camilo (Dev Android/Backend)
+
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Fonte de verdade das datas:** GitHub issue
+  [#1222](https://github.com/7ALabs/SignallQ/issues/1222) e
+  `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md` — não a tabela abaixo, que é
+  da criação original do doc (28/06) e não foi reconfirmada.
 
 ---
 
@@ -11,10 +18,10 @@
 
 | Milestone | Data | Descrição |
 |-----------|------|-----------|
-| M2 — Beta Fechado | 31/07/2026 | Primeiro upload Play Store (internal testing) |
-| M3 — Play Store | 07/08/2026 | Publicação na Play Store (closed beta) |
-| M4 — Open Beta | 21/08/2026 | Track aberto na Play Store |
-| M5 — Produção | 04/09/2026 | Release público com staged rollout |
+| M2 — Beta Fechado | [a confirmar, ver issue #1222] | Primeiro upload Play Store (internal testing) |
+| M3 — Play Store | [a confirmar, ver issue #1222] | Publicação na Play Store (closed beta) |
+| M4 — Open Beta | [a confirmar, ver issue #1222] | Track aberto na Play Store |
+| M5 — Produção | **21/08/2026** | Release público com staged rollout |
 
 ---
 
@@ -24,7 +31,7 @@
 
 - [ ] Nenhuma feature nova entra em `main` a partir de D-7
 - [ ] Apenas bug fixes críticos e ajustes de copy são aceitos
-- [ ] Comunicar freeze no Linear (comentário no cycle ativo)
+- [ ] Comunicar freeze no GitHub Issues (comentário na issue/milestone ativa)
 
 ### 1.2 Checklist técnico
 
@@ -147,10 +154,10 @@ jarsigner -verify app/build/outputs/bundle/release/app-release.aab
 
 | Milestone | Track Play Console | Ação |
 |-----------|-------------------|------|
-| M2 (31/07) | Internal testing | Upload AAB, adicionar testadores por email |
-| M3 (07/08) | Closed testing (beta) | Upload AAB, grupo de testadores selecionado |
-| M4 (21/08) | Open testing | Upload AAB, qualquer usuário pode entrar |
-| M5 (04/09) | Production | Upload AAB, staged rollout |
+| M2 (data: [a confirmar]) | Internal testing | Upload AAB, adicionar testadores por email |
+| M3 (data: [a confirmar]) | Closed testing (beta) | Upload AAB, grupo de testadores selecionado |
+| M4 (data: [a confirmar]) | Open testing | Upload AAB, qualquer usuário pode entrar |
+| M5 (21/08/2026) | Production | Upload AAB, staged rollout |
 
 4. Clicar **Create new release**
 5. Upload do AAB
@@ -237,7 +244,7 @@ npx wrangler deploy
 - [ ] Backlog atualizado com bugs e melhorias reportados
 - [ ] Documentação de release finalizada em `docs_ai/RELEASES.md`
 - [ ] Notion atualizado com status do milestone
-- [ ] Linear: milestone marcado como concluído
+- [ ] GitHub: milestone/issue marcada como concluída
 
 ### Métricas-alvo consolidadas
 
@@ -311,10 +318,9 @@ Alternativa via dashboard:
 |-------|--------|---------|
 | Decisão final | **Luiz Giammattey** (CEO) | Aprovar rollback, publicação, custo |
 | PM & coordenação | **Claudete** | Coordenar lançamento, comunicar status |
-| Dev Android | **Camilo** | Build, hotfix, investigação técnica |
-| QA & Release | **Gema** | Smoke test, monitoramento, validação |
-| UX | **Lia** | Ajustes visuais emergenciais |
-| Admin & Dados | **Felipe** | Worker admin, dados de telemetria |
+| Dev Android/Backend | **Camilo** | Build, hotfix, investigação técnica, worker admin |
+| QA & Release | **Rhodolfo** | Smoke test, monitoramento, validação, testes automatizados |
+| UX/Frontend | **Lia** | Ajustes visuais emergenciais, Console/Site React |
 
 ### Matriz de escalation
 
@@ -323,9 +329,9 @@ Alternativa via dashboard:
 | Crash rate < 98% | Halt rollout | Luiz (decisão de rollback) |
 | Worker IA fora do ar | Verificar Cloudflare dashboard | Camilo (re-deploy) |
 | Worker IA com custo inesperado | Pausar billing alert | Luiz (decisão de custo) |
-| Bug funcional grave | Investigar causa, preparar hotfix | Camilo + Gema |
+| Bug funcional grave | Investigar causa, preparar hotfix | Camilo + Rhodolfo |
 | Review negativa com padrão | Catalogar, priorizar fix | Claudete (triagem) |
-| Play Console rejeição | Ler motivo, corrigir listing/AAB | Gema + Claudete |
+| Play Console rejeição | Ler motivo, corrigir listing/AAB | Rhodolfo + Claudete |
 | Problema de signing/keystore | Verificar `key.properties` e `.jks` | Camilo |
 
 ### Recursos externos
@@ -336,7 +342,7 @@ Alternativa via dashboard:
 | Firebase Console | https://console.firebase.google.com |
 | Cloudflare Dashboard | https://dash.cloudflare.com |
 | Cloudflare Workers Logs | Dashboard > Workers > linka-ai-diagnosis-worker > Logs |
-| Linear (backlog) | https://linear.app |
+| GitHub Issues (backlog) | https://github.com/7ALabs/SignallQ/issues |
 | GitHub (repo) | https://github.com/7ALabs/SignallQ |
 
 ---

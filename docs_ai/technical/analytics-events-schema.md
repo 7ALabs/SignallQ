@@ -1,6 +1,10 @@
 ﻿# Schema de Eventos GA4 — SignallQ Android
 
-**Última atualização:** 2026-07-05 (v0.23.0, versionCode 56)
+**Status:** ativo
+**Última validação:** 2026-07-05 (v0.23.0, versionCode 56)
+**Fonte de verdade:** código real (`AnalyticsTracker`/`FirebaseAnalyticsTracker`, `AppModule.kt`)
+**Escopo:** eventos GA4 do schema SIG-134 (`feature_used`, `screen_view`, `app_session_start`, `feature_crash`, `battery_snapshot`) — distinto do funil principal SIG-155 documentado em `analytics-events.md`
+**Responsável:** Camilo (Backend Android)
 
 > SIG-134 — instrumentação GA4 para alimentar ProductAnalyticsPage no Admin Panel.
 

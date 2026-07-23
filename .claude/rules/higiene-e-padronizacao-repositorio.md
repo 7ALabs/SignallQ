@@ -401,28 +401,33 @@ docs_ai/
 │   ├── README.md            (visão de sistema, dependências entre módulos)
 │   └── MODULOS/              (um doc por módulo Gradle real — 16 arquivos)
 ├── CONTRATOS/
-│   ├── openapi/               (contrato OpenAPI 3.0 por Worker Cloudflare — 5 arquivos)
+│   ├── openapi/               (contrato OpenAPI 3.0 — 7 arquivos: 5 por Worker Cloudflare + 2
+│   │                            transversais — analytics-events, integrations-api)
 │   └── schemas/                (índice de schemas reais: Room, D1, analytics — referencia a origem)
 ├── RELEASES.md
 ├── ai/
-├── brand/
 ├── decisions/
 ├── design-system/            (histórico — conteúdo vigente em DESIGN_SYSTEM.md)
 ├── functional/                (specs pontuais que não migraram para FUNCIONAL.md)
 ├── legal/
 ├── operations/
+├── plataforma/                (visão-alvo do ecossistema, pacote v5 — ver `.claude/CLAUDE.md`,
+│                                seção "Produtos e Superficies")
 ├── technical/                  (docs pontuais que não migraram para TECNICO.md/ARQUITETURA/)
 ├── testing/
 └── _archive/
 ```
 
+Nota: assets de marca (`signallq-*.png`) vivem em `brand/` na raiz do repo, não em `docs_ai/` — é a
+fonte da verdade de logo/ícone/favicon, referenciada por build Android e Admin (ver `brand/README.md`).
+
 A árvore `FUNCIONAL.md`/`TECNICO.md`/`ARQUITETURA/`/`CONTRATOS/`/`DESIGN_SYSTEM.md` é o alvo para
 conteúdo funcional, técnico, arquitetural, de contrato e de design — não uma exigência de mover
 tudo para dentro dela. `ai/`, `decisions/`, `functional/` (residual), `legal/`, `operations/`,
-`technical/` (residual), `testing/`, `brand/` e `_archive/` continuam existindo para o que não se
-encaixa nessa árvore (processo do squad, ADRs, planos pontuais, mapas de campo de equipamento,
-runbooks, termos legais). Ver `docs_ai/README.md` para o índice completo e a justificativa de cada
-pasta residual.
+`plataforma/`, `technical/` (residual), `testing/` e `_archive/` continuam existindo para o que não
+se encaixa nessa árvore (processo do squad, ADRs, visão-alvo consolidada, planos pontuais, mapas de
+campo de equipamento, runbooks, termos legais). Ver `docs_ai/README.md` para o índice completo e a
+justificativa de cada pasta residual.
 
 `docs_ai/README.md` deve funcionar como índice, não como uma segunda documentação completa.
 
@@ -438,6 +443,27 @@ atualizados no mesmo trabalho.
 
 Todo documento ativo relevante deve informar: status, última validação, fonte de verdade, escopo,
 responsável ou domínio, documentos substituídos (quando houver).
+
+### Templates de documento (decisão 2026-07-23)
+
+O projeto [SignallQ Design System](https://claude.ai/design/p/2d25d7a1-31b2-4ac3-881f-72dbc8f35a29)
+(`templates/`) define a estrutura de seção obrigatória para os três tipos de documento vivo — a
+estrutura de metadados acima (status/última validação/fonte de verdade/escopo/responsável) cobre o
+mesmo papel do cabeçalho do template (produto/autor/status/revisores/versão) e continua sendo usada
+como está, em vez do formato visual do template.
+
+- **Especificação Funcional** (`FUNCIONAL.md`, `functional/*`): Objetivo → Contexto e problema →
+  Personas e casos de uso → Histórias de usuário → Fluxo principal → Requisitos funcionais (`RF-NN`)
+  → Requisitos não funcionais → Critérios de aceite → Fora de escopo → Métricas de sucesso.
+- **Especificação Técnica** (`TECNICO.md`, `technical/*`): Objetivo técnico → Visão geral da solução
+  → Modelo de dados → APIs/Endpoints → Integrações e dependências → Segurança e privacidade →
+  Performance e escalabilidade → Rollout e observabilidade → Riscos técnicos.
+- **Arquitetura** (`ARQUITETURA/README.md`, `ARQUITETURA/MODULOS/*`): Visão geral → Diagrama de
+  componentes → Componentes em detalhe → Fluxo de dados principal → Decisões arquiteturais (ADR) →
+  Riscos e mitigação.
+
+Documento novo desses três tipos nasce com essa estrutura de seções. Documento existente é
+migrado quando tocado (não é obrigatório revisar tudo de uma vez — ver princípio geral, seção 1).
 
 ### ADRs
 
@@ -471,7 +497,8 @@ documentação; verificar uso por ferramentas e agentes; confirmar que não é m
 Os mirrors `.agents/skills/` e `.github/skills/` (sincronização de skill para Codex e hooks do
 GitHub) já têm regra própria documentada em `.claude/CLAUDE.md`, seção "Design System" → "Onde fica
 cada 'design system'" — não duplicar aqui, só aplicar: fonte canônica é `.claude/skills/`, nunca
-editar o mirror direto, resincronizar após editar a skill original.
+editar o mirror direto, resincronizar com `scripts/sync-skills-mirrors.sh` após editar a skill
+original (`--check` valida sem escrever).
 
 ---
 

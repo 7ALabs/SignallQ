@@ -1,6 +1,10 @@
 # Contrato de Eventos — Firebase Analytics
 
-**Última atualização:** 2026-07-05 (v0.23.0, versionCode 56)
+**Status:** ativo (parcialmente implementado — ver "Estado atual" abaixo)
+**Última validação:** 2026-07-05 (v0.23.0, versionCode 56)
+**Fonte de verdade:** código real (`AnalyticsHelper`/`FirebaseAnalyticsHelper`, `DiagnosticOrchestrator`, `SignallQOrchestrator`) — este arquivo também define o contrato-alvo para eventos ainda não instrumentados
+**Escopo:** funil principal SIG-155 (7 eventos implementados) + contrato mais amplo proposto (eventos por feature ainda não instrumentados)
+**Responsável:** Camilo (Backend Android)
 **Property ID:** 542463828 (Firebase Analytics — Android)
 **Status de implementação:** funil principal (7 eventos, ver seção "Funil
 principal") instrumentado via `AnalyticsHelper` (SIG-155). Eventos do schema
