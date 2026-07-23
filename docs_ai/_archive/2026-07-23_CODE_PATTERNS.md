@@ -1,3 +1,13 @@
+> **Arquivado em 2026-07-23.** Guia normativo antigo ("obrigatório para PRs das issues #1–24"),
+> com audiência de time que não existe mais no squad atual (Gema arquivada em 2026-07-10;
+> Rodrigo/Marina/Brás não constam em nenhum registro do squad). Verificado contra o código real:
+> os padrões descritos (Logger abstrato, `MainUiState` agregador, `UiState<T>` genérico,
+> `OkHttpClientFactory` com clientes separados) **não existem** como classes no código atual —
+> Timber é usado diretamente em ~26 arquivos, cada Screen tem seu próprio `UiState` sealed
+> (não um genérico compartilhado). O único padrão confirmado implementado é o
+> `network_security_config.xml` (item 5). Os padrões vigentes de Compose/ViewModel do projeto
+> vivem hoje na skill `.claude/skills/padroes-compose/SKILL.md`. Mantido só como histórico.
+
 # Padrões de Código Recomendados
 ## SIGNALLQ Android — Guidelines para Implementação
 

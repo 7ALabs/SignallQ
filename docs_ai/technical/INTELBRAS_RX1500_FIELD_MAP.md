@@ -1,3 +1,8 @@
+**Status:** ativo (documento de reconhecimento, não de produto — ver skill `/reconhecimento-equipamento-rede`)
+**Última validação:** 2026-07-23 — confirmado que "Intelbras" no código só existe como fabricante no catálogo OUI (ver correção abaixo), sem parser de interface web
+**Escopo:** levantamento estático do firmware Intelbras RX1500/RAX1500, insumo de reconhecimento
+**Responsável:** Camilo (Backend Android)
+
 # Mapeamento de campos — Firmware Intelbras RX1500 (análise estática)
 
 > Levantamento de schema/capacidade a partir do **arquivo de firmware**
@@ -212,8 +217,10 @@ Busca no código do SignallQ (`grep` em `android/`) mostra que "Intelbras"
 hoje só existe como **fabricante no lookup de OUI** (mesmo padrão já visto no
 documento do TP-Link):
 
-- `android/core/network/.../MeshOuiDatabase.kt`
-- `android/feature/devices/.../OuiDatabase.kt`
+- `android/core/network/src/main/kotlin/io/veloo/app/core/network/topologia/oui/OuiCatalog.kt`
+  (**correção 2026-07-23**: os arquivos `MeshOuiDatabase.kt`/`OuiDatabase.kt` citados
+  originalmente aqui foram unificados neste `OuiCatalog.kt` — ver
+  `docs_ai/_archive/2026-07-23_PLANO_UNIFICACAO_TOPOLOGIA_WIFI_2026-07-15.md`, Fase 1)
 - `android/feature/diagnostico/src/main/assets/oui.txt`
 
 Ou seja: hoje o app só usa "Intelbras" pra identificar o *fabricante* de um

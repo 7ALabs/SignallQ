@@ -1,3 +1,8 @@
+> **Arquivado em 2026-07-23.** Relatório de validação da SIG-166/SIG-167 (checklist de cobertura
+> do OpenAPI v2.0.0), já marcado como concluído no próprio documento ("Phase 4 Status: COMPLETE").
+> Sem valor de referência contínua — mantido só como histórico. Estado atual do contrato vive em
+> `docs_ai/CONTRATOS/openapi/signallq-admin-api.yaml` e `docs_ai/technical/admin-api-schema.md`.
+
 # OpenAPI Validation & Testing Report
 
 **Date**: 27.06.2026  

@@ -1,7 +1,11 @@
 # Admin API — Schema de Contratos
 
-**Última atualização:** 2026-07-16 (v0.23.0, versionCode 56) — GH#1043: cobre `play_track`,
+**Status:** ativo
+**Última validação:** 2026-07-16 (v0.23.0, versionCode 56) — GH#1043: cobre `play_track`,
 `system_health_snapshots`, `uf` e corrige vocabulário de `status`
+**Fonte de verdade:** código real (`integrations/cloudflare/signallq-admin-worker/src/index.ts`) + `docs_ai/CONTRATOS/openapi/signallq-admin-api.yaml` (contrato OpenAPI formal)
+**Escopo:** todos os endpoints do worker `signallq-admin` (painel Admin, ingest do app, feature flags, health)
+**Responsável:** Camilo (Backend Android + Workers)
 **Versão do worker:** 1.x (Cloudflare Worker — name `signallq-admin`, diretório `signallq-admin-worker`)
 **Base URL (produção):** `https://signallq-admin.giammattey-luiz.workers.dev`
 **Configurada no frontend via:** `VITE_ADMIN_API_BASE_URL`

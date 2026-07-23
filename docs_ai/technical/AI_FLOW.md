@@ -1,11 +1,19 @@
 # AI Flow — Android SignallQ
 
-**Última atualização:** 2026-07-05 (v0.23.0, versionCode 56)
-**Fonte:** código real (featureDiagnostico, di/AppModule.kt, integrations/cloudflare/ai-diagnosis-worker)
+**Status:** ativo
+**Última validação:** 2026-07-23
+**Fonte de verdade:** código real (`featureDiagnostico`, `integrations/cloudflare/ai-diagnosis-worker`) — este documento é derivado, não normativo
+**Escopo:** fluxo de diagnóstico assistido por IA no app Android e o worker que o atende
+**Responsável:** Camilo (Backend Android + Workers)
 
 ---
 
-## 1. Visão Geral
+## 1. Objetivo técnico
+
+Documentar como o app SignallQ envia dados de diagnóstico de rede a um Worker Cloudflare para
+gerar um laudo assistido por IA, incluindo o fallback local quando a IA está indisponível.
+
+## 2. Visão geral da solução
 
 O app integra IA via **Cloudflare Worker** externo. Não há inferência local — todo o processamento LLM é feito no worker. O fallback local (`AiFallbackFactory`) entra apenas se o worker falhar ou timeout.
 
@@ -50,7 +58,7 @@ e `DEFAULT_MODEL` no `src/index.ts`:
 const DEFAULT_MODEL = "@cf/qwen/qwen3-30b-a3b-fp8";
 ```
 
-**Fallback Gemini:** com a secret `GEMINI_API_KEY` configurada, o worker usa Gemini 2.0 Flash como provider primário e Qwen/CF como fallback automático. Sem a secret, Qwen/CF é o único provider cloud. Llama/Meta não é padrão nem fallback (política do projeto).
+**Provider primário Gemini:** com a secret `GEMINI_API_KEY` configurada, o worker usa Gemini (`providers.ts`, model id `gemini-flash-latest` — alias da Google que resolve para a versão Flash mais recente disponível, hoje Gemini 2.0 Flash) como provider primário e Qwen/CF como fallback automático. Sem a secret, Qwen/CF é o único provider cloud. Llama/Meta não é padrão nem fallback (política do projeto).
 
 **Alternativas/legado (não são o padrão):**
 - `@cf/google/gemma-7b-it` — Gemma v1, fraco para prompt complexo
@@ -65,7 +73,7 @@ const DEFAULT_MODEL = "@cf/qwen/qwen3-30b-a3b-fp8";
 
 Montado por `DiagnosisAiContextFactory.fromRaw()`. O worker aceita schemas anteriores para retrocompatibilidade.
 
-A versão de prompt atual do worker é `diagnostico_v5_local_primary` (`AI_PROMPT_VERSION` em `src/index.ts`): os achados do motor local são enviados como entrada e a IA refina/expande em cima deles. `schemaVersion` do contexto (`DiagnosisAiContext`) é enviado ao worker e registrado no evento `ia_laudo_solicitado`.
+A versão de prompt atual do worker é `diagnostico_v6_explicacao_humana` (`AI_PROMPT_VERSION` em `src/index.ts` — atualizado desde a v5 citada em versões anteriores deste documento): os achados do motor local são enviados como entrada e a IA refina/expande em cima deles. `schemaVersion` do contexto (`DiagnosisAiContext`) é enviado ao worker e registrado no evento `ia_laudo_solicitado`.
 
 Campos enviados: tipo de conexão, snapshot Wi-Fi (RSSI, canal, frequência), latência, jitter, perda de pacotes, download/upload Mbps, DNS (servidor atual, latência), histórico (médias 7d/30d), dados do ISP, configuração do usuário (plano, operadora, estado/cidade).
 
@@ -126,4 +134,17 @@ Retorna um `AiDiagnosisResult` construído a partir dos resultados dos engines l
 
 - Diagnósticos: estado em `MainViewModel.snapshotDiagnostico` (StateFlow, não persistido em Room)
 - Sessões de chat: `SignallQDatabase` — tabelas `chat_sessions` e `chat_messages`
-- Cota diária: `CotaIaRepository` (rolling 24h — DataStore separado, não usa `linkaPreferencias`)
+- Cota/orçamento diário de IA: não há mecanismo de limite client-side no app (a classe
+  `CotaIaRepository` citada em versões anteriores deste documento não existe no código). O
+  controle real de orçamento é server-side, no Worker Admin: `aiDailyBudgetUsd` em
+  `admin_settings`, que dispara o alerta `AI_BUDGET` quando o custo das últimas 24h excede o
+  limite (ver `docs_ai/technical/admin-api-schema.md`, seção `/admin/settings`). Não bloqueia
+  chamadas do app, só alerta o painel.
+
+## 9. Riscos técnicos
+
+- Sem cota client-side: um dispositivo com uso anômalo pode gerar custo de IA sem o app impedir
+  localmente — a única salvaguarda hoje é o alerta `AI_BUDGET` no painel Admin (reativo, não
+  preventivo).
+- Fallback local (`AiFallbackFactory`) não gera texto explicativo por LLM — a experiência do
+  usuário degrada para dados brutos dos engines quando a IA está indisponível.

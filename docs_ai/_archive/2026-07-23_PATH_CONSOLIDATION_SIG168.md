@@ -1,3 +1,9 @@
+> **Arquivado em 2026-07-23.** Plano de consolidação de rotas já executado — confirmado no
+> código real: `docs_ai/technical/admin-api-schema.md` mostra `GET /admin/analytics/product` e
+> `GET /admin/analytics/battery` documentando explicitamente "Também aceita o prefixo
+> `/admin/metrics/analytics/*` (compatibilidade)", exatamente como este plano propôs (Opção A,
+> rotas novas + legado mantido). Mantido só como histórico da decisão.
+
 # API Path Consolidation Plan — SIG-168
 
 **Date**: 27.06.2026  

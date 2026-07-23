@@ -1,3 +1,13 @@
+> **Arquivado em 2026-07-23.** Plano substancialmente implementado — confirmado no código real
+> de `AppShell.kt`: a tab bar tem 5 abas `home/speedtest/sinal_wifi/historico/ferramentas`
+> (Fase 1, GH#930 — Ajustes saiu da tab bar, virou overlay `Perfil` via avatar, exatamente como
+> a decisão #0 deste plano definiu); `enum class Overlay` inclui `EquipamentoInternet` (Fase 5,
+> GH#934), `Ferramentas` (Fase 4, GH#933), `Dns` (Fase 4, GH#933 — saiu de sheet pra tela cheia),
+> `Jogos` (Fase 6, GH#935 — superado pelo spec `JOGOS_TESTE_CONEXAO_SPEC.md` conforme o próprio
+> plano já registrava), `Perfil` (Fase 7, GH#936) e `SinalWifi` (extra pós-plano, GH#1201).
+> Ver `docs_ai/technical/SCREEN_MAP.md` para o mapa de telas atualizado. Mantido só como
+> histórico da decisão e do sequenciamento original — não usar como referência de estado atual.
+
 # Plano de implementação — SignallQ App To-Be (MD3)
 
 > Registrado em 2026-07-13 por Claudete. Fonte: protótipo "SignallQ App - Fluxo de Telas.dc.html"

@@ -1,3 +1,10 @@
+> **Arquivado em 2026-07-23.** Documento de planejamento da SIG-167 (proposta de securitySchemes
+> para o OpenAPI). Todo o conteúdo já foi implementado e incorporado ao contrato canônico —
+> ver `docs_ai/CONTRATOS/openapi/signallq-admin-api.yaml` (securitySchemes `cookieAuth`/
+> `bearerAuth`/`adminSecretAuth` confirmados no arquivo real, linhas ~1311-1350) e
+> `docs_ai/technical/admin-api-schema.md` (contrato vivo, atualizado). Mantido só como histórico
+> da decisão original.
+
 # SignallQ Authentication Layer — OpenAPI Documentation
 
 **Created**: 27.06.2026  

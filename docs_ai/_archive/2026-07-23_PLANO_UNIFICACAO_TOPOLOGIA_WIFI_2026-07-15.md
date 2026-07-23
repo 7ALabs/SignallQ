@@ -1,3 +1,17 @@
+> **Arquivado em 2026-07-23.** Plano implementado — confirmado no código real:
+> `TopologiaRedeEngine` existe em `core/network/.../topologia/engine/` e já é consumido por
+> `MainViewModel` (Home, GH#980), `SinalScreen` e `RecommendationEngine` (Fase 2B completa,
+> comentários `#979`/`#980` no código); `OuiCatalog`/`OuiEntry` substituíram `OuiDatabase`/
+> `MeshOuiDatabase` (Fase 1, catálogo único); `GatewayHeuristica` e o `TopologiaWifiEngine`
+> antigo não existem mais no código-fonte (Fase 2C, remoção dos classificadores paralelos);
+> `ResultadoCorrelacaoTopologia`/`correlacoesTopologia` existem em `MainViewModel` (Fase 4);
+> sinais mDNS novos (`_matter`, `_androidtvremote`, `_raop`, `_rtsp`) existem em
+> `ClassificadorDispositivoRede`/`ScannerDispositivosAndroid` (Fase 3). A única fase não
+> executada é a Fase 5 (scrapers de gateway mesh por família de firmware — TP-Link/Deco/Eero/
+> etc.), que o próprio plano definia como issues separadas e independentes, não bloqueantes.
+> Se a Fase 5 for retomada, abrir issue própria por família de firmware conforme já orientado
+> na seção "Fase 5" abaixo — o restante deste plano não precisa ser reexecutado.
+
 # Unificação da identificação de topologia Wi-Fi e tipos de dispositivo
 
 ## Contexto

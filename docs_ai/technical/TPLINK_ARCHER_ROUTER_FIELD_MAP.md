@@ -1,3 +1,8 @@
+**Status:** ativo (documento de reconhecimento, não de produto — ver skill `/reconhecimento-equipamento-rede`)
+**Última validação:** 2026-07-23
+**Escopo:** levantamento exaustivo da interface web do roteador TP-Link Archer C6/A6v2 (família `tplink-stok-luci`), insumo do epic SIG-343
+**Responsável:** Camilo (Backend Android)
+
 # Mapeamento de campos — Interface Web Roteador TP-Link (stok-luci)
 
 > Levantamento exaustivo de schema/capacidade da interface administrativa web do
@@ -126,8 +131,11 @@ Endpoint único `admin/status?form=all` retorna um payload grande e "achatado"
 modem 3G/4G USB, storage USB, impressora, e lista de dispositivos cabeados.
 Nenhum campo deste endpoint é usado hoje pelo SignallQ (não existe parser
 TP-Link no app — o único uso de "TP-Link" hoje é como fabricante no lookup de
-OUI em `feature/devices/OuiDatabase.kt`, para identificar o *tipo* de
-dispositivo pelo prefixo do MAC, não para ler dados do próprio roteador).
+OUI em `core/network/.../topologia/oui/OuiCatalog.kt` (**correção 2026-07-23**:
+substituiu o antigo `feature/devices/OuiDatabase.kt` citado originalmente aqui —
+ver `docs_ai/_archive/2026-07-23_PLANO_UNIFICACAO_TOPOLOGIA_WIFI_2026-07-15.md`,
+Fase 1), para identificar o *tipo* de dispositivo pelo prefixo do MAC, não
+para ler dados do próprio roteador).
 
 Campos principais (exemplos reais, exceto os marcados como segredo):
 

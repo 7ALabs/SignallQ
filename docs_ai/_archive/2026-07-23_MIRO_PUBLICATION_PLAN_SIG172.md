@@ -1,3 +1,9 @@
+> **Arquivado em 2026-07-23.** Plano nunca executado ("Blocked — awaiting Miro creation" desde
+> 27.06.2026) e hoje desatualizado em vários fatos (repo `linka-android`, versionCode 52,
+> nomenclatura de workers antiga). Sem evidência de que o board tenha sido criado. Se a
+> publicação em Miro for retomada, refazer o plano a partir do estado atual do código, não
+> reaproveitar este documento como base.
+
 # Miro Publication Plan — SIG-172
 
 **Date**: 27.06.2026  

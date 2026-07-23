@@ -1,3 +1,8 @@
+> **Arquivado em 2026-07-23.** Documento de planejamento da SIG-169 (proposta de endpoints
+> Firebase para o OpenAPI). Os 6 endpoints já estão implementados e documentados no contrato
+> vivo — ver `docs_ai/technical/admin-api-schema.md` (seção "Endpoints de integração Firebase")
+> e `docs_ai/CONTRATOS/openapi/signallq-admin-api.yaml`. Mantido só como histórico.
+
 # Firebase Integration Endpoints — OpenAPI Documentation
 
 **Created**: 27.06.2026

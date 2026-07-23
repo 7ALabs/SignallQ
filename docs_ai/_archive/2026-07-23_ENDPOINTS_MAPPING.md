@@ -1,3 +1,8 @@
+> **Arquivado em 2026-07-23.** Levantamento SIG-166 do gap entre endpoints implementados e
+> documentados no OpenAPI. O gap foi fechado — `docs_ai/technical/admin-api-schema.md` é hoje o
+> índice de rotas atualizado e `docs_ai/CONTRATOS/openapi/signallq-admin-api.yaml` cobre 43+
+> paths com securitySchemes. Mantido só como histórico do levantamento original.
+
 # SignallQ API Endpoints — Complete Mapping
 
 **Última atualização**: 2026-07-05 (v0.23.0, versionCode 56)
