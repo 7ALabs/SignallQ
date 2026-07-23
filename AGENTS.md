@@ -13,30 +13,31 @@ Monorepo com plataformas separadas: `android/` (Kotlin nativo), `integrations/` 
 
 - Produto/UX: use `docs_ai/functional/` e `docs_ai/design-system/`.
 - Engenharia Android: use `docs_ai/technical/`, `android/settings.gradle.kts` e os modulos `android/core*`/`android/feature*`.
-- QA/Release: use `docs_ai/operations/`, `docs/GuiaReleaseBuild.md` e `scripts/`.
+- QA/Release: use `docs_ai/operations/`, `docs_ai/operations/GuiaReleaseBuild.md` e `scripts/`.
 - Integracoes: use `integrations/`, mantendo dependencias baixadas fora do Git.
 
 ## Regras de trabalho
 
 - Codigo Android fica nos modulos Gradle em `android/`.
 - Codigo do admin panel fica em `SignallQ Admin/`.
-- Documentacao viva fica em `docs_ai/`.
-- Documentacao operacional complementar fica em `docs/`.
+- Documentacao viva (incluindo operacional: release, APK, QA) fica em `docs_ai/`.
+- `docs/` guarda so artefatos de governanca do GitHub (migracao de issues, roadmap de epicos).
 - Scripts versionados ficam em `scripts/`.
 - Segredos devem ser recriados localmente a partir de templates, nunca migrados.
 - Artefatos de build devem ser gerados de novo, nunca versionados.
 
 ## Handoff e board
 
-Sempre que uma issue do board mudar de estado, o agente chama:
+Execução vive no **GitHub Issues** (`7ALabs/linka-android`), classificada na hierarquia Épico >
+Feature > Task via campos de Project (`Tipo`/`Épico`/`Feature`) — ver `.claude/CLAUDE.md`, seção
+"Fontes da Verdade", para o mecanismo completo. Handoff entre agentes é dispatch direto (tool
+`Agent`, retomado por `SendMessage`), não um script: não existe `.claude/tasks/queue/` de fato no
+repo, é controle de sequenciamento de quem orquestra.
 
-```bash
-scripts/agent-handoff.sh <agente> <evento> <issue#> "<mensagem>" [--para <outro>]
-```
-
-Eventos: `start | handoff | review | docs | done | block | refine | ready`.
-
-Isso move o card no Project, ajusta labels e notifica Discord + Slack em uma chamada. Detalhes e tabela de eventos em [`docs/WORKFLOW_BOARD.md`](docs/WORKFLOW_BOARD.md). Substitui o uso direto de `scripts/notify.sh` (que continua disponível para mensagens fora de issue).
+Não há notificação manual em ferramenta externa. GitHub notifica o Slack diretamente (app oficial,
+`/github subscribe`) — nenhum agente cria fluxo manual paralelo (Discord ou script de webhook).
+Os scripts `scripts/agent-handoff.sh`, `scripts/notify.sh` e `scripts/discord_notify.sh` estão
+depreciados — não são mecanismo de handoff, não documentar como fluxo.
 
 ## Validacao minima
 
@@ -61,4 +62,4 @@ ou:
 .\android\gradlew.bat archiveReleaseApk
 ```
 
-Nunca entregue `app-debug.apk` ou `app-release.apk` diretamente. A regra de saida esta em `docs/APK_OUTPUT_POLICY.md`.
+Nunca entregue `app-debug.apk` ou `app-release.apk` diretamente. A regra de saida esta em `docs_ai/operations/APK_OUTPUT_POLICY.md`.

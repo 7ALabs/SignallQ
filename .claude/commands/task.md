@@ -22,7 +22,7 @@ Consulte sempre `/issue-conventions` — ele é a fonte da verdade de roteamento
 Antes de criar qualquer issue, verifique duplicata **nos dois destinos**:
 
 ```bash
-gh issue list --repo gmmattey/linka-android --state open --limit 50
+gh issue list --repo 7ALabs/linka-android --state open --limit 50
 ```
 E no Linear (project SignallQ), via MCP `list_issues` com `project=9eed402a-3c27-4c0e-9ad7-48d6fc4b2025`.
 
@@ -36,7 +36,7 @@ Analise `$ARGUMENTS`, determine o tipo e o destino:
 
 | Tipo | Destino | Trilho |
 |------|---------|--------|
-| `BUG` (comportamento incorreto, crash, regressão) | **GitHub Issues** `gmmattey/linka-android` | Trilho A (abaixo) |
+| `BUG` (comportamento incorreto, crash, regressão) | **GitHub Issues** `7ALabs/linka-android` | Trilho A (abaixo) |
 | `FEATURE` / melhoria / frente de trabalho | **Linear** project SignallQ | Trilho B |
 | `REFACTOR` / `INFRA` / `DOCS` / `UX` / task técnica | **Linear** project SignallQ | Trilho B |
 
@@ -83,7 +83,7 @@ BODY
 
 ```bash
 ISSUE_URL=$(gh issue create \
-  --repo gmmattey/linka-android \
+  --repo 7ALabs/linka-android \
   --title "[BUG] ..." \
   --body-file /tmp/issue_body_signallq.md \
   --label "type:bug" \
@@ -96,13 +96,13 @@ Capture o número da issue (`.../issues/47` → `N=47`).
 ### A3. Kickoff + handoff
 
 ```bash
-gh issue comment N --repo gmmattey/linka-android --body "**Claudete:** Bug confirmado, pipeline iniciado. Camilo, é com você — leia a issue e crie a branch."
+gh issue comment N --repo 7ALabs/linka-android --body "**Claudete:** Bug confirmado, pipeline iniciado. Camilo, é com você — leia a issue e crie a branch."
 bash scripts/agent-handoff.sh claudete ready N "bug criado e refinado — pipeline iniciado" --para camilo
 ```
 
 ### A4. Acionar Camilo (modo bug)
 
-> Você é **Camilo**, Dev Android do squad SignallQ. Leia a issue #N em https://github.com/gmmattey/linka-android/issues/N. Bug — modo compacto. Crie a branch `bug/N-slug` a partir de `origin/main`, mapeie os arquivos prováveis, implemente a correção, abra o PR e acione o Rhodolfo para review. Siga `.claude/agents/camilo.md`.
+> Você é **Camilo**, Dev Android do squad SignallQ. Leia a issue #N em https://github.com/7ALabs/linka-android/issues/N. Bug — modo compacto. Crie a branch `bug/N-slug` a partir de `origin/main`, mapeie os arquivos prováveis, implemente a correção, abra o PR e acione o Rhodolfo para review. Siga `.claude/agents/camilo.md`.
 
 ---
 
@@ -166,5 +166,5 @@ Encerre com uma frase de Claudete em character. Exemplos:
 - Convenções e roteamento: `/issue-conventions`
 - Protocolo completo: `docs/PIPELINE_AUTONOMO.md`
 - Handoff scripts: `scripts/agent-handoff.sh`
-- Board GitHub (bugs): GitHub Project #8 (gmmattey/linka-android)
+- Board GitHub (bugs): GitHub Project #8 (7ALabs/linka-android)
 - Linear project SignallQ: `9eed402a-3c27-4c0e-9ad7-48d6fc4b2025`

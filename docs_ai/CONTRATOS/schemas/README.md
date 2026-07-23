@@ -4,7 +4,7 @@
 - **Última validação:** 2026-07-16
 - **Fonte de verdade:** este arquivo referencia os schemas reais nos caminhos de origem — não
   copia conteúdo
-- **Escopo:** monorepo `gmmattey/linka-android` — Room (Android), D1 (Cloudflare), analytics
+- **Escopo:** monorepo `7ALabs/linka-android` — Room (Android), D1 (Cloudflare), analytics
   (Firebase GA4)
 - **Responsável:** Claudete, aplicado por Camilo (mudanças de schema) e Rhodolfo (documentação)
 

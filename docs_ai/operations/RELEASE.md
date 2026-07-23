@@ -8,7 +8,7 @@ This document outlines the process for releasing new versions of the SignallQ An
 > Namespace/applicationId atual: **`io.signallq.app`** (renomeado de `io.veloo.app`
 > em 2026-06-28). O caminho fisico do codigo do modulo `:app` continua sendo
 > `io/veloo/app/kotlin/` — nao alterar. Demais identificadores tecnicos de infra
-> permanecem: repo `gmmattey/linka-android`, worker `linka-ai-diagnosis-worker`.
+> permanecem: repo `7ALabs/linka-android`, worker `linka-ai-diagnosis-worker`.
 > Historico autoritativo de versoes Android: `android/CHANGELOG.md`.
 
 ## Processo Canônico do Projeto (atualizado 2026-07-17)
@@ -25,7 +25,7 @@ demanda, não em todo push). Builda `assembleRelease` (ou `assembleDebug` via in
 sobe via `appDistributionUploadRelease`/`...Debug`. Depende do secret `FIREBASE_TOKEN`
 (gerado com `firebase login:ci` numa sessão interativa real — precisa de TTY, não roda em
 CI headless nem via agente — configurado com `gh secret set FIREBASE_TOKEN --repo
-gmmattey/linka-android`).
+7ALabs/linka-android`).
 
 ### Canal 2 — Play Console (release oficial), trilha em 2 etapas
 

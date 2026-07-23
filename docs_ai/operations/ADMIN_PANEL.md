@@ -476,7 +476,7 @@ Público (sem autenticação), rate-limitado por device_id.
    - Ir para Cloudflare Dashboard → Pages
    - Clique "Create a project" → Connect to Git
    - Authorize GitHub (Luiz como owner)
-   - Selecionar repo `gmmattey/linka-android`
+   - Selecionar repo `7ALabs/linka-android`
    - Build command: `npm run build`
    - Build output dir: `dist`
    - Variável de ambiente: `VITE_ENABLE_MOCKS=false` (desativa mocks em produção)

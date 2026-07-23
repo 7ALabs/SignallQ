@@ -3,7 +3,7 @@
 - **Status:** ativo
 - **Última validação:** 2026-07-16
 - **Fonte de verdade:** este arquivo (`.claude/rules/higiene-e-padronizacao-repositorio.md`) — não duplicar em `docs_ai/`, `AGENTS.md`, mirrors ou docs de módulo
-- **Escopo:** repositório `gmmattey/linka-android` (monorepo SignallQ) inteiro — Android, Admin, Cloudflare, docs
+- **Escopo:** repositório `7ALabs/linka-android` (monorepo SignallQ) inteiro — Android, Admin, Cloudflare, docs
 - **Responsável:** Claudete (dono do processo), aplicado por todo agente (Camilo, Lia, Rhodolfo) e por qualquer sessão humana no repo
 
 Referenciada a partir de `.claude/CLAUDE.md` (seção "Higiene e padronização do repositório") e dos
@@ -61,7 +61,7 @@ Ao tocar em código antigo que mistura idiomas, padronize somente quando a renom
 segura e completamente validável. Renomeações espalhadas por vários módulos são tarefa específica.
 
 Não renomear identificadores técnicos preservados pelo projeto: `io.signallq.app`,
-`gmmattey/linka-android`, `linkaKotlin.db`, `linkaPreferencias`, canais `linka_*`, workers cujos
+`7ALabs/linka-android`, `linkaKotlin.db`, `linkaPreferencias`, canais `linka_*`, workers cujos
 nomes técnicos já estejam publicados (ver `.claude/CLAUDE.md`, seção "Identidade").
 
 ---

@@ -7,7 +7,7 @@ Worker Cloudflare isolado para tres frentes remotas do SignallQ:
 - `GH#935`: catalogo remoto de jogos e perfis de sensibilidade
 
 Migrado de `D:\Cloudflare\signallq-diagnostic-worker` (fora do monorepo, sem git) para
-`integrations/cloudflare/signallq-diagnostic-worker/` em `gmmattey/linka-android` — ver `GH#963`.
+`integrations/cloudflare/signallq-diagnostic-worker/` em `7ALabs/linka-android` — ver `GH#963`.
 Correcoes de paridade com o motor Android real (`GH#953`) aplicadas antes da migracao: ver
 `TESTING.md` para o log completo de validacao.
 

@@ -5,12 +5,12 @@
 - **Fonte de verdade:** este arquivo é só um índice — não repete conteúdo de nenhum documento
   listado abaixo. Para os fatos em si, abra o documento apontado.
 - **Escopo:** ponto de entrada de toda a documentação viva do monorepo SignallQ
-  (`gmmattey/linka-android`)
+  (`7ALabs/linka-android`)
 - **Responsável:** Claudete (dono do processo de documentação viva), Rhodolfo (manutenção/QA)
 
 > Nota de marca: a UI e a documentação usam **SignallQ**. O package/namespace atual é
 > `io.signallq.app` (renomeado de `io.veloo.app` em 2026-06-28). Outros identificadores técnicos
-> permanecem por compatibilidade de infra: repo GitHub `gmmattey/linka-android`, worker Cloudflare
+> permanecem por compatibilidade de infra: repo GitHub `7ALabs/linka-android`, worker Cloudflare
 > `linka-ai-diagnosis-worker`, banco DataStore `linkaPreferencias`.
 
 ---

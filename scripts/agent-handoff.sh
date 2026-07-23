@@ -57,7 +57,7 @@ if [ -n "$COL" ]; then
 fi
 
 # Monta mensagem com link da issue
-FULL_MSG="#$ISSUE — $MSG"$'\n'"https://github.com/gmmattey/linka-android/issues/$ISSUE"
+FULL_MSG="#$ISSUE — $MSG"$'\n'"https://github.com/7ALabs/linka-android/issues/$ISSUE"
 
 # Notifica Discord + Slack
 bash "$SCRIPT_DIR/notify.sh" "$AGENT" "$FULL_MSG" "$NOTIFY_TYPE" $TARGET_FLAG
