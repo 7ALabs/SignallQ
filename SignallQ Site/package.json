@@ -17,6 +17,7 @@
     "react-router-dom": "^7.1.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250712.0",
     "@tailwindcss/vite": "^4.1.14",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

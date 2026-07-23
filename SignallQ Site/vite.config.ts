@@ -32,6 +32,15 @@ export default defineConfig({
         clientsClaim: true,
         cleanupOutdatedCaches: true,
         navigateFallback: '/index.html',
+        // Técnico Virtual (Leste Telecom, repo signallq-agent) é publicado sob /leste neste mesmo
+        // projeto Pages. Sem esse denylist, o navigateFallback do service worker intercepta
+        // qualquer navegação em /leste/* e serve o index.html cacheado DESTE site — o React Router
+        // daqui não conhece a rota e mostra "página não encontrada" antes mesmo de bater na rede
+        // (bug real observado em produção, 2026-07-22).
+        // Cobre tanto /leste (sem barra, antes do 308 do Cloudflare) quanto /leste/... —
+        // sem o `$` sozinho, a rota bare "/leste" caía no fallback antes mesmo do redirect
+        // de borda acontecer (bug reobservado em produção, 2026-07-22).
+        navigateFallbackDenylist: [/^\/leste$/, /^\/leste\//],
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // Regra não-negociável (issue #1184): o teste de velocidade real e a
         // telemetria nunca podem ser servidos pelo cache do service worker —

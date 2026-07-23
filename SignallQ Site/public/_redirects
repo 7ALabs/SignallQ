@@ -1,3 +1,8 @@
+# Técnico Virtual (Leste Telecom) publicado como subpasta neste mesmo projeto Pages — repo
+# 7ALabs/signallq-agent, build via `npm run build:leste-embed`. Regra precisa vir ANTES do
+# catch-all abaixo (primeira regra que casa vence no Cloudflare Pages _redirects).
+/leste/*  /leste/index.html  200
+
 # SPA fallback — React Router cuida do roteamento client-side (BrowserRouter).
 # Sem isso, recarregar/entrar direto em /pro, /historico etc. cai em 404 do Pages
 # antes mesmo do React montar.
