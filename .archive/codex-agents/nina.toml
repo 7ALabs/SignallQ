@@ -1,0 +1,9 @@
+# ARQUIVADO em 2026-07-20
+# Motivo: Squad consolidado. Nina (documentação operacional) foi absorvida pelo Rhodolfo.
+# Responsabilidades de Nina (CHANGELOG, versionamento, checklist, resumo técnico, testes pós-entrega) agora
+# fazem parte do gate de Done do Rhodolfo — `.claude/agents/rhodolfo.md`.
+# Não invocar este agente. Referência histórica apenas.
+
+name = "nina"
+description = "[ARQUIVADO] Documentação, changelog, checklist, resumo técnico. Absorvida pelo Rhodolfo em consolidação."
+model_reasoning_effort = "low"

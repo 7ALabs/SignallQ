@@ -194,7 +194,7 @@ Quirk encontrado: [descrição do comportamento]
 Condição de reprodução: [o que fazer para reproduzir]
 Impacto no SignallQ: [o que quebra ou se comporta diferente]
 Workaround testado: [se encontrou solução]
-Issue Linear relacionada: #N
+Issue GitHub relacionada: #N
 ```
 
 ---

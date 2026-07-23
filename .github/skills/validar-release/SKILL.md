@@ -73,7 +73,7 @@ find android -name "*.kt" -type f | xargs grep -l "^[[:space:]]*//.*TODO\|^[[:sp
 ```
 
 Validar:
-- [ ] Nenhum TODO/FIXME crítico solto? Se sim, verificar no Linear se há issue aberta.
+- [ ] Nenhum TODO/FIXME crítico solto? Se sim, verificar no GitHub Issues se há issue aberta.
 - [ ] Nenhum arquivo `.old`, `.bak` ou `*.tmp`?
 
 ```bash

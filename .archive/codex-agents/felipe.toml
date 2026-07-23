@@ -1,0 +1,10 @@
+# ARQUIVADO em 2026-07-09
+# Motivo: Felipe foi demitido do squad. Reportou "paridade total com o mockup" sem validar contra URL de produção com dado real.
+# Suas atribuições foram herdadas:
+#   - Implementação do Admin Panel (React/TS) e Workers Cloudflare → Camilo (desde 2026-07-09)
+#   - Análise/leitura executiva de dados de app → Claudete (desde 2026-07-09)
+# Não invocar este agente. Referência histórica apenas.
+
+name = "felipe"
+description = "[ARQUIVADO] Implementação do SignallQ Console (Admin) e Workers Cloudflare. Demitido 2026-07-09."
+model_reasoning_effort = "high"

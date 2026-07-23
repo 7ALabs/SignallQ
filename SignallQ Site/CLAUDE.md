@@ -8,7 +8,7 @@ produto **SignallQ** (mesma linha do app Android e do Console), não um quarto p
 ## Stack
 
 - Vite + React 19 + TypeScript + Tailwind 4 (`@tailwindcss/vite`) — mesmo padrão do
-  `SignallQ Admin/` e do Técnico Virtual.
+  `SignallQ Admin/` e do Agente Virtual.
 - React Router (`react-router-dom`) para as rotas client-side.
 - Vitest + Testing Library para testes unitários.
 - Deploy: Cloudflare Pages, projeto **`signallq`** (reaproveitado — estava desativado desde
@@ -33,7 +33,8 @@ SignallQ Site/
 ## Origem
 
 Implementado a partir de um protótipo Claude Design (Design Components — `.dc.html`) entregue
-pela Lia, seguindo o mesmo fluxo já usado para o Console (Lia desenha, Camilo implementa). O
+pela Lia — fonte viva: [SignallQ — Protótipos](https://claude.ai/design/p/e77ea465-291f-4bf5-930c-a267680da04e)
+— seguindo o mesmo fluxo já usado para o Console (Lia desenha, Camilo implementa). O
 protótipo assumia HTML estático puro; a decisão de arquitetura (registrada nas issues
 #1147-#1155) trocou para este stack porque o próprio protótipo já importava
 `@signallq/design-system` via React — HTML puro exigiria reimplementar à mão um design system que

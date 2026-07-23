@@ -1,14 +1,17 @@
 /* SignallQ UI Kit — phone chrome + shared primitives
    Exposes: Icon, SignalBars, Badge, Avatar, PhoneFrame, TopBar, BottomNav, LK */
 
+// Tokens atuais (fonte de verdade: .claude/skills/SignallQ-design/colors_and_type.css).
+// Corrigido em 2026-07-19 — este objeto ainda usava a paleta antiga (#6C2BFF, Roboto-only,
+// raio de botão 12px) mesmo após a migração de 2026-07-13 para #5B21D6 / Google Sans Flex / 20px.
 const LK = {
-  accent:'#6C2BFF', accentBlue:'#2563EB',
-  success:'#22C55E', warning:'#F5A623', error:'#FF4D4F',
-  bgPrimary:'#FFFFFF', bgSecondary:'#F3F4F6', bgCard:'#FFFFFF',
-  textPrimary:'#0D0D1A', textSecondary:'#6B7280', textTertiary:'#9CA3AF',
-  border:'#E5E7EB',
-  rCard:16, rBtn:12, rPill:999,
-  font:"'Roboto', system-ui, sans-serif",
+  accent:'#5B21D6', accentBlue:'#2851B8',
+  success:'#146C2E', warning:'#8A5000', error:'#BA1A1A',
+  bgPrimary:'#FFFFFF', bgSecondary:'#F8F5FB', bgCard:'#FFFFFF',
+  textPrimary:'#1C1B1F', textSecondary:'#49454F', textTertiary:'#49454F',
+  border:'#79747E',
+  rCard:16, rBtn:20, rField:12, rSheet:28, rDialog:24, rPill:999,
+  font:"'Google Sans Flex', 'Google Sans', 'Roboto', system-ui, sans-serif",
 };
 
 // Material Symbols icon

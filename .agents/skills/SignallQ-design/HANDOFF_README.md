@@ -1,5 +1,10 @@
 # Handoff: SignallQ Design System → Claude Code
 
+> **Fonte de verdade estendida:** `docs_ai/DESIGN_SYSTEM.md` — catálogo completo de estados
+> semânticos, sistema de profundidade (4 níveis), regras de gráficos, conteúdo simulado,
+> acessibilidade e mapeamento Compose. Este README é a referência rápida de tokens; para governança
+> e detalhe de componente, consultar o documento acima.
+
 ## Overview
 
 Este pacote transforma o **SignallQ Design System** em uma **Claude Code Skill** pronta para
@@ -202,8 +207,9 @@ long 300ms · extra-long 400ms`.
 `--space-xs` 4 · `--space-sm` 8 *(unidade base)* · `--space-md` 12 · `--space-base` 16
 *(padding de tela + card — era `--space-lg` na escala antiga de 6 degraus)* · `--space-lg` 20
 *(novo degrau)* · `--space-xl` 24 · `--space-xxl` 32 · `--space-xxxl` 40 *(novo degrau — CTA de
-onboarding, rodapés)*. Toque mínimo: **44px** (IconButton/Switch), CTAs full-width em geral 40px
-de altura.
+onboarding, rodapés)*. Toque mínimo: **48dp** (padrão MD3/Android — corrigido em 2026-07-19; o
+antigo `44px` aqui e o `56dp` de `PRODUCT.md` estavam ambos errados, ver `docs_ai/DESIGN_SYSTEM.md`
+seção 11), CTAs full-width em geral 40px de altura.
 
 ### Forma por componente (specs literais do Fluxo de Telas)
 `Card` 16px · `SheetFrame` 28px (cantos superiores) · `Button` 40px altura / 20px radius (token

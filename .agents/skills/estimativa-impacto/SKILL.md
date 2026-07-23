@@ -51,7 +51,7 @@ Responda cada pergunta. Qualquer NÃO é um risco ativo — registre e decida an
 - [ ] Tem critério de aceite claro e verificável?
   - NÃO → refinar antes de estimar. Não avançar.
 - [ ] Existe design aprovado pela Lia (se a issue tem impacto visual)?
-  - NÃO → bloquear até ter. Consultar `/linka-design` como referência enquanto aguarda.
+  - NÃO → bloquear até ter. Consultar `/SignallQ-design` como referência enquanto aguarda.
 
 **Arquitetura**
 - [ ] Afeta `DiagnosticOrchestrator` ou o fluxo central de diagnóstico?
@@ -69,9 +69,9 @@ Responda cada pergunta. Qualquer NÃO é um risco ativo — registre e decida an
 
 **Qualidade**
 - [ ] Tem cobertura de teste unitário prevista ou já existente?
-  - NÃO → adicionar ao escopo da issue antes de fechar estimativa. Projeto tem ~37 classes de teste em `android/*/src/test/`.
+  - NÃO → adicionar ao escopo da issue antes de fechar estimativa. Ver cobertura real em `android/*/src/test/`.
 - [ ] Há dependência de outra issue em andamento (bloqueio cruzado)?
-  - SIM → registrar dependência no Linear antes de iniciar.
+  - SIM → registrar dependência na issue do GitHub antes de iniciar.
 
 **Nível de Risco Consolidado:**
 
@@ -149,4 +149,4 @@ IMPACTO: Grande · Risco Alto · Milestone recomendado: M2 · Recomendação: mo
 ## Quando não usar
 
 - BUGFIXes simples (≤5 arquivos, sem mudança de contrato) — Camilo direto.
-- Ajustes de copy ou cor que não afetam lógica — Camilo direto com `/linka-design`.
+- Ajustes de copy ou cor que não afetam lógica — Camilo direto com `/SignallQ-design`.

@@ -3,20 +3,18 @@ name: gerar-docs
 description: Gera documentação completa e atualizada para o projeto SignallQ (Android Kotlin) — funcional, técnica, testes, fluxos, design, PPT e HTML. Audita documentação existente antes de criar qualquer coisa nova, move obsoleta para .old, e adequa estilo ao público-alvo (humano ou IA).
 ---
 
-Use a **Taisa** para gerar ou atualizar documentação.
+Skill de geração e atualização de documentação. Executada pelo **Rhodolfo**.
 
 $ARGUMENTS
-
-[Invocando Taisa — especialista em documentação]
 
 ---
 
 ## Passo 1 — Confirmar público-alvo (OBRIGATÓRIO antes de qualquer coisa)
 
-Antes de escrever uma linha, Taisa pergunta:
+Antes de escrever uma linha, perguntar:
 
 > "Esta documentação é para **humano** ou para **IA**?
-> Se for para IA, qual? (Codex, ChatGPT/GPT-4, Gemini, Codex/Copilot, outro)"
+> Se for para IA, qual? (Claude, ChatGPT/GPT-4, Gemini, Codex/Copilot, outro)"
 
 O estilo de escrita, estrutura e nível de detalhamento dependem diretamente desta resposta. Não pule esse passo.
 
@@ -30,7 +28,7 @@ Antes de criar qualquer documento, varrer os diretórios relevantes:
 docs/
 README.md
 README-*.md
-.Codex/
+.claude/
 CHANGELOG.md
 <módulo>/README.md
 <feature>/docs/
@@ -312,13 +310,13 @@ Quando o output for uma apresentação:
 - Tipografia: Google Sans (títulos), Roboto (corpo).
 - Sem clipart. Sem degradê. Sem sombra pesada.
 
-Taisa gera o PPT via python-pptx quando o ambiente tiver o pacote disponível, ou entrega a estrutura em markdown para conversão manual.
+Gerar o PPT via python-pptx quando o ambiente tiver o pacote disponível, ou entregar a estrutura em markdown para conversão manual.
 
 ---
 
 ## Passo 7 — Ajuste de estilo por público-alvo
 
-### Para IA — Codex
+### Para IA — Claude
 - Usar seções delimitadas com `##` e `###`.
 - Regras antes de exemplos.
 - Edge cases como itens separados, não em prosa.
@@ -351,7 +349,7 @@ Taisa gera o PPT via python-pptx quando o ambiente tiver o pacote disponível, o
 
 ## Checklist de entrega
 
-Taisa só considera um documento entregue quando:
+Documento só é considerado entregue quando:
 
 - [ ] Público-alvo confirmado (humano / IA / qual IA)
 - [ ] Auditoria de docs existentes realizada
@@ -364,70 +362,18 @@ Taisa só considera um documento entregue quando:
 
 ---
 
-## Consultas a outros agentes
+## Coleta de contexto
 
-### Regra de economia de tokens — Haiku primeiro
-
-Antes de acionar qualquer agente Sonnet para coletar contexto, Taisa verifica: **Marcelo ou Nina resolvem?**
-
-Ambos são Haiku. A diferença é o domínio:
-- **Marcelo** → busca em **código** (símbolos, arquivos, módulos, componentes)
-- **Nina** → busca em **documentação** (arquivos `.md`, changelog, índices)
-
-Taisa consolida o que recebe e escreve. Contexto Sonnet fica para decisão e produção.
-
-**Delegar ao Marcelo — buscas em código:**
-
-| Tarefa | Exemplo |
-|---|---|
-| Verificar existência de símbolo | "Existe `SpeedTestViewModel` em `featureSpeedtest/`?" |
-| Listar arquivos de um módulo | "Listar todos os `.kt` em `featureWifi/`" |
-| Verificar se testes existem | "Há arquivo de teste para `DiagnosticoEngine`?" |
-| Ler trecho de código para triagem | "Ler a assinatura pública de `DnsRepository`" |
-
-**Delegar à Nina — buscas em documentação:**
-
-| Tarefa | Exemplo |
-|---|---|
-| Listar docs existentes | "Varrer `docs/` e retornar todos os `.md` com data de modificação" |
-| Ler doc para triagem | "Ler `docs/feature-speedtest.md` e resumir os tópicos cobertos" |
-| Resumir changelog ou commits | "Resumir os últimos 10 commits que tocaram em `featureDns/`" |
-| Montar índice de docs | "Listar todos os `.md` na raiz e em `docs/`" |
-
-**Formatos de delegação:**
-```
-Taisa → Marcelo: [busca em código]
-Retorne: [paths, trechos, existência]
-Contexto: [só o necessário]
-
-Taisa → Nina: [busca em documentação]
-Retorne: [lista, resumo de conteúdo]
-Contexto: [só o necessário]
-```
-
-**Não delegar a nenhum dos dois quando:**
-- A tarefa exige julgamento sobre comportamento correto de uma feature.
-- A leitura é de código complexo com múltiplas camadas de arquitetura.
-- A validação técnica exigiria confirmação de agente especializado de qualquer forma.
-
-### Delegação técnica — quando Haiku não é suficiente
+Usar ferramentas nativas (Glob, Grep, Read) para buscas em código e documentação. Delegar a agente especializado apenas quando a tarefa exigir julgamento:
 
 | Lacuna | Consultar |
 |---|---|
 | Comportamento técnico Android | Camilo |
-| Comportamento técnico SignallQ Admin | Felipe |
-| Validação de device real, OEM, API level | Otávio |
-| Decisão de arquitetura, fluxo de dados | Cláudio |
+| Comportamento técnico SignallQ Admin/Console | Camilo |
+| Validação de device real, OEM, API level | `/regras-android` |
+| Decisão de arquitetura, fluxo de dados | Claudete |
 | Estados visuais, microcopy, MD3 | Lia |
-| Bugs conhecidos, risco documentado | Gema |
+| QA, bugs conhecidos, risco documentado | Rhodolfo |
 | Direção de produto | Claudete |
-| Busca em código (símbolo, arquivo, módulo) | **Marcelo** |
-| Busca em documentação (md, changelog, índice) | **Nina** |
 
-Formato de consulta técnica:
-```
-Taisa → [Agente]: Preciso documentar [X]. Qual é o comportamento atual de [Y]?
-Contexto: [o mínimo necessário para o agente responder]
-```
-
-[PRÓXIMO: Taisa entrega o documento no path solicitado com checklist de entrega preenchido]
+[PRÓXIMO: entregar o documento no path solicitado com checklist de entrega preenchido]
