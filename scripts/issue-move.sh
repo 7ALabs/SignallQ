@@ -24,7 +24,7 @@ set -e
 GH="${GH:-gh}"
 [ -x "/c/Program Files/GitHub CLI/gh.exe" ] && GH="/c/Program Files/GitHub CLI/gh.exe"
 
-REPO="${REPO:-7ALabs/linka-android}"
+REPO="${REPO:-7ALabs/SignallQ}"
 OWNER="${OWNER:-gmmattey}"
 PROJ_NUM="${PROJ_NUM:-8}"
 PROJ_ID="${PROJ_ID:-PVT_kwHOD83n7c4BYmdL}"

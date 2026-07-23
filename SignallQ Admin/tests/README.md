@@ -15,7 +15,7 @@ Playwright contra a URL de produção real. Espelha a estrutura de
 | URL | Status |
 |---|---|
 | `https://signallq-admin-panel.pages.dev/` | **Produção real.** Projeto Cloudflare Pages Git-connected — cada push em `main` dispara build/deploy. |
-| `https://signallq.pages.dev/console/` | **Legada, desativada em 2026-07-16.** Responde 200 mas serve um build congelado, anterior à migração de tokens `md3-tobe`. Nunca mais recebe deploy. Usar essa URL para QA produz falso-negativo — já aconteceu 2x na mesma semana (ver issue [#1068](https://github.com/7ALabs/linka-android/issues/1068)). |
+| `https://signallq.pages.dev/console/` | **Legada, desativada em 2026-07-16.** Responde 200 mas serve um build congelado, anterior à migração de tokens `md3-tobe`. Nunca mais recebe deploy. Usar essa URL para QA produz falso-negativo — já aconteceu 2x na mesma semana (ver issue [#1068](https://github.com/7ALabs/SignallQ/issues/1068)). |
 
 Todo teste deste caderno deve rodar contra a URL de produção real.
 

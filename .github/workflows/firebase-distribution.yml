@@ -9,7 +9,7 @@ name: Firebase Distribution
 # de versao antes, mesmo em debug (evita dois uploads com o mesmo numero).
 #
 # Requer o secret FIREBASE_TOKEN (gerado via 'firebase login:ci' na sessao ja autenticada
-# localmente e configurado com 'gh secret set FIREBASE_TOKEN --repo 7ALabs/linka-android').
+# localmente e configurado com 'gh secret set FIREBASE_TOKEN --repo 7ALabs/SignallQ').
 
 on:
   workflow_dispatch:

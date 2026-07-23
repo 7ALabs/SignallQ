@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Cria labels do squad LINKA no repo configurado.
-# Uso: GH=/c/Program\ Files/GitHub\ CLI/gh.exe REPO=7ALabs/linka-android ./scripts/setup-github-labels.sh
+# Uso: GH=/c/Program\ Files/GitHub\ CLI/gh.exe REPO=7ALabs/SignallQ ./scripts/setup-github-labels.sh
 set -e
 GH="${GH:-gh}"
-REPO="${REPO:-7ALabs/linka-android}"
+REPO="${REPO:-7ALabs/SignallQ}"
 
 label() {
   local name="$1" color="$2" desc="$3"

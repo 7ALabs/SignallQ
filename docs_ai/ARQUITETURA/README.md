@@ -5,7 +5,7 @@
 - **Fonte de verdade:** código real (`android/settings.gradle.kts`, `build.gradle.kts` de cada
   módulo) — em caso de divergência com este documento, vale o código (ver
   `.claude/rules/higiene-e-padronizacao-repositorio.md`, seção 3, "Precedência de fontes técnicas")
-- **Escopo:** app Android SignallQ (monorepo `7ALabs/linka-android`) — os 16 módulos Gradle, seus
+- **Escopo:** app Android SignallQ (monorepo `7ALabs/SignallQ`) — os 16 módulos Gradle, seus
   contratos entre si, e as integrações externas que o app consome
 - **Responsável:** Claudete (dono do processo de documentação viva), squad SignallQ
   (Camilo/Lia/Rhodolfo/Juninho) aplica e mantém

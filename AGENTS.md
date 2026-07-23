@@ -28,7 +28,7 @@ Monorepo com plataformas separadas: `android/` (Kotlin nativo), `integrations/` 
 
 ## Handoff e board
 
-Execução vive no **GitHub Issues** (`7ALabs/linka-android`), classificada na hierarquia Épico >
+Execução vive no **GitHub Issues** (`7ALabs/SignallQ`), classificada na hierarquia Épico >
 Feature > Task via campos de Project (`Tipo`/`Épico`/`Feature`) — ver `.claude/CLAUDE.md`, seção
 "Fontes da Verdade", para o mecanismo completo. Handoff entre agentes é dispatch direto (tool
 `Agent`, retomado por `SendMessage`), não um script: não existe `.claude/tasks/queue/` de fato no

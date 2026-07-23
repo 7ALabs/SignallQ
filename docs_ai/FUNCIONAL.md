@@ -12,7 +12,7 @@
   `docs_ai/functional/JOGOS_TESTE_CONEXAO_SPEC.md` continuam vivos à parte (o primeiro cobre
   também a metade técnica/painel Admin fora do escopo deste documento; o segundo já está
   atualizado e serve como spec de referência do domínio Jogos).
-- **Escopo:** app Android SignallQ (`7ALabs/linka-android`, diretório `android/`) — o que o
+- **Escopo:** app Android SignallQ (`7ALabs/SignallQ`, diretório `android/`) — o que o
   usuário final vê e faz. Não cobre arquitetura interna, engines internos ou contratos técnicos
   (ver `docs_ai/TECNICO.md`).
 - **Responsável:** Claudete (dono do processo de documentação funcional), mantido por Camilo

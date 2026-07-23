@@ -55,7 +55,7 @@ Versão fixa: **JDK 17** (Temurin).
 
 ## Histórico de Runs
 
-Acessar em https://github.com/7ALabs/linka-android/actions
+Acessar em https://github.com/7ALabs/SignallQ/actions
 
 Artefatos disponibilizados por 30 dias.
 

@@ -752,8 +752,26 @@ async function ingestToPainel(
   // fetch entre dois *.workers.dev é bloqueado pela Cloudflare (erro 1042).
   const dispatch = env.ADMIN_WORKER ? env.ADMIN_WORKER.fetch.bind(env.ADMIN_WORKER) : fetch;
 
-  const results = await Promise.allSettled([
-    dispatch(`${baseUrl}/ingest/diagnostic`, {
+  // #1316 — ai_usage.session_id tem FOREIGN KEY REFERENCES diagnostic_sessions(id)
+  // (signallq-admin-worker/schema.sql:41). Os dois POSTs eram disparados em paralelo
+  // via Promise.allSettled, sem garantia de ordem de escrita no D1 — quando o insert
+  // de ai-usage vencia a corrida e chegava antes do de diagnostic, a linha pai ainda
+  // não existia e o D1 rejeitava com FOREIGN KEY constraint failed. Ingest de
+  // diagnostic vai primeiro e é aguardado antes do de ai-usage, que depende dele.
+  const labels = ["ingest/diagnostic", "ingest/ai-usage"];
+
+  async function logResult(label: string, res: Response): Promise<void> {
+    // GH#767 — ingest pro admin era 100% silencioso em falha (allSettled sem
+    // checar status). Causa raiz achada assim (erro 1042 de Worker-to-Worker
+    // fetch) — mantido como log permanente de baixo custo (só fala em erro).
+    if (!res.ok) {
+      const bodyText = await res.text().catch(() => "");
+      console.error(`ingestToPainel ${label} HTTP ${res.status}:`, bodyText.slice(0, 300));
+    }
+  }
+
+  try {
+    const diagnosticRes = await dispatch(`${baseUrl}/ingest/diagnostic`, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -769,8 +787,19 @@ async function ingestToPainel(
         packet_loss:    (metricas.perdaPacotes  ?? metricas.packetLoss) as number | null,
         issues,
       }),
-    }),
-    dispatch(`${baseUrl}/ingest/ai-usage`, {
+    });
+    await logResult(labels[0], diagnosticRes);
+
+    // Sem a linha pai gravada, o insert de ai-usage sempre falharia por FK —
+    // não adianta tentar mesmo com o erro logado.
+    if (!diagnosticRes.ok) return;
+  } catch (e) {
+    console.error(`ingestToPainel ${labels[0]} REJECTED:`, e);
+    return;
+  }
+
+  try {
+    const aiUsageRes = await dispatch(`${baseUrl}/ingest/ai-usage`, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -783,21 +812,10 @@ async function ingestToPainel(
         completion_tokens: usage?.completionTokens ?? 0,
         total_tokens: usage?.totalTokens ?? 0,
       }),
-    }),
-  ]);
-
-  // GH#767 — ingest pro admin era 100% silencioso em falha (allSettled sem
-  // checar status). Causa raiz achada assim (erro 1042 de Worker-to-Worker
-  // fetch) — mantido como log permanente de baixo custo (só fala em erro).
-  const labels = ["ingest/diagnostic", "ingest/ai-usage"];
-  for (let i = 0; i < results.length; i++) {
-    const r = results[i];
-    if (r.status === "rejected") {
-      console.error(`ingestToPainel ${labels[i]} REJECTED:`, r.reason);
-    } else if (!r.value.ok) {
-      const bodyText = await r.value.text().catch(() => "");
-      console.error(`ingestToPainel ${labels[i]} HTTP ${r.value.status}:`, bodyText.slice(0, 300));
-    }
+    });
+    await logResult(labels[1], aiUsageRes);
+  } catch (e) {
+    console.error(`ingestToPainel ${labels[1]} REJECTED:`, e);
   }
 }
 

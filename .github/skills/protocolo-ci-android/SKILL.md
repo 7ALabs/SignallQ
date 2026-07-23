@@ -25,12 +25,12 @@ numa PR que só toca `/android`) e o CI de verdade nunca executou no HEAD atual.
 
 **Diagnóstico:**
 ```bash
-gh run list --repo gmmattey/linka-android --branch <branch> --json status,conclusion,workflowName
+gh run list --repo 7ALabs/SignallQ --branch <branch> --json status,conclusion,workflowName
 ```
 Se o run mais recente tiver `conclusion: action_required`, aprove antes de confiar em qualquer
 status:
 ```bash
-gh api -X POST repos/gmmattey/linka-android/actions/runs/<run-id>/approve
+gh api -X POST repos/7ALabs/SignallQ/actions/runs/<run-id>/approve
 ```
 Espere o resultado real antes de mergear.
 
@@ -66,7 +66,7 @@ byte-a-byte atualizada com o `main` mais recente.
 **Se uma PR aparecer `mergeStateStatus: BEHIND` mesmo assim:** normal em dia de merge concorrente
 alto — é só reflexo de `main` ter avançado, não bloqueia merge com `strict=false`. Se quiser
 atualizar mesmo assim (recomendado se a divergência for grande): `gh api -X PUT
-repos/gmmattey/linka-android/pulls/<N>/update-branch`.
+repos/7ALabs/SignallQ/pulls/<N>/update-branch`.
 
 ## Referência
 

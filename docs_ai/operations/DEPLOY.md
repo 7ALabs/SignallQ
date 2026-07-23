@@ -7,7 +7,7 @@ This document outlines the deployment process for the SignallQ Android Kotlin ap
 > Versao atual: **0.26.0** (versionCode 61), release 2026-07-17.
 > Namespace/applicationId atual: **`io.signallq.app`** (renomeado de `io.veloo.app`
 > em 2026-06-28; caminho fisico do codigo do `:app` continua `io/veloo/app/kotlin/`).
-> Demais identificadores tecnicos permanecem: repo `7ALabs/linka-android`, worker
+> Demais identificadores tecnicos permanecem: repo `7ALabs/SignallQ`, worker
 > `linka-ai-diagnosis-worker`. Publicacao na Play Console e distribuicao Firebase sao
 > automatizadas via GitHub Actions — nao ha upload manual pela UI (ver abaixo).
 
@@ -29,7 +29,7 @@ Workflow `.github/workflows/firebase-distribution.yml` (`workflow_dispatch` manu
 `clean` → `assembleRelease` (ou `assembleDebug`) → `appDistributionUploadRelease`/`...Debug`.
 Depende do secret `FIREBASE_TOKEN` (gerado localmente via `firebase login:ci` — exige TTY
 interativo, configurado uma vez com `gh secret set FIREBASE_TOKEN --repo
-7ALabs/linka-android`).
+7ALabs/SignallQ`).
 
 **Worker Cloudflare:** se houver mudanças em
 `integrations/cloudflare/ai-diagnosis-worker/src/`, rodar `npx wrangler deploy`

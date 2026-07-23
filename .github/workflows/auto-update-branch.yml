@@ -23,13 +23,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          prs=$(gh pr list --repo 7ALabs/linka-android --state open --json number --jq '.[].number')
+          prs=$(gh pr list --repo 7ALabs/SignallQ --state open --json number --jq '.[].number')
           for n in $prs; do
-            state=$(gh pr view "$n" --repo 7ALabs/linka-android --json mergeStateStatus --jq '.mergeStateStatus')
+            state=$(gh pr view "$n" --repo 7ALabs/SignallQ --json mergeStateStatus --jq '.mergeStateStatus')
             echo "PR #$n mergeStateStatus=$state"
             if [ "$state" = "BEHIND" ]; then
               echo "Updating PR #$n..."
-              gh api -X PUT "repos/7ALabs/linka-android/pulls/$n/update-branch" \
+              gh api -X PUT "repos/7ALabs/SignallQ/pulls/$n/update-branch" \
                 -H "Accept: application/vnd.github+json" || echo "::warning::falha ao atualizar PR #$n (provavel conflito, ignorando)"
             fi
           done

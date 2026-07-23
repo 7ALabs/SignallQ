@@ -63,33 +63,63 @@ const GEMINI_MODELO_IA: Record<string, unknown> = {
   textoRodape: "Motor de análise: SignallQ IA",
 };
 
+// #1317 — validado direto em producao via wrangler tail (2026-07-22): o 400
+// da Gemini para este payload vem com corpo GENERICO, sem citar o campo
+// rejeitado --  {"error":{"code":400,"message":"Request contains an invalid
+// argument.","status":"INVALID_ARGUMENT"}} -- entao nao da pra distinguir
+// "rejeitou thinkingConfig" de outro 400 pelo texto da mensagem. Retry sem
+// thinkingConfig acontece em QUALQUER 400 (o campo e o unico coringa do
+// payload introduzido pelo GH#898; se a causa fosse outra, o retry so
+// devolveria o mesmo 400 de novo e cairia pro Qwen do mesmo jeito -- custo de
+// 1 chamada HTTP extra, sem risco de mascarar erro novo).
+//
+// Funcao pura (fora da classe de proposito: parameter properties do
+// construtor do provider nao passam pelo strip-only TS loader do
+// `node --test`, entao a logica testavel precisa ficar fora da classe pra
+// ganhar cobertura unitaria real sem mockar toda a classe).
+export function isGeminiThinkingConfigRejection(status: number, _detail: string): boolean {
+  return status === 400;
+}
+
 export class GeminiFlashProvider implements AiProvider {
   readonly id = "gemini_flash";
 
   constructor(private readonly apiKey: string) {}
 
+  // #1317 — a doc atual da Gemini API (ai.google.dev/gemini-api/docs/thinking,
+  // consultada em 2026-07-22) não documenta mais `thinkingConfig.thinkingBudget`
+  // para o alias "gemini-flash-latest" (hoje já resolvendo pra geração nova,
+  // GA anunciado na mesma data) — só `thinking_level`. Sem acesso a
+  // GEMINI_API_KEY real neste ambiente pra confirmar o nome exato do campo
+  // aceito pela geração nova, `body()` fica resiliente ao drift em vez de
+  // apostar num nome: manda `thinkingConfig` normalmente (mantém o comportamento
+  // do GH#898 pra modelos que ainda aceitam o campo) e, se a API responder 400
+  // citando `thinkingConfig`/`thinking`, tenta de novo sem esse bloco antes de
+  // desistir e cair pro fallback Qwen — hoje esse retry nunca acontecia, então
+  // 100% das chamadas iam direto pro Qwen sem sinal nenhum.
   private body(
     systemPrompt: string,
     userContent: string,
     maxTokens: number,
     temperature: number,
+    omitThinkingConfig = false,
   ): string {
+    const generationConfig: Record<string, unknown> = {
+      maxOutputTokens: maxTokens,
+      temperature,
+    };
+    if (!omitThinkingConfig) {
+      // GH#898 QA fix — o alias "gemini-flash-latest" pode resolver para um
+      // modelo com "thinking" habilitado por padrao, que consome parte do
+      // maxOutputTokens em tokens de raciocinio invisiveis antes do texto
+      // final, cortando o JSON no meio por MAX_TOKENS. thinkingBudget: 0
+      // desliga o raciocinio nos modelos que ainda aceitam esse campo.
+      generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    }
     return JSON.stringify({
       systemInstruction: { parts: [{ text: systemPrompt }] },
       contents: [{ role: "user", parts: [{ text: userContent }] }],
-      // GH#898 QA fix — o alias "gemini-flash-latest" hoje resolve para um modelo
-      // com "thinking" habilitado por padrao, que consome parte do
-      // maxOutputTokens em tokens de raciocinio invisiveis antes do texto final.
-      // Isso fazia o JSON (mais longo desde a regra 8/8a de linguagem humana)
-      // ser cortado no meio por MAX_TOKENS mesmo com poucos caracteres visiveis
-      // (raiz do 502 ai_json_parse_failed em producao). thinkingBudget: 0
-      // desliga o raciocinio para modelos que suportam o campo; ignorado sem
-      // erro pelos que nao suportam.
-      generationConfig: {
-        maxOutputTokens: maxTokens,
-        temperature,
-        thinkingConfig: { thinkingBudget: 0 },
-      },
+      generationConfig,
     });
   }
 
@@ -107,14 +137,27 @@ export class GeminiFlashProvider implements AiProvider {
     temperature: number,
   ): Promise<ProviderResult> {
     const url = `${GEMINI_BASE_URL}/${GEMINI_MODEL_ID}:generateContent`;
-    const res = await fetch(url, {
+    let res = await fetch(url, {
       method: "POST",
       headers: this.headers(),
       body: this.body(systemPrompt, userContent, maxTokens, temperature),
     });
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
-      throw new Error(`Gemini ${res.status}: ${detail.slice(0, 200)}`);
+      if (isGeminiThinkingConfigRejection(res.status, detail)) {
+        console.error(`[AiRouter] ${this.id} rejeitou thinkingConfig (${detail.slice(0, 200)}), retentando sem o campo`);
+        res = await fetch(url, {
+          method: "POST",
+          headers: this.headers(),
+          body: this.body(systemPrompt, userContent, maxTokens, temperature, true),
+        });
+        if (!res.ok) {
+          const retryDetail = await res.text().catch(() => "");
+          throw new Error(`Gemini ${res.status} (retry sem thinkingConfig): ${retryDetail.slice(0, 200)}`);
+        }
+      } else {
+        throw new Error(`Gemini ${res.status}: ${detail.slice(0, 200)}`);
+      }
     }
     const json = (await res.json()) as Record<string, unknown>;
     const text = extractGeminiText(json);
@@ -134,12 +177,23 @@ export class GeminiFlashProvider implements AiProvider {
     temperature: number,
   ): Promise<ReadableStream> {
     const url = `${GEMINI_BASE_URL}/${GEMINI_MODEL_ID}:streamGenerateContent?alt=sse`;
-    const res = await fetch(url, {
+    let res = await fetch(url, {
       method: "POST",
       headers: this.headers(),
       body: this.body(systemPrompt, userContent, maxTokens, temperature),
     });
-    if (!res.ok) throw new Error(`Gemini stream ${res.status}`);
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      if (isGeminiThinkingConfigRejection(res.status, detail)) {
+        console.error(`[AiRouter] ${this.id} stream rejeitou thinkingConfig (${detail.slice(0, 200)}), retentando sem o campo`);
+        res = await fetch(url, {
+          method: "POST",
+          headers: this.headers(),
+          body: this.body(systemPrompt, userContent, maxTokens, temperature, true),
+        });
+      }
+      if (!res.ok) throw new Error(`Gemini stream ${res.status}`);
+    }
     if (!res.body) throw new Error("Gemini stream: empty body");
     return normalizeGeminiStream(res.body);
   }

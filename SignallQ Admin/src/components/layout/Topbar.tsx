@@ -8,7 +8,7 @@ import { alpha } from "../../utils/color";
 // Link para o DESIGN.md do repositório — mesmo destino real usado como
 // referência de design system, sem inventar uma tela nova só pra esse link.
 const DESIGN_SYSTEM_URL =
-  "https://github.com/7ALabs/linka-android/blob/main/SignallQ%20Admin/DESIGN.md";
+  "https://github.com/7ALabs/SignallQ/blob/main/SignallQ%20Admin/DESIGN.md";
 
 interface TopbarProps {
   environment: AppEnvironment;

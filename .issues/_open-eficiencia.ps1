@@ -1,5 +1,5 @@
 $env:Path += ";C:\Program Files\GitHub CLI"
-$repo = "7ALabs/linka-android"
+$repo = "7ALabs/SignallQ"
 $ms = "v0.9.3 - Eficiencia"
 
 $issues = @(

@@ -2,7 +2,7 @@
 
 App Android de **diagnóstico de conectividade** com IA — analisa Wi-Fi, fibra, rede móvel e dispositivos da rede local e gera laudos com explicações em linguagem natural.
 
-> Package/namespace atual é `io.signallq.app` (renomeado de `io.veloo.app` em 2026-06-28). Outros identificadores técnicos preservam nomes anteriores — repo `linka-android`, banco `linkaKotlin.db`, worker `linka-ai-diagnosis-worker` — são técnicos, não a marca. A marca é **SignallQ**.
+> Package/namespace atual é `io.signallq.app` (renomeado de `io.veloo.app` em 2026-06-28). Outros identificadores técnicos preservam nomes anteriores — repo `SignallQ`, banco `linkaKotlin.db`, worker `linka-ai-diagnosis-worker` — são técnicos, não a marca. A marca é **SignallQ**.
 
 ## Stack
 

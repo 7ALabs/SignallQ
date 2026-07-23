@@ -337,7 +337,7 @@ Alternativa via dashboard:
 | Cloudflare Dashboard | https://dash.cloudflare.com |
 | Cloudflare Workers Logs | Dashboard > Workers > linka-ai-diagnosis-worker > Logs |
 | Linear (backlog) | https://linear.app |
-| GitHub (repo) | https://github.com/7ALabs/linka-android |
+| GitHub (repo) | https://github.com/7ALabs/SignallQ |
 
 ---
 
