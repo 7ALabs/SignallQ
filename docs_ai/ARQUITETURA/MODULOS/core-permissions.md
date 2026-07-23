@@ -1,50 +1,51 @@
 # Módulo :corePermissions
 
 - **Status:** ativo
-- **Última validação:** 2026-07-16 (fonte: `android/core/permissions/build.gradle.kts`, código real)
-- **Caminho físico:** `android/core/permissions/`
-- **Namespace:** `io.signallq.app.core.permissions`
+- **Última validação:** 2026-07-23 (fonte: `android/core/permissions/build.gradle.kts`, código real)
+- **Fonte de verdade:** código real do módulo — em caso de divergência, vale o código
+- **Escopo:** módulo Gradle `:corePermissions` (alias legado; pasta física `android/core/permissions/`)
+- **Responsável:** Camilo (dono da implementação Android), squad SignallQ mantém
 
-## Responsabilidade
+## Visão geral
 
 Contrato e estado de permissões de rede em runtime (localização para scan Wi-Fi, telefonia para
-sinal móvel, etc.).
+sinal móvel, etc.). Namespace declarado: `io.signallq.app.core.permissions`.
 
-## Principais packages/pastas
+## Diagrama de componentes
 
-Base: `corePermissions/src/main/kotlin/io/veloo/app/kotlin/core/permissions/` (caminho físico
-legado).
+```
+:corePermissions (io/veloo/ — caminho legado)
+GerenciadorPermissoesRede (interface) → GerenciadorPermissoesRedeAndroid (impl)
+    ↳ SnapshotPermissoesRede (estado), EstadoPermissao (enum), LocationPermissionHelper (utilitário)
+```
 
-## Classes/contratos públicos relevantes
+## Componentes em detalhe
 
-| Arquivo | Tipo | Responsabilidade |
+| Componente | Tipo | Responsabilidade |
 |---|---|---|
 | `GerenciadorPermissoesRede.kt` | Interface | Contrato de gerenciamento de permissões |
+| `GerenciadorPermissoesRedeAndroid.kt` | Implementação | Implementação real via APIs Android |
 | `SnapshotPermissoesRede.kt` | Data class | Estado atual das permissões |
+| `EstadoPermissao.kt` | Enum | Estados possíveis de uma permissão |
+| `LocationPermissionHelper.kt` | Utilitário | Apoio à checagem/solicitação de permissão de localização |
 
-## Entradas/saídas
+## Fluxo de dados principal
 
 - **Entradas:** resultado de solicitações de permissão do Android (`ActivityResultContracts`,
   chamado a partir de `:app`).
 - **Saídas:** `SnapshotPermissoesRede` consumido por `:app` para decidir quais telas/recursos
   habilitar.
 
-## Dependências declaradas (build.gradle.kts real)
+## Decisões arquiteturais (ADR)
 
-Nenhum módulo do monorepo. Libs: `androidx-core-ktx`.
+- **Nenhuma dependência de outro módulo do monorepo.** Libs: `androidx-core-ktx`.
+- **Apenas `:app` consome este módulo** (confirmado via grep de `project(":corePermissions")`) —
+  nenhuma feature declara dependência direta; a implementação concreta e o wiring de permissões
+  concentram-se em `:app`.
 
-## Consumidores
+## Riscos e mitigação
 
-Via grep de `project(":corePermissions")`: **apenas `:app`**. Nenhuma feature declara dependência
-direta — a implementação concreta e o wiring de permissões concentram-se em `:app`.
-
-## Testes existentes
-
-`src/test`: **0 arquivos**. `src/androidTest`: 0.
-
-## Riscos/dívidas conhecidas
-
-Módulo minimalista (2 arquivos fonte) sem nenhum teste. Caminho físico `io/veloo` diverge do
-package — dívida 4.1.
-```
-
+| Risco | Impacto | Mitigação |
+|---|---|---|
+| Módulo pequeno (5 arquivos) sem nenhum teste (`src/test`: 0) | Regra de permissão sem cobertura automatizada | Adicionar teste ao tocar `GerenciadorPermissoesRedeAndroid` |
+| Caminho físico `io/veloo` diverge do package declarado | Dívida 4.1 da regra de higiene | Não migrar oportunisticamente |

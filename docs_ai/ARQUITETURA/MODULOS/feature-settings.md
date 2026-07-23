@@ -1,79 +1,63 @@
 # Módulo :featureSettings
 
-- **Status:** ativo (módulo mínimo)
-- **Última validação:** 2026-07-16 (fonte: `android/feature/settings/build.gradle.kts`, código real)
-- **Caminho físico:** `android/feature/settings/`
-- **Namespace:** `io.signallq.app.feature.settings`
+- **Status:** ativo
+- **Última validação:** 2026-07-23 (fonte: `android/feature/settings/build.gradle.kts`, código real)
+- **Fonte de verdade:** código real do módulo — em caso de divergência, vale o código
+- **Escopo:** módulo Gradle `:featureSettings` (alias legado; pasta física `android/feature/settings/`)
+- **Responsável:** Camilo (dono da implementação Android), squad SignallQ mantém
 
-## Responsabilidade
+## Visão geral
 
-Módulo mínimo — só a fábrica do módulo. A tela real (`AjustesScreen.kt`, aba Ajustes) reside em
-`:app` (`ui/screen/AjustesScreen.kt`, 809 linhas — ver dívida 4.4 da regra de higiene), não neste
-módulo.
+**Correção factual relevante desde a última auditoria (2026-07-16):** este módulo deixou de ser "só
+a fábrica do módulo, praticamente vazio" — hoje concentra validadores e resolvedores reais de
+domínio (perfil de conexão, tema, cidade/UF, velocidade contratada), com 5 arquivos de teste
+próprios. A tela em si (`AjustesScreen.kt`, overlay Perfil/Ajustes, 803 linhas — ver dívida 4.4 da
+regra de higiene) continua residindo em `:app`. Namespace declarado: `io.signallq.app.feature.settings`.
 
-## Principais packages/pastas
+## Diagrama de componentes
 
-Base: `feature/settings/src/main/kotlin/io/veloo/app/kotlin/feature/settings/` (caminho físico
-legado) — único arquivo: `FeatureSettingsModulo.kt`.
-
-## Classes/contratos públicos relevantes
-
-| Arquivo | Tipo | Responsabilidade |
-|---|---|---|
-| `FeatureSettingsModulo.kt` | Object | Fábrica estática — placeholder do padrão de módulo feature |
-
-## Entradas/saídas
-
-Nenhuma lógica própria relevante — módulo esqueleto.
-
-## Dependências declaradas (build.gradle.kts real)
-
-Nenhum módulo do monorepo. Libs: `androidx-core-ktx`.
-
-## Consumidores
-
-Via grep de `project(":featureSettings")`: apenas `:app`.
-
-## Testes existentes
-
-`src/test`: **0 arquivos**. `src/androidTest`: 0.
-
-## Riscos/dívidas conhecidas
-
-Mesmo padrão de `:featureHome`: módulo praticamente vazio, lógica real concentrada em `:app`
-(`AjustesScreen.kt`, já identificado como dívida crítica de tamanho na regra de higiene, seção
-4.4). Não é correção pequena o suficiente para esta tarefa de documentação.
 ```
-=== FIM ARQUIVO ===
+:featureSettings (io/veloo/ — caminho legado)
+FeatureSettingsModulo — fábrica estática
+├── ConnectionProfile — modelo de perfil de conexão
+├── DetectorDivergenciaPerfilConexao — detecta divergência entre perfil informado e real
+├── ResolvedorNetworkId — resolve identificador de rede
+├── ThemePreference — preferência de tema (claro/escuro)
+├── ValidadorCidadeUf — validação de cidade/UF informados pelo usuário
+└── ValidadorVelocidadeContratada — validação de velocidade contratada informada pelo usuário
+```
 
-Ao final, fora dos blocos de arquivo, conforme pedido:
+## Componentes em detalhe
 
-**Violações reais de dependência encontradas (feature→feature)**
-- `:featureDiagnostico` → `implementation(project(":featureSpeedtest"))` em `android/feature/diagnostico/build.gradle.kts`. Única violação real encontrada nos 16 módulos — todas as demais dependências de módulo seguem o padrão feature→core ou app→(core|feature). Não é diagnóstico especulativo: confirmado lendo o `build.gradle.kts` real. Recomendação (não executada, é read-only): extrair um contrato normalizado (ex.: interface `ExecutorSpeedtestProvider` ou `SnapshotExecucaoSpeedtest` já suficiente) para um módulo `core` adequado, ou mover a composição para `:app`, seguindo a regra 4.5 da regra de higiene.
+| Componente | Tipo | Responsabilidade |
+|---|---|---|
+| `FeatureSettingsModulo.kt` | Object | Fábrica estática do módulo |
+| `ConnectionProfile.kt` | Data class | Modelo de perfil de conexão do usuário |
+| `DetectorDivergenciaPerfilConexao.kt` | Detector | Detecta divergência entre o perfil de conexão informado e o observado na rede |
+| `ResolvedorNetworkId.kt` | Resolver | Resolve identificador estável de rede (para persistir preferências por rede) |
+| `ThemePreference.kt` | Enum/Data class | Preferência de tema do app |
+| `ValidadorCidadeUf.kt` | Validador | Valida cidade/UF informados nos Ajustes |
+| `ValidadorVelocidadeContratada.kt` | Validador | Valida a velocidade contratada informada nos Ajustes |
 
-**Contagem real de testes por módulo** (arquivos em `src/test`, mais `src/androidTest` entre parênteses quando > 0):
-- `:app` — 42
-- `:coreNetwork` — 11
-- `:coreDatabase` — 1 (+3 androidTest)
-- `:coreDatastore` — 0
-- `:corePermissions` — 0
-- `:coreTelephony` — 2
-- `:coreRecommendation` — 1
-- `:featureHome` — 0
-- `:featureWifi` — 5
-- `:featureDevices` — 10
-- `:featureDns` — 1
-- `:featureSpeedtest` — 2
-- `:featureDiagnostico` — 33
-- `:featureFibra` — 3
-- `:featureHistory` — 7
-- `:featureSettings` — 0
-- **Total: 118 arquivos em `src/test` + 3 em `src/androidTest` = 121.** (`.claude/CLAUDE.md` cita "~66 arquivos de teste unitário" — número desatualizado frente à contagem real feita agora; não corrigido no CLAUDE.md porque está fora do escopo desta tarefa de documentação de arquitetura, mas sinalizo aqui.)
+## Fluxo de dados principal
 
-**Não confirmável / observações**
-- `SignallQDatabase` — `FEATURE_FILE_MAPS.md` e o código-fonte apontam "versão 10", enquanto `.claude/CLAUDE.md` cita "Room v12" em outro contexto. Não abri o arquivo `SignallQDatabase.kt` para arbitrar a versão exata do schema (fora do escopo desta tarefa); sinalizei a divergência no doc de `core-database.md` para reconfirmação futura.
-- Não executei build/testes reais (`ktlintCheck`, `detekt`, `test`, `assembleDebug`) — esta foi uma tarefa exclusivamente de leitura e geração de conteúdo markdown, sem gravação em disco nem validação de build, conforme escopo pedido.
-- Nenhum arquivo foi criado ou modificado nesta sessão; todo o conteúdo acima é para você (Claudete/squad) revisar e gravar via `Write` quando aprovar o texto.agentId: abe0b402a44edaec3 (use SendMessage with to: 'abe0b402a44edaec3', summary: '<5-10 word recap>' to continue this agent)
-<usage>subagent_tokens: 183739
-tool_uses: 9
-duration_ms: 250020</usage>
+- **Entradas:** dados informados pelo usuário no overlay Ajustes/Perfil (`:app`), estado de rede
+  observado.
+- **Saídas:** validação/resolução consumida por `:app` (`AjustesScreen.kt`) ao persistir preferência
+  via `:coreDatastore`.
+
+## Decisões arquiteturais (ADR)
+
+- **Nenhuma dependência de outro módulo do monorepo.** Libs: `androidx-core-ktx`.
+- A UI (`AjustesScreen.kt`) permanece em `:app` — o mesmo padrão de `:featureHome`: lógica de
+  domínio ganhou módulo próprio, tela continua centralizada em `:app`.
+
+## Riscos e mitigação
+
+| Risco | Impacto | Mitigação |
+|---|---|---|
+| `AjustesScreen.kt` em `:app` já é dívida crítica de tamanho (803 linhas, seção 4.4 da higiene) — este módulo tem os validadores mas não a composição da UI | Lógica e UI vivem em módulos diferentes, dificultando visão completa do fluxo de Ajustes | Ao extrair sheets de `AjustesScreen.kt`, considerar se algum validador aqui deveria virar use case explícito consumido pela sheet |
+| Caminho físico `io/veloo` diverge do package declarado | Dívida 4.1 da regra de higiene | Não migrar oportunisticamente |
+
+`src/test`: **5 arquivos** (era 0 — módulo ganhou cobertura real junto com a lógica de domínio).
+`src/androidTest`: 0.
