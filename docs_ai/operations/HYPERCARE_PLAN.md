@@ -1,6 +1,12 @@
 # Plano de Hypercare (30 dias) — SignallQ
 
-> Atualizado em 2026-06-28. Vigência: M5 (04/09) até H1 (04/10/2026).
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Fonte de verdade das datas:** GitHub issue
+  [#1222](https://github.com/7ALabs/SignallQ/issues/1222) — lançamento público (M5) em
+  **21/08/2026**. Vigência do hypercare = M5 até M5+30 dias — **[a confirmar]** a data exata de
+  encerramento contra a issue quando M5 for confirmado. A data "04/09" abaixo é de uma revisão
+  anterior (28/06) e não foi reconfirmada contra a decisão de cronograma de 2026-07-20.
 
 ## Objetivo
 

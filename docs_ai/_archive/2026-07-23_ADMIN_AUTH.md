@@ -1,3 +1,10 @@
+> **Arquivado em 2026-07-23.** Spec de implementação (Linear SIG-136) — a auth já está
+> implementada em `integrations/cloudflare/signallq-admin-worker/src/auth.ts` desde então.
+> Código é a fonte de verdade agora, não este spec (que já diverge em um detalhe: o spec pede
+> ≥150.000 iterações PBKDF2, o código real usa 100.000 — confirmar com Camilo se vale reforçar
+> antes de tratar como conforme). Para schema D1 atual, ver skill `cloudflare-d1-console` e
+> `docs_ai/plataforma/07_*`.
+
 # Autenticação do SignallQ Admin — auth própria via D1 (SIG-136)
 
 Spec da autenticação do painel Admin: **auth própria, controlada por nós, com usuários e

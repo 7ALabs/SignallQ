@@ -1,3 +1,10 @@
+> **Arquivado em 2026-07-23.** Superseded pela revisão 2026-07-22 registrada diretamente em
+> `.claude/CLAUDE.md` (seção "Agentes") — que já reflete a divisão de frentes atual
+> (Camilo passou a ser só backend; Lia herdou frontend React/TS do Console/Site; Rhodolfo
+> passa a escrever testes automatizados). A tabela de cargos e o organograma abaixo descrevem
+> o estado de 2026-07-16, já desatualizado nesse ponto específico. Mantido como registro
+> histórico da decisão de estrutura corporativa e da auditoria de skills feita na época.
+
 # Estrutura Organizacional do Squad — revisão 2026-07-16
 
 Decisão da Claudete a partir de pedido do Luiz: tratar o squad de agentes como empresa — cargos em

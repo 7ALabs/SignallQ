@@ -1,5 +1,9 @@
 # Politica de Versionamento
 
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Escopo:** versionName/versionCode do app Android
+
 ## Fonte de verdade
 
 ```

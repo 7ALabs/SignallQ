@@ -1,22 +1,36 @@
 # CI/CD Pipeline — SignallQ
 
-Documentação do pipeline de integração contínua automatizado para SignallQ.
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Fonte de verdade:** `.github/workflows/*.yml`
+- **Escopo:** CI (testes/lint/build) e CD (release/deploy) automatizados via GitHub Actions
+
+Documentação do pipeline de integração contínua e deploy automatizado para SignallQ.
 
 ## Overview
 
-O projeto possui um workflow de CI:
+O projeto tem **9 workflows** em `.github/workflows/` (1 desativado):
 
-1. **Android CI** (`android-ci.yml`) — testes, lint, análise e build do app Android
+| Workflow | Função |
+|---|---|
+| `android-ci.yml` | CI — testes, lint, análise e build do app Android (detalhado abaixo) |
+| `firebase-distribution.yml` | Deploy sob demanda (`workflow_dispatch`) para Firebase App Distribution |
+| `release.yml` | Release oficial — dispara em tag `vX.Y.Z`, publica AAB na trilha `internal` da Play Console |
+| `promote-release.yml` | Promove o mesmo AAB de `internal` → `alpha` (`workflow_dispatch`), guardrail bloqueia `beta`/`production` |
+| `auto-move-board.yml` | Safety net — move card do Project quando PR/issue muda fora do controle dos agentes locais |
+| `auto-update-branch.yml` | Mantém PRs abertas atualizadas com `main` automaticamente |
+| `site-ci.yml` | CI do SignallQ Site (React/Vite/TS) |
+| `site-deploy.yml` | Deploy do SignallQ Site para Cloudflare Pages (`signallq.pages.dev`) |
+| `pages-deploy.yml.disabled` | Desativado — não roda (sufixo `.disabled`) |
 
-Ele é disparado automaticamente em:
-- `push` para `main`
-- `pull_request` contra `main`
-
-E respeitam filtros de caminho para evitar rodadas desnecessárias.
+Este documento detalha só o `android-ci.yml`. Para release/deploy Android ver
+`docs_ai/operations/RELEASE.md` e `DEPLOY.md`.
 
 ## Android CI — `android-ci.yml`
 
 ### Triggers
+
+Disparado automaticamente em `push`/`pull_request` contra `main`.
 
 Workflow só roda se houve mudança em `android/` ou no próprio workflow.
 
@@ -144,6 +158,9 @@ Total por run: ~20-35 minutos.
 - E2E / UI tests em emulador
 - Performance profiling automatizado
 - Upload de resultados para dashboard externo
-- Notificação automática em Slack/Discord via GitHub App
-- Release workflow (deploy automatizado em tag)
+- Notificação automática em Slack/Discord via GitHub App (parcialmente coberto por
+  `scripts/discord_notify.sh`/`slack_notify.sh`, chamados fora do CI hoje)
+
+Release workflow (`release.yml`) e promoção de trilha (`promote-release.yml`) **já existem** —
+removido da lista de pendências.
 

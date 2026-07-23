@@ -1,3 +1,10 @@
+> **Arquivado em 2026-07-23.** Auditoria pontual (snapshot de código em 2026-07-13, commit
+> `2957f054`+correções), não runbook vivo. Achados que ainda importam devem estar rastreados
+> como issues GitHub (não confirmado nesta limpeza quais dos achados abertos aqui já viraram
+> issue — conferir antes de assumir resolvido). Não usar como estado atual do app; para o
+> design vigente ver o projeto Claude Design "SignallQ Design System" citado no cabeçalho
+> original abaixo e `docs_ai/DESIGN_SYSTEM.md`.
+
 # Auditoria — App Android SignallQ × Spec To-Be (Fluxo de Telas)
 
 **Data original:** 2026-07-13 · **Reauditoria (v2, esta versão):** 2026-07-13

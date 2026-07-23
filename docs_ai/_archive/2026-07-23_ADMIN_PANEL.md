@@ -1,3 +1,11 @@
+> **Arquivado em 2026-07-23.** Datado 2026-06-23, cita agentes desligados (Felipe, Gema) e
+> tem pelo menos um erro técnico confirmado: a seção 1.1/3 descreve as rotas `/admin/*` como
+> servidas por `linka-ai-diagnosis-worker`, mas o worker real do Admin é `signallq-admin`
+> (`integrations/cloudflare/signallq-admin-worker/wrangler.toml`). Schema D1 e endpoints
+> atuais vivem no código real + skill `cloudflare-d1-console` + `docs_ai/plataforma/07_*`
+> (fontes vivas apontadas em `.claude/CLAUDE.md`). Não usar este documento como referência de
+> schema ou endpoint atual.
+
 # SignallQ Admin Panel — Documentação Operacional
 
 **Última atualização:** 2026-06-23 (fase SIG-143/136/132/125)

@@ -1,6 +1,8 @@
 # Plano de Rollback — SignallQ
 
-> Atualizado em 2026-06-28.
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Escopo:** rollback de Android (Play Store/Firebase), workers Cloudflare e D1
 
 ## Quando fazer rollback
 
@@ -53,10 +55,12 @@ cd integrations/cloudflare/<worker>
 npx wrangler deploy
 ```
 
-**Workers do SignallQ:**
-- `linka-ai-diagnosis-worker` — diagnóstico IA
-- `signallq-admin-worker` — admin backend
-- Privacy pages (Cloudflare Pages)
+**Workers do SignallQ (5, todos em `integrations/cloudflare/`):**
+- `linka-ai-diagnosis-worker` (pasta `ai-diagnosis-worker`) — diagnóstico IA
+- `signallq-admin` (pasta `signallq-admin-worker`) — admin backend (D1)
+- `signallq-diagnostic` (pasta `signallq-diagnostic-worker`) — diagnóstico/telemetria
+- `signallq-privacy` (pasta `signallq-privacy-worker`) — política de privacidade/termos (não é Cloudflare Pages, é Worker)
+- `signallq-game-latency-probe` (pasta `game-latency-probe-worker`) — probe de latência do fluxo de Jogos
 
 ### D1 Database
 
@@ -67,9 +71,9 @@ npx wrangler deploy
 
 ## Comunicação durante rollback
 
-1. **Imediato:** comentário na issue do Linear com status
+1. **Imediato:** comentário na issue GitHub com status
 2. **Em 30min:** atualização com causa raiz identificada
-3. **Resolução:** post-mortem breve no Linear
+3. **Resolução:** post-mortem breve na issue
 
 ## Prevenção
 

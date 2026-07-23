@@ -1,6 +1,8 @@
 # Procedimento de Hotfix — SignallQ
 
-> Atualizado em 2026-06-28.
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Escopo:** correções críticas fora do ciclo regular de release
 
 ## Quando usar
 
@@ -24,8 +26,11 @@ Hotfix é para correções **críticas** que não podem esperar o próximo ciclo
 
 ```
 git checkout main
-git checkout -b hotfix/sig-XXX-descricao-curta
+git checkout -b hotfix/N-descricao-curta
 ```
+
+`N` é o número da issue GitHub (não mais `sig-XXX` — Linear deixou de ser fonte da verdade de
+execução em 2026-07-09, ver `.claude/CLAUDE.md`, seção "Fontes da Verdade").
 
 - Escopo mínimo: apenas o fix, nada mais
 - Sem refactor, sem cleanup, sem features
@@ -61,7 +66,7 @@ npx wrangler deploy
 
 - [ ] Monitorar Crashlytics por 2h
 - [ ] Verificar Analytics events normais
-- [ ] Comunicar no Linear (comentário na issue + fechar)
+- [ ] Comunicar na issue GitHub (comentário + fechar via PR "Closes #N")
 - [ ] Merge hotfix branch em main
 - [ ] Bump versionCode (não versionName para patch)
 

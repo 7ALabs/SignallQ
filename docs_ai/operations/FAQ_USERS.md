@@ -1,6 +1,15 @@
 # FAQ — SignallQ
 
-> Atualizado em 2026-06-28. Para publicação na Play Store e/ou landing page.
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Escopo:** conteúdo público (Play Store / landing page)
+
+> **[a confirmar com Luiz]** — o app já integra Google Mobile Ads SDK (AdMob) e `NativeAd` em
+> várias telas (`app/build.gradle.kts`, issue #555; confirmado em código, não removido nem
+> debug-only), mas a resposta "O SignallQ é gratuito?" abaixo promete "sem anúncios". Não
+> corrigido nesta limpeza por ser afirmação pública de produto/monetização — decisão de negócio,
+> não erro de documentação. Reconciliar antes da próxima atualização deste FAQ ou do listing da
+> Play Store.
 
 ## Geral
 

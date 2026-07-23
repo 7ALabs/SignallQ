@@ -4,7 +4,13 @@
 
 This document outlines the process for releasing new versions of the SignallQ Android Kotlin application, covering the steps from build to deployment.
 
-> Versao atual: **0.26.0** (versionCode 61), release 2026-07-17.
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Fonte de verdade:** versão real em `android/gradle/libs.versions.toml` (não fixar número
+  aqui, muda a cada release); processo de release neste documento
+- **Escopo:** release Android (Firebase App Distribution + Play Console)
+- **Responsável:** Rhodolfo (release/QA), Camilo (build/deploy)
+
 > Namespace/applicationId atual: **`io.signallq.app`** (renomeado de `io.veloo.app`
 > em 2026-06-28). O caminho fisico do codigo do modulo `:app` continua sendo
 > `io/veloo/app/kotlin/` — nao alterar. Demais identificadores tecnicos de infra
@@ -55,14 +61,14 @@ The release process generally follows these stages:
 
 1.  **Development**: Features are developed and unit tested within feature modules.
 2.  **Integration and Testing**: Code is integrated, and comprehensive testing (unit, integration, UI) is performed.
-3.  **Build Generation (`operations/APK_BUILD.md`)**: A release-ready APK is generated using the defined build system and versioning strategy.
+3.  **Build Generation (`operations/APK_OUTPUT_POLICY.md`)**: A release-ready APK is generated using the defined build system and versioning strategy.
 4.  **Staging/Pre-release Testing**: The generated APK may be deployed to a staging environment or distributed to a limited group of testers for final validation.
 5.  **Release (`operations/DEPLOY.md`)**: The validated APK is deployed to the target distribution platform (e.g., Google Play Store).
 6.  **Post-Release Monitoring**: Application performance and stability are monitored after release.
 
 ## Key Aspects of Release Management
 
--   **APK Generation**: Detailed information on how release APKs are built is covered in `operations/APK_BUILD.md`. This includes build configurations and signing.
+-   **APK Generation**: Detailed information on how release APKs are built is covered in `operations/APK_OUTPUT_POLICY.md`. This includes build configurations and signing.
 -   **Versioning (`operations/VERSIONING.md`)**: The strategy for assigning version codes and version names is documented separately.
 -   **Deployment (`operations/DEPLOY.md`)**: The steps and procedures for deploying the application to distribution channels are outlined.
 -   **Release Notes**: Information regarding how release notes are drafted, reviewed, and included with releases needs to be validated. This might involve summarizing changes from version control or issue tracking.

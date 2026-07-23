@@ -11,7 +11,7 @@
 
 ## O que aconteceu
 
-Uma auditoria (`docs_ai/operations/AUDITORIA_DESIGN_TOBE_2026-07-13.md`) comparou o app Android
+Uma auditoria (`docs_ai/_archive/2026-07-13_AUDITORIA_DESIGN_TOBE.md`) comparou o app Android
 contra o documento de referência "SignallQ App - Fluxo de Telas.dc.html", do projeto Claude Design
 "SignallQ Design System" (`e77ea465-291f-4bf5-930c-a267680da04e`). Esse documento To-Be usa uma
 paleta MD3 **diferente** da que estava documentada em `.claude/skills/SignallQ-design/` e no

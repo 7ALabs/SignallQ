@@ -1,3 +1,9 @@
+> **Arquivado em 2026-07-23.** Relatório de execução de um lote pontual — as 5 PRs descritas
+> (#1064, #1063, #1059, #1056, #1065) já foram todas mergeadas (confirmado via
+> `gh pr view --json state,mergedAt`, 2026-07-17T03:29-03:30). Débitos técnicos ainda
+> relevantes (issue #1058 "quarto motor concorrente" de topologia, #1057 migração de tokens
+> md3-tobe no Admin) devem estar rastreados como issues GitHub ativas, não neste documento.
+
 # Lote de execução do squad — 2026-07-16
 
 **Status:** ativo

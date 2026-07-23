@@ -1,3 +1,9 @@
+> **Arquivado em 2026-07-23.** Log de execução de uma tarefa pontual já concluída e mergeada
+> (PR #482, 2026-07-05). Estado atual do squad está em `.claude/CLAUDE.md` (seção "Agentes")
+> e nas revisões posteriores (`docs_ai/operations/ESTRUTURA_ORGANIZACIONAL_SQUAD_2026-07-16.md`,
+> também arquivada, e `docs_ai/operations/PROCESSO_PR_E_AGENTES_2026-07-16.md`, ativa). Mantido
+> só como registro histórico do que mudou naquela rodada.
+
 # Docs Refresh + Redesign do Squad — 2026-07-05
 
 Execução autônoma (Claudete, piloto automático) do refresh completo da documentação para

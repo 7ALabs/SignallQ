@@ -1,5 +1,10 @@
 # Disciplina de PR, Branch e Dispatch de Agentes — revisão 2026-07-16
 
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Fonte de verdade:** este documento (diagnóstico + plano); versão condensada em `.claude/CLAUDE.md`, seção "Disciplina de Branches e PRs"
+- **Escopo:** processo de dispatch/PR/branch do squad
+
 Decisão da Claudete a partir de avaliação sincera pedida pelo Luiz na sessão de 2026-07-15/16.
 Motivo direto: sessão gastou 11 dispatches de agente (>1M tokens) pra resolver ~6 frentes de
 trabalho, com pelo menos 2 abertas como PR isolada quando deveriam ter sido absorvidas por um
