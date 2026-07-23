@@ -2,7 +2,7 @@
 # Migra labels das issues: severity:* -> priority:*, adiciona agent:claudete + status:agent-ready
 set -e
 GH="${GH:-gh}"
-REPO="${REPO:-gmmattey/linka-android}"
+REPO="${REPO:-7ALabs/linka-android}"
 
 map_severity() {
   case "$1" in

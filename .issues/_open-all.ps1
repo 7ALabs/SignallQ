@@ -1,5 +1,5 @@
 $env:Path += ";C:\Program Files\GitHub CLI"
-$repo = "gmmattey/linka-android"
+$repo = "7ALabs/linka-android"
 $ms = "v0.9.2 - Hardening"
 
 $issues = @(

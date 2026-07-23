@@ -33,7 +33,7 @@ pequeno, seguro e relacionado à tarefa, ou registrá-lo em uma issue quando amp
 - Estrutura: **monorepo** — `android/` (Kotlin), `integrations/` (Cloudflare), `SignallQ Admin/` (Console), `SignallQ Site/` (site institucional), `scripts/`, `docs_ai/`.
 - Package/applicationId/namespace: **`io.signallq.app`** -- identificador tecnico, **NAO renomear jamais** (quebra Firebase/assinatura). Renomeado de `io.veloo.app` em 2026-06-28 (antes de qualquer publicacao na Play Store).
 - Marca anterior: Linka -> Veloo -> **SignallQ** (rebrand em 0.16.0).
-- Versao atual: **0.29.0** (versionCode 65), em `android/gradle/libs.versions.toml` -- confirmar sempre nesse arquivo antes de citar, muda a cada release. minSdk 24, targetSdk 36, compileSdk 37, JVM 17.
+- Versao/SDKs (versionName, versionCode, minSdk, targetSdk, compileSdk, JVM): sempre conferir em `android/gradle/libs.versions.toml` -- nao fixar numero aqui, muda a cada release.
 - **Android Stack**: Kotlin, Jetpack Compose, Hilt, Room, DataStore, WorkManager.
 - 16 modulos Gradle: `app` + core(6): `coreNetwork`, `coreDatabase`, `coreDatastore`, `coreTelephony`, `corePermissions`, `coreRecommendation` + feature(9): `featureHome`, `featureSpeedtest`, `featureWifi`, `featureDevices`, `featureDns`, `featureFibra`, `featureDiagnostico`, `featureHistory`, `featureSettings`.
 - `coreRecommendation` (issue #790): Recommendation Engine desacoplado do motor de diagnostico — engine deterministica que ranqueia recomendacoes (`free_tip`/`tutorial`/`configuration`/`affiliate_product`/`partner_offer`/`operator_offer`/`native_ad_fallback`) por tags de diagnostico, com cooldown/frequencia e contrato de analytics. Ja integrado a UI via `RecommendationEngineCard` em `ResultadoVelocidadeScreen.kt` (GH#813) — nao integrado a AdMob/afiliados reais ainda. Nao confundir com o `RecommendationEngine` de `featureDiagnostico` (gera as 14 regras (REC-01..REC-14) de dicas praticas do diagnostico local, sem monetizacao/catalogo).
@@ -41,10 +41,10 @@ pequeno, seguro e relacionado à tarefa, ou registrá-lo em uma issue quando amp
 - IA: Worker Cloudflare (`integrations/cloudflare/ai-diagnosis-worker/`), URL via `BuildConfig.AI_WORKER_URL`, persona SignallQ. Provider: **Gemini 2.0 Flash é o primário** quando `GEMINI_API_KEY` está configurada (produção); Qwen3 30B MoE FP8 (Cloudflare Workers AI) é o fallback automático. Sem a secret, Qwen3/CF é o único provider cloud. Ordem definida em `providers.ts` (array `providers[]`, tentado em sequência) — ver `docs_ai/TECNICO.md` (seção 7).
 - **Workers Cloudflare (5)** em `integrations/cloudflare/`: `ai-diagnosis-worker` (IA de diagnostico), `signallq-admin-worker` (backend do Console/Admin), `signallq-diagnostic-worker`, `signallq-privacy-worker`, `game-latency-probe-worker`.
 - **Analytics**: Firebase Analytics (events) + Crashlytics (error logs). **NOT using**: Realtime DB.
-- Navegacao: `AppShell.kt` -- 5 abas (Inicio, Velocidade, Sinal, Historico, Ferramentas). Desde GH#936 (Fase 7), Ajustes deixou de ser aba e virou overlay (`Overlay.Perfil`) alcancado pelo avatar no TopBar -- confirmado em `AppShell.kt:1055-1059`. Diagnostico/IA, Dispositivos, Fibra sao overlays, nao abas.
+- Navegacao: `AppShell.kt` -- 5 abas (Inicio, Velocidade, Sinal, Historico, Ferramentas). Desde GH#936 (Fase 7), Ajustes deixou de ser aba e virou overlay (`Overlay.Perfil`) alcancado pelo avatar no TopBar -- ver `AppShell.kt`. Diagnostico/IA, Dispositivos, Fibra sao overlays, nao abas.
 - Background: WorkManager `MonitoramentoWorker` (30 min).
 
-**Identificadores tecnicos a preservar** (parecem marca, sao tecnicos): `io.signallq.app`, repo `gmmattey/linka-android`, worker `linka-ai-diagnosis-worker`, banco `linkaKotlin.db`, canais `linka_*`, DataStore `linkaPreferencias`. A skill de design system foi renomeada de `linka-design` para `SignallQ-design` em 2026-07-11 -- essa e uma renomeacao de marca intencional, nao um identificador tecnico a preservar (ver secao Design System).
+**Identificadores tecnicos a preservar** (parecem marca, sao tecnicos): `io.signallq.app`, repo `7ALabs/linka-android`, worker `linka-ai-diagnosis-worker`, banco `linkaKotlin.db`, canais `linka_*`, DataStore `linkaPreferencias`. A skill de design system foi renomeada de `linka-design` para `SignallQ-design` em 2026-07-11 -- essa e uma renomeacao de marca intencional, nao um identificador tecnico a preservar (ver secao Design System).
 
 ---
 
@@ -54,14 +54,14 @@ A squad opera **tres produtos** sob o **mesmo fluxo de trabalho** (piloto automa
 
 | Produto | Estado | Stack / identificador | Design (fonte) | Release |
 |---|---|---|---|---|
-| **SignallQ** (consumer) | **ATUAL** -- versao real em `libs.versions.toml` (ver Identidade acima, muda a cada release), 16 modulos | Kotlin/Compose/M3, `io.signallq.app`, primary violeta `#5B21D6` / secondary azul `#2851B8` | skill `/SignallQ-design`; projeto Claude Design `2d25d7a1-…` | `consumer/android/vX.Y.Z` -> Play (internal->alpha…) |
-| **SignallQ Pro** | **EM ANDAMENTO** -- `android/pro/` com codigo real e em crescimento continuo (112+ arquivos `.kt` em 2026-07-21, Fases 0-3 do MVP0 mergeadas: design system, persistencia, auth, cliente, visita, ambiente, medicao-diagnostico, laudo -- ver `android/settings.gradle.kts` pros modulos reais e issues #1157/#1159/#1161/#1164 pro historico), telas navegaveis (Painel, Atendimento, NovaVisita, Laudo etc.) | Kotlin/Compose/M3, `io.signallq.pro`, Firebase/Play proprios, identidade **azul `#0B6CFF`** (marca) + ciano `#006B76` + roxo `#6558E8` de apoio, 2 temas oficiais | skill `/signallq-pro-design`; projeto Claude Design `77a19317-…` (fonte visual viva); `docs_ai/plataforma/08..11_*`, `13_SignallQ_Pro_Arquitetura_e_Reaproveitamento_v1.md` | `pro/android/vX.Y.Z` (futuro) |
-| **SignallQ Admin** (Console) | **ATUAL** -- React 19/Vite 6/TS 5.8/Tailwind 4 | `SignallQ Admin/` + `signallq-admin-worker` (backend); 13 tabelas D1 reais; 5 workers Cloudflare | design da Lia (Claude Design); `docs_ai/plataforma/07_*` | Cloudflare Pages / ambiente protegido |
-| **SignallQ Site** (institucional) | **ATUAL** -- React 19/Vite 6/TS 5.8/Tailwind 4 | `SignallQ Site/`; teste de velocidade real (Cloudflare `__down`/`__up`), historico local (IndexedDB), Pages Function de telemetria (`functions/api/track.ts` -> `signallq-admin-worker`) | design da Lia (protótipo Claude Design, projeto `e77ea465-…`); ver `SignallQ Site/CLAUDE.md` | Cloudflare Pages, projeto `signallq` (signallq.pages.dev) |
+| **SignallQ** (consumer) | **ATUAL** -- versao/modulos reais: ver Identidade acima | Kotlin/Compose/M3, `io.signallq.app`, paleta violeta | skill `/SignallQ-design`; [SignallQ Design System](https://claude.ai/design/p/2d25d7a1-31b2-4ac3-881f-72dbc8f35a29) (fonte viva) | `consumer/android/vX.Y.Z` -> Play (internal->alpha…) |
+| **SignallQ Pro** | **EM ANDAMENTO** -- `android/pro/` com codigo real e em crescimento continuo, telas navegaveis (Painel, Atendimento, NovaVisita, Laudo etc.) -- estado/modulos reais: `android/settings.gradle.kts`; historico: issues #1157/#1159/#1161/#1164 | Kotlin/Compose/M3, `io.signallq.pro`, Firebase/Play proprios, paleta azul, 2 temas oficiais | skill `/signallq-pro-design`; [SignallQ PRO - Design System](https://claude.ai/design/p/77a19317-ea64-4e47-b55c-578eca776c09) (fonte viva); `docs_ai/plataforma/08..11_*`, `13_SignallQ_Pro_Arquitetura_e_Reaproveitamento_v1.md` | `pro/android/vX.Y.Z` (futuro) |
+| **SignallQ Admin** (Console) | **ATUAL** -- React 19/Vite 6/TS 5.8/Tailwind 4 | `SignallQ Admin/` + `signallq-admin-worker` (backend); schema D1 real: ver `docs_ai/plataforma/07_*`; 5 workers Cloudflare | design da Lia; [SignallQ — Protótipos](https://claude.ai/design/p/e77ea465-291f-4bf5-930c-a267680da04e) (fonte viva); `docs_ai/plataforma/07_*` | Cloudflare Pages / ambiente protegido |
+| **SignallQ Site** (institucional) | **ATUAL** -- React 19/Vite 6/TS 5.8/Tailwind 4 | `SignallQ Site/`; teste de velocidade real (Cloudflare `__down`/`__up`), historico local (IndexedDB), Pages Function de telemetria (`functions/api/track.ts` -> `signallq-admin-worker`) | design da Lia; [SignallQ — Protótipos](https://claude.ai/design/p/e77ea465-291f-4bf5-930c-a267680da04e) (fonte viva); ver `SignallQ Site/CLAUDE.md` | Cloudflare Pages, projeto `signallq` (signallq.pages.dev) |
 
 Nao-negociaveis por produto:
-- **SignallQ Pro ja tem codigo real e substancial (Fases 0-3 do MVP0, `android/pro/`, 112+ arquivos -- NAO e mais "so spec/design", ver linha da tabela acima) -- mas qualquer ampliacao de escopo alem do que ja foi aprovado (novas fases do MVP0, MVP1, mudanca arquitetural) continua exigindo instrucao explicita do Luiz** (regra original de 2026-07-18, escopo do "ja existe" atualizado em 2026-07-19, confirmado ainda vigente em 2026-07-21 apos auditoria). Corrigir qualquer persona/doc que ainda diga "Pro sem codigo Android" -- e um erro factual desatualizado, nao mais o estado real.
-- **Nunca misturar marca/paleta entre produtos:** consumer e violeta (`#5B21D6`); Pro e azul (`#0B6CFF`, com ciano `#006B76` e roxo `#6558E8` de apoio). `#6C2BFF` e a antiga paleta teal-dominante do Pro (`#006B73` como primary) estao **mortos**. Paleta do Pro evolui no projeto Claude Design `77a19317` -- fonte da verdade visual, reler antes de desenhar.
+- **SignallQ Pro ja tem codigo real e substancial em `android/pro/` (NAO e mais "so spec/design" -- estado/progresso real: ver issues #1157/#1159/#1161/#1164 e `android/settings.gradle.kts`) -- mas qualquer ampliacao de escopo alem do que ja foi aprovado (novas fases do MVP0, MVP1, mudanca arquitetural) continua exigindo instrucao explicita do Luiz.** Corrigir qualquer persona/doc que ainda diga "Pro sem codigo Android" -- e um erro factual desatualizado, nao mais o estado real.
+- **Nunca misturar marca/paleta entre produtos:** consumer e violeta, Pro e azul. Nao fixar hex aqui -- cada paleta evolui no seu projeto Claude Design (fonte da verdade visual, reler antes de desenhar): [SignallQ Design System](https://claude.ai/design/p/2d25d7a1-31b2-4ac3-881f-72dbc8f35a29) (consumer), [SignallQ PRO - Design System](https://claude.ai/design/p/77a19317-ea64-4e47-b55c-578eca776c09) (Pro).
 - **Release e identidade sao separados por produto** (applicationId, Firebase, Play listing, tag, canal). Uma mudanca num produto nao incrementa versao de outro.
 - **SignallQ Nethal** e alvo de plataforma, mas hoje vive em **repo separado** (`gmmattey/nethal`) com **squad propria** -- fora do escopo desta squad; so entra aqui quando/se for internalizado no monorepo-alvo.
 
@@ -71,11 +71,11 @@ O monorepo-alvo `signallq-platform` (que unifica os tres + Portal + Nethal) e **
 
 ## Fontes da Verdade
 
-> **Migracao 2026-07-09:** execucao/backlog saiu do Linear e passou para **GitHub Issues** (repo `gmmattey/linka-android`). Linear deixou de ser fonte da verdade de tarefas — historico anterior a essa data (IDs `SIG-XXX`) continua valido como referencia, mas qualquer issue nova, prioridade ou status de trabalho vive no GitHub a partir de agora.
+> **Migracao 2026-07-09:** execucao/backlog saiu do Linear e passou para **GitHub Issues** (repo `7ALabs/linka-android`). Linear deixou de ser fonte da verdade de tarefas — historico anterior a essa data (IDs `SIG-XXX`) continua valido como referencia, mas qualquer issue nova, prioridade ou status de trabalho vive no GitHub a partir de agora.
 
 | Dominio | Ferramenta |
 |---|---|
-| Execucao, backlog, prioridades, issues | **GitHub Issues** (`gmmattey/linka-android`) |
+| Execucao, backlog, prioridades, issues | **GitHub Issues** (`7ALabs/linka-android`) |
 | Codigo, branches, PRs, releases, historico tecnico | **GitHub** |
 | Documentacao viva, decisoes consolidadas, roadmap, OS | **Notion** |
 | Comunicacao e alertas | **Slack** (via integracao GitHub -- nao criar fluxo manual paralelo) |
@@ -86,7 +86,7 @@ O monorepo-alvo `signallq-platform` (que unifica os tres + Portal + Nethal) e **
 
 **Regra Slack:** o GitHub notifica o Slack diretamente. Decisao que surgir no Slack vira issue no GitHub ou pagina no Notion. Slack e saida, nao fonte da verdade.
 
-**Convencao de issue no GitHub:** titulo `Task - <descricao>` para trabalho planejado e `[BUG] <descricao>` para defeito, label `enhancement`/`bug` conforme o caso, mais labels de `area:*`/`priority:*` quando fizer sentido (ver `gh label list --repo gmmattey/linka-android`). Ver skill `issue-conventions` para o detalhe completo (roteamento/titulo/corpo, agnostico de projeto).
+**Convencao de issue no GitHub:** titulo `Task - <descricao>` para trabalho planejado e `[BUG] <descricao>` para defeito, label `enhancement`/`bug` conforme o caso, mais labels de `area:*`/`priority:*` quando fizer sentido (ver `gh label list --repo 7ALabs/linka-android`). Ver skill `issue-conventions` para o detalhe completo (roteamento/titulo/corpo, agnostico de projeto).
 
 **Hierarquia obrigatoria por Project — Epico > Feature > Task (decisao 2026-07-21):** toda issue nova nasce ja
 classificada num dos 4 GitHub Projects do repo, segmentados por produto -- **SignallQ** (#10),
@@ -130,333 +130,83 @@ ver issue de acompanhamento (criar/referenciar quando a API nao estiver rate-lim
 tratar o campo plano como definitivo.
 
 ---
-## Infraestrutura e Contas Legadas
-
-**Firebase — Projeto Novo:**
-- Projeto: `signallq-app` (conta 7Agents)
-- App Android: `io.signallq.app`
-- Analytics: habilitado com LGPD consent gate
-
-**Firebase — Projeto Legado (ABANDONADO):**
-- Projeto: `device-streaming-ef179de4` (conta pessoal do Luiz)
-- App Android: `io.linka.app.kotlin` (package antigo, deprecated)
-- Status: **NÃO É MAIS USADO**
-- Limpeza manual requerida: Luiz deve ir em Firebase Console → projeto `device-streaming-ef179de4` e remover o app Android `io.linka.app.kotlin`, ou arquivar o projeto inteiro se não tiver outros apps.
-- Rastreamento: SIG-220 (ID legado do Linear, mantido so como referencia historica)
-
----
 
 
 ## Milestones
 
-**Desatualizado — fonte viva do cronograma agora é a issue
-[#1222](https://github.com/gmmattey/linka-android/issues/1222)** (GitHub, não este arquivo).
-Histórico de revisões: 07-17 fixou 07/08 como lançamento; 07-20 revisou pra RC em 07/08 +
-lançamento público em 14/08 (issue #1222 original); ainda em 07-20, decisão direta do Luiz
-empurrou o lançamento público pra **21/08/2026**, dando mais fôlego pra não cortar escopo/dívida
-técnica sob pressão de prazo (motivou reverter o corte de #1207/#1209 do lote de bugs P0 em
-`C:\Users\luizg\.claude\plans\claudete-planeja-a-implementa-o-misty-lantern.md`). A tabela abaixo
-e a análise de risco que segue são o snapshot de 07-17 — não confiar nas datas sem conferir
-#1222 primeiro.
-
-| Milestone | Data | Status em 17/07 |
-|---|---|---|
-| M0 -- Fundacao e Setup | 27/06/2026 | Concluido |
-| M1 -- App pronto para Beta | 17/07/2026 | Concluido hoje |
-| M2 -- Beta Fechado (trilha `internal`/`alpha`) | 21/07/2026 | 6 issues de QA abertas -- **cruzadas contra o caderno de hoje em 2026-07-17 e NAO cobertas** (ver risco abaixo); precisam de rodada dedicada, varios cenarios exigem device real |
-| M4 -- Open Beta (trilha `beta`) | 04/08/2026 (inicio ~21/07, 14 dias min.) | Nao iniciado -- depende de M2 fechado e da guardrail de `promote-release.yml` ser ampliada pra aceitar `beta` |
-| M5 -- Producao (trilha `production`, staged rollout) | ~~07/08/2026~~ **21/08/2026** (ver #1222) | Nao iniciado -- gate final, ver riscos abaixo |
-
-**Riscos reais desse cronograma (nao escondidos, pra decisao informada):**
-- **Confirmado em 2026-07-17** (cruzamento linha a linha do caderno real, nao suposicao): as
-  6 issues de QA de M2 NAO estao cobertas pela varredura de hoje. A varredura foi regressao
-  visual/estrutural do redesign MD3, nao os cenarios funcionais profundos que essas issues
-  pedem:
-  - #618 (Speedtest e2e): 15 de 24 cenarios `Bloqueado` + 4 `Falhou` -- emulador nao completa
-    teste real de 10+ min, cascateando bloqueio em metricas/historico/compartilhar.
-  - #620 (Fresh install/update): so "instalacao limpa abre sem erro" foi testado -- update de
-    versao anterior preservando dados/migracao de Room nunca foi exercitado.
-  - #616 (Permissoes): fluxo consolidado negar/recuperar/continuar ficou bloqueado.
-  - #614 (Offline/timeout/retry): parcial -- alguns cenarios passaram, mas timeout/sem-internet
-    explicitos ficaram bloqueados (nao alcancavel em emulador).
-  - #615 (Diagnostico IA e2e): so navegacao e estrutura estatica do Laudo passaram -- chat com
-    streaming e fallback de IA offline nao tem teste correspondente.
-  - **Isso e um bloqueio real pro M2 fechar em 21/07** -- precisa de rodada de QA dedicada em
-    device real (SIM fisico, controle de conectividade, app de versao anterior instalado), nao
-    so cruzamento de evidencia. Sem isso, o inicio do Open Beta atrasa e cascateia pro 07/08.
-- Requisito real do Google pra elegibilidade de producao (duracao/numero minimo de
-  testadores no teste fechado, contas pessoais criadas apos nov/2023) nao foi confirmado com
-  precisao -- nao encontrei o numero exato na documentacao publica consultada. Se a conta for
-  enquadrada nessa regra, validar direto no Play Console antes de prometer a data.
-- Primeira vez usando a trilha `beta` (teste aberto) exige review do Google -- latencia nao
-  totalmente previsivel, pode comer parte da folga.
-- `promote-release.yml` (`.github/workflows/`) hoje so aceita `internal`/`alpha` como
-  destino -- precisa de uma mudanca deliberada (ampliar o guardrail) quando o squad decidir
-  abrir o Open Beta, nao e automatico.
+**Fonte viva:** GitHub issue [#1222](https://github.com/7ALabs/linka-android/issues/1222). Decisão vigente de 2026-07-20: **lançamento público em 21/08/2026** (trilha `production`, staged rollout). Motivo: espaço pra não cortar escopo/dívida técnica sob pressão — ver `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md`.
 
 ---
 
 ## Design System
 
-Toda UI segue o **SignallQ Design System** (`.claude/skills/SignallQ-design/`), alinhado em
-2026-07-13 ao documento **"SignallQ App - Fluxo de Telas.dc.html"** (Claude Design, projeto
-`e77ea465-291f-4bf5-930c-a267680da04e`) -- documento mais recente do mesmo projeto que havia
-orientado a migracao MD3 estrito de 2026-07-11 (paleta tonal HCT, `primary=#6C2BFF`), que continha
-uma paleta diferente e contraditoria. Ver
-`docs_ai/design-system/DECISAO_ALINHAMENTO_TOBE_2026-07-13.md` (correcao) e
-`docs_ai/design-system/DECISAO_RENOMEACAO_SIGNALLQ_DESIGN_2026-07-11.md` (renomeacao original de
-`linka-design`).
-Antes de criar ou editar telas/componentes, consulte a skill `SignallQ-design` e use os tokens de
-`colors_and_type.css` / `SignallQTheme.kt` como fonte de verdade.
-
-Nao-negociaveis:
-- Material 3, acento violeta `#5B21D6` (Primary), secondary azul FIXO `#2851B8` (nao deriva mais do primary), semantica de status verde/ambar/vermelho
-- Icones Material Symbols (Outlined, variable font), tipo unica Google Sans Flex (fallback Roboto) em todos os estilos, grid 8dp (8 degraus: xs 4 / sm 8 / md 12 / base 16 / lg 20 / xl 24 / xxl 32 / xxxl 40), radius por componente (Card 16px / SheetFrame 28px / Button 20px / Field 12px / Chip-Badge 999px / Dialog 24px), flat (elevacao tonal, sem sombra dura)
-- Superficie SignallQ (IA) e DESCONTINUADA no To-Be -- nao implementar rota/componente novo
-- Copy em PT-BR com voce, sentence case em titulos, UPPERCASE em overlines, SEM emoji -- decisao de produto, nao afetada pelo MD3
-- Metrica crua sempre acompanhada de veredito humano. Vocabulario canonico e o do motor de
-  diagnostico (`MetricStatus`, `core/diagnostico/MetricClassifier.kt`, decisao de arquitetura ja
-  fechada): **excelente/bom/regular/ruim/critico/inconclusivo**. "Fraco/Forte" e vocabulario
-  proprio das barrinhas de sinal Wi-Fi (SignalBars), nao um padrao geral de veredito de metrica --
-  nao usar fora desse contexto (correcao 2026-07-20, apos auditoria de design encontrar
-  `ResultadoVelocidadeScreen.kt` sem veredito e o texto antigo desta regra divergente do
-  vocabulario ja implementado).
-- Separador inline: ponto medio
-
-Referencia rapida de tokens: `.claude/skills/SignallQ-design/HANDOFF_README.md`.
-
-**Design Context (skill impeccable):** `PRODUCT.md` e `DESIGN.md` na raiz do repo formalizam esse mesmo sistema no formato impeccable/DESIGN.md spec (register: product; North Star "The Calm Translator"). Consultar antes de rodar `/impeccable craft|critique|audit|polish` em qualquer tela.
-
-### Onde fica cada "design system" (indice, 2026-07-12)
-
-Existem varios artefatos de design no repo, cada um com escopo e finalidade proprios --
-nao sao copias redundantes umas das outras (mesmo compartilhando os mesmos tokens visuais),
-mas nunca criar um novo sem checar se o que voce precisa ja existe em algum destes:
-
-| Onde | Escopo | Finalidade |
-|---|---|---|
-| `.claude/skills/SignallQ-design/` | Android (app real) | Skill do Claude Code -- ativa sozinha ao pedir UI Android, fonte de verdade pra gerar codigo/protótipo on-brand |
-| `packages/design-system/` | Android (app real) | Pacote React **fonte do Design System**; sincroniza via `/design-sync` com o projeto Claude Design **"SignallQ Design System"** (`2d25d7a1-31b2-4ac3-881f-72dbc8f35a29`) — 25 componentes reutilizáveis (primitivos + interativos + marca `<Logo>` + `SignallQThemeProvider`). Ver `.design-sync/conventions.md` e o bloco "Projetos no Claude Design" abaixo |
-| `docs_ai/design-system/` | Android (app real) | Documentacao formal de tokens/componentes Android (markdown), referenciada pela skill |
-| `DESIGN.md` / `PRODUCT.md` (raiz) | Android (app real) | Spec no formato da skill `impeccable`, usado por `/impeccable craft\|critique\|audit\|polish` |
-| `SignallQ Admin/DESIGN.md` / `SignallQ Admin/PRODUCT.md` | SignallQ Console (Admin) | Mesmo formato impeccable, mas do Admin -- North Star propria ("The Operator's Console"), paleta propria; nao confundir com o par acima |
-| `.claude/design-specs/` | Prototipagem avulsa | Handoffs/protótipos pontuais por feature (ex: monetizacao nativa, diagnostico IA) -- nao e sistema reutilizavel, curar/arquivar specs velhas periodicamente |
-
-### Projetos no Claude Design (online — fonte da verdade pra visualizar)
-
-Separação DS × protótipos feita em 2026-07-18 (ver
-`docs_ai/design-system/DECISAO_SEPARACAO_DS_PROTOTIPOS_2026-07-18.md`). **Referenciar sempre o projeto
-online** — o repo `packages/design-system/` é só a fonte que gera o DS via `/design-sync`; quem vê/consome
-usa o projeto online:
-
-| Projeto Claude Design | ID | Papel |
-|---|---|---|
-| **SignallQ Design System** | `2d25d7a1-31b2-4ac3-881f-72dbc8f35a29` | DS puro — 25 componentes (primitivos + interativos + marca `<Logo>` + `SignallQThemeProvider`), paleta `#5B21D6`, dark mode via `useTokens()`. É o que o `/design-sync` fixa e o agente de design consome. |
-| **SignallQ app Android** | `a86ffca9-2851-4c99-b8e0-a94aec66b33f` | Protótipo 1:1 do app Android consumer, arquivo `SignallQ App.dc.html` (importa os componentes ao vivo via `x-import` do DS `2d25d7a1-...`, sincronizado em `_ds/signallq-design-system-2d25d7a1-.../`). Substitui o `e77ea465-...` como fonte de protótipo do app a partir de 2026-07-20. **Não contém o SignallQ Admin** — tipo `PROJECT_TYPE_PROJECT` (não Design System), então não aparece em listagens filtradas por tipo Design System. Também hospeda `SignallQ WebApp.dc.html` (escopo/dono ainda não confirmado — não presumir que é o site institucional sem checar). |
-| **SignallQ — Protótipos** (`e77ea465-291f-4bf5-930c-a267680da04e`) | superseded (app) | Cobria "Fluxos do app + Admin" antes de 2026-07-20. Para o app, ver `a86ffca9-...` acima. **Cobertura de Admin não confirmada como migrada** — projeto ainda existe e recebeu updates recentes; até confirmação em contrário, não presumir que os protótipos de Admin sumiram, mas também não tratar mais este ID como fonte corrente do app. |
-| **SignallQ PRO - Design System** | `77a19317-ea64-4e47-b55c-578eca776c09` | DS **separado** do SignallQ PRO (versão pra profissionais de telecom/instaladores). Marca/paleta próprias — não misturar com o DS consumer. |
-
-URL de cada um: `https://claude.ai/design/p/<ID>`. Read/write via a tool `DesignSync` (ver memória
-`project_designsync_bridge_e_estrutura` pro que consegue mexer e como).
-
-`.claude/skills/` e a fonte canonica de toda skill (inclusive `SignallQ-design`).
-`.agents/skills/` e `.github/skills/` sao mirrors intencionais pra outros harnesses (Codex
-e hooks do GitHub respectivamente, ver `.codex/hooks.json` / `.github/hooks/*.json`) --
-existem de proposito, nao apagar, mas **sempre resincronizar a partir de `.claude/skills/`
-apos editar uma skill**, nunca editar o mirror direto (fica dessincronizado, como aconteceu
-com `.agents/skills/linka-design/` ate 2026-07-12, e resincronizado/renomeado para
-`SignallQ-design` em 2026-07-13).
+Toda UI segue o **SignallQ Design System** (`.claude/skills/SignallQ-design/`, Material 3, paleta violeta -- fonte viva: [SignallQ Design System](https://claude.ai/design/p/2d25d7a1-31b2-4ac3-881f-72dbc8f35a29)). Nao-negociaveis: Material 3, tokens `colors_and_type.css`/`SignallQTheme.kt`, cópia em PT-BR sem emoji, vocabulário canônico `excelente/bom/regular/ruim/crítico/inconclusivo`. Ver `docs_ai/design-system/` para detalhe completo e `.claude/skills/SignallQ-design/HANDOFF_README.md` para referência rápida de tokens.
 
 ---
 
 ## Release Process
 
-Dois canais, os dois via GitHub Actions (nao mais comando local manual) -- atualizado em
-2026-07-17 apos descobrir na pratica que a publicacao na Play Console ja roda por CI, nao e
-acao exclusiva do Luiz como a skill `protocolo-play-store` registrava antes. Detalhe
-completo em `docs_ai/operations/RELEASE.md` e `docs_ai/operations/DEPLOY.md`.
-
-**Regra unica pros dois canais: nunca subir um build (debug ou release) sem incrementar
-`versionCode` em `android/gradle/libs.versions.toml` antes**, commitado e pushado. Nao
-existe contador separado pra debug -- e o mesmo campo global, e dois uploads com o mesmo
-numero quebram rastreabilidade. `versionName` so muda em cortes de release reais (nao em
-toda iteracao de debug). `versionName` fica em `0.x.y` enquanto o app estiver em qualquer
-trilha de teste (internal, alpha, beta) -- **1.0.0 e reservado pro primeiro publish na
-trilha `production`**, nao antes.
-
-### Canal 1 -- Firebase App Distribution (debug/validacao rapida)
-
-Workflow `firebase-distribution.yml`, `workflow_dispatch` manual (sob demanda, nao em todo
-push). Builda `assembleRelease` (ou `assembleDebug` via input), assina, e sobe via
-`appDistributionUploadRelease`/`...Debug`. Depende do secret `FIREBASE_TOKEN` (gerado via
-`firebase login:ci` numa sessao interativa real -- esse comando exige TTY, nao roda dentro
-do Claude Code; quem gerar deve rodar localmente e configurar com `gh secret set
-FIREBASE_TOKEN --repo gmmattey/linka-android`).
-
-### Canal 2 -- Play Console (release oficial), trilha em 2 etapas
-
-1. Bump de versao (`libs.versions.toml`, `CHANGELOG.md`, `docs_ai/RELEASES.md`) -- escopo
-   real desde a ultima versao **realmente publicada** (nunca so o trabalho da sessao atual,
-   ver `docs_ai/operations/VERSIONING.md`).
-2. `git tag vX.Y.Z && git push origin vX.Y.Z` -- dispara `release.yml`: build, assinatura,
-   GitHub Release, e publica direto na trilha **`internal`** (teste interno, sem review do
-   Google, so o Luiz valida).
-3. Depois de validado, `promote-release.yml` (`workflow_dispatch` manual) promove o MESMO
-   AAB de `internal` pra `alpha` (`gradlew promoteReleaseArtifact`) -- sem rebuild, sem
-   reassinar.
-4. **Guardrail tecnico**: `promote-release.yml` so aceita `internal`/`alpha` como destino.
-   Beta e producao ainda nao estao liberados -- qualquer tentativa nessas trilhas falha o
-   workflow e exige decisao explicita do Luiz, nao e autonomia do squad.
-
-Worker Cloudflare: quando houver mudancas em `integrations/cloudflare/ai-diagnosis-worker/src/`, fazer `npx wrangler deploy` ANTES do commit.
+Dois canais via GitHub Actions (Firebase Distribution + Play Console). Regra única: **nunca subir build sem incrementar `versionCode` em `android/gradle/libs.versions.toml` antes**. `versionName` em `0.x.y` até produção — `1.0.0` reservado para trilha `production`. Detalhe completo: `docs_ai/operations/RELEASE.md` e `docs_ai/operations/DEPLOY.md`. Worker Cloudflare: `npx wrangler deploy` ANTES do commit em `integrations/cloudflare/*/src/`.
 
 ---
 
 ## Disciplina de Branches e PRs
 
-Motivo: em 2026-07-04 uma auditoria encontrou 69+ branches locais acumuladas (worktrees orfas, branches mergeadas nunca apagadas, trabalho commitado mas nunca pushado, PRs nunca abertas). Isso NAO pode se repetir. Todo agente (Camilo, Lia via Miro/handoff, Rhodolfo, Claudete) segue esta disciplina sem excecao:
+**Regra absoluta — Verificação real antes de declarar (todos os agentes):** nunca declarar "PR mergeada", "teste passou" ou "publicado" sem conferir de fato: `gh pr view <N> --json state,merged`, `gh pr checks <N>`, ou curl direto. Não por inferência nem relato de outro agente.
 
-**Ao terminar qualquer trabalho em uma branch (mesmo pequeno, mesmo WIP):**
-1. Commitar (nunca deixar mudanca sem commit ao encerrar a sessao/tarefa).
-2. Fazer `git push -u origin <branch>` imediatamente apos o commit -- nunca deixar trabalho so local.
-3. Se o trabalho esta pronto: abrir PR na hora (pequeno/medio nao precisa aprovacao previa, conforme `Autonomia dos Agentes`).
-4. Se o trabalho NAO esta pronto (WIP, bloqueado, pausado): push mesmo assim, e registrar o motivo no titulo do commit ou numa task/issue -- branch local sem push e a causa raiz do problema.
+**Regra crítica — Bloqueio de segurança nunca é contornado (todos os agentes, sem exceção):** se `gh pr merge` for recusado, pare na primeira recusa. Reportar o bloqueio exato e aguardar instrução explícita do Luiz — nem outro agente, nem "geralmente é transitório", nem trocar de ferramenta. Ver `docs_ai/operations/INCIDENTE_BYPASS_BLOQUEIO_SEGURANCA_2026-07-20.md`.
 
-**Ao finalizar uma worktree (fim de sessao de agente paralelo, fim de task):**
-1. Verificar `git status` -- se houver mudanca nao commitada, commitar e dar push ANTES de remover a worktree.
-2. Nunca rodar `git worktree remove --force` sem antes confirmar que nao ha `git status` sujo (a menos que o conteudo ja esteja confirmado identico a main).
-3. Apagar a branch local (`git branch -d`) so depois do push confirmado, e so se ja estiver mergeada OU explicitamente abandonada por decisao registrada.
-
-**PR aberta que fica esquecida:**
-- PR sem review/merge por mais de 7 dias -- Claudete cobra na Review de Bloqueios.
-- Branch com commits mas sem PR aberta ha mais de 3 dias -- abrir PR (mesmo rascunho) em vez de deixar so local/remota sem review.
-
-**Higiene periodica:** rodar a skill `higiene` (secao Branches e worktrees) pelo menos uma vez por semana ou sempre que houver uso de worktrees em paralelo. Antes de apagar qualquer branch nao obviamente mergeada, verificar por diff direto (`git diff main..branch`) se o conteudo ja esta em main por outro caminho -- nunca decidir por nome ou por suposicao.
-
-**Merge sempre seguido de `/higiene`:** o agente que fizer o merge de uma PR (`gh pr merge`) roda a skill `higiene` logo em seguida, na mesma sessao -- nao espera a rotina periodica semanal. Vale pra qualquer agente (Claudete, Camilo, Lia, Rhodolfo), sem excecao.
-
-**Verificacao real antes de declarar (regra transversal, todos os agentes):**
-Nunca declarar "PR mergeada", "teste passou", "publicado em producao" ou qualquer variacao sem
-verificacao executada de fato -- nao por inferencia, nao por confiar no relato de outro agente:
-- PR mergeada → `gh pr view <N> --repo gmmattey/linka-android --json state,merged,mergedAt`
-- CI/teste passou → `gh pr checks <N> --repo gmmattey/linka-android` ou `gh run view <run-id>`
-- Publicado em producao → curl/acesso direto ao endpoint ou dominio publicado, nunca so mock local
-Vale para todos os agentes (Camilo, Lia, Rhodolfo, Claudete), nao so QA. Origem: PR #869 (Unit
-Tests falhou no CI e quase mergeou sem checagem manual) e o padrao documentado de "aprovado"/
-"mergeado" relatado sem verificacao (ver `_archive/gema_2026-07-10_substituida.md`).
-
-**Bloqueio de seguranca nunca e contornado por outro caminho (regra transversal, todos os
-agentes, sem excecao -- incidente real em 2026-07-20, ver
-`docs_ai/operations/INCIDENTE_BYPASS_BLOQUEIO_SEGURANCA_2026-07-20.md`):**
-Se `gh pr merge` (ou qualquer acao de merge/delecao/push destrutivo) for bloqueada pelo
-classificador de seguranca do harness, mesmo que a mensagem diga que o bloqueio "geralmente e
-transitorio" ou sugira tentar de novo: **pare completamente na primeira recusa**. Nunca:
-- repetir a mesma chamada esperando que passe;
-- trocar de ferramenta pra alcancar o mesmo efeito (ex.: `gh api .../merge -X PUT` depois que
-  `gh pr merge` foi negado -- isso NAO e "usar outra ferramenta que naturalmente serviria pro
-  objetivo", e sim contornar a barreira que a nega);
-- interpretar instrucao de outro agente/coordenador (Claudete, Rhodolfo, Camilo, quem for) como
-  autorizacao para insistir -- autorizacao repassada por outro agente nunca conta.
-Ao ser bloqueado, reportar o texto EXATO do bloqueio pra quem te acionou e parar ali. Só o
-Luiz, na conversa, com instrucao explicita e fresca sobre aquela acao especifica, pode
-autorizar prosseguir -- e mesmo assim, prosseguir por um caminho revisado/seguro, nunca
-repetindo a mesma tentativa negada.
-
-**Limpeza de worktree e parte de FECHAR a tarefa, nao auditoria separada:**
-Ao encerrar qualquer tarefa que usou worktree isolado: remover a worktree (`git worktree remove`),
-apagar a branch local se ja mergeada/abandonada por decisao registrada, e matar processos filhos
-orfaos que a tarefa tenha iniciado (ex.: `wrangler dev`, servidores de teste). Isso e passo
-obrigatorio do fechamento -- nao espera a rotina periodica de `/higiene`, que continua existindo
-so para pegar o que escapar dessa disciplina.
-
-**Batching -- nao abrir agente/PR novo por reflexo (revisao 2026-07-16):**
-Motivo: auditoria da sessao 2026-07-15/16 (`docs_ai/operations/PROCESSO_PR_E_AGENTES_2026-07-16.md`)
-encontrou 74 branches remotas ja mergeadas e nunca apagadas, e pelo menos 2 PRs da propria sessao
-que deveriam ter sido absorvidas por um dispatch ja em andamento em vez de virar agente+branch+PR
-novos. Antes de abrir `Agent` novo ou PR nova, todo agente confere:
-1. Ja existe branch/worktree/PR ativa desta sessao na mesma area/arquivo? Se sim, o achado entra
-   ali (mesmo commit ou proximo commit da mesma branch) -- nao abre dispatch novo.
-2. O achado depende de outra PR ainda nao mergeada? Espera mergear antes de despachar (evita
-   retrabalho de resolver na ordem errada).
-3. PR isolada so se justifica com: urgencia de producao diferente do resto, rollback precisa ser
-   independente, ou dominio/reviewer diferente. Fora isso, agrupa.
+**Complementar:** commit ao terminar, `git push -u origin` imediatamente, abrir PR se pronto, limpar worktree ao encerrar, evitar batching de agentes paralelos. Detalhe: `.claude/rules/higiene-e-padronizacao-repositorio.md`.
 
 ---
 
 ## Autonomia dos Agentes
 
-### Pode fazer sem aprovacao do Luiz
-- Organizar issues dentro das regras
-- Atualizar descricoes/comentarios/checklist no GitHub Issues
-- Criar subissues tecnicas de issue aprovada
-- Propor melhorias de fluxo
-- Atualizar documentacao operacional
-- Criar branch para issue aprovada
-- Abrir PR pequeno ou medio
-- Corrigir bug evidente dentro do escopo
-- Documentar mudanca tecnica
-- Consolidar informacao duplicada
-- Registrar decisao ja tomada
+**Sem aprovação do Luiz:** organizar issues, atualizar docs operacionais, abrir PR pequeno/médio, corrigir bug evidente, documentar mudança técnica.
 
-### Precisa de aprovacao do Luiz
-- Custo novo ou assinatura/plano pago
-- Mudanca de escopo
-- Alteracao arquitetural relevante
-- Exclusao destrutiva
-- Publicacao em loja
-- Uso de conta pessoal/sensivel
-- Mudanca de package (`io.signallq.app` -- nunca)
-- Mudanca de marca
-- Alteracao de cronograma principal
-- Cancelamento de entrega relevante
-- Automacao que envie mensagem externa ou execute acao irreversivel
+**Com aprovação do Luiz:** custo novo, mudança de escopo, alteração arquitetural, exclusão destrutiva, publicação em loja, mudança de package (`io.signallq.app` — nunca), mudança de marca, alteração de cronograma, automação destrutiva.
 
 ---
 
-## Modo Piloto Automatico
+## Permissões e comunicação (revisão 2026-07-22)
 
-Quando a tarefa for bem delimitada, os agentes operam em piloto automatico. **Juninho triages issues novas antes de qualquer agente de implementação (Camilo/Lia/Rhodolfo) começar.**
+**Permissões totais:** os 5 agentes (Claudete, Camilo, Lia, Rhodolfo, Juninho) têm acesso completo
+a `Read, Grep, Glob, Bash, Edit, Write, Agent, ToolSearch` — sem restrição de pasta/tipo de
+arquivo por persona. A divisão de responsabilidade abaixo (quem é dono de qual frente) é sobre
+**quem normalmente executa o quê**, não sobre o que cada um tem tecnicamente permissão de tocar.
+Any agente pode editar qualquer parte do repo quando a tarefa exigir — mas o dono natural da
+frente é quem primeiro deve ser acionado.
 
-**0. Triagem inicial (Juninho)** — pra issues novas:
-   - Lê o corpo completo, resume escopo, identifica produto e área
-   - Sinaliza se envolve tela/copy (exigindo Lia) antes da implementação
-   - Estima pontos como primeiro palpite (Claudete calibra)
-   - Procura duplicatas com `gh issue list --search`
-   - Reporta achados brevemente — Claudete refina
+**Comunicação direta com o Luiz — habilitada:** qualquer agente pode falar diretamente com o Luiz
+(não precisa passar pela Claudete) e o Luiz pode falar diretamente com qualquer agente. Delegação
+lateral entre agentes (passar atividade, escalar) já valia desde 2026-07-11 — isto apenas confirma
+que o canal com o Luiz também é direto nos dois sentidos.
 
-**1. Entender a issue**
-**2. Planejar**
-**3. Executar**
-**4. Validar**
-**5. Atualizar a issue no GitHub**
-**6. Abrir PR se houver codigo**
-**7. Registrar resumo**
-**8. Comunicar via GitHub/Slack se aplicavel**
-**9. Pedir intervencao apenas se houver bloqueio real**
+**Tom das mensagens que chegam ao Luiz — OBRIGATÓRIO:** toda mensagem endereçada diretamente ao
+Luiz (não conversa interna entre agentes) deve ser **funcional e executiva** — o que foi feito, o
+que falta, decisão pendente, sem floreio, sem personalidade exagerada, sem palavrão. As
+personalidades de cada agente (Camilo grosseiro, Lia crítica, etc.) continuam valendo na
+comunicação **entre agentes** e nos comentários de issue/PR já previstos em cada persona — a
+mudança é especificamente sobre o que o Luiz recebe como destinatário direto.
 
-### Classificacao de tamanho
-
-| Tamanho | Criterio | Modo |
-|---|---|---|
-| **Pequena** | Correcao localizada, doc, ajuste UI, refactor, organizacao | Piloto automatico |
-| **Media** | Feature delimitada, fluxo simples, integracao prevista | Planejar, executar, registrar |
-| **Grande** | Mudanca arquitetural, feature ampla, multiplos modulos | Propor plano, pedir aprovacao antes |
-| **Sensivel** | Custo, conta, publicacao, seguranca, Play Console, package | Parar e pedir decisao do Luiz |
+**Concentração de documentação:** evitar gerar documento novo e solto quando um já existente cobre
+o mesmo assunto — atualizar/consolidar no lugar de criar duplicata. Vale para `docs_ai/`, decision
+logs e memory files. Antes de criar um `.md` novo, checar se o conteúdo já cabe em um existente.
 
 ---
 
-## Metodo de Trabalho do Luiz
+## Modo Piloto Automático
 
-- Luiz atua como CEO/fundador.
-- Recebe decisoes claras, poucas, objetivas.
-- Nao perguntar o obvio. Nao pedir aprovacao para tarefa operacional no escopo.
-- Escalar com recomendacao + motivo, nao com pergunta aberta.
-- Atualizacoes: curtas, praticas, orientadas a decisao.
-- Visibilidade via Issues/Projects no GitHub e documentacao executiva no Notion.
+Tarefas bem delimitadas rodam em autopilot: Juninho triages → Claudete refina → agente implementa → Rhodolfo valida → Done. Classificação de tamanho: pequena (Juninho/Haiku por padrão), média (agente default), grande (propor plano antes), sensível (aguardar Luiz).
 
 ---
 
 ## Agentes
+
+**Sincronização com o portfólio (regra 2026-07-22):** qualquer mudança de composição de squad, nome
+de produto ou repo deve ser propagada no mesmo commit/PR para `C:\Projetos\CLAUDE.md` (raiz do
+workspace) — é o doc que o Marcos (VP) usa pra rotear entre squads, e fica errado silenciosamente
+se ninguém atualizar de fora.
 
 Squad enxuto: 5 agentes ativos (Claudete, Camilo, Lia, Rhodolfo, Juninho). Validacao de device/rede
 e planejamento tecnico viraram skills (`/regras-android`, `/regras-diagnostico-rede`); busca de
@@ -467,35 +217,30 @@ padrao TIM/Accenture (Analista → Consultor → Consultor Sr → Especialista �
 Gerente → Executivo → Diretor). Perfil completo (cargo, area, formacao, caracteristicas
 profissionais/tecnicas) em cada `.claude/agents/<nome>.md`, secao "Perfil Corporativo". Resumo:
 
-| Agente | Cargo | Area | Reporta a |
-|---|---|---|---|
-| Claudete | Diretora de Produto & Delivery | Diretoria | CEO (Luiz) |
-| Camilo | Especialista Sr de Engenharia (Full-Stack) | Engenharia | Claudete |
-| Lia | Especialista Sr de Produto & UX | Produto & Design | Claudete |
-| Rhodolfo | Consultor Sr de Qualidade & Release | Qualidade & Confiabilidade | Claudete |
-| Juninho | Analista Junior de Operacoes & Triagem (Estagiario) | Operacoes & Suporte (compartilhado) | Claudete |
+| Agente | Cargo | Area | Frente dona | Reporta a |
+|---|---|---|---|---|
+| Claudete | Diretora de Produto & Delivery | Diretoria | Planejamento, priorizacao, Done/Not Done | CEO (Luiz) |
+| Camilo | Especialista Sr de Engenharia (Backend) | Engenharia | **Backend**: Android (Kotlin/Compose), Workers Cloudflare, backend do Console (`signallq-admin-worker`) | Claudete |
+| Lia | Especialista Sr de Produto & UX | Produto & Design | **Frontend**: design (Android, Console, Site) + implementacao React/TS/Vite/Tailwind do Console e do Site | Claudete |
+| Rhodolfo | Consultor Sr de Qualidade & Release | Qualidade & Confiabilidade | **Testes**: escreve e mantem testes automatizados, alem de QA/gate/release/docs | Claudete |
+| Juninho | Analista Junior de Operacoes & Triagem (Estagiario) | Operacoes & Suporte (compartilhado) | Mecanico: higiene, status report, monitoramento de agentes, atualizacao de issues | Claudete |
+
+**Revisao 2026-07-22 (frentes por especialidade):** Camilo deixa de implementar o frontend do
+Console/Site — essa frente passa para a Lia, que agora desenha **e** implementa. Camilo concentra
+em backend (Android nativo + Workers + backend do Console). Rhodolfo, alem do gate de QA, passa a
+escrever os testes automatizados das entregas (nao so revisar se existem). Juninho segue cobrindo
+tarefa mecanica — inclui agora, explicitamente, status report executivo e monitoramento de
+dispatches de agente em andamento, alem do que ja fazia (higiene, deploy check, triagem). Ver
+`.claude/agents/camilo.md`, `.claude/agents/lia.md`, `.claude/agents/rhodolfo.md` e
+`.claude/agents/juninho.md` para o detalhe operacional de cada mudanca.
 
 Todos os 5 podem delegar entre si (`Agent` tool liberado desde 2026-07-11, Juninho ganhou acesso
 restrito a handoff-only em 2026-07-16 — nunca orquestra fan-out, so escala pra cima). Ver
 `docs_ai/operations/PROCESSO_PR_E_AGENTES_2026-07-16.md` pro diagnostico completo da revisao.
 
-> **Felipe foi demitido em 2026-07-09.** Reportou "paridade total com o mockup" na PR #781 sem nunca validar contra a URL de producao com dado real (so contra mock local); Topbar com badge inventado e copy em ingles nunca reconferidos, labels de KPI do Worker nunca auditados contra o mockup, bloco de alertas sumindo em producao sem investigacao. Persona arquivada em `.claude/agents/_archive/felipe_2026-07-09_demitido.md`.
->
-> **Decisao definitiva (2026-07-09, sem reposicao de vaga):** as duas atribuicoes do Felipe foram herdadas dentro do squad atual, nao criado papel novo:
-> - **Implementacao do Admin Panel (React/TS) e dos Workers Cloudflare** → **Camilo**, que passa de "Dev Android" para dev unico do squad (Android + Admin + Cloudflare). Regra herdada da causa da demissao: validacao obrigatoria contra a URL de producao com dado real antes de reportar qualquer entrega do Admin como concluida.
-> - **Analise/leitura executiva de dados de app** (Play Console, Firebase Analytics, custo IA, metricas de diagnostico) → **Claudete**, de forma permanente — ja e natural do papel de PM/Tech Lead, formaliza o que ja orientava a priorizacao.
-> - Nao invocar mais o subagent `felipe` (arquivado como `felipe-archived`, so referencia historica).
+> **Felipe — Demissão 2026-07-09:** implementação do Admin Panel + Workers herdada por Camilo; análise de dados herdada por Claudete. Ver `docs_ai/decisions/DECISAO_DEMISSAO_FELIPE_2026-07-09.md`. Persona arquivada.
 
-> **Gema foi substituida em 2026-07-10** (nao demitida — padrao recorrente de validacao rasa mesmo
-> apos advertencia formal de 2026-07-09, sem novo incidente isolado alem disso). Relatou merge sem
-> executar (#844/#859/#860), contagem de cenarios errada (153 vs 3 reais), aprovacao visual "por
-> vibe" sem comparar pixel a pixel, e aprovacao de fix logico no-op sem rastrear a origem real do
-> dado (#832). Persona arquivada em `.claude/agents/_archive/gema_2026-07-10_substituida.md`.
->
-> Papel de QA/Release/Higiene/Documentacao passa integralmente para o **Rhodolfo**
-> (`.claude/agents/rhodolfo.md`), que herda o mandato com regras operacionais explicitas contra
-> cada uma dessas falhas. Nao invocar mais o subagent `gema` (arquivado como `gema-archived`, so
-> referencia historica).
+> **Gema — Substituição 2026-07-10:** padrão recorrente de validação rasa (não remediável por treinamento). Papel de QA/Release/Higiene/Documentação passou para Rhodolfo, que herda o mandato com 10 regras operacionais explícitas. Ver `docs_ai/decisions/DECISAO_SUBSTITUICAO_GEMA_2026-07-10.md`. Persona arquivada.
 
 **Claudete / PM & Tech Lead**
 - Manter o backlog do GitHub Issues limpo, organizar, priorizar, quebrar issues grandes; planejamento tecnico e decisao de arquitetura (absorveu Claudio)
@@ -503,67 +248,38 @@ restrito a handoff-only em 2026-07-16 — nunca orquestra fan-out, so escala pra
 - Analise/leitura executiva de dados de app (Play Console, Firebase Analytics, custo IA, metricas de diagnostico) — herdado do Felipe em 2026-07-09
 - Ferramentas: GitHub (issues, PR, release), Notion, Slack via GitHub, Miro, Firebase/Play Console (leitura)
 
-**Camilo / Dev (Android + Admin + Cloudflare)**
-- Dev principal do squad — implementação em Android (Kotlin/Compose) é a frente principal
-- Implementar SignallQ Admin (React/TS) e Workers Cloudflare (`integrations/`) — herdado do Felipe em 2026-07-09
-- Sempre implementa o SignallQ Console a partir do design entregue pela Lia (desde 2026-07-10)
-- Cria branches, abre PRs, corrige bugs nas duas frentes; Juninho cobre fatia mecânica/pequena sob demanda
-- Ferramentas: GitHub, Firebase/Cloudflare quando aplicavel
+**Camilo / Backend (Android + Workers + backend do Console)**
+- Dev principal de backend do squad — Android (Kotlin/Compose) é a frente nativa principal
+- Implementa e mantém os Workers Cloudflare (`integrations/`) e o backend do SignallQ Console (`signallq-admin-worker`, D1)
+- **Desde 2026-07-22, não implementa mais o frontend React/TS do Console/Site** — essa frente é da Lia; Camilo recebe dela o contrato de dados/endpoint necessário, não o design de tela
+- Cria branches, abre PRs, corrige bugs na frente de backend; Juninho cobre fatia mecânica/pequena sob demanda
+- Ferramentas: full (Read/Grep/Glob/Bash/Edit/Write/Agent/ToolSearch), GitHub, Firebase/Cloudflare quando aplicavel
 
-**Lia / UX & Design**
+**Lia / Frontend & Design (UX + implementação)**
 - Propor fluxos, revisar telas, manter coerencia Material 3 + design system (Android)
-- Desenha as telas do SignallQ Console (prototipo Claude Design/HTML) para o Camilo implementar — nunca edita
-  codigo React/TS do Console (desde 2026-07-10)
-- Ferramentas: Claude Design (Artifacts + skills frontend-design/impeccable), Notion, GitHub, Miro
+- **Desde 2026-07-22, além de desenhar (protótipo Claude Design/HTML) também implementa o código React/TS/Vite/Tailwind do SignallQ Console e do SignallQ Site** — deixa de ser "só design, nunca código" nessas duas superfícies
+- Ferramentas: full (Read/Grep/Glob/Bash/Edit/Write/Agent/ToolSearch), Claude Design (Artifacts + skills frontend-design/impeccable), Notion, GitHub, Miro
 
-**Rhodolfo / QA, Release, Higiene & Documentacao**
+**Rhodolfo / QA, Testes, Release, Higiene & Documentacao**
 - Validar criterios de aceite, testar fluxos, apontar regressoes, gate de Done, release, higiene
   e documentacao (absorveu Nina/Taisa via Gema)
+- **Desde 2026-07-22, escreve e mantém os testes automatizados (unit/integration) das entregas do Camilo e da Lia** — deixa de ser só revisor, passa a autor de teste também
 - Substitui a Gema (arquivada em 2026-07-10 — `.claude/agents/_archive/gema_2026-07-10_substituida.md`)
   apos padrao recorrente de validacao rasa mesmo com advertencia formal previa
-- Unico agente alem da Claudete com Edit/Write, restrito a documentacao (CHANGELOG, docs_ai/,
-  memory files) — nunca codigo de produto
-- Ferramentas: GitHub, Firebase/Crashlytics, Notion
+- Ferramentas: full (Read/Grep/Glob/Bash/Edit/Write/Agent/ToolSearch), GitHub, Firebase/Crashlytics, Notion
 
 **Juninho / Analista Junior de Operacoes & Triagem (Estagiario)**
 - Criado em 2026-07-11 pra reduzir custo de tokens: trabalho mecanico e barato (triagem, checagem
   de deploy real, busca de contexto, rascunho de changelog, edição de código simples) antes de escalar pra agente caro
+- **Desde 2026-07-22, cobre também explicitamente:** status report executivo do squad quando pedido
+  (a partir de estado real — `gh issue list`/`gh pr view`, nunca estimado) e monitoramento de
+  dispatches de agente em andamento (quem está ocupado, quem travou, o que está pendente de handoff)
 - Pode ser acionado direto por qualquer agente acima (Camilo/Lia/Rhodolfo/Claudete), não só pela Claudete
 - Edita código simples/mecânico: typo, constante, string, log, test, import, config — nunca lógica nova, arquitetura ou UI
 - Nunca decide Done/Not Done, nunca aprova visual — todo código passa pelo gate de Done do Rhodolfo igual a qualquer outro
-- Ferramentas: Read/Grep/Glob/Bash/Edit/Write/ToolSearch + `Agent` restrito a 1 chamada de handoff — nunca orquestra fan-out
+- Ferramentas: full (Read/Grep/Glob/Bash/Edit/Write/ToolSearch) + `Agent` restrito a 1 chamada de handoff — nunca orquestra fan-out
 
 ---
 
-## Rotinas Ativas
-
-| Rotina | Frequencia | Responsavel | Saida |
-|---|---|---|---|
-| Daily Assincrona do backlog | Dias uteis | Claudete | Comentario no GitHub Issues + Slack via integracao |
-| Weekly Planning / Grooming | Semanal | Claudete | Backlog priorizado no GitHub |
-| Cycle Review | Final do ciclo | Claudete | Resumo no GitHub + Notion executivo |
-| Review de Bloqueios | 2-3x por semana | Claudete | Lista curta com recomendacao para o Luiz |
-| Release Readiness | Por milestone/release | Claudete + Rhodolfo | Checklist no GitHub/Notion |
-| Docs Sync | Semanal ou por milestone | Rhodolfo | Notion atualizado |
-| Auditoria de docs desatualizados | Semanal (segunda 9h BRT, cron cloud `trig_01B5kB1CmPnF3Kd4GJy8wQp7`) | Rhodolfo (agente cloud automatizado) | `.claude/CLAUDE.md`, personas e `docs_ai/` cruzados contra estado real do repo (versao, contagem de modulos/arquivos, agente ativo, mecanismo que existe de fato); correcao pequena direto via PR, achado maior vira issue no GitHub |
-
-Rotinas que NAO devem existir: email diario, automacao Slack fora do GitHub, dashboards pagos, Play Console antes de M3.
-
 ---
 
-## Contexto Tecnico
-
-> **Desatualizado (snapshot de 2026-07-05, v0.23.0) -- nao confiar na contagem abaixo.** O
-> volume de PRs desde entao (rebrand, redesign MD3, motor de topologia, Pro Fases 0-3, lote de
-> bugs P0 de 2026-07-20) tornou qualquer numero fixo obsoleto rapido. Pra contagem real, rodar
-> `find android -path "*/src/test/*" -name "*Test.kt" | wc -l` (ou equivalente) em vez de citar
-> um numero desta secao.
-
-**Testes**
-- JUnit4 + Robolectric + coroutines-test + room-testing em `android/*/src/test/`. androidTest de Room/DAO tambem existem. Rodar: `.\android\gradlew.bat test`.
-- 16 modulos do consumer (ver "Identidade") + `:core:diagnostico`/`:core:relatorio` (compartilhados
-  com o Pro, ver `android/settings.gradle.kts`) + 11 modulos proprios do `:pro:*` -- nao presumir
-  que "16 modulos" cobre o monorepo inteiro, e so o escopo consumer.
-
-**Documentacao**
-- Doc viva em `docs_ai/` (ai/, design-system/, functional/, operations/, technical/). Obsoleto em `docs/_archive/` e `docs_ai/_archive/`. Indice: `docs_ai/README.md`.

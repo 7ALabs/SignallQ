@@ -157,17 +157,17 @@ vocabulário e thresholds próprios, incompatíveis com o catálogo/perfis do sp
 
 ## 12. Rastreamento
 
-Execução via GitHub Issues (`gmmattey/linka-android`), squad SignallQ em modo piloto automático
+Execução via GitHub Issues (`7ALabs/linka-android`), squad SignallQ em modo piloto automático
 (Camilo implementa, Lia valida design, Rhodolfo faz QA/gate de Done, Claudete coordena). Epic e
 tasks por fase referenciadas abaixo (preenchido após criação):
 
-- Epic: [#928](https://github.com/gmmattey/linka-android/issues/928)
-- Fase 0: [#929](https://github.com/gmmattey/linka-android/issues/929)
-- Fase 1: [#930](https://github.com/gmmattey/linka-android/issues/930)
-- Fase 2: [#931](https://github.com/gmmattey/linka-android/issues/931)
-- Fase 3: [#932](https://github.com/gmmattey/linka-android/issues/932)
-- Fase 4: [#933](https://github.com/gmmattey/linka-android/issues/933)
-- Fase 5: [#934](https://github.com/gmmattey/linka-android/issues/934)
-- Fase 6: [#935](https://github.com/gmmattey/linka-android/issues/935)
-- Fase 7: [#936](https://github.com/gmmattey/linka-android/issues/936)
-- Fase 8: [#937](https://github.com/gmmattey/linka-android/issues/937)
+- Epic: [#928](https://github.com/7ALabs/linka-android/issues/928)
+- Fase 0: [#929](https://github.com/7ALabs/linka-android/issues/929)
+- Fase 1: [#930](https://github.com/7ALabs/linka-android/issues/930)
+- Fase 2: [#931](https://github.com/7ALabs/linka-android/issues/931)
+- Fase 3: [#932](https://github.com/7ALabs/linka-android/issues/932)
+- Fase 4: [#933](https://github.com/7ALabs/linka-android/issues/933)
+- Fase 5: [#934](https://github.com/7ALabs/linka-android/issues/934)
+- Fase 6: [#935](https://github.com/7ALabs/linka-android/issues/935)
+- Fase 7: [#936](https://github.com/7ALabs/linka-android/issues/936)
+- Fase 8: [#937](https://github.com/7ALabs/linka-android/issues/937)
