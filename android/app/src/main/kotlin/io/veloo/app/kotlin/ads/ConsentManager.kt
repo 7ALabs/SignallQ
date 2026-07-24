@@ -37,13 +37,26 @@ object ConsentManager {
                     if (formError != null) {
                         Timber.w("UMP: erro ao exibir formulario de consentimento: ${formError.message}")
                     }
-                    onResultado(consentInformation.canRequestAds())
+                    val podeRequisitar = consentInformation.canRequestAds()
+                    // GH#1330 -- log de diagnostico: sem isso, "nenhum anuncio aparece" nao dava
+                    // pra distinguir entre UMP OK/consentimento negado e falha de rede/config,
+                    // so via debugger anexado. Filtrar logcat por "ConsentManager".
+                    Timber.i(
+                        "UMP: consentInfoUpdate OK -- status=${consentInformation.consentStatus}, " +
+                            "podeRequisitarAnuncio=$podeRequisitar",
+                    )
+                    onResultado(podeRequisitar)
                 }
             },
             { requestError ->
-                Timber.w("UMP: falha ao atualizar info de consentimento: ${requestError.message}")
+                Timber.w(
+                    "UMP: falha ao atualizar info de consentimento: " +
+                        "codigo=${requestError.errorCode}, mensagem=${requestError.message}",
+                )
                 // Falha na atualizacao nao apaga consentimento ja obtido em sessao anterior.
-                onResultado(consentInformation.canRequestAds())
+                val podeRequisitar = consentInformation.canRequestAds()
+                Timber.w("UMP: apos falha, status=${consentInformation.consentStatus}, podeRequisitarAnuncio=$podeRequisitar")
+                onResultado(podeRequisitar)
             },
         )
     }
