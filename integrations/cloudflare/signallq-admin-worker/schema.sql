@@ -212,3 +212,30 @@ CREATE INDEX IF NOT EXISTS idx_health_snapshots_service_created
 -- Aplicar via: migrations/014_gh786.sql (npx wrangler d1 execute --file=... --remote)
 ALTER TABLE diagnostic_sessions ADD COLUMN uf TEXT DEFAULT '';
 CREATE INDEX IF NOT EXISTS idx_sessions_uf ON diagnostic_sessions(uf);
+
+-- GH#1341: avaliações completas do Google Play (Android Publisher API v3, reviews.list) --
+-- lista de registros identificáveis por reviewId (nota, comentário, idioma, dispositivo,
+-- versão, resposta do dev, status de tratamento), diferente de admin_settings (estado pontual)
+-- e de integration_metric_snapshots (série temporal, migration 016). UPDATE-em-lugar por
+-- review_id -- a API não expõe histórico de edição. handling_status é campo admin-side, sync
+-- nunca sobrescreve (ver exemplo de upsert na migration).
+-- Aplicar via: migrations/017_gh1341_google_play_reviews.sql (npx wrangler d1 execute --file=... --remote)
+CREATE TABLE IF NOT EXISTS google_play_reviews (
+  review_id             TEXT    PRIMARY KEY,
+  rating                INTEGER NOT NULL,
+  comment_text          TEXT    NOT NULL DEFAULT '',
+  language              TEXT    NOT NULL DEFAULT '',
+  device                TEXT    NOT NULL DEFAULT '',
+  android_os_version    INTEGER,
+  app_version_code      INTEGER,
+  app_version_name      TEXT    NOT NULL DEFAULT '',
+  review_last_modified  INTEGER,
+  developer_reply_text  TEXT    DEFAULT NULL,
+  developer_reply_at    INTEGER DEFAULT NULL,
+  handling_status       TEXT    NOT NULL DEFAULT 'pending', -- pending | replied | dismissed
+  first_synced_at       INTEGER NOT NULL,
+  last_synced_at        INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_google_play_reviews_rating          ON google_play_reviews(rating);
+CREATE INDEX IF NOT EXISTS idx_google_play_reviews_last_synced     ON google_play_reviews(last_synced_at);
+CREATE INDEX IF NOT EXISTS idx_google_play_reviews_handling_status ON google_play_reviews(handling_status);

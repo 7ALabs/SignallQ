@@ -2373,44 +2373,139 @@ async function handleGooglePlayStatus(_req: Request, env: Env): Promise<Response
 // via API é a lista de reviews (reviews.list), com nota (starRating) por
 // review — usamos a média de uma amostra recente como sinal real de
 // satisfação, sem inventar número de instalações.
+// GH#1341 — reviews.list expõe nota/comentário/idioma/dispositivo/resposta do dev, não só
+// starRating. Guardado em tabela própria (migration 017, google_play_reviews, review_id como
+// chave) porque é lista de registros identificáveis, não estado pontual/série temporal — decisão
+// da Claudete em docs_ai/decisions/DECISAO_MODELO_DADOS_AVALIACOES_GOOGLE_PLAY_2026-07-24.md.
+// Upsert com ON CONFLICT preserva handling_status/first_synced_at (campo admin-side, nunca vem da
+// API — sync nunca pode resetá-lo). google_play_sync em admin_settings continua como cache
+// rápido de resumo pro /status.
+
+interface GooglePlayReviewApiComment {
+  userComment?: {
+    text?: string;
+    starRating?: number;
+    reviewerLanguage?: string;
+    device?: string;
+    androidOsVersion?: number;
+    appVersionCode?: number;
+    appVersionName?: string;
+    lastModified?: { seconds?: string };
+  };
+  developerComment?: {
+    text?: string;
+    lastModified?: { seconds?: string };
+  };
+}
+
+interface GooglePlayReviewApiEntry {
+  reviewId: string;
+  comments?: GooglePlayReviewApiComment[];
+}
+
+async function upsertGooglePlayReview(env: Env, review: GooglePlayReviewApiEntry, syncedAtSec: number): Promise<number | null> {
+  const userComment = review.comments?.find(c => c.userComment)?.userComment;
+  const developerComment = review.comments?.find(c => c.developerComment)?.developerComment;
+  if (!userComment || typeof userComment.starRating !== "number") return null;
+
+  await env.DB.prepare(
+    `INSERT INTO google_play_reviews (
+       review_id, rating, comment_text, language, device, android_os_version, app_version_code,
+       app_version_name, review_last_modified, developer_reply_text, developer_reply_at,
+       handling_status, first_synced_at, last_synced_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+     ON CONFLICT(review_id) DO UPDATE SET
+       rating               = excluded.rating,
+       comment_text         = excluded.comment_text,
+       language             = excluded.language,
+       device               = excluded.device,
+       android_os_version   = excluded.android_os_version,
+       app_version_code     = excluded.app_version_code,
+       app_version_name     = excluded.app_version_name,
+       review_last_modified = excluded.review_last_modified,
+       developer_reply_text = excluded.developer_reply_text,
+       developer_reply_at   = excluded.developer_reply_at,
+       last_synced_at       = excluded.last_synced_at`
+  ).bind(
+    review.reviewId,
+    userComment.starRating,
+    userComment.text ?? "",
+    userComment.reviewerLanguage ?? "",
+    userComment.device ?? "",
+    userComment.androidOsVersion ?? null,
+    userComment.appVersionCode ?? null,
+    userComment.appVersionName ?? "",
+    userComment.lastModified?.seconds ? Number(userComment.lastModified.seconds) : null,
+    developerComment?.text ?? null,
+    developerComment?.lastModified?.seconds ? Number(developerComment.lastModified.seconds) : null,
+    syncedAtSec,
+    syncedAtSec
+  ).run();
+  return userComment.starRating;
+}
+
 async function handleGooglePlaySync(_req: Request, env: Env): Promise<Response> {
   if (!env.GOOGLE_PLAY_CLIENT_EMAIL || !env.GOOGLE_PLAY_PRIVATE_KEY) {
     return json({ status: "not_configured", message: "GOOGLE_PLAY_CLIENT_EMAIL/GOOGLE_PLAY_PRIVATE_KEY não configurados." }, 200, env);
   }
   try {
-    const token = await getGooglePlayAccessToken(
-      env,
-      "https://www.googleapis.com/auth/androidpublisher"
-    );
-    const resp = await fetch(
-      `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${GOOGLE_PLAY_PACKAGE_NAME}/reviews?maxResults=100`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (!resp.ok) {
-      const errText = await resp.text();
-      await logError(env, 'google-play', `reviews_${resp.status}: ${errText.slice(0, 300)}`, '');
-      return json({ status: "error", message: `Falha ao consultar reviews (HTTP ${resp.status}) — app pode ainda não estar publicado.` }, 200, env);
-    }
-    const data = await resp.json() as {
-      reviews?: Array<{ comments?: Array<{ userComment?: { starRating?: number } }> }>;
-    };
+    const token = await getGooglePlayAccessToken(env, "https://www.googleapis.com/auth/androidpublisher");
+    const syncedAtSec = nowSec();
     const ratings: number[] = [];
-    for (const review of data.reviews ?? []) {
-      for (const comment of review.comments ?? []) {
-        const rating = comment.userComment?.starRating;
-        if (typeof rating === "number") ratings.push(rating);
+    let pageToken: string | undefined;
+    let pages = 0;
+
+    do {
+      const url = new URL(`https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${GOOGLE_PLAY_PACKAGE_NAME}/reviews`);
+      url.searchParams.set("maxResults", "100");
+      if (pageToken) url.searchParams.set("token", pageToken);
+      const resp = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
+      if (!resp.ok) {
+        const errText = await resp.text();
+        await logError(env, 'google-play', `reviews_${resp.status}: ${errText.slice(0, 300)}`, '');
+        return json({ status: "error", message: `Falha ao consultar reviews (HTTP ${resp.status}) — app pode ainda não estar publicado.` }, 200, env);
       }
-    }
+      const data = await resp.json() as {
+        reviews?: GooglePlayReviewApiEntry[];
+        tokenPagination?: { nextPageToken?: string };
+      };
+      for (const review of data.reviews ?? []) {
+        const rating = await upsertGooglePlayReview(env, review, syncedAtSec);
+        if (rating !== null) ratings.push(rating);
+      }
+      pageToken = data.tokenPagination?.nextPageToken;
+      pages++;
+      // Trava de segurança — reviews.list não documenta limite superior de páginas; 50 páginas
+      // (até 5000 reviews) é folga generosa pro volume atual do app sem risco de loop infinito
+      // caso a API devolva token repetido por bug.
+    } while (pageToken && pages < 50);
+
     const ratingAverage = ratings.length
       ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 100) / 100
       : null;
     const syncedAt = new Date().toISOString();
     await writeGooglePlaySyncState(env, { syncedAt, ratingAverage, reviewsSampled: ratings.length });
-    return json({ status: "ok", syncedAt, ratingAverage, reviewsSampled: ratings.length }, 200, env);
+    return json({ status: "ok", syncedAt, ratingAverage, reviewsSampled: ratings.length, pagesFetched: pages }, 200, env);
   } catch (e) {
     await logError(env, 'google-play', String(e), e instanceof Error ? (e.stack ?? '') : '');
     return json({ status: "error", message: String(e) }, 200, env);
   }
+}
+
+async function handleGooglePlayReviewsList(req: Request, env: Env): Promise<Response> {
+  const url = new URL(req.url);
+  const handlingStatus = url.searchParams.get("handlingStatus");
+  const limit = Math.min(Number(url.searchParams.get("limit") ?? "50") || 50, 200);
+  let query = "SELECT * FROM google_play_reviews";
+  const binds: unknown[] = [];
+  if (handlingStatus) {
+    query += " WHERE handling_status = ?";
+    binds.push(handlingStatus);
+  }
+  query += " ORDER BY rating ASC, review_last_modified DESC LIMIT ?";
+  binds.push(limit);
+  const { results } = await env.DB.prepare(query).bind(...binds).all();
+  return json({ source: "worker", reviews: results ?? [] }, 200, env);
 }
 
 // --- migration 012_play_track.sql — mapeamento version_code -> trilha do Play Console ---
@@ -4322,6 +4417,7 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "POST", pattern: /^\/admin\/integrations\/firebase\/sync$/,         handler: handleFirebaseSync },
   { method: "GET",  pattern: /^\/admin\/integrations\/google-play\/status$/,   handler: handleGooglePlayStatus },
   { method: "POST", pattern: /^\/admin\/integrations\/google-play\/sync$/,     handler: handleGooglePlaySync },
+  { method: "GET",  pattern: /^\/admin\/integrations\/google-play\/reviews$/,  handler: handleGooglePlayReviewsList },
   { method: "GET",  pattern: /^\/admin\/integrations\/google-play\/tracks\/status$/,   handler: handleGooglePlayTracksStatus },
   { method: "POST", pattern: /^\/admin\/integrations\/google-play\/tracks\/sync$/,     handler: handleGooglePlayTracksSync },
   { method: "POST", pattern: /^\/admin\/integrations\/google-play\/tracks\/backfill$/, handler: handleGooglePlayTracksBackfill },
