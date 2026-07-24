@@ -1,7 +1,7 @@
 ﻿# Schema de Eventos GA4 — SignallQ Android
 
 **Status:** ativo
-**Última validação:** 2026-07-05 (v0.23.0, versionCode 56)
+**Última validação:** 2026-07-24 (adição de User Properties, GH#1360)
 **Fonte de verdade:** código real (`AnalyticsTracker`/`FirebaseAnalyticsTracker`, `AppModule.kt`)
 **Escopo:** eventos GA4 do schema SIG-134 (`feature_used`, `screen_view`, `app_session_start`, `feature_crash`, `battery_snapshot`) — distinto do funil principal SIG-155 documentado em `analytics-events.md`
 **Responsável:** Camilo (Backend Android)
@@ -87,6 +87,33 @@ Disparo: `MainActivity.onCreate()`, via `ACTION_BATTERY_CHANGED` (sticky broadca
 | `level` | Int | Percentual de bateria (0–100) |
 | `charging` | Boolean | `true` se carregando ou com bateria cheia |
 | `session_id` | String | UUID da sessão atual |
+
+---
+
+## User Properties (GH#1360)
+
+Além dos eventos acima, `FirebaseAnalyticsTracker` define **3 user properties** GA4 —
+dimensões que valem para a sessão inteira, não por evento isolado. Setadas uma vez por
+sessão, em `registrarSessionStart()` (chamado uma vez em `MainActivity.onCreate()`), via
+`FirebaseAnalytics.setUserProperty()`.
+
+| User Property | Valores possíveis | Fonte |
+|---|---|---|
+| `environment` | `production`, `staging` | `environmentFor(distChannel)` — `production` só quando instalado via Play Store |
+| `dist_channel` | `play_store`, `sideload`, `unknown` (ou nome do pacote instalador) | `distributionChannel(context)` |
+| `build_type` | `debug`, `release` | `BuildConfig.BUILD_TYPE` |
+
+Ambas as funções (`distributionChannel`, `environmentFor`) vivem em
+`DistributionChannel.kt` (mesmo pacote `io.signallq.app.analytics`) e já eram usadas pelo
+`CompositeAnalyticsTracker` para classificar o envio ao `signallq-admin-worker`
+(`POST /ingest/analytics`, GH#759) — GH#1360 reaproveita a mesma fonte para alinhar o
+critério de ambiente entre os dois sistemas de analytics (Firebase e `/ingest/*`), que
+continuam paralelos e sem correlação cruzada (ver doc do `CompositeAnalyticsTracker`).
+
+**Pendência fora do alcance de código:** para `environment`/`dist_channel`/`build_type`
+ficarem consultáveis via API/relatórios do GA4, é preciso registrá-las como "custom
+dimension" no Admin do Google Analytics — ação manual de console, não coberta por este
+PR.
 
 ---
 
