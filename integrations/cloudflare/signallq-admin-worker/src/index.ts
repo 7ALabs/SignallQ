@@ -2845,12 +2845,6 @@ async function readPlayVitalsSyncState(env: Env): Promise<PlayVitalsSyncState | 
   }
 }
 
-async function writePlayVitalsSyncState(env: Env, state: PlayVitalsSyncState): Promise<void> {
-  await env.DB.prepare(
-    "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES ('google_play_vitals_sync', ?, ?)"
-  ).bind(JSON.stringify(state), nowSec()).run();
-}
-
 async function handlePlayVitalsStatus(_req: Request, env: Env): Promise<Response> {
   const hasCredentials = !!(env.GOOGLE_PLAY_CLIENT_EMAIL && env.GOOGLE_PLAY_PRIVATE_KEY);
   const syncState = await readPlayVitalsSyncState(env);
@@ -2870,76 +2864,140 @@ function ymd(date: Date): { year: number; month: number; day: number } {
   return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() };
 }
 
+// GH#1341 — generalização pra cobrir crash rate além de ANR: mesma API, mesma forma de query
+// (sem dimensão obrigatória). slowStartRate/excessiveWakeupRate/stuckBackgroundWakelockRate
+// exigem dimensão obrigatória (ex.: startType) — shape de query diferente, não cabem nesta
+// função; ficam como próxima fatia documentada, não implementadas às pressas.
+interface SimpleVitalsMetricConfig {
+  metricSetResource: string; // ex.: "anrRateMetricSet"
+  metricName: string;        // ex.: "anrRate"
+  settingsKey: string;       // ex.: "google_play_vitals_sync"
+}
+
+async function syncSimpleVitalsMetric(env: Env, config: SimpleVitalsMetricConfig): Promise<PlayVitalsSyncState | { error: string }> {
+  const resource = `apps/${GOOGLE_PLAY_PACKAGE_NAME}/${config.metricSetResource}`;
+  const base = `https://playdeveloperreporting.googleapis.com/v1beta1/${resource}`;
+  const token = await getGooglePlayAccessToken(env, "https://www.googleapis.com/auth/playdeveloperreporting");
+
+  // Freshness primeiro — confirma que a fonte está acessível e até quando os dados chegam,
+  // sem assumir um range fixo de datas que pode não ter dado disponível ainda.
+  const metricSetResp = await fetch(base, { headers: { Authorization: `Bearer ${token}` } });
+  if (!metricSetResp.ok) {
+    const errText = await metricSetResp.text();
+    await logError(env, 'google-play-vitals', `metricset_${config.metricSetResource}_${metricSetResp.status}: ${errText.slice(0, 300)}`, '');
+    return { error: `Falha ao consultar ${config.metricSetResource} (HTTP ${metricSetResp.status}).` };
+  }
+  const metricSet = await metricSetResp.json() as {
+    freshnessInfo?: { freshnesses?: Array<{ aggregationPeriod?: string; latestEndTime?: { year: number; month: number; day: number } }> };
+  };
+  const daily = metricSet.freshnessInfo?.freshnesses?.find(f => f.aggregationPeriod === "DAILY");
+  if (!daily?.latestEndTime) {
+    return { error: `${config.metricSetResource}: freshnessInfo sem aggregationPeriod DAILY — sem dado disponível ainda.` };
+  }
+  const endDate = new Date(Date.UTC(daily.latestEndTime.year, daily.latestEndTime.month - 1, daily.latestEndTime.day));
+  const startDate = new Date(endDate);
+  startDate.setUTCDate(startDate.getUTCDate() - 6); // janela de 7 dias terminando no último dia com dado
+
+  const queryResp = await fetch(`${base}:query`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      timelineSpec: { aggregationPeriod: "DAILY", startTime: ymd(startDate), endTime: ymd(endDate) },
+      metrics: [config.metricName],
+      pageSize: 100,
+    }),
+  });
+  if (!queryResp.ok) {
+    const errText = await queryResp.text();
+    await logError(env, 'google-play-vitals', `query_${config.metricSetResource}_${queryResp.status}: ${errText.slice(0, 300)}`, '');
+    return { error: `Falha ao consultar ${config.metricSetResource}:query (HTTP ${queryResp.status}).` };
+  }
+  const queryData = await queryResp.json() as { rows?: Array<{ metrics?: Array<{ metric?: string; decimalValue?: { value?: string } }> }> };
+  const values: number[] = [];
+  for (const row of queryData.rows ?? []) {
+    for (const m of row.metrics ?? []) {
+      if (m.metric === config.metricName && m.decimalValue?.value) values.push(Number(m.decimalValue.value));
+    }
+  }
+  const ratePercent = values.length
+    ? Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10000) / 100
+    : null;
+
+  const syncedAt = new Date().toISOString();
+  const state: PlayVitalsSyncState = {
+    syncedAt,
+    source: { provider: "google_play", service: "play_developer_reporting", apiVersion: "v1beta1", resource, endpoint: `${base}:query` },
+    freshnessInfo: metricSet.freshnessInfo ?? null,
+    anrRatePercent: ratePercent,
+    aggregationPeriod: "DAILY",
+    rangeStart: startDate.toISOString().slice(0, 10),
+    rangeEnd: endDate.toISOString().slice(0, 10),
+  };
+  await recordIntegrationSnapshot(env, {
+    provider: "google_play", service: "play_developer_reporting", resource: state.source.resource,
+    metric: config.metricName, periodStart: state.rangeStart, periodEnd: state.rangeEnd,
+    valueNumeric: ratePercent, payload: state,
+  });
+  await env.DB.prepare(
+    "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES (?, ?, ?)"
+  ).bind(config.settingsKey, JSON.stringify(state), nowSec()).run();
+  return state;
+}
+
 async function handlePlayVitalsSync(_req: Request, env: Env): Promise<Response> {
   if (!env.GOOGLE_PLAY_CLIENT_EMAIL || !env.GOOGLE_PLAY_PRIVATE_KEY) {
     return json({ status: "not_configured", message: "GOOGLE_PLAY_CLIENT_EMAIL/GOOGLE_PLAY_PRIVATE_KEY não configurados." }, 200, env);
   }
-  const resource = `apps/${GOOGLE_PLAY_PACKAGE_NAME}/anrRateMetricSet`;
-  const base = `https://playdeveloperreporting.googleapis.com/v1beta1/${resource}`;
   try {
-    const token = await getGooglePlayAccessToken(env, "https://www.googleapis.com/auth/playdeveloperreporting");
-
-    // Freshness primeiro — confirma que a fonte está acessível e até quando os dados chegam,
-    // sem assumir um range fixo de datas que pode não ter dado disponível ainda.
-    const metricSetResp = await fetch(base, { headers: { Authorization: `Bearer ${token}` } });
-    if (!metricSetResp.ok) {
-      const errText = await metricSetResp.text();
-      await logError(env, 'google-play-vitals', `metricset_${metricSetResp.status}: ${errText.slice(0, 300)}`, '');
-      return json({ status: "error", message: `Falha ao consultar anrRateMetricSet (HTTP ${metricSetResp.status}).` }, 200, env);
-    }
-    const metricSet = await metricSetResp.json() as {
-      freshnessInfo?: { freshnesses?: Array<{ aggregationPeriod?: string; latestEndTime?: { year: number; month: number; day: number } }> };
-    };
-    const daily = metricSet.freshnessInfo?.freshnesses?.find(f => f.aggregationPeriod === "DAILY");
-    if (!daily?.latestEndTime) {
-      return json({ status: "error", message: "freshnessInfo sem aggregationPeriod DAILY — sem dado disponível ainda." }, 200, env);
-    }
-    const endDate = new Date(Date.UTC(daily.latestEndTime.year, daily.latestEndTime.month - 1, daily.latestEndTime.day));
-    const startDate = new Date(endDate);
-    startDate.setUTCDate(startDate.getUTCDate() - 6); // janela de 7 dias terminando no último dia com dado
-
-    const queryResp = await fetch(`${base}:query`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        timelineSpec: { aggregationPeriod: "DAILY", startTime: ymd(startDate), endTime: ymd(endDate) },
-        metrics: ["anrRate"],
-        pageSize: 100,
-      }),
+    const result = await syncSimpleVitalsMetric(env, {
+      metricSetResource: "anrRateMetricSet", metricName: "anrRate", settingsKey: "google_play_vitals_sync",
     });
-    if (!queryResp.ok) {
-      const errText = await queryResp.text();
-      await logError(env, 'google-play-vitals', `query_${queryResp.status}: ${errText.slice(0, 300)}`, '');
-      return json({ status: "error", message: `Falha ao consultar anrRateMetricSet:query (HTTP ${queryResp.status}).` }, 200, env);
-    }
-    const queryData = await queryResp.json() as { rows?: Array<{ metrics?: Array<{ metric?: string; decimalValue?: { value?: string } }> }> };
-    const values: number[] = [];
-    for (const row of queryData.rows ?? []) {
-      for (const m of row.metrics ?? []) {
-        if (m.metric === "anrRate" && m.decimalValue?.value) values.push(Number(m.decimalValue.value));
-      }
-    }
-    const anrRatePercent = values.length
-      ? Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10000) / 100
-      : null;
+    if ("error" in result) return json({ status: "error", message: result.error }, 200, env);
+    return json({ status: "ok", ...result }, 200, env);
+  } catch (e) {
+    await logError(env, 'google-play-vitals', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ status: "error", message: String(e) }, 200, env);
+  }
+}
 
-    const syncedAt = new Date().toISOString();
-    const state: PlayVitalsSyncState = {
-      syncedAt,
-      source: { provider: "google_play", service: "play_developer_reporting", apiVersion: "v1beta1", resource, endpoint: `${base}:query` },
-      freshnessInfo: metricSet.freshnessInfo ?? null,
-      anrRatePercent,
-      aggregationPeriod: "DAILY",
-      rangeStart: startDate.toISOString().slice(0, 10),
-      rangeEnd: endDate.toISOString().slice(0, 10),
-    };
-    await recordIntegrationSnapshot(env, {
-      provider: "google_play", service: "play_developer_reporting", resource: state.source.resource,
-      metric: "anrRate", periodStart: state.rangeStart, periodEnd: state.rangeEnd,
-      valueNumeric: anrRatePercent, payload: state,
+async function readPlayCrashRateSyncState(env: Env): Promise<PlayVitalsSyncState | null> {
+  const row = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'google_play_crash_rate_sync'"
+  ).first<{ value: string }>();
+  if (!row?.value) return null;
+  try {
+    return JSON.parse(row.value) as PlayVitalsSyncState;
+  } catch {
+    return null;
+  }
+}
+
+async function handlePlayCrashRateStatus(_req: Request, env: Env): Promise<Response> {
+  const hasCredentials = !!(env.GOOGLE_PLAY_CLIENT_EMAIL && env.GOOGLE_PLAY_PRIVATE_KEY);
+  const syncState = await readPlayCrashRateSyncState(env);
+  return json({
+    source: "worker",
+    packageName: GOOGLE_PLAY_PACKAGE_NAME,
+    status: hasCredentials ? "connected" : "disabled",
+    hasCredentials,
+    lastSyncTimestamp: syncState?.syncedAt ?? null,
+    crashRatePercent: syncState?.anrRatePercent ?? null,
+    rangeStart: syncState?.rangeStart ?? null,
+    rangeEnd: syncState?.rangeEnd ?? null,
+  }, 200, env);
+}
+
+async function handlePlayCrashRateSync(_req: Request, env: Env): Promise<Response> {
+  if (!env.GOOGLE_PLAY_CLIENT_EMAIL || !env.GOOGLE_PLAY_PRIVATE_KEY) {
+    return json({ status: "not_configured", message: "GOOGLE_PLAY_CLIENT_EMAIL/GOOGLE_PLAY_PRIVATE_KEY não configurados." }, 200, env);
+  }
+  try {
+    const result = await syncSimpleVitalsMetric(env, {
+      metricSetResource: "crashRateMetricSet", metricName: "crashRate", settingsKey: "google_play_crash_rate_sync",
     });
-    await writePlayVitalsSyncState(env, state);
-    return json({ status: "ok", ...state }, 200, env);
+    if ("error" in result) return json({ status: "error", message: result.error }, 200, env);
+    const { anrRatePercent, ...rest } = result;
+    return json({ status: "ok", ...rest, crashRatePercent: anrRatePercent }, 200, env);
   } catch (e) {
     await logError(env, 'google-play-vitals', String(e), e instanceof Error ? (e.stack ?? '') : '');
     return json({ status: "error", message: String(e) }, 200, env);
@@ -4423,6 +4481,8 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "POST", pattern: /^\/admin\/integrations\/google-play\/tracks\/backfill$/, handler: handleGooglePlayTracksBackfill },
   { method: "GET",  pattern: /^\/admin\/integrations\/google-play\/vitals\/status$/,  handler: handlePlayVitalsStatus },
   { method: "POST", pattern: /^\/admin\/integrations\/google-play\/vitals\/sync$/,    handler: handlePlayVitalsSync },
+  { method: "GET",  pattern: /^\/admin\/integrations\/google-play\/vitals\/crash-rate\/status$/, handler: handlePlayCrashRateStatus },
+  { method: "POST", pattern: /^\/admin\/integrations\/google-play\/vitals\/crash-rate\/sync$/,   handler: handlePlayCrashRateSync },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/management\/status$/,     handler: handleFirebaseManagementStatus },
   { method: "POST", pattern: /^\/admin\/integrations\/firebase\/management\/sync$/,       handler: handleFirebaseManagementSync },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/remote-config\/status$/,  handler: handleRemoteConfigStatus },
@@ -4492,6 +4552,11 @@ const SCHEDULED_SYNC_JOBS: Array<{
   {
     name: 'google-play-vitals',
     run: (env) => handlePlayVitalsSync(new Request('https://internal/scheduled-sync'), env),
+    isError: (data) => data.status === 'error',
+  },
+  {
+    name: 'google-play-crash-rate',
+    run: (env) => handlePlayCrashRateSync(new Request('https://internal/scheduled-sync'), env),
     isError: (data) => data.status === 'error',
   },
   {
