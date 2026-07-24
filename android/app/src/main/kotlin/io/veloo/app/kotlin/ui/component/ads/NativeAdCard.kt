@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.gms.ads.nativead.MediaView
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdView
 import io.signallq.app.ui.LkRadius
@@ -44,6 +45,13 @@ import io.signallq.app.ui.ads.buildRoleComposeView
  * Headline/body/CTA vem do proprio [NativeAd] carregado do AdMob (criativo real
  * servido pelo ad network) -- nunca texto hardcoded aqui, isso violaria a politica
  * de anuncio nativo do AdMob.
+ *
+ * Issue #1356: o AdMob native ad validator (popup de debug "1 implementation issue
+ * found") apontava [MediaView] ausente -- o SDK exige que todo `NativeAdView` que usa
+ * criativo com imagem/video registre um `mediaView` (`nativeAdView.mediaView`), mesmo
+ * quando o layout tambem exibe o icone do anunciante separadamente. Sem isso, o SDK
+ * nao tem onde renderizar o asset principal do criativo e sinaliza a implementacao
+ * como incompleta.
  */
 @Composable
 fun NativeAdCard(
@@ -140,6 +148,22 @@ fun NativeAdCard(
                                 addView(textColumn)
                             }
 
+                        // MediaView: asset principal do criativo (imagem/video) -- exigido pelo
+                        // SDK sempre que o nativeAd tem midia (ver KDoc da funcao, issue #1356).
+                        // Altura calculada pela proporcao real do criativo (`aspectRatio`) para
+                        // nao distorcer nem cortar o conteudo; cai num 16:9 padrao quando o
+                        // AdMob nao informa proporcao (ex.: criativo so com texto).
+                        val aspectRatio = nativeAd.mediaContent?.aspectRatio?.takeIf { it > 0f } ?: (16f / 9f)
+                        val mediaViewHeightPx = (density.dpToPx(MEDIA_VIEW_WIDTH_REFERENCE) / aspectRatio).toInt()
+                        val mediaView =
+                            MediaView(context).apply {
+                                mediaContent = nativeAd.mediaContent
+                                layoutParams =
+                                    LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, mediaViewHeightPx).apply {
+                                        topMargin = density.dpToPx(LkSpacing.md)
+                                    }
+                            }
+
                         val ctaComposeView =
                             buildRoleComposeView(context) {
                                 NativeAdCtaButton(label = nativeAd.callToAction ?: "Ver oferta")
@@ -154,6 +178,7 @@ fun NativeAdCard(
                             LinearLayout(context).apply {
                                 orientation = LinearLayout.VERTICAL
                                 addView(topRow)
+                                addView(mediaView)
                                 addView(ctaComposeView)
                             }
 
@@ -162,6 +187,7 @@ fun NativeAdCard(
                             iconView = iconChip
                             headlineView = headlineComposeView
                             bodyView = bodyComposeView
+                            this.mediaView = mediaView
                             callToActionView = ctaComposeView
                             setNativeAd(nativeAd)
                         }
@@ -173,5 +199,10 @@ fun NativeAdCard(
 }
 
 private val ICON_SIZE: Dp = 44.dp
+
+// Largura de referencia so para calcular a altura do MediaView a partir do aspectRatio do
+// criativo -- a View em si fica com largura MATCH_PARENT (escala com o card real); isso so
+// evita altura desproporcional em telas muito estreitas ou muito largas.
+private val MEDIA_VIEW_WIDTH_REFERENCE: Dp = 320.dp
 
 private fun androidx.compose.ui.unit.Density.dpToPx(dp: Dp): Int = with(this) { dp.roundToPx() }
