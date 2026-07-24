@@ -55,6 +55,26 @@ play {
     defaultToAppBundles.set(true)
 }
 
+// Issue #1330 (continuacao) — mesma property -PplayTrack acima, agora tambem lida em tempo de
+// build (nao so na task de publish) para decidir Ad Unit ID real vs teste em AdUnitIds.kt.
+//
+// Por que nao amarrar isso so na trilha "alpha": o pipeline real (release.yml + promote-release.yml)
+// publica sempre primeiro em "internal" e promove pra "alpha" via `promoteReleaseArtifact`, que
+// reusa o MESMO AAB assinado sem rebuild ("sem rebuild nem reassinatura", comentario do proprio
+// promote-release.yml) — e exatamente a garantia que valida o binario de internal antes dele
+// chegar em alpha. Alpha nunca e recompilada isoladamente, entao uma condicao que so disparasse
+// em "-PplayTrack=alpha" nunca seria exercida de verdade por esse pipeline. A trilha "production"
+// e a unica bloqueada por guardrail explicito ate decisao do Luiz (ver promote-release.yml) e,
+// quando existir, sera um build/publish dedicado e deliberado — nao uma promocao do binario de
+// internal/alpha.
+//
+// Por isso o corte e "production" vs "tudo que nao e production ainda" (internal/alpha, hoje
+// binario identico): qualquer trilha != production usa Ad Unit ID de teste. Efeito colateral aceito
+// e documentado: "internal" tambem mostra anuncio de teste enquanto isso durar — trilha sem
+// testador externo, so o Luiz valida (ver comentario em release.yml), sem impacto de produto real.
+val playTrackAtual = providers.gradleProperty("playTrack").orElse("alpha").get()
+val usarAdsDeTesteEmRelease = (playTrackAtual != "production").toString()
+
 android {
     namespace = "io.signallq.app"
     compileSdk = libs.versions.compileSdk
@@ -120,6 +140,8 @@ android {
                 testers = "giammattey.luiz@gmail.com"
                 releaseNotes = "SignallQ ${libs.versions.versionName.get()} (build ${libs.versions.versionCode.get()}) — DEBUG"
             }
+            // Ver AdUnitIds.kt — debug sempre usa Ad Unit ID de teste (independe de -PplayTrack).
+            buildConfigField("Boolean", "USE_TEST_ADS", "true")
             // ─── MVP — ativos em debug E release ──────────────────────
             buildConfigField("Boolean", "FEATURE_SPEEDTEST", "true")
             buildConfigField("Boolean", "FEATURE_DIAGNOSTICO_LOCAL", "true")
@@ -175,6 +197,10 @@ android {
             if (keyPropertiesFile.exists()) {
                 signingConfig = signingConfigs.getByName("release")
             }
+            // Ver AdUnitIds.kt e o comentario de usarAdsDeTesteEmRelease acima: qualquer trilha
+            // != "production" (internal/alpha, hoje binario identico via promocao) usa Ad Unit ID
+            // de teste; production usa o real.
+            buildConfigField("Boolean", "USE_TEST_ADS", usarAdsDeTesteEmRelease)
             // ─── ATIVO NO RELEASE ─────────────────────────────────────────
             // MVP core
             buildConfigField("Boolean", "FEATURE_SPEEDTEST", "true")

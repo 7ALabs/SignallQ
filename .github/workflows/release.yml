@@ -52,13 +52,20 @@ jobs:
       - name: Clean build
         run: cd android && ./gradlew clean --no-build-cache --no-daemon
 
+      # -PplayTrack aqui precisa bater exatamente com o valor usado no step "Publicar na Play
+      # Console" mais abaixo (issue #1330, continuacao) -- AdUnitIds.para(slot) agora depende de
+      # -PplayTrack (via BuildConfig.USE_TEST_ADS, ver app/build.gradle.kts) para decidir Ad Unit
+      # ID real vs teste. Se os valores divergissem entre build e publish, o Gradle recompilaria
+      # o BuildConfig na hora de publicar (mesmo --no-daemon, via up-to-date check) e o AAB
+      # publicado na Play divergiria do artefato ja anexado ao GitHub Release e do mapping.txt
+      # ja enviado ao Crashlytics.
       - name: Build APK release
-        run: cd android && ./gradlew :app:assembleRelease --no-build-cache --no-daemon
+        run: cd android && ./gradlew :app:assembleRelease --no-build-cache --no-daemon -PplayTrack=${{ vars.PLAY_TRACK || 'internal' }}
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
 
       - name: Build AAB release
-        run: cd android && ./gradlew :app:bundleRelease --no-build-cache --no-daemon
+        run: cd android && ./gradlew :app:bundleRelease --no-build-cache --no-daemon -PplayTrack=${{ vars.PLAY_TRACK || 'internal' }}
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
 
@@ -70,7 +77,7 @@ jobs:
              android/app/build/outputs/apk/release/signallq-${{ steps.versao.outputs.name }}.apk
 
       - name: Upload mapping.txt para Crashlytics
-        run: cd android && ./gradlew :app:uploadCrashlyticsMappingFileRelease --no-daemon
+        run: cd android && ./gradlew :app:uploadCrashlyticsMappingFileRelease --no-daemon -PplayTrack=${{ vars.PLAY_TRACK || 'internal' }}
         env:
           ADMIN_INGEST_KEY: ${{ secrets.ADMIN_INGEST_KEY }}
 

@@ -35,6 +35,25 @@ Trilha default: `alpha` (teste fechado). Override com `-PplayTrack=`.
 Versão publicada vem de `libs.versions.toml` (`versionCode` / `versionName`).
 Subir o `versionCode` antes de cada envio — a Play rejeita code repetido.
 
+## Fluxo real de CI (release.yml + promote-release.yml)
+
+O fluxo acima é o manual/local. Em CI, `release.yml` sempre builda e publica primeiro na trilha
+`internal` (`-PplayTrack=internal`, mesmo valor em todos os steps de build/publish/mapping do
+job). Promoção para `alpha` é um passo manual separado (workflow `promote-release.yml`,
+`workflow_dispatch`), que usa `promoteReleaseArtifact` — reaproveita o **mesmo AAB já assinado**,
+sem rebuild nem reassinatura. `beta`/`production` seguem bloqueadas por guardrail explícito até
+decisão do Luiz.
+
+## Ad Unit ID de teste vs real (issue #1330)
+
+`AdUnitIds.para(slot)` (`app/.../ads/AdUnitIds.kt`) resolve para o Ad Unit ID de teste público do
+Google quando `BuildConfig.USE_TEST_ADS == true` — sempre em build `debug`, e em build `release`
+quando `-PplayTrack` for qualquer trilha diferente de `production` (ver `app/build.gradle.kts`).
+Como `internal` e `alpha` compartilham o mesmo binário (promoção sem rebuild, ver seção acima),
+não é possível diferenciar as duas sem quebrar essa garantia — as duas mostram anúncio de teste
+enquanto a conta AdMob estiver em revisão. Só `production` (build/publish dedicado, ainda
+bloqueado por guardrail) usa o Ad Unit ID real.
+
 ## Release notes públicas
 
 Ficam em `app/src/main/play/release-notes/pt-BR/default.txt` (lidas
