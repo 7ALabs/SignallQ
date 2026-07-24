@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>SignallQ Admin — Google Play · Qualidade (protótipo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-base:#141019; --bg-sidebar:#1D1A22; --bg-surface:#2B2831; --bg-surface-variant:#211E27;
+    --bg-surface-muted:#211E27; --bg-surface-hover:#332F3B; --bg-sidebar-active:#4A4458;
+    --border:#49454F; --border-subtle:#38343D;
+    --text-primary:#E6E0E9; --text-secondary:#CAC4D0; --text-tertiary:#938F99;
+    --primary:#CFBCFF; --on-primary:#38008C;
+    --success:#7DDB93; --attention:#FFB955; --error:#FFB4AB; --error-container:#93000A; --on-error-container:#FFDAD6;
+    --info:#8AB4F8; --attention-container:#5C3F00; --on-attention-container:#FFDDB0;
+    --nav-active-bg:#4A4458; --nav-active-fg:#E8DEF8;
+    --radius-card:12px; --radius-pill:999px;
+    --font-sans:"Roboto",ui-sans-serif,system-ui,sans-serif;
+    --font-mono:"Roboto Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg-base);color:var(--text-primary);font-family:var(--font-sans);}
+  .app{display:flex;min-height:100vh;}
+  .sidebar{width:220px;flex-shrink:0;background:var(--bg-sidebar);border-right:1px solid var(--border-subtle);padding:20px 12px;}
+  .brand{font-size:15px;font-weight:700;letter-spacing:-0.01em;padding:0 10px 20px;color:var(--text-primary);}
+  .nav-group{margin-bottom:18px;}
+  .nav-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary);padding:0 10px;margin-bottom:6px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;font-size:13px;color:var(--text-secondary);}
+  .nav-item.active{background:var(--nav-active-bg);color:var(--nav-active-fg);font-weight:600;}
+  .main{flex:1;padding:32px 40px 64px;max-width:1360px;}
+  .overline{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary);}
+  h1.q{font-size:24px;font-weight:500;letter-spacing:-.02em;margin:6px 0 6px;}
+  p.desc{font-size:13px;line-height:1.6;color:var(--text-secondary);max-width:640px;margin:0 0 6px;}
+  .source-line{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:22px;}
+
+  .tabs{display:flex;gap:6px;background:var(--bg-surface-variant);border:1px solid var(--border-subtle);padding:4px;border-radius:var(--radius-pill);width:fit-content;margin-bottom:24px;}
+  .tab{padding:7px 16px;border-radius:var(--radius-pill);font-size:12.5px;font-weight:600;color:var(--text-tertiary);}
+  .tab.active{background:var(--bg-sidebar-active);color:var(--nav-active-fg);}
+
+  .health-strip{display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap;}
+  .health-pill{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:10px;border:1px solid var(--border-subtle);background:var(--bg-surface-variant);font-size:11.5px;color:var(--text-secondary);}
+  .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .dot.ok{background:var(--success);} .dot.att{background:var(--attention);} .dot.crit{background:var(--error);}
+  .health-pill.current{border-color:var(--primary);background:rgba(207,188,255,.08);color:var(--text-primary);font-weight:600;}
+
+  .row{display:grid;gap:16px;margin-bottom:16px;}
+  .row.hero{grid-template-columns:1.6fr 1fr;}
+  .row.two{grid-template-columns:1fr 1fr;}
+  .row.three{grid-template-columns:repeat(3,1fr);}
+
+  .card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:20px;}
+  .card.dense{padding:16px 20px;}
+
+  /* Hero metric — âncora visual real: maior, com anel de status, sparkline embutido */
+  .hero-card{position:relative;overflow:hidden;border-width:1px;}
+  .hero-card.status-ok{border-color:rgba(125,219,147,.35);background:linear-gradient(160deg, rgba(125,219,147,.07), var(--bg-surface) 55%);}
+  .hero-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;}
+  .hero-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);}
+  .source-mark{display:flex;align-items:center;gap:5px;font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:6px;padding:3px 7px;}
+  .hero-value-row{display:flex;align-items:baseline;gap:10px;margin-top:10px;}
+  .hero-value{font-size:56px;font-weight:700;letter-spacing:-.03em;line-height:1;color:var(--text-primary);}
+  .hero-verdict{font-size:14px;font-weight:700;color:var(--success);}
+  .hero-note{font-size:12px;color:var(--text-tertiary);margin-top:6px;}
+  .hero-trend{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--success);margin-top:2px;}
+  .spark{margin-top:14px;}
+
+  .stat-strip{display:flex;flex-direction:column;gap:10px;}
+  .stat-row{background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:13px 16px;}
+  .stat-row-top{display:flex;justify-content:space-between;align-items:center;}
+  .stat-row-label{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);}
+  .stat-row-value{font-size:22px;font-weight:700;color:var(--text-primary);margin-top:4px;}
+  .stat-row-value.warn{color:var(--attention);}
+  .pill-badge{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:6px;letter-spacing:.03em;}
+  .pill-badge.ok{background:rgba(125,219,147,.14);color:var(--success);}
+  .pill-badge.att{background:var(--attention-container);color:var(--on-attention-container);}
+
+  .card-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:16px;}
+  .card-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);}
+  .card-sub{font-size:11px;color:var(--text-tertiary);margin-top:2px;}
+  .legend{display:flex;gap:14px;font-size:10.5px;color:var(--text-tertiary);}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .swatch{width:9px;height:9px;border-radius:2px;}
+
+  .ranked-list{display:flex;flex-direction:column;gap:2px;}
+  .ranked-item{display:grid;grid-template-columns:22px 1fr auto auto;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--border-subtle);}
+  .ranked-item:last-child{border-bottom:none;}
+  .rank-num{font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);}
+  .rank-name{font-size:12.5px;color:var(--text-primary);font-weight:500;}
+  .rank-meta{font-size:10.5px;color:var(--text-tertiary);font-family:var(--font-mono);margin-top:2px;}
+  .rank-count{font-size:13px;font-weight:700;font-family:var(--font-mono);color:var(--text-primary);text-align:right;}
+  .sev{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;text-transform:uppercase;}
+  .sev.crit{background:var(--error-container);color:var(--on-error-container);}
+  .sev.att{background:var(--attention-container);color:var(--on-attention-container);}
+
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-tertiary);padding:6px 8px;border-bottom:1px solid var(--border-subtle);}
+  td{padding:9px 8px;font-size:12px;color:var(--text-secondary);border-bottom:1px solid var(--border-subtle);}
+  td.mono{font-family:var(--font-mono);}
+  tr:last-child td{border-bottom:none;}
+  .table-wrap{opacity:.92;}
+  .table-title{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:10px;}
+
+  .annot{font-size:11px;color:var(--text-tertiary);background:var(--bg-surface-variant);border:1px dashed var(--border);border-radius:8px;padding:8px 12px;margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">SignallQ Console</div>
+    <div class="nav-group">
+      <div class="nav-label">Uso</div>
+      <div class="nav-item">Visão Geral</div>
+      <div class="nav-item">Uso do App</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Rede &amp; Operadora</div>
+      <div class="nav-item">Rede</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Plataformas</div>
+      <div class="nav-item active">▶ Google Play</div>
+      <div class="nav-item">Firebase</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Custos &amp; Sistema</div>
+      <div class="nav-item">Saúde do Sistema</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="overline">GOOGLE PLAY · CATEGORIA QUALIDADE</div>
+    <h1 class="q">O app está estável na loja?</h1>
+    <p class="desc">Android Vitals — crash-free sessions, ANR-free sessions e ranking de issues que mais afetam usuários reais, direto do Play Console.</p>
+    <div class="source-line">FONTE · ANDROID VITALS (PLAY DEVELOPER API) · ATUALIZADO HÁ 4H · HORÁRIO: AMERICA/SAO_PAULO</div>
+
+    <div class="tabs">
+      <div class="tab">Distribuição</div>
+      <div class="tab active">Qualidade</div>
+      <div class="tab">Avaliações</div>
+      <div class="tab">Aquisição</div>
+      <div class="tab">Monetização</div>
+      <div class="tab">Finanças</div>
+    </div>
+
+    <!-- Faixa de saúde por categoria — resolve o ponto cego do plano original: com
+         CategoryTabs sozinho, nada sinaliza qual categoria merece atenção sem clicar
+         em cada uma. Pill pequena, não card — não compete com o hero abaixo. -->
+    <div class="health-strip">
+      <div class="health-pill"><span class="dot ok"></span>Distribuição · v0.24.1 ativa</div>
+      <div class="health-pill current"><span class="dot ok"></span>Qualidade · 99,2% estável</div>
+      <div class="health-pill"><span class="dot att"></span>Avaliações · 4,1★ (2 respostas pendentes)</div>
+      <div class="health-pill"><span class="dot ok"></span>Aquisição · 312 installs/dia</div>
+      <div class="health-pill"><span class="dot ok"></span>Monetização · sem IAP ativo</div>
+      <div class="health-pill"><span class="dot ok"></span>Finanças · —</div>
+    </div>
+
+    <!-- HERO — crash-free sessions é a métrica-âncora real da categoria: maior,
+         cor de status, sparkline embutida. Tudo mais é menor e mais quieto. -->
+    <div class="row hero">
+      <div class="card hero-card status-ok">
+        <div class="hero-top">
+          <div class="hero-label">Crash-free sessions</div>
+          <div class="source-mark">▶ GOOGLE PLAY</div>
+        </div>
+        <div class="hero-value-row">
+          <div class="hero-value">99,2%</div>
+          <div class="hero-verdict">Excelente</div>
+        </div>
+        <div class="hero-trend">↗ +0,3pp vs. 14 dias anteriores</div>
+        <div class="hero-note">Acima do limiar de qualidade do Play (99,0%) — sem ação necessária.</div>
+        <svg class="spark" width="100%" height="64" viewBox="0 0 520 64" preserveAspectRatio="none">
+          <line x1="0" y1="14" x2="520" y2="14" stroke="#49454F" stroke-dasharray="3 4" stroke-width="1"/>
+          <polyline fill="none" stroke="#7DDB93" stroke-width="2.5"
+            points="0,30 40,26 80,28 120,20 160,24 200,18 240,22 280,16 320,20 360,14 400,17 440,12 480,15 520,10"/>
+          <circle cx="520" cy="10" r="4" fill="#7DDB93"/>
+        </svg>
+      </div>
+
+      <div class="stat-strip">
+        <div class="stat-row">
+          <div class="stat-row-top">
+            <div class="stat-row-label">ANR-free sessions</div>
+            <span class="pill-badge ok">OK</span>
+          </div>
+          <div class="stat-row-value">99,6%</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-row-top">
+            <div class="stat-row-label">Sessões afetadas por crash (14d)</div>
+          </div>
+          <div class="stat-row-value">1.240</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-row-top">
+            <div class="stat-row-label">Versões abaixo do limiar</div>
+            <span class="pill-badge att">1 versão</span>
+          </div>
+          <div class="stat-row-value warn">v0.23.4</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gráfico de série temporal full-width — onde tendência conta a história
+         melhor que número estático. Linha de limiar tracejada + ponto fora do
+         padrão destacado em âmbar. -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Crash-free % · últimos 14 dias</div>
+          <div class="card-sub">Comparado ao limiar mínimo de qualidade do Google Play (99,0%)</div>
+        </div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#7DDB93"></span>Crash-free</span>
+          <span><span class="swatch" style="background:#49454F"></span>Limiar Play (99,0%)</span>
+        </div>
+      </div>
+      <svg width="100%" height="180" viewBox="0 0 1180 180" preserveAspectRatio="none">
+        <line x1="0" y1="60" x2="1180" y2="60" stroke="#49454F" stroke-dasharray="5 5" stroke-width="1"/>
+        <text x="4" y="52" font-size="10" fill="#938F99" font-family="Roboto Mono">99,0%</text>
+        <polyline fill="none" stroke="#7DDB93" stroke-width="2.5" points="
+          0,90 84,96 168,110 252,70 336,80 420,58 504,66 588,50 672,90 756,44 840,52 924,38 1008,44 1092,20 1176,26"/>
+        <!-- dia 7 caiu abaixo do limiar — único ponto destacado em âmbar -->
+        <circle cx="672" cy="90" r="5" fill="#FFB955"/>
+        <text x="672" y="112" font-size="9" fill="#FFB955" font-family="Roboto Mono" text-anchor="middle">98,7% · v0.23.4</text>
+        <circle cx="1176" cy="26" r="4" fill="#7DDB93"/>
+      </svg>
+      <div class="annot">Único ponto fora do padrão nos 14 dias: dia 7, puxado pela versão v0.23.4 (ver ranking de issues abaixo) — já normalizado nos dias seguintes.</div>
+    </div>
+
+    <!-- Ranking de issues — lista ordenada por impacto, não cards do mesmo tamanho. -->
+    <div class="row two">
+      <div class="card">
+        <div class="card-head" style="border-bottom:none;margin-bottom:8px;padding-bottom:8px;">
+          <div class="card-title">Top ANRs · 14 dias</div>
+        </div>
+        <div class="ranked-list">
+          <div class="ranked-item">
+            <span class="rank-num">01</span>
+            <div><div class="rank-name">MainViewModel.observeState</div><div class="rank-meta">v0.24.1 · Pixel 6a</div></div>
+            <span class="sev att">Regular</span>
+            <span class="rank-count">312</span>
+          </div>
+          <div class="ranked-item">
+            <span class="rank-num">02</span>
+            <div><div class="rank-name">SpeedtestWorker.execute</div><div class="rank-meta">v0.24.0 · Moto G32</div></div>
+            <span class="sev att">Regular</span>
+            <span class="rank-count">118</span>
+          </div>
+          <div class="ranked-item">
+            <span class="rank-num">03</span>
+            <div><div class="rank-name">HomeScreen.LaunchedEffect</div><div class="rank-meta">v0.23.4 · vários</div></div>
+            <span class="sev att">Regular</span>
+            <span class="rank-count">64</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head" style="border-bottom:none;margin-bottom:8px;padding-bottom:8px;">
+          <div class="card-title">Top Crashes · 14 dias</div>
+        </div>
+        <div class="ranked-list">
+          <div class="ranked-item">
+            <span class="rank-num">01</span>
+            <div><div class="rank-name">NullPointerException</div><div class="rank-meta">DispositivosScreen.kt:412 · v0.23.4</div></div>
+            <span class="sev crit">Crítico</span>
+            <span class="rank-count">540</span>
+          </div>
+          <div class="ranked-item">
+            <span class="rank-num">02</span>
+            <div><div class="rank-name">IndexOutOfBoundsException</div><div class="rank-meta">SinalScreen.kt:1203 · v0.24.0</div></div>
+            <span class="sev att">Regular</span>
+            <span class="rank-count">201</span>
+          </div>
+          <div class="ranked-item">
+            <span class="rank-num">03</span>
+            <div><div class="rank-name">IllegalStateException</div><div class="rank-meta">RoomDatabase · v0.23.9</div></div>
+            <span class="sev att">Regular</span>
+            <span class="rank-count">87</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Consulta ocasional — tabela compacta, deliberadamente de baixo peso visual. -->
+    <div class="card table-wrap dense">
+      <div class="table-title">Distribuição por versão (consulta)</div>
+      <table>
+        <thead><tr><th>Versão</th><th>Sessões</th><th>Crash-free</th><th>ANR-free</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">0.24.1</td><td class="mono">18.204</td><td class="mono">99,4%</td><td class="mono">99,7%</td></tr>
+          <tr><td class="mono">0.24.0</td><td class="mono">6.812</td><td class="mono">99,1%</td><td class="mono">99,5%</td></tr>
+          <tr><td class="mono">0.23.4</td><td class="mono">2.103</td><td class="mono">98,3%</td><td class="mono">99,1%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+</body>
+</html>
