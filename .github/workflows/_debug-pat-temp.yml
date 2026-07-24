@@ -1,0 +1,21 @@
+name: Debug PAT temp
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PROJECT_PAT }}
+    steps:
+      - name: Checar escopos e identidade do token
+        run: |
+          echo "=== gh auth status ==="
+          gh auth status 2>&1 || true
+          echo "=== headers de escopo (curl) ==="
+          curl -sI -H "Authorization: token $GH_TOKEN" https://api.github.com/user | grep -i "x-oauth-scopes\|x-accepted-oauth-scopes\|status"
+          echo "=== quem eh ==="
+          curl -s -H "Authorization: token $GH_TOKEN" https://api.github.com/user | jq -r '.login, .type'
+          echo "=== teste direto item-list ==="
+          gh project item-list 10 --owner gmmattey --format json --limit 5 2>&1 || true
