@@ -1,14 +1,17 @@
 ﻿package io.signallq.app.feature.diagnostico.ingest
 
 import timber.log.Timber
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Envia telemetria de diagnostico e uso de IA para o signallq-admin-worker.
@@ -33,17 +36,51 @@ class AdminIngestRepository(
 ) {
     private val mediaTypeJson = "application/json; charset=utf-8".toMediaType()
 
+    // GH#1332 — `ai_usage.session_id` tem FOREIGN KEY REFERENCES diagnostic_sessions(id)
+    // no signallq-admin-worker (schema.sql). SignallQOrchestrator dispara sendDiagnostic()
+    // e sendAiUsage() da MESMA sessao em coroutines independentes (dois `scope.launch`
+    // separados, sem join entre si) — quando o POST de ai-usage vencia a corrida e chegava
+    // no D1 antes do de diagnostic, a sessao pai ainda nao existia e o insert falhava com
+    // "FOREIGN KEY constraint failed" (mesma causa raiz corrigida no lado do
+    // ai-diagnosis-worker em #1316/PR #1322, mas la so cobre o ingest feito PELO worker —
+    // este aqui e o ingest feito direto pelo app Android, caminho independente).
+    //
+    // Correlaciona as duas chamadas por sessionId (== DiagnosticIngestPayload.id):
+    // sendAiUsage aguarda o resultado de sendDiagnostic da mesma sessao antes de enviar.
+    // Bounded: entradas nunca consumidas (ex.: IA desligada, sem sendAiUsage correspondente)
+    // sao varridas apos 30s — nenhuma sessao de diagnostico gera volume que justifique
+    // estrutura mais elaborada que um sweep oportunista.
+    private val diagnosticIngestResults = ConcurrentHashMap<String, PendingDiagnosticIngest>()
+
+    private data class PendingDiagnosticIngest(
+        val deferred: CompletableDeferred<Boolean> = CompletableDeferred(),
+        val createdAtMs: Long = System.currentTimeMillis(),
+    )
+
+    private fun pendingIngestFor(sessionId: String): PendingDiagnosticIngest =
+        diagnosticIngestResults.getOrPut(sessionId) { PendingDiagnosticIngest() }
+
+    private fun limparPendenciasAntigas() {
+        val limite = System.currentTimeMillis() - 30_000
+        diagnosticIngestResults.entries.removeIf { it.value.createdAtMs < limite }
+    }
+
     /**
      * Envia payload de diagnostico concluido. Fire-and-forget.
      * Nao lanca excecao em nenhum cenario.
      */
     suspend fun sendDiagnostic(payload: DiagnosticIngestPayload) {
-        if (!consentimentoProvider()) return
-        if (baseUrl.isBlank() || ingestKey.isBlank()) {
-            Timber.w("sendDiagnostic ignorado: baseUrl ou ingestKey nao configurados")
+        if (!consentimentoProvider()) {
+            pendingIngestFor(payload.id).deferred.complete(false)
             return
         }
-        runCatching {
+        if (baseUrl.isBlank() || ingestKey.isBlank()) {
+            Timber.w("sendDiagnostic ignorado: baseUrl ou ingestKey nao configurados")
+            pendingIngestFor(payload.id).deferred.complete(false)
+            return
+        }
+        limparPendenciasAntigas()
+        val sucesso = runCatching {
             withContext(Dispatchers.IO) {
                 val body = payload.toJson().toString()
                     .toRequestBody(mediaTypeJson)
@@ -56,11 +93,16 @@ class AdminIngestRepository(
                     if (!resp.isSuccessful) {
                         Timber.w("sendDiagnostic HTTP ${resp.code} — id=${payload.id}")
                     }
+                    resp.isSuccessful
                 }
             }
         }.onFailure { t ->
             Timber.w("sendDiagnostic falhou (ignorando): ${t.message}")
-        }
+        }.getOrDefault(false)
+        // Libera sendAiUsage() da mesma sessao (payload.id == ai_usage.session_id) —
+        // ver comentario GH#1332 acima. Se falhou, sendAiUsage nem tenta (a linha
+        // pai nao existe no D1, o insert de ai-usage sempre falharia por FK mesmo).
+        pendingIngestFor(payload.id).deferred.complete(sucesso)
     }
 
     /**
@@ -73,6 +115,26 @@ class AdminIngestRepository(
             Timber.w("sendAiUsage ignorado: baseUrl ou ingestKey nao configurados")
             return
         }
+
+        // GH#1332 — aguarda a confirmacao do sendDiagnostic() da MESMA sessao antes
+        // de enviar, senao ai_usage.session_id pode apontar para uma linha que ainda
+        // nao existe em diagnostic_sessions (FOREIGN KEY constraint failed no D1).
+        // Timeout curto: se o diagnostico nunca chegou (ou falhou), nao adianta tentar.
+        val sessionId = payload.sessionId
+        if (sessionId != null) {
+            val diagnosticoOk = withTimeoutOrNull(10_000) {
+                pendingIngestFor(sessionId).deferred.await()
+            } ?: false
+            diagnosticIngestResults.remove(sessionId)
+            if (!diagnosticoOk) {
+                Timber.w(
+                    "sendAiUsage abortado: ingest de diagnostico da sessao $sessionId " +
+                        "nao confirmado (evita FOREIGN KEY constraint no D1) — id=${payload.id}",
+                )
+                return
+            }
+        }
+
         runCatching {
             withContext(Dispatchers.IO) {
                 val body = payload.toJson().toString()
