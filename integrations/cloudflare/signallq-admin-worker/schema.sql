@@ -48,6 +48,23 @@ CREATE TABLE IF NOT EXISTS admin_settings (
   updated_at INTEGER NOT NULL         -- Unix timestamp (segundos)
 );
 
+-- GH#1342/#1344: histórico append-only das integrações Google Play/Firebase (ver migration 016).
+CREATE TABLE IF NOT EXISTS integration_metric_snapshots (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  provider      TEXT    NOT NULL,
+  service       TEXT    NOT NULL,
+  resource      TEXT    NOT NULL,
+  metric        TEXT,
+  period_start  TEXT,
+  period_end    TEXT,
+  value_numeric REAL,
+  payload       TEXT    NOT NULL,
+  synced_at     INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_integration_snapshots_lookup
+  ON integration_metric_snapshots(provider, service, resource, period_end);
+
 -- Índices para queries frequentes do painel
 CREATE INDEX IF NOT EXISTS idx_sessions_created_at  ON diagnostic_sessions(created_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_network_type ON diagnostic_sessions(network_type);
