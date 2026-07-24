@@ -2178,6 +2178,78 @@ async function handleAppDistributionSync(_req: Request, env: Env): Promise<Respo
   }
 }
 
+// --- GH#1344: Firebase Cloud Messaging Data API ---
+// FCM Data API habilitada pelo Luiz em 2026-07-24 (estava desabilitada, causa do 403 anterior).
+// androidDeliveryData vem por app/dia — sem envio de mensagem própria ainda (SignallQ não usa FCM
+// pra push hoje), então os campos de `data` chegam vazios; guardamos o payload bruto de qualquer
+// forma para não perder estrutura quando isso mudar.
+
+interface FcmDeliveryDataSyncState {
+  syncedAt: string;
+  source: FirebaseSourceRecord;
+  androidDeliveryData: unknown[];
+}
+
+async function readFcmDeliveryDataSyncState(env: Env): Promise<FcmDeliveryDataSyncState | null> {
+  const row = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'firebase_fcm_delivery_sync'"
+  ).first<{ value: string }>();
+  if (!row?.value) return null;
+  try {
+    return JSON.parse(row.value) as FcmDeliveryDataSyncState;
+  } catch {
+    return null;
+  }
+}
+
+async function writeFcmDeliveryDataSyncState(env: Env, state: FcmDeliveryDataSyncState): Promise<void> {
+  await env.DB.prepare(
+    "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES ('firebase_fcm_delivery_sync', ?, ?)"
+  ).bind(JSON.stringify(state), nowSec()).run();
+}
+
+async function handleFcmDeliveryDataStatus(_req: Request, env: Env): Promise<Response> {
+  const hasCredentials = !!(env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY);
+  const syncState = await readFcmDeliveryDataSyncState(env);
+  return json({
+    source: "worker",
+    projectId: env.FIREBASE_PROJECT_ID,
+    status: hasCredentials ? "connected" : "disabled",
+    hasCredentials,
+    lastSyncTimestamp: syncState?.syncedAt ?? null,
+    androidDeliveryData: syncState?.androidDeliveryData ?? [],
+  }, 200, env);
+}
+
+async function handleFcmDeliveryDataSync(_req: Request, env: Env): Promise<Response> {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return json({ status: "not_configured", message: "FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY não configurados." }, 200, env);
+  }
+  const resource = `projects/${env.FIREBASE_PROJECT_ID}/androidApps/${FIREBASE_ANDROID_APP_ID}/deliveryData`;
+  const endpoint = `https://fcmdata.googleapis.com/v1beta1/${resource}`;
+  try {
+    const token = await getFirebaseAccessToken(env);
+    const resp = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` } });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      await logError(env, 'firebase-fcm-delivery', `delivery_${resp.status}: ${errText.slice(0, 300)}`, '');
+      return json({ status: "error", message: `Falha ao consultar FCM delivery data (HTTP ${resp.status}).` }, 200, env);
+    }
+    const data = await resp.json() as { androidDeliveryData?: unknown[] };
+    const syncedAt = new Date().toISOString();
+    const state: FcmDeliveryDataSyncState = {
+      syncedAt,
+      source: { provider: "firebase", service: "fcm_data", apiVersion: "v1beta1", resource, endpoint },
+      androidDeliveryData: data.androidDeliveryData ?? [],
+    };
+    await writeFcmDeliveryDataSyncState(env, state);
+    return json({ status: "ok", ...state }, 200, env);
+  } catch (e) {
+    await logError(env, 'firebase-fcm-delivery', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ status: "error", message: String(e) }, 200, env);
+  }
+}
+
 // --- GH#761: integração real com Google Play (Android Publisher API) ---
 
 const GOOGLE_PLAY_PACKAGE_NAME = "io.signallq.app";
@@ -4114,6 +4186,8 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "POST", pattern: /^\/admin\/integrations\/firebase\/app-check\/sync$/,         handler: handleAppCheckSync },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/app-distribution\/status$/, handler: handleAppDistributionStatus },
   { method: "POST", pattern: /^\/admin\/integrations\/firebase\/app-distribution\/sync$/,   handler: handleAppDistributionSync },
+  { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/fcm-delivery\/status$/,     handler: handleFcmDeliveryDataStatus },
+  { method: "POST", pattern: /^\/admin\/integrations\/firebase\/fcm-delivery\/sync$/,       handler: handleFcmDeliveryDataSync },
   { method: "GET",  pattern: /^\/admin\/analytics\/product$/,                   handler: withErrorLogging('analytics', handleProductAnalytics) },
   { method: "GET",  pattern: /^\/admin\/analytics\/battery$/,                   handler: withErrorLogging('analytics', handleBatteryAnalytics) },
   { method: "GET",  pattern: /^\/admin\/settings$/,                             handler: handleSettings },
@@ -4191,6 +4265,11 @@ const SCHEDULED_SYNC_JOBS: Array<{
   {
     name: 'firebase-app-distribution',
     run: (env) => handleAppDistributionSync(new Request('https://internal/scheduled-sync'), env),
+    isError: (data) => data.status === 'error',
+  },
+  {
+    name: 'firebase-fcm-delivery',
+    run: (env) => handleFcmDeliveryDataSync(new Request('https://internal/scheduled-sync'), env),
     isError: (data) => data.status === 'error',
   },
 ];
