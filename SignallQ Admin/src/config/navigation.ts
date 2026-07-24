@@ -1,7 +1,7 @@
 export interface NavigationItem {
   name: string;
   path: string;
-  iconName: "LayoutDashboard" | "LineChart" | "Activity" | "Wifi" | "Globe" | "BrainCircuit" | "AlertTriangle" | "GitBranch" | "ToggleRight" | "Settings" | "HeartPulse" | "Wrench" | "PlayCircle";
+  iconName: "LayoutDashboard" | "LineChart" | "Activity" | "Wifi" | "Globe" | "BrainCircuit" | "AlertTriangle" | "GitBranch" | "ToggleRight" | "Settings" | "HeartPulse" | "Wrench" | "PlayCircle" | "Flame";
   badge?: string;
   badgeType?: "info" | "error" | "warning";
 }
@@ -58,13 +58,15 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     ],
   },
   {
-    // GH#1341/#1342 — item 1 do plano de UX Google Play/Firebase: fontes externas
-    // (proveniência SIG-294), não features do produto. Só "Google Play" nesta rodada
-    // (Qualidade + Avaliações, endpoints reais em produção) — "Firebase" entra quando o
-    // contrato do Camilo existir.
+    // GH#1341/#1342/#1343/#1344 — item 1 do plano de UX Google Play/Firebase: fontes externas
+    // (proveniência SIG-294), não features do produto. "Firebase" adicionado com as 5
+    // integrações que já têm endpoint real em produção (Management, Remote Config, App Check,
+    // App Distribution, FCM delivery) — RTDN, CSV instalação/desinstalação, Crashlytics/
+    // Performance via BigQuery, A/B Testing e In-App Messaging seguem fora de escopo.
     label: "Plataformas",
     items: [
       { name: "Google Play", path: "/google-play", iconName: "PlayCircle" },
+      { name: "Firebase", path: "/firebase", iconName: "Flame" },
     ],
   },
   {

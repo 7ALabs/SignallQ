@@ -18,6 +18,7 @@ import { SettingsTab } from "./features/settings/SettingsTab";
 import { SystemHealthTab } from "./features/system-health/SystemHealthTab";
 import { ToolsTab } from "./features/tools/ToolsTab";
 import { GooglePlayTab } from "./features/google-play/GooglePlayTab";
+import { FirebaseTab } from "./features/firebase/FirebaseTab";
 
 export default function App() {
   const { theme, toggle: onToggleTheme } = useTheme();
@@ -104,6 +105,7 @@ export default function App() {
         "/networks",
         "/operators",
         "/google-play",
+        "/firebase",
         "/ai-cost",
         "/errors",
         "/app-versions",
@@ -238,6 +240,14 @@ export default function App() {
       )}
       {currentPath === "/google-play" && (
         <GooglePlayTab
+          environment={environment}
+          period={period}
+          onNavigate={handleNavigate}
+          triggerRefreshCounter={refreshCounter}
+        />
+      )}
+      {currentPath === "/firebase" && (
+        <FirebaseTab
           environment={environment}
           period={period}
           onNavigate={handleNavigate}

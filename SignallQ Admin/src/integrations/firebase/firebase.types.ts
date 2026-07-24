@@ -88,3 +88,95 @@ export interface FirebaseCrashIssuesResult {
   source: "bigquery" | "no_credentials" | "no_data_yet" | "error";
   issues: FirebaseCrashIssue[];
 }
+
+// --- GH#1343/#1344: as 5 integrações "inventário técnico" do plano de UX (item 2, bloco
+// "Inventário técnico") — status/config, não série temporal. Todas compartilham o mesmo shape de
+// status (`hasCredentials`/`lastSyncTimestamp` + payload próprio) e o mesmo shape de resultado de
+// sync (`status: "ok" | "error" | "not_configured"`), espelhando o padrão já usado por
+// `GooglePlayStoreListingStatus`/`GooglePlayStoreListingSyncResult`.
+
+/** Resultado de POST .../sync — mesmo shape nas 5 integrações Firebase desta rodada. */
+export interface FirebaseIntegrationSyncResult {
+  status: "ok" | "error" | "not_configured";
+  message?: string;
+  syncedAt?: string;
+}
+
+export interface FirebaseAndroidApp {
+  appId: string;
+  displayName: string;
+  packageName: string;
+  state: string;
+}
+
+export interface FirebaseProjectInfo {
+  projectId: string;
+  projectNumber: string;
+  displayName: string;
+  state: string;
+}
+
+/** GET .../management/status — inventário do projeto Firebase + Android apps cadastrados. */
+export interface FirebaseManagementStatus {
+  hasCredentials: boolean;
+  status: "connected" | "disabled";
+  lastSyncTimestamp: string | null;
+  project: FirebaseProjectInfo | null;
+  androidApps: FirebaseAndroidApp[];
+}
+
+/**
+ * GET .../remote-config/status — só contagem e nomes de chave (issue #1349: valor do parâmetro
+ * é dívida registrada, o worker não expõe hoje).
+ */
+export interface FirebaseRemoteConfigStatus {
+  hasCredentials: boolean;
+  status: "connected" | "disabled";
+  lastSyncTimestamp: string | null;
+  parameterCount: number;
+  parameterKeys: string[];
+}
+
+/**
+ * GET .../app-check/status — payload cru da Firebase App Check REST API
+ * (`{ services: [{ name, state }], nextPageToken? }`), guardado como veio — o worker não
+ * normaliza. UI trata como desconhecido até ter pelo menos um provedor configurado.
+ */
+export interface FirebaseAppCheckStatus {
+  hasCredentials: boolean;
+  status: "connected" | "disabled";
+  lastSyncTimestamp: string | null;
+  services: { services?: FirebaseAppCheckServiceEntry[]; nextPageToken?: string } | null;
+}
+
+export interface FirebaseAppCheckServiceEntry {
+  name: string;
+  state: string;
+}
+
+export interface FirebaseAppDistributionRelease {
+  name: string;
+  displayVersion: string;
+  buildVersion: string;
+  createTime: string;
+  releaseNotesText: string | null;
+}
+
+/** GET .../app-distribution/status — releases reais do último sync. */
+export interface FirebaseAppDistributionStatus {
+  hasCredentials: boolean;
+  status: "connected" | "disabled";
+  lastSyncTimestamp: string | null;
+  releases: FirebaseAppDistributionRelease[];
+}
+
+/**
+ * GET .../fcm-delivery/status — delivery data por app/dia (FCM Data API). Hoje sempre vazio: o
+ * SignallQ não envia push ainda, então não há mensagem para medir entrega.
+ */
+export interface FirebaseFcmDeliveryStatus {
+  hasCredentials: boolean;
+  status: "connected" | "disabled";
+  lastSyncTimestamp: string | null;
+  androidDeliveryData: unknown[];
+}

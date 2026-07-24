@@ -10,6 +10,7 @@ import {
   HeartPulse,
   Wrench,
   PlayCircle,
+  Flame,
 } from "lucide-react";
 import { NavigationItem } from "./navigation";
 
@@ -32,4 +33,5 @@ export const NAVIGATION_ICON_MAP: Record<NavigationItem["iconName"], React.Compo
   HeartPulse,
   Wrench,
   PlayCircle,
+  Flame,
 };

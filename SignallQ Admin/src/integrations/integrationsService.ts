@@ -14,6 +14,16 @@ export const integrationsService = {
   getFirebaseVersions: firebaseAdapter.getFirebaseAppVersions,
   getFirebaseIssues: firebaseAdapter.getFirebaseCrashIssues,
   triggerFirebaseSync: firebaseAdapter.syncFirebaseMetrics,
+  getFirebaseManagementStatus: firebaseAdapter.getFirebaseManagementStatus,
+  triggerFirebaseManagementSync: firebaseAdapter.syncFirebaseManagement,
+  getFirebaseRemoteConfigStatus: firebaseAdapter.getFirebaseRemoteConfigStatus,
+  triggerFirebaseRemoteConfigSync: firebaseAdapter.syncFirebaseRemoteConfig,
+  getFirebaseAppCheckStatus: firebaseAdapter.getFirebaseAppCheckStatus,
+  triggerFirebaseAppCheckSync: firebaseAdapter.syncFirebaseAppCheck,
+  getFirebaseAppDistributionStatus: firebaseAdapter.getFirebaseAppDistributionStatus,
+  triggerFirebaseAppDistributionSync: firebaseAdapter.syncFirebaseAppDistribution,
+  getFirebaseFcmDeliveryStatus: firebaseAdapter.getFirebaseFcmDeliveryStatus,
+  triggerFirebaseFcmDeliverySync: firebaseAdapter.syncFirebaseFcmDelivery,
 
   // --- GOOGLE PLAY CONSOLE ---
   getGooglePlayStatus: googlePlayAdapter.getGooglePlayIntegrationStatus,

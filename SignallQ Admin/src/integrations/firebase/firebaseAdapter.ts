@@ -5,6 +5,11 @@ import {
   mockFirebaseCrashlytics,
   mockFirebaseAppVersions,
   mockFirebaseCrashIssues,
+  mockFirebaseManagementStatus,
+  mockFirebaseRemoteConfigStatus,
+  mockFirebaseAppCheckStatus,
+  mockFirebaseAppDistributionStatus,
+  mockFirebaseFcmDeliveryStatus,
 } from "./firebase.mock";
 import {
   FirebaseIntegrationStatus,
@@ -14,6 +19,12 @@ import {
   FirebaseAppVersionsResult,
   FirebaseCrashIssue,
   FirebaseCrashIssuesResult,
+  FirebaseIntegrationSyncResult,
+  FirebaseManagementStatus,
+  FirebaseRemoteConfigStatus,
+  FirebaseAppCheckStatus,
+  FirebaseAppDistributionStatus,
+  FirebaseFcmDeliveryStatus,
 } from "./firebase.types";
 import { DashboardFilters } from "../../services/adminMetricsService";
 
@@ -324,4 +335,164 @@ export async function syncFirebaseMetrics(): Promise<{ jobId: string; status: st
     message: raw.message,
     source: raw.source,
   };
+}
+
+// --- GH#1343/#1344: inventário técnico (Management, Remote Config, App Check, App
+// Distribution, FCM delivery) — as 5 rotas expõem sempre o mesmo shape de status
+// (`hasCredentials`/`status`/`lastSyncTimestamp` + payload próprio) e o mesmo shape de sync
+// (`{ status: "ok" | "error" | "not_configured", message?, syncedAt? }`).
+
+interface FirebaseInventoryStatusWorkerResponse {
+  source: string;
+  status: "connected" | "disabled";
+  hasCredentials: boolean;
+  lastSyncTimestamp?: string | null;
+}
+
+interface FirebaseInventorySyncWorkerResponse {
+  status: "ok" | "error" | "not_configured";
+  message?: string;
+  syncedAt?: string;
+}
+
+function toSyncResult(raw: FirebaseInventorySyncWorkerResponse): FirebaseIntegrationSyncResult {
+  return { status: raw.status, message: raw.message, syncedAt: raw.syncedAt };
+}
+
+export async function getFirebaseManagementStatus(): Promise<FirebaseManagementStatus> {
+  if (apiClient.isMockEnabled()) {
+    return apiClient.simulateFetch(mockFirebaseManagementStatus, {});
+  }
+  const raw = await apiClient.request<
+    FirebaseInventoryStatusWorkerResponse & {
+      project: FirebaseManagementStatus["project"];
+      androidApps?: FirebaseManagementStatus["androidApps"];
+    }
+  >("GET", "/admin/integrations/firebase/management/status");
+  return {
+    hasCredentials: raw.hasCredentials,
+    status: raw.status,
+    lastSyncTimestamp: raw.lastSyncTimestamp ?? null,
+    project: raw.project ?? null,
+    androidApps: raw.androidApps ?? [],
+  };
+}
+
+export async function syncFirebaseManagement(): Promise<FirebaseIntegrationSyncResult> {
+  if (apiClient.isMockEnabled()) {
+    return { status: "ok", syncedAt: new Date().toISOString() };
+  }
+  const raw = await apiClient.request<FirebaseInventorySyncWorkerResponse>(
+    "POST",
+    "/admin/integrations/firebase/management/sync"
+  );
+  return toSyncResult(raw);
+}
+
+export async function getFirebaseRemoteConfigStatus(): Promise<FirebaseRemoteConfigStatus> {
+  if (apiClient.isMockEnabled()) {
+    return apiClient.simulateFetch(mockFirebaseRemoteConfigStatus, {});
+  }
+  const raw = await apiClient.request<
+    FirebaseInventoryStatusWorkerResponse & {
+      parameterCount?: number;
+      parameterKeys?: string[];
+    }
+  >("GET", "/admin/integrations/firebase/remote-config/status");
+  return {
+    hasCredentials: raw.hasCredentials,
+    status: raw.status,
+    lastSyncTimestamp: raw.lastSyncTimestamp ?? null,
+    parameterCount: raw.parameterCount ?? 0,
+    parameterKeys: raw.parameterKeys ?? [],
+  };
+}
+
+export async function syncFirebaseRemoteConfig(): Promise<FirebaseIntegrationSyncResult> {
+  if (apiClient.isMockEnabled()) {
+    return { status: "ok", syncedAt: new Date().toISOString() };
+  }
+  const raw = await apiClient.request<FirebaseInventorySyncWorkerResponse>(
+    "POST",
+    "/admin/integrations/firebase/remote-config/sync"
+  );
+  return toSyncResult(raw);
+}
+
+export async function getFirebaseAppCheckStatus(): Promise<FirebaseAppCheckStatus> {
+  if (apiClient.isMockEnabled()) {
+    return apiClient.simulateFetch(mockFirebaseAppCheckStatus, {});
+  }
+  const raw = await apiClient.request<
+    FirebaseInventoryStatusWorkerResponse & { services?: FirebaseAppCheckStatus["services"] }
+  >("GET", "/admin/integrations/firebase/app-check/status");
+  return {
+    hasCredentials: raw.hasCredentials,
+    status: raw.status,
+    lastSyncTimestamp: raw.lastSyncTimestamp ?? null,
+    services: raw.services ?? null,
+  };
+}
+
+export async function syncFirebaseAppCheck(): Promise<FirebaseIntegrationSyncResult> {
+  if (apiClient.isMockEnabled()) {
+    return { status: "ok", syncedAt: new Date().toISOString() };
+  }
+  const raw = await apiClient.request<FirebaseInventorySyncWorkerResponse>(
+    "POST",
+    "/admin/integrations/firebase/app-check/sync"
+  );
+  return toSyncResult(raw);
+}
+
+export async function getFirebaseAppDistributionStatus(): Promise<FirebaseAppDistributionStatus> {
+  if (apiClient.isMockEnabled()) {
+    return apiClient.simulateFetch(mockFirebaseAppDistributionStatus, {});
+  }
+  const raw = await apiClient.request<
+    FirebaseInventoryStatusWorkerResponse & { releases?: FirebaseAppDistributionStatus["releases"] }
+  >("GET", "/admin/integrations/firebase/app-distribution/status");
+  return {
+    hasCredentials: raw.hasCredentials,
+    status: raw.status,
+    lastSyncTimestamp: raw.lastSyncTimestamp ?? null,
+    releases: raw.releases ?? [],
+  };
+}
+
+export async function syncFirebaseAppDistribution(): Promise<FirebaseIntegrationSyncResult> {
+  if (apiClient.isMockEnabled()) {
+    return { status: "ok", syncedAt: new Date().toISOString() };
+  }
+  const raw = await apiClient.request<FirebaseInventorySyncWorkerResponse>(
+    "POST",
+    "/admin/integrations/firebase/app-distribution/sync"
+  );
+  return toSyncResult(raw);
+}
+
+export async function getFirebaseFcmDeliveryStatus(): Promise<FirebaseFcmDeliveryStatus> {
+  if (apiClient.isMockEnabled()) {
+    return apiClient.simulateFetch(mockFirebaseFcmDeliveryStatus, {});
+  }
+  const raw = await apiClient.request<
+    FirebaseInventoryStatusWorkerResponse & { androidDeliveryData?: unknown[] }
+  >("GET", "/admin/integrations/firebase/fcm-delivery/status");
+  return {
+    hasCredentials: raw.hasCredentials,
+    status: raw.status,
+    lastSyncTimestamp: raw.lastSyncTimestamp ?? null,
+    androidDeliveryData: raw.androidDeliveryData ?? [],
+  };
+}
+
+export async function syncFirebaseFcmDelivery(): Promise<FirebaseIntegrationSyncResult> {
+  if (apiClient.isMockEnabled()) {
+    return { status: "ok", syncedAt: new Date().toISOString() };
+  }
+  const raw = await apiClient.request<FirebaseInventorySyncWorkerResponse>(
+    "POST",
+    "/admin/integrations/firebase/fcm-delivery/sync"
+  );
+  return toSyncResult(raw);
 }
