@@ -17,6 +17,7 @@ import { VersionsTab } from "./features/app-versions/VersionsTab";
 import { SettingsTab } from "./features/settings/SettingsTab";
 import { SystemHealthTab } from "./features/system-health/SystemHealthTab";
 import { ToolsTab } from "./features/tools/ToolsTab";
+import { GooglePlayTab } from "./features/google-play/GooglePlayTab";
 
 export default function App() {
   const { theme, toggle: onToggleTheme } = useTheme();
@@ -102,6 +103,7 @@ export default function App() {
         "/diagnostics",
         "/networks",
         "/operators",
+        "/google-play",
         "/ai-cost",
         "/errors",
         "/app-versions",
@@ -228,6 +230,14 @@ export default function App() {
           renderizado nos dois hashes até que nada mais linke pro slug antigo. */}
       {(currentPath === "/networks" || currentPath === "/operators") && (
         <NetworksTab
+          environment={environment}
+          period={period}
+          onNavigate={handleNavigate}
+          triggerRefreshCounter={refreshCounter}
+        />
+      )}
+      {currentPath === "/google-play" && (
+        <GooglePlayTab
           environment={environment}
           period={period}
           onNavigate={handleNavigate}

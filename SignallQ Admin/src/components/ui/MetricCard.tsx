@@ -28,6 +28,14 @@ interface MetricCardProps {
   verdict?: MetricVerdict;
   /** Contexto curto do veredito — ex.: "abaixo do limiar de mercado (1%)". */
   verdictNote?: string;
+  /**
+   * GH#1341 — item 2.1.1 do plano de UX Google Play/Firebase: métrica-âncora de categoria,
+   * sempre a primeira coisa renderizada, maior que um `MetricCard` comum (valor 48–56px) e com
+   * borda tingida pelo tom do veredito. Usar no máximo uma por categoria/seção.
+   */
+  size?: "default" | "hero";
+  /** Conteúdo extra ao lado do label — usado pelo `TermHint` (item 2.2.2 do plano de UX). */
+  labelExtra?: React.ReactNode;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -40,6 +48,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   source,
   verdict,
   verdictNote,
+  size = "default",
+  labelExtra,
 }) => {
   const formattedValue = React.useMemo(() => {
     if (typeof value === "number") {
@@ -65,13 +75,19 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       : "var(--attention)"
     : undefined;
 
+  const isHero = size === "hero";
+  const heroBorderColor = isHero && verdictColor ? alpha(verdictColor, 40) : "var(--border)";
+
   return (
     <div
       id={id || `metric-card-${label.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
-      className={`relative overflow-hidden rounded-[var(--radius-card)] p-5 sq-card-hover group ${className}`}
+      className={`relative overflow-hidden rounded-[var(--radius-card)] sq-card-hover group ${isHero ? "p-6" : "p-5"} ${className}`}
       style={{
         backgroundColor: "var(--bg-surface)",
-        border: "1px solid var(--border)",
+        border: `1px solid ${heroBorderColor}`,
+        background: isHero && verdictColor
+          ? `linear-gradient(135deg, ${alpha(verdictColor, 6)}, var(--bg-surface) 60%)`
+          : undefined,
       }}
     >
       {/* Accent glow — leve, no canto superior direito */}
@@ -89,10 +105,11 @@ export const MetricCard: React.FC<MetricCardProps> = ({
           bruscamente (sem reticências) bem onde o badge começava. */}
       <div className="flex items-start justify-between gap-2">
         <p
-          className="min-w-0 flex-1 text-[11px] font-sans uppercase tracking-[0.08em] font-semibold select-none truncate"
+          className={`min-w-0 flex-1 font-sans uppercase tracking-[0.08em] font-semibold select-none truncate flex items-center ${isHero ? "text-xs" : "text-[11px]"}`}
           style={{ color: "var(--text-secondary)" }}
         >
           {label}
+          {labelExtra}
         </p>
         {source && (
           <span
@@ -111,12 +128,15 @@ export const MetricCard: React.FC<MetricCardProps> = ({
       {/* Valor + veredito inline na mesma linha de base — spec KpiCard.dc.html
           ("486 Mbps · Excelente"), não em bloco separado abaixo. */}
       <div className="mt-2.5 flex items-baseline gap-2 flex-wrap">
-        <h3 className="text-2xl lg:text-[28px] font-bold tracking-[-0.03em]" style={{ color: "var(--text-primary)" }}>
+        <h3
+          className={isHero ? "text-[40px] lg:text-[56px] font-bold tracking-[-0.03em]" : "text-2xl lg:text-[28px] font-bold tracking-[-0.03em]"}
+          style={{ color: "var(--text-primary)" }}
+        >
           {formattedValue}
         </h3>
         {verdict && (
           <span
-            className="text-xs font-sans font-semibold"
+            className={isHero ? "text-sm font-sans font-semibold" : "text-xs font-sans font-semibold"}
             style={{ color: verdictColor }}
           >
             <span aria-hidden="true">&middot; </span>

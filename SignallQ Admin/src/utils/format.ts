@@ -31,3 +31,26 @@ export function formatPercent(value: number, decimals = 1): string {
   const rounded = parseFloat(value.toFixed(decimals));
   return `${rounded}%`;
 }
+
+/** GH#1341 — data relativa curta (pt-BR) pra metadados de review/eventos ("há 3 dias"). */
+export function formatRelativeDate(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.round(diffMs / 60000);
+  if (diffMinutes < 1) return "agora";
+  if (diffMinutes < 60) return `há ${diffMinutes} min`;
+
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `há ${diffHours}h`;
+
+  const diffDays = Math.round(diffHours / 24);
+  if (diffDays < 30) return `há ${diffDays} dia${diffDays === 1 ? "" : "s"}`;
+
+  const diffMonths = Math.round(diffDays / 30);
+  if (diffMonths < 12) return `há ${diffMonths} mês${diffMonths === 1 ? "" : "es"}`;
+
+  const diffYears = Math.round(diffMonths / 12);
+  return `há ${diffYears} ano${diffYears === 1 ? "" : "s"}`;
+}

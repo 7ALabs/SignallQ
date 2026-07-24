@@ -1,7 +1,7 @@
 export interface NavigationItem {
   name: string;
   path: string;
-  iconName: "LayoutDashboard" | "LineChart" | "Activity" | "Wifi" | "Globe" | "BrainCircuit" | "AlertTriangle" | "GitBranch" | "ToggleRight" | "Settings" | "HeartPulse" | "Wrench";
+  iconName: "LayoutDashboard" | "LineChart" | "Activity" | "Wifi" | "Globe" | "BrainCircuit" | "AlertTriangle" | "GitBranch" | "ToggleRight" | "Settings" | "HeartPulse" | "Wrench" | "PlayCircle";
   badge?: string;
   badgeType?: "info" | "error" | "warning";
 }
@@ -55,6 +55,16 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     items: [
       { name: "Diagnósticos", path: "/diagnostics", iconName: "Activity" },
       { name: "Redes & Provedores", path: "/networks", iconName: "Wifi" },
+    ],
+  },
+  {
+    // GH#1341/#1342 — item 1 do plano de UX Google Play/Firebase: fontes externas
+    // (proveniência SIG-294), não features do produto. Só "Google Play" nesta rodada
+    // (Qualidade + Avaliações, endpoints reais em produção) — "Firebase" entra quando o
+    // contrato do Camilo existir.
+    label: "Plataformas",
+    items: [
+      { name: "Google Play", path: "/google-play", iconName: "PlayCircle" },
     ],
   },
   {

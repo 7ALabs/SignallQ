@@ -45,20 +45,58 @@ export interface GooglePlayRatingSummary {
   };
 }
 
+/**
+ * `handling_status` (migration 017, google_play_reviews) — campo admin-side, marcado
+ * manualmente no Console, nunca sobrescrito pelo sync. Distinto do `DisplayReviewStatus`
+ * calculado em `features/google-play/reviewStatus.ts` (nota + resposta), que é o que a UI
+ * usa pra badge/ordenação — ver item 2.3.2 do plano de UX.
+ */
+export type GooglePlayReviewHandlingStatus = "pending" | "replied" | "dismissed";
+
 export interface GooglePlayReviewSummary {
   reviewId: string;
-  userName: string;
+  /** Android Publisher API (reviews.list) não retorna nome de autor — sempre ausente hoje. */
+  userName?: string;
   rating: number;
   comment: string;
   appVersion: string;
   replyText?: string;
+  replyTime?: string;
   commentTime: string;
+  /** GH#1341 — idioma (BCP-47, ex. "pt-BR") e dispositivo, hoje expostos pelo endpoint real. */
+  language?: string;
+  device?: string;
+  handlingStatus?: GooglePlayReviewHandlingStatus;
 }
 
 export interface GooglePlayCrashAnrSummary {
   anrCountWeekly: number;
   crashCountWeekly: number;
   crashFreeSessionRate: number;
+}
+
+/**
+ * GH#1341/#1346 — Android Vitals ANR rate (Play Developer Reporting API v1beta1,
+ * anrRateMetricSet), média DAILY numa janela de 7 dias terminando no último dia com dado
+ * (freshnessInfo). Sem série temporal — o worker não guarda histórico dia-a-dia consumível
+ * pelo frontend ainda (só o agregado da última sincronização em admin_settings).
+ */
+export interface GooglePlayVitalsStatus {
+  status: "connected" | "disabled";
+  hasCredentials: boolean;
+  lastSyncTimestamp: string | null;
+  anrRatePercent: number | null;
+  rangeStart: string | null;
+  rangeEnd: string | null;
+}
+
+export interface GooglePlayVitalsSyncResult {
+  status: "ok" | "error" | "not_configured";
+  message?: string;
+  anrRatePercent?: number | null;
+  rangeStart?: string;
+  rangeEnd?: string;
+  syncedAt?: string;
 }
 
 // migration 012_play_track.sql — mapeamento version_code -> trilha do Play Console
