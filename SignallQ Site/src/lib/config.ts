@@ -19,6 +19,14 @@ export const SIGNALLQ_TEST_GROUP_URL: string =
 export const ADSENSE_PUBLISHER_ID: string = import.meta.env.VITE_ADSENSE_PUBLISHER_ID || ''
 export const ADSENSE_SLOT_RESULT: string = import.meta.env.VITE_ADSENSE_SLOT_RESULT || ''
 
+// Catálogo de anúncios locais (house ads) — issue #1402/#1403. Endpoint público de
+// leitura no signallq-admin-worker (sem INGEST_KEY, é leitura pública — chamado direto
+// do navegador, sem Pages Function no meio, ao contrário de /api/track e /api/waitlist).
+// Sem override, aponta pro admin-worker de produção; se o contrato mudar (ver comentário
+// do Camilo em #1402), ajustar aqui.
+export const LOCAL_ADS_ENDPOINT: string =
+  import.meta.env.VITE_LOCAL_ADS_ENDPOINT || 'https://signallq-admin.giammattey-luiz.workers.dev/local-ads'
+
 // Motor de medição real. Isolado aqui para poder trocar por um endpoint
 // próprio (ex.: o motor do app SignallQ hospedado na Cloudflare) sem tocar
 // na interface — troque só estas duas constantes.
