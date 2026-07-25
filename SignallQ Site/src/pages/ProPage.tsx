@@ -4,6 +4,7 @@ import { EmailCaptureDialog } from '../components/EmailCaptureDialog'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteNav } from '../components/SiteNav'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
+import { PAGE_META } from '../lib/pageMetaCatalog'
 import { FEATURE_PRO_LISTA_ESPERA, trackFeatureUsed, trackScreenView } from '../lib/telemetry'
 import { submitWaitlistSignup } from '../lib/waitlist'
 
@@ -68,13 +69,7 @@ function StatusChip({ label, tone = 'accent' }: { label: string; tone?: 'accent'
 }
 
 export default function ProPage() {
-  useDocumentMeta({
-    title: 'SignallQ PRO — venda seu diagnóstico de Wi-Fi como serviço',
-    // Achado bloqueante da Lia: description prometia trial ("Experimente grátis por
-    // 14 dias") contradizendo "Em breve" da seção Planos/modal. Corrigido para vitrine honesta.
-    description: 'Organize clientes, registre medições por ambiente e entregue um laudo profissional com a sua marca. Em breve — entre na lista de espera.',
-    path: '/pro',
-  })
+  useDocumentMeta(PAGE_META['/pro'])
   const navigate = useNavigate()
   const [modalOpen, setModalOpen] = useState(false)
 

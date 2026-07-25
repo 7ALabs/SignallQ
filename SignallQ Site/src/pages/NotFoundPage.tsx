@@ -1,14 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import { PageLayout } from '../components/PageLayout'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
+import { NOT_FOUND_META } from '../lib/pageMetaCatalog'
 
 export default function NotFoundPage() {
-  useDocumentMeta({
-    title: 'Página não encontrada — SignallQ',
-    description: 'A página que você acessou não existe ou foi movida.',
-    path: '/404',
-    robots: 'noindex,follow',
-  })
+  useDocumentMeta(NOT_FOUND_META)
   const navigate = useNavigate()
 
   return (

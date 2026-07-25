@@ -11,6 +11,7 @@ import { useDocumentMeta } from '../hooks/useDocumentMeta'
 import { type FasePainel, type ProblemPhase, useSpeedTest } from '../hooks/useSpeedTest'
 import { classifyDownload } from '../lib/classification'
 import { fractionForLatency, fractionForThroughput } from '../lib/gaugeMath'
+import { PAGE_META } from '../lib/pageMetaCatalog'
 
 const RUNNING_PHASES: FasePainel[] = ['preparando', 'latencia', 'download', 'upload', 'processando']
 const PROBLEM_PHASES: ProblemPhase[] = ['sem-conexao', 'conexao-interrompida', 'endpoint-indisponivel', 'erro-inesperado', 'cancelado', 'bloqueado-outra-aba']
@@ -36,12 +37,7 @@ function phaseColorVar(phase: FasePainel): string {
 // máquina de estados por fase, chrome mínimo (FlowTopBar/DetailTopBar em vez
 // do SiteNav/SiteFooter institucional) e AdBanner fixo no rodapé.
 export default function HomePage() {
-  useDocumentMeta({
-    title: 'Teste de velocidade real — SignallQ',
-    description:
-      'Meça agora a velocidade real da sua internet: download, upload e latência, com veredito claro para navegação, streaming, videochamadas e jogos.',
-    path: '/',
-  })
+  useDocumentMeta(PAGE_META['/'])
 
   const navigate = useNavigate()
   const { phase, liveValue, phaseResults, result, connectionKind, cancelTest, retry, forceStart, goToIdle } = useSpeedTest()
