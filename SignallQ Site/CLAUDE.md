@@ -40,6 +40,16 @@ protótipo assumia HTML estático puro; a decisão de arquitetura (registrada na
 `@signallq/design-system` via React — HTML puro exigiria reimplementar à mão um design system que
 já existe em React.
 
+**Reconstrução v2 (2026-07-25):** decisão do Luiz de reconstruir o site 1:1 contra um protótipo
+novo (`SignallQ Web - Prototipo`, `.claude/design-specs/2026-07-25-site-webapp-v2/`), em fases —
+Fase 0 (`SiteNav`, `SiteFooter`, `AdRail`, `AdBannerWide`, fundação de anúncio local, PR #1412),
+Fase 1 (Home), Fase 2 (Histórico), Fase 3 (PRO) e Fase 4 (institucional — este documento). As
+páginas institucionais (Como medimos, Quem somos, Privacidade, Termos, Bufferbloat, CGNAT) e a 404
+passaram a usar um template único, `DocPage.tsx` (`sections`/`overline`/`title`/`intro`/`cta`
+configuráveis, igual ao componente `ScreenDoc.dc.html` do protótipo, cuja prop `page` troca o
+conteúdo), composto dentro de `PageLayout.tsx` — que agora inclui a moldura de anúncio universal
+(`AdRail` esquerda/direita só desktop + `AdBannerWide` embaixo do conteúdo, antes do `SiteFooter`).
+
 ## Decisões técnicas relevantes (não repetir sem reler o motivo)
 
 - **Design system consumido via CSS puro, não via pacote React**: `packages/design-system/`
@@ -70,12 +80,13 @@ já existe em React.
 | `/` | `HomePage` | Teste de velocidade real, auto-inicia ao carregar |
 | `/pro` | `ProPage` | Vitrine do SignallQ PRO — "Em breve", sem promessa de trial |
 | `/historico` | `HistoricoPage` | Histórico local (IndexedDB) |
+| `/como-medimos` | `ComoMedimosPage` | Metodologia — rota nova da reconstrução v2 (não existia antes) |
 | `/quem-somos` | `QuemSomosPage` | Institucional |
-| `/privacidade` | `PrivacidadePage` | Política de privacidade do site (distinta da do app) |
-| `/termos` | `TermosPage` | Termos de uso do site (novo — não existia no protótipo) |
-| `/internet-boa-mas-travando` | `BufferbloatPage` | Conteúdo long-tail SEO (issue #1399) — H1 ancorado na frase sintomática, explica bufferbloat como causa |
-| `/lag-em-jogos-online` | `CgnatPage` | Conteúdo long-tail SEO (issue #1399) — explica CGNAT/NAT Strict como causa de lag e falha ao hospedar partida |
-| `*` | `NotFoundPage` | 404 |
+| `/privacidade` | `PrivacidadePage` | Política de privacidade do site (distinta da do app) — copy reconciliado 1:1 com o protótipo v2 na Fase 4 (11 seções, inclui Cloudflare Web Analytics e lista de espera do PRO) |
+| `/termos` | `TermosPage` | Termos de uso do site — copy reconciliado 1:1 com o protótipo v2 na Fase 4 (11 seções); antes da Fase 4 era uma adaptação de `docs_ai/legal/TERMS_OF_USE.md` por falta de spec própria, hoje o protótipo já traz `Termos` |
+| `/internet-boa-mas-travando` | `BufferbloatPage` | Conteúdo long-tail SEO (issue #1399) — H1 ancorado na frase sintomática, explica bufferbloat como causa. Copy preservado 1:1 na Fase 4 (só a moldura visual mudou) |
+| `/lag-em-jogos-online` | `CgnatPage` | Conteúdo long-tail SEO (issue #1399) — explica CGNAT/NAT Strict como causa de lag e falha ao hospedar partida. Copy preservado 1:1 na Fase 4 (só a moldura visual mudou) |
+| `*` | `NotFoundPage` | 404 — composição 1:1 com `Screen404.dc.html` na Fase 4 |
 
 Ambas as páginas de conteúdo long-tail seguem "resposta primeiro" (cada seção responde a
 pergunta do título já nas 1-2 primeiras frases — única recomendação de formato validada pela
