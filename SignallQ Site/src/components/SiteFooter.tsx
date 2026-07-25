@@ -31,6 +31,9 @@ export function SiteFooter() {
             <Link to="/historico" className="body-medium no-underline" style={{ color: 'var(--text-primary)' }}>
               Histórico
             </Link>
+            <Link to="/como-medimos" className="body-medium no-underline" style={{ color: 'var(--text-primary)' }}>
+              Como medimos
+            </Link>
           </div>
           <div className="flex flex-col gap-2.5">
             <div className="overline">Institucional</div>
@@ -57,7 +60,7 @@ export function SiteFooter() {
         style={{ maxWidth: 1280, borderColor: 'color-mix(in srgb, var(--border) 18%, transparent)' }}
       >
         <div className="body-small" style={{ color: 'var(--text-tertiary)' }}>
-          © 2026 SignallQ. Produto em fase Beta.
+          © 2026 SignallQ · by 7A. Produto em fase Beta.
         </div>
       </div>
     </div>

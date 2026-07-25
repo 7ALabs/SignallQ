@@ -25,6 +25,11 @@ export const PAGE_META: Record<string, PageMeta> = {
     path: '/historico',
     robots: 'noindex,follow',
   },
+  '/como-medimos': {
+    title: 'Como medimos sua conexão — SignallQ',
+    description: 'Entenda como o teste web do SignallQ mede velocidade, latência e estabilidade, além dos limites naturais do navegador.',
+    path: '/como-medimos',
+  },
   '/quem-somos': {
     title: 'Quem somos — SignallQ',
     description: 'Conheça o SignallQ: diagnóstico de conectividade que explica, não só mede.',

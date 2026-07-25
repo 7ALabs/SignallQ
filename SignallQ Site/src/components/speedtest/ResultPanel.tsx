@@ -29,6 +29,18 @@ function formattedSummary(result: SpeedTestResult): string {
   return `Meu teste de velocidade SignallQ (${when}): Download ${result.download.mbps.toFixed(1)} Mbps · Upload ${result.upload.mbps.toFixed(1)} Mbps · Latência ${Math.round(result.latency.ms)} ms. Teste a sua em ${location.origin}${location.pathname}`
 }
 
+function formatarDataHora(timestamp: number): string {
+  return new Intl.DateTimeFormat('pt-BR', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(timestamp))
+}
+
+function formatarDuracao(durationMs: number | undefined): string | null {
+  if (durationMs == null || durationMs <= 0) return null
+  return `${Math.max(1, Math.round(durationMs / 1000))} s`
+}
+
 const STATUS_COPY: Record<SpeedTestResult['status'], { title: string; body: string }> = {
   complete: { title: 'Medição completa', body: 'Todas as fases tiveram dados suficientes para uma avaliação confiável.' },
   partial: { title: 'Resultado parcial', body: 'Alguma fase não terminou. Use apenas as métricas disponíveis.' },
@@ -101,19 +113,6 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
         </div>
       )}
 
-      <div className="flex flex-col items-center gap-2 text-center">
-        <div className="headline-small">{veredito.titulo}</div>
-        <div className="body-medium">{veredito.subtitulo}</div>
-        {mostrarChipConexao && (
-          <div className="mt-1 flex items-center gap-1.5 rounded-full border px-3 py-1" style={{ borderColor: 'var(--border)' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'var(--text-tertiary)' }}>
-              {iconeConexao(connectionKind)}
-            </span>
-            <span className="label-small">Teste realizado via {labelConexao(connectionKind)}</span>
-          </div>
-        )}
-      </div>
-
       <div className="flex w-full gap-3">
         <div className="flex flex-1 flex-col items-center gap-1 rounded-2xl py-4" style={{ background: 'var(--bg-secondary)' }}>
           <div className="overline">Download</div>
@@ -136,6 +135,28 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
         </span>
       </div>
 
+      <section className="w-full rounded-2xl p-4" style={{ background: 'var(--bg-secondary)' }} aria-labelledby="contexto-execucao">
+        <div id="contexto-execucao" className="overline">Contexto da execução</div>
+        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 body-small">
+          <dt>Data e hora local</dt><dd className="text-right">{formatarDataHora(result.timestamp)}</dd>
+          <dt>Infraestrutura</dt><dd className="text-right">{result.server}</dd>
+          {mostrarChipConexao && <><dt>Conexão informada</dt><dd className="flex items-center justify-end gap-1 text-right"><span className="material-symbols-outlined" style={{ fontSize: 14 }}>{iconeConexao(connectionKind)}</span>Teste realizado via {labelConexao(connectionKind)}</dd></>}
+          {formatarDuracao(result.durationMs) && <><dt>Duração</dt><dd className="text-right">{formatarDuracao(result.durationMs)}</dd></>}
+        </dl>
+        <p className="mt-3 body-small" style={{ color: 'var(--text-tertiary)' }}>
+          O navegador não confirma o seu provedor nem a sua localização. Por isso esses dados não são estimados aqui.
+        </p>
+      </section>
+
+      <section className="w-full rounded-2xl p-4" style={{ background: 'color-mix(in srgb, var(--accent) 8%, transparent)' }} aria-labelledby="interpretacao-signallq">
+        <div id="interpretacao-signallq" className="overline" style={{ color: 'var(--accent)' }}>Interpretação SignallQ</div>
+        <div className="headline-small mt-2">{veredito.titulo}</div>
+        <div className="body-medium mt-1">{veredito.subtitulo}</div>
+        <p className="mt-3 body-small" style={{ color: 'var(--text-tertiary)' }}>
+          Esta é uma leitura das métricas desta medição, não uma certificação da velocidade contratada.
+        </p>
+      </section>
+
       <details className="w-full rounded-2xl p-4" style={{ background: 'var(--bg-secondary)' }}>
         <summary className="label-large cursor-pointer" style={{ color: 'var(--text-primary)' }}>Detalhes técnicos</summary>
         <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 body-small">
@@ -152,6 +173,10 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
           Latência e perda são medidas por HTTPS; navegadores não permitem ICMP nem detectam todos os handovers de rede.
         </p>
       </details>
+
+      <a href="/como-medimos" className="label-medium no-underline" style={{ color: 'var(--accent)' }}>
+        Entenda como o teste mede sua conexão
+      </a>
 
       <div className="flex w-full items-center gap-3 rounded-2xl p-4" style={{ background: 'color-mix(in srgb, var(--accent) 8%, transparent)' }}>
         <div className="flex flex-1 flex-col gap-0.5">

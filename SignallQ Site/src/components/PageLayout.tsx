@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { SiteFooter } from './SiteFooter'
 import { SiteNav } from './SiteNav'
 
-type RotaAtiva = 'home' | 'pro' | 'historico' | 'sobre' | 'privacidade' | 'termos'
+type RotaAtiva = 'home' | 'pro' | 'historico' | 'sobre' | 'privacidade' | 'termos' | 'como-medimos'
 
 interface PageLayoutProps {
   active: RotaAtiva
