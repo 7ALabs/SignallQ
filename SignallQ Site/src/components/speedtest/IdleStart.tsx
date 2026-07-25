@@ -1,8 +1,12 @@
 import { Link } from 'react-router-dom'
+import type { SpeedTestMode } from '../../lib/speedEngine'
 import { ProBadge } from '../ProBadge'
 import { SegmentedControl } from '../SegmentedControl'
 
-export type ModoTeste = 'rapido' | 'completo'
+// Alias de `SpeedTestMode` (definido em speedEngine.ts, fonte única do
+// contrato Rápido/Completo desde GH#1367) — mantido com este nome aqui porque
+// é o vocabulário já usado pelos consumidores desta tela (`modo`/`onModoChange`).
+export type ModoTeste = SpeedTestMode
 
 interface IdleStartProps {
   modo: ModoTeste
@@ -17,10 +21,8 @@ const MODOS: Array<{ value: ModoTeste; label: string }> = [
 
 // Tela idle do teste de velocidade — protótipo "SignallQ WebApp.dc.html" do
 // Luiz (GH#1186), substitui o auto-start anterior (o motor só rodava sozinho
-// ao abrir "/"). "Completo" hoje dispara o mesmo motor de "Rápido" — o
-// speedEngine.ts não tem parâmetro de duração/rounds variável ainda;
-// diferenciação real fica pra outra tarefa, sinalizado no TODO abaixo em vez
-// de fingir um parâmetro que não faz nada.
+// ao abrir "/"). "Rápido" x "Completo" diferenciam de fato o rigor da medição
+// desde GH#1367 — ver `SPEED_TEST_MODE_CONFIG` em speedEngine.ts.
 //
 // "PRO" saiu do SegmentedControl (achado da Lia, revisão UX 2026-07-24): não
 // é um modo de teste — é upsell/navegação pro app SignallQ PRO, então
@@ -43,9 +45,6 @@ export function IdleStart({ modo, onModoChange, onIniciar }: IdleStartProps) {
         <span style={{ color: '#fff', fontSize: 26, fontWeight: 600, lineHeight: 1.15 }}>Iniciar teste</span>
       </button>
 
-      {/* TODO: "Completo" ainda dispara o mesmo motor de "Rápido" —
-          speedEngine.ts não expõe parâmetro de duração/rounds variável.
-          Diferenciação real de duração/rounds é tarefa futura, não inventada aqui. */}
       <div className="w-full max-w-[300px]">
         <SegmentedControl options={MODOS} value={modo} onChange={onModoChange} />
       </div>
