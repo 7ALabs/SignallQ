@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useSystemTheme } from '../hooks/useSystemTheme'
 import { Badge } from './Badge'
 import { Logo } from './Logo'
-import { PlayStoreBadge } from './PlayStoreBadge'
+import { SIGNALLQ_TEST_GROUP_URL } from '../lib/config'
 
 // 3 densidades responsivas (reconstrução v2, SiteFooter.dc.html): mobile (<640px,
 // grid 2 colunas de links planos), compact (640-1023px, linha única com wrap) e
@@ -33,13 +33,14 @@ const LINKS_COMPACT = [
 
 const COPYRIGHT = '© 2026 SignallQ · by 7A. Produto em fase Beta.'
 
-// Achado importante da Lia (revisão pré-construção): o rodapé não tinha
-// nenhum CTA de download do app — perdia a oportunidade em 100% das páginas
-// fora da Home pós-resultado. Coluna "Baixe o app" adicionada na densidade
-// full. Mantém `PlayStoreBadge` real em vez do card de anúncio animado que o
-// protótipo mostra ali — CTA de download de verdade bate melhor que imitar um
-// house ad, e os 3 espaços de anúncio universais (AdRail/AdBannerWide) já
-// cobrem a superfície de publicidade da tela.
+// Decisão do Luiz (2026-07-25, revertendo divergência da reconstrução v2):
+// a coluna "Baixe o app" volta a ser 1:1 com SiteFooter.dc.html — o card de
+// anúncio animado do protótipo, não o PlayStoreBadge real. É "um anúncio
+// interno com direcionamento": o CTA "Entrar na lista de teste" leva de
+// verdade para o grupo de testadores fechado (SIGNALLQ_TEST_GROUP_URL, mesmo
+// destino usado pelos outros CTAs de teste fechado do site) — conteúdo fixo
+// do design, não depende do catálogo dinâmico de anúncios locais (AdRail/
+// AdBannerWide).
 export function SiteFooter() {
   const isDark = useSystemTheme()
 
@@ -125,10 +126,55 @@ export function SiteFooter() {
                 Termos de Uso
               </Link>
             </div>
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col items-start gap-2.5">
               <div className="overline">Baixe o app</div>
-              <PlayStoreBadge height={44} source="footer" />
-              <Badge>Beta</Badge>
+              <div
+                className="relative box-border flex w-[260px] flex-col gap-2.5 overflow-hidden rounded-2xl p-3.5"
+                style={{ background: 'linear-gradient(140deg, #241A45 0%, #17132B 60%, #0E0D14 100%)' }}
+              >
+                <div
+                  className="sq-ad-glow-a absolute rounded-full"
+                  style={{
+                    right: -50,
+                    top: -50,
+                    width: 160,
+                    height: 160,
+                    background: 'radial-gradient(circle, rgba(124,77,255,.42), rgba(124,77,255,0) 70%)',
+                  }}
+                />
+                <div className="relative flex items-center gap-2.5">
+                  <div className="flex h-[22px] flex-shrink-0 items-end gap-[3px]">
+                    <div className="sq-ad-bar w-1 rounded-sm" style={{ height: 9, background: 'rgba(255,255,255,.28)', animationDelay: '0s' }} />
+                    <div className="sq-ad-bar w-1 rounded-sm" style={{ height: 15, background: '#7C4DFF', animationDelay: '.12s' }} />
+                    <div className="sq-ad-bar w-1 rounded-sm" style={{ height: 22, background: '#C9F26B', animationDelay: '.24s' }} />
+                    <div className="sq-ad-bar w-1 rounded-sm" style={{ height: 13, background: '#7C4DFF', animationDelay: '.36s' }} />
+                  </div>
+                  <div className="font-bold" style={{ font: '700 15px/1.15 var(--font-sans)', color: '#fff', letterSpacing: '-0.01em' }}>
+                    Baixe o app SignallQ
+                  </div>
+                </div>
+                <div className="relative" style={{ font: '400 11px/1.4 var(--font-sans)', color: 'rgba(255,255,255,.62)' }}>
+                  Mede o Wi-Fi de cada cômodo e mostra onde o sinal morre.
+                </div>
+                <div className="relative flex items-center gap-2">
+                  <a
+                    href={SIGNALLQ_TEST_GROUP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative flex h-8 items-center overflow-hidden rounded-2xl px-4 no-underline"
+                    style={{ background: 'linear-gradient(135deg, #7C4DFF, #5B21D6)' }}
+                  >
+                    <span className="relative" style={{ font: '600 12px/1.2 var(--font-sans)', color: '#fff' }}>
+                      Entrar na lista de teste
+                    </span>
+                    <span
+                      className="sq-ad-sweep absolute top-0 bottom-0 left-0 w-[30px]"
+                      style={{ background: 'linear-gradient(100deg, transparent, rgba(255,255,255,.4), transparent)' }}
+                    />
+                  </a>
+                  <span style={{ font: '500 10px/1.3 var(--font-sans)', color: 'rgba(255,255,255,.5)' }}>Teste fechado · Android</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
