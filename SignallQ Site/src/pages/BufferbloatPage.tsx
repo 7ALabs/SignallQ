@@ -22,12 +22,12 @@ const SECOES = [
   {
     titulo: 'Como saber se o problema é esse',
     texto:
-      'O sinal mais claro é: a internet funciona bem quando só uma coisa está sendo usada, mas trava, engasga ou dá lag assim que mais de uma coisa disputa a rede ao mesmo tempo. Diferente de sinal Wi-Fi fraco (que causa lentidão constante, mesmo sozinho) ou de queda de conexão (que interrompe totalmente), o bufferbloat aparece como atraso intermitente, ligado ao volume de uso simultâneo — e melhora sozinho quando a outra atividade termina.',
+      'Um indício forte é a internet funcionar bem quando só uma coisa está sendo usada, mas travar, engasgar ou dar lag assim que mais de uma atividade disputa a rede ao mesmo tempo. Isso não confirma o diagnóstico por si só: sinal Wi-Fi fraco, interferência e problemas na operadora também podem causar lentidão. Mas, quando o atraso aparece sob uso simultâneo e melhora ao terminar o download, a fila excessiva merece investigação.',
   },
   {
     titulo: 'O que fazer',
     texto:
-      'A correção mais eficaz é ativar o gerenciamento de fila (conhecido como SQM, Smart Queue Management, ou "priorização de tráfego") no roteador, quando o modelo suportar — ele organiza a fila para priorizar tráfego sensível a atraso, como chamadas e jogos, sem descartar o resto. Trocar de plano para uma velocidade maior raramente resolve, porque o problema não é quantidade de dado, é como a fila é gerenciada sob carga. Rodar o teste de velocidade do SignallQ ajuda a confirmar o padrão: é a latência e a oscilação subindo quando a rede está sob uso simultâneo — não o número de download isolado — que aponta para bufferbloat.',
+      'Se o seu roteador oferecer gerenciamento de fila (SQM, Smart Queue Management, ou "priorização de tráfego"), essa é uma opção a testar: ela ajuda a controlar a fila para reduzir o atraso em chamadas e jogos. Antes de trocar de plano, compare a latência sob download e upload no teste de velocidade do SignallQ; uma diferença grande em relação à latência sem carga é um sinal útil para investigar. O resultado não substitui uma análise do roteador ou da operadora, mas evita olhar apenas para o número de download isolado.',
   },
 ]
 

@@ -12,7 +12,7 @@ const SECOES = [
   {
     titulo: 'Por que dá lag em jogos mesmo com a internet parecendo boa',
     texto:
-      'Se o teste de velocidade mostra números bons mas o jogo trava, o personagem "teleporta" ou você é expulso da partida com frequência, a causa mais comum não é velocidade — é o tipo de conexão que a operadora entrega. Muitas operadoras compartilham um único endereço IP público entre várias casas ao mesmo tempo, numa técnica chamada CGNAT (Carrier-Grade NAT). Isso praticamente não afeta navegação, streaming ou download, mas prejudica justamente o tipo de conexão direta (peer-to-peer) que jogos online usam entre jogadores.',
+      'Se o teste de velocidade mostra números bons mas o jogo trava, o personagem "teleporta" ou você não consegue hospedar partida, a velocidade não é o único fator a verificar. Um possível motivo é o tipo de conexão que a operadora entrega: muitas compartilham um único endereço IP público entre várias casas, numa técnica chamada CGNAT (Carrier-Grade NAT). Isso pode dificultar conexões diretas usadas por alguns jogos, mesmo quando navegação, streaming e download parecem normais.',
   },
   {
     titulo: 'O que é CGNAT',
@@ -22,17 +22,17 @@ const SECOES = [
   {
     titulo: 'Por que não consigo hospedar partida ou conectar direto com amigos',
     texto:
-      'Isso acontece porque o CGNAT normalmente resulta em NAT Strict (também chamado de NAT Tipo 3) no seu console ou PC, o pior tipo de NAT para jogos. Com NAT Strict, seu dispositivo só aceita conexão de quem ele mesmo iniciou contato antes — então outro jogador não consegue se conectar diretamente a você, hospedar uma sala que você criou pode falhar, e o matchmaking do jogo tende a demorar mais ou falhar ao tentar juntar vocês na mesma partida.',
+      'Isso pode acontecer quando a conexão fica com NAT restrito (também chamado de NAT Strict ou NAT Tipo 3, dependendo da plataforma). Nesse cenário, outro jogador pode não conseguir se conectar diretamente a você; hospedar uma sala e encontrar partidas também pode falhar. CGNAT é uma causa possível, mas as configurações do roteador e as regras do próprio jogo também influenciam o tipo de NAT.',
   },
   {
     titulo: 'Como saber se é isso',
     texto:
-      'A maioria dos consoles (Xbox, PlayStation) e alguns jogos mostram o tipo de NAT direto no menu de configuração de rede — procure por "NAT Tipo 2 / Aberto" (bom), "NAT Tipo 3 / Strict" (problema) ou nomenclatura equivalente. Se aparecer Strict ou Moderado junto com dificuldade recorrente de jogar com amigos específicos ou de hospedar partida, CGNAT é a explicação mais provável, mesmo que o teste de velocidade do SignallQ mostre resultado excelente.',
+      'A maioria dos consoles (Xbox, PlayStation) e alguns jogos mostram o tipo de NAT no menu de configuração de rede — procure a nomenclatura usada pela sua plataforma, como Aberto, Moderado ou Strict. Se aparecer Strict ou Moderado junto com dificuldade recorrente de jogar com amigos específicos ou de hospedar partida, vale verificar com a operadora se a conexão usa CGNAT. O teste de velocidade do SignallQ complementa essa checagem, mas não identifica CGNAT sozinho.',
   },
   {
     titulo: 'O que fazer',
     texto:
-      'Redirecionamento de porta (port forwarding) no roteador, a solução clássica para NAT Strict, não funciona sob CGNAT — porque o roteador de quem joga não é o único responsável pelo endereço público, a operadora é. A saída real é pedir à operadora um IP público dedicado (às vezes chamado de "IP fixo" ou "IP real"), quando o plano oferecer essa opção; em alguns casos, habilitar IPv6 no roteador também contorna o problema, porque conexões IPv6 costumam não passar por CGNAT.',
+      'Antes de alterar o roteador, confirme o tipo de NAT e consulte a documentação do jogo ou do console. Redirecionamento de portas pode ajudar quando o bloqueio está no roteador local, mas geralmente não resolve se a conexão estiver sob CGNAT, porque a tradução também acontece na operadora. Nesse caso, pergunte se há opção de sair do CGNAT ou obter um IPv4 público; IPv6 também pode ajudar quando o jogo, o console e a rede o suportam.',
   },
 ]
 
