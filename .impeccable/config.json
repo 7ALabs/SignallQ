@@ -8,6 +8,84 @@
         "value": "roboto",
         "reason": "User confirmed Roboto is the SignallQ product font (2026-07-12), Google Sans dropped as non-viable",
         "createdAt": "2026-07-12T03:27:59.918Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#17132b",
+        "reason": "Cor verbatim do protótipo Claude Design (AdRail.dc.html/AdBannerWide.dc.html) — skin de anúncio local (house ad), intencionalmente fora da paleta do app pra sponsored content nunca ser confundido com UI real. Aprovado 1:1 pelo Luiz (reconstrução v2, 2026-07-25).",
+        "createdAt": "2026-07-25T21:37:12.424Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#c9f26b",
+        "reason": "Cor verbatim do protótipo Claude Design (AdRail.dc.html/AdBannerWide.dc.html) — skin de anúncio local (house ad), intencionalmente fora da paleta do app pra sponsored content nunca ser confundido com UI real. Aprovado 1:1 pelo Luiz (reconstrução v2, 2026-07-25).",
+        "createdAt": "2026-07-25T21:37:12.524Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#7fd1ff",
+        "reason": "Cor verbatim do protótipo Claude Design (AdRail.dc.html/AdBannerWide.dc.html) — skin de anúncio local (house ad), intencionalmente fora da paleta do app pra sponsored content nunca ser confundido com UI real. Aprovado 1:1 pelo Luiz (reconstrução v2, 2026-07-25).",
+        "createdAt": "2026-07-25T21:37:12.623Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#2a1f4d",
+        "reason": "Cor verbatim do protótipo Claude Design (AdRail.dc.html/AdBannerWide.dc.html) — skin de anúncio local (house ad), intencionalmente fora da paleta do app pra sponsored content nunca ser confundido com UI real. Aprovado 1:1 pelo Luiz (reconstrução v2, 2026-07-25).",
+        "createdAt": "2026-07-25T21:37:12.719Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(124,77,255,.55)",
+        "reason": "Cor verbatim do protótipo Claude Design (AdRail.dc.html/AdBannerWide.dc.html) — skin de anúncio local (house ad), intencionalmente fora da paleta do app pra sponsored content nunca ser confundido com UI real. Aprovado 1:1 pelo Luiz (reconstrução v2, 2026-07-25).",
+        "createdAt": "2026-07-25T21:37:12.819Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(127,209,255,.16)",
+        "reason": "Cor verbatim do protótipo Claude Design (AdRail.dc.html/AdBannerWide.dc.html) — skin de anúncio local (house ad), intencionalmente fora da paleta do app pra sponsored content nunca ser confundido com UI real. Aprovado 1:1 pelo Luiz (reconstrução v2, 2026-07-25).",
+        "createdAt": "2026-07-25T21:37:12.917Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(124,77,255,.42)",
+        "reason": "Cor verbatim do protótipo Claude Design (AdRail.dc.html/AdBannerWide.dc.html) — skin de anúncio local (house ad), intencionalmente fora da paleta do app pra sponsored content nunca ser confundido com UI real. Aprovado 1:1 pelo Luiz (reconstrução v2, 2026-07-25).",
+        "createdAt": "2026-07-25T21:37:13.019Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(201,242,107,.18)",
+        "reason": "Cor verbatim do protótipo Claude Design (AdRail.dc.html/AdBannerWide.dc.html) — skin de anúncio local (house ad), intencionalmente fora da paleta do app pra sponsored content nunca ser confundido com UI real. Aprovado 1:1 pelo Luiz (reconstrução v2, 2026-07-25).",
+        "createdAt": "2026-07-25T21:37:13.124Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#241c42",
+        "reason": "Cor verbatim do protótipo Claude Design (AdBannerWide.dc.html/AdRail.dc.html) — skin de anúncio local (house ad), intencionalmente fora da paleta do app pra sponsored content nunca ser confundido com UI real. Aprovado 1:1 pelo Luiz (reconstrução v2, 2026-07-25).",
+        "createdAt": "2026-07-25T21:37:40.143Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(124,77,255,.45)",
+        "reason": "Cor verbatim do protótipo Claude Design (AdBannerWide.dc.html/AdRail.dc.html) — skin de anúncio local (house ad), intencionalmente fora da paleta do app pra sponsored content nunca ser confundido com UI real. Aprovado 1:1 pelo Luiz (reconstrução v2, 2026-07-25).",
+        "createdAt": "2026-07-25T21:37:40.247Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#7c4dff",
+        "reason": "Cor verbatim do protótipo Claude Design (AdBannerWide.dc.html/AdRail.dc.html) — skin de anúncio local (house ad), intencionalmente fora da paleta do app pra sponsored content nunca ser confundido com UI real. Aprovado 1:1 pelo Luiz (reconstrução v2, 2026-07-25).",
+        "createdAt": "2026-07-25T21:37:40.351Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#0b1533",
+        "reason": "Cor verbatim do protótipo Claude Design (AdBannerWide.dc.html/AdRail.dc.html) — skin de anúncio local (house ad), intencionalmente fora da paleta do app pra sponsored content nunca ser confundido com UI real. Aprovado 1:1 pelo Luiz (reconstrução v2, 2026-07-25).",
+        "createdAt": "2026-07-25T21:37:40.452Z"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#131a3c",
+        "reason": "Cor verbatim do protótipo Claude Design (AdBannerWide.dc.html/AdRail.dc.html) — skin de anúncio local (house ad), intencionalmente fora da paleta do app pra sponsored content nunca ser confundido com UI real. Aprovado 1:1 pelo Luiz (reconstrução v2, 2026-07-25).",
+        "createdAt": "2026-07-25T21:37:40.550Z"
       }
     ]
   }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AdBanner } from '../components/AdBanner'
+import { AdBannerWide } from '../components/AdBannerWide'
 import { DetailTopBar, FlowTopBar } from '../components/AppTopBar'
 import { PlayStoreBadge } from '../components/PlayStoreBadge'
 import { SiteFooter } from '../components/SiteFooter'
@@ -136,7 +136,12 @@ export default function HomePage() {
             onVerHistorico={irParaHistorico}
           />
         )}
-        {isResult && <AdBanner />}
+        {/* PENDENTE Fase 1 (reconstrução v2): este ponto de uso será substituído pela
+            composição completa SiteNav → AdRail(a) + conteúdo + AdRail(b) → AdBannerWide
+            → SiteFooter em todas as telas — ver
+            .claude/design-specs/2026-07-25-site-webapp-v2/README.md. Por ora, troca 1:1
+            do AdBanner antigo pelo AdBannerWide pra não quebrar o build. */}
+        {isResult && <AdBannerWide />}
       </div>
 
       {(isIdle || isResult) && (

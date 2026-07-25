@@ -31,7 +31,7 @@ export function SiteNav({ active, heroMode = false }: SiteNavProps) {
 
   return (
     <div
-      className="relative w-full box-border border-b"
+      className="sticky top-0 z-[3] w-full box-border border-b"
       style={{
         background: heroMode ? 'transparent' : 'var(--bg-primary)',
         borderColor: heroMode ? 'transparent' : 'color-mix(in srgb, var(--border) 25%, transparent)',
@@ -64,6 +64,15 @@ export function SiteNav({ active, heroMode = false }: SiteNavProps) {
           <span className="material-symbols-outlined">{mobileOpen ? 'close' : 'menu'}</span>
         </button>
       </div>
+
+      {/* Fade sutil abaixo do nav sticky (reconstrução v2, SiteNav.dc.html) — só faz
+          sentido com fundo opaco; em heroMode o nav já é transparente sobre o hero. */}
+      {!heroMode && (
+        <div
+          className="pointer-events-none absolute bottom-[-16px] left-0 right-0 h-4"
+          style={{ background: 'linear-gradient(to bottom, color-mix(in srgb, var(--bg-primary) 92%, transparent), transparent)' }}
+        />
+      )}
 
       {mobileOpen && (
         <div className="fixed inset-0 z-[1000] flex flex-col overflow-y-auto p-6 pt-4 box-border" style={{ background: 'var(--bg-primary)' }}>
