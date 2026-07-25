@@ -33,6 +33,11 @@ import {
 
 const HAS_FILE_EXTENSION = /\.[a-zA-Z0-9]+$/
 
+// Token público emitido pelo Google Search Console para verificar a propriedade
+// https://signallq.pages.dev/. Fica no HTML inicial, entregue pelo Worker, para
+// que a validação não dependa da hidratação do React.
+const GOOGLE_SITE_VERIFICATION_CONTENT = 'Kb_Flz9uN3gJfrushxDl3GbMWkfkifjlz-x5JC9rQP0'
+
 function escapeHtmlAttr(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
@@ -61,6 +66,7 @@ function buildHeadInjectionHtml(meta: PageMeta, origin: string, structuredData: 
   const image = origin + '/signallq-symbol.png'
 
   const tags = [
+    `<meta name="google-site-verification" content="${GOOGLE_SITE_VERIFICATION_CONTENT}">`,
     `<meta name="description" content="${escapeHtmlAttr(meta.description)}">`,
     `<meta name="robots" content="${escapeHtmlAttr(robots)}">`,
     `<link rel="canonical" href="${escapeHtmlAttr(url)}">`,
