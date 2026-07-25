@@ -53,7 +53,7 @@ export interface Env {
 function corsHeaders(env: Env): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN,
-    "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Environment",
     "Access-Control-Allow-Credentials": "true",
     "Access-Control-Max-Age": "86400",
@@ -4512,6 +4512,144 @@ async function handlePublicFlags(_request: Request, env: Env): Promise<Response>
   return json({ flags }, 200, env);
 }
 
+// --- GH#1402 (#1405/#1406/#1407): catálogo de anúncios locais (house ads) ---
+// Exibido pelo AdBanner do Site/PWA quando o AdSense não preenche o slot (no-fill) ou não está
+// configurado. Conteúdo administrável via Console (CRUD abaixo), sorteado no client a cada
+// exibição — este worker só entrega o catálogo de ativos, não decide qual sortear.
+
+interface LocalAdRow {
+  id: string;
+  title: string;
+  description: string;
+  cta_label: string;
+  target_url: string;
+  active: number;
+  created_at: number;
+  updated_at: number;
+}
+
+function mapLocalAd(r: LocalAdRow) {
+  return {
+    id:          r.id,
+    title:       r.title,
+    description: r.description,
+    ctaLabel:    r.cta_label,
+    targetUrl:   r.target_url,
+    active:      r.active === 1,
+    createdAt:   r.created_at,
+    updatedAt:   r.updated_at,
+  };
+}
+
+/** Só http/https — evita `javascript:`/esquema não navegável salvo por engano no Console. */
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const u = new URL(value);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+// GET /local-ads — público, sem auth. Só anúncios ativos, para o AdBanner do Site sortear.
+async function handlePublicLocalAds(_request: Request, env: Env): Promise<Response> {
+  const rows = await env.DB.prepare(
+    'SELECT id, title, description, cta_label, target_url, active, created_at, updated_at FROM local_ads WHERE active = 1 ORDER BY created_at DESC'
+  ).all<LocalAdRow>();
+
+  // Client só precisa do conteúdo exibível — active/createdAt/updatedAt são detalhe
+  // administrativo (já filtrado por active = 1 na query acima).
+  const ads = (rows.results ?? []).map((r) => ({
+    id:          r.id,
+    title:       r.title,
+    description: r.description,
+    ctaLabel:    r.cta_label,
+    targetUrl:   r.target_url,
+  }));
+
+  return json({ ads }, 200, env);
+}
+
+// GET /admin/local-ads — lista completa (ativos e inativos) para a tabela do painel.
+async function handleAdminLocalAdsList(_request: Request, env: Env): Promise<Response> {
+  const rows = await env.DB.prepare(
+    'SELECT id, title, description, cta_label, target_url, active, created_at, updated_at FROM local_ads ORDER BY created_at DESC'
+  ).all<LocalAdRow>();
+
+  return json({ ads: (rows.results ?? []).map(mapLocalAd) }, 200, env);
+}
+
+// POST /admin/local-ads — cria um anúncio local.
+async function handleAdminCreateLocalAd(request: Request, env: Env): Promise<Response> {
+  let body: { title?: string; description?: string; ctaLabel?: string; targetUrl?: string; active?: boolean };
+  try { body = await request.json(); } catch { return err('body JSON inválido', 400, env); }
+
+  const title      = (body.title ?? '').trim();
+  const ctaLabel   = (body.ctaLabel ?? '').trim();
+  const targetUrl  = (body.targetUrl ?? '').trim();
+  const description = (body.description ?? '').trim();
+
+  if (!title) return err('title obrigatório', 400, env);
+  if (!ctaLabel) return err('ctaLabel obrigatório', 400, env);
+  if (!targetUrl || !isValidHttpUrl(targetUrl)) return err('targetUrl obrigatório e precisa ser http(s) válido', 400, env);
+
+  const id  = crypto.randomUUID();
+  const now = Math.floor(Date.now() / 1000);
+  const active = body.active === false ? 0 : 1;
+
+  await env.DB.prepare(
+    'INSERT INTO local_ads (id, title, description, cta_label, target_url, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(id, title, description, ctaLabel, targetUrl, active, now, now).run();
+
+  return json({ ad: { id, title, description, ctaLabel, targetUrl, active: active === 1, createdAt: now, updatedAt: now } }, 201, env);
+}
+
+// PUT /admin/local-ads/:id — edita campos e/ou alterna active.
+async function handleAdminUpdateLocalAd(request: Request, env: Env): Promise<Response> {
+  const url   = new URL(request.url);
+  const match = url.pathname.match(/^\/admin\/local-ads\/([^/]+)$/);
+  if (!match) return err('id inválido', 400, env);
+  const id = match[1];
+
+  const current = await env.DB.prepare(
+    'SELECT id, title, description, cta_label, target_url, active, created_at, updated_at FROM local_ads WHERE id = ?'
+  ).bind(id).first<LocalAdRow>();
+  if (!current) return err('anúncio não encontrado', 404, env);
+
+  let body: { title?: string; description?: string; ctaLabel?: string; targetUrl?: string; active?: boolean };
+  try { body = await request.json(); } catch { return err('body JSON inválido', 400, env); }
+
+  const title       = body.title       !== undefined ? body.title.trim()       : current.title;
+  const ctaLabel    = body.ctaLabel    !== undefined ? body.ctaLabel.trim()    : current.cta_label;
+  const targetUrl   = body.targetUrl   !== undefined ? body.targetUrl.trim()   : current.target_url;
+  const description = body.description !== undefined ? body.description.trim() : current.description;
+  const active      = body.active      !== undefined ? (body.active ? 1 : 0)   : current.active;
+
+  if (!title) return err('title não pode ficar vazio', 400, env);
+  if (!ctaLabel) return err('ctaLabel não pode ficar vazio', 400, env);
+  if (!targetUrl || !isValidHttpUrl(targetUrl)) return err('targetUrl precisa ser http(s) válido', 400, env);
+
+  const now = Math.floor(Date.now() / 1000);
+  await env.DB.prepare(
+    'UPDATE local_ads SET title = ?, description = ?, cta_label = ?, target_url = ?, active = ?, updated_at = ? WHERE id = ?'
+  ).bind(title, description, ctaLabel, targetUrl, active, now, id).run();
+
+  return json({ ad: { id, title, description, ctaLabel, targetUrl, active: active === 1, createdAt: current.created_at, updatedAt: now } }, 200, env);
+}
+
+// DELETE /admin/local-ads/:id — remove um anúncio.
+async function handleAdminDeleteLocalAd(request: Request, env: Env): Promise<Response> {
+  const url   = new URL(request.url);
+  const match = url.pathname.match(/^\/admin\/local-ads\/([^/]+)$/);
+  if (!match) return err('id inválido', 400, env);
+  const id = match[1];
+
+  const result = await env.DB.prepare('DELETE FROM local_ads WHERE id = ?').bind(id).run();
+  if (result.meta.changes === 0) return err('anúncio não encontrado', 404, env);
+
+  return json({ ok: true, id }, 200, env);
+}
+
 // --- router ---
 
 type Handler = (req: Request, env: Env) => Promise<Response>;
@@ -4596,6 +4734,12 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
       if (!session) return err('Unauthorized', 401, env);
       return handleUpdateFeatureFlag(req, env, session);
     }) },
+  // GH#1407 (Feature #1402): CRUD admin do catálogo de anúncios locais — já protegido pela
+  // sessão httpOnly checada antes do loop das ROUTES (ver export default.fetch abaixo).
+  { method: "GET",    pattern: /^\/admin\/local-ads$/,          handler: withErrorLogging('local-ads', handleAdminLocalAdsList) },
+  { method: "POST",   pattern: /^\/admin\/local-ads$/,          handler: withErrorLogging('local-ads', handleAdminCreateLocalAd) },
+  { method: "PUT",    pattern: /^\/admin\/local-ads\/[^/]+$/,   handler: withErrorLogging('local-ads', handleAdminUpdateLocalAd) },
+  { method: "DELETE", pattern: /^\/admin\/local-ads\/[^/]+$/,   handler: withErrorLogging('local-ads', handleAdminDeleteLocalAd) },
 ];
 
 const INGEST_ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
@@ -4722,6 +4866,10 @@ export default {
     // SIG-13: /flags — endpoint público da nova tabela feature_flags.
     if (url.pathname === '/flags' && request.method === 'GET') {
       return withErrorLogging('flags', handlePublicFlags)(request, env);
+    }
+    // GH#1406 (Feature #1402): catálogo de anúncios locais (house ads) — público, só ativos.
+    if (url.pathname === '/local-ads' && request.method === 'GET') {
+      return withErrorLogging('local-ads', handlePublicLocalAds)(request, env);
     }
 
     // Rotas /ingest/* — autenticam com INGEST_KEY (scope limitado, vai no APK).
