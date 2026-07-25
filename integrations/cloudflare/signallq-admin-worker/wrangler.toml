@@ -30,6 +30,17 @@ FIREBASE_SYNC_ENABLED = "false"
 #   Gerar: openssl rand -hex 32
 #   Deploy: npx wrangler secret put INGEST_KEY
 #   App: adicionar em local.properties -> ADMIN_INGEST_KEY=<valor>
+# SITE_INGEST_KEY (#1155): chave separada e dedicada para autenticar o SignallQ Site
+#   (Pages Function functions/api/track.ts) em POST /ingest/* — mesmo scope da INGEST_KEY,
+#   mas nao reaproveita o mesmo valor por ser dedicada a outra superficie.
+#   Motivo de nao reaproveitar INGEST_KEY/ADMIN_SECRET: INGEST_KEY ja esta embutida no APK
+#   Android publicado (rotacionar quebraria quem ja instalou); ADMIN_SECRET protege /health
+#   com retrocompat externa desconhecida. Aditiva, opcional — sem ela configurada,
+#   authenticateIngest() so aceita INGEST_KEY/ADMIN_SECRET como sempre.
+#   Gerar: openssl rand -hex 32 (mesmo valor configurado nos dois lados, Worker e Pages — sem
+#   nenhum agente ver o valor real, so o Luiz no painel Cloudflare).
+#   Deploy: npx wrangler secret put SITE_INGEST_KEY (aqui) + variavel/secret equivalente no
+#   projeto Pages "signallq" (consumida por functions/api/track.ts).
 # CLOUDFLARE_API_TOKEN (#883): token escopado "Account Analytics: Read" para a GraphQL
 # Analytics API (uso vs. limite do free tier). Sem custo, mas requer criacao manual no
 # dashboard Cloudflare (My Profile > API Tokens > Create Token) -- o token OAuth do
