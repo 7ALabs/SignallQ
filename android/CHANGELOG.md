@@ -11,7 +11,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ## [Unreleased]
 
-## [0.30.4] — 2026-07-25
+## [0.30.4] — 2026-07-24
 
 ### Adicionado
 - Firebase Analytics (GA4): user properties `environment`, `dist_channel` e `build_type`, setadas uma vez por sessão (`MainActivity.onCreate` → `registrarSessionStart`), reaproveitando `DistributionChannel.kt` (mesma fonte já usada pelo envio a `/ingest/analytics`). Permite segmentar eventos de debug/release/produção que hoje chegam misturados ao GA4 (#1360).
