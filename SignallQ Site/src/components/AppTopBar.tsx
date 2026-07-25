@@ -16,6 +16,11 @@ export function FlowTopBar({ onHistoryClick }: FlowTopBarProps) {
       <Link to="/" className="flex items-center" aria-label="SignallQ">
         <img src="/signallq-symbol.png" alt="" height={26} style={{ height: 26, width: 'auto', display: 'block' }} />
       </Link>
+      <nav className="hidden items-center gap-5 sm:flex" aria-label="Navegação principal">
+        <Link to="/" className="label-medium no-underline" style={{ color: 'var(--text-primary)' }}>Teste</Link>
+        <Link to="/como-medimos" className="label-medium no-underline" style={{ color: 'var(--text-primary)' }}>Como funciona</Link>
+        <a href="https://play.google.com/store/apps/details?id=io.signallq.app" className="label-medium no-underline" style={{ color: 'var(--text-primary)' }}>Aplicativo</a>
+      </nav>
       <button
         onClick={onHistoryClick}
         aria-label="Ver histórico"

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AdBanner } from '../components/AdBanner'
 import { DetailTopBar, FlowTopBar } from '../components/AppTopBar'
+import { PlayStoreBadge } from '../components/PlayStoreBadge'
+import { SiteFooter } from '../components/SiteFooter'
 import { IdleStart, type ModoTeste } from '../components/speedtest/IdleStart'
 import { ProblemPanel } from '../components/speedtest/ProblemPanel'
 import { ResultPanel } from '../components/speedtest/ResultPanel'
@@ -136,6 +138,40 @@ export default function HomePage() {
         )}
         {isResult && <AdBanner />}
       </div>
+
+      {(isIdle || isResult) && (
+        <section className="mx-auto w-full max-w-[720px] px-5 pb-14 pt-8 box-border" aria-label="Entenda seu teste">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <article className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
+              <h2 className="title-large m-0">Entenda o resultado</h2>
+              <p className="body-medium mb-0 mt-2">
+                Download e upload mostram capacidade de transmissão. Latência e estabilidade ajudam a explicar como a conexão responde no uso real.
+              </p>
+            </article>
+            <article className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
+              <h2 className="title-large m-0">Por que pode variar</h2>
+              <p className="body-medium mb-0 mt-2">
+                Wi-Fi, distância do roteador, outros aparelhos, congestionamento e o próprio navegador podem alterar a medição.
+              </p>
+            </article>
+            <article className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
+              <h2 className="title-large m-0">Diagnóstico no aplicativo</h2>
+              <p className="body-medium mt-2">
+                Para investigar a causa de uma conexão ruim, use o diagnóstico completo do app SignallQ.
+              </p>
+              <PlayStoreBadge height={40} source="home-secao-secundaria" />
+            </article>
+            <article className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
+              <h2 className="title-large m-0">Sobre o SignallQ</h2>
+              <p className="body-medium mb-0 mt-2">
+                Medimos e explicamos conectividade em linguagem simples, sem transformar uma leitura pontual em promessa sobre o seu plano.
+              </p>
+            </article>
+          </div>
+        </section>
+      )}
+
+      <SiteFooter />
     </div>
   )
 }
