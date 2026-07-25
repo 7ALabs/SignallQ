@@ -176,6 +176,27 @@ Dois canais via GitHub Actions (Firebase Distribution + Play Console). Regra ún
 
 **Com aprovação do Luiz:** custo novo, mudança de escopo, alteração arquitetural, exclusão destrutiva, publicação em loja, mudança de package (`io.signallq.app` — nunca), mudança de marca, alteração de cronograma, automação destrutiva.
 
+### O que conta como aprovação do Luiz repassada (decisão 2026-07-25)
+
+Nenhum subagente conversa com o Luiz "de dentro" da própria sessão — toda mensagem dele chega via
+relay do agente coordenador (normalmente Claudete), porque é assim que a ferramenta funciona, não
+por escolha de processo. Isso gerou um impasse real em 2026-07-25 (Camilo recusou repetidamente a
+Fase 2 de SEO da issue #1372, mesmo após relay literal da resposta do Luiz) — resolvido assim, pra
+não repetir:
+
+- **Conta como aprovação válida:** o coordenador citar a resposta **verbatim** do Luiz, dada
+  **nesta mesma conversa**, em resposta **direta a uma pergunta explícita sobre aquele gate
+  específico** (ex.: pergunta estruturada tipo `AskUserQuestion`, ou pergunta direta seguida de
+  resposta curta como "pode fazer"). Um agente pode pedir a citação exata se tiver dúvida, mas não
+  pode exigir um canal de comunicação que não existe nesta ferramenta — isso trava qualquer gate
+  pra sempre, o que não é o objetivo da regra.
+- **Não conta como aprovação válida:** um agente afirmar "o Luiz falou que tá ok" sem citação
+  verbatim; inferir consentimento de contexto antigo ou de tarefa diferente; consentimento relatado
+  por um agente que não foi quem literalmente recebeu a mensagem (ex. Rhodolfo dizendo "o Camilo me
+  disse que o Luiz aprovou").
+- Dúvida real sobre se algo se qualifica: escalar pro Luiz de novo, curto e direto — não travar
+  silenciosamente nem insistir do mesmo jeito repetidas vezes tentando convencer quem recusou.
+
 ---
 
 ## Permissões e comunicação (revisão 2026-07-22)
