@@ -1,10 +1,46 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { ADSENSE_PUBLISHER_ID, ADSENSE_SLOT_RESULT } from '../lib/config'
 
 // Nome da CSS var lida pelo `PwaToastStack` pra nunca sobrepor este banner —
 // achado do Rhodolfo (QA de PR #1186): o AdBanner entrou depois da spec da
 // Lia, que só coordenava a colisão entre os dois toasts entre si.
 const AD_BANNER_HEIGHT_VAR = '--ad-banner-height'
+const ADSENSE_SCRIPT_ID = 'adsbygoogle-loader'
+
+type JanelaComAdSense = Window & { adsbygoogle?: Array<Record<string, never>> }
+
+let carregamentoAdSense: Promise<void> | undefined
+
+function carregarScriptAdSense(publisherId: string): Promise<void> {
+  if (carregamentoAdSense) return carregamentoAdSense
+
+  const existente = document.getElementById(ADSENSE_SCRIPT_ID) as HTMLScriptElement | null
+  if (existente) {
+    carregamentoAdSense = new Promise((resolve, reject) => {
+      if ((window as JanelaComAdSense).adsbygoogle) {
+        resolve()
+        return
+      }
+
+      existente.addEventListener('load', () => resolve(), { once: true })
+      existente.addEventListener('error', () => reject(new Error('Não foi possível carregar o AdSense.')), { once: true })
+    })
+    return carregamentoAdSense
+  }
+
+  carregamentoAdSense = new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    script.id = ADSENSE_SCRIPT_ID
+    script.async = true
+    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${publisherId}`
+    script.crossOrigin = 'anonymous'
+    script.addEventListener('load', () => resolve(), { once: true })
+    script.addEventListener('error', () => reject(new Error('Não foi possível carregar o AdSense.')), { once: true })
+    document.head.appendChild(script)
+  })
+
+  return carregamentoAdSense
+}
 
 // Rodapé de anúncio simulado das 3 telas do fluxo do PWA (Velocidade,
 // Resultado, Histórico) — substitui o antigo `AdSlot.tsx` (card com ícone de
@@ -16,8 +52,9 @@ const AD_BANNER_HEIGHT_VAR = '--ad-banner-height'
 // estiverem configurados — só a apresentação do placeholder muda.
 export function AdBanner() {
   const rootRef = useRef<HTMLDivElement>(null)
-  const hostRef = useRef<HTMLDivElement>(null)
-  const [mounted, setMounted] = useState(false)
+  const anuncioRef = useRef<HTMLModElement>(null)
+  const anuncioInicializadoRef = useRef(false)
+  const adSenseConfigurado = Boolean(ADSENSE_PUBLISHER_ID && ADSENSE_SLOT_RESULT)
 
   // Publica a altura real do banner numa CSS var no <html> pro
   // `PwaToastStack` conseguir se posicionar acima dele, e não por cima.
@@ -44,32 +81,28 @@ export function AdBanner() {
   }, [])
 
   useEffect(() => {
-    if (mounted || !hostRef.current) return
-    if (!ADSENSE_PUBLISHER_ID || !ADSENSE_SLOT_RESULT) return
-    setMounted(true)
+    if (!adSenseConfigurado || !anuncioRef.current || anuncioInicializadoRef.current) return
 
-    const ins = document.createElement('ins')
-    ins.className = 'adsbygoogle'
-    ins.style.display = 'block'
-    ins.style.width = '100%'
-    ins.setAttribute('data-ad-client', ADSENSE_PUBLISHER_ID)
-    ins.setAttribute('data-ad-slot', ADSENSE_SLOT_RESULT)
-    ins.setAttribute('data-ad-format', 'auto')
-    ins.setAttribute('data-full-width-responsive', 'true')
-    hostRef.current.innerHTML = ''
-    hostRef.current.appendChild(ins)
+    let cancelado = false
 
-    if (!document.querySelector('script[data-adsbygoogle-loader]')) {
-      const s = document.createElement('script')
-      s.async = true
-      s.setAttribute('data-adsbygoogle-loader', '1')
-      s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_PUBLISHER_ID}`
-      s.crossOrigin = 'anonymous'
-      document.head.appendChild(s)
+    void carregarScriptAdSense(ADSENSE_PUBLISHER_ID)
+      .then(() => {
+        if (cancelado || anuncioInicializadoRef.current) return
+
+        const adSense = (window as JanelaComAdSense).adsbygoogle
+        if (!adSense) return
+
+        adSense.push({})
+        anuncioInicializadoRef.current = true
+      })
+      .catch(() => {
+        // Falha de rede, bloqueador de conteúdo ou indisponibilidade do Google não pode derrubar o PWA.
+      })
+
+    return () => {
+      cancelado = true
     }
-    ;(window as unknown as { adsbygoogle: unknown[] }).adsbygoogle = (window as unknown as { adsbygoogle?: unknown[] }).adsbygoogle || []
-    ;(window as unknown as { adsbygoogle: unknown[] }).adsbygoogle.push({})
-  }, [mounted])
+  }, [adSenseConfigurado])
 
   return (
     <div ref={rootRef} className="mt-auto w-full px-5 pb-5 pt-3 box-border">
@@ -82,8 +115,18 @@ export function AdBanner() {
             campaign
           </span>
         </div>
-        <div className="flex flex-1 flex-col gap-0.5" ref={hostRef}>
-          {!mounted && (
+        <div className="flex flex-1 flex-col gap-0.5">
+          {adSenseConfigurado ? (
+            <ins
+              ref={anuncioRef}
+              className="adsbygoogle"
+              style={{ display: 'block', width: '100%' }}
+              data-ad-client={ADSENSE_PUBLISHER_ID}
+              data-ad-slot={ADSENSE_SLOT_RESULT}
+              data-ad-format="auto"
+              data-full-width-responsive="true"
+            />
+          ) : (
             <>
               <div className="label-medium">Espaço para anúncio</div>
               <div className="label-small" style={{ color: 'var(--text-tertiary)' }}>
