@@ -239,3 +239,19 @@ CREATE TABLE IF NOT EXISTS google_play_reviews (
 CREATE INDEX IF NOT EXISTS idx_google_play_reviews_rating          ON google_play_reviews(rating);
 CREATE INDEX IF NOT EXISTS idx_google_play_reviews_last_synced     ON google_play_reviews(last_synced_at);
 CREATE INDEX IF NOT EXISTS idx_google_play_reviews_handling_status ON google_play_reviews(handling_status);
+
+-- GH#1405 (Feature #1402): catálogo de anúncios locais (house ads) exibido no Site/PWA quando o
+-- AdSense não preenche o slot -- administrável via Console, sem deploy. `active` segue a mesma
+-- convenção booleana (0/1) de feature_flags.enabled.
+-- Aplicar via: migrations/018_gh1405_local_ads.sql (npx wrangler d1 execute --file=... --remote)
+CREATE TABLE IF NOT EXISTS local_ads (
+  id          TEXT    PRIMARY KEY,
+  title       TEXT    NOT NULL,
+  description TEXT    NOT NULL DEFAULT '',
+  cta_label   TEXT    NOT NULL,
+  target_url  TEXT    NOT NULL,
+  active      INTEGER NOT NULL DEFAULT 1,
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_local_ads_active ON local_ads(active);
