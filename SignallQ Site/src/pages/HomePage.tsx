@@ -89,8 +89,6 @@ export default function HomePage() {
   })
 
   const handleIniciar = () => {
-    // "PRO" não roda teste nenhum — ver comentário em IdleStart.tsx.
-    if (modo === 'pro') return
     forceStart()
   }
 

@@ -34,7 +34,7 @@ export function HistoryRecordCard({ record, onShare, onRemove }: HistoryRecordCa
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <div className="flex items-center gap-1">
-          <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'var(--success)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 14, color: NIVEL_COR[verdict.nivel] }}>
             arrow_downward
           </span>
           <span className="label-large" style={{ color: NIVEL_COR[verdict.nivel] }}>

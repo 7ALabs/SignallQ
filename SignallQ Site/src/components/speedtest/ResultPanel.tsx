@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { PlayStoreBadge } from '../PlayStoreBadge'
-import { classifyLatency, type Classificacao } from '../../lib/classification'
+import { classifyLatency, classifyUpload, type Classificacao } from '../../lib/classification'
 import { iconeConexao, labelConexao, type TipoRede } from '../../lib/connection'
 import { FEATURE_SPEEDTEST_COMPARTILHOU, trackFeatureUsed } from '../../lib/telemetry'
 import type { SpeedTestResult } from '../../lib/speedEngine'
@@ -46,6 +46,7 @@ interface ResultPanelProps {
 export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, onVerHistorico }: ResultPanelProps) {
   const [copied, setCopied] = useState(false)
   const latency = classifyLatency(result.latency.ms)
+  const uploadVerdict = classifyUpload(result.upload.mbps)
   const veredito = VEREDITO[downloadVerdict.nivel] ?? VEREDITO.indisponivel
   const mostrarChipConexao = connectionKind != null && connectionKind !== 'nenhuma' && connectionKind !== 'desconhecida'
 
@@ -106,13 +107,13 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
       <div className="flex w-full gap-3">
         <div className="flex flex-1 flex-col items-center gap-1 rounded-2xl py-4" style={{ background: 'var(--bg-secondary)' }}>
           <div className="overline">Download</div>
-          <div className="title-large" style={{ color: 'var(--success)' }}>
+          <div className="title-large" style={{ color: NIVEL_COR[downloadVerdict.nivel] }}>
             {result.download.mbps.toFixed(1)} <span className="label-medium">Mbps</span>
           </div>
         </div>
         <div className="flex flex-1 flex-col items-center gap-1 rounded-2xl py-4" style={{ background: 'var(--bg-secondary)' }}>
           <div className="overline">Upload</div>
-          <div className="title-large" style={{ color: 'var(--warning)' }}>
+          <div className="title-large" style={{ color: NIVEL_COR[uploadVerdict.nivel] }}>
             {result.upload.mbps.toFixed(1)} <span className="label-medium">Mbps</span>
           </div>
         </div>
