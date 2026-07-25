@@ -162,17 +162,21 @@ Ao tocar nele:
    `InternetProveedorSheet.kt`, `MedicaoTipoSheet.kt`);
 6. crie testes de caracterização antes de extrações com risco de comportamento visual ou estado.
 
-### 4.6 `EquipamentoInternetScreen.kt`
+### 4.6 `EquipamentoInternetScreen.kt` — RESOLVIDO (atualizado 2026-07-24)
 
-Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/EquipamentoInternetScreen.kt` — **1549 linhas** (acima do limiar de "dívida crítica" da seção 7). Concentra a tela de equipamento de internet/fibra/roteador com múltiplos painéis por capacidade.
+Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/EquipamentoInternetScreen.kt`
+— **550 linhas** (abaixo do limiar de extração obrigatória da seção 7). A entrada anterior desta
+seção citava 1549 linhas; o número está desatualizado — o redesign de 2026-07-18 (bug #6, spec Lia)
+já extraiu os painéis por capacidade em componentes próprios no mesmo pacote:
+`EquipamentoStatusPanel.kt` (status/disponibilidade/uso/alerta), `EquipamentoModuloTecnicoCard.kt`
+(módulos técnicos Fibra/WAN/LAN/Wi-Fi/dispositivos), `EquipamentoTopologiaCard.kt`,
+`EquipamentoDeviceSelectorCard.kt`, `EquipamentoInfoTecnicaCard.kt`, `EquipamentoAcoesCard.kt`,
+`EquipamentoPanelMapper.kt`. `EquipamentoInternetScreen.kt` hoje é só chrome (TopBar, estados
+carregando/indisponível) e composição/ordem dos cards, como a seção pedia.
 
-Ao tocar nele:
-1. identifique qual painel ou seção de capacidade está sendo modificada;
-2. não adicione novo painel diretamente — extraia para componente dedicado antes;
-3. prefira separar: estado de cada painel, adaptadores de dados de equipamento, classificadores de capacidade, componentes de visualização, wiring com dados de rede;
-4. mantenha em `EquipamentoInternetScreen.kt` apenas a composição da tela principal e delegação dos painéis;
-5. cada painel independente deve ter seu próprio arquivo (ex.: `OntSheet.kt`, `RotadorSheet.kt`, `EquipamentoCapacidadePanel.kt`);
-6. crie testes de caracterização antes de extrações com risco de comportamento de dados ou estado.
+Continua valendo ao adicionar um painel novo: cada capacidade nova ganha seu próprio arquivo
+(`Equipamento*Card.kt`), nunca inchar `ModuloTecnicoCard`/`StatusEquipamentoCard`. Reavaliar esta
+seção se o arquivo voltar a crescer.
 
 ### 4.7 `DispositivosScreen.kt`
 
