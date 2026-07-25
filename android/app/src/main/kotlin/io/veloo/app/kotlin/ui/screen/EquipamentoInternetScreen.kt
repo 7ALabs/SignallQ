@@ -60,6 +60,7 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LocalDeviceSectionUiState
 import io.signallq.app.ui.component.mapLocalDeviceSectionUiState
 import kotlinx.coroutines.delay
@@ -298,13 +299,18 @@ private fun EquipamentoCarregando(
 }
 
 /**
- * Orquestra a nova distribuição narrativa dos cards (bug #6, spec Lia,
- * 2026-07-18): 1 identidade, 2 seletor, 3 status geral (absorve saúde
- * óptica), 4 disponibilidade (Fibra | Wi-Fi, 2-col), 5 uso (Clientes |
- * Acesso, 2-col), 6 alerta acionável, 7 aviso de leitura parcial,
- * 8 topologia, 9 Wi-Fi por banda (2-col quando ambas existem), 10-11 módulos
- * técnicos full (Fibra óptica/WAN/LAN), 12 dispositivos conectados,
- * 13 informações técnicas, 14 ações disponíveis.
+ * Orquestra a distribuição narrativa dos cards (bug #6, spec Lia, 2026-07-18;
+ * reorganizada em zonas 2026-07-25, wireframe aprovado pelo Luiz, artifact
+ * `547faba7-3981-42d0-a82f-58e0eba64da8`):
+ *
+ * 2 seletor de equipamento (só quando há mais de um) →
+ * **zona "Resumo"**: 1+3 status geral (absorve saúde óptica e a identidade do
+ * device como subtítulo — não tem mais card próprio), 4 disponibilidade
+ * (Fibra | Wi-Fi, 2-col), 5 uso (Clientes | Acesso, 2-col), 6 alerta
+ * acionável, 7 aviso de leitura parcial, 8 topologia (destaque de borda) →
+ * **zona "Detalhes técnicos"**: 9-11 módulos técnicos full-width (Fibra
+ * óptica/WAN/LAN/Wi-Fi, hairline em vez de fill) → fora de zona: 12
+ * dispositivos conectados, 13 informações técnicas, 14 ações disponíveis.
  */
 @Composable
 private fun EquipamentoConectadoContent(
@@ -355,15 +361,6 @@ private fun EquipamentoConectadoContent(
     ) {
         Spacer(Modifier.height(LkSpacing.xs))
 
-        // 1. Identidade do equipamento
-        IdentificacaoEquipamentoCard(
-            vendor = painelSelecionado.vendor,
-            modelo = painelSelecionado.modelo,
-            deviceType = painelSelecionado.deviceTypeLabel,
-            atualizadoEm = painelSelecionado.atualizacaoLabel,
-            c = c,
-        )
-
         // 2. Seletor de equipamento (só quando há mais de um)
         if (paineis.size > 1) {
             DeviceSelectorCard(
@@ -374,10 +371,22 @@ private fun EquipamentoConectadoContent(
             )
         }
 
-        // 3. Status geral — absorve a saúde óptica como linha, sem grid interno
+        // Zona "Resumo" — status/identidade → grid → topologia (wireframe aprovado
+        // 2026-07-25, artifact 547faba7-3981-42d0-a82f-58e0eba64da8, ver KDoc em
+        // EquipamentoStatusPanel.kt e EquipamentoTopologiaCard.kt).
+        LkSectionOverline(text = "Resumo")
+
+        // 1+3. Status geral — absorve a saúde óptica como linha e a identidade do
+        // device (nome/atualizado em) como subtítulo, sem card próprio nem grid interno.
         StatusEquipamentoCard(
             titulo = painelSelecionado.statusTitulo,
             descricao = painelSelecionado.statusDescricao,
+            identidade =
+                equipamentoIdentidadeLabel(
+                    vendor = painelSelecionado.vendor,
+                    modelo = painelSelecionado.modelo,
+                    atualizadoEm = painelSelecionado.atualizacaoLabel,
+                ),
             cor = painelSelecionado.statusColor,
             gponSaude = painelSelecionado.gponSaude,
             c = c,
@@ -418,6 +427,12 @@ private fun EquipamentoConectadoContent(
             warning = painelSelecionado.topologyWarning,
             c = c,
         )
+
+        // Transição de zona — gap maior que o ritmo interno (LkSpacing.md via
+        // spacedBy do Column pai) antes do overline "Detalhes técnicos" (wireframe
+        // aprovado 2026-07-25), sinalizando troca de bloco temático.
+        Spacer(Modifier.height(LkSpacing.sm))
+        LkSectionOverline(text = "Detalhes técnicos")
 
         // 9, 10, 11 — módulos técnicos, todos full-width (Wi-Fi deixou de ser
         // 2-col por banda em 2026-07-18, revisão Lia — ver KDoc em

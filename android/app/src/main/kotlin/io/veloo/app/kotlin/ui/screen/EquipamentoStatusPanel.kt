@@ -51,11 +51,22 @@ import io.signallq.app.ui.component.LkSurfaceCard
  * sistema de card. Aqui o status volta a ser só título+ícone+descrição, a
  * saúde óptica vira uma linha absorvida dentro do próprio card, e as
  * mini-stats saem para dois pares de cards full-width dedicados.
+ *
+ * ## Identidade do device absorvida (revisão Lia 2026-07-25)
+ * Wireframe aprovado pelo Luiz (reorganização de hierarquia, artifact
+ * `547faba7-3981-42d0-a82f-58e0eba64da8`): o antigo card
+ * `IdentificacaoEquipamentoCard` (nome do device em `headlineSmall`, próprio
+ * card, logo no topo) competia em peso visual com "Conectado ao equipamento"
+ * — duas manchetes grandes empatando a atenção de entrada. O nome do device
+ * agora entra como [identidade], um subtítulo discreto dentro deste mesmo
+ * card, e "Conectado ao equipamento" passa a ser a única manchete grande da
+ * tela.
  */
 @Composable
 internal fun StatusEquipamentoCard(
     titulo: String,
     descricao: String,
+    identidade: String?,
     cor: Color,
     gponSaude: GponSaudeStatus?,
     c: LkTokens,
@@ -81,6 +92,13 @@ internal fun StatusEquipamentoCard(
                     fontWeight = FontWeight.W600,
                     color = c.textPrimary,
                 )
+                identidade?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = c.textTertiary,
+                    )
+                }
                 Text(
                     text = descricao,
                     style = MaterialTheme.typography.bodyMedium,

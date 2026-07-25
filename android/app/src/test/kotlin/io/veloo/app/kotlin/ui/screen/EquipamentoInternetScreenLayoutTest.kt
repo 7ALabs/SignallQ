@@ -29,11 +29,19 @@ import org.robolectric.annotation.Config
 /**
  * Teste de caracterização do bug #6 (redesign de distribuição de cards,
  * spec Lia 2026-07-18) — protege a extração de `EquipamentoInternetScreen.kt`
- * (dívida crítica) em 6 componentes novos (`Equipamento*Card.kt`) e a nova
- * ordem narrativa: identidade → status (absorve saúde óptica) → disponibilidade
- * → uso → alerta → aviso → topologia → módulos técnicos (Wi-Fi full-width, com
- * as duas bandas como linhas — revisão Lia 2026-07-18) → dispositivos → info
- * técnica → ações.
+ * (dívida crítica) em 6 componentes novos (`Equipamento*Card.kt`) e a
+ * ordem narrativa em zonas: zona "Resumo" (status — absorve saúde óptica e
+ * identidade do device como subtítulo — → disponibilidade → uso → alerta →
+ * aviso → topologia) → zona "Detalhes técnicos" (módulos técnicos, Wi-Fi
+ * full-width com as duas bandas como linhas — revisão Lia 2026-07-18) →
+ * dispositivos → info técnica → ações.
+ *
+ * Atualizado em 2026-07-25 pra refletir o wireframe de reorganização de
+ * hierarquia aprovado pelo Luiz (artifact `547faba7-3981-42d0-a82f-58e0eba64da8`):
+ * a identidade do equipamento deixou de ser card próprio (headline competindo
+ * com "Conectado ao equipamento") e virou subtítulo dentro do card de status
+ * — por isso passa a aparecer DEPOIS do título "Conectado ao equipamento" na
+ * árvore renderizada, não antes.
  *
  * Escrito ANTES da extração (`.claude/rules/higiene-e-padronizacao-repositorio.md`
  * seção 4.6, "crie testes de caracterização antes de extrações com risco de
@@ -133,7 +141,7 @@ class EquipamentoInternetScreenLayoutTest {
         SnapshotFibra(estado = EstadoFibra.concluido, gpon = null, wan = null, ppp = null, deviceInfo = null, erroMensagem = null)
 
     @Test
-    fun `nova distribuicao segue a ordem narrativa identidade-status-topologia-wifi-por-banda-lan-dispositivos-acoes`() {
+    fun `nova distribuicao segue as zonas resumo-status-com-identidade-topologia-detalhes-tecnicos-wifi-por-banda-lan-dispositivos-acoes`() {
         composeRule.setContent {
             SignallQTheme {
                 EquipamentoInternetScreen(
@@ -175,21 +183,30 @@ class EquipamentoInternetScreenLayoutTest {
         composeRule.onNodeWithText("Casa_5G").assertExists()
 
         val arvore = composeRule.onRoot().printToString()
-        val idxIdentidade = arvore.indexOf("TP-Link Archer C6")
+        // LkSectionOverline aplica .uppercase() de verdade (design system) — os
+        // textos renderizados são "RESUMO"/"DETALHES TÉCNICOS"/"AÇÕES DISPONÍVEIS",
+        // não "Resumo"/"Detalhes técnicos"/"Ações disponíveis".
+        val idxZonaResumo = arvore.indexOf("RESUMO")
         val idxStatus = arvore.indexOf("Conectado ao equipamento")
+        // Identidade do device (bug #6) deixou de ter card próprio (wireframe
+        // aprovado 2026-07-25, artifact 547faba7-3981-42d0-a82f-58e0eba64da8) —
+        // agora é o subtítulo dentro do card de status, então aparece DEPOIS do
+        // título "Conectado ao equipamento", não antes.
+        val idxIdentidade = arvore.indexOf("TP-Link Archer C6")
         val idxTopologia = arvore.indexOf("Como sua rede está conectada")
+        val idxZonaDetalhesTecnicos = arvore.indexOf("DETALHES TÉCNICOS")
         val idxWifi24 = arvore.indexOf("Casa_24")
         val idxWifi56 = arvore.indexOf("Casa_5G")
         val idxLan = arvore.indexOf("Rede local (LAN)")
         val idxDispositivos = arvore.indexOf("Dispositivos conectados")
-        // LkSectionOverline aplica .uppercase() de verdade (design system) — o
-        // texto renderizado não é "Ações disponíveis", é "AÇÕES DISPONÍVEIS".
         val idxAcoes = arvore.indexOf("AÇÕES DISPONÍVEIS")
 
         listOf(
-            "identidade" to idxIdentidade,
+            "zona Resumo" to idxZonaResumo,
             "status" to idxStatus,
+            "identidade (subtítulo do status)" to idxIdentidade,
             "topologia" to idxTopologia,
+            "zona Detalhes técnicos" to idxZonaDetalhesTecnicos,
             "wifi 2,4GHz (linha Casa_24)" to idxWifi24,
             "wifi 5/6GHz (linha Casa_5G)" to idxWifi56,
             "LAN" to idxLan,
@@ -197,9 +214,13 @@ class EquipamentoInternetScreenLayoutTest {
             "ações" to idxAcoes,
         ).forEach { (nome, idx) -> assert(idx >= 0) { "Marcador '$nome' não encontrado na árvore renderizada." } }
 
-        assert(idxIdentidade < idxStatus) { "Identidade deveria vir antes do Status." }
-        assert(idxStatus < idxTopologia) { "Status (com Disponibilidade/Uso/Alerta/Aviso) deveria vir antes da Topologia." }
-        assert(idxTopologia < idxWifi24) { "Topologia deveria vir antes dos módulos técnicos (Wi-Fi)." }
+        assert(idxZonaResumo < idxStatus) { "Overline 'Resumo' deveria vir antes do card de Status." }
+        assert(idxStatus < idxIdentidade) {
+            "Título 'Conectado ao equipamento' deveria vir antes do subtítulo de identidade (mesmo card)."
+        }
+        assert(idxIdentidade < idxTopologia) { "Status (com identidade/Disponibilidade/Uso/Alerta/Aviso) deveria vir antes da Topologia." }
+        assert(idxTopologia < idxZonaDetalhesTecnicos) { "Topologia deveria vir antes do overline 'Detalhes técnicos'." }
+        assert(idxZonaDetalhesTecnicos < idxWifi24) { "Overline 'Detalhes técnicos' deveria vir antes dos módulos técnicos (Wi-Fi)." }
         assert(idxWifi24 < idxWifi56) { "Linha da banda 2,4GHz deveria vir antes da linha 5/6GHz, dentro do mesmo card Wi-Fi." }
         assert(idxWifi56 < idxLan) { "Wi-Fi deveria vir antes do módulo full de LAN." }
         assert(idxLan < idxDispositivos) { "Módulos técnicos deveriam vir antes do resumo de Dispositivos conectados." }
