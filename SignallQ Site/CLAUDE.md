@@ -89,8 +89,9 @@ npm run build     # tsc --noEmit && vite build
 
 - `SITE_INGEST_KEY` (ou reaproveitar `INGEST_KEY` do app) precisa ser configurada como secret do
   projeto Cloudflare Pages `signallq` — decisão/execução do Luiz, não é código.
-- Captura de e-mail da lista de espera do SignallQ PRO (`ProPage.tsx`) ainda não tem destino real
-  (sem tabela D1/CRM decidido) — hoje só registra telemetria do clique.
+- O SignallQ gratuito encaminha para o grupo de testadores fechados, sem capturar e-mail. A lista
+  de espera do SignallQ PRO (`ProPage.tsx`) persiste em D1 via `functions/api/waitlist.ts`, mas
+  requer `SITE_INGEST_KEY` e migration remota configuradas para funcionar em produção.
 - O deploy em `signallq.pages.dev` depende dos secrets `CLOUDFLARE_ACCOUNT_ID` e
   `CLOUDFLARE_API_TOKEN` no GitHub Actions. O primeiro está configurado, mas o token ainda não;
   sem ele, o workflow falha explicitamente e nenhuma alteração é publicada por engano. Configurar

@@ -106,10 +106,6 @@ export const FEATURE_SPEEDTEST_COMPARTILHOU = 'speedtest_compartilhou'
 // whitelistado — nenhuma mudança de schema no worker).
 export const FEATURE_DOWNLOAD_APP_CLICADO = 'download_app_clicado'
 export const FEATURE_PRO_LISTA_ESPERA = 'pro_lista_espera_clicado'
-// Distinto de FEATURE_PRO_LISTA_ESPERA: funil grátis (teste fechado) não pode
-// se misturar com o funil pago do PRO na leitura de conversão.
-export const FEATURE_SIGNALLQ_LISTA_ESPERA_EMAIL_CAPTURADO = 'signallq_lista_espera_email_capturado'
-
 // PWA instalável (GH#1184) — funil de instalação: 'prompted' dispara quando o
 // prompt nativo (Android/Chrome/Edge/desktop) ou o fallback manual (iOS) é
 // mostrado ao usuário; 'installed' só dispara em confirmação real (evento

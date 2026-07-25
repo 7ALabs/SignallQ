@@ -11,6 +11,11 @@ export const SIGNALLQ_BETA_DOWNLOAD_URL: string =
   import.meta.env.VITE_SIGNALLQ_BETA_DOWNLOAD_URL ||
   'https://play.google.com/store/apps/details?id=io.signallq.app&hl=en-US&ah=CaFxCv25P6rZGNKL-Jy-IZbxwmw'
 
+// Grupo oficial de testadores fechados. É um destino público, por isso pode
+// constar no bundle; não contém convite individual nem credencial.
+export const SIGNALLQ_TEST_GROUP_URL: string =
+  import.meta.env.VITE_SIGNALLQ_TEST_GROUP_URL || 'https://groups.google.com/g/testadores-signallq'
+
 export const ADSENSE_PUBLISHER_ID: string = import.meta.env.VITE_ADSENSE_PUBLISHER_ID || ''
 export const ADSENSE_SLOT_RESULT: string = import.meta.env.VITE_ADSENSE_SLOT_RESULT || ''
 
@@ -30,5 +35,5 @@ export const SPEEDTEST_LATENCY_URL: string =
 // direto do navegador (exigiria expor a INGEST_KEY no client).
 export const TELEMETRY_ENDPOINT = '/api/track'
 
-// Proxy server-side da lista de espera (GH#1155) — mesmo motivo do endpoint acima.
+// Proxy server-side da lista de espera do SignallQ PRO — mesmo motivo do endpoint acima.
 export const WAITLIST_ENDPOINT = '/api/waitlist'

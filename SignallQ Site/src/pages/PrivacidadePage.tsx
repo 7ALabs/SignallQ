@@ -29,8 +29,8 @@ const SECTIONS: LegalSection[] = [
     body: 'Usamos o Cloudflare Web Analytics para métricas agregadas de tráfego e desempenho (páginas visitadas, tempo de carregamento). Esse serviço não usa cookies nem identifica visitantes individualmente.',
   },
   {
-    title: 'Lista de espera por e-mail',
-    body: 'Se você pedir para ser avisado quando o SignallQ ou o SignallQ PRO lançarem, coletamos o e-mail informado só para esse fim (avisar sobre o lançamento). Ele fica armazenado em nossa infraestrutura de dados, não é compartilhado com terceiros e não é usado para qualquer outra finalidade. Para pedir a remoção, escreva para giammattey.luiz@gmail.com.',
+    title: 'Lista de espera do SignallQ PRO',
+    body: 'O SignallQ gratuito não coleta e-mail para o teste fechado: ele encaminha diretamente ao grupo oficial de testadores. Se você pedir para ser avisado sobre o lançamento do SignallQ PRO, coletamos o e-mail informado só para esse fim. Ele fica armazenado em nossa infraestrutura de dados, não é compartilhado com terceiros e não é usado para qualquer outra finalidade. Para pedir a remoção, escreva para giammattey.luiz@gmail.com.',
   },
   {
     title: 'Google AdSense',
