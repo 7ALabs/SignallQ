@@ -88,6 +88,52 @@ a:hover {
   animation: sq-pulse-dot 1.4s ease-in-out infinite;
 }
 
+/* Card de anúncio animado do rodapé (SiteFooter, coluna "Baixe o app") —
+   1:1 com SiteFooter.dc.html (barras de equalizador + brilho + sweep no CTA). */
+@keyframes sq-ad-bar {
+  0%,
+  100% {
+    transform: scaleY(0.55);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes sq-ad-sweep {
+  0% {
+    transform: translateX(-40px);
+  }
+  100% {
+    transform: translateX(280px);
+  }
+}
+
+@keyframes sq-ad-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+
+.sq-ad-bar {
+  transform-origin: bottom;
+  animation: sq-ad-bar 1.5s ease-in-out infinite;
+}
+
+.sq-ad-sweep {
+  animation: sq-ad-sweep 3.2s ease-in-out infinite;
+}
+
+.sq-ad-glow-a {
+  animation: sq-ad-glow 5s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

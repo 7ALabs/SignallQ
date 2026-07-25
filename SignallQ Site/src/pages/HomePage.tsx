@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { AdBannerWide } from '../components/AdBannerWide'
 import { AdRail } from '../components/AdRail'
 import { DetailTopBar, FlowTopBar } from '../components/AppTopBar'
-import { PlayStoreBadge } from '../components/PlayStoreBadge'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteNav } from '../components/SiteNav'
 import { IdleStart, type ModoTeste } from '../components/speedtest/IdleStart'
@@ -159,10 +158,10 @@ export default function HomePage() {
 
           {/* Seção secundária mobile-only (`showSecondary`, mobile && (isIdle || isResult))
               — no desktop, a coluna de anúncio (AdRail) e o AdBannerWide já ocupam esse
-              espaço; as 2 primeiras variantes batem 1:1 com o protótipo, as 2 últimas
-              (Diagnóstico no app / Sobre o SignallQ) são mantidas como divergência
-              deliberada: sem elas, o mobile idle perde o único CTA de download do app
-              fora da tela de Resultado (o rodapé só mostra o badge na densidade desktop). */}
+              espaço. 1:1 estrito com o protótipo (decisão do Luiz, 2026-07-25): só os 2
+              cards de `ScreenHome.dc.html`; os 2 extras que existiam aqui (Diagnóstico no
+              app / Sobre o SignallQ) foram removidos — reduz um CTA de download do app
+              fora do Resultado, motivo já avaliado e descartado pelo Luiz. */}
           {(isIdle || isResult) && (
             <section className="w-full lg:hidden" aria-label="Entenda seu teste">
               <div className="grid gap-3">
@@ -176,19 +175,6 @@ export default function HomePage() {
                   <h2 className="title-large m-0">Por que pode variar</h2>
                   <p className="body-medium mb-0 mt-2">
                     Wi-Fi, distância do roteador, outros aparelhos, congestionamento e o próprio navegador podem alterar a medição.
-                  </p>
-                </article>
-                <article className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
-                  <h2 className="title-large m-0">Diagnóstico no aplicativo</h2>
-                  <p className="body-medium mt-2">
-                    Para investigar a causa de uma conexão ruim, use o diagnóstico completo do app SignallQ.
-                  </p>
-                  <PlayStoreBadge height={40} source="home-secao-secundaria" />
-                </article>
-                <article className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
-                  <h2 className="title-large m-0">Sobre o SignallQ</h2>
-                  <p className="body-medium mb-0 mt-2">
-                    Medimos e explicamos conectividade em linguagem simples, sem transformar uma leitura pontual em promessa sobre o seu plano.
                   </p>
                 </article>
               </div>
