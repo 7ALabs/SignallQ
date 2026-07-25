@@ -38,6 +38,10 @@ const HAS_FILE_EXTENSION = /\.[a-zA-Z0-9]+$/
 // que a validação não dependa da hidratação do React.
 const GOOGLE_SITE_VERIFICATION_CONTENT = 'Kb_Flz9uN3gJfrushxDl3GbMWkfkifjlz-x5JC9rQP0'
 
+// Identifica a conta que pode monetizar este domínio no Google AdSense. A tag
+// verifica a propriedade sem carregar anúncios nem scripts de publicidade.
+const GOOGLE_ADSENSE_ACCOUNT_ID = 'ca-pub-5542349230926522'
+
 function escapeHtmlAttr(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
@@ -67,6 +71,7 @@ function buildHeadInjectionHtml(meta: PageMeta, origin: string, structuredData: 
 
   const tags = [
     `<meta name="google-site-verification" content="${GOOGLE_SITE_VERIFICATION_CONTENT}">`,
+    `<meta name="google-adsense-account" content="${GOOGLE_ADSENSE_ACCOUNT_ID}">`,
     `<meta name="description" content="${escapeHtmlAttr(meta.description)}">`,
     `<meta name="robots" content="${escapeHtmlAttr(robots)}">`,
     `<link rel="canonical" href="${escapeHtmlAttr(url)}">`,
