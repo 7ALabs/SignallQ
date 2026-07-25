@@ -1,54 +1,128 @@
-import { GAUGE_ARC_LEN, GAUGE_ARC_PATH, GAUGE_TICKS, pointOnArc } from '../../lib/gaugeMath'
+import {
+  GAUGE_ARC_LEN,
+  GAUGE_ARC_PATH,
+  GAUGE_NEEDLE_FROM_R,
+  GAUGE_NEEDLE_TO_R,
+  GAUGE_SCALE_LABELS,
+  GAUGE_TICKS,
+  pointOnArc,
+} from '../../lib/gaugeMath'
 
-interface SpeedGaugeProps {
-  fraction: number
-  color: string
-  centerValue: string
-  centerUnit: string
-  showTicks: boolean
-  pulse: boolean
+interface SpeedGaugeIdleProps {
+  variant: 'idle'
+  onIniciar: () => void
 }
 
-export function SpeedGauge({ fraction, color, centerValue, centerUnit, showTicks, pulse }: SpeedGaugeProps) {
-  const needle = pointOnArc(132, fraction)
+interface SpeedGaugeRunningProps {
+  variant: 'running'
+  fraction: number
+  color: string
+  /** Ícone Material do rótulo da fase ativa (ex.: `arrow_downward`, `arrow_upward`, `network_ping`). */
+  phaseIcon: string
+  /** Rótulo da fase ativa (ex.: `Download`, `Upload`, `Latência`). */
+  phaseLabel: string
+  centerValue: string
+  centerUnit: string
+}
+
+type SpeedGaugeProps = SpeedGaugeIdleProps | SpeedGaugeRunningProps
+
+// Velocímetro (arco SVG 360x210) — reconstrução v2 (`ScreenHome.dc.html`). Diferente da
+// versão anterior, o CTA "Iniciar teste" (idle) e o readout de fase (running) agora vivem
+// DENTRO do próprio mostrador, não como elementos separados abaixo — 1:1 com o protótipo.
+export function SpeedGauge(props: SpeedGaugeProps) {
+  const isRunning = props.variant === 'running'
+  const fraction = isRunning ? props.fraction : 0
+  const needle = pointOnArc(GAUGE_NEEDLE_TO_R, fraction)
+  const needleFrom = pointOnArc(GAUGE_NEEDLE_FROM_R, fraction)
 
   return (
-    <div className="relative" style={{ width: 'min(92vw, 520px)', aspectRatio: '320 / 190' }}>
-      <svg viewBox="0 0 320 190" className="absolute inset-0 block h-full w-full">
-        {showTicks &&
-          GAUGE_TICKS.map((t, i) => (
-            <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} stroke="var(--border)" strokeWidth={2} opacity={0.35} />
-          ))}
-        <path d={GAUGE_ARC_PATH} stroke="var(--border)" opacity={0.22} strokeWidth={20} fill="none" strokeLinecap="round" />
-        <path
-          d={GAUGE_ARC_PATH}
-          stroke={color}
-          strokeWidth={20}
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={GAUGE_ARC_LEN}
-          strokeDashoffset={GAUGE_ARC_LEN * (1 - fraction)}
-          style={{ transition: 'stroke-dashoffset 250ms ease-out' }}
-        />
-        <circle cx={needle.x} cy={needle.y} r={17} fill={color} className={pulse ? 'sq-pulse-dot' : ''} style={!pulse ? { opacity: 0.22 } : undefined} />
-        <circle
-          cx={needle.x}
-          cy={needle.y}
-          r={8}
-          fill={color}
-          stroke="var(--bg-primary)"
-          strokeWidth={3}
-          style={{ transition: 'cx 250ms ease-out, cy 250ms ease-out' }}
-        />
+    <div className="relative w-full lg:w-[440px]" style={{ aspectRatio: '360 / 210' }}>
+      <svg viewBox="0 0 360 210" className="absolute inset-0 block h-full w-full">
+        {GAUGE_TICKS.map((t, i) => (
+          <line
+            key={i}
+            x1={t.x1}
+            y1={t.y1}
+            x2={t.x2}
+            y2={t.y2}
+            stroke={t.major ? 'color-mix(in srgb, var(--text-tertiary) 45%, transparent)' : 'color-mix(in srgb, var(--border) 28%, transparent)'}
+            strokeWidth={t.major ? 2 : 1}
+            strokeLinecap="round"
+          />
+        ))}
+        <path d={GAUGE_ARC_PATH} stroke="color-mix(in srgb, var(--border) 20%, transparent)" strokeWidth={12} fill="none" strokeLinecap="round" />
+        {isRunning && (
+          <>
+            <path
+              d={GAUGE_ARC_PATH}
+              stroke={props.color}
+              strokeWidth={12}
+              fill="none"
+              strokeLinecap="round"
+              strokeDasharray={GAUGE_ARC_LEN}
+              strokeDashoffset={GAUGE_ARC_LEN * (1 - fraction)}
+              style={{ transition: 'stroke-dashoffset 250ms ease-out' }}
+            />
+            <line
+              x1={needleFrom.x}
+              y1={needleFrom.y}
+              x2={needle.x}
+              y2={needle.y}
+              stroke={props.color}
+              strokeWidth={4}
+              strokeLinecap="round"
+              style={{ transition: 'x2 250ms ease-out, y2 250ms ease-out' }}
+            />
+          </>
+        )}
       </svg>
-      <div className="absolute bottom-1.5 left-0 right-0 flex flex-col items-center">
-        <div className="font-bold" style={{ font: '700 clamp(40px,9vw,68px)/1 var(--font-sans)', color: 'var(--text-primary)' }}>
-          {centerValue}
+
+      {GAUGE_SCALE_LABELS.map((l) => (
+        <div
+          key={l.text}
+          className="label-medium absolute"
+          style={{ left: `${l.leftPercent}%`, top: `${l.topPercent}%`, transform: 'translate(-50%, -50%)', color: 'var(--text-tertiary)' }}
+        >
+          {l.text}
         </div>
-        <div className="mt-0.5 title-medium" style={{ color: 'var(--text-secondary)' }}>
-          {centerUnit}
+      ))}
+
+      {!isRunning && (
+        <div className="absolute bottom-[26px] left-1/2 flex -translate-x-1/2 flex-col items-center gap-2.5">
+          <button
+            onClick={props.onIniciar}
+            aria-label="Iniciar teste"
+            className="flex h-14 items-center gap-2.5 whitespace-nowrap rounded-full border-none px-10"
+            style={{ background: 'var(--accent)', boxShadow: '0 14px 30px color-mix(in srgb, var(--accent) 30%, transparent)' }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 22, color: 'var(--on-accent)' }}>
+              speed
+            </span>
+            <span style={{ font: '600 20px/1.15 var(--font-sans)', color: 'var(--on-accent)' }}>Iniciar teste</span>
+          </button>
+          <span className="body-small" style={{ color: 'var(--text-tertiary)' }}>
+            Rápido · ~20 s
+          </span>
         </div>
-      </div>
+      )}
+
+      {isRunning && (
+        <div className="absolute inset-x-0 bottom-1 flex flex-col items-center">
+          <div className="flex items-center gap-1.5">
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: props.color }}>
+              {props.phaseIcon}
+            </span>
+            <span className="overline">{props.phaseLabel}</span>
+          </div>
+          <div className="font-bold" style={{ font: '700 clamp(40px,9vw,54px)/1 var(--font-sans)', color: 'var(--text-primary)' }}>
+            {props.centerValue}
+          </div>
+          <div className="label-large" style={{ color: 'var(--text-secondary)' }}>
+            {props.centerUnit}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

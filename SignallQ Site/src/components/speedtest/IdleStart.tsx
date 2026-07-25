@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
 import type { SpeedTestMode } from '../../lib/speedEngine'
 import { SegmentedControl } from '../SegmentedControl'
+import { InfraInfoCard } from './InfraInfoCard'
+import { SpeedGauge } from './SpeedGauge'
 
 // Alias de `SpeedTestMode` (definido em speedEngine.ts, fonte única do
 // contrato Rápido/Completo desde GH#1367) — mantido com este nome aqui porque
@@ -19,34 +21,31 @@ const MODOS: Array<{ value: ModoTeste; label: string }> = [
   { value: 'triplo', label: '3 testes' },
 ]
 
-// Tela idle do teste de velocidade — protótipo "SignallQ WebApp.dc.html" do
-// Luiz (GH#1186), substitui o auto-start anterior (o motor só rodava sozinho
-// ao abrir "/"). "Rápido" x "Completo" diferenciam de fato o rigor da medição
-// desde GH#1367 — ver `SPEED_TEST_MODE_CONFIG` em speedEngine.ts.
-//
+// Tela idle do teste de velocidade — reconstrução v2
+// (`.claude/design-specs/2026-07-25-site-webapp-v2/ScreenHome.dc.html`). O CTA
+// "Iniciar teste" deixou de ser um botão avulso e agora vive dentro do próprio
+// velocímetro (`SpeedGauge` variant="idle") — 1:1 com o protótipo.
 export function IdleStart({ modo, onModoChange, onIniciar }: IdleStartProps) {
   return (
-    <div className="flex flex-col items-center gap-6 pt-8">
-      <button
-        onClick={onIniciar}
-        aria-label="Iniciar teste"
-        className="flex items-center justify-center rounded-full border-none p-0 text-center"
-        style={{
-          width: 192,
-          height: 192,
-          background: 'var(--accent)',
-          boxShadow: '0 0 0 14px color-mix(in srgb, var(--accent) 35%, transparent)',
-        }}
-      >
-        <span style={{ color: '#fff', fontSize: 26, fontWeight: 600, lineHeight: 1.15 }}>Iniciar teste</span>
-      </button>
-
-      <div className="w-full max-w-[300px]">
-        <SegmentedControl options={MODOS} value={modo} onChange={onModoChange} />
+    <div className="flex w-full flex-col items-center gap-5">
+      <div className="flex flex-col items-center gap-1.5 text-center">
+        <h1
+          className="m-0 text-[26px] font-bold leading-[1.2] lg:text-[30px]"
+          style={{ fontFamily: 'var(--font-sans)', color: 'var(--text-primary)' }}
+        >
+          Teste de velocidade
+        </h1>
+        <p className="m-0 max-w-[460px] body-medium" style={{ color: 'var(--text-secondary)' }}>
+          Download, upload e latência medidos no seu navegador.
+        </p>
       </div>
 
-      <div className="body-small text-center" style={{ color: 'var(--text-tertiary)' }}>
-        Infraestrutura de medição: rede Cloudflare
+      <SpeedGauge variant="idle" onIniciar={onIniciar} />
+
+      <InfraInfoCard />
+
+      <div className="flex w-full max-w-[300px]">
+        <SegmentedControl options={MODOS} value={modo} onChange={onModoChange} />
       </div>
 
       <Link to="/como-medimos" className="label-medium no-underline" style={{ color: 'var(--accent)' }}>
