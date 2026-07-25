@@ -46,7 +46,7 @@ export function IdleStart({ modo, onModoChange, onIniciar }: IdleStartProps) {
       </div>
 
       <div className="body-small text-center" style={{ color: 'var(--text-tertiary)' }}>
-        Servidor mais próximo · detectado automaticamente
+        Infraestrutura de medição: rede Cloudflare
       </div>
 
       <Link to="/como-medimos" className="label-medium no-underline" style={{ color: 'var(--accent)' }}>

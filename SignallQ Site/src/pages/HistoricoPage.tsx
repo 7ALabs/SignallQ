@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AdBanner } from '../components/AdBanner'
 import { DetailTopBar } from '../components/AppTopBar'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { HistoryRecordCard } from '../components/historico/HistoryRecordCard'
@@ -200,7 +199,6 @@ export default function HistoricoPage() {
         {justDeleted && <div className="label-medium">Medição excluída.</div>}
       </div>
 
-      <AdBanner />
 
       {confirmOpen && (
         <ConfirmDialog

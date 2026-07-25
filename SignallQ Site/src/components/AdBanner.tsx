@@ -42,8 +42,8 @@ function carregarScriptAdSense(publisherId: string): Promise<void> {
   return carregamentoAdSense
 }
 
-// Rodapé de anúncio simulado das 3 telas do fluxo do PWA (Velocidade,
-// Resultado, Histórico) — substitui o antigo `AdSlot.tsx` (card com ícone de
+// Slot de anúncio reservado após o resultado do PWA — substitui o antigo
+// `AdSlot.tsx` (card com ícone de
 // imagem quebrada e botão "Saiba mais" desabilitado com aparência clicável,
 // achado da Lia em .claude/design-specs/2026-07-19-site-pwa-redesign/SPEC.md)
 // pelo padrão aprovado pelo Luiz no protótipo "SignallQ WebApp.dc.html":
@@ -56,15 +56,16 @@ export function AdBanner() {
   const anuncioInicializadoRef = useRef(false)
   const adSenseConfigurado = Boolean(ADSENSE_PUBLISHER_ID && ADSENSE_SLOT_RESULT)
 
-  // Publica a altura real do banner numa CSS var no <html> pro
-  // `PwaToastStack` conseguir se posicionar acima dele, e não por cima.
-  // Zera ao desmontar (troca de rota) pra não vazar altura pra páginas sem banner.
+  // Em mobile, publica a altura real do banner numa CSS var no <html> pro
+  // `PwaToastStack` conseguir se posicionar acima dele. Em desktop o slot é
+  // lateral, então o toast continua ancorado no rodapé da viewport.
   useEffect(() => {
     const el = rootRef.current
     if (!el) return
 
     const publicarAltura = () => {
-      document.documentElement.style.setProperty(AD_BANNER_HEIGHT_VAR, `${el.offsetHeight}px`)
+      const lateral = typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 1024px)').matches
+      document.documentElement.style.setProperty(AD_BANNER_HEIGHT_VAR, lateral ? '0px' : `${el.offsetHeight}px`)
     }
 
     publicarAltura()
@@ -73,9 +74,11 @@ export function AdBanner() {
     // mount já cobre o caso, só perde reação a resize/orientação em teste.
     const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(publicarAltura) : null
     observer?.observe(el)
+    window.addEventListener('resize', publicarAltura)
 
     return () => {
       observer?.disconnect()
+      window.removeEventListener('resize', publicarAltura)
       document.documentElement.style.setProperty(AD_BANNER_HEIGHT_VAR, '0px')
     }
   }, [])
@@ -105,8 +108,8 @@ export function AdBanner() {
   }, [adSenseConfigurado])
 
   return (
-    <div ref={rootRef} className="mt-auto w-full px-5 pb-5 pt-3 box-border">
-      <div className="flex w-full items-center gap-2.5 rounded-xl p-3 box-border" style={{ background: 'var(--bg-secondary)' }}>
+    <aside ref={rootRef} aria-label="Publicidade" className="mt-3 w-full px-5 pb-5 pt-3 box-border lg:mt-0 lg:w-[300px] lg:shrink-0 lg:px-0 lg:pt-2">
+      <div className="flex w-full items-center gap-2.5 rounded-xl p-3 box-border lg:min-h-[250px] lg:flex-col lg:items-stretch" style={{ background: 'var(--bg-secondary)' }}>
         <div
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
           style={{ background: 'color-mix(in srgb, var(--accent) 14%, transparent)' }}
@@ -115,7 +118,7 @@ export function AdBanner() {
             campaign
           </span>
         </div>
-        <div className="flex flex-1 flex-col gap-0.5">
+        <div className="flex flex-1 flex-col gap-0.5 lg:items-center lg:justify-center lg:text-center">
           {adSenseConfigurado ? (
             <ins
               ref={anuncioRef}
@@ -136,12 +139,12 @@ export function AdBanner() {
           )}
         </div>
         <span
-          className="shrink-0 rounded"
+          className="shrink-0 rounded lg:self-start"
           style={{ padding: '2px 6px', color: 'var(--text-tertiary)', background: 'var(--bg-primary)', fontSize: 9, fontWeight: 700, letterSpacing: '0.04em' }}
         >
           PUBLICIDADE
         </span>
       </div>
-    </div>
+    </aside>
   )
 }

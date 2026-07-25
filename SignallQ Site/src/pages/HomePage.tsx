@@ -34,8 +34,8 @@ function phaseColorVar(phase: FasePainel): string {
 
 // Fluxo do PWA (Tela 1 "Velocidade" + Tela 2 "Resultado" do protótipo
 // "SignallQ WebApp.dc.html" do Luiz, GH#1186) — uma única rota "/" com
-// máquina de estados por fase, chrome mínimo (FlowTopBar/DetailTopBar em vez
-// do SiteNav/SiteFooter institucional) e AdBanner fixo no rodapé.
+// máquina de estados por fase e chrome mínimo. A publicidade só entra depois
+// do resultado: nunca disputa atenção com a medição ou com seu CTA inicial.
 export default function HomePage() {
   useDocumentMeta(PAGE_META['/'])
 
@@ -98,7 +98,11 @@ export default function HomePage() {
         <FlowTopBar onHistoryClick={irParaHistorico} />
       )}
 
-      <div className="mx-auto flex w-full max-w-[560px] flex-1 flex-col items-center gap-4 px-5 pb-6 pt-2 box-border">
+      <div
+        className={`mx-auto flex w-full flex-1 flex-col items-center gap-4 px-5 pb-6 pt-2 box-border ${
+          isResult ? 'max-w-[920px] lg:flex-row lg:items-start lg:justify-center lg:gap-8' : 'max-w-[560px]'
+        }`}
+      >
         {isIdle && <IdleStart modo={modo} onModoChange={setModo} onIniciar={handleIniciar} />}
 
         {isRunning && (
@@ -130,9 +134,8 @@ export default function HomePage() {
             onVerHistorico={irParaHistorico}
           />
         )}
+        {isResult && <AdBanner />}
       </div>
-
-      <AdBanner />
     </div>
   )
 }
