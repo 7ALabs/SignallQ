@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AdBannerWide } from '../components/AdBannerWide'
+import { AdRail } from '../components/AdRail'
 import { DetailTopBar, FlowTopBar } from '../components/AppTopBar'
 import { PlayStoreBadge } from '../components/PlayStoreBadge'
 import { SiteFooter } from '../components/SiteFooter'
+import { SiteNav } from '../components/SiteNav'
 import { IdleStart, type ModoTeste } from '../components/speedtest/IdleStart'
 import { ProblemPanel } from '../components/speedtest/ProblemPanel'
 import { ResultPanel } from '../components/speedtest/ResultPanel'
-import { SpeedGauge } from '../components/speedtest/SpeedGauge'
-import { StepRow, type StepInfo } from '../components/speedtest/StepRow'
+import { RunningPanel } from '../components/speedtest/RunningPanel'
+import type { StepInfo } from '../components/speedtest/StepRow'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
 import { type FasePainel, type ProblemPhase, useSpeedTest } from '../hooks/useSpeedTest'
 import { classifyDownload } from '../lib/classification'
@@ -19,12 +21,17 @@ const RUNNING_PHASES: FasePainel[] = ['preparando', 'latencia', 'download', 'upl
 const PROBLEM_PHASES: ProblemPhase[] = ['sem-conexao', 'conexao-interrompida', 'endpoint-indisponivel', 'erro-inesperado', 'cancelado', 'bloqueado-outra-aba']
 const STEP_ORDER: Array<'latencia' | 'download' | 'upload'> = ['latencia', 'download', 'upload']
 const STEP_LABELS: Record<'latencia' | 'download' | 'upload', string> = { latencia: 'Latência', download: 'Download', upload: 'Upload' }
-const PHASE_LABELS: Record<string, string> = {
-  preparando: 'Preparando conexão',
-  latencia: 'Medindo latência',
-  download: 'Medindo download',
-  upload: 'Medindo upload',
-  processando: 'Processando resultado',
+// Ícone por fase — mesmo vocabulário da grade de 3 métricas do Resultado
+// (`ResultPanel.tsx`), usado no readout embutido do velocímetro durante o teste.
+const PHASE_ICONS: Record<'latencia' | 'download' | 'upload', string> = {
+  latencia: 'network_ping',
+  download: 'arrow_downward',
+  upload: 'arrow_upward',
+}
+const PHASE_READOUT_LABELS: Record<'latencia' | 'download' | 'upload', string> = {
+  latencia: 'Latência',
+  download: 'Download',
+  upload: 'Upload',
 }
 
 function phaseColorVar(phase: FasePainel): string {
@@ -34,10 +41,14 @@ function phaseColorVar(phase: FasePainel): string {
   return 'var(--accent)'
 }
 
-// Fluxo do PWA (Tela 1 "Velocidade" + Tela 2 "Resultado" do protótipo
-// "SignallQ WebApp.dc.html" do Luiz, GH#1186) — uma única rota "/" com
-// máquina de estados por fase e chrome mínimo. A publicidade só entra depois
-// do resultado: nunca disputa atenção com a medição ou com seu CTA inicial.
+// Fluxo do PWA (Home "/") — reconstrução v2
+// (`.claude/design-specs/2026-07-25-site-webapp-v2/ScreenHome.dc.html`): uma única rota
+// com máquina de estados por fase, chrome mínimo no mobile (FlowTopBar/DetailTopBar) e
+// SiteNav completo no desktop, ladeado por 2 colunas de anúncio (AdRail a/b) — mesmo
+// padrão de composição de todas as telas do site (SiteNav → AdRail(a) + conteúdo +
+// AdRail(b) → AdBannerWide → SiteFooter, ver README do pacote de design-specs, achado 1).
+// No estado de Resultado, o AdBannerWide de rodapé da página fica oculto — o card de
+// resultado já embute o seu próprio anúncio (`ResultPanel.tsx`).
 export default function HomePage() {
   useDocumentMeta(PAGE_META['/'])
 
@@ -51,6 +62,7 @@ export default function HomePage() {
   const isProblem = PROBLEM_PHASES.includes(phase as ProblemPhase)
   const stepIdx = RUNNING_PHASES.indexOf(phase)
   const phaseColor = phaseColorVar(phase)
+  const runningKey = phase === 'latencia' || phase === 'download' || phase === 'upload' ? phase : null
 
   const downloadVerdict = result ? classifyDownload(result.download.mbps) : null
 
@@ -94,87 +106,98 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden" style={{ background: 'var(--bg-primary)' }}>
-      {isResult ? (
-        <DetailTopBar title="Resultado" onBack={goToIdle} rightIcon="history" rightLabel="Ver histórico" onRightClick={irParaHistorico} />
-      ) : (
-        <FlowTopBar onHistoryClick={irParaHistorico} />
-      )}
-
-      <div
-        className={`mx-auto flex w-full flex-1 flex-col items-center gap-4 px-5 pb-6 pt-2 box-border ${
-          isResult ? 'max-w-[920px] lg:flex-row lg:items-start lg:justify-center lg:gap-8' : 'max-w-[560px]'
-        }`}
-      >
-        {isIdle && <IdleStart modo={modo} onModoChange={setModo} onIniciar={handleIniciar} />}
-
-        {isRunning && (
-          <>
-            <div className="max-w-[420px] pt-2.5 text-center body-small">
-              Este teste usa dados da sua conexão para medir a velocidade — nenhum valor é simulado.
-            </div>
-            <SpeedGauge fraction={fraction} color={phaseColor} centerValue={gaugeCenterValue} centerUnit={gaugeCenterUnit} showTicks pulse />
-            <div className="overline">{PHASE_LABELS[phase] ?? ''}</div>
-            {modo === 'triplo' && round != null && <div className="label-medium">Medição {round} de 3</div>}
-            <StepRow steps={steps} />
-            <button onClick={cancelTest} className="flex h-10 items-center gap-1.5 border-none bg-transparent">
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                close
-              </span>
-              <span className="label-large">Cancelar teste</span>
-            </button>
-          </>
+      <div className="hidden lg:block">
+        <SiteNav active="home" />
+      </div>
+      <div className="lg:hidden">
+        {isResult ? (
+          <DetailTopBar title="Resultado" onBack={goToIdle} rightIcon="history" rightLabel="Ver histórico" onRightClick={irParaHistorico} />
+        ) : (
+          <FlowTopBar onHistoryClick={irParaHistorico} />
         )}
-
-        {isProblem && <ProblemPanel phase={phase as ProblemPhase} onAction={phase === 'bloqueado-outra-aba' ? forceStart : retry} />}
-
-        {isResult && result && downloadVerdict && (
-          <ResultPanel
-            result={result}
-            downloadVerdict={downloadVerdict}
-            connectionKind={connectionKind}
-            onRetry={retry}
-            onVerHistorico={irParaHistorico}
-          />
-        )}
-        {/* PENDENTE Fase 1 (reconstrução v2): este ponto de uso será substituído pela
-            composição completa SiteNav → AdRail(a) + conteúdo + AdRail(b) → AdBannerWide
-            → SiteFooter em todas as telas — ver
-            .claude/design-specs/2026-07-25-site-webapp-v2/README.md. Por ora, troca 1:1
-            do AdBanner antigo pelo AdBannerWide pra não quebrar o build. */}
-        {isResult && <AdBannerWide />}
       </div>
 
-      {(isIdle || isResult) && (
-        <section className="mx-auto w-full max-w-[720px] px-5 pb-14 pt-8 box-border" aria-label="Entenda seu teste">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <article className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
-              <h2 className="title-large m-0">Entenda o resultado</h2>
-              <p className="body-medium mb-0 mt-2">
-                Download e upload mostram capacidade de transmissão. Latência e estabilidade ajudam a explicar como a conexão responde no uso real.
-              </p>
-            </article>
-            <article className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
-              <h2 className="title-large m-0">Por que pode variar</h2>
-              <p className="body-medium mb-0 mt-2">
-                Wi-Fi, distância do roteador, outros aparelhos, congestionamento e o próprio navegador podem alterar a medição.
-              </p>
-            </article>
-            <article className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
-              <h2 className="title-large m-0">Diagnóstico no aplicativo</h2>
-              <p className="body-medium mt-2">
-                Para investigar a causa de uma conexão ruim, use o diagnóstico completo do app SignallQ.
-              </p>
-              <PlayStoreBadge height={40} source="home-secao-secundaria" />
-            </article>
-            <article className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
-              <h2 className="title-large m-0">Sobre o SignallQ</h2>
-              <p className="body-medium mb-0 mt-2">
-                Medimos e explicamos conectividade em linguagem simples, sem transformar uma leitura pontual em promessa sobre o seu plano.
-              </p>
-            </article>
-          </div>
-        </section>
-      )}
+      <div className="mx-auto flex w-full flex-1 items-start justify-center gap-6 px-4 pb-4 pt-2 box-border lg:gap-6 lg:px-6 lg:pt-5">
+        <AdRail variant="a" />
+
+        <div className={`flex w-full flex-1 flex-col items-center gap-5 ${isResult ? 'max-w-[620px]' : 'max-w-[860px]'}`}>
+          {isIdle && <IdleStart modo={modo} onModoChange={setModo} onIniciar={handleIniciar} />}
+
+          {isRunning && runningKey && (
+            <RunningPanel
+              fraction={fraction}
+              color={phaseColor}
+              phaseIcon={PHASE_ICONS[runningKey]}
+              phaseLabel={PHASE_READOUT_LABELS[runningKey]}
+              centerValue={gaugeCenterValue}
+              centerUnit={gaugeCenterUnit}
+              round={modo === 'triplo' ? round : null}
+              steps={steps}
+              onCancel={cancelTest}
+            />
+          )}
+
+          {isProblem && <ProblemPanel phase={phase as ProblemPhase} onAction={phase === 'bloqueado-outra-aba' ? forceStart : retry} />}
+
+          {isResult && result && downloadVerdict && (
+            <ResultPanel
+              result={result}
+              downloadVerdict={downloadVerdict}
+              connectionKind={connectionKind}
+              onRetry={retry}
+              onVerHistorico={irParaHistorico}
+            />
+          )}
+
+          {/* Achado 1 do README de design-specs: `showWideAd` é `!isResult` — o
+              Resultado já tem seu próprio anúncio embutido no card (ResultPanel). */}
+          {!isResult && (
+            <div className="mt-auto w-full pt-6">
+              <AdBannerWide variant="a" />
+            </div>
+          )}
+
+          {/* Seção secundária mobile-only (`showSecondary`, mobile && (isIdle || isResult))
+              — no desktop, a coluna de anúncio (AdRail) e o AdBannerWide já ocupam esse
+              espaço; as 2 primeiras variantes batem 1:1 com o protótipo, as 2 últimas
+              (Diagnóstico no app / Sobre o SignallQ) são mantidas como divergência
+              deliberada: sem elas, o mobile idle perde o único CTA de download do app
+              fora da tela de Resultado (o rodapé só mostra o badge na densidade desktop). */}
+          {(isIdle || isResult) && (
+            <section className="w-full lg:hidden" aria-label="Entenda seu teste">
+              <div className="grid gap-3">
+                <article className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
+                  <h2 className="title-large m-0">Entenda o resultado</h2>
+                  <p className="body-medium mb-0 mt-2">
+                    Download e upload mostram capacidade de transmissão. Latência e estabilidade ajudam a explicar como a conexão responde no uso real.
+                  </p>
+                </article>
+                <article className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
+                  <h2 className="title-large m-0">Por que pode variar</h2>
+                  <p className="body-medium mb-0 mt-2">
+                    Wi-Fi, distância do roteador, outros aparelhos, congestionamento e o próprio navegador podem alterar a medição.
+                  </p>
+                </article>
+                <article className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
+                  <h2 className="title-large m-0">Diagnóstico no aplicativo</h2>
+                  <p className="body-medium mt-2">
+                    Para investigar a causa de uma conexão ruim, use o diagnóstico completo do app SignallQ.
+                  </p>
+                  <PlayStoreBadge height={40} source="home-secao-secundaria" />
+                </article>
+                <article className="rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
+                  <h2 className="title-large m-0">Sobre o SignallQ</h2>
+                  <p className="body-medium mb-0 mt-2">
+                    Medimos e explicamos conectividade em linguagem simples, sem transformar uma leitura pontual em promessa sobre o seu plano.
+                  </p>
+                </article>
+              </div>
+            </section>
+          )}
+        </div>
+
+        <AdRail variant="b" />
+      </div>
 
       <SiteFooter />
     </div>

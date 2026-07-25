@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ResultPanel } from './ResultPanel'
 import { classifyDownload } from '../../lib/classification'
 import type { SpeedTestResult } from '../../lib/speedEngine'
@@ -27,7 +27,14 @@ function makeResult(overrides: Partial<{ download: number; upload: number; laten
 }
 
 describe('ResultPanel — versão enxuta do PWA (sem recomendações/casos de uso)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('conexão boa -> mostra veredito positivo, métricas principais e chip de conexão', () => {
+    // ResultPanel embute o AdBannerWide (achado 1, reconstrução v2) — sem
+    // mock, o fallback do anúncio local dispararia um fetch real.
+    vi.spyOn(global, 'fetch').mockImplementation(() => new Promise(() => {}))
     const result = makeResult()
     render(
       <ResultPanel
@@ -49,6 +56,7 @@ describe('ResultPanel — versão enxuta do PWA (sem recomendações/casos de us
   })
 
   it('resultado parcial -> mostra aviso de resultado parcial e esconde o chip de conexão quando desconhecida', () => {
+    vi.spyOn(global, 'fetch').mockImplementation(() => new Promise(() => {}))
     const result = makeResult({ download: 10, partial: true })
     render(
       <ResultPanel
