@@ -5,4 +5,6 @@
   <url><loc>https://signallq.pages.dev/quem-somos</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://signallq.pages.dev/privacidade</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://signallq.pages.dev/termos</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://signallq.pages.dev/internet-boa-mas-travando</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://signallq.pages.dev/lag-em-jogos-online</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
 </urlset>

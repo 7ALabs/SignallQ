@@ -40,6 +40,28 @@ export function buildSpeedTestWebApplicationJsonLd(origin: string, description: 
   }
 }
 
+// Conteúdo editorial (issue #1399) -- diferente das rotas de app puro, essas páginas
+// são texto de verdade e se qualificam como Article (headline/data de publicação
+// reais, sem sameAs/oferta inventados, mesmo princípio das funções acima).
+export function buildArticleJsonLd(origin: string, path: string, headline: string, description: string, datePublished: string) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline,
+    description,
+    url: origin + path,
+    datePublished,
+    dateModified: datePublished,
+    author: { '@type': 'Organization', name: ORGANIZATION_NAME },
+    publisher: {
+      '@type': 'Organization',
+      name: ORGANIZATION_NAME,
+      logo: { '@type': 'ImageObject', url: origin + '/signallq-symbol.png' },
+    },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': origin + path },
+  }
+}
+
 export function buildProSoftwareApplicationJsonLd(origin: string, description: string) {
   return {
     '@context': 'https://schema.org',

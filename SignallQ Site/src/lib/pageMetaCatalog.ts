@@ -45,6 +45,18 @@ export const PAGE_META: Record<string, PageMeta> = {
     description: 'Termos de uso do site público do SignallQ: teste de velocidade, histórico local e conteúdo institucional.',
     path: '/termos',
   },
+  '/internet-boa-mas-travando': {
+    title: 'Internet boa mas travando? Entenda o bufferbloat — SignallQ',
+    description:
+      'Sinal Wi-Fi forte e velocidade boa no teste, mas a internet trava quando mais de uma coisa usa a rede? Entenda o bufferbloat, a causa mais comum, e o que fazer.',
+    path: '/internet-boa-mas-travando',
+  },
+  '/lag-em-jogos-online': {
+    title: 'Lag em jogos online com boa internet? Pode ser CGNAT — SignallQ',
+    description:
+      'Internet parece boa mas dá lag em jogos, e você não consegue hospedar partida ou conectar direto com amigos? Entenda o CGNAT e o NAT Strict, e o que fazer.',
+    path: '/lag-em-jogos-online',
+  },
 }
 
 export const NOT_FOUND_META: PageMeta = {

@@ -1,5 +1,7 @@
 import { Route, Routes } from 'react-router-dom'
 import { PwaToastStack } from './components/PwaToastStack'
+import BufferbloatPage from './pages/BufferbloatPage'
+import CgnatPage from './pages/CgnatPage'
 import HistoricoPage from './pages/HistoricoPage'
 import ComoMedimosPage from './pages/ComoMedimosPage'
 import HomePage from './pages/HomePage'
@@ -20,6 +22,8 @@ export default function App() {
         <Route path="/quem-somos" element={<QuemSomosPage />} />
         <Route path="/privacidade" element={<PrivacidadePage />} />
         <Route path="/termos" element={<TermosPage />} />
+        <Route path="/internet-boa-mas-travando" element={<BufferbloatPage />} />
+        <Route path="/lag-em-jogos-online" element={<CgnatPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
       <PwaToastStack />
