@@ -1,6 +1,7 @@
 // SignallQ Admin API Worker
 // /admin/* exige sessão httpOnly via cookie (SIG-136 — auth própria via D1).
-// /ingest/* exige Bearer INGEST_KEY (chave separada, scope limitado, vai no APK).
+// /ingest/* exige Bearer INGEST_KEY (chave separada, scope limitado, vai no APK)
+// OU SITE_INGEST_KEY (#1155 — chave dedicada ao SignallQ Site, mesmo scope).
 // /health exige Bearer ADMIN_SECRET (retrocompat dev/monitoramento externo).
 // Separar os secrets reduz o blast radius: vazar INGEST_KEY nao da acesso
 // aos dados do admin. INGEST_KEY so pode escrever em /ingest/*.
@@ -30,6 +31,10 @@ export interface Env {
   ADMIN_SECRET: string;
   /** Chave separada para ingest do app Android. Scope: POST /ingest/* apenas. */
   INGEST_KEY: string;
+  /** #1155 — chave dedicada ao SignallQ Site (Pages Function track.ts), separada da
+   * INGEST_KEY do app Android para não precisar rotacionar a chave já embutida no APK
+   * publicado. Opcional até ser configurada em produção via `wrangler secret put`. */
+  SITE_INGEST_KEY?: string;
   FIREBASE_CLIENT_EMAIL: string;
   FIREBASE_PRIVATE_KEY: string;
   /** GH#761 — service account com acesso à Android Publisher API (reviews). */
@@ -78,8 +83,14 @@ function authenticateIngest(request: Request, env: Env): boolean {
   const auth = request.headers.get("Authorization") ?? "";
   const [scheme, token] = auth.split(" ");
   if (scheme !== "Bearer") return false;
-  // Aceita INGEST_KEY (chave do app) OU ADMIN_SECRET (retrocompat e dev local).
-  return token === env.INGEST_KEY || token === env.ADMIN_SECRET;
+  // Aceita INGEST_KEY (chave do app) OU ADMIN_SECRET (retrocompat e dev local)
+  // OU SITE_INGEST_KEY (#1155 — chave dedicada ao Site, evita rotacionar a
+  // INGEST_KEY já embutida no APK Android publicado).
+  return (
+    token === env.INGEST_KEY ||
+    token === env.ADMIN_SECRET ||
+    (!!env.SITE_INGEST_KEY && token === env.SITE_INGEST_KEY)
+  );
 }
 
 // --- SIG-136: Auth por sessão ---
