@@ -91,7 +91,7 @@ npm run build     # tsc --noEmit && vite build
   projeto Cloudflare Pages `signallq` — decisão/execução do Luiz, não é código.
 - Captura de e-mail da lista de espera do SignallQ PRO (`ProPage.tsx`) ainda não tem destino real
   (sem tabela D1/CRM decidido) — hoje só registra telemetria do clique.
-- Deploy real em `signallq.pages.dev` ainda não foi executado nesta sessão (sem credenciais
-  Cloudflare no ambiente de implementação) — workflow de CI/deploy está pronto, mas precisa dos
-  secrets `CLOUDFLARE_ACCOUNT_ID`/`CLOUDFLARE_API_TOKEN` (já usados por outros workflows do repo)
-  e da primeira execução real para validar contra produção.
+- O deploy em `signallq.pages.dev` depende dos secrets `CLOUDFLARE_ACCOUNT_ID` e
+  `CLOUDFLARE_API_TOKEN` no GitHub Actions. O primeiro está configurado, mas o token ainda não;
+  sem ele, o workflow falha explicitamente e nenhuma alteração é publicada por engano. Configurar
+  o token e reexecutar o workflow é necessário para validar mudanças contra produção.
