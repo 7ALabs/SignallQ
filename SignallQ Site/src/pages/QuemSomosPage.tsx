@@ -1,13 +1,10 @@
 import { Link } from 'react-router-dom'
 import { PageLayout } from '../components/PageLayout'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
+import { PAGE_META } from '../lib/pageMetaCatalog'
 
 export default function QuemSomosPage() {
-  useDocumentMeta({
-    title: 'Quem somos — SignallQ',
-    description: 'Conheça o SignallQ: diagnóstico de conectividade que explica, não só mede.',
-    path: '/quem-somos',
-  })
+  useDocumentMeta(PAGE_META['/quem-somos'])
 
   return (
     <PageLayout active="sobre">

@@ -1,6 +1,7 @@
 import { LegalSectionList, type LegalSection } from '../components/LegalSectionList'
 import { PageLayout } from '../components/PageLayout'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
+import { PAGE_META } from '../lib/pageMetaCatalog'
 
 const SECTIONS: LegalSection[] = [
   {
@@ -50,11 +51,7 @@ const SECTIONS: LegalSection[] = [
 ]
 
 export default function PrivacidadePage() {
-  useDocumentMeta({
-    title: 'Política de Privacidade — SignallQ',
-    description: 'Como o site do SignallQ processa e armazena dados durante o teste de velocidade e o histórico local.',
-    path: '/privacidade',
-  })
+  useDocumentMeta(PAGE_META['/privacidade'])
 
   return (
     <PageLayout active="privacidade">

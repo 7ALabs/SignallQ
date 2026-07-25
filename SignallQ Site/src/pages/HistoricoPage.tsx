@@ -7,6 +7,7 @@ import { HistoryRecordCard } from '../components/historico/HistoryRecordCard'
 import { SegmentedControl } from '../components/SegmentedControl'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
 import { clearAll, deleteRecord, listRecords, type MedicaoRegistro } from '../lib/historyStore'
+import { PAGE_META } from '../lib/pageMetaCatalog'
 
 type Status = 'loading' | 'loaded' | 'unavailable'
 type Filtro = 'todos' | 'wifi' | 'celular'
@@ -67,12 +68,7 @@ async function shareHistorySummary(records: MedicaoRegistro[]) {
 export default function HistoricoPage() {
   // noindex: conteúdo vem do IndexedDB do visitante, pro Google é sempre página
   // vazia (issue #1369) — sai do sitemap.xml também, ver public/sitemap.xml.
-  useDocumentMeta({
-    title: 'Histórico de medições — SignallQ',
-    description: 'Veja o histórico local das suas medições de velocidade. Armazenado somente neste navegador.',
-    path: '/historico',
-    robots: 'noindex,follow',
-  })
+  useDocumentMeta(PAGE_META['/historico'])
   const navigate = useNavigate()
 
   const [status, setStatus] = useState<Status>('loading')

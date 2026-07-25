@@ -1,6 +1,7 @@
 import { LegalSectionList, type LegalSection } from '../components/LegalSectionList'
 import { PageLayout } from '../components/PageLayout'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
+import { PAGE_META } from '../lib/pageMetaCatalog'
 
 // Adaptado de docs_ai/legal/TERMS_OF_USE.md (Termos do app Android) para o
 // contexto do site público — gap real fechado nesta entrega: o protótipo
@@ -53,11 +54,7 @@ const SECTIONS: LegalSection[] = [
 ]
 
 export default function TermosPage() {
-  useDocumentMeta({
-    title: 'Termos de Uso — SignallQ',
-    description: 'Termos de uso do site público do SignallQ: teste de velocidade, histórico local e conteúdo institucional.',
-    path: '/termos',
-  })
+  useDocumentMeta(PAGE_META['/termos'])
 
   return (
     <PageLayout active="termos">
