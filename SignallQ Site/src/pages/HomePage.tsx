@@ -40,8 +40,8 @@ export default function HomePage() {
   useDocumentMeta(PAGE_META['/'])
 
   const navigate = useNavigate()
-  const { phase, liveValue, phaseResults, result, connectionKind, cancelTest, retry, forceStart, goToIdle } = useSpeedTest()
   const [modo, setModo] = useState<ModoTeste>('rapido')
+  const { phase, liveValue, phaseResults, result, connectionKind, cancelTest, retry, forceStart, goToIdle } = useSpeedTest(modo)
 
   const isIdle = phase === 'idle'
   const isRunning = RUNNING_PHASES.includes(phase)

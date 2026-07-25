@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useEstadoRede } from './useEstadoRede'
 import type { TipoRede } from '../lib/connection'
 import { addRecord, resultToRecord } from '../lib/historyStore'
-import { createSpeedTest, SpeedTestError, type SpeedTestPhase, type SpeedTestResult } from '../lib/speedEngine'
+import { createSpeedTest, SpeedTestError, type SpeedTestMode, type SpeedTestPhase, type SpeedTestResult } from '../lib/speedEngine'
 import { FEATURE_SPEEDTEST_COMPLETOU, FEATURE_SPEEDTEST_INICIADO, trackFeatureUsed } from '../lib/telemetry'
 
 const LOCK_KEY = 'signallq_speedtest_lock_v1'
@@ -36,7 +36,7 @@ export interface PhaseResults {
   upload?: number
 }
 
-export function useSpeedTest() {
+export function useSpeedTest(modo: SpeedTestMode) {
   const [phase, setPhase] = useState<FasePainel>('idle')
   const [liveValue, setLiveValue] = useState(0)
   const [phaseResults, setPhaseResults] = useState<PhaseResults>({})
@@ -51,6 +51,15 @@ export function useSpeedTest() {
   useEffect(() => {
     revalidarAgoraRef.current = revalidarAgora
   }, [revalidarAgora])
+
+  // Espelha `modo` (Rápido/Completo, GH#1367) em ref pelo mesmo motivo do
+  // `revalidarAgoraRef` acima — `startTest` é criado uma vez via useCallback
+  // e precisa ler o modo selecionado no instante em que o teste é iniciado,
+  // não o valor capturado na primeira render.
+  const modoRef = useRef(modo)
+  useEffect(() => {
+    modoRef.current = modo
+  }, [modo])
 
   const engineRef = useRef<ReturnType<typeof createSpeedTest> | null>(null)
   const tabIdRef = useRef(Math.random().toString(36).slice(2))
@@ -129,7 +138,7 @@ export function useSpeedTest() {
       }
 
       const STEP_ORDER: FasePainel[] = ['latencia', 'download', 'upload']
-      const engine = createSpeedTest()
+      const engine = createSpeedTest(modoRef.current)
       engineRef.current = engine
       try {
         const r = await engine.run({

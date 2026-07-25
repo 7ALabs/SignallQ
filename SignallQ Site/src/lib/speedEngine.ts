@@ -123,9 +123,10 @@ interface ThroughputPhaseArgs {
   makeRequest: (size: number, onProgress: (p: { loaded: number; elapsed: number }) => void) => Promise<{ duration: number }>
   onTick: (t: { phase: 'download' | 'upload'; instantMbps: number; elapsedMs: number }) => void
   cancelToken: CancelToken
+  phaseTimeoutMs: number
 }
 
-async function runThroughputPhase({ phase, sizes, makeRequest, onTick, cancelToken }: ThroughputPhaseArgs): Promise<number> {
+async function runThroughputPhase({ phase, sizes, makeRequest, onTick, cancelToken, phaseTimeoutMs }: ThroughputPhaseArgs): Promise<number> {
   const chunkResults: ChunkResult[] = []
   let succeededOnce = false
   const phaseStart = performance.now()
@@ -154,7 +155,7 @@ async function runThroughputPhase({ phase, sizes, makeRequest, onTick, cancelTok
       }
       throw err
     }
-    if (performance.now() - phaseStart > 12000) break
+    if (performance.now() - phaseStart > phaseTimeoutMs) break
   }
   const usable = chunkResults.length > 1 ? chunkResults.slice(1) : chunkResults
   const totalBytes = usable.reduce((s, c) => s + c.bytes, 0)
@@ -187,7 +188,42 @@ interface NavigatorConnection {
   effectiveType?: string
 }
 
-export function createSpeedTest() {
+// "Rápido" x "Completo" (issue #1367) — diferenciação real de rigor entre os
+// dois modos escolhidos em IdleStart.tsx. "Rápido" preserva os parâmetros que
+// o motor já usava (era o único comportamento antes desta issue, e é o modo
+// padrão selecionado em HomePage.tsx — não regredir o caso comum). "Completo"
+// aumenta amostras de latência e chunks de download/upload (mais rounds, não
+// chunk maior — reaproveita o mesmo teto de payload já validado contra o
+// endpoint __down/__up da Cloudflare) e estende o teto de tempo por fase, o
+// que produz uma medição mais estável (mais dados para a mediana/jitter de
+// latência e para o cálculo de throughput) às custas de mais duração —
+// trade-off aceito conforme o risco já registrado na issue.
+export type SpeedTestMode = 'rapido' | 'completo'
+
+interface SpeedTestModeConfig {
+  latencySampleCount: number
+  downloadSizes: number[]
+  uploadSizes: number[]
+  phaseTimeoutMs: number
+}
+
+export const SPEED_TEST_MODE_CONFIG: Record<SpeedTestMode, SpeedTestModeConfig> = {
+  rapido: {
+    latencySampleCount: 7,
+    downloadSizes: [4e6, 8e6, 16e6, 32e6],
+    uploadSizes: [2e6, 4e6, 8e6, 16e6],
+    phaseTimeoutMs: 12000,
+  },
+  completo: {
+    latencySampleCount: 12,
+    downloadSizes: [4e6, 8e6, 16e6, 32e6, 32e6, 32e6],
+    uploadSizes: [2e6, 4e6, 8e6, 16e6, 16e6, 16e6],
+    phaseTimeoutMs: 24000,
+  },
+}
+
+export function createSpeedTest(mode: SpeedTestMode = 'rapido') {
+  const config = SPEED_TEST_MODE_CONFIG[mode]
   const cancelToken: CancelToken = { cancelled: false, xhr: null }
 
   function cancel() {
@@ -228,7 +264,7 @@ export function createSpeedTest() {
 
     onPhase('latencia')
     const latencySamples: number[] = []
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < config.latencySampleCount; i++) {
       if (cancelToken.cancelled) throw new SpeedTestError('cancelled')
       try {
         const ms = await measureLatencyOnce()
@@ -259,7 +295,7 @@ export function createSpeedTest() {
     try {
       downloadMbps = await runThroughputPhase({
         phase: 'download',
-        sizes: [4e6, 8e6, 16e6, 32e6],
+        sizes: config.downloadSizes,
         makeRequest: (size, onProgress) =>
           xhrRequest({
             method: 'GET',
@@ -270,6 +306,7 @@ export function createSpeedTest() {
           }),
         onTick,
         cancelToken,
+        phaseTimeoutMs: config.phaseTimeoutMs,
       })
     } catch (err) {
       if (err instanceof SpeedTestError && err.code === 'connection-interrupted' && err.partial?.length) {
@@ -286,11 +323,12 @@ export function createSpeedTest() {
     try {
       uploadMbps = await runThroughputPhase({
         phase: 'upload',
-        sizes: [2e6, 4e6, 8e6, 16e6],
+        sizes: config.uploadSizes,
         makeRequest: (size, onProgress) =>
           xhrRequest({ method: 'POST', url: SPEEDTEST_UPLOAD_URL, body: randomBlob(size), onProgress, timeoutMs: 20000, cancelToken }),
         onTick,
         cancelToken,
+        phaseTimeoutMs: config.phaseTimeoutMs,
       })
     } catch (err) {
       if (err instanceof SpeedTestError && err.code === 'connection-interrupted' && err.partial?.length) {
