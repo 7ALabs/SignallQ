@@ -36,6 +36,15 @@ export function SiteFooter() {
             </Link>
           </div>
           <div className="flex flex-col gap-2.5">
+            <div className="overline">Guias</div>
+            <Link to="/internet-boa-mas-travando" className="body-medium no-underline" style={{ color: 'var(--text-primary)' }}>
+              Internet boa mas travando
+            </Link>
+            <Link to="/lag-em-jogos-online" className="body-medium no-underline" style={{ color: 'var(--text-primary)' }}>
+              Lag em jogos online
+            </Link>
+          </div>
+          <div className="flex flex-col gap-2.5">
             <div className="overline">Institucional</div>
             <Link to="/quem-somos" className="body-medium no-underline" style={{ color: 'var(--text-primary)' }}>
               Quem somos

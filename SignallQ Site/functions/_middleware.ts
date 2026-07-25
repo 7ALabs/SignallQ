@@ -25,6 +25,7 @@
 import { NOT_FOUND_META, PAGE_META } from '../src/lib/pageMetaCatalog'
 import type { PageMeta } from '../src/lib/seo'
 import {
+  buildArticleJsonLd,
   buildOrganizationJsonLd,
   buildProSoftwareApplicationJsonLd,
   buildSpeedTestWebApplicationJsonLd,
@@ -32,6 +33,10 @@ import {
 } from '../src/lib/structuredData'
 
 const HAS_FILE_EXTENSION = /\.[a-zA-Z0-9]+$/
+
+// Data de publicação das páginas editoriais de long-tail SEO (issue #1399) --
+// usada só pro Article JSON-LD (datePublished/dateModified), não é dado inventado.
+const LONGTAIL_ARTICLE_PUBLISHED_AT = '2026-07-25'
 
 // Token público emitido pelo Google Search Console para verificar a propriedade
 // https://signallq.pages.dev/. Fica no HTML inicial, entregue pelo Worker, para
@@ -61,6 +66,9 @@ function structuredDataFor(path: string, meta: PageMeta, origin: string): unknow
   const data: unknown[] = [buildOrganizationJsonLd(origin), buildWebSiteJsonLd(origin)]
   if (path === '/') data.push(buildSpeedTestWebApplicationJsonLd(origin, meta.description))
   if (path === '/pro') data.push(buildProSoftwareApplicationJsonLd(origin, meta.description))
+  if (path === '/internet-boa-mas-travando' || path === '/lag-em-jogos-online') {
+    data.push(buildArticleJsonLd(origin, path, meta.title, meta.description, LONGTAIL_ARTICLE_PUBLISHED_AT))
+  }
   return data
 }
 

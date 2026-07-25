@@ -73,7 +73,17 @@ já existe em React.
 | `/quem-somos` | `QuemSomosPage` | Institucional |
 | `/privacidade` | `PrivacidadePage` | Política de privacidade do site (distinta da do app) |
 | `/termos` | `TermosPage` | Termos de uso do site (novo — não existia no protótipo) |
+| `/internet-boa-mas-travando` | `BufferbloatPage` | Conteúdo long-tail SEO (issue #1399) — H1 ancorado na frase sintomática, explica bufferbloat como causa |
+| `/lag-em-jogos-online` | `CgnatPage` | Conteúdo long-tail SEO (issue #1399) — explica CGNAT/NAT Strict como causa de lag e falha ao hospedar partida |
 | `*` | `NotFoundPage` | 404 |
+
+Ambas as páginas de conteúdo long-tail seguem "resposta primeiro" (cada seção responde a
+pergunta do título já nas 1-2 primeiras frases — única recomendação de formato validada pela
+consultoria de SEO em #1374), linkam pro teste de velocidade (`/`) e uma pra outra quando faz
+sentido, e usam o mesmo mecanismo de SEO técnico da Fase 2 (`functions/_middleware.ts` +
+`src/lib/pageMetaCatalog.ts`) das demais rotas — decisão registrada em #1399: reaproveitar a
+injeção via HTMLRewriter em vez de pre-render dedicado, com o acréscimo de um builder de Article
+JSON-LD (`buildArticleJsonLd` em `src/lib/structuredData.ts`) específico pra conteúdo editorial.
 
 ## Comandos
 

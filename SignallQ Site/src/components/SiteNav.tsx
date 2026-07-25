@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useSystemTheme } from '../hooks/useSystemTheme'
 import { Logo } from './Logo'
 
-type RotaAtiva = 'home' | 'pro' | 'historico' | 'sobre' | 'privacidade' | 'termos' | 'como-medimos'
+type RotaAtiva = 'home' | 'pro' | 'historico' | 'sobre' | 'privacidade' | 'termos' | 'como-medimos' | 'bufferbloat' | 'cgnat'
 
 interface SiteNavProps {
   active: RotaAtiva
