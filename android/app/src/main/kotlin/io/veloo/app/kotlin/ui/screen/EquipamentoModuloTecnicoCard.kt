@@ -51,6 +51,18 @@ import io.signallq.app.ui.component.LkSurfaceCard
  * a ser um card full-width único, com as duas bandas como linhas dentro do
  * mesmo card (2,4GHz antes de 5/6GHz — ordem já preservada pelo mapper, 1
  * item por rádio), no mesmo formato dos demais itens técnicos.
+ *
+ * ## Disclosure progressiva em todo módulo com >2 itens (revisão Lia 2026-07-24)
+ * O redesign de 2026-07-18 já tinha resolvido a densidade do card "Fibra"
+ * escondendo por padrão RX/TX/temperatura/modo/serial atrás de "Ver detalhes
+ * técnicos" — mas a regra só valia para o título "Fibra óptica". Os cards
+ * "Internet (WAN)" e "Rede local (LAN)" tinham a mesma quantidade de campos
+ * crus (IP, gateway, DNS primário/secundário, interface / máscara, faixa
+ * DHCP) e continuavam abrindo tudo de cara, reintroduzindo a mesma parede de
+ * jargão que o redesign original eliminou no card de Fibra. A regra de
+ * colapso agora é genérica — qualquer seção com mais de 2 itens nasce
+ * colapsada, mostrando só os 2 primeiros (já os mais relevantes pra um
+ * usuário não técnico, por ordem do mapper) — não mais amarrada ao título.
  */
 @Composable
 internal fun ModuloTecnicoCard(
@@ -59,8 +71,8 @@ internal fun ModuloTecnicoCard(
     modifier: Modifier = Modifier,
 ) {
     val tituloExibido = if (secao.titulo == "Fibra óptica") "Fibra" else secao.titulo
-    val toggleLabel = if (secao.titulo == "Fibra óptica") "Ver detalhes técnicos" else "Ver detalhes"
-    var expandido by remember(secao.titulo) { mutableStateOf(secao.titulo != "Fibra óptica") }
+    val toggleLabel = "Ver detalhes técnicos"
+    var expandido by remember(secao.titulo) { mutableStateOf(secao.itens.size <= 2) }
 
     LkSurfaceCard(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
