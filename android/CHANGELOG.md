@@ -11,10 +11,13 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ## [Unreleased]
 
+## [0.30.4] — 2026-07-25
+
 ### Adicionado
 - Firebase Analytics (GA4): user properties `environment`, `dist_channel` e `build_type`, setadas uma vez por sessão (`MainActivity.onCreate` → `registrarSessionStart`), reaproveitando `DistributionChannel.kt` (mesma fonte já usada pelo envio a `/ingest/analytics`). Permite segmentar eventos de debug/release/produção que hoje chegam misturados ao GA4 (#1360).
 
 ### Corrigido
+- Permissão de localização deixa de ficar bloqueada permanentemente no primeiro uso (antes de qualquer diálogo do sistema aparecer): `shouldShowRequestPermissionRationale()` retorna false tanto para "nunca pedida" quanto para "negada permanentemente". Fix persiste "localização já solicitada" no DataStore (único evento confiável é o callback real do sistema no onboarding), tratando bloqueio permanente só quando registrado anteriormente (#1182).
 - `NativeAdCard` (Resultado do diagnóstico, Histórico, Jogos) sem `MediaView`: AdMob native ad
   validator (debug) apontava "1 implementation issue found" sobre o card de anúncio nativo — o
   `NativeAdView` registrava headline/body/icon/CTA mas nunca um `mediaView`, asset principal do
