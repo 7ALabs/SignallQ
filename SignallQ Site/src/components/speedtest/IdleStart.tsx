@@ -17,6 +17,7 @@ interface IdleStartProps {
 const MODOS: Array<{ value: ModoTeste; label: string }> = [
   { value: 'rapido', label: 'Rápido' },
   { value: 'completo', label: 'Completo' },
+  { value: 'triplo', label: '3 testes' },
 ]
 
 // Tela idle do teste de velocidade — protótipo "SignallQ WebApp.dc.html" do

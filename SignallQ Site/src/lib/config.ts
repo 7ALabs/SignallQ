@@ -23,6 +23,8 @@ export const SPEEDTEST_UPLOAD_URL: string =
   import.meta.env.VITE_SPEEDTEST_UPLOAD_URL || 'https://speed.cloudflare.com/__up'
 export const SPEEDTEST_SERVER_LABEL: string =
   import.meta.env.VITE_SPEEDTEST_SERVER_LABEL || 'speed.cloudflare.com (rede Cloudflare)'
+export const SPEEDTEST_LATENCY_URL: string =
+  import.meta.env.VITE_SPEEDTEST_LATENCY_URL || 'https://signallq-game-latency-probe.giammattey-luiz.workers.dev/probe'
 
 // Proxy server-side de telemetria (Pages Function) — nunca chama o admin-worker
 // direto do navegador (exigiria expor a INGEST_KEY no client).

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bytesToMbps, meanAbsJitter, median, SPEED_TEST_MODE_CONFIG } from './speedEngine'
+import { bytesToMbps, meanAbsJitter, median, SPEED_TEST_MODE_CONFIG, summarizeLatency } from './speedEngine'
 
 // Porte dos testes matemáticos de shared/tests.js — lógica de cálculo não mudou.
 describe('median', () => {
@@ -16,6 +16,17 @@ describe('meanAbsJitter', () => {
   })
 })
 
+describe('summarizeLatency', () => {
+  it('descarta aquecimento, calcula perda e filtra pico acima de três medianas', () => {
+    const result = summarizeLatency([5, 10, 12, 11, 100, null])
+    expect(result.totalSamples).toBe(5)
+    expect(result.timeouts).toBe(1)
+    expect(result.packetLossPercent).toBeCloseTo(20)
+    expect(result.ms).toBe(11)
+    expect(result.peaks).toBe(1)
+  })
+})
+
 describe('bytesToMbps', () => {
   it('1_000_000 bytes em 1000ms = 8 Mbps', () => {
     expect(bytesToMbps(1e6, 1000)).toBeCloseTo(8, 2)
@@ -28,31 +39,36 @@ describe('bytesToMbps', () => {
 // GH#1367 — "Completo" precisa ser mensuravelmente mais rigoroso/longo que
 // "Rápido", não só um rótulo diferente disparando o mesmo motor.
 describe('SPEED_TEST_MODE_CONFIG (diferenciação Rápido x Completo)', () => {
-  const sum = (nums: number[]) => nums.reduce((a, b) => a + b, 0)
   const { rapido, completo } = SPEED_TEST_MODE_CONFIG
 
   it('"completo" coleta mais amostras de latência que "rapido"', () => {
     expect(completo.latencySampleCount).toBeGreaterThan(rapido.latencySampleCount)
   })
 
-  it('"completo" transfere mais bytes de download que "rapido"', () => {
-    expect(sum(completo.downloadSizes)).toBeGreaterThan(sum(rapido.downloadSizes))
+  it('"completo" transfere blocos maiores de download que "rapido"', () => {
+    expect(completo.downloadPayloadBytes).toBeGreaterThan(rapido.downloadPayloadBytes)
   })
 
-  it('"completo" transfere mais bytes de upload que "rapido"', () => {
-    expect(sum(completo.uploadSizes)).toBeGreaterThan(sum(rapido.uploadSizes))
+  it('"completo" transfere blocos maiores de upload que "rapido"', () => {
+    expect(completo.uploadPayloadBytes).toBeGreaterThan(rapido.uploadPayloadBytes)
   })
 
-  it('"completo" tem teto de tempo por fase maior que "rapido"', () => {
-    expect(completo.phaseTimeoutMs).toBeGreaterThan(rapido.phaseTimeoutMs)
+  it('"completo" tem duração por fase maior que "rapido"', () => {
+    expect(completo.downloadDurationMs).toBeGreaterThan(rapido.downloadDurationMs)
   })
 
-  it('"rapido" preserva os parâmetros originais do motor (comportamento pré-#1367)', () => {
+  it('"rapido" replica a configuração Android', () => {
     expect(rapido).toEqual({
-      latencySampleCount: 7,
-      downloadSizes: [4e6, 8e6, 16e6, 32e6],
-      uploadSizes: [2e6, 4e6, 8e6, 16e6],
-      phaseTimeoutMs: 12000,
+      latencySampleCount: 15,
+      downloadDurationMs: 7000,
+      uploadDurationMs: 7000,
+      downloadPayloadBytes: 10_000_000,
+      uploadPayloadBytes: 5_000_000,
+      downloadInitialStreams: 2,
+      downloadMaxStreams: 4,
+      uploadInitialStreams: 4,
+      uploadMaxStreams: 4,
+      warmupMs: 1000,
     })
   })
 })

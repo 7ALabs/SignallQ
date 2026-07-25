@@ -20,7 +20,7 @@ export type ProblemPhase = 'sem-conexao' | 'conexao-interrompida' | 'endpoint-in
 // 'idle' é o estado inicial real desde o redesign do PWA (protótipo "SignallQ
 // WebApp.dc.html" do Luiz, GH#1186) — o teste deixou de disparar sozinho ao
 // abrir a tela; só começa quando o usuário toca em "Iniciar teste".
-export type FasePainel = SpeedTestPhase | 'idle' | 'concluido' | 'parcial' | ProblemPhase
+export type FasePainel = SpeedTestPhase | 'idle' | 'concluido' | 'parcial' | 'inconclusivo' | 'contaminado' | ProblemPhase
 
 const CODE_TO_PROBLEM_PHASE: Record<string, ProblemPhase> = {
   'no-connection': 'sem-conexao',
@@ -45,6 +45,7 @@ export function useSpeedTest(modo: SpeedTestMode) {
   // no chip da tela de Resultado e salvo no registro do Histórico. Distinto
   // de `result.connectionType` (effectiveType da Network Information API).
   const [connectionKind, setConnectionKind] = useState<TipoRede | null>(null)
+  const [round, setRound] = useState<number | null>(null)
 
   const { revalidarAgora } = useEstadoRede()
   const revalidarAgoraRef = useRef(revalidarAgora)
@@ -120,6 +121,7 @@ export function useSpeedTest(modo: SpeedTestMode) {
       setLiveValue(0)
       setPhaseResults({})
       setResult(null)
+      setRound(null)
       trackFeatureUsed(FEATURE_SPEEDTEST_INICIADO)
 
       // Checagem ativa antes de medir: navigator.onLine sozinho não detecta
@@ -160,16 +162,34 @@ export function useSpeedTest(modo: SpeedTestMode) {
             liveValueRef.current = ms
             setLiveValue(ms)
           },
+          onRound: (currentRound) => setRound(currentRound),
         })
-        setPhaseResults({ latencia: r.latency.ms, download: r.download.mbps, upload: r.upload.mbps })
-        setResult(r)
-        phaseRef.current = r.partial ? 'parcial' : 'concluido'
+        const redeFinal = await revalidarAgoraRef.current()
+        const redeMudou =
+          connectionKindRef.current !== 'desconhecida' &&
+          redeFinal.tipo !== 'desconhecida' &&
+          connectionKindRef.current !== redeFinal.tipo
+        const resultadoFinal = redeMudou
+          ? { ...r, status: 'contaminated' as const, partial: true }
+          : r
+        setPhaseResults({ latencia: resultadoFinal.latency.ms, download: resultadoFinal.download.mbps, upload: resultadoFinal.upload.mbps })
+        setResult(resultadoFinal)
+        phaseRef.current =
+          resultadoFinal.status === 'complete'
+            ? 'concluido'
+            : resultadoFinal.status === 'partial'
+              ? 'parcial'
+              : resultadoFinal.status === 'inconclusive'
+                ? 'inconclusivo'
+                : 'contaminado'
         setPhase(phaseRef.current)
-        trackFeatureUsed(FEATURE_SPEEDTEST_COMPLETOU)
-        try {
-          await addRecord(resultToRecord(r, connectionKindRef.current))
-        } catch {
-          // histórico é best-effort — falha aqui não derruba o resultado exibido
+        if (resultadoFinal.status === 'complete') {
+          trackFeatureUsed(FEATURE_SPEEDTEST_COMPLETOU)
+          try {
+            await addRecord(resultToRecord(resultadoFinal, connectionKindRef.current))
+          } catch {
+            // histórico é best-effort — falha aqui não derruba o resultado exibido
+          }
         }
       } catch (err) {
         stopHeartbeat()
@@ -200,10 +220,15 @@ export function useSpeedTest(modo: SpeedTestMode) {
     }
     document.addEventListener('visibilitychange', onVisibilityChange)
     window.addEventListener('beforeunload', releaseLock)
+    const onNetworkChange = () => engineRef.current?.markContaminated()
+    window.addEventListener('online', onNetworkChange)
+    window.addEventListener('offline', onNetworkChange)
 
     return () => {
       document.removeEventListener('visibilitychange', onVisibilityChange)
       window.removeEventListener('beforeunload', releaseLock)
+      window.removeEventListener('online', onNetworkChange)
+      window.removeEventListener('offline', onNetworkChange)
       stopHeartbeat()
       releaseLock()
       if (engineRef.current) engineRef.current.cancel()
@@ -226,5 +251,5 @@ export function useSpeedTest(modo: SpeedTestMode) {
     setResult(null)
   }, [])
 
-  return { phase, liveValue, phaseResults, result, connectionKind, cancelTest, retry, forceStart, goToIdle }
+  return { phase, liveValue, phaseResults, result, connectionKind, round, cancelTest, retry, forceStart, goToIdle }
 }

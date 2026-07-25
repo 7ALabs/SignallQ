@@ -29,6 +29,21 @@ function formattedSummary(result: SpeedTestResult): string {
   return `Meu teste de velocidade SignallQ (${when}): Download ${result.download.mbps.toFixed(1)} Mbps · Upload ${result.upload.mbps.toFixed(1)} Mbps · Latência ${Math.round(result.latency.ms)} ms. Teste a sua em ${location.origin}${location.pathname}`
 }
 
+const STATUS_COPY: Record<SpeedTestResult['status'], { title: string; body: string }> = {
+  complete: { title: 'Medição completa', body: 'Todas as fases tiveram dados suficientes para uma avaliação confiável.' },
+  partial: { title: 'Resultado parcial', body: 'Alguma fase não terminou. Use apenas as métricas disponíveis.' },
+  inconclusive: { title: 'Resultado inconclusivo', body: 'Não houve amostras de latência suficientes. Repita o teste.' },
+  contaminated: { title: 'Rede alterada durante o teste', body: 'A conexão mudou durante a medição; repita para obter um resultado confiável.' },
+  cancelled: { title: 'Teste cancelado', body: 'A medição foi interrompida antes de terminar.' },
+}
+
+const BUFFERBLOAT_LABEL: Record<SpeedTestResult['bufferbloat']['severity'], string> = {
+  none: 'Nenhum',
+  mild: 'Leve',
+  moderate: 'Moderado',
+  severe: 'Severo',
+}
+
 interface ResultPanelProps {
   result: SpeedTestResult
   downloadVerdict: Classificacao
@@ -37,12 +52,8 @@ interface ResultPanelProps {
   onVerHistorico: () => void
 }
 
-// Versão enxuta da tela de Resultado do PWA (Tela 2 do protótipo "SignallQ
-// WebApp.dc.html", GH#1186) — sem recomendações, sem grid de casos de uso,
-// sem jitter, sem toggle de "detalhes técnicos" (removidos por decisão
-// explícita do Luiz, não é engano/regressão). O motor de recomendações
-// (lib/recommendations.ts) e o card (RecommendationsCard.tsx) continuam no
-// código, só desconectados desta tela — podem voltar a ser usados depois.
+// Resultado técnico do PWA: mantém o veredito acessível no topo e agrupa os
+// dados de auditoria em disclosure progressivo, sem virar dashboard denso.
 export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, onVerHistorico }: ResultPanelProps) {
   const [copied, setCopied] = useState(false)
   const latency = classifyLatency(result.latency.ms)
@@ -79,14 +90,13 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
 
   return (
     <div className="sq-fade-up flex w-full max-w-[460px] flex-col items-center gap-5 pt-2">
-      {result.partial && (
+      {result.status !== 'complete' && (
         <div className="flex items-center gap-2 text-center">
           <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--warning)' }}>
             warning
           </span>
           <div className="body-small">
-            <b style={{ color: 'var(--text-primary)' }}>Resultado parcial.</b> A conexão foi interrompida — os números refletem só a parte
-            confiável do teste.
+            <b style={{ color: 'var(--text-primary)' }}>{STATUS_COPY[result.status].title}.</b> {STATUS_COPY[result.status].body}
           </div>
         </div>
       )}
@@ -125,6 +135,23 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
           {Math.round(result.latency.ms)} ms · {latency.label}
         </span>
       </div>
+
+      <details className="w-full rounded-2xl p-4" style={{ background: 'var(--bg-secondary)' }}>
+        <summary className="label-large cursor-pointer" style={{ color: 'var(--text-primary)' }}>Detalhes técnicos</summary>
+        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 body-small">
+          <dt>Jitter</dt><dd className="text-right">{result.jitter ? `${result.jitter.ms.toFixed(1)} ms` : 'Indisponível'}</dd>
+          <dt>Perda HTTP</dt><dd className="text-right">{result.packetLoss.percent.toFixed(1)}%</dd>
+          <dt>Bufferbloat</dt><dd className="text-right">{result.bufferbloat.ms.toFixed(1)} ms · {BUFFERBLOAT_LABEL[result.bufferbloat.severity]}</dd>
+          <dt>Estabilidade</dt><dd className="text-right">{result.stabilityScore.toFixed(0)}%</dd>
+          <dt>Latência sob download</dt><dd className="text-right">{result.loadedLatency ? `${result.loadedLatency.downloadMs.toFixed(0)} ms` : 'Indisponível'}</dd>
+          <dt>Latência sob upload</dt><dd className="text-right">{result.loadedLatency ? `${result.loadedLatency.uploadMs.toFixed(0)} ms` : 'Indisponível'}</dd>
+          <dt>DNS (DoH)</dt><dd className="text-right">{result.dns.latencyMs == null ? 'Indisponível' : `${result.dns.latencyMs} ms`}</dd>
+          <dt>Amostras de latência</dt><dd className="text-right">{result.latency.validSamples}/{result.latency.samples}</dd>
+        </dl>
+        <p className="mt-3 body-small" style={{ color: 'var(--text-tertiary)' }}>
+          Latência e perda são medidas por HTTPS; navegadores não permitem ICMP nem detectam todos os handovers de rede.
+        </p>
+      </details>
 
       <div className="flex w-full items-center gap-3 rounded-2xl p-4" style={{ background: 'color-mix(in srgb, var(--accent) 8%, transparent)' }}>
         <div className="flex flex-1 flex-col gap-0.5">

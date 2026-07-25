@@ -7,6 +7,7 @@ interface ImportMetaEnv {
   readonly VITE_SPEEDTEST_DOWNLOAD_URL?: string
   readonly VITE_SPEEDTEST_UPLOAD_URL?: string
   readonly VITE_SPEEDTEST_SERVER_LABEL?: string
+  readonly VITE_SPEEDTEST_LATENCY_URL?: string
 }
 
 interface ImportMeta {

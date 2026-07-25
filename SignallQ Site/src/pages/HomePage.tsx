@@ -41,11 +41,11 @@ export default function HomePage() {
 
   const navigate = useNavigate()
   const [modo, setModo] = useState<ModoTeste>('rapido')
-  const { phase, liveValue, phaseResults, result, connectionKind, cancelTest, retry, forceStart, goToIdle } = useSpeedTest(modo)
+  const { phase, liveValue, phaseResults, result, connectionKind, round, cancelTest, retry, forceStart, goToIdle } = useSpeedTest(modo)
 
   const isIdle = phase === 'idle'
   const isRunning = RUNNING_PHASES.includes(phase)
-  const isResult = phase === 'concluido' || phase === 'parcial'
+  const isResult = phase === 'concluido' || phase === 'parcial' || phase === 'inconclusivo' || phase === 'contaminado'
   const isProblem = PROBLEM_PHASES.includes(phase as ProblemPhase)
   const stepIdx = RUNNING_PHASES.indexOf(phase)
   const phaseColor = phaseColorVar(phase)
@@ -108,6 +108,7 @@ export default function HomePage() {
             </div>
             <SpeedGauge fraction={fraction} color={phaseColor} centerValue={gaugeCenterValue} centerUnit={gaugeCenterUnit} showTicks pulse />
             <div className="overline">{PHASE_LABELS[phase] ?? ''}</div>
+            {modo === 'triplo' && round != null && <div className="label-medium">Medição {round} de 3</div>}
             <StepRow steps={steps} />
             <button onClick={cancelTest} className="flex h-10 items-center gap-1.5 border-none bg-transparent">
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
