@@ -65,10 +65,13 @@ async function shareHistorySummary(records: MedicaoRegistro[]) {
 // aparecendo no protótipo — são gestão de dado local sensível (privacidade),
 // não decoração; cortar silenciosamente seria regressão, não simplificação.
 export default function HistoricoPage() {
+  // noindex: conteúdo vem do IndexedDB do visitante, pro Google é sempre página
+  // vazia (issue #1369) — sai do sitemap.xml também, ver public/sitemap.xml.
   useDocumentMeta({
     title: 'Histórico de medições — SignallQ',
     description: 'Veja o histórico local das suas medições de velocidade. Armazenado somente neste navegador.',
     path: '/historico',
+    robots: 'noindex,follow',
   })
   const navigate = useNavigate()
 

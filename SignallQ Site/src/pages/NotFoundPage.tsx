@@ -7,6 +7,7 @@ export default function NotFoundPage() {
     title: 'Página não encontrada — SignallQ',
     description: 'A página que você acessou não existe ou foi movida.',
     path: '/404',
+    robots: 'noindex,follow',
   })
   const navigate = useNavigate()
 
