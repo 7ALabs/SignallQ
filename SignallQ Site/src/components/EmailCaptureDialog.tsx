@@ -1,9 +1,7 @@
 import { useState } from 'react'
 
-// Padrão compartilhado de captura de e-mail para "avisar quando lançar" —
-// nasceu no modal inline do ProPage.tsx e foi extraído aqui pra ser reaproveitado
-// também no PlayStoreBadge (fallback do SignallQ gratuito). Copy e cor de acento
-// vêm por props: cada produto mantém sua própria identidade visual e tom.
+// Padrão de captura de e-mail para o lançamento do SignallQ PRO. O SignallQ
+// gratuito entra no grupo oficial de testadores e não pede e-mail.
 //
 // Destino real do e-mail (GH#1155): cada `onSubmit` chama `submitWaitlistSignup`
 // (lib/waitlist.ts), que grava em `waitlist_signups` no D1 do signallq-admin-worker
