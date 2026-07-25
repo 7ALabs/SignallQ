@@ -9,10 +9,11 @@ import { PwaUpdatePrompt } from './PwaUpdatePrompt'
 // vivem na mesma casca visual dentro de um único container fixo,
 // column-reverse com gap fixo — nunca dois `fixed` disputando espaço.
 //
-// `bottom` soma a altura real do `AdBanner` (achado do Rhodolfo, QA de PR
-// #1186: nas telas Velocidade/Resultado/Histórico o AdBanner ocupa a faixa
+// `bottom` soma a altura real do banner de anúncio (achado do Rhodolfo, QA de PR
+// #1186: nas telas Velocidade/Resultado/Histórico o banner ocupa a faixa
 // inferior e o toast cortava o texto dele). A var `--ad-banner-height` é
-// publicada pelo próprio `AdBanner` e cai pra 0px nas páginas sem banner.
+// publicada pelo `AdBannerWide` (antigo `AdBanner`, substituído na reconstrução
+// v2 — issue #1402/#1403) e cai pra 0px nas páginas sem banner.
 export function PwaToastStack() {
   return (
     <div

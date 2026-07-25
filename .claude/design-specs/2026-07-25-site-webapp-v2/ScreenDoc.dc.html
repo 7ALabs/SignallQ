@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="assets/google-sans-flex.css">
+  <link rel="stylesheet" href="_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/_ds_bundle.css">
+  <link rel="stylesheet" href="_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/styles.css">
+  <script src="_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/_ds_bundle.js"></script>
+  <style>
+    :root {
+      --gal-bg:    #E9E6EF;
+      --gal-fg:    #1C1B1F;
+      --gal-muted: #5C5670;
+      --gal-bezel: #26232E;
+      --gal-neck:  #33303B;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --accent:        #D0BCFF;
+        --on-accent:     #371E73;
+        --accent-blue:   #AAC7FF;
+        --success:       #83DA99;
+        --warning:       #FFB870;
+        --error:         #FFB4AB;
+        --phase-latencia:#AAC7FF;
+        --phase-download:#83DA99;
+        --phase-upload:  #FFB870;
+        --bg-primary:    #131217;
+        --bg-secondary:  #1D1B20;
+        --bg-card:       #211F26;
+        --text-primary:  #E6E0E9;
+        --text-secondary:#CAC4D0;
+        --text-tertiary: #CAC4D0;
+        --border:        #948F99;
+        --warning-container:    #693D00;
+        --on-warning-container: #FFDDB3;
+        --amber-surface:        #2E2000;
+        --success-container:    #0A5321;
+        --on-success-container: #9DF4AC;
+        --gal-bg:    #16151A;
+        --gal-fg:    #E6E0E9;
+        --gal-muted: #A9A2B4;
+        --gal-bezel: #0B0A0F;
+        --gal-neck:  #1F1D26;
+      }
+    }
+  </style>
+</helmet>
+
+<div style="min-height: 100%; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-primary);">
+  <dc-import name="SiteNav" active="{{ active }}" mobile="{{ mobile }}" hint-size="100%,76px"></dc-import>
+
+  <div style="flex: 1; width: 100%; box-sizing: border-box; display: flex; align-items: flex-start; justify-content: center; gap: 24px; padding: {{ shellPadding }};">
+
+    <sc-if value="{{ desktop }}" hint-placeholder-val="{{ true }}">
+      <dc-import name="AdRail" hint-size="240px,880px"></dc-import>
+    </sc-if>
+
+    <div style="flex: 1; max-width: {{ contentMax }}; display: flex; flex-direction: column; gap: 20px;">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font: 500 11px/1.45 var(--font-sans); color: var(--text-secondary); letter-spacing: .3px; text-transform: uppercase;">{{ overline }}</div>
+        <h1 style="margin: 0; font: 700 {{ titleSize }}/1.2 var(--font-sans); color: var(--text-primary); text-wrap: pretty;">{{ title }}</h1>
+        <sc-if value="{{ hasIntro }}" hint-placeholder-val="{{ true }}">
+          <p style="margin: 0; max-width: 720px; font: 400 14px/1.45 var(--font-sans); color: var(--text-secondary); text-wrap: pretty;">{{ intro }}</p>
+        </sc-if>
+        <sc-if value="{{ hasUpdated }}" hint-placeholder-val="{{ false }}">
+          <div style="font: 400 12px/1.33 var(--font-sans); color: var(--text-tertiary);">{{ updated }}</div>
+        </sc-if>
+      </div>
+
+      <div style="display: block; column-count: {{ sectionColumns }}; column-gap: 20px;">
+        <sc-for list="{{ sections }}" as="s" hint-placeholder-count="5">
+          <section style="break-inside: avoid; margin: 0 0 14px; border-radius: {{ cardRadius }}; padding: {{ cardPadding }}; background: {{ cardBg }}; display: flex; flex-direction: column; gap: 6px;">
+            <h2 style="margin: 0; font: {{ sectionTitleFont }} var(--font-sans); color: var(--text-primary);">{{ s.title }}</h2>
+            <p style="margin: 0; font: 400 12px/1.5 var(--font-sans); color: var(--text-secondary); text-wrap: pretty;">{{ s.text }}</p>
+          </section>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ hasCta }}" hint-placeholder-val="{{ false }}">
+        <div style="height: 40px; width: fit-content; display: flex; align-items: center; padding: 0 20px; border-radius: var(--radius-button); background: var(--accent);">
+          <span style="font: 500 14px/1.43 var(--font-sans); color: var(--on-accent);">{{ ctaLabel }}</span>
+        </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ desktop }}" hint-placeholder-val="{{ true }}">
+      <dc-import name="AdRail" variant="b" hint-size="240px,880px"></dc-import>
+    </sc-if>
+  </div>
+
+  <div style="width: 100%; box-sizing: border-box; padding: 0 20px 28px; display: flex; justify-content: center;">
+    <div style="width: 100%; max-width: 860px;">
+      <dc-import name="AdBannerWide" variant="a" compact="{{ mobile }}" hint-size="100%,140px"></dc-import>
+    </div>
+  </div>
+
+  <dc-import name="SiteFooter" compact="{{ true }}" mobile="{{ mobile }}" hint-size="100%,auto"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1050},&quot;page&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;como-medimos&quot;,&quot;quem-somos&quot;,&quot;privacidade&quot;,&quot;termos&quot;,&quot;bufferbloat&quot;,&quot;cgnat&quot;],&quot;default&quot;:&quot;como-medimos&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;mobile&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;part&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;}}">
+const PAGES = {
+  'como-medimos': {
+    active: 'como-medimos', card: true,
+    overline: 'Metodologia',
+    title: 'Como medimos sua conexão',
+    intro: 'O que foi medido, como interpretamos e o que um teste no navegador não consegue afirmar.',
+    ctaLabel: 'Iniciar teste',
+    sections: [
+      { title: 'O que medimos', text: 'O teste envia e recebe dados por HTTPS para medir download e upload. Também faz várias solicitações pequenas para observar a latência e a variação entre as amostras, chamada de jitter.' },
+      { title: 'Velocidade, latência e estabilidade', text: 'Velocidade indica quanto dado passou durante o teste. Latência indica o tempo de resposta. Estabilidade resume o quanto as medições variaram. Uma conexão pode ter boa velocidade e ainda responder lentamente.' },
+      { title: 'Como interpretamos', text: 'Comparamos as métricas observadas com faixas de uso cotidiano e mostramos uma leitura em linguagem simples. Essa interpretação descreve aquela execução; não confirma a velocidade do seu plano.' },
+      { title: 'Por que o resultado pode variar', text: 'Wi-Fi, distância do roteador, interferência, aparelhos usando a rede, congestionamento, navegador e a rota até o servidor podem alterar o resultado. Para comparar, repita o teste nas mesmas condições.' },
+      { title: 'Limites do teste no navegador', text: 'O navegador não mede sinal Wi-Fi, não envia ping ICMP e não confirma seu provedor ou localização. A medição web não é um laudo regulatório nem uma certificação formal.' },
+    ],
+  },
+  bufferbloat: {
+    active: 'bufferbloat', card: true,
+    overline: 'Diagnóstico',
+    title: 'Internet boa mas travando? Veja por que isso acontece',
+    intro: 'Sinal forte e número alto no teste, mas a internet engasga quando mais de uma coisa usa a rede: o motivo costuma ser latência sob carga — o bufferbloat.',
+    ctaLabel: 'Testar minha conexão',
+    sections: [
+      { title: 'Por que trava mesmo com Wi-Fi forte', text: 'Quando mais de uma atividade usa a internet ao mesmo tempo, o roteador pode acumular dados numa fila maior do que o necessário antes de enviar. Essa fila cheia atrasa tudo o que vem depois, mesmo sem queda na velocidade contratada.' },
+      { title: 'O que é bufferbloat', text: 'É o atraso que aparece quando os buffers de roteador, modem ou da operadora enchem além do necessário sob carga. A latência pode saltar de poucos milissegundos para várias centenas — daí o engasgo na chamada de vídeo e o lag no jogo.' },
+      { title: 'Como saber se é isso', text: 'Indício forte: a internet funciona bem com uma atividade só, mas trava assim que duas disputam a rede. Sinal fraco, interferência e problemas da operadora também causam lentidão, então isso não fecha o diagnóstico sozinho.' },
+      { title: 'O que fazer', text: 'Se o roteador oferecer gerenciamento de fila (SQM ou priorização de tráfego), vale testar. Antes de trocar de plano, compare a latência sob download e upload com a latência sem carga no teste do SignallQ.' },
+    ],
+  },
+  cgnat: {
+    active: 'cgnat', card: true,
+    overline: 'Diagnóstico',
+    title: 'Lag em jogos online mesmo com boa internet? Pode ser CGNAT',
+    intro: 'Se tudo mais funciona bem mas o jogo trava ou você não consegue hospedar partida, o motivo pode ser CGNAT — que resulta em NAT restrito no console ou PC.',
+    ctaLabel: 'Testar minha conexão',
+    sections: [
+      { title: 'Por que dá lag mesmo com internet boa', text: 'Muitas operadoras compartilham um único IP público entre várias casas — técnica chamada CGNAT. Isso dificulta conexões diretas usadas por alguns jogos, mesmo com navegação e streaming normais.' },
+      { title: 'O que é CGNAT', text: 'É colocar vários clientes atrás do mesmo endereço IP público, em vez de dar um IP exclusivo para cada conexão. Para o jogo, sua conexão passa a ficar atrás de uma camada extra de tradução de endereço.' },
+      { title: 'Por que não consigo hospedar partida', text: 'Nesse cenário a conexão fica com NAT restrito (Strict ou Tipo 3). Outro jogador pode não conseguir se conectar diretamente a você. Configurações do roteador e regras do jogo também influenciam.' },
+      { title: 'Como saber se é isso', text: 'Consoles e alguns jogos mostram o tipo de NAT no menu de rede. Se aparecer Strict ou Moderado junto com dificuldade recorrente de jogar com amigos, vale confirmar com a operadora se a conexão usa CGNAT.' },
+      { title: 'O que fazer', text: 'Confirme o tipo de NAT antes de mexer no roteador. Redirecionamento de portas ajuda quando o bloqueio é local, mas não resolve sob CGNAT. Pergunte à operadora sobre IPv4 público ou IPv6.' },
+    ],
+  },
+  'quem-somos': {
+    active: 'sobre', card: false,
+    overline: 'Quem somos',
+    title: 'Conectividade explicada, não só medida',
+    intro: 'Mostrar a métrica é só o começo: o valor está em explicar o que ela significa na prática, em português claro.',
+    sections: [
+      { title: 'O SignallQ gratuito', text: 'O aplicativo SignallQ, em fase Beta, é gratuito e feito para qualquer pessoa medir e entender sua própria conexão — Wi-Fi, fibra, DNS ou sinal móvel.' },
+      { title: 'O SignallQ PRO', text: 'Para quem faz diagnóstico de redes profissionalmente, o PRO transforma a medição em serviço documentado: cadastro de clientes, registro por ambiente e laudo em PDF.' },
+      { title: 'Onde queremos chegar', text: 'Tornar diagnósticos de rede mais compreensíveis e acionáveis — para quem só quer saber por que a internet está lenta, e para quem faz disso um serviço.' },
+    ],
+  },
+  privacidade: {
+    active: 'privacidade', card: false,
+    overline: 'Privacidade',
+    title: 'Como este site trata seus dados',
+    updated: 'Última atualização: 18 de julho de 2026',
+    intro: 'Esta política cobre o site público do SignallQ. Ela é diferente da política do aplicativo Android.',
+    sections: [
+      { title: 'O que é processado durante o teste', text: 'Para medir download, upload e latência, o navegador troca dados com o servidor de medição (rede da Cloudflare), que enxerga o IP público do seu dispositivo durante a medição. Isso é necessário tecnicamente e não é coletado pelo site.' },
+      { title: 'O que fica salvo no seu navegador', text: 'O resultado de cada teste (data, download, upload, latência, oscilação, tipo de conexão) é salvo localmente via IndexedDB. Esses dados não são enviados a servidores do SignallQ.' },
+      { title: 'Histórico local', text: 'O histórico existe para você reconsultar medições neste mesmo navegador e aparelho. Não sincroniza entre aparelhos e não é acessível por nós.' },
+      { title: 'Cookies', text: 'O site não define cookies próprios. Se o Google AdSense estiver configurado, esse serviço pode definir os seus, conforme as políticas da Google.' },
+      { title: 'Telemetria de uso', text: 'Registramos apenas eventos agregados de uso do produto, sem conteúdo do histórico e sem dado que identifique você. São enviados server-side para a analytics de produto do SignallQ.' },
+      { title: 'Cloudflare Web Analytics', text: 'Usamos o Cloudflare Web Analytics para métricas agregadas de tráfego e desempenho. Esse serviço não usa cookies nem identifica visitantes individualmente.' },
+      { title: 'Lista de espera do PRO', text: 'Se você pedir para ser avisado sobre o lançamento do PRO, coletamos o e-mail só para esse fim. Ele não é compartilhado com terceiros. Para remoção, escreva para giammattey.luiz@gmail.com.' },
+      { title: 'Google AdSense', text: 'O site pode exibir anúncios via AdSense, carregados somente depois que uma medição termina. A Google pode processar dados conforme sua própria política.' },
+      { title: 'Fornecedores terceiros', text: 'Os únicos terceiros envolvidos são Cloudflare (medição, analytics de tráfego e hospedagem) e, quando configurado, Google AdSense.' },
+      { title: 'Como excluir seu histórico', text: 'Na página Histórico você pode excluir uma medição ou limpar tudo. Também dá para apagar limpando os dados do site no navegador.' },
+      { title: 'Como retirar consentimento', text: 'Bloqueie cookies e limpe dados do site nas configurações do navegador a qualquer momento. Isso remove o histórico local e identificadores de anúncios.' },
+    ],
+  },
+  termos: {
+    active: 'termos', card: false,
+    overline: 'Termos de Uso',
+    title: 'Termos de Uso do site SignallQ',
+    updated: 'Última atualização: 18 de julho de 2026',
+    sections: [
+      { title: '1. Aceitação dos termos', text: 'Ao usar o site do SignallQ, você concorda com estes Termos de Uso. Se não concordar, não utilize o site.' },
+      { title: '2. Descrição do serviço', text: 'O site oferece teste de velocidade real (download, upload e latência), histórico local de medições e conteúdo institucional sobre o SignallQ e o PRO.' },
+      { title: '3. Uso permitido', text: 'Você pode medir e entender sua própria conexão e compartilhar resultados. Não pode usar o site para atacar, sobrecarregar ou interferir na infraestrutura de medição, nem para fins ilegais.' },
+      { title: '4. Gratuidade', text: 'O teste e o histórico local são gratuitos e não exigem cadastro. O site pode exibir anúncios quando configurado, sempre após o resultado.' },
+      { title: '5. Disponibilidade', text: 'O serviço é fornecido "como está". Não garantimos disponibilidade ininterrupta nem precisão absoluta — o teste depende de infraestrutura de terceiros (Cloudflare).' },
+      { title: '6. Privacidade', text: 'O tratamento dos seus dados é regido pela nossa Política de Privacidade, disponível em /privacidade.' },
+      { title: '7. Propriedade intelectual', text: 'O SignallQ, incluindo código, design, marca e conteúdo, é propriedade da 7Agents Tecnologia. Todos os direitos reservados.' },
+      { title: '8. Limitação de responsabilidade', text: 'A 7Agents não se responsabiliza por danos decorrentes do uso do site, de decisões tomadas com base nos resultados ou de indisponibilidade temporária.' },
+      { title: '9. Alterações nos termos', text: 'A 7Agents pode atualizar estes Termos a qualquer momento. O uso continuado após alterações implica aceitação.' },
+      { title: '10. Legislação aplicável', text: 'Estes Termos são regidos pelas leis brasileiras, em conformidade com a LGPD (Lei 13.709/2018) e o Marco Civil da Internet (Lei 12.965/2014).' },
+      { title: '11. Contato', text: 'Para dúvidas sobre estes Termos: suporte@signallq.com (7Agents Tecnologia).' },
+    ],
+  },
+};
+
+class Component extends DCLogic {
+  renderVals() {
+    const page = PAGES[this.props.page] || PAGES['como-medimos'];
+    const mobile = !!this.props.mobile;
+    const part = Number(this.props.part || 0);
+    const all = page.sections;
+    const half = Math.ceil(all.length / 2);
+    const sections = (!mobile && part === 1) ? all.slice(0, half) : (!mobile && part === 2) ? all.slice(half) : all;
+    const isPart2 = !mobile && part === 2;
+
+    return {
+      mobile, desktop: !mobile,
+      active: page.active,
+      shellPadding: mobile ? '28px 20px 40px' : '20px 24px 16px',
+      contentMax: mobile ? '100%' : '860px',
+      titleSize: mobile ? '26px' : '28px',
+      sectionColumns: mobile ? 1 : (sections.length >= 5 ? 3 : 2),
+      cardBg: page.card ? 'var(--bg-secondary)' : 'transparent',
+      cardPadding: page.card ? (mobile ? '20px' : '16px') : '0',
+      cardRadius: page.card ? '16px' : '0',
+      sectionTitleFont: page.card ? '600 16px/1.35' : '600 14px/1.4',
+      overline: page.overline,
+      title: page.title,
+      hasIntro: !!page.intro && !isPart2, intro: page.intro || '',
+      hasUpdated: !!page.updated && !isPart2, updated: page.updated || '',
+      sections,
+      hasCta: !!page.ctaLabel && !isPart2, ctaLabel: page.ctaLabel || '',
+    };
+  }
+}
+
+</script>
+</body>
+</html>

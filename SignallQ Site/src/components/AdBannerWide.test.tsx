@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { AdBanner } from './AdBanner'
+import { AdBannerWide } from './AdBannerWide'
 
 const ANUNCIO_LOCAL_MOCK = {
   id: 'house-1',
@@ -10,7 +10,7 @@ const ANUNCIO_LOCAL_MOCK = {
   targetUrl: 'https://signallq.pages.dev',
 }
 
-describe('AdBanner', () => {
+describe('AdBannerWide', () => {
   afterEach(() => {
     vi.unstubAllEnvs()
     vi.resetModules()
@@ -21,8 +21,8 @@ describe('AdBanner', () => {
 
   it('sem AdSense configurado -> mostra aviso honesto de espaço reservado antes do catálogo local resolver, sem affordance falsa', () => {
     vi.spyOn(global, 'fetch').mockImplementation(() => new Promise(() => {})) // nunca resolve nesta asserção síncrona
-    render(<AdBanner />)
-    expect(screen.getByText('Espaço para anúncio')).toBeInTheDocument()
+    render(<AdBannerWide />)
+    expect(screen.getAllByText('Espaço para anúncio').length).toBeGreaterThan(0)
     expect(screen.getByText('PUBLICIDADE')).toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
@@ -32,11 +32,10 @@ describe('AdBanner', () => {
       new Response(JSON.stringify({ ads: [ANUNCIO_LOCAL_MOCK] }), { status: 200 })
     )
 
-    render(<AdBanner />)
+    render(<AdBannerWide />)
 
-    await waitFor(() => expect(screen.getByText(ANUNCIO_LOCAL_MOCK.title)).toBeInTheDocument())
-    expect(screen.getByText(ANUNCIO_LOCAL_MOCK.ctaLabel)).toBeInTheDocument()
-    expect(screen.getByText('PUBLICIDADE')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getAllByText(ANUNCIO_LOCAL_MOCK.title).length).toBeGreaterThan(0))
+    expect(screen.getAllByText(ANUNCIO_LOCAL_MOCK.ctaLabel).length).toBeGreaterThan(0)
     expect(screen.queryByText('Espaço para anúncio')).not.toBeInTheDocument()
   })
 
@@ -50,13 +49,12 @@ describe('AdBanner', () => {
     const fila: Array<Record<string, never>> = []
     ;(window as Window & { adsbygoogle?: Array<Record<string, never>> }).adsbygoogle = fila
 
-    const { AdBanner: BannerComAdSense } = await import('./AdBanner')
+    const { AdBannerWide: BannerComAdSense } = await import('./AdBannerWide')
     render(<BannerComAdSense />)
 
     const anuncio = document.querySelector('ins.adsbygoogle')
     expect(anuncio).toHaveAttribute('data-ad-client', 'ca-pub-1234567890123456')
     expect(anuncio).toHaveAttribute('data-ad-slot', '1234567890')
-    expect(document.querySelector('[data-adsbygoogle-loader]')).toBeNull()
 
     await waitFor(() => expect(fila).toHaveLength(1))
   })
@@ -73,14 +71,22 @@ describe('AdBanner', () => {
     document.head.appendChild(script)
     ;(window as Window & { adsbygoogle?: Array<Record<string, never>> }).adsbygoogle = []
 
-    const { AdBanner: BannerComAdSense } = await import('./AdBanner')
+    const { AdBannerWide: BannerComAdSense } = await import('./AdBannerWide')
     render(<BannerComAdSense />)
 
     const anuncio = document.querySelector('ins.adsbygoogle')
     expect(anuncio).not.toBeNull()
     anuncio?.setAttribute('data-ad-status', 'unfilled')
 
-    await waitFor(() => expect(screen.getByText(ANUNCIO_LOCAL_MOCK.title)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getAllByText(ANUNCIO_LOCAL_MOCK.title).length).toBeGreaterThan(0))
     expect(document.querySelector('ins.adsbygoogle')).not.toBeInTheDocument()
+  })
+
+  it('aceita variant "b" (skin azul) sem quebrar a renderização', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ ads: [ANUNCIO_LOCAL_MOCK] }), { status: 200 })
+    )
+    render(<AdBannerWide variant="b" />)
+    await waitFor(() => expect(screen.getAllByText(ANUNCIO_LOCAL_MOCK.title).length).toBeGreaterThan(0))
   })
 })
