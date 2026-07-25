@@ -1,6 +1,7 @@
 import React from "react";
 import { FeatureFlagsSummaryCard } from "./components/FeatureFlagsSummaryCard";
 import { TeamAccessCard } from "./components/TeamAccessCard";
+import { LocalAdsSection } from "./components/LocalAdsSection";
 import { SectionCard } from "../../components/ui/SectionCard";
 import { FeatureComingSoon } from "../../components/ui/FeatureComingSoon";
 import { SectionIntro } from "../../components/ui/SectionIntro";
@@ -22,6 +23,10 @@ export const SettingsPage: React.FC = () => {
         <FeatureFlagsSummaryCard />
         <TeamAccessCard />
       </div>
+
+      {/* Bloco: Anúncios locais (house ads) — issue #1402/#1404. Catálogo administrável
+          consumido pelo Site quando o AdSense entra em no-fill. */}
+      <LocalAdsSection />
 
       {/* Bloco: Exportações — GH#781 (ajuste fino 3, paridade mockup sec-settings).
           O worker não expõe hoje uma rota de snapshot/export do painel (CSV/PDF
