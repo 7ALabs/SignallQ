@@ -24,16 +24,24 @@ describe('AdRail', () => {
     vi.restoreAllMocks()
   })
 
-  it('não renderiza nada enquanto o catálogo local não resolveu (sem flash de placeholder)', () => {
+  it('mostra a coluna com placeholder honesto enquanto o catálogo local não resolveu (sem sumir do DOM)', () => {
     vi.spyOn(global, 'fetch').mockImplementation(() => new Promise(() => {}))
-    const { container } = render(<AdRail variant="a" />)
-    expect(container).toBeEmptyDOMElement()
+    render(<AdRail variant="a" />)
+    expect(screen.getAllByText('Espaço para anúncio').length).toBe(2)
   })
 
-  it('não renderiza nada quando o catálogo local está vazio', async () => {
+  // Achado da Marina (auditoria 1:1 de 2026-07-25): com o catálogo real vazio em produção
+  // (`GET /local-ads` -> `{"ads":[]}`), a coluna inteira sumia do DOM (`asideCount: 0`,
+  // confirmado pela Claudete via getComputedStyle/JS na sessão de auditoria) — divergindo
+  // do protótipo, que sempre mostra a coluna como conteúdo fixo do design. Os cards já sabem
+  // lidar com `anuncio: null` (placeholder + `aria-disabled`), então a coluna deve continuar
+  // presente e mostrar o fallback honesto em vez de retornar `null` cedo demais.
+  it('mostra a coluna com placeholder honesto quando o catálogo local está vazio (nunca some do DOM)', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ads: [] }), { status: 200 }))
     const { container } = render(<AdRail variant="a" />)
-    await waitFor(() => expect(container).toBeEmptyDOMElement())
+    await waitFor(() => expect(screen.getAllByText('Espaço para anúncio').length).toBe(2))
+    expect(container.querySelector('aside')).not.toBeNull()
+    expect(screen.getAllByText('PUBLICIDADE').length).toBe(2)
   })
 
   it('variant "a" mostra os dois cards (grande + pequeno) sorteados do catálogo, com skin roxo', async () => {

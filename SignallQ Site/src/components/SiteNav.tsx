@@ -39,7 +39,9 @@ export function SiteNav({ active, heroMode = false }: SiteNavProps) {
     >
       <div className="mx-auto flex min-h-[76px] max-w-[1280px] items-center justify-between gap-4 px-5 py-3.5 box-border">
         <Link to="/" className="flex flex-shrink-0 items-center">
-          <Logo isDark={isDark} height={40} />
+          {/* height 70 (não 40) — 1:1 com `SiteNav.dc.html`, achado da Marina (auditoria
+              1:1 de 2026-07-25). */}
+          <Logo isDark={isDark} height={70} />
         </Link>
 
         <div className="hidden items-center gap-7 min-[920px]:flex">

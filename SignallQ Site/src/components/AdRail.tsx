@@ -32,8 +32,12 @@ export function AdRail({ variant }: AdRailProps) {
     }
   }, [])
 
-  if (anuncios.length === 0) return null
-
+  // Achado da Marina (auditoria 1:1 de 2026-07-25): o protótipo sempre mostra a
+  // coluna de anúncio, mesmo sem catálogo cadastrado — os cards já sabem lidar
+  // com `anuncio: null` (placeholder "Espaço para anúncio" + `aria-disabled`).
+  // Abortar aqui fazia a coluna inteira sumir do DOM (`asideCount: 0` confirmado
+  // com o catálogo real vazio em produção), divergindo do protótipo, que é
+  // conteúdo fixo do design.
   const principal = sortearAnuncioLocal(anuncios)
   const restante = anuncios.filter((a) => a.id !== principal?.id)
   const secundario = sortearAnuncioLocal(restante.length > 0 ? restante : anuncios)
