@@ -63,6 +63,11 @@ describe('ProPage', () => {
   it('renderiza o AdBannerWide (variant b) antes do rodapé', async () => {
     render(<ProPage />, { wrapper: MemoryRouter })
 
-    await waitFor(() => expect(screen.getByLabelText('Publicidade')).toBeInTheDocument())
+    // getByLabelText('Publicidade') deixou de ser único depois que o AdRail passou a
+    // sempre montar a coluna (achado da Marina/auditoria 1:1 de 2026-07-25) — agora há
+    // 2 <aside aria-label="Publicidade"> (AdRail a/b) além do <AdBannerWide>. A asserção
+    // usa o texto de fallback específico do AdBannerWide para não colidir com o AdRail.
+    await waitFor(() => expect(screen.getAllByText('Banner simulado 320×50').length).toBeGreaterThan(0))
+    expect(screen.getAllByLabelText('Publicidade').length).toBe(3)
   })
 })

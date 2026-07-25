@@ -17,6 +17,11 @@ const SKINS: Record<VarianteCor, {
   gradient: string
   glow: string
   glowPos: string
+  /** Skin distinta do bloco compacto/mobile — `cBg`/`cGlow` no protótipo (`AdBannerWide.dc.html`),
+   * diferente do gradiente/glow do bloco largo/desktop (achado da Marina, auditoria 1:1 de
+   * 2026-07-25: o bloco mobile reaproveitava por engano o skin do desktop). */
+  compactGradient: string
+  compactGlow: string
   badgeBg: string
   badgeFg: string
   ctaBg: string
@@ -28,6 +33,8 @@ const SKINS: Record<VarianteCor, {
     gradient: 'linear-gradient(100deg, #1B1533 0%, #241C42 46%, #0E0D14 100%)',
     glow: 'radial-gradient(circle, rgba(124,77,255,.45), rgba(124,77,255,0) 70%)',
     glowPos: 'left: 180px; top: -60px;',
+    compactGradient: 'linear-gradient(120deg, #1B1533 0%, #241C42 50%, #0E0D14 100%)',
+    compactGlow: 'radial-gradient(circle, rgba(124,77,255,.45), rgba(124,77,255,0) 70%)',
     badgeBg: '#C9F26B',
     badgeFg: '#0E0D14',
     ctaBg: 'linear-gradient(135deg, #7C4DFF, #5B21D6)',
@@ -39,6 +46,8 @@ const SKINS: Record<VarianteCor, {
     gradient: 'linear-gradient(100deg, #0B1533 0%, #131A3C 52%, #0E0D14 100%)',
     glow: 'radial-gradient(circle, rgba(40,81,184,.5), rgba(40,81,184,0) 70%)',
     glowPos: 'right: 160px; bottom: -90px;',
+    compactGradient: 'linear-gradient(120deg, #0B1533 0%, #131A3C 55%, #0E0D14 100%)',
+    compactGlow: 'radial-gradient(circle, rgba(40,81,184,.5), rgba(40,81,184,0) 70%)',
     badgeBg: '#7FD1FF',
     badgeFg: '#0B1533',
     ctaBg: '#7FD1FF',
@@ -106,10 +115,18 @@ export function AdBannerWide({ variant = 'a' }: AdBannerWideProps) {
             rel="noopener noreferrer sponsored"
             aria-disabled={!anuncioLocal}
             className={`relative block w-full overflow-hidden rounded-xl no-underline box-border ${!anuncioLocal ? 'pointer-events-none' : ''}`}
-            style={{ background: skin.gradient }}
           >
+            {/* Fundo por breakpoint — skin `compact`/`cBg` (mobile) é distinto do skin largo/
+                desktop no protótipo (`AdBannerWide.dc.html`), não o mesmo gradiente reaproveitado. */}
+            <div className="pointer-events-none absolute inset-0 lg:hidden" style={{ background: skin.compactGradient }} />
+            <div className="pointer-events-none absolute inset-0 hidden lg:block" style={{ background: skin.gradient }} />
+
             <div
-              className="pointer-events-none absolute h-[260px] w-[260px] rounded-full"
+              className="pointer-events-none absolute h-[200px] w-[200px] rounded-full lg:hidden"
+              style={{ background: skin.compactGlow, right: -60, top: -80 }}
+            />
+            <div
+              className="pointer-events-none absolute hidden h-[260px] w-[260px] rounded-full lg:block"
               style={{ background: skin.glow, ...parseInlinePos(skin.glowPos) }}
             />
 
