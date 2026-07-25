@@ -1,16 +1,21 @@
 package io.signallq.app.ui.screen
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Devices
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,12 +26,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.signallq.app.core.diagnostico.DiagnosticStatus
+import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.component.ClienteConectadoUi
@@ -63,6 +71,20 @@ import io.signallq.app.ui.component.LkSurfaceCard
  * colapso agora é genérica — qualquer seção com mais de 2 itens nasce
  * colapsada, mostrando só os 2 primeiros (já os mais relevantes pra um
  * usuário não técnico, por ordem do mapper) — não mais amarrada ao título.
+ *
+ * ## Zona "Detalhes técnicos" — hairline em vez de fill (revisão Lia 2026-07-25)
+ * Wireframe aprovado pelo Luiz (direção de reorganização da hierarquia visual
+ * da tela, artifact `547faba7-3981-42d0-a82f-58e0eba64da8`): o card deixa de
+ * usar o mesmo fill pesado (`surfaceContainer`) da zona de resumo e passa a
+ * usar só borda hairline (`outlineVariant`) com fundo transparente — sinaliza
+ * "isto é referência de consulta", não destaque. Linhas de dado ganham
+ * divisor sutil entre si (`surfaceContainerHigh`, mesmo tom do token real por
+ * trás do `#2B2930` do wireframe) e algarismos tabulares. Quando colapsado, um
+ * rodapé "+ N campos ocultos" deixa explícito que há mais dado atrás do
+ * toggle — o wireframe usava um hex ilustrativo (`#37333F`/`#7A7488`) sem
+ * token 1:1 no app; mapeados para `outlineVariant`/`textTertiary`, os tokens
+ * reais mais próximos, em vez de introduzir hex novo (regra do design system:
+ * nunca hardcode fora de token).
  */
 @Composable
 internal fun ModuloTecnicoCard(
@@ -74,7 +96,7 @@ internal fun ModuloTecnicoCard(
     val toggleLabel = "Ver detalhes técnicos"
     var expandido by remember(secao.titulo) { mutableStateOf(secao.itens.size <= 2) }
 
-    LkSurfaceCard(modifier = modifier) {
+    LkSurfaceCardHairline(modifier = modifier, c = c) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(secao.icone, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(LkSpacing.xs))
@@ -101,10 +123,22 @@ internal fun ModuloTecnicoCard(
             Spacer(Modifier.height(4.dp))
         }
         itensVisiveis.forEachIndexed { index, item ->
-            DataRowCard(item = secao.normalizarItem(item), c = c)
-            if (index < itensVisiveis.lastIndex) {
-                Spacer(Modifier.height(6.dp))
-            }
+            DataRowCard(
+                item = secao.normalizarItem(item),
+                c = c,
+                estiloTecnico = true,
+                mostrarDivisorSuperior = index > 0,
+            )
+        }
+        if (!expandido && secao.itens.size > itensVisiveis.size) {
+            Text(
+                text = "+ ${secao.itens.size - itensVisiveis.size} campos ocultos",
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.labelSmall,
+                fontStyle = FontStyle.Italic,
+                color = c.textTertiary,
+                textAlign = TextAlign.End,
+            )
         }
         if (secao.clientes.isNotEmpty()) {
             secao.clientes.forEach { cliente ->
@@ -119,6 +153,25 @@ internal fun ModuloTecnicoCard(
     }
 }
 
+/** Container hairline (borda `outlineVariant`, fundo transparente) usado só pelos cards da
+ *  zona "Detalhes técnicos" — distinto do `LkSurfaceCard` (fill `surfaceContainer`) da zona de
+ *  resumo, ver KDoc de [ModuloTecnicoCard]. */
+@Composable
+private fun LkSurfaceCardHairline(
+    modifier: Modifier = Modifier,
+    c: LkTokens,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier =
+            modifier
+                .clip(RoundedCornerShape(LkRadius.card))
+                .border(1.dp, c.outlineVariant, RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.base),
+        content = content,
+    )
+}
+
 internal fun EquipamentoSecaoTecnica.normalizarItem(item: EquipamentoItemTecnico): EquipamentoItemTecnico =
     if (titulo == "Fibra óptica" && item.label == "Link óptico") {
         item.copy(label = "Conexão PON")
@@ -126,13 +179,27 @@ internal fun EquipamentoSecaoTecnica.normalizarItem(item: EquipamentoItemTecnico
         item
     }
 
+/** [estiloTecnico] só é usado pela zona "Detalhes técnicos" (ver [ModuloTecnicoCard]) —
+ *  aplica algarismos tabulares ao valor (linha de dado técnico do wireframe aprovado) e,
+ *  quando [mostrarDivisorSuperior] também é verdadeiro, desenha um hairline
+ *  `surfaceContainerHigh` acima da linha (toda linha exceto a primeira da seção). Ambos falsos
+ *  por padrão preservam o visual original nos demais consumidores (ex.: `DeviceInfoSectionCard`,
+ *  fora do escopo desta mudança). */
 @Composable
 internal fun DataRowCard(
     item: EquipamentoItemTecnico,
     c: LkTokens,
+    estiloTecnico: Boolean = false,
+    mostrarDivisorSuperior: Boolean = false,
 ) {
+    if (mostrarDivisorSuperior) {
+        HorizontalDivider(color = c.surfaceContainerHigh, thickness = 1.dp)
+    }
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .then(if (estiloTecnico) Modifier.padding(vertical = LkSpacing.sm) else Modifier),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top,
     ) {
@@ -148,7 +215,10 @@ internal fun DataRowCard(
         Text(
             text = item.valor,
             modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.labelLarge,
+            style =
+                MaterialTheme.typography.labelLarge.let {
+                    if (estiloTecnico) it.copy(fontFeatureSettings = "tnum") else it
+                },
             color = item.statusValor?.let { statusColor(it, c) } ?: c.textPrimary,
             textAlign = TextAlign.End,
             maxLines = 3,
