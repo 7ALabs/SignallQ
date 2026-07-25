@@ -60,6 +60,8 @@ export interface SpeedTestResult {
   dns: { latencyMs: number | null; resolverIp: string | null; provider: string | null }
   connectionType: string | null
   server: string
+  /** Tempo efetivamente decorrido nesta rodada, medido no navegador. */
+  durationMs?: number
   partial: boolean
   rounds?: Array<{ downloadMbps: number; uploadMbps: number; latencyMs: number }>
 }
@@ -302,6 +304,7 @@ export function createSpeedTest(mode: SpeedTestMode = 'rapido') {
   const markContaminated = () => { token.contaminated = true }
 
   const runSingle = async (singleMode: Exclude<SpeedTestMode, 'triplo'>, callbacks: Callbacks): Promise<SpeedTestResult> => {
+    const startedAt = performance.now()
     const config = SPEED_TEST_MODE_CONFIG[singleMode]
     const onPhase = callbacks.onPhase ?? (() => {})
     const onTick = callbacks.onTick ?? (() => {})
@@ -333,6 +336,7 @@ export function createSpeedTest(mode: SpeedTestMode = 'rapido') {
       stabilityScore: stability([...download.throughput.samples, ...upload.throughput.samples]), dns,
       connectionType: (navigator as Navigator & { connection?: { effectiveType?: string } }).connection?.effectiveType ?? null,
       server: SPEEDTEST_SERVER_LABEL, partial,
+      durationMs: Math.round(performance.now() - startedAt),
     }
   }
 

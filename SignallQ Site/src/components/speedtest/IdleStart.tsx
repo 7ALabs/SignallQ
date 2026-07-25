@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import type { SpeedTestMode } from '../../lib/speedEngine'
-import { ProBadge } from '../ProBadge'
 import { SegmentedControl } from '../SegmentedControl'
 
 // Alias de `SpeedTestMode` (definido em speedEngine.ts, fonte única do
@@ -25,10 +24,6 @@ const MODOS: Array<{ value: ModoTeste; label: string }> = [
 // ao abrir "/"). "Rápido" x "Completo" diferenciam de fato o rigor da medição
 // desde GH#1367 — ver `SPEED_TEST_MODE_CONFIG` em speedEngine.ts.
 //
-// "PRO" saiu do SegmentedControl (achado da Lia, revisão UX 2026-07-24): não
-// é um modo de teste — é upsell/navegação pro app SignallQ PRO, então
-// misturado com Rápido/Completo passava a falsa impressão de terceiro modo
-// de medição. Agora é um link/chip fixo abaixo, sem affordance de "modo".
 export function IdleStart({ modo, onModoChange, onIniciar }: IdleStartProps) {
   return (
     <div className="flex flex-col items-center gap-6 pt-8">
@@ -54,15 +49,8 @@ export function IdleStart({ modo, onModoChange, onIniciar }: IdleStartProps) {
         Servidor mais próximo · detectado automaticamente
       </div>
 
-      <Link
-        to="/pro"
-        className="flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 no-underline"
-        style={{ borderColor: 'color-mix(in srgb, var(--accent) 30%, transparent)', background: 'color-mix(in srgb, var(--accent) 8%, transparent)' }}
-      >
-        <span className="label-medium" style={{ color: 'var(--text-primary)' }}>
-          Diagnóstico profissional com laudo?
-        </span>
-        <ProBadge />
+      <Link to="/como-medimos" className="label-medium no-underline" style={{ color: 'var(--accent)' }}>
+        Como medimos sua conexão
       </Link>
     </div>
   )

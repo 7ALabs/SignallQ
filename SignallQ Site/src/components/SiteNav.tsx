@@ -1,21 +1,21 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useSystemTheme } from '../hooks/useSystemTheme'
-import { Badge } from './Badge'
 import { Logo } from './Logo'
-import { PlayStoreBadge } from './PlayStoreBadge'
-import { ProBadge } from './ProBadge'
 
-type RotaAtiva = 'home' | 'pro' | 'historico' | 'sobre' | 'privacidade' | 'termos'
+type RotaAtiva = 'home' | 'pro' | 'historico' | 'sobre' | 'privacidade' | 'termos' | 'como-medimos'
 
 interface SiteNavProps {
   active: RotaAtiva
   heroMode?: boolean
 }
 
-const ITENS_ANTES = [{ key: 'home' as const, label: 'Teste de velocidade', href: '/' }]
-const ITENS_DEPOIS = [
+const ITENS_ANTES = [
+  { key: 'home' as const, label: 'Teste', href: '/' },
   { key: 'historico' as const, label: 'Histórico', href: '/historico' },
+  { key: 'como-medimos' as const, label: 'Como funciona', href: '/como-medimos' },
+]
+const ITENS_DEPOIS = [
   { key: 'sobre' as const, label: 'Quem somos', href: '/quem-somos' },
   { key: 'privacidade' as const, label: 'Privacidade', href: '/privacidade' },
 ]
@@ -48,10 +48,6 @@ export function SiteNav({ active, heroMode = false }: SiteNavProps) {
               {link.label}
             </Link>
           ))}
-          <Link to="/pro" className={`flex items-center gap-1.5 pb-1 no-underline border-b-2 ${active === 'pro' ? 'border-[var(--accent)]' : 'border-transparent'}`}>
-            <Logo isDark={isDark} height={16} />
-            <ProBadge />
-          </Link>
           {ITENS_DEPOIS.map((link) => (
             <Link key={link.key} to={link.href} className={linkClass(link.key)}>
               {link.label}
@@ -59,10 +55,6 @@ export function SiteNav({ active, heroMode = false }: SiteNavProps) {
           ))}
         </div>
 
-        <div className="hidden flex-shrink-0 items-center gap-2 min-[920px]:flex">
-          <PlayStoreBadge height={40} source="nav" />
-          <Badge>Beta</Badge>
-        </div>
 
         <button
           aria-label={mobileOpen ? 'Fechar menu' : 'Abrir menu'}
@@ -93,15 +85,6 @@ export function SiteNav({ active, heroMode = false }: SiteNavProps) {
                 {link.label}
               </Link>
             ))}
-            <Link
-              to="/pro"
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-2 border-b py-3.5 no-underline"
-              style={{ borderColor: 'color-mix(in srgb, var(--border) 20%, transparent)' }}
-            >
-              <Logo isDark={isDark} height={20} />
-              <ProBadge />
-            </Link>
             {ITENS_DEPOIS.map((link) => (
               <Link
                 key={link.key}
@@ -113,10 +96,6 @@ export function SiteNav({ active, heroMode = false }: SiteNavProps) {
                 {link.label}
               </Link>
             ))}
-          </div>
-          <div className="mt-8 flex items-center gap-3">
-            <PlayStoreBadge height={48} source="nav-mobile" />
-            <Badge>Beta</Badge>
           </div>
         </div>
       )}
