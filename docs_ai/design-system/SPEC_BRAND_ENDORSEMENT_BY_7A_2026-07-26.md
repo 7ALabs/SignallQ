@@ -1,14 +1,15 @@
 # Spec — Componente `BrandEndorsement` ("by 7A")
 
-- **Status:** parcialmente implementado (Admin/React e Site/React feitos; Android pendente — ver seção 6)
-- **Última validação:** 2026-07-26 (atualizado por Bruno — cobertura do Site institucional)
+- **Status:** parcialmente implementado (Admin/React e Site/React feitos, com símbolo real desde
+  2026-07-26; Android pendente — ver seção 6)
+- **Última validação:** 2026-07-26 (atualizado por Bruno — wiring do símbolo real recebido do Luiz)
 - **Fonte de verdade:** este arquivo
 - **Escopo:** componente de assinatura institucional "by 7A", superfícies do SignallQ Admin
   (implementado), SignallQ Site (implementado), SignallQ Consumer e SignallQ PRO (spec para o
   Camilo implementar em Compose)
-- **Responsável:** Marina (spec + implementação Admin), Bruno (implementação Site, reforço
-  pontual — ver `.claude/CLAUDE.md`, "Bruno emprestado do Agente Virtual"), Camilo (implementação
-  Android)
+- **Responsável:** Marina (spec + implementação Admin), Bruno (implementação Site + wiring do
+  símbolo real em Admin e Site, reforço pontual — ver `.claude/CLAUDE.md`, "Bruno emprestado do
+  Agente Virtual"), Camilo (implementação Android)
 - **Issue:** [#1376](https://github.com/7ALabs/SignallQ/issues/1376)
 - **Decisão de marca de origem:** `7ALabs/.github/BRAND.md` (decisão já aprovada pelo Luiz,
   citada na própria issue — não reaberta aqui)
@@ -27,23 +28,23 @@
 - Nunca em: Home, navegação principal, todos os cards, durante o Speedtest (Consumer); dashboards,
   tabelas e telas operacionais (Admin).
 
-## 2. Achado bloqueante — símbolo 7A não existe como asset
+## 2. Símbolo 7A — resolvido em 2026-07-26
 
-A issue e o `BRAND.md` pedem "uso preferencial do símbolo 7A existente", mas **não existe hoje
-nenhum arquivo de símbolo 7A** — nem em `brand/` (que só tem os assets do símbolo **SignallQ**,
-4 barras, ver `brand/README.md`), nem em `7ALabs/.github` (que só tem `BRAND.md`, texto, sem
-pasta de assets). Não fabriquei/desenhei um símbolo — isso violaria a regra de "não redesenhar,
-não recriar em CSS/SVG à mão" que já vale para os assets SignallQ e vale por analogia para
-qualquer marca 7A Labs.
+Bloqueio original: a issue e o `BRAND.md` pedem "uso preferencial do símbolo 7A existente", mas até
+2026-07-25 não existia nenhum arquivo de símbolo 7A no repo nem em `7ALabs/.github`. Não foi
+fabricado/desenhado um símbolo à mão nesse período — só a variante somente texto foi shippada
+inicialmente.
 
-**Decisão tomada:** implementar e shippar apenas a variante **somente texto** agora. A variante
-**símbolo + texto** existe na API do componente (prop `variant="symbol-text"` + `symbolSrc`), mas
-sem `symbolSrc` informado ela cai automaticamente para texto — nunca renderiza um símbolo
-inventado.
+**Resolvido:** o Luiz forneceu o asset vetorial real (`brand/7alabs-symbol-dark.svg` /
+`7alabs-symbol-light.svg`, viewBox `267 164 763 653`, ~1.17:1 — não quadrado). Ver
+`brand/README.md`, seção "Símbolo institucional 7A". Cópias locais em
+`SignallQ Admin/public/brand/7a/symbol-{dark,light}.svg` e
+`SignallQ Site/public/brand/7alabs-symbol-{dark,light}.svg` (nomenclatura de cada cópia segue a
+convenção de `public/brand/` já usada por cada app).
 
-**Pendência real, não decisão minha:** o Luiz (ou quem gerar o asset) precisa produzir o símbolo
-7A vetorial (SVG preferencialmente) e colocá-lo em `brand/7a/` (novo diretório, mesmo padrão de
-`brand/README.md`) antes que a variante símbolo+texto possa ser usada em qualquer produto.
+`BrandEndorsement` agora resolve `symbolSrc` sozinho por tema (default), sem exigir que quem chama
+passe o caminho manualmente — `symbolSrc` continua existindo só como override explícito. Detalhe
+por app nas seções 3 e 4b.
 
 ## 3. Componente React/TS (implementado)
 
@@ -53,7 +54,8 @@ inventado.
 interface BrandEndorsementProps {
   variant?: "text" | "symbol-text";   // default "text"
   size?: "compact" | "default";        // default "default"
-  symbolSrc?: string;                  // caminho do símbolo 7A, quando existir
+  theme?: "dark" | "light";            // default: detectado sozinho (data-theme do doc, fallback matchMedia)
+  symbolSrc?: string;                  // override explícito do caminho padrão, opcional
   className?: string;
   id?: string;
 }
@@ -65,21 +67,31 @@ interface BrandEndorsementProps {
   Admin, já theme-aware (muda sozinho entre claro/escuro, confirmado em `index.css`), garante
   contraste discreto sem precisar de hex hardcoded por tema.
 - **Peso:** "by" = 400 (normal), "7A" = 700 (bold) + `letter-spacing: 0.02em`.
-- **Acessibilidade:** quando `symbolSrc` está presente, o `<img>` leva `alt=""` +
-  `aria-hidden="true"` (decorativo — o texto ao lado já carrega o significado). O texto "by 7A"
-  nunca é ocultado de leitor de tela — é o próprio conteúdo informativo, não decoração.
+- **Símbolo (2026-07-26):** quando `variant="symbol-text"`, resolve `symbolSrc` sozinho a partir
+  de `theme` — mesma convenção de prop `theme: "dark" | "light"` já usada por
+  `Sidebar`/`NavRail`/`BottomNav`/`Topbar` (vem de `useTheme()` em `App.tsx`). Se `theme` não for
+  passado, detecta via `document.documentElement.getAttribute("data-theme")` (já aplicado por
+  `useTheme()`) com fallback para `prefers-color-scheme`. `symbolSrc` continua existindo só como
+  override explícito de um caminho específico.
+- **Proporção do símbolo:** viewBox real `763x653` (~1.17:1, não quadrado) — o `<img>` fixa
+  `height` por tamanho (`12px`/`14px`) e usa `width: "auto"`, deixando o navegador preservar a
+  proporção intrínseca do SVG em vez de forçar quadrado.
+- **Acessibilidade:** o `<img>` do símbolo leva `alt=""` + `aria-hidden="true"` (decorativo — o
+  texto ao lado já carrega o significado). O texto "by 7A" nunca é ocultado de leitor de tela — é
+  o próprio conteúdo informativo, não decoração.
 - Sem dependência nova — só `React`, consistente com o requisito da issue de não adicionar
   dependência externa só para a assinatura.
 
-Teste: `BrandEndorsement.test.tsx` (4 casos — render texto, fallback de symbol-text sem
-`symbolSrc`, símbolo decorativo com `symbolSrc`, `id`/`className` customizados).
+Teste: `BrandEndorsement.test.tsx` (7 casos — render texto, resolução do símbolo real por tema
+["dark"/"light"], proporção não quadrada, símbolo decorativo, override de `symbolSrc`,
+`id`/`className` customizados).
 
 ## 4. Onde entra no Admin (implementado)
 
 | Superfície | Arquivo | Tamanho | Observação |
 |---|---|---|---|
-| Login | `src/auth/LoginPage.tsx` | `default` | Abaixo do formulário, `mt-10`, hierarquia baixa — não compete com o wordmark "SignallQ Admin" do topo. |
-| Rodapé institucional | `src/components/layout/Sidebar.tsx` | `compact` | Instância única, dentro do bloco de rodapé já existente (usuário + tema), separada por `border-top`. Chrome persistente (não é conteúdo de tela, não "repete por tela" no sentido da regra da issue). Só existe hoje no breakpoint desktop (`Sidebar`, `lg:`+) — ver pendência na seção 5. |
+| Login | `src/auth/LoginPage.tsx` | `default` | Abaixo do formulário, `mt-10`, hierarquia baixa — não compete com o wordmark "SignallQ Admin" do topo. `variant="symbol-text"` desde 2026-07-26; `theme` recebido de `App.tsx` (mesmo state de `useTheme()`, adicionado como prop nova de `LoginPage` — antes não era repassado). |
+| Rodapé institucional | `src/components/layout/Sidebar.tsx` | `compact` | Instância única, dentro do bloco de rodapé já existente (usuário + tema), separada por `border-top`. Chrome persistente (não é conteúdo de tela, não "repete por tela" no sentido da regra da issue). Só existe hoje no breakpoint desktop (`Sidebar`, `lg:`+) — ver pendência na seção 5. `variant="symbol-text"` desde 2026-07-26; `theme` já existia como prop de `Sidebar`, só passado adiante. |
 
 ## 4b. Componente React/TS no Site (implementado, Bruno)
 
@@ -92,15 +104,23 @@ do que cabe a este dispatch pontual. Usa os tokens equivalentes do Site (`var(--
 `var(--font-sans)`, ambos vindos do mesmo `packages/design-system/styles/tokens.css` importado por
 `src/index.css`), garantindo o mesmo comportamento theme-aware do Admin.
 
-Teste: `BrandEndorsement.test.tsx` (mesmos 4 casos do Admin).
+Teste: `BrandEndorsement.test.tsx` (mesmos 7 casos do Admin, adaptados à prop `isDark: boolean` em
+vez de `theme: "dark" | "light"` — ver nota de convenção abaixo).
+
+**Convenção de tema divergente do Admin, intencional:** o Site já tinha o padrão `isDark: boolean`
+estabelecido por `Logo.tsx` (recebe o booleano já resolvido do chamador, que por sua vez chama
+`useSystemTheme()` uma única vez) — `BrandEndorsement` do Site segue essa mesma convenção em vez de
+`theme: "dark" | "light"` do Admin, para não introduzir um segundo mecanismo de tema no mesmo app.
+Default `isDark = false` (claro), igual ao default de `Logo`.
 
 **Onde entra:** rodapé institucional (`src/components/SiteFooter.tsx`), nas 3 densidades
 responsivas (mobile/compact/full) — já existia texto plano "by 7A" na linha de copyright
 (`COPYRIGHT`), substituído pelo componente porque o texto corrido não expressava a hierarquia
 visual aprovada ("by" peso normal, "7A" peso maior). Tamanho `compact`, chrome persistente (rodapé
 de todas as páginas do site), não é "repetir em toda tela" no sentido da regra da issue — é a
-mesma lógica já aceita para o rodapé do Sidebar no Admin. Símbolo 7A não aplicado (mesmo bloqueio
-da seção 2 — asset não existe).
+mesma lógica já aceita para o rodapé do Sidebar no Admin. `variant="symbol-text"` + `isDark`
+(reaproveitando o `isDark` que `SiteFooter` já calcula via `useSystemTheme()` para o `Logo`) desde
+2026-07-26.
 
 Testes ajustados: `SiteFooter.test.tsx` — a asserção de texto corrido do copyright foi dividida em
 4 fragmentos (`getAllByText` para prefixo, "by", "7A" e sufixo), já que o texto passou a ser
@@ -154,22 +174,24 @@ o Composable, para reduzir ambiguidade na implementação:
 - **Onde entra (PRO):** tela Ajustes/Sobre, créditos/versão, rodapé do laudo PDF com hierarquia
   abaixo da marca/dados do profissional — formulação sugerida pela issue: `Gerado com SignallQ
   PRO · by 7A`.
-- **Bloqueio compartilhado:** o mesmo problema da seção 2 vale aqui — sem o asset do símbolo 7A,
-  Consumer e PRO também só podem shippar a variante texto por enquanto.
+- **Asset do símbolo já existe (seção 2 resolvida):** Consumer e PRO podem usar o mesmo
+  `brand/7alabs-symbol-{dark,light}.svg` — falta só o Composable e o wiring, não o asset.
 
-## 7. Critérios de aceitação da issue — status desta entrega (só Admin)
+## 7. Critérios de aceitação da issue — status desta entrega (Admin + Site)
 
 - [x] Componente documentado no Design System (este arquivo).
-- [x] Usa só o texto "by 7A" — não introduz símbolo/identidade nova (bloqueio da seção 2 impede
-      a variante símbolo+texto por enquanto, decisão consciente, não gap silencioso).
+- [x] Símbolo real 7A implementado em Admin e Site (variante `symbol-text` ativa em login, rodapé
+      do Sidebar e rodapé do Site) — resolvido sozinho por tema, sem exigir caminho manual do
+      chamador (seção 2).
 - [ ] SignallQ Consumer — fora de escopo deste dispatch (Camilo).
 - [ ] SignallQ PRO — fora de escopo deste dispatch (Camilo).
 - [x] SignallQ Admin exibe a assinatura no login e no rodapé sem poluir dashboards/tabelas.
       Seção "Sobre/versão" pendente — ver seção 5 (decisão de produto necessária antes de
       implementar, não é um "esqueci").
-- [x] Temas claro e escuro — usa token já theme-aware (`--sq-text-tertiary`), validado lendo
-      `index.css` (blocos `:root`/`.light`), não foi possível captura visual ao vivo nesta sessão
-      (sem servidor rodando) — recomendo o Rhodolfo confirmar visualmente no gate de QA.
+- [x] Temas claro e escuro — cor do texto usa token já theme-aware (`--sq-text-tertiary`); símbolo
+      troca de arquivo por tema (`theme`/`isDark`), coberto por teste automatizado nos dois apps.
+      Sem ambiente de browser disponível nesta sessão para captura de screenshot ao vivo —
+      recomendo o Rhodolfo confirmar visualmente no gate de QA.
 - [x] Acessibilidade — símbolo decorativo oculto de leitor de tela quando presente; texto sempre
       acessível. Coberto por teste automatizado.
 - [x] Sem aumento de tempo de inicialização — componente é `span`/`img` estático, sem
