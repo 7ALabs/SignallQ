@@ -115,4 +115,17 @@ class FirebaseAnalyticsTracker
                 },
             )
         }
+
+        // GH#1480 (Epico #1347, F4) — feature_id e sempre um identificador curto de modulo
+        // (ex.: "wifi", "dns"), nunca a chave completa do catalogo nem dado de usuario.
+        override fun registrarFeatureBloqueadaRemota(featureId: String) {
+            firebaseAnalytics.logEvent(
+                "feature_blocked_remote",
+                Bundle().apply {
+                    putString("feature_id", featureId)
+                    putString("session_id", sessionId)
+                    putString("app_version", appVersion)
+                },
+            )
+        }
     }

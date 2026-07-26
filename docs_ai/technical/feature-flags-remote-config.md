@@ -7,8 +7,9 @@
   `android/core/featureflags/src/main/resources/featureflags/consumer-catalog.json` — não copiado
   aqui além de exemplos ilustrativos.
 - **Escopo:** módulo Android `:core:featureflags` (issue #1477, Épico #1347) — catálogo tipado,
-  `FeatureFlagProvider`, integração com Firebase Remote Config. **Não cobre** a UI do SignallQ
-  Admin (F3/#1479, ainda não implementada) — nem os dois sistemas de feature flags mais antigos do
+  `FeatureFlagProvider`, integração com Firebase Remote Config — **mais F4/#1480** (instrumentação
+  das 9 flags principais de módulo em `AppShell.kt`, ver seção 10). **Não cobre** a UI do SignallQ
+  Admin (F3/#1479, protótipo apenas) — nem os dois sistemas de feature flags mais antigos do
   repositório (compile-time `FeatureFlags.kt` e o remoto legado SIG-13
   `FeatureFlagManager`/`FeatureFlagRepository`), documentados em `docs_ai/TECNICO.md` §5.2 e
   `docs_ai/functional/FEATURE_FLAGS.md`. O backend do Admin (F2/#1478,
@@ -17,7 +18,7 @@
   JSON cross-diretório, embarcado no bundle a cada `wrangler deploy`) — contrato completo em
   `docs_ai/CONTRATOS/openapi/signallq-admin-api.yaml`.
 - **Responsável:** Camilo (implementação Android e backend do Admin). Consumidor pendente: Marina
-  (F3, UI Admin), Camilo/outro (F4, instrumentação dos 9 módulos feature).
+  (F3, UI Admin real — hoje só protótipo estático).
 
 ---
 
@@ -28,9 +29,11 @@ tipado versionado no repositório e um único ponto de acesso (`FeatureFlagProvi
 Firebase Remote Config, para que o SignallQ Admin (fases futuras) possa governar remotamente
 funcionalidades do Consumer sem exigir nova publicação de app.
 
-Esta Feature (#1477) entrega só a fundação: módulo, contratos, catálogo com 2 flags de
-smoke-test. **Não** instrumenta os 9 módulos `feature/*` reais (isso é F4/#1480) nem o backend/UI
-do Admin (F2/#1478, F3/#1479).
+Esta Feature (#1477) entregou só a fundação: módulo, contratos, catálogo com 2 flags de
+smoke-test. F4 (#1480, ver seção 10) instrumentou as 9 flags principais de módulo de verdade em
+`AppShell.kt` — o catálogo tem 10 entradas desde então (as 2 de #1477 + as 8 novas; a 9ª chave
+principal, `consumer.speedtest.enabled`, já existia como smoke-test e passou a `androidImplemented:
+true`). Backend/UI do Admin (F2/#1478, F3/#1479) continuam fora do escopo deste documento.
 
 ---
 
@@ -195,11 +198,95 @@ Feature, não desta.
 - **Dois `FeatureFlagProvider` com o mesmo nome simples** (legado `core.network` vs. novo
   `core.featureflags`) é uma fonte real de confusão para quem for tocar `AppModule.kt` no futuro —
   mitigado com KDoc explícito nos dois pontos e o alias `LegacyHttpFeatureFlagProvider`, mas
-  **não** resolve a raiz (dois sistemas paralelos coexistindo). F4/#1480 deve avaliar
-  deprecar/remover o sistema SIG-13 depois que os consumidores migrarem — não decidido nesta
-  Feature.
+  **não** resolve a raiz (dois sistemas paralelos coexistindo). F4/#1480 instrumentou as 9 flags de
+  módulo sobre o sistema novo, mas **não migrou** o único consumidor do sistema legado
+  (`DiagnosticDivergenceReporter`) — fica como dívida registrada, não decidida ainda.
 - **Atualização em tempo real (`addOnConfigUpdateListener`)** listada no Épico como responsabilidade
   de `:core:featureflags` **não foi implementada** nesta Feature — os critérios de aceite de #1477
   não exigem, e adicionar um listener sem um caso de uso real pra testar geraria código não
   exercitado. Extensível sem quebra de contrato público (`FeatureFlagProvider` não muda) quando
-  virar necessário.
+  virar necessário. F4/#1480 cobre "mudanças em runtime" só até onde o `refresh()` existente
+  alcança (chamado uma vez no startup); sem o listener, uma publicação no Admin só reflete no app
+  depois do próximo `refresh()`, não instantaneamente.
+
+---
+
+## 10. F4/#1480 — instrumentação dos 9 módulos feature (Consumer)
+
+Cobriu as 9 flags principais de módulo listadas no Épico (`consumer.{modulo}.enabled`), todas
+`androidImplemented: true`, `disabledBehavior: HIDE_ENTRY_AND_BLOCK_ROUTE`, default `true`. Só a
+chave `enabled` de cada módulo — sub-flags mais finas (ex.: `consumer.diagnostico.ai_enabled`,
+`consumer.settings.privacidade_enabled`) não fazem parte desta Feature.
+
+**Onde vive a lógica:**
+- `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/AppShellFeatureGating.kt` — funções
+  puras (`tabHabilitada`, `tabModuleId`, `primeiraTabHabilitada`, `permitirOuBloquear`) + o
+  placeholder `FeatureDisabledContent`. Extraído de `AppShell.kt` (já dívida crítica em linhas) em
+  vez de crescer o arquivo ainda mais.
+- `android/app/src/main/kotlin/io/veloo/app/kotlin/featureflags/ConsumerFeatureGateCoordinator.kt`
+  — `@Singleton` que combina os 9 `FeatureFlagProvider.observe(...)` num único
+  `StateFlow<AppShellFeatureFlagsState>`, e centraliza o disparo de `feature_blocked_remote`.
+  `MainViewModel` só expõe `featureFlagsState` delegando pro coordinator (regra de higiene —
+  MainViewModel não ganha lógica nova).
+- `AppShellFeatureFlagsState` (em `AppShellState.kt`) — 9 booleanos + `onFeatureBlocked`, mesmo
+  padrão dos outros grupos de estado do AppShell (`AppShellSpeedtestState` etc.).
+
+**Mapeamento módulo → superfície de navegação:**
+
+Módulo | Superfície gateada em AppShell.kt
+---|---
+`:featureHome` | Tab 0 (Início)
+`:featureSpeedtest` | Tab 1 (Velocidade)
+`:featureWifi` | Tab 2 (Sinal) + `Overlay.SinalWifi`
+`:featureDevices` | `Overlay.Dispositivos`
+`:featureDns` | `Overlay.Dns`
+`:featureFibra` | `Overlay.Fibra` / `Overlay.EquipamentoInternet`
+`:featureDiagnostico` | `Overlay.Laudo`
+`:featureHistory` | Tab 3 (Histórico)
+`:featureSettings` | `Overlay.Perfil` (Ajustes) + `MonitoramentoSheet` + `MonitoramentoWorker.doWork()`
+
+Fora do escopo de gate por decisão explícita: `Overlay.Privacidade`/`Overlay.Termos` (obrigação
+legal/LGPD, nunca escondidas por flag — regra do próprio Épico), o hub `Overlay.Ferramentas`/tab 4
+(não pertence a um único módulo do catálogo), `Overlay.ModoGamer`/`Overlay.Ping`/
+`Overlay.DiagnosticoGuiado`/`Overlay.DetalhesTecnicos` (não nomeados nos 9 módulos da issue
+#1480 — `DiagnosticoGuiado`/`DetalhesTecnicos` ficam de fato sob a guarda indireta de
+`Overlay.ResultadoVelocidade`, que só abre após um speedtest bem-sucedido, já gateado
+indiretamente pela flag de `:featureSpeedtest`).
+
+**Comportamento ao desativar (`HIDE_ENTRY_AND_BLOCK_ROUTE`):**
+1. Tab: `NavigationBarItem(enabled = false)` — item fica visualmente apagado e não recebe clique
+   (Compose bloqueia o callback nesse estado, então não há "tentativa" de tap pra registrar).
+2. Overlay: a função `onAbrir*Overlay` correspondente checa a flag antes de empilhar — se
+   desligada, não empilha, registra `feature_blocked_remote` e mostra um `Snackbar` neutro
+   ("Recurso temporariamente indisponível.").
+3. Redirecionamento em runtime: se a tab atual perde a flag (Admin publicou remotamente enquanto o
+   usuário já estava nela), um `LaunchedEffect` redireciona para a primeira tab habilitada (ordem
+   de prioridade 1→0→2→3, `Ferramentas` como último recurso) e registra o bloqueio — único caminho
+   onde isso acontece sem tap explícito.
+4. `MonitoramentoWorker.doWork()` consulta `FeatureFlagProvider.isEnabled` diretamente (não passa
+   pelo coordinator, que é `:app`-only reativo) — se `consumer.settings.enabled` estiver desligado,
+   pula a execução (não mede, não persiste, não notifica) sem cancelar o agendamento do
+   WorkManager em si, e sem apagar histórico já salvo.
+
+**Deep links:** o app não tem nenhum deep link real hoje (`AndroidManifest.xml` só declara o
+intent-filter do launcher) — o critério "bloquear deep link" fica coberto por construção, porque
+todo `onAbrir*Overlay` já é o único ponto de entrada de navegação (inclusive de um deep link
+futuro que reusasse os mesmos callbacks).
+
+**Analytics:** `AnalyticsTracker.registrarFeatureBloqueadaRemota(featureId)` (novo método
+tipado, mesmo padrão de `registrarFeatureUsada`) — implementado em `FirebaseAnalyticsTracker`
+(GA4, evento `feature_blocked_remote` com `feature_id`/`session_id`/`app_version`, sem dado
+pessoal). `CompositeAnalyticsTracker` encaminha só ao Firebase, decisão documentada no próprio
+método — o ingest do `signallq-admin-worker` (`AnalyticsEventIngestPayload`) não ganhou campo
+equivalente nesta Feature (extensão de schema fica pra quando o Admin realmente for consumir esse
+evento).
+
+**Não coberto por F4/#1480 (fora do critério de aceite da issue, registrado aqui pra não se
+perder):**
+- Migração do consumidor legado SIG-13 (`DiagnosticDivergenceReporter`) para o sistema novo.
+- Gate de capacidades de `:core:*` (`coreNetwork`/discovery, `coreTelephony`, `coreRecommendation`)
+  — o Épico lista isso como parte da visão maior, mas fora do escopo textual de #1480 (só os 9
+  módulos `:feature:*`).
+- Sub-flags mais finas por módulo (ex.: `consumer.diagnostico.ai_enabled` pra bloquear só a
+  chamada de IA sem desligar o diagnóstico local inteiro).
+- F5 (#1480 bloqueia, não inclui): CI gate de consistência catálogo↔código↔Remote Config.

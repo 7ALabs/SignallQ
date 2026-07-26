@@ -43,6 +43,8 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
@@ -187,6 +189,8 @@ fun AppShell(
     diagnostico: AppShellDiagnosticoState,
     signallQ: AppShellSignallQState,
     ads: AppShellAdsState = AppShellAdsState(),
+    // GH#1480 (Epico #1347, F4) — gate de navegacao dos 9 modulos feature do Consumer.
+    featureFlags: AppShellFeatureFlagsState = AppShellFeatureFlagsState(),
     snapshotDns: SnapshotBenchmarkDns,
     history: List<HistoryPoint>,
     localIp: UiState<String>,
@@ -391,6 +395,20 @@ fun AppShell(
     val onAbrirMenu: () -> Unit = { drawerScope.launch { drawerState.open() } }
     val onFecharMenu: () -> Unit = { drawerScope.launch { drawerState.close() } }
 
+    // GH#1480 (Epico #1347, F4) — feedback neutro (SHOW_DISABLED_MESSAGE-like) quando uma
+    // rota/overlay e bloqueada por flag desligada. `bloquearRota` sempre registra
+    // feature_blocked_remote via featureFlags.onFeatureBlocked antes de decidir o retorno
+    // (ver AppShellFeatureGating.kt) — nunca chamar onFeatureBlocked direto nos call sites.
+    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = rememberCoroutineScope()
+    val bloquearRota: (Boolean, String) -> Boolean = { habilitada, moduleId ->
+        val permitido = featureFlags.permitirOuBloquear(habilitada, moduleId)
+        if (!permitido) {
+            snackbarScope.launch { snackbarHostState.showSnackbar("Recurso temporariamente indisponível.") }
+        }
+        permitido
+    }
+
     // Implementacao mock (GH#526/#530) — autenticacao real no equipamento (HTTP/TR-064 por
     // fabricante/firmware) segue fora deste escopo. Existe so para a sheet e a autoconexao
     // funcionarem hoje, sem acoplar a UI a uma implementacao concreta.
@@ -427,21 +445,31 @@ fun AppShell(
     // GH#930 — Fase 1 MD3: Ajustes saiu da tab bar (virou "Perfil", 5a tab agora e Ferramentas).
     // Unico ponto de entrada agora e o avatar no TopBar das outras telas, empilhado como overlay.
     val onAbrirPerfilOverlay: () -> Unit = {
-        if (Overlay.Perfil !in overlayStack) overlayStack.add(Overlay.Perfil)
+        if (bloquearRota(featureFlags.settingsEnabled, ConsumerFeatureModuleIds.SETTINGS) &&
+            Overlay.Perfil !in overlayStack
+        ) {
+            overlayStack.add(Overlay.Perfil)
+        }
     }
 
     // GH#936 — Fase 7 MD3 (5f): "Monitoramento" agora é sheet dedicado (MonitoramentoSheet.kt),
     // hoisted aqui pra ser destino único do atalho no hub Ferramentas e da linha equivalente
     // dentro de Perfil/Ajustes — nenhum dos dois reimplementa os toggles.
     var showMonitoramentoSheet by remember { mutableStateOf(false) }
-    val onAbrirMonitoramentoOverlay: () -> Unit = { showMonitoramentoSheet = true }
+    val onAbrirMonitoramentoOverlay: () -> Unit = {
+        if (bloquearRota(featureFlags.settingsEnabled, ConsumerFeatureModuleIds.SETTINGS)) {
+            showMonitoramentoSheet = true
+        }
+    }
 
     // Destino provisorio da conexao ao gateway — FibraModemScreen ja le sinal do modem, mas
     // NAO e a tela de detalhe definitiva do GPON/Roteador (isso e SIG-357, ainda nao existe).
     // Reusada por ambos entry points (nó do gateway na Home e linha do roteador em Ajustes).
     val onAbrirGatewayDetalhe: () -> Unit = {
-        onReconectarFibra(modemHost ?: "", modemUsername, modemPassword)
-        if (Overlay.Fibra !in overlayStack) overlayStack.add(Overlay.Fibra)
+        if (bloquearRota(featureFlags.fibraEnabled, ConsumerFeatureModuleIds.FIBRA)) {
+            onReconectarFibra(modemHost ?: "", modemUsername, modemPassword)
+            if (Overlay.Fibra !in overlayStack) overlayStack.add(Overlay.Fibra)
+        }
     }
 
     // GH#1099 — CTA "Configure o acesso ao equipamento" (EquipamentoInternetScreen, estado
@@ -457,13 +485,21 @@ fun AppShell(
     // (Home, SpeedTest, Ajustes) e os novos atalhos do hub Ferramentas — evita duplicar a
     // mesma lógica de push/pop em dois lugares.
     val onAbrirDispositivosOverlay: () -> Unit = {
-        if (Overlay.Dispositivos !in overlayStack) overlayStack.add(Overlay.Dispositivos)
+        if (bloquearRota(featureFlags.devicesEnabled, ConsumerFeatureModuleIds.DEVICES) &&
+            Overlay.Dispositivos !in overlayStack
+        ) {
+            overlayStack.add(Overlay.Dispositivos)
+        }
     }
     val onAbrirPingOverlay: () -> Unit = {
         if (Overlay.Ping !in overlayStack) overlayStack.add(Overlay.Ping)
     }
     val onAbrirLaudoOverlay: () -> Unit = {
-        if (Overlay.Laudo !in overlayStack) overlayStack.add(Overlay.Laudo)
+        if (bloquearRota(featureFlags.diagnosticoEnabled, ConsumerFeatureModuleIds.DIAGNOSTICO) &&
+            Overlay.Laudo !in overlayStack
+        ) {
+            overlayStack.add(Overlay.Laudo)
+        }
     }
     // Issue #1487 — o card "Jogos" em Ferramentas passou a abrir o Modo gamer fundido
     // (Overlay.ModoGamer) em vez do fluxo legado (Overlay.Jogos, removida). Mesmo overlay das
@@ -476,25 +512,37 @@ fun AppShell(
     }
     // GH#1201 — nova ferramenta "Sinal WiFi" no hub Ferramentas.
     val onAbrirSinalWifiOverlay: () -> Unit = {
-        if (Overlay.SinalWifi !in overlayStack) overlayStack.add(Overlay.SinalWifi)
+        if (bloquearRota(featureFlags.wifiEnabled, ConsumerFeatureModuleIds.WIFI) &&
+            Overlay.SinalWifi !in overlayStack
+        ) {
+            overlayStack.add(Overlay.SinalWifi)
+        }
     }
     val onAbrirDnsOverlay: () -> Unit = {
-        if (Overlay.Dns !in overlayStack) overlayStack.add(Overlay.Dns)
+        if (bloquearRota(featureFlags.dnsEnabled, ConsumerFeatureModuleIds.DNS) &&
+            Overlay.Dns !in overlayStack
+        ) {
+            overlayStack.add(Overlay.Dns)
+        }
     }
     // Stub Fase 1 (#930) reaproveitado pela Fase 4 — mesma engine/estado do "Fibra" já usado
     // pelo nó do gateway na Home, so que empilhando Overlay.EquipamentoInternet (nome
     // definitivo, ver TODO da Fase 5/#934 mais abaixo).
     val onAbrirEquipamentoInternetOverlay: () -> Unit = {
-        onReconectarFibra(modemHost ?: "", modemUsername, modemPassword)
-        if (Overlay.EquipamentoInternet !in overlayStack) overlayStack.add(Overlay.EquipamentoInternet)
+        if (bloquearRota(featureFlags.fibraEnabled, ConsumerFeatureModuleIds.FIBRA)) {
+            onReconectarFibra(modemHost ?: "", modemUsername, modemPassword)
+            if (Overlay.EquipamentoInternet !in overlayStack) overlayStack.add(Overlay.EquipamentoInternet)
+        }
     }
     // GH#1031 — "Ver detalhes do Wi-Fi" na EquipamentoInternetScreen: aba Sinal é o único
     // lugar do app com detalhe real de Wi-Fi (RSSI, banda, varredura) — fecha o(s) overlay(s)
     // de equipamento e troca de aba em vez de empilhar mais um overlay.
     val onVerDetalhesWifiDoEquipamento: () -> Unit = {
-        overlayStack.remove(Overlay.Fibra)
-        overlayStack.remove(Overlay.EquipamentoInternet)
-        selectedTab = 2
+        if (bloquearRota(featureFlags.wifiEnabled, ConsumerFeatureModuleIds.WIFI)) {
+            overlayStack.remove(Overlay.Fibra)
+            overlayStack.remove(Overlay.EquipamentoInternet)
+            selectedTab = 2
+        }
     }
 
     // Callback unico chamado quando a GatewayConnectionSheet conecta com sucesso, em qualquer
@@ -535,6 +583,18 @@ fun AppShell(
     LaunchedEffect(selectedTab) {
         if (selectedTab == 1) onVerificarGemma()
         tabScreenNames.getOrNull(selectedTab)?.let { onScreenView(it) }
+    }
+
+    // GH#1480 (Epico #1347, F4) — a tab atual perdeu a flag em runtime (Admin desligou
+    // remotamente enquanto o usuario ja estava nela, ou o cold-start caiu numa tab
+    // desabilitada por padrao) -- redireciona pra primeira tab habilitada e registra o
+    // bloqueio (unico caminho onde isso acontece sem tap explicito, ja que a tab bar
+    // em si fica desabilitada/nao-clicavel para o resto dos casos).
+    LaunchedEffect(featureFlags, selectedTab) {
+        if (!featureFlags.tabHabilitada(selectedTab)) {
+            tabModuleId(selectedTab)?.let { featureFlags.onFeatureBlocked(it) }
+            selectedTab = featureFlags.primeiraTabHabilitada()
+        }
     }
 
     LaunchedEffect(snapshotSpeedtest.estado) {
@@ -601,13 +661,16 @@ fun AppShell(
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
                 containerColor = c.bgPrimary,
+                snackbarHost = { SnackbarHost(snackbarHostState) },
                 bottomBar = {
                     if (snapshotSpeedtest.estado != EstadoExecucaoSpeedtest.executando) {
                         AppBottomNavBar(
                             c = c,
                             selectedTab = selectedTab,
                             testeAtivo = testeAtivo,
+                            featureFlags = featureFlags,
                             onTabSelected = { selectedTab = it },
+                            onTabBloqueada = { moduleId -> bloquearRota(false, moduleId) },
                         )
                     }
                 },
@@ -1403,7 +1466,11 @@ private fun AppBottomNavBar(
     c: LkTokens,
     selectedTab: Int,
     testeAtivo: Boolean = false,
+    featureFlags: AppShellFeatureFlagsState = AppShellFeatureFlagsState(),
     onTabSelected: (Int) -> Unit,
+    // GH#1480 — clique numa tab desabilitada (flag desligada) cai aqui em vez de trocar
+    // de tab: registra feature_blocked_remote, nunca navega pra um modulo desligado.
+    onTabBloqueada: (moduleId: String) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -1412,11 +1479,23 @@ private fun AppBottomNavBar(
             containerColor = c.surfaceContainer,
             tonalElevation = 0.dp,
         ) {
-            AppNavItem(c, selectedTab, 0, "Início", "home", onTabSelected)
-            AppNavItem(c, selectedTab, 1, "Velocidade", "speed", onTabSelected, showBadge = testeAtivo)
-            AppNavItem(c, selectedTab, 2, "Sinal", "wifi", onTabSelected)
-            AppNavItem(c, selectedTab, 3, "Histórico", "history", onTabSelected)
-            AppNavItem(c, selectedTab, 4, "Ferramentas", "build", onTabSelected)
+            AppNavItem(c, selectedTab, 0, "Início", "home", featureFlags.homeEnabled, onTabSelected, onTabBloqueada)
+            AppNavItem(
+                c,
+                selectedTab,
+                1,
+                "Velocidade",
+                "speed",
+                featureFlags.speedtestEnabled,
+                onTabSelected,
+                onTabBloqueada,
+                showBadge = testeAtivo,
+            )
+            AppNavItem(c, selectedTab, 2, "Sinal", "wifi", featureFlags.wifiEnabled, onTabSelected, onTabBloqueada)
+            AppNavItem(c, selectedTab, 3, "Histórico", "history", featureFlags.historyEnabled, onTabSelected, onTabBloqueada)
+            // Ferramentas (indice 4) nunca e gateada — hub de atalhos, nao pertence a um
+            // unico modulo do catalogo (ver AppShellFeatureGating.kt).
+            AppNavItem(c, selectedTab, 4, "Ferramentas", "build", true, onTabSelected, onTabBloqueada)
         }
     }
 }
@@ -1428,7 +1507,9 @@ private fun RowScope.AppNavItem(
     index: Int,
     label: String,
     symbolName: String,
+    habilitada: Boolean,
     onTabSelected: (Int) -> Unit,
+    onTabBloqueada: (moduleId: String) -> Unit,
     showBadge: Boolean = false,
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "badgePulse")
@@ -1444,7 +1525,14 @@ private fun RowScope.AppNavItem(
     )
     NavigationBarItem(
         selected = selectedTab == index,
-        onClick = { onTabSelected(index) },
+        enabled = habilitada,
+        onClick = {
+            if (habilitada) {
+                onTabSelected(index)
+            } else {
+                tabModuleId(index)?.let(onTabBloqueada)
+            }
+        },
         icon = {
             BadgedBox(badge = {
                 if (showBadge) Badge(modifier = Modifier.graphicsLayer { alpha = badgePulseAlpha })

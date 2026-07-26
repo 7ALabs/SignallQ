@@ -22,10 +22,12 @@ import { FakeD1Database, buildEnv, createFakeFirebase, withMockedFetch } from '.
 const ADMIN_SESSION = { userId: 'admin-1', role: 'admin' }
 const VIEWER_SESSION = { userId: 'viewer-1', role: 'viewer' }
 
-// As duas flags reais do catálogo (#1477) — usadas em vez de fixtures sintéticas pra provar que
-// o backend valida contra o arquivo de verdade, não um mock do catálogo.
+// Flags reais do catálogo (#1477 + #1480) — usadas em vez de fixtures sintéticas pra provar que
+// o backend valida contra o arquivo de verdade, não um mock do catálogo. Catálogo tem 10 entradas
+// desde #1480 (F4): as 2 originais de #1477 + as 8 chaves principais de módulo instrumentadas.
 const MEDIUM_KEY = 'consumer.speedtest.cloudflare_engine_enabled' // criticality MEDIUM
 const HIGH_KEY = 'consumer.speedtest.enabled' // criticality HIGH
+const CATALOG_FLAG_COUNT = 10
 
 function jsonRequest(url: string, body: unknown, init: { method?: string; headers?: Record<string, string> } = {}): Request {
   return new Request(url, {
@@ -35,10 +37,10 @@ function jsonRequest(url: string, body: unknown, init: { method?: string; header
   })
 }
 
-test('catálogo canônico expõe as 2 flags reais do #1477', () => {
+test('catálogo canônico expõe as flags reais do #1477/#1480', () => {
   const catalog = loadFeatureFlagCatalog()
   assert.equal(catalog.schemaVersion, '1.0')
-  assert.equal(catalog.flags.length, 2)
+  assert.equal(catalog.flags.length, CATALOG_FLAG_COUNT)
   assert.ok(catalog.flags.some((f) => f.key === HIGH_KEY))
 })
 
@@ -48,8 +50,8 @@ test('GET /feature-flags/catalog serve o catálogo real', async () => {
   const resp = await handleFeatureFlagsCatalogGet(new Request('https://x/admin/firebase/feature-flags/catalog'), env, ADMIN_SESSION)
   const payload = await resp.json() as { flagCount: number; adminManagedCount: number; flags: Array<{ key: string }> }
   assert.equal(resp.status, 200)
-  assert.equal(payload.flagCount, 2)
-  assert.equal(payload.adminManagedCount, 2)
+  assert.equal(payload.flagCount, CATALOG_FLAG_COUNT)
+  assert.equal(payload.adminManagedCount, CATALOG_FLAG_COUNT)
   assert.ok(payload.flags.some((f) => f.key === MEDIUM_KEY))
 })
 
@@ -308,7 +310,7 @@ test('sync dryRun=true: calcula toCreate/orphans sem chamar PUT', async () => {
 
   assert.equal(resp.status, 200)
   assert.equal(payload.dryRun, true)
-  assert.equal(payload.toCreate.length, 2)
+  assert.equal(payload.toCreate.length, CATALOG_FLAG_COUNT)
   assert.ok(payload.toCreate.some((c) => c.key === HIGH_KEY))
   assert.deepEqual(payload.orphans, ['legacy_orphan_param'])
   assert.deepEqual(payload.created, [])
@@ -330,7 +332,7 @@ test('sync dryRun=false (real, role admin): cria os parâmetros ausentes do cat�
 
   assert.equal(resp.status, 200)
   assert.equal(payload.dryRun, false)
-  assert.equal(payload.created.length, 2)
+  assert.equal(payload.created.length, CATALOG_FLAG_COUNT)
   assert.equal(fake.putCallCount(), 1)
   assert.ok(HIGH_KEY in fake.state.parameters)
   assert.ok(MEDIUM_KEY in fake.state.parameters)
