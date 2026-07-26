@@ -113,7 +113,7 @@ export function SpeedGauge(props: SpeedGaugeProps) {
             <span className="material-symbols-outlined" style={{ fontSize: 18, color: props.color }}>
               {props.phaseIcon}
             </span>
-            <span className="overline">{props.phaseLabel}</span>
+            <span className="label-overline">{props.phaseLabel}</span>
           </div>
           <div
             className="text-[44px] font-bold leading-none lg:text-[54px]"

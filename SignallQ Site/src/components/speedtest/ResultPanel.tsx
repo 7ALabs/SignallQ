@@ -159,7 +159,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
             <span className="material-symbols-outlined" style={{ fontSize: 16, color: NIVEL_COR[downloadVerdict.nivel] }}>
               arrow_downward
             </span>
-            <span className="overline">Download</span>
+            <span className="label-overline">Download</span>
           </div>
           <div className="font-bold" style={{ font: '700 34px/1.1 var(--font-sans)', color: 'var(--text-primary)' }}>
             {result.download.mbps.toFixed(1)}
@@ -173,7 +173,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
             <span className="material-symbols-outlined" style={{ fontSize: 16, color: NIVEL_COR[uploadVerdict.nivel] }}>
               arrow_upward
             </span>
-            <span className="overline">Upload</span>
+            <span className="label-overline">Upload</span>
           </div>
           <div className="font-bold" style={{ font: '700 34px/1.1 var(--font-sans)', color: 'var(--text-primary)' }}>
             {result.upload.mbps.toFixed(1)}
@@ -187,7 +187,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
             <span className="material-symbols-outlined" style={{ fontSize: 16, color: NIVEL_COR[latency.nivel] }}>
               network_ping
             </span>
-            <span className="overline">Latência</span>
+            <span className="label-overline">Latência</span>
           </div>
           <div className="font-bold" style={{ font: '700 34px/1.1 var(--font-sans)', color: 'var(--text-primary)' }}>
             {Math.round(result.latency.ms)}
@@ -210,7 +210,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
       )}
 
       <section className="rounded-2xl p-4.5" style={{ background: 'color-mix(in srgb, var(--accent) 7%, transparent)' }} aria-labelledby="interpretacao-signallq">
-        <div id="interpretacao-signallq" className="overline" style={{ color: 'var(--accent)' }}>
+        <div id="interpretacao-signallq" className="label-overline" style={{ color: 'var(--accent)' }}>
           Interpretação SignallQ
         </div>
         <div className="headline-small mt-1.5">{veredito.titulo}</div>
@@ -246,7 +246,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <section className="rounded-2xl p-4" style={{ background: 'var(--bg-secondary)' }} aria-labelledby="contexto-execucao">
-          <div id="contexto-execucao" className="overline">
+          <div id="contexto-execucao" className="label-overline">
             Contexto da execução
           </div>
           <dl className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 body-small">
@@ -278,7 +278,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
         </section>
 
         <section className="rounded-2xl p-4" style={{ background: 'var(--bg-secondary)' }} aria-labelledby="detalhes-tecnicos">
-          <div id="detalhes-tecnicos" className="overline">
+          <div id="detalhes-tecnicos" className="label-overline">
             Detalhes técnicos
           </div>
           <dl className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 body-small">

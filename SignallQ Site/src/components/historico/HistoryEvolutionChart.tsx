@@ -21,7 +21,7 @@ export function HistoryEvolutionChart({ records }: HistoryEvolutionChartProps) {
   return (
     <div className="flex flex-col gap-2 rounded-2xl box-border" style={{ background: 'var(--bg-secondary)', padding: '14px 16px' }}>
       <div className="flex items-center justify-between gap-3">
-        <span className="overline">Evolução das medições</span>
+        <span className="label-overline">Evolução das medições</span>
         <div className="flex items-center gap-3.5">
           <div className="flex items-center gap-1.5">
             <span className="block h-[3px] w-3 rounded-sm" style={{ background: 'var(--phase-download)' }} />

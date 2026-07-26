@@ -16,7 +16,7 @@ export function RecommendationsCard({ recommendations, onRepeatTest }: Recommend
       className="flex w-full max-w-[560px] flex-col gap-3.5 rounded-2xl border p-4"
       style={{ borderColor: 'color-mix(in srgb, var(--border) 18%, transparent)', background: 'var(--bg-card)' }}
     >
-      <div className="overline">Recomendações</div>
+      <div className="label-overline">Recomendações</div>
       <div className="flex flex-col gap-3">
         {recommendations.map((item) => (
           <div key={item.id} className="flex items-start gap-3">
