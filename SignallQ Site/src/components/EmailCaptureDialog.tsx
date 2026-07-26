@@ -60,7 +60,7 @@ export function EmailCaptureDialog({
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className="flex w-full max-w-[380px] flex-col items-center gap-3.5 rounded-3xl p-7 text-center"
+        className="flex w-full max-w-[380px] flex-col items-center gap-3 rounded-3xl p-6 text-center"
         style={{ background: 'var(--bg-card)' }}
       >
         <span className="material-symbols-outlined" style={{ fontSize: 34, color: accentColor }}>
@@ -101,7 +101,7 @@ export function EmailCaptureDialog({
             {successMessage}
           </div>
         )}
-        <div className="mt-1.5 flex w-full gap-2.5">
+        <div className="mt-2 flex w-full gap-2.5">
           <button onClick={onClose} className="h-11 flex-1 rounded-[var(--radius-button)] border label-large" style={{ borderColor: 'var(--border)' }}>
             Fechar
           </button>
