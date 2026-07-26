@@ -32,8 +32,13 @@ describe('SiteFooter', () => {
       </MemoryRouter>
     )
 
-    // Copyright aparece em mais de uma densidade.
-    expect(screen.getAllByText('© 2026 SignallQ · by 7A. Produto em fase Beta.').length).toBeGreaterThanOrEqual(2)
+    // Copyright aparece em mais de uma densidade — texto agora é composto
+    // (prefixo + BrandEndorsement + sufixo), então cada fragmento é checado
+    // separadamente em vez do texto corrido de antes.
+    expect(screen.getAllByText('© 2026 SignallQ ·').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getAllByText('. Produto em fase Beta.').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getAllByText('by').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getAllByText('7A').length).toBeGreaterThanOrEqual(2)
 
     // Link presente em todas as densidades (mobile+compact+full).
     expect(screen.getAllByText('Teste de velocidade').length).toBeGreaterThanOrEqual(2)
