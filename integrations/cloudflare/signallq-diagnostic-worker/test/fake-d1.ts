@@ -107,6 +107,19 @@ type GameAuditRow = {
   created_at: string;
 };
 
+type ProviderAuditRow = {
+  id: string;
+  provider_id: string;
+  operation: string;
+  before_json: string | null;
+  after_json: string | null;
+  actor_user_id: string;
+  actor_email: string | null;
+  source: string;
+  reason: string | null;
+  created_at: string;
+};
+
 // GH#1444 (parte de #952) — shadow mode.
 type DiagnosticDivergenceRow = {
   id: string;
@@ -182,6 +195,7 @@ export class FakeD1Database {
   gameCatalog = new Map<string, GameCatalogRow>();
   gamePlatforms: GamePlatformRow[] = [];
   gameAudit: GameAuditRow[] = [];
+  providerAudit: ProviderAuditRow[] = [];
   diagnosticDivergences: DiagnosticDivergenceRow[] = [];
 
   prepare(sql: string): FakeStatement {
@@ -685,6 +699,23 @@ export class FakeD1Database {
       return;
     }
 
+    if (q.startsWith("insert into provider_audit_log")) {
+      const [id, providerId, operation, beforeJson, afterJson, actorUserId, actorEmail, source, reason, createdAt] = bindings;
+      this.providerAudit.push({
+        id: String(id),
+        provider_id: String(providerId),
+        operation: String(operation),
+        before_json: (beforeJson as string | null) ?? null,
+        after_json: (afterJson as string | null) ?? null,
+        actor_user_id: String(actorUserId),
+        actor_email: (actorEmail as string | null) ?? null,
+        source: String(source),
+        reason: (reason as string | null) ?? null,
+        created_at: String(createdAt),
+      });
+      return;
+    }
+
     if (q.startsWith("update game_catalog set active = ?")) {
       const [active, updatedAt, gameId] = bindings;
       const row = this.gameCatalog.get(String(gameId));
@@ -1027,6 +1058,13 @@ export class FakeD1Database {
 
     if (q.startsWith("select id, entity_type, entity_id, action, actor, before_json, after_json, created_at from game_catalog_audit")) {
       return [...this.gameAudit.values()].sort((left, right) => right.created_at.localeCompare(left.created_at));
+    }
+
+    if (q.startsWith("select id, provider_id, operation, before_json, after_json, actor_user_id, actor_email, source, reason, created_at from provider_audit_log")) {
+      const [providerId] = bindings;
+      return this.providerAudit
+        .filter((row) => providerId == null || row.provider_id === String(providerId))
+        .sort((left, right) => right.created_at.localeCompare(left.created_at));
     }
 
     if (q.startsWith("select classification, count(*) as count from diagnostic_divergences group by classification")) {

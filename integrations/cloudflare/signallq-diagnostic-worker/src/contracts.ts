@@ -302,6 +302,21 @@ export interface GameAuditEntry {
   createdAt: string;
 }
 
+// GH#1461 — trilha de auditoria das escritas administrativas do diretorio de
+// provedores (upsert, review, support update, logo upload, sync-seed).
+export interface ProviderAuditEntry {
+  id: string;
+  providerId: string;
+  operation: string;
+  beforeJson: string | null;
+  afterJson: string | null;
+  actorUserId: string;
+  actorEmail: string | null;
+  source: string;
+  reason: string | null;
+  createdAt: string;
+}
+
 // GH#1444 (parte de #952) — shadow mode. Classificacao de divergencia entre o
 // resultado local (motor embarcado no app, autoritativo para o usuario) e o
 // mesmo snapshot avaliado em paralelo pelo worker remoto. A comparacao e
