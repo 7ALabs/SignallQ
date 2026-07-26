@@ -1,6 +1,7 @@
 import { apiClient } from "./apiClient";
 import {
   DiagnosticRuleset,
+  RolloutConfigInput,
   RulesetDetail,
   RulesetListItem,
   RulesetStatus,
@@ -121,15 +122,33 @@ export const diagnosticRulesetsService = {
     }
   },
 
-  async publish(version: number): Promise<{ ok: boolean; error?: string }> {
+  // rolloutConfig é opcional no worker (omitido = publica em 0%, modo dark) mas a
+  // tela sempre manda o valor explícito escolhido no RolloutDialog — nunca deixa o
+  // default silencioso do worker decidir por trás das costas do operador.
+  async publish(version: number, rolloutConfig?: RolloutConfigInput): Promise<{ ok: boolean; error?: string }> {
     if (apiClient.isMockEnabled() || !import.meta.env.VITE_ADMIN_API_BASE_URL) {
       return { ok: true };
     }
     try {
-      await apiClient.request("POST", `${BASE}/rulesets/${version}/publish`);
+      await apiClient.request("POST", `${BASE}/rulesets/${version}/publish`, rolloutConfig as unknown as Record<string, unknown> | undefined);
       return { ok: true };
     } catch (e: any) {
       return { ok: false, error: e?.message ?? "Falha ao publicar." };
+    }
+  },
+
+  // GH#1445 (parte de #952) — ajusta só o rollout do ruleset PUBLISHED atual, sem
+  // redeploy nem nova versão. Só age sobre o que está hoje com status PUBLISHED
+  // (o worker responde 409 caso contrário).
+  async updateRollout(version: number, rolloutConfig: RolloutConfigInput): Promise<{ ok: boolean; error?: string }> {
+    if (apiClient.isMockEnabled() || !import.meta.env.VITE_ADMIN_API_BASE_URL) {
+      return { ok: true };
+    }
+    try {
+      await apiClient.request("POST", `${BASE}/rulesets/${version}/rollout`, rolloutConfig as unknown as Record<string, unknown>);
+      return { ok: true };
+    } catch (e: any) {
+      return { ok: false, error: e?.message ?? "Falha ao ajustar rollout." };
     }
   },
 

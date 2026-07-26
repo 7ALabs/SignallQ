@@ -74,6 +74,17 @@ export interface RulesetValidationResult {
   errors?: string[];
 }
 
+// Refs #1446 (rollout) — body de POST .../publish (opcional, default rolloutPercent=0
+// no worker quando omitido) e POST .../rollout (rolloutPercent obrigatório lá).
+// rolloutPercent controla só a participação no shadow mode (comparação local-vs-remoto)
+// desta versão — NUNCA quem vê o resultado remoto como autoritativo (isso é decidido
+// em outro lugar do motor). Ver signallq-diagnostic-worker.yaml#RolloutConfigInput.
+export interface RolloutConfigInput {
+  rolloutPercent: number;
+  rolloutMinVersionCode?: number | null;
+  rolloutChannels?: string[] | null;
+}
+
 // Formato de DiagnosticSnapshot usado pelas fixtures de simulação — subconjunto
 // prático do contrato completo (integrations/.../contracts.ts), o bastante para
 // exercitar os campos que as regras de diagnóstico hoje consultam.

@@ -12,6 +12,7 @@ import {
   PlayCircle,
   Flame,
   ListChecks,
+  GitCompare,
 } from "lucide-react";
 import { NavigationItem } from "./navigation";
 
@@ -36,4 +37,5 @@ export const NAVIGATION_ICON_MAP: Record<NavigationItem["iconName"], React.Compo
   PlayCircle,
   Flame,
   ListChecks,
+  GitCompare,
 };

@@ -12,6 +12,7 @@ const getRuleset = vi.fn();
 const validateRuleset = vi.fn();
 const createDraft = vi.fn();
 const publish = vi.fn();
+const updateRollout = vi.fn();
 const rollback = vi.fn();
 const simulate = vi.fn();
 
@@ -22,6 +23,7 @@ vi.mock("../../services/diagnosticRulesetsService", () => ({
     validateRuleset: (...args: unknown[]) => validateRuleset(...args),
     createDraft: (...args: unknown[]) => createDraft(...args),
     publish: (...args: unknown[]) => publish(...args),
+    updateRollout: (...args: unknown[]) => updateRollout(...args),
     rollback: (...args: unknown[]) => rollback(...args),
     simulate: (...args: unknown[]) => simulate(...args),
   },
@@ -54,6 +56,7 @@ describe("DiagnosticRulesetsPage", () => {
     validateRuleset.mockResolvedValue({ ok: true, version: 5, rules: 0 });
     createDraft.mockResolvedValue({ ok: true, version: 5 });
     publish.mockResolvedValue({ ok: true });
+    updateRollout.mockResolvedValue({ ok: true });
     rollback.mockResolvedValue({ ok: true });
     simulate.mockResolvedValue({
       ok: true,
@@ -88,7 +91,7 @@ describe("DiagnosticRulesetsPage", () => {
     expect(validateRuleset).not.toHaveBeenCalled();
   });
 
-  it("pede confirmação antes de publicar um draft e só chama o service após confirmar", async () => {
+  it("pede rollout explícito (default 0%) antes de publicar um draft e só chama o service após confirmar", async () => {
     const user = userEvent.setup();
     render(<DiagnosticRulesetsPage />);
 
@@ -102,7 +105,50 @@ describe("DiagnosticRulesetsPage", () => {
     expect(publish).not.toHaveBeenCalled();
 
     const dialog = screen.getByRole("dialog");
+    // Default do input é 0% (modo dark) — nunca um default silencioso pra 100%.
+    const percentInput = within(dialog).getByRole("spinbutton") as HTMLInputElement;
+    expect(percentInput.value).toBe("0");
+
     await user.click(within(dialog).getByRole("button", { name: "Publicar" }));
-    await waitFor(() => expect(publish).toHaveBeenCalledWith(4));
+    await waitFor(() => expect(publish).toHaveBeenCalledWith(4, { rolloutPercent: 0 }));
+  });
+
+  it("permite escolher um rollout > 0% no publish", async () => {
+    const user = userEvent.setup();
+    render(<DiagnosticRulesetsPage />);
+
+    await screen.findByText("v3");
+    await user.click(screen.getByText("v4"));
+    await screen.findByText(/Ruleset v4/);
+    await user.click(screen.getByText("Publicar"));
+
+    const dialog = await screen.findByRole("dialog");
+    const percentInput = within(dialog).getByRole("spinbutton") as HTMLInputElement;
+    await user.clear(percentInput);
+    await user.type(percentInput, "25");
+    await user.click(within(dialog).getByRole("button", { name: "Publicar" }));
+
+    await waitFor(() => expect(publish).toHaveBeenCalledWith(4, { rolloutPercent: 25 }));
+  });
+
+  it("ajusta o rollout de um ruleset publicado sem passar por publish/rollback", async () => {
+    const user = userEvent.setup();
+    render(<DiagnosticRulesetsPage />);
+
+    await screen.findByText("v3");
+    await screen.findByText(/Ruleset v3/);
+
+    await user.click(screen.getByText("Ajustar rollout"));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/Ajustar rollout do ruleset v3/)).toBeInTheDocument();
+    const percentInput = within(dialog).getByRole("spinbutton") as HTMLInputElement;
+    expect(percentInput.value).toBe("100");
+
+    await user.clear(percentInput);
+    await user.type(percentInput, "10");
+    await user.click(within(dialog).getByRole("button", { name: "Salvar rollout" }));
+
+    await waitFor(() => expect(updateRollout).toHaveBeenCalledWith(3, { rolloutPercent: 10 }));
   });
 });
