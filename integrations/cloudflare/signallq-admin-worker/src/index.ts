@@ -67,6 +67,25 @@ function json(body: unknown, status = 200, env: Env): Response {
   });
 }
 
+// CORS pra endpoints públicos de leitura (sem sessão/credential, ex.: /local-ads) — GH#1422
+// pós-mortem: o Site (signallq.pages.dev) nunca conseguiu ler o catálogo de anúncios em
+// produção porque `corsHeaders(env)` só libera `ALLOWED_ORIGIN` (signallq-admin-panel.pages.dev,
+// origem do Console) — o browser bloqueava a resposta por CORS antes mesmo do client
+// processar, e o catch de `buscarAnunciosLocais` engolia o erro silenciosamente, caindo
+// sempre no placeholder. Origin aberto é seguro aqui porque o endpoint não usa
+// Allow-Credentials nem devolve nada além de conteúdo de anúncio já público.
+function publicJson(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Max-Age": "86400",
+    },
+  });
+}
+
 function err(message: string, status: number, env: Env): Response {
   return json({ error: message }, status, env);
 }
@@ -4567,7 +4586,7 @@ async function handlePublicLocalAds(_request: Request, env: Env): Promise<Respon
     targetUrl:   r.target_url,
   }));
 
-  return json({ ads }, 200, env);
+  return publicJson({ ads });
 }
 
 // GET /admin/local-ads — lista completa (ativos e inativos) para a tabela do painel.
