@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Devices
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -40,14 +42,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.signallq.app.R
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.LkSurfaceCard
-import io.signallq.app.ui.component.ProfileAvatarButton
 
 // GH#933 — Fase 4 MD3: hub real de atalhos, substitui o placeholder criado na Fase 1
 // (#930). Grade estática, sem chamada de rede própria — cada card só navega para a
@@ -63,9 +66,7 @@ private data class FerramentaItem(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FerramentasScreen(
-    nomeUsuario: String,
-    fotoUri: String?,
-    onAbrirPerfil: () -> Unit,
+    onAbrirMenu: () -> Unit,
     onAbrirDispositivos: () -> Unit = {},
     onAbrirEquipamentoInternet: () -> Unit = {},
     onAbrirPing: () -> Unit = {},
@@ -180,11 +181,13 @@ fun FerramentasScreen(
                     }
                 },
                 navigationIcon = {
-                    ProfileAvatarButton(
-                        nomeUsuario = nomeUsuario,
-                        fotoUri = fotoUri,
-                        onClick = onAbrirPerfil,
-                    )
+                    IconButton(onClick = onAbrirMenu) {
+                        Icon(
+                            imageVector = Icons.Filled.Menu,
+                            contentDescription = stringResource(R.string.appshell_cd_abrir_menu),
+                            tint = c.textPrimary,
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
             )

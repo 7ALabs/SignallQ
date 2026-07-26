@@ -27,6 +27,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.WifiOff
@@ -34,6 +35,7 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -80,7 +82,6 @@ import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.ads.rememberNativeAd
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkSurfaceCard
-import io.signallq.app.ui.component.ProfileAvatarButton
 import io.signallq.app.ui.component.ads.NativeAdRow
 import io.signallq.app.ui.component.ads.NativeAdSource
 
@@ -100,12 +101,10 @@ fun SpeedTestScreen(
     onVerResultado: () -> Unit = {},
     onAbrirHistorico: () -> Unit = {},
     onAbrirAjustes: () -> Unit = {},
-    nomeUsuario: String = "",
-    fotoUri: String? = null,
     speedtestPendenteModoMovel: ModoSpeedtest? = null,
     onConfirmarSpeedtestMovel: () -> Unit = {},
     onCancelarSpeedtestMovel: () -> Unit = {},
-    onAbrirPerfil: () -> Unit = {},
+    onAbrirMenu: () -> Unit = {},
     planoInternet: String = "",
     movelSnapshot: MovelSnapshot? = null,
     /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555.
@@ -198,11 +197,13 @@ fun SpeedTestScreen(
                     }
                 },
                 navigationIcon = {
-                    ProfileAvatarButton(
-                        nomeUsuario = nomeUsuario,
-                        fotoUri = fotoUri,
-                        onClick = onAbrirPerfil,
-                    )
+                    IconButton(onClick = onAbrirMenu) {
+                        Icon(
+                            imageVector = Icons.Filled.Menu,
+                            contentDescription = stringResource(R.string.appshell_cd_abrir_menu),
+                            tint = c.textPrimary,
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
             )
