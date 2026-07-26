@@ -1,7 +1,7 @@
 export interface NavigationItem {
   name: string;
   path: string;
-  iconName: "LayoutDashboard" | "LineChart" | "Activity" | "Wifi" | "Globe" | "BrainCircuit" | "AlertTriangle" | "GitBranch" | "ToggleRight" | "Settings" | "HeartPulse" | "Wrench" | "PlayCircle" | "Flame";
+  iconName: "LayoutDashboard" | "LineChart" | "Activity" | "Wifi" | "Globe" | "BrainCircuit" | "AlertTriangle" | "GitBranch" | "ToggleRight" | "Settings" | "HeartPulse" | "Wrench" | "PlayCircle" | "Flame" | "ListChecks";
   badge?: string;
   badgeType?: "info" | "error" | "warning";
 }
@@ -55,6 +55,10 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     items: [
       { name: "Diagnósticos", path: "/diagnostics", iconName: "Activity" },
       { name: "Redes & Provedores", path: "/networks", iconName: "Wifi" },
+      // Refs #1446 — motor de diagnóstico remoto (épico #952): editor/validate/
+      // simulate/publish/rollback de ruleset, distinto de "/diagnostics" (que é
+      // métrica/telemetria de sessões, não gestão do motor em si).
+      { name: "Regras do Motor", path: "/diagnostic-rulesets", iconName: "ListChecks" },
     ],
   },
   {
