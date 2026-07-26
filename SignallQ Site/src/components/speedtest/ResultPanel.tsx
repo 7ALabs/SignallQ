@@ -1,5 +1,8 @@
 import { useState } from 'react'
+import { KeyValueList } from '../KeyValueList'
+import { NoticeBar } from '../NoticeBar'
 import { PlayStoreBadge } from '../PlayStoreBadge'
+import { MetricCard } from './MetricCard'
 import { ResultAdCard } from './ResultAdCard'
 import { classifyLatency, classifyUpload, interpretUseCases, type Classificacao } from '../../lib/classification'
 import { iconeConexao, labelConexao, type TipoRede } from '../../lib/connection'
@@ -154,59 +157,38 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <div className="flex flex-col items-center gap-1 rounded-2xl px-2 py-5" style={{ background: 'var(--bg-secondary)' }}>
-          <div className="flex items-center gap-1.5">
-            <span className="material-symbols-outlined" style={{ fontSize: 16, color: NIVEL_COR[downloadVerdict.nivel] }}>
-              arrow_downward
-            </span>
-            <span className="label-overline">Download</span>
-          </div>
-          <div className="font-bold" style={{ font: '700 34px/1.1 var(--font-sans)', color: 'var(--text-primary)' }}>
-            {result.download.mbps.toFixed(1)}
-          </div>
-          <div className="body-small" style={{ color: 'var(--text-secondary)' }}>
-            Mbps · {downloadVerdict.label}
-          </div>
-        </div>
-        <div className="flex flex-col items-center gap-1 rounded-2xl px-2 py-5" style={{ background: 'var(--bg-secondary)' }}>
-          <div className="flex items-center gap-1.5">
-            <span className="material-symbols-outlined" style={{ fontSize: 16, color: NIVEL_COR[uploadVerdict.nivel] }}>
-              arrow_upward
-            </span>
-            <span className="label-overline">Upload</span>
-          </div>
-          <div className="font-bold" style={{ font: '700 34px/1.1 var(--font-sans)', color: 'var(--text-primary)' }}>
-            {result.upload.mbps.toFixed(1)}
-          </div>
-          <div className="body-small" style={{ color: 'var(--text-secondary)' }}>
-            Mbps · {uploadVerdict.label}
-          </div>
-        </div>
-        <div className="flex flex-col items-center gap-1 rounded-2xl px-2 py-5" style={{ background: 'var(--bg-secondary)' }}>
-          <div className="flex items-center gap-1.5">
-            <span className="material-symbols-outlined" style={{ fontSize: 16, color: NIVEL_COR[latency.nivel] }}>
-              network_ping
-            </span>
-            <span className="label-overline">Latência</span>
-          </div>
-          <div className="font-bold" style={{ font: '700 34px/1.1 var(--font-sans)', color: 'var(--text-primary)' }}>
-            {Math.round(result.latency.ms)}
-          </div>
-          <div className="body-small" style={{ color: 'var(--text-secondary)' }}>
-            ms · {latency.label}
-          </div>
-        </div>
+        <MetricCard
+          icon="arrow_downward"
+          iconColor={NIVEL_COR[downloadVerdict.nivel]}
+          label="Download"
+          value={result.download.mbps.toFixed(1)}
+          detail={`Mbps · ${downloadVerdict.label}`}
+        />
+        <MetricCard
+          icon="arrow_upward"
+          iconColor={NIVEL_COR[uploadVerdict.nivel]}
+          label="Upload"
+          value={result.upload.mbps.toFixed(1)}
+          detail={`Mbps · ${uploadVerdict.label}`}
+        />
+        <MetricCard
+          icon="network_ping"
+          iconColor={NIVEL_COR[latency.nivel]}
+          label="Latência"
+          value={Math.round(result.latency.ms).toString()}
+          detail={`ms · ${latency.label}`}
+        />
       </div>
 
       {!completo && (
-        <div className="flex items-start gap-2 rounded-xl" style={{ background: 'color-mix(in srgb, var(--warning) 10%, transparent)', padding: '12px 14px' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--warning)' }}>
-            warning
-          </span>
-          <div className="body-small">
-            <b style={{ color: 'var(--text-primary)' }}>{statusCopy.title}.</b> {statusCopy.body}
-          </div>
-        </div>
+        <NoticeBar
+          severity="warning"
+          message={
+            <>
+              <b style={{ color: 'var(--text-primary)' }}>{statusCopy.title}.</b> {statusCopy.body}
+            </>
+          }
+        />
       )}
 
       <section className="rounded-2xl p-4.5" style={{ background: 'color-mix(in srgb, var(--accent) 7%, transparent)' }} aria-labelledby="interpretacao-signallq">
@@ -249,29 +231,32 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
           <div id="contexto-execucao" className="label-overline">
             Contexto da execução
           </div>
-          <dl className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 body-small">
-            <dt>Infraestrutura</dt>
-            <dd className="text-right">{result.server}</dd>
-            {formatarDuracao(result.durationMs) && (
-              <>
-                <dt>Duração</dt>
-                <dd className="text-right">{formatarDuracao(result.durationMs)}</dd>
-              </>
-            )}
-            <dt>Data e hora local</dt>
-            <dd className="text-right">{formatarDataHora(result.timestamp)}</dd>
-            {mostrarChipConexao && (
-              <>
-                <dt>Conexão informada</dt>
-                <dd className="flex items-center justify-end gap-1 text-right">
-                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
-                    {iconeConexao(connectionKind)}
-                  </span>
-                  Teste realizado via {labelConexao(connectionKind)}
-                </dd>
-              </>
-            )}
-          </dl>
+          <KeyValueList
+            className="mt-2.5"
+            items={[
+              { key: 'infraestrutura', label: 'Infraestrutura', value: result.server },
+              ...(formatarDuracao(result.durationMs)
+                ? [{ key: 'duracao', label: 'Duração', value: formatarDuracao(result.durationMs) }]
+                : []),
+              { key: 'data-hora', label: 'Data e hora local', value: formatarDataHora(result.timestamp) },
+              ...(mostrarChipConexao
+                ? [
+                    {
+                      key: 'conexao',
+                      label: 'Conexão informada',
+                      value: (
+                        <span className="flex items-center justify-end gap-1">
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                            {iconeConexao(connectionKind)}
+                          </span>
+                          Teste realizado via {labelConexao(connectionKind)}
+                        </span>
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
+          />
           <p className="mt-2.5 body-small" style={{ color: 'var(--text-tertiary)' }}>
             O navegador não confirma o seu provedor nem a sua localização. Por isso esses dados não são estimados aqui.
           </p>
@@ -281,28 +266,35 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
           <div id="detalhes-tecnicos" className="label-overline">
             Detalhes técnicos
           </div>
-          <dl className="mt-2.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 body-small">
-            <dt>Jitter</dt>
-            <dd className="text-right">{result.jitter ? `${result.jitter.ms.toFixed(1)} ms` : 'Indisponível'}</dd>
-            <dt>Bufferbloat</dt>
-            <dd className="text-right">
-              {result.bufferbloat.ms.toFixed(1)} ms · {BUFFERBLOAT_LABEL[result.bufferbloat.severity]}
-            </dd>
-            <dt>Estabilidade</dt>
-            <dd className="text-right">{result.stabilityScore.toFixed(0)}%</dd>
-            <dt>Perda HTTP</dt>
-            <dd className="text-right">{result.packetLoss.percent.toFixed(1)}%</dd>
-            <dt>Latência sob download</dt>
-            <dd className="text-right">{result.loadedLatency ? `${result.loadedLatency.downloadMs.toFixed(0)} ms` : 'Indisponível'}</dd>
-            <dt>Latência sob upload</dt>
-            <dd className="text-right">{result.loadedLatency ? `${result.loadedLatency.uploadMs.toFixed(0)} ms` : 'Indisponível'}</dd>
-            <dt>DNS (DoH)</dt>
-            <dd className="text-right">{result.dns.latencyMs == null ? 'Indisponível' : `${result.dns.latencyMs} ms`}</dd>
-            <dt>Amostras de latência</dt>
-            <dd className="text-right">
-              {result.latency.validSamples}/{result.latency.samples}
-            </dd>
-          </dl>
+          <KeyValueList
+            className="mt-2.5"
+            items={[
+              { key: 'jitter', label: 'Jitter', value: result.jitter ? `${result.jitter.ms.toFixed(1)} ms` : 'Indisponível' },
+              {
+                key: 'bufferbloat',
+                label: 'Bufferbloat',
+                value: `${result.bufferbloat.ms.toFixed(1)} ms · ${BUFFERBLOAT_LABEL[result.bufferbloat.severity]}`,
+              },
+              { key: 'estabilidade', label: 'Estabilidade', value: `${result.stabilityScore.toFixed(0)}%` },
+              { key: 'perda-http', label: 'Perda HTTP', value: `${result.packetLoss.percent.toFixed(1)}%` },
+              {
+                key: 'latencia-download',
+                label: 'Latência sob download',
+                value: result.loadedLatency ? `${result.loadedLatency.downloadMs.toFixed(0)} ms` : 'Indisponível',
+              },
+              {
+                key: 'latencia-upload',
+                label: 'Latência sob upload',
+                value: result.loadedLatency ? `${result.loadedLatency.uploadMs.toFixed(0)} ms` : 'Indisponível',
+              },
+              { key: 'dns', label: 'DNS (DoH)', value: result.dns.latencyMs == null ? 'Indisponível' : `${result.dns.latencyMs} ms` },
+              {
+                key: 'amostras',
+                label: 'Amostras de latência',
+                value: `${result.latency.validSamples}/${result.latency.samples}`,
+              },
+            ]}
+          />
           <p className="mt-2.5 body-small" style={{ color: 'var(--text-tertiary)' }}>
             Latência e perda são medidas por HTTPS; navegadores não permitem ICMP nem detectam todos os handovers de rede.
           </p>

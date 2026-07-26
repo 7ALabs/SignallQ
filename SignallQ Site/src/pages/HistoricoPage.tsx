@@ -1,15 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AdBannerWide } from '../components/AdBannerWide'
-import { AdRail } from '../components/AdRail'
-import { AdSlotsProvider } from '../components/AdSlotsProvider'
 import { DetailTopBar } from '../components/AppTopBar'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { EmptyState } from '../components/EmptyState'
 import { HistoryEvolutionChart } from '../components/historico/HistoryEvolutionChart'
 import { HistoryRecordCard } from '../components/historico/HistoryRecordCard'
+import { PageLayout } from '../components/PageLayout'
 import { SegmentedControl } from '../components/SegmentedControl'
-import { SiteFooter } from '../components/SiteFooter'
-import { SiteNav } from '../components/SiteNav'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
 import { clearAll, deleteRecord, listRecords, type MedicaoRegistro } from '../lib/historyStore'
 import { PAGE_META } from '../lib/pageMetaCatalog'
@@ -116,26 +113,21 @@ export default function HistoricoPage() {
   const filtered = records.filter((r) => filtro === 'todos' || r.connectionKind === filtro)
 
   return (
-    <div className="flex min-h-screen flex-col overflow-x-hidden" style={{ background: 'var(--bg-primary)' }}>
-      <div className="hidden lg:block">
-        <SiteNav active="historico" />
-      </div>
-      <div className="lg:hidden">
-        <DetailTopBar
-          title="Histórico"
-          onBack={() => navigate(-1)}
-          rightIcon="ios_share"
-          rightLabel="Compartilhar histórico"
-          onRightClick={() => shareHistorySummary(records)}
-        />
-      </div>
-
-      {/* `AdSlotsProvider` coordena os espaços de anúncio desta página — busca o catálogo
-          uma vez e distribui itens distintos, sem repetir o mesmo anúncio (#1402/#1405). */}
-      <AdSlotsProvider>
-      <div className="flex w-full flex-1 items-start justify-center gap-6 box-border px-5 pt-2 pb-8 lg:px-6 lg:pt-5 lg:pb-4">
-        <AdRail variant="a" />
-
+    <>
+      <PageLayout
+        active="historico"
+        adBannerVariant="b"
+        contentClassName="flex w-full flex-1 items-start justify-center gap-6 box-border px-5 pt-2 pb-8 lg:px-6 lg:pt-5 lg:pb-4"
+        mobileTopBar={
+          <DetailTopBar
+            title="Histórico"
+            onBack={() => navigate(-1)}
+            rightIcon="ios_share"
+            rightLabel="Compartilhar histórico"
+            onRightClick={() => shareHistorySummary(records)}
+          />
+        }
+      >
         <div className="flex w-full max-w-[860px] flex-1 flex-col gap-4">
           <div className="hidden items-baseline justify-between gap-3 lg:flex">
             <h1 className="headline-large m-0">Histórico</h1>
@@ -145,51 +137,58 @@ export default function HistoricoPage() {
           </div>
 
           {status === 'loading' && (
-            <div className="flex flex-col items-center gap-3 py-24">
-              <span className="material-symbols-outlined" style={{ fontSize: 28, color: 'var(--text-tertiary)' }}>
-                hourglass_top
-              </span>
-              <div className="body-large">Carregando histórico…</div>
-            </div>
+            <EmptyState
+              className="flex flex-col items-center gap-3 py-24"
+              icon="hourglass_top"
+              iconSize={28}
+              message="Carregando histórico…"
+              messageClassName="body-large"
+            />
           )}
 
           {status === 'unavailable' && (
-            <div className="flex flex-col items-center gap-2.5 rounded-2xl text-center" style={{ background: 'var(--bg-secondary)', padding: '40px 24px' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 32, color: 'var(--error)' }}>
-                storage
-              </span>
-              <div className="headline-small">Histórico indisponível</div>
-              <div className="max-w-[360px]" style={{ font: '400 14px/1.45 var(--font-sans)', color: 'var(--text-secondary)' }}>
-                Não foi possível ler o armazenamento local deste navegador agora.
-              </div>
-              <button onClick={load} className="mt-1 h-10 rounded-[var(--radius-button)] border px-4 label-large" style={{ borderColor: 'var(--border)' }}>
-                Tentar novamente
-              </button>
-            </div>
+            <EmptyState
+              className="flex flex-col items-center gap-2.5 rounded-2xl text-center"
+              style={{ background: 'var(--bg-secondary)', padding: '40px 24px' }}
+              icon="storage"
+              iconColor="var(--error)"
+              iconSize={32}
+              title="Histórico indisponível"
+              message="Não foi possível ler o armazenamento local deste navegador agora."
+              messageClassName="max-w-[360px]"
+              messageStyle={{ font: '400 14px/1.45 var(--font-sans)', color: 'var(--text-secondary)' }}
+              action={
+                <button onClick={load} className="mt-1 h-10 rounded-[var(--radius-button)] border px-4 label-large" style={{ borderColor: 'var(--border)' }}>
+                  Tentar novamente
+                </button>
+              }
+            />
           )}
 
           {isEmpty && (
-            <div className="flex flex-col items-center gap-3 py-20 text-center">
-              <span className="material-symbols-outlined" style={{ fontSize: 36, color: 'var(--text-tertiary)' }}>
-                speed
-              </span>
-              <div className="headline-small">Nenhuma medição ainda</div>
-              <div className="max-w-[320px]" style={{ font: '400 14px/1.45 var(--font-sans)', color: 'var(--text-secondary)' }}>
-                Faça seu primeiro teste para ver o histórico aqui.
-              </div>
-              <button
-                onClick={() => navigate('/')}
-                className="mt-1 flex h-11 items-center gap-2 rounded-[var(--radius-button)] px-5"
-                style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-                  speed
-                </span>
-                <span className="label-large" style={{ color: 'var(--on-accent)' }}>
-                  Testar velocidade
-                </span>
-              </button>
-            </div>
+            <EmptyState
+              className="flex flex-col items-center gap-3 py-20 text-center"
+              icon="speed"
+              iconSize={36}
+              title="Nenhuma medição ainda"
+              message="Faça seu primeiro teste para ver o histórico aqui."
+              messageClassName="max-w-[320px]"
+              messageStyle={{ font: '400 14px/1.45 var(--font-sans)', color: 'var(--text-secondary)' }}
+              action={
+                <button
+                  onClick={() => navigate('/')}
+                  className="mt-1 flex h-11 items-center gap-2 rounded-[var(--radius-button)] px-5"
+                  style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+                    speed
+                  </span>
+                  <span className="label-large" style={{ color: 'var(--on-accent)' }}>
+                    Testar velocidade
+                  </span>
+                </button>
+              }
+            />
           )}
 
           {hasRecords && (
@@ -230,18 +229,7 @@ export default function HistoricoPage() {
 
           {justDeleted && <div className="label-medium">Medição excluída.</div>}
         </div>
-
-        <AdRail variant="b" />
-      </div>
-
-      <div className="flex w-full justify-center box-border px-5 pb-7">
-        <div className="w-full max-w-[860px]">
-          <AdBannerWide variant="b" />
-        </div>
-      </div>
-      </AdSlotsProvider>
-
-      <SiteFooter />
+      </PageLayout>
 
       {confirmOpen && (
         <ConfirmDialog
@@ -255,6 +243,6 @@ export default function HistoricoPage() {
           onCancel={() => setConfirmOpen(false)}
         />
       )}
-    </div>
+    </>
   )
 }

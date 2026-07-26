@@ -1,3 +1,4 @@
+import { EmptyState } from '../EmptyState'
 import type { ProblemPhase } from '../../hooks/useSpeedTest'
 
 interface ProblemInfo {
@@ -68,26 +69,28 @@ interface ProblemPanelProps {
 export function ProblemPanel({ phase, onAction }: ProblemPanelProps) {
   const problem = PROBLEM_MAP[phase] ?? PROBLEM_MAP['erro-inesperado']
   return (
-    <div className="flex max-w-[420px] flex-col items-center gap-3.5 px-2 py-16 text-center">
-      <span className="material-symbols-outlined" style={{ fontSize: 44, color: problem.colorVar }}>
-        {problem.icon}
-      </span>
-      <div className="headline-small">{problem.title}</div>
-      <div className="body-large" style={{ color: 'var(--text-secondary)', textWrap: 'pretty' }}>
-        {problem.message}
-      </div>
-      <button
-        onClick={onAction}
-        className="flex h-11 items-center gap-2 rounded-[var(--radius-button)] px-5"
-        style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
-      >
-        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
-          {problem.actionIcon}
-        </span>
-        <span className="label-large" style={{ color: 'var(--on-accent)' }}>
-          {problem.actionLabel}
-        </span>
-      </button>
-    </div>
+    <EmptyState
+      icon={problem.icon}
+      iconColor={problem.colorVar}
+      iconSize={44}
+      title={problem.title}
+      message={problem.message}
+      messageStyle={{ color: 'var(--text-secondary)', textWrap: 'pretty' }}
+      className="flex max-w-[420px] flex-col items-center gap-3.5 px-2 py-16 text-center"
+      action={
+        <button
+          onClick={onAction}
+          className="flex h-11 items-center gap-2 rounded-[var(--radius-button)] px-5"
+          style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
+            {problem.actionIcon}
+          </span>
+          <span className="label-large" style={{ color: 'var(--on-accent)' }}>
+            {problem.actionLabel}
+          </span>
+        </button>
+      }
+    />
   )
 }

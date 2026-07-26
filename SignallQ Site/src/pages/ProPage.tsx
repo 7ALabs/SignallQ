@@ -1,11 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AdBannerWide } from '../components/AdBannerWide'
-import { AdRail } from '../components/AdRail'
-import { AdSlotsProvider } from '../components/AdSlotsProvider'
 import { EmailCaptureDialog } from '../components/EmailCaptureDialog'
-import { SiteFooter } from '../components/SiteFooter'
-import { SiteNav } from '../components/SiteNav'
+import { PageLayout } from '../components/PageLayout'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
 import { PAGE_META } from '../lib/pageMetaCatalog'
 import { FEATURE_PRO_LISTA_ESPERA, trackFeatureUsed, trackScreenView } from '../lib/telemetry'
@@ -92,15 +88,8 @@ export default function ProPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col overflow-x-hidden" style={{ background: 'var(--bg-primary)' }}>
-      <SiteNav active="pro" />
-
-      {/* `AdSlotsProvider` coordena os espaços de anúncio desta página — busca o catálogo
-          uma vez e distribui itens distintos, sem repetir o mesmo anúncio (#1402/#1405). */}
-      <AdSlotsProvider>
-      <div className="flex w-full flex-1 items-start justify-center gap-6 px-5 pt-7 pb-10 box-border lg:px-6 lg:pt-5 lg:pb-4">
-        <AdRail variant="a" />
-
+    <>
+      <PageLayout active="pro" adBannerVariant="b">
         <div className="flex w-full max-w-[860px] flex-1 flex-col gap-6">
           {/* Hero */}
           <div className="flex flex-col gap-3">
@@ -264,16 +253,7 @@ export default function ProPage() {
             </button>
           </div>
         </div>
-
-        <AdRail variant="b" />
-      </div>
-
-      <div className="mx-auto w-full max-w-[860px] px-5 pb-7 box-border">
-        <AdBannerWide variant="b" />
-      </div>
-      </AdSlotsProvider>
-
-      <SiteFooter />
+      </PageLayout>
 
       {modalOpen && (
         <EmailCaptureDialog
@@ -291,6 +271,6 @@ export default function ProPage() {
           onClose={() => setModalOpen(false)}
         />
       )}
-    </div>
+    </>
   )
 }

@@ -6,7 +6,7 @@ export interface StepInfo {
 
 export function StepRow({ steps }: { steps: StepInfo[] }) {
   return (
-    <div className="flex w-full max-w-[460px] overflow-hidden rounded-2xl border" style={{ borderColor: 'color-mix(in srgb, var(--border) 22%, transparent)' }}>
+    <div className="flex w-full max-w-[520px] overflow-hidden rounded-2xl border" style={{ borderColor: 'color-mix(in srgb, var(--border) 22%, transparent)' }}>
       {steps.map((step, i) => (
         <div
           key={step.label}
