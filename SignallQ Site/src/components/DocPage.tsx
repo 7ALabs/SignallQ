@@ -37,7 +37,7 @@ export function DocPage({ overline, title, intro, updated, sections, card = fals
   return (
     <div className="mx-auto flex w-full max-w-[860px] flex-col gap-5 box-border">
       <div className="flex flex-col gap-2">
-        <div className="overline">{overline}</div>
+        <div className="label-overline">{overline}</div>
         <h1
           className="m-0 text-[26px] leading-[1.2] font-bold lg:text-[28px]"
           style={{ fontFamily: 'var(--font-sans)', color: 'var(--text-primary)', textWrap: 'pretty' }}

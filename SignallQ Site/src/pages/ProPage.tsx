@@ -164,7 +164,7 @@ export default function ProPage() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               {FEATURE_GROUPS.map((group) => (
                 <div key={group.title} className="flex flex-col gap-2">
-                  <div className="overline" style={{ color: 'var(--text-tertiary)' }}>
+                  <div className="label-overline" style={{ color: 'var(--text-tertiary)' }}>
                     {group.title}
                   </div>
                   {group.items.map((f) => (
@@ -238,7 +238,7 @@ export default function ProPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             {PLANS.map((plano) => (
               <div key={plano.title} className="flex flex-col gap-1 rounded-2xl p-4" style={{ background: 'var(--bg-secondary)' }}>
-                <div className="overline" style={{ color: 'var(--text-tertiary)' }}>
+                <div className="label-overline" style={{ color: 'var(--text-tertiary)' }}>
                   {plano.title}
                 </div>
                 <div className="title-large" style={{ color: 'var(--text-primary)' }}>

@@ -91,7 +91,7 @@ export function SiteFooter() {
 
           <div className="flex flex-wrap gap-12">
             <div className="flex flex-col gap-2.5">
-              <div className="overline">Produto</div>
+              <div className="label-overline">Produto</div>
               <Link to="/" className="body-medium no-underline" style={{ color: 'var(--text-primary)' }}>
                 Teste de velocidade
               </Link>
@@ -106,7 +106,7 @@ export function SiteFooter() {
               </Link>
             </div>
             <div className="flex flex-col gap-2.5">
-              <div className="overline">Guias</div>
+              <div className="label-overline">Guias</div>
               <Link to="/internet-boa-mas-travando" className="body-medium no-underline" style={{ color: 'var(--text-primary)' }}>
                 Internet boa mas travando
               </Link>
@@ -115,7 +115,7 @@ export function SiteFooter() {
               </Link>
             </div>
             <div className="flex flex-col gap-2.5">
-              <div className="overline">Institucional</div>
+              <div className="label-overline">Institucional</div>
               <Link to="/quem-somos" className="body-medium no-underline" style={{ color: 'var(--text-primary)' }}>
                 Quem somos
               </Link>
@@ -127,7 +127,7 @@ export function SiteFooter() {
               </Link>
             </div>
             <div className="flex flex-col items-start gap-2.5">
-              <div className="overline">Baixe o app</div>
+              <div className="label-overline">Baixe o app</div>
               <div
                 className="relative box-border flex w-[260px] flex-col gap-2.5 overflow-hidden rounded-2xl p-3.5"
                 style={{ background: 'linear-gradient(140deg, #241A45 0%, #17132B 60%, #0E0D14 100%)' }}

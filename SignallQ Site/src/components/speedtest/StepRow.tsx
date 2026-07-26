@@ -13,7 +13,7 @@ export function StepRow({ steps }: { steps: StepInfo[] }) {
           className="flex flex-1 flex-col items-center gap-1"
           style={{ padding: '14px 8px', borderLeft: i === 0 ? 'none' : '1px solid color-mix(in srgb, var(--border) 22%, transparent)' }}
         >
-          <div className="overline">{step.label}</div>
+          <div className="label-overline">{step.label}</div>
           <div className="label-large" style={{ color: step.color }}>
             {step.value}
           </div>
