@@ -1,6 +1,7 @@
 package io.signallq.app.feature.diagnostico.remote
 
 import io.signallq.app.core.diagnostico.DiagnosticArea
+import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.DiagnosticRunner
@@ -45,6 +46,15 @@ import java.util.concurrent.TimeUnit
  * call sites de `executar` ja rodavam dentro de coroutine (`viewModelScope.launch` /
  * `Flow.collect` / `withContext`), entao a mudanca para `suspend` nao exigiu alterar
  * nenhum chamador.
+ *
+ * ## Fallback local de 3 niveis (GH#1450, secao "Fallback local" de #952)
+ * [cacheStore] guarda o ultimo JSON valido devolvido pelo worker. Ordem de tentativa
+ * em [evaluate]: `REMOTE` (worker responde e mapeia com sucesso) -> `CACHED_LOCAL`
+ * (worker falhou, mas ha ruleset remoto cacheado e valido) -> `BUNDLED_LOCAL`
+ * ([DiagnosticRunner], motor 100% embarcado, fallback final -- nunca falha). A origem
+ * efetivamente usada fica em [DiagnosticReport.evaluationSource]. Sem [cacheStore]
+ * configurado (default [NoOpRulesetCacheStore]), o comportamento degrada para o
+ * fallback de 2 niveis anterior (REMOTE -> BUNDLED_LOCAL).
  */
 class RemoteDiagnosticRepository(
     private val baseUrl: String,
@@ -54,36 +64,94 @@ class RemoteDiagnosticRepository(
             .readTimeout(4, TimeUnit.SECONDS)
             .writeTimeout(3, TimeUnit.SECONDS)
             .build(),
+    private val cacheStore: RulesetCacheStore = NoOpRulesetCacheStore,
 ) {
 
     /**
-     * Avalia o diagnostico: tenta remoto primeiro, cai para o motor local em
-     * qualquer falha. Nunca lanca excecao — sempre devolve um [DiagnosticReport]
-     * valido (remoto ou local).
+     * Avalia o diagnostico com fallback local de 3 niveis: tenta remoto, depois o
+     * ultimo ruleset remoto cacheado, depois o motor embarcado. Nunca lanca excecao —
+     * sempre devolve um [DiagnosticReport] valido, com [DiagnosticReport.evaluationSource]
+     * indicando qual dos tres realmente foi usado.
      */
     suspend fun evaluate(
         input: DiagnosticInput,
         enabledAreas: Set<DiagnosticArea> = DiagnosticArea.entries.toSet(),
     ): DiagnosticReport {
         val remotePayload = evaluateRemote(input)
-        if (remotePayload == null) {
-            Timber.i("RemoteDiagnosticRepository: remoto indisponivel, usando motor local")
-            return DiagnosticRunner.run(input, enabledAreas, gerarRecomendacoes = RecommendationEngine::recomendar)
+        if (remotePayload != null) {
+            try {
+                val remoteReport = RemoteDiagnosticReportMapper.toDiagnosticReport(
+                    payload = remotePayload,
+                    geradoEmMs = System.currentTimeMillis(),
+                )
+                persistarCache(remotePayload)
+                // perfisUso/gameReadiness: sempre local, ver kdoc de RemoteDiagnosticReportMapper.
+                return remoteReport.copy(
+                    evaluationSource = DiagnosticEvaluationSource.REMOTE,
+                    perfisUso = UsageProfileClassifier.classificarTodos(input),
+                    gameReadiness = GameReadinessClassifier.classificarTodos(input),
+                )
+            } catch (t: Throwable) {
+                Timber.w(t, "RemoteDiagnosticRepository: falha ao mapear resposta remota, tentando cache local")
+            }
+        } else {
+            Timber.i("RemoteDiagnosticRepository: remoto indisponivel, tentando cache local")
         }
 
-        return try {
-            val remoteReport = RemoteDiagnosticReportMapper.toDiagnosticReport(
-                payload = remotePayload,
-                geradoEmMs = System.currentTimeMillis(),
-            )
-            // perfisUso/gameReadiness: sempre local, ver kdoc de RemoteDiagnosticReportMapper.
-            remoteReport.copy(
-                perfisUso = UsageProfileClassifier.classificarTodos(input),
-                gameReadiness = GameReadinessClassifier.classificarTodos(input),
+        return evaluateFromCacheOrBundled(input, enabledAreas)
+    }
+
+    /** Nivel 2 (`CACHED_LOCAL`) e nivel 3 (`BUNDLED_LOCAL`) do fallback -- chamado
+     *  quando o remoto falhou (indisponivel ou resposta nao mapeavel). */
+    private suspend fun evaluateFromCacheOrBundled(
+        input: DiagnosticInput,
+        enabledAreas: Set<DiagnosticArea>,
+    ): DiagnosticReport {
+        val cached = try {
+            cacheStore.load()
+        } catch (t: Throwable) {
+            Timber.w(t, "RemoteDiagnosticRepository: falha ao ler cache local")
+            null
+        }
+
+        if (cached != null) {
+            try {
+                val cachedReport = RemoteDiagnosticReportMapper.toDiagnosticReport(
+                    payload = JSONObject(cached.content),
+                    geradoEmMs = System.currentTimeMillis(),
+                )
+                Timber.i("RemoteDiagnosticRepository: usando CACHED_LOCAL (sincronizado em ${cached.syncedAtMs})")
+                return cachedReport.copy(
+                    evaluationSource = DiagnosticEvaluationSource.CACHED_LOCAL,
+                    perfisUso = UsageProfileClassifier.classificarTodos(input),
+                    gameReadiness = GameReadinessClassifier.classificarTodos(input),
+                )
+            } catch (t: Throwable) {
+                Timber.w(t, "RemoteDiagnosticRepository: cache local corrompido, usando motor embarcado")
+            }
+        }
+
+        Timber.i("RemoteDiagnosticRepository: usando motor embarcado (BUNDLED_LOCAL)")
+        return DiagnosticRunner.run(input, enabledAreas, gerarRecomendacoes = RecommendationEngine::recomendar)
+            .copy(evaluationSource = DiagnosticEvaluationSource.BUNDLED_LOCAL)
+    }
+
+    /** Persiste o payload remoto recem-validado como novo `CACHED_LOCAL`. Melhor
+     *  esforco: falha ao persistir nao derruba a avaliacao REMOTE que ja foi obtida
+     *  com sucesso, so significa que o proximo fallback nao tera um cache mais novo. */
+    private fun persistarCache(payload: JSONObject) {
+        try {
+            cacheStore.save(
+                content = payload.toString(),
+                rulesetVersion = if (payload.has("rulesetVersion") && !payload.isNull("rulesetVersion")) {
+                    payload.optInt("rulesetVersion")
+                } else {
+                    null
+                },
+                syncedAtMs = System.currentTimeMillis(),
             )
         } catch (t: Throwable) {
-            Timber.w(t, "RemoteDiagnosticRepository: falha ao mapear resposta remota, usando motor local")
-            DiagnosticRunner.run(input, enabledAreas, gerarRecomendacoes = RecommendationEngine::recomendar)
+            Timber.w(t, "RemoteDiagnosticRepository: falha ao persistir ruleset remoto para CACHED_LOCAL")
         }
     }
 
