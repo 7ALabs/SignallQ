@@ -51,11 +51,11 @@ const COPYRIGHT_SUFFIX = '. Produto em fase Beta.'
 // (mesmo contrato do `BrandEndorsement` do SignallQ Admin), não mais texto
 // plano — o texto puro não expressava a hierarquia visual aprovada ("by"
 // normal, "7A" com peso maior).
-function CopyrightLine({ className }: { className?: string }) {
+function CopyrightLine({ className, isDark }: { className?: string; isDark: boolean }) {
   return (
     <div className={`body-small inline-flex flex-wrap items-center gap-1 ${className ?? ''}`} style={{ color: 'var(--text-tertiary)' }}>
       <span>{COPYRIGHT_PREFIX}</span>
-      <BrandEndorsement size="compact" />
+      <BrandEndorsement size="compact" variant="symbol-text" isDark={isDark} />
       <span>{COPYRIGHT_SUFFIX}</span>
     </div>
   )
@@ -106,7 +106,7 @@ export function SiteFooter() {
             </Link>
           ))}
         </div>
-        <CopyrightLine />
+        <CopyrightLine isDark={isDark} />
       </div>
 
       {/* Compact (640-1023px) */}
@@ -120,7 +120,7 @@ export function SiteFooter() {
             </Link>
           ))}
         </div>
-        <CopyrightLine className="ml-auto" />
+        <CopyrightLine className="ml-auto" isDark={isDark} />
       </div>
 
       {/* Full (>=1024px) */}
@@ -226,7 +226,7 @@ export function SiteFooter() {
           className="mx-auto flex flex-wrap justify-between gap-2 border-t px-5 pb-7 pt-4 box-border"
           style={{ maxWidth: 1280, borderColor: 'color-mix(in srgb, var(--border) 18%, transparent)' }}
         >
-          <CopyrightLine />
+          <CopyrightLine isDark={isDark} />
         </div>
       </div>
     </div>

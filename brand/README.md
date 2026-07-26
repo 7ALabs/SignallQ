@@ -59,3 +59,19 @@ repositório separado (`7agentsstudio` no GitHub, fora deste monorepo) — não 
 nesta rodada. Aplicar o mesmo conjunto lá quando houver acesso ao repo.
 
 > Marca anterior ("linka") é histórica e **não deve ser usada** em nenhum material novo.
+
+## Símbolo institucional 7A (`by 7A`, GH#1376)
+
+Distinto do símbolo SignallQ acima — usado só pela assinatura institucional "by 7A"
+(`BrandEndorsement`), nunca para o ícone/logo do produto em si.
+
+| Arquivo | Uso |
+|---|---|
+| `7alabs-symbol-dark.svg` | Símbolo "7A" isolado, para fundo escuro. Recortado das paths originais fornecidas pelo Luiz, viewBox `267 164 763 653` (não quadrado, ~1.17:1) — sem traço novo inventado. |
+| `7alabs-symbol-light.svg` | Mesmo símbolo, variante para fundo claro. |
+| `7alabs-lockup-dark.svg` | Marca completa "7ALabs" (símbolo + wordmark "Labs"), fundo escuro. **Não usar em `BrandEndorsement`/telas operacionais** — a issue #1376 proíbe lockup completo nessas superfícies; guardado só para uso institucional fora do componente (ex.: material de apresentação). |
+| `7alabs-lockup-light.svg` | Mesmo lockup, variante para fundo claro. |
+
+Consumido via cópia local, não import cross-monorepo: `SignallQ Admin/public/brand/7a/symbol-{dark,light}.svg`
+e `SignallQ Site/public/brand/7alabs-symbol-{dark,light}.svg` (nomenclatura de cada cópia segue a
+convenção de `public/brand/` já existente em cada app — ver `BrandEndorsement.tsx` de cada um).

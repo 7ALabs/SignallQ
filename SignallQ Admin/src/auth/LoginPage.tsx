@@ -5,11 +5,12 @@ import { BrandEndorsement } from "../components/ui/BrandEndorsement";
 
 interface LoginPageProps {
   onLogin: () => void;
+  theme?: "dark" | "light";
 }
 
 type LoginView = "login" | "forgot" | "forgot-sent";
 
-export function LoginPage({ onLogin }: LoginPageProps) {
+export function LoginPage({ onLogin, theme }: LoginPageProps) {
   const [view, setView] = useState<LoginView>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -273,7 +274,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
         {/* GH#1376: assinatura institucional — superfície de login, hierarquia baixa */}
         <div className="mt-10">
-          <BrandEndorsement id="login-brand-endorsement" />
+          <BrandEndorsement id="login-brand-endorsement" variant="symbol-text" theme={theme} />
         </div>
       </div>
     </div>

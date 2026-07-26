@@ -226,7 +226,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="px-4 py-3 flex justify-center"
           style={{ borderTop: "1px solid var(--border)" }}
         >
-          <BrandEndorsement id="sidebar-brand-endorsement" size="compact" />
+          <BrandEndorsement id="sidebar-brand-endorsement" size="compact" variant="symbol-text" theme={theme} />
         </div>
       </div>
     </div>
