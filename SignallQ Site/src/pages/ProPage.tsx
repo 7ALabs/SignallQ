@@ -98,16 +98,19 @@ export default function ProPage() {
       {/* `AdSlotsProvider` coordena os espaços de anúncio desta página — busca o catálogo
           uma vez e distribui itens distintos, sem repetir o mesmo anúncio (#1402/#1405). */}
       <AdSlotsProvider>
-      <div className="flex w-full flex-1 items-start justify-center gap-6 px-5 py-9 box-border lg:px-6 lg:py-10">
+      <div className="flex w-full flex-1 items-start justify-center gap-6 px-5 pt-7 pb-10 box-border lg:px-6 lg:pt-5 lg:pb-4">
         <AdRail variant="a" />
 
-        <div className="flex w-full max-w-[860px] flex-1 flex-col gap-8">
+        <div className="flex w-full max-w-[860px] flex-1 flex-col gap-6">
           {/* Hero */}
           <div className="flex flex-col gap-3">
-            <span className="w-fit rounded-full px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white" style={{ background: PRO_GRADIENT, letterSpacing: '0.04em' }}>
+            <span
+              className="w-fit rounded-full px-3 py-[5px] text-[11px] font-bold uppercase text-white"
+              style={{ background: PRO_GRADIENT, font: '700 11px/1.2 var(--font-sans)', letterSpacing: '0.04em' }}
+            >
               SignallQ PRO
             </span>
-            <h1 className="m-0 max-w-[640px] text-[28px] font-bold leading-tight lg:text-[30px]" style={{ color: 'var(--text-primary)' }}>
+            <h1 className="m-0 max-w-[640px] text-pretty text-[28px] font-bold leading-[1.2] lg:text-[30px]" style={{ color: 'var(--text-primary)' }}>
               Sua visita técnica merece um resultado que o cliente guarda.
             </h1>
             <p className="m-0 max-w-[560px] body-medium" style={{ color: 'var(--text-secondary)' }}>
@@ -191,7 +194,7 @@ export default function ProPage() {
                     {step}
                   </span>
                   {i < FLOW_STEPS.length - 1 && (
-                    <span className="font-semibold" style={{ color: 'var(--text-tertiary)' }}>
+                    <span style={{ font: '600 13px/1 var(--font-sans)', color: 'var(--text-tertiary)' }}>
                       →
                     </span>
                   )}
@@ -206,7 +209,7 @@ export default function ProPage() {
               Gratuito × PRO
             </div>
             <div className="grid grid-cols-2 overflow-hidden rounded-2xl border" style={{ borderColor: 'color-mix(in srgb, var(--border) 30%, transparent)' }}>
-              <div className="px-3.5 py-2.5 label-large" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+              <div className="px-3.5 py-2.5" style={{ background: 'var(--bg-secondary)', font: '500 13px/1.4 var(--font-sans)', color: 'var(--text-primary)' }}>
                 Gratuito
               </div>
               <div className="px-3.5 py-2.5" style={{ background: PRO_GRADIENT, font: '700 13px/1.4 var(--font-sans)', color: '#fff' }}>

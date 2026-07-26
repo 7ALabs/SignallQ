@@ -60,7 +60,7 @@ export function DocPage({ overline, title, intro, updated, sections, card = fals
         {sections.map((secao) => (
           <section
             key={secao.title}
-            className={`mb-3.5 flex flex-col gap-1.5 break-inside-avoid ${card ? 'rounded-2xl p-4' : ''}`}
+            className={`mb-3.5 flex flex-col gap-1.5 break-inside-avoid ${card ? 'rounded-2xl p-5 lg:p-4' : ''}`}
             style={card ? { background: 'var(--bg-secondary)' } : undefined}
           >
             <h2 className="m-0" style={{ font: card ? '600 16px/1.35 var(--font-sans)' : '600 14px/1.4 var(--font-sans)', color: 'var(--text-primary)' }}>
