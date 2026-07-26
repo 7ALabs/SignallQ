@@ -1,6 +1,7 @@
 package io.signallq.app.feature.diagnostico.remote
 
 import io.signallq.app.core.diagnostico.ConnectionType
+import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
@@ -17,6 +18,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.nio.file.Files
 import java.util.concurrent.TimeUnit
 
 /**
@@ -155,5 +157,88 @@ class RemoteDiagnosticRepositoryTest {
         server.enqueue(MockResponse().setResponseCode(404))
         val repo = RemoteDiagnosticRepository(baseUrl = server.url("/").toString())
         assertNull(repo.evaluateRemote(snapshotSaudavelInput()))
+    }
+
+    // --- Fallback local de 3 niveis (GH#1450, secao "Fallback local" de #952) ---
+
+    private fun tempCacheDir() = Files.createTempDirectory("ruleset-cache-repo-test").toFile()
+
+    private fun cacheStore(dir: java.io.File = tempCacheDir()): FileRulesetCacheStore = FileRulesetCacheStore(dir)
+
+    @Test
+    fun `worker responde 200 - evaluationSource fica REMOTE e persiste cache`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(remoteReportJson()))
+        val cache = cacheStore()
+        val repo = RemoteDiagnosticRepository(baseUrl = server.url("/").toString(), cacheStore = cache)
+
+        val report = repo.evaluate(snapshotSaudavelInput())
+
+        assertEquals(DiagnosticEvaluationSource.REMOTE, report.evaluationSource)
+        assertNotNull(cache.load())
+    }
+
+    @Test
+    fun `remoto falha sem cache previamente persistido - cai direto pro BUNDLED_LOCAL`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(500))
+        val repo = RemoteDiagnosticRepository(baseUrl = server.url("/").toString(), cacheStore = cacheStore())
+
+        val report = repo.evaluate(snapshotSaudavelInput())
+
+        assertEquals(DiagnosticEvaluationSource.BUNDLED_LOCAL, report.evaluationSource)
+    }
+
+    @Test
+    fun `remoto falha com cache valido - usa CACHED_LOCAL em vez do motor embarcado`() = runTest {
+        val cache = cacheStore()
+        // Primeira chamada: remoto ok, popula o cache.
+        server.enqueue(MockResponse().setResponseCode(200).setBody(remoteReportJson()))
+        val repo = RemoteDiagnosticRepository(baseUrl = server.url("/").toString(), cacheStore = cache)
+        repo.evaluate(snapshotSaudavelInput())
+
+        // Segunda chamada: remoto falha -> deve usar o cache da primeira.
+        server.enqueue(MockResponse().setResponseCode(500))
+        val report = repo.evaluate(snapshotSaudavelInput())
+
+        assertEquals(DiagnosticEvaluationSource.CACHED_LOCAL, report.evaluationSource)
+        assertEquals("DECISAO-SAUDAVEL_MONITORAR", report.decisao.id)
+    }
+
+    @Test
+    fun `cache corrompido - ignora e cai pro BUNDLED_LOCAL sem travar`() = runTest {
+        val dir = tempCacheDir()
+        // Arquivo de cache corrompido diretamente em disco (sem passar por save(),
+        // que ja validaria e rejeitaria) -- simula corrupcao real do arquivo persistido.
+        java.io.File(dir, "diagnostic_ruleset_cache.json")
+            .writeText("{ corrompido de verdade", Charsets.UTF_8)
+
+        server.enqueue(MockResponse().setResponseCode(500))
+        val repo = RemoteDiagnosticRepository(baseUrl = server.url("/").toString(), cacheStore = cacheStore(dir))
+
+        val report = repo.evaluate(snapshotSaudavelInput())
+
+        assertEquals(DiagnosticEvaluationSource.BUNDLED_LOCAL, report.evaluationSource)
+        assertNotNull(report.decisao)
+    }
+
+    @Test
+    fun `download invalido apos cache valido - nao sobrescreve cache, proxima falha ainda usa CACHED_LOCAL`() = runTest {
+        val cache = cacheStore()
+        server.enqueue(MockResponse().setResponseCode(200).setBody(remoteReportJson()))
+        val repo = RemoteDiagnosticRepository(baseUrl = server.url("/").toString(), cacheStore = cache)
+        repo.evaluate(snapshotSaudavelInput())
+        val cachedAposSucesso = cache.load()
+
+        // "Download" seguinte volta corpo vazio (falha de rede/parsing) -- evaluateRemote
+        // ja retorna null nesse caso, entao evaluate() nem tenta persistir nada; o cache
+        // valido anterior deve permanecer intacto.
+        server.enqueue(MockResponse().setResponseCode(200).setBody(""))
+        repo.evaluate(snapshotSaudavelInput())
+
+        assertEquals(cachedAposSucesso, cache.load())
+
+        // E a proxima falha real ainda consegue usar esse mesmo cache.
+        server.enqueue(MockResponse().setResponseCode(500))
+        val report = repo.evaluate(snapshotSaudavelInput())
+        assertEquals(DiagnosticEvaluationSource.CACHED_LOCAL, report.evaluationSource)
     }
 }

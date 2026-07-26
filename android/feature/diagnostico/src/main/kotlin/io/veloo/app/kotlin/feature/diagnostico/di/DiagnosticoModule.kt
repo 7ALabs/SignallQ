@@ -9,6 +9,7 @@ import dagger.hilt.components.SingletonComponent
 import io.signallq.app.feature.diagnostico.BuildConfig
 import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
 import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
+import io.signallq.app.feature.diagnostico.remote.FileRulesetCacheStore
 import io.signallq.app.feature.diagnostico.remote.ProviderDirectoryRepository
 import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
 import io.signallq.app.core.database.SignallQDatabase
@@ -21,6 +22,7 @@ import io.signallq.app.core.recommendation.catalog.RecommendationCatalog
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.topology.TopologyDiagnostic
 import okhttp3.OkHttpClient
+import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Singleton
@@ -68,11 +70,21 @@ object DiagnosticoModule {
      * GH#969: wireada no [io.signallq.app.feature.diagnostico.DiagnosticOrchestrator] —
      * fluxo remoto-primeiro com fallback automatico pro motor local, sem mudanca
      * perceptivel de UI (o orquestrador so troca a fonte do relatorio).
+     *
+     * GH#1450: [FileRulesetCacheStore] persiste o ultimo ruleset remoto valido em
+     * `filesDir/diagnostic_ruleset` (nunca `cacheDir` — dado usado como fallback de
+     * seguranca, o SO nao pode limpar sob pressao de storage), habilitando o nivel
+     * intermediario `CACHED_LOCAL` do fallback de 3 niveis (#952).
      */
     @Provides
     @Singleton
-    fun provideRemoteDiagnosticRepository(): RemoteDiagnosticRepository =
-        RemoteDiagnosticRepository(baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL)
+    fun provideRemoteDiagnosticRepository(
+        @ApplicationContext ctx: Context,
+    ): RemoteDiagnosticRepository =
+        RemoteDiagnosticRepository(
+            baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL,
+            cacheStore = FileRulesetCacheStore(File(ctx.filesDir, "diagnostic_ruleset")),
+        )
 
     /**
      * Provê ProviderDirectoryRepository no grafo Hilt (GH#965) — diretorio remoto

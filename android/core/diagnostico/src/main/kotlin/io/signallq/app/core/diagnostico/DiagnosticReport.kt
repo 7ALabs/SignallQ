@@ -49,6 +49,14 @@ data class DiagnosticReport(
      *  (nunca deve acontecer em producao). */
     val gameReadiness: List<GameReadinessClassifier.GameReadinessResult> = emptyList(),
     val geradoEmMs: Long,
+    /** Origem da avaliacao que gerou este relatorio -- REMOTE (worker respondeu com
+     *  sucesso), CACHED_LOCAL (worker falhou, mas havia ultimo ruleset remoto valido
+     *  persistido) ou BUNDLED_LOCAL (motor 100% embarcado no APK, fallback final).
+     *  Ver [DiagnosticEvaluationSource] e issue #1450 (fallback local de 3 niveis, #952).
+     *  Default BUNDLED_LOCAL: todo caller que roda [DiagnosticRunner] diretamente (sem
+     *  passar por [io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository])
+     *  esta, por definicao, usando o motor embarcado. */
+    val evaluationSource: DiagnosticEvaluationSource = DiagnosticEvaluationSource.BUNDLED_LOCAL,
 ) {
     private val todos: List<DiagnosticResult>
         get() =
