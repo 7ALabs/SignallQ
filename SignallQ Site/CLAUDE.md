@@ -113,7 +113,7 @@ npm run build     # tsc --noEmit && vite build
 - O SignallQ gratuito encaminha para o grupo de testadores fechados, sem capturar e-mail. A lista
   de espera do SignallQ PRO (`ProPage.tsx`) persiste em D1 via `functions/api/waitlist.ts`, mas
   requer `SITE_INGEST_KEY` e migration remota configuradas para funcionar em produção.
-- O deploy em `signallq.pages.dev` depende dos secrets `CLOUDFLARE_ACCOUNT_ID` e
-  `CLOUDFLARE_API_TOKEN` no GitHub Actions. O primeiro está configurado, mas o token ainda não;
-  sem ele, o workflow falha explicitamente e nenhuma alteração é publicada por engano. Configurar
-  o token e reexecutar o workflow é necessário para validar mudanças contra produção.
+- ~~O deploy em `signallq.pages.dev` depende dos secrets `CLOUDFLARE_ACCOUNT_ID` e
+  `CLOUDFLARE_API_TOKEN`~~ — resolvido em 2026-07-25: os dois secrets estão configurados no
+  GitHub Actions. `site-deploy.yml` dispara automaticamente a cada push em `main` que toca
+  `SignallQ Site/**`, sem passo manual.
