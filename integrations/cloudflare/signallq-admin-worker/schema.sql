@@ -255,3 +255,30 @@ CREATE TABLE IF NOT EXISTS local_ads (
   updated_at  INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_local_ads_active ON local_ads(active);
+
+-- GH#1312: catálogo remoto de releases do app (produto+canal), consumido em leitura pelo Android
+-- (comparação por versionCode) e administrado pelo Console. `status` distingue active (comunicada
+-- agora) | superseded (substituída por versão maior) | deactivated (comunicação desligada sem
+-- apagar). Índice único parcial garante no máximo uma linha 'active' por product+channel.
+-- Aplicar via: migrations/020_gh1312_app_releases.sql (npx wrangler d1 execute --file=... --remote)
+CREATE TABLE IF NOT EXISTS app_releases (
+  release_id TEXT PRIMARY KEY,
+  product TEXT NOT NULL,
+  channel TEXT NOT NULL,
+  version_name TEXT NOT NULL,
+  version_code INTEGER NOT NULL,
+  release_notes TEXT NOT NULL DEFAULT '',
+  store_url TEXT NOT NULL,
+  notification_enabled INTEGER NOT NULL DEFAULT 1,
+  reminder_campaign_id TEXT DEFAULT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  published_at INTEGER NOT NULL,
+  published_by TEXT NOT NULL DEFAULT '',
+  push_status TEXT DEFAULT NULL,
+  push_sent_at INTEGER DEFAULT NULL,
+  push_error TEXT DEFAULT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_app_releases_lookup ON app_releases(product, channel, status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_app_releases_active_unique ON app_releases(product, channel) WHERE status = 'active';
