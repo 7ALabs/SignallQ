@@ -5,6 +5,7 @@ import { NAVIGATION_SECTIONS } from "../../config/navigation";
 import { NAVIGATION_ICON_MAP as iconMap } from "../../config/navigationIcons";
 import { AppEnvironment } from "../../types/admin";
 import { errorMetricsService } from "../../services/errorMetricsService";
+import { BrandEndorsement } from "../ui/BrandEndorsement";
 
 // GH#1041: Sidebar agora é exclusivo do breakpoint desktop (>=1024px) — o
 // terceiro estado de nav colapsada é o NavRail (tablet, 768-1024px) e o
@@ -180,40 +181,53 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      {/* Sidebar Footer — usuário + tema (Design System.dc.html) */}
-      <div className="p-4 flex items-center gap-3">
-        <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-sans font-semibold text-white shrink-0 select-none"
-          style={{ background: "linear-gradient(135deg, var(--primary), var(--sq-accent-blue))" }}
-        >
-          SQ
-        </div>
-        <div className="min-w-0 flex-1">
-          <span className="text-[12px] font-sans font-semibold block truncate" style={{ color: "var(--text-primary)" }}>
-            Admin
-          </span>
-          <span className="text-[10px] font-sans block leading-tight truncate" style={{ color: "var(--text-tertiary)" }}>
-            Squad técnico
-          </span>
-        </div>
-        {onToggleTheme && (
-          <button
-            onClick={onToggleTheme}
-            className="w-[30px] h-[30px] shrink-0 flex items-center justify-center rounded-full transition-colors cursor-pointer"
-            style={{
-              backgroundColor: "var(--bg-surface)",
-              color: "var(--text-tertiary)",
-            }}
-            title={theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
-            aria-label={theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
+      {/* Sidebar Footer — usuário + tema (Design System.dc.html) + rodapé
+          institucional (GH#1376) agrupados num único bloco para preservar o
+          `justify-between` de 2 filhos do container raiz. */}
+      <div>
+        <div className="p-4 flex items-center gap-3">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-sans font-semibold text-white shrink-0 select-none"
+            style={{ background: "linear-gradient(135deg, var(--primary), var(--sq-accent-blue))" }}
           >
-            {theme === "dark" ? (
-              <Sun className="w-4 h-4" />
-            ) : (
-              <Moon className="w-4 h-4" />
-            )}
-          </button>
-        )}
+            SQ
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="text-[12px] font-sans font-semibold block truncate" style={{ color: "var(--text-primary)" }}>
+              Admin
+            </span>
+            <span className="text-[10px] font-sans block leading-tight truncate" style={{ color: "var(--text-tertiary)" }}>
+              Squad técnico
+            </span>
+          </div>
+          {onToggleTheme && (
+            <button
+              onClick={onToggleTheme}
+              className="w-[30px] h-[30px] shrink-0 flex items-center justify-center rounded-full transition-colors cursor-pointer"
+              style={{
+                backgroundColor: "var(--bg-surface)",
+                color: "var(--text-tertiary)",
+              }}
+              title={theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
+              aria-label={theme === "dark" ? "Alternar para tema claro" : "Alternar para tema escuro"}
+            >
+              {theme === "dark" ? (
+                <Sun className="w-4 h-4" />
+              ) : (
+                <Moon className="w-4 h-4" />
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* GH#1376: rodapé institucional — instância única, hierarquia baixa,
+            não repete por tela (Sidebar é chrome persistente, não conteúdo de tela). */}
+        <div
+          className="px-4 py-3 flex justify-center"
+          style={{ borderTop: "1px solid var(--border)" }}
+        >
+          <BrandEndorsement id="sidebar-brand-endorsement" size="compact" />
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { alpha } from "../utils/color";
+import { BrandEndorsement } from "../components/ui/BrandEndorsement";
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -269,6 +270,11 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             </button>
           </div>
         )}
+
+        {/* GH#1376: assinatura institucional — superfície de login, hierarquia baixa */}
+        <div className="mt-10">
+          <BrandEndorsement id="login-brand-endorsement" />
+        </div>
       </div>
     </div>
   );
