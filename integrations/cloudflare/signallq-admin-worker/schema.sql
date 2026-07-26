@@ -305,3 +305,15 @@ CREATE TABLE IF NOT EXISTS remote_config_audit_log (
 CREATE INDEX IF NOT EXISTS idx_rcal_action ON remote_config_audit_log(action);
 CREATE INDEX IF NOT EXISTS idx_rcal_created_at ON remote_config_audit_log(created_at);
 CREATE INDEX IF NOT EXISTS idx_rcal_actor ON remote_config_audit_log(actor_user_id);
+
+-- GH#1478 (Épico #1347): rate limit dedicado das rotas de escrita (publish/rollback/
+-- feature-flags/sync) do backend admin de Feature Flags, por usuário autenticado — distinto de
+-- `auth_rate_limit` (por IP, só protege login).
+-- Aplicar via: migrations/022_gh1478_remote_config_write_rate_limit.sql (npx wrangler d1 execute --file=... --remote)
+CREATE TABLE IF NOT EXISTS remote_config_write_rate_limit (
+  actor_user_id TEXT NOT NULL,
+  route TEXT NOT NULL,
+  count INTEGER NOT NULL DEFAULT 1,
+  window_start INTEGER NOT NULL,
+  PRIMARY KEY (actor_user_id, route)
+);

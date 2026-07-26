@@ -7,13 +7,17 @@
   `android/core/featureflags/src/main/resources/featureflags/consumer-catalog.json` — não copiado
   aqui além de exemplos ilustrativos.
 - **Escopo:** módulo Android `:core:featureflags` (issue #1477, Épico #1347) — catálogo tipado,
-  `FeatureFlagProvider`, integração com Firebase Remote Config. **Não cobre** o backend do Admin
-  (F2/#1478) nem a UI do SignallQ Admin (F3/#1479), ainda não implementados — nem os dois sistemas
-  de feature flags mais antigos do repositório (compile-time `FeatureFlags.kt` e o remoto legado
-  SIG-13 `FeatureFlagManager`/`FeatureFlagRepository`), documentados em
-  `docs_ai/TECNICO.md` §5.2 e `docs_ai/functional/FEATURE_FLAGS.md`.
-- **Responsável:** Camilo (implementação Android). Consumidores previstos: Bruno (F2, backend
-  Worker), Marina (F3, UI Admin), Camilo/outro (F4, instrumentação dos 9 módulos feature).
+  `FeatureFlagProvider`, integração com Firebase Remote Config. **Não cobre** a UI do SignallQ
+  Admin (F3/#1479, ainda não implementada) — nem os dois sistemas de feature flags mais antigos do
+  repositório (compile-time `FeatureFlags.kt` e o remoto legado SIG-13
+  `FeatureFlagManager`/`FeatureFlagRepository`), documentados em `docs_ai/TECNICO.md` §5.2 e
+  `docs_ai/functional/FEATURE_FLAGS.md`. O backend do Admin (F2/#1478,
+  `integrations/cloudflare/signallq-admin-worker/src/remoteConfigAdmin.ts` +
+  `src/featureFlagCatalog.ts`) fechou em 2026-07-26 e já lê este mesmo catálogo diretamente (import
+  JSON cross-diretório, embarcado no bundle a cada `wrangler deploy`) — contrato completo em
+  `docs_ai/CONTRATOS/openapi/signallq-admin-api.yaml`.
+- **Responsável:** Camilo (implementação Android e backend do Admin). Consumidor pendente: Marina
+  (F3, UI Admin), Camilo/outro (F4, instrumentação dos 9 módulos feature).
 
 ---
 
