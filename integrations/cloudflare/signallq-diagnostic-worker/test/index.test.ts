@@ -2054,6 +2054,250 @@ test("provider logo upload: Content-Type que nao e image/* retorna 400", async (
 });
 
 // ============================================================================
+// GH#1461 — provider_audit_log: trilha de auditoria pras 5 escritas
+// administrativas do diretorio de provedores (upsert, review, support
+// update, logo upload, sync-seed).
+// ============================================================================
+
+test("provider audit: criar um provedor novo grava CREATE_PROVIDER com autor real e beforeJson nulo", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" };
+
+  const createResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ provider: { id: "audit_teste1", displayName: "Audit Teste 1" } }),
+    }),
+    env,
+  );
+  assert.equal(createResponse.status, 201);
+
+  const auditResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit?providerId=audit_teste1", { headers: { Cookie: cookie } }),
+    env,
+  );
+  assert.equal(auditResponse.status, 200);
+  const auditPayload = await auditResponse.json() as {
+    items: Array<{
+      providerId: string;
+      operation: string;
+      actorUserId: string;
+      actorEmail: string | null;
+      source: string;
+      beforeJson: string | null;
+      afterJson: string | null;
+    }>;
+  };
+  assert.equal(auditPayload.items.length, 1);
+  const entry = auditPayload.items[0]!;
+  assert.equal(entry.providerId, "audit_teste1");
+  assert.equal(entry.operation, "CREATE_PROVIDER");
+  assert.equal(entry.actorUserId, "user-1");
+  assert.equal(entry.actorEmail, "admin@example.com");
+  assert.equal(entry.source, "admin-console");
+  assert.equal(entry.beforeJson, null);
+  assert.ok(entry.afterJson?.includes("Audit Teste 1"));
+});
+
+test("provider audit: editar um provedor existente grava UPSERT_PROVIDER com beforeJson preenchido", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ provider: { id: "audit_teste2", displayName: "Audit Teste 2" } }),
+    }),
+    env,
+  );
+  await worker.fetch(
+    new Request("https://example.com/admin/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ provider: { id: "audit_teste2", displayName: "Audit Teste 2 Editado" }, reason: "correcao de nome" }),
+    }),
+    env,
+  );
+
+  const auditResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit?providerId=audit_teste2", { headers: { Cookie: cookie } }),
+    env,
+  );
+  const auditPayload = await auditResponse.json() as {
+    items: Array<{ operation: string; beforeJson: string | null; afterJson: string | null; reason: string | null }>;
+  };
+  assert.equal(auditPayload.items.length, 2);
+  // GH#1461 — busca por operation em vez de assumir items[0]: timestamps
+  // (resolucao de milissegundo) podem empatar entre as duas chamadas nesse
+  // teste, e ordenacao em empate nao e garantida (mesma limitacao ja
+  // existente em game_catalog_audit/listGameAudit).
+  const latest = auditPayload.items.find((item) => item.operation === "UPSERT_PROVIDER");
+  assert.ok(latest);
+  assert.equal(latest!.reason, "correcao de nome");
+  assert.ok(latest!.beforeJson?.includes("Audit Teste 2") && !latest!.beforeJson?.includes("Editado"));
+  assert.ok(latest!.afterJson?.includes("Audit Teste 2 Editado"));
+});
+
+test("provider audit: review grava REVIEW_PROVIDER usando notes como motivo", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ provider: { id: "audit_teste3", displayName: "Audit Teste 3" } }),
+    }),
+    env,
+  );
+  const reviewResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit_teste3/review", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ status: "VERIFIED", notes: "confirmado via site oficial" }),
+    }),
+    env,
+  );
+  assert.equal(reviewResponse.status, 200);
+
+  const auditResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit?providerId=audit_teste3", { headers: { Cookie: cookie } }),
+    env,
+  );
+  const auditPayload = await auditResponse.json() as {
+    items: Array<{ operation: string; reason: string | null }>;
+  };
+  const reviewEntry = auditPayload.items.find((item) => item.operation === "REVIEW_PROVIDER");
+  assert.ok(reviewEntry);
+  assert.equal(reviewEntry!.reason, "confirmado via site oficial");
+});
+
+test("provider audit: atualizacao de suporte grava UPDATE_SUPPORT", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ provider: { id: "audit_teste4", displayName: "Audit Teste 4" } }),
+    }),
+    env,
+  );
+  await worker.fetch(
+    new Request("https://example.com/admin/providers/audit_teste4/support", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ sacPhone: "0800-123456" }),
+    }),
+    env,
+  );
+
+  const auditResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit?providerId=audit_teste4", { headers: { Cookie: cookie } }),
+    env,
+  );
+  const auditPayload = await auditResponse.json() as { items: Array<{ operation: string }> };
+  assert.ok(auditPayload.items.some((item) => item.operation === "UPDATE_SUPPORT"));
+});
+
+test("provider audit: upload de logo grava UPLOAD_LOGO sem persistir o binario base64 no log", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ provider: { id: "audit_teste5", displayName: "Audit Teste 5" } }),
+    }),
+    env,
+  );
+  await worker.fetch(
+    new Request("https://example.com/admin/providers/audit_teste5/logo", {
+      method: "POST",
+      headers: { "content-type": "image/webp", Cookie: cookie },
+      body: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]),
+    }),
+    env,
+  );
+
+  const auditResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit?providerId=audit_teste5", { headers: { Cookie: cookie } }),
+    env,
+  );
+  const auditPayload = await auditResponse.json() as {
+    items: Array<{ operation: string; afterJson: string | null }>;
+  };
+  const logoEntry = auditPayload.items.find((item) => item.operation === "UPLOAD_LOGO");
+  assert.ok(logoEntry);
+  assert.ok(logoEntry!.afterJson?.includes("\"version\":1"));
+  assert.ok(!logoEntry!.afterJson?.includes("data_base64"));
+  assert.ok(!logoEntry!.afterJson?.includes("AQIDBAUGBwg")); // base64 do payload de upload acima
+});
+
+test("provider audit: sync-seed grava uma entrada por provedor sincronizado com motivo seed-sync", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" };
+
+  const syncResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/sync-seed", { method: "POST", headers: { Cookie: cookie } }),
+    env,
+  );
+  assert.equal(syncResponse.status, 200);
+
+  const auditResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit", { headers: { Cookie: cookie } }),
+    env,
+  );
+  const auditPayload = await auditResponse.json() as {
+    items: Array<{ operation: string; reason: string | null }>;
+  };
+  const seedEntries = auditPayload.items.filter((item) => item.reason === "seed-sync");
+  assert.ok(seedEntries.length >= 2); // claro + brisanet no catalogo seed embutido
+  assert.ok(seedEntries.every((item) => item.operation === "CREATE_PROVIDER"));
+});
+
+test("GET /admin/providers/audit sem cookie de sessao retorna 401", async () => {
+  const db = new FakeD1Database();
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit"),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" },
+  );
+  assert.equal(response.status, 401);
+});
+
+test("provider audit: rota publica GET /providers/:id nunca expoe autor, motivo ou before/after", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ provider: { id: "audit_teste6", displayName: "Audit Teste 6" } }),
+    }),
+    env,
+  );
+
+  const publicResponse = await worker.fetch(new Request("https://example.com/providers/audit_teste6"), env);
+  const publicPayload = await publicResponse.json() as Record<string, unknown>;
+  assert.equal(publicResponse.status, 200);
+  for (const forbiddenKey of ["actorUserId", "actorEmail", "beforeJson", "afterJson", "reason", "source", "operation"]) {
+    assert.equal(Object.hasOwn(publicPayload, forbiddenKey), false);
+  }
+});
+
+// ============================================================================
 // GH#1444 (parte de #952) — shadow mode: /ingest/diagnostic-divergence e
 // /admin/diagnostic/divergences. Tabela recriada apos remocao em GH#961 —
 // desta vez com o wiring completo (ingest publico + leitura admin).

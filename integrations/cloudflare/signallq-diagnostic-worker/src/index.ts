@@ -25,6 +25,7 @@ import {
   getProviderByAsn,
   getProviderById,
   getProviderLogoBinary,
+  listProviderAuditLog,
   listProviderReviewQueue,
   listStaleProviders,
   registerProviderDetection,
@@ -34,6 +35,7 @@ import {
   updateProviderSupport,
   uploadProviderLogo,
   upsertProvider,
+  type ProviderAdminActor,
 } from "./provider-directory.ts";
 import {
   createRulesetDraft,
@@ -182,6 +184,18 @@ async function resolveAdminSession(
     }
   }
   return authenticateSession(request, env);
+}
+
+// GH#1461 — resolve o autor real (`session.userId` + email de `admin_users`)
+// pra gravar em `provider_audit_log`. Rotas de provider nunca aceitam a
+// secret do proxy diagnostico (ver `resolveAdminSession`), entao `session`
+// aqui e sempre uma sessao de cookie real com `userId` existente em
+// `admin_users` -- `email` so fica `null` se essa premissa quebrar.
+async function resolveProviderActor(env: Env, session: { userId: string; role: string }): Promise<ProviderAdminActor> {
+  const user = env.DB
+    ? await env.DB.prepare("SELECT email, role FROM admin_users WHERE id = ?").bind(session.userId).first<{ email: string; role: string }>()
+    : null;
+  return { userId: session.userId, email: user?.email ?? null, source: "admin-console" };
 }
 
 async function checkRateLimit(ip: string, db: D1Database): Promise<boolean> {
@@ -594,9 +608,10 @@ async function handleDiagnosticDivergencesList(url: URL, env: Env): Promise<Resp
   return json({ items, summary });
 }
 
-async function handleProviderSeedSync(env: Env): Promise<Response> {
+async function handleProviderSeedSync(env: Env, session: { userId: string; role: string }): Promise<Response> {
   if (!env.DB) return json({ error: "DB binding not configured." }, 500);
-  const result = await syncSeedProvidersToDb(env);
+  const actor = await resolveProviderActor(env, session);
+  const result = await syncSeedProvidersToDb(env, actor);
   return json({ ok: true, ...result });
 }
 
@@ -610,7 +625,7 @@ async function handleProviderStale(env: Env): Promise<Response> {
   return json({ items: await listStaleProviders(env) });
 }
 
-async function handleProviderUpsert(request: Request, env: Env): Promise<Response> {
+async function handleProviderUpsert(request: Request, env: Env, session: { userId: string; role: string }): Promise<Response> {
   if (!env.DB) return json({ error: "DB binding not configured." }, 500);
   let payload: unknown;
   try {
@@ -619,16 +634,20 @@ async function handleProviderUpsert(request: Request, env: Env): Promise<Respons
     return json({ error: "Invalid JSON body." }, 400);
   }
 
-  const body = payload as { provider?: { id?: string; displayName?: string } };
+  // GH#1461 — `reason` e um campo opcional adicional pro corpo da requisicao
+  // (motivo administrativo da escrita, so pra auditoria) -- nao muda o
+  // contrato de `provider`, que continua exatamente como antes.
+  const body = payload as { provider?: { id?: string; displayName?: string }; reason?: string | null };
   if (!body.provider?.id || !body.provider.displayName) {
     return json({ error: "provider.id and provider.displayName are required." }, 400);
   }
 
-  const result = await upsertProvider(env, body.provider as Parameters<typeof upsertProvider>[1]);
+  const actor = await resolveProviderActor(env, session);
+  const result = await upsertProvider(env, body.provider as Parameters<typeof upsertProvider>[1], actor, body.reason ?? null);
   return json({ ok: true, ...result }, 201);
 }
 
-async function handleProviderReview(request: Request, env: Env, providerId: string): Promise<Response> {
+async function handleProviderReview(request: Request, env: Env, providerId: string, session: { userId: string; role: string }): Promise<Response> {
   if (!env.DB) return json({ error: "DB binding not configured." }, 500);
   let payload: unknown;
   try {
@@ -636,7 +655,8 @@ async function handleProviderReview(request: Request, env: Env, providerId: stri
   } catch {
     return json({ error: "Invalid JSON body." }, 400);
   }
-  const result = await reviewProvider(env, providerId, payload as Parameters<typeof reviewProvider>[2]);
+  const actor = await resolveProviderActor(env, session);
+  const result = await reviewProvider(env, providerId, payload as Parameters<typeof reviewProvider>[2], actor);
   return json(result);
 }
 
@@ -671,7 +691,7 @@ function validateProviderSupportInput(input: unknown): { ok: true; support: Part
   return { ok: true, support };
 }
 
-async function handleProviderSupportUpdate(request: Request, env: Env, providerId: string): Promise<Response> {
+async function handleProviderSupportUpdate(request: Request, env: Env, providerId: string, session: { userId: string; role: string }): Promise<Response> {
   if (!env.DB) return json({ error: "DB binding not configured." }, 500);
   let payload: unknown;
   try {
@@ -685,12 +705,15 @@ async function handleProviderSupportUpdate(request: Request, env: Env, providerI
     return json({ error: "Invalid provider support payload.", details: validation.errors }, 400);
   }
 
-  const result = await updateProviderSupport(env, providerId, validation.support);
+  // GH#1461 — `reason` opcional, mesma logica de handleProviderUpsert.
+  const reason = (payload as { reason?: string | null } | null)?.reason ?? null;
+  const actor = await resolveProviderActor(env, session);
+  const result = await updateProviderSupport(env, providerId, validation.support, actor, reason);
   if (!result) return json({ error: "Provider not found." }, 404);
   return json(result);
 }
 
-async function handleProviderLogoUpload(request: Request, env: Env, providerId: string): Promise<Response> {
+async function handleProviderLogoUpload(request: Request, env: Env, providerId: string, session: { userId: string; role: string }): Promise<Response> {
   const contentType = request.headers.get("Content-Type") ?? "";
   if (!contentType.startsWith("image/")) {
     return json({ error: "Content-Type must be an image/* mime type." }, 400);
@@ -706,9 +729,22 @@ async function handleProviderLogoUpload(request: Request, env: Env, providerId: 
     return json({ error: "Empty request body." }, 400);
   }
 
-  const result = await uploadProviderLogo(env, providerId, bytes, contentType);
+  // GH#1461 — corpo do request e binario (a imagem), entao `reason` (opcional,
+  // so pra auditoria) vem de query string em vez de JSON.
+  const reason = new URL(request.url).searchParams.get("reason");
+  const actor = await resolveProviderActor(env, session);
+  const result = await uploadProviderLogo(env, providerId, bytes, contentType, actor, reason);
   if (!result.ok) return json({ error: result.error }, result.status);
   return json({ ok: true, url: result.url, version: result.version }, 201);
+}
+
+// GH#1461 — leitura da trilha de auditoria de provider (endpoint pra Admin
+// consumir depois na UI, issue #1465 -- espelha `handleGameAudit`).
+// `?providerId=` opcional filtra pra um unico provedor; sem o filtro, lista
+// as ultimas 100 entradas de qualquer provedor.
+async function handleProviderAuditLog(url: URL, env: Env): Promise<Response> {
+  if (!env.DB) return json({ items: [] });
+  return json({ items: await listProviderAuditLog(env, url.searchParams.get("providerId")) });
 }
 
 // GH#965 — rota publica que serve o binario da logo gravado no D1 (BLOB
@@ -939,6 +975,7 @@ async function route(request: Request, env: Env): Promise<Response> {
         "/admin/providers/review-queue",
         "/admin/providers/stale",
         "/admin/providers/sync-seed",
+        "/admin/providers/audit",
         "/admin/providers",
         "/admin/providers/:providerId/review",
         "/admin/providers/:providerId/support",
@@ -1034,22 +1071,25 @@ async function route(request: Request, env: Env): Promise<Response> {
     return handleProviderStale(env);
   }
   if (request.method === "POST" && url.pathname === "/admin/providers/sync-seed") {
-    return handleProviderSeedSync(env);
+    return handleProviderSeedSync(env, session!);
+  }
+  if (request.method === "GET" && url.pathname === "/admin/providers/audit") {
+    return handleProviderAuditLog(url, env);
   }
   if (request.method === "POST" && url.pathname === "/admin/providers") {
-    return handleProviderUpsert(request, env);
+    return handleProviderUpsert(request, env, session!);
   }
   const providerReviewMatch = url.pathname.match(/^\/admin\/providers\/([^/]+)\/review$/);
   if (request.method === "POST" && providerReviewMatch) {
-    return handleProviderReview(request, env, providerReviewMatch[1]!);
+    return handleProviderReview(request, env, providerReviewMatch[1]!, session!);
   }
   const providerSupportEditMatch = url.pathname.match(/^\/admin\/providers\/([^/]+)\/support$/);
   if ((request.method === "POST" || request.method === "PUT") && providerSupportEditMatch) {
-    return handleProviderSupportUpdate(request, env, providerSupportEditMatch[1]!);
+    return handleProviderSupportUpdate(request, env, providerSupportEditMatch[1]!, session!);
   }
   const providerLogoUploadMatch = url.pathname.match(/^\/admin\/providers\/([^/]+)\/logo$/);
   if (request.method === "POST" && providerLogoUploadMatch) {
-    return handleProviderLogoUpload(request, env, providerLogoUploadMatch[1]!);
+    return handleProviderLogoUpload(request, env, providerLogoUploadMatch[1]!, session!);
   }
   if (request.method === "POST" && url.pathname === "/admin/games/sync-seed") {
     return handleGameSeedSync(env, session!);

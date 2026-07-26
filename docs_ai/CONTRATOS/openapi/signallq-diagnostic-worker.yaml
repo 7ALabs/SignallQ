@@ -873,6 +873,10 @@ paths:
     post:
       operationId: syncProviderSeed
       summary: Sincroniza o catálogo seeded local (código) para o D1
+      description: >
+        GH#1461 — cada provedor sincronizado grava sua própria linha em
+        `provider_audit_log` (operation `CREATE_PROVIDER`/`UPSERT_PROVIDER`, reason
+        `seed-sync`), via o mesmo `upsertProvider` usado por `POST /admin/providers`.
       security:
         - sessionCookie: []
       responses:
@@ -896,6 +900,10 @@ paths:
     post:
       operationId: upsertProvider
       summary: Cria ou atualiza um provedor
+      description: >
+        GH#1461 — grava uma linha em `provider_audit_log` (operation `CREATE_PROVIDER` na
+        primeira escrita, `UPSERT_PROVIDER` nas seguintes), com autor real (sessão admin) e
+        snapshot antes/depois. `reason` é opcional e não altera o contrato de `provider`.
       security:
         - sessionCookie: []
       requestBody:
@@ -907,6 +915,10 @@ paths:
               properties:
                 provider:
                   $ref: "#/components/schemas/ProviderAdminInput"
+                reason:
+                  type: string
+                  nullable: true
+                  description: Motivo administrativo da escrita, armazenado só na auditoria.
       responses:
         "201":
           content:
@@ -934,6 +946,9 @@ paths:
     post:
       operationId: reviewProvider
       summary: Marca um provedor como revisado (status/verifiedAt/nextReviewAt)
+      description: >
+        GH#1461 — grava uma linha em `provider_audit_log` (operation `REVIEW_PROVIDER`);
+        `notes`, quando presente, também é gravado como o `reason` da entrada de auditoria.
       security:
         - sessionCookie: []
       parameters:
@@ -976,7 +991,8 @@ paths:
       description: >
         Método aceito também via PUT (mesmo handler). Atualização parcial real: campo ausente do
         payload não é tocado; campo presente com `null`/vazio desativa o canal; campo presente com
-        valor novo substitui.
+        valor novo substitui. GH#1461 — grava uma linha em `provider_audit_log` (operation
+        `UPDATE_SUPPORT`); `reason` é opcional (não faz parte de `ProviderSupport`, só auditoria).
       security:
         - sessionCookie: []
       parameters:
@@ -997,6 +1013,7 @@ paths:
                 websiteUrl: { type: string, nullable: true }
                 customerAreaUrl: { type: string, nullable: true }
                 ombudsmanPhone: { type: string, nullable: true }
+                reason: { type: string, nullable: true, description: Motivo administrativo, só auditoria. }
       responses:
         "200":
           content:
@@ -1042,6 +1059,7 @@ paths:
                 websiteUrl: { type: string, nullable: true }
                 customerAreaUrl: { type: string, nullable: true }
                 ombudsmanPhone: { type: string, nullable: true }
+                reason: { type: string, nullable: true, description: Motivo administrativo, só auditoria. }
       responses:
         "200":
           content:
@@ -1060,12 +1078,20 @@ paths:
     post:
       operationId: uploadProviderLogo
       summary: Faz upload da logo de um provedor (BLOB base64 gravado no D1, máx 500KB)
+      description: >
+        GH#1461 — grava uma linha em `provider_audit_log` (operation `UPLOAD_LOGO`);
+        before/after guardam só metadado (`url`/`version`), nunca o BLOB base64. Corpo é
+        binário, então `reason` (opcional, só auditoria) vem via query string.
       security:
         - sessionCookie: []
       parameters:
         - name: providerId
           in: path
           required: true
+          schema: { type: string }
+        - name: reason
+          in: query
+          required: false
           schema: { type: string }
       requestBody:
         required: true
@@ -1101,6 +1127,36 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/providers/audit:
+    get:
+      operationId: listProviderAuditLog
+      summary: Log de auditoria das escritas administrativas do diretório de provedores
+      description: >
+        GH#1461 — cobre `upsertProvider`, `reviewProvider`, `updateProviderSupport`,
+        `uploadProviderLogo` e `syncSeedProvidersToDb`. Endpoint só de leitura (a UI de
+        Admin que consome isso é a issue #1465, fora de escopo aqui) — a resposta pública
+        `GET /providers/{providerId}` nunca inclui autor, motivo ou snapshot before/after.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: providerId
+          in: query
+          required: false
+          description: Filtra a auditoria para um único provedor. Sem o filtro, lista as últimas 100 entradas de qualquer provedor.
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/ProviderAuditEntry" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
 
   /admin/games/sync-seed:
     post:
@@ -1947,4 +2003,19 @@ components:
         actor: { type: string }
         beforeJson: { type: string, nullable: true }
         afterJson: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+
+    ProviderAuditEntry:
+      type: object
+      description: GH#1461 — nunca exposto em rota pública (`GET /providers/*`).
+      properties:
+        id: { type: string }
+        providerId: { type: string }
+        operation: { type: string, description: "Ex.: CREATE_PROVIDER, UPSERT_PROVIDER, REVIEW_PROVIDER, UPDATE_SUPPORT, UPLOAD_LOGO." }
+        beforeJson: { type: string, nullable: true, description: "Snapshot de ProviderRecord antes da escrita (null na criação)." }
+        afterJson: { type: string, nullable: true, description: "Snapshot de ProviderRecord depois da escrita." }
+        actorUserId: { type: string, description: "session.userId de quem fez a escrita." }
+        actorEmail: { type: string, nullable: true }
+        source: { type: string, description: "Canal de origem da escrita. Hoje sempre admin-console." }
+        reason: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
