@@ -161,7 +161,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
             </span>
             <span className="overline">Download</span>
           </div>
-          <div className="font-bold" style={{ font: '700 32px/1.1 var(--font-sans)', color: 'var(--text-primary)' }}>
+          <div className="font-bold" style={{ font: '700 34px/1.1 var(--font-sans)', color: 'var(--text-primary)' }}>
             {result.download.mbps.toFixed(1)}
           </div>
           <div className="body-small" style={{ color: 'var(--text-secondary)' }}>
@@ -175,7 +175,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
             </span>
             <span className="overline">Upload</span>
           </div>
-          <div className="font-bold" style={{ font: '700 32px/1.1 var(--font-sans)', color: 'var(--text-primary)' }}>
+          <div className="font-bold" style={{ font: '700 34px/1.1 var(--font-sans)', color: 'var(--text-primary)' }}>
             {result.upload.mbps.toFixed(1)}
           </div>
           <div className="body-small" style={{ color: 'var(--text-secondary)' }}>
@@ -189,7 +189,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
             </span>
             <span className="overline">Latência</span>
           </div>
-          <div className="font-bold" style={{ font: '700 32px/1.1 var(--font-sans)', color: 'var(--text-primary)' }}>
+          <div className="font-bold" style={{ font: '700 34px/1.1 var(--font-sans)', color: 'var(--text-primary)' }}>
             {Math.round(result.latency.ms)}
           </div>
           <div className="body-small" style={{ color: 'var(--text-secondary)' }}>
@@ -199,7 +199,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
       </div>
 
       {!completo && (
-        <div className="flex items-start gap-2 rounded-xl p-3.5" style={{ background: 'color-mix(in srgb, var(--warning) 10%, transparent)' }}>
+        <div className="flex items-start gap-2 rounded-xl" style={{ background: 'color-mix(in srgb, var(--warning) 10%, transparent)', padding: '12px 14px' }}>
           <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--warning)' }}>
             warning
           </span>
@@ -316,13 +316,13 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
       <div className="flex gap-3">
         <button
           onClick={onRetry}
-          className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[var(--radius-button)] text-white"
-          style={{ background: 'var(--accent)' }}
+          className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[var(--radius-button)]"
+          style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
             refresh
           </span>
-          <span className="label-large" style={{ color: '#fff' }}>
+          <span className="label-large" style={{ color: 'var(--on-accent)' }}>
             Testar novamente
           </span>
         </button>

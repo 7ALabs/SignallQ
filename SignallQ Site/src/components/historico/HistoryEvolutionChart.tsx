@@ -19,7 +19,7 @@ export function HistoryEvolutionChart({ records }: HistoryEvolutionChartProps) {
   if (!geometry || series.length < 2) return null
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl p-3.5 box-border" style={{ background: 'var(--bg-secondary)' }}>
+    <div className="flex flex-col gap-2 rounded-2xl box-border" style={{ background: 'var(--bg-secondary)', padding: '14px 16px' }}>
       <div className="flex items-center justify-between gap-3">
         <span className="overline">Evolução das medições</span>
         <div className="flex items-center gap-3.5">
@@ -67,8 +67,8 @@ export function HistoryEvolutionChart({ records }: HistoryEvolutionChartProps) {
         {geometry.labels.map((l) => (
           <span
             key={l.index}
-            className="body-small absolute -translate-x-1/2 whitespace-nowrap"
-            style={{ left: `${(l.x / geometry.width) * 100}%`, color: 'var(--text-tertiary)' }}
+            className="absolute -translate-x-1/2 whitespace-nowrap"
+            style={{ left: `${(l.x / geometry.width) * 100}%`, font: '400 11px/1.45 var(--font-sans)', color: 'var(--text-tertiary)' }}
           >
             {l.text}
           </span>

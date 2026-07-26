@@ -23,7 +23,7 @@ export function PageLayout({ active, children }: PageLayoutProps) {
     <div className="flex min-h-screen flex-col overflow-x-hidden" style={{ background: 'var(--bg-primary)' }}>
       <SiteNav active={active} />
 
-      <div className="mx-auto flex w-full max-w-[1280px] flex-1 items-start justify-center gap-6 px-5 py-5 box-border">
+      <div className="flex w-full flex-1 items-start justify-center gap-6 box-border px-5 pt-7 pb-10 lg:px-6 lg:pt-5 lg:pb-4">
         <AdRail variant="a" />
         <div className="flex w-full flex-1 flex-col">{children}</div>
         <AdRail variant="b" />
