@@ -1,7 +1,7 @@
 # Feature Flags remotas — SignallQ Android + Admin Panel
 
 - **Status:** ativo
-- **Última validação:** 2026-07-23
+- **Última validação:** 2026-07-26 (seção 12 adicionada — fundação do terceiro sistema, Épico #1347)
 - **Fonte de verdade:** este arquivo, para o efeito de produto das flags remotas (rollout gradual,
   kill switch). Mecanismo técnico completo (endpoints, schema D1) referenciado em
   `docs_ai/TECNICO.md` seção 5.2 — não duplicado lá. **Não cobre** as feature flags de compile-time
@@ -181,3 +181,28 @@ uso do kill switch) em código ou doc ativa.
   dos endpoints.
 - `integrations/cloudflare/signallq-admin-worker/migrations/005_sig13.sql` — schema D1 do sistema
   SIG-13 (`feature_flags`, `feature_flag_audit`).
+
+---
+
+## 12. Terceiro sistema — fundação Firebase Remote Config (Épico #1347, GH#1477, 2026-07-26)
+
+Um **terceiro** mecanismo de feature flags nasceu em 2026-07-26 (`:core:featureflags`), com destino
+de **substituir** o sistema SIG-13 descrito neste documento — não é mais um sistema paralelo
+"para sempre", é a próxima geração, ainda em fundação. Diferenças-chave:
+
+- **Storage remoto:** Firebase Remote Config (mesma instância já usada pelo toggle de anúncios,
+  issue #555), não D1/`signallq-admin-worker`.
+- **Catálogo tipado versionado no repositório** (`consumer-catalog.json`), consumido tanto por
+  Android quanto (em fases futuras) pelo Worker/Admin — sem "chave solta" em nenhum dos lados.
+- **Governança completa pelo SignallQ Admin** (criar/editar/publicar/rollback parâmetros, ETag,
+  auditoria) é o objetivo do Épico #1347 — ainda não implementada (F2/#1478 backend, F3/#1479 UI).
+
+**Estado real em 2026-07-26 (GH#1477, só a fundação Android):** módulo `:core:featureflags`
+criado, `FeatureFlagProvider` funcional sobre Firebase Remote Config, 2 flags de smoke-test no
+catálogo (`consumer.speedtest.enabled`, `consumer.speedtest.cloudflare_engine_enabled`) —
+**nenhuma delas gateia código real ainda** (`androidImplemented=false`; instrumentar os 9 módulos
+feature reais é F4/#1480). O sistema SIG-13 acima continua em produção sem mudança nenhuma até a
+migração acontecer.
+
+Detalhe técnico completo (schema, contratos, decisões de arquitetura): ver
+`docs_ai/technical/feature-flags-remote-config.md`.

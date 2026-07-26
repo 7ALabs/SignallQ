@@ -1,7 +1,7 @@
 # Schemas do monorepo SignallQ — índice de contratos
 
 - **Status:** ativo
-- **Última validação:** 2026-07-26
+- **Última validação:** 2026-07-26 (adicionado catálogo de Feature Flags, GH#1477)
 - **Fonte de verdade:** este arquivo referencia os schemas reais nos caminhos de origem — não
   copia conteúdo
 - **Escopo:** monorepo `7ALabs/SignallQ` — Room (Android), D1 (Cloudflare), analytics
@@ -32,6 +32,7 @@ ninguém percebesse.
 | D1 — `signallq-admin-db` | migration 014 (`014_gh786.sql`) | `integrations/cloudflare/signallq-admin-worker/migrations/001_sig143.sql` … `014_gh786.sql` | `signallq-admin-worker` + SignallQ Console (`SignallQ Admin/`, via API do worker) |
 | D1 — `signallq-diagnostic-db` | migration 008 (`008_gh1445_rollout_segmentation.sql`) | `integrations/cloudflare/signallq-diagnostic-worker/migrations/001_gh952_diagnostic_rules.sql` … `008_gh1445_rollout_segmentation.sql` | `signallq-diagnostic-worker` + endpoints `/admin/*` do próprio worker |
 | Analytics — eventos GA4 (Firebase Analytics) | documento vivo, sem número de versão formal | `docs_ai/technical/analytics-events-schema.md` | App Android (`FirebaseAnalyticsTracker`) → GA4 → `analytics_events` (D1 admin, migration 006) → `ProductAnalyticsPage` no SignallQ Console |
+| Feature Flags — catálogo canônico do Consumer | `schemaVersion` "1.0", 2 entradas (smoke-test) | `android/core/featureflags/src/main/resources/featureflags/consumer-catalog.json` (schema documentado em `docs_ai/technical/feature-flags-remote-config.md`) | App Android (`:core:featureflags`, único consumidor nesta fase — GH#1477); Worker/Admin passam a consumir em F2/#1478 e F3/#1479 |
 
 ## 3. História dos 3 nomes de banco Room (Linka → Veloo → SignallQ)
 
