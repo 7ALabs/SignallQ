@@ -4669,6 +4669,294 @@ async function handleAdminDeleteLocalAd(request: Request, env: Env): Promise<Res
   return json({ ok: true, id }, 200, env);
 }
 
+// --- GH#1312: catálogo remoto de releases (produto+canal) ---
+// Backend/Worker do épico "Detectar, comunicar e exibir atualizações do SignallQ Android"
+// (consolida #1313/#1314/#1315). Recepção/dedup/UI de Ajustes no Android ficam para o Camilo --
+// este recorte cobre só o catálogo (D1, migration 020) e o disparo de push (FCM).
+
+const APP_UPDATE_CHANNELS = ['internal', 'alpha', 'beta', 'production'] as const;
+type AppUpdateChannel = typeof APP_UPDATE_CHANNELS[number];
+
+const APP_UPDATE_SLUG_RE = /^[a-z0-9_]+$/;
+
+interface AppReleaseRow {
+  release_id: string;
+  product: string;
+  channel: string;
+  version_name: string;
+  version_code: number;
+  release_notes: string;
+  store_url: string;
+  notification_enabled: number;
+  reminder_campaign_id: string | null;
+  status: string;
+  published_at: number;
+  published_by: string;
+  push_status: string | null;
+  push_sent_at: number | null;
+  push_error: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+function isoOrNull(sec: number | null): string | null {
+  return sec === null ? null : new Date(sec * 1000).toISOString();
+}
+
+// Contrato exato pedido pela issue #1312 -- é o que o Android consome em GET /app-updates.
+function mapReleasePublic(r: AppReleaseRow) {
+  return {
+    product: r.product,
+    channel: r.channel,
+    versionName: r.version_name,
+    versionCode: r.version_code,
+    publishedAt: isoOrNull(r.published_at),
+    releaseNotes: r.release_notes,
+    storeUrl: r.store_url,
+    notificationEnabled: r.notification_enabled === 1,
+    releaseId: r.release_id,
+    reminderCampaignId: r.reminder_campaign_id,
+  };
+}
+
+// Visão administrativa (Console) -- inclui status/audit/resultado do último push, que o Android
+// não precisa e não deve enxergar.
+function mapReleaseAdmin(r: AppReleaseRow) {
+  return {
+    ...mapReleasePublic(r),
+    status: r.status,
+    publishedBy: r.published_by,
+    pushStatus: r.push_status,
+    pushSentAt: isoOrNull(r.push_sent_at),
+    pushError: r.push_error,
+    createdAt: isoOrNull(r.created_at),
+    updatedAt: isoOrNull(r.updated_at),
+  };
+}
+
+// GET /app-updates?product=X&channel=Y -- público, sem auth (mesmo modelo de /flags e
+// /local-ads: o app Android não carrega sessão admin). Só devolve a release com status='active';
+// ausência de release ativa é uma resposta válida (release: null), não erro -- comunicação
+// desativada ou produto/canal sem publicação ainda não é uma falha de leitura.
+async function handlePublicAppUpdates(request: Request, env: Env): Promise<Response> {
+  const url     = new URL(request.url);
+  const product = (url.searchParams.get('product') ?? '').trim().toLowerCase();
+  const channel = (url.searchParams.get('channel') ?? '').trim().toLowerCase();
+
+  if (!product || !APP_UPDATE_SLUG_RE.test(product)) return err('product obrigatório (a-z0-9_)', 400, env);
+  if (!APP_UPDATE_CHANNELS.includes(channel as AppUpdateChannel)) {
+    return err(`channel obrigatório, um de: ${APP_UPDATE_CHANNELS.join(', ')}`, 400, env);
+  }
+
+  const row = await env.DB.prepare(
+    "SELECT * FROM app_releases WHERE product = ? AND channel = ? AND status = 'active'"
+  ).bind(product, channel).first<AppReleaseRow>();
+
+  return publicJson({ release: row ? mapReleasePublic(row) : null });
+}
+
+// GET /admin/app-updates -- histórico (filtros opcionais product/channel/limit) para a tabela do
+// Console. Sempre inclui todas as linhas (active/superseded/deactivated) -- é a fonte de "manter
+// histórico mínimo" da issue.
+async function handleAdminAppUpdatesList(request: Request, env: Env): Promise<Response> {
+  const url         = new URL(request.url);
+  const product     = url.searchParams.get('product');
+  const channel     = url.searchParams.get('channel');
+  const limitParam  = parseInt(url.searchParams.get('limit') ?? '50', 10);
+  const limit       = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 200) : 50;
+
+  const conditions: string[] = [];
+  const params: string[] = [];
+  if (product) { conditions.push('product = ?'); params.push(product); }
+  if (channel) { conditions.push('channel = ?'); params.push(channel); }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const rows = await env.DB.prepare(
+    `SELECT * FROM app_releases ${where} ORDER BY published_at DESC LIMIT ?`
+  ).bind(...params, limit).all<AppReleaseRow>();
+
+  return json({ releases: (rows.results ?? []).map(mapReleaseAdmin) }, 200, env);
+}
+
+interface PublishAppReleaseBody {
+  product?: string;
+  channel?: string;
+  versionName?: string;
+  versionCode?: number;
+  releaseNotes?: string;
+  storeUrl?: string;
+  notificationEnabled?: boolean;
+  reminderCampaignId?: string | null;
+  confirmDowngrade?: boolean;
+}
+
+// POST /admin/app-updates -- publica uma release. Regras da issue #1312:
+// - comparação por versionCode contra a release 'active' atual do mesmo product+channel;
+// - versionCode MENOR que o ativo exige confirmDowngrade=true explícito (nunca silencioso);
+// - versionCode IGUAL ao ativo é tratado como correção (UPDATE in-place, mesma release_id);
+// - versionCode MAIOR promove a nova linha a 'active' e rebaixa a anterior a 'superseded'.
+// releaseId é sempre derivado (`${product}-${channel}-${versionCode}`), nunca aceito do body --
+// evita duas linhas 'active' concorrentes com IDs divergentes para o mesmo product+channel.
+async function handleAdminPublishAppUpdate(request: Request, env: Env, session: { userId: string; role: string }): Promise<Response> {
+  let body: PublishAppReleaseBody;
+  try { body = await request.json(); } catch { return err('body JSON inválido', 400, env); }
+
+  const product              = (body.product ?? '').trim().toLowerCase();
+  const channel              = (body.channel ?? '').trim().toLowerCase();
+  const versionName          = (body.versionName ?? '').trim();
+  const versionCode          = body.versionCode;
+  const storeUrl             = (body.storeUrl ?? '').trim();
+  const releaseNotes         = (body.releaseNotes ?? '').trim();
+  const notificationEnabled  = body.notificationEnabled !== false; // default true
+  const reminderCampaignId   = body.reminderCampaignId ?? null;
+
+  if (!product || !APP_UPDATE_SLUG_RE.test(product)) return err('product obrigatório (a-z0-9_)', 400, env);
+  if (!APP_UPDATE_CHANNELS.includes(channel as AppUpdateChannel)) {
+    return err(`channel obrigatório, um de: ${APP_UPDATE_CHANNELS.join(', ')}`, 400, env);
+  }
+  if (!versionName) return err('versionName obrigatório', 400, env);
+  if (typeof versionCode !== 'number' || !Number.isInteger(versionCode) || versionCode <= 0) {
+    return err('versionCode obrigatório (inteiro positivo)', 400, env);
+  }
+  if (!storeUrl || !isValidHttpUrl(storeUrl)) return err('storeUrl obrigatório e precisa ser http(s) válido', 400, env);
+
+  const releaseId = `${product}-${channel}-${versionCode}`;
+  const now = nowSec();
+
+  const userRow = await env.DB.prepare('SELECT email FROM admin_users WHERE id = ?').bind(session.userId).first<{ email: string }>();
+  const publishedBy = userRow?.email ?? 'admin';
+
+  const currentActive = await env.DB.prepare(
+    "SELECT * FROM app_releases WHERE product = ? AND channel = ? AND status = 'active'"
+  ).bind(product, channel).first<AppReleaseRow>();
+
+  if (currentActive && currentActive.release_id !== releaseId && versionCode < currentActive.version_code && body.confirmDowngrade !== true) {
+    return err(
+      `versionCode ${versionCode} é menor que o ativo atual (${currentActive.version_code}). Reenvie com confirmDowngrade=true para confirmar o downgrade intencional.`,
+      409, env
+    );
+  }
+
+  if (currentActive && currentActive.release_id === releaseId) {
+    // Mesmo versionCode do que já está ativo -- correção in-place (nota/URL/flags), não duplica histórico.
+    await env.DB.prepare(
+      `UPDATE app_releases SET version_name = ?, release_notes = ?, store_url = ?, notification_enabled = ?,
+       reminder_campaign_id = ?, published_by = ?, updated_at = ? WHERE release_id = ?`
+    ).bind(versionName, releaseNotes, storeUrl, notificationEnabled ? 1 : 0, reminderCampaignId, publishedBy, now, releaseId).run();
+  } else {
+    const statements = [
+      env.DB.prepare(
+        `INSERT INTO app_releases (release_id, product, channel, version_name, version_code, release_notes, store_url,
+         notification_enabled, reminder_campaign_id, status, published_at, published_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`
+      ).bind(releaseId, product, channel, versionName, versionCode, releaseNotes, storeUrl,
+             notificationEnabled ? 1 : 0, reminderCampaignId, now, publishedBy, now, now),
+    ];
+    if (currentActive) {
+      statements.push(
+        env.DB.prepare("UPDATE app_releases SET status = 'superseded', updated_at = ? WHERE release_id = ?")
+          .bind(now, currentActive.release_id)
+      );
+    }
+    await env.DB.batch(statements);
+  }
+
+  const saved = await env.DB.prepare('SELECT * FROM app_releases WHERE release_id = ?').bind(releaseId).first<AppReleaseRow>();
+  const wasUpdateInPlace = currentActive?.release_id === releaseId;
+  return json({ release: saved ? mapReleaseAdmin(saved) : null }, wasUpdateInPlace ? 200 : 201, env);
+}
+
+// POST /admin/app-updates/:releaseId/deactivate -- desliga a comunicação sem apagar a release
+// (regra explícita da issue). Idempotente: já desativada só retorna o estado atual.
+async function handleAdminDeactivateAppUpdate(request: Request, env: Env): Promise<Response> {
+  const url   = new URL(request.url);
+  const match = url.pathname.match(/^\/admin\/app-updates\/([^/]+)\/deactivate$/);
+  if (!match) return err('releaseId inválido', 400, env);
+  const releaseId = decodeURIComponent(match[1]);
+
+  const current = await env.DB.prepare('SELECT * FROM app_releases WHERE release_id = ?').bind(releaseId).first<AppReleaseRow>();
+  if (!current) return err('release não encontrada', 404, env);
+
+  if (current.status !== 'deactivated') {
+    await env.DB.prepare("UPDATE app_releases SET status = 'deactivated', updated_at = ? WHERE release_id = ?")
+      .bind(nowSec(), releaseId).run();
+  }
+
+  const saved = await env.DB.prepare('SELECT * FROM app_releases WHERE release_id = ?').bind(releaseId).first<AppReleaseRow>();
+  return json({ release: saved ? mapReleaseAdmin(saved) : null }, 200, env);
+}
+
+// Reaproveita a mesma credencial de serviço (FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY, escopo
+// cloud-platform) já usada por getFirebaseAccessToken() -- FCM HTTP v1 aceita esse escopo. Requer
+// a Firebase Cloud Messaging API habilitada no projeto GCP (mesmo tipo de passo manual do Luiz já
+// feito para GA4/Play Console -- ativação de API, sem custo novo).
+async function sendFcmTopicMessage(
+  env: Env,
+  topic: string,
+  data: Record<string, string>
+): Promise<{ ok: boolean; message?: string }> {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return { ok: false, message: 'FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY não configurados.' };
+  }
+  let token: string;
+  try {
+    token = await getFirebaseAccessToken(env);
+  } catch (e) {
+    return { ok: false, message: `auth_failed: ${String(e)}` };
+  }
+  const resp = await fetch(`https://fcm.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/messages:send`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: { topic, data } }),
+  });
+  if (!resp.ok) {
+    const errText = await resp.text();
+    return { ok: false, message: `fcm_error_${resp.status}: ${errText.slice(0, 300)}` };
+  }
+  return { ok: true };
+}
+
+// POST /admin/app-updates/:releaseId/push -- dispara APP_UPDATE_AVAILABLE via FCM (tópico
+// `app_updates_${product}_${channel}`, ao qual o Android se inscreve -- fora do escopo deste
+// worker). Exige confirmed=true no body: é a confirmação manual de disponibilidade na Google Play
+// que a issue pede -- o worker não tem como verificar isso sozinho, então o contrato obriga o
+// admin a declarar explicitamente que já checou. Resultado (sucesso ou falha) é sempre registrado
+// na própria release (push_status/push_sent_at/push_error), nunca silencioso.
+async function handleAdminPushAppUpdate(request: Request, env: Env): Promise<Response> {
+  const url   = new URL(request.url);
+  const match = url.pathname.match(/^\/admin\/app-updates\/([^/]+)\/push$/);
+  if (!match) return err('releaseId inválido', 400, env);
+  const releaseId = decodeURIComponent(match[1]);
+
+  let body: { confirmed?: boolean };
+  try { body = await request.json(); } catch { body = {}; }
+  if (body.confirmed !== true) {
+    return err('confirmed=true obrigatório -- confirme manualmente que a versão está disponível na Google Play antes de disparar.', 400, env);
+  }
+
+  const release = await env.DB.prepare('SELECT * FROM app_releases WHERE release_id = ?').bind(releaseId).first<AppReleaseRow>();
+  if (!release) return err('release não encontrada', 404, env);
+  if (release.status !== 'active') return err(`release não está ativa (status atual: ${release.status})`, 409, env);
+  if (release.notification_enabled !== 1) return err('notificação desabilitada nesta release (notificationEnabled=false)', 409, env);
+
+  const topic  = `app_updates_${release.product}_${release.channel}`;
+  const result = await sendFcmTopicMessage(env, topic, {
+    type:        'APP_UPDATE_AVAILABLE',
+    product:     release.product,
+    channel:     release.channel,
+    versionCode: String(release.version_code),
+    releaseId:   release.release_id,
+  });
+
+  const now = nowSec();
+  await env.DB.prepare(
+    'UPDATE app_releases SET push_status = ?, push_sent_at = ?, push_error = ?, updated_at = ? WHERE release_id = ?'
+  ).bind(result.ok ? 'sent' : 'error', now, result.ok ? null : (result.message ?? 'falha desconhecida'), now, releaseId).run();
+
+  const saved = await env.DB.prepare('SELECT * FROM app_releases WHERE release_id = ?').bind(releaseId).first<AppReleaseRow>();
+  return json({ ok: result.ok, release: saved ? mapReleaseAdmin(saved) : null, message: result.message }, 200, env);
+}
+
 // --- router ---
 
 type Handler = (req: Request, env: Env) => Promise<Response>;
@@ -4759,6 +5047,15 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "POST",   pattern: /^\/admin\/local-ads$/,          handler: withErrorLogging('local-ads', handleAdminCreateLocalAd) },
   { method: "PUT",    pattern: /^\/admin\/local-ads\/[^/]+$/,   handler: withErrorLogging('local-ads', handleAdminUpdateLocalAd) },
   { method: "DELETE", pattern: /^\/admin\/local-ads\/[^/]+$/,   handler: withErrorLogging('local-ads', handleAdminDeleteLocalAd) },
+  // GH#1312: catálogo remoto de releases — histórico, publicação e disparo de push.
+  { method: "GET",  pattern: /^\/admin\/app-updates$/,                    handler: withErrorLogging('app-updates', handleAdminAppUpdatesList) },
+  { method: "POST", pattern: /^\/admin\/app-updates$/,                    handler: withErrorLogging('app-updates', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleAdminPublishAppUpdate(req, env, session);
+    }) },
+  { method: "POST", pattern: /^\/admin\/app-updates\/[^/]+\/deactivate$/,  handler: withErrorLogging('app-updates', handleAdminDeactivateAppUpdate) },
+  { method: "POST", pattern: /^\/admin\/app-updates\/[^/]+\/push$/,       handler: withErrorLogging('app-updates', handleAdminPushAppUpdate) },
 ];
 
 const INGEST_ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
@@ -4889,6 +5186,10 @@ export default {
     // GH#1406 (Feature #1402): catálogo de anúncios locais (house ads) — público, só ativos.
     if (url.pathname === '/local-ads' && request.method === 'GET') {
       return withErrorLogging('local-ads', handlePublicLocalAds)(request, env);
+    }
+    // GH#1312: catálogo remoto de releases — público, o app Android não carrega sessão admin.
+    if (url.pathname === '/app-updates' && request.method === 'GET') {
+      return withErrorLogging('app-updates', handlePublicAppUpdates)(request, env);
     }
 
     // Rotas /ingest/* — autenticam com INGEST_KEY (scope limitado, vai no APK).
