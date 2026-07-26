@@ -1,12 +1,85 @@
 /* SignallQ UI Kit — Velocidade flow: idle → running gauge → resultado */
 
 function SpeedFlow({ go }) {
-  const [phase, setPhase] = React.useState('idle'); // idle | running | result
+  // idle | running | result | detalhes |
+  // guiado-objetivos | guiado-perguntas | guiado-resultado |
+  // gamer-jogo | gamer-device | gamer-config | gamer-resultado
+  const [phase, setPhase] = React.useState('idle');
   const [mode, setMode] = React.useState('Completo');
+  const [guiado, setGuiado] = React.useState({ objetivo: null });
+  const [gamer, setGamer] = React.useState({ jogo: null, categoriaGenerica: null, device: null, salvarPadrao: null });
+
+  const resetSubfluxos = () => {
+    setGuiado({ objetivo: null });
+    setGamer({ jogo: null, categoriaGenerica: null, device: null, salvarPadrao: null });
+  };
 
   if (phase === 'idle') return <SpeedIdle mode={mode} setMode={setMode} onStart={() => setPhase('running')} />;
   if (phase === 'running') return <SpeedRunning onDone={() => setPhase('result')} />;
-  return <Resultado onAgain={() => setPhase('idle')} onHome={() => go('home')} onSignallq={() => go('signallq')} />;
+
+  if (phase === 'result') {
+    return <Resultado
+      onAgain={() => { resetSubfluxos(); setPhase('idle'); }}
+      onHome={() => go('home')}
+      onGuiado={() => setPhase('guiado-objetivos')}
+      onGamer={() => setPhase('gamer-jogo')}
+      onDetalhes={() => setPhase('detalhes')}
+    />;
+  }
+  if (phase === 'detalhes') return <DetalhesTecnicosScreen onBack={() => setPhase('result')} />;
+
+  // Diagnóstico guiado (7 objetivos fechados — GH#1474)
+  if (phase === 'guiado-objetivos') {
+    return <DiagnosticoGuiadoObjetivos
+      onSelect={(objetivo) => { setGuiado({ objetivo }); setPhase('guiado-perguntas'); }}
+      onBack={() => setPhase('result')}
+    />;
+  }
+  if (phase === 'guiado-perguntas') {
+    return <DiagnosticoGuiadoPerguntas
+      objetivo={guiado.objetivo}
+      onConcluir={() => setPhase('guiado-resultado')}
+      onBack={() => setPhase('guiado-objetivos')}
+    />;
+  }
+  if (phase === 'guiado-resultado') {
+    return <DiagnosticoGuiadoResultado
+      objetivo={guiado.objetivo}
+      onOutroObjetivo={() => setPhase('guiado-objetivos')}
+      onHome={() => go('home')}
+      onModoGamer={guiado.objetivo?.id === 'jogos' ? () => setPhase('gamer-jogo') : null}
+    />;
+  }
+
+  // Modo gamer — jogo → device → config → resultado (GH#1474)
+  if (phase === 'gamer-jogo') {
+    return <ModoGamerJogo
+      onSelect={(jogo, categoriaGenerica) => { setGamer({ jogo, categoriaGenerica, device: null, salvarPadrao: null }); setPhase('gamer-device'); }}
+      onBack={() => setPhase('result')}
+    />;
+  }
+  if (phase === 'gamer-device') {
+    return <ModoGamerDevice
+      jogo={gamer.jogo}
+      onSelect={(device) => { setGamer(g => ({ ...g, device })); setPhase('gamer-config'); }}
+      onBack={() => setPhase('gamer-jogo')}
+    />;
+  }
+  if (phase === 'gamer-config') {
+    return <ModoGamerConfig
+      jogo={gamer.jogo} categoriaGenerica={gamer.categoriaGenerica} device={gamer.device}
+      onConfirm={(salvarPadrao) => { setGamer(g => ({ ...g, salvarPadrao })); setPhase('gamer-resultado'); }}
+      onBack={() => setPhase('gamer-device')}
+    />;
+  }
+  if (phase === 'gamer-resultado') {
+    return <ModoGamerResultado
+      jogo={gamer.jogo} categoriaGenerica={gamer.categoriaGenerica} device={gamer.device} salvarPadrao={gamer.salvarPadrao}
+      onTrocar={() => setPhase('gamer-jogo')}
+      onHome={() => go('home')}
+    />;
+  }
+  return null;
 }
 
 function SpeedIdle({ mode, setMode, onStart }) {
@@ -117,7 +190,7 @@ function SpeedRunning({ onDone }) {
   );
 }
 
-function Resultado({ onAgain, onHome, onSignallq }) {
+function Resultado({ onAgain, onHome, onGuiado, onGamer, onDetalhes }) {
   const Metric = ({ label, value, unit, color }) => (
     <div style={{ background:LK.bgSecondary, borderRadius:LK.rCard, padding:16 }}>
       <div style={{ font:`400 11px/1 ${LK.font}`, color:LK.textTertiary, marginBottom:7 }}>{label}</div>
@@ -159,10 +232,22 @@ function Resultado({ onAgain, onHome, onSignallq }) {
         <div style={{ height:1, background:LK.border }} />
         {verdict('videocam','Vídeo chamada','Ótimo',LK.success)}
       </div>
-      <button onClick={onSignallq} style={{ width:'100%', marginTop:20, border:0, cursor:'pointer',
-        background:LK.accent, color:'#fff', font:`500 15px/1 ${LK.font}`, borderRadius:LK.rBtn, padding:'15px',
+      {/* 3 CTAs do resumo pós-teste (GH#1474) — nada de dado técnico despejado aqui,
+          cada caminho abre seu próprio fluxo dedicado. */}
+      <button onClick={onGuiado} style={{ width:'100%', marginTop:22, border:0, cursor:'pointer',
+        background:LK.accent, color:'#fff', font:`600 15px/1 ${LK.font}`, borderRadius:LK.rBtn, padding:'15px',
         display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-        <Icon name="auto_awesome" size={18} color="#fff" />Conversar com a IA</button>
+        <Icon name="troubleshoot" size={18} color="#fff" />Iniciar diagnóstico guiado</button>
+      <button onClick={onGamer} style={{ width:'100%', marginTop:10, cursor:'pointer',
+        background:'transparent', color:LK.textPrimary, font:`600 15px/1 ${LK.font}`,
+        border:`1px solid ${LK.border}`, borderRadius:LK.rBtn, padding:'15px',
+        display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+        <Icon name="sports_esports" size={18} color={LK.textPrimary} />Modo gamer</button>
+      <button onClick={onDetalhes} style={{ width:'100%', marginTop:10, cursor:'pointer', background:'transparent',
+        color:LK.textSecondary, font:`500 14px/1 ${LK.font}`, border:0, padding:'10px',
+        display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+        <Icon name="manage_search" size={16} color={LK.textSecondary} />Ver detalhes técnicos</button>
+      <div style={{ height:1, background:LK.border, margin:'8px 0 4px' }} />
       <button onClick={onAgain} style={{ width:'100%', marginTop:10, cursor:'pointer',
         background:'transparent', color:LK.textPrimary, font:`500 15px/1 ${LK.font}`,
         border:`1px solid ${LK.border}`, borderRadius:LK.rBtn, padding:'15px' }}>Testar novamente</button>
