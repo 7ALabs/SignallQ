@@ -6,15 +6,17 @@
 // Separar os secrets reduz o blast radius: vazar INGEST_KEY nao da acesso
 // aos dados do admin. INGEST_KEY so pode escrever em /ingest/*.
 
-import { hashPassword, verifyPassword, createSession, validateSession, revokeSession } from './auth'
-import { getFirebaseAccessToken } from './firebaseAuth'
+import { hashPassword, verifyPassword, createSession, validateSession, revokeSession } from './auth.ts'
+import { getFirebaseAccessToken } from './firebaseAuth.ts'
 import {
   handleRemoteConfigAdminGet,
   handleRemoteConfigAdminVersions,
   handleRemoteConfigAdminValidate,
   handleRemoteConfigAdminPublish,
   handleRemoteConfigAdminRollback,
-} from './remoteConfigAdmin'
+  handleFeatureFlagsCatalogGet,
+  handleFeatureFlagsSync,
+} from './remoteConfigAdmin.ts'
 
 // #788 — tipos mínimos do Cron Trigger (workerd runtime). O projeto não tem
 // @cloudflare/workers-types instalado (gap pré-existente, mesma causa dos
@@ -1859,7 +1861,7 @@ async function handleDiagnosticsIntelligence(request: Request, env: Env): Promis
   return json({ source: "d1", period, environment: envFilter ?? "all", patterns }, 200, env);
 }
 
-async function handleFirebaseAnalytics(request: Request, env: Env): Promise<Response> {
+async function handleFirebaseAnalytics(_request: Request, env: Env): Promise<Response> {
   if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
     return json({ source: "no_credentials", activeUsersToday: 0, sessionsToday: 0 }, 200, env);
   }
@@ -5051,9 +5053,9 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   // GH#1478 (Épico #1347, F2) — backend admin de Feature Flags / Remote Config. Namespace
   // /admin/firebase/remote-config/* (sem "integrations") é deliberadamente separado do par
   // status/sync acima (GH#1344, leitura read-only pro dashboard de integrações) — este é o CRUD
-  // administrativo real (GET/validate/publish/rollback com ETag). Ver src/remoteConfigAdmin.ts:
-  // GET e /versions são reais; validate/publish/rollback ficam bloqueados (501) até #1477
-  // (catálogo canônico) fechar.
+  // administrativo real (GET/validate/publish/rollback com ETag). Ver src/remoteConfigAdmin.ts —
+  // validate/publish/rollback validam contra o catálogo canônico (`src/featureFlagCatalog.ts`,
+  // #1477) desde 2026-07-26 (fechamento de #1478); não são mais skeleton bloqueado.
   { method: "GET",  pattern: /^\/admin\/firebase\/remote-config$/,              handler: withErrorLogging('remote-config-admin', async (req, env) => {
       const session = await authenticateSession(req, env);
       if (!session) return err('Unauthorized', 401, env);
@@ -5078,6 +5080,18 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
       const session = await authenticateSession(req, env);
       if (!session) return err('Unauthorized', 401, env);
       return handleRemoteConfigAdminRollback(req, env, session);
+    }) },
+  // GH#1478 — catálogo canônico (leitura, pro Admin F3 consumir) e sincronização catálogo→Firebase
+  // (cria parâmetros ausentes, detecta órfãos/divergências). ?dryRun=true simula sem publicar.
+  { method: "GET",  pattern: /^\/admin\/firebase\/feature-flags\/catalog$/,     handler: withErrorLogging('remote-config-admin', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleFeatureFlagsCatalogGet(req, env, session);
+    }) },
+  { method: "POST", pattern: /^\/admin\/firebase\/feature-flags\/sync$/,        handler: withErrorLogging('remote-config-admin', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleFeatureFlagsSync(req, env, session);
     }) },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/app-check\/status$/,       handler: handleAppCheckStatus },
   { method: "POST", pattern: /^\/admin\/integrations\/firebase\/app-check\/sync$/,         handler: handleAppCheckSync },
