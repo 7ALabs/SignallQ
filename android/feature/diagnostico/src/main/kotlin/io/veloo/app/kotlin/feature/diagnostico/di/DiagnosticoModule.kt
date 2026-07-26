@@ -9,6 +9,7 @@ import dagger.hilt.components.SingletonComponent
 import io.signallq.app.feature.diagnostico.BuildConfig
 import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
 import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
+import io.signallq.app.feature.diagnostico.remote.DiagnosticDivergenceReporter
 import io.signallq.app.feature.diagnostico.remote.FileRulesetCacheStore
 import io.signallq.app.feature.diagnostico.remote.ProviderDirectoryRepository
 import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
@@ -16,6 +17,7 @@ import io.signallq.app.core.database.SignallQDatabase
 import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.core.network.AnalyticsHelper
+import io.signallq.app.core.network.FeatureFlagProvider
 import io.signallq.app.core.recommendation.RecommendationEngine
 import io.signallq.app.core.recommendation.catalog.LocalRecommendationCatalog
 import io.signallq.app.core.recommendation.catalog.RecommendationCatalog
@@ -80,10 +82,39 @@ object DiagnosticoModule {
     @Singleton
     fun provideRemoteDiagnosticRepository(
         @ApplicationContext ctx: Context,
+        divergenceReporter: DiagnosticDivergenceReporter,
     ): RemoteDiagnosticRepository =
         RemoteDiagnosticRepository(
             baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL,
             cacheStore = FileRulesetCacheStore(File(ctx.filesDir, "diagnostic_ruleset")),
+            divergenceReporter = divergenceReporter,
+        )
+
+    /**
+     * Provê DiagnosticDivergenceReporter (GH#1444, parte de #952) — shadow mode,
+     * envia o registro ja classificado (nao o relatorio completo) para
+     * `POST /ingest/diagnostic-divergence` no mesmo worker `signallq-diagnostic`.
+     *
+     * Reusa o mesmo consentimento LGPD ja aplicado em [provideAdminIngestRepository]
+     * (nenhum dado sai do aparelho sem o usuario ter consentido).
+     */
+    @Provides
+    @Singleton
+    fun provideDiagnosticDivergenceReporter(
+        featureFlagProvider: FeatureFlagProvider,
+        prefs: PreferenciasAppRepository,
+    ): DiagnosticDivergenceReporter =
+        DiagnosticDivergenceReporter(
+            baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL,
+            client = OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
+                .writeTimeout(10, TimeUnit.SECONDS)
+                .build(),
+            featureFlagProvider = featureFlagProvider,
+            appVersion = BuildConfig.APP_VERSION,
+            versionCode = BuildConfig.VERSION_CODE,
+            consentimentoProvider = { prefs.buscarConsentimentoLgpd() == true },
         )
 
     /**

@@ -37,6 +37,11 @@ class FeatureFlagRepository(
                 "ai_diagnosis_enabled" to true,
                 "speedtest_enabled" to true,
                 "fibra_module_enabled" to true,
+                // GH#1444 (parte de #952) — kill switch do shadow mode de diagnostico.
+                // Default true: shadow mode nunca altera o que a UI mostra, seguro
+                // ligar por padrao (observabilidade), desligar remotamente sem deploy
+                // se virar ruido/custo. Endpoint /flags — mesmo mecanismo das demais.
+                "feature_diagnostic_shadow_mode" to true,
             )
     }
 

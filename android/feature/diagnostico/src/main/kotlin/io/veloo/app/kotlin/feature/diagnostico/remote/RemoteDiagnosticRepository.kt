@@ -1,6 +1,7 @@
 package io.signallq.app.feature.diagnostico.remote
 
 import io.signallq.app.core.diagnostico.DiagnosticArea
+import io.signallq.app.core.diagnostico.DiagnosticDivergenceClassifier
 import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticReport
@@ -8,7 +9,10 @@ import io.signallq.app.core.diagnostico.DiagnosticRunner
 import io.signallq.app.core.diagnostico.GameReadinessClassifier
 import io.signallq.app.core.diagnostico.UsageProfileClassifier
 import io.signallq.app.feature.diagnostico.RecommendationEngine
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import okhttp3.MediaType.Companion.toMediaType
@@ -17,6 +21,8 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import timber.log.Timber
+import java.security.MessageDigest
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
@@ -55,6 +61,20 @@ import java.util.concurrent.TimeUnit
  * efetivamente usada fica em [DiagnosticReport.evaluationSource]. Sem [cacheStore]
  * configurado (default [NoOpRulesetCacheStore]), o comportamento degrada para o
  * fallback de 2 niveis anterior (REMOTE -> BUNDLED_LOCAL).
+ *
+ * ## Shadow mode (GH#1444, parte de #952) — [evaluateShadow], NAO [evaluate]
+ * [evaluate] (acima) e remoto-primeiro: quando o worker responde, o resultado
+ * REMOTO e o que a UI mostra. Isso e o que #952 chama de "avaliacao remota
+ * autoritativa" — so deveria acontecer DEPOIS de uma fase de shadow mode medir
+ * equivalencia entre os dois motores (a paridade documentada em GH#1442 mostra
+ * varias regras PARCIAL/PENDENTE, longe de validada). O orquestrador de
+ * producao ([io.signallq.app.feature.diagnostico.DiagnosticOrchestrator]) usa
+ * [evaluateShadow], nao [evaluate], exatamente por isso: motor LOCAL sempre
+ * autoritativo, avaliacao remota roda so em paralelo, para comparacao. [evaluate]
+ * continua existindo (testado, funcional) como a estrategia remoto-primeiro que
+ * um rollout futuro controlado (#1445, apos meta de equivalencia validada com
+ * dados reais deste shadow mode) pode voltar a acionar — não removido, so não é
+ * mais o caminho de producao hoje.
  */
 class RemoteDiagnosticRepository(
     private val baseUrl: String,
@@ -65,6 +85,8 @@ class RemoteDiagnosticRepository(
             .writeTimeout(3, TimeUnit.SECONDS)
             .build(),
     private val cacheStore: RulesetCacheStore = NoOpRulesetCacheStore,
+    private val divergenceReporter: DiagnosticDivergenceReporter? = null,
+    private val shadowScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) {
 
     /**
@@ -154,6 +176,79 @@ class RemoteDiagnosticRepository(
             Timber.w(t, "RemoteDiagnosticRepository: falha ao persistir ruleset remoto para CACHED_LOCAL")
         }
     }
+
+    /**
+     * Shadow mode (GH#1444, parte de #952). Motor LOCAL roda primeiro e e o
+     * UNICO resultado retornado — nunca espera a rede, nunca e sobrescrito
+     * depois. Quando [divergenceReporter] esta configurado, uma avaliacao
+     * remota roda em paralelo em [shadowScope] (fire-and-forget, nunca
+     * aguardada por este metodo) so para comparar/reportar — falha nela nunca
+     * propaga nem altera o retorno.
+     */
+    suspend fun evaluateShadow(
+        input: DiagnosticInput,
+        enabledAreas: Set<DiagnosticArea> = DiagnosticArea.entries.toSet(),
+    ): DiagnosticReport {
+        val startedAtMs = System.currentTimeMillis()
+        val localReport = DiagnosticRunner.run(input, enabledAreas, gerarRecomendacoes = RecommendationEngine::recomendar)
+        val localDurationMs = System.currentTimeMillis() - startedAtMs
+
+        val reporter = divergenceReporter
+        if (reporter != null) {
+            shadowScope.launch {
+                runCatching { runShadowComparison(input, localReport, localDurationMs, reporter) }
+                    .onFailure { t -> Timber.w(t, "RemoteDiagnosticRepository: shadow comparison falhou (ignorando)") }
+            }
+        }
+
+        return localReport
+    }
+
+    /** Avalia remoto, classifica contra [localReport] e reporta — tudo em
+     *  best-effort, chamado so a partir de [shadowScope] (nunca no caminho
+     *  principal de [evaluateShadow]). */
+    private suspend fun runShadowComparison(
+        input: DiagnosticInput,
+        localReport: DiagnosticReport,
+        localDurationMs: Long,
+        reporter: DiagnosticDivergenceReporter,
+    ) {
+        if (!reporter.isEnabled()) return
+
+        val startedAtMs = System.currentTimeMillis()
+        val remotePayload = evaluateRemote(input)
+        val remoteDurationMs = System.currentTimeMillis() - startedAtMs
+
+        val remoteReport = remotePayload?.let {
+            try {
+                // RemoteDiagnosticReportMapper nao preenche evaluationSource (fica no
+                // default BUNDLED_LOCAL da data class) -- mesmo ajuste que evaluate()
+                // ja faz apos mapear, necessario aqui tambem.
+                RemoteDiagnosticReportMapper.toDiagnosticReport(payload = it, geradoEmMs = System.currentTimeMillis())
+                    .copy(evaluationSource = DiagnosticEvaluationSource.REMOTE)
+            } catch (t: Throwable) {
+                Timber.w(t, "RemoteDiagnosticRepository: falha ao mapear resposta remota no shadow mode")
+                null
+            }
+        }
+
+        val comparison = DiagnosticDivergenceClassifier.classify(localReport, remoteReport)
+
+        reporter.report(
+            executionId = UUID.randomUUID().toString(),
+            snapshotHash = sha256(DiagnosticSnapshotMapper.toJson(input).toString()),
+            comparison = comparison,
+            localSource = localReport.evaluationSource,
+            remoteSource = remoteReport?.evaluationSource,
+            localDurationMs = localDurationMs,
+            remoteDurationMs = remoteDurationMs,
+        )
+    }
+
+    private fun sha256(content: String): String =
+        MessageDigest.getInstance("SHA-256")
+            .digest(content.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
 
     /**
      * So a chamada remota (sem fallback), para uso interno/testes. Retorna

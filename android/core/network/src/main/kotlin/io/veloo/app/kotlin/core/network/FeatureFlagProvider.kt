@@ -13,6 +13,12 @@
  *
  * Flags legadas (endpoint /feature-flags): ai_diagnosis_enabled,
  * speedtest_enabled, fibra_module_enabled — mantidas por compatibilidade.
+ *
+ * Flag GH#1444 (parte de #952): feature_diagnostic_shadow_mode — kill switch do
+ * shadow mode de diagnostico (comparacao local-vs-remoto, nunca altera o que a
+ * UI mostra). Reusa este mecanismo em vez de duplicar um novo enquanto #1347
+ * (Firebase Remote Config) nao esta pronto para governa-lo — ver kdoc de
+ * `DiagnosticDivergenceReporter` em `:featureDiagnostico`.
  */
 interface FeatureFlagProvider {
     fun isEnabled(key: String): Boolean
@@ -24,6 +30,9 @@ interface FeatureFlagProvider {
     fun isFeatureDnsEnabled(): Boolean = isEnabled("feature_dns")
     fun isFeatureFibraEnabled(): Boolean = isEnabled("feature_fibra")
     fun isFeatureDevicesEnabled(): Boolean = isEnabled("feature_devices")
+
+    // --- Flag GH#1444 (shadow mode, #952) ---
+    fun isDiagnosticShadowModeEnabled(): Boolean = isEnabled("feature_diagnostic_shadow_mode")
 
     // --- Flags legadas (mantidas por compatibilidade) ---
     fun isAiDiagnosisEnabled(): Boolean = isEnabled("ai_diagnosis_enabled")
