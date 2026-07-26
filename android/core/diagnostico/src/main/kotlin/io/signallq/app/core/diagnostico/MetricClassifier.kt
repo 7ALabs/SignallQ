@@ -11,8 +11,20 @@ package io.signallq.app.core.diagnostico
  * Este objeto centraliza TODAS as reguas em um unico lugar, com uma unica fonte de
  * verdade: a skill `/regras-diagnostico-rede`. [WifiSignalQualityEngine] (RSSI Wi-Fi) e
  * [MobileSignalDiagnosticEngine] (RSRP/RSRQ/SINR) ja consomem este classifier (issue
- * #998). [InternetDiagnosticEngine] e SinalScreen.kt (app module) ainda NAO foram
- * migrados — fora do escopo da #998, pendente de issue propria se necessario.
+ * #998). SinalScreen.kt (app module) ainda NAO foi migrado.
+ *
+ * [InternetDiagnosticEngine] foi **parcialmente** migrado (issue #1228 Fase 1, ADR-011):
+ * jitter, download e bufferbloat usam [classificarJitter]/[classificarDownload]/
+ * [classificarBufferbloat] porque a fronteira relevante do classifier coincide, valor a
+ * valor e estritamente, com o limiar de negocio ja congelado em teste dourado. Latencia,
+ * perda de pacotes e upload **continuam com limiares literais** — as tabelas deste objeto
+ * para essas tres metricas usam fronteiras de produto diferentes (fonte:
+ * `/regras-diagnostico-rede`, tabela generica de qualidade de conexao) das que
+ * [InternetDiagnosticEngine] usa historicamente (Anatel RQUAL, limiar de videoconferencia
+ * etc.) — consolidar exigiria mudar valor de producao, decisao fora do escopo de uma
+ * migracao de "nao altera comportamento observavel". Ver comentario em cada bloco do
+ * `avaliar()` para o detalhe por metrica, e a issue #1466 para o achado de arquitetura
+ * completo e a decisao de produto pendente.
  *
  * ## Vocabulario canonico (MetricStatus)
  * [MetricStatus] usa os mesmos 6 valores que a IA de diagnostico ja usa hoje
