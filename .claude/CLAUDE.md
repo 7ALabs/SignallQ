@@ -95,9 +95,7 @@ O monorepo-alvo `signallq-platform` (que unifica os tres + Portal + SignallQ Net
 **Convencao de issue no GitHub:** titulo `Task - <descricao>` para trabalho planejado e `[BUG] <descricao>` para defeito, label `enhancement`/`bug` conforme o caso, mais labels de `area:*`/`priority:*` quando fizer sentido (ver `gh label list --repo 7ALabs/SignallQ`). Ver skill `abrir-issue` para o detalhe completo (roteamento/titulo/corpo, agnostico de projeto).
 
 **Hierarquia obrigatoria por Project — Epico > Feature > Task (decisao 2026-07-21):** toda issue nova nasce ja
-classificada num dos 4 GitHub Projects do repo, segmentados por produto -- **SignallQ** (#10),
-**SignallQ PRO** (#11), **SignallQ Admin** (#12), **SignallQ Site** (#13). Nao fica pra depois, nao
-fica "sem epico" por preguica de classificar.
+classificada no GitHub Project vigente. Hoje existe apenas **SignallQ Consumer** (Project #3); os Projects segmentados por produto (**SignallQ PRO**, **SignallQ Admin**, **SignallQ Site**) ainda nao foram criados. Preencher Tipo/Epico/Feature na hora, nao deixar "sem epico" por preguica de classificar.
 
 Mecanismo (campos de Project, nao labels -- decisao deliberada pra nao colidir com o uso de labels
 do Luiz pra outra classificacao em paralelo):
