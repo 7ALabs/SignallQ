@@ -11,6 +11,7 @@ import io.signallq.app.core.database.ApelidoDispositivoEntity
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.database.SignallQDatabase
 import io.signallq.app.core.datastore.ConnectionProfilePersistido
+import io.signallq.app.core.datastore.ModoGamerPadraoPersistido
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.core.diagnostico.ConnectionType
 import io.signallq.app.core.diagnostico.DiagnosticInput
@@ -1372,6 +1373,23 @@ class MainViewModel
 
         fun definirTemaSelecionado(tema: String) {
             viewModelScope.launch { preferenciasAppRepository.definirTemaSelecionado(tema) }
+        }
+
+        /** Combinação jogo+device salva como padrão do Modo gamer (Feature #550, issue #1476)
+         *  — `null` enquanto o usuário nunca salvou nenhuma. */
+        val modoGamerPadrao: StateFlow<ModoGamerPadraoPersistido?> by lazy {
+            preferenciasAppRepository.modoGamerPadraoFlow
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        }
+
+        /** `suspend` direto (sem `viewModelScope.launch`) — quem chama já está numa
+         *  coroutine própria ([io.signallq.app.modogamer.ModoGamerViewModel.confirmar]). */
+        suspend fun salvarModoGamerPadrao(
+            jogoId: String?,
+            categoriaFallback: String?,
+            deviceId: String,
+        ) {
+            preferenciasAppRepository.salvarModoGamerPadrao(jogoId, categoriaFallback, deviceId)
         }
 
         fun definirAnaliseAvancada(ativa: Boolean) {

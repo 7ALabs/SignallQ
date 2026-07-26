@@ -196,6 +196,9 @@ class MainActivity : ComponentActivity() {
             val temaSelecionado = preferenciasUi.temaSelecionado
             val analiseAvancada = preferenciasUi.analiseAvancada
 
+            // Modo gamer (Feature #550, issue #1476) — combinação jogo+device salva como padrão.
+            val modoGamerPadrao = viewModel.modoGamerPadrao.collectAsStateWithLifecycle().value
+
             val perfilProvedor = viewModel.preferenciasPerfilProvedor.collectAsStateWithLifecycle().value
             val nomeUsuario = perfilProvedor.nomeUsuario
             val fotoUriUsuario = perfilProvedor.fotoUriUsuario
@@ -517,6 +520,8 @@ class MainActivity : ComponentActivity() {
                         resolveOperadoraContatoLocal = operadoraDirectoryResolver::resolveLocalContact,
                         resolveOperadoraIdentidadeRemota = operadoraDirectoryResolver::resolveIdentity,
                         resolveOperadoraContatoRemoto = operadoraDirectoryResolver::resolveContact,
+                        modoGamerPadrao = modoGamerPadrao,
+                        onSalvarModoGamerPadrao = viewModel::salvarModoGamerPadrao,
                     )
                 } // else onboardingConcluido
             }
