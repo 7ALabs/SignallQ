@@ -6,11 +6,13 @@ import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
+import io.signallq.app.core.network.FeatureFlagProvider
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.SocketPolicy
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -240,5 +242,101 @@ class RemoteDiagnosticRepositoryTest {
         server.enqueue(MockResponse().setResponseCode(500))
         val report = repo.evaluate(snapshotSaudavelInput())
         assertEquals(DiagnosticEvaluationSource.CACHED_LOCAL, report.evaluationSource)
+    }
+
+    // --- Shadow mode (GH#1444, parte de #952): evaluateShadow ---
+
+    private fun sempreLigadaFlagProvider(): FeatureFlagProvider = object : FeatureFlagProvider {
+        override fun isEnabled(key: String): Boolean = true
+    }
+
+    @Test
+    fun `evaluateShadow retorna sempre o relatorio LOCAL, mesmo com worker remoto saudavel`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(remoteReportJson()))
+        val repo = RemoteDiagnosticRepository(baseUrl = server.url("/").toString())
+
+        val report = repo.evaluateShadow(snapshotSaudavelInput())
+
+        assertEquals(DiagnosticEvaluationSource.BUNDLED_LOCAL, report.evaluationSource)
+    }
+
+    @Test
+    fun `evaluateShadow sem divergenceReporter configurado nao faz nenhuma chamada de rede`() = runTest {
+        val repo = RemoteDiagnosticRepository(baseUrl = server.url("/").toString())
+
+        repo.evaluateShadow(snapshotSaudavelInput())
+
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test
+    fun `evaluateShadow com divergenceReporter dispara avaliacao remota em paralelo e envia comparacao classificada`() = runTest {
+        // 1a requisicao: avaliacao remota interna (evaluateRemote, chamada pelo shadow comparison).
+        server.enqueue(MockResponse().setResponseCode(200).setBody(remoteReportJson()))
+        // 2a requisicao: ingest da divergencia ja classificada.
+        server.enqueue(MockResponse().setResponseCode(202).setBody("""{"ok":true}"""))
+
+        val reporter = DiagnosticDivergenceReporter(
+            baseUrl = server.url("/").toString(),
+            client = OkHttpClient(),
+            featureFlagProvider = sempreLigadaFlagProvider(),
+            appVersion = "0.31.0",
+            versionCode = 312,
+            consentimentoProvider = { true },
+        )
+        // shadowScope default (Dispatchers.IO real) — evita as sutilezas de
+        // StandardTestDispatcher com trabalho de rede real acontecendo em
+        // background; `server.takeRequest(timeout)` sincroniza pela chegada
+        // real da requisicao, nao pelo agendamento do coroutine test scheduler.
+        val repo = RemoteDiagnosticRepository(
+            baseUrl = server.url("/").toString(),
+            divergenceReporter = reporter,
+        )
+
+        val report = repo.evaluateShadow(snapshotSaudavelInput())
+        assertEquals(DiagnosticEvaluationSource.BUNDLED_LOCAL, report.evaluationSource)
+
+        val evaluateReq = server.takeRequest(5, TimeUnit.SECONDS)
+        assertNotNull(evaluateReq)
+        assertEquals("/api/diagnostic/evaluate", evaluateReq!!.path)
+
+        val ingestReq = server.takeRequest(5, TimeUnit.SECONDS)
+        assertNotNull(ingestReq)
+        assertEquals("/ingest/diagnostic-divergence", ingestReq!!.path)
+
+        val body = JSONObject(ingestReq.body.readUtf8())
+        assertTrue(body.has("classification"))
+        assertTrue(body.has("snapshotHash"))
+        assertTrue(body.has("executionId"))
+        assertEquals("BUNDLED_LOCAL", body.getString("localSource"))
+        assertEquals("REMOTE", body.getString("remoteSource"))
+    }
+
+    @Test
+    fun `evaluateShadow com falha remota classifica REMOTE_ERROR e ainda assim reporta`() = runTest {
+        // Avaliacao remota falha (500); o shadow comparison classifica REMOTE_ERROR.
+        server.enqueue(MockResponse().setResponseCode(500))
+        server.enqueue(MockResponse().setResponseCode(202).setBody("""{"ok":true}"""))
+
+        val reporter = DiagnosticDivergenceReporter(
+            baseUrl = server.url("/").toString(),
+            client = OkHttpClient(),
+            featureFlagProvider = sempreLigadaFlagProvider(),
+            appVersion = "0.31.0",
+            versionCode = 312,
+            consentimentoProvider = { true },
+        )
+        val repo = RemoteDiagnosticRepository(
+            baseUrl = server.url("/").toString(),
+            divergenceReporter = reporter,
+        )
+
+        repo.evaluateShadow(snapshotSaudavelInput())
+
+        server.takeRequest(5, TimeUnit.SECONDS) // avaliacao remota (falhou)
+        val ingestReq = server.takeRequest(5, TimeUnit.SECONDS)
+        assertNotNull(ingestReq)
+        val body = JSONObject(ingestReq!!.body.readUtf8())
+        assertEquals("REMOTE_ERROR", body.getString("classification"))
     }
 }

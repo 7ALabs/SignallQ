@@ -17,11 +17,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * [remoteDiagnosticRepository] — GH#969: liga o motor remoto (worker
- * `signallq-diagnostic`) ao fluxo real de diagnostico. [RemoteDiagnosticRepository.evaluate]
- * ja resolve toda a estrategia remoto-primeiro/fallback-local internamente (timeout curto,
- * qualquer falha cai pro [DiagnosticRunner] local) — este orquestrador so delega, nao
- * duplica a decisao remoto-vs-local.
+ * [remoteDiagnosticRepository] — GH#969 ligou o motor remoto (worker
+ * `signallq-diagnostic`) ao fluxo real de diagnostico. Desde GH#1444 (shadow
+ * mode, parte de #952) este orquestrador chama
+ * [RemoteDiagnosticRepository.evaluateShadow] (motor LOCAL sempre autoritativo
+ * — o que a UI mostra — com avaliacao remota em paralelo so para comparacao/
+ * telemetria), NAO mais [RemoteDiagnosticRepository.evaluate] (remoto-primeiro).
+ * Ver kdoc de [RemoteDiagnosticRepository] para a distincao completa entre os
+ * dois metodos e por que a troca aconteceu.
  */
 class DiagnosticOrchestrator(
     private val analyticsHelper: AnalyticsHelper = NoOpAnalyticsHelper,
@@ -74,7 +77,7 @@ class DiagnosticOrchestrator(
                 "iniciando diagnostico tipo=${input.connectionType} dl=${input.internet?.downloadMbps} ul=${input.internet?.uploadMbps} lat=${input.internet?.latencyMs} rssi=${input.wifi?.rssiDbm} fibra=${input.fibra?.isUp} dnsMs=${input.dns?.currentDnsLatencyMs}",
             )
 
-            val relatorio = remoteDiagnosticRepository.evaluate(input, enabledAreas)
+            val relatorio = remoteDiagnosticRepository.evaluateShadow(input, enabledAreas)
 
             Timber.i(
                 "diagnostico concluido decisao=${relatorio.decisao.id}(${relatorio.decisao.status}) " +

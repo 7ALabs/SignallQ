@@ -7,7 +7,8 @@ import { buildDiagnosticAiPrompt } from "./diagnostic-ai.ts";
 import { buildDiagnosticReport, buildInconclusiveReport } from "./diagnostic-report.ts";
 import { createSession, hashPassword, revokeSession, validateSession, verifyPassword } from "./auth.ts";
 import { getBundledRuleset } from "./bundled-ruleset.ts";
-import type { DiagnosticResult, ProviderDetectionInput, ProviderSupport } from "./contracts.ts";
+import type { DiagnosticDivergenceInput, DiagnosticResult, ProviderDetectionInput, ProviderSupport } from "./contracts.ts";
+import { listDivergences, registerDivergence, summarizeDivergences } from "./divergence-store.ts";
 import {
   getGameCatalogItem,
   getGameCatalogVersion,
@@ -345,6 +346,100 @@ async function handleProviderDetections(request: Request, env: Env): Promise<Res
   return json({ ok: true, ...result }, 202);
 }
 
+// GH#1444 — mesmo cuidado do GH#961 em handleProviderDetections: endpoint
+// publico/anonimo (o app envia sem sessao admin), payload malformado ou null
+// nao pode derrubar o worker com 500 cru.
+const DIVERGENCE_CLASSIFICATIONS = new Set([
+  "EXACT_MATCH",
+  "EQUIVALENT_RESULT",
+  "MINOR_DIVERGENCE",
+  "MAJOR_DIVERGENCE",
+  "REMOTE_ERROR",
+  "LOCAL_ERROR",
+]);
+
+function validateDivergenceInput(input: unknown): { ok: true; input: DiagnosticDivergenceInput } | { ok: false; errors: string[] } {
+  if (!input || typeof input !== "object") {
+    return { ok: false, errors: ["Body must be an object."] };
+  }
+  const body = input as Record<string, unknown>;
+  const errors: string[] = [];
+
+  if (typeof body.executionId !== "string" || body.executionId.length === 0) {
+    errors.push("executionId is required and must be a non-empty string.");
+  }
+  if (typeof body.snapshotHash !== "string" || body.snapshotHash.length === 0) {
+    errors.push("snapshotHash is required and must be a non-empty string.");
+  }
+  if (typeof body.classification !== "string" || !DIVERGENCE_CLASSIFICATIONS.has(body.classification)) {
+    errors.push(`classification must be one of: ${Array.from(DIVERGENCE_CLASSIFICATIONS).join(", ")}.`);
+  }
+
+  const optionalString = (key: string) => {
+    if (key in body && body[key] !== null && typeof body[key] !== "string") {
+      errors.push(`${key} must be a string when present.`);
+    }
+  };
+  const optionalNumber = (key: string) => {
+    if (key in body && body[key] !== null && typeof body[key] !== "number") {
+      errors.push(`${key} must be a number when present.`);
+    }
+  };
+  optionalString("localStatus");
+  optionalString("remoteStatus");
+  optionalString("localFlow");
+  optionalString("remoteFlow");
+  optionalString("localSource");
+  optionalString("remoteSource");
+  optionalString("appVersion");
+  optionalString("createdAt");
+  optionalNumber("localScore");
+  optionalNumber("remoteScore");
+  optionalNumber("localDurationMs");
+  optionalNumber("remoteDurationMs");
+  optionalNumber("versionCode");
+
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+  return { ok: true, input: body as unknown as DiagnosticDivergenceInput };
+}
+
+async function handleDiagnosticDivergenceIngest(request: Request, env: Env): Promise<Response> {
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return json({ error: "Invalid JSON body." }, 400);
+  }
+
+  const validation = validateDivergenceInput(payload);
+  if (!validation.ok) {
+    return json({ error: "Invalid divergence payload.", details: validation.errors }, 400);
+  }
+
+  // Best-effort, mesmo padrao de registerProviderDetection: sem DB configurado
+  // (dev local sem binding), aceita e nao persiste — nunca derruba o app.
+  if (!env.DB) {
+    return json({ ok: true, stored: false }, 202);
+  }
+
+  const id = await registerDivergence(env.DB, validation.input);
+  return json({ ok: true, stored: true, id }, 202);
+}
+
+async function handleDiagnosticDivergencesList(url: URL, env: Env): Promise<Response> {
+  if (!env.DB) return json({ items: [], summary: {} });
+  const classification = url.searchParams.get("classification") ?? undefined;
+  const limitParam = url.searchParams.get("limit");
+  const limit = limitParam ? Number(limitParam) : undefined;
+  const [items, summary] = await Promise.all([
+    listDivergences(env.DB, { classification, limit }),
+    summarizeDivergences(env.DB),
+  ]);
+  return json({ items, summary });
+}
+
 async function handleProviderSeedSync(env: Env): Promise<Response> {
   if (!env.DB) return json({ error: "DB binding not configured." }, 500);
   const result = await syncSeedProvidersToDb(env);
@@ -680,6 +775,7 @@ async function route(request: Request, env: Env): Promise<Response> {
         "/admin/diagnostic/rulesets/:version/rollback",
         "/admin/diagnostic/rulesets/validate",
         "/admin/diagnostic/simulate",
+        "/admin/diagnostic/divergences",
         "/admin/auth/bootstrap",
         "/admin/auth/login",
         "/admin/auth/logout",
@@ -707,6 +803,7 @@ async function route(request: Request, env: Env): Promise<Response> {
         "/providers/:providerId/logo",
         "/providers/search",
         "/ingest/provider-detection",
+        "/ingest/diagnostic-divergence",
       ],
     });
   }
@@ -759,6 +856,9 @@ async function route(request: Request, env: Env): Promise<Response> {
 
   if (request.method === "POST" && (url.pathname === "/admin/diagnostic/simulate" || url.pathname === "/api/admin/diagnostic/simulate")) {
     return handleDiagnosticSimulate(request);
+  }
+  if (request.method === "GET" && (url.pathname === "/admin/diagnostic/divergences" || url.pathname === "/api/admin/diagnostic/divergences")) {
+    return handleDiagnosticDivergencesList(url, env);
   }
   if (request.method === "POST" && url.pathname === "/admin/auth/users") {
     return handleAuthCreateUser(request, env, session!);
@@ -836,6 +936,10 @@ async function route(request: Request, env: Env): Promise<Response> {
 
   if (request.method === "POST" && (url.pathname === "/ingest/provider-detection" || url.pathname === "/api/provider-detections")) {
     return handleProviderDetections(request, env);
+  }
+
+  if (request.method === "POST" && (url.pathname === "/ingest/diagnostic-divergence" || url.pathname === "/api/diagnostic-divergences")) {
+    return handleDiagnosticDivergenceIngest(request, env);
   }
 
   if (request.method === "GET" && (url.pathname.startsWith("/providers/") || url.pathname.startsWith("/api/providers/"))) {

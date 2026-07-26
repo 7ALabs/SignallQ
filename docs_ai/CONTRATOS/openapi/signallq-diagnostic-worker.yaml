@@ -301,6 +301,36 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ValidationErrorResponse" }
 
+  /ingest/diagnostic-divergence:
+    post:
+      operationId: postDiagnosticDivergence
+      summary: Registra uma divergência já classificada entre o motor local e o worker remoto (shadow mode)
+      description: >
+        GH#1444 (parte de #952). Alias equivalente: `POST /api/diagnostic-divergences`. Endpoint
+        público/anônimo (o app não tem sessão admin) — payload malformado nunca derruba o worker com
+        500 (mesmo cuidado de `POST /ingest/provider-detection`, GH#961). Sem `DB` configurado,
+        aceita e não persiste (`stored: false`) — nunca falha o app.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DiagnosticDivergenceInput" }
+      responses:
+        "202":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  stored: { type: boolean }
+                  id: { type: string, description: "Presente só quando stored=true." }
+        "400":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ValidationErrorResponse" }
+
   /admin/auth/bootstrap:
     post:
       operationId: postAdminAuthBootstrap
@@ -666,6 +696,41 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ValidationErrorResponse" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /admin/diagnostic/divergences:
+    get:
+      operationId: listDiagnosticDivergences
+      summary: Lista registros de divergência do shadow mode e um resumo por classificação
+      description: "GH#1444 (parte de #952). Alias equivalente: `GET /api/admin/diagnostic/divergences`."
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: classification
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [EXACT_MATCH, EQUIVALENT_RESULT, MINOR_DIVERGENCE, MAJOR_DIVERGENCE, REMOTE_ERROR, LOCAL_ERROR]
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 50, minimum: 1, maximum: 200 }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/DiagnosticDivergenceRecord" }
+                  summary:
+                    type: object
+                    description: "Contagem por classification, ex.: { EXACT_MATCH: 12, MAJOR_DIVERGENCE: 1 }."
+                    additionalProperties: { type: integer }
         "401":
           $ref: "#/components/responses/Unauthorized"
 
@@ -1588,6 +1653,42 @@ components:
         appVersion: { type: string, nullable: true }
         platform: { type: string, nullable: true }
         detectedAt: { type: string, format: date-time, nullable: true }
+
+    DiagnosticDivergenceInput:
+      type: object
+      description: >
+        GH#1444 (shadow mode, parte de #952). Registro JA CLASSIFICADO pelo cliente Android
+        (comparação local-vs-remoto via `DiagnosticDivergenceClassifier`) — o worker nunca recebe o
+        `DiagnosticReportPayload` completo de nenhum dos dois lados, só este resumo sanitizado.
+      required: [executionId, snapshotHash, classification]
+      properties:
+        executionId: { type: string, description: "UUID gerado no cliente por execução de diagnóstico." }
+        snapshotHash: { type: string, description: "SHA-256 do DiagnosticSnapshot enviado — rastreabilidade, sem reter o snapshot em si." }
+        classification:
+          type: string
+          enum: [EXACT_MATCH, EQUIVALENT_RESULT, MINOR_DIVERGENCE, MAJOR_DIVERGENCE, REMOTE_ERROR, LOCAL_ERROR]
+        localStatus: { type: string, nullable: true }
+        remoteStatus: { type: string, nullable: true }
+        localScore: { type: integer, nullable: true }
+        remoteScore: { type: integer, nullable: true }
+        localFlow: { type: string, nullable: true }
+        remoteFlow: { type: string, nullable: true }
+        localSource: { type: string, nullable: true, enum: [REMOTE, CACHED_LOCAL, BUNDLED_LOCAL, null] }
+        remoteSource: { type: string, nullable: true, enum: [REMOTE, CACHED_LOCAL, BUNDLED_LOCAL, null] }
+        localDurationMs: { type: integer, nullable: true }
+        remoteDurationMs: { type: integer, nullable: true }
+        appVersion: { type: string, nullable: true }
+        versionCode: { type: integer, nullable: true }
+        createdAt: { type: string, format: date-time, nullable: true }
+
+    DiagnosticDivergenceRecord:
+      allOf:
+        - $ref: "#/components/schemas/DiagnosticDivergenceInput"
+        - type: object
+          required: [id, createdAt]
+          properties:
+            id: { type: string }
+            createdAt: { type: string, format: date-time }
 
     ProviderReviewQueueItem:
       type: object
