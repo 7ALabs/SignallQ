@@ -3,6 +3,7 @@ package io.signallq.app.feature.diagnostico.remote
 import io.signallq.app.core.diagnostico.ConnectionType
 import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.core.diagnostico.DiagnosticRolloutStatus
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
@@ -250,6 +251,11 @@ class RemoteDiagnosticRepositoryTest {
         override fun isEnabled(key: String): Boolean = true
     }
 
+    /** GH#1445 — status de rollout a 100%, sem segmentacao, pra manter os testes
+     *  de shadow mode pre-existentes (comportamento de rede) participando. */
+    private fun rollout100PorCento(): DiagnosticRolloutStatus =
+        DiagnosticRolloutStatus(rulesetVersion = 1, rolloutPercent = 100)
+
     @Test
     fun `evaluateShadow retorna sempre o relatorio LOCAL, mesmo com worker remoto saudavel`() = runTest {
         server.enqueue(MockResponse().setResponseCode(200).setBody(remoteReportJson()))
@@ -283,6 +289,8 @@ class RemoteDiagnosticRepositoryTest {
             appVersion = "0.31.0",
             versionCode = 312,
             consentimentoProvider = { true },
+            installationIdProvider = { "installation-de-teste" },
+            rolloutStatusProvider = { rollout100PorCento() },
         )
         // shadowScope default (Dispatchers.IO real) — evita as sutilezas de
         // StandardTestDispatcher com trabalho de rede real acontecendo em
@@ -313,6 +321,53 @@ class RemoteDiagnosticRepositoryTest {
     }
 
     @Test
+    fun `evaluateShadow com rollout em 0 por cento nao dispara avaliacao remota nem ingest (GH#1445)`() = runTest {
+        val reporter = DiagnosticDivergenceReporter(
+            baseUrl = server.url("/").toString(),
+            client = OkHttpClient(),
+            featureFlagProvider = sempreLigadaFlagProvider(),
+            appVersion = "0.31.0",
+            versionCode = 312,
+            consentimentoProvider = { true },
+            installationIdProvider = { "installation-de-teste" },
+            rolloutStatusProvider = { DiagnosticRolloutStatus(rulesetVersion = 1, rolloutPercent = 0) },
+        )
+        val repo = RemoteDiagnosticRepository(
+            baseUrl = server.url("/").toString(),
+            divergenceReporter = reporter,
+        )
+
+        val report = repo.evaluateShadow(snapshotSaudavelInput())
+
+        assertEquals(DiagnosticEvaluationSource.BUNDLED_LOCAL, report.evaluationSource)
+        // shadowScope roda em Dispatchers.IO real (fire-and-forget) -- da um
+        // tempo curto pra garantir que, se fosse disparar algo, ja teria chegado.
+        assertNull(server.takeRequest(500, TimeUnit.MILLISECONDS))
+    }
+
+    @Test
+    fun `evaluateShadow sem status de rollout disponivel (worker fora do ar) nao participa (fail closed)`() = runTest {
+        val reporter = DiagnosticDivergenceReporter(
+            baseUrl = server.url("/").toString(),
+            client = OkHttpClient(),
+            featureFlagProvider = sempreLigadaFlagProvider(),
+            appVersion = "0.31.0",
+            versionCode = 312,
+            consentimentoProvider = { true },
+            installationIdProvider = { "installation-de-teste" },
+            rolloutStatusProvider = { null },
+        )
+        val repo = RemoteDiagnosticRepository(
+            baseUrl = server.url("/").toString(),
+            divergenceReporter = reporter,
+        )
+
+        repo.evaluateShadow(snapshotSaudavelInput())
+
+        assertNull(server.takeRequest(500, TimeUnit.MILLISECONDS))
+    }
+
+    @Test
     fun `evaluateShadow com falha remota classifica REMOTE_ERROR e ainda assim reporta`() = runTest {
         // Avaliacao remota falha (500); o shadow comparison classifica REMOTE_ERROR.
         server.enqueue(MockResponse().setResponseCode(500))
@@ -325,6 +380,8 @@ class RemoteDiagnosticRepositoryTest {
             appVersion = "0.31.0",
             versionCode = 312,
             consentimentoProvider = { true },
+            installationIdProvider = { "installation-de-teste" },
+            rolloutStatusProvider = { rollout100PorCento() },
         )
         val repo = RemoteDiagnosticRepository(
             baseUrl = server.url("/").toString(),

@@ -2,6 +2,7 @@ package io.signallq.app.feature.diagnostico.remote
 
 import io.signallq.app.core.diagnostico.DiagnosticDivergenceClassifier
 import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
+import io.signallq.app.core.diagnostico.DiagnosticRolloutStatus
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.network.FeatureFlagProvider
 import kotlinx.coroutines.test.runTest
@@ -63,6 +64,69 @@ class DiagnosticDivergenceReporterTest {
     fun `isEnabled reflete a flag feature_diagnostic_shadow_mode`() {
         assertEquals(true, reporter(enabled = true, consentimento = true).isEnabled())
         assertEquals(false, reporter(enabled = false, consentimento = true).isEnabled())
+    }
+
+    // --- GH#1445 (parte de #952) — rollout gradual + segmentacao do shadow mode ---
+
+    private fun reporterComRollout(
+        enabled: Boolean = true,
+        installationId: String = "installation-1",
+        rolloutStatus: DiagnosticRolloutStatus? = DiagnosticRolloutStatus(rulesetVersion = 1, rolloutPercent = 100),
+        appChannel: String = "play_store",
+        versionCode: Int = 312,
+    ): DiagnosticDivergenceReporter =
+        DiagnosticDivergenceReporter(
+            baseUrl = server.url("/").toString(),
+            client = okhttp3.OkHttpClient(),
+            featureFlagProvider = flagProvider(enabled),
+            appVersion = "0.31.0",
+            versionCode = versionCode,
+            consentimentoProvider = { true },
+            installationIdProvider = { installationId },
+            rolloutStatusProvider = { rolloutStatus },
+            appChannel = appChannel,
+        )
+
+    @Test
+    fun `isEligibleForShadowComparison falso quando o kill switch esta desligado, mesmo com rollout 100 por cento`() = runTest {
+        val rep = reporterComRollout(enabled = false)
+        assertEquals(false, rep.isEligibleForShadowComparison())
+    }
+
+    @Test
+    fun `isEligibleForShadowComparison falso quando o status de rollout nao esta disponivel (fail closed)`() = runTest {
+        val rep = reporterComRollout(rolloutStatus = null)
+        assertEquals(false, rep.isEligibleForShadowComparison())
+    }
+
+    @Test
+    fun `isEligibleForShadowComparison falso com rolloutPercent 0`() = runTest {
+        val rep = reporterComRollout(rolloutStatus = DiagnosticRolloutStatus(rulesetVersion = 1, rolloutPercent = 0))
+        assertEquals(false, rep.isEligibleForShadowComparison())
+    }
+
+    @Test
+    fun `isEligibleForShadowComparison verdadeiro com kill switch ligado, rollout 100 por cento e instalacao valida`() = runTest {
+        val rep = reporterComRollout()
+        assertEquals(true, rep.isEligibleForShadowComparison())
+    }
+
+    @Test
+    fun `isEligibleForShadowComparison respeita segmentacao por canal`() = runTest {
+        val rep = reporterComRollout(
+            rolloutStatus = DiagnosticRolloutStatus(rulesetVersion = 1, rolloutPercent = 100, rolloutChannels = listOf("play_store")),
+            appChannel = "sideload",
+        )
+        assertEquals(false, rep.isEligibleForShadowComparison())
+    }
+
+    @Test
+    fun `isEligibleForShadowComparison respeita segmentacao por versao minima`() = runTest {
+        val rep = reporterComRollout(
+            rolloutStatus = DiagnosticRolloutStatus(rulesetVersion = 1, rolloutPercent = 100, rolloutMinVersionCode = 400),
+            versionCode = 312,
+        )
+        assertEquals(false, rep.isEligibleForShadowComparison())
     }
 
     @Test
