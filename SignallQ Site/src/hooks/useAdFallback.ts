@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { ADSENSE_PUBLISHER_ID } from '../lib/config'
-import { buscarAnunciosLocais, sortearAnuncioLocal, type AnuncioLocal } from '../lib/localAdsClient'
+import { useAdSenseCoordination } from '../components/AdSlotsProvider'
 
-// Mecanismo de fallback AdSense → anúncio local, extraído do `AdBanner.tsx` original
-// (issue #1402/#1403) para ser reaproveitado pelos 3 espaços de anúncio da
-// reconstrução v2 (`AdBannerWide`, `AdRail`) — ver
-// `.claude/design-specs/2026-07-25-site-webapp-v2/README.md`, achado 1. A lógica de
-// detecção de no-fill e catálogo/sorteio não muda entre slots; só a apresentação
-// visual (cada componente decide o que fazer com `mostrarAdsense`/`anuncioLocal`).
+// Mecanismo de fallback AdSense → catálogo local, extraído do `AdBanner.tsx` original
+// (issue #1402/#1403) e coordenado a nível de página desde a issue #1402 (fase 2, achado
+// de auditoria de 2026-07-25 — ver `AdSlotsProvider.tsx`). Este hook decide só se o AdSense
+// real preencheu ou não; o conteúdo do catálogo local (quando não preenche) é
+// responsabilidade de `useAdSlotItems`, chamado à parte pelo componente consumidor — separar
+// as duas coisas evita repetir o mesmo anúncio em 2 espaços da mesma página.
 
 const ADSENSE_SCRIPT_ID = 'adsbygoogle-loader'
 
@@ -54,29 +54,27 @@ function carregarScriptAdSense(publisherId: string): Promise<void> {
 export interface UseAdFallbackResult {
   /** Ref pra atachar no `<ins class="adsbygoogle">` quando `mostrarAdsense` for `true`. */
   anuncioRef: React.RefObject<HTMLModElement | null>
-  /** `true` enquanto o slot deve tentar o AdSense real (configurado e ainda sem no-fill). */
+  /** `true` enquanto o slot deve tentar o AdSense real (configurado, sem no-fill e não
+   * forçado pro catálogo interno pela regra 4 do `AdSlotsProvider`). */
   mostrarAdsense: boolean
-  /** Item sorteado do catálogo local — só populado quando precisa dele (no-fill/não configurado). */
-  anuncioLocal: AnuncioLocal | null
   adSenseConfigurado: boolean
 }
 
 /**
- * Hook de fallback de anúncio: tenta o AdSense real (quando `adSenseSlotId` é passado e
- * `ADSENSE_PUBLISHER_ID` está configurada) e cai para um item sorteado do catálogo local
- * quando o Google sinaliza no-fill (`data-ad-status="unfilled"`) ou estoura o timeout de
- * segurança. Sem `adSenseSlotId`, pula direto pro catálogo local (caso do `AdRail`, que
- * ainda não tem unidade de anúncio própria configurada).
+ * Hook de decisão de fallback de anúncio: tenta o AdSense real (quando `adSenseSlotId` é
+ * passado e `ADSENSE_PUBLISHER_ID` está configurada) e reporta o resultado pro
+ * `AdSlotsProvider` — que decide, a nível de página, se algum slot precisa ser forçado pro
+ * catálogo interno mesmo com AdSense preenchendo tudo (regra 4). Sem `adSenseSlotId`, nunca
+ * tenta AdSense e já reporta `local` — o componente consumidor sempre renderiza o item do
+ * catálogo (via `useAdSlotItems`, chamado à parte) nesse caso.
  */
-export function useAdFallback(adSenseSlotId: string | undefined): UseAdFallbackResult {
+export function useAdFallback(slotId: string, adSenseSlotId: string | undefined): UseAdFallbackResult {
   const anuncioRef = useRef<HTMLModElement>(null)
   const anuncioInicializadoRef = useRef(false)
-  const adSenseConfigurado = Boolean(ADSENSE_PUBLISHER_ID && adSenseSlotId)
+  const { forcedLocal, reportFillStatus } = useAdSenseCoordination(slotId)
 
+  const adSenseConfigurado = Boolean(ADSENSE_PUBLISHER_ID && adSenseSlotId) && !forcedLocal
   const [caiuParaAnuncioLocal, setCaiuParaAnuncioLocal] = useState(false)
-  const [anuncioLocal, setAnuncioLocal] = useState<AnuncioLocal | null>(null)
-
-  const precisaDeAnuncioLocal = !adSenseConfigurado || caiuParaAnuncioLocal
 
   useEffect(() => {
     if (!adSenseConfigurado || !anuncioRef.current || anuncioInicializadoRef.current) return
@@ -102,10 +100,11 @@ export function useAdFallback(adSenseSlotId: string | undefined): UseAdFallbackR
     }
   }, [adSenseConfigurado])
 
-  // Observa o `data-ad-status` real que o Google escreve no <ins> (`filled`/`unfilled`)
-  // pra distinguir "AdSense configurado e preencheu" de "configurado mas sem anúncio pra
-  // entregar". Timeout de segurança cobre indisponibilidade de rede, bloqueador de
-  // conteúdo ou lentidão do Google, que nunca setam o atributo.
+  // Observa o `data-ad-status` real que o Google escreve no <ins> (`filled`/`unfilled`) pra
+  // distinguir "AdSense configurado e preencheu" de "configurado mas sem anúncio pra
+  // entregar", e reporta o resultado pro provider de página. Timeout de segurança cobre
+  // indisponibilidade de rede, bloqueador de conteúdo ou lentidão do Google, que nunca setam
+  // o atributo.
   useEffect(() => {
     if (!adSenseConfigurado) return
     const elemento = anuncioRef.current
@@ -117,14 +116,19 @@ export function useAdFallback(adSenseSlotId: string | undefined): UseAdFallbackR
       if (resolvido) return
       resolvido = true
       setCaiuParaAnuncioLocal(true)
+      reportFillStatus('local')
     }
 
     const observer =
       typeof MutationObserver !== 'undefined'
         ? new MutationObserver(() => {
             const status = elemento.getAttribute('data-ad-status')
-            if (status === 'filled') resolvido = true
-            else if (status === 'unfilled') cairParaLocal()
+            if (status === 'filled') {
+              resolvido = true
+              reportFillStatus('adsense')
+            } else if (status === 'unfilled') {
+              cairParaLocal()
+            }
           })
         : null
     observer?.observe(elemento, { attributes: true, attributeFilter: ['data-ad-status'] })
@@ -135,30 +139,17 @@ export function useAdFallback(adSenseSlotId: string | undefined): UseAdFallbackR
       observer?.disconnect()
       window.clearTimeout(timeoutId)
     }
-  }, [adSenseConfigurado])
+  }, [adSenseConfigurado, reportFillStatus])
 
-  // Busca o catálogo local só quando de fato precisa dele — evita chamada de rede
-  // desnecessária enquanto o AdSense ainda está preenchendo normalmente.
+  // Sem AdSense configurado (ou forçado pro catálogo pela regra 4): nunca tenta de verdade,
+  // reporta `local` direto em vez de esperar o timeout de no-fill acima.
   useEffect(() => {
-    if (!precisaDeAnuncioLocal) return
-
-    let cancelado = false
-    const controller = typeof AbortController !== 'undefined' ? new AbortController() : undefined
-
-    buscarAnunciosLocais(controller?.signal).then((anuncios) => {
-      if (!cancelado) setAnuncioLocal(sortearAnuncioLocal(anuncios))
-    })
-
-    return () => {
-      cancelado = true
-      controller?.abort()
-    }
-  }, [precisaDeAnuncioLocal])
+    if (!adSenseConfigurado) reportFillStatus('local')
+  }, [adSenseConfigurado, reportFillStatus])
 
   return {
     anuncioRef,
     mostrarAdsense: adSenseConfigurado && !caiuParaAnuncioLocal,
-    anuncioLocal,
     adSenseConfigurado,
   }
 }

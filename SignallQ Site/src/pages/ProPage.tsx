@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AdBannerWide } from '../components/AdBannerWide'
 import { AdRail } from '../components/AdRail'
+import { AdSlotsProvider } from '../components/AdSlotsProvider'
 import { EmailCaptureDialog } from '../components/EmailCaptureDialog'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteNav } from '../components/SiteNav'
@@ -94,6 +95,9 @@ export default function ProPage() {
     <div className="flex min-h-screen flex-col overflow-x-hidden" style={{ background: 'var(--bg-primary)' }}>
       <SiteNav active="pro" />
 
+      {/* `AdSlotsProvider` coordena os espaços de anúncio desta página — busca o catálogo
+          uma vez e distribui itens distintos, sem repetir o mesmo anúncio (#1402/#1405). */}
+      <AdSlotsProvider>
       <div className="flex w-full flex-1 items-start justify-center gap-6 px-5 py-9 box-border lg:px-6 lg:py-10">
         <AdRail variant="a" />
 
@@ -264,6 +268,7 @@ export default function ProPage() {
       <div className="mx-auto w-full max-w-[860px] px-5 pb-7 box-border">
         <AdBannerWide variant="b" />
       </div>
+      </AdSlotsProvider>
 
       <SiteFooter />
 

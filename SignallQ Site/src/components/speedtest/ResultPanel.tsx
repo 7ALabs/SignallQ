@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { AdBannerWide } from '../AdBannerWide'
 import { PlayStoreBadge } from '../PlayStoreBadge'
+import { ResultAdCard } from './ResultAdCard'
 import { classifyLatency, classifyUpload, interpretUseCases, type Classificacao } from '../../lib/classification'
 import { iconeConexao, labelConexao, type TipoRede } from '../../lib/connection'
 import { FEATURE_SPEEDTEST_COMPARTILHOU, trackFeatureUsed } from '../../lib/telemetry'
@@ -342,8 +342,9 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
 
       {/* 4º espaço de anúncio (achado 1 do README de design-specs): embutido dentro do
           próprio card de resultado, distinto do AdBannerWide de rodapé da página (oculto
-          neste estado — ver `showWideAd` em HomePage.tsx). */}
-      <AdBannerWide variant="a" />
+          neste estado — ver `showWideAd` em HomePage.tsx). Peça dedicada (`ResultAdCard`),
+          não o `AdBannerWide` genérico — achado da auditoria 1:1 de 2026-07-25 (Marina). */}
+      <ResultAdCard />
 
       <div className="flex items-center gap-3 rounded-2xl p-4" style={{ background: 'color-mix(in srgb, var(--accent) 8%, transparent)' }}>
         <div className="flex flex-1 flex-col gap-0.5">

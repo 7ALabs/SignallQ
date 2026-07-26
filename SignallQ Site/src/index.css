@@ -134,6 +134,382 @@ a:hover {
   animation: sq-ad-glow 5s ease-in-out infinite;
 }
 
+/* Animações do `AdRail` (coluna de anúncio lateral, cards grandes) — portadas 1:1 de
+   `AdRail.dc.html` (`sqGlowDrift`/`sqGlowDrift2`, `sqBarPulse`, `sqSweep`, `sqDotBlink`,
+   `sqScanLine`, `sqRiseIn`, `sqHeadSwap`/`sqHeadSwapAlt`, `sqRingOut`,
+   `sqRoomShift`/`sqRoomShiftAlt`, `sqCountPulse`, `sqTicker`) — issue #1402/#1405, achado da
+   auditoria 1:1 de 2026-07-25 (Marina): o componente React não tinha nenhuma dessas
+   animações. Nomes prefixados `sq-rail-*` pra não colidir com `.sq-ad-*` acima (skin
+   diferente, já usada pelo `SiteFooter`/`ResultAdCard`). */
+@keyframes sq-rail-glow-drift-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate3d(14px, -18px, 0) scale(1.12);
+    opacity: 1;
+  }
+}
+
+@keyframes sq-rail-glow-drift-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.05);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translate3d(-16px, 12px, 0) scale(1);
+    opacity: 0.95;
+  }
+}
+
+@keyframes sq-rail-bar-pulse {
+  0%,
+  100% {
+    transform: scaleY(0.72);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes sq-rail-sweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  55%,
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+@keyframes sq-rail-dot-blink {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(201, 242, 107, 0.55);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 0 6px rgba(201, 242, 107, 0);
+  }
+}
+
+@keyframes sq-rail-scan-line {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.5;
+  }
+  88% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(96px);
+    opacity: 0;
+  }
+}
+
+@keyframes sq-rail-rise-in {
+  0%,
+  6% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  16%,
+  92% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sq-rail-head-swap {
+  0%,
+  44% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  50%,
+  94% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sq-rail-head-swap-alt {
+  0%,
+  44% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  50%,
+  94% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes sq-rail-ring-out {
+  0% {
+    transform: scale(0.35);
+    opacity: 0.75;
+  }
+  80% {
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@keyframes sq-rail-room-shift {
+  0%,
+  40% {
+    opacity: 1;
+  }
+  50%,
+  90% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes sq-rail-room-shift-alt {
+  0%,
+  40% {
+    opacity: 0;
+  }
+  50%,
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes sq-rail-count-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes sq-rail-ticker {
+  0%,
+  45% {
+    transform: translateY(0);
+  }
+  55%,
+  100% {
+    transform: translateY(-22px);
+  }
+}
+
+.sq-rail-rise {
+  animation: sq-rail-rise-in 9s ease-out infinite;
+}
+
+.sq-rail-head-a {
+  animation: sq-rail-head-swap 9s ease-in-out infinite;
+}
+
+.sq-rail-head-b {
+  animation: sq-rail-head-swap-alt 9s ease-in-out infinite;
+}
+
+.sq-rail-glow-a {
+  animation: sq-rail-glow-drift-a 9s ease-in-out infinite;
+}
+
+.sq-rail-glow-b {
+  animation: sq-rail-glow-drift-b 11s ease-in-out infinite;
+}
+
+.sq-rail-bar {
+  transform-origin: bottom center;
+  animation: sq-rail-bar-pulse 2.4s ease-in-out infinite;
+}
+
+.sq-rail-sweep {
+  animation: sq-rail-sweep 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.sq-rail-dot {
+  animation: sq-rail-dot-blink 1.8s ease-in-out infinite;
+}
+
+.sq-rail-scan {
+  animation: sq-rail-scan-line 3.2s ease-in-out infinite;
+}
+
+.sq-rail-ring {
+  animation: sq-rail-ring-out 3.4s ease-out infinite;
+}
+
+.sq-rail-room-a {
+  animation: sq-rail-room-shift 8s ease-in-out infinite;
+}
+
+.sq-rail-room-b {
+  animation: sq-rail-room-shift-alt 8s ease-in-out infinite;
+}
+
+.sq-rail-count {
+  animation: sq-rail-count-pulse 2.6s ease-in-out infinite;
+}
+
+.sq-rail-ticker {
+  animation: sq-rail-ticker 6s ease-in-out infinite;
+}
+
+/* Animações do `AdBannerWide` (banner horizontal) — portadas 1:1 de
+   `AdBannerWide.dc.html` (`sqWideGlow`, `sqWideSweep`, `sqWideBar`,
+   `sqWideSwap`/`sqWideSwapAlt`, `sqWideDot`, `sqWidePing`) — mesmo achado de auditoria acima:
+   o componente React não tinha nenhuma dessas animações. */
+@keyframes sq-wide-glow {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate3d(24px, -10px, 0) scale(1.15);
+    opacity: 1;
+  }
+}
+
+@keyframes sq-wide-sweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  55%,
+  100% {
+    transform: translateX(340%);
+  }
+}
+
+@keyframes sq-wide-bar {
+  0%,
+  100% {
+    transform: scaleY(0.55);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes sq-wide-swap {
+  0%,
+  42% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  50%,
+  92% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sq-wide-swap-alt {
+  0%,
+  42% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  50%,
+  92% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes sq-wide-dot {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(201, 242, 107, 0.5);
+  }
+  50% {
+    opacity: 0.55;
+    box-shadow: 0 0 0 7px rgba(201, 242, 107, 0);
+  }
+}
+
+@keyframes sq-wide-ping {
+  0% {
+    transform: scale(0.4);
+    opacity: 0.7;
+  }
+  80% {
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+.sq-wide-glow {
+  animation: sq-wide-glow 10s ease-in-out infinite;
+}
+
+.sq-wide-sweep {
+  animation: sq-wide-sweep 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.sq-wide-bar {
+  transform-origin: bottom center;
+  animation: sq-wide-bar 2.2s ease-in-out infinite;
+}
+
+.sq-wide-a {
+  animation: sq-wide-swap 8s ease-in-out infinite;
+}
+
+.sq-wide-b {
+  animation: sq-wide-swap-alt 8s ease-in-out infinite;
+}
+
+.sq-wide-dot {
+  animation: sq-wide-dot 1.9s ease-in-out infinite;
+}
+
+.sq-wide-ping {
+  animation: sq-wide-ping 3.2s ease-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

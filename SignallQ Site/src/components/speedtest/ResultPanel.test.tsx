@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ResultPanel } from './ResultPanel'
+import { AdSlotsProvider } from '../AdSlotsProvider'
 import { classifyDownload } from '../../lib/classification'
 import type { SpeedTestResult } from '../../lib/speedEngine'
 
@@ -37,13 +38,15 @@ describe('ResultPanel — versão enxuta do PWA (sem recomendações/casos de us
     vi.spyOn(global, 'fetch').mockImplementation(() => new Promise(() => {}))
     const result = makeResult()
     render(
-      <ResultPanel
-        result={result}
-        downloadVerdict={classifyDownload(result.download.mbps)}
-        connectionKind="wifi"
-        onRetry={vi.fn()}
-        onVerHistorico={vi.fn()}
-      />
+      <AdSlotsProvider>
+        <ResultPanel
+          result={result}
+          downloadVerdict={classifyDownload(result.download.mbps)}
+          connectionKind="wifi"
+          onRetry={vi.fn()}
+          onVerHistorico={vi.fn()}
+        />
+      </AdSlotsProvider>
     )
 
     expect(screen.getByText('Sua conexão está boa')).toBeInTheDocument()
@@ -59,13 +62,15 @@ describe('ResultPanel — versão enxuta do PWA (sem recomendações/casos de us
     vi.spyOn(global, 'fetch').mockImplementation(() => new Promise(() => {}))
     const result = makeResult({ download: 10, partial: true })
     render(
-      <ResultPanel
-        result={result}
-        downloadVerdict={classifyDownload(result.download.mbps)}
-        connectionKind={null}
-        onRetry={vi.fn()}
-        onVerHistorico={vi.fn()}
-      />
+      <AdSlotsProvider>
+        <ResultPanel
+          result={result}
+          downloadVerdict={classifyDownload(result.download.mbps)}
+          connectionKind={null}
+          onRetry={vi.fn()}
+          onVerHistorico={vi.fn()}
+        />
+      </AdSlotsProvider>
     )
 
     expect(screen.getByText(/Resultado parcial\./)).toBeInTheDocument()

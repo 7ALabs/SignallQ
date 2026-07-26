@@ -31,6 +31,7 @@ describe("LocalAdsSection", () => {
     vi.mocked(localAdsService.createAd).mockResolvedValue(true);
     vi.mocked(localAdsService.updateAd).mockResolvedValue(true);
     vi.mocked(localAdsService.deleteAd).mockResolvedValue(true);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
   });
 
   it("lista os anúncios existentes com status ativo/inativo", async () => {
@@ -90,12 +91,23 @@ describe("LocalAdsSection", () => {
     );
   });
 
-  it("exclui um anúncio existente", async () => {
+  it("exclui um anúncio existente após confirmar", async () => {
     render(<LocalAdsSection />);
     await screen.findByText(AD_MOCK.title);
 
     fireEvent.click(screen.getByLabelText(`Excluir ${AD_MOCK.title}`));
 
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining(AD_MOCK.title));
     await waitFor(() => expect(localAdsService.deleteAd).toHaveBeenCalledWith(AD_MOCK.id));
+  });
+
+  it("não exclui quando a confirmação é recusada", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(<LocalAdsSection />);
+    await screen.findByText(AD_MOCK.title);
+
+    fireEvent.click(screen.getByLabelText(`Excluir ${AD_MOCK.title}`));
+
+    expect(localAdsService.deleteAd).not.toHaveBeenCalled();
   });
 });
