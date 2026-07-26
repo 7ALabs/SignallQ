@@ -93,13 +93,13 @@ export function SpeedGauge(props: SpeedGaugeProps) {
           <button
             onClick={props.onIniciar}
             aria-label="Iniciar teste"
-            className="flex h-14 items-center gap-2.5 whitespace-nowrap rounded-full border-none px-10"
-            style={{ background: 'var(--accent)', boxShadow: '0 14px 30px color-mix(in srgb, var(--accent) 30%, transparent)' }}
+            className="flex h-11 items-center gap-2 whitespace-nowrap rounded-full border-none px-[26px]"
+            style={{ background: 'var(--accent)', boxShadow: '0 10px 22px color-mix(in srgb, var(--accent) 28%, transparent)' }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: 22, color: 'var(--on-accent)' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--on-accent)' }}>
               speed
             </span>
-            <span style={{ font: '600 20px/1.15 var(--font-sans)', color: 'var(--on-accent)' }}>Iniciar teste</span>
+            <span style={{ font: '600 16px/1.15 var(--font-sans)', color: 'var(--on-accent)' }}>Iniciar teste</span>
           </button>
           <span className="body-small" style={{ color: 'var(--text-tertiary)' }}>
             Rápido · ~20 s

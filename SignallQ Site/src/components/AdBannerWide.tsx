@@ -116,7 +116,7 @@ export function AdBannerWide({ variant = 'a' }: AdBannerWideProps) {
 function BlocoDesktopA({ principal, secundario }: { principal: import('../lib/localAdsClient').AnuncioLocal | null; secundario: import('../lib/localAdsClient').AnuncioLocal | null }) {
   return (
     <div
-      className="relative hidden h-[140px] items-center gap-6 p-5 lg:flex"
+      className="relative hidden h-[172px] items-center gap-6 px-6 py-5 lg:flex"
       style={{ background: 'linear-gradient(100deg, #1B1533 0%, #241C42 46%, #0E0D14 100%)' }}
     >
       <div
@@ -181,7 +181,7 @@ function BlocoDesktopA({ principal, secundario }: { principal: import('../lib/lo
 function BlocoDesktopB({ principal, secundario }: { principal: import('../lib/localAdsClient').AnuncioLocal | null; secundario: import('../lib/localAdsClient').AnuncioLocal | null }) {
   return (
     <div
-      className="relative hidden h-[140px] items-center gap-6 p-5 lg:flex"
+      className="relative hidden h-[172px] items-center gap-6 px-6 py-5 lg:flex"
       style={{ background: 'linear-gradient(100deg, #0B1533 0%, #131A3C 52%, #0E0D14 100%)' }}
     >
       <div
