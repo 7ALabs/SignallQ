@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useSystemTheme } from '../hooks/useSystemTheme'
 import { Badge } from './Badge'
 import { Logo } from './Logo'
+import { BrandEndorsement } from './BrandEndorsement'
 import { SIGNALLQ_TEST_GROUP_URL } from '../lib/config'
 
 // Classe publicada no <html> enquanto o rodapé está visível — o
@@ -43,7 +44,22 @@ const LINKS_COMPACT = [
   { label: 'Termos de Uso', href: '/termos' },
 ]
 
-const COPYRIGHT = '© 2026 SignallQ · by 7A. Produto em fase Beta.'
+const COPYRIGHT_PREFIX = '© 2026 SignallQ ·'
+const COPYRIGHT_SUFFIX = '. Produto em fase Beta.'
+
+// GH#1376 — assinatura institucional "by 7A" via componente compartilhado
+// (mesmo contrato do `BrandEndorsement` do SignallQ Admin), não mais texto
+// plano — o texto puro não expressava a hierarquia visual aprovada ("by"
+// normal, "7A" com peso maior).
+function CopyrightLine({ className }: { className?: string }) {
+  return (
+    <div className={`body-small inline-flex flex-wrap items-center gap-1 ${className ?? ''}`} style={{ color: 'var(--text-tertiary)' }}>
+      <span>{COPYRIGHT_PREFIX}</span>
+      <BrandEndorsement size="compact" />
+      <span>{COPYRIGHT_SUFFIX}</span>
+    </div>
+  )
+}
 
 // Decisão do Luiz (2026-07-25, revertendo divergência da reconstrução v2):
 // a coluna "Baixe o app" volta a ser 1:1 com SiteFooter.dc.html — o card de
@@ -90,9 +106,7 @@ export function SiteFooter() {
             </Link>
           ))}
         </div>
-        <div className="body-small" style={{ color: 'var(--text-tertiary)' }}>
-          {COPYRIGHT}
-        </div>
+        <CopyrightLine />
       </div>
 
       {/* Compact (640-1023px) */}
@@ -106,9 +120,7 @@ export function SiteFooter() {
             </Link>
           ))}
         </div>
-        <div className="ml-auto body-small" style={{ color: 'var(--text-tertiary)' }}>
-          {COPYRIGHT}
-        </div>
+        <CopyrightLine className="ml-auto" />
       </div>
 
       {/* Full (>=1024px) */}
@@ -214,9 +226,7 @@ export function SiteFooter() {
           className="mx-auto flex flex-wrap justify-between gap-2 border-t px-5 pb-7 pt-4 box-border"
           style={{ maxWidth: 1280, borderColor: 'color-mix(in srgb, var(--border) 18%, transparent)' }}
         >
-          <div className="body-small" style={{ color: 'var(--text-tertiary)' }}>
-            {COPYRIGHT}
-          </div>
+          <CopyrightLine />
         </div>
       </div>
     </div>

@@ -1,14 +1,21 @@
 # Spec — Componente `BrandEndorsement` ("by 7A")
 
-- **Status:** parcialmente implementado (Admin/React feito; Android pendente — ver seção 6)
-- **Última validação:** 2026-07-26
+- **Status:** parcialmente implementado (Admin/React e Site/React feitos; Android pendente — ver seção 6)
+- **Última validação:** 2026-07-26 (atualizado por Bruno — cobertura do Site institucional)
 - **Fonte de verdade:** este arquivo
 - **Escopo:** componente de assinatura institucional "by 7A", superfícies do SignallQ Admin
-  (implementado), SignallQ Consumer e SignallQ PRO (spec para o Camilo implementar em Compose)
-- **Responsável:** Marina (spec + implementação Admin), Camilo (implementação Android)
+  (implementado), SignallQ Site (implementado), SignallQ Consumer e SignallQ PRO (spec para o
+  Camilo implementar em Compose)
+- **Responsável:** Marina (spec + implementação Admin), Bruno (implementação Site, reforço
+  pontual — ver `.claude/CLAUDE.md`, "Bruno emprestado do Agente Virtual"), Camilo (implementação
+  Android)
 - **Issue:** [#1376](https://github.com/7ALabs/SignallQ/issues/1376)
 - **Decisão de marca de origem:** `7ALabs/.github/BRAND.md` (decisão já aprovada pelo Luiz,
   citada na própria issue — não reaberta aqui)
+- **Nota de escopo:** a issue original não lista o SignallQ Site como superfície-alvo (só
+  Consumer/PRO/Admin/Agente) — a cobertura do Site foi incluída por instrução direta da dispatch
+  de reforço que gerou esta atualização, por ser a única superfície pública institucional que
+  ainda faltava. Não amplia o escopo dos outros produtos.
 
 ## 1. Regras de conteúdo (não mudam, herdadas da issue/BRAND.md)
 
@@ -73,6 +80,31 @@ Teste: `BrandEndorsement.test.tsx` (4 casos — render texto, fallback de symbol
 |---|---|---|---|
 | Login | `src/auth/LoginPage.tsx` | `default` | Abaixo do formulário, `mt-10`, hierarquia baixa — não compete com o wordmark "SignallQ Admin" do topo. |
 | Rodapé institucional | `src/components/layout/Sidebar.tsx` | `compact` | Instância única, dentro do bloco de rodapé já existente (usuário + tema), separada por `border-top`. Chrome persistente (não é conteúdo de tela, não "repete por tela" no sentido da regra da issue). Só existe hoje no breakpoint desktop (`Sidebar`, `lg:`+) — ver pendência na seção 5. |
+
+## 4b. Componente React/TS no Site (implementado, Bruno)
+
+`SignallQ Site/src/components/BrandEndorsement.tsx` — mesmo contrato de props que o do Admin
+(`variant`/`size`/`symbolSrc`/`className`/`id`), reimplementado localmente em vez de compartilhado
+via pacote: o Site já tinha decidido consumir o design system via CSS puro (`tokens.css`), não via
+componentes React de outro app (ver `SignallQ Site/CLAUDE.md`, "Decisões técnicas relevantes") —
+importar o componente do Admin criaria uma dependência cross-app fora desse padrão, decisão maior
+do que cabe a este dispatch pontual. Usa os tokens equivalentes do Site (`var(--text-tertiary)`,
+`var(--font-sans)`, ambos vindos do mesmo `packages/design-system/styles/tokens.css` importado por
+`src/index.css`), garantindo o mesmo comportamento theme-aware do Admin.
+
+Teste: `BrandEndorsement.test.tsx` (mesmos 4 casos do Admin).
+
+**Onde entra:** rodapé institucional (`src/components/SiteFooter.tsx`), nas 3 densidades
+responsivas (mobile/compact/full) — já existia texto plano "by 7A" na linha de copyright
+(`COPYRIGHT`), substituído pelo componente porque o texto corrido não expressava a hierarquia
+visual aprovada ("by" peso normal, "7A" peso maior). Tamanho `compact`, chrome persistente (rodapé
+de todas as páginas do site), não é "repetir em toda tela" no sentido da regra da issue — é a
+mesma lógica já aceita para o rodapé do Sidebar no Admin. Símbolo 7A não aplicado (mesmo bloqueio
+da seção 2 — asset não existe).
+
+Testes ajustados: `SiteFooter.test.tsx` — a asserção de texto corrido do copyright foi dividida em
+4 fragmentos (`getAllByText` para prefixo, "by", "7A" e sufixo), já que o texto passou a ser
+composto por elementos diferentes em vez de uma única string.
 
 ## 5. Pendência real — "seção Sobre/versão" do Admin não existe hoje
 
