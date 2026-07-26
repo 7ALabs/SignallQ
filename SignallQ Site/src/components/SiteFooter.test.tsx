@@ -1,8 +1,25 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SiteFooter } from './SiteFooter'
 import { SIGNALLQ_TEST_GROUP_URL } from '../lib/config'
+
+// Mock mínimo de IntersectionObserver (jsdom não implementa) — captura o
+// callback pra disparar manualmente `isIntersecting` nos testes abaixo.
+class MockIntersectionObserver {
+  static instances: MockIntersectionObserver[] = []
+  callback: IntersectionObserverCallback
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback
+    MockIntersectionObserver.instances.push(this)
+  }
+  observe = vi.fn()
+  disconnect = vi.fn()
+  unobserve = vi.fn()
+  trigger(isIntersecting: boolean) {
+    this.callback([{ isIntersecting } as IntersectionObserverEntry], this as unknown as IntersectionObserver)
+  }
+}
 
 // Reconstrução v2 — 3 densidades responsivas (SiteFooter.dc.html). jsdom não aplica
 // media query real, então as 3 densidades coexistem no DOM (visibilidade é só CSS) —
@@ -40,5 +57,37 @@ describe('SiteFooter', () => {
     expect(cta).toHaveAttribute('href', SIGNALLQ_TEST_GROUP_URL)
     expect(cta).toHaveAttribute('target', '_blank')
     expect(cta).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
+  describe('classe sq-footer-visible (fix da sobreposição com o PwaToastStack)', () => {
+    afterEach(() => {
+      document.documentElement.classList.remove('sq-footer-visible')
+      MockIntersectionObserver.instances = []
+    })
+
+    it('publica sq-footer-visible no <html> quando o rodapé entra na viewport, e remove quando sai', () => {
+      vi.stubGlobal('IntersectionObserver', MockIntersectionObserver)
+
+      const { unmount } = render(
+        <MemoryRouter>
+          <SiteFooter />
+        </MemoryRouter>
+      )
+
+      expect(document.documentElement.classList.contains('sq-footer-visible')).toBe(false)
+
+      const observer = MockIntersectionObserver.instances[0]
+      observer.trigger(true)
+      expect(document.documentElement.classList.contains('sq-footer-visible')).toBe(true)
+
+      observer.trigger(false)
+      expect(document.documentElement.classList.contains('sq-footer-visible')).toBe(false)
+
+      observer.trigger(true)
+      expect(document.documentElement.classList.contains('sq-footer-visible')).toBe(true)
+
+      unmount()
+      expect(document.documentElement.classList.contains('sq-footer-visible')).toBe(false)
+    })
   })
 })

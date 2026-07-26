@@ -1,8 +1,20 @@
+import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useSystemTheme } from '../hooks/useSystemTheme'
 import { Badge } from './Badge'
 import { Logo } from './Logo'
 import { SIGNALLQ_TEST_GROUP_URL } from '../lib/config'
+
+// Classe publicada no <html> enquanto o rodapé está visível — o
+// `PwaToastStack` (fixed, ancorado na base da viewport) lê essa classe pra se
+// esconder quando o rodapé aparece. Sem isso o toast "Instalar app" fica
+// sobreposto ao conteúdo do rodapé ao rolar até o fim (bug real reportado
+// pelo Luiz, 2026-07-26: cobria a coluna "Guias"). `--ad-banner-height`
+// (achado do Rhodolfo, PR #1186) resolve a colisão só enquanto o
+// `AdBannerWide` está grudado na base da viewport — este observer cobre o
+// caso seguinte, quando o scroll passa do banner e o rodapé de verdade entra
+// em vista.
+const FOOTER_VISIBLE_CLASS = 'sq-footer-visible'
 
 // 3 densidades responsivas (reconstrução v2, SiteFooter.dc.html): mobile (<640px,
 // grid 2 colunas de links planos), compact (640-1023px, linha única com wrap) e
@@ -43,9 +55,28 @@ const COPYRIGHT = '© 2026 SignallQ · by 7A. Produto em fase Beta.'
 // AdBannerWide).
 export function SiteFooter() {
   const isDark = useSystemTheme()
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = rootRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        document.documentElement.classList.toggle(FOOTER_VISIBLE_CLASS, entry.isIntersecting)
+      },
+      { threshold: 0 }
+    )
+    observer.observe(el)
+
+    return () => {
+      observer.disconnect()
+      document.documentElement.classList.remove(FOOTER_VISIBLE_CLASS)
+    }
+  }, [])
 
   return (
-    <div className="w-full box-border border-t" style={{ background: 'var(--bg-secondary)', borderColor: 'color-mix(in srgb, var(--border) 25%, transparent)' }}>
+    <div ref={rootRef} className="w-full box-border border-t" style={{ background: 'var(--bg-secondary)', borderColor: 'color-mix(in srgb, var(--border) 25%, transparent)' }}>
       {/* Mobile (<640px) */}
       <div className="flex flex-col gap-4 px-5 pb-7 pt-6 box-border sm:hidden">
         <div className="flex items-center gap-2.5">

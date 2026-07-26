@@ -88,6 +88,23 @@ a:hover {
   animation: sq-pulse-dot 1.4s ease-in-out infinite;
 }
 
+/* PwaToastStack — some quando o rodapé (SiteFooter) entra na viewport, senão
+   o toast fixed fica sobreposto ao conteúdo do rodapé (bug real, 2026-07-26).
+   Classe `sq-footer-visible` publicada no <html> pelo próprio SiteFooter via
+   IntersectionObserver — reaparece com a mesma transição se o usuário rolar
+   de volta pra cima antes do rodapé sair de vista. */
+.pwa-toast-stack {
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+html.sq-footer-visible .pwa-toast-stack {
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
+}
+
 /* Card de anúncio animado do rodapé (SiteFooter, coluna "Baixe o app") —
    1:1 com SiteFooter.dc.html (barras de equalizador + brilho + sweep no CTA). */
 @keyframes sq-ad-bar {
