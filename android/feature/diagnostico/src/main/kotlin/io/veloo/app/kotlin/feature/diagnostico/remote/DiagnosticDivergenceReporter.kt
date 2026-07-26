@@ -2,6 +2,8 @@ package io.signallq.app.feature.diagnostico.remote
 
 import io.signallq.app.core.diagnostico.DiagnosticDivergenceClassifier
 import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
+import io.signallq.app.core.diagnostico.DiagnosticRolloutEligibility
+import io.signallq.app.core.diagnostico.DiagnosticRolloutStatus
 import io.signallq.app.core.network.FeatureFlagProvider
 import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
@@ -36,6 +38,19 @@ import org.json.JSONObject
  * em vez de duplicar; ver kdoc de [FeatureFlagProvider]). #1347 (Firebase Remote
  * Config) ainda nao esta pronto para governar isto — quando estiver, este flag
  * migra para la, sem novo mecanismo paralelo nesse meio tempo.
+ *
+ * ## Rollout gradual + segmentacao (GH#1445, parte de #952)
+ * [isEnabled] continua sendo SO o kill switch booleano (flag ligada/desligada
+ * para todo mundo) — [isEligibleForShadowComparison] e o metodo usado de fato
+ * pelo caminho de producao ([RemoteDiagnosticRepository.evaluateShadow]),
+ * combinando o kill switch com o percentual/segmentacao publicados no worker
+ * (`GET /diagnostic/rollout-status`, via [rolloutStatusProvider]) e o
+ * identificador estavel de instalacao ja existente no app
+ * ([installationIdProvider] — `PreferenciasAppRepository.buscarOuGerarAnonDeviceId()`,
+ * o mesmo `anon_device_id` ja usado por `AdminSyncWorker`/`CompositeAnalyticsTracker`,
+ * nunca um identificador novo criado so pra isto). Qualquer falha em obter o
+ * status de rollout (`null`) resulta em NAO participar (fail closed) — nunca
+ * assume 100%.
  */
 class DiagnosticDivergenceReporter(
     private val baseUrl: String,
@@ -46,8 +61,37 @@ class DiagnosticDivergenceReporter(
     // null-safe: default false garante que sem consentimento LGPD nada e enviado,
     // mesmo padrao de AdminIngestRepository.
     private val consentimentoProvider: suspend () -> Boolean = { false },
+    // GH#1445 — identificador estavel de instalacao (sem PII) para o bucketing
+    // de rollout. Default vazio: sem provider configurado, RolloutBucketCalculator
+    // trata string em branco como fail closed (nunca participa).
+    private val installationIdProvider: suspend () -> String = { "" },
+    // GH#1445 — status de rollout do ruleset PUBLISHED atual. Default null:
+    // sem provider configurado, tratado como "nao participa" (fail closed).
+    private val rolloutStatusProvider: suspend () -> DiagnosticRolloutStatus? = { null },
+    // GH#1445 — canal de distribuicao desta instalacao (ex.: "play_store",
+    // "sideload"), para a dimensao de segmentacao por canal.
+    private val appChannel: String = "unknown",
 ) {
     fun isEnabled(): Boolean = featureFlagProvider.isDiagnosticShadowModeEnabled()
+
+    /**
+     * GH#1445 — decide se esta instalacao participa do shadow mode AGORA:
+     * kill switch ligado + status de rollout disponivel + dentro do
+     * percentual/segmentacao publicados. Usado pelo caminho de producao
+     * ([RemoteDiagnosticRepository.evaluateShadow]) em vez de [isEnabled]
+     * sozinho.
+     */
+    suspend fun isEligibleForShadowComparison(): Boolean {
+        if (!isEnabled()) return false
+        val status = rolloutStatusProvider() ?: return false
+        val installationId = installationIdProvider()
+        return DiagnosticRolloutEligibility.isEligible(
+            status = status,
+            installationId = installationId,
+            appVersionCode = versionCode,
+            appChannel = appChannel,
+        )
+    }
 
     /**
      * Envia um registro de divergencia. Fire-and-forget: nunca lanca excecao,

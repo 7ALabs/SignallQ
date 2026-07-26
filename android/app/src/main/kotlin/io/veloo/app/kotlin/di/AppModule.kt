@@ -16,6 +16,7 @@ import io.signallq.app.ads.AdsRemoteConfigRepository
 import io.signallq.app.analytics.CompositeAnalyticsTracker
 import io.signallq.app.analytics.FirebaseAnalyticsHelper
 import io.signallq.app.analytics.FirebaseRecommendationAnalyticsTracker
+import io.signallq.app.analytics.distributionChannel
 import io.signallq.app.core.database.CoreDatabaseModulo
 import io.signallq.app.core.database.MedicaoDao
 import io.signallq.app.core.database.SignallQDatabase
@@ -196,6 +197,20 @@ object AppModule {
     @Singleton
     @Named("adminIngestKey")
     fun provideAdminIngestKey(): String = BuildConfig.ADMIN_INGEST_KEY
+
+    /**
+     * Canal de distribuicao desta instalacao ("play_store"/"sideload"/etc.) —
+     * GH#1445 (parte de #952). `distributionChannel()` vive em
+     * `io.signallq.app.analytics` (`:app`); expor via `@Named` permite que
+     * modulos `:feature:*` (que nao podem depender de `:app`) consumam o mesmo
+     * calculo sem duplica-lo — usado hoje pela segmentacao de rollout do shadow
+     * mode ([io.signallq.app.feature.diagnostico.remote.DiagnosticDivergenceReporter]).
+     */
+    @Provides
+    @Named("appDistributionChannel")
+    fun provideAppDistributionChannel(
+        @ApplicationContext context: Context,
+    ): String = distributionChannel(context)
 
     /**
      * Repository para busca e persistencia de feature flags remotas.

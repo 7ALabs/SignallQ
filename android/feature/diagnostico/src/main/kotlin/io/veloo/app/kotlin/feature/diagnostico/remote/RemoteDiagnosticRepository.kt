@@ -213,7 +213,7 @@ class RemoteDiagnosticRepository(
         localDurationMs: Long,
         reporter: DiagnosticDivergenceReporter,
     ) {
-        if (!reporter.isEnabled()) return
+        if (!reporter.isEligibleForShadowComparison()) return
 
         val startedAtMs = System.currentTimeMillis()
         val remotePayload = evaluateRemote(input)

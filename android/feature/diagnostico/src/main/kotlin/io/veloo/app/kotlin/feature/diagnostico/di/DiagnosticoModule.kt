@@ -10,6 +10,7 @@ import io.signallq.app.feature.diagnostico.BuildConfig
 import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
 import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
 import io.signallq.app.feature.diagnostico.remote.DiagnosticDivergenceReporter
+import io.signallq.app.feature.diagnostico.remote.DiagnosticRolloutStatusRepository
 import io.signallq.app.feature.diagnostico.remote.FileRulesetCacheStore
 import io.signallq.app.feature.diagnostico.remote.ProviderDirectoryRepository
 import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
@@ -91,18 +92,45 @@ object DiagnosticoModule {
         )
 
     /**
+     * Provê DiagnosticRolloutStatusRepository (GH#1445, parte de #952) — busca
+     * (com cache curto) o percentual/segmentacao de rollout publicados pelo
+     * worker `signallq-diagnostic` (`GET /diagnostic/rollout-status`).
+     */
+    @Provides
+    @Singleton
+    fun provideDiagnosticRolloutStatusRepository(): DiagnosticRolloutStatusRepository =
+        DiagnosticRolloutStatusRepository(
+            baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL,
+            client = OkHttpClient.Builder()
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(5, TimeUnit.SECONDS)
+                .writeTimeout(5, TimeUnit.SECONDS)
+                .build(),
+        )
+
+    /**
      * Provê DiagnosticDivergenceReporter (GH#1444, parte de #952) — shadow mode,
      * envia o registro ja classificado (nao o relatorio completo) para
      * `POST /ingest/diagnostic-divergence` no mesmo worker `signallq-diagnostic`.
      *
      * Reusa o mesmo consentimento LGPD ja aplicado em [provideAdminIngestRepository]
      * (nenhum dado sai do aparelho sem o usuario ter consentido).
+     *
+     * GH#1445: [installationIdProvider] reusa o `anon_device_id` que ja existe
+     * em [PreferenciasAppRepository] (nao cria identificador novo). [appChannel]
+     * vem de `@Named("appDistributionChannel")`, provido em `AppModule` (`:app`)
+     * — `distributionChannel()` vive em `io.signallq.app.analytics` (`:app`),
+     * que `:featureDiagnostico` nao pode importar diretamente (feature nao
+     * depende de `:app`); o binding `@Named` evita mover esse arquivo so por
+     * causa disto.
      */
     @Provides
     @Singleton
     fun provideDiagnosticDivergenceReporter(
         featureFlagProvider: FeatureFlagProvider,
         prefs: PreferenciasAppRepository,
+        rolloutStatusRepository: DiagnosticRolloutStatusRepository,
+        @Named("appDistributionChannel") appChannel: String,
     ): DiagnosticDivergenceReporter =
         DiagnosticDivergenceReporter(
             baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL,
@@ -115,6 +143,9 @@ object DiagnosticoModule {
             appVersion = BuildConfig.APP_VERSION,
             versionCode = BuildConfig.VERSION_CODE,
             consentimentoProvider = { prefs.buscarConsentimentoLgpd() == true },
+            installationIdProvider = { prefs.buscarOuGerarAnonDeviceId() },
+            rolloutStatusProvider = { rolloutStatusRepository.current() },
+            appChannel = appChannel,
         )
 
     /**
