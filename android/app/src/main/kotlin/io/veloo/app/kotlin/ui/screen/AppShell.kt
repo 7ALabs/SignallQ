@@ -72,6 +72,7 @@ import io.signallq.app.ads.AdSlot
 import io.signallq.app.bssidElegivelParaAutoconexao
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.datastore.ConnectionProfilePersistido
+import io.signallq.app.core.datastore.ModoGamerPadraoPersistido
 import io.signallq.app.core.diagnostico.topology.model.NatStatus
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
@@ -86,6 +87,7 @@ import io.signallq.app.feature.fibra.SnapshotFibra
 import io.signallq.app.feature.history.ResumoHistorico
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.ModoSpeedtest
+import io.signallq.app.modogamer.resolverPadraoModoGamer
 import io.signallq.app.ui.FiltroConexaoHistorico
 import io.signallq.app.ui.GatewayInfo
 import io.signallq.app.ui.HistoryPoint
@@ -145,6 +147,13 @@ private enum class Overlay {
     // detalhada" (DiagnosticoDetalhadoSheet, retirada).
     DiagnosticoGuiado,
     DetalhesTecnicos,
+
+    // Issue #1476 (Feature #550) — Modo gamer: jogo → device → resultado. Empilhado sobre
+    // Overlay.ResultadoVelocidade, alcançado tanto pelo CTA "Modo gamer" do resumo pós-teste
+    // quanto pelo botão "Ver diagnóstico por jogo" dentro do resultado de
+    // Overlay.DiagnosticoGuiado (objetivo Jogos com lag). Não é a mesma tela que
+    // Overlay.Jogos (fluxo legado GH#935, catálogo/motor diferentes).
+    ModoGamer,
 }
 
 /**
@@ -308,6 +317,11 @@ fun AppShell(
                 source = OperadoraSource.FALLBACK,
             )
         },
+    // Issue #1476 (Feature #550) — combinação jogo+device salva como padrão do Modo gamer,
+    // ou `null` quando o usuário nunca salvou nenhuma (sempre abre pela Etapa 1/3).
+    modoGamerPadrao: ModoGamerPadraoPersistido? = null,
+    onSalvarModoGamerPadrao: suspend (jogoId: String?, categoriaFallback: String?, deviceId: String) -> Unit =
+        { _, _, _ -> },
 ) {
     // Desempacota os grupos de estado para variaveis locais — mantém compatibilidade com
     // o corpo interno sem precisar propagar o prefixo `speedtest.x` por toda a funcao.
@@ -803,9 +817,9 @@ fun AppShell(
                         onIniciarDiagnosticoGuiado = {
                             if (Overlay.DiagnosticoGuiado !in overlayStack) overlayStack.add(Overlay.DiagnosticoGuiado)
                         },
-                        // Issue #1476 (Modo gamer) ainda não implementado — CTA visível por
-                        // paridade com o protótipo #1474, sem destino real ainda.
-                        onIniciarModoGamer = {},
+                        onIniciarModoGamer = {
+                            if (Overlay.ModoGamer !in overlayStack) overlayStack.add(Overlay.ModoGamer)
+                        },
                         onVerDetalhesTecnicos = {
                             if (Overlay.DetalhesTecnicos !in overlayStack) overlayStack.add(Overlay.DetalhesTecnicos)
                         },
@@ -847,11 +861,34 @@ fun AppShell(
                         resolveOperadoraContatoLocal = resolveOperadoraContatoLocal,
                         resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
                         resolveOperadoraContatoRemoto = resolveOperadoraContatoRemoto,
-                        // Issue #1476 (Modo gamer) segue null aqui — só #1476 preenche este
-                        // callback, quando implementar o fluxo jogo → device → resultado.
-                        onIniciarModoGamer = null,
+                        onIniciarModoGamer = {
+                            if (Overlay.ModoGamer !in overlayStack) overlayStack.add(Overlay.ModoGamer)
+                        },
                     )
                 }
+            }
+
+            AnimatedVisibility(
+                visible = Overlay.ModoGamer in overlayStack,
+                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.ModoGamer, overlayStack)),
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            ) {
+                ModoGamerScreen(
+                    input = snapshotDiagnostico.input,
+                    padraoInicial = remember(modoGamerPadrao) { resolverPadraoModoGamer(modoGamerPadrao) },
+                    analisadorState = analisadorState,
+                    onAnalisarProblema = onAnalisarProblema,
+                    onResetarAnalisador = onResetarAnalisador,
+                    onSalvarPadrao = onSalvarModoGamerPadrao,
+                    onVoltar = { overlayStack.remove(Overlay.ModoGamer) },
+                    onIrParaHome = {
+                        overlayStack.remove(Overlay.ModoGamer)
+                        overlayStack.remove(Overlay.DiagnosticoGuiado)
+                        overlayStack.remove(Overlay.ResultadoVelocidade)
+                        selectedTab = 0
+                    },
+                )
             }
 
             AnimatedVisibility(

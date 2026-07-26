@@ -361,36 +361,6 @@ object DiagnosticoGuiadoEngine {
 
     // ── Compartilhado ────────────────────────────────────────────────────────
 
-    private data class Dimensao(
-        val label: String,
-        val valorExibido: String,
-        val status: MetricStatus,
-    )
-
-    private data class MensagensStatus(
-        val ok: String,
-        val atencao: String,
-        val critica: String,
-    )
-
-    private fun Dimensao.severidade(): Int =
-        when (status) {
-            MetricStatus.excelente -> 0
-            MetricStatus.bom -> 1
-            MetricStatus.regular -> 2
-            MetricStatus.ruim -> 3
-            MetricStatus.critico -> 4
-            MetricStatus.inconclusivo -> -1
-        }
-
-    private fun MetricStatus.paraDiagnostico(): DiagnosticStatus =
-        when (this) {
-            MetricStatus.excelente, MetricStatus.bom -> DiagnosticStatus.ok
-            MetricStatus.regular -> DiagnosticStatus.attention
-            MetricStatus.ruim, MetricStatus.critico -> DiagnosticStatus.critical
-            MetricStatus.inconclusivo -> DiagnosticStatus.inconclusive
-        }
-
     /**
      * Monta o [ResultadoDiagnosticoGuiado] a partir das [dims] já coletadas pelo
      * `avaliarXxx` do objetivo — pior faixa vence (mesmo princípio de
@@ -405,34 +375,104 @@ object DiagnosticoGuiadoEngine {
         mensagens: MensagensStatus,
         acoes: (DiagnosticStatus) -> List<String>,
     ): ResultadoDiagnosticoGuiado {
-        if (dims.isEmpty()) {
-            return ResultadoDiagnosticoGuiado(
-                objetivo = objetivo,
-                status = DiagnosticStatus.inconclusive,
-                mensagemMotor = "Não há dados suficientes deste teste para avaliar esta situação. Refaça o teste de velocidade e tente novamente.",
-                evidencias = emptyList(),
-                acoes = emptyList(),
-                dadosInsuficientes = true,
-            )
-        }
-        val pior = dims.maxBy { it.severidade() }
-        val status = pior.status.paraDiagnostico()
-        val mensagem =
-            when (status) {
-                DiagnosticStatus.ok, DiagnosticStatus.info -> mensagens.ok
-                DiagnosticStatus.attention -> mensagens.atencao
-                DiagnosticStatus.critical -> mensagens.critica
-                DiagnosticStatus.inconclusive -> mensagens.atencao
-            }
+        val base = construirResultadoBase(dims, mensagens)
         return ResultadoDiagnosticoGuiado(
             objetivo = objetivo,
-            status = status,
-            mensagemMotor = mensagem,
-            evidencias = dims.map { EvidenciaDiagnostico(it.label, it.valorExibido, it.status) },
-            acoes = acoes(status),
-            dadosInsuficientes = false,
+            status = base.status,
+            mensagemMotor = base.mensagem,
+            evidencias = base.evidencias,
+            // Sem dados suficientes nunca sugere ação (nada pra agir em cima) — mesmo
+            // comportamento de antes da extração de construirResultadoBase.
+            acoes = if (base.dadosInsuficientes) emptyList() else acoes(base.status),
+            dadosInsuficientes = base.dadosInsuficientes,
         )
     }
+}
+
+/**
+ * Uma dimensão medida (ex.: "Latência", "42 ms", [MetricStatus.bom]) que entra na
+ * disputa de "pior faixa vence" de [construirResultadoBase]. `internal` — usada por
+ * [DiagnosticoGuiadoEngine] e por [ModoGamerEngine] (issue #1476), que reaproveita a
+ * mesma infraestrutura de montagem de resultado em vez de duplicá-la.
+ */
+internal data class Dimensao(
+    val label: String,
+    val valorExibido: String,
+    val status: MetricStatus,
+)
+
+/** As 3 mensagens de motor (`ok`/`atencao`/`critica`) que [construirResultadoBase]
+ *  escolhe conforme o status agregado das [Dimensao]. `internal` pelo mesmo motivo
+ *  de [Dimensao] — ver [ModoGamerEngine]. */
+internal data class MensagensStatus(
+    val ok: String,
+    val atencao: String,
+    val critica: String,
+)
+
+/** Resultado agregado (sem o campo específico de contexto — [ObjetivoDiagnostico] em
+ *  [DiagnosticoGuiadoEngine], [CategoriaJogoModoGamer] em [ModoGamerEngine]) que
+ *  [construirResultadoBase] devolve. Cada motor "embrulha" isto no seu próprio tipo de
+ *  resultado público, acrescentando o campo de contexto e as ações. */
+internal data class ResultadoBase(
+    val status: DiagnosticStatus,
+    val mensagem: String,
+    val evidencias: List<EvidenciaDiagnostico>,
+    val dadosInsuficientes: Boolean,
+)
+
+private fun Dimensao.severidade(): Int =
+    when (status) {
+        MetricStatus.excelente -> 0
+        MetricStatus.bom -> 1
+        MetricStatus.regular -> 2
+        MetricStatus.ruim -> 3
+        MetricStatus.critico -> 4
+        MetricStatus.inconclusivo -> -1
+    }
+
+private fun MetricStatus.paraDiagnostico(): DiagnosticStatus =
+    when (this) {
+        MetricStatus.excelente, MetricStatus.bom -> DiagnosticStatus.ok
+        MetricStatus.regular -> DiagnosticStatus.attention
+        MetricStatus.ruim, MetricStatus.critico -> DiagnosticStatus.critical
+        MetricStatus.inconclusivo -> DiagnosticStatus.inconclusive
+    }
+
+/**
+ * Núcleo de "pior faixa vence" compartilhado por [DiagnosticoGuiadoEngine.montarResultado]
+ * e por [ModoGamerEngine] (issue #1476/#550) — único ponto que decide o [DiagnosticStatus]
+ * agregado e monta a lista de [EvidenciaDiagnostico] a partir das [dims] medidas. Sem
+ * nenhuma dimensão disponível, devolve [DiagnosticStatus.inconclusive] com
+ * `dadosInsuficientes = true`, nunca inventa evidência.
+ */
+internal fun construirResultadoBase(
+    dims: List<Dimensao>,
+    mensagens: MensagensStatus,
+): ResultadoBase {
+    if (dims.isEmpty()) {
+        return ResultadoBase(
+            status = DiagnosticStatus.inconclusive,
+            mensagem = "Não há dados suficientes deste teste para avaliar esta situação. Refaça o teste de velocidade e tente novamente.",
+            evidencias = emptyList(),
+            dadosInsuficientes = true,
+        )
+    }
+    val pior = dims.maxBy { it.severidade() }
+    val status = pior.status.paraDiagnostico()
+    val mensagem =
+        when (status) {
+            DiagnosticStatus.ok, DiagnosticStatus.info -> mensagens.ok
+            DiagnosticStatus.attention -> mensagens.atencao
+            DiagnosticStatus.critical -> mensagens.critica
+            DiagnosticStatus.inconclusive -> mensagens.atencao
+        }
+    return ResultadoBase(
+        status = status,
+        mensagem = mensagem,
+        evidencias = dims.map { EvidenciaDiagnostico(it.label, it.valorExibido, it.status) },
+        dadosInsuficientes = false,
+    )
 }
 
 /** Uma linha de evidência mostrada no container "Medido pelo motor SignallQ" —

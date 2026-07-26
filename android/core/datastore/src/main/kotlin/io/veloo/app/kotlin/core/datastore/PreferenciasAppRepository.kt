@@ -129,6 +129,15 @@ class PreferenciasAppRepository(
     private val chaveReviewDiagnosticosPositivos = intPreferencesKey("review_diagnosticos_positivos")
     private val chaveReviewUltimaSolicitacaoEpochMs = longPreferencesKey("review_ultima_solicitacao_epoch_ms")
 
+    // Modo gamer (Feature #550, issue #1476) — combinacao jogo+device salva como padrao,
+    // pra abrir direto no resultado na proxima vez ("Salvar como padrao" na Etapa 3/3).
+    // Chaves cruas (nao dependem de enum de core/diagnostico, mesmo padrao de
+    // chaveTemaSelecionado guardando string livre) — jogoId nulo com categoriaFallback
+    // preenchida significa "salvou a categoria generica" (jogo fora do catalogo).
+    private val chaveModoGamerJogoId = stringPreferencesKey("modo_gamer_jogo_id")
+    private val chaveModoGamerCategoriaFallback = stringPreferencesKey("modo_gamer_categoria_fallback")
+    private val chaveModoGamerDeviceId = stringPreferencesKey("modo_gamer_device_id")
+
     /**
      * Deve ser chamada uma vez após construção (idealmente no provide do Hilt).
      * Lê credenciais plaintext do DataStore e migra para o store criptografado.
@@ -573,6 +582,18 @@ class PreferenciasAppRepository(
     val reviewUltimaSolicitacaoEpochMsFlow: Flow<Long?> =
         context.dataStore.data.map { it[chaveReviewUltimaSolicitacaoEpochMs] }
 
+    /** Combinacao jogo+device salva como padrao do Modo gamer, ou `null` quando o usuario
+     *  nunca salvou nenhuma (comportamento default: sempre comeca pela Etapa 1/3). */
+    val modoGamerPadraoFlow: Flow<ModoGamerPadraoPersistido?> =
+        context.dataStore.data.map { prefs ->
+            val deviceId = prefs[chaveModoGamerDeviceId] ?: return@map null
+            ModoGamerPadraoPersistido(
+                jogoId = prefs[chaveModoGamerJogoId],
+                categoriaFallback = prefs[chaveModoGamerCategoriaFallback],
+                deviceId = deviceId,
+            )
+        }
+
     suspend fun incrementarReviewDiagnosticosPositivos() {
         withContext(ioDispatcher) {
             context.dataStore.edit {
@@ -633,6 +654,34 @@ class PreferenciasAppRepository(
                 emptyMap()
             }
         }
+
+    /** Persiste a combinacao escolhida como padrao do Modo gamer. [jogoId] nulo +
+     *  [categoriaFallback] preenchida = jogo fora do catalogo (usuario escolheu a
+     *  categoria generica). Nunca chamar com os dois nulos — validar antes na UI. */
+    suspend fun salvarModoGamerPadrao(jogoId: String?, categoriaFallback: String?, deviceId: String) {
+        withContext(ioDispatcher) {
+            context.dataStore.edit { prefs ->
+                if (jogoId != null) prefs[chaveModoGamerJogoId] = jogoId else prefs.remove(chaveModoGamerJogoId)
+                if (categoriaFallback != null) {
+                    prefs[chaveModoGamerCategoriaFallback] = categoriaFallback
+                } else {
+                    prefs.remove(chaveModoGamerCategoriaFallback)
+                }
+                prefs[chaveModoGamerDeviceId] = deviceId
+            }
+        }
+    }
+
+    /** Remove o padrao salvo do Modo gamer — volta a sempre abrir pela Etapa 1/3. */
+    suspend fun limparModoGamerPadrao() {
+        withContext(ioDispatcher) {
+            context.dataStore.edit { prefs ->
+                prefs.remove(chaveModoGamerJogoId)
+                prefs.remove(chaveModoGamerCategoriaFallback)
+                prefs.remove(chaveModoGamerDeviceId)
+            }
+        }
+    }
 
     suspend fun limparTodasPreferencias() {
         withContext(ioDispatcher) {
