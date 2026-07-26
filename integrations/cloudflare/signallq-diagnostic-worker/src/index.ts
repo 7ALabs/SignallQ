@@ -55,6 +55,14 @@ type Env = {
   GAME_PROFILE_SEED_JSON?: string;
   ADMIN_AUTH_PEPPER?: string;
   ADMIN_BOOTSTRAP_TOKEN?: string;
+  /** Refs #1446 — secret compartilhada com o signallq-admin-worker, que faz proxy de
+   * /admin/diagnostic/* via service binding. Quando presente no header e válida, esse caminho
+   * confia na sessão já validada lá (fonte única de "quem é admin" do Console), sem exigir cookie
+   * próprio deste worker. O cookie de sessão httpOnly nativo continua aceito em paralelo (acesso
+   * direto/retrocompat) — a secret é um atalho de confiança adicional, não substitui o cookie.
+   * Sem esta secret configurada, o atalho nunca ativa e /admin/diagnostic/* segue exigindo sessão
+   * própria (cookie) como antes. */
+  DIAGNOSTIC_PROXY_SECRET?: string;
   // GH#960 — origem permitida pra CORS em /admin/* (mesmo padrao do
   // signallq-admin-worker). Sem esta var, Access-Control-Allow-Origin fica
   // vazio (nenhuma origem liberada) em vez de quebrar o worker.
@@ -137,6 +145,43 @@ async function authenticateSession(request: Request, env: Env): Promise<{ userId
   const token = getSessionToken(request);
   if (!token) return null;
   return validateSession(token, env.DB);
+}
+
+// Refs #1446 — /admin/diagnostic/* passa a aceitar chamadas via proxy do signallq-admin-worker
+// (service binding, ver proxyDiagnosticAdmin em signallq-admin-worker/src/index.ts): a sessão do
+// Console (validada lá) é reconhecida aqui sem exigir uma segunda sessão própria — evita duas
+// fontes de verdade de "quem é admin". O cookie de sessão nativo deste worker continua funcionando
+// nesse caminho também (retrocompat/acesso direto, ex.: automação interna, testes), a secret do
+// proxy é só um atalho adicional de confiança, nunca a única forma de autenticar.
+const DIAGNOSTIC_PROXY_SECRET_HEADER = "X-Internal-Diagnostic-Proxy-Secret";
+const DIAGNOSTIC_PROXY_USER_HEADER = "X-Internal-Admin-User";
+const DIAGNOSTIC_PROXY_ROLE_HEADER = "X-Internal-Admin-Role";
+
+function isDiagnosticAdminPath(pathname: string): boolean {
+  return pathname.startsWith("/admin/diagnostic/") || pathname.startsWith("/api/admin/diagnostic/");
+}
+
+/**
+ * Resolve a sessão administrativa pra uma rota /admin/*. Pra /admin/diagnostic/*, tenta primeiro a
+ * secret do proxy (chamada vinda do admin-worker, sem cookie deste worker) — só cai pro cookie
+ * próprio se a secret não vier ou não bater, preservando o fluxo de sessão direta já existente.
+ * Toda outra rota /admin/* (providers, games, auth) nunca aceita a secret do proxy, só cookie.
+ */
+async function resolveAdminSession(
+  request: Request,
+  env: Env,
+  pathname: string,
+): Promise<{ userId: string; role: string } | null> {
+  if (isDiagnosticAdminPath(pathname) && env.DIAGNOSTIC_PROXY_SECRET) {
+    const providedSecret = request.headers.get(DIAGNOSTIC_PROXY_SECRET_HEADER);
+    if (providedSecret && providedSecret === env.DIAGNOSTIC_PROXY_SECRET) {
+      return {
+        userId: request.headers.get(DIAGNOSTIC_PROXY_USER_HEADER) ?? "admin-worker:desconhecido",
+        role: request.headers.get(DIAGNOSTIC_PROXY_ROLE_HEADER) ?? "admin",
+      };
+    }
+  }
+  return authenticateSession(request, env);
 }
 
 async function checkRateLimit(ip: string, db: D1Database): Promise<boolean> {
@@ -941,7 +986,7 @@ async function route(request: Request, env: Env): Promise<Response> {
   }
 
   const needsAdminSession = url.pathname.startsWith("/admin/") && Boolean(env.DB);
-  const session = needsAdminSession ? await authenticateSession(request, env) : null;
+  const session = needsAdminSession ? await resolveAdminSession(request, env, url.pathname) : null;
   if (needsAdminSession && !url.pathname.startsWith("/admin/auth/") && !session) {
     return json({ error: "Unauthorized." }, 401);
   }

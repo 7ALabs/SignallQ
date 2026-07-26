@@ -48,6 +48,14 @@ export interface Env {
   /** #883 — não é secret (já visível em wrangler.toml/dashboard), mas fica no Env para não hardcodear no handler. */
   CLOUDFLARE_ACCOUNT_ID?: string;
   CLOUDFLARE_D1_DATABASE_ID?: string;
+  /** Refs #1446 — service binding pro signallq-diagnostic-worker (proxy de /admin/diagnostic/*).
+   * Worker-to-Worker fetch entre dois *.workers.dev é bloqueado pela Cloudflare (erro 1042,
+   * mesmo motivo do GH#767 no ai-diagnosis-worker) — service binding é a forma correta. */
+  DIAGNOSTIC_WORKER?: { fetch: typeof fetch };
+  /** Refs #1446 — secret compartilhada com o signallq-diagnostic-worker: prova pro worker de
+   * destino que a chamada já passou pela sessão do admin-worker, sem exigir uma segunda sessão
+   * (evita duas fontes de verdade de "quem é admin"). Sem esta secret, o proxy responde 502. */
+  DIAGNOSTIC_PROXY_SECRET?: string;
 }
 
 function corsHeaders(env: Env): Record<string, string> {
@@ -124,6 +132,55 @@ async function authenticateSession(request: Request, env: Env): Promise<{ userId
   const token = getSessionToken(request)
   if (!token) return null
   return validateSession(token, env.DB)
+}
+
+// Refs #1446 — proxy de /admin/diagnostic/* pro signallq-diagnostic-worker.
+// Motivo: o Console autentica só contra este worker (D1/sessão/admin_users próprios), mas os
+// endpoints administrativos do motor de diagnóstico vivem num segundo worker com D1/sessão
+// próprios e completamente separados. Em vez do Console logar duas vezes (duas fontes de "quem é
+// admin"), este worker repassa a chamada pro diagnostic-worker via service binding, provando com
+// DIAGNOSTIC_PROXY_SECRET que a sessão já foi validada aqui — o diagnostic-worker não deve (e não
+// passa a) checar a própria sessão nesse caminho. O frontend nunca fala com o diagnostic-worker.
+const DIAGNOSTIC_PROXY_SECRET_HEADER = 'X-Internal-Diagnostic-Proxy-Secret'
+const DIAGNOSTIC_PROXY_USER_HEADER = 'X-Internal-Admin-User'
+const DIAGNOSTIC_PROXY_ROLE_HEADER = 'X-Internal-Admin-Role'
+
+async function proxyDiagnosticAdmin(
+  request: Request,
+  env: Env,
+  session: { userId: string; role: string }
+): Promise<Response> {
+  if (!env.DIAGNOSTIC_WORKER || !env.DIAGNOSTIC_PROXY_SECRET) {
+    return err('Proxy do diagnostic-worker não configurado (service binding ou secret ausente).', 502, env)
+  }
+
+  const url = new URL(request.url)
+  // Host arbitrário — descartado pelo runtime, o service binding roteia pelo binding, não pela URL.
+  const upstreamUrl = `https://signallq-diagnostic.internal${url.pathname}${url.search}`
+
+  const upstreamHeaders = new Headers(request.headers)
+  upstreamHeaders.delete('Cookie') // sessão do admin-worker não deve vazar pro segundo worker
+  upstreamHeaders.set(DIAGNOSTIC_PROXY_SECRET_HEADER, env.DIAGNOSTIC_PROXY_SECRET)
+  // Prefixo pra deixar claro no audit trail do diagnostic-worker (campo `author`, texto livre,
+  // sem FK) que o id pertence ao espaço de admin_users do admin-worker, não ao dele próprio.
+  upstreamHeaders.set(DIAGNOSTIC_PROXY_USER_HEADER, `admin-worker:${session.userId}`)
+  upstreamHeaders.set(DIAGNOSTIC_PROXY_ROLE_HEADER, session.role)
+
+  const upstreamRequest = new Request(upstreamUrl, {
+    method: request.method,
+    headers: upstreamHeaders,
+    body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body,
+  })
+
+  const upstreamResponse = await env.DIAGNOSTIC_WORKER.fetch(upstreamRequest)
+
+  // Repassa status e corpo de forma transparente — não inventa formato de erro novo. Só troca os
+  // headers de CORS pelos deste worker (o browser só fala com o admin-worker).
+  const responseHeaders = new Headers(upstreamResponse.headers)
+  for (const key of Object.keys(corsHeaders(env))) responseHeaders.delete(key)
+  for (const [key, value] of Object.entries(corsHeaders(env))) responseHeaders.set(key, value)
+
+  return new Response(upstreamResponse.body, { status: upstreamResponse.status, headers: responseHeaders })
 }
 
 /** Verifica rate limit: > 5 tentativas em 15 min por IP → bloqueado. */
@@ -5226,6 +5283,15 @@ export default {
     if (!session) {
       return err("Unauthorized", 401, env);
     }
+
+    // Refs #1446 — /admin/diagnostic/* é proxy pro signallq-diagnostic-worker (ver
+    // proxyDiagnosticAdmin acima). Prefixo genérico, não uma lista fixa de endpoints: cobre tudo
+    // que já existe hoje (rulesets, validate, simulate, publish, rollback) e o que for adicionado
+    // no diagnostic-worker depois, sem precisar tocar neste arquivo de novo.
+    if (url.pathname.startsWith('/admin/diagnostic/')) {
+      return proxyDiagnosticAdmin(request, env, session)
+    }
+
     for (const route of ROUTES) {
       if (route.method === request.method && route.pattern.test(url.pathname)) {
         return route.handler(request, env);

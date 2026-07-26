@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: SignallQ Admin Console API
   description: API endpoints for consolidating network telemetry, AI diagnostics, and app store metrics inside the SignallQ Admin dashboard.
-  version: 2.0.0
+  version: 2.1.0
   contact:
     name: SignallQ Team
     url: https://signallq.com
@@ -45,6 +45,15 @@ x-path-structure: |
   - /admin/integrations/* — External service status (Firebase, Google Play, App Store)
   - /admin/settings — Configuration management
   - /admin/feature-flags/* — Feature flag management
+
+  **Diagnostic engine proxy (Refs #1446):**
+  - /admin/diagnostic/* — transparent proxy to signallq-diagnostic-worker via Cloudflare service
+    binding (DIAGNOSTIC_WORKER), authenticated with the SAME cookie session as every other /admin/*
+    route above. The admin-worker never checks the diagnostic-worker's own session on this path —
+    single source of truth for "who is admin" stays in this worker. Implementation forwards by path
+    prefix (not a fixed route table), so it also covers any new /admin/diagnostic/* endpoint added
+    later on the diagnostic-worker without needing a matching change here. Full request/response
+    schemas are NOT duplicated in this file — see ./signallq-diagnostic-worker.yaml (source of truth).
 
   **Deprecated** (use consolidated paths):
   - /admin/diagnostics/intelligence — DEPRECATED, use /admin/metrics/intelligence
@@ -1183,6 +1192,233 @@ paths:
         '403':
           $ref: '#/components/responses/403Error'
 
+  # Refs #1446 — proxy transparente pro signallq-diagnostic-worker (service binding, ver
+  # proxyDiagnosticAdmin em src/index.ts). Autentica com a MESMA sessão de cookie de /admin/* acima
+  # (cookieAuth) — o Console nunca fala direto com o diagnostic-worker, então não existe um segundo
+  # esquema de auth aqui. Status/corpo são repassados sem transformação; os schemas completos (não
+  # duplicados aqui) vivem no contrato de origem: ./signallq-diagnostic-worker.yaml.
+  /admin/diagnostic/rulesets:
+    get:
+      summary: "[Proxy] Lista rulesets (versões) do motor de diagnóstico"
+      operationId: proxyListRulesets
+      tags:
+        - admin
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Repassado sem transformação do signallq-diagnostic-worker
+          content:
+            application/json:
+              schema:
+                $ref: './signallq-diagnostic-worker.yaml#/components/schemas/RulesetSummary'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '502':
+          description: Service binding ou DIAGNOSTIC_PROXY_SECRET não configurados no admin-worker
+    post:
+      summary: "[Proxy] Cria um rascunho (DRAFT) de ruleset"
+      operationId: proxyCreateRulesetDraft
+      tags:
+        - admin
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './signallq-diagnostic-worker.yaml#/components/schemas/DiagnosticRuleset'
+      responses:
+        '201':
+          description: Repassado sem transformação do signallq-diagnostic-worker
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+
+  /admin/diagnostic/rulesets/{version}:
+    get:
+      summary: "[Proxy] Detalhe completo de um ruleset (inclui rules_json)"
+      operationId: proxyGetRuleset
+      tags:
+        - admin
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Repassado sem transformação do signallq-diagnostic-worker
+          content:
+            application/json:
+              schema:
+                $ref: './signallq-diagnostic-worker.yaml#/components/schemas/DiagnosticRuleset'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '404':
+          description: Ruleset não encontrado
+
+  /admin/diagnostic/rulesets/validate:
+    post:
+      summary: "[Proxy] Valida um ruleset sem persistir (não depende de uma versão já existente)"
+      operationId: proxyValidateRuleset
+      tags:
+        - admin
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './signallq-diagnostic-worker.yaml#/components/schemas/DiagnosticRuleset'
+      responses:
+        '200':
+          description: Repassado sem transformação do signallq-diagnostic-worker
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+
+  /admin/diagnostic/simulate:
+    post:
+      summary: "[Proxy] Avalia um snapshot contra um ruleset arbitrário (sem persistir)"
+      operationId: proxySimulateDiagnostic
+      tags:
+        - admin
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                snapshot:
+                  $ref: './signallq-diagnostic-worker.yaml#/components/schemas/DiagnosticSnapshot'
+                ruleset:
+                  $ref: './signallq-diagnostic-worker.yaml#/components/schemas/DiagnosticRuleset'
+      responses:
+        '200':
+          description: Repassado sem transformação do signallq-diagnostic-worker
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+
+  /admin/diagnostic/rulesets/{version}/publish:
+    post:
+      summary: "[Proxy] Publica um ruleset (torna-o o ativo; despublica o anterior)"
+      operationId: proxyPublishRuleset
+      tags:
+        - admin
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: './signallq-diagnostic-worker.yaml#/components/schemas/RolloutConfigInput'
+      responses:
+        '200':
+          description: Repassado sem transformação do signallq-diagnostic-worker
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+
+  /admin/diagnostic/rulesets/{version}/rollout:
+    post:
+      summary: "[Proxy] Atualiza só o rollout (percentual + segmentação) do ruleset PUBLISHED atual"
+      operationId: proxyUpdateRolloutConfig
+      tags:
+        - admin
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './signallq-diagnostic-worker.yaml#/components/schemas/RolloutConfigInput'
+      responses:
+        '200':
+          description: Repassado sem transformação do signallq-diagnostic-worker
+        '400':
+          $ref: '#/components/responses/400Error'
+        '401':
+          $ref: '#/components/responses/401Error'
+        '409':
+          description: version não é o ruleset PUBLISHED atual (ou não existe)
+
+  /admin/diagnostic/rulesets/{version}/rollback:
+    post:
+      summary: "[Proxy] Reverte um ruleset publicado (restaura a versão anterior, se existir)"
+      operationId: proxyRollbackRuleset
+      tags:
+        - admin
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Repassado sem transformação do signallq-diagnostic-worker
+        '401':
+          $ref: '#/components/responses/401Error'
+
+  /admin/diagnostic/divergences:
+    get:
+      summary: "[Proxy] Lista registros de divergência do shadow mode e um resumo por classificação"
+      operationId: proxyListDiagnosticDivergences
+      tags:
+        - admin
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: classification
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [EXACT_MATCH, EQUIVALENT_RESULT, MINOR_DIVERGENCE, MAJOR_DIVERGENCE, REMOTE_ERROR, LOCAL_ERROR]
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 50, minimum: 1, maximum: 200 }
+      responses:
+        '200':
+          description: Repassado sem transformação do signallq-diagnostic-worker
+          content:
+            application/json:
+              schema:
+                $ref: './signallq-diagnostic-worker.yaml#/components/schemas/DiagnosticDivergenceRecord'
+        '401':
+          $ref: '#/components/responses/401Error'
+
   /health:
     get:
       summary: Worker health check
@@ -1863,6 +2099,12 @@ components:
 
 x-changelog: |
   ## Version History
+
+  ### v2.1.0 (26.07.2026) — Refs #1446
+  - **Added**: 8 endpoints under /admin/diagnostic/* — transparent proxy to signallq-diagnostic-worker
+    via Cloudflare service binding, authenticated with this worker's own cookie session (no second
+    login for the Console). Full schemas live in ./signallq-diagnostic-worker.yaml — referenced via
+    external $ref, not duplicated here.
 
   ### v2.0.0 (27.06.2026) — SIG-166, SIG-167, SIG-168, SIG-169
 
