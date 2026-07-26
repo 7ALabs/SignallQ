@@ -2196,3 +2196,50 @@ test("GET /admin/diagnostic/divergences filtra por classification", async () => 
   assert.equal(payload.items.length, 1);
   assert.equal(payload.items[0]!.classification, "MAJOR_DIVERGENCE");
 });
+
+// ============================================================================
+// Refs #1446 — proxy do signallq-admin-worker pra /admin/diagnostic/* (sem cookie próprio)
+// ============================================================================
+
+test("admin diagnostic proxy: secret valida autentica /admin/diagnostic/rulesets sem cookie proprio", async () => {
+  const db = new FakeD1Database();
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      headers: { "X-Internal-Diagnostic-Proxy-Secret": "proxy-secret-test" },
+    }),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test", DIAGNOSTIC_PROXY_SECRET: "proxy-secret-test" },
+  );
+  assert.equal(response.status, 200);
+});
+
+test("admin diagnostic proxy: secret invalida cai pro fluxo de cookie e retorna 401 sem sessao", async () => {
+  const db = new FakeD1Database();
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      headers: { "X-Internal-Diagnostic-Proxy-Secret": "secret-errada" },
+    }),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test", DIAGNOSTIC_PROXY_SECRET: "proxy-secret-test" },
+  );
+  assert.equal(response.status, 401);
+});
+
+test("admin diagnostic proxy: cookie de sessao propria continua funcionando mesmo com DIAGNOSTIC_PROXY_SECRET configurada", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", { headers: { Cookie: cookie } }),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test", DIAGNOSTIC_PROXY_SECRET: "proxy-secret-test" },
+  );
+  assert.equal(response.status, 200);
+});
+
+test("admin diagnostic proxy: rota /admin/providers/* nunca aceita a secret do proxy diagnostico", async () => {
+  const db = new FakeD1Database();
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/providers/review-queue", {
+      headers: { "X-Internal-Diagnostic-Proxy-Secret": "proxy-secret-test" },
+    }),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test", DIAGNOSTIC_PROXY_SECRET: "proxy-secret-test" },
+  );
+  assert.equal(response.status, 401);
+});
