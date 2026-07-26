@@ -329,23 +329,7 @@ internal fun ModoGamerResultadoConteudo(
         // Dimensao/EvidenciaDiagnostico do motor.
         if (etapa.natUdp != null) {
             Spacer(Modifier.height(LkSpacing.sm))
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(LkRadius.input))
-                        .background(c.bgSecondary)
-                        .padding(LkSpacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(imageVector = Icons.Outlined.Info, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(LkSpacing.sm))
-                Text(
-                    text = "Conexão para jogos peer-to-peer (NAT UDP): ${etapa.natUdp.tipo.rotulo()}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textSecondary,
-                )
-            }
+            ModoGamerNatUdpRow(natUdp = etapa.natUdp)
         }
 
         Spacer(Modifier.height(LkSpacing.lg))
@@ -390,6 +374,28 @@ internal fun ModoGamerResultadoConteudo(
             Text(text = "Ir para o início", style = MaterialTheme.typography.bodyMedium, color = c.primary)
         }
         Spacer(Modifier.height(LkSpacing.xl))
+    }
+}
+
+@Composable
+private fun ModoGamerNatUdpRow(natUdp: NatUdpResultado) {
+    val c = LocalLkTokens.current
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(LkRadius.input))
+                .background(c.bgSecondary)
+                .padding(LkSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(imageVector = Icons.Outlined.Info, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(LkSpacing.sm))
+        Text(
+            text = "Conexão para jogos peer-to-peer (NAT UDP): ${natUdp.tipo.rotulo()}",
+            style = MaterialTheme.typography.bodySmall,
+            color = c.textSecondary,
+        )
     }
 }
 
