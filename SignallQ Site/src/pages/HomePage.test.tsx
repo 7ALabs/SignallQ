@@ -101,13 +101,12 @@ describe('HomePage — reconstrução v2 (ScreenHome)', () => {
     renderHome()
 
     expect(screen.getByText('Sua conexão está boa')).toBeInTheDocument()
-    // Só 1 <AdBannerWide> montado na página inteira: o embutido no ResultPanel —
-    // showWideAd é `!isResult` no protótipo, então o AdBannerWide de rodapé não deve
-    // ser renderizado neste estado. Cada <AdBannerWide> renderiza o próprio texto de
-    // fallback 2x no DOM (bloco mobile + bloco desktop, alternados por CSS, ver
-    // achado da Marina/auditoria 1:1 de 2026-07-25) — por isso a contagem esperada
-    // é 2, não 1; a asserção usa o texto específico do AdBannerWide (não "PUBLICIDADE",
-    // que também aparece nos cards do AdRail, agora sempre visível mesmo sem catálogo).
-    expect(screen.getAllByText('Banner simulado 320×50')).toHaveLength(2)
+    // Nenhum <AdBannerWide> montado na página neste estado: showWideAd é `!isResult` no
+    // protótipo, então o AdBannerWide de rodapé não deve renderizar. O card de Resultado
+    // embute o `ResultAdCard` dedicado (achado da Marina/auditoria 1:1 de 2026-07-25 — antes
+    // reaproveitava o `AdBannerWide` genérico), com copy própria do protótipo
+    // (`ScreenHome.dc.html`), não o texto de fallback do `AdBannerWide`.
+    expect(screen.queryByText('Banner simulado 320×50')).not.toBeInTheDocument()
+    expect(screen.getByText('O Wi-Fi some no quarto?')).toBeInTheDocument()
   })
 })

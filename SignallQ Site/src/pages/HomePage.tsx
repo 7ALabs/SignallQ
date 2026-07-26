@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AdBannerWide } from '../components/AdBannerWide'
 import { AdRail } from '../components/AdRail'
+import { AdSlotsProvider } from '../components/AdSlotsProvider'
 import { DetailTopBar, FlowTopBar } from '../components/AppTopBar'
 import { SiteFooter } from '../components/SiteFooter'
 import { SiteNav } from '../components/SiteNav'
@@ -116,6 +117,11 @@ export default function HomePage() {
         )}
       </div>
 
+      {/* `AdSlotsProvider` coordena os espaços de anúncio desta página (2 AdRail +
+          1 AdBannerWide + o ResultAdCard embutido no card de Resultado, quando presente) —
+          busca o catálogo uma vez e distribui itens distintos, sem repetir o mesmo anúncio em
+          2 espaços da mesma página (issue #1402/#1405). */}
+      <AdSlotsProvider>
       <div className="mx-auto flex w-full flex-1 items-start justify-center gap-6 px-4 pb-4 pt-2 box-border lg:gap-6 lg:px-6 lg:pt-5">
         <AdRail variant="a" />
 
@@ -184,6 +190,7 @@ export default function HomePage() {
 
         <AdRail variant="b" />
       </div>
+      </AdSlotsProvider>
 
       <SiteFooter />
     </div>

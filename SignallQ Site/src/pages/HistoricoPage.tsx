@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AdBannerWide } from '../components/AdBannerWide'
 import { AdRail } from '../components/AdRail'
+import { AdSlotsProvider } from '../components/AdSlotsProvider'
 import { DetailTopBar } from '../components/AppTopBar'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { HistoryEvolutionChart } from '../components/historico/HistoryEvolutionChart'
@@ -129,6 +130,9 @@ export default function HistoricoPage() {
         />
       </div>
 
+      {/* `AdSlotsProvider` coordena os espaços de anúncio desta página — busca o catálogo
+          uma vez e distribui itens distintos, sem repetir o mesmo anúncio (#1402/#1405). */}
+      <AdSlotsProvider>
       <div className="flex w-full flex-1 items-start justify-center gap-6 box-border px-5 pt-2 pb-8 lg:px-6 lg:pt-5 lg:pb-4">
         <AdRail variant="a" />
 
@@ -235,6 +239,7 @@ export default function HistoricoPage() {
           <AdBannerWide variant="b" />
         </div>
       </div>
+      </AdSlotsProvider>
 
       <SiteFooter />
 

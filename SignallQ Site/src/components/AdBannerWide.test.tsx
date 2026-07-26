@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AdBannerWide } from './AdBannerWide'
+import { AdSlotsProvider } from './AdSlotsProvider'
 
 const ANUNCIO_LOCAL_MOCK = {
   id: 'house-1',
@@ -8,6 +9,10 @@ const ANUNCIO_LOCAL_MOCK = {
   description: 'Diagnóstico completo de rede, grátis.',
   ctaLabel: 'Baixar agora',
   targetUrl: 'https://signallq.pages.dev',
+}
+
+function renderComProvider(ui: React.ReactElement) {
+  return render(<AdSlotsProvider>{ui}</AdSlotsProvider>)
 }
 
 describe('AdBannerWide', () => {
@@ -21,18 +26,16 @@ describe('AdBannerWide', () => {
 
   it('sem AdSense configurado -> mostra aviso honesto de espaço reservado antes do catálogo local resolver, sem affordance falsa', () => {
     vi.spyOn(global, 'fetch').mockImplementation(() => new Promise(() => {})) // nunca resolve nesta asserção síncrona
-    render(<AdBannerWide />)
+    renderComProvider(<AdBannerWide />)
     expect(screen.getAllByText('Espaço para anúncio').length).toBeGreaterThan(0)
     expect(screen.getByText('PUBLICIDADE')).toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
 
   it('sem AdSense configurado e catálogo local disponível -> sorteia e exibe o anúncio local', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ ads: [ANUNCIO_LOCAL_MOCK] }), { status: 200 })
-    )
+    vi.spyOn(global, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ads: [ANUNCIO_LOCAL_MOCK] }), { status: 200 }))
 
-    render(<AdBannerWide />)
+    renderComProvider(<AdBannerWide />)
 
     await waitFor(() => expect(screen.getAllByText(ANUNCIO_LOCAL_MOCK.title).length).toBeGreaterThan(0))
     expect(screen.getAllByText(ANUNCIO_LOCAL_MOCK.ctaLabel).length).toBeGreaterThan(0)
@@ -50,7 +53,12 @@ describe('AdBannerWide', () => {
     ;(window as Window & { adsbygoogle?: Array<Record<string, never>> }).adsbygoogle = fila
 
     const { AdBannerWide: BannerComAdSense } = await import('./AdBannerWide')
-    render(<BannerComAdSense />)
+    const { AdSlotsProvider: ProviderFresco } = await import('./AdSlotsProvider')
+    render(
+      <ProviderFresco>
+        <BannerComAdSense />
+      </ProviderFresco>
+    )
 
     const anuncio = document.querySelector('ins.adsbygoogle')
     expect(anuncio).toHaveAttribute('data-ad-client', 'ca-pub-1234567890123456')
@@ -62,9 +70,7 @@ describe('AdBannerWide', () => {
   it('com AdSense configurado mas em no-fill (data-ad-status=unfilled) -> cai para o anúncio local', async () => {
     vi.stubEnv('VITE_ADSENSE_PUBLISHER_ID', 'ca-pub-1234567890123456')
     vi.stubEnv('VITE_ADSENSE_SLOT_RESULT', '1234567890')
-    vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ ads: [ANUNCIO_LOCAL_MOCK] }), { status: 200 })
-    )
+    vi.spyOn(global, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ads: [ANUNCIO_LOCAL_MOCK] }), { status: 200 }))
 
     const script = document.createElement('script')
     script.id = 'adsbygoogle-loader'
@@ -72,7 +78,12 @@ describe('AdBannerWide', () => {
     ;(window as Window & { adsbygoogle?: Array<Record<string, never>> }).adsbygoogle = []
 
     const { AdBannerWide: BannerComAdSense } = await import('./AdBannerWide')
-    render(<BannerComAdSense />)
+    const { AdSlotsProvider: ProviderFresco } = await import('./AdSlotsProvider')
+    render(
+      <ProviderFresco>
+        <BannerComAdSense />
+      </ProviderFresco>
+    )
 
     const anuncio = document.querySelector('ins.adsbygoogle')
     expect(anuncio).not.toBeNull()
@@ -83,10 +94,8 @@ describe('AdBannerWide', () => {
   })
 
   it('aceita variant "b" (skin azul) sem quebrar a renderização', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ ads: [ANUNCIO_LOCAL_MOCK] }), { status: 200 })
-    )
-    render(<AdBannerWide variant="b" />)
+    vi.spyOn(global, 'fetch').mockResolvedValue(new Response(JSON.stringify({ ads: [ANUNCIO_LOCAL_MOCK] }), { status: 200 }))
+    renderComProvider(<AdBannerWide variant="b" />)
     await waitFor(() => expect(screen.getAllByText(ANUNCIO_LOCAL_MOCK.title).length).toBeGreaterThan(0))
   })
 })

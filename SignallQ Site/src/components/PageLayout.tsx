@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { AdBannerWide } from './AdBannerWide'
 import { AdRail } from './AdRail'
+import { AdSlotsProvider } from './AdSlotsProvider'
 import { SiteFooter } from './SiteFooter'
 import { SiteNav } from './SiteNav'
 
@@ -23,15 +24,20 @@ export function PageLayout({ active, children }: PageLayoutProps) {
     <div className="flex min-h-screen flex-col overflow-x-hidden" style={{ background: 'var(--bg-primary)' }}>
       <SiteNav active={active} />
 
-      <div className="flex w-full flex-1 items-start justify-center gap-6 box-border px-5 pt-7 pb-10 lg:px-6 lg:pt-5 lg:pb-4">
-        <AdRail variant="a" />
-        <div className="flex w-full flex-1 flex-col">{children}</div>
-        <AdRail variant="b" />
-      </div>
+      {/* `AdSlotsProvider` coordena os espaços de anúncio desta página (2 AdRail +
+          1 AdBannerWide) — busca o catálogo uma vez e distribui itens distintos, sem
+          repetir o mesmo anúncio em 2 espaços (issue #1402/#1405). */}
+      <AdSlotsProvider>
+        <div className="flex w-full flex-1 items-start justify-center gap-6 box-border px-5 pt-7 pb-10 lg:px-6 lg:pt-5 lg:pb-4">
+          <AdRail variant="a" />
+          <div className="flex w-full flex-1 flex-col">{children}</div>
+          <AdRail variant="b" />
+        </div>
 
-      <div className="mx-auto w-full max-w-[860px] px-5 pb-7 box-border">
-        <AdBannerWide variant="a" />
-      </div>
+        <div className="mx-auto w-full max-w-[860px] px-5 pb-7 box-border">
+          <AdBannerWide variant="a" />
+        </div>
+      </AdSlotsProvider>
 
       <SiteFooter />
     </div>
