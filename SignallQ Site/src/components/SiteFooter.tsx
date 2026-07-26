@@ -161,10 +161,10 @@ export function SiteFooter() {
                     href={SIGNALLQ_TEST_GROUP_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="relative flex h-8 items-center overflow-hidden rounded-2xl px-4 no-underline"
+                    className="relative flex h-8 flex-shrink-0 items-center overflow-hidden rounded-2xl px-4 no-underline"
                     style={{ background: 'linear-gradient(135deg, #7C4DFF, #5B21D6)' }}
                   >
-                    <span className="relative" style={{ font: '600 12px/1.2 var(--font-sans)', color: '#fff' }}>
+                    <span className="relative whitespace-nowrap" style={{ font: '600 12px/1.2 var(--font-sans)', color: '#fff' }}>
                       Entrar na lista de teste
                     </span>
                     <span
