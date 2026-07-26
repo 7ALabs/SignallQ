@@ -49,6 +49,14 @@ object InternetDiagnosticEngine {
         val perda = input.perdaPercentual
 
         // IN-NORMAL-07 / 07b: perda de pacotes
+        // NAO migrado para MetricClassifier.classificarPerdaPacotes() (issue #1228 Fase 1,
+        // ADR-011): a tabela do classifier usa fronteiras 0.5%/2.0% (excelente/bom/regular/ruim),
+        // valores substancialmente diferentes dos limiares de negocio 1.0%/3.0% deste achado —
+        // nao e um caso de fronteira coincidente por acidente de estrita-maior-que como jitter,
+        // e sim duas reguas de produto distintas. Migrar mudaria o comportamento observavel (ex.:
+        // perda=1.5% hoje gera "moderada", classifier ja classificaria como "regular" != "ruim"
+        // aos 2.0%, sem gerar achado "critico" nem no ponto certo). Ver achado de arquitetura
+        // registrado na issue #1466.
         val emRedeMovel = connectionType == ConnectionType.mobile
         if (perda != null) {
             when {
@@ -82,8 +90,11 @@ object InternetDiagnosticEngine {
             }
         }
 
-        // IN-NORMAL-06: jitter
-        if (jit != null && jit > 20.0) {
+        // IN-NORMAL-06: jitter — migrado para MetricClassifier (issue #1228 Fase 1, ADR-011).
+        // classificarJitter() so tem fronteira "ruim" exatamente em >20.0 (mesmo valor e
+        // mesma estrita-maior-que do limiar historico deste achado) — unico ponto de verdade
+        // sem alterar o resultado observavel (golden test: InternetDiagnosticEngineTest).
+        if (jit != null && MetricClassifier.classificarJitter(jit) == MetricStatus.ruim) {
             resultados.add(
                 DiagnosticResult(
                     id = "IN-NORMAL-06",
@@ -98,6 +109,14 @@ object InternetDiagnosticEngine {
         }
 
         // IN-NORMAL-05: latência (Anatel RQUAL: > 100ms = problema)
+        // NAO migrado para MetricClassifier.classificarLatencia() (issue #1228 Fase 1, ADR-011):
+        // a tabela do classifier (excelente <100 | bom <=150 | regular <=200 | ruim >200) usa uma
+        // fronteira "nao-excelente" em >=100.0 (inclusiva), enquanto este achado historicamente
+        // dispara em >100.0 (exclusiva) — divergem no exato ponto lat=100.0, e nenhuma categoria
+        // do classifier reproduz o limiar de negocio deste achado sem mudar comportamento
+        // observavel (golden test trava lat=100.0 sem achado, lat=100.01 com achado). Tabelas sao
+        // de fontes de produto diferentes (skill /regras-diagnostico-rede vs Anatel RQUAL) — ver
+        // achado de arquitetura registrado na issue #1466.
         if (lat != null && lat > 100.0) {
             resultados.add(
                 DiagnosticResult(
@@ -112,30 +131,40 @@ object InternetDiagnosticEngine {
             )
         }
 
-        // IN-NORMAL-09: bufferbloat — thresholds DSLReports/waveform (alinhados ao SpeedtestQualityClassifier):
-        //   nenhum < 5ms | leve 5-30ms | moderado 30-100ms | severo > 100ms
-        //   Reportar apenas moderado (>30ms) e severo (>100ms) — leve é ruído normal.
+        // IN-NORMAL-09: bufferbloat — migrado para MetricClassifier (issue #1228 Fase 1, ADR-011).
+        // classificarBufferbloat() usa as mesmas fronteiras ja documentadas aqui historicamente
+        // (nenhum <5ms | leve <=30ms=bom | moderado <=100ms=regular | severo >100ms=ruim) —
+        // regular vira "elevado" (09b), ruim vira "critico" (09), bom/excelente nao geram achado.
+        // Unico ponto de verdade sem alterar o resultado observavel (golden test).
         val bb = input.bufferbloatMs
-        if (bb != null && bb > 30.0) {
+        val bbStatus = bb?.let { MetricClassifier.classificarBufferbloat(it) }
+        if (bb != null && (bbStatus == MetricStatus.regular || bbStatus == MetricStatus.ruim)) {
+            val isCritico = bbStatus == MetricStatus.ruim
             resultados.add(
                 DiagnosticResult(
-                    id = if (bb > 100.0) "IN-NORMAL-09" else "IN-NORMAL-09b",
-                    titulo = if (bb > 100.0) "Bufferbloat Crítico" else "Bufferbloat Elevado",
-                    status = if (bb > 100.0) DiagnosticStatus.critical else DiagnosticStatus.attention,
+                    id = if (isCritico) "IN-NORMAL-09" else "IN-NORMAL-09b",
+                    titulo = if (isCritico) "Bufferbloat Crítico" else "Bufferbloat Elevado",
+                    status = if (isCritico) DiagnosticStatus.critical else DiagnosticStatus.attention,
                     evidencia = "bufferbloat=${"%.0f".format(bb)} ms",
-                    mensagemUsuario = if (bb > 100.0)
+                    mensagemUsuario = if (isCritico)
                         "O bufferbloat está muito alto (${"%.0f".format(bb)} ms). Streaming, jogos e chamadas serão gravemente prejudicados mesmo com velocidade adequada."
                     else
                         "O bufferbloat está elevado (${"%.0f".format(bb)} ms). Jogos e chamadas podem ter instabilidade sob carga.",
                     recomendacao = "Verifique se o roteador suporta QoS ou SQM. Reduza o número de dispositivos usando a rede simultaneamente.",
                     categoria = CAT,
-                    podeConcluir = bb > 100.0,
+                    podeConcluir = isCritico,
                 ),
             )
         }
 
         // IN-NORMAL-04: upload
         // IN-NORMAL-04Z: upload zerado (prioridade maxima sobre upload baixo generico)
+        // NAO migrado para MetricClassifier.classificarUpload() (issue #1228 Fase 1, ADR-011):
+        // a tabela do classifier usa fronteiras 1/3/10/20 Mbps (throughput bruto de speedtest),
+        // sem nenhuma categoria na fronteira de 5.0 Mbps usada por este achado (limiar de
+        // videoconferencia/upload de arquivo) — 4.999 e 5.0 caem na mesma categoria "regular" do
+        // classifier, entao nenhuma combinacao de status reproduz o limiar sem mudar
+        // comportamento observavel. Ver achado de arquitetura registrado na issue #1466.
         if (ul != null && ul == 0.0) {
             resultados.add(
                 DiagnosticResult(
@@ -164,8 +193,12 @@ object InternetDiagnosticEngine {
             )
         }
 
-        // IN-NORMAL-03: download
-        if (dl < 25.0) {
+        // IN-NORMAL-03: download — migrado para MetricClassifier (issue #1228 Fase 1, ADR-011).
+        // classificarDownload() tem fronteira regular/ruim exatamente em 25.0 Mbps (mesmo valor
+        // e mesma estrita-menor-que do limiar historico deste achado) — trigger "ruim ou critico"
+        // reproduz exatamente dl<25.0 sem alterar o resultado observavel (golden test).
+        val dlStatus = MetricClassifier.classificarDownload(dl)
+        if (dlStatus == MetricStatus.ruim || dlStatus == MetricStatus.critico) {
             resultados.add(
                 DiagnosticResult(
                     id = "IN-NORMAL-03",
