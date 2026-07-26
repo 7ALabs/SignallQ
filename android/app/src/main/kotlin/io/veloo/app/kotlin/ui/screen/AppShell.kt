@@ -138,6 +138,13 @@ private enum class Overlay {
     // GH#1358 — "Termos de uso" no menu lateral: reaproveita o mesmo composable já usado
     // no Onboarding (OnboardingOverlay.TERMOS), sem duplicar o conteúdo legal.
     Termos,
+
+    // Issue #1475 (Feature #550) — diagnóstico guiado por objetivo (7 objetivos fechados,
+    // motor local + explicação por IA) e detalhes técnicos, ambos empilhados sobre
+    // Overlay.ResultadoVelocidade, substituindo a antiga sheet automática "Análise
+    // detalhada" (DiagnosticoDetalhadoSheet, retirada).
+    DiagnosticoGuiado,
+    DetalhesTecnicos,
 }
 
 /**
@@ -793,19 +800,72 @@ fun AppShell(
                         ispInfo = ispInfoData,
                         operadoraMovel = operadoraMovel,
                         analisadorState = analisadorState,
+                        onIniciarDiagnosticoGuiado = {
+                            if (Overlay.DiagnosticoGuiado !in overlayStack) overlayStack.add(Overlay.DiagnosticoGuiado)
+                        },
+                        // Issue #1476 (Modo gamer) ainda não implementado — CTA visível por
+                        // paridade com o protótipo #1474, sem destino real ainda.
+                        onIniciarModoGamer = {},
+                        onVerDetalhesTecnicos = {
+                            if (Overlay.DetalhesTecnicos !in overlayStack) overlayStack.add(Overlay.DetalhesTecnicos)
+                        },
+                        recommendationDecision = recommendationDecision,
+                        adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.RESULTADO),
+                    )
+                }
+            }
+
+            AnimatedVisibility(
+                visible = Overlay.DiagnosticoGuiado in overlayStack && snapshotSpeedtest.resultado != null,
+                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.DiagnosticoGuiado, overlayStack)),
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            ) {
+                snapshotSpeedtest.resultado?.let { resultado ->
+                    DiagnosticoGuiadoScreen(
+                        input = snapshotDiagnostico.input,
+                        resultadoValidoParaConclusao = resultado.status.liberaConclusaoCompleta,
+                        analisadorState = analisadorState,
                         onAnalisarProblema = onAnalisarProblema,
                         onResetarAnalisador = onResetarAnalisador,
+                        onVoltar = { overlayStack.remove(Overlay.DiagnosticoGuiado) },
+                        onIrParaHome = {
+                            overlayStack.remove(Overlay.DiagnosticoGuiado)
+                            overlayStack.remove(Overlay.ResultadoVelocidade)
+                            selectedTab = 0
+                        },
+                        categoria = snapshotDiagnostico.relatorio?.decisao?.categoriaOrigem,
+                        ispNome = ispInfoData?.isp,
+                        connectionType = resultado.connectionType,
+                        operadoraMovel = operadoraMovel,
                         recommendationDecision = recommendationDecision,
                         recommendationFeedback = recommendationFeedback,
                         onRecommendationShown = onRecommendationShown,
                         onRecommendationClicked = onRecommendationClicked,
                         onRecommendationFeedback = onRecommendationFeedback,
-                        localDevice = localDevice,
-                        adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.RESULTADO),
                         resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
                         resolveOperadoraContatoLocal = resolveOperadoraContatoLocal,
                         resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
                         resolveOperadoraContatoRemoto = resolveOperadoraContatoRemoto,
+                        // Issue #1476 (Modo gamer) segue null aqui — só #1476 preenche este
+                        // callback, quando implementar o fluxo jogo → device → resultado.
+                        onIniciarModoGamer = null,
+                    )
+                }
+            }
+
+            AnimatedVisibility(
+                visible = Overlay.DetalhesTecnicos in overlayStack && snapshotSpeedtest.resultado != null,
+                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.DetalhesTecnicos, overlayStack)),
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            ) {
+                snapshotSpeedtest.resultado?.let { resultado ->
+                    DetalhesTecnicosScreen(
+                        resultado = resultado,
+                        localizacaoServidor = localizacaoServidorStr,
+                        localDevice = localDevice,
+                        onVoltar = { overlayStack.remove(Overlay.DetalhesTecnicos) },
                     )
                 }
             }
