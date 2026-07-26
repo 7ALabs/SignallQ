@@ -290,19 +290,16 @@ pede 8 devices, incluindo PS4, Android, iPhone, Switch e TV/cloud — nenhum jog
 declara essas plataformas explicitamente. Proposta desta spec: manter o catálogo como filtro de
 jogo quando o device for PC/PS5/Xbox, e usar as categorias genéricas de `GameReadinessClassifier`
 (mobile/cloud) ou o fallback `UsageProfileClassifier.JOGOS` para os demais devices, sem exigir
-expansão do catálogo agora. Confirmar com Claudete/Camilo se isso é aceitável para o MVP da issue
-ou se o catálogo precisa crescer numa task própria antes.
+expansão do catálogo agora. **Decidido (Claudete, 2026-07-26): fallback via categoria genérica é aceitável para o MVP; expansão do catálogo fica para iteração futura, fora de escopo desta entrega.**
 
 **12.2 — Objetivo 3 ("jogos têm lag") desviar para o modo gamer.** Proposta: só desvia quando o
 usuário responde que o lag é num jogo específico; resposta "qualquer jogo" segue no diagnóstico
-guiado genérico (`UsageProfileClassifier.JOGOS`). Confirmar se esse desvio condicional é o
-comportamento desejado ou se a issue espera os dois fluxos completamente independentes.
+guiado genérico (`UsageProfileClassifier.JOGOS`). **Decidido (Claudete, 2026-07-26): desvio só quando jogo específico é identificado; os dois fluxos (diagnóstico guiado genérico vs. modo gamer) continuam separados.**
 
 **12.3 — O que muda em `AnalisadorEntryRow` (entrada de IA por texto livre) na tela de detalhes
 técnicos.** Esta spec assume que ela continua existindo sem alteração (só deixou de ser a primeira
 coisa vista). Como o "Fora de escopo" da issue #550 cita "chat livre completo" como não coberto —
-não fica claro se isso significa "não mexer" ou "não criar um novo". Confirmar antes de qualquer
-task tocar em `AnalisadorEntryRow`.
+não fica claro se isso significa "não mexer" ou "não criar um novo". **Decidido (Claudete, 2026-07-26): `AnalisadorEntryRow` fica intocada na camada de detalhes técnicos por enquanto; issue #550 não pede mudança ali, fora de escopo nesta entrega.**
 
 ## 13. Métricas de sucesso
 
