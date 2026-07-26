@@ -20,6 +20,7 @@ import { ToolsTab } from "./features/tools/ToolsTab";
 import { GooglePlayTab } from "./features/google-play/GooglePlayTab";
 import { FirebaseTab } from "./features/firebase/FirebaseTab";
 import { DiagnosticRulesetsTab } from "./features/diagnostic-rulesets/DiagnosticRulesetsTab";
+import { DiagnosticDivergencesTab } from "./features/diagnostic-divergences/DiagnosticDivergencesTab";
 
 export default function App() {
   const { theme, toggle: onToggleTheme } = useTheme();
@@ -106,6 +107,7 @@ export default function App() {
         "/networks",
         "/operators",
         "/diagnostic-rulesets",
+        "/diagnostic-divergences",
         "/google-play",
         "/firebase",
         "/ai-cost",
@@ -241,6 +243,7 @@ export default function App() {
         />
       )}
       {currentPath === "/diagnostic-rulesets" && <DiagnosticRulesetsTab />}
+      {currentPath === "/diagnostic-divergences" && <DiagnosticDivergencesTab />}
       {currentPath === "/google-play" && (
         <GooglePlayTab
           environment={environment}

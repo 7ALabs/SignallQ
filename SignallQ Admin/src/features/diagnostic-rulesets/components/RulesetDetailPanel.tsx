@@ -9,6 +9,7 @@ interface RulesetDetailPanelProps {
   loading: boolean;
   onEditAsDraft: (detail: RulesetDetail) => void;
   onPublish: (version: number) => void;
+  onAdjustRollout: (version: number, currentPercent: number) => void;
   onRollback: (version: number) => void;
   onSimulate: (detail: RulesetDetail) => void;
   id?: string;
@@ -26,6 +27,7 @@ export const RulesetDetailPanel: React.FC<RulesetDetailPanelProps> = ({
   loading,
   onEditAsDraft,
   onPublish,
+  onAdjustRollout,
   onRollback,
   onSimulate,
   id,
@@ -80,14 +82,24 @@ export const RulesetDetailPanel: React.FC<RulesetDetailPanelProps> = ({
             </button>
           )}
           {detail.status === "PUBLISHED" && (
-            <button
-              type="button"
-              onClick={() => onRollback(detail.version)}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer"
-              style={{ backgroundColor: "var(--error)", color: "var(--on-error-container)" }}
-            >
-              Rollback
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => onAdjustRollout(detail.version, detail.rolloutPercent)}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer"
+                style={{ backgroundColor: "var(--bg-surface-hover)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+              >
+                Ajustar rollout
+              </button>
+              <button
+                type="button"
+                onClick={() => onRollback(detail.version)}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer"
+                style={{ backgroundColor: "var(--error)", color: "var(--on-error-container)" }}
+              >
+                Rollback
+              </button>
+            </>
           )}
         </div>
       </div>

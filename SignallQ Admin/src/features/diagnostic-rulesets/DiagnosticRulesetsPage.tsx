@@ -7,8 +7,9 @@ import { RulesetsTable } from "./components/RulesetsTable";
 import { RulesetDetailPanel } from "./components/RulesetDetailPanel";
 import { RulesetEditorDrawer } from "./components/RulesetEditorDrawer";
 import { SimulatePanel } from "./components/SimulatePanel";
+import { RolloutDialog } from "./components/RolloutDialog";
 import { diagnosticRulesetsService } from "../../services/diagnosticRulesetsService";
-import { RulesetDetail, RulesetListItem } from "../../types/diagnosticRulesets";
+import { RolloutConfigInput, RulesetDetail, RulesetListItem } from "../../types/diagnosticRulesets";
 
 export const DiagnosticRulesetsPage: React.FC = () => {
   const [items, setItems] = React.useState<RulesetListItem[]>([]);
@@ -25,7 +26,10 @@ export const DiagnosticRulesetsPage: React.FC = () => {
   const [simulateOpen, setSimulateOpen] = React.useState(false);
   const [simulateTarget, setSimulateTarget] = React.useState<RulesetDetail | null>(null);
 
-  const [pendingAction, setPendingAction] = React.useState<{ type: "publish" | "rollback"; version: number } | null>(null);
+  // Rollback (sem parâmetro a escolher) segue no ConfirmDialog genérico. Publish e
+  // ajuste de rollout sempre pedem um rolloutPercent explícito — vão pro RolloutDialog.
+  const [pendingRollback, setPendingRollback] = React.useState<number | null>(null);
+  const [pendingRollout, setPendingRollout] = React.useState<{ mode: "publish" | "rollout"; version: number; currentPercent: number } | null>(null);
   const [actionBusy, setActionBusy] = React.useState(false);
   const [actionError, setActionError] = React.useState<string | null>(null);
 
@@ -81,22 +85,39 @@ export const DiagnosticRulesetsPage: React.FC = () => {
     setSelectedVersion(version);
   };
 
-  const handleConfirmAction = async () => {
-    if (!pendingAction) return;
+  const handleConfirmRollback = async () => {
+    if (pendingRollback === null) return;
+    const version = pendingRollback;
+    setActionBusy(true);
+    setActionError(null);
+    const result = await diagnosticRulesetsService.rollback(version);
+    setActionBusy(false);
+    if (!result.ok) {
+      setActionError(result.error ?? "Falha ao reverter.");
+      return;
+    }
+    setPendingRollback(null);
+    await loadList();
+    setSelectedVersion(version);
+  };
+
+  const handleConfirmRollout = async (config: RolloutConfigInput) => {
+    if (!pendingRollout) return;
+    const { mode, version } = pendingRollout;
     setActionBusy(true);
     setActionError(null);
     const result =
-      pendingAction.type === "publish"
-        ? await diagnosticRulesetsService.publish(pendingAction.version)
-        : await diagnosticRulesetsService.rollback(pendingAction.version);
+      mode === "publish"
+        ? await diagnosticRulesetsService.publish(version, config)
+        : await diagnosticRulesetsService.updateRollout(version, config);
     setActionBusy(false);
     if (!result.ok) {
-      setActionError(result.error ?? "Ação falhou.");
+      setActionError(result.error ?? (mode === "publish" ? "Falha ao publicar." : "Falha ao ajustar rollout."));
       return;
     }
-    setPendingAction(null);
+    setPendingRollout(null);
     await loadList();
-    setSelectedVersion(pendingAction.version);
+    setSelectedVersion(version);
   };
 
   return (
@@ -146,8 +167,9 @@ export const DiagnosticRulesetsPage: React.FC = () => {
               detail={detail}
               loading={loadingDetail}
               onEditAsDraft={(d) => handleOpenEditor(d)}
-              onPublish={(version) => setPendingAction({ type: "publish", version })}
-              onRollback={(version) => setPendingAction({ type: "rollback", version })}
+              onPublish={(version) => setPendingRollout({ mode: "publish", version, currentPercent: 0 })}
+              onAdjustRollout={(version, currentPercent) => setPendingRollout({ mode: "rollout", version, currentPercent })}
+              onRollback={(version) => setPendingRollback(version)}
               onSimulate={(d) => {
                 setSimulateTarget(d);
                 setSimulateOpen(true);
@@ -172,34 +194,44 @@ export const DiagnosticRulesetsPage: React.FC = () => {
         onClose={() => setSimulateOpen(false)}
       />
 
-      <ConfirmDialog
-        id="diagnostic-ruleset-confirm-dialog"
-        open={pendingAction !== null}
-        tone={pendingAction?.type === "rollback" ? "danger" : "default"}
-        title={pendingAction?.type === "publish" ? `Publicar ruleset v${pendingAction.version}?` : `Reverter ruleset v${pendingAction?.version}?`}
-        description={
-          pendingAction?.type === "publish" ? (
-            <>
-              Isso substitui o ruleset atualmente publicado e passa a valer para <strong>100% do rollout</strong> em
-              produção imediatamente. Essa ação fica registrada na trilha de auditoria.
-            </>
-          ) : (
-            <>
-              Isso reverte esta versão e restaura a versão publicada anterior. O motor de diagnóstico em produção
-              volta a usar o ruleset anterior imediatamente. Essa ação fica registrada na trilha de auditoria.
-            </>
-          )
-        }
-        confirmLabel={pendingAction?.type === "publish" ? "Publicar" : "Reverter"}
+      <RolloutDialog
+        id="diagnostic-ruleset-rollout-dialog"
+        open={pendingRollout !== null}
+        mode={pendingRollout?.mode ?? "publish"}
+        version={pendingRollout?.version ?? 0}
+        currentPercent={pendingRollout?.currentPercent}
         busy={actionBusy}
-        onConfirm={handleConfirmAction}
+        error={actionError}
+        onConfirm={handleConfirmRollout}
         onCancel={() => {
-          setPendingAction(null);
+          setPendingRollout(null);
           setActionError(null);
         }}
       />
 
-      {actionError && (
+      <ConfirmDialog
+        id="diagnostic-ruleset-confirm-dialog"
+        open={pendingRollback !== null}
+        tone="danger"
+        title={`Reverter ruleset v${pendingRollback}?`}
+        description={
+          <>
+            Isso reverte esta versão e restaura a versão publicada anterior. O motor de diagnóstico em produção
+            volta a usar o ruleset anterior imediatamente. Essa ação fica registrada na trilha de auditoria.
+          </>
+        }
+        confirmLabel="Reverter"
+        busy={actionBusy}
+        onConfirm={handleConfirmRollback}
+        onCancel={() => {
+          setPendingRollback(null);
+          setActionError(null);
+        }}
+      />
+
+      {/* RolloutDialog mostra o erro inline enquanto aberto — o toast é só pro
+          erro de rollback (ConfirmDialog não tem slot de erro próprio). */}
+      {actionError && pendingRollout === null && (
         <div
           className="fixed bottom-6 right-6 z-50 rounded-[var(--radius-card)] px-4 py-3 text-[13px] max-w-sm"
           style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--error)", color: "var(--error)" }}
