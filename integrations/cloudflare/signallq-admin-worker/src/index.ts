@@ -7,6 +7,14 @@
 // aos dados do admin. INGEST_KEY so pode escrever em /ingest/*.
 
 import { hashPassword, verifyPassword, createSession, validateSession, revokeSession } from './auth'
+import { getFirebaseAccessToken } from './firebaseAuth'
+import {
+  handleRemoteConfigAdminGet,
+  handleRemoteConfigAdminVersions,
+  handleRemoteConfigAdminValidate,
+  handleRemoteConfigAdminPublish,
+  handleRemoteConfigAdminRollback,
+} from './remoteConfigAdmin'
 
 // #788 — tipos mínimos do Cron Trigger (workerd runtime). O projeto não tem
 // @cloudflare/workers-types instalado (gap pré-existente, mesma causa dos
@@ -68,7 +76,7 @@ function corsHeaders(env: Env): Record<string, string> {
   };
 }
 
-function json(body: unknown, status = 200, env: Env): Response {
+export function json(body: unknown, status = 200, env: Env): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "Content-Type": "application/json", ...corsHeaders(env) },
@@ -94,7 +102,7 @@ function publicJson(body: unknown, status = 200): Response {
   });
 }
 
-function err(message: string, status: number, env: Env): Response {
+export function err(message: string, status: number, env: Env): Response {
   return json({ error: message }, status, env);
 }
 
@@ -420,49 +428,8 @@ function productionTrackClause(envFilter: string | null, columnPrefix = ""): str
   return ` AND (${columnPrefix}play_track IS NULL OR ${columnPrefix}play_track = 'production')`;
 }
 
-async function getFirebaseAccessToken(env: Env): Promise<string> {
-  const now = nowSec();
-  const payload = {
-    iss: env.FIREBASE_CLIENT_EMAIL,
-    sub: env.FIREBASE_CLIENT_EMAIL,
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-    scope: [
-      "https://www.googleapis.com/auth/firebase",
-      "https://www.googleapis.com/auth/analytics.readonly",
-      "https://www.googleapis.com/auth/cloud-platform",
-    ].join(" "),
-  };
-  const privateKey = env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n");
-  const keyData = privateKey
-    .replace("-----BEGIN PRIVATE KEY-----", "")
-    .replace("-----END PRIVATE KEY-----", "")
-    .replace(/\s/g, "");
-  const binaryKey = Uint8Array.from(atob(keyData), (c) => c.charCodeAt(0));
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8", binaryKey,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false, ["sign"]
-  );
-  const toB64Url = (s: string) =>
-    btoa(s).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-  const header = toB64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const body   = toB64Url(JSON.stringify(payload));
-  const sigInput = new TextEncoder().encode(`${header}.${body}`);
-  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, sigInput);
-  const sig = toB64Url(String.fromCharCode(...new Uint8Array(signature)));
-  const tokenResp = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: `${header}.${body}.${sig}`,
-    }),
-  });
-  const tokenData = (await tokenResp.json()) as { access_token: string };
-  return tokenData.access_token;
-}
+// getFirebaseAccessToken foi extraída pra src/firebaseAuth.ts (groundwork #1478, 2026-07-26) —
+// mesmo comportamento, só movida pra módulo próprio. Ver import no topo do arquivo.
 
 async function queryBigQuery<T = unknown>(
   env: Env,
@@ -3687,6 +3654,7 @@ const ERROR_CATEGORY_BY_SOURCE: Record<string, 'app' | 'backend' | 'ia' | 'integ
   'ai-usage':               'ia',
   'ai-quota':               'ia',
   'cloudflare-usage':       'integration',
+  'remote-config-admin':    'integration', // #1478 — GET/validate/publish/rollback do backend admin
 };
 
 function errorCategoryForSource(source: string): 'app' | 'backend' | 'ia' | 'integration' {
@@ -3694,7 +3662,7 @@ function errorCategoryForSource(source: string): 'app' | 'backend' | 'ia' | 'int
 }
 
 // Fire-and-forget: nunca propaga exceção. Deduplica por (source + message) via hash djb2.
-async function logError(env: Env, source: string, message: string, stack = ''): Promise<void> {
+export async function logError(env: Env, source: string, message: string, stack = ''): Promise<void> {
   try {
     const id = djb2(`${source}:${message}`);
     const now = Date.now();
@@ -5080,6 +5048,37 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "POST", pattern: /^\/admin\/integrations\/firebase\/management\/sync$/,       handler: handleFirebaseManagementSync },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/remote-config\/status$/,  handler: handleRemoteConfigStatus },
   { method: "POST", pattern: /^\/admin\/integrations\/firebase\/remote-config\/sync$/,    handler: handleRemoteConfigSync },
+  // GH#1478 (Épico #1347, F2) — backend admin de Feature Flags / Remote Config. Namespace
+  // /admin/firebase/remote-config/* (sem "integrations") é deliberadamente separado do par
+  // status/sync acima (GH#1344, leitura read-only pro dashboard de integrações) — este é o CRUD
+  // administrativo real (GET/validate/publish/rollback com ETag). Ver src/remoteConfigAdmin.ts:
+  // GET e /versions são reais; validate/publish/rollback ficam bloqueados (501) até #1477
+  // (catálogo canônico) fechar.
+  { method: "GET",  pattern: /^\/admin\/firebase\/remote-config$/,              handler: withErrorLogging('remote-config-admin', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleRemoteConfigAdminGet(req, env, session);
+    }) },
+  { method: "GET",  pattern: /^\/admin\/firebase\/remote-config\/versions$/,    handler: withErrorLogging('remote-config-admin', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleRemoteConfigAdminVersions(req, env, session);
+    }) },
+  { method: "POST", pattern: /^\/admin\/firebase\/remote-config\/validate$/,    handler: withErrorLogging('remote-config-admin', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleRemoteConfigAdminValidate(req, env, session);
+    }) },
+  { method: "POST", pattern: /^\/admin\/firebase\/remote-config\/publish$/,     handler: withErrorLogging('remote-config-admin', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleRemoteConfigAdminPublish(req, env, session);
+    }) },
+  { method: "POST", pattern: /^\/admin\/firebase\/remote-config\/rollback$/,    handler: withErrorLogging('remote-config-admin', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleRemoteConfigAdminRollback(req, env, session);
+    }) },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/app-check\/status$/,       handler: handleAppCheckStatus },
   { method: "POST", pattern: /^\/admin\/integrations\/firebase\/app-check\/sync$/,         handler: handleAppCheckSync },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/app-distribution\/status$/, handler: handleAppDistributionStatus },

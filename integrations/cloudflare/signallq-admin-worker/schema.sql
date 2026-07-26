@@ -282,3 +282,26 @@ CREATE TABLE IF NOT EXISTS app_releases (
 );
 CREATE INDEX IF NOT EXISTS idx_app_releases_lookup ON app_releases(product, channel, status);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_app_releases_active_unique ON app_releases(product, channel) WHERE status = 'active';
+
+-- GH#1478 (Épico #1347): trilha de auditoria do backend admin de Feature Flags / Firebase Remote
+-- Config (GET/validate/publish/rollback via /admin/firebase/remote-config/*). Distinta de
+-- `feature_flags`/`feature_flag_audit` (SIG-13, mecanismo local simples sem Firebase).
+-- Aplicar via: migrations/021_gh1478_remote_config_audit.sql (npx wrangler d1 execute --file=... --remote)
+CREATE TABLE IF NOT EXISTS remote_config_audit_log (
+  id TEXT PRIMARY KEY,
+  action TEXT NOT NULL,
+  status TEXT NOT NULL,
+  template_version_before TEXT,
+  template_version_after TEXT,
+  etag_before TEXT,
+  etag_after TEXT,
+  before_json TEXT,
+  after_json TEXT,
+  message TEXT NOT NULL DEFAULT '',
+  actor_user_id TEXT NOT NULL,
+  actor_role TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_rcal_action ON remote_config_audit_log(action);
+CREATE INDEX IF NOT EXISTS idx_rcal_created_at ON remote_config_audit_log(created_at);
+CREATE INDEX IF NOT EXISTS idx_rcal_actor ON remote_config_audit_log(actor_user_id);
