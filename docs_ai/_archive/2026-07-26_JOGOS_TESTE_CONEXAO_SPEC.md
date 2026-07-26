@@ -1,9 +1,16 @@
-# Especificação funcional — Teste de conexão para jogos online
+> **Arquivado em 2026-07-26.** Motivo: issue #1487 fundiu o fluxo "Jogos" (GH#935, descrito
+> nesta spec) com o Modo gamer (Feature #550, issues #1476/#1483) — `JogosScreen`,
+> `JogosViewModel`, `JogoConexaoEngine`, `PerfilThresholds`, `GameCatalog`,
+> `GameArtworkCatalog`/`GameIconCatalog` e `Overlay.Jogos` foram removidos do código. Documento
+> atual: `docs_ai/functional/DIAGNOSTICO_GUIADO_MODO_GAMER_SPEC.md` (spec do Modo gamer,
+> RF-11 de `docs_ai/FUNCIONAL.md`). Mantido aqui só como memória histórica do fluxo original —
+> não reflete o app atual.
 
-- **Status:** ativo
+# Especificação funcional — Teste de conexão para jogos online (ARQUIVADO)
+
+- **Status:** arquivado (2026-07-26) — ver nota acima
 - **Última validação:** 2026-07-23
-- **Fonte de verdade:** este arquivo — spec pontual do domínio Jogos, referenciada por
-  `docs_ai/FUNCIONAL.md` RF-11 (não duplicada lá).
+- **Fonte de verdade:** histórico apenas — `docs_ai/functional/DIAGNOSTICO_GUIADO_MODO_GAMER_SPEC.md` é a fonte viva
 - **Escopo:** fluxo de teste de conexão direcionado por jogo (`JogosScreen`, overlay via
   Ferramentas) — não cobre outras telas do app.
 - **Responsável:** Claudete (spec), Camilo (implementação, issue #935)

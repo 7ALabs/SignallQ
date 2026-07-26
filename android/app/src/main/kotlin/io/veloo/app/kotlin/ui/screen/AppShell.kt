@@ -127,9 +127,6 @@ private enum class Overlay {
     // roteada, mesmo padrão dos demais overlays.
     Dns,
 
-    // TODO(#935): Fase 6 — tela real de Jogos. Por ora um stub simples.
-    Jogos,
-
     // GH#936 — Fase 7: reorganização 6a-6f concluída (ver AjustesScreen.kt).
     Perfil,
 
@@ -149,10 +146,12 @@ private enum class Overlay {
     DetalhesTecnicos,
 
     // Issue #1476 (Feature #550) — Modo gamer: jogo → device → resultado. Empilhado sobre
-    // Overlay.ResultadoVelocidade, alcançado tanto pelo CTA "Modo gamer" do resumo pós-teste
-    // quanto pelo botão "Ver diagnóstico por jogo" dentro do resultado de
-    // Overlay.DiagnosticoGuiado (objetivo Jogos com lag). Não é a mesma tela que
-    // Overlay.Jogos (fluxo legado GH#935, catálogo/motor diferentes).
+    // Overlay.ResultadoVelocidade quando alcançado pelo CTA "Modo gamer" do resumo pós-teste
+    // ou pelo botão "Ver diagnóstico por jogo" dentro do resultado de
+    // Overlay.DiagnosticoGuiado (objetivo Jogos com lag) — mas também aberto direto do card
+    // "Jogos" em Ferramentas (Overlay.Ferramentas), sem overlay embaixo. Issue #1487 fundiu
+    // aqui o fluxo legado "Jogos" (GH#935, `Overlay.Jogos` removida) — único fluxo "modo
+    // gamer" do app, 3 pontos de entrada, ver `onAbrirModoGamerOverlay` abaixo.
     ModoGamer,
 }
 
@@ -466,8 +465,14 @@ fun AppShell(
     val onAbrirLaudoOverlay: () -> Unit = {
         if (Overlay.Laudo !in overlayStack) overlayStack.add(Overlay.Laudo)
     }
-    val onAbrirJogosOverlay: () -> Unit = {
-        if (Overlay.Jogos !in overlayStack) overlayStack.add(Overlay.Jogos)
+    // Issue #1487 — o card "Jogos" em Ferramentas passou a abrir o Modo gamer fundido
+    // (Overlay.ModoGamer) em vez do fluxo legado (Overlay.Jogos, removida). Mesmo overlay das
+    // outras 2 entradas (ResultadoVelocidadeScreen/DiagnosticoGuiadoScreen) — mas aberto sem
+    // Overlay.ResultadoVelocidade embaixo, então o resultado usa o `snapshotDiagnostico.input`
+    // e `modoGamerPadrao` correntes mesmo sem um teste de velocidade recente (ver
+    // `pingEspecificoMs` do ModoGamerEngine para o caso de não haver input nenhum ainda).
+    val onAbrirModoGamerOverlay: () -> Unit = {
+        if (Overlay.ModoGamer !in overlayStack) overlayStack.add(Overlay.ModoGamer)
     }
     // GH#1201 — nova ferramenta "Sinal WiFi" no hub Ferramentas.
     val onAbrirSinalWifiOverlay: () -> Unit = {
@@ -737,7 +742,7 @@ fun AppShell(
                                 onAbrirDns = onAbrirDnsOverlay,
                                 onAbrirLaudo = onAbrirLaudoOverlay,
                                 onAbrirMonitoramento = onAbrirMonitoramentoOverlay,
-                                onAbrirJogos = onAbrirJogosOverlay,
+                                onAbrirJogos = onAbrirModoGamerOverlay,
                                 onAbrirSinalWifi = onAbrirSinalWifiOverlay,
                             )
                     }
@@ -1049,7 +1054,7 @@ fun AppShell(
                     onAbrirDns = onAbrirDnsOverlay,
                     onAbrirLaudo = onAbrirLaudoOverlay,
                     onAbrirMonitoramento = onAbrirMonitoramentoOverlay,
-                    onAbrirJogos = onAbrirJogosOverlay,
+                    onAbrirJogos = onAbrirModoGamerOverlay,
                     onAbrirSinalWifi = onAbrirSinalWifiOverlay,
                 )
             }
@@ -1071,20 +1076,9 @@ fun AppShell(
                 )
             }
 
-            // GH#935 — Fase 6: tela real de Jogos (fluxo de 5 etapas).
-            AnimatedVisibility(
-                visible = Overlay.Jogos in overlayStack,
-                modifier = Modifier.zIndex(rememberOverlayZIndex(Overlay.Jogos, overlayStack)),
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-            ) {
-                JogosScreen(
-                    tipoConexaoAtual = snapshotRede.estadoConexao,
-                    wifiLinkSnapshot = snapshotRede.wifiLinkSnapshot,
-                    onVoltar = { overlayStack.remove(Overlay.Jogos) },
-                    adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.JOGOS),
-                )
-            }
+            // Issue #1487 — fluxo legado "Jogos" (GH#935, 5 etapas) removido: fundido no Modo
+            // gamer (Overlay.ModoGamer acima), acessado pelo mesmo card "Jogos" em
+            // Ferramentas via onAbrirModoGamerOverlay.
 
             // GH#1201 — nova ferramenta "Sinal WiFi" (indicador dinâmico de RSSI/PHY/padrão).
             AnimatedVisibility(

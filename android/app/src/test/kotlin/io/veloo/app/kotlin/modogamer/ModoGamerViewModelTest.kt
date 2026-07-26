@@ -4,6 +4,8 @@ import io.signallq.app.core.diagnostico.CatalogoJogosModoGamer
 import io.signallq.app.core.diagnostico.CategoriaJogoModoGamer
 import io.signallq.app.core.diagnostico.DeviceJogo
 import io.signallq.app.core.diagnostico.DiagnosticInput
+import io.signallq.app.feature.diagnostico.topology.lan.NatUdpResultado
+import io.signallq.app.feature.diagnostico.topology.lan.NatUdpTipo
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -12,9 +14,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Testes de navegação do [ModoGamerViewModel] (Feature #550, issue #1476) — as 4 etapas do
- * fluxo (jogo → device → config → resultado), fallback pra jogo fora do catálogo, "voltar" em
- * cada etapa e persistência do padrão só quando "Salvar como padrão" é escolhido.
+ * Testes de navegação do [ModoGamerViewModel] (Feature #550, issue #1476, fundido com GH#935
+ * pela issue #1487) — as 4 etapas do fluxo (jogo → device → config → resultado), fallback pra
+ * jogo fora do catálogo, "voltar" em cada etapa, persistência do padrão só quando "Salvar como
+ * padrão" é escolhido, e o refinamento opcional por ping/NAT dedicado.
  */
 class ModoGamerViewModelTest {
     private val valorant = CatalogoJogosModoGamer.porId("valorant")!!
@@ -183,4 +186,31 @@ class ModoGamerViewModelTest {
         vm.trocarJogoOuDevice()
         assertTrue(vm.etapa.value is ModoGamerEtapa.SelecaoJogo)
     }
+
+    // ── Refinamento opcional por ping/NAT dedicado (issue #1487) ──────────────
+
+    @Test
+    fun `confirmar sem pingEspecificoMs preserva o comportamento anterior a fusao`() =
+        runTest {
+            val vm = viewModel()
+            vm.selecionarJogo(valorant)
+            vm.selecionarDevice(DeviceJogo.PC)
+            vm.confirmar(salvarComoPadrao = false)
+            val etapa = vm.etapa.value as ModoGamerEtapa.Resultado
+            assertNull(etapa.natUdp)
+        }
+
+    @Test
+    fun `confirmar com pingEspecificoMs e natUdp propaga os dois para o resultado`() =
+        runTest {
+            val vm = viewModel()
+            vm.selecionarJogo(valorant)
+            vm.selecionarDevice(DeviceJogo.PC)
+            val natUdp = NatUdpResultado(NatUdpTipo.MODERADO)
+            vm.confirmar(salvarComoPadrao = false, pingEspecificoMs = 22.0, natUdp = natUdp)
+
+            val etapa = vm.etapa.value as ModoGamerEtapa.Resultado
+            assertEquals(natUdp, etapa.natUdp)
+            assertTrue(etapa.resultado.evidencias.any { it.label == "Medição de ping" })
+        }
 }
