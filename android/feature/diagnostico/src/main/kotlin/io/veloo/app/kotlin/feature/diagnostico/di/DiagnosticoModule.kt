@@ -11,6 +11,7 @@ import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
 import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
 import io.signallq.app.feature.diagnostico.remote.DiagnosticDivergenceReporter
 import io.signallq.app.feature.diagnostico.remote.DiagnosticRolloutStatusRepository
+import io.signallq.app.feature.diagnostico.remote.FileProviderDirectoryCacheStore
 import io.signallq.app.feature.diagnostico.remote.FileRulesetCacheStore
 import io.signallq.app.feature.diagnostico.remote.ProviderDirectoryRepository
 import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
@@ -153,11 +154,22 @@ object DiagnosticoModule {
      * de provedores de cauda longa (logo + contato). Consumido pelo resolver de
      * identidade de operadora em `:app` (catalogo local -> este repository ->
      * fallback generico), nunca direto por Composable.
+     *
+     * GH#1462: [FileProviderDirectoryCacheStore] persiste o ultimo resultado valido
+     * de cada consulta (por id/por nome) em `filesDir/provider_directory` (nunca
+     * `cacheDir`, mesmo raciocinio de [FileRulesetCacheStore] em GH#1450) — falha de
+     * rede tenta esse cache (TTL de 48h, ver `ProviderDirectoryRepository`) antes de
+     * cair no fallback generico/catalogo local em [io.signallq.app.ui.OperadoraDirectoryResolver].
      */
     @Provides
     @Singleton
-    fun provideProviderDirectoryRepository(): ProviderDirectoryRepository =
-        ProviderDirectoryRepository(baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL)
+    fun provideProviderDirectoryRepository(
+        @ApplicationContext ctx: Context,
+    ): ProviderDirectoryRepository =
+        ProviderDirectoryRepository(
+            baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL,
+            cacheStore = FileProviderDirectoryCacheStore(File(ctx.filesDir, "provider_directory")),
+        )
 
     /**
      * Provê TopologyDiagnostic no grafo Hilt.
