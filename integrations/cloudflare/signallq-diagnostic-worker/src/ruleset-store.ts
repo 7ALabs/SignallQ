@@ -180,18 +180,40 @@ export async function updateRolloutConfig(
   return { ok: true };
 }
 
+/**
+ * GH#1445 (achado do Rhodolfo na revisao da PR #1455) — antes, rollback forcava
+ * `rollout_percent = 100` no ruleset restaurado, reintroduzindo pela porta dos
+ * fundos exatamente o comportamento que este PR corrigiu em [publishRuleset]
+ * (exposicao remota nunca deve ser default silencioso). Um rollback normalmente
+ * acontece sob pressao (bug em producao) — forcar 100% automaticamente expunha
+ * 100% das instalacoes ao shadow mode do ruleset restaurado sem nenhuma decisao
+ * explicita do operador.
+ *
+ * Correcao: preserva o `rollout_percent` (e segmentacao) que o proprio ruleset
+ * restaurado ja tinha na coluna — nunca sobrescrito quando ele deixou de estar
+ * PUBLISHED (nem em [publishRuleset], que so muda o status pra ROLLED_BACK, nem
+ * aqui). `COALESCE(..., 0)` e so defesa extra (coluna e NOT NULL DEFAULT 0,
+ * nunca deveria vir null) — se por algum motivo vier null, cai pra 0/dark,
+ * nunca assume 100.
+ */
 export async function rollbackRuleset(db: D1Database, version: number, actor: string): Promise<void> {
   const now = new Date().toISOString();
   await db.prepare("UPDATE diagnostic_rulesets SET status = 'ROLLED_BACK', updated_at = ? WHERE version = ?").bind(now, version).run();
   const previous = await db.prepare(
-    "SELECT version FROM diagnostic_rulesets WHERE version < ? ORDER BY version DESC LIMIT 1",
-  ).bind(version).first<{ version: number }>();
+    "SELECT version, rollout_percent FROM diagnostic_rulesets WHERE version < ? ORDER BY version DESC LIMIT 1",
+  ).bind(version).first<{ version: number; rollout_percent: number | null }>();
   if (previous) {
     await db.prepare(
-      "UPDATE diagnostic_rulesets SET status = 'PUBLISHED', rollout_percent = 100, updated_at = ?, published_at = COALESCE(published_at, ?) WHERE version = ?",
+      "UPDATE diagnostic_rulesets SET status = 'PUBLISHED', rollout_percent = COALESCE(rollout_percent, 0), updated_at = ?, published_at = COALESCE(published_at, ?) WHERE version = ?",
     ).bind(now, now, previous.version).run();
   }
   await db.prepare(
     "INSERT INTO diagnostic_rule_audit_log (id, ruleset_version, action, actor, created_at, details_json) VALUES (?, ?, 'rollback', ?, ?, ?)",
-  ).bind(crypto.randomUUID(), version, actor, now, JSON.stringify({ version, restoredVersion: previous?.version ?? null })).run();
+  ).bind(
+    crypto.randomUUID(),
+    version,
+    actor,
+    now,
+    JSON.stringify({ version, restoredVersion: previous?.version ?? null, restoredRolloutPercent: previous?.rollout_percent ?? 0 }),
+  ).run();
 }

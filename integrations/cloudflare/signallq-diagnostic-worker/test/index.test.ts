@@ -1249,6 +1249,77 @@ test("endpoint de rollout recusa atualizar ruleset que nao esta PUBLISHED", asyn
   assert.equal(rolloutUpdateResponse.status, 409);
 });
 
+test("rollback preserva o rollout_percent anterior do ruleset restaurado, nunca forca 100% (achado Rhodolfo, PR #1455)", async () => {
+  const db = new FakeD1Database();
+  const pepper = "pepper-test";
+  const cookie = await loginAsRolloutAdmin(db, pepper);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper };
+
+  // v15 publicado a 40% — depois vira ROLLED_BACK quando v16 for publicado,
+  // mas a coluna rollout_percent dele deve continuar guardando 40, nao ser
+  // zerada nem sobrescrita.
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ ruleset: draftRulesetPayload(15) }),
+    }),
+    env,
+  );
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/15/publish", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 40 }),
+    }),
+    env,
+  );
+
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ ruleset: draftRulesetPayload(16) }),
+    }),
+    env,
+  );
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/16/publish", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 10 }),
+    }),
+    env,
+  );
+
+  const rollbackResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/16/rollback", {
+      method: "POST",
+      headers: { Cookie: cookie },
+    }),
+    env,
+  );
+  assert.equal(rollbackResponse.status, 200);
+
+  const listResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", { headers: { Cookie: cookie } }),
+    env,
+  );
+  const listPayload = await listResponse.json() as {
+    items: Array<{ version: number; status: string; rollout_percent: number }>;
+  };
+  const restored = listPayload.items.find((item) => item.version === 15);
+  const rolledBack = listPayload.items.find((item) => item.version === 16);
+  assert.equal(restored?.status, "PUBLISHED");
+  assert.equal(restored?.rollout_percent, 40, "rollback nao deve reativar rollout em 100% sem decisao explicita");
+  assert.equal(rolledBack?.status, "ROLLED_BACK");
+
+  const rolloutStatus = await worker.fetch(new Request("https://example.com/diagnostic/rollout-status"), env);
+  const statusPayload = await rolloutStatus.json() as { rulesetVersion: number; rolloutPercent: number };
+  assert.equal(statusPayload.rulesetVersion, 15);
+  assert.equal(statusPayload.rolloutPercent, 40);
+});
+
 // ============================================================================
 // GH#955 — fronteiras de threshold (latencia/bufferbloat) alinhadas ao motor
 // Android real (MetricClassifier.kt). Ver .claude/skills/regras-diagnostico-rede.

@@ -300,15 +300,15 @@ export class FakeD1Database {
       return;
     }
 
-    // Rollback restaura a versao anterior a 100% (literal, nao parametrizado —
-    // semantica de rollback nao mudou nesta issue, so publish/update ficaram
-    // parametrizados).
-    if (q.startsWith("update diagnostic_rulesets set status = 'published', rollout_percent = 100")) {
+    // GH#1445 (correcao pos-revisao Rhodolfo, PR #1455) — rollback preserva o
+    // rollout_percent que o ruleset restaurado ja tinha na coluna (nunca forca
+    // 100 mais), so `COALESCE(..., 0)` como defesa contra null.
+    if (q.startsWith("update diagnostic_rulesets set status = 'published', rollout_percent = coalesce(rollout_percent, 0)")) {
       const [updatedAt, publishedAt, version] = bindings;
       const row = this.diagnosticRulesets.get(Number(version));
       if (row) {
         row.status = "PUBLISHED";
-        row.rollout_percent = 100;
+        row.rollout_percent = row.rollout_percent ?? 0;
         row.updated_at = updatedAt;
         row.published_at = row.published_at ?? publishedAt;
       }
@@ -802,10 +802,12 @@ export class FakeD1Database {
       return row ? { rules_json: row.rules_json } : null;
     }
 
-    if (q.startsWith("select version from diagnostic_rulesets where version < ? order by version desc limit 1")) {
+    if (q.startsWith("select version, rollout_percent from diagnostic_rulesets where version < ? order by version desc limit 1")) {
       const [version] = bindings;
       const previous = [...this.diagnosticRulesets.keys()].filter((key) => key < Number(version)).sort((a, b) => b - a)[0];
-      return typeof previous === "number" ? { version: previous } : null;
+      if (typeof previous !== "number") return null;
+      const previousRow = this.diagnosticRulesets.get(previous);
+      return { version: previous, rollout_percent: previousRow?.rollout_percent ?? 0 };
     }
 
     if (q.startsWith("select id, display_name, legal_name, cnpj, provider_type, status, official_domain,")) {
