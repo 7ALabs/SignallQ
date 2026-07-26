@@ -893,6 +893,7 @@ fun AppShell(
                         overlayStack.remove(Overlay.ResultadoVelocidade)
                         selectedTab = 0
                     },
+                    adsEnabled = podeRequisitarAnuncio && adsFlags.habilitadoPara(AdSlot.JOGOS),
                 )
             }
 

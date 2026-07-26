@@ -84,6 +84,10 @@ fun ModoGamerScreen(
     onSalvarPadrao: suspend (jogoId: String?, categoriaFallback: String?, deviceId: String) -> Unit,
     onVoltar: () -> Unit,
     onIrParaHome: () -> Unit,
+    /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555,
+     *  reconectado do fluxo legado "Jogos" (GH#935) pela issue #1489. Default `false`: nunca
+     *  mostra anuncio sem sinal explicito de que pode. */
+    adsEnabled: Boolean = false,
 ) {
     val c = LocalLkTokens.current
     val scope = rememberCoroutineScope()
@@ -165,6 +169,7 @@ fun ModoGamerScreen(
                     analisadorState = analisadorState,
                     onTrocarJogoOuDevice = viewModel::trocarJogoOuDevice,
                     onIrParaHome = onIrParaHome,
+                    adsEnabled = adsEnabled,
                 )
             }
         }

@@ -43,6 +43,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.signallq.app.ads.AdSlot
+import io.signallq.app.ads.AdUnitIds
+import io.signallq.app.ads.NativeAdContentSignals
 import io.signallq.app.core.diagnostico.DeviceJogo
 import io.signallq.app.feature.diagnostico.topology.lan.NatUdpResultado
 import io.signallq.app.feature.diagnostico.topology.lan.NatUdpTipo
@@ -54,10 +57,13 @@ import io.signallq.app.modogamer.icone
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.ads.rememberNativeAd
 import io.signallq.app.ui.component.AcoesRecomendadasCard
 import io.signallq.app.ui.component.AiVsMotorExplainer
 import io.signallq.app.ui.component.DiagnosticoStatusBanner
 import io.signallq.app.ui.component.LkSectionOverline
+import io.signallq.app.ui.component.ads.NativeAdCard
+import io.signallq.app.ui.component.ads.NativeAdSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -262,10 +268,18 @@ internal fun ModoGamerResultadoConteudo(
     analisadorState: AnalisadorState,
     onTrocarJogoOuDevice: () -> Unit,
     onIrParaHome: () -> Unit,
+    /** Toggle remoto (Firebase Remote Config) + gate de consentimento UMP -- issue #555,
+     *  reconectado do fluxo legado "Jogos" (GH#935) pela issue #1489. Default `false`: nunca
+     *  mostra anuncio sem sinal explicito de que pode. */
+    adsEnabled: Boolean = false,
 ) {
     val c = LocalLkTokens.current
     val resultado = etapa.resultado
     val fallback = etapa.selecaoJogo is SelecaoJogoModoGamer.ForaDoCatalogo
+    // Issue #1489 -- dispensar o anuncio e estado de sessao (some ate o proximo resultado
+    // recompor a tela do zero); nunca persistido, nunca conta como feedback de recomendacao.
+    // Mesmo padrao de ResultadoVelocidadeScreen/JogosScreen (issue #555).
+    var nativeAdDismissedModoGamer by remember { mutableStateOf(false) }
 
     Column(
         modifier =
@@ -330,6 +344,20 @@ internal fun ModoGamerResultadoConteudo(
         if (etapa.natUdp != null) {
             Spacer(Modifier.height(LkSpacing.sm))
             ModoGamerNatUdpRow(natUdp = etapa.natUdp)
+        }
+
+        if (!nativeAdDismissedModoGamer) {
+            Spacer(Modifier.height(LkSpacing.lg))
+            val nativeAd by rememberNativeAd(
+                adUnitId = AdUnitIds.para(AdSlot.JOGOS),
+                contentSignal = NativeAdContentSignals.forSlot(AdSlot.JOGOS),
+                eligible = adsEnabled,
+            )
+            NativeAdCard(
+                nativeAd = nativeAd,
+                source = NativeAdSource.ADMOB,
+                onDismiss = { nativeAdDismissedModoGamer = true },
+            )
         }
 
         Spacer(Modifier.height(LkSpacing.lg))

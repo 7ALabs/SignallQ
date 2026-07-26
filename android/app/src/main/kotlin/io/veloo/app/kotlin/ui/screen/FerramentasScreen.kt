@@ -144,8 +144,8 @@ fun FerramentasScreen(
                 add(
                     FerramentaItem(
                         icon = Icons.Outlined.SportsEsports,
-                        titulo = "Jogos",
-                        descricao = "Games multiplayer e dicas para PS5, Xbox e PC",
+                        titulo = "Modo Jogos",
+                        descricao = "Teste sua conexão para 21 jogos, em qualquer dispositivo",
                         onClick = onAbrirJogos,
                     ),
                 )
