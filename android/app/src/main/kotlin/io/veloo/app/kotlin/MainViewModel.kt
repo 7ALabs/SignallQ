@@ -80,6 +80,7 @@ import io.signallq.app.feature.history.ObservadorHistoricoRoom
 import io.signallq.app.feature.history.ResumoHistorico
 import io.signallq.app.feature.speedtest.ExecutorSpeedtest
 import io.signallq.app.feature.speedtest.ModoSpeedtest
+import io.signallq.app.featureflags.ConsumerFeatureGateCoordinator
 import io.signallq.app.monitoramento.MonitoramentoScheduler
 import io.signallq.app.network.IspInfoCache
 import io.signallq.app.notificacao.SignallQNotificationHelper
@@ -92,6 +93,7 @@ import io.signallq.app.ui.GatewayInfo
 import io.signallq.app.ui.HistoryPoint
 import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.screen.AnalisadorState
+import io.signallq.app.ui.screen.AppShellFeatureFlagsState
 import io.signallq.app.ui.screen.resolverNetworkIdAtual
 import io.signallq.app.ui.state.UiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -172,6 +174,10 @@ class MainViewModel
         /** GH#919 — repassado ao SignallQOrchestrator para correlacionar feature_used("diagnostico")
          *  com diagnostic_sessions.id real (schema SIG-134, distinto do funil AnalyticsHelper acima). */
         private val analyticsTracker: AnalyticsTracker,
+        /** GH#1480 (Epico #1347, F4) — deriva [featureFlagsState] do FeatureFlagProvider real
+         *  (F1/#1477). Toda a logica de flag mora no coordinator, nao aqui (regra de higiene
+         *  4.2 -- MainViewModel nao ganha responsabilidade nova). */
+        private val featureGateCoordinator: ConsumerFeatureGateCoordinator,
     ) : AndroidViewModel(application) {
         private companion object {
             const val LOG_TAG = "SignallQSpeedtestSuite"
@@ -208,6 +214,10 @@ class MainViewModel
         // O underscore no construtor e convencao para parametros que viram val publico.
         val diagnosticOrchestrator: DiagnosticOrchestrator = _diagnosticOrchestrator
         val movelSnapshot: StateFlow<MovelSnapshot?> get() = monitorTelephony.snapshotFlow
+
+        // GH#1480 (Epico #1347, F4) — gate de navegacao dos 9 modulos feature do Consumer,
+        // ja resolvido em booleano (ver ConsumerFeatureGateCoordinator).
+        val featureFlagsState: StateFlow<AppShellFeatureFlagsState> get() = featureGateCoordinator.uiState
 
         private val _analisadorState = MutableStateFlow<AnalisadorState>(AnalisadorState.Inativo)
         val analisadorState: StateFlow<AnalisadorState> = _analisadorState

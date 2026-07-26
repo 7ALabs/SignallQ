@@ -250,6 +250,21 @@ telas ou superfícies descontinuadas, módulos que já mudaram de localização.
 funcionalidade, atualize somente a documentação diretamente relacionada — não revise todos os
 documentos do projeto dentro de uma tarefa comum.
 
+### 4.11 Espaçamento hardcoded em vez de token (Android)
+
+Auditoria (Juninho, 2026-07-26): ~270 ocorrências de `.dp` literal em `padding()`/`size()`/
+`width()`/`height()`/`offset()` direto em Composables do Consumer (`android/app/.../ui/component/`,
+`ui/screen/`), em vez de constante de espaçamento do design system. Tipografia está limpa (zero
+achado — tudo via `MaterialTheme.typography.*`); cor está majoritariamente limpa (as ocorrências de
+`Color(0xFF...)` encontradas são cor de marca de operadora/WhatsApp, não violação — ver #1499 pros
+6 casos reais de `Color.White` hardcoded).
+
+Volume disperso demais (~9 telas/componentes diferentes) pra virar um bug único executável — não
+abrir issue "arrumar espaçamento do app inteiro". Se for tocar em um desses arquivos por outro
+motivo, aproveite pra trocar o `.dp` literal local por token, sem expandir a tarefa. Migração
+completa e deliberada (se algum dia for priorizada) deve ser incremental por tela, não
+correção-em-massa numa PR só.
+
 ---
 
 ## 5. Convenção de módulos

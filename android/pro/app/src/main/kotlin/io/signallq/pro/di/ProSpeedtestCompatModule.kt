@@ -108,4 +108,8 @@ private object NoOpAnalyticsTrackerPro : AnalyticsTracker {
         level: Int,
         charging: Boolean,
     ) = Unit
+
+    // GH#1480 -- feature flags do Consumer (:core:featureflags) nao se aplicam ao Pro
+    // (fora de escopo do Epico #1347), mas o contrato precisa do metodo mesmo assim.
+    override fun registrarFeatureBloqueadaRemota(featureId: String) = Unit
 }

@@ -197,12 +197,15 @@ de **substituir** o sistema SIG-13 descrito neste documento — não é mais um 
 - **Governança completa pelo SignallQ Admin** (criar/editar/publicar/rollback parâmetros, ETag,
   auditoria) é o objetivo do Épico #1347 — ainda não implementada (F2/#1478 backend, F3/#1479 UI).
 
-**Estado real em 2026-07-26 (GH#1477, só a fundação Android):** módulo `:core:featureflags`
-criado, `FeatureFlagProvider` funcional sobre Firebase Remote Config, 2 flags de smoke-test no
-catálogo (`consumer.speedtest.enabled`, `consumer.speedtest.cloudflare_engine_enabled`) —
-**nenhuma delas gateia código real ainda** (`androidImplemented=false`; instrumentar os 9 módulos
-feature reais é F4/#1480). O sistema SIG-13 acima continua em produção sem mudança nenhuma até a
-migração acontecer.
+**Estado real em 2026-07-26:** fundação Android (GH#1477) criou o módulo `:core:featureflags` e o
+`FeatureFlagProvider` funcional sobre Firebase Remote Config. F4 (GH#1480, mesmo dia) instrumentou
+de verdade as 9 flags principais de módulo (`consumer.{modulo}.enabled` — home, speedtest, wifi,
+devices, dns, fibra, diagnostico, history, settings), todas `androidImplemented=true`, gateando
+tab/overlay em `AppShell.kt` (detalhe completo:
+`docs_ai/technical/feature-flags-remote-config.md`, seção 10). Só
+`consumer.speedtest.cloudflare_engine_enabled` continua smoke-test (`androidImplemented=false`).
+O sistema SIG-13 acima continua em produção sem mudança nenhuma — a migração dos consumidores
+legados pro sistema novo ainda não aconteceu.
 
 Detalhe técnico completo (schema, contratos, decisões de arquitetura): ver
 `docs_ai/technical/feature-flags-remote-config.md`.

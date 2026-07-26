@@ -240,6 +240,8 @@ class MainActivity : ComponentActivity() {
             val anatelBannerDismissed = viewModel.anatelBannerDismissed.collectAsStateWithLifecycle().value
             // Issue #555 -- toggle remoto (Firebase Remote Config) de anuncios nativos.
             val adsFlags by adsFlagsManager.flags.collectAsStateWithLifecycle()
+            // GH#1480 (Epico #1347, F4) -- gate de navegacao dos 9 modulos feature do Consumer.
+            val featureFlagsState by viewModel.featureFlagsState.collectAsStateWithLifecycle()
 
             val gatewayIpDetectado = gateways.firstOrNull()?.ip
             val darkTheme =
@@ -409,6 +411,7 @@ class MainActivity : ComponentActivity() {
                                 flags = adsFlags,
                                 podeRequisitarAnuncio = podeRequisitarAnuncio,
                             ),
+                        featureFlags = featureFlagsState,
                         snapshotDns = snapshotDns,
                         history = history,
                         localIp = localIpUiState,

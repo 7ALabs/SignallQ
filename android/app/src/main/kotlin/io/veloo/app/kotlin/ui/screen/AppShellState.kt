@@ -144,3 +144,31 @@ data class AppShellAdsState(
     val flags: AdsFlags = AdsFlags.DESLIGADO,
     val podeRequisitarAnuncio: Boolean = false,
 )
+
+/**
+ * Estado de gate de navegacao dos 9 modulos `:feature:*` do Consumer via Firebase Remote
+ * Config (Epico #1347, F4/#1480) -- ja resolvido em booleano (default local do catalogo
+ * ate o primeiro fetch, valor remoto depois). AppShell nunca consulta `FeatureFlagProvider`
+ * diretamente; so le estes campos (ver [io.signallq.app.featureflags.ConsumerFeatureGateCoordinator],
+ * que produz este estado a partir do provider real).
+ *
+ * Todo default e `true` (as 9 features ja sao publicadas/estaveis -- ver KDoc da issue).
+ * [Overlay.Privacidade]/[Overlay.Termos] (obrigacao legal/LGPD) e o proprio hub Ferramentas
+ * (nao pertencem a um unico modulo) nunca sao gateados por nenhum destes campos.
+ */
+@Stable
+data class AppShellFeatureFlagsState(
+    val homeEnabled: Boolean = true,
+    val speedtestEnabled: Boolean = true,
+    val wifiEnabled: Boolean = true,
+    val devicesEnabled: Boolean = true,
+    val dnsEnabled: Boolean = true,
+    val fibraEnabled: Boolean = true,
+    val diagnosticoEnabled: Boolean = true,
+    val historyEnabled: Boolean = true,
+    val settingsEnabled: Boolean = true,
+    /** Chamado quando o usuario tenta alcancar uma rota/overlay cujo modulo esta desligado --
+     *  [moduleId] e o identificador curto (ex.: "wifi", "dns"), mesmo padrao ja usado por
+     *  `analyticsTracker.registrarFeatureUsada` nos call sites de MainActivity. */
+    val onFeatureBlocked: (moduleId: String) -> Unit = {},
+)
