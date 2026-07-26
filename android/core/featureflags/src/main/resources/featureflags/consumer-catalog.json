@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "flags": [
+    {
+      "key": "consumer.speedtest.enabled",
+      "module": ":featureSpeedtest",
+      "type": "BOOLEAN",
+      "defaultValue": true,
+      "criticality": "HIGH",
+      "owner": "product-signallq",
+      "description": "Controla acesso e execucao do SpeedTest.",
+      "disabledBehavior": "HIDE_ENTRY_AND_BLOCK_ROUTE",
+      "disabledMessage": "Recurso temporariamente indisponivel.",
+      "dependencies": [],
+      "androidImplemented": false,
+      "adminManaged": true,
+      "analyticsEvent": "feature_blocked_remote"
+    },
+    {
+      "key": "consumer.speedtest.cloudflare_engine_enabled",
+      "module": ":featureSpeedtest",
+      "type": "BOOLEAN",
+      "defaultValue": true,
+      "criticality": "MEDIUM",
+      "owner": "product-signallq",
+      "description": "Controla se o motor de SpeedTest usa o backend Cloudflare (__down/__up) como provedor primario.",
+      "disabledBehavior": "SILENT_NO_OP",
+      "disabledMessage": null,
+      "dependencies": ["consumer.speedtest.enabled"],
+      "androidImplemented": false,
+      "adminManaged": true,
+      "analyticsEvent": null
+    }
+  ]
+}

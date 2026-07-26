@@ -8,6 +8,7 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics
 import dagger.hilt.android.HiltAndroidApp
 import io.signallq.app.ads.AdsFlagsManager
 import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.core.featureflags.FeatureFlagProvider
 import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.di.ApplicationScope
 import io.signallq.app.featureflags.FeatureFlagManager
@@ -36,6 +37,11 @@ class SignallQApplication :
 
     @Inject
     lateinit var adsFlagsManager: AdsFlagsManager
+
+    // GH#1477 (Epico #1347) -- fundacao de feature flags do Consumer via Firebase
+    // Remote Config. Distinto do featureFlagManager legado (HTTP/SIG-13) acima.
+    @Inject
+    lateinit var consumerFeatureFlagProvider: FeatureFlagProvider
 
     @Inject
     lateinit var analyticsTracker: AnalyticsTracker
@@ -103,6 +109,13 @@ class SignallQApplication :
         // Toggle remoto de anuncios nativos (issue #555) via Firebase Remote Config.
         // Nao bloqueia o startup — fallback local e "desligado" ate o fetch completar.
         adsFlagsManager.inicializar(applicationScope)
+
+        // Fundacao de feature flags do Consumer (GH#1477, Epico #1347). Nao bloqueia o
+        // startup — defaults locais do catalogo ja ficam disponiveis desde a construcao
+        // do provider, o fetch so atualiza em background.
+        applicationScope.launch(Dispatchers.IO) {
+            consumerFeatureFlagProvider.refresh()
+        }
 
         // LGPD: desativa coleta Firebase por padrao. Reativa apenas apos consentimento explícito.
         // setAnalyticsCollectionEnabled deve ser chamado antes do collect para garantir ordem:
