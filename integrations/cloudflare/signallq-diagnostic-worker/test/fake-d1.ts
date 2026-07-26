@@ -247,6 +247,8 @@ export class FakeD1Database {
         engine_version: engineVersion,
         status: "DRAFT",
         rollout_percent: 0,
+        rollout_min_version_code: null,
+        rollout_channels: null,
         published_at: null,
         created_at: createdAt,
         updated_at: updatedAt,
@@ -268,15 +270,47 @@ export class FakeD1Database {
       return;
     }
 
-    if (q.startsWith("update diagnostic_rulesets set status = 'published'")) {
-      const [publishedAt, updatedAt, actor, version] = bindings;
+    // GH#1445 — publish agora recebe rollout_percent/rollout_min_version_code/
+    // rollout_channels explicitos (nao forca mais 100).
+    if (q.startsWith("update diagnostic_rulesets set status = 'published', rollout_percent = ?")) {
+      const [rolloutPercent, rolloutMinVersionCode, rolloutChannels, publishedAt, updatedAt, actor, version] = bindings;
+      const row = this.diagnosticRulesets.get(Number(version));
+      if (row) {
+        row.status = "PUBLISHED";
+        row.rollout_percent = Number(rolloutPercent);
+        row.rollout_min_version_code = rolloutMinVersionCode == null ? null : Number(rolloutMinVersionCode);
+        row.rollout_channels = (rolloutChannels as string | null) ?? null;
+        row.published_at = publishedAt;
+        row.updated_at = updatedAt;
+        row.author = row.author ?? actor;
+      }
+      return;
+    }
+
+    // GH#1445 — atualiza so o rollout do ruleset PUBLISHED atual, sem trocar status/versao.
+    if (q.startsWith("update diagnostic_rulesets set rollout_percent = ?")) {
+      const [rolloutPercent, rolloutMinVersionCode, rolloutChannels, updatedAt, version] = bindings;
+      const row = this.diagnosticRulesets.get(Number(version));
+      if (row) {
+        row.rollout_percent = Number(rolloutPercent);
+        row.rollout_min_version_code = rolloutMinVersionCode == null ? null : Number(rolloutMinVersionCode);
+        row.rollout_channels = (rolloutChannels as string | null) ?? null;
+        row.updated_at = updatedAt;
+      }
+      return;
+    }
+
+    // Rollback restaura a versao anterior a 100% (literal, nao parametrizado —
+    // semantica de rollback nao mudou nesta issue, so publish/update ficaram
+    // parametrizados).
+    if (q.startsWith("update diagnostic_rulesets set status = 'published', rollout_percent = 100")) {
+      const [updatedAt, publishedAt, version] = bindings;
       const row = this.diagnosticRulesets.get(Number(version));
       if (row) {
         row.status = "PUBLISHED";
         row.rollout_percent = 100;
-        row.published_at = publishedAt;
         row.updated_at = updatedAt;
-        row.author = row.author ?? actor;
+        row.published_at = row.published_at ?? publishedAt;
       }
       return;
     }
@@ -734,9 +768,31 @@ export class FakeD1Database {
       return { count: this.adminUsers.size };
     }
 
-    if (q.startsWith("select version, schema_version, engine_version, status, rollout_percent, published_at, updated_at, author, justification, rules_json from diagnostic_rulesets where version = ?")) {
+    if (q.startsWith("select version, schema_version, engine_version, status, rollout_percent, rollout_min_version_code, rollout_channels, published_at, updated_at, author, justification, rules_json from diagnostic_rulesets where version = ?")) {
       const [version] = bindings;
       return this.diagnosticRulesets.get(Number(version)) ?? null;
+    }
+
+    // GH#1445 — status isolado, usado por updateRolloutConfig pra validar alvo PUBLISHED.
+    if (q.startsWith("select status from diagnostic_rulesets where version = ?")) {
+      const [version] = bindings;
+      const row = this.diagnosticRulesets.get(Number(version));
+      return row ? { status: row.status } : null;
+    }
+
+    // GH#1445 — status de rollout do ruleset PUBLISHED atual (endpoint publico).
+    if (q.startsWith("select version, rollout_percent, rollout_min_version_code, rollout_channels from diagnostic_rulesets where status = 'published'")) {
+      const row = [...this.diagnosticRulesets.values()]
+        .filter((entry) => entry.status === "PUBLISHED")
+        .sort((left, right) => Number(right.version) - Number(left.version))[0];
+      return row
+        ? {
+            version: row.version,
+            rollout_percent: row.rollout_percent,
+            rollout_min_version_code: row.rollout_min_version_code ?? null,
+            rollout_channels: row.rollout_channels ?? null,
+          }
+        : null;
     }
 
     if (q.startsWith("select rules_json from diagnostic_rulesets where status = 'published'")) {
@@ -822,7 +878,7 @@ export class FakeD1Database {
   all(sql: string, bindings: unknown[]): Row[] {
     const q = normalize(sql);
 
-    if (q.startsWith("select version, schema_version, engine_version, status, rollout_percent, published_at, updated_at from diagnostic_rulesets")) {
+    if (q.startsWith("select version, schema_version, engine_version, status, rollout_percent, rollout_min_version_code, rollout_channels, published_at, updated_at from diagnostic_rulesets")) {
       return [...this.diagnosticRulesets.values()].sort((a, b) => Number(b.version) - Number(a.version));
     }
 

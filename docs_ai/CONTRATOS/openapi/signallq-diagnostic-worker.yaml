@@ -4,7 +4,7 @@ info:
   description: >
     Worker Cloudflare (nome técnico `signallq-diagnostic`, wrangler.toml) que hospeda o motor de
     diagnóstico determinístico (rulesets), o diretório de provedores (ISPs) e o catálogo de jogos
-    (GH#935/#951/#952/#956/#957/#960/#965/#971). Persistência em D1 (`signallq-diagnostic-db`).
+    (GH#935/#951/#952/#956/#957/#960/#965/#971/#1444/#1445). Persistência em D1 (`signallq-diagnostic-db`).
     CORS habilitado apenas para `/admin/*` (origem controlada por `ALLOWED_ORIGIN`, hoje
     `https://signallq-admin-panel.pages.dev`) — o app Android consome o worker
     server-to-server, fora de CORS.
@@ -89,6 +89,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ValidationErrorResponse"
+
+  /diagnostic/rollout-status:
+    get:
+      operationId: getDiagnosticRolloutStatus
+      summary: Status de rollout (percentual + segmentação) do ruleset PUBLISHED atual
+      description: >
+        GH#1445 (parte de #952). Alias equivalente: `GET /api/diagnostic/rollout-status`. Sem
+        autenticação — consumido pelo app Android ANTES de decidir se a instalação participa do
+        shadow mode (bucketing determinístico local, ver `RolloutBucketCalculator`/
+        `DiagnosticRolloutEligibility` no Kotlin). Sem ruleset PUBLISHED (D1 não configurado ou
+        nenhuma publicação ainda), devolve `rulesetVersion: null` e `rolloutPercent: 0` — fail
+        closed, nunca 100% implícito.
+      security: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiagnosticRolloutStatus" }
+
+  /api/diagnostic/rollout-status:
+    get:
+      operationId: getDiagnosticRolloutStatusAlias
+      summary: Alias de /diagnostic/rollout-status
+      security: []
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiagnosticRolloutStatus" }
 
   /games/catalog:
     get:
@@ -578,6 +607,14 @@ paths:
     post:
       operationId: publishRuleset
       summary: Publica um ruleset (torna-o o ativo; despublica o anterior)
+      description: >
+        GH#1445 (parte de #952): `rolloutPercent` deixou de ser sempre forçado a 100 no publish
+        (achado da auditoria #1441) — agora é parâmetro explícito. Body é opcional: omitido, publica
+        em 0% (modo dark, nenhuma instalação participa do shadow mode até alguém aumentar o rollout
+        via `POST /admin/diagnostic/rulesets/{version}/rollout` ou publicar de novo com percentual
+        maior) — nunca mais um default silencioso para 100%. `rolloutPercent` controla apenas quem
+        participa do shadow mode (comparação local-vs-remoto), NÃO quem vê o resultado remoto como
+        autoritativo.
       security:
         - sessionCookie: []
       parameters:
@@ -585,6 +622,11 @@ paths:
           in: path
           required: true
           schema: { type: integer }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RolloutConfigInput" }
       responses:
         "200":
           content:
@@ -595,8 +637,63 @@ paths:
                   ok: { type: boolean, enum: [true] }
                   version: { type: integer }
                   status: { type: string, enum: [PUBLISHED] }
+                  rollout: { $ref: "#/components/schemas/RolloutConfigInput" }
+        "400":
+          description: rolloutPercent/rolloutMinVersionCode/rolloutChannels fora do formato esperado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "500":
+          description: DB binding não configurado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/diagnostic/rulesets/{version}/rollout:
+    post:
+      operationId: updateRolloutConfig
+      summary: Atualiza SÓ o rollout (percentual + segmentação) do ruleset PUBLISHED atual
+      description: >
+        GH#1445 (parte de #952). Não cria nova versão nem troca o conteúdo do ruleset — só o
+        percentual/segmentação em vigor, sem redeploy (critério de aceite "reduzir rollout_percent
+        de volta pra 0 deve remover instalações do grupo sem redeploy"). Só aceita agir sobre o
+        ruleset que está HOJE com status PUBLISHED.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: version
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RolloutConfigInput" }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, enum: [true] }
+                  version: { type: integer }
+                  rollout: { $ref: "#/components/schemas/RolloutConfigInput" }
+        "400":
+          description: rolloutPercent/rolloutMinVersionCode/rolloutChannels fora do formato esperado
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: version não é o ruleset PUBLISHED atual (ou não existe)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
         "500":
           description: DB binding não configurado
           content:
@@ -1572,6 +1669,19 @@ components:
         engine_version: { type: integer }
         status: { type: string, enum: [DRAFT, PUBLISHED, ROLLED_BACK, BUNDLED_LOCAL] }
         rollout_percent: { type: integer }
+        rollout_min_version_code:
+          type: integer
+          nullable: true
+          description: "GH#1445. null = sem restrição de versão mínima."
+        rollout_channels:
+          type: array
+          nullable: true
+          items: { type: string }
+          description: >
+            GH#1445. null/vazio = sem restrição de canal. Persistido no D1 como string separada por
+            vírgula (`rollout_channels` coluna TEXT) — `listRulesets`/`getRuleset` devolvem o valor
+            bruto da coluna (string), não a lista já parseada (diferente de
+            `GET /diagnostic/rollout-status`, que devolve array — ver `DiagnosticRolloutStatus`).
         published_at: { type: string, format: date-time, nullable: true }
         updated_at: { type: string, format: date-time }
       description: >
@@ -1579,6 +1689,43 @@ components:
         retorna as linhas do D1 sem remapear para camelCase (diferente do resto da API) — confirmado
         em `ruleset-store.ts`, mas vale reconferir se isso é intencional ou uma inconsistência a
         corrigir.
+
+    RolloutConfigInput:
+      type: object
+      description: >
+        GH#1445 (parte de #952). Body de `POST .../publish` (opcional) e `POST .../rollout`
+        (obrigatório). `percent` controla só a participação no shadow mode (comparação
+        local-vs-remoto) — nunca quem vê o resultado remoto como autoritativo.
+      properties:
+        rolloutPercent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: "Omitido no publish = 0 (dark). Sem default no endpoint de rollout (campo obrigatório lá)."
+        rolloutMinVersionCode:
+          type: integer
+          nullable: true
+          description: "versionCode mínimo do app elegível. null = sem restrição."
+        rolloutChannels:
+          type: array
+          nullable: true
+          items: { type: string, example: play_store }
+          description: "Canais elegíveis (distributionChannel() do Android). null/vazio = sem restrição."
+
+    DiagnosticRolloutStatus:
+      type: object
+      description: "GH#1445 (parte de #952). Resposta pública de GET /diagnostic/rollout-status."
+      properties:
+        rulesetVersion:
+          type: integer
+          nullable: true
+          description: "null = nenhum ruleset PUBLISHED (D1 não configurado ou nunca publicado)."
+        rolloutPercent: { type: integer }
+        rolloutMinVersionCode: { type: integer, nullable: true }
+        rolloutChannels:
+          type: array
+          nullable: true
+          items: { type: string }
 
     ProviderLogo:
       type: object

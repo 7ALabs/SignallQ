@@ -986,11 +986,14 @@ test("admin ruleset draft publish and rollback work with authenticated session",
   const publishResponse = await worker.fetch(
     new Request("https://example.com/admin/diagnostic/rulesets/7/publish", {
       method: "POST",
-      headers: { Cookie: cookie },
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 25 }),
     }),
     { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper },
   );
   assert.equal(publishResponse.status, 200);
+  const publishPayload = await publishResponse.json() as { rollout: { rolloutPercent: number } };
+  assert.equal(publishPayload.rollout.rolloutPercent, 25);
 
   const listResponse = await worker.fetch(
     new Request("https://example.com/admin/diagnostic/rulesets", {
@@ -998,9 +1001,10 @@ test("admin ruleset draft publish and rollback work with authenticated session",
     }),
     { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper },
   );
-  const listPayload = await listResponse.json() as { items: Array<{ version: number; status: string }> };
+  const listPayload = await listResponse.json() as { items: Array<{ version: number; status: string; rollout_percent: number }> };
   assert.equal(listResponse.status, 200);
   assert.equal(listPayload.items[0]?.status, "PUBLISHED");
+  assert.equal(listPayload.items[0]?.rollout_percent, 25);
 
   const rollbackResponse = await worker.fetch(
     new Request("https://example.com/admin/diagnostic/rulesets/7/rollback", {
@@ -1010,6 +1014,239 @@ test("admin ruleset draft publish and rollback work with authenticated session",
     { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper },
   );
   assert.equal(rollbackResponse.status, 200);
+});
+
+// ============================================================================
+// GH#1445 (parte de #952) — rollout gradual + segmentacao: rollout_percent
+// deixa de ser sempre 100 no publish, ganha endpoint de atualizacao in-place
+// (reversibilidade sem redeploy) e status publico consumido pelo Android.
+// ============================================================================
+
+async function loginAsRolloutAdmin(db: FakeD1Database, pepper: string): Promise<string> {
+  const passwordHash = await hashPassword("secret123", pepper);
+  db.adminUsers.set("user-1", {
+    id: "user-1",
+    email: "admin@example.com",
+    password_hash: passwordHash,
+    role: "admin",
+    active: 1,
+    created_at: 1,
+    last_login: null,
+  });
+  db.adminUsersByEmail.set("admin@example.com", "user-1");
+
+  const loginResponse = await worker.fetch(
+    jsonRequest("https://example.com/admin/auth/login", {
+      email: "admin@example.com",
+      password: "secret123",
+    }),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper },
+  );
+  return loginResponse.headers.get("set-cookie") ?? "";
+}
+
+function draftRulesetPayload(version: number) {
+  return {
+    version,
+    schemaVersion: 6,
+    engineVersion: 3,
+    publishedAt: "2026-07-26T00:00:00.000Z",
+    rules: [
+      {
+        ruleId: `draft_rule_${version}`,
+        ruleVersion: 1,
+        enabled: true,
+        priority: 50,
+        minimumSchemaVersion: 6,
+        conditions: [{ field: "quality.latencyMs", operator: "GT", value: 100 }],
+        result: {
+          findingCode: "DRAFT_RULE",
+          category: "internet",
+          severity: "WARNING",
+          confidence: "HIGH",
+          recommendationId: "RETEST",
+        },
+      },
+    ],
+  };
+}
+
+test("publish sem body publica em 0% (nunca mais forca 100 silenciosamente — achado #1441)", async () => {
+  const db = new FakeD1Database();
+  const pepper = "pepper-test";
+  const cookie = await loginAsRolloutAdmin(db, pepper);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ ruleset: draftRulesetPayload(10) }),
+    }),
+    env,
+  );
+
+  const publishResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/10/publish", {
+      method: "POST",
+      headers: { Cookie: cookie },
+    }),
+    env,
+  );
+  assert.equal(publishResponse.status, 200);
+  const payload = await publishResponse.json() as { rollout: { rolloutPercent: number } };
+  assert.equal(payload.rollout.rolloutPercent, 0);
+
+  const rolloutStatus = await worker.fetch(new Request("https://example.com/diagnostic/rollout-status"), env);
+  const statusPayload = await rolloutStatus.json() as { rulesetVersion: number; rolloutPercent: number };
+  assert.equal(statusPayload.rulesetVersion, 10);
+  assert.equal(statusPayload.rolloutPercent, 0);
+});
+
+test("publish rejeita rolloutPercent fora de 0-100", async () => {
+  const db = new FakeD1Database();
+  const pepper = "pepper-test";
+  const cookie = await loginAsRolloutAdmin(db, pepper);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ ruleset: draftRulesetPayload(11) }),
+    }),
+    env,
+  );
+
+  const publishResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/11/publish", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 150 }),
+    }),
+    env,
+  );
+  assert.equal(publishResponse.status, 400);
+});
+
+test("publish aceita segmentacao por versao minima e canal do app", async () => {
+  const db = new FakeD1Database();
+  const pepper = "pepper-test";
+  const cookie = await loginAsRolloutAdmin(db, pepper);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ ruleset: draftRulesetPayload(12) }),
+    }),
+    env,
+  );
+
+  const publishResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/12/publish", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 50, rolloutMinVersionCode: 320, rolloutChannels: ["play_store"] }),
+    }),
+    env,
+  );
+  assert.equal(publishResponse.status, 200);
+
+  const rolloutStatus = await worker.fetch(new Request("https://example.com/diagnostic/rollout-status"), env);
+  const statusPayload = await rolloutStatus.json() as {
+    rolloutPercent: number;
+    rolloutMinVersionCode: number | null;
+    rolloutChannels: string[] | null;
+  };
+  assert.equal(statusPayload.rolloutPercent, 50);
+  assert.equal(statusPayload.rolloutMinVersionCode, 320);
+  assert.deepEqual(statusPayload.rolloutChannels, ["play_store"]);
+});
+
+test("rollout-status sem ruleset publicado devolve 0% (fail closed)", async () => {
+  const db = new FakeD1Database();
+  const response = await worker.fetch(
+    new Request("https://example.com/diagnostic/rollout-status"),
+    { DB: db as unknown as D1Database },
+  );
+  const payload = await response.json() as { rulesetVersion: number | null; rolloutPercent: number };
+  assert.equal(response.status, 200);
+  assert.equal(payload.rulesetVersion, null);
+  assert.equal(payload.rolloutPercent, 0);
+});
+
+test("endpoint de rollout reduz o percentual do ruleset PUBLISHED atual sem redeploy (in-place, sem trocar versao)", async () => {
+  const db = new FakeD1Database();
+  const pepper = "pepper-test";
+  const cookie = await loginAsRolloutAdmin(db, pepper);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ ruleset: draftRulesetPayload(13) }),
+    }),
+    env,
+  );
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/13/publish", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 50 }),
+    }),
+    env,
+  );
+
+  const rolloutUpdateResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/13/rollout", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 0 }),
+    }),
+    env,
+  );
+  assert.equal(rolloutUpdateResponse.status, 200);
+
+  const rolloutStatus = await worker.fetch(new Request("https://example.com/diagnostic/rollout-status"), env);
+  const statusPayload = await rolloutStatus.json() as { rulesetVersion: number; rolloutPercent: number };
+  assert.equal(statusPayload.rulesetVersion, 13);
+  assert.equal(statusPayload.rolloutPercent, 0);
+
+  const listResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", { headers: { Cookie: cookie } }),
+    env,
+  );
+  const listPayload = await listResponse.json() as { items: Array<{ version: number; status: string }> };
+  assert.equal(listPayload.items.find((item) => item.version === 13)?.status, "PUBLISHED");
+});
+
+test("endpoint de rollout recusa atualizar ruleset que nao esta PUBLISHED", async () => {
+  const db = new FakeD1Database();
+  const pepper = "pepper-test";
+  const cookie = await loginAsRolloutAdmin(db, pepper);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ ruleset: draftRulesetPayload(14) }),
+    }),
+    env,
+  );
+
+  const rolloutUpdateResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/14/rollout", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 30 }),
+    }),
+    env,
+  );
+  assert.equal(rolloutUpdateResponse.status, 409);
 });
 
 // ============================================================================
