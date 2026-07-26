@@ -8,6 +8,7 @@ import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.JogoCatalogoModoGamer
 import io.signallq.app.core.diagnostico.ModoGamerEngine
 import io.signallq.app.core.diagnostico.ResultadoModoGamer
+import io.signallq.app.feature.diagnostico.topology.lan.NatUdpResultado
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -57,14 +58,20 @@ sealed interface ModoGamerEtapa {
         val device: DeviceJogo,
         val resultado: ResultadoModoGamer,
         val salvoComoPadrao: Boolean,
+        // Issue #1487 (fusão com GH#935) — resultado opcional do StunNatProbe reaproveitado
+        // do legado, ver ModoGamerConfigConteudo/medirPingEspecifico. Puramente informativo
+        // (não é dimensão de [ResultadoModoGamer] — `core/diagnostico` não pode depender de
+        // `feature/diagnostico`), null quando o usuário não pediu a medição dedicada.
+        val natUdp: NatUdpResultado? = null,
     ) : ModoGamerEtapa
 }
 
 /**
- * ViewModel do fluxo de 3 etapas do Modo gamer (Feature #550, issue #1476): jogo → device →
- * salvar como padrão/usar uma vez → resultado. Não é `@HiltViewModel` — criado via
- * `remember{}` no Composable, mesmo padrão do [io.signallq.app.jogos.JogosViewModel] (escopo
- * do overlay, sem necessidade de sobreviver à recomposição do grafo de navegação).
+ * ViewModel do fluxo de 3 etapas do Modo gamer (Feature #550, issue #1476, fundido com o
+ * fluxo legado "Jogos" pela issue #1487): jogo → device → salvar como padrão/usar uma vez →
+ * resultado. Não é `@HiltViewModel` — criado via `remember{}` no Composable, mesmo padrão do
+ * [io.signallq.app.ui.screen.PingScreenViewModel] (escopo do overlay, sem necessidade de
+ * sobreviver à recomposição do grafo de navegação).
  *
  * [padraoInicial] (combinação jogo+device já salva, resolvida a partir do
  * `PreferenciasAppRepository.modoGamerPadraoFlow`) pula direto pra etapa
@@ -131,12 +138,23 @@ class ModoGamerViewModel(
         }
     }
 
-    /** Etapa 3/3 → resultado. Persiste a combinação como padrão só quando [salvarComoPadrao]
-     *  for `true` (opção "Salvar como padrão" da Etapa 3/3) — "Usar só desta vez" nunca
-     *  escreve no DataStore. */
-    suspend fun confirmar(salvarComoPadrao: Boolean) {
+    /**
+     * Etapa 3/3 → resultado. Persiste a combinação como padrão só quando [salvarComoPadrao]
+     * for `true` (opção "Salvar como padrão" da Etapa 3/3) — "Usar só desta vez" nunca
+     * escreve no DataStore.
+     *
+     * [pingEspecificoMs]/[natUdp] (issue #1487) vêm da opção não-bloqueante "Medir ping
+     * específico agora" da etapa `Config` — `null`/`null` (padrão) preserva o comportamento
+     * original, sem medir nada além do [inputAtual] já coletado. Nunca são persistidos
+     * (só o jogo+device são, ver [onSalvarPadrao]) — são um refinamento de uma vez só.
+     */
+    suspend fun confirmar(
+        salvarComoPadrao: Boolean,
+        pingEspecificoMs: Double? = null,
+        natUdp: NatUdpResultado? = null,
+    ) {
         val config = mutableEtapa.value as? ModoGamerEtapa.Config ?: return
-        val resultado = ModoGamerEngine.avaliar(config.selecaoJogo.categoria, config.device, inputAtual())
+        val resultado = ModoGamerEngine.avaliar(config.selecaoJogo.categoria, config.device, inputAtual(), pingEspecificoMs)
         if (salvarComoPadrao) {
             val jogoId = (config.selecaoJogo as? SelecaoJogoModoGamer.Catalogado)?.jogo?.gameId
             val categoriaFallback = (config.selecaoJogo as? SelecaoJogoModoGamer.ForaDoCatalogo)?.categoria?.name
@@ -148,6 +166,7 @@ class ModoGamerViewModel(
                 device = config.device,
                 resultado = resultado,
                 salvoComoPadrao = salvarComoPadrao,
+                natUdp = natUdp,
             )
     }
 

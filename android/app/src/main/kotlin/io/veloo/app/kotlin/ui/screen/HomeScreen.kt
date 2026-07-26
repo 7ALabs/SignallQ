@@ -34,7 +34,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Adjust
 import androidx.compose.material.icons.outlined.AirplanemodeActive
@@ -54,7 +53,6 @@ import androidx.compose.material.icons.outlined.SettingsInputAntenna
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.AssistChip
@@ -2431,62 +2429,6 @@ private fun CellularInfoSheet(
                 color = c.textTertiary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-            )
-        }
-    }
-}
-
-// ─── Gamer shortcut card ──────────────────────────────────────────────────────
-
-@Composable
-internal fun GamerShortcutCard(
-    c: LkTokens,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.bgCard)
-                .clickable(onClick = onClick)
-                .padding(LkSpacing.lg),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(c.success.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.SportsEsports,
-                    contentDescription = null,
-                    tint = c.success,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Spacer(Modifier.width(LkSpacing.md))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.home_shortcut_gaming_titulo),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.W600,
-                    color = c.textPrimary,
-                )
-                Text(
-                    stringResource(R.string.home_shortcut_gaming_descricao),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textSecondary,
-                )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.ArrowForwardIos,
-                contentDescription = null,
-                tint = c.textTertiary,
-                modifier = Modifier.size(14.dp),
             )
         }
     }

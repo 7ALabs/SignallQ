@@ -190,17 +190,18 @@ Ao tocar nele:
 5. cada sheet independente deve ter seu próprio arquivo (ex.: `DispositivoDetalheSheet.kt`, `DispositivoConfiguracaoSheet.kt`);
 6. crie testes de caracterização antes de extrações com risco de comportamento de lista ou estado.
 
-### 4.8 `JogosScreen.kt`
+### 4.8 `JogosScreen.kt` — RESOLVIDO (removido em 2026-07-26)
 
-Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/JogosScreen.kt` — **1120 linhas** (acima do limiar de extração obrigatória da seção 7). Concentra o fluxo de teste direcionado por jogo com 5 etapas.
+Caminho antigo: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/JogosScreen.kt` —
+**1120 linhas** (acima do limiar de extração obrigatória da seção 7). Concentrava o fluxo de
+teste direcionado por jogo com 5 etapas (GH#935).
 
-Ao tocar nele:
-1. identifique qual etapa ou jogo está sendo modificado;
-2. não adicione nova etapa diretamente — extraia para componente dedicado antes;
-3. prefira separar: estado de cada etapa, orquestração de fluxo (navegação entre etapas), adaptadores de dados de jogo, componentes de visualização;
-4. mantenha em `JogosScreen.kt` apenas a composição do fluxo principal e delegação das etapas;
-5. cada etapa independente deve ter seu próprio arquivo (ex.: `JogoEtapa1Screen.kt`, `JogoEtapa2Screen.kt`) ou componente reutilizável;
-6. crie testes de caracterização antes de extrações com risco de comportamento de fluxo ou estado.
+A issue #1487 fundiu esse fluxo com o Modo gamer (Feature #550, `ModoGamerScreen.kt` +
+`ModoGamerConfigResultadoSection.kt`, ambos bem menores e já divididos por etapa/responsabilidade)
+— `JogosScreen.kt`, `JogosViewModel.kt`, `JogoConexaoEngine.kt`, `PerfilThresholds.kt`,
+`GameCatalog.kt`, `GameArtworkCatalog.kt`/`GameIconCatalog.kt` foram removidos, junto com
+`Overlay.Jogos`. A dívida está resolvida — não recriar um segundo fluxo "Jogos" paralelo ao
+Modo gamer; qualquer refinamento de teste de jogo entra em `ModoGamerEngine`/`ModoGamerScreen`.
 
 ### 4.8b `SinalScreen.kt`
 

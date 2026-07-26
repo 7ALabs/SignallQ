@@ -1,13 +1,15 @@
 package io.signallq.app.core.diagnostico
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Testes do [ModoGamerEngine] (Feature #550, issue #1476) — cobre as 6 categorias
- * (faixa ok/atenção/crítica por métrica priorizada), dados insuficientes (nunca inventa
- * evidência), a evidência informativa de device e o catálogo de 9 jogos + fallback.
+ * Testes do [ModoGamerEngine] (Feature #550, issue #1476, fundido com GH#935 pela issue
+ * #1487) — cobre as 6 categorias (faixa ok/atenção/crítica por métrica priorizada), dados
+ * insuficientes (nunca inventa evidência), a evidência informativa de device, o catálogo
+ * fundido de 21 jogos + fallback e o refinamento opcional por ping dedicado.
  */
 class ModoGamerEngineTest {
 
@@ -147,12 +149,12 @@ class ModoGamerEngineTest {
         assertEquals(DiagnosticStatus.ok, r.status)
     }
 
-    // ── Catálogo de jogos ───────────────────────────────────────────────────
+    // ── Catálogo de jogos (fundido pela issue #1487 — 9 do #1476 + 12 exclusivos de GH#935) ──
 
     @Test
-    fun `catalogo tem exatamente 9 jogos com ids unicos`() {
-        assertEquals(9, CatalogoJogosModoGamer.jogos.size)
-        assertEquals(9, CatalogoJogosModoGamer.jogos.map { it.gameId }.toSet().size)
+    fun `catalogo fundido tem exatamente 21 jogos com ids unicos`() {
+        assertEquals(21, CatalogoJogosModoGamer.jogos.size)
+        assertEquals(21, CatalogoJogosModoGamer.jogos.map { it.gameId }.toSet().size)
     }
 
     @Test
@@ -168,10 +170,86 @@ class ModoGamerEngineTest {
     }
 
     @Test
+    fun `jogos deduplicados entre os dois catalogos mantem o id do fluxo novo`() {
+        // "EA Sports FC" (legado) e "EA FC" (novo) são o mesmo jogo — só um id sobrevive.
+        assertEquals("EA FC", CatalogoJogosModoGamer.porId("ea_fc")?.nome)
+        assertEquals(null, CatalogoJogosModoGamer.porId("ea_sports_fc"))
+        // "VALORANT" (legado, id "valorant" também) e "Valorant" (novo) — mesmo id, sem duplicata.
+        assertEquals(1, CatalogoJogosModoGamer.jogos.count { it.gameId == "valorant" })
+        // Fortnite e League of Legends existiam nos dois catálogos — também sem duplicata.
+        assertEquals(1, CatalogoJogosModoGamer.jogos.count { it.gameId == "fortnite" })
+        assertEquals(1, CatalogoJogosModoGamer.jogos.count { it.gameId == "league_of_legends" })
+    }
+
+    @Test
+    fun `jogos exclusivos do legado GH935 foram migrados para as categorias existentes`() {
+        assertEquals(CategoriaJogoModoGamer.BATTLE_ROYALE, CatalogoJogosModoGamer.porId("warzone")?.categoria)
+        assertEquals(CategoriaJogoModoGamer.BATTLE_ROYALE, CatalogoJogosModoGamer.porId("apex_legends")?.categoria)
+        assertEquals(CategoriaJogoModoGamer.BATTLE_ROYALE, CatalogoJogosModoGamer.porId("pubg_battlegrounds")?.categoria)
+        assertEquals(CategoriaJogoModoGamer.FPS_COMPETITIVO, CatalogoJogosModoGamer.porId("counter_strike_2")?.categoria)
+        assertEquals(CategoriaJogoModoGamer.FPS_COMPETITIVO, CatalogoJogosModoGamer.porId("rocket_league")?.categoria)
+        assertEquals(CategoriaJogoModoGamer.MOBA, CatalogoJogosModoGamer.porId("dota_2")?.categoria)
+        assertEquals(CategoriaJogoModoGamer.CASUAL, CatalogoJogosModoGamer.porId("destiny_2")?.categoria)
+        assertEquals(CategoriaJogoModoGamer.CASUAL, CatalogoJogosModoGamer.porId("dead_by_daylight")?.categoria)
+    }
+
+    @Test
+    fun `nenhum jogo do catalogo fundido mapeia para cloud gaming`() {
+        assertTrue(CatalogoJogosModoGamer.jogos.none { it.categoria == CategoriaJogoModoGamer.CLOUD_GAMING })
+    }
+
+    @Test
     fun `todas as 6 categorias tem avaliador proprio (nenhuma lanca excecao)`() {
         CategoriaJogoModoGamer.entries.forEach { categoria ->
             val r = ModoGamerEngine.avaliar(categoria, DeviceJogo.PC, DiagnosticInput(internet = internet()))
             assertEquals(categoria, r.categoria)
         }
+    }
+
+    // ── Refinamento opcional por ping dedicado (issue #1487, item 2) ─────────
+
+    @Test
+    fun `pingEspecificoMs refina a dimensao de latencia quando presente`() {
+        // Sem refinamento: latência alta (250ms) deixa o resultado crítico.
+        val semRefinar = ModoGamerEngine.avaliar(
+            CategoriaJogoModoGamer.FPS_COMPETITIVO,
+            DeviceJogo.PC,
+            DiagnosticInput(internet = internet(latencia = 250.0, jitter = 3.0, perda = 0.0)),
+        )
+        assertEquals(DiagnosticStatus.critical, semRefinar.status)
+
+        // Com refinamento: medição dedicada de 30ms substitui a latência do input já coletado.
+        val comRefinar = ModoGamerEngine.avaliar(
+            CategoriaJogoModoGamer.FPS_COMPETITIVO,
+            DeviceJogo.PC,
+            DiagnosticInput(internet = internet(latencia = 250.0, jitter = 3.0, perda = 0.0)),
+            pingEspecificoMs = 30.0,
+        )
+        assertEquals(DiagnosticStatus.ok, comRefinar.status)
+        assertTrue(comRefinar.evidencias.any { it.label == "Medição de ping" && it.valorExibido.contains("30") })
+    }
+
+    @Test
+    fun `pingEspecificoMs permite resultado mesmo sem DiagnosticInput previo`() {
+        // Sem input nenhum (ex.: abriu o Modo gamer direto de Ferramentas, sem ter rodado
+        // teste de velocidade ainda) — sem refinamento, cai em dados insuficientes.
+        val semInput = ModoGamerEngine.avaliar(CategoriaJogoModoGamer.FPS_COMPETITIVO, DeviceJogo.PC, null)
+        assertTrue(semInput.dadosInsuficientes)
+
+        // Com a medição dedicada, deixa de ser "dados insuficientes" mesmo sem input algum.
+        val comPing = ModoGamerEngine.avaliar(CategoriaJogoModoGamer.FPS_COMPETITIVO, DeviceJogo.PC, null, pingEspecificoMs = 25.0)
+        assertFalse(comPing.dadosInsuficientes)
+        assertEquals(DiagnosticStatus.ok, comPing.status)
+    }
+
+    @Test
+    fun `sem pingEspecificoMs o comportamento permanece identico ao anterior a fusao`() {
+        val r = ModoGamerEngine.avaliar(
+            CategoriaJogoModoGamer.CASUAL,
+            DeviceJogo.SWITCH,
+            DiagnosticInput(internet = internet(download = 80.0, latencia = 50.0)),
+        )
+        assertEquals(DiagnosticStatus.ok, r.status)
+        assertTrue(r.evidencias.none { it.label == "Medição de ping" })
     }
 }

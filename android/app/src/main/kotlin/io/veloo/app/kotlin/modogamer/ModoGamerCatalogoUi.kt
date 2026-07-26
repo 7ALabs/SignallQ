@@ -11,8 +11,9 @@ import io.signallq.app.core.diagnostico.CategoriaJogoModoGamer
 import io.signallq.app.core.diagnostico.DeviceJogo
 
 /** Ícone de cada um dos 7 devices do Modo gamer (issue #1476) — consoles (PS/Xbox/Switch)
- *  reaproveitam [Icons.Outlined.SportsEsports], mesmo ícone genérico já usado em
- *  [io.signallq.app.jogos.Plataforma] (PS5/XBOX) na tela "Jogos" legada. */
+ *  reaproveitam [Icons.Outlined.SportsEsports], mesmo ícone genérico usado pelo antigo
+ *  seletor de plataforma (PS5/XBOX) da tela "Jogos" legada (GH#935, removida pela fusão
+ *  #1487). */
 fun DeviceJogo.icone(): ImageVector =
     when (this) {
         DeviceJogo.PLAYSTATION, DeviceJogo.XBOX, DeviceJogo.SWITCH -> Icons.Outlined.SportsEsports

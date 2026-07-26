@@ -55,7 +55,10 @@ import io.signallq.app.ui.component.LkSurfaceCard
 // GH#933 — Fase 4 MD3: hub real de atalhos, substitui o placeholder criado na Fase 1
 // (#930). Grade estática, sem chamada de rede própria — cada card só navega para a
 // tela/overlay correspondente, que já existe (restyle) ou ainda é stub de fase futura
-// (Equipamento de internet → Fase 5/#934, Jogos → Fase 6/#935; Monitoramento → MonitoramentoSheet.kt, Fase 7/#936).
+// (Equipamento de internet → Fase 5/#934; Monitoramento → MonitoramentoSheet.kt, Fase 7/#936).
+// "Jogos" (Fase 6/#935) abria o fluxo legado próprio até a issue #1487 fundir tudo no Modo
+// gamer (Overlay.ModoGamer, Feature #550/#1476) — onAbrirJogos aqui continua abrindo o
+// mesmo overlay fundido, só o destino mudou.
 private data class FerramentaItem(
     val icon: ImageVector,
     val titulo: String,

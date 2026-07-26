@@ -98,8 +98,6 @@
          da execução atual, e sim de uma medição anterior salva no histórico. -->
     <string name="home_medicoes_resultado_anterior_prefixo">Resultado anterior</string>
     <string name="home_btn_medir_velocidade">Medir velocidade</string>
-    <string name="home_shortcut_gaming_titulo">Jogar Online</string>
-    <string name="home_shortcut_gaming_descricao">Análise da conexão para gaming</string>
     <string name="home_uso_jogos">Jogos</string>
     <string name="home_uso_streaming">Streaming</string>
     <string name="home_uso_home_office">Home Office</string>

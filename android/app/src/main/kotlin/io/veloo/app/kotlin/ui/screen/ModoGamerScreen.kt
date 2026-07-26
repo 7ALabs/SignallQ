@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import io.signallq.app.BuildConfig
 import io.signallq.app.core.diagnostico.CatalogoJogosModoGamer
 import io.signallq.app.core.diagnostico.CategoriaJogoModoGamer
 import io.signallq.app.core.diagnostico.DeviceJogo
@@ -64,12 +65,13 @@ import io.signallq.app.ui.LocalLkTokens
 import kotlinx.coroutines.launch
 
 /**
- * Modo gamer — Feature #550, issue #1476. Fluxo de 3 etapas (jogo → device → salvar como
- * padrão/usar uma vez) + resultado, protótipo #1474 (`ModoGamerJogo`/`ModoGamerDevice`/
- * `ModoGamerConfig`/`ModoGamerResultado`, issue #1483). O resultado reaproveita o motor
- * ([io.signallq.app.core.diagnostico.ModoGamerEngine]) e o container visual "Medido pelo
- * motor SignallQ"/"Explicado por IA" já usados em [DiagnosticoGuiadoScreen] — ver
- * [ModoGamerResultadoConteudo].
+ * Modo gamer — Feature #550, issue #1476, fundido com o fluxo legado "Jogos" (GH#935) pela
+ * issue #1487 (único fluxo "modo gamer" do app, `Overlay.Jogos` removida). Fluxo de 3 etapas
+ * (jogo → device → salvar como padrão/usar uma vez) + resultado, protótipo #1474
+ * (`ModoGamerJogo`/`ModoGamerDevice`/`ModoGamerConfig`/`ModoGamerResultado`, issue #1483). O
+ * resultado reaproveita o motor ([io.signallq.app.core.diagnostico.ModoGamerEngine]) e o
+ * container visual "Medido pelo motor SignallQ"/"Explicado por IA" já usados em
+ * [DiagnosticoGuiadoScreen] — ver [ModoGamerResultadoConteudo].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -147,7 +149,10 @@ fun ModoGamerScreen(
                     modifier = Modifier.padding(padding),
                     selecaoJogo = etapaAtual.selecaoJogo,
                     device = etapaAtual.device,
-                    onConfirmar = { salvarComoPadrao -> scope.launch { viewModel.confirmar(salvarComoPadrao) } },
+                    probeUrl = BuildConfig.GAME_LATENCY_PROBE_URL,
+                    onConfirmar = { salvarComoPadrao, pingEspecificoMs, natUdp ->
+                        scope.launch { viewModel.confirmar(salvarComoPadrao, pingEspecificoMs, natUdp) }
+                    },
                 )
             is ModoGamerEtapa.Resultado -> {
                 LaunchedEffect(etapaAtual.selecaoJogo, etapaAtual.device) {

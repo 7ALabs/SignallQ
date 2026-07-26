@@ -27,8 +27,8 @@ data class SinalWifiUiState(
 
 /**
  * ViewModel da tela "Sinal WiFi" (GH#1201) -- hub Ferramentas. Não é `@HiltViewModel`, criado via
- * `remember{}` no Composable, mesmo padrão do [io.signallq.app.jogos.JogosViewModel] (escopo do
- * overlay, sem necessidade de sobreviver à recomposição do grafo de navegação).
+ * `remember{}` no Composable, mesmo padrão do [io.signallq.app.modogamer.ModoGamerViewModel]
+ * (escopo do overlay, sem necessidade de sobreviver à recomposição do grafo de navegação).
  *
  * Amostra [WifiManager.getConnectionInfo] em polling periódico -- o `MonitorRede`/`NetworkCallback`
  * de `:coreNetwork` é orientado a evento e não dispara de forma confiável em variação pura de RSSI
