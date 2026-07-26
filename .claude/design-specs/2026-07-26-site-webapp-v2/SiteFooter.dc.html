@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="assets/google-sans-flex.css">
+  <link rel="stylesheet" href="_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/_ds_bundle.css">
+  <link rel="stylesheet" href="_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/styles.css">
+  <script src="_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/_ds_bundle.js"></script>
+  <style>
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --accent:        #D0BCFF;
+        --on-accent:     #371E73;
+        --accent-blue:   #AAC7FF;
+        --bg-primary:    #131217;
+        --bg-secondary:  #1D1B20;
+        --bg-card:       #211F26;
+        --text-primary:  #E6E0E9;
+        --text-secondary:#CAC4D0;
+        --text-tertiary: #CAC4D0;
+        --border:        #948F99;
+      }
+    }
+    .sq-logo-dark { display: none; }
+    @media (prefers-color-scheme: dark) {
+      .sq-logo-light { display: none !important; }
+      .sq-logo-dark { display: block !important; }
+    }
+  </style>
+</helmet>
+
+<div style="position: relative; z-index: 2; width: 100%; margin-top: auto; box-sizing: border-box; background: var(--bg-secondary);">
+  <div style="margin: 0 auto; max-width: 1280px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px 20px; padding: 14px 20px; box-sizing: border-box;">
+    <img class="sq-logo-light" src="assets/signallq-lockup-light-bg.png" alt="SignallQ" style="height: 22px; width: auto; object-fit: contain; display: block;"><img class="sq-logo-dark" src="assets/signallq-lockup-dark-bg.png" alt="SignallQ" style="height: 22px; width: auto; object-fit: contain;">
+    <span style="border-radius: 999px; padding: 1px 8px; font: 500 11px/1.6 var(--font-sans); color: var(--on-accent); background: var(--accent);">Beta</span>
+    <div style="display: flex; flex-wrap: wrap; gap: 4px 16px;">
+      <sc-for list="{{ compactLinks }}" as="l" hint-placeholder-count="9">
+        <span style="font: 400 12px/1.33 var(--font-sans); color: var(--text-primary);">{{ l }}</span>
+      </sc-for>
+    </div>
+    <div style="margin-left: auto; font: 400 11px/1.45 var(--font-sans); color: var(--text-tertiary);">© 2026 SignallQ · by 7A. Produto em fase Beta.</div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:120}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      compactLinks: ['Teste de velocidade', 'SignallQ PRO', 'Histórico', 'Como medimos', 'Internet boa mas travando', 'Lag em jogos online', 'Quem somos', 'Política de Privacidade', 'Termos de Uso'],
+    };
+  }
+}
+
+</script>
+</body>
+</html>
