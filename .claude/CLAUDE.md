@@ -228,6 +228,26 @@ logs e memory files. Antes de criar um `.md` novo, checar se o conteúdo já cab
 
 Tarefas bem delimitadas rodam em autopilot: Juninho triages → Claudete refina → agente implementa → Rhodolfo valida → Done. Classificação de tamanho: pequena (Juninho/Haiku por padrão), média (agente default), grande (propor plano antes), sensível (aguardar Luiz).
 
+### Sessão de agente por task (decisão 2026-07-26)
+
+Cada dispatch de agente (`Agent` tool) para uma task nova abre **sessão nova**, sem reaproveitar
+uma sessão anterior do mesmo agente — mesmo que a task seja tecnicamente relacionada (ex.: mesma
+Feature-mãe, mesmo módulo, agente que acabou de fechar a task anterior da sequência). Retomar uma
+sessão anterior (`SendMessage` pro mesmo agentId) só quando a própria task pedir explicitamente
+continuidade do que já estava em andamento — não como atalho padrão para "a próxima task é parecida
+com a que ele acabou de fazer".
+
+**Por quê:** contexto de sessão anterior tende a vazar decisões e memória de uma task pra outra sem
+necessidade, mesmo quando a nova task não tem nada a ver com o que motivou a sessão original — e
+carrega o custo de contexto acumulado à toa. Sessão nova força o agente a reler a issue e o estado
+real do repo do zero, em vez de confiar em memória potencialmente desatualizada da sessão anterior.
+
+**Como aplicar:** ao despachar qualquer agente (Camilo, Marina, Rhodolfo etc.) para uma task, usar
+sempre uma chamada nova de `Agent`, nunca `SendMessage` pra um agentId de uma task anterior — mesmo
+dentro da mesma sequência de tasks de uma Feature (ex.: #1475 → #1476 → #1487 do mesmo épico, cada
+uma abre sessão própria). O prompt de cada dispatch deve ser autocontido — reler a issue e os PRs
+relevantes das tasks anteriores via `gh`, não herdar memória de conversa.
+
 ---
 
 ## Agentes
