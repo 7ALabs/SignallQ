@@ -129,7 +129,7 @@ export default function HistoricoPage() {
         />
       </div>
 
-      <div className="flex w-full flex-1 items-start justify-center gap-6 box-border px-5 py-4 lg:px-6 lg:py-5">
+      <div className="flex w-full flex-1 items-start justify-center gap-6 box-border px-5 pt-2 pb-8 lg:px-6 lg:pt-5 lg:pb-4">
         <AdRail variant="a" />
 
         <div className="flex w-full max-w-[860px] flex-1 flex-col gap-4">
@@ -150,12 +150,14 @@ export default function HistoricoPage() {
           )}
 
           {status === 'unavailable' && (
-            <div className="flex flex-col items-center gap-2.5 rounded-2xl p-10 text-center" style={{ background: 'var(--bg-secondary)' }}>
+            <div className="flex flex-col items-center gap-2.5 rounded-2xl text-center" style={{ background: 'var(--bg-secondary)', padding: '40px 24px' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 32, color: 'var(--error)' }}>
                 storage
               </span>
               <div className="headline-small">Histórico indisponível</div>
-              <div className="body-medium max-w-[360px]">Não foi possível ler o armazenamento local deste navegador agora.</div>
+              <div className="max-w-[360px]" style={{ font: '400 14px/1.45 var(--font-sans)', color: 'var(--text-secondary)' }}>
+                Não foi possível ler o armazenamento local deste navegador agora.
+              </div>
               <button onClick={load} className="mt-1 h-10 rounded-[var(--radius-button)] border px-4 label-large" style={{ borderColor: 'var(--border)' }}>
                 Tentar novamente
               </button>
@@ -168,11 +170,13 @@ export default function HistoricoPage() {
                 speed
               </span>
               <div className="headline-small">Nenhuma medição ainda</div>
-              <div className="body-medium max-w-[320px]">Faça seu primeiro teste para ver o histórico aqui.</div>
+              <div className="max-w-[320px]" style={{ font: '400 14px/1.45 var(--font-sans)', color: 'var(--text-secondary)' }}>
+                Faça seu primeiro teste para ver o histórico aqui.
+              </div>
               <button
                 onClick={() => navigate('/')}
-                className="mt-1 flex h-11 items-center gap-2 rounded-[var(--radius-button)] px-5 text-white"
-                style={{ background: 'var(--accent)' }}
+                className="mt-1 flex h-11 items-center gap-2 rounded-[var(--radius-button)] px-5"
+                style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
                   speed

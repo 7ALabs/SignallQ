@@ -106,7 +106,7 @@ export function EmailCaptureDialog({
             Fechar
           </button>
           {secondaryLabel && onSecondary && (
-            <button onClick={onSecondary} className="h-11 flex-1 rounded-[var(--radius-button)] text-white label-large" style={{ background: 'var(--accent)' }}>
+            <button onClick={onSecondary} className="h-11 flex-1 rounded-[var(--radius-button)] label-large" style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}>
               {secondaryLabel}
             </button>
           )}

@@ -35,14 +35,17 @@ export function DocPage({ overline, title, intro, updated, sections, card = fals
   const columns = sections.length >= 5 ? 'lg:columns-3' : 'lg:columns-2'
 
   return (
-    <div className="mx-auto flex w-full max-w-[860px] flex-col gap-5 px-5 pb-16 pt-8 box-border">
+    <div className="mx-auto flex w-full max-w-[860px] flex-col gap-5 box-border">
       <div className="flex flex-col gap-2">
         <div className="overline">{overline}</div>
-        <h1 className="headline-large m-0" style={{ textWrap: 'pretty' }}>
+        <h1
+          className="m-0 text-[26px] leading-[1.2] font-bold lg:text-[28px]"
+          style={{ fontFamily: 'var(--font-sans)', color: 'var(--text-primary)', textWrap: 'pretty' }}
+        >
           {title}
         </h1>
         {intro && (
-          <p className="body-large m-0 max-w-[720px]" style={{ textWrap: 'pretty' }}>
+          <p className="m-0 max-w-[720px]" style={{ font: '400 14px/1.45 var(--font-sans)', color: 'var(--text-secondary)', textWrap: 'pretty' }}>
             {intro}
           </p>
         )}
@@ -60,8 +63,10 @@ export function DocPage({ overline, title, intro, updated, sections, card = fals
             className={`mb-3.5 flex flex-col gap-1.5 break-inside-avoid ${card ? 'rounded-2xl p-4' : ''}`}
             style={card ? { background: 'var(--bg-secondary)' } : undefined}
           >
-            <h2 className={`m-0 ${card ? 'title-large' : 'title-medium'}`}>{secao.title}</h2>
-            <p className="body-medium m-0" style={{ textWrap: 'pretty' }}>
+            <h2 className="m-0" style={{ font: card ? '600 16px/1.35 var(--font-sans)' : '600 14px/1.4 var(--font-sans)', color: 'var(--text-primary)' }}>
+              {secao.title}
+            </h2>
+            <p className="m-0" style={{ font: '400 12px/1.5 var(--font-sans)', color: 'var(--text-secondary)', textWrap: 'pretty' }}>
               {secao.text}
             </p>
           </section>
@@ -74,9 +79,9 @@ export function DocPage({ overline, title, intro, updated, sections, card = fals
         <Link
           to={ctaTo}
           className="flex h-10 w-fit items-center justify-center rounded-[var(--radius-button)] px-5 no-underline"
-          style={{ background: 'var(--accent)', color: '#fff' }}
+          style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
         >
-          <span className="label-large" style={{ color: '#fff' }}>
+          <span className="label-large" style={{ color: 'var(--on-accent)' }}>
             {ctaLabel}
           </span>
         </Link>

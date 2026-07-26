@@ -115,7 +115,10 @@ export function SpeedGauge(props: SpeedGaugeProps) {
             </span>
             <span className="overline">{props.phaseLabel}</span>
           </div>
-          <div className="font-bold" style={{ font: '700 clamp(40px,9vw,54px)/1 var(--font-sans)', color: 'var(--text-primary)' }}>
+          <div
+            className="text-[44px] font-bold leading-none lg:text-[54px]"
+            style={{ fontFamily: 'var(--font-sans)', color: 'var(--text-primary)' }}
+          >
             {props.centerValue}
           </div>
           <div className="label-large" style={{ color: 'var(--text-secondary)' }}>
