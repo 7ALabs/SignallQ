@@ -2,7 +2,6 @@
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkRequest
@@ -36,6 +35,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Adjust
 import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.CellTower
@@ -67,6 +67,7 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -89,7 +90,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -103,7 +103,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import io.signallq.app.R
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.network.EstadoConexao
@@ -135,7 +134,6 @@ import io.signallq.app.ui.component.LkSheetInfoRow
 import io.signallq.app.ui.component.LkSheetSectionTitle
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.OperadoraBadge
-import io.signallq.app.ui.component.ProfileAvatarButton
 import io.signallq.app.ui.component.SheetDragHandle
 import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
 import java.util.concurrent.TimeUnit
@@ -186,8 +184,6 @@ fun HomeScreen(
     isIspInfoLoading: Boolean = true,
     gateways: List<GatewayInfo>,
     deviceName: String,
-    nomeUsuario: String,
-    fotoUriUsuario: String?,
     connectedNetwork: RedeVizinha?,
     movelSnapshot: MovelSnapshot?,
     simsAtivos: List<MovelSimSnapshot>,
@@ -205,7 +201,7 @@ fun HomeScreen(
     onDismissAnatelBanner: () -> Unit,
     onIniciarTeste: (ModoSpeedtest) -> Unit,
     onAbrirHistorico: () -> Unit,
-    onAbrirPerfil: () -> Unit,
+    onAbrirMenu: () -> Unit,
     onAbrirRedes: () -> Unit,
     /** GH#970 — resolucao de identidade de operadora (nivel 1, catalogo local, sincrono).
      *  Sem I/O, sem corrotina — mesmo comportamento de sempre pras ~12 operadoras principais. */
@@ -226,17 +222,6 @@ fun HomeScreen(
         },
 ) {
     val c = LocalLkTokens.current
-    val context = LocalContext.current
-    val fotoBitmap =
-        remember(fotoUriUsuario) {
-            fotoUriUsuario?.let { uriStr ->
-                runCatching {
-                    context.contentResolver
-                        .openInputStream(uriStr.toUri())
-                        ?.use { stream -> BitmapFactory.decodeStream(stream)?.asImageBitmap() }
-                }.getOrNull()
-            }
-        }
     val isOnWifi = snapshotRede.estadoConexao == EstadoConexao.wifi
     val ssid = snapshotRede.wifiLinkSnapshot?.ssid
     val linkSpeedMbps = snapshotRede.wifiLinkSnapshot?.linkSpeedMbps
@@ -354,7 +339,6 @@ fun HomeScreen(
         )
     }
 
-    val profileBrush = remember { Brush.linearGradient(colors = listOf(c.primary, c.secondary)) }
     val listState = rememberLazyListState()
     Scaffold(
         topBar = {
@@ -391,11 +375,13 @@ fun HomeScreen(
                     }
                 },
                 navigationIcon = {
-                    ProfileAvatarButton(
-                        nomeUsuario = nomeUsuario,
-                        fotoUri = fotoUriUsuario,
-                        onClick = onAbrirPerfil,
-                    )
+                    IconButton(onClick = onAbrirMenu) {
+                        Icon(
+                            imageVector = Icons.Filled.Menu,
+                            contentDescription = stringResource(R.string.appshell_cd_abrir_menu),
+                            tint = c.textPrimary,
+                        )
+                    }
                 },
                 colors =
                     TopAppBarDefaults.centerAlignedTopAppBarColors(
