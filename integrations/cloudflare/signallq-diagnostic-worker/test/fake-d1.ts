@@ -107,6 +107,27 @@ type GameAuditRow = {
   created_at: string;
 };
 
+// GH#1444 (parte de #952) — shadow mode.
+type DiagnosticDivergenceRow = {
+  id: string;
+  execution_id: string;
+  snapshot_hash: string;
+  classification: string;
+  local_status: string | null;
+  remote_status: string | null;
+  local_score: number | null;
+  remote_score: number | null;
+  local_flow: string | null;
+  remote_flow: string | null;
+  local_source: string | null;
+  remote_source: string | null;
+  local_duration_ms: number | null;
+  remote_duration_ms: number | null;
+  app_version: string | null;
+  version_code: number | null;
+  created_at: string;
+};
+
 function normalize(sql: string): string {
   return sql.replace(/\s+/g, " ").trim().toLowerCase();
 }
@@ -161,6 +182,7 @@ export class FakeD1Database {
   gameCatalog = new Map<string, GameCatalogRow>();
   gamePlatforms: GamePlatformRow[] = [];
   gameAudit: GameAuditRow[] = [];
+  diagnosticDivergences: DiagnosticDivergenceRow[] = [];
 
   prepare(sql: string): FakeStatement {
     return new FakeStatement(this, sql);
@@ -636,6 +658,35 @@ export class FakeD1Database {
         row.active = Number(active);
         row.updated_at = String(updatedAt);
       }
+      return;
+    }
+
+    if (q.startsWith("insert into diagnostic_divergences")) {
+      const [
+        id, executionId, snapshotHash, classification, localStatus, remoteStatus,
+        localScore, remoteScore, localFlow, remoteFlow, localSource, remoteSource,
+        localDurationMs, remoteDurationMs, appVersion, versionCode, createdAt,
+      ] = bindings;
+      this.diagnosticDivergences.push({
+        id: String(id),
+        execution_id: String(executionId),
+        snapshot_hash: String(snapshotHash),
+        classification: String(classification),
+        local_status: (localStatus as string | null) ?? null,
+        remote_status: (remoteStatus as string | null) ?? null,
+        local_score: localScore == null ? null : Number(localScore),
+        remote_score: remoteScore == null ? null : Number(remoteScore),
+        local_flow: (localFlow as string | null) ?? null,
+        remote_flow: (remoteFlow as string | null) ?? null,
+        local_source: (localSource as string | null) ?? null,
+        remote_source: (remoteSource as string | null) ?? null,
+        local_duration_ms: localDurationMs == null ? null : Number(localDurationMs),
+        remote_duration_ms: remoteDurationMs == null ? null : Number(remoteDurationMs),
+        app_version: (appVersion as string | null) ?? null,
+        version_code: versionCode == null ? null : Number(versionCode),
+        created_at: String(createdAt),
+      });
+      return;
     }
   }
 
@@ -918,6 +969,25 @@ export class FakeD1Database {
 
     if (q.startsWith("select id, entity_type, entity_id, action, actor, before_json, after_json, created_at from game_catalog_audit")) {
       return [...this.gameAudit.values()].sort((left, right) => right.created_at.localeCompare(left.created_at));
+    }
+
+    if (q.startsWith("select classification, count(*) as count from diagnostic_divergences group by classification")) {
+      const counts = new Map<string, number>();
+      for (const row of this.diagnosticDivergences) {
+        counts.set(row.classification, (counts.get(row.classification) ?? 0) + 1);
+      }
+      return [...counts.entries()].map(([classification, count]) => ({ classification, count }));
+    }
+
+    if (q.startsWith("select * from diagnostic_divergences where classification = ? order by created_at desc limit ?")) {
+      const [classification] = bindings;
+      return this.diagnosticDivergences
+        .filter((row) => row.classification === String(classification))
+        .sort((left, right) => right.created_at.localeCompare(left.created_at));
+    }
+
+    if (q.startsWith("select * from diagnostic_divergences order by created_at desc limit ?")) {
+      return [...this.diagnosticDivergences].sort((left, right) => right.created_at.localeCompare(left.created_at));
     }
 
     return [];

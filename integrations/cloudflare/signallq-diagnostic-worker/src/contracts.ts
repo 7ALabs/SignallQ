@@ -301,3 +301,42 @@ export interface GameAuditEntry {
   afterJson: string | null;
   createdAt: string;
 }
+
+// GH#1444 (parte de #952) — shadow mode. Classificacao de divergencia entre o
+// resultado local (motor embarcado no app, autoritativo para o usuario) e o
+// mesmo snapshot avaliado em paralelo pelo worker remoto. A comparacao e
+// classificacao acontecem no cliente (Android) — o worker so persiste o
+// registro sanitizado ja classificado, nunca recebe o relatorio local
+// completo nem recalcula a comparacao (ver ADR embutido no PR: decisao 4 do
+// corpo da issue, "menos superficie nova de payload sensivel").
+export type DiagnosticDivergenceClassification =
+  | "EXACT_MATCH"
+  | "EQUIVALENT_RESULT"
+  | "MINOR_DIVERGENCE"
+  | "MAJOR_DIVERGENCE"
+  | "REMOTE_ERROR"
+  | "LOCAL_ERROR";
+
+export interface DiagnosticDivergenceInput {
+  executionId: string;
+  snapshotHash: string;
+  classification: DiagnosticDivergenceClassification;
+  localStatus?: string | null;
+  remoteStatus?: string | null;
+  localScore?: number | null;
+  remoteScore?: number | null;
+  localFlow?: string | null;
+  remoteFlow?: string | null;
+  localSource?: string | null;
+  remoteSource?: string | null;
+  localDurationMs?: number | null;
+  remoteDurationMs?: number | null;
+  appVersion?: string | null;
+  versionCode?: number | null;
+  createdAt?: string | null;
+}
+
+export interface DiagnosticDivergenceRecord extends DiagnosticDivergenceInput {
+  id: string;
+  createdAt: string;
+}

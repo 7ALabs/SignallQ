@@ -1744,3 +1744,147 @@ test("provider logo upload: Content-Type que nao e image/* retorna 400", async (
   );
   assert.equal(response.status, 400);
 });
+
+// ============================================================================
+// GH#1444 (parte de #952) — shadow mode: /ingest/diagnostic-divergence e
+// /admin/diagnostic/divergences. Tabela recriada apos remocao em GH#961 —
+// desta vez com o wiring completo (ingest publico + leitura admin).
+// ============================================================================
+
+function divergencePayload(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    executionId: "exec-1",
+    snapshotHash: "hash-abc123",
+    classification: "EXACT_MATCH",
+    localStatus: "ok",
+    remoteStatus: "ok",
+    localScore: 90,
+    remoteScore: 90,
+    localFlow: "wifi",
+    remoteFlow: "wifi",
+    localSource: "BUNDLED_LOCAL",
+    remoteSource: "REMOTE",
+    localDurationMs: 12,
+    remoteDurationMs: 480,
+    appVersion: "0.31.0",
+    versionCode: 312,
+    ...overrides,
+  };
+}
+
+test("diagnostic divergence ingest aceita payload valido sem DB (best-effort, nao derruba o app)", async () => {
+  const response = await worker.fetch(
+    jsonRequest("https://example.com/ingest/diagnostic-divergence", divergencePayload()),
+    {},
+  );
+  assert.equal(response.status, 202);
+  const payload = await response.json() as { ok: boolean; stored: boolean };
+  assert.equal(payload.ok, true);
+  assert.equal(payload.stored, false);
+});
+
+test("diagnostic divergence ingest persiste no D1 quando DB esta configurado", async () => {
+  const db = new FakeD1Database();
+  const response = await worker.fetch(
+    jsonRequest("https://example.com/ingest/diagnostic-divergence", divergencePayload({ classification: "MINOR_DIVERGENCE" })),
+    { DB: db as unknown as D1Database },
+  );
+  assert.equal(response.status, 202);
+  const payload = await response.json() as { ok: boolean; stored: boolean; id: string };
+  assert.equal(payload.ok, true);
+  assert.equal(payload.stored, true);
+  assert.equal(db.diagnosticDivergences.length, 1);
+  assert.equal(db.diagnosticDivergences[0]!.classification, "MINOR_DIVERGENCE");
+  assert.equal(db.diagnosticDivergences[0]!.execution_id, "exec-1");
+});
+
+test("diagnostic divergence ingest rejeita payload null com 400 tratado (nao 500 cru)", async () => {
+  const response = await worker.fetch(
+    new Request("https://example.com/ingest/diagnostic-divergence", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "null",
+    }),
+    {},
+  );
+  assert.equal(response.status, 400);
+  const payload = await response.json() as { error: string };
+  assert.match(payload.error, /Invalid divergence payload/i);
+});
+
+test("diagnostic divergence ingest rejeita classification desconhecida", async () => {
+  const response = await worker.fetch(
+    jsonRequest("https://example.com/ingest/diagnostic-divergence", divergencePayload({ classification: "TOTALMENTE_DIFERENTE" })),
+    {},
+  );
+  assert.equal(response.status, 400);
+});
+
+test("diagnostic divergence ingest rejeita executionId ausente", async () => {
+  const payload = divergencePayload();
+  delete payload.executionId;
+  const response = await worker.fetch(
+    jsonRequest("https://example.com/ingest/diagnostic-divergence", payload),
+    {},
+  );
+  assert.equal(response.status, 400);
+});
+
+test("diagnostic divergence ingest rejeita localScore com tipo errado", async () => {
+  const response = await worker.fetch(
+    jsonRequest("https://example.com/ingest/diagnostic-divergence", divergencePayload({ localScore: "noventa" })),
+    {},
+  );
+  assert.equal(response.status, 400);
+});
+
+test("GET /admin/diagnostic/divergences exige sessao admin", async () => {
+  const db = new FakeD1Database();
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/divergences"),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" },
+  );
+  assert.equal(response.status, 401);
+});
+
+test("GET /admin/diagnostic/divergences lista registros e resumo por classificacao com sessao valida", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+
+  for (const classification of ["EXACT_MATCH", "EXACT_MATCH", "MAJOR_DIVERGENCE"]) {
+    await worker.fetch(
+      jsonRequest("https://example.com/ingest/diagnostic-divergence", divergencePayload({ classification })),
+      { DB: db as unknown as D1Database },
+    );
+  }
+
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/divergences", { headers: { Cookie: cookie } }),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" },
+  );
+  assert.equal(response.status, 200);
+  const payload = await response.json() as { items: unknown[]; summary: Record<string, number> };
+  assert.equal(payload.items.length, 3);
+  assert.equal(payload.summary.EXACT_MATCH, 2);
+  assert.equal(payload.summary.MAJOR_DIVERGENCE, 1);
+});
+
+test("GET /admin/diagnostic/divergences filtra por classification", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+
+  for (const classification of ["EXACT_MATCH", "MAJOR_DIVERGENCE"]) {
+    await worker.fetch(
+      jsonRequest("https://example.com/ingest/diagnostic-divergence", divergencePayload({ classification })),
+      { DB: db as unknown as D1Database },
+    );
+  }
+
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/divergences?classification=MAJOR_DIVERGENCE", { headers: { Cookie: cookie } }),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" },
+  );
+  const payload = await response.json() as { items: Array<{ classification: string }> };
+  assert.equal(payload.items.length, 1);
+  assert.equal(payload.items[0]!.classification, "MAJOR_DIVERGENCE");
+});
