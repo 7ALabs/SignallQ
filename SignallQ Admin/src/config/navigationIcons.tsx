@@ -11,6 +11,7 @@ import {
   Wrench,
   PlayCircle,
   Flame,
+  ListChecks,
 } from "lucide-react";
 import { NavigationItem } from "./navigation";
 
@@ -34,4 +35,5 @@ export const NAVIGATION_ICON_MAP: Record<NavigationItem["iconName"], React.Compo
   Wrench,
   PlayCircle,
   Flame,
+  ListChecks,
 };

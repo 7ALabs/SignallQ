@@ -19,6 +19,7 @@ import { SystemHealthTab } from "./features/system-health/SystemHealthTab";
 import { ToolsTab } from "./features/tools/ToolsTab";
 import { GooglePlayTab } from "./features/google-play/GooglePlayTab";
 import { FirebaseTab } from "./features/firebase/FirebaseTab";
+import { DiagnosticRulesetsTab } from "./features/diagnostic-rulesets/DiagnosticRulesetsTab";
 
 export default function App() {
   const { theme, toggle: onToggleTheme } = useTheme();
@@ -104,6 +105,7 @@ export default function App() {
         "/diagnostics",
         "/networks",
         "/operators",
+        "/diagnostic-rulesets",
         "/google-play",
         "/firebase",
         "/ai-cost",
@@ -238,6 +240,7 @@ export default function App() {
           triggerRefreshCounter={refreshCounter}
         />
       )}
+      {currentPath === "/diagnostic-rulesets" && <DiagnosticRulesetsTab />}
       {currentPath === "/google-play" && (
         <GooglePlayTab
           environment={environment}
