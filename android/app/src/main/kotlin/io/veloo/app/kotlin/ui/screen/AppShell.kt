@@ -462,6 +462,16 @@ fun AppShell(
         }
     }
 
+    // Issue #1503 (Camada A/B) — ferramenta apontada pelo card contextual do diagnóstico
+    // guiado. Só existe enquanto o usuário está vendo o hub via Overlay.Ferramentas aberto
+    // a partir desse card; nunca fica "estático" — limpo ao fechar o overlay (voltar
+    // explícito ou back físico, ver BackHandler abaixo).
+    var ferramentaRecomendada by remember { mutableStateOf<TipoFerramenta?>(null) }
+    val onAbrirFerramentaSugeridaOverlay: (TipoFerramenta) -> Unit = { tipo ->
+        ferramentaRecomendada = tipo
+        if (Overlay.Ferramentas !in overlayStack) overlayStack.add(Overlay.Ferramentas)
+    }
+
     // Destino provisorio da conexao ao gateway — FibraModemScreen ja le sinal do modem, mas
     // NAO e a tela de detalhe definitiva do GPON/Roteador (isso e SIG-357, ainda nao existe).
     // Reusada por ambos entry points (nó do gateway na Home e linha do roteador em Ajustes).
@@ -620,6 +630,9 @@ fun AppShell(
         // SIG-173/#664 — back fisico tambem conta como "fechou o Laudo" para fins
         // de elegibilidade do prompt de avaliacao, mesmo caminho do botao voltar da tela.
         if (removido == Overlay.Laudo) onLaudoFechado()
+        // Issue #1503 — back físico fechando o hub também limpa o badge contextual,
+        // mesmo caminho do botão "voltar" explícito da tela (ver onVoltar abaixo).
+        if (removido == Overlay.Ferramentas) ferramentaRecomendada = null
     }
 
     // Back na tab Histórico (índice 3): volta para Home em vez de sair do app.
@@ -932,6 +945,7 @@ fun AppShell(
                         onIniciarModoGamer = {
                             if (Overlay.ModoGamer !in overlayStack) overlayStack.add(Overlay.ModoGamer)
                         },
+                        onAbrirFerramentaSugerida = onAbrirFerramentaSugeridaOverlay,
                     )
                 }
             }
@@ -1120,6 +1134,14 @@ fun AppShell(
                     onAbrirMonitoramento = onAbrirMonitoramentoOverlay,
                     onAbrirJogos = onAbrirModoGamerOverlay,
                     onAbrirSinalWifi = onAbrirSinalWifiOverlay,
+                    // Issue #1503 — único consumidor real de Overlay.Ferramentas hoje: o
+                    // card contextual do diagnóstico guiado. Botão "voltar" explícito
+                    // limpa o badge, mesmo comportamento do back físico (ver BackHandler).
+                    ferramentaRecomendada = ferramentaRecomendada,
+                    onVoltar = {
+                        overlayStack.remove(Overlay.Ferramentas)
+                        ferramentaRecomendada = null
+                    },
                 )
             }
 
