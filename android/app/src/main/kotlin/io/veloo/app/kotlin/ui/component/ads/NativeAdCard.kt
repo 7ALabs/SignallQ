@@ -1,5 +1,8 @@
 package io.signallq.app.ui.component.ads
 
+import android.graphics.Outline
+import android.view.View
+import android.view.ViewOutlineProvider
 import android.widget.LinearLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -150,17 +153,31 @@ fun NativeAdCard(
 
                         // MediaView: asset principal do criativo (imagem/video) -- exigido pelo
                         // SDK sempre que o nativeAd tem midia (ver KDoc da funcao, issue #1356).
-                        // Altura calculada pela proporcao real do criativo (`aspectRatio`) para
-                        // nao distorcer nem cortar o conteudo; cai num 16:9 padrao quando o
-                        // AdMob nao informa proporcao (ex.: criativo so com texto).
-                        val aspectRatio = nativeAd.mediaContent?.aspectRatio?.takeIf { it > 0f } ?: (16f / 9f)
-                        val mediaViewHeightPx = (density.dpToPx(MEDIA_VIEW_WIDTH_REFERENCE) / aspectRatio).toInt()
+                        // Altura fixa em MEDIA_VIEW_MAX_HEIGHT (issue #1505) -- antes era derivada
+                        // do aspectRatio do criativo sem teto, o que deixava a imagem gigante
+                        // (~320dp) em criativos quase quadrados. O MediaView do SDK escala e
+                        // enquadra o criativo preservando proporcao dentro dos bounds informados
+                        // (sem distorcer), entao um teto fixo nao fere a politica do AdMob.
+                        // Cantos arredondados via outline (View Android, nao Composable) porque
+                        // Modifier.clip nao se aplica a uma View interoperada dentro de
+                        // LinearLayouts manuais.
+                        val mediaCornerRadiusPx = density.dpToPx(LkRadius.input).toFloat()
                         val mediaView =
                             MediaView(context).apply {
                                 mediaContent = nativeAd.mediaContent
                                 layoutParams =
-                                    LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, mediaViewHeightPx).apply {
-                                        topMargin = density.dpToPx(LkSpacing.md)
+                                    LinearLayout
+                                        .LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, density.dpToPx(MEDIA_VIEW_MAX_HEIGHT))
+                                        .apply { topMargin = density.dpToPx(LkSpacing.sm) }
+                                clipToOutline = true
+                                outlineProvider =
+                                    object : ViewOutlineProvider() {
+                                        override fun getOutline(
+                                            view: View,
+                                            outline: Outline,
+                                        ) {
+                                            outline.setRoundRect(0, 0, view.width, view.height, mediaCornerRadiusPx)
+                                        }
                                     }
                             }
 
@@ -200,9 +217,10 @@ fun NativeAdCard(
 
 private val ICON_SIZE: Dp = 44.dp
 
-// Largura de referencia so para calcular a altura do MediaView a partir do aspectRatio do
-// criativo -- a View em si fica com largura MATCH_PARENT (escala com o card real); isso so
-// evita altura desproporcional em telas muito estreitas ou muito largas.
-private val MEDIA_VIEW_WIDTH_REFERENCE: Dp = 320.dp
+// Teto fixo de altura do MediaView (issue #1505) -- evita que criativos quase quadrados
+// dominem o card (era ~320dp sem teto, derivado do aspectRatio). Largura continua
+// MATCH_PARENT; o SDK do AdMob escala/enquadra o criativo preservando proporcao dentro
+// deste limite, sem distorcer.
+private val MEDIA_VIEW_MAX_HEIGHT: Dp = 120.dp
 
 private fun androidx.compose.ui.unit.Density.dpToPx(dp: Dp): Int = with(this) { dp.roundToPx() }
