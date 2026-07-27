@@ -1,8 +1,9 @@
 package io.signallq.app.ui.component.ads
 
-import android.graphics.Outline
+import android.graphics.Canvas
+import android.graphics.Path
 import android.view.View
-import android.view.ViewOutlineProvider
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -158,27 +159,60 @@ fun NativeAdCard(
                         // (~320dp) em criativos quase quadrados. O MediaView do SDK escala e
                         // enquadra o criativo preservando proporcao dentro dos bounds informados
                         // (sem distorcer), entao um teto fixo nao fere a politica do AdMob.
-                        // Cantos arredondados via outline (View Android, nao Composable) porque
-                        // Modifier.clip nao se aplica a uma View interoperada dentro de
-                        // LinearLayouts manuais.
+                        // Cantos arredondados via clip manual de Canvas (View Android, nao
+                        // Composable) porque Modifier.clip nao se aplica a uma View interoperada
+                        // dentro de LinearLayouts manuais. O clip vai no FrameLayout WRAPPER, nao
+                        // na MediaView diretamente. Validado em device/emulador real (issue #1506
+                        // follow-up) em tres rodadas ate achar a combinacao que realmente corta:
+                        // 1) `clipToOutline`/`ViewOutlineProvider` (na MediaView e depois no
+                        //    FrameLayout ao redor) -- nao cortava nada, cantos retos.
+                        // 2) `dispatchDraw` sobrescrito com `Canvas.clipPath` -- tambem nao
+                        //    cortava; `setBackgroundColor` de diagnostico confirmou que o proprio
+                        //    background do FrameLayout desenhava SEM nenhum corte, porque
+                        //    `View.draw()` desenha o background (Step 1) antes de chamar
+                        //    `dispatchDraw()` (Step 4) -- o clip aplicado so dentro de
+                        //    `dispatchDraw` nunca cobria o desenho inteiro da View.
+                        // 3) Sobrescrever `draw(Canvas)` inteiro (nao so `dispatchDraw`), com
+                        //    `clipPath` envolvendo `super.draw(canvas)` -- clipa background E
+                        //    filhos juntos. So essa combinacao (`draw()` + `clipPath` +
+                        //    `setLayerType(LAYER_TYPE_SOFTWARE, ...)`, esse ultimo pra garantir que
+                        //    o clipPath seja honrado independente de peculiaridade de canvas
+                        //    hardware-accelerated) cortou os 4 cantos de fato -- confirmado pixel a
+                        //    pixel em screenshot real (curva mensuravel, nao só reta).
                         val mediaCornerRadiusPx = density.dpToPx(LkRadius.input).toFloat()
                         val mediaView =
                             MediaView(context).apply {
                                 mediaContent = nativeAd.mediaContent
                                 layoutParams =
+                                    FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+                            }
+                        val mediaViewContainer =
+                            object : FrameLayout(context) {
+                                private val clipPath = Path()
+
+                                override fun draw(canvas: Canvas) {
+                                    clipPath.reset()
+                                    clipPath.addRoundRect(
+                                        0f,
+                                        0f,
+                                        width.toFloat(),
+                                        height.toFloat(),
+                                        mediaCornerRadiusPx,
+                                        mediaCornerRadiusPx,
+                                        Path.Direction.CW,
+                                    )
+                                    val saveCount = canvas.save()
+                                    canvas.clipPath(clipPath)
+                                    super.draw(canvas)
+                                    canvas.restoreToCount(saveCount)
+                                }
+                            }.apply {
+                                layoutParams =
                                     LinearLayout
                                         .LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, density.dpToPx(MEDIA_VIEW_MAX_HEIGHT))
                                         .apply { topMargin = density.dpToPx(LkSpacing.sm) }
-                                clipToOutline = true
-                                outlineProvider =
-                                    object : ViewOutlineProvider() {
-                                        override fun getOutline(
-                                            view: View,
-                                            outline: Outline,
-                                        ) {
-                                            outline.setRoundRect(0, 0, view.width, view.height, mediaCornerRadiusPx)
-                                        }
-                                    }
+                                setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+                                addView(mediaView)
                             }
 
                         val ctaComposeView =
@@ -195,7 +229,7 @@ fun NativeAdCard(
                             LinearLayout(context).apply {
                                 orientation = LinearLayout.VERTICAL
                                 addView(topRow)
-                                addView(mediaView)
+                                addView(mediaViewContainer)
                                 addView(ctaComposeView)
                             }
 
