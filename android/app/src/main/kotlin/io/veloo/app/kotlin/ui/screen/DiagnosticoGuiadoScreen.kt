@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,8 +26,11 @@ import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CompareArrows
+import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.MonitorHeart
+import androidx.compose.material.icons.outlined.NetworkWifi
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.SportsEsports
@@ -90,6 +94,7 @@ import io.signallq.app.ui.component.AcoesRecomendadasCard
 import io.signallq.app.ui.component.AiVsMotorExplainer
 import io.signallq.app.ui.component.DiagnosticoStatusBanner
 import io.signallq.app.ui.component.LkSectionOverline
+import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.OperadoraBadge
 import io.signallq.app.ui.component.OperadoraBottomSheet
 import io.signallq.app.ui.component.rememberResolvedOperadoraContact
@@ -138,6 +143,10 @@ fun DiagnosticoGuiadoScreen(
      *  diagnóstico por jogo" (mostrado só para [ObjetivoDiagnostico.JOGOS_COM_LAG])
      *  não aparece. Mantém o contrato pronto sem implementar o fluxo de jogo aqui. */
     onIniciarModoGamer: (() -> Unit)? = null,
+    /** Camada A (issue #1503) — card "próximo passo sugerido" no resultado. Chamado com a
+     *  ferramenta mapeada por [ObjetivoDiagnostico.ferramentaSugerida]; quem trata a
+     *  navegação de fato (empilhar `Overlay.Ferramentas`) é o AppShell. */
+    onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit = {},
 ) {
     val c = LocalLkTokens.current
     var objetivo by remember { mutableStateOf<ObjetivoDiagnostico?>(null) }
@@ -236,6 +245,7 @@ fun DiagnosticoGuiadoScreen(
                     resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
                     resolveOperadoraContatoRemoto = resolveOperadoraContatoRemoto,
                     onIniciarModoGamer = onIniciarModoGamer,
+                    onAbrirFerramentaSugerida = onAbrirFerramentaSugerida,
                     c = c,
                 )
             }
@@ -464,6 +474,7 @@ private fun ResultadoDiagnosticoGuiadoConteudo(
     resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
     resolveOperadoraContatoRemoto: suspend (String?, Boolean) -> ResolvedOperadoraContact,
     onIniciarModoGamer: (() -> Unit)?,
+    onAbrirFerramentaSugerida: (TipoFerramenta) -> Unit,
     c: LkTokens,
 ) {
     Column(
@@ -484,6 +495,24 @@ private fun ResultadoDiagnosticoGuiadoConteudo(
             LkSectionOverline(text = "Ações recomendadas")
             Spacer(Modifier.height(LkSpacing.sm))
             AcoesRecomendadasCard(acoes = resultado.acoes, c = c)
+        }
+
+        // Camada A (issue #1503) — card "próximo passo sugerido", mapeado por objetivo
+        // (ver ferramentaSugerida() em TipoFerramenta.kt). Nunca aponta pras 8 ferramentas
+        // de uma vez, só a mais relevante pro objetivo escolhido — e alguns objetivos
+        // (vídeos travam, jogos com lag, chamadas congelam) não têm mapeamento forte o
+        // bastante e ficam sem card, de propósito.
+        val ferramentaSugerida = remember(resultado.objetivo) { resultado.objetivo.ferramentaSugerida() }
+        val conteudoProximoPasso = remember(ferramentaSugerida) { ferramentaSugerida?.conteudoProximoPasso() }
+        if (ferramentaSugerida != null && conteudoProximoPasso != null) {
+            Spacer(Modifier.height(LkSpacing.lg))
+            LkSectionOverline(text = "Próximo passo sugerido")
+            Spacer(Modifier.height(LkSpacing.sm))
+            ProximoPassoSugeridoCard(
+                conteudo = conteudoProximoPasso,
+                onClick = { onAbrirFerramentaSugerida(ferramentaSugerida) },
+                c = c,
+            )
         }
 
         val mostrarContato = categoria == "isp" || categoria == "fibra"
@@ -573,6 +602,102 @@ private fun ResultadoDiagnosticoGuiadoConteudo(
             Text(text = "Ir para o início", style = MaterialTheme.typography.bodyMedium, color = c.primary)
         }
         Spacer(Modifier.height(LkSpacing.xl))
+    }
+}
+
+/** Conteúdo do card "próximo passo sugerido" (Camada A, issue #1503) — icone/título/
+ *  descrição/rótulo do botão só existem pras 3 ferramentas alcançáveis por
+ *  [ferramentaSugerida] ([TipoFerramenta.DNS], [TipoFerramenta.MONITORAMENTO],
+ *  [TipoFerramenta.SINAL_WIFI]); as demais nunca chegam aqui. */
+private data class ConteudoProximoPasso(
+    val icon: ImageVector,
+    val titulo: String,
+    val descricao: String,
+    val textoBotao: String,
+)
+
+private fun TipoFerramenta.conteudoProximoPasso(): ConteudoProximoPasso? =
+    when (this) {
+        TipoFerramenta.DNS ->
+            ConteudoProximoPasso(
+                icon = Icons.Outlined.Dns,
+                titulo = "Testar servidores DNS",
+                descricao = "Sites lentos ou velocidade abaixo do contratado podem melhorar trocando o servidor DNS.",
+                textoBotao = "Testar DNS",
+            )
+        TipoFerramenta.MONITORAMENTO ->
+            ConteudoProximoPasso(
+                icon = Icons.Outlined.MonitorHeart,
+                titulo = "Ativar monitoramento",
+                descricao = "Acompanhe quedas e oscilações em segundo plano, sem precisar abrir o app toda hora.",
+                textoBotao = "Ativar monitoramento",
+            )
+        TipoFerramenta.SINAL_WIFI ->
+            ConteudoProximoPasso(
+                icon = Icons.Outlined.NetworkWifi,
+                titulo = "Ver sinal Wi-Fi",
+                descricao = "Veja RSSI, banda e padrão Wi-Fi em tempo real pra saber se o problema é do roteador ou da operadora.",
+                textoBotao = "Ver sinal Wi-Fi",
+            )
+        TipoFerramenta.DISPOSITIVOS,
+        TipoFerramenta.EQUIPAMENTO_INTERNET,
+        TipoFerramenta.PING,
+        TipoFerramenta.LAUDO,
+        TipoFerramenta.MODO_JOGOS,
+        -> null
+    }
+
+@Composable
+private fun ProximoPassoSugeridoCard(
+    conteudo: ConteudoProximoPasso,
+    onClick: () -> Unit,
+    c: LkTokens,
+) {
+    LkSurfaceCard(modifier = Modifier.fillMaxWidth(), outlined = false) {
+        Column(modifier = Modifier.fillMaxWidth().padding(LkSpacing.lg)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(LkRadius.input))
+                            .background(c.primary.copy(alpha = 0.14f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = conteudo.icon,
+                        contentDescription = null,
+                        tint = c.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Spacer(Modifier.width(LkSpacing.md))
+                Text(
+                    text = conteudo.titulo,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.W600,
+                    color = c.textPrimary,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            Spacer(Modifier.height(LkSpacing.sm))
+            Text(text = conteudo.descricao, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+            Spacer(Modifier.height(LkSpacing.md))
+            // Mesmo padrão visual do CTA primário do resumo pós-teste (issue #1475,
+            // ResultadoVelocidadeScreen) — Button cheio, cor primária, mesmo shape.
+            Button(
+                onClick = onClick,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(LkRadius.button),
+                colors = ButtonDefaults.buttonColors(containerColor = c.primary, contentColor = c.onPrimary),
+            ) {
+                Text(
+                    text = conteudo.textoBotao,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
     }
 }
 

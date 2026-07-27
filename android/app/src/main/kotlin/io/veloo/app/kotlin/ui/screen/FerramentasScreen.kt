@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Build
@@ -44,12 +45,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.signallq.app.R
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.component.LkPillBadge
+import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkSurfaceCard
 
 // GH#933 — Fase 4 MD3: hub real de atalhos, substitui o placeholder criado na Fase 1
@@ -60,6 +64,7 @@ import io.signallq.app.ui.component.LkSurfaceCard
 // gamer (Overlay.ModoGamer, Feature #550/#1476) — onAbrirJogos aqui continua abrindo o
 // mesmo overlay fundido, só o destino mudou.
 private data class FerramentaItem(
+    val tipo: TipoFerramenta,
     val icon: ImageVector,
     val titulo: String,
     val descricao: String,
@@ -78,6 +83,13 @@ fun FerramentasScreen(
     onAbrirMonitoramento: () -> Unit = {},
     onAbrirJogos: () -> Unit = {},
     onAbrirSinalWifi: () -> Unit = {},
+    /** Issue #1503 (Camada B) — só não-nulo quando a navegação até aqui veio do card
+     *  contextual do diagnóstico guiado ([DiagnosticoGuiadoScreen]); nunca estático. */
+    ferramentaRecomendada: TipoFerramenta? = null,
+    /** Issue #1503 — quando não-nulo, a tela é empilhada como overlay (via
+     *  `Overlay.Ferramentas`, entrada vinda do card contextual) e mostra seta de voltar
+     *  em vez do hambúrguer da tab fixa. `null` preserva o comportamento original de tab. */
+    onVoltar: (() -> Unit)? = null,
 ) {
     val c = LocalLkTokens.current
 
@@ -95,6 +107,7 @@ fun FerramentasScreen(
             buildList {
                 add(
                     FerramentaItem(
+                        tipo = TipoFerramenta.DISPOSITIVOS,
                         icon = Icons.Outlined.Devices,
                         titulo = "Dispositivos",
                         descricao = "Quem está na sua rede",
@@ -103,6 +116,7 @@ fun FerramentasScreen(
                 )
                 add(
                     FerramentaItem(
+                        tipo = TipoFerramenta.EQUIPAMENTO_INTERNET,
                         icon = Icons.Outlined.Router,
                         titulo = "Equipamento de internet",
                         descricao = "Status do modem/ONT da operadora",
@@ -111,6 +125,7 @@ fun FerramentasScreen(
                 )
                 add(
                     FerramentaItem(
+                        tipo = TipoFerramenta.PING,
                         icon = Icons.Outlined.NetworkCheck,
                         titulo = "Ping",
                         descricao = "Teste de latência para um endereço",
@@ -119,6 +134,7 @@ fun FerramentasScreen(
                 )
                 add(
                     FerramentaItem(
+                        tipo = TipoFerramenta.DNS,
                         icon = Icons.Outlined.Dns,
                         titulo = "DNS",
                         descricao = "Compare servidores e troque o seu",
@@ -127,6 +143,7 @@ fun FerramentasScreen(
                 )
                 add(
                     FerramentaItem(
+                        tipo = TipoFerramenta.LAUDO,
                         icon = Icons.Outlined.Description,
                         titulo = "Laudo",
                         descricao = "Laudo técnico completo da sua conexão",
@@ -135,6 +152,7 @@ fun FerramentasScreen(
                 )
                 add(
                     FerramentaItem(
+                        tipo = TipoFerramenta.MONITORAMENTO,
                         icon = Icons.Outlined.MonitorHeart,
                         titulo = "Monitoramento",
                         descricao = "Análise avançada e alertas em segundo plano",
@@ -143,6 +161,7 @@ fun FerramentasScreen(
                 )
                 add(
                     FerramentaItem(
+                        tipo = TipoFerramenta.MODO_JOGOS,
                         icon = Icons.Outlined.SportsEsports,
                         titulo = "Modo Jogos",
                         descricao = "Teste sua conexão para 21 jogos, em qualquer dispositivo",
@@ -153,6 +172,7 @@ fun FerramentasScreen(
                 // via polling manual (versão contida do Walk Test do SignallQ Pro, ver #1176).
                 add(
                     FerramentaItem(
+                        tipo = TipoFerramenta.SINAL_WIFI,
                         icon = Icons.Outlined.NetworkWifi,
                         titulo = "Sinal WiFi",
                         descricao = "Veja o sinal, a velocidade e o padrão Wi-Fi em tempo real",
@@ -161,6 +181,13 @@ fun FerramentasScreen(
                 )
             }
         }
+
+    // Issue #1503 (Camada B) — hub sai de lista flat pra 2 seções, curadoria em
+    // CatalogoFerramentas (puro, testado em TipoFerramentaTest) — aqui só junta com
+    // ícone/texto/onClick de cada item.
+    val porTipo = remember(itens) { itens.associateBy { it.tipo } }
+    val maisUsadas = remember(porTipo) { CatalogoFerramentas.maisUsadas.mapNotNull { porTipo[it] } }
+    val restante = remember(porTipo) { CatalogoFerramentas.restante.mapNotNull { porTipo[it] } }
 
     Scaffold(
         containerColor = c.bgPrimary,
@@ -184,12 +211,20 @@ fun FerramentasScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onAbrirMenu) {
-                        Icon(
-                            imageVector = Icons.Filled.Menu,
-                            contentDescription = stringResource(R.string.appshell_cd_abrir_menu),
-                            tint = c.textPrimary,
-                        )
+                    IconButton(onClick = onVoltar ?: onAbrirMenu) {
+                        if (onVoltar != null) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Voltar",
+                                tint = c.textPrimary,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Filled.Menu,
+                                contentDescription = stringResource(R.string.appshell_cd_abrir_menu),
+                                tint = c.textPrimary,
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
@@ -204,7 +239,81 @@ fun FerramentasScreen(
             contentPadding = PaddingValues(LkSpacing.lg),
             verticalArrangement = Arrangement.spacedBy(LkSpacing.md),
         ) {
-            items(itens) { item -> FerramentaListItem(item = item, c = c) }
+            item { LkSectionOverline(text = "Mais usadas") }
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
+                ) {
+                    maisUsadas.forEach { item ->
+                        FerramentaDestacadaCard(
+                            item = item,
+                            destacada = item.tipo == ferramentaRecomendada,
+                            modifier = Modifier.weight(1f),
+                            c = c,
+                        )
+                    }
+                }
+            }
+            item { LkSectionOverline(text = "Todas as ferramentas") }
+            items(restante) { item ->
+                FerramentaListItem(item = item, destacada = item.tipo == ferramentaRecomendada, c = c)
+            }
+        }
+    }
+}
+
+@Composable
+private fun FerramentaDestacadaCard(
+    item: FerramentaItem,
+    destacada: Boolean,
+    c: LkTokens,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier) {
+        LkSurfaceCard(
+            modifier = Modifier.fillMaxWidth().clickable(onClick = item.onClick),
+            outlined = false,
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(vertical = LkSpacing.md, horizontal = LkSpacing.sm),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(LkRadius.input))
+                            .background(c.primary.copy(alpha = 0.14f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = null,
+                        tint = c.primary,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                Text(
+                    text = item.titulo,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.W600,
+                    color = c.textPrimary,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                )
+            }
+        }
+        if (destacada) {
+            // Card estreito (3 por linha) — versão curta do badge, texto completo fica
+            // no item compacto de FerramentaListItem, que tem largura de sobra.
+            LkPillBadge(
+                text = "recomendado",
+                containerColor = c.primary,
+                contentColor = c.onPrimary,
+                modifier = Modifier.align(Alignment.TopEnd).padding(4.dp),
+            )
         }
     }
 }
@@ -212,6 +321,7 @@ fun FerramentasScreen(
 @Composable
 private fun FerramentaListItem(
     item: FerramentaItem,
+    destacada: Boolean,
     c: LkTokens,
 ) {
     LkSurfaceCard(
@@ -245,12 +355,23 @@ private fun FerramentaListItem(
                 modifier = Modifier.weight(1f).padding(start = LkSpacing.md),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text(
-                    text = item.titulo,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.W600,
-                    color = c.textPrimary,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LkSpacing.xs)) {
+                    Text(
+                        text = item.titulo,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.W600,
+                        color = c.textPrimary,
+                    )
+                    // Issue #1503 (Camada B) — só aparece quando a navegação até aqui veio
+                    // do card contextual do diagnóstico guiado, nunca estático.
+                    if (destacada) {
+                        LkPillBadge(
+                            text = "recomendado pra você",
+                            containerColor = c.primary,
+                            contentColor = c.onPrimary,
+                        )
+                    }
+                }
                 Text(
                     text = item.descricao,
                     style = MaterialTheme.typography.bodySmall,
