@@ -3,29 +3,30 @@ import { render, screen } from '@testing-library/react'
 import { BrandEndorsement } from './BrandEndorsement'
 
 describe('BrandEndorsement', () => {
-  it("renderiza o texto 'by 7A' na variante padrão", () => {
+  it("renderiza o texto 'by Buildea' na variante padrão", () => {
     render(<BrandEndorsement />)
     expect(screen.getByText('by')).toBeInTheDocument()
-    expect(screen.getByText('7A')).toBeInTheDocument()
+    expect(screen.getByText('Buildea')).toBeInTheDocument()
   })
 
-  it('resolve o símbolo real por tema quando variant=symbol-text, sem exigir symbolSrc', () => {
-    const { container } = render(<BrandEndorsement variant="symbol-text" isDark />)
+  it('resolve o símbolo oficial da Buildea quando variant=symbol-text, sem exigir symbolSrc', () => {
+    const { container } = render(<BrandEndorsement variant="symbol-text" />)
     const img = container.querySelector('img')
     expect(img).not.toBeNull()
-    expect(img).toHaveAttribute('src', '/brand/7alabs-symbol-dark.svg')
+    expect(img).toHaveAttribute('src', '/brand/buildea-symbol.png')
   })
 
-  it("troca o símbolo para a variante clara quando isDark=false", () => {
-    const { container } = render(<BrandEndorsement variant="symbol-text" isDark={false} />)
-    const img = container.querySelector('img')
-    expect(img).toHaveAttribute('src', '/brand/7alabs-symbol-light.svg')
+  it('usa o mesmo símbolo independente de isDark (já vem com fundo próprio embutido)', () => {
+    const { container: darkContainer } = render(<BrandEndorsement variant="symbol-text" isDark />)
+    const { container: lightContainer } = render(<BrandEndorsement variant="symbol-text" isDark={false} />)
+    expect(darkContainer.querySelector('img')).toHaveAttribute('src', '/brand/buildea-symbol.png')
+    expect(lightContainer.querySelector('img')).toHaveAttribute('src', '/brand/buildea-symbol.png')
   })
 
-  it('mantém a proporção real do símbolo (763x653, não quadrado) via altura fixa e largura auto', () => {
+  it('mantém a proporção real do símbolo (praticamente quadrado, 408x408) via altura fixa e largura auto', () => {
     const { container } = render(<BrandEndorsement variant="symbol-text" isDark />)
     const img = container.querySelector('img') as HTMLImageElement
-    expect(img.style.height).toBe('14px')
+    expect(img.style.height).toBe('16px')
     expect(img.style.width).toBe('auto')
   })
 

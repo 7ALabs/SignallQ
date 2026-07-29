@@ -60,10 +60,13 @@ const MINIMAL_LINKS = [
 
 const CONTATO_EMAIL = 'suporte@signallq.com'
 
-// GH#1376 — assinatura institucional "by 7A" via componente compartilhado
-// (mesmo contrato do `BrandEndorsement` do SignallQ Admin), não mais texto
-// plano — o texto puro não expressava a hierarquia visual aprovada ("by"
-// normal, "7A" com peso maior).
+// GH#1376 — assinatura institucional via componente compartilhado (mesmo
+// contrato do `BrandEndorsement` do SignallQ Admin), não mais texto plano —
+// o texto puro não expressava a hierarquia visual aprovada ("by" normal,
+// nome da marca com peso maior). Rebrand 2026-07-29 (7A Labs → Buildea, ver
+// `_workspace/docs/decisions/DECISAO_REBRAND_BUILDEA_2026-07-29.md`): usa o
+// símbolo oficial da Buildea (monograma "iB", `brand/buildea-symbol.png`,
+// extraído do avatar real da org no GitHub) via `variant="symbol-text"`.
 function CopyrightLine({ className, isDark }: { className?: string; isDark: boolean }) {
   return (
     <div className={`body-small inline-flex flex-wrap items-center gap-1 ${className ?? ''}`} style={{ color: 'var(--text-tertiary)' }}>

@@ -221,7 +221,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* GH#1376: rodapé institucional — instância única, hierarquia baixa,
-            não repete por tela (Sidebar é chrome persistente, não conteúdo de tela). */}
+            não repete por tela (Sidebar é chrome persistente, não conteúdo de tela).
+            Rebrand 2026-07-29 (7A Labs → Buildea) — símbolo oficial em BrandEndorsement.tsx. */}
         <div
           className="px-4 py-3 flex justify-center"
           style={{ borderTop: "1px solid var(--border)" }}
