@@ -47,6 +47,19 @@ const LINKS_COMPACT = [
 const COPYRIGHT_PREFIX = '© 2026 SignallQ ·'
 const COPYRIGHT_SUFFIX = '. Produto em fase Beta.'
 
+// Variante `minimal` (Marina, 2026-07-29, PR #1509) — usada só na rota `/teste`
+// a pedido do Luiz: o rodapé completo (nav de produto + guias editoriais)
+// competia com a narrativa de "pedido de ajuda pré-lançamento" daquela página.
+// Não remove os links editoriais do rodapé padrão (usado em todas as outras
+// rotas) — só oferece uma composição alternativa mais enxuta.
+const MINIMAL_LINKS = [
+  { label: 'Quem somos', href: '/quem-somos' },
+  { label: 'Política de Privacidade', href: '/privacidade' },
+  { label: 'Termos de Uso', href: '/termos' },
+]
+
+const CONTATO_EMAIL = 'suporte@signallq.com'
+
 // GH#1376 — assinatura institucional "by 7A" via componente compartilhado
 // (mesmo contrato do `BrandEndorsement` do SignallQ Admin), não mais texto
 // plano — o texto puro não expressava a hierarquia visual aprovada ("by"
@@ -69,7 +82,7 @@ function CopyrightLine({ className, isDark }: { className?: string; isDark: bool
 // destino usado pelos outros CTAs de teste fechado do site) — conteúdo fixo
 // do design, não depende do catálogo dinâmico de anúncios locais (AdRail/
 // AdBannerWide).
-export function SiteFooter() {
+export function SiteFooter({ variant = 'default' }: { variant?: 'default' | 'minimal' }) {
   const isDark = useSystemTheme()
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -90,6 +103,30 @@ export function SiteFooter() {
       document.documentElement.classList.remove(FOOTER_VISIBLE_CLASS)
     }
   }, [])
+
+  if (variant === 'minimal') {
+    return (
+      <div ref={rootRef} className="w-full box-border border-t" style={{ background: 'var(--bg-secondary)', borderColor: 'color-mix(in srgb, var(--border) 25%, transparent)' }}>
+        <div className="mx-auto flex max-w-[1280px] flex-col gap-4 px-5 py-7 box-border sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2.5">
+            <Logo isDark={isDark} height={26} />
+            <Badge>Beta</Badge>
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-1.5">
+            {MINIMAL_LINKS.map((link) => (
+              <Link key={link.href} to={link.href} className="body-small no-underline" style={{ color: 'var(--text-primary)' }}>
+                {link.label}
+              </Link>
+            ))}
+            <a href={`mailto:${CONTATO_EMAIL}`} className="body-small no-underline" style={{ color: 'var(--text-primary)' }}>
+              Contato
+            </a>
+          </div>
+          <CopyrightLine isDark={isDark} />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div ref={rootRef} className="w-full box-border border-t" style={{ background: 'var(--bg-secondary)', borderColor: 'color-mix(in srgb, var(--border) 25%, transparent)' }}>
