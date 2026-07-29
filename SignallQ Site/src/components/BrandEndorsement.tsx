@@ -1,16 +1,14 @@
 export type BrandEndorsementVariant = 'text' | 'symbol-text'
 export type BrandEndorsementSize = 'compact' | 'default'
 
-// GH#1376 (símbolo original "7A") + rebrand institucional 7A Labs → Buildea
+// GH#1376 (símbolo original "7A", legado) + rebrand institucional 7A Labs → Buildea
 // (2026-07-29, ver `_workspace/docs/decisions/DECISAO_REBRAND_BUILDEA_2026-07-29.md`).
-// A Buildea ainda não tem um símbolo vetorial próprio neste repo — até que exista, os
-// chamadores usam `variant="text"` (sem símbolo). O caminho abaixo fica só como default
-// de fallback para quem passar `variant="symbol-text"` com um `symbolSrc` de verdade;
-// não usar o mark "7A" sozinho ao lado do texto "Buildea" (marca visual desatualizada).
-const SYMBOL_SRC_BY_THEME = {
-  dark: '/brand/7alabs-symbol-dark.svg',
-  light: '/brand/7alabs-symbol-light.svg',
-} as const
+// Símbolo oficial da Buildea (monograma "iB", preto/branco/amarelo) extraído do avatar
+// real da org no GitHub (`buildea-labs`, fonte: `brand/buildea-symbol.png` na raiz do
+// monorepo) — já vem com fundo preto opaco embutido (não é um traço vetorial soltável
+// como o símbolo "7A" antigo), por isso um único asset serve pra tema claro e escuro
+// do Site (o próprio símbolo carrega seu fundo, não depende do fundo da página).
+const BUILDEA_SYMBOL_SRC = '/brand/buildea-symbol.png'
 
 interface BrandEndorsementProps {
   /** 'text' — só "by Buildea". 'symbol-text' — símbolo (via `symbolSrc`) + "by Buildea". */
@@ -23,7 +21,7 @@ interface BrandEndorsementProps {
    * ao default de `Logo`.
    */
   isDark?: boolean
-  /** Override do caminho do símbolo. Sem isso, cai no símbolo "7A" legado (ver nota acima). */
+  /** Override do caminho do símbolo. Sem isso, usa o símbolo oficial da Buildea. */
   symbolSrc?: string
   className?: string
   id?: string
@@ -46,17 +44,16 @@ interface BrandEndorsementProps {
 export function BrandEndorsement({
   variant = 'text',
   size = 'default',
-  isDark = false,
   symbolSrc,
   className = '',
   id,
 }: BrandEndorsementProps) {
   const showSymbol = variant === 'symbol-text'
-  const resolvedSymbolSrc = symbolSrc ?? SYMBOL_SRC_BY_THEME[isDark ? 'dark' : 'light']
+  const resolvedSymbolSrc = symbolSrc ?? BUILDEA_SYMBOL_SRC
   const fontSize = size === 'compact' ? '10px' : '11px'
-  // Símbolo não é quadrado (viewBox 763x653, ~1.17:1) — altura fixa por tamanho, largura
-  // livre (`auto`) para o navegador preservar a proporção intrínseca do SVG.
-  const symbolHeight = size === 'compact' ? '12px' : '14px'
+  // Símbolo é praticamente quadrado (408x408) — altura fixa por tamanho, largura
+  // livre (`auto`) para o navegador preservar a proporção intrínseca do PNG.
+  const symbolHeight = size === 'compact' ? '14px' : '16px'
 
   return (
     <span
@@ -72,7 +69,7 @@ export function BrandEndorsement({
           alt=""
           aria-hidden="true"
           className="shrink-0"
-          style={{ height: symbolHeight, width: 'auto' }}
+          style={{ height: symbolHeight, width: 'auto', borderRadius: '3px' }}
           draggable={false}
         />
       )}

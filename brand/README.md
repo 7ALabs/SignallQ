@@ -60,10 +60,12 @@ nesta rodada. Aplicar o mesmo conjunto lá quando houver acesso ao repo.
 
 > Marca anterior ("linka") é histórica e **não deve ser usada** em nenhum material novo.
 
-## Símbolo institucional 7A (`by 7A`, GH#1376)
+## Símbolo institucional 7A (`by 7A`, GH#1376) — LEGADO, substituído pela Buildea
 
 Distinto do símbolo SignallQ acima — usado só pela assinatura institucional "by 7A"
-(`BrandEndorsement`), nunca para o ícone/logo do produto em si.
+(`BrandEndorsement`), nunca para o ícone/logo do produto em si. Superado pelo rebrand
+7A Labs → Buildea (2026-07-29) — ver seção seguinte. Mantido aqui só como referência
+histórica; não usar em material novo.
 
 | Arquivo | Uso |
 |---|---|
@@ -72,6 +74,22 @@ Distinto do símbolo SignallQ acima — usado só pela assinatura institucional 
 | `7alabs-lockup-dark.svg` | Marca completa "7ALabs" (símbolo + wordmark "Labs"), fundo escuro. **Não usar em `BrandEndorsement`/telas operacionais** — a issue #1376 proíbe lockup completo nessas superfícies; guardado só para uso institucional fora do componente (ex.: material de apresentação). |
 | `7alabs-lockup-light.svg` | Mesmo lockup, variante para fundo claro. |
 
-Consumido via cópia local, não import cross-monorepo: `SignallQ Admin/public/brand/7a/symbol-{dark,light}.svg`
-e `SignallQ Site/public/brand/7alabs-symbol-{dark,light}.svg` (nomenclatura de cada cópia segue a
+## Símbolo institucional Buildea (`by Buildea`, rebrand 2026-07-29)
+
+Sucede o símbolo "7A" acima na assinatura institucional (`BrandEndorsement`), mesmo uso e
+mesma regra: nunca para o ícone/logo do produto em si (SignallQ continua com sua própria
+marca, seção acima). Fonte: avatar real da organização `buildea-labs` no GitHub e o banner
+de capa do repo `buildea-labs/.github` (`profile/assets/cover-buildea.png`) — não é um
+traço vetorial novo, foi extraído dos ativos oficiais já publicados pelo Luiz.
+
+| Arquivo | Uso |
+|---|---|
+| `buildea-symbol.png` | Monograma "iB" isolado (preto/branco/amarelo), 408×408, fundo preto opaco embutido — não precisa de variante clara/escura separada, o próprio símbolo carrega o fundo. Fonte: avatar da org GitHub `buildea-labs`. |
+| `buildea-lockup-dark-bg.png` | Lockup completo (símbolo + wordmark "buildea" + tagline "Ideas. Built."), fundo escuro, 1280×640. **Não usar em `BrandEndorsement`/telas operacionais** — mesma regra do lockup "7ALabs" antigo; guardado só para uso institucional fora do componente. |
+
+Sem variante de fundo claro ainda — se for necessária, gerar a partir da mesma fonte
+oficial (não redesenhar à mão) e documentar aqui.
+
+Consumido via cópia local, não import cross-monorepo: `SignallQ Admin/public/brand/buildea/symbol.png`
+e `SignallQ Site/public/brand/buildea-symbol.png` (nomenclatura de cada cópia segue a
 convenção de `public/brand/` já existente em cada app — ver `BrandEndorsement.tsx` de cada um).

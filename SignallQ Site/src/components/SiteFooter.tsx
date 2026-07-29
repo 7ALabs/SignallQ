@@ -51,15 +51,14 @@ const COPYRIGHT_SUFFIX = '. Produto em fase Beta.'
 // contrato do `BrandEndorsement` do SignallQ Admin), não mais texto plano —
 // o texto puro não expressava a hierarquia visual aprovada ("by" normal,
 // nome da marca com peso maior). Rebrand 2026-07-29 (7A Labs → Buildea, ver
-// `_workspace/docs/decisions/DECISAO_REBRAND_BUILDEA_2026-07-29.md`): sem
-// símbolo vetorial próprio da Buildea ainda neste repo, por isso `variant="text"`
-// em vez de `symbol-text` — evita mostrar o símbolo "7A" antigo ao lado do
-// nome novo. Trocar para `symbol-text` quando existir um mark oficial da Buildea.
+// `_workspace/docs/decisions/DECISAO_REBRAND_BUILDEA_2026-07-29.md`): usa o
+// símbolo oficial da Buildea (monograma "iB", `brand/buildea-symbol.png`,
+// extraído do avatar real da org no GitHub) via `variant="symbol-text"`.
 function CopyrightLine({ className, isDark }: { className?: string; isDark: boolean }) {
   return (
     <div className={`body-small inline-flex flex-wrap items-center gap-1 ${className ?? ''}`} style={{ color: 'var(--text-tertiary)' }}>
       <span>{COPYRIGHT_PREFIX}</span>
-      <BrandEndorsement size="compact" variant="text" isDark={isDark} />
+      <BrandEndorsement size="compact" variant="symbol-text" isDark={isDark} />
       <span>{COPYRIGHT_SUFFIX}</span>
     </div>
   )
