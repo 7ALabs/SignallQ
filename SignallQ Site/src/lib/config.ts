@@ -16,6 +16,12 @@ export const SIGNALLQ_BETA_DOWNLOAD_URL: string =
 export const SIGNALLQ_TEST_GROUP_URL: string =
   import.meta.env.VITE_SIGNALLQ_TEST_GROUP_URL || 'https://groups.google.com/g/testadores-signallq'
 
+// Página de teste fechado (opt-in) da Play Store — só acessível a quem já
+// entrou no grupo de testadores acima. Distinta da ficha pública do app
+// (SIGNALLQ_BETA_DOWNLOAD_URL), que ainda não está publicada em produção.
+export const SIGNALLQ_CLOSED_TESTING_URL: string =
+  import.meta.env.VITE_SIGNALLQ_CLOSED_TESTING_URL || 'https://play.google.com/apps/testing/io.signallq.app'
+
 export const ADSENSE_PUBLISHER_ID: string = import.meta.env.VITE_ADSENSE_PUBLISHER_ID || ''
 export const ADSENSE_SLOT_RESULT: string = import.meta.env.VITE_ADSENSE_SLOT_RESULT || ''
 

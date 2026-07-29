@@ -75,7 +75,7 @@ function structuredDataFor(path: string, meta: PageMeta, origin: string): unknow
 function buildHeadInjectionHtml(meta: PageMeta, origin: string, structuredData: unknown[]): string {
   const url = origin + meta.path
   const robots = meta.robots ?? 'index,follow'
-  const image = origin + '/signallq-symbol.png'
+  const image = origin + (meta.ogImage ?? '/signallq-symbol.png')
 
   const tags = [
     `<meta name="google-site-verification" content="${GOOGLE_SITE_VERIFICATION_CONTENT}">`,
