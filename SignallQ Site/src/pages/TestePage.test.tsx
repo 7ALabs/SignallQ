@@ -50,10 +50,11 @@ describe('TestePage', () => {
     expect(screen.getByText('Acesse o teste fechado')).toBeInTheDocument()
     expect(screen.getByText('Instale e use o aplicativo')).toBeInTheDocument()
     expect(screen.getByText('Compartilhe sua experiência')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /entrar no grupo de testadores/i })).toHaveAttribute(
-      'href',
-      'https://groups.google.com/g/testadores-signallq'
-    )
+    // Existe em dois lugares agora (CTA da seção "Como participar" + CTA final,
+    // item C/I da revisão) — ambos devem apontar para o mesmo destino.
+    const ctasEntrarNoGrupo = screen.getAllByRole('link', { name: /entrar no grupo de testadores/i })
+    expect(ctasEntrarNoGrupo.length).toBeGreaterThan(0)
+    ctasEntrarNoGrupo.forEach((cta) => expect(cta).toHaveAttribute('href', 'https://groups.google.com/g/testadores-signallq'))
   })
 
   it('linka para a política de privacidade existente em "Antes de participar"', () => {
@@ -66,14 +67,23 @@ describe('TestePage', () => {
     expect(within(item as HTMLElement).getByRole('link', { name: /política de privacidade/i })).toHaveAttribute('href', '/privacidade')
   })
 
-  it('renderiza as screenshots reais do app com alt descritivo (não genérico), incluindo os diferenciais Modo Gamer e IA', () => {
+  it('renderiza a screenshot real do produto já no hero (primeira dobra)', () => {
     render(<TestePage />, { wrapper: MemoryRouter })
 
-    const home = screen.getByAltText(/tela início do signallq em modo escuro/i)
-    expect(home).toHaveAttribute('src', '/teste/01-home-dark.png')
+    const hero = screen.getByAltText(/tela início do signallq em modo escuro/i)
+    expect(hero).toHaveAttribute('src', '/teste/01-home-dark.png')
+  })
+
+  it('renderiza a galeria com 1 screenshot principal e 3 secundárias com legenda visível, incluindo os diferenciais Modo Gamer e IA', () => {
+    render(<TestePage />, { wrapper: MemoryRouter })
+
+    const principal = screen.getByAltText(/resultado do teste de velocidade do signallq em modo escuro/i)
+    expect(principal).toHaveAttribute('src', '/teste/03-speedtest-resultado-dark.png')
+    expect(screen.getByText(/resultado do teste de velocidade, com download, upload e qualidade da conexão/i)).toBeInTheDocument()
 
     const modoGamer = screen.getByAltText(/diagnóstico do modo gamer do signallq para free fire/i)
     expect(modoGamer).toHaveAttribute('src', '/teste/06-modo-gamer.png')
+    expect(screen.getByText(/modo gamer — diagnóstico de latência para jogos online/i)).toBeInTheDocument()
 
     const diagnosticoIa = screen.getByAltText(/diagnóstico guiado do signallq assistido por ia/i)
     expect(diagnosticoIa).toHaveAttribute('src', '/teste/07-diagnostico-ia.png')
@@ -114,10 +124,11 @@ describe('TestePage', () => {
     delete navigator.share
   })
 
-  it('não destaca a Etapa 2 na primeira visita (sem registro local de entrada no grupo)', () => {
+  it('não destaca a Etapa 2 na primeira visita (sem registro local de entrada no grupo) — CTA único aponta para o grupo', () => {
     render(<TestePage />, { wrapper: MemoryRouter })
 
-    expect(screen.queryByText(/já entrou no grupo\? agora continue para instalar o signallq/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/já entrou no grupo/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /continuar para a play store/i })).not.toBeInTheDocument()
   })
 
   it('clicar em qualquer CTA de entrar no grupo grava a etapa 1 localmente, sem validar participação real', () => {
@@ -128,13 +139,26 @@ describe('TestePage', () => {
     expect(localStorage.getItem('signallq_teste_grupo_iniciado')).toBe('1')
   })
 
-  it('ao voltar para a landing com a etapa 1 já registrada, destaca a Etapa 2 com CTA para a Play Store', () => {
+  it('ao voltar para a landing com a etapa 1 já registrada, o CTA único de "Como participar" vira "Continuar para a Play Store"', () => {
     localStorage.setItem('signallq_teste_grupo_iniciado', '1')
 
     render(<TestePage />, { wrapper: MemoryRouter })
 
-    expect(screen.getByText(/já entrou no grupo\? agora continue para instalar o signallq pela play store/i)).toBeInTheDocument()
     const continuarLink = screen.getByRole('link', { name: /continuar para a play store/i })
     expect(continuarLink).toHaveAttribute('href', 'https://play.google.com/apps/testing/io.signallq.app')
+    // não existe mais um card solto repetindo a explicação do fluxo
+    expect(screen.queryByText(/já entrou no grupo/i)).not.toBeInTheDocument()
+  })
+
+  it('usa a variante minimal do SiteFooter (sem os links editoriais "Internet boa mas travando"/"Lag em jogos online")', () => {
+    render(<TestePage />, { wrapper: MemoryRouter })
+
+    expect(screen.queryByRole('link', { name: /internet boa mas travando/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /lag em jogos online/i })).not.toBeInTheDocument()
+    // "Quem somos" também existe no SiteNav — aqui só confirmamos que o rodapé
+    // minimal contém os links institucionais mínimos pedidos (não duplicamos
+    // a asserção de exclusividade, que pertence ao teste do SiteNav).
+    expect(screen.getAllByRole('link', { name: /quem somos/i }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('link', { name: /política de privacidade/i }).length).toBeGreaterThan(0)
   })
 })
