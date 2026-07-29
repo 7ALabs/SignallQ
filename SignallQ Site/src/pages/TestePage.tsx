@@ -36,26 +36,39 @@ function marcarGrupoIniciado() {
 const SHARE_TEXT =
   '📶 Estou procurando pessoas para testar o SignallQ, um aplicativo Android de diagnóstico de internet, Wi-Fi, fibra e rede móvel. Você pode ajudar entrando pelo link: https://signallq.pages.dev/teste'
 
+// Curadoria 2026-07-29: 7 telas únicas (sem repetir a mesma tela em dois temas),
+// cada uma no tema em que ficou melhor, incluindo os dois diferenciais que a
+// concorrência não tem (Modo Gamer e Diagnóstico assistido por IA). Screenshots
+// reais do emulador (sem moldura desenhada na imagem) — a moldura de smartphone
+// é aplicada em CSS pelo componente `PhoneShot` abaixo.
 const SCREENSHOTS = [
   {
-    src: '/teste/01-home.png',
-    alt: 'Tela inicial do SignallQ, com a velocidade medida mais recente, atalhos para medir agora, DNS, ping e diagnóstico, e o status do Wi-Fi e da rede móvel.',
+    src: '/teste/01-home-dark.png',
+    alt: 'Tela Início do SignallQ em modo escuro, mostrando o caminho da conexão entre aparelho, roteador e provedor, o resultado da última medição de velocidade e o status do Wi-Fi.',
   },
   {
     src: '/teste/02-speedtest-rodando.png',
-    alt: 'Teste de velocidade em andamento no SignallQ, com o velocímetro medindo o download em tempo real.',
+    alt: 'Teste de velocidade em andamento no SignallQ, com o velocímetro medindo o download em tempo real e o gráfico de estabilidade da medição.',
   },
   {
-    src: '/teste/03-speedtest-resultado.png',
-    alt: 'Resultado do teste de velocidade do SignallQ, com download, upload, latência e bufferbloat, além da avaliação para streaming, jogos e videochamada.',
+    src: '/teste/03-speedtest-resultado-dark.png',
+    alt: 'Resultado do teste de velocidade do SignallQ em modo escuro, com download, upload e a avaliação de qualidade da internet.',
   },
   {
-    src: '/teste/05-canal-wifi.png',
-    alt: 'Análise do canal de Wi-Fi no SignallQ, mostrando o congestionamento por canal e a recomendação do melhor canal para o roteador.',
+    src: '/teste/04-canal-wifi.png',
+    alt: 'Análise do canal de Wi-Fi no SignallQ, com o gráfico de intensidade por canal na faixa 2.4GHz e a recomendação de migrar para o canal mais livre.',
   },
   {
-    src: '/teste/06-sinal.png',
-    alt: 'Tela de sinal do SignallQ, com a força do sinal do Wi-Fi e da rede móvel.',
+    src: '/teste/05-sinal.png',
+    alt: 'Tela de Sinal do SignallQ na aba Wi-Fi, mostrando a rede conectada e a qualidade do sinal detectado.',
+  },
+  {
+    src: '/teste/06-modo-gamer.png',
+    alt: 'Diagnóstico do Modo Gamer do SignallQ para Free Fire no Android, com latência, jitter e download medidos pelo motor SignallQ e a explicação gerada por IA sobre a qualidade da conexão para jogar.',
+  },
+  {
+    src: '/teste/07-diagnostico-ia.png',
+    alt: 'Diagnóstico guiado do SignallQ assistido por IA, com perda de pacotes e oscilação medidas pelo motor local e a explicação gerada por IA sobre a causa da instabilidade.',
   },
 ]
 
@@ -98,6 +111,24 @@ function SectionLabel({ children }: { children: string }) {
   return (
     <div className="label-overline" style={{ color: 'var(--text-tertiary)' }}>
       {children}
+    </div>
+  )
+}
+
+// Moldura de smartphone em CSS puro — as screenshots reais desta galeria são
+// cruas (sem bezel desenhado na própria imagem, ao contrário do release
+// anterior). Bezel fixo escuro (não segue o tema claro/escuro do site,
+// igual a um chassi de aparelho real) com raio e proporção inspirados no
+// `PhoneFrame` do design system, mas sem importar o componente React do
+// pacote (`@signallq/design-system`) — decisão de arquitetura do site (ver
+// `CLAUDE.md` local): o site consome o design system só via CSS.
+function PhoneShot({ src, alt }: { src: string; alt: string }) {
+  return (
+    <div
+      className="h-[320px] flex-shrink-0 rounded-[30px] p-[6px] shadow-[0_18px_40px_-14px_rgba(0,0,0,0.5)] lg:h-[420px]"
+      style={{ background: '#16181d', scrollSnapAlign: 'start' }}
+    >
+      <img src={src} alt={alt} className="h-full w-auto rounded-[22px]" loading="lazy" />
     </div>
   )
 }
@@ -217,14 +248,7 @@ export default function TestePage() {
           <SectionLabel>O aplicativo</SectionLabel>
           <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollSnapType: 'x mandatory' }}>
             {SCREENSHOTS.map((shot) => (
-              <img
-                key={shot.src}
-                src={shot.src}
-                alt={shot.alt}
-                className="h-[320px] w-auto flex-shrink-0 rounded-2xl lg:h-[420px]"
-                style={{ scrollSnapAlign: 'start' }}
-                loading="lazy"
-              />
+              <PhoneShot key={shot.src} src={shot.src} alt={shot.alt} />
             ))}
           </div>
         </section>

@@ -66,11 +66,17 @@ describe('TestePage', () => {
     expect(within(item as HTMLElement).getByRole('link', { name: /política de privacidade/i })).toHaveAttribute('href', '/privacidade')
   })
 
-  it('renderiza as screenshots reais do app com alt descritivo (não genérico)', () => {
+  it('renderiza as screenshots reais do app com alt descritivo (não genérico), incluindo os diferenciais Modo Gamer e IA', () => {
     render(<TestePage />, { wrapper: MemoryRouter })
 
-    const img = screen.getByAltText(/tela inicial do signallq/i)
-    expect(img).toHaveAttribute('src', '/teste/01-home.png')
+    const home = screen.getByAltText(/tela início do signallq em modo escuro/i)
+    expect(home).toHaveAttribute('src', '/teste/01-home-dark.png')
+
+    const modoGamer = screen.getByAltText(/diagnóstico do modo gamer do signallq para free fire/i)
+    expect(modoGamer).toHaveAttribute('src', '/teste/06-modo-gamer.png')
+
+    const diagnosticoIa = screen.getByAltText(/diagnóstico guiado do signallq assistido por ia/i)
+    expect(diagnosticoIa).toHaveAttribute('src', '/teste/07-diagnostico-ia.png')
   })
 
   it('renderiza o QR code apontando só para a URL pública de /teste', () => {
