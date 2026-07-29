@@ -36,7 +36,7 @@ $assignments = @(
 )
 
 $env:Path += ";C:\Program Files\GitHub CLI"
-$repo = "7ALabs/SignallQ"
+$repo = "buildea-labs/SignallQ"
 
 $issueAgents = @{}
 foreach ($assignment in $assignments) {

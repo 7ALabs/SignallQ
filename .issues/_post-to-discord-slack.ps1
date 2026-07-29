@@ -59,7 +59,7 @@ function Post-ToDiscord($title, $issues) {
     $content += @"
 **$($issue.severity) #$($issue.num)**: $($issue.title)
 👤 Agente: $($issue.agent)
-🔗 GitHub: https://github.com/7ALabs/SignallQ/issues/$($issue.num)
+🔗 GitHub: https://github.com/buildea-labs/SignallQ/issues/$($issue.num)
 
 "@
   }
