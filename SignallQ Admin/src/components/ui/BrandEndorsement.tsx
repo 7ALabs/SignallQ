@@ -4,10 +4,12 @@ export type BrandEndorsementVariant = "text" | "symbol-text";
 export type BrandEndorsementSize = "compact" | "default";
 export type BrandEndorsementTheme = "dark" | "light";
 
-// GH#1376: símbolo 7A vetorial recebido do Luiz (recortado das paths originais, viewBox
-// `267 164 763 653` — não quadrado, ~1.17:1). Fonte: `brand/7alabs-symbol-{dark,light}.svg`,
-// copiado para `public/brand/7a/` (mesmo padrão de subpasta por marca que `public/brand/signallq/`
-// já usa). Resolução automática por tema — só passe `symbolSrc` para forçar um caminho específico.
+// GH#1376 (símbolo original "7A") + rebrand institucional 7A Labs → Buildea
+// (2026-07-29, ver `_workspace/docs/decisions/DECISAO_REBRAND_BUILDEA_2026-07-29.md`).
+// A Buildea ainda não tem um símbolo vetorial próprio neste repo — até que exista, os
+// chamadores usam `variant="text"` (sem símbolo). O caminho abaixo fica só como default
+// de fallback para quem passar `variant="symbol-text"` com um `symbolSrc` de verdade;
+// não usar o mark "7A" sozinho ao lado do texto "Buildea" (marca visual desatualizada).
 const SYMBOL_SRC_BY_THEME: Record<BrandEndorsementTheme, string> = {
   dark: `${import.meta.env.BASE_URL}brand/7a/symbol-dark.svg`,
   light: `${import.meta.env.BASE_URL}brand/7a/symbol-light.svg`,
@@ -25,7 +27,7 @@ function detectTheme(): BrandEndorsementTheme {
 }
 
 interface BrandEndorsementProps {
-  /** "text" — só "by 7A". "symbol-text" — símbolo 7A + "by 7A". */
+  /** "text" — só "by Buildea". "symbol-text" — símbolo (via `symbolSrc`) + "by Buildea". */
   variant?: BrandEndorsementVariant;
   size?: BrandEndorsementSize;
   /**
@@ -35,16 +37,16 @@ interface BrandEndorsementProps {
    * `useTheme()`) ou, na ausência dele, `prefers-color-scheme`.
    */
   theme?: BrandEndorsementTheme;
-  /** Override do caminho do símbolo 7A. Sem isso, resolve sozinho por tema — não precisa ser passado manualmente. */
+  /** Override do caminho do símbolo. Sem isso, cai no símbolo "7A" legado (ver nota acima). */
   symbolSrc?: string;
   className?: string;
   id?: string;
 }
 
 /**
- * Assinatura institucional "by 7A" (GH#1376, decisão de marca aprovada —
- * ver `7ALabs/.github/BRAND.md`). Endosso discreto, nunca lockup completo
- * "7A Labs" em tela operacional.
+ * Assinatura institucional "by Buildea" (rebrand 2026-07-29, sucede o "by 7A"
+ * de GH#1376 — ver `_workspace/docs/decisions/DECISAO_REBRAND_BUILDEA_2026-07-29.md`).
+ * Endosso discreto, nunca lockup completo "Buildea" em tela operacional.
  *
  * Uso: superfícies institucionais (login, rodapé, Sobre/versão) — nunca em
  * dashboards, tabelas ou telas operacionais repetidas.
@@ -85,7 +87,7 @@ export const BrandEndorsement: React.FC<BrandEndorsementProps> = ({
       )}
       <span style={{ fontSize }}>
         <span style={{ fontWeight: 400 }}>by</span>{" "}
-        <span style={{ fontWeight: 700, letterSpacing: "0.02em" }}>7A</span>
+        <span style={{ fontWeight: 700, letterSpacing: "0.02em" }}>Buildea</span>
       </span>
     </span>
   );

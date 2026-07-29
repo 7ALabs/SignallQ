@@ -221,12 +221,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* GH#1376: rodapé institucional — instância única, hierarquia baixa,
-            não repete por tela (Sidebar é chrome persistente, não conteúdo de tela). */}
+            não repete por tela (Sidebar é chrome persistente, não conteúdo de tela).
+            `variant="text"` (não "symbol-text"): rebrand 2026-07-29 (7A Labs → Buildea)
+            ainda não tem símbolo vetorial próprio neste repo — ver BrandEndorsement.tsx. */}
         <div
           className="px-4 py-3 flex justify-center"
           style={{ borderTop: "1px solid var(--border)" }}
         >
-          <BrandEndorsement id="sidebar-brand-endorsement" size="compact" variant="symbol-text" theme={theme} />
+          <BrandEndorsement id="sidebar-brand-endorsement" size="compact" variant="text" theme={theme} />
         </div>
       </div>
     </div>

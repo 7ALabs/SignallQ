@@ -38,7 +38,7 @@ describe('SiteFooter', () => {
     expect(screen.getAllByText('© 2026 SignallQ ·').length).toBeGreaterThanOrEqual(2)
     expect(screen.getAllByText('. Produto em fase Beta.').length).toBeGreaterThanOrEqual(2)
     expect(screen.getAllByText('by').length).toBeGreaterThanOrEqual(2)
-    expect(screen.getAllByText('7A').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getAllByText('Buildea').length).toBeGreaterThanOrEqual(2)
 
     // Link presente em todas as densidades (mobile+compact+full).
     expect(screen.getAllByText('Teste de velocidade').length).toBeGreaterThanOrEqual(2)

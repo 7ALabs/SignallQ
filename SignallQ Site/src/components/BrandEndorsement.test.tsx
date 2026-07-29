@@ -3,10 +3,10 @@ import { render, screen } from '@testing-library/react'
 import { BrandEndorsement } from './BrandEndorsement'
 
 describe('BrandEndorsement', () => {
-  it("renderiza o texto 'by 7A' na variante padrão", () => {
+  it("renderiza o texto 'by Buildea' na variante padrão", () => {
     render(<BrandEndorsement />)
     expect(screen.getByText('by')).toBeInTheDocument()
-    expect(screen.getByText('7A')).toBeInTheDocument()
+    expect(screen.getByText('Buildea')).toBeInTheDocument()
   })
 
   it('resolve o símbolo real por tema quando variant=symbol-text, sem exigir symbolSrc', () => {

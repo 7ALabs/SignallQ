@@ -272,9 +272,11 @@ export function LoginPage({ onLogin, theme }: LoginPageProps) {
           </div>
         )}
 
-        {/* GH#1376: assinatura institucional — superfície de login, hierarquia baixa */}
+        {/* GH#1376: assinatura institucional — superfície de login, hierarquia baixa.
+            `variant="text"` (não "symbol-text"): rebrand 2026-07-29 (7A Labs → Buildea)
+            ainda não tem símbolo vetorial próprio neste repo — ver BrandEndorsement.tsx. */}
         <div className="mt-10">
-          <BrandEndorsement id="login-brand-endorsement" variant="symbol-text" theme={theme} />
+          <BrandEndorsement id="login-brand-endorsement" variant="text" theme={theme} />
         </div>
       </div>
     </div>
