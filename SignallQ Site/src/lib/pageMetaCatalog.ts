@@ -57,6 +57,13 @@ export const PAGE_META: Record<string, PageMeta> = {
       'Internet parece boa mas dá lag em jogos, e você não consegue hospedar partida ou conectar direto com amigos? Entenda o CGNAT e o NAT Strict, e o que fazer.',
     path: '/lag-em-jogos-online',
   },
+  '/teste': {
+    title: 'Ajude a testar o SignallQ',
+    description:
+      'Participe do teste fechado do SignallQ para Android e ajude a melhorar o diagnóstico de internet, Wi-Fi, fibra e rede móvel.',
+    path: '/teste',
+    ogImage: '/og/teste.png',
+  },
 }
 
 export const NOT_FOUND_META: PageMeta = {

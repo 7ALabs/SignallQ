@@ -10,6 +10,7 @@ import PrivacidadePage from './pages/PrivacidadePage'
 import ProPage from './pages/ProPage'
 import QuemSomosPage from './pages/QuemSomosPage'
 import TermosPage from './pages/TermosPage'
+import TestePage from './pages/TestePage'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/termos" element={<TermosPage />} />
         <Route path="/internet-boa-mas-travando" element={<BufferbloatPage />} />
         <Route path="/lag-em-jogos-online" element={<CgnatPage />} />
+        <Route path="/teste" element={<TestePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
       <PwaToastStack />
