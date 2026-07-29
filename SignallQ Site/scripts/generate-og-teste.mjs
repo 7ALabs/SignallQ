@@ -2,7 +2,15 @@
 // externo. Composição: fundo gradiente (mesma paleta do card de anúncio do
 // SiteFooter), lockup oficial do SignallQ (marca do produto, não a antiga
 // marca institucional `7alabs-*`), título/subtítulo do convite e duas
-// screenshots reais do app (mesmas usadas na galeria da página).
+// screenshots reais do app (mesmas usadas na galeria da página) — Início
+// (modo escuro) e Modo Gamer, os dois escolhidos pra já comunicar um
+// diferencial do produto na prévia de compartilhamento (curadoria 2026-07-29).
+//
+// As screenshots de `public/teste/` são cruas (sem bezel desenhado na
+// imagem, ao contrário do release anterior que usava os PNGs já emoldurados
+// de `android/assets/store/screenshots/framed/`) — este script desenha um
+// bezel simples via máscara SVG antes de rotacionar, pra manter a leitura de
+// "smartphone" na miniatura do OG.
 //
 // Rodar manualmente após trocar a copy do título/subtítulo desta rota, ou
 // quando os assets de marca/screenshots mudarem — não faz parte do `npm run
@@ -16,9 +24,40 @@ import sharp from 'sharp'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
-const SCREENSHOTS_DIR = path.resolve(ROOT, '../android/assets/store/screenshots/framed')
+const SCREENSHOTS_DIR = path.join(ROOT, 'public', 'teste')
 const OUTPUT_DIR = path.join(ROOT, 'public', 'og')
 const OUTPUT_FILE = path.join(OUTPUT_DIR, 'teste.png')
+const BEZEL = 14
+const BEZEL_RADIUS = 48
+const BEZEL_COLOR = '#16181d'
+
+// Envolve uma screenshot crua num bezel escuro simples (cantos arredondados),
+// pra simular um smartphone antes de rotacionar — equivalente em sharp da
+// moldura CSS usada na galeria da própria página (`PhoneShot` em `TestePage.tsx`).
+async function framedShot(filePath, targetHeight) {
+  const raw = await sharp(filePath).resize({ height: targetHeight - BEZEL * 2 }).png().toBuffer()
+  const meta = await sharp(raw).metadata()
+  const width = (meta.width ?? 0) + BEZEL * 2
+  const height = (meta.height ?? 0) + BEZEL * 2
+
+  const mask = Buffer.from(
+    `<svg width="${width}" height="${height}"><rect width="${width}" height="${height}" rx="${BEZEL_RADIUS}" fill="#fff"/></svg>`
+  )
+
+  const bezel = Buffer.from(
+    `<svg width="${width}" height="${height}"><rect width="${width}" height="${height}" rx="${BEZEL_RADIUS}" fill="${BEZEL_COLOR}"/></svg>`
+  )
+
+  const withBezel = await sharp(bezel)
+    .composite([{ input: raw, left: BEZEL, top: BEZEL }])
+    .png()
+    .toBuffer()
+
+  return sharp(withBezel)
+    .composite([{ input: mask, blend: 'dest-in' }])
+    .png()
+    .toBuffer()
+}
 
 const WIDTH = 1200
 const HEIGHT = 630
@@ -57,18 +96,16 @@ async function main() {
     .png()
     .toBuffer()
 
-  // Screenshots reais do app (fundo violeta já embutido no frame — funde com
-  // o gradiente de fundo do card). rotate() preenche os cantos vazados com
-  // transparência real (precisa de canal alfa antes de rotacionar).
-  const screenshotA = await sharp(path.join(SCREENSHOTS_DIR, '01-home.png'))
-    .resize({ height: 560 })
+  // Screenshots reais do app, já emolduradas por `framedShot` (bezel escuro +
+  // cantos arredondados). rotate() preenche os cantos vazados pela rotação
+  // com transparência real (precisa de canal alfa antes de rotacionar).
+  const screenshotA = await sharp(await framedShot(path.join(SCREENSHOTS_DIR, '01-home-dark.png'), 560))
     .ensureAlpha()
     .rotate(-6, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .png()
     .toBuffer()
 
-  const screenshotB = await sharp(path.join(SCREENSHOTS_DIR, '03-speedtest-resultado.png'))
-    .resize({ height: 560 })
+  const screenshotB = await sharp(await framedShot(path.join(SCREENSHOTS_DIR, '06-modo-gamer.png'), 560))
     .ensureAlpha()
     .rotate(6, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .png()
