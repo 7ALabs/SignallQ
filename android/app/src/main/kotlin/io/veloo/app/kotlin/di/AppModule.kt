@@ -21,6 +21,7 @@ import io.signallq.app.core.database.CoreDatabaseModulo
 import io.signallq.app.core.database.MedicaoDao
 import io.signallq.app.core.database.SignallQDatabase
 import io.signallq.app.core.database.chat.ChatSessionDao
+import io.signallq.app.core.database.connectivity.ConnectivityDiagnosisHistoryDao
 import io.signallq.app.core.datastore.FeatureFlagStore
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.core.featureflags.FeatureFlagCatalog
@@ -33,6 +34,7 @@ import io.signallq.app.core.network.DefaultDispatcherProvider
 import io.signallq.app.core.network.DispatcherProvider
 import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.network.NetworkCapabilitiesProvider
+import io.signallq.app.core.network.connectivity.ConnectivityDiagnosisRunner
 import io.signallq.app.core.network.wifi.ScannerRedesWifi
 import io.signallq.app.core.permissions.CorePermissionsModulo
 import io.signallq.app.core.permissions.GerenciadorPermissoesRede
@@ -48,6 +50,8 @@ import io.signallq.app.feature.fibra.ExecutorFibra
 import io.signallq.app.feature.fibra.FeatureFibraModulo
 import io.signallq.app.feature.speedtest.ExecutorSpeedtest
 import io.signallq.app.feature.speedtest.FeatureSpeedtestModulo
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisRepository
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisRepositoryImpl
 import io.signallq.app.feature.wifi.FeatureWifiModulo
 import io.signallq.app.featureflags.FeatureFlagManager
 import io.signallq.app.featureflags.FeatureFlagRepository
@@ -339,6 +343,25 @@ object AppModule {
     @Provides
     @Singleton
     fun provideChatSessionDao(bancoDados: SignallQDatabase): ChatSessionDao = bancoDados.chatSessionDao()
+
+    @Provides
+    @Singleton
+    fun provideConnectivityDiagnosisHistoryDao(
+        bancoDados: SignallQDatabase,
+    ): ConnectivityDiagnosisHistoryDao = bancoDados.connectivityDiagnosisHistoryDao()
+
+    @Provides
+    @Singleton
+    fun provideConnectivityDiagnosisRunner(
+        @ApplicationContext ctx: Context,
+    ): ConnectivityDiagnosisRunner = ConnectivityDiagnosisRunner(ctx)
+
+    @Provides
+    @Singleton
+    fun provideConnectivityDiagnosisRepository(
+        runner: ConnectivityDiagnosisRunner,
+        historyDao: ConnectivityDiagnosisHistoryDao,
+    ): ConnectivityDiagnosisRepository = ConnectivityDiagnosisRepositoryImpl(runner, historyDao)
 
     @Provides
     @Singleton

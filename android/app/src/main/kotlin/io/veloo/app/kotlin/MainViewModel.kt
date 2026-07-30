@@ -80,6 +80,9 @@ import io.signallq.app.feature.history.ObservadorHistoricoRoom
 import io.signallq.app.feature.history.ResumoHistorico
 import io.signallq.app.feature.speedtest.ExecutorSpeedtest
 import io.signallq.app.feature.speedtest.ModoSpeedtest
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisMensagem
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisPresenter
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisRepository
 import io.signallq.app.featureflags.ConsumerFeatureGateCoordinator
 import io.signallq.app.monitoramento.MonitoramentoScheduler
 import io.signallq.app.network.IspInfoCache
@@ -178,6 +181,11 @@ class MainViewModel
          *  (F1/#1477). Toda a logica de flag mora no coordinator, nao aqui (regra de higiene
          *  4.2 -- MainViewModel nao ganha responsabilidade nova). */
         private val featureGateCoordinator: ConsumerFeatureGateCoordinator,
+        /** GH#1512 — diagnostico local de conectividade (Wi-Fi conectado sem internet).
+         *  Mesmo repositorio/motor usado por SpeedtestViewModel (core:network) -- nao
+         *  duplica logica; so intervem no cenario exato do bug (ver
+         *  [interromperSpeedtestPorWifiSemInternet]). */
+        private val connectivityDiagnosisRepository: ConnectivityDiagnosisRepository,
     ) : AndroidViewModel(application) {
         private companion object {
             const val LOG_TAG = "SignallQSpeedtestSuite"
@@ -626,6 +634,16 @@ class MainViewModel
         private val _speedtestPendenteModoMovel = MutableStateFlow<ModoSpeedtest?>(null)
         val speedtestPendenteModoMovel: StateFlow<ModoSpeedtest?> = _speedtestPendenteModoMovel
 
+        /** GH#1512 — conclusao do diagnostico local quando o Speedtest e interrompido por
+         *  Wi-Fi sem internet (nao um erro generico de execucao nem loading infinito). null
+         *  = sem pendencia; UI limpa apos exibir (ver [limparDiagnosticoConectividade]). */
+        private val _diagnosticoConectividade = MutableStateFlow<ConnectivityDiagnosisMensagem?>(null)
+        val diagnosticoConectividade: StateFlow<ConnectivityDiagnosisMensagem?> = _diagnosticoConectividade
+
+        fun limparDiagnosticoConectividade() {
+            _diagnosticoConectividade.value = null
+        }
+
         fun verificarDisponibilidadeGemma() {
             viewModelScope.launch {
                 gemmaAvailable.value = signallQOrchestrator.checkAiAvailability()
@@ -1000,9 +1018,8 @@ class MainViewModel
                     }
                 }
                 try {
-                    executarSpeedtest(modo)
+                    if (executarSpeedtest(modo)) acumularMbConsumidos(modo)
                 } finally {
-                    acumularMbConsumidos(modo)
                     execucaoSpeedtestEmAndamento.set(false)
                     iniciarRotinasNaoSpeedtest()
                 }
@@ -1020,9 +1037,8 @@ class MainViewModel
             resetarEstadoPosSpeedtestAnterior()
             viewModelScope.launch {
                 try {
-                    executarSpeedtest(modo)
+                    if (executarSpeedtest(modo)) acumularMbConsumidos(modo)
                 } finally {
-                    acumularMbConsumidos(modo)
                     execucaoSpeedtestEmAndamento.set(false)
                     iniciarRotinasNaoSpeedtest()
                 }
@@ -1747,7 +1763,14 @@ class MainViewModel
                 }
             }
 
-        private suspend fun executarSpeedtest(modo: ModoSpeedtest) {
+        /**
+         * @return `true` se o speedtest realmente rodou, `false` quando foi interrompido
+         *   pelo diagnostico local de conectividade (GH#1512 — ver
+         *   [interromperSpeedtestPorWifiSemInternet]).
+         */
+        private suspend fun executarSpeedtest(modo: ModoSpeedtest): Boolean {
+            if (interromperSpeedtestPorWifiSemInternet()) return false
+
             val connectionType = monitorRede.snapshotFlow.value.estadoConexao.name
             Timber.i("iniciando modo=${modo.name} connectionType=$connectionType")
             executorSpeedtest.executar(
@@ -1760,6 +1783,27 @@ class MainViewModel
                 isMobileProvider = { networkCapabilitiesProvider.isMeteredNetwork() },
             )
             Timber.i("finalizado modo=${modo.name}")
+            return true
+        }
+
+        /**
+         * GH#1512 — Wi-Fi conectado sem internet: intervem apenas quando o transporte ja e
+         * Wi-Fi mas `NET_CAPABILITY_VALIDATED` esta ausente (mesmo sinal que ja alimenta
+         * [MonitorRede]/`SnapshotRede.conectado`). Wi-Fi desconectado ou rede movel seguem o
+         * fluxo/dialogo ja existente (guarda de rede medida acima, `ForaDoWifiDialog` na
+         * AppShell) — nao duplicado aqui. Sem isso, o Speedtest tentaria rodar, expiraria por
+         * timeout e cairia em erro generico (ou pior, poderia usar dados moveis
+         * silenciosamente caso o Android promova a rede default) em vez de identificar
+         * explicitamente "Wi-Fi sem internet".
+         */
+        private suspend fun interromperSpeedtestPorWifiSemInternet(): Boolean {
+            val snapshot = monitorRede.snapshotFlow.value
+            if (snapshot.estadoConexao != EstadoConexao.wifi || snapshot.conectado) return false
+
+            val diagnostico = connectivityDiagnosisRepository.diagnosticar()
+            _diagnosticoConectividade.value = ConnectivityDiagnosisPresenter.apresentar(diagnostico)
+            Timber.i("speedtest interrompido -- wifi sem internet, status=${diagnostico.status}")
+            return true
         }
 
         /**

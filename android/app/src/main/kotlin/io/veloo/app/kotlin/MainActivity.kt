@@ -222,6 +222,12 @@ class MainActivity : ComponentActivity() {
                 viewModel.speedtestPendenteModoMovel
                     .collectAsStateWithLifecycle()
                     .value
+            // GH#1512 — conclusao do diagnostico local quando o Speedtest e interrompido
+            // por Wi-Fi conectado sem internet.
+            val diagnosticoConectividade =
+                viewModel.diagnosticoConectividade
+                    .collectAsStateWithLifecycle()
+                    .value
             val apelidos = viewModel.apelidos.collectAsStateWithLifecycle().value
             val correlacoesTopologia = viewModel.correlacoesTopologia.collectAsStateWithLifecycle().value
             val snapshotDiagnostico =
@@ -362,6 +368,8 @@ class MainActivity : ComponentActivity() {
                                 onConfirmarSpeedtestMovel = { viewModel.confirmarSpeedtestEmMovel() },
                                 onCancelarSpeedtestMovel = { viewModel.cancelarSpeedtestMovel() },
                                 onSetSpeedtestPermiteHeavyMovel = { valor -> viewModel.setSpeedtestPermiteHeavyMovel(valor) },
+                                diagnosticoConectividade = diagnosticoConectividade,
+                                onLimparDiagnosticoConectividade = { viewModel.limparDiagnosticoConectividade() },
                             ),
                         wifi =
                             io.signallq.app.ui.screen.AppShellWifiState(
