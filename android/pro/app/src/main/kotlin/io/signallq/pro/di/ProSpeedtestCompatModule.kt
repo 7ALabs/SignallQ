@@ -15,10 +15,14 @@ import io.signallq.app.core.network.DispatcherProvider
 import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.network.NetworkCapabilitiesProvider
 import io.signallq.app.core.network.NoOpAnalyticsHelper
+import io.signallq.app.core.network.contracts.connectivity.ConnectivityDiagnosis
 import io.signallq.app.core.telephony.CoreTelephonyModulo
 import io.signallq.app.core.telephony.MonitorTelephony
 import io.signallq.app.feature.speedtest.ExecutorSpeedtest
 import io.signallq.app.feature.speedtest.FeatureSpeedtestModulo
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Singleton
 
 /**
@@ -85,6 +89,15 @@ object ProSpeedtestCompatModule {
      *  [FeatureSpeedtestModulo] diretamente, sem depender deste binding. */
     @Provides
     fun provideExecutorSpeedtest(): ExecutorSpeedtest = FeatureSpeedtestModulo.criarExecutorSpeedtest()
+
+    /** GH#1512 -- [SpeedtestViewModel] passou a exigir `ConnectivityDiagnosisRepository`
+     *  no construtor, então o Pro precisa satisfazer esse binding pelo mesmo motivo de
+     *  [provideExecutorSpeedtest] acima. Não usa a implementação real
+     *  (`ConnectivityDiagnosisRepositoryImpl`, que depende de `ConnectivityDiagnosisHistoryDao`
+     *  -- Room do Consumer, `:coreDatabase`, fora do classpath do Pro por design): o Pro
+     *  nunca chama este repositório de verdade. */
+    @Provides
+    fun provideConnectivityDiagnosisRepository(): ConnectivityDiagnosisRepository = NoOpConnectivityDiagnosisRepositoryPro
 }
 
 /** Sem equivalente oficial em `:coreNetwork` (só [NoOpAnalyticsHelper] existe lá) --
@@ -112,4 +125,14 @@ private object NoOpAnalyticsTrackerPro : AnalyticsTracker {
     // GH#1480 -- feature flags do Consumer (:core:featureflags) nao se aplicam ao Pro
     // (fora de escopo do Epico #1347), mas o contrato precisa do metodo mesmo assim.
     override fun registrarFeatureBloqueadaRemota(featureId: String) = Unit
+}
+
+/** GH#1512 -- ver kdoc de `provideConnectivityDiagnosisRepository` acima: só satisfaz o
+ *  grafo agregado do Hilt, nunca é chamado de verdade pelo Pro. */
+private object NoOpConnectivityDiagnosisRepositoryPro : ConnectivityDiagnosisRepository {
+    override val ultimoDiagnostico: StateFlow<ConnectivityDiagnosis?> = MutableStateFlow(null)
+
+    override suspend fun diagnosticar(): ConnectivityDiagnosis {
+        error("ConnectivityDiagnosisRepository nao e usado pelo Pro -- so satisfaz o grafo Hilt agregado (GH#1512)")
+    }
 }
