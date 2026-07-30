@@ -187,6 +187,41 @@ object CoreDatabaseModulo {
             }
         }
 
+    /** GH#1512: historico do diagnostico local de conectividade (Wi-Fi conectado sem
+     *  internet). So campos ja avaliados/sanitizados -- nunca SSID/BSSID/IP/DNS brutos. */
+    private val migracao14para15 =
+        object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `connectivity_diagnosis_history` (" +
+                        "`id` TEXT NOT NULL, " +
+                        "`startedAtEpochMs` INTEGER NOT NULL, " +
+                        "`finishedAtEpochMs` INTEGER NOT NULL, " +
+                        "`transport` TEXT NOT NULL, " +
+                        "`status` TEXT NOT NULL, " +
+                        "`confidence` TEXT NOT NULL, " +
+                        "`wifiConnected` INTEGER NOT NULL, " +
+                        "`localAddressAvailable` INTEGER NOT NULL, " +
+                        "`gatewayConfigured` INTEGER NOT NULL, " +
+                        "`gatewayReachableOutcome` TEXT NOT NULL, " +
+                        "`dnsConfigured` INTEGER NOT NULL, " +
+                        "`dnsReachableOutcome` TEXT NOT NULL, " +
+                        "`externalIpReachableOutcome` TEXT NOT NULL, " +
+                        "`hostnameReachableOutcome` TEXT NOT NULL, " +
+                        "`androidInternetCapability` INTEGER NOT NULL, " +
+                        "`androidValidated` INTEGER NOT NULL, " +
+                        "`captivePortalDetected` INTEGER NOT NULL, " +
+                        "`mobileFallbackAvailable` INTEGER NOT NULL, " +
+                        "`incompleteReason` TEXT, " +
+                        "PRIMARY KEY(`id`))",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_connectivity_diagnosis_history_startedAtEpochMs` " +
+                        "ON `connectivity_diagnosis_history` (`startedAtEpochMs`)",
+                )
+            }
+        }
+
     fun criarBanco(context: Context): SignallQDatabase {
         return Room.databaseBuilder(
             context.applicationContext,
@@ -205,6 +240,7 @@ object CoreDatabaseModulo {
             .addMigrations(migracao11para12)
             .addMigrations(migracao12para13)
             .addMigrations(migracao13para14)
+            .addMigrations(migracao14para15)
             .build()
     }
 

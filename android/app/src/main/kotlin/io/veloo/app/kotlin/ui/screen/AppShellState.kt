@@ -11,6 +11,7 @@ import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.feature.diagnostico.ai.AiAcaoRecomendada
 import io.signallq.app.feature.speedtest.ModoSpeedtest
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisMensagem
 import io.signallq.app.feature.wifi.RedeVizinha
 
 /**
@@ -35,6 +36,10 @@ data class AppShellSpeedtestState(
     val onConfirmarSpeedtestMovel: () -> Unit = {},
     val onCancelarSpeedtestMovel: () -> Unit = {},
     val onSetSpeedtestPermiteHeavyMovel: (Boolean) -> Unit = {},
+    /** GH#1512 — conclusao do diagnostico local quando o Speedtest e interrompido por
+     *  Wi-Fi conectado sem internet. null = sem pendencia. */
+    val diagnosticoConectividade: ConnectivityDiagnosisMensagem? = null,
+    val onLimparDiagnosticoConectividade: () -> Unit = {},
 )
 
 /**

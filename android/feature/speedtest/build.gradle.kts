@@ -34,6 +34,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.okhttp)
     implementation(project(":coreNetwork"))
+    implementation(project(":coreDatabase"))
     implementation(project(":coreDatastore"))
     implementation(project(":coreTelephony"))
     implementation(libs.timber)

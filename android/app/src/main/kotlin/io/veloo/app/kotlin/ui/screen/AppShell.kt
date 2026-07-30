@@ -89,6 +89,8 @@ import io.signallq.app.feature.fibra.SnapshotFibra
 import io.signallq.app.feature.history.ResumoHistorico
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.ModoSpeedtest
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityAction
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisMensagem
 import io.signallq.app.modogamer.resolverPadraoModoGamer
 import io.signallq.app.ui.FiltroConexaoHistorico
 import io.signallq.app.ui.GatewayInfo
@@ -338,6 +340,8 @@ fun AppShell(
     val onConfirmarSpeedtestMovel = speedtest.onConfirmarSpeedtestMovel
     val onCancelarSpeedtestMovel = speedtest.onCancelarSpeedtestMovel
     val onSetSpeedtestPermiteHeavyMovel = speedtest.onSetSpeedtestPermiteHeavyMovel
+    val diagnosticoConectividade = speedtest.diagnosticoConectividade
+    val onLimparDiagnosticoConectividade = speedtest.onLimparDiagnosticoConectividade
 
     val snapshotWifi = wifi.snapshotWifi
     val connectedNetwork = wifi.connectedNetwork
@@ -1302,6 +1306,16 @@ fun AppShell(
                 )
             }
 
+            // GH#1512 — Speedtest foi interrompido porque o Wi-Fi esta conectado sem
+            // internet: mostra a conclusao do diagnostico local em vez de deixar a tela
+            // presa em "executando" ou exibir um erro generico.
+            diagnosticoConectividade?.let { diagnostico ->
+                DiagnosticoConectividadeDialog(
+                    diagnostico = diagnostico,
+                    onDismiss = onLimparDiagnosticoConectividade,
+                )
+            }
+
             if (showGerenciarDadosSheet) {
                 DadosLocaisSheet(
                     c = c,
@@ -1608,6 +1622,47 @@ private fun ForaDoWifiDialog(
         },
         dismissButton = {
             TextButton(onClick = onCancelar) { Text(stringResource(R.string.global_btn_cancelar)) }
+        },
+    )
+}
+
+// ─── Dialog: diagnostico local de conectividade (GH#1512) ────────────────────
+
+/** Texto curto de ação sugerida — mesmo vocabulário de
+ *  [io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisPresenter], sem
+ *  duplicar a decisão de quais ações mostrar (só a tradução pra rótulo de UI). */
+private fun ConnectivityAction.rotulo(): String =
+    when (this) {
+        ConnectivityAction.ABRIR_PORTAL_LOGIN -> "Abrir portal de login da rede"
+        ConnectivityAction.RECONECTAR_WIFI -> "Reconectar ao Wi-Fi"
+        ConnectivityAction.TESTAR_OUTRO_APARELHO -> "Testar outro aparelho na mesma rede"
+        ConnectivityAction.VERIFICAR_LUZES_EQUIPAMENTO -> "Verificar as luzes do roteador/ONT"
+        ConnectivityAction.REINICIAR_EQUIPAMENTO -> "Reiniciar o roteador (última opção)"
+        ConnectivityAction.TESTAR_DNS_ALTERNATIVO -> "Testar um DNS alternativo"
+        ConnectivityAction.CONTATAR_OPERADORA -> "Contatar a operadora"
+    }
+
+@Composable
+private fun DiagnosticoConectividadeDialog(
+    diagnostico: ConnectivityDiagnosisMensagem,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(diagnostico.titulo, fontWeight = FontWeight.W600) },
+        text = {
+            Column {
+                Text(diagnostico.mensagem, fontSize = 14.sp)
+                if (diagnostico.acoes.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    diagnostico.acoes.forEach { acao ->
+                        Text("• ${acao.rotulo()}", fontSize = 13.sp)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Entendi") }
         },
     )
 }
