@@ -42,9 +42,27 @@ DYNAMIC_DESCRIPTOR_NATURES = {
 KNOWN_MANUAL_IDS = {
     26, 28, 29,  # Conflito: vocabulario canonico de severidade (MetricStatusUi.kt) - nao aplicado, decisao pendente de produto (ver relatorio de aderencia).
     63,  # Erro de concordancia no texto recomendado da planilha ("Um variacao...") corrigido para "Uma variacao... alta" ao aplicar.
+    65,  # EXCECAO POR REVISAO DE CONFIABILIDADE (revisao independente da PR #1515) -- o
+         # "Texto recomendado" da planilha mantinha "acima da referencia Anatel RQUAL",
+         # mas essa citacao nao tem fonte normativa comprovada no repositorio (a unica
+         # documentacao real de "Anatel RQUAL" -- docs_ai/FUNCIONAL.md -- descreve um
+         # criterio diferente, % de velocidade do plano contratado, sem relacao com
+         # latencia). A decisao aprovada na planilha foi superada: a mensagem aplicada
+         # remove a alegacao regulatoria, mantendo limiar (100ms) e severidade
+         # (attention) inalterados -- ver InternetDiagnosticEngine.kt e o relatorio de
+         # aderencia atualizado na PR #1515 para o raciocinio completo.
     177, 546,  # "Acoes recomendadas" -- movido de DiagnosticoResultadoComponents.kt para ModoGamerConfigResultadoSection.kt.
     190, 191, 192, 193,  # "Relato: melhora sem Wi-Fi" -- rotulo/valor separados em DiagnosticoGuiadoEngine.kt.
-    309,  # Contradiz a linha 308 (mesmo rotulo "DNS" no mesmo call site) -- decisao Ajustar da 308 prevalece por consistencia (ver relatorio de aderencia).
+    # ID 308 ("DNS" -> "Tempo para localizar sites") nao esta nesta lista -- continua
+    # classificando sozinho como aplicado_parcial_ou_ambiguo (o rotulo recomendado
+    # continua presente; "dns" tambem aparece como substring dentro da nova sublinha
+    # "Servidor DNS: ..." descrita no ID 309 abaixo, mesma familia de falso-positivo de
+    # colisao de substring ja documentada para outros IDs desse bucket).
+    309,  # Superado pela correcao do ID 308 (revisao independente da PR #1515): a
+          # decisao original "Manter DNS ({provedor ou IP})" ja contradizia o Ajustar da
+          # 308 no mesmo call site; agora nem o formato antigo "DNS (X)" nem o template
+          # literal da planilha se aplicam -- o servidor vira uma sublinha propria
+          # "Servidor DNS: {nome ou ip}", nunca sufixo da frase principal.
     411, 419,  # Erro de concordancia no texto recomendado da planilha ("ao operadora") corrigido para "a operadora"/"à operadora" ao aplicar.
     501,  # "Medicao de ping" -- rotulo/valor reestruturados em ModoGamerEngine.kt.
 }

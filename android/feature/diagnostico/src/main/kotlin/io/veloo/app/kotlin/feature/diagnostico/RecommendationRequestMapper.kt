@@ -116,7 +116,7 @@ object RecommendationRequestMapper {
         // IN-NORMAL-09/09b (bufferbloat critico/elevado).
         if (ids.any { it.startsWith("IN-NORMAL-09") }) tags += DiagnosticTag.BUFFERBLOAT_ALTO
 
-        // IN-NORMAL-05 (latencia acima de 100ms, referencia Anatel RQUAL).
+        // IN-NORMAL-05 (latencia acima de 100ms -- limiar historico, ver InternetDiagnosticEngine.kt).
         if (ids.any { it.startsWith("IN-NORMAL-05") }) tags += DiagnosticTag.LATENCIA_ALTA
 
         // MOB-01/MOB-01b (sinal movel muito ruim/ruim).

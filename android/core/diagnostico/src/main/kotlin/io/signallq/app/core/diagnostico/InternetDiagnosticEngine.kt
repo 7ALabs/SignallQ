@@ -108,15 +108,23 @@ object InternetDiagnosticEngine {
             )
         }
 
-        // IN-NORMAL-05: latência (Anatel RQUAL: > 100ms = problema)
+        // IN-NORMAL-05: limiar historico de latencia (>100ms). "Anatel RQUAL" era usado
+        // como nome informal da ORIGEM historica deste limiar, mas NAO e uma citacao
+        // normativa comprovada -- a unica documentacao real de "Anatel RQUAL" neste repo
+        // (docs_ai/FUNCIONAL.md) descreve um criterio diferente (% de velocidade em relacao
+        // ao plano contratado, Ato 7869/2022), sem relacao com latencia. Por isso a mensagem
+        // ao usuario NAO cita Anatel/RQUAL (GH#1502, revisao independente da PR #1515 --
+        // decisao aprovada na planilha original foi superada por revisao de confiabilidade:
+        // a alegacao regulatoria nao pode ser comprovada dentro do repositorio). Mantido
+        // aqui só como nota historica de origem do numero, nao como fundamento vigente.
         // NAO migrado para MetricClassifier.classificarLatencia() (issue #1228 Fase 1, ADR-011):
         // a tabela do classifier (excelente <100 | bom <=150 | regular <=200 | ruim >200) usa uma
         // fronteira "nao-excelente" em >=100.0 (inclusiva), enquanto este achado historicamente
         // dispara em >100.0 (exclusiva) — divergem no exato ponto lat=100.0, e nenhuma categoria
         // do classifier reproduz o limiar de negocio deste achado sem mudar comportamento
         // observavel (golden test trava lat=100.0 sem achado, lat=100.01 com achado). Tabelas sao
-        // de fontes de produto diferentes (skill /regras-diagnostico-rede vs Anatel RQUAL) — ver
-        // achado de arquitetura registrado na issue #1466.
+        // de fontes de produto diferentes (skill /regras-diagnostico-rede vs o limiar historico
+        // deste achado) — ver achado de arquitetura registrado na issue #1466.
         if (lat != null && lat > 100.0) {
             resultados.add(
                 DiagnosticResult(
@@ -124,7 +132,7 @@ object InternetDiagnosticEngine {
                     titulo = "A conexão está demorando para responder",
                     status = DiagnosticStatus.attention,
                     evidencia = "latencia=${"%.0f".format(lat)} ms",
-                    mensagemUsuario = "O tempo de resposta está acima de 100 ms (${"%.0f".format(lat)} ms), acima da referência Anatel RQUAL.",
+                    mensagemUsuario = "O tempo de resposta está acima de 100 ms (${"%.0f".format(lat)} ms), o que pode prejudicar chamadas de voz e jogos.",
                     recomendacao = "O tempo de resposta alto pode ser causado por congestionamento na operadora ou Wi-Fi com sinal fraco.",
                     categoria = CAT,
                 ),
