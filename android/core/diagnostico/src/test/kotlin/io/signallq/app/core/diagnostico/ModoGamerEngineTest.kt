@@ -60,7 +60,7 @@ class ModoGamerEngineTest {
         assertTrue(r.dadosInsuficientes)
         // Mesmo sem métricas, a linha de contexto do device continua presente.
         assertEquals(1, r.evidencias.size)
-        assertEquals("Conexão do teste", r.evidencias.first().label)
+        assertEquals("Aparelho analisado", r.evidencias.first().label)
     }
 
     // ── Battle royale (latência + jitter + download) ─────────────────────────
@@ -134,7 +134,7 @@ class ModoGamerEngineTest {
             DiagnosticInput(internet = internet()),
         )
         val evidenciaDevice = r.evidencias.last()
-        assertEquals("Conexão do teste", evidenciaDevice.label)
+        assertEquals("Aparelho analisado", evidenciaDevice.label)
         assertEquals("PS5 / PS4", evidenciaDevice.valorExibido)
         assertEquals(MetricStatus.inconclusivo, evidenciaDevice.status)
     }
@@ -226,7 +226,7 @@ class ModoGamerEngineTest {
             pingEspecificoMs = 30.0,
         )
         assertEquals(DiagnosticStatus.ok, comRefinar.status)
-        assertTrue(comRefinar.evidencias.any { it.label == "Medição de ping" && it.valorExibido.contains("30") })
+        assertTrue(comRefinar.evidencias.any { it.label == "Tempo de resposta medido agora" && it.valorExibido.contains("30") })
     }
 
     @Test
@@ -250,6 +250,6 @@ class ModoGamerEngineTest {
             DiagnosticInput(internet = internet(download = 80.0, latencia = 50.0)),
         )
         assertEquals(DiagnosticStatus.ok, r.status)
-        assertTrue(r.evidencias.none { it.label == "Medição de ping" })
+        assertTrue(r.evidencias.none { it.label == "Tempo de resposta medido agora" })
     }
 }

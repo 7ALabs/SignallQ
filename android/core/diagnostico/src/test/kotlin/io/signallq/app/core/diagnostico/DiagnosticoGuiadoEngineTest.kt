@@ -102,7 +102,7 @@ class DiagnosticoGuiadoEngineTest {
             ),
         )
         assertEquals(DiagnosticStatus.critical, r.status)
-        assertTrue(r.evidencias.any { it.label == "Sinal Wi-Fi" })
+        assertTrue(r.evidencias.any { it.label == "Força do sinal Wi-Fi" })
         assertTrue(r.acoes.any { it.contains("cabo", ignoreCase = true) })
     }
 
@@ -116,7 +116,7 @@ class DiagnosticoGuiadoEngineTest {
                 wifi = WifiDiagnosticInput(rssiDbm = -85, linkSpeedMbps = 20, frequenciaMhz = 2400),
             ),
         )
-        assertTrue(r.evidencias.none { it.label == "Sinal Wi-Fi" })
+        assertTrue(r.evidencias.none { it.label == "Força do sinal Wi-Fi" })
         assertTrue(r.acoes.none { it.contains("cabo", ignoreCase = true) && it.contains("em vez de Wi-Fi") })
     }
 
@@ -158,7 +158,7 @@ class DiagnosticoGuiadoEngineTest {
             ),
         )
         assertEquals(1, r.evidencias.size)
-        assertEquals("Latência DNS", r.evidencias.first().label)
+        assertEquals("Tempo para localizar sites", r.evidencias.first().label)
         assertEquals(DiagnosticStatus.attention, r.status)
     }
 
@@ -169,7 +169,7 @@ class DiagnosticoGuiadoEngineTest {
             emptyList(),
             DiagnosticInput(internet = internet(latencia = 54.0), dns = null),
         )
-        assertEquals("Latência geral", r.evidencias.first().label)
+        assertEquals("Tempo de resposta", r.evidencias.first().label)
     }
 
     // ── Velocidade não chega (download vs. contratado) ───────────────────────
@@ -182,7 +182,7 @@ class DiagnosticoGuiadoEngineTest {
             DiagnosticInput(internet = internet(download = 38.0), velocidadeContratadaMbps = 100),
         )
         assertEquals(DiagnosticStatus.critical, r.status)
-        assertEquals("Download vs. contratado", r.evidencias.first().label)
+        assertEquals("Velocidade recebida do plano", r.evidencias.first().label)
     }
 
     @Test
@@ -209,7 +209,7 @@ class DiagnosticoGuiadoEngineTest {
             ),
         )
         assertEquals(DiagnosticStatus.critical, r.status)
-        assertTrue(r.evidencias.any { it.label == "Relato: melhora sem Wi-Fi" })
+        assertTrue(r.evidencias.any { it.label == "Ao usar a rede móvel" })
     }
 
     @Test
@@ -237,7 +237,7 @@ class DiagnosticoGuiadoEngineTest {
                 wifi = WifiDiagnosticInput(rssiDbm = -50, linkSpeedMbps = 300, frequenciaMhz = 5200),
             ),
         )
-        assertTrue(r.evidencias.none { it.label == "Relato: melhora sem Wi-Fi" })
+        assertTrue(r.evidencias.none { it.label == "Ao usar a rede móvel" })
     }
 
     // ── Perguntas: 7 objetivos, roteiro sempre fechado (sem texto livre) ─────

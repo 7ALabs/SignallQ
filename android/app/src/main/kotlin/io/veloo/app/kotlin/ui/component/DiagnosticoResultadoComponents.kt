@@ -86,7 +86,7 @@ fun AiVsMotorExplainer(
     c: LkTokens,
 ) {
     Column {
-        LkSectionOverline(text = "Como chegamos a esse resultado")
+        LkSectionOverline(text = "Como identifiquei isso")
         Spacer(Modifier.height(LkSpacing.sm))
 
         Column(
@@ -101,7 +101,7 @@ fun AiVsMotorExplainer(
                 Icon(imageVector = Icons.Outlined.Verified, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    text = "MEDIDO PELO MOTOR SIGNALLQ",
+                    text = "DADOS MEDIDOS PELO SIGNALLQ",
                     style = MaterialTheme.typography.labelSmall,
                     color = c.textSecondary,
                     letterSpacing = 0.5.sp,
@@ -110,7 +110,7 @@ fun AiVsMotorExplainer(
             if (evidencias.isEmpty()) {
                 Spacer(Modifier.height(LkSpacing.sm))
                 Text(
-                    text = "Sem métricas suficientes deste teste para esta situação.",
+                    text = "Este teste não trouxe dados suficientes para avaliar essa situação.",
                     style = MaterialTheme.typography.bodySmall,
                     color = c.textTertiary,
                 )
@@ -150,7 +150,7 @@ fun AiVsMotorExplainer(
                 Icon(imageVector = Icons.Outlined.AutoAwesome, contentDescription = null, tint = c.primary, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    text = "EXPLICADO POR IA",
+                    text = "EXPLICAÇÃO DO RESULTADO",
                     style = MaterialTheme.typography.labelSmall,
                     color = c.primary,
                     letterSpacing = 0.5.sp,
@@ -161,7 +161,7 @@ fun AiVsMotorExplainer(
                 is AnalisadorState.Inativo, is AnalisadorState.Analisando ->
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm)) {
                         CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = c.primary)
-                        Text(text = "Preparando a explicação…", style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+                        Text(text = "Preparando uma explicação simples…", style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
                     }
                 is AnalisadorState.Resultado -> {
                     val texto = analisadorState.resumo.ifBlank { analisadorState.texto }
@@ -169,7 +169,7 @@ fun AiVsMotorExplainer(
                 }
                 is AnalisadorState.Erro ->
                     Text(
-                        text = "Não foi possível carregar a explicação da IA — o resultado acima já reflete o motor local.",
+                        text = "Não consegui carregar a explicação. O resultado acima continua válido.",
                         style = MaterialTheme.typography.bodySmall,
                         color = c.textSecondary,
                     )
@@ -181,7 +181,7 @@ fun AiVsMotorExplainer(
             Icon(imageVector = Icons.Outlined.Lock, contentDescription = null, tint = c.textTertiary, modifier = Modifier.size(13.dp))
             Spacer(Modifier.width(6.dp))
             Text(
-                text = "A IA só explica o resultado — quem decide o status é sempre o motor de diagnóstico local, com base nos números medidos acima.",
+                text = "A explicação ajuda a entender o resultado. A avaliação é feita com os dados medidos no seu aparelho.",
                 style = MaterialTheme.typography.labelSmall,
                 color = c.textTertiary,
                 lineHeight = 15.sp,

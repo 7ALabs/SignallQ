@@ -15,11 +15,11 @@ object InternetDiagnosticEngine {
             return listOf(
                 DiagnosticResult(
                     id = "IN-NORMAL-00",
-                    titulo = "Sem Dados de Velocidade",
+                    titulo = "Não encontrei um teste recente",
                     status = DiagnosticStatus.inconclusive,
                     evidencia = null,
-                    mensagemUsuario = "Nenhum teste de velocidade disponível para análise.",
-                    recomendacao = "Execute um teste de velocidade para obter o diagnóstico completo.",
+                    mensagemUsuario = "Não encontrei um teste recente para analisar.",
+                    recomendacao = "Faça um teste de velocidade para eu analisar sua conexão.",
                     categoria = CAT,
                 ),
             )
@@ -30,11 +30,11 @@ object InternetDiagnosticEngine {
             return listOf(
                 DiagnosticResult(
                     id = "IN-NORMAL-01",
-                    titulo = "Internet Indisponível",
+                    titulo = "A internet pode estar sem acesso",
                     status = DiagnosticStatus.critical,
                     evidencia = "download=null",
-                    mensagemUsuario = "O teste de velocidade não conseguiu medir o download. A internet pode estar sem acesso.",
-                    recomendacao = "Verifique se outros sites ou apps funcionam. Se não funcionarem, o problema pode ser no roteador ou no provedor.",
+                    mensagemUsuario = "Não consegui medir a velocidade. Sua internet pode estar sem acesso.",
+                    recomendacao = "Veja se outros sites ou aplicativos abrem. Se nada funcionar, o problema pode estar no roteador ou na operadora.",
                     categoria = CAT,
                     podeConcluir = true,
                 ),
@@ -63,14 +63,14 @@ object InternetDiagnosticEngine {
                 perda >= 3.0 -> resultados.add(
                     DiagnosticResult(
                         id = "IN-NORMAL-07",
-                        titulo = "Perda de Pacotes Alta",
+                        titulo = "Muitas falhas na conexão",
                         status = DiagnosticStatus.critical,
                         evidencia = "perda=${"%.1f".format(perda)}%",
-                        mensagemUsuario = "Há perda de pacotes alta (${"%.1f".format(perda)}%). Calls de vídeo e jogos serão gravemente afetados.",
+                        mensagemUsuario = "Sua conexão está com muitas falhas (${"%.1f".format(perda)}%). Chamadas de vídeo e jogos serão gravemente afetados.",
                         recomendacao = if (emRedeMovel) {
                             "Teste em outro local ou horário. Se persistir, contate a operadora."
                         } else {
-                            "Reinicie o roteador e o modem. Se persistir, contate o provedor."
+                            "Reinicie o roteador e o modem. Se persistir, contate a operadora."
                         },
                         categoria = CAT,
                         podeConcluir = true,
@@ -79,10 +79,10 @@ object InternetDiagnosticEngine {
                 perda >= 1.0 -> resultados.add(
                     DiagnosticResult(
                         id = "IN-NORMAL-07b",
-                        titulo = "Perda de Pacotes Moderada",
+                        titulo = "Algumas falhas na conexão",
                         status = DiagnosticStatus.attention,
                         evidencia = "perda=${"%.1f".format(perda)}%",
-                        mensagemUsuario = "Há alguma perda de pacotes (${"%.1f".format(perda)}%). Jogos e chamadas podem ser afetados.",
+                        mensagemUsuario = "Sua conexão está com algumas falhas (${"%.1f".format(perda)}%). Jogos e chamadas podem ser afetados.",
                         recomendacao = "Verifique interferências no Wi-Fi ou instabilidade no link.",
                         categoria = CAT,
                     ),
@@ -98,34 +98,42 @@ object InternetDiagnosticEngine {
             resultados.add(
                 DiagnosticResult(
                     id = "IN-NORMAL-06",
-                    titulo = "Jitter Elevado",
+                    titulo = "A conexão está oscilando",
                     status = DiagnosticStatus.attention,
                     evidencia = "jitter=${"%.0f".format(jit)} ms",
-                    mensagemUsuario = "O jitter está alto (${"%.0f".format(jit)} ms). Chamadas de voz e jogos podem ter instabilidade.",
-                    recomendacao = "Verifique se há outros dispositivos consumindo a rede. Um jitter alto pode indicar congestionamento.",
+                    mensagemUsuario = "A variação do tempo de resposta está alta (${"%.0f".format(jit)} ms). Chamadas de voz e jogos podem ter instabilidade.",
+                    recomendacao = "Verifique se há outros dispositivos consumindo a rede. Uma variação do tempo de resposta alta pode indicar congestionamento.",
                     categoria = CAT,
                 ),
             )
         }
 
-        // IN-NORMAL-05: latência (Anatel RQUAL: > 100ms = problema)
+        // IN-NORMAL-05: limiar historico de latencia (>100ms). "Anatel RQUAL" era usado
+        // como nome informal da ORIGEM historica deste limiar, mas NAO e uma citacao
+        // normativa comprovada -- a unica documentacao real de "Anatel RQUAL" neste repo
+        // (docs_ai/FUNCIONAL.md) descreve um criterio diferente (% de velocidade em relacao
+        // ao plano contratado, Ato 7869/2022), sem relacao com latencia. Por isso a mensagem
+        // ao usuario NAO cita Anatel/RQUAL (GH#1502, revisao independente da PR #1515 --
+        // decisao aprovada na planilha original foi superada por revisao de confiabilidade:
+        // a alegacao regulatoria nao pode ser comprovada dentro do repositorio). Mantido
+        // aqui só como nota historica de origem do numero, nao como fundamento vigente.
         // NAO migrado para MetricClassifier.classificarLatencia() (issue #1228 Fase 1, ADR-011):
         // a tabela do classifier (excelente <100 | bom <=150 | regular <=200 | ruim >200) usa uma
         // fronteira "nao-excelente" em >=100.0 (inclusiva), enquanto este achado historicamente
         // dispara em >100.0 (exclusiva) — divergem no exato ponto lat=100.0, e nenhuma categoria
         // do classifier reproduz o limiar de negocio deste achado sem mudar comportamento
         // observavel (golden test trava lat=100.0 sem achado, lat=100.01 com achado). Tabelas sao
-        // de fontes de produto diferentes (skill /regras-diagnostico-rede vs Anatel RQUAL) — ver
-        // achado de arquitetura registrado na issue #1466.
+        // de fontes de produto diferentes (skill /regras-diagnostico-rede vs o limiar historico
+        // deste achado) — ver achado de arquitetura registrado na issue #1466.
         if (lat != null && lat > 100.0) {
             resultados.add(
                 DiagnosticResult(
                     id = "IN-NORMAL-05",
-                    titulo = "Latência Alta",
+                    titulo = "A conexão está demorando para responder",
                     status = DiagnosticStatus.attention,
                     evidencia = "latencia=${"%.0f".format(lat)} ms",
-                    mensagemUsuario = "A latência está acima de 100 ms (${"%.0f".format(lat)} ms), acima da referência Anatel RQUAL.",
-                    recomendacao = "Latência alta pode ser causada por congestionamento no provedor ou Wi-Fi com sinal fraco.",
+                    mensagemUsuario = "O tempo de resposta está acima de 100 ms (${"%.0f".format(lat)} ms), o que pode prejudicar chamadas de voz e jogos.",
+                    recomendacao = "O tempo de resposta alto pode ser causado por congestionamento na operadora ou Wi-Fi com sinal fraco.",
                     categoria = CAT,
                 ),
             )
@@ -143,14 +151,14 @@ object InternetDiagnosticEngine {
             resultados.add(
                 DiagnosticResult(
                     id = if (isCritico) "IN-NORMAL-09" else "IN-NORMAL-09b",
-                    titulo = if (isCritico) "Bufferbloat Crítico" else "Bufferbloat Elevado",
+                    titulo = if (isCritico) "A internet fica muito lenta quando está em uso" else "A internet fica mais lenta quando está em uso",
                     status = if (isCritico) DiagnosticStatus.critical else DiagnosticStatus.attention,
                     evidencia = "bufferbloat=${"%.0f".format(bb)} ms",
                     mensagemUsuario = if (isCritico)
-                        "O bufferbloat está muito alto (${"%.0f".format(bb)} ms). Streaming, jogos e chamadas serão gravemente prejudicados mesmo com velocidade adequada."
+                        "A lentidão com a rede ocupada está muito alta (${"%.0f".format(bb)} ms). Streaming, jogos e chamadas serão gravemente prejudicados mesmo com velocidade adequada."
                     else
-                        "O bufferbloat está elevado (${"%.0f".format(bb)} ms). Jogos e chamadas podem ter instabilidade sob carga.",
-                    recomendacao = "Verifique se o roteador suporta QoS ou SQM. Reduza o número de dispositivos usando a rede simultaneamente.",
+                        "A lentidão com a rede ocupada está elevada (${"%.0f".format(bb)} ms). Jogos e chamadas podem ter instabilidade sob carga.",
+                    recomendacao = "Verifique se o roteador suporta priorização de tráfego. Reduza o número de dispositivos usando a rede simultaneamente.",
                     categoria = CAT,
                     podeConcluir = isCritico,
                 ),
@@ -169,11 +177,11 @@ object InternetDiagnosticEngine {
             resultados.add(
                 DiagnosticResult(
                     id = "IN-NORMAL-04Z",
-                    titulo = "Upload Zerado",
+                    titulo = "Não consegui medir o envio de dados",
                     status = DiagnosticStatus.critical,
                     evidencia = "upload=0.0 Mbps",
-                    mensagemUsuario = "O upload medido foi 0 Mbps. Isso costuma quebrar videoconferencias, jogos online, trabalho remoto e envio de arquivos.",
-                    recomendacao = "Verifique se ha algum bloqueio no roteador, QoS mal configurado, ou instabilidade no link. Reinicie o roteador. Se persistir, contate o provedor.",
+                    mensagemUsuario = "O upload medido foi 0 Mbps. Isso costuma quebrar chamadas de vídeo, jogos online, trabalho remoto e envio de arquivos.",
+                    recomendacao = "Verifique se há algum bloqueio no roteador, prioridade de tráfego mal configurado, ou instabilidade no link. Reinicie o roteador. Se persistir, contate a operadora.",
                     categoria = CAT,
                     podeConcluir = true,
                 ),
@@ -183,7 +191,7 @@ object InternetDiagnosticEngine {
             resultados.add(
                 DiagnosticResult(
                     id = "IN-NORMAL-04",
-                    titulo = "Upload Baixo",
+                    titulo = "A velocidade de envio está baixa",
                     status = DiagnosticStatus.attention,
                     evidencia = "upload=${"%.1f".format(ul)} Mbps",
                     mensagemUsuario = "O upload está baixo (${"%.1f".format(ul)} Mbps). Videoconferências e envio de arquivos podem ser afetados.",
@@ -202,10 +210,10 @@ object InternetDiagnosticEngine {
             resultados.add(
                 DiagnosticResult(
                     id = "IN-NORMAL-03",
-                    titulo = "Download Baixo",
+                    titulo = "A velocidade está baixa",
                     status = DiagnosticStatus.attention,
                     evidencia = "download=${"%.1f".format(dl)} Mbps",
-                    mensagemUsuario = "O download está abaixo de 25 Mbps (${"%.1f".format(dl)} Mbps), mínimo recomendado para uso confortável.",
+                    mensagemUsuario = "O download está abaixo de 25 Mbps (${"%.1f".format(dl)} Mbps), o mínimo recomendado para uso confortável.",
                     recomendacao = "Verifique se o plano contratado entrega essa velocidade e se outros dispositivos estão consumindo a rede.",
                     categoria = CAT,
                 ),
@@ -218,8 +226,8 @@ object InternetDiagnosticEngine {
                 it.copy(
                     id = "${it.id}-inc",
                     status = DiagnosticStatus.inconclusive,
-                    mensagemUsuario = "${it.mensagemUsuario} Porém, o sinal Wi-Fi fraco pode ser a causa real — o teste pode não refletir o link de internet.",
-                    recomendacao = "Aproxime-se do roteador e refaça o teste para um diagnóstico confiável.",
+                    mensagemUsuario = "${it.mensagemUsuario} Porém, o sinal Wi-Fi fraco pode ser a causa real, então o teste pode não refletir o link de internet.",
+                    recomendacao = "Aproxime-se do roteador e refaça o teste. Assim, consigo avaliar melhor.",
                     podeConcluir = false,
                 )
             }
@@ -230,10 +238,10 @@ object InternetDiagnosticEngine {
             resultados.add(
                 DiagnosticResult(
                     id = "IN-NORMAL-02",
-                    titulo = "Conexão Saudável",
+                    titulo = "Sua conexão está boa",
                     status = DiagnosticStatus.ok,
                     evidencia = "dl=${"%.1f".format(dl)} Mbps ul=${ul?.let { "%.1f".format(it) } ?: "—"} Mbps lat=${lat?.let { "%.0f".format(it) } ?: "—"} ms",
-                    mensagemUsuario = "Todos os indicadores de internet estão dentro dos parâmetros normais.",
+                    mensagemUsuario = "Sua conexão está funcionando bem.",
                     recomendacao = null,
                     categoria = CAT,
                     podeConcluir = true,

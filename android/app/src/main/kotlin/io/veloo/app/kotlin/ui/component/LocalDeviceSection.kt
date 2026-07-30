@@ -70,7 +70,7 @@ import io.signallq.app.core.network.contracts.gateway.SupportLevel as GatewaySup
 
 // ─── Estado de UI (GH#544, epic #547) ──────────────────────────────────────
 //
-// Deriva os 7 estados obrigatorios da secao "Equipamento local" a partir do
+// Deriva os 7 estados obrigatorios da secao "Seu equipamento de internet" a partir do
 // contrato normalizado (GH#546) e da classificacao (GH#545) — sempre por
 // capabilities declaradas pelo driver, nunca checando vendor/modelo direto
 // (ex.: "TP-Link" nao aparece em nenhum `if` deste arquivo).
@@ -158,7 +158,7 @@ data class ClienteConectadoUi(
 /**
  * Mapeia o snapshot bruto (uso interno/UI — nunca IA/analytics, ver
  * [io.signallq.app.core.network.contracts.localdevice.LocalDeviceSafeFilter])
- * para o estado de UI da secao "Equipamento local".
+ * para o estado de UI da secao "Seu equipamento de internet".
  *
  * [descoberta] e opcional: quando so ha fingerprint passivo (fase 1, GH#545)
  * sem tentativa de leitura completa ainda, ela produz o estado
@@ -236,10 +236,10 @@ private fun tituloEquipamento(snapshot: LocalNetworkDeviceSnapshot): String {
     val vendorModelo = listOf(vendor, modelo).filter { it.isNotBlank() }.joinToString(" ")
     return vendorModelo.ifBlank {
         when (snapshot.deviceType) {
-            DeviceType.ONT_GPON -> "ONT de fibra"
+            DeviceType.ONT_GPON -> "Modem de fibra"
             DeviceType.ROUTER -> "Roteador"
             DeviceType.MESH_OR_EXTENDER -> "Nó mesh"
-            DeviceType.UNKNOWN_SUPPORTED, DeviceType.UNKNOWN_UNSUPPORTED -> "Equipamento local"
+            DeviceType.UNKNOWN_SUPPORTED, DeviceType.UNKNOWN_UNSUPPORTED -> "Seu equipamento de internet"
         }
     }
 }
@@ -278,12 +278,12 @@ private fun resumoInterpretado(snapshot: LocalNetworkDeviceSnapshot): Triple<Str
         val fiber =
             snapshot.fiber
                 ?: return Triple(
-                    "Sem leitura da fibra",
-                    "O equipamento suporta dados ópticos, mas esta leitura não trouxe valores.",
+                    "Não consegui ler o sinal da fibra",
+                    "O equipamento é compatível, mas não consegui ler os dados da fibra agora.",
                     DiagnosticStatus.inconclusive,
                 )
         if (fiber.linkAtivo == false) {
-            return Triple("Fibra desconectada", "O link óptico está inativo — sem sinal da operadora.", DiagnosticStatus.critical)
+            return Triple("A fibra está sem sinal", "A fibra está sem sinal da operadora.", DiagnosticStatus.critical)
         }
         val avaliacoes =
             FibraSignalQualityEngine.avaliar(
@@ -298,7 +298,7 @@ private fun resumoInterpretado(snapshot: LocalNetworkDeviceSnapshot): Triple<Str
         return if (pior != null) {
             Triple(pior.titulo, pior.mensagemUsuario, pior.status)
         } else {
-            Triple("Fibra ativa", "Link óptico ativo, sem métricas adicionais nesta leitura.", DiagnosticStatus.ok)
+            Triple("A fibra está conectada", "A fibra está conectada, mas não consegui ler outros dados agora.", DiagnosticStatus.ok)
         }
     }
 
@@ -307,23 +307,23 @@ private fun resumoInterpretado(snapshot: LocalNetworkDeviceSnapshot): Triple<Str
         val wifiHabilitado = snapshot.wifi?.radios?.any { it.habilitado == true } == true
         return if (wan != null && (wan.ipExterno != null || wan.gateway != null)) {
             Triple(
-                "Internet chegando normalmente",
-                "O roteador confirma conexão ativa com a operadora." +
+                "A internet está chegando ao roteador",
+                "A operadora está entregando sinal ao roteador." +
                     if (wifiHabilitado) " Wi-Fi ligado e transmitindo." else "",
                 DiagnosticStatus.ok,
             )
         } else {
             Triple(
-                "Sem confirmação da internet",
-                "O roteador não reportou IP da operadora nesta leitura.",
+                "Não consegui confirmar o sinal da operadora",
+                "O roteador não confirmou uma conexão ativa com a operadora.",
                 DiagnosticStatus.attention,
             )
         }
     }
 
     return Triple(
-        "Equipamento respondendo",
-        "Conectado ao equipamento, mas sem métricas de internet para avaliar automaticamente.",
+        "O equipamento está acessível",
+        "Consegui acessar o equipamento, mas faltam dados para avaliar a internet.",
         DiagnosticStatus.info,
     )
 }
@@ -338,22 +338,22 @@ private fun secoesTecnicas(snapshot: LocalNetworkDeviceSnapshot): List<Equipamen
             val fiber = snapshot.fiber
             add(
                 EquipamentoSecaoTecnica(
-                    titulo = "Fibra óptica",
+                    titulo = "Fibra",
                     icone = Icons.Outlined.Cable,
                     itens =
                         listOfNotNull(
-                            EquipamentoItemTecnico("Link óptico", fiber?.linkAtivo?.let { if (it) "Ativo" else "Inativo" } ?: "—"),
-                            fiber?.rxPowerDbm?.let { EquipamentoItemTecnico("Potência RX", "%.2f dBm".format(it)) },
-                            fiber?.txPowerDbm?.let { EquipamentoItemTecnico("Potência TX", "%.2f dBm".format(it)) },
+                            EquipamentoItemTecnico("Conexão da fibra", fiber?.linkAtivo?.let { if (it) "Ativo" else "Inativo" } ?: "—"),
+                            fiber?.rxPowerDbm?.let { EquipamentoItemTecnico("Sinal recebido da fibra", "%.2f dBm".format(it)) },
+                            fiber?.txPowerDbm?.let { EquipamentoItemTecnico("Sinal enviado pela fibra", "%.2f dBm".format(it)) },
                             fiber?.temperaturaCelsius?.let { EquipamentoItemTecnico("Temperatura", "%.1f °C".format(it)) },
-                            fiber?.tensaoV?.let { EquipamentoItemTecnico("Tensão do laser", "%.2f V".format(it)) },
-                            fiber?.correnteLaserMa?.let { EquipamentoItemTecnico("Corrente do laser", "%.1f mA".format(it)) },
+                            fiber?.tensaoV?.let { EquipamentoItemTecnico("Tensão do transmissor", "%.2f V".format(it)) },
+                            fiber?.correnteLaserMa?.let { EquipamentoItemTecnico("Corrente do transmissor", "%.1f mA".format(it)) },
                             fiber
                                 ?.serialOnt
                                 ?.trim()
                                 ?.takeIf { it.isNotBlank() && it != "—" }
-                                ?.let { EquipamentoItemTecnico("Número de série da ONT", it) },
-                        ).ifEmpty { listOf(EquipamentoItemTecnico("Fibra óptica", "Sem leitura nesta captura")) },
+                                ?.let { EquipamentoItemTecnico("Número de série do modem de fibra", it) },
+                        ).ifEmpty { listOf(EquipamentoItemTecnico("Fibra", "Sem leitura nesta captura")) },
                 ),
             )
         }
@@ -361,18 +361,18 @@ private fun secoesTecnicas(snapshot: LocalNetworkDeviceSnapshot): List<Equipamen
             val wan = snapshot.wan
             add(
                 EquipamentoSecaoTecnica(
-                    titulo = "Internet (WAN)",
+                    titulo = "Conexão com a operadora",
                     icone = Icons.Outlined.Dns,
                     itens =
                         listOfNotNull(
-                            wan?.ipExterno?.let { EquipamentoItemTecnico("IP externo", it) },
+                            wan?.ipExterno?.let { EquipamentoItemTecnico("Endereço de internet", it) },
                             wan?.tipoConexao?.let { EquipamentoItemTecnico("Tipo de conexão", it) },
-                            wan?.gateway?.let { EquipamentoItemTecnico("Gateway", it) },
-                            wan?.dnsPrimario?.let { EquipamentoItemTecnico("DNS primário", it) },
-                            wan?.dnsSecundario?.let { EquipamentoItemTecnico("DNS secundário", it) },
-                            wan?.nomeInterface?.let { EquipamentoItemTecnico("Interface", it) },
-                            wan?.uptimeSegundos?.let { EquipamentoItemTecnico("Uptime", formatarUptime(it)) },
-                        ).ifEmpty { listOf(EquipamentoItemTecnico("Internet (WAN)", "Sem leitura nesta captura")) },
+                            wan?.gateway?.let { EquipamentoItemTecnico("Saída da rede", it) },
+                            wan?.dnsPrimario?.let { EquipamentoItemTecnico("Serviço principal para localizar sites", it) },
+                            wan?.dnsSecundario?.let { EquipamentoItemTecnico("Serviço alternativo para localizar sites", it) },
+                            wan?.nomeInterface?.let { EquipamentoItemTecnico("Conexão usada", it) },
+                            wan?.uptimeSegundos?.let { EquipamentoItemTecnico("Tempo ligado", formatarUptime(it)) },
+                        ).ifEmpty { listOf(EquipamentoItemTecnico("Conexão com a operadora", "Sem leitura nesta captura")) },
                 ),
             )
         }
@@ -447,28 +447,28 @@ private fun secoesTecnicas(snapshot: LocalNetworkDeviceSnapshot): List<Equipamen
             val lan = snapshot.lan
             add(
                 EquipamentoSecaoTecnica(
-                    titulo = "Rede local (LAN)",
+                    titulo = "Rede dentro de casa",
                     icone = Icons.Outlined.Lan,
                     itens =
                         listOfNotNull(
-                            lan?.ipRoteador?.let { EquipamentoItemTecnico("IP do roteador", mascaraIpEquipamento(it)) },
-                            lan?.mascara?.let { EquipamentoItemTecnico("Máscara de sub-rede", formatarMascaraSubRede(it)) },
-                            lan?.dhcpHabilitado?.let { EquipamentoItemTecnico("DHCP", if (it) "Ativo" else "Desligado") },
+                            lan?.ipRoteador?.let { EquipamentoItemTecnico("Endereço do roteador", mascaraIpEquipamento(it)) },
+                            lan?.mascara?.let { EquipamentoItemTecnico("Configuração da rede", formatarMascaraSubRede(it)) },
+                            lan?.dhcpHabilitado?.let { EquipamentoItemTecnico("Distribuição automática de endereços", if (it) "Ativo" else "Desligado") },
                             if (lan?.dhcpHabilitado == true && lan.faixaDhcpInicio != null && lan.faixaDhcpFim != null) {
-                                EquipamentoItemTecnico("Faixa de DHCP", "${lan.faixaDhcpInicio} – ${lan.faixaDhcpFim}")
+                                EquipamentoItemTecnico("Faixa de endereços dos aparelhos", "${lan.faixaDhcpInicio} – ${lan.faixaDhcpFim}")
                             } else {
                                 null
                             },
-                        ).ifEmpty { listOf(EquipamentoItemTecnico("Rede local (LAN)", "Sem leitura nesta captura")) },
+                        ).ifEmpty { listOf(EquipamentoItemTecnico("Rede dentro de casa", "Sem leitura nesta captura")) },
                 ),
             )
         }
         if (cap.suportaDiagnosticoNativo) {
             add(
                 EquipamentoSecaoTecnica(
-                    titulo = "Diagnóstico do fabricante",
+                    titulo = "Análise do fabricante",
                     icone = Icons.Outlined.Insights,
-                    itens = listOf(EquipamentoItemTecnico("Diagnóstico do fabricante", "Disponível")),
+                    itens = listOf(EquipamentoItemTecnico("Análise do fabricante", "Disponível")),
                 ),
             )
         }
@@ -537,7 +537,7 @@ private fun traduzirSegurancaWifiRadio(raw: String?): SegurancaWifiTraduzida? {
         lower.contains("wpa2") -> SegurancaWifiTraduzida("WPA2", null)
         lower.contains("wpa") -> SegurancaWifiTraduzida("WPA", null)
         lower.contains("psk") -> SegurancaWifiTraduzida("WPA2", null)
-        else -> SegurancaWifiTraduzida("Segurança não identificada", null)
+        else -> SegurancaWifiTraduzida("Não consegui identificar a segurança", null)
     }
 }
 
@@ -559,10 +559,10 @@ private fun traduzirPotenciaTxWifi(raw: String?): String? {
     if (valor.isBlank()) return null
     val lower = valor.lowercase()
     return when {
-        lower.contains("high") || lower.contains("alta") || lower.contains("alto") -> "Potência alta"
+        lower.contains("high") || lower.contains("alta") || lower.contains("alto") -> "Sinal forte"
         lower.contains("medium") || lower.contains("média") || lower.contains("media") || lower.contains("moderada") ->
-            "Potência média"
-        lower.contains("low") || lower.contains("baixa") || lower.contains("baixo") -> "Potência baixa"
+            "Sinal médio"
+        lower.contains("low") || lower.contains("baixa") || lower.contains("baixo") -> "Sinal fraco"
         else -> {
             val percentual = Regex("^(\\d+(?:[.,]\\d+)?)\\s*%$").find(valor)
             val dbm = Regex("^(\\d+(?:[.,]\\d+)?)\\s*dbm$", RegexOption.IGNORE_CASE).find(valor)
@@ -635,7 +635,7 @@ private fun mascaraParaPrefixoCidr(mascara: String): Int? {
 // ─── Composable ─────────────────────────────────────────────────────────────
 
 /**
- * Secao "Equipamento local" do resultado/diagnostico (GH#544, epic #547).
+ * Secao "Seu equipamento de internet" do resultado/diagnostico (GH#544, epic #547).
  * Renderiza estritamente a partir de [state] — nenhuma regra de negocio
  * aqui, so apresentacao. Ver [mapLocalDeviceSectionUiState] para a decisao
  * de qual estado exibir.
@@ -653,22 +653,22 @@ fun LocalDeviceSection(
     val c = LocalLkTokens.current
 
     Column(modifier = modifier.fillMaxWidth()) {
-        LkSectionOverline("Equipamento local")
+        LkSectionOverline("Seu equipamento de internet")
         Spacer(Modifier.height(LkSpacing.sm))
 
         when (state) {
             is LocalDeviceSectionUiState.NenhumEncontrado ->
                 LocalDeviceEmptyCard(
                     icon = Icons.Outlined.Router,
-                    titulo = "Nenhum equipamento encontrado",
-                    descricao = "Não identificamos um roteador ou ONT compatível nesta rede.",
+                    titulo = "Não encontrei um equipamento compatível",
+                    descricao = "Não encontrei um roteador ou modem de fibra compatível nesta rede.",
                     accent = c.textTertiary,
                 )
 
             is LocalDeviceSectionUiState.EncontradoNaoConectado ->
                 LocalDeviceEmptyCard(
                     icon = Icons.Outlined.Router,
-                    titulo = "Equipamento identificado",
+                    titulo = "Encontrei seu equipamento",
                     descricao =
                         "Encontramos um " + deviceTypeLabel(state.deviceType).lowercase() +
                             " na rede. Conecte para ver dados detalhados.",
@@ -678,7 +678,7 @@ fun LocalDeviceSection(
             is LocalDeviceSectionUiState.LoginFalhou ->
                 LocalDeviceEmptyCard(
                     icon = Icons.Outlined.ErrorOutline,
-                    titulo = "Não foi possível conectar ao equipamento",
+                    titulo = "Não consegui acessar o equipamento",
                     descricao = state.mensagem,
                     accent = c.warning,
                 )
@@ -686,7 +686,7 @@ fun LocalDeviceSection(
             is LocalDeviceSectionUiState.SemSuporte ->
                 LocalDeviceEmptyCard(
                     icon = Icons.AutoMirrored.Outlined.HelpOutline,
-                    titulo = "Equipamento sem suporte",
+                    titulo = "Este equipamento ainda não é compatível",
                     descricao = semSuporteDescricao(state.deviceType),
                     accent = c.textTertiary,
                 )
@@ -777,11 +777,11 @@ private fun LocalDeviceConectadoContent(
             FrescorIndicator(freshness = state.freshness, c = c)
             if (!state.completo) {
                 Spacer(Modifier.width(LkSpacing.xs))
-                SuporteBadge(texto = "Parcial", cor = c.warning)
+                SuporteBadge(texto = "Dados incompletos", cor = c.warning)
             }
             if (state.suportaDiagnosticoNativo) {
                 Spacer(Modifier.width(LkSpacing.xs))
-                SuporteBadge(texto = "Diagnóstico avançado", cor = c.primary)
+                SuporteBadge(texto = "Análise avançada disponível", cor = c.primary)
             }
         }
 
@@ -814,7 +814,7 @@ private fun LocalDeviceConectadoContent(
                 Icon(Icons.Outlined.Science, contentDescription = null, tint = c.warning, modifier = Modifier.size(14.dp))
                 Spacer(Modifier.width(LkSpacing.xs))
                 Text(
-                    "Suporte experimental. Alguns dados podem não aparecer ou estar incompletos.",
+                    "Este equipamento ainda está em fase de testes. Alguns dados podem não aparecer.",
                     style = MaterialTheme.typography.bodySmall,
                     color = c.textSecondary,
                 )
@@ -849,8 +849,8 @@ private fun LocalDeviceConectadoContent(
         if (state.freshness.expirado && refazerDisponivel) {
             Spacer(Modifier.height(LkSpacing.xs))
             Text(
-                "Estes dados podem não refletir o estado atual do equipamento — " +
-                    "toque em Atualizar para uma nova leitura.",
+                "Estes dados podem não refletir o estado atual do equipamento. " +
+                    "Toque em Atualizar para uma nova leitura.",
                 style = MaterialTheme.typography.bodySmall,
                 color = c.warning,
             )
@@ -862,7 +862,7 @@ private fun LocalDeviceConectadoContent(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                LkSectionOverline("Dados técnicos", modifier = Modifier.weight(1f))
+                LkSectionOverline("Detalhes do equipamento", modifier = Modifier.weight(1f))
                 Text(
                     text = if (detalhesExpandidos) "Ocultar" else "Ver detalhes",
                     style = MaterialTheme.typography.labelLarge,
@@ -1042,7 +1042,7 @@ private fun FrescorIndicator(
             )
             Spacer(Modifier.width(LkSpacing.xs))
             Text(
-                "Leitura desatualizada",
+                "Dados desatualizados",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.W600,
                 color = c.warning,
@@ -1079,7 +1079,7 @@ private fun deviceTypeIcon(deviceType: DeviceType): ImageVector =
 
 private fun deviceTypeLabel(deviceType: DeviceType): String =
     when (deviceType) {
-        DeviceType.ONT_GPON -> "ONT de fibra"
+        DeviceType.ONT_GPON -> "Modem de fibra"
         DeviceType.ROUTER -> "Roteador"
         DeviceType.MESH_OR_EXTENDER -> "Nó mesh"
         DeviceType.UNKNOWN_SUPPORTED, DeviceType.UNKNOWN_UNSUPPORTED -> "Equipamento"
@@ -1101,8 +1101,8 @@ private fun semSuporteDescricao(deviceType: DeviceType): String =
  *  sem citar marca/modelo (a regra e por capability, nao por vendor). */
 private fun notaSemLeituraDeFibra(deviceType: DeviceType): String? =
     when (deviceType) {
-        DeviceType.ROUTER -> "Este roteador não faz leitura de fibra — esse dado aparece apenas na ONT/modem da operadora."
-        DeviceType.MESH_OR_EXTENDER -> "Nós mesh não fazem leitura de fibra — esse dado aparece apenas na ONT/modem da operadora."
+        DeviceType.ROUTER -> "Este roteador não faz leitura de fibra. Esse dado aparece apenas no modem de fibra da operadora."
+        DeviceType.MESH_OR_EXTENDER -> "Nós mesh não fazem leitura de fibra. Esse dado aparece apenas no modem de fibra da operadora."
         else -> null
     }
 
@@ -1171,12 +1171,12 @@ private fun LocalDeviceSectionNokiaCompletoPreview() {
                 secoes =
                     listOf(
                         EquipamentoSecaoTecnica(
-                            "Fibra óptica",
+                            "Fibra",
                             Icons.Outlined.Cable,
                             listOf(
-                                EquipamentoItemTecnico("Link óptico", "Ativo"),
-                                EquipamentoItemTecnico("Potência RX", "-19.80 dBm"),
-                                EquipamentoItemTecnico("Potência TX", "2.10 dBm"),
+                                EquipamentoItemTecnico("Conexão da fibra", "Ativo"),
+                                EquipamentoItemTecnico("Sinal recebido da fibra", "-19.80 dBm"),
+                                EquipamentoItemTecnico("Sinal enviado pela fibra", "2.10 dBm"),
                             ),
                         ),
                     ),
@@ -1197,15 +1197,15 @@ private fun LocalDeviceSectionRoteadorParcialExperimentalPreview() {
                 supportLevel = SupportLevel.PARSER_IMPORTED,
                 experimental = true,
                 completo = false,
-                resumoTitulo = "Internet chegando normalmente",
-                resumoDescricao = "O roteador confirma conexão ativa com a operadora. Wi-Fi ligado e transmitindo.",
+                resumoTitulo = "A internet está chegando ao roteador",
+                resumoDescricao = "Há sinal da operadora e o Wi-Fi está ligado.",
                 resumoStatus = DiagnosticStatus.ok,
                 secoes =
                     listOf(
                         EquipamentoSecaoTecnica(
-                            "Internet (WAN)",
+                            "Conexão com a operadora",
                             Icons.Outlined.Dns,
-                            listOf(EquipamentoItemTecnico("IP externo", "203.0.113.44"), EquipamentoItemTecnico("Uptime", "2d 4h 10min")),
+                            listOf(EquipamentoItemTecnico("Endereço de internet", "203.0.113.44"), EquipamentoItemTecnico("Tempo ligado", "2d 4h 10min")),
                         ),
                         EquipamentoSecaoTecnica(
                             "Wi-Fi",
@@ -1238,18 +1238,18 @@ private fun LocalDeviceSectionComDiagnosticoNativoPreview() {
                 secoes =
                     listOf(
                         EquipamentoSecaoTecnica(
-                            "Fibra óptica",
+                            "Fibra",
                             Icons.Outlined.Cable,
                             listOf(
-                                EquipamentoItemTecnico("Link óptico", "Ativo"),
-                                EquipamentoItemTecnico("Potência RX", "-19.80 dBm"),
-                                EquipamentoItemTecnico("Potência TX", "2.10 dBm"),
+                                EquipamentoItemTecnico("Conexão da fibra", "Ativo"),
+                                EquipamentoItemTecnico("Sinal recebido da fibra", "-19.80 dBm"),
+                                EquipamentoItemTecnico("Sinal enviado pela fibra", "2.10 dBm"),
                             ),
                         ),
                         EquipamentoSecaoTecnica(
-                            "Diagnóstico do fabricante",
+                            "Análise do fabricante",
                             Icons.Outlined.Insights,
-                            listOf(EquipamentoItemTecnico("Diagnóstico do fabricante", "Disponível")),
+                            listOf(EquipamentoItemTecnico("Análise do fabricante", "Disponível")),
                         ),
                     ),
                 freshness = DataFreshness(capturadoEmEpochMs = System.currentTimeMillis()),

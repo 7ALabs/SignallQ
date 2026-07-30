@@ -73,7 +73,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 private const val AMOSTRAS_PING_ESPECIFICO = 24
 private const val TIMEOUT_NAT_UDP_MS = 3_000L
 
-/** Medição dedicada opcional (issue #1487, "Medir ping específico agora") — reaproveita
+/** Medição dedicada opcional (issue #1487, "Medir o tempo de resposta agora") — reaproveita
  *  [PingExecutor]/[StunNatProbe], mesmas classes do fluxo legado "Jogos" (GH#935), sem
  *  duplicar a lógica de amostragem. Roda em paralelo, mesmo padrão do antigo
  *  `JogosViewModel.iniciarTeste` — o NAT UDP nunca atrasa além do próprio ping (timeout
@@ -107,8 +107,8 @@ private sealed interface PingEspecificoState {
 }
 
 /**
- * Etapa 3/3 — "Como quer usar essa combinação?" (protótipo #1474 `ModoGamerConfig`) + a
- * medição dedicada opcional da issue #1487 ("Medir ping específico agora"). Nenhuma das
+ * Etapa 3/3 — "Quer salvar esta escolha?" (protótipo #1474 `ModoGamerConfig`) + a
+ * medição dedicada opcional da issue #1487 ("Medir o tempo de resposta agora"). Nenhuma das
  * opções é obrigatória — "Ver diagnóstico" funciona a qualquer momento, mesmo com a medição
  * ainda em andamento (nesse caso, [onConfirmar] recebe `pingEspecificoMs`/`natUdp` nulos e o
  * resultado usa só o [io.signallq.app.core.diagnostico.DiagnosticInput] já coletado).
@@ -135,23 +135,23 @@ internal fun ModoGamerConfigConteudo(
     ) {
         ModoGamerListItem(titulo = selecaoJogo.nomeExibido, subtitulo = device.label, icone = selecaoJogo.categoria.icone(), onClick = {})
         Spacer(Modifier.height(LkSpacing.lg))
-        LkSectionOverline(text = "Como quer usar essa combinação?")
+        LkSectionOverline(text = "Quer salvar esta escolha?")
         Spacer(Modifier.height(LkSpacing.sm))
         ModoGamerOpcaoConfig(
-            titulo = "Salvar como padrão",
+            titulo = "Salvar para os próximos testes",
             descricao = "Próxima vez, o Modo gamer já abre direto com ${selecaoJogo.nomeExibido} + ${device.label}",
             selecionada = salvarComoPadrao,
             onClick = { salvarComoPadrao = true },
         )
         Spacer(Modifier.height(LkSpacing.sm))
         ModoGamerOpcaoConfig(
-            titulo = "Usar só desta vez",
-            descricao = "Não muda o padrão do Modo gamer",
+            titulo = "Usar apenas agora",
+            descricao = "Sua escolha salva não será alterada.",
             selecionada = !salvarComoPadrao,
             onClick = { salvarComoPadrao = false },
         )
         Spacer(Modifier.height(LkSpacing.lg))
-        LkSectionOverline(text = "Refinar com uma medição dedicada (opcional)")
+        LkSectionOverline(text = "Fazer uma medição extra (opcional)")
         Spacer(Modifier.height(LkSpacing.sm))
         ModoGamerPingEspecificoRow(
             state = pingState,
@@ -200,14 +200,14 @@ private fun ModoGamerPingEspecificoRow(
         Icon(imageVector = Icons.Outlined.NetworkCheck, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(LkSpacing.sm))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = "Medir ping específico agora", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
+            Text(text = "Medir o tempo de resposta agora", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
             Text(
                 text =
                     when (state) {
-                        PingEspecificoState.Ocioso -> "Leva alguns segundos — refina a latência com uma sonda dedicada"
+                        PingEspecificoState.Ocioso -> "Leva alguns segundos e deixa a análise mais precisa."
                         PingEspecificoState.Medindo -> "Medindo…"
                         is PingEspecificoState.Concluido -> "Ping medido: %.0f ms".format(state.medicao.latenciaMs)
-                        PingEspecificoState.Erro -> "Não foi possível medir agora — o resultado usa a medição já coletada"
+                        PingEspecificoState.Erro -> "Não consegui fazer a medição extra. Vou usar os dados já coletados."
                     },
                 style = MaterialTheme.typography.bodySmall,
                 color = c.textSecondary,
@@ -218,7 +218,7 @@ private fun ModoGamerPingEspecificoRow(
             CircularProgressIndicator(modifier = Modifier.size(20.dp), color = c.primary, strokeWidth = 2.dp)
         } else {
             TextButton(onClick = onMedir) {
-                Text(text = if (state is PingEspecificoState.Concluido) "Medir de novo" else "Medir", style = MaterialTheme.typography.labelLarge)
+                Text(text = if (state is PingEspecificoState.Concluido) "Medir novamente" else "Medir", style = MaterialTheme.typography.labelLarge)
             }
         }
     }
@@ -317,7 +317,7 @@ internal fun ModoGamerResultadoConteudo(
                 Icon(imageVector = Icons.Outlined.Info, contentDescription = null, tint = c.onWarningContainer, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(LkSpacing.sm))
                 Text(
-                    text = "Este jogo não está no catálogo — usando o perfil de referência de ${etapa.selecaoJogo.categoria.label.lowercase()}.",
+                    text = "Este jogo não está no catálogo. Estou usando o perfil de referência de ${etapa.selecaoJogo.categoria.label.lowercase()}.",
                     style = MaterialTheme.typography.bodySmall,
                     color = c.onWarningContainer,
                 )
@@ -332,7 +332,7 @@ internal fun ModoGamerResultadoConteudo(
 
         if (resultado.acoes.isNotEmpty()) {
             Spacer(Modifier.height(LkSpacing.lg))
-            LkSectionOverline(text = "Ações recomendadas")
+            LkSectionOverline(text = "O que fazer agora")
             Spacer(Modifier.height(LkSpacing.sm))
             AcoesRecomendadasCard(acoes = resultado.acoes, c = c)
         }
@@ -382,7 +382,7 @@ internal fun ModoGamerResultadoConteudo(
                     if (etapa.salvoComoPadrao) {
                         "Salvo como padrão do Modo gamer (${etapa.selecaoJogo.nomeExibido} + ${etapa.device.label})"
                     } else {
-                        "Usado só desta vez — o padrão do Modo gamer não mudou"
+                        "Usado só desta vez. O padrão do Modo gamer não mudou."
                     },
                 style = MaterialTheme.typography.bodySmall,
                 color = c.textSecondary,
@@ -395,11 +395,11 @@ internal fun ModoGamerResultadoConteudo(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(LkRadius.button),
         ) {
-            Text(text = "Trocar jogo ou aparelho", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+            Text(text = "Escolher outro jogo ou aparelho", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
         }
         Spacer(Modifier.height(LkSpacing.sm))
         TextButton(onClick = onIrParaHome, modifier = Modifier.fillMaxWidth()) {
-            Text(text = "Ir para o início", style = MaterialTheme.typography.bodyMedium, color = c.primary)
+            Text(text = "Voltar ao início", style = MaterialTheme.typography.bodyMedium, color = c.primary)
         }
         Spacer(Modifier.height(LkSpacing.xl))
     }
@@ -420,7 +420,7 @@ private fun ModoGamerNatUdpRow(natUdp: NatUdpResultado) {
         Icon(imageVector = Icons.Outlined.Info, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(LkSpacing.sm))
         Text(
-            text = "Conexão para jogos peer-to-peer (NAT UDP): ${natUdp.tipo.rotulo()}",
+            text = "Conexão direta com outros jogadores: ${natUdp.tipo.rotulo()}",
             style = MaterialTheme.typography.bodySmall,
             color = c.textSecondary,
         )
@@ -431,9 +431,9 @@ private fun ModoGamerNatUdpRow(natUdp: NatUdpResultado) {
  *  (`JogosScreen.textoNatUdp`), sem o card colorido dedicado (fora do escopo desta fusão). */
 private fun NatUdpTipo.rotulo(): String =
     when (this) {
-        NatUdpTipo.ABERTO -> "Aberta"
-        NatUdpTipo.MODERADO -> "Moderada"
-        NatUdpTipo.RESTRITO -> "Restrita"
+        NatUdpTipo.ABERTO -> "Boa"
+        NatUdpTipo.MODERADO -> "Pode apresentar limitações"
+        NatUdpTipo.RESTRITO -> "Limitada"
         NatUdpTipo.BLOQUEADO -> "Bloqueada"
-        NatUdpTipo.NAO_VERIFICADO -> "Não verificada"
+        NatUdpTipo.NAO_VERIFICADO -> "Não foi possível verificar"
     }

@@ -129,6 +129,32 @@ class InternetDiagnosticEngineTest {
     }
 
     @Test
+    fun `IN-NORMAL-05 nao cita Anatel RQUAL e mantem limiar e severidade inalterados`() {
+        // GH#1502 (revisao independente da PR #1515) -- a mensagem citava "Anatel RQUAL"
+        // sem fonte normativa comprovada no repositorio; a decisao aprovada na planilha
+        // original foi superada por revisao de confiabilidade. Este teste trava: (1) o
+        // texto antigo nao volta a aparecer, (2) o limiar (100.0, estritamente maior --
+        // ja coberto pelo golden acima) e a severidade (attention) permanecem os mesmos.
+        val resultados = InternetDiagnosticEngine.avaliar(baseline(lat = 150.0), wifiConfiavelParaTeste = true)
+        val achado = resultados.first { it.id == "IN-NORMAL-05" }
+
+        assertEquals(DiagnosticStatus.attention, achado.status)
+        assertTrue(
+            "mensagemUsuario ainda cita Anatel/RQUAL: ${achado.mensagemUsuario}",
+            !achado.mensagemUsuario.contains("Anatel", ignoreCase = true) &&
+                !achado.mensagemUsuario.contains("RQUAL", ignoreCase = true),
+        )
+        achado.recomendacao?.let {
+            assertTrue(
+                "recomendacao ainda cita Anatel/RQUAL: $it",
+                !it.contains("Anatel", ignoreCase = true) && !it.contains("RQUAL", ignoreCase = true),
+            )
+        }
+        // Mensagem substituta ainda corresponde ao estado tecnico real (valor medido).
+        assertTrue(achado.mensagemUsuario.contains("150"))
+    }
+
+    @Test
     fun `golden - bufferbloat fronteira 30_0 nao gera achado e 30_01 gera elevado`() {
         val naFronteira = InternetDiagnosticEngine.avaliar(baseline(bb = 30.0), wifiConfiavelParaTeste = true)
         assertTrue(naFronteira.none { it.id.startsWith("IN-NORMAL-09") })

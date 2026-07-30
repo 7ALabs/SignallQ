@@ -83,8 +83,8 @@ object ModoGamerEngine {
 
     private fun evidenciaPingEspecifico(pingEspecificoMs: Double): EvidenciaDiagnostico =
         EvidenciaDiagnostico(
-            label = "Medição de ping",
-            valorExibido = "Dedicada, agora (%.0f ms)".format(pingEspecificoMs),
+            label = "Tempo de resposta medido agora",
+            valorExibido = "%.0f ms".format(pingEspecificoMs),
             status = MetricStatus.inconclusivo,
         )
 
@@ -94,20 +94,20 @@ object ModoGamerEngine {
     private fun avaliarFpsCompetitivo(input: DiagnosticInput?, device: DeviceJogo): ResultadoModoGamer {
         val internet = input?.internet
         val dims = mutableListOf<Dimensao>()
-        internet?.latencyMs?.let { dims += Dimensao("Latência sob carga", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it)) }
-        internet?.jitterMs?.let { dims += Dimensao("Jitter", "%.0f ms".format(it), MetricClassifier.classificarJitter(it)) }
-        internet?.perdaPercentual?.let { dims += Dimensao("Perda estimada", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it)) }
+        internet?.latencyMs?.let { dims += Dimensao("Tempo de resposta com a rede ocupada", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it)) }
+        internet?.jitterMs?.let { dims += Dimensao("Variação do tempo de resposta", "%.0f ms".format(it), MetricClassifier.classificarJitter(it)) }
+        internet?.perdaPercentual?.let { dims += Dimensao("Falhas estimadas na conexão", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it)) }
         return montarResultadoModoGamer(
             categoria = CategoriaJogoModoGamer.FPS_COMPETITIVO,
             device = device,
             dims = dims,
             mensagens = MensagensStatus(
-                ok = "Latência, jitter e perda dentro da faixa recomendada para FPS competitivo.",
-                atencao = "Latência ou jitter no limite — pode haver atraso perceptível na mira/registro de tiros.",
-                critica = "Latência sob carga está prejudicando suas partidas — faixa crítica para FPS competitivo.",
+                ok = "Tempo de resposta, variação do tempo de resposta e falhas na conexão dentro da faixa recomendada para FPS competitivo.",
+                atencao = "O tempo de resposta ou a variação do tempo de resposta estão no limite. Pode haver atraso perceptível na mira ou no registro de tiros.",
+                critica = "O tempo de resposta sob carga está prejudicando suas partidas. Faixa crítica para FPS competitivo.",
             ),
             acoes = { status ->
-                if (status == DiagnosticStatus.ok) emptyList() else listOf("Jogue com cabo de rede em vez de Wi-Fi", "Ative priorização de jogos (QoS) no roteador, se disponível")
+                if (status == DiagnosticStatus.ok) emptyList() else listOf("Jogue com cabo de rede em vez de Wi-Fi", "Ative priorização de jogos (prioridade de tráfego) no roteador, se disponível")
             },
         )
     }
@@ -118,17 +118,17 @@ object ModoGamerEngine {
     private fun avaliarBattleRoyale(input: DiagnosticInput?, device: DeviceJogo): ResultadoModoGamer {
         val internet = input?.internet
         val dims = mutableListOf<Dimensao>()
-        internet?.latencyMs?.let { dims += Dimensao("Latência sob carga", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it)) }
-        internet?.jitterMs?.let { dims += Dimensao("Jitter", "%.0f ms".format(it), MetricClassifier.classificarJitter(it)) }
+        internet?.latencyMs?.let { dims += Dimensao("Tempo de resposta com a rede ocupada", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it)) }
+        internet?.jitterMs?.let { dims += Dimensao("Variação do tempo de resposta", "%.0f ms".format(it), MetricClassifier.classificarJitter(it)) }
         internet?.downloadMbps?.let { dims += Dimensao("Download", "%.1f Mbps".format(it), MetricClassifier.classificarDownload(it)) }
         return montarResultadoModoGamer(
             categoria = CategoriaJogoModoGamer.BATTLE_ROYALE,
             device = device,
             dims = dims,
             mensagens = MensagensStatus(
-                ok = "Latência, jitter e download dentro do esperado para battle royale.",
-                atencao = "Latência, jitter ou download no limite — pode haver atraso ao entrar na partida ou durante o combate.",
-                critica = "Latência ou download comprometidos — isso costuma atrasar o carregamento da partida e travar o combate.",
+                ok = "Tempo de resposta, variação do tempo de resposta e download dentro do esperado para battle royale.",
+                atencao = "O tempo de resposta, a variação do tempo de resposta ou o download estão no limite. Pode haver atraso ao entrar na partida ou durante o combate.",
+                critica = "O tempo de resposta ou o download estão comprometidos. Isso costuma atrasar o carregamento da partida e travar o combate.",
             ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) emptyList() else listOf("Jogue com cabo de rede em vez de Wi-Fi", "Feche downloads em segundo plano antes de entrar na partida")
@@ -142,20 +142,20 @@ object ModoGamerEngine {
     private fun avaliarMoba(input: DiagnosticInput?, device: DeviceJogo): ResultadoModoGamer {
         val internet = input?.internet
         val dims = mutableListOf<Dimensao>()
-        internet?.jitterMs?.let { dims += Dimensao("Jitter", "%.0f ms".format(it), MetricClassifier.classificarJitter(it)) }
-        internet?.latencyMs?.let { dims += Dimensao("Latência sob carga", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it)) }
-        internet?.perdaPercentual?.let { dims += Dimensao("Perda estimada", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it)) }
+        internet?.jitterMs?.let { dims += Dimensao("Variação do tempo de resposta", "%.0f ms".format(it), MetricClassifier.classificarJitter(it)) }
+        internet?.latencyMs?.let { dims += Dimensao("Tempo de resposta com a rede ocupada", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it)) }
+        internet?.perdaPercentual?.let { dims += Dimensao("Falhas estimadas na conexão", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it)) }
         return montarResultadoModoGamer(
             categoria = CategoriaJogoModoGamer.MOBA,
             device = device,
             dims = dims,
             mensagens = MensagensStatus(
-                ok = "Jitter, latência e perda dentro do esperado para MOBA.",
-                atencao = "Oscilação ou latência no limite — pode haver atraso perceptível em teamfights.",
-                critica = "Oscilação ou latência prejudicando a partida — faixa crítica para MOBA competitivo.",
+                ok = "Variação do tempo de resposta, tempo de resposta e falhas na conexão dentro do esperado para MOBA.",
+                atencao = "Oscilação ou tempo de resposta no limite. Pode haver atraso perceptível em combates em equipe.",
+                critica = "Oscilação ou tempo de resposta prejudicando a partida. Faixa crítica para MOBA competitivo.",
             ),
             acoes = { status ->
-                if (status == DiagnosticStatus.ok) emptyList() else listOf("Priorize a rede 5GHz perto do roteador", "Evite downloads/uploads simultâneos durante a partida")
+                if (status == DiagnosticStatus.ok) emptyList() else listOf("Priorize a rede 5 GHz perto do roteador", "Evite downloads/uploads simultâneos durante a partida")
             },
         )
     }
@@ -167,18 +167,18 @@ object ModoGamerEngine {
         val internet = input?.internet
         val dims = mutableListOf<Dimensao>()
         internet?.downloadMbps?.let { dims += Dimensao("Download", "%.1f Mbps".format(it), MetricClassifier.classificarDownload(it)) }
-        internet?.latencyMs?.let { dims += Dimensao("Latência", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it)) }
+        internet?.latencyMs?.let { dims += Dimensao("Tempo de resposta", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it)) }
         return montarResultadoModoGamer(
             categoria = CategoriaJogoModoGamer.CASUAL,
             device = device,
             dims = dims,
             mensagens = MensagensStatus(
-                ok = "Download e latência dentro do esperado para este tipo de jogo.",
-                atencao = "Download ou latência no limite — pode haver demora ao carregar conteúdo ou pequenos atrasos.",
-                critica = "Download ou latência comprometidos — isso costuma travar o carregamento do jogo.",
+                ok = "Download e tempo de resposta dentro do esperado para este tipo de jogo.",
+                atencao = "Download ou tempo de resposta no limite. Pode haver demora ao carregar conteúdo ou pequenos atrasos.",
+                critica = "Download ou tempo de resposta comprometidos. Isso costuma travar o carregamento do jogo.",
             ),
             acoes = { status ->
-                if (status == DiagnosticStatus.ok) emptyList() else listOf("Feche downloads/uploads em segundo plano", "Aproxime-se do roteador ou use a rede 5GHz")
+                if (status == DiagnosticStatus.ok) emptyList() else listOf("Feche downloads/uploads em segundo plano", "Aproxime-se do roteador ou use a rede 5 GHz")
             },
         )
     }
@@ -190,19 +190,19 @@ object ModoGamerEngine {
         val internet = input?.internet
         val dims = mutableListOf<Dimensao>()
         internet?.downloadMbps?.let { dims += Dimensao("Download", "%.1f Mbps".format(it), MetricClassifier.classificarDownload(it)) }
-        internet?.bufferbloatMs?.let { dims += Dimensao("Atraso sob carga", "%.0f ms".format(it), MetricClassifier.classificarBufferbloat(it)) }
-        internet?.latencyMs?.let { dims += Dimensao("Latência", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it)) }
+        internet?.bufferbloatMs?.let { dims += Dimensao("Lentidão com a rede ocupada", "%.0f ms".format(it), MetricClassifier.classificarBufferbloat(it)) }
+        internet?.latencyMs?.let { dims += Dimensao("Tempo de resposta", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it)) }
         return montarResultadoModoGamer(
             categoria = CategoriaJogoModoGamer.CLOUD_GAMING,
             device = device,
             dims = dims,
             mensagens = MensagensStatus(
-                ok = "Download e atraso sob carga dentro do esperado — a rede aguenta streaming de jogo em boa qualidade.",
-                atencao = "Download ou atraso sob carga no limite — pode haver perda de qualidade de imagem ou engasgos.",
-                critica = "Download baixo com atraso alto sob carga — isso costuma travar o stream do jogo.",
+                ok = "Download e atraso sob carga dentro do esperado. A rede aguenta streaming de jogo em boa qualidade.",
+                atencao = "Download ou atraso sob carga no limite. Pode haver perda de qualidade de imagem ou engasgos.",
+                critica = "Download baixo com atraso alto sob carga. Isso costuma travar a transmissão do jogo.",
             ),
             acoes = { status ->
-                if (status == DiagnosticStatus.ok) emptyList() else listOf("Use a rede 5GHz/6GHz perto do roteador, evite a faixa 2.4GHz", "Pause downloads em segundo plano durante a sessão")
+                if (status == DiagnosticStatus.ok) emptyList() else listOf("Perto do roteador, prefira a rede 5 GHz ou 6 GHz. Longe dele ou com paredes no caminho, a 2,4 GHz pode funcionar melhor.", "Pause downloads em segundo plano durante a sessão")
             },
         )
     }
@@ -213,17 +213,17 @@ object ModoGamerEngine {
     private fun avaliarOutro(input: DiagnosticInput?, device: DeviceJogo): ResultadoModoGamer {
         val internet = input?.internet
         val dims = mutableListOf<Dimensao>()
-        internet?.latencyMs?.let { dims += Dimensao("Latência sob carga", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it)) }
-        internet?.jitterMs?.let { dims += Dimensao("Jitter", "%.0f ms".format(it), MetricClassifier.classificarJitter(it)) }
-        internet?.perdaPercentual?.let { dims += Dimensao("Perda estimada", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it)) }
+        internet?.latencyMs?.let { dims += Dimensao("Tempo de resposta com a rede ocupada", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it)) }
+        internet?.jitterMs?.let { dims += Dimensao("Variação do tempo de resposta", "%.0f ms".format(it), MetricClassifier.classificarJitter(it)) }
+        internet?.perdaPercentual?.let { dims += Dimensao("Falhas estimadas na conexão", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it)) }
         return montarResultadoModoGamer(
             categoria = CategoriaJogoModoGamer.OUTRO,
             device = device,
             dims = dims,
             mensagens = MensagensStatus(
-                ok = "Latência, jitter e perda dentro do esperado para jogos online em geral.",
-                atencao = "Latência ou jitter no limite — pode haver atraso perceptível em momentos de disputa.",
-                critica = "Latência ou jitter prejudicando a partida — faixa crítica para jogos online.",
+                ok = "Tempo de resposta, variação do tempo de resposta e falhas na conexão dentro do esperado para jogos online em geral.",
+                atencao = "Tempo de resposta ou variação do tempo de resposta no limite. Pode haver atraso perceptível em momentos de disputa.",
+                critica = "Tempo de resposta ou variação do tempo de resposta prejudicando a partida. Faixa crítica para jogos online.",
             ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) emptyList() else listOf("Jogue com cabo de rede em vez de Wi-Fi, quando possível", "Evite downloads/uploads simultâneos durante a partida")
@@ -244,7 +244,7 @@ object ModoGamerEngine {
         // Linha informativa de contexto (device testado) — sempre presente, mesmo sem
         // métricas (dadosInsuficientes), pra deixar claro em qual aparelho o usuário está
         // avaliando. Nunca influencia severidade/status (não é Dimensao).
-        val evidenciaDevice = EvidenciaDiagnostico("Conexão do teste", device.label, MetricStatus.inconclusivo)
+        val evidenciaDevice = EvidenciaDiagnostico("Aparelho analisado", device.label, MetricStatus.inconclusivo)
         return ResultadoModoGamer(
             categoria = categoria,
             device = device,
@@ -266,11 +266,11 @@ object ModoGamerEngine {
  * numa categoria com thresholds reais (regra de produto da issue #1476).
  */
 enum class CategoriaJogoModoGamer(val label: String) {
-    FPS_COMPETITIVO("FPS competitivo"),
+    FPS_COMPETITIVO("Jogo de tiro competitivo"),
     BATTLE_ROYALE("Battle royale"),
-    MOBA("MOBA"),
-    CASUAL("Jogo casual ou mobile"),
-    CLOUD_GAMING("Streaming em nuvem (cloud gaming)"),
+    MOBA("Jogo de estratégia em equipe"),
+    CASUAL("Jogo casual ou para celular"),
+    CLOUD_GAMING("Jogo por streaming"),
     OUTRO("Outro tipo de jogo"),
 }
 

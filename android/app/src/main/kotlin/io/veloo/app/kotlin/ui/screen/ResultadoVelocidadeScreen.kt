@@ -95,7 +95,7 @@ import kotlinx.coroutines.launch
  * e os 5 cards principais (Download/Upload/Latência/Oscilação/Perda).
  *
  * Resumo pós-teste enxuto, sem despejo de dado técnico (Feature #550, issue #1475):
- * as 3 CTAs abaixo do card "Experiência de uso" abrem cada uma seu próprio destino —
+ * as 3 CTAs abaixo do card "Como sua internet deve funcionar" abrem cada uma seu próprio destino —
  * [DiagnosticoGuiadoScreen] (7 objetivos fechados, motor local + explicação por IA),
  * modo gamer (fluxo próprio, issue #1476) e [DetalhesTecnicosScreen] (métricas cruas).
  * Antes dessa issue, um único CTA abria a sheet automática "Análise detalhada"
@@ -187,7 +187,7 @@ fun ResultadoVelocidadeScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text("Resultado", style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
+                    Text("Resultado do teste", style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
                 },
                 navigationIcon = {
                     IconButton(onClick = onVoltar) {
@@ -223,7 +223,7 @@ fun ResultadoVelocidadeScreen(
                         }) {
                             Icon(
                                 imageVector = Icons.Outlined.Share,
-                                contentDescription = "Compartilhar PDF do resultado",
+                                contentDescription = "Compartilhar resultado",
                                 tint = c.textPrimary,
                             )
                         }
@@ -250,7 +250,7 @@ fun ResultadoVelocidadeScreen(
             ) {
                 // Título + mensagem diagnóstico
                 Text(
-                    text = decisaoTitulo ?: "Resultado",
+                    text = decisaoTitulo ?: "Resultado do teste",
                     style = MaterialTheme.typography.headlineSmall,
                     color = c.textPrimary,
                     textAlign = TextAlign.Center,
@@ -278,7 +278,7 @@ fun ResultadoVelocidadeScreen(
                 // Cards principais: Download + Upload
                 Row(modifier = Modifier.fillMaxWidth()) {
                     MetricCard(
-                        label = "Download",
+                        label = "Velocidade de download",
                         value = "%.1f".format(resultado.downloadMbps),
                         unit = "Mbps",
                         cor = corDownload,
@@ -288,9 +288,9 @@ fun ResultadoVelocidadeScreen(
                     )
                     Spacer(Modifier.width(LkSpacing.md))
                     MetricCard(
-                        label = "Upload",
+                        label = "Velocidade de upload",
                         value = if (resultado.uploadNaoDetectado) "—" else "%.1f".format(resultado.uploadMbps),
-                        unit = if (resultado.uploadNaoDetectado) "não detectado" else "Mbps",
+                        unit = if (resultado.uploadNaoDetectado) "Não foi possível medir" else "Mbps",
                         cor = corUpload,
                         veredito = veredictoUpload,
                         c = c,
@@ -301,7 +301,7 @@ fun ResultadoVelocidadeScreen(
                 Spacer(Modifier.height(LkSpacing.md))
                 TextButton(onClick = { metricasDetalhadasAbertas = !metricasDetalhadasAbertas }) {
                     Text(
-                        text = if (metricasDetalhadasAbertas) "Ocultar métricas detalhadas" else "Ver métricas detalhadas",
+                        text = if (metricasDetalhadasAbertas) "Ocultar detalhes da conexão" else "Ver detalhes da conexão",
                         style = MaterialTheme.typography.labelLarge,
                         color = c.primary,
                     )
@@ -318,7 +318,7 @@ fun ResultadoVelocidadeScreen(
                     Column {
                         Row(modifier = Modifier.fillMaxWidth()) {
                             MetricCard(
-                                label = "Latência",
+                                label = "Tempo de resposta",
                                 value = "%.0f".format(resultado.latenciaMs),
                                 unit = "ms",
                                 cor = corLatencia,
@@ -328,7 +328,7 @@ fun ResultadoVelocidadeScreen(
                             )
                             Spacer(Modifier.width(LkSpacing.md))
                             MetricCard(
-                                label = "Oscilação",
+                                label = "Variação do tempo de resposta",
                                 value = "%.0f".format(resultado.jitterMs),
                                 unit = "ms",
                                 cor = corJitter,
@@ -345,7 +345,7 @@ fun ResultadoVelocidadeScreen(
                                 // ResultadoSpeedtest.packetLossSource == "estimated"). Rotulo
                                 // honesto sobre a metodologia, sem prometer mais precisao do
                                 // que o teste realmente mede.
-                                label = "Perda estimada",
+                                label = "Falhas estimadas na conexão",
                                 value = "%.1f".format(resultado.perdaPercentual),
                                 unit = "%",
                                 cor = corPerda,
@@ -355,7 +355,7 @@ fun ResultadoVelocidadeScreen(
                             )
                             Spacer(Modifier.width(LkSpacing.md))
                             MetricCard(
-                                label = "Atraso sob carga",
+                                label = "Lentidão com a rede ocupada",
                                 value = "%.0f".format(resultado.bufferbloatMs),
                                 unit = "ms",
                                 cor = corBufferbloat,
@@ -380,7 +380,7 @@ fun ResultadoVelocidadeScreen(
                     ) {
                         LkInfoCallout(
                             icon = Icons.Outlined.Info,
-                            text = "Upload não detectado — verifique a conexão",
+                            text = "Não consegui medir o envio de dados. Vamos tentar novamente.",
                             iconTint = c.warning,
                         )
                     }
@@ -395,7 +395,7 @@ fun ResultadoVelocidadeScreen(
                         if (interrompidoPorRedeMudou) {
                             "O teste foi interrompido porque a conexão caiu ou mudou durante a medição. Tente novamente quando a rede estabilizar."
                         } else {
-                            "Resultado pode conter interferência de outros apps"
+                            "Outros aplicativos podem ter afetado o resultado."
                         }
                     Spacer(Modifier.height(LkSpacing.md))
                     Row(
@@ -436,7 +436,7 @@ fun ResultadoVelocidadeScreen(
                 }
 
                 Spacer(Modifier.height(LkSpacing.xl))
-                LkSectionOverline(text = "Experiência de uso")
+                LkSectionOverline(text = "Como sua internet deve funcionar")
                 Spacer(Modifier.height(LkSpacing.sm))
                 LkSurfaceCard(
                     modifier =
@@ -445,7 +445,7 @@ fun ResultadoVelocidadeScreen(
                 ) {
                     Column {
                         ImpactoPraticoLinha(
-                            label = "Vídeos em 4K",
+                            label = "Vídeos em alta qualidade",
                             veredito = resultado.diagnosticoQualidade.vereditoStreaming,
                             icon = Icons.Outlined.Tv,
                             c = c,
@@ -459,7 +459,7 @@ fun ResultadoVelocidadeScreen(
                         )
                         HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
                         ImpactoPraticoLinha(
-                            label = "Videochamadas",
+                            label = "Chamadas de vídeo",
                             veredito = resultado.diagnosticoQualidade.vereditoVideoChamada,
                             icon = Icons.Outlined.Videocam,
                             c = c,
@@ -483,7 +483,7 @@ fun ResultadoVelocidadeScreen(
                     )
                     Spacer(Modifier.width(LkSpacing.sm))
                     Text(
-                        text = "Iniciar diagnóstico guiado",
+                        text = "Descobrir o que está acontecendo",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -501,7 +501,7 @@ fun ResultadoVelocidadeScreen(
                     )
                     Spacer(Modifier.width(LkSpacing.sm))
                     Text(
-                        text = "Modo gamer",
+                        text = "Analisar jogos online",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = c.textPrimary,
@@ -520,7 +520,7 @@ fun ResultadoVelocidadeScreen(
                     )
                     Spacer(Modifier.width(LkSpacing.xs))
                     Text(
-                        text = "Ver detalhes técnicos",
+                        text = "Ver detalhes da conexão",
                         style = MaterialTheme.typography.bodyMedium,
                         color = c.textSecondary,
                     )
@@ -542,7 +542,7 @@ fun ResultadoVelocidadeScreen(
                     )
                     Spacer(Modifier.width(LkSpacing.sm))
                     Text(
-                        text = "Testar novamente",
+                        text = "Refazer o teste",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = c.textPrimary,
@@ -553,7 +553,7 @@ fun ResultadoVelocidadeScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        text = "Ir para o início",
+                        text = "Voltar ao início",
                         style = MaterialTheme.typography.bodyMedium,
                         color = c.textSecondary,
                     )
@@ -576,15 +576,15 @@ private fun ChipTipoRede(
             when {
                 connectionType == null -> null
                 connectionType.equals("wifi", ignoreCase = true) ->
-                    "Teste realizado via Wi-Fi" to Icons.Rounded.Wifi
+                    "Teste feito pelo Wi-Fi" to Icons.Rounded.Wifi
                 connectionType.equals("movel", ignoreCase = true) -> {
                     val tecLabel =
                         when {
-                            tecnologia == null -> "Teste realizado via rede móvel"
-                            tecnologia.contains("5G", ignoreCase = true) -> "Teste realizado via 5G"
+                            tecnologia == null -> "Teste feito pela rede móvel"
+                            tecnologia.contains("5G", ignoreCase = true) -> "Teste feito pelo 5G"
                             tecnologia.contains("4G", ignoreCase = true) ||
-                                tecnologia.contains("LTE", ignoreCase = true) -> "Teste realizado via 4G"
-                            else -> "Teste realizado via rede móvel"
+                                tecnologia.contains("LTE", ignoreCase = true) -> "Teste feito pelo 4G"
+                            else -> "Teste feito pela rede móvel"
                         }
                     tecLabel to Icons.Rounded.CellTower
                 }
