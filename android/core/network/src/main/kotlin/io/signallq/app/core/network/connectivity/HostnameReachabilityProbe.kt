@@ -4,6 +4,7 @@ import io.signallq.app.core.network.contracts.connectivity.ProbeFailureReason
 import io.signallq.app.core.network.contracts.connectivity.ProbeResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.URL
@@ -91,13 +92,27 @@ class HostnameReachabilityProbe(
             } catch (_: TimeoutException) {
                 houveTimeout = true
             } catch (e: ExecutionException) {
-                when (e.cause) {
+                when (val causa = e.cause) {
                     is SecurityException -> return@runInterruptible HostnameProbeOutcome(
                         ProbeResult.Unavailable("sem permissao para HTTP na rede sob analise"),
                         captivePortalSuspeito = false,
                     )
                     is SocketTimeoutException -> houveTimeout = true
-                    // outro IOException -- host/endpoint indisponivel, tenta o proximo
+                    is IOException -> Unit // outro IOException -- host/endpoint indisponivel, tenta o proximo
+                    else -> {
+                        // GH#1512 (4a revisao, achado de revisao) -- uma excecao de
+                        // PROGRAMACAO (nao uma falha de rede real -- ex.: ClassCastException
+                        // se o binding devolver uma URLConnection nao-HTTP) nao pode virar
+                        // silenciosamente evidencia de "host inalcancavel": somada a uma
+                        // falha real do IP externo, isso produziria EXTERNAL_ROUTE_FAILURE
+                        // por causa de um bug, nao por ausencia de internet. Retorna
+                        // Unavailable de forma honesta em vez de contar como tentativa
+                        // fracassada.
+                        return@runInterruptible HostnameProbeOutcome(
+                            ProbeResult.Unavailable("erro inesperado na sondagem de hostname: ${causa?.javaClass?.simpleName}"),
+                            captivePortalSuspeito = false,
+                        )
+                    }
                 }
             } catch (_: InterruptedException) {
                 // Cancelamento/timeout do motor -- retorna imediatamente (ver KDoc

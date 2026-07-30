@@ -98,6 +98,23 @@ class ConnectivityBlockingPolicyTest {
     }
 
     @Test
+    fun `gateway unreachable com confianca alta e capacidade de internet do android ausente tambem bloqueia`() {
+        // GH#1512 (4a revisao, achado de revisao) -- getNetworkCapabilities() devolvendo
+        // null (rede sumiu no meio da checagem) zera os DOIS flags do Android
+        // (androidInternetCapability=false, androidValidated=false). Isso e "nenhum sinal
+        // do Android", nao "Android discordando" -- a condicao anterior (que exigia
+        // androidInternetCapability=true) excluia esse caso por engano.
+        assertTrue(
+            diagnostico(
+                ConnectivityStatus.GATEWAY_UNREACHABLE,
+                confidence = NivelConfianca.ALTA,
+                androidInternetCapability = false,
+                androidValidated = false,
+            ).indicaAusenciaDeInternetParaBloquearSpeedtest(),
+        )
+    }
+
+    @Test
     fun `gateway unreachable com confianca media nao bloqueia mesmo com corroboracao`() {
         assertFalse(
             diagnostico(

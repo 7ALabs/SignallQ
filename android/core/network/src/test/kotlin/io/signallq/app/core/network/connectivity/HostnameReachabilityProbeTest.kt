@@ -1,6 +1,9 @@
 package io.signallq.app.core.network.connectivity
 
 import io.signallq.app.core.network.contracts.connectivity.ProbeResult
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -54,6 +57,28 @@ class HostnameReachabilityProbeTest {
         assertTrue("esperava Timeout, obteve ${resultado.result}", resultado.result is ProbeResult.Timeout)
         assertTrue(
             "sondagem deveria retornar perto do prazo por tentativa (3x timeoutMs), levou ${duracaoMs}ms",
+            duracaoMs < 3_000,
+        )
+    }
+
+    // GH#1512 (4a revisao, achado de revisao) -- o retorno imediato no catch
+    // (InterruptedException) nao tinha nenhum teste dedicado provando o cancelamento.
+    @Test(timeout = 6_000L)
+    fun `cancelamento durante o connect nao acumula custo da proxima url`() = runBlocking {
+        val probe = HostnameReachabilityProbe(
+            binding = BindingComConnectTravado(),
+            timeoutMs = 2_000,
+            urls = listOf("https://exemplo1.invalido/generate_204", "https://exemplo2.invalido/generate_204"),
+        )
+
+        val inicio = System.currentTimeMillis()
+        val job = launch { probe.probe() }
+        delay(200)
+        job.cancelAndJoin()
+        val duracaoMs = System.currentTimeMillis() - inicio
+
+        assertTrue(
+            "cancelamento nao deveria custar o prazo da proxima URL, levou ${duracaoMs}ms",
             duracaoMs < 3_000,
         )
     }

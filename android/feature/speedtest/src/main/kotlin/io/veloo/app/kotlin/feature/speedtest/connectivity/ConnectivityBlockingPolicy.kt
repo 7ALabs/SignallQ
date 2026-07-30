@@ -17,10 +17,19 @@ import io.signallq.app.core.network.contracts.topologia.NivelConfianca
  * silenciando o app numa fatia real dos casos "Wi-Fi sem internet" (o motor curto-circuita
  * DNS/rota externa após falha do gateway, então esse é o ÚNICO sinal disponível ali). Por
  * isso: exige confiança ALTA para os estados de evidência mais fraca, e para
- * `GATEWAY_UNREACHABLE` exige também que o próprio Android corrobore
- * (`androidInternetCapability` mas `!androidValidated`) -- dois sinais independentes
- * concordando, não um proxy TCP isolado que um roteador legitimamente saudável pode falhar
- * (ex.: sem admin em 53/80/443).
+ * `GATEWAY_UNREACHABLE` exige também que o próprio Android corrobore (`!androidValidated`)
+ * -- dois sinais independentes concordando, não um proxy TCP isolado que um roteador
+ * legitimamente saudável pode falhar (ex.: sem admin em 53/80/443).
+ *
+ * Correção (4ª revisão, achado de revisão): a condição original exigia também
+ * `androidInternetCapability == true`, o que excluía o caso real de
+ * `getNetworkCapabilities()` devolver `null` (rede desapareceu no meio da checagem --
+ * [io.signallq.app.core.network.connectivity.ConnectivityDiagnosisRunner] zera os dois
+ * flags nesse caso). Isso não é "Android discordando" -- é "nenhum sinal do Android", e
+ * ficava de fora da corroboração por engano, criando exatamente o mesmo buraco de
+ * silêncio que esta política existe para fechar. `!androidValidated` sozinho já basta:
+ * significa que o Android não confirmou internet funcional nesta rede, com ou sem a
+ * capability declarada.
  */
 fun ConnectivityDiagnosis.indicaAusenciaDeInternetParaBloquearSpeedtest(): Boolean = when (status) {
     ConnectivityStatus.WIFI_WITHOUT_INTERNET,
@@ -32,7 +41,7 @@ fun ConnectivityDiagnosis.indicaAusenciaDeInternetParaBloquearSpeedtest(): Boole
     -> confidence == NivelConfianca.ALTA
 
     ConnectivityStatus.GATEWAY_UNREACHABLE,
-    -> confidence == NivelConfianca.ALTA && androidInternetCapability && !androidValidated
+    -> confidence == NivelConfianca.ALTA && !androidValidated
 
     ConnectivityStatus.INTERNET_AVAILABLE,
     ConnectivityStatus.PARTIAL_CONNECTIVITY,

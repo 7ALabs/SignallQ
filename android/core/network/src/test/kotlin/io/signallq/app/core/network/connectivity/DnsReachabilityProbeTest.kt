@@ -1,6 +1,9 @@
 package io.signallq.app.core.network.connectivity
 
 import io.signallq.app.core.network.contracts.connectivity.ProbeResult
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -49,6 +52,27 @@ class DnsReachabilityProbeTest {
         assertTrue("esperava Timeout, obteve $resultado", resultado is ProbeResult.Timeout)
         assertTrue(
             "sondagem deveria retornar perto do timeoutMs configurado, levou ${duracaoMs}ms",
+            duracaoMs < 2_000,
+        )
+    }
+
+    // GH#1512 (4a revisao, achado de revisao) -- a correcao do catch (InterruptedException)
+    // (retornar imediatamente em vez de continuar o loop) nao tinha nenhum teste dedicado.
+    @Test(timeout = 6_000L)
+    fun `cancelamento durante a resolucao nao acumula custo do proximo hostname`() = runBlocking {
+        val probe = DnsReachabilityProbe(binding = BindingQueNuncaResolve, timeoutMs = 5_000L)
+
+        val inicio = System.currentTimeMillis()
+        val job = launch { probe.probe(listOf("host1.invalido", "host2.invalido")) }
+        delay(200)
+        job.cancelAndJoin()
+        val duracaoMs = System.currentTimeMillis() - inicio
+
+        // Sem a correcao, cancelar durante a resolucao do 1o hostname ainda custaria mais
+        // 5_000ms inteiros esperando (em vao) o 2o hostname antes de reconhecer o
+        // cancelamento -- aqui deve retornar logo apos o cancelamento, bem abaixo disso.
+        assertTrue(
+            "cancelamento nao deveria custar o timeout de um segundo hostname, levou ${duracaoMs}ms",
             duracaoMs < 2_000,
         )
     }
