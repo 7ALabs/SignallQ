@@ -94,8 +94,11 @@ object ProSpeedtestCompatModule {
      *  no construtor, então o Pro precisa satisfazer esse binding pelo mesmo motivo de
      *  [provideExecutorSpeedtest] acima. Não usa a implementação real
      *  (`ConnectivityDiagnosisRepositoryImpl`, que depende de `ConnectivityDiagnosisHistoryDao`
-     *  -- Room do Consumer, `:coreDatabase`, fora do classpath do Pro por design): o Pro
-     *  nunca chama este repositório de verdade. */
+     *  -- Room do Consumer, `:coreDatabase`, fora do classpath do Pro por design). Correção
+     *  (achado de revisão): `existeRedeWifiAtiva()` deste NoOp É chamado de verdade a cada
+     *  execução de Speedtest do Pro (via `SpeedtestViewModel.interromperPorWifiSemInternet`)
+     *  -- só não quebra porque devolve `false` incondicionalmente, então o gate nunca chega
+     *  a chamar `diagnosticar()` (que aí sim seria um erro de verdade se fosse alcançado). */
     @Provides
     fun provideConnectivityDiagnosisRepository(): ConnectivityDiagnosisRepository = NoOpConnectivityDiagnosisRepositoryPro
 }
@@ -127,12 +130,13 @@ private object NoOpAnalyticsTrackerPro : AnalyticsTracker {
     override fun registrarFeatureBloqueadaRemota(featureId: String) = Unit
 }
 
-/** GH#1512 -- ver kdoc de `provideConnectivityDiagnosisRepository` acima: só satisfaz o
- *  grafo agregado do Hilt, nunca é chamado de verdade pelo Pro. */
+/** GH#1512 -- ver kdoc de `provideConnectivityDiagnosisRepository` acima: [existeRedeWifiAtiva]
+ *  É chamado de verdade a cada Speedtest do Pro; devolve `false` sempre, então [diagnosticar]
+ *  nunca é alcançado de verdade (só satisfaz o grafo agregado do Hilt). */
 private object NoOpConnectivityDiagnosisRepositoryPro : ConnectivityDiagnosisRepository {
     override val ultimoDiagnostico: StateFlow<ConnectivityDiagnosis?> = MutableStateFlow(null)
 
-    override fun existeRedeWifiAtiva(): Boolean = false
+    override suspend fun existeRedeWifiAtiva(): Boolean = false
 
     override suspend fun diagnosticar(): ConnectivityDiagnosis {
         error("ConnectivityDiagnosisRepository nao e usado pelo Pro -- so satisfaz o grafo Hilt agregado (GH#1512)")

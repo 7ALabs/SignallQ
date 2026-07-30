@@ -4,40 +4,64 @@ import io.signallq.app.core.network.contracts.connectivity.ProbeFailureReason
 import io.signallq.app.core.network.contracts.connectivity.ProbeResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
-import java.net.UnknownHostException
+import java.net.InetAddress
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /**
  * Testa resolução DNS pela rede sob análise (via [binding], nunca pelo resolver padrão
  * do sistema). Mais de um hostname tentado — não decide "sem internet" por uma única
  * falha de resolução.
  *
- * `Network.getAllByName` (por trás de [binding]) não tem parâmetro de timeout — é a
- * única sondagem sem nenhum limite nativo próprio. `runInterruptible` é o que garante um
- * teto real de tempo aqui: sem ele, o timeout do motor (`withTimeoutOrNull`) não teria
- * efeito nenhum sobre uma chamada bloqueante sem pontos de suspensão (GH#1512, achado de
- * revisão) -- a resolução seguiria rodando (numa thread do dispatcher) até o resolver do
- * Android desistir por conta própria, prazo que não é controlado por este código.
+ * `Network.getAllByName` (por trás de [binding]) não tem parâmetro de timeout e não
+ * responde a `Thread.interrupt()` -- é resolução nativa bloqueante via netd, então
+ * `runInterruptible` sozinho NÃO impõe teto nenhum aqui (GH#1512, achado de revisão: o
+ * timeout do motor não tinha efeito real sobre esta sondagem -- exatamente o caminho sem
+ * limite algum no cenário central da issue, WAN caída com DNS travando). A resolução roda
+ * numa thread dedicada e o resultado é aguardado com um prazo real via
+ * [java.util.concurrent.Future.get] -- se estourar, devolve Timeout sem esperar a thread
+ * terminar; a resolução órfã pode seguir rodando em segundo plano e seu resultado é
+ * descartado quando/se chegar (não há como cancelar uma chamada nativa de DNS com
+ * segurança).
  */
 class DnsReachabilityProbe(
     private val binding: ConnectivityProbeBinding,
+    private val timeoutMs: Long = TIMEOUT_MS_DEFAULT,
 ) : DnsProbe {
 
+    companion object {
+        private const val TIMEOUT_MS_DEFAULT = 1500L
+        private val executor = Executors.newCachedThreadPool { runnable ->
+            Thread(runnable, "connectivity-dns-probe").apply { isDaemon = true }
+        }
+    }
+
     override suspend fun probe(hostnames: List<String>): ProbeResult = runInterruptible(Dispatchers.IO) {
+        var houveTimeout = false
         for (hostname in hostnames) {
+            val inicio = System.currentTimeMillis()
+            val future = executor.submit<Array<InetAddress>> { binding.resolveHost(hostname) }
             try {
-                val inicio = System.currentTimeMillis()
-                val enderecos = binding.resolveHost(hostname)
+                val enderecos = future.get(timeoutMs, TimeUnit.MILLISECONDS)
                 if (enderecos.isNotEmpty()) {
                     return@runInterruptible ProbeResult.Success(System.currentTimeMillis() - inicio)
                 }
-            } catch (_: UnknownHostException) {
-                // tenta o proximo hostname, a menos que a interrupcao (cancelamento/timeout
-                // do motor) tenha disparado esta excecao
-                if (Thread.currentThread().isInterrupted) return@runInterruptible ProbeResult.Timeout(0)
-            } catch (_: SecurityException) {
-                return@runInterruptible ProbeResult.Unavailable("sem permissao para resolver DNS na rede sob analise")
+            } catch (_: TimeoutException) {
+                houveTimeout = true
+            } catch (e: ExecutionException) {
+                if (e.cause is SecurityException) {
+                    return@runInterruptible ProbeResult.Unavailable("sem permissao para resolver DNS na rede sob analise")
+                }
+                // UnknownHostException (ou outra falha de resolucao) -- tenta o proximo hostname.
+            } catch (_: InterruptedException) {
+                // Cancelamento/timeout do motor: o proprio runInterruptible garante o
+                // cancelamento real na retomada da corrotina, independente do valor
+                // devolvido aqui -- trata como as demais sondagens tratam interrupcao.
+                houveTimeout = true
             }
         }
-        ProbeResult.Failure(ProbeFailureReason.DNS_RESOLUTION_FAILED)
+        if (houveTimeout) ProbeResult.Timeout(timeoutMs) else ProbeResult.Failure(ProbeFailureReason.DNS_RESOLUTION_FAILED)
     }
 }

@@ -28,13 +28,16 @@ class GatewayReachabilityProbe(
     }
 
     /**
-     * `runInterruptible` (não `withContext` puro) é obrigatório aqui: uma coroutine
-     * cancelada (por [kotlinx.coroutines.withTimeoutOrNull] ou cancelamento externo) só
-     * interrompe uma chamada bloqueante de verdade se a thread for interrompida
-     * (`Thread.interrupt()`) -- `Socket.connect` honra isso lançando
-     * `InterruptedIOException` (subtipo de [IOException], já tratado abaixo). Sem isso, o
-     * timeout do motor não teria efeito nenhum sobre esta sondagem (GH#1512, achado de
-     * revisão).
+     * O teto real de tempo desta sondagem vem do [timeoutMs] passado explicitamente a
+     * `Socket.connect(SocketAddress, timeout)` -- é o próprio JDK que impõe esse limite via
+     * `SO_TIMEOUT` nativo, lançando [SocketTimeoutException] (já tratado abaixo), e isso
+     * vale mesmo sem `runInterruptible`. `runInterruptible` aqui cumpre um papel diferente
+     * e mais estreito: responder a cancelamento/timeout GLOBAL do motor
+     * ([kotlinx.coroutines.withTimeoutOrNull]) enquanto uma tentativa individual ainda está
+     * dentro do seu [timeoutMs] -- sem ele, uma coroutine cancelada não interromperia essa
+     * chamada bloqueante em andamento (GH#1512, achado de revisão). Isso é diferente da
+     * sondagem de DNS ([DnsReachabilityProbe]), que não tem nenhum teto nativo próprio e
+     * por isso precisa de um mecanismo adicional de prazo real.
      */
     override suspend fun probe(gatewayIp: String): ProbeResult = runInterruptible(Dispatchers.IO) {
         var houveTimeout = false

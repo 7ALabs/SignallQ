@@ -94,7 +94,7 @@ class ConnectivityDiagnosisRepositoryTest {
         val dao = FakeConnectivityDiagnosisHistoryDao()
         var chamadas = 0
         val runner = object : ConnectivityDiagnosisSource {
-            override fun existeRedeWifiAtiva(): Boolean = true
+            override suspend fun existeRedeWifiAtiva(): Boolean = true
             override suspend fun diagnosticar(): ConnectivityDiagnosis {
                 chamadas++
                 return if (chamadas == 1) {

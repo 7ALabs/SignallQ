@@ -6,6 +6,8 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import io.signallq.app.core.network.contracts.connectivity.ConnectivityDiagnosis
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Fonte de diagnóstico de conectividade -- abstrai [ConnectivityDiagnosisRunner] (a única
@@ -15,13 +17,15 @@ import io.signallq.app.core.network.contracts.connectivity.ConnectivityDiagnosis
  */
 interface ConnectivityDiagnosisSource {
     /**
-     * Checagem síncrona e direta (via [ConnectivityManager.getAllNetworks], nunca
+     * Checagem direta (via [ConnectivityManager.getAllNetworks], nunca
      * `activeNetwork`/`MonitorRede`) de que existe uma rede Wi-Fi neste exato momento --
      * independente de qual rede o Android escolheu como *default* do processo. Usada como
-     * gate barato antes de [diagnosticar] (que sempre faz sondagem ativa real, nunca confia
-     * isoladamente em `NET_CAPABILITY_VALIDATED` -- GH#1512, regra obrigatória).
+     * gate antes de [diagnosticar] (que sempre faz sondagem ativa real, nunca confia
+     * isoladamente em `NET_CAPABILITY_VALIDATED` -- GH#1512, regra obrigatória). `suspend`
+     * porque, apesar de não fazer sondagem de rede, é IPC de binder com o `system_server`
+     * (GH#1512, achado de revisão) -- não deve rodar na main thread do chamador.
      */
-    fun existeRedeWifiAtiva(): Boolean
+    suspend fun existeRedeWifiAtiva(): Boolean
 
     suspend fun diagnosticar(): ConnectivityDiagnosis
 }
@@ -57,7 +61,9 @@ class ConnectivityDiagnosisRunner(
         applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
     @SuppressLint("MissingPermission")
-    override fun existeRedeWifiAtiva(): Boolean = capturarRedeWifi() != null
+    override suspend fun existeRedeWifiAtiva(): Boolean = withContext(Dispatchers.IO) {
+        capturarRedeWifi() != null
+    }
 
     @SuppressLint("MissingPermission")
     override suspend fun diagnosticar(): ConnectivityDiagnosis {

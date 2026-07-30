@@ -138,10 +138,11 @@ class SpeedtestViewModel
             }
             _speedtestPendenteModoMovel.value = null
             viewModelScope.launch {
-                if (interromperPorWifiSemInternet()) {
-                    execucaoEmAndamento.set(false)
-                    return@launch
-                }
+                // GH#1512 -- NAO roda o gate de Wi-Fi aqui: o usuario acabou de confirmar
+                // explicitamente que quer testar usando dados moveis (dialog de rede
+                // medida). Rodar o mesmo diagnostico de Wi-Fi neste ponto poderia bloquear
+                // um teste que o usuario ja optou por rodar por outra via, com uma
+                // mensagem que contradiz a escolha que ele acabou de fazer.
                 try {
                     executarSpeedtest(modo)
                 } catch (t: Throwable) {
@@ -199,21 +200,44 @@ class SpeedtestViewModel
          * diálogo já existente (`ForaDoWifiDialog`) cobre rede móvel pura.
          */
         private suspend fun interromperPorWifiSemInternet(): Boolean {
-            if (!connectivityDiagnosisRepository.existeRedeWifiAtiva()) return false
-
-            // GH#1512 (achado de revisao) -- uma excecao inesperada aqui (I/O de
-            // persistencia, etc.) nunca pode propagar como crash: degrada para uma
-            // conclusao INCONCLUSIVE honesta em vez de derrubar o app.
+            // GH#1512 (achado de revisao) -- existeRedeWifiAtiva() e diagnosticar() ficam
+            // no MESMO try/catch: uma excecao inesperada em qualquer uma delas (binder
+            // IPC do ConnectivityManager, I/O de persistencia, etc.) nunca pode propagar
+            // como crash nem travar execucaoEmAndamento -- so nao bloqueia o teste
+            // (equivalente a "sem evidencia suficiente", igual a INCONCLUSIVE logo
+            // abaixo), deixando o Speedtest seguir seu proprio caminho normal de erro.
             val diagnostico =
                 try {
+                    if (!connectivityDiagnosisRepository.existeRedeWifiAtiva()) return false
                     connectivityDiagnosisRepository.diagnosticar()
                 } catch (t: Throwable) {
                     if (t is CancellationException) throw t
-                    Timber.e(t, "$LOG_TAG: diagnostico de conectividade falhou inesperadamente")
-                    _diagnosticoConectividade.value = ConnectivityDiagnosisPresenter.apresentarInconclusivo()
-                    return true
+                    Timber.e(t, "$LOG_TAG: diagnostico de conectividade falhou inesperadamente -- nao bloqueia o speedtest")
+                    return false
                 }
-            if (diagnostico.status == ConnectivityStatus.INTERNET_AVAILABLE) return false
+
+            // GH#1512 (achado de revisao) -- so interrompe em estados que sao evidencia
+            // conclusiva de ausencia de internet. GATEWAY_UNREACHABLE/PARTIAL_CONNECTIVITY/
+            // INCONCLUSIVE sao evidencia fraca ou ambigua demais para negar a funcao
+            // principal do app numa rede que pode estar perfeitamente saudavel (ex.: um
+            // roteador que nao aceita a sondagem TCP em 53/80/443 mas tem internet
+            // funcionando normalmente para o restante do trafego).
+            val semInternetConfirmado =
+                when (diagnostico.status) {
+                    ConnectivityStatus.WIFI_WITHOUT_INTERNET,
+                    ConnectivityStatus.DNS_FAILURE,
+                    ConnectivityStatus.EXTERNAL_ROUTE_FAILURE,
+                    ConnectivityStatus.CAPTIVE_PORTAL,
+                    -> true
+
+                    ConnectivityStatus.INTERNET_AVAILABLE,
+                    ConnectivityStatus.GATEWAY_UNREACHABLE,
+                    ConnectivityStatus.PARTIAL_CONNECTIVITY,
+                    ConnectivityStatus.INCONCLUSIVE,
+                    ConnectivityStatus.WIFI_DISCONNECTED,
+                    -> false
+                }
+            if (!semInternetConfirmado) return false
 
             _diagnosticoConectividade.value = ConnectivityDiagnosisPresenter.apresentar(diagnostico)
             Timber.i("$LOG_TAG: speedtest interrompido -- wifi sem internet, status=${diagnostico.status}")
