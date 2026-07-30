@@ -103,14 +103,22 @@ object ConnectivityDiagnosisPresenter {
             acoes = listOf(ConnectivityAction.RECONECTAR_WIFI),
         )
 
-        ConnectivityStatus.INCONCLUSIVE -> ConnectivityDiagnosisMensagem(
-            titulo = "Diagnóstico inconclusivo",
-            mensagem = "Confirmamos que esta rede está sem acesso normal à internet, mas não foi " +
-                "possível identificar a causa com segurança.",
-            acoes = listOf(
-                ConnectivityAction.TESTAR_OUTRO_APARELHO,
-                ConnectivityAction.REINICIAR_EQUIPAMENTO,
-            ),
-        )
+        ConnectivityStatus.INCONCLUSIVE -> apresentarInconclusivo()
     }
+
+    /**
+     * Fallback honesto quando o diagnóstico em si falha inesperadamente (ex.: erro de I/O
+     * ao persistir, exceção não prevista numa sondagem) — GH#1512, achado de revisão:
+     * nunca deixar uma exceção do novo caminho de diagnóstico propagar como crash do app;
+     * degrada para a mesma conclusão honesta de [ConnectivityStatus.INCONCLUSIVE].
+     */
+    fun apresentarInconclusivo(): ConnectivityDiagnosisMensagem = ConnectivityDiagnosisMensagem(
+        titulo = "Diagnóstico inconclusivo",
+        mensagem = "Confirmamos que esta rede está sem acesso normal à internet, mas não foi " +
+            "possível identificar a causa com segurança.",
+        acoes = listOf(
+            ConnectivityAction.TESTAR_OUTRO_APARELHO,
+            ConnectivityAction.REINICIAR_EQUIPAMENTO,
+        ),
+    )
 }

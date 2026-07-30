@@ -20,6 +20,13 @@ import java.util.concurrent.atomic.AtomicInteger
 interface ConnectivityDiagnosisRepository {
     val ultimoDiagnostico: StateFlow<ConnectivityDiagnosis?>
 
+    /** Checagem síncrona e barata (sem I/O) de que existe uma rede Wi-Fi neste momento --
+     *  ver [ConnectivityDiagnosisSource.existeRedeWifiAtiva]. Quem consome este repositório
+     *  deve chamar isto ANTES de [diagnosticar] para decidir se vale a pena interromper um
+     *  fluxo que depende de internet -- nunca usar `MonitorRede`/rede default para essa
+     *  decisão, que pode já ter migrado para dados móveis (GH#1512). */
+    fun existeRedeWifiAtiva(): Boolean
+
     /** Executa o diagnóstico local e persiste o resultado. Descarta a publicação se uma
      *  chamada mais recente já tiver concluído primeiro (rede pode ter mudado no meio). */
     suspend fun diagnosticar(): ConnectivityDiagnosis
@@ -32,6 +39,8 @@ class ConnectivityDiagnosisRepositoryImpl(
 
     private val mutableUltimoDiagnostico = MutableStateFlow<ConnectivityDiagnosis?>(null)
     override val ultimoDiagnostico: StateFlow<ConnectivityDiagnosis?> = mutableUltimoDiagnostico.asStateFlow()
+
+    override fun existeRedeWifiAtiva(): Boolean = runner.existeRedeWifiAtiva()
 
     /** Geração monotônica -- garante que um diagnóstico antigo que termine depois de um
      *  mais novo (ex.: usuário trocou de rede no meio da sondagem) nunca sobrescreve o

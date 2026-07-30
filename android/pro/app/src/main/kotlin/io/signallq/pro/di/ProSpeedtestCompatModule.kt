@@ -132,6 +132,8 @@ private object NoOpAnalyticsTrackerPro : AnalyticsTracker {
 private object NoOpConnectivityDiagnosisRepositoryPro : ConnectivityDiagnosisRepository {
     override val ultimoDiagnostico: StateFlow<ConnectivityDiagnosis?> = MutableStateFlow(null)
 
+    override fun existeRedeWifiAtiva(): Boolean = false
+
     override suspend fun diagnosticar(): ConnectivityDiagnosis {
         error("ConnectivityDiagnosisRepository nao e usado pelo Pro -- so satisfaz o grafo Hilt agregado (GH#1512)")
     }

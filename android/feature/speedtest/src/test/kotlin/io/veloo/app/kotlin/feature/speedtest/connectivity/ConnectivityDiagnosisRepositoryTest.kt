@@ -93,12 +93,15 @@ class ConnectivityDiagnosisRepositoryTest {
     fun `resultado de diagnostico antigo e descartado apos diagnostico mais novo concluir primeiro`() = runTest {
         val dao = FakeConnectivityDiagnosisHistoryDao()
         var chamadas = 0
-        val runner = ConnectivityDiagnosisSource {
-            chamadas++
-            if (chamadas == 1) {
-                diagnostico(status = ConnectivityStatus.GATEWAY_UNREACHABLE)
-            } else {
-                diagnostico(status = ConnectivityStatus.INTERNET_AVAILABLE)
+        val runner = object : ConnectivityDiagnosisSource {
+            override fun existeRedeWifiAtiva(): Boolean = true
+            override suspend fun diagnosticar(): ConnectivityDiagnosis {
+                chamadas++
+                return if (chamadas == 1) {
+                    diagnostico(status = ConnectivityStatus.GATEWAY_UNREACHABLE)
+                } else {
+                    diagnostico(status = ConnectivityStatus.INTERNET_AVAILABLE)
+                }
             }
         }
         val repository = ConnectivityDiagnosisRepositoryImpl(runner, dao)

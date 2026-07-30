@@ -20,6 +20,12 @@ data class ConnectivityProbeOutcome(
     val androidInternetCapability: Boolean,
     val androidValidated: Boolean,
     val captivePortalDetected: Boolean,
+    /** `true` quando o teto de segurança global do motor estourou antes de uma etapa
+     *  concluir (ver [ConnectivityDiagnosisEngine]) -- distingue um [ProbeResult.Timeout]
+     *  que a sondagem realmente sofreu de um [ProbeResult.Timeout] que é só o rótulo dado a
+     *  uma etapa nunca alcançada. Etapa nunca alcançada nunca deve virar evidência de
+     *  confiança ALTA (GH#1512, achado de revisão). */
+    val globalTimeoutExceeded: Boolean = false,
 )
 
 data class ConnectivityStatusResolution(
@@ -52,6 +58,10 @@ object ConnectivityStatusResolver {
         if (!outcome.gatewayConfigured || !gatewaySucesso) {
             val confianca = when {
                 !outcome.gatewayConfigured -> NivelConfianca.MEDIA
+                // Timeout causado pelo teto global (etapa nunca terminou de rodar) e uma
+                // evidencia fraca, mesmo que o tipo seja Timeout -- so vira ALTA quando a
+                // propria sondagem estourou seu timeout individual de verdade.
+                outcome.gatewayReachable is ProbeResult.Timeout && outcome.globalTimeoutExceeded -> NivelConfianca.BAIXA
                 outcome.gatewayReachable is ProbeResult.Failure || outcome.gatewayReachable is ProbeResult.Timeout -> NivelConfianca.ALTA
                 else -> NivelConfianca.BAIXA // NotExecuted/Unavailable — evidencia fraca
             }
@@ -62,6 +72,7 @@ object ConnectivityStatusResolver {
         if (!outcome.dnsConfigured || !dnsSucesso) {
             val confianca = when {
                 !outcome.dnsConfigured -> NivelConfianca.MEDIA
+                outcome.dnsReachable is ProbeResult.Timeout && outcome.globalTimeoutExceeded -> NivelConfianca.BAIXA
                 outcome.dnsReachable is ProbeResult.Failure || outcome.dnsReachable is ProbeResult.Timeout -> NivelConfianca.ALTA
                 else -> NivelConfianca.BAIXA
             }

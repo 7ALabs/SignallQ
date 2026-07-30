@@ -13,7 +13,16 @@ import io.signallq.app.core.network.contracts.connectivity.ConnectivityDiagnosis
  * o diagnóstico (ex.: [io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisRepositoryImpl])
  * sem precisar de Robolectric/Context real em teste JVM puro.
  */
-fun interface ConnectivityDiagnosisSource {
+interface ConnectivityDiagnosisSource {
+    /**
+     * Checagem síncrona e direta (via [ConnectivityManager.getAllNetworks], nunca
+     * `activeNetwork`/`MonitorRede`) de que existe uma rede Wi-Fi neste exato momento --
+     * independente de qual rede o Android escolheu como *default* do processo. Usada como
+     * gate barato antes de [diagnosticar] (que sempre faz sondagem ativa real, nunca confia
+     * isoladamente em `NET_CAPABILITY_VALIDATED` -- GH#1512, regra obrigatória).
+     */
+    fun existeRedeWifiAtiva(): Boolean
+
     suspend fun diagnosticar(): ConnectivityDiagnosis
 }
 
@@ -46,6 +55,9 @@ class ConnectivityDiagnosisRunner(
     private val applicationContext = context.applicationContext
     private val connectivityManager =
         applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+    @SuppressLint("MissingPermission")
+    override fun existeRedeWifiAtiva(): Boolean = capturarRedeWifi() != null
 
     @SuppressLint("MissingPermission")
     override suspend fun diagnosticar(): ConnectivityDiagnosis {

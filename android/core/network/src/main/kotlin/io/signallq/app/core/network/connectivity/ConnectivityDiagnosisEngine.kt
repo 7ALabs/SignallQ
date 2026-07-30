@@ -125,6 +125,7 @@ class ConnectivityDiagnosisEngine(
             captivePortalSuspeito = captivePortalSuspeito,
             evidencias = evidencias,
             iniciadoEm = iniciadoEm,
+            globalTimeoutExceeded = concluiuDentroDoPrazo == null,
         )
     }
 
@@ -137,6 +138,7 @@ class ConnectivityDiagnosisEngine(
         captivePortalSuspeito: Boolean,
         evidencias: List<ConnectivityEvidence>,
         iniciadoEm: Long,
+        globalTimeoutExceeded: Boolean = false,
     ): ConnectivityDiagnosis {
         val captivePortalDetectado = context.androidCaptivePortalCapability || captivePortalSuspeito
         val outcome = ConnectivityProbeOutcome(
@@ -150,6 +152,7 @@ class ConnectivityDiagnosisEngine(
             androidInternetCapability = context.androidInternetCapability,
             androidValidated = context.androidValidated,
             captivePortalDetected = captivePortalDetectado,
+            globalTimeoutExceeded = globalTimeoutExceeded,
         )
         val resolucao = ConnectivityStatusResolver.resolve(outcome)
 

@@ -3,7 +3,7 @@ package io.signallq.app.core.network.connectivity
 import io.signallq.app.core.network.contracts.connectivity.ProbeFailureReason
 import io.signallq.app.core.network.contracts.connectivity.ProbeResult
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runInterruptible
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -27,7 +27,16 @@ class GatewayReachabilityProbe(
         private val PORTAS_PADRAO = listOf(53, 80, 443)
     }
 
-    override suspend fun probe(gatewayIp: String): ProbeResult = withContext(Dispatchers.IO) {
+    /**
+     * `runInterruptible` (não `withContext` puro) é obrigatório aqui: uma coroutine
+     * cancelada (por [kotlinx.coroutines.withTimeoutOrNull] ou cancelamento externo) só
+     * interrompe uma chamada bloqueante de verdade se a thread for interrompida
+     * (`Thread.interrupt()`) -- `Socket.connect` honra isso lançando
+     * `InterruptedIOException` (subtipo de [IOException], já tratado abaixo). Sem isso, o
+     * timeout do motor não teria efeito nenhum sobre esta sondagem (GH#1512, achado de
+     * revisão).
+     */
+    override suspend fun probe(gatewayIp: String): ProbeResult = runInterruptible(Dispatchers.IO) {
         var houveTimeout = false
         for (porta in portas) {
             try {
@@ -35,14 +44,16 @@ class GatewayReachabilityProbe(
                     binding.bindSocket(socket)
                     val inicio = System.currentTimeMillis()
                     socket.connect(InetSocketAddress(gatewayIp, porta), timeoutMs)
-                    return@withContext ProbeResult.Success(System.currentTimeMillis() - inicio)
+                    return@runInterruptible ProbeResult.Success(System.currentTimeMillis() - inicio)
                 }
             } catch (_: SocketTimeoutException) {
                 houveTimeout = true
             } catch (_: IOException) {
-                // porta fechada/recusada -- tenta a proxima
+                // porta fechada/recusada -- tenta a proxima, a menos que a interrupcao
+                // (cancelamento/timeout do motor) tenha disparado esta excecao
+                if (Thread.currentThread().isInterrupted) return@runInterruptible ProbeResult.Timeout(timeoutMs.toLong())
             } catch (_: SecurityException) {
-                return@withContext ProbeResult.Unavailable("sem permissao para socket na rede sob analise")
+                return@runInterruptible ProbeResult.Unavailable("sem permissao para socket na rede sob analise")
             }
         }
         if (houveTimeout) ProbeResult.Timeout(timeoutMs.toLong()) else ProbeResult.Failure(ProbeFailureReason.HOST_UNREACHABLE)

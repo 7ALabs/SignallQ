@@ -3,7 +3,7 @@ package io.signallq.app.core.network.connectivity
 import io.signallq.app.core.network.contracts.connectivity.ProbeFailureReason
 import io.signallq.app.core.network.contracts.connectivity.ProbeResult
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runInterruptible
 import java.io.IOException
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -30,7 +30,8 @@ class ExternalIpReachabilityProbe(
         private val ENDERECOS_PADRAO = listOf("1.1.1.1", "8.8.8.8", "9.9.9.9")
     }
 
-    override suspend fun probe(): ProbeResult = withContext(Dispatchers.IO) {
+    /** `runInterruptible`: ver KDoc equivalente em [GatewayReachabilityProbe.probe]. */
+    override suspend fun probe(): ProbeResult = runInterruptible(Dispatchers.IO) {
         var houveTimeout = false
         for (endereco in enderecos) {
             try {
@@ -39,14 +40,16 @@ class ExternalIpReachabilityProbe(
                     val alvo = InetSocketAddress(InetAddress.getByName(endereco), porta)
                     val inicio = System.currentTimeMillis()
                     socket.connect(alvo, timeoutMs)
-                    return@withContext ProbeResult.Success(System.currentTimeMillis() - inicio)
+                    return@runInterruptible ProbeResult.Success(System.currentTimeMillis() - inicio)
                 }
             } catch (_: SocketTimeoutException) {
                 houveTimeout = true
             } catch (_: IOException) {
-                // recusado/inalcancavel nesse IP -- tenta o proximo
+                // recusado/inalcancavel nesse IP -- tenta o proximo, a menos que a
+                // interrupcao (cancelamento/timeout do motor) tenha disparado esta excecao
+                if (Thread.currentThread().isInterrupted) return@runInterruptible ProbeResult.Timeout(timeoutMs.toLong())
             } catch (_: SecurityException) {
-                return@withContext ProbeResult.Unavailable("sem permissao para socket na rede sob analise")
+                return@runInterruptible ProbeResult.Unavailable("sem permissao para socket na rede sob analise")
             }
         }
         if (houveTimeout) ProbeResult.Timeout(timeoutMs.toLong()) else ProbeResult.Failure(ProbeFailureReason.HOST_UNREACHABLE)

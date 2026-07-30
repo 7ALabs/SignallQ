@@ -20,6 +20,7 @@ class ConnectivityStatusResolverTest {
         androidInternetCapability: Boolean = true,
         androidValidated: Boolean = true,
         captivePortalDetected: Boolean = false,
+        globalTimeoutExceeded: Boolean = false,
     ) = ConnectivityProbeOutcome(
         wifiConnected = wifiConnected,
         gatewayConfigured = gatewayConfigured,
@@ -31,6 +32,7 @@ class ConnectivityStatusResolverTest {
         androidInternetCapability = androidInternetCapability,
         androidValidated = androidValidated,
         captivePortalDetected = captivePortalDetected,
+        globalTimeoutExceeded = globalTimeoutExceeded,
     )
 
     @Test
@@ -159,27 +161,10 @@ class ConnectivityStatusResolverTest {
         assertEquals(NivelConfianca.ALTA, resultado.confidence)
     }
 
-    @Test
-    fun `wifi sem internet com dados moveis ativos nao muda a conclusao do wifi`() {
-        // mobileFallbackAvailable nao faz parte do ConnectivityProbeOutcome -- e um campo
-        // de evidencia paralela em ConnectivityDiagnosis, nunca entra na decisao de status.
-        // Este teste documenta essa garantia: a mesma evidencia de Wi-Fi sem internet produz
-        // o mesmo status independente de haver dados moveis disponiveis.
-        val semDadosMoveis = ConnectivityStatusResolver.resolve(
-            outcome(
-                externalIpReachable = ProbeResult.Failure(ProbeFailureReason.HOST_UNREACHABLE),
-                hostnameReachable = ProbeResult.Failure(ProbeFailureReason.HOST_UNREACHABLE),
-            ),
-        )
-        val comDadosMoveis = ConnectivityStatusResolver.resolve(
-            outcome(
-                externalIpReachable = ProbeResult.Failure(ProbeFailureReason.HOST_UNREACHABLE),
-                hostnameReachable = ProbeResult.Failure(ProbeFailureReason.HOST_UNREACHABLE),
-            ),
-        )
-        assertEquals(semDadosMoveis.status, comDadosMoveis.status)
-        assertEquals(ConnectivityStatus.EXTERNAL_ROUTE_FAILURE, comDadosMoveis.status)
-    }
+    // GH#1512 (achado de revisao) -- o teste "dados moveis nao mudam a conclusao do wifi"
+    // real (que de fato varia mobileFallbackAvailable e roda o motor completo, nao so o
+    // resolver puro, que nem recebe esse campo) vive em
+    // ConnectivityDiagnosisEngineTest."wifi sem internet com dados moveis ativos...".
 
     @Test
     fun `dns nao configurado e tratado como dns failure com confianca media`() {
@@ -193,6 +178,24 @@ class ConnectivityStatusResolverTest {
         )
         assertEquals(ConnectivityStatus.DNS_FAILURE, resultado.status)
         assertEquals(NivelConfianca.MEDIA, resultado.confidence)
+    }
+
+    @Test
+    fun `gateway com timeout por teto global e confianca baixa, nao alta`() {
+        // GH#1512 (achado de revisao) -- Timeout causado pelo teto global de seguranca
+        // (etapa nunca chegou a rodar) nao pode ter a mesma confianca de um Timeout que a
+        // propria sondagem sofreu de verdade.
+        val resultado = ConnectivityStatusResolver.resolve(
+            outcome(
+                gatewayReachable = ProbeResult.Timeout(8000),
+                dnsReachable = ProbeResult.NotExecuted("gateway nao confirmou"),
+                externalIpReachable = ProbeResult.NotExecuted("gateway nao confirmou"),
+                hostnameReachable = ProbeResult.NotExecuted("gateway nao confirmou"),
+                globalTimeoutExceeded = true,
+            ),
+        )
+        assertEquals(ConnectivityStatus.GATEWAY_UNREACHABLE, resultado.status)
+        assertEquals(NivelConfianca.BAIXA, resultado.confidence)
     }
 
     @Test

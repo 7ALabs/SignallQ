@@ -51,6 +51,29 @@ class ConnectivityDiagnosisEngineTest {
     )
 
     @Test
+    fun `wifi sem internet com dados moveis ativos produz o mesmo status independente do fallback`() = runTest {
+        // GH#1512 -- teste real (nao tautologico): mobileFallbackAvailable e o UNICO campo
+        // que varia entre as duas execucoes; o motor completo roda dos dois lados.
+        val engine = engineFeliz(
+            externalIpProbe = ExternalIpProbe { ProbeResult.Failure(io.signallq.app.core.network.contracts.connectivity.ProbeFailureReason.HOST_UNREACHABLE) },
+            hostnameProbe = HostnameProbe {
+                HostnameProbeOutcome(ProbeResult.Failure(io.signallq.app.core.network.contracts.connectivity.ProbeFailureReason.HOST_UNREACHABLE), false)
+            },
+        )
+
+        val semDadosMoveis = engine.diagnosticar(contexto(mobileFallbackAvailable = false))
+        val comDadosMoveis = engine.diagnosticar(contexto(mobileFallbackAvailable = true))
+
+        assertEquals(semDadosMoveis.status, comDadosMoveis.status)
+        assertEquals(ConnectivityStatus.EXTERNAL_ROUTE_FAILURE, comDadosMoveis.status)
+        assertEquals(semDadosMoveis.confidence, comDadosMoveis.confidence)
+        // mobileFallbackAvailable e preservado como evidencia paralela (para a UI oferecer
+        // "testar em outra rede"), mas nunca influencia a conclusao acima.
+        assertTrue(comDadosMoveis.mobileFallbackAvailable)
+        assertTrue(!semDadosMoveis.mobileFallbackAvailable)
+    }
+
+    @Test
     fun `cadeia completa de sucesso produz internet disponivel e evidencias das quatro etapas`() = runTest {
         val engine = engineFeliz()
         val diagnostico = engine.diagnosticar(contexto())
@@ -126,6 +149,9 @@ class ConnectivityDiagnosisEngineTest {
         assertTrue(diagnostico.dnsReachable is ProbeResult.Timeout)
         assertTrue(diagnostico.externalIpReachable is ProbeResult.Timeout)
         assertTrue(diagnostico.hostnameReachable is ProbeResult.Timeout)
+        // GH#1512 (achado de revisao) -- uma etapa nunca alcancada nao pode virar
+        // evidencia de confianca ALTA so porque o rotulo e "Timeout".
+        assertEquals(io.signallq.app.core.network.contracts.topologia.NivelConfianca.BAIXA, diagnostico.confidence)
     }
 
     @Test
