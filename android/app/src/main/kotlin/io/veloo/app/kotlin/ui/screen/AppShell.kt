@@ -79,7 +79,7 @@ import io.signallq.app.core.diagnostico.topology.model.NatStatus
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionResultado
-import io.signallq.app.core.network.contracts.gateway.GatewayConnectionService
+import io.signallq.app.core.network.contracts.gateway.GatewayConnectionServiceIndisponivelPadrao
 import io.signallq.app.core.network.contracts.localdevice.LocalNetworkDeviceSnapshot
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
@@ -409,23 +409,23 @@ fun AppShell(
         permitido
     }
 
-    // Implementacao mock (GH#526/#530) — autenticacao real no equipamento (HTTP/TR-064 por
-    // fabricante/firmware) segue fora deste escopo. Existe so para a sheet e a autoconexao
-    // funcionarem hoje, sem acoplar a UI a uma implementacao concreta.
-    val gatewayConnectionServiceMock =
-        remember {
-            GatewayConnectionService { _, _, _ ->
-                delay(900)
-                GatewayConnectionResultado.Sucesso
-            }
-        }
+    // BUG#1511 (P0) — ate #547 entregar uma implementacao real (NetHAL/TR-064 por fabricante/
+    // firmware), NENHUM caminho de producao pode fingir que autenticou no equipamento. O antigo
+    // "gatewayConnectionServiceMock" (delay(900) + Sucesso incondicional para qualquer host/
+    // usuario/senha) foi removido — marcava sessao como valida e persistia credencial sem
+    // nenhuma autenticacao real ter ocorrido. GatewayConnectionServiceIndisponivelPadrao (core:
+    // network) e o unico default aceitavel ate la: nunca retorna Sucesso, so Indisponivel — nao
+    // aceita nem tenta validar credencial nenhuma. Continua existindo so para a Sheet/autoconexao
+    // funcionarem sem null-check espalhado; a integracao real (fora deste escopo) e a #547.
+    val gatewayConnectionServiceIndisponivel = GatewayConnectionServiceIndisponivelPadrao
 
     // GH#527 — sessao "manter conectado" do gateway, fonte unica compartilhada pelos dois
     // entry points (Home e Ajustes). Elegivel quando o toggle esta ativo E o BSSID atual bate
     // com o BSSID vinculado a credencial — rede diferente (mesmo com o mesmo SSID) invalida.
-    // Elegibilidade sozinha nao basta: dispara uma tentativa real de autenticacao silenciosa
-    // ao entrar na rede vinculada, sem pedir a senha de novo. Falha nao mostra erro intrusivo —
-    // so mantem a trilha no estado "desconectado" (nó do gateway volta a abrir a sheet manual).
+    // BUG#1511 — elegibilidade sozinha NUNCA basta pra marcar sessao valida: sem uma
+    // implementacao real conectada aqui (gatewayConnectionServiceIndisponivel sempre retorna
+    // Indisponivel), gatewaySessaoValida permanece sempre false — o no do gateway volta a abrir
+    // a sheet manual em vez de assumir uma sessao que nunca foi autenticada de verdade.
     val bssidAtual = snapshotRede.wifiLinkSnapshot?.bssid
     val elegivelParaAutoconexao =
         bssidElegivelParaAutoconexao(modemPermanecerConectado, gatewaySessionBssid, bssidAtual)
@@ -434,8 +434,9 @@ fun AppShell(
         gatewaySessaoValida =
             if (elegivelParaAutoconexao && !modemHost.isNullOrBlank()) {
                 val resultado =
-                    runCatching { gatewayConnectionServiceMock.conectar(modemHost, modemUsername, modemPassword) }
-                        .getOrNull()
+                    runCatching {
+                        gatewayConnectionServiceIndisponivel.conectar(modemHost, modemUsername, modemPassword)
+                    }.getOrNull()
                 resultado is GatewayConnectionResultado.Sucesso
             } else {
                 false
@@ -714,7 +715,7 @@ fun AppShell(
                                 // GH#530 — nó do gateway na trilha: sessão válida pula a sheet,
                                 // sem sessão abre a GatewayConnectionSheet (mesmo componente do Ajustes).
                                 gatewaySessaoValida = gatewaySessaoValida,
-                                conectarGateway = gatewayConnectionServiceMock,
+                                conectarGateway = gatewayConnectionServiceIndisponivel,
                                 modemUsername = modemUsername,
                                 modemPassword = modemPassword,
                                 modemPermanecerConectado = modemPermanecerConectado,
@@ -1257,7 +1258,7 @@ fun AppShell(
                             onSalvarConfiguracaoModem = onSalvarConfiguracaoModem,
                             onConectarFibra = { host, user, pass -> onReconectarFibra(host, user, pass) },
                             gatewaySessaoValida = gatewaySessaoValida,
-                            conectarGateway = gatewayConnectionServiceMock,
+                            conectarGateway = gatewayConnectionServiceIndisponivel,
                             onGatewayConectado = onGatewayConectado,
                             bandasWifi = bandasWifiGateway,
                             dispositivosNaRede = clientesNaRedeGateway,
@@ -1341,7 +1342,7 @@ fun AppShell(
                     lembrarSenhaInicial = modemUsername.isNotBlank() || modemPassword.isNotBlank(),
                     manterConectadoInicial = modemPermanecerConectado,
                     onDismissRequest = { showEquipamentoCredenciaisSheet = false },
-                    conectar = gatewayConnectionServiceMock,
+                    conectar = gatewayConnectionServiceIndisponivel,
                     onConectado = { ip, usuario, senha, lembrarSenha, manterConectado ->
                         onRegistrarConexaoGateway(ip, usuario, senha, lembrarSenha, manterConectado, bssidAtual)
                         onReconectarFibra(ip, usuario, senha)
