@@ -97,7 +97,7 @@ class EditorialCopyContractTest {
                 ),
             ),
         )
-        assertTrue(resultado.acoes.any { it.contains("priorização de tráfego") })
+        assertTrue(resultado.acoes.any { it.contains("prioridade de tráfego") })
         assertFalse(resultado.acoes.any { it.contains("QoS", ignoreCase = false) })
     }
 }
