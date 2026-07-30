@@ -62,7 +62,7 @@ class ModoGamerViewModelTest {
         val etapa = vm.etapa.value as ModoGamerEtapa.SelecaoDevice
         val selecao = etapa.selecaoJogo as SelecaoJogoModoGamer.ForaDoCatalogo
         assertEquals(CategoriaJogoModoGamer.MOBA, selecao.categoria)
-        assertEquals("MOBA", selecao.nomeExibido)
+        assertEquals(CategoriaJogoModoGamer.MOBA.label, selecao.nomeExibido)
     }
 
     @Test

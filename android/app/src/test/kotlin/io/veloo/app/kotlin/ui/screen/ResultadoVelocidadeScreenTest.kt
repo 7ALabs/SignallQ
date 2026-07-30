@@ -43,7 +43,7 @@ class ResultadoVelocidadeScreenTest {
     // GH#813 — badge de tipo da recomendacao do Recommendation Engine (RecommendationType).
     @Test
     fun `free tip mostra rotulo dica gratuita`() {
-        assertEquals("DICA GRATUITA", recommendationTypeLabel(RecommendationType.FREE_TIP))
+        assertEquals("DICA", recommendationTypeLabel(RecommendationType.FREE_TIP))
     }
 
     @Test
@@ -53,7 +53,7 @@ class ResultadoVelocidadeScreenTest {
 
     @Test
     fun `configuration mostra rotulo configuracao`() {
-        assertEquals("CONFIGURAÇÃO", recommendationTypeLabel(RecommendationType.CONFIGURATION))
+        assertEquals("AJUSTE RECOMENDADO", recommendationTypeLabel(RecommendationType.CONFIGURATION))
     }
 
     @Test

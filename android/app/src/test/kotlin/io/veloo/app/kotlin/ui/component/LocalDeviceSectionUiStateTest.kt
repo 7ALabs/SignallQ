@@ -110,7 +110,7 @@ class LocalDeviceSectionUiStateTest {
         assertTrue(estado is LocalDeviceSectionUiState.Conectado)
         val conectado = estado as LocalDeviceSectionUiState.Conectado
         assertFalse(conectado.secoes.any { it.titulo == "Fibra" })
-        assertTrue(conectado.secoes.any { it.titulo == "Internet (WAN)" })
+        assertTrue(conectado.secoes.any { it.titulo == "Conexão com a operadora" })
         assertTrue(conectado.secoes.any { it.titulo == "Wi-Fi" })
     }
 
@@ -144,7 +144,7 @@ class LocalDeviceSectionUiStateTest {
                     ),
             )
         val estado = mapLocalDeviceSectionUiState(snapshot) as LocalDeviceSectionUiState.Conectado
-        assertEquals("Fibra desconectada", estado.resumoTitulo)
+        assertEquals("A fibra está sem sinal", estado.resumoTitulo)
     }
 
     private fun nokiaSnapshotCompleto() =
@@ -203,7 +203,7 @@ class LocalDeviceSectionUiStateTest {
                     habilitado = true,
                 ),
             )
-        assertEquals("5 GHz · canal 44 · WPA2 · 80 MHz · Potência alta", item.valor)
+        assertEquals("5 GHz · canal 44 · WPA2 · 80 MHz · Sinal forte", item.valor)
         assertEquals(null, item.statusValor)
     }
 
@@ -275,7 +275,7 @@ class LocalDeviceSectionUiStateTest {
                     habilitado = true,
                 ),
             )
-        assertTrue(item.valor.endsWith("Segurança não identificada"))
+        assertTrue(item.valor.endsWith("Não consegui identificar a segurança"))
         assertEquals(null, item.statusValor)
     }
 
@@ -369,13 +369,13 @@ class LocalDeviceSectionUiStateTest {
     private fun lanItens(lan: LanSnapshot?): List<EquipamentoItemTecnico> {
         val snapshot = tplinkSnapshotCompleto().copy(lan = lan)
         val estado = mapLocalDeviceSectionUiState(snapshot) as LocalDeviceSectionUiState.Conectado
-        return estado.secoes.first { it.titulo == "Rede local (LAN)" }.itens
+        return estado.secoes.first { it.titulo == "Rede dentro de casa" }.itens
     }
 
     @Test
     fun `mascara de sub-rede 255-255-255-0 vira barra 24`() {
         val itens = lanItens(tplinkSnapshotCompleto().lan)
-        val item = itens.first { it.label == "Máscara de sub-rede" }
+        val item = itens.first { it.label == "Configuração da rede" }
         assertEquals("255.255.255.0 · /24", item.valor)
     }
 
@@ -389,7 +389,7 @@ class LocalDeviceSectionUiStateTest {
                 faixaDhcpInicio = "192.168.1.100",
                 faixaDhcpFim = "192.168.1.200",
             )
-        val item = lanItens(lan).first { it.label == "Máscara de sub-rede" }
+        val item = lanItens(lan).first { it.label == "Configuração da rede" }
         assertEquals("algo-invalido", item.valor)
         assertFalse(item.valor.contains("null"))
         assertFalse(item.valor.contains("NaN"))
@@ -398,7 +398,7 @@ class LocalDeviceSectionUiStateTest {
     @Test
     fun `faixa de dhcp ativa mostra inicio e fim sem mascaramento`() {
         val itens = lanItens(tplinkSnapshotCompleto().lan)
-        val item = itens.first { it.label == "Faixa de DHCP" }
+        val item = itens.first { it.label == "Faixa de endereços dos aparelhos" }
         assertEquals("192.168.1.100 – 192.168.1.200", item.valor)
     }
 
@@ -413,7 +413,7 @@ class LocalDeviceSectionUiStateTest {
                 faixaDhcpFim = "192.168.1.200",
             )
         val itens = lanItens(lan)
-        assertFalse(itens.any { it.label == "Faixa de DHCP" })
+        assertFalse(itens.any { it.label == "Faixa de endereços dos aparelhos" })
     }
 
     @Test
@@ -427,7 +427,7 @@ class LocalDeviceSectionUiStateTest {
                 faixaDhcpFim = null,
             )
         val itens = lanItens(lan)
-        assertFalse(itens.any { it.label == "Faixa de DHCP" })
+        assertFalse(itens.any { it.label == "Faixa de endereços dos aparelhos" })
     }
 
     private fun tplinkSnapshotCompleto() =
