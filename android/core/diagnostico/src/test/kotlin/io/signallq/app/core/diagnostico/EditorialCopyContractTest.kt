@@ -87,7 +87,15 @@ class EditorialCopyContractTest {
         val resultado = ModoGamerEngine.avaliar(
             categoria = CategoriaJogoModoGamer.FPS_COMPETITIVO,
             device = DeviceJogo.ANDROID,
-            input = DiagnosticInput(internet = InternetDiagnosticInput(latencyMs = 150.0, jitterMs = 30.0, perdaPercentual = 0.5)),
+            input = DiagnosticInput(
+                internet = InternetDiagnosticInput(
+                    downloadMbps = 100.0,
+                    uploadMbps = 20.0,
+                    latencyMs = 150.0,
+                    jitterMs = 30.0,
+                    perdaPercentual = 0.5,
+                ),
+            ),
         )
         assertTrue(resultado.acoes.any { it.contains("priorização de tráfego") })
         assertFalse(resultado.acoes.any { it.contains("QoS", ignoreCase = false) })

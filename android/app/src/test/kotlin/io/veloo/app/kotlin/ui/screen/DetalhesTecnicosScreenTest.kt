@@ -10,7 +10,6 @@ import org.junit.Test
  * deve parecer parte da frase principal do rótulo, e sim uma linha secundária opcional.
  */
 class DetalhesTecnicosScreenTest {
-
     @Test
     fun `sem nome e sem ip nao produz sublinha`() {
         assertNull(formatarIdentificacaoServidorDns(nome = null, ip = null))
