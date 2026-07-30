@@ -8,11 +8,11 @@ import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.network.NetworkCapabilitiesProvider
-import io.signallq.app.core.network.contracts.connectivity.ConnectivityStatus
 import io.signallq.app.core.telephony.MonitorTelephony
 import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisMensagem
 import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisPresenter
 import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisRepository
+import io.signallq.app.feature.speedtest.connectivity.indicaAusenciaDeInternetParaBloquearSpeedtest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -138,11 +138,19 @@ class SpeedtestViewModel
             }
             _speedtestPendenteModoMovel.value = null
             viewModelScope.launch {
-                // GH#1512 -- NAO roda o gate de Wi-Fi aqui: o usuario acabou de confirmar
-                // explicitamente que quer testar usando dados moveis (dialog de rede
-                // medida). Rodar o mesmo diagnostico de Wi-Fi neste ponto poderia bloquear
-                // um teste que o usuario ja optou por rodar por outra via, com uma
-                // mensagem que contradiz a escolha que ele acabou de fazer.
+                // GH#1512 (3a revisao, correcao) -- reintroduzido: o dialog que leva ate
+                // aqui e sobre rede MEDIDA (`metered`), nao sobre transporte celular --
+                // `networkCapabilitiesProvider.isMeteredNetwork()` e true para qualquer
+                // rede medida, Wi-Fi tarifado incluso (hotspot, rede marcada como
+                // limitada). Remover o gate daqui permitia rodar um Speedtest completo
+                // sobre um Wi-Fi tarifado e sem internet, sem nenhum aviso. O gate ja e
+                // auto-limitado -- devolve false de cara quando nao ha rede Wi-Fi nenhuma
+                // (dados moveis puros) -- entao mante-lo aqui nao interfere no caso de
+                // dados moveis de verdade.
+                if (interromperPorWifiSemInternet()) {
+                    execucaoEmAndamento.set(false)
+                    return@launch
+                }
                 try {
                     executarSpeedtest(modo)
                 } catch (t: Throwable) {
@@ -216,28 +224,10 @@ class SpeedtestViewModel
                     return false
                 }
 
-            // GH#1512 (achado de revisao) -- so interrompe em estados que sao evidencia
-            // conclusiva de ausencia de internet. GATEWAY_UNREACHABLE/PARTIAL_CONNECTIVITY/
-            // INCONCLUSIVE sao evidencia fraca ou ambigua demais para negar a funcao
-            // principal do app numa rede que pode estar perfeitamente saudavel (ex.: um
-            // roteador que nao aceita a sondagem TCP em 53/80/443 mas tem internet
-            // funcionando normalmente para o restante do trafego).
-            val semInternetConfirmado =
-                when (diagnostico.status) {
-                    ConnectivityStatus.WIFI_WITHOUT_INTERNET,
-                    ConnectivityStatus.DNS_FAILURE,
-                    ConnectivityStatus.EXTERNAL_ROUTE_FAILURE,
-                    ConnectivityStatus.CAPTIVE_PORTAL,
-                    -> true
-
-                    ConnectivityStatus.INTERNET_AVAILABLE,
-                    ConnectivityStatus.GATEWAY_UNREACHABLE,
-                    ConnectivityStatus.PARTIAL_CONNECTIVITY,
-                    ConnectivityStatus.INCONCLUSIVE,
-                    ConnectivityStatus.WIFI_DISCONNECTED,
-                    -> false
-                }
-            if (!semInternetConfirmado) return false
+            // GH#1512 (3a revisao) -- politica extraida para ConnectivityBlockingPolicy.kt
+            // (testavel isoladamente, sem duplicar entre MainViewModel/SpeedtestViewModel --
+            // achado de revisao R-6). Ver KDoc la para o raciocinio completo.
+            if (!diagnostico.indicaAusenciaDeInternetParaBloquearSpeedtest()) return false
 
             _diagnosticoConectividade.value = ConnectivityDiagnosisPresenter.apresentar(diagnostico)
             Timber.i("$LOG_TAG: speedtest interrompido -- wifi sem internet, status=${diagnostico.status}")

@@ -12,8 +12,12 @@ import java.net.URLConnection
 class DnsReachabilityProbeTest {
 
     /** Resolvedor que nunca retorna sozinho -- simula `Network.getAllByName` travado (o
-     *  cenário real da #1512: WAN caída com DNS pendurado). Não responde a
-     *  `Thread.interrupt()`, exatamente como a chamada nativa que representa. */
+     *  cenário real da #1512: WAN caída com DNS pendurado). `Thread.sleep` em si responde
+     *  a `Thread.interrupt()` (lança `InterruptedException`), mas nada nesta sondagem
+     *  cancela a `Future` que executa esta chamada -- o teste força o caminho de timeout
+     *  (não o de cancelamento), que é o que reproduz `Network.getAllByName` de verdade
+     *  (chamada nativa via netd que essa classe representa, e que não responde a
+     *  interrupção nenhuma). */
     private object BindingQueNuncaResolve : ConnectivityProbeBinding {
         override fun bindSocket(socket: Socket) = Unit
 
@@ -25,7 +29,10 @@ class DnsReachabilityProbeTest {
         override fun openConnection(url: URL): URLConnection = error("nao usado neste teste")
     }
 
-    @Test
+    // GH#1512 (3a revisao, achado de revisao) -- timeout de JUnit: se uma regressao futura
+    // reintroduzir o bloqueio sem teto, o teste falha em poucos segundos em vez de
+    // pendurar a suite inteira pelos 60s do Thread.sleep acima.
+    @Test(timeout = 4_000L)
     fun `sondagem de dns que trava alem do timeout retorna dentro de um prazo real`() = runBlocking {
         // GH#1512 (achado de revisao) -- antes desta correcao, `Network.getAllByName`
         // travado nao respeitava NENHUM teto de tempo (runInterruptible sozinho nao basta
@@ -42,7 +49,7 @@ class DnsReachabilityProbeTest {
         assertTrue("esperava Timeout, obteve $resultado", resultado is ProbeResult.Timeout)
         assertTrue(
             "sondagem deveria retornar perto do timeoutMs configurado, levou ${duracaoMs}ms",
-            duracaoMs < 5_000,
+            duracaoMs < 2_000,
         )
     }
 }

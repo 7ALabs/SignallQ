@@ -65,8 +65,12 @@ class ConnectivityDiagnosisRunner(
         capturarRedeWifi() != null
     }
 
+    // GH#1512 (3a revisao, achado de revisao) -- so existeRedeWifiAtiva() tinha ganho
+    // withContext(Dispatchers.IO); esta funcao faz IPC de binder AINDA MAIOR
+    // (allNetworks + getNetworkCapabilities por rede, duas vezes, mais getLinkProperties) e
+    // continuava rodando no dispatcher do chamador (main thread, via viewModelScope.launch).
     @SuppressLint("MissingPermission")
-    override suspend fun diagnosticar(): ConnectivityDiagnosis {
+    override suspend fun diagnosticar(): ConnectivityDiagnosis = withContext(Dispatchers.IO) {
         val redeWifi = capturarRedeWifi()
         val mobileFallbackAvailable = existeRedeMovelComInternet()
 
@@ -75,7 +79,7 @@ class ConnectivityDiagnosisRunner(
             // o motor recebe wifiConnected=false e conclui WIFI_DISCONNECTED sem tentar
             // nenhuma sondagem pelo caminho padrao do sistema.
             val engineSemRede = criarEngine(NenhumaRedeDisponivelBinding)
-            return engineSemRede.diagnosticar(
+            return@withContext engineSemRede.diagnosticar(
                 ConnectivityDiagnosisContext(
                     wifiConnected = false,
                     localAddressAvailable = false,
@@ -101,7 +105,7 @@ class ConnectivityDiagnosisRunner(
         val localAddressAvailable = linkProperties?.linkAddresses?.isNotEmpty() == true
 
         val engine = criarEngine(AndroidNetworkProbeBinding(redeWifi))
-        return engine.diagnosticar(
+        engine.diagnosticar(
             ConnectivityDiagnosisContext(
                 wifiConnected = true,
                 localAddressAvailable = localAddressAvailable,

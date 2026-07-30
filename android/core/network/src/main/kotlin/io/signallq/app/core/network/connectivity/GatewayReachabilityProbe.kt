@@ -30,14 +30,17 @@ class GatewayReachabilityProbe(
     /**
      * O teto real de tempo desta sondagem vem do [timeoutMs] passado explicitamente a
      * `Socket.connect(SocketAddress, timeout)` -- é o próprio JDK que impõe esse limite via
-     * `SO_TIMEOUT` nativo, lançando [SocketTimeoutException] (já tratado abaixo), e isso
-     * vale mesmo sem `runInterruptible`. `runInterruptible` aqui cumpre um papel diferente
-     * e mais estreito: responder a cancelamento/timeout GLOBAL do motor
-     * ([kotlinx.coroutines.withTimeoutOrNull]) enquanto uma tentativa individual ainda está
-     * dentro do seu [timeoutMs] -- sem ele, uma coroutine cancelada não interromperia essa
-     * chamada bloqueante em andamento (GH#1512, achado de revisão). Isso é diferente da
-     * sondagem de DNS ([DnsReachabilityProbe]), que não tem nenhum teto nativo próprio e
-     * por isso precisa de um mecanismo adicional de prazo real.
+     * `SO_TIMEOUT` nativo, lançando [SocketTimeoutException] (já tratado abaixo). Correção
+     * (3ª revisão, GH#1512): `runInterruptible` NÃO garante cancelamento de um
+     * `Socket.connect()` em andamento -- `java.net.Socket` bloqueante não responde a
+     * `Thread.interrupt()` (o `IoBridge` do Android faz retry em `EINTR`), então os ramos
+     * `if (Thread.currentThread().isInterrupted)` abaixo são defesa best-effort, não
+     * garantia. Mantido mesmo assim por consistência com as demais sondagens e porque é
+     * inofensivo; o teto de tempo de verdade é sempre o [timeoutMs] explícito. Isso é
+     * diferente da sondagem de DNS/hostname ([DnsReachabilityProbe],
+     * [HostnameReachabilityProbe]), que não tem nenhum teto nativo próprio na fase de
+     * resolução e por isso precisa de um mecanismo adicional de prazo real
+     * ([ProbeBlockingExecutor]).
      */
     override suspend fun probe(gatewayIp: String): ProbeResult = runInterruptible(Dispatchers.IO) {
         var houveTimeout = false

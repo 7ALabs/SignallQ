@@ -4,10 +4,12 @@ import io.signallq.app.core.network.contracts.connectivity.ProbeFailureReason
 import io.signallq.app.core.network.contracts.connectivity.ProbeResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runInterruptible
-import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.URL
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /**
  * Testa alcance externo por hostname via HTTP GET curto, amarrado à rede sob análise.
@@ -20,6 +22,15 @@ import java.net.URL
  *
  * Independente de [ExternalIpReachabilityProbe]: aqui o objetivo é confirmar que HTTP
  * "de verdade" funciona (TLS, HTTP, DNS já usado na camada anterior), não apenas TCP puro.
+ *
+ * Correção (3ª revisão, GH#1512): `connectTimeout`/`readTimeout` do `HttpURLConnection` só
+ * cobrem a fase de `Socket.connect()` -- a resolução do hostname embutida em
+ * `binding.openConnection(url)`/`conexao.connect()` acontece ANTES disso e usa a mesma
+ * chamada nativa sem teto que [DnsReachabilityProbe] precisou corrigir (a issue original
+ * usava `www.gstatic.com`, hostname diferente do sondado por [DnsReachabilityProbe], então
+ * um resolvedor parcialmente travado podia responder um e pendurar no outro). Cada
+ * tentativa completa (resolução + connect + read) roda em [ProbeBlockingExecutor] e é
+ * aguardada com um prazo real via [java.util.concurrent.Future.get].
  */
 class HostnameReachabilityProbe(
     private val binding: ConnectivityProbeBinding,
@@ -35,46 +46,64 @@ class HostnameReachabilityProbe(
         )
     }
 
-    /** `runInterruptible`: ver KDoc equivalente em [GatewayReachabilityProbe.probe]. */
+    /** Resultado de uma tentativa completa (resolução + connect + read) numa única URL. */
+    private sealed interface ResultadoTentativa {
+        data class Concluido(val outcome: HostnameProbeOutcome) : ResultadoTentativa
+        object RespostaInesperada : ResultadoTentativa
+    }
+
     override suspend fun probe(): HostnameProbeOutcome = runInterruptible(Dispatchers.IO) {
         var houveTimeout = false
         var houveRespostaInesperada = false
+        // Prazo por tentativa: cobre resolucao (sem teto nativo) + connect + read (cada
+        // uma ja limitada a timeoutMs por connectTimeout/readTimeout) -- ver KDoc da classe.
+        val prazoTentativaMs = timeoutMs.toLong() * 3
         for (urlStr in urls) {
-            var conexao: HttpURLConnection? = null
+            val future = ProbeBlockingExecutor.instance.submit<ResultadoTentativa> {
+                var conexao: HttpURLConnection? = null
+                try {
+                    val url = URL(urlStr)
+                    conexao = (binding.openConnection(url) as HttpURLConnection).apply {
+                        connectTimeout = timeoutMs
+                        readTimeout = timeoutMs
+                        instanceFollowRedirects = false
+                        requestMethod = "GET"
+                    }
+                    conexao.connect()
+                    val codigo = conexao.responseCode
+                    // Só redirect (3xx) conta como suspeita de captive portal -- 4xx/5xx/200
+                    // inesperado e resposta inesperada, nao login obrigatorio.
+                    val portalSuspeito = codigo in 300..399
+                    if (codigo == HttpURLConnection.HTTP_NO_CONTENT || portalSuspeito) {
+                        ResultadoTentativa.Concluido(HostnameProbeOutcome(ProbeResult.Success(), portalSuspeito))
+                    } else {
+                        ResultadoTentativa.RespostaInesperada
+                    }
+                } finally {
+                    conexao?.disconnect()
+                }
+            }
             try {
-                val url = URL(urlStr)
-                conexao = (binding.openConnection(url) as HttpURLConnection).apply {
-                    connectTimeout = timeoutMs
-                    readTimeout = timeoutMs
-                    instanceFollowRedirects = false
-                    requestMethod = "GET"
+                when (val resultado = future.get(prazoTentativaMs, TimeUnit.MILLISECONDS)) {
+                    is ResultadoTentativa.Concluido -> return@runInterruptible resultado.outcome
+                    ResultadoTentativa.RespostaInesperada -> houveRespostaInesperada = true
                 }
-                conexao.connect()
-                val codigo = conexao.responseCode
-                // Só redirect (3xx) conta como suspeita de captive portal -- 4xx/5xx/200
-                // inesperado é resposta inesperada, nao login obrigatorio. Um endpoint com
-                // resposta inesperada nao encerra a sondagem -- tenta o proximo antes de
-                // desistir (nunca decide por uma unica URL).
-                val portalSuspeito = codigo in 300..399
-                if (codigo == HttpURLConnection.HTTP_NO_CONTENT || portalSuspeito) {
-                    return@runInterruptible HostnameProbeOutcome(ProbeResult.Success(), portalSuspeito)
-                }
-                houveRespostaInesperada = true
-            } catch (_: SocketTimeoutException) {
+            } catch (_: TimeoutException) {
                 houveTimeout = true
-            } catch (_: IOException) {
-                // host/endpoint indisponivel -- tenta o proximo, a menos que a interrupcao
-                // (cancelamento/timeout do motor) tenha disparado esta excecao
-                if (Thread.currentThread().isInterrupted) {
-                    return@runInterruptible HostnameProbeOutcome(ProbeResult.Timeout(timeoutMs.toLong()), captivePortalSuspeito = false)
+            } catch (e: ExecutionException) {
+                when (e.cause) {
+                    is SecurityException -> return@runInterruptible HostnameProbeOutcome(
+                        ProbeResult.Unavailable("sem permissao para HTTP na rede sob analise"),
+                        captivePortalSuspeito = false,
+                    )
+                    is SocketTimeoutException -> houveTimeout = true
+                    // outro IOException -- host/endpoint indisponivel, tenta o proximo
                 }
-            } catch (_: SecurityException) {
-                return@runInterruptible HostnameProbeOutcome(
-                    ProbeResult.Unavailable("sem permissao para HTTP na rede sob analise"),
-                    captivePortalSuspeito = false,
-                )
-            } finally {
-                conexao?.disconnect()
+            } catch (_: InterruptedException) {
+                // Cancelamento/timeout do motor -- retorna imediatamente (ver KDoc
+                // equivalente em DnsReachabilityProbe sobre nao continuar o loop aqui).
+                Thread.currentThread().interrupt()
+                return@runInterruptible HostnameProbeOutcome(ProbeResult.Timeout(timeoutMs.toLong()), captivePortalSuspeito = false)
             }
         }
         val resultado = when {
