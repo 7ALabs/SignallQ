@@ -1631,15 +1631,16 @@ private fun ForaDoWifiDialog(
 /** Texto curto de ação sugerida — mesmo vocabulário de
  *  [io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisPresenter], sem
  *  duplicar a decisão de quais ações mostrar (só a tradução pra rótulo de UI). */
-private fun ConnectivityAction.rotulo(): String = when (this) {
-    ConnectivityAction.ABRIR_PORTAL_LOGIN -> "Abrir portal de login da rede"
-    ConnectivityAction.RECONECTAR_WIFI -> "Reconectar ao Wi-Fi"
-    ConnectivityAction.TESTAR_OUTRO_APARELHO -> "Testar outro aparelho na mesma rede"
-    ConnectivityAction.VERIFICAR_LUZES_EQUIPAMENTO -> "Verificar as luzes do roteador/ONT"
-    ConnectivityAction.REINICIAR_EQUIPAMENTO -> "Reiniciar o roteador (última opção)"
-    ConnectivityAction.TESTAR_DNS_ALTERNATIVO -> "Testar um DNS alternativo"
-    ConnectivityAction.CONTATAR_OPERADORA -> "Contatar a operadora"
-}
+private fun ConnectivityAction.rotulo(): String =
+    when (this) {
+        ConnectivityAction.ABRIR_PORTAL_LOGIN -> "Abrir portal de login da rede"
+        ConnectivityAction.RECONECTAR_WIFI -> "Reconectar ao Wi-Fi"
+        ConnectivityAction.TESTAR_OUTRO_APARELHO -> "Testar outro aparelho na mesma rede"
+        ConnectivityAction.VERIFICAR_LUZES_EQUIPAMENTO -> "Verificar as luzes do roteador/ONT"
+        ConnectivityAction.REINICIAR_EQUIPAMENTO -> "Reiniciar o roteador (última opção)"
+        ConnectivityAction.TESTAR_DNS_ALTERNATIVO -> "Testar um DNS alternativo"
+        ConnectivityAction.CONTATAR_OPERADORA -> "Contatar a operadora"
+    }
 
 @Composable
 private fun DiagnosticoConectividadeDialog(
