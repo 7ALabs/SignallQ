@@ -2,6 +2,7 @@ package io.signallq.app.feature.speedtest.connectivity
 
 import io.signallq.app.core.network.contracts.connectivity.ConnectivityDiagnosis
 import io.signallq.app.core.network.contracts.connectivity.ConnectivityStatus
+import io.signallq.app.core.network.contracts.topologia.NivelConfianca
 
 /** Ação sugerida ao usuário a partir do diagnóstico de conectividade (GH#1512) — a UI
  *  decide o texto/ícone do botão; aqui só a intenção, relacionada ao estado concluído. */
@@ -52,7 +53,14 @@ object ConnectivityDiagnosisPresenter {
 
         ConnectivityStatus.GATEWAY_UNREACHABLE -> ConnectivityDiagnosisMensagem(
             titulo = "Não alcançamos o roteador",
-            mensagem = "Seu celular está conectado ao Wi-Fi, mas não consegue se comunicar com o roteador.",
+            mensagem = when (diagnostico.confidence) {
+                NivelConfianca.ALTA -> "Confirmamos: seu celular está conectado ao Wi-Fi, mas não " +
+                    "consegue se comunicar com o roteador."
+                NivelConfianca.MEDIA -> "Há sinais de que seu celular está conectado ao Wi-Fi, mas " +
+                    "não consegue se comunicar com o roteador."
+                NivelConfianca.BAIXA -> "O problema parece estar entre o celular e o roteador, mas " +
+                    "algumas verificações não puderam ser concluídas."
+            },
             acoes = listOf(
                 ConnectivityAction.RECONECTAR_WIFI,
                 ConnectivityAction.TESTAR_OUTRO_APARELHO,
@@ -62,7 +70,12 @@ object ConnectivityDiagnosisPresenter {
 
         ConnectivityStatus.DNS_FAILURE -> ConnectivityDiagnosisMensagem(
             titulo = "Falha no DNS",
-            mensagem = "A conexão parece ativa, mas o serviço que localiza os sites não está respondendo.",
+            mensagem = when (diagnostico.confidence) {
+                NivelConfianca.ALTA -> "O teste mostrou que a conexão está ativa, mas o serviço que " +
+                    "localiza os sites não está respondendo."
+                NivelConfianca.MEDIA, NivelConfianca.BAIXA -> "A conexão parece estar ativa, mas há " +
+                    "sinais de que o serviço que localiza os sites não está respondendo."
+            },
             acoes = listOf(
                 ConnectivityAction.TESTAR_DNS_ALTERNATIVO,
                 ConnectivityAction.REINICIAR_EQUIPAMENTO,
@@ -72,8 +85,13 @@ object ConnectivityDiagnosisPresenter {
 
         ConnectivityStatus.EXTERNAL_ROUTE_FAILURE -> ConnectivityDiagnosisMensagem(
             titulo = "Sem rota para a internet",
-            mensagem = "O sinal chega até o roteador e o DNS responde, mas esta rede não está " +
-                "conseguindo alcançar a internet além disso.",
+            mensagem = when (diagnostico.confidence) {
+                NivelConfianca.ALTA -> "Confirmamos: o sinal chega até o roteador e o DNS responde, " +
+                    "mas esta rede não está conseguindo alcançar a internet além disso."
+                NivelConfianca.MEDIA, NivelConfianca.BAIXA -> "A causa mais provável é que o sinal " +
+                    "chega até o roteador e o DNS responde, mas esta rede não está conseguindo " +
+                    "alcançar a internet além disso."
+            },
             acoes = listOf(
                 ConnectivityAction.REINICIAR_EQUIPAMENTO,
                 ConnectivityAction.VERIFICAR_LUZES_EQUIPAMENTO,
@@ -89,8 +107,8 @@ object ConnectivityDiagnosisPresenter {
 
         ConnectivityStatus.PARTIAL_CONNECTIVITY -> ConnectivityDiagnosisMensagem(
             titulo = "Conexão instável",
-            mensagem = "Parte das conexões desta rede funciona e parte não — sinal de " +
-                "instabilidade, não de internet totalmente indisponível.",
+            mensagem = "Há sinais de instabilidade nesta rede: parte das conexões funciona e parte " +
+                "não — diferente de uma internet totalmente indisponível.",
             acoes = listOf(
                 ConnectivityAction.TESTAR_OUTRO_APARELHO,
                 ConnectivityAction.REINICIAR_EQUIPAMENTO,

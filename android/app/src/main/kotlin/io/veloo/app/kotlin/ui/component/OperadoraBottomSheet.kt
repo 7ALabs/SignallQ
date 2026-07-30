@@ -62,7 +62,7 @@ import io.signallq.app.ui.whatsappUrl
 private val whatsappGreen = Color(0xFF25D366)
 
 /**
- * Bottom sheet "Falar com a operadora" — GH#970. A secao "Sua operadora" agora usa a
+ * Bottom sheet "Entrar em contato com a operadora" — GH#970. A secao "Sua operadora" agora usa a
  * cadeia local -> diretorio remoto (worker `signallq-diagnostic`) -> fallback generico
  * ([io.signallq.app.ui.OperadoraDirectoryResolver]), via [resolveOperadoraIdentidadeLocal]/
  * [resolveOperadoraIdentidadeRemota] (identidade) e [resolveOperadoraContatoLocal]/
@@ -173,7 +173,7 @@ fun OperadoraBottomSheet(
                     .navigationBarsPadding(),
         ) {
             Text(
-                text = "Falar com a operadora",
+                text = "Entrar em contato com a operadora",
                 style = MaterialTheme.typography.headlineSmall,
                 color = c.textPrimary,
             )

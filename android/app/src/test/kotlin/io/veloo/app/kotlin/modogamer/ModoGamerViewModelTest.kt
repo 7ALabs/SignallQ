@@ -211,6 +211,6 @@ class ModoGamerViewModelTest {
 
             val etapa = vm.etapa.value as ModoGamerEtapa.Resultado
             assertEquals(natUdp, etapa.natUdp)
-            assertTrue(etapa.resultado.evidencias.any { it.label == "Medição de ping" })
+            assertTrue(etapa.resultado.evidencias.any { it.label == "Tempo de resposta medido agora" })
         }
 }

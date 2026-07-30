@@ -12,32 +12,32 @@ enum class ObjetivoDiagnostico(
     val subtitulo: String,
 ) {
     INTERNET_CAI_OSCILA(
-        titulo = "Internet cai ou oscila",
-        subtitulo = "A conexão para de funcionar ou fica instável por alguns segundos",
+        titulo = "A internet cai ou fica instável",
+        subtitulo = "A conexão para de funcionar ou oscila por alguns segundos.",
     ),
     VIDEOS_TRAVAM(
-        titulo = "Vídeos travam ou dão buffer",
-        subtitulo = "Streaming trava, fica \"carregando\" ou perde qualidade sozinho",
+        titulo = "Vídeos travam ou ficam carregando",
+        subtitulo = "Os vídeos travam, ficam carregando ou perdem qualidade.",
     ),
     JOGOS_COM_LAG(
-        titulo = "Jogos com lag ou ping alto",
-        subtitulo = "Atraso, travadas ou desconexões durante partidas online",
+        titulo = "Jogos atrasam ou travam",
+        subtitulo = "Há atrasos, travadas ou quedas durante as partidas.",
     ),
     CHAMADAS_CONGELAM(
-        titulo = "Chamadas de vídeo congelam",
-        subtitulo = "Imagem trava, áudio corta ou a chamada cai",
+        titulo = "Chamadas de vídeo travam",
+        subtitulo = "A imagem trava, o áudio corta ou a chamada cai.",
     ),
     SITES_DEMORAM(
-        titulo = "Sites demoram para carregar",
-        subtitulo = "Páginas demoram, ficam \"girando\" ou falham ao abrir",
+        titulo = "Sites demoram para abrir",
+        subtitulo = "As páginas demoram ou não conseguem abrir.",
     ),
     VELOCIDADE_NAO_CHEGA(
-        titulo = "Velocidade não chega no contratado",
-        subtitulo = "O teste mostra menos do que você paga pela sua operadora",
+        titulo = "A velocidade está abaixo do plano",
+        subtitulo = "O teste mostra uma velocidade menor que a do seu plano.",
     ),
     WIFI_VS_OPERADORA(
-        titulo = "Não sei se é o Wi-Fi ou a operadora",
-        subtitulo = "Quer descobrir se o problema é do roteador ou da internet contratada",
+        titulo = "Não sei onde está o problema",
+        subtitulo = "Vamos verificar se o problema está no Wi-Fi ou na operadora.",
     ),
 }
 
@@ -70,7 +70,7 @@ object PerguntasDiagnosticoGuiado {
                             listOf(
                                 "A qualquer momento",
                                 "Em horários de pico",
-                                "Só durante uso pesado (jogos, streaming)",
+                                "Quando várias pessoas ou aplicativos usam a internet",
                                 "Só em alguns cômodos da casa",
                             ),
                     ),
@@ -78,8 +78,8 @@ object PerguntasDiagnosticoGuiado {
                         texto = "O que você percebe quando acontece?",
                         opcoes =
                             listOf(
-                                "O Wi-Fi some da lista de redes",
-                                "Continua conectado mas trava",
+                                "A rede Wi-Fi desaparece",
+                                "Continua conectado, mas a internet para",
                                 "Desconecta e reconecta sozinho",
                                 "Não sei dizer",
                             ),
@@ -91,15 +91,15 @@ object PerguntasDiagnosticoGuiado {
                         texto = "O que acontece quando o vídeo trava?",
                         opcoes =
                             listOf(
-                                "Fica \"carregando\" (buffer)",
+                                "Fica carregando",
                                 "Cai a qualidade sozinho",
-                                "Trava e o app fecha",
-                                "Só em determinado app",
+                                "O vídeo trava e o aplicativo fecha",
+                                "Só em determinado aplicativo",
                             ),
                     ),
                     PerguntaFechada(
                         texto = "Isso acontece em qual conexão?",
-                        opcoes = listOf("Wi-Fi", "Dados móveis", "Nas duas", "Só percebi agora"),
+                        opcoes = listOf("Wi-Fi", "Dados móveis", "Nas duas", "Ainda não consegui comparar"),
                     ),
                 )
             ObjetivoDiagnostico.JOGOS_COM_LAG ->
@@ -112,7 +112,7 @@ object PerguntasDiagnosticoGuiado {
                         texto = "Com que frequência isso acontece?",
                         opcoes =
                             listOf(
-                                "Direto, quase sempre",
+                                "Quase sempre",
                                 "Só em horário de pico",
                                 "De vez em quando, sem padrão",
                             ),
@@ -124,26 +124,26 @@ object PerguntasDiagnosticoGuiado {
                         texto = "O que costuma acontecer na chamada?",
                         opcoes =
                             listOf(
-                                "Imagem congela, áudio segue",
-                                "Áudio corta ou fica robótico",
+                                "A imagem trava, mas o áudio continua",
+                                "O áudio corta ou fica distorcido",
                                 "A chamada cai e reconecta",
-                                "Os dois travam juntos",
+                                "A imagem e o áudio travam",
                             ),
                     ),
                     PerguntaFechada(
                         texto = "Piora se outra pessoa em casa também estiver usando a internet?",
-                        opcoes = listOf("Sim, bastante", "Um pouco", "Não muda", "Não testei"),
+                        opcoes = listOf("Sim, bastante", "Um pouco", "Não muda", "Ainda não testei"),
                     ),
                 )
             ObjetivoDiagnostico.SITES_DEMORAM ->
                 listOf(
                     PerguntaFechada(
-                        texto = "Isso acontece com...",
+                        texto = "Isso acontece em quais sites?",
                         opcoes =
                             listOf(
                                 "Qualquer site",
                                 "Só sites específicos",
-                                "Só a primeira página (depois melhora)",
+                                "Só na primeira página. Depois melhora.",
                             ),
                     ),
                     PerguntaFechada(
@@ -155,26 +155,26 @@ object PerguntasDiagnosticoGuiado {
                 listOf(
                     PerguntaFechada(
                         texto = "Você já comparou com outro teste?",
-                        opcoes = listOf("Só testei pelo SignallQ", "Comparei com outro app ou site"),
+                        opcoes = listOf("Testei apenas no SignallQ", "Comparei com outro aplicativo ou site"),
                     ),
                     PerguntaFechada(
-                        texto = "Este teste foi feito...",
+                        texto = "Como você fez este teste?",
                         opcoes =
                             listOf(
-                                "Perto do roteador, por cabo",
-                                "Perto do roteador, por Wi-Fi",
-                                "Longe do roteador, por Wi-Fi",
+                                "Com um cabo de rede",
+                                "Perto do roteador, pelo Wi-Fi",
+                                "Longe do roteador, pelo Wi-Fi",
                             ),
                     ),
                 )
             ObjetivoDiagnostico.WIFI_VS_OPERADORA ->
                 listOf(
                     PerguntaFechada(
-                        texto = "O problema muda se você desligar o Wi-Fi e usar dados móveis?",
+                        texto = "A internet melhora quando você desliga o Wi-Fi e usa a rede móvel?",
                         opcoes = listOf("Sim, melhora muito", "Sim, um pouco", "Não muda nada", "Ainda não testei"),
                     ),
                     PerguntaFechada(
-                        texto = "Outros dispositivos em casa têm o mesmo problema?",
+                        texto = "Outros aparelhos também apresentam esse problema?",
                         opcoes = listOf("Sim, todos", "Só alguns", "Não, só este aparelho"),
                     ),
                 )

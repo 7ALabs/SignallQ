@@ -89,7 +89,7 @@ fun NativeAdCard(
                 IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
-                        contentDescription = "Dispensar anuncio",
+                        contentDescription = "Fechar anúncio",
                         tint = c.textTertiary,
                         modifier = Modifier.size(16.dp),
                     )

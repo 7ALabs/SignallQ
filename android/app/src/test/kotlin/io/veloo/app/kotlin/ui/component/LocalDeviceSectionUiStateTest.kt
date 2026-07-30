@@ -98,7 +98,7 @@ class LocalDeviceSectionUiStateTest {
         val estado = mapLocalDeviceSectionUiState(snapshot)
         assertTrue(estado is LocalDeviceSectionUiState.Conectado)
         val conectado = estado as LocalDeviceSectionUiState.Conectado
-        assertTrue(conectado.secoes.any { it.titulo == "Fibra óptica" })
+        assertTrue(conectado.secoes.any { it.titulo == "Fibra" })
         assertTrue(conectado.completo)
         assertFalse(conectado.experimental)
     }
@@ -109,7 +109,7 @@ class LocalDeviceSectionUiStateTest {
         val estado = mapLocalDeviceSectionUiState(snapshot)
         assertTrue(estado is LocalDeviceSectionUiState.Conectado)
         val conectado = estado as LocalDeviceSectionUiState.Conectado
-        assertFalse(conectado.secoes.any { it.titulo == "Fibra óptica" })
+        assertFalse(conectado.secoes.any { it.titulo == "Fibra" })
         assertTrue(conectado.secoes.any { it.titulo == "Internet (WAN)" })
         assertTrue(conectado.secoes.any { it.titulo == "Wi-Fi" })
     }

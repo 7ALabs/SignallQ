@@ -36,7 +36,7 @@ import io.signallq.app.ui.component.LocalDeviceSection
 import io.signallq.app.ui.component.mapLocalDeviceSectionUiState
 
 /**
- * "Detalhes técnicos" como tela própria — Feature #550, issue #1475. Antes vivia como
+ * "Detalhes da conexão" como tela própria — Feature #550, issue #1475. Antes vivia como
  * accordion dentro da sheet automática "Análise detalhada" (`DiagnosticoDetalhadoSheet`,
  * retirada nesta issue); agora é um dos 3 destinos do resumo pós-teste
  * ([ResultadoVelocidadeScreen]), sem nenhum dado de IA/recomendação — só a leitura
@@ -57,7 +57,7 @@ fun DetalhesTecnicosScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Text("Detalhes técnicos", style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
+                    Text("Detalhes da conexão", style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
                 },
                 navigationIcon = {
                     IconButton(onClick = onVoltar) {
@@ -77,7 +77,7 @@ fun DetalhesTecnicosScreen(
                     .padding(padding)
                     .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg),
         ) {
-            LkSectionOverline(text = "Orientação por tipo de rede")
+            LkSectionOverline(text = "Sobre este tipo de conexão")
             Spacer(Modifier.height(LkSpacing.xs))
             Text(
                 text = orientacaoPorTipoDeRede(resultado.connectionType, resultado.tecnologia),
@@ -87,37 +87,37 @@ fun DetalhesTecnicosScreen(
             )
 
             Spacer(Modifier.height(LkSpacing.xl))
-            LkSectionOverline(text = "Métricas medidas")
+            LkSectionOverline(text = "Dados medidos")
             Spacer(Modifier.height(LkSpacing.xs))
-            DetalheRow("Bufferbloat", "%.0f ms".format(resultado.bufferbloatMs), c)
+            DetalheRow("Lentidão com a rede ocupada", "%.0f ms".format(resultado.bufferbloatMs), c)
             HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-            DetalheRow("Pico Download", "%.1f Mbps".format(resultado.peakDownloadMbps), c)
+            DetalheRow("Maior velocidade de download", "%.1f Mbps".format(resultado.peakDownloadMbps), c)
             HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-            DetalheRow("Pico Upload", "%.1f Mbps".format(resultado.peakUploadMbps), c)
+            DetalheRow("Maior velocidade de upload", "%.1f Mbps".format(resultado.peakUploadMbps), c)
             HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-            DetalheRow("Latência c/ carga ↓", "%.0f ms".format(resultado.latencyDownloadMs), c)
+            DetalheRow("Tempo de resposta durante download", "%.0f ms".format(resultado.latencyDownloadMs), c)
             HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-            DetalheRow("Latência c/ carga ↑", "%.0f ms".format(resultado.latencyUploadMs), c)
+            DetalheRow("Tempo de resposta durante upload", "%.0f ms".format(resultado.latencyUploadMs), c)
             if (resultado.stabilityScore in 0.0..1.0) {
                 HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-                DetalheRow("Estabilidade", "%.0f%%".format(resultado.stabilityScore * 100), c)
+                DetalheRow("Estabilidade da conexão", "%.0f%%".format(resultado.stabilityScore * 100), c)
             }
             if (resultado.dnsLatencyMs != null) {
                 HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
                 val dnsProvedor = resultado.dnsProvider ?: resultado.dnsResolverIp
                 DetalheRow(
-                    "DNS" + (dnsProvedor?.let { " ($it)" } ?: ""),
+                    "Tempo para localizar sites" + (dnsProvedor?.let { " ($it)" } ?: ""),
                     "${resultado.dnsLatencyMs} ms",
                     c,
                 )
             }
             if (!localizacaoServidor.isNullOrBlank()) {
                 HorizontalDivider(color = c.outlineVariant, thickness = 1.dp)
-                DetalheRow("Servidor", localizacaoServidor, c)
+                DetalheRow("Servidor usado no teste", localizacaoServidor, c)
             }
 
             Spacer(Modifier.height(LkSpacing.xl))
-            LkSectionOverline(text = "Equipamento local")
+            LkSectionOverline(text = "Seu equipamento de internet")
             Spacer(Modifier.height(LkSpacing.xs))
             LocalDeviceSection(state = mapLocalDeviceSectionUiState(localDevice))
             Spacer(Modifier.height(LkSpacing.xl))
@@ -135,7 +135,7 @@ internal fun orientacaoPorTipoDeRede(
     when {
         connectionType.equals("wifi", ignoreCase = true) ->
             "Conexão via Wi-Fi. Se o resultado ficou abaixo do esperado, teste perto do roteador " +
-                "ou com um cabo de rede pra isolar se o problema é do Wi-Fi ou da internet contratada."
+                "ou com um cabo de rede para isolar se o problema é do Wi-Fi ou da internet contratada."
         connectionType.equals("movel", ignoreCase = true) -> {
             val tecLabel =
                 when {
@@ -144,12 +144,12 @@ internal fun orientacaoPorTipoDeRede(
                         tecnologia?.contains("LTE", ignoreCase = true) == true -> "4G"
                     else -> "rede móvel"
                 }
-            "Conexão via $tecLabel. Sinal fraco e congestionamento da torre variam por local e horário — " +
-                "repita o teste em outro ponto ou horário antes de concluir que há um problema fixo."
+            "Conexão via $tecLabel. Sinal fraco e congestionamento da torre variam por local e horário. " +
+                "Repita o teste em outro ponto ou horário antes de concluir que há um problema fixo."
         }
         else ->
             "Tipo de conexão não identificado neste teste. Repita o teste conectado por Wi-Fi ou dados " +
-                "móveis pra ter uma orientação mais precisa."
+                "móveis para ter uma orientação mais precisa."
     }
 
 @Composable

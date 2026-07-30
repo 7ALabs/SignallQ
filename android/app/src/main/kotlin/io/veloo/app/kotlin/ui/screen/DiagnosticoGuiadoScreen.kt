@@ -180,9 +180,9 @@ fun DiagnosticoGuiadoScreen(
                     Text(
                         text =
                             when {
-                                mostrarResultado -> "Resultado do diagnóstico"
+                                mostrarResultado -> "O que identifiquei"
                                 objetivo != null -> objetivo!!.titulo
-                                else -> "Diagnóstico guiado"
+                                else -> "Vamos descobrir o que está acontecendo"
                             },
                         style = MaterialTheme.typography.titleLarge,
                         color = c.textPrimary,
@@ -301,7 +301,7 @@ private fun ListaObjetivos(
                 .padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg),
     ) {
         Text(
-            text = "Qual dessas situações mais parece com o que você está vivendo?",
+            text = "O que está acontecendo com sua internet?",
             style = MaterialTheme.typography.bodyMedium,
             color = c.textSecondary,
         )
@@ -444,7 +444,7 @@ private fun PerguntaFechadaConteudo(
                 colors = ButtonDefaults.buttonColors(containerColor = c.primary, contentColor = c.onPrimary),
             ) {
                 Text(
-                    text = if (passo < total - 1) "Avançar" else "Ver resultado",
+                    text = if (passo < total - 1) "Continuar" else "Ver o que identifiquei",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -506,7 +506,7 @@ private fun ResultadoDiagnosticoGuiadoConteudo(
         val conteudoProximoPasso = remember(ferramentaSugerida) { ferramentaSugerida?.conteudoProximoPasso() }
         if (ferramentaSugerida != null && conteudoProximoPasso != null) {
             Spacer(Modifier.height(LkSpacing.lg))
-            LkSectionOverline(text = "Próximo passo sugerido")
+            LkSectionOverline(text = "Próximo passo")
             Spacer(Modifier.height(LkSpacing.sm))
             ProximoPassoSugeridoCard(
                 conteudo = conteudoProximoPasso,
@@ -542,7 +542,7 @@ private fun ResultadoDiagnosticoGuiadoConteudo(
             ) {
                 Icon(imageVector = Icons.Outlined.Call, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(LkSpacing.sm))
-                Text(text = "Falar com a operadora", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.W600)
+                Text(text = "Entrar em contato com a operadora", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.W600)
             }
             if (showOperadoraSheet) {
                 OperadoraBottomSheet(
@@ -560,7 +560,7 @@ private fun ResultadoDiagnosticoGuiadoConteudo(
 
         if (recommendationDecision != null) {
             Spacer(Modifier.height(LkSpacing.lg))
-            LkSectionOverline(text = "Configurações")
+            LkSectionOverline(text = "Sugestão")
             Spacer(Modifier.height(LkSpacing.sm))
             RecommendationEngineCardGuiado(
                 decision = recommendationDecision,
@@ -582,7 +582,7 @@ private fun ResultadoDiagnosticoGuiadoConteudo(
                 Icon(imageVector = Icons.Outlined.SportsEsports, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(LkSpacing.sm))
                 Text(
-                    text = "Ver diagnóstico por jogo (Modo gamer)",
+                    text = "Analisar um jogo específico",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.W600,
                 )
@@ -595,11 +595,11 @@ private fun ResultadoDiagnosticoGuiadoConteudo(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(LkRadius.button),
         ) {
-            Text(text = "Escolher outra situação", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+            Text(text = "Analisar outro problema", style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
         }
         Spacer(Modifier.height(LkSpacing.sm))
         TextButton(onClick = onIrParaHome, modifier = Modifier.fillMaxWidth()) {
-            Text(text = "Ir para o início", style = MaterialTheme.typography.bodyMedium, color = c.primary)
+            Text(text = "Voltar ao início", style = MaterialTheme.typography.bodyMedium, color = c.primary)
         }
         Spacer(Modifier.height(LkSpacing.xl))
     }
@@ -621,23 +621,23 @@ private fun TipoFerramenta.conteudoProximoPasso(): ConteudoProximoPasso? =
         TipoFerramenta.DNS ->
             ConteudoProximoPasso(
                 icon = Icons.Outlined.Dns,
-                titulo = "Testar servidores DNS",
-                descricao = "Sites lentos ou velocidade abaixo do contratado podem melhorar trocando o servidor DNS.",
-                textoBotao = "Testar DNS",
+                titulo = "Verificar a abertura de sites",
+                descricao = "Vamos verificar se o serviço que localiza os sites está deixando a navegação lenta.",
+                textoBotao = "Verificar abertura de sites",
             )
         TipoFerramenta.MONITORAMENTO ->
             ConteudoProximoPasso(
                 icon = Icons.Outlined.MonitorHeart,
-                titulo = "Ativar monitoramento",
-                descricao = "Acompanhe quedas e oscilações em segundo plano, sem precisar abrir o app toda hora.",
-                textoBotao = "Ativar monitoramento",
+                titulo = "Acompanhar a conexão",
+                descricao = "O SignallQ pode acompanhar quedas e oscilações automaticamente.",
+                textoBotao = "Acompanhar a conexão",
             )
         TipoFerramenta.SINAL_WIFI ->
             ConteudoProximoPasso(
                 icon = Icons.Outlined.NetworkWifi,
-                titulo = "Ver sinal Wi-Fi",
-                descricao = "Veja RSSI, banda e padrão Wi-Fi em tempo real pra saber se o problema é do roteador ou da operadora.",
-                textoBotao = "Ver sinal Wi-Fi",
+                titulo = "Ver a força do Wi-Fi",
+                descricao = "Veja a força do Wi-Fi para entender se o problema está dentro de casa ou na operadora.",
+                textoBotao = "Ver a força do Wi-Fi",
             )
         TipoFerramenta.DISPOSITIVOS,
         TipoFerramenta.EQUIPAMENTO_INTERNET,
@@ -750,7 +750,7 @@ private fun OperadoraResumoCardGuiado(
                 fontWeight = FontWeight.W600,
                 color = c.textPrimary,
             )
-            Text(text = "Atendimento oficial disponível", style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+            Text(text = "Canais oficiais disponíveis", style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
         }
     }
 }
@@ -849,7 +849,7 @@ private fun RecommendationEngineCardGuiado(
             }
         } else {
             Text(
-                text = "Obrigado pelo feedback — isso ajuda a melhorar as próximas recomendações.",
+                text = "Obrigado pelo feedback! Isso ajuda a melhorar as próximas recomendações.",
                 style = MaterialTheme.typography.labelSmall,
                 color = c.textTertiary,
             )
@@ -878,11 +878,11 @@ private fun RecommendationFeedbackButtonGuiado(
 
 internal fun recommendationTypeLabel(type: RecommendationType): String =
     when (type) {
-        RecommendationType.FREE_TIP -> "DICA GRATUITA"
+        RecommendationType.FREE_TIP -> "DICA"
         RecommendationType.TUTORIAL -> "TUTORIAL"
-        RecommendationType.CONFIGURATION -> "CONFIGURAÇÃO"
-        RecommendationType.AFFILIATE_PRODUCT -> "PRODUTO RECOMENDADO"
-        RecommendationType.PARTNER_OFFER -> "OFERTA PARCEIRA"
+        RecommendationType.CONFIGURATION -> "AJUSTE RECOMENDADO"
+        RecommendationType.AFFILIATE_PRODUCT -> "PRODUTO SUGERIDO"
+        RecommendationType.PARTNER_OFFER -> "OFERTA DE PARCEIRO"
         RecommendationType.OPERATOR_OFFER -> "OFERTA DA OPERADORA"
         RecommendationType.NATIVE_AD_FALLBACK -> "PUBLICIDADE"
     }

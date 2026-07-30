@@ -62,18 +62,18 @@ object DiagnosticoGuiadoEngine {
         val internet = input?.internet
         val dims = mutableListOf<Dimensao>()
         internet?.perdaPercentual?.let {
-            dims += Dimensao("Perda estimada", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it))
+            dims += Dimensao("Falhas estimadas na conexão", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it))
         }
         internet?.jitterMs?.let {
-            dims += Dimensao("Oscilação (jitter)", "%.0f ms".format(it), MetricClassifier.classificarJitter(it))
+            dims += Dimensao("Variação da conexão", "%.0f ms".format(it), MetricClassifier.classificarJitter(it))
         }
         return montarResultado(
             objetivo = ObjetivoDiagnostico.INTERNET_CAI_OSCILA,
             dims = dims,
             mensagens = MensagensStatus(
-                ok = "Não encontramos perda de pacotes nem oscilação fora do esperado nos últimos testes.",
-                atencao = "Há sinais de instabilidade na sua rede — perda de pacotes ou oscilação um pouco acima do ideal.",
-                critica = "Sinal de instabilidade real na sua rede — perda de pacotes e oscilação acima do esperado para uma conexão estável.",
+                ok = "Não encontramos falhas na conexão nem oscilação fora do esperado nos últimos testes.",
+                atencao = "Sinais de instabilidade na sua rede: falhas na conexão ou oscilação um pouco acima do ideal.",
+                critica = "Sinal de instabilidade real na sua rede: falhas na conexão e oscilação acima do esperado para uma conexão estável.",
             ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
@@ -81,7 +81,7 @@ object DiagnosticoGuiadoEngine {
                 } else {
                     listOf(
                         "Reposicione o roteador longe de paredes e eletrônicos",
-                        "Teste por cabo pra isolar se é Wi-Fi ou operadora",
+                        "Teste por cabo para isolar se é Wi-Fi ou operadora",
                     )
                 }
             },
@@ -96,7 +96,7 @@ object DiagnosticoGuiadoEngine {
         val internet = input?.internet
         val dims = mutableListOf<Dimensao>()
         internet?.bufferbloatMs?.let {
-            dims += Dimensao("Atraso sob carga", "%.0f ms".format(it), MetricClassifier.classificarBufferbloat(it))
+            dims += Dimensao("Lentidão com a rede ocupada", "%.0f ms".format(it), MetricClassifier.classificarBufferbloat(it))
         }
         internet?.downloadMbps?.let {
             dims += Dimensao("Download", "%.1f Mbps".format(it), MetricClassifier.classificarDownload(it))
@@ -105,9 +105,9 @@ object DiagnosticoGuiadoEngine {
             objetivo = ObjetivoDiagnostico.VIDEOS_TRAVAM,
             dims = dims,
             mensagens = MensagensStatus(
-                ok = "Download e atraso sob carga dentro do esperado — a rede aguenta streaming em boa qualidade.",
-                atencao = "O atraso sob carga ou o download ficaram no limite — streaming pode perder qualidade em horário de pico.",
-                critica = "O download cai bastante sob carga, com atraso alto — isso costuma travar o vídeo ou derrubar a qualidade sozinho.",
+                ok = "Download e atraso sob carga dentro do esperado. Sua rede aguenta streaming em boa qualidade.",
+                atencao = "O atraso sob carga ou o download ficaram no limite. O streaming pode perder qualidade em horário de pico.",
+                critica = "O download cai bastante sob carga, com atraso alto. Isso costuma travar o vídeo ou derrubar a qualidade sozinho.",
             ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
@@ -131,13 +131,13 @@ object DiagnosticoGuiadoEngine {
         val jogaPorCabo = respostas.getOrNull(0) == 1
         val dims = mutableListOf<Dimensao>()
         internet?.latencyMs?.let {
-            dims += Dimensao("Latência sob carga", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it))
+            dims += Dimensao("Tempo de resposta com a rede ocupada", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it))
         }
         internet?.jitterMs?.let {
-            dims += Dimensao("Jitter", "%.0f ms".format(it), MetricClassifier.classificarJitter(it))
+            dims += Dimensao("Variação do tempo de resposta", "%.0f ms".format(it), MetricClassifier.classificarJitter(it))
         }
         internet?.perdaPercentual?.let {
-            dims += Dimensao("Perda estimada", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it))
+            dims += Dimensao("Falhas estimadas na conexão", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it))
         }
         // Wi-Fi fraco só entra como evidência quando o usuário não disse que joga por cabo —
         // mesmo princípio de GameReadinessClassifier.aplicarPenalidadeWifi.
@@ -145,26 +145,26 @@ object DiagnosticoGuiadoEngine {
             input?.wifi?.rssiDbm?.let { rssi ->
                 val banda = input.wifi.banda()
                 val wifiBand = if (banda == BandaWifi.ghz24) MetricClassifier.WifiBand.GHZ_2_4 else MetricClassifier.WifiBand.GHZ_5
-                dims += Dimensao("Sinal Wi-Fi", "$rssi dBm", MetricClassifier.classificarRssiWifi(rssi, wifiBand))
+                dims += Dimensao("Força do sinal Wi-Fi", "$rssi dBm", MetricClassifier.classificarRssiWifi(rssi, wifiBand))
             }
         }
         return montarResultado(
             objetivo = ObjetivoDiagnostico.JOGOS_COM_LAG,
             dims = dims,
             mensagens = MensagensStatus(
-                ok = "Latência, jitter e perda dentro da faixa recomendada para jogos online.",
-                atencao = "Latência sob carga ou jitter no limite — pode haver atraso perceptível em momentos de disputa.",
-                critica = "Latência sob carga está prejudicando suas partidas — faixa crítica para jogos competitivos.",
+                ok = "Tempo de resposta, variação do tempo de resposta e falhas na conexão dentro da faixa recomendada para jogos online.",
+                atencao = "O tempo de resposta sob carga ou a variação do tempo de resposta estão no limite. Pode haver atraso perceptível em momentos de disputa.",
+                critica = "O tempo de resposta sob carga está prejudicando suas partidas. Faixa crítica para jogos competitivos.",
             ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()
                 } else if (jogaPorCabo) {
-                    listOf("Ative priorização de jogos (QoS) no roteador, se disponível")
+                    listOf("Ative priorização de jogos (prioridade de tráfego) no roteador, se disponível")
                 } else {
                     listOf(
                         "Jogue com cabo de rede em vez de Wi-Fi",
-                        "Ative priorização de jogos (QoS) no roteador, se disponível",
+                        "Ative priorização de jogos (prioridade de tráfego) no roteador, se disponível",
                     )
                 }
             },
@@ -179,10 +179,10 @@ object DiagnosticoGuiadoEngine {
         val internet = input?.internet
         val dims = mutableListOf<Dimensao>()
         internet?.jitterMs?.let {
-            dims += Dimensao("Jitter", "%.0f ms".format(it), MetricClassifier.classificarJitter(it))
+            dims += Dimensao("Variação do tempo de resposta", "%.0f ms".format(it), MetricClassifier.classificarJitter(it))
         }
         internet?.perdaPercentual?.let {
-            dims += Dimensao("Perda estimada", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it))
+            dims += Dimensao("Falhas estimadas na conexão", "%.1f%%".format(it), MetricClassifier.classificarPerdaPacotes(it))
         }
         internet?.uploadMbps?.let {
             dims += Dimensao("Upload", "%.1f Mbps".format(it), MetricClassifier.classificarUpload(it))
@@ -191,17 +191,17 @@ object DiagnosticoGuiadoEngine {
             objetivo = ObjetivoDiagnostico.CHAMADAS_CONGELAM,
             dims = dims,
             mensagens = MensagensStatus(
-                ok = "Jitter, perda e upload dentro do esperado — a rede sustenta chamada de vídeo estável.",
-                atencao = "Jitter ou upload no limite — chamadas podem sofrer quando a rede está mais ocupada.",
-                critica = "Jitter alto e/ou upload comprometido — isso costuma congelar a imagem ou cortar o áudio na chamada.",
+                ok = "A variação do tempo de resposta, a perda e o upload estão dentro do esperado. A rede sustenta uma chamada de vídeo estável.",
+                atencao = "A variação do tempo de resposta ou o upload estão no limite. As chamadas podem sofrer quando a rede está mais ocupada.",
+                critica = "A variação do tempo de resposta está alta e/ou o upload está comprometido. Isso costuma congelar a imagem ou cortar o áudio na chamada.",
             ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()
                 } else {
                     listOf(
-                        "Peça pra outras pessoas em casa pausarem downloads durante a chamada",
-                        "Prefira cabo de rede pra chamadas importantes",
+                        "Peça para outras pessoas em casa pausarem downloads durante a chamada",
+                        "Prefira cabo de rede para chamadas importantes",
                     )
                 }
             },
@@ -218,30 +218,30 @@ object DiagnosticoGuiadoEngine {
         val dims = mutableListOf<Dimensao>()
         val dnsLatencia = dns?.currentDnsLatencyMs
         if (dnsLatencia != null) {
-            dims += Dimensao("Latência DNS", "$dnsLatencia ms", MetricClassifier.classificarLatenciaDns(dnsLatencia))
+            dims += Dimensao("Tempo para localizar sites", "$dnsLatencia ms", MetricClassifier.classificarLatenciaDns(dnsLatencia))
         } else {
             internet?.latencyMs?.let {
-                dims += Dimensao("Latência geral", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it))
+                dims += Dimensao("Tempo de resposta", "%.0f ms".format(it), MetricClassifier.classificarLatencia(it))
             }
         }
         return montarResultado(
             objetivo = ObjetivoDiagnostico.SITES_DEMORAM,
             dims = dims,
             mensagens = MensagensStatus(
-                ok = "Latência dentro do esperado — sites devem abrir sem demora perceptível.",
-                atencao = "A resolução de nomes (DNS) ou a latência geral estão um pouco lentas.",
-                critica = "Latência de DNS ou latência geral alta — isso costuma atrasar o carregamento de sites.",
+                ok = "O tempo de resposta está dentro do esperado. Os sites devem abrir sem demora perceptível.",
+                atencao = "A resolução de nomes (serviço que localiza sites) ou a tempo de resposta geral estão um pouco lentas.",
+                critica = "O tempo de resposta do DNS ou o tempo de resposta geral estão altos. Isso costuma atrasar o carregamento de sites.",
             ),
             acoes = { status ->
                 if (status == DiagnosticStatus.ok) {
                     emptyList()
                 } else if (dnsLatencia != null) {
                     listOf(
-                        "Troque o DNS da rede para um provedor mais rápido nas configurações",
-                        "Teste novamente em outro navegador pra descartar cache",
+                        "Troque o DNS da rede nas configurações. Um DNS mais rápido pode acelerar a abertura de sites",
+                        "Teste novamente em outro navegador para descartar cache",
                     )
                 } else {
-                    listOf("Repita o teste com a métrica de DNS ativa pra isolar melhor a causa")
+                    listOf("Repita o teste com a medição de DNS ativa para isolar melhor a causa")
                 }
             },
         )
@@ -266,7 +266,7 @@ object DiagnosticoGuiadoEngine {
                     percentual >= 30.0 -> MetricStatus.ruim
                     else -> MetricStatus.critico
                 }
-            dims += Dimensao("Download vs. contratado", "%.0f%%".format(percentual), status)
+            dims += Dimensao("Velocidade recebida do plano", "%.0f%%".format(percentual), status)
         } else if (download != null) {
             dims += Dimensao("Download", "%.1f Mbps".format(download), MetricClassifier.classificarDownload(download))
         }
@@ -304,14 +304,14 @@ object DiagnosticoGuiadoEngine {
                 input.wifi?.rssiDbm?.let { rssi ->
                     val banda = input.wifi.banda()
                     val wifiBand = if (banda == BandaWifi.ghz24) MetricClassifier.WifiBand.GHZ_2_4 else MetricClassifier.WifiBand.GHZ_5
-                    dims += Dimensao("Sinal Wi-Fi", "$rssi dBm", MetricClassifier.classificarRssiWifi(rssi, wifiBand))
+                    dims += Dimensao("Força do sinal Wi-Fi", "$rssi dBm", MetricClassifier.classificarRssiWifi(rssi, wifiBand))
                 }
             ConnectionType.mobile ->
                 input.mobile?.signalStrengthDbm?.let { dbm ->
                     // Sem tabela dedicada de sinal generico (RSSI cru) para movel — usa a mesma
                     // regua de Wi-Fi 5GHz como proxy conservador (nao ha tabela RSSI-generico
                     // documentada na skill /regras-diagnostico-rede para movel fora de RSRP/RSRQ/SINR).
-                    dims += Dimensao("Sinal da operadora", "$dbm dBm", MetricClassifier.classificarRssiWifi(dbm, MetricClassifier.WifiBand.GHZ_5))
+                    dims += Dimensao("Força do sinal da operadora", "$dbm dBm", MetricClassifier.classificarRssiWifi(dbm, MetricClassifier.WifiBand.GHZ_5))
                 }
             else -> Unit
         }
@@ -327,15 +327,19 @@ object DiagnosticoGuiadoEngine {
                 else -> null // "Ainda não testei" -> sem evidência adicional
             }
         if (statusAutoRelato != null) {
-            dims += Dimensao("Relato: melhora sem Wi-Fi", melhoraDesligandoWifi.rotuloMelhoraSemWifi(), statusAutoRelato)
+            dims += Dimensao(
+                melhoraDesligandoWifi.rotuloRelatoMelhoraSemWifi(),
+                melhoraDesligandoWifi.valorRelatoMelhoraSemWifi(),
+                statusAutoRelato,
+            )
         }
 
         return montarResultado(
             objetivo = ObjetivoDiagnostico.WIFI_VS_OPERADORA,
             dims = dims,
             mensagens = MensagensStatus(
-                ok = "Sinal da conexão atual dentro do esperado — problema não parece estar entre roteador e dispositivos.",
-                atencao = "Sinal um pouco abaixo do ideal — vale testar por cabo ou reposicionar o roteador antes de acionar a operadora.",
+                ok = "O sinal da conexão atual está dentro do esperado. O problema não parece estar entre o roteador e os dispositivos.",
+                atencao = "O sinal está um pouco abaixo do ideal. Vale testar por cabo ou reposicionar o roteador antes de acionar a operadora.",
                 critica = "Problema parece estar entre roteador e dispositivos, não na internet contratada.",
             ),
             acoes = { status ->
@@ -351,12 +355,15 @@ object DiagnosticoGuiadoEngine {
         )
     }
 
-    private fun Int?.rotuloMelhoraSemWifi(): String =
+    private fun Int?.rotuloRelatoMelhoraSemWifi(): String =
+        if (this == null) "Comparação com a rede móvel" else "Ao usar a rede móvel"
+
+    private fun Int?.valorRelatoMelhoraSemWifi(): String =
         when (this) {
-            0 -> "Melhora muito"
-            1 -> "Melhora um pouco"
-            2 -> "Não muda"
-            else -> "Não testado"
+            0 -> "melhora muito"
+            1 -> "melhora um pouco"
+            2 -> "não muda"
+            else -> "não feita"
         }
 
     // ── Compartilhado ────────────────────────────────────────────────────────

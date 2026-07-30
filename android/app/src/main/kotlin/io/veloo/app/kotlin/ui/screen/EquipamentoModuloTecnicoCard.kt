@@ -173,7 +173,7 @@ private fun LkSurfaceCardHairline(
 }
 
 internal fun EquipamentoSecaoTecnica.normalizarItem(item: EquipamentoItemTecnico): EquipamentoItemTecnico =
-    if (titulo == "Fibra óptica" && item.label == "Link óptico") {
+    if (titulo == "Fibra" && item.label == "Conexão da fibra") {
         item.copy(label = "Conexão PON")
     } else {
         item

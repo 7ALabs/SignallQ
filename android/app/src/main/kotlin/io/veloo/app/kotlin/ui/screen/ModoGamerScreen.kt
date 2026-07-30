@@ -120,7 +120,7 @@ fun ModoGamerScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = if (etapa is ModoGamerEtapa.Resultado) "Diagnóstico do jogo" else "Modo gamer",
+                        text = if (etapa is ModoGamerEtapa.Resultado) "Resultado para o jogo" else "Analisar jogos online",
                         style = MaterialTheme.typography.titleLarge,
                         color = c.textPrimary,
                     )
@@ -201,7 +201,7 @@ private fun ModoGamerSelecaoJogoConteudo(
     Column(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg)) {
             Text(
-                text = "Escolha o jogo",
+                text = "Qual jogo você quer analisar?",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.W600,
                 color = c.textPrimary,
@@ -211,7 +211,7 @@ private fun ModoGamerSelecaoJogoConteudo(
                 value = busca,
                 onValueChange = onBuscar,
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Buscar jogo…") },
+                placeholder = { Text("Buscar um jogo…") },
                 leadingIcon = { Icon(imageVector = Icons.Outlined.Search, contentDescription = null, tint = c.textTertiary) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -246,8 +246,8 @@ private fun ModoGamerSelecaoJogoConteudo(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Outro jogo", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
-                    Text(text = "Escolha a categoria mais parecida", style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+                    Text(text = "Meu jogo não está na lista", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.W600, color = c.textPrimary)
+                    Text(text = "Escolha o tipo de jogo mais parecido", style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
                 }
                 Icon(imageVector = Icons.Rounded.ChevronRight, contentDescription = null, tint = c.textTertiary)
             }
@@ -265,7 +265,7 @@ private fun ModoGamerSelecaoCategoriaFallback(
     BackHandler(onBack = onVoltar)
     Column(modifier = modifier.fillMaxSize().padding(horizontal = LkSpacing.xl, vertical = LkSpacing.lg)) {
         Text(
-            text = "Seu jogo não está na lista? Escolha a categoria mais parecida — o resultado usa o perfil de referência dela.",
+            text = "Seu jogo não está na lista? Escolha a categoria mais parecida. O resultado usa o perfil de referência dela.",
             style = MaterialTheme.typography.bodyMedium,
             color = c.textSecondary,
         )
