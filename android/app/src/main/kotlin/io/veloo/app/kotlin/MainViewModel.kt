@@ -1817,14 +1817,15 @@ class MainViewModel
             // GH#1512 (achado de revisao) -- uma excecao inesperada aqui (I/O de
             // persistencia, etc.) nunca pode propagar como crash: degrada para uma
             // conclusao INCONCLUSIVE honesta em vez de derrubar o app.
-            val diagnostico = try {
-                connectivityDiagnosisRepository.diagnosticar()
-            } catch (t: Throwable) {
-                if (t is CancellationException) throw t
-                Timber.e(t, "diagnostico de conectividade falhou inesperadamente")
-                _diagnosticoConectividade.value = ConnectivityDiagnosisPresenter.apresentarInconclusivo()
-                return true
-            }
+            val diagnostico =
+                try {
+                    connectivityDiagnosisRepository.diagnosticar()
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    Timber.e(t, "diagnostico de conectividade falhou inesperadamente")
+                    _diagnosticoConectividade.value = ConnectivityDiagnosisPresenter.apresentarInconclusivo()
+                    return true
+                }
             if (diagnostico.status == ConnectivityStatus.INTERNET_AVAILABLE) return false
 
             _diagnosticoConectividade.value = ConnectivityDiagnosisPresenter.apresentar(diagnostico)
