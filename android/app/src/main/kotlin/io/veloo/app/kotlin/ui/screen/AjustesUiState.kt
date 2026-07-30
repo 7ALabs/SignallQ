@@ -1,7 +1,7 @@
 ﻿package io.signallq.app.ui.screen
 
-import io.signallq.app.core.network.contracts.gateway.GatewayConnectionResultado
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionService
+import io.signallq.app.core.network.contracts.gateway.GatewayConnectionServiceIndisponivelPadrao
 
 data class AjustesPerfilState(
     val nomeUsuario: String,
@@ -58,7 +58,9 @@ data class AjustesModemState(
     // GH#530 — reuso da GatewayConnectionSheet na linha do roteador. Sessão válida
     // (BSSID atual == BSSID salvo com "manter conectado") pula a sheet.
     val gatewaySessaoValida: Boolean = false,
-    val conectarGateway: GatewayConnectionService = GatewayConnectionService { _, _, _ -> GatewayConnectionResultado.Sucesso },
+    // BUG#1511 (P0) — default nunca pode simular sucesso: sem implementação real conectada
+    // pelo caller, o resultado honesto é "indisponível", nunca "conectado".
+    val conectarGateway: GatewayConnectionService = GatewayConnectionServiceIndisponivelPadrao,
     val onGatewayConectado: (ip: String, usuario: String, senha: String, lembrarSenha: Boolean, manterConectado: Boolean) -> Unit =
         { _, _, _, _, _ -> },
     // GH#531 — resumo de bandas Wi-Fi ("2,4G + 5G") e contagem de dispositivos

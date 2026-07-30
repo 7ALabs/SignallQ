@@ -105,8 +105,8 @@ import io.signallq.app.R
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
-import io.signallq.app.core.network.contracts.gateway.GatewayConnectionResultado
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionService
+import io.signallq.app.core.network.contracts.gateway.GatewayConnectionServiceIndisponivelPadrao
 import io.signallq.app.core.network.contracts.topologia.NivelConfianca
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
@@ -188,7 +188,9 @@ fun HomeScreen(
     // GH#530 — reuso da GatewayConnectionSheet no nó do gateway (roteador) da trilha.
     // Sessão válida (BSSID atual == BSSID salvo com "manter conectado") pula a sheet.
     gatewaySessaoValida: Boolean = false,
-    conectarGateway: GatewayConnectionService = GatewayConnectionService { _, _, _ -> GatewayConnectionResultado.Sucesso },
+    // BUG#1511 (P0) — default nunca pode simular sucesso: sem implementação real conectada
+    // pelo caller, o resultado honesto é "indisponível", nunca "conectado".
+    conectarGateway: GatewayConnectionService = GatewayConnectionServiceIndisponivelPadrao,
     modemUsername: String = "",
     modemPassword: String = "",
     modemPermanecerConectado: Boolean = false,
