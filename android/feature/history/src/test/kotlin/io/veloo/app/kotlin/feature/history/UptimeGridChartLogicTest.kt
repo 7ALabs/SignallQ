@@ -73,7 +73,7 @@ class UptimeGridChartLogicTest {
         val status = when {
             latencia <= 300 -> StatusUptime.OK
             latencia <= 800 -> StatusUptime.LENTO
-            else -> StatusUptime.OFFLINE
+            else -> StatusUptime.LATENCIA_ALTA
         }
         assertEquals(StatusUptime.OK, status)
     }
@@ -84,20 +84,22 @@ class UptimeGridChartLogicTest {
         val status = when {
             latencia <= 300 -> StatusUptime.OK
             latencia <= 800 -> StatusUptime.LENTO
-            else -> StatusUptime.OFFLINE
+            else -> StatusUptime.LATENCIA_ALTA
         }
         assertEquals(StatusUptime.LENTO, status)
     }
 
     @Test
-    fun `bloco com latencia acima de 800ms deve ser OFFLINE`() {
+    fun `bloco com latencia acima de 800ms deve ser LATENCIA_ALTA, nunca OFFLINE`() {
+        // GH#1518: latencia alta != offline — a rede respondeu, so que devagar.
         val latencia = 1200
         val status = when {
             latencia <= 300 -> StatusUptime.OK
             latencia <= 800 -> StatusUptime.LENTO
-            else -> StatusUptime.OFFLINE
+            else -> StatusUptime.LATENCIA_ALTA
         }
-        assertEquals(StatusUptime.OFFLINE, status)
+        assertEquals(StatusUptime.LATENCIA_ALTA, status)
+        assertTrue("Latencia alta nunca pode ser rotulada como OFFLINE", status != StatusUptime.OFFLINE)
     }
 
     // ─── Narrativa ───────────────────────────────────────────────────────────
