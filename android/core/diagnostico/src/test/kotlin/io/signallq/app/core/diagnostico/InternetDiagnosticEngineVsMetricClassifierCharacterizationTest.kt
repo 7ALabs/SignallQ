@@ -17,7 +17,6 @@ import org.junit.Test
  * [InternetDiagnosticEngine]) concluiriam coisas diferentes para a mesma medicao.
  */
 class InternetDiagnosticEngineVsMetricClassifierCharacterizationTest {
-
     private fun baseline(
         dl: Double = 100.0,
         ul: Double? = 20.0,

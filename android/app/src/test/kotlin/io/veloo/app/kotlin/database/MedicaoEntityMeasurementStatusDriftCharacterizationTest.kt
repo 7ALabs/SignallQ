@@ -23,17 +23,17 @@ import org.junit.Test
  * modulo core) -- entao este teste vive em `:app`, o unico modulo que depende dos dois.
  */
 class MedicaoEntityMeasurementStatusDriftCharacterizationTest {
-
     /** Valores documentados no kdoc de `MedicaoEntity.status` (core/database),
      *  reproduzidos aqui porque nao ha enum de producao para importar. */
-    private val valoresDocumentadosDeMedicaoEntityStatus = setOf(
-        "completed",
-        "failed",
-        "partial",
-        "timeout",
-        "contaminated",
-        "inconclusive",
-    )
+    private val valoresDocumentadosDeMedicaoEntityStatus =
+        setOf(
+            "completed",
+            "failed",
+            "partial",
+            "timeout",
+            "contaminated",
+            "inconclusive",
+        )
 
     @Test
     fun `nem todo valor documentado de MedicaoEntity-status tem MeasurementStatus correspondente`() {

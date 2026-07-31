@@ -20,7 +20,6 @@ import org.junit.Test
  * MESMO valor de upload.
  */
 class ScoreEvidenceBuilderThresholdCharacterizationTest {
-
     private fun notaVelocidade(uploadMbps: Double): Int? {
         val input = DiagnosticInput(
             internet = InternetDiagnosticInput(
@@ -46,6 +45,7 @@ class ScoreEvidenceBuilderThresholdCharacterizationTest {
             internetResultados = emptyList(),
             fibraResultados = emptyList(),
             decisao = decisaoNeutra,
+            geradoEmMs = 0L,
         )
         return ScoreEvidenceBuilder.construir(input, report)
             .first { it.dimensao == "velocidade" }

@@ -28,7 +28,6 @@ import org.junit.Test
  * deliberadamente, e nao por acidente.
  */
 class FibraSignalQualityEngineZeroSentinelCharacterizationTest {
-
     @Test
     fun `ClassificadorSaudeGpon trata RX igual a 0,0 como pior caso -- ruim`() {
         assertEquals(GponSaudeStatus.ruim, ClassificadorSaudeGpon.classificarRx(0.0))

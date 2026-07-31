@@ -21,7 +21,6 @@ import org.junit.Test
  * Ver `docs_ai/ARQUITETURA/AUDITORIA_1228_FASE0_INVENTARIO_COMPLETO.md`, Parte 8, P0-2.
  */
 class WifiRssiUiVsMetricClassifierCharacterizationTest {
-
     @Test
     fun `rssi de -65dBm em 5GHz e Bom na tela Sinal mas regular no motor de diagnostico`() {
         // Tela Sinal (SinalTopologiaHelpers.signalQuality): limite >= -65 (inclusivo) e "Bom".

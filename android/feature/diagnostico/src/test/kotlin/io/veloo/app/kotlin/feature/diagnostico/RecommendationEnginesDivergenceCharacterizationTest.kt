@@ -37,7 +37,6 @@ import org.junit.Test
  * concreto, que os dois podem divergir hoje.
  */
 class RecommendationEnginesDivergenceCharacterizationTest {
-
     private fun wifiFracoNaBanda24Input(): DiagnosticInput = DiagnosticInput(
         connectionType = ConnectionType.wifi,
         wifi = WifiDiagnosticInput(
@@ -105,6 +104,7 @@ class RecommendationEnginesDivergenceCharacterizationTest {
             internetResultados = emptyList(),
             fibraResultados = emptyList(),
             decisao = decisaoExterna,
+            geradoEmMs = 0L,
         )
 
         val request = RecommendationRequestMapper.map(report = report, input = input)

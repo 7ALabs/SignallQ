@@ -28,7 +28,6 @@ import org.junit.Test
  * `docs_ai/ARQUITETURA/AUDITORIA_1228_FASE0_INVENTARIO_COMPLETO.md`, Parte 8, P1-4).
  */
 class BufferbloatDualImplementationCharacterizationTest {
-
     private fun statusEquivalente(deltaMs: Double): Boolean {
         val doMetricClassifier = MetricClassifier.classificarBufferbloat(deltaMs)
         val doSpeedtestQualityClassifier = SpeedtestQualityClassifier.classificarBufferbloat(deltaMs)
