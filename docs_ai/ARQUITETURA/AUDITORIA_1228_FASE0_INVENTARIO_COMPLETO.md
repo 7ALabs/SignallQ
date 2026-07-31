@@ -492,7 +492,7 @@ graph TD
 | **P0-5** | ~~`UptimeChartUseCase` rotula latência alta (>800ms) como `"OFFLINE"` e a tela de Histórico narra isso como "sua rede ficou offline" quando, na verdade, a rede esteve no ar o tempo todo — conflito semântico entre "sem conectividade" e "latência ruim", potencialmente a causa raiz de relatos de usuário como os das issues #1502/#1512.~~ **RESOLVIDO (2026-07-31, GH#1518)** — novo status `StatusUptime.LATENCIA_ALTA` para o bucket >800ms (rede respondeu, devagar); `StatusUptime.OFFLINE` reservado à ausência real de resposta (amostras HTTP do monitor sem retorno). Narrativa e `UptimeGridChart` atualizados para nunca descrever latência alta como "offline"/"sem conexão". Thresholds numéricos 300/800ms **não** foram alterados — unificação entre motores segue como escopo separado (issue #1466). | `feature/history/.../UptimeChartUseCase.kt:30-31,111-115` (agora `LATENCIA_ALTA`), `UptimeNarrativaEngine.kt` (seção "Latencia muito alta"), `app/.../ui/screen/UptimeGridChart.kt` (`calcularResumoDegradacao`) |
 | **P0-6** | Operadora fixa e móvel resolvidas por 3 mecanismos não coordenados (`ipapi.co`, `ipinfo.io`/`ip-api.com`, `TelephonyManager`), sem campo de confiança/fonte na camada de aquisição, e a camada de apresentação bifurca internamente (`BancoOperadoras.resolver` vs. `.resolverMovel`, catálogos de correspondência diferentes, só 3 de ~18 operadoras têm entrada móvel mapeada). Risco nomeado explicitamente pela própria issue #1228 ("operadora móvel substituir ou concorrer com a fixa") e confirmado estruturalmente. | `MainViewModel.kt:1757-1793`, `GeoIpResolver.kt:18-53`, `BancoOperadoras.kt:203-244` |
 | **P0-7** | `FibraSignalQualityEngine` pula o achado inteiramente quando `rx == 0.0` (tratando ausência de dado como "não avaliar"), enquanto `ClassificadorSaudeGpon` (que ele mesmo chama) trata `0.0` como pior caso ("ruim") quando invocado diretamente por outros caminhos — o mesmo sentinela de "sem dado" tem dois comportamentos incompatíveis dependendo de qual código o lê. | `FibraSignalQualityEngine.kt` (guarda `rx != 0.0`) vs. `ClassificadorSaudeGpon.kt` (trata `0.0` como ruim) — achado novo desta auditoria |
-| **P0-8** | `DiagnosticStatus.attention` renderiza como **vermelho** (mesmo peso visual de `critical`) em `DiagnosticoStatusBanner` (usado por Diagnóstico Guiado e Modo Gamer), mas como **laranja** em `EquipamentoModuloTecnicoCard` e no Laudo — o mesmo achado pode parecer "crítico" numa tela e "moderado" em outra. | `DiagnosticoResultadoComponents.kt:56-58` vs. `EquipamentoModuloTecnicoCard.kt:276-286`, `LocalDeviceSection.kt:1109-1118`, `LaudoScreen.kt:204-217` |
+| **P0-8** | ~~`DiagnosticStatus.attention` renderiza como **vermelho** (mesmo peso visual de `critical`) em `DiagnosticoStatusBanner` (usado por Diagnóstico Guiado e Modo Gamer), mas como **laranja** em `EquipamentoModuloTecnicoCard` e no Laudo — o mesmo achado pode parecer "crítico" numa tela e "moderado" em outra.~~ **RESOLVIDO (2026-07-31, Fatia 8)** — novo `DiagnosticStatusUi.kt` (irmão de `MetricStatusUi.kt`) é o único ponto de conversão `DiagnosticStatus`→cor/label/ícone; os 4 mapeamentos locais foram removidos. Mapeamento canônico: `ok`→success, `info`→primary, `attention`→warning (fixa o defeito — deixa de ser vermelho), `critical`→error, `inconclusive`→primary (mesmo tratamento neutro de `info`, seguindo o precedente já documentado em `MetricStatusUi` para `MetricStatus.inconclusivo`). | `DiagnosticoResultadoComponents.kt`, `EquipamentoModuloTecnicoCard.kt`, `LocalDeviceSection.kt`, `LaudoScreen.kt` (agora consomem `DiagnosticStatusUi.kt`) |
 | **P0-9** | ~~Nenhuma linha de `MedicaoEntity` (nem qualquer outra tabela) carrega `executionId` ou `rulesVersion`.~~ **RESOLVIDO (2026-07-31, Fatia 3)** — migração Room 15→16 aditiva, ver ADR-012. Nota: `HistoricoScreen.kt` continua reclassificando bufferbloat com as regras atuais na leitura (não redesenhado nesta fatia, fora de escopo) — mas agora é possível, a partir desta fatia, saber com qual `rulesVersion` uma linha foi originalmente classificada. | `MedicaoEntity.kt` (colunas `executionId`/`rulesVersion`), `CoreDatabaseModulo.kt` (migração 15→16), `HistoricoScreen.kt:196-205` |
 | **P0-10** | Modo Gamer possui **dois** motores de "prontidão para jogos" que não se comunicam: `ModoGamerEngine` (delega a `MetricClassifier`) e `GameReadinessClassifier` (thresholds próprios, mais rígidos). Ambos endereçam o mesmo domínio ("Jogos") sem ponte, então uma mesma leitura pode ser "Ruim" num e "Bom" no outro, dependendo de qual caminho de tela o usuário seguir. | `ModoGamerEngine.kt` vs. `GameReadinessClassifier.kt` — a própria `ModoGamerEngine` cita explicitamente em kdoc que **não** reaproveita `GameReadinessClassifier` |
 
@@ -628,7 +628,7 @@ Baseada na evidência real desta auditoria — não na ordem genérica sugerida 
   incluindo regressão específica do cenário "Frankenstein" e de concorrência entre execuções).
   `AppShell.kt` não precisou ser tocado — o problema estava inteiramente contido em `LaudoScreen.kt`.
 
-## Fatia 8 — Reconciliar `DiagnosticStatus`→cor (corrige P0-8)
+## Fatia 8 — Reconciliar `DiagnosticStatus`→cor (corrige P0-8) — RESOLVIDO (2026-07-31)
 
 - **Objetivo:** um único mapeamento `DiagnosticStatus`→cor/label, substituindo os 4 encontrados.
 - **Arquivos envolvidos:** `DiagnosticoResultadoComponents.kt`, `EquipamentoModuloTecnicoCard.kt`, `LocalDeviceSection.kt`, `LaudoScreen.kt`, novo `DiagnosticStatusUi.kt` (irmão de `MetricStatusUi.kt`, já existente e correto).
@@ -637,6 +637,21 @@ Baseada na evidência real desta auditoria — não na ordem genérica sugerida 
 - **Critérios de aceite:** mesma cor para o mesmo `DiagnosticStatus` em toda tela.
 - **Rollback:** reverter para os 4 mapeamentos antigos.
 - **Testes necessários:** teste de snapshot/mapeamento por valor de enum.
+- **Como foi implementada de fato:** `DiagnosticStatusUi.kt` criado em
+  `app/.../ui/component/` (mesmo pacote/local de `MetricStatusUi.kt`), com 4 funções de
+  extensão de `DiagnosticStatus`: `corSemantica` (tint simples), `corContainer`/`corConteudo`
+  (par container/onContainer) e `labelPt`, mais `icone()` para o ícone do banner (acoplado à
+  cor, necessário para não deixar `attention` com ícone de "erro crítico" depois da mudança de
+  cor). Mapeamento escolhido (nenhuma das 4 implementações antigas venceu sozinha — decisão
+  registrada em detalhe no kdoc do arquivo novo): `ok`→success (unânime nas 4), `info`→primary
+  (maioria, 3 de 4), `attention`→warning (maioria, 3 de 4 — corrige exatamente o defeito do
+  P0-8, já que o banner era o único a tratar como vermelho), `critical`→error (unânime),
+  `inconclusive`→primary (mesmo tratamento neutro de `info`, não alarmante — segue o mesmo
+  princípio já documentado no kdoc de `MetricStatusUi` para `MetricStatus.inconclusivo`, e é
+  o único dos 4 mapeamentos antigos, `LocalDeviceSection`, que já fazia essa distinção).
+  `DiagnosticoStatusBanner`, `EquipamentoModuloTecnicoCard.statusColor`,
+  `LocalDeviceSection.statusParaCor` e o `when` inline de `LaudoScreen` foram removidos —
+  os 4 arquivos agora só chamam as funções de `DiagnosticStatusUi.kt`.
 
 ## Fatia 9 — Renomear/consolidar os dois `RecommendationEngine` (corrige P1-1/P1-2)
 
@@ -662,11 +677,11 @@ Baseada na evidência real desta auditoria — não na ordem genérica sugerida 
 
 **Fatia 3** (executionId/rulesVersion em `MedicaoEntity`) é a próxima fatia recomendada: é a base de dados para provar/auditar qualquer uma das outras fatias (sem ela, é impossível saber, depois do fato, se um resultado antigo reflete a regra da época ou uma regra futura), tem risco técnico moderado e controlado (migração aditiva, mesmo padrão já usado 14 vezes no schema), e não depende de nenhuma decisão de produto pendente — ao contrário da Fatia 4, que está bloqueada pela decisão de produto da issue #1466.
 
-**Atualização 2026-07-31:** Fatia 3 e Fatia 7 (P0-3, Laudo) concluídas — ver ADR-012. Próxima
-fatia candidata continua bloqueada por decisão de produto pendente (Fatia 4, issue #1466); Fatia
-6 (bufferbloat), Fatia 8 (`DiagnosticStatus`→cor) e Fatia 9 (rename dos `RecommendationEngine`)
-não têm bloqueio de produto e podem ser priorizadas antes da Fatia 4 se a decisão de #1466 não
-tiver sido tomada ainda.
+**Atualização 2026-07-31:** Fatia 3, Fatia 7 (P0-3, Laudo) e Fatia 8 (P0-8, `DiagnosticStatus`→cor)
+concluídas — ver ADR-012 (Fatia 3/7) e a seção "Fatia 8" acima. Próxima fatia candidata continua
+bloqueada por decisão de produto pendente (Fatia 4, issue #1466); Fatia 6 (bufferbloat) e Fatia 9
+(rename dos `RecommendationEngine`) não têm bloqueio de produto e podem ser priorizadas antes da
+Fatia 4 se a decisão de #1466 não tiver sido tomada ainda.
 
 ---
 

@@ -27,13 +27,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
@@ -41,6 +39,7 @@ import io.signallq.app.ui.component.ClienteConectadoUi
 import io.signallq.app.ui.component.EquipamentoItemTecnico
 import io.signallq.app.ui.component.EquipamentoSecaoTecnica
 import io.signallq.app.ui.component.LkSurfaceCard
+import io.signallq.app.ui.component.corSemantica
 
 /**
  * Módulos técnicos (passos 9, 10, 11 e 12 da narrativa, bug #6 spec Lia) —
@@ -219,7 +218,7 @@ internal fun DataRowCard(
                 MaterialTheme.typography.labelLarge.let {
                     if (estiloTecnico) it.copy(fontFeatureSettings = "tnum") else it
                 },
-            color = item.statusValor?.let { statusColor(it, c) } ?: c.textPrimary,
+            color = item.statusValor?.let { it.corSemantica(c) } ?: c.textPrimary,
             textAlign = TextAlign.End,
             maxLines = 3,
             overflow = TextOverflow.Ellipsis,
@@ -272,15 +271,3 @@ internal fun DevicesSummaryCard(
         }
     }
 }
-
-private fun statusColor(
-    status: DiagnosticStatus,
-    c: LkTokens,
-): Color =
-    when (status) {
-        DiagnosticStatus.ok -> c.success
-        DiagnosticStatus.info -> c.primary
-        DiagnosticStatus.attention -> c.warning
-        DiagnosticStatus.critical -> c.error
-        DiagnosticStatus.inconclusive -> c.warning
-    }
