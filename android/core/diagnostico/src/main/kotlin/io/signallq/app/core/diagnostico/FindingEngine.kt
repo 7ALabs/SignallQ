@@ -7,7 +7,7 @@ import io.signallq.app.core.network.contracts.localdevice.SupportLevel
 
 private const val CAT = "decisao"
 
-// Mesmo limiar usado por RecommendationEngine.recomendarRoteadorLimitado (">10")
+// Mesmo limiar usado por RecomendacaoPraticaEngine.recomendarRoteadorLimitado (">10")
 // para "muitos dispositivos" — mantido consistente entre os dois motores.
 private const val MUITOS_CLIENTES_THRESHOLD = 10
 

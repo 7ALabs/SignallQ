@@ -123,8 +123,11 @@ object RecommendationRequestMapper {
         if (ids.any { it.startsWith("MOB-01") }) tags += DiagnosticTag.SINAL_BAIXO
 
         // Sem DiagnosticResult dedicado para "abaixo do contratado" -- calculado direto
-        // das metricas brutas (mesma comparacao ja usada pelo RecommendationEngine legado
+        // das metricas brutas (mesma comparacao ja usada pelo RecomendacaoPraticaEngine legado
         // em recomendarRoteadorLimitado, so que aqui vira tag estruturada para o engine novo).
+        // NOTA (P1-2, auditoria #1228, ainda em aberto): essa tolerancia de 20% (CONTRATADO_TOLERANCIA)
+        // diverge da que REC-04 usa de fato (compara contra linkSpeed, nao download) -- rename da
+        // Fatia 9a nao mexeu nessa logica de proposito, ver issue de acompanhamento do P1-2.
         val download = input.internet?.downloadMbps
         val contratado = input.velocidadeContratadaMbps
         if (download != null && contratado != null && contratado > 0 && download < contratado * CONTRATADO_TOLERANCIA) {

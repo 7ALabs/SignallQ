@@ -8,7 +8,7 @@ import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.core.diagnostico.DiagnosticRunner
 import io.signallq.app.core.diagnostico.GameReadinessClassifier
 import io.signallq.app.core.diagnostico.UsageProfileClassifier
-import io.signallq.app.feature.diagnostico.RecommendationEngine
+import io.signallq.app.feature.diagnostico.RecomendacaoPraticaEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -154,7 +154,7 @@ class RemoteDiagnosticRepository(
         }
 
         Timber.i("RemoteDiagnosticRepository: usando motor embarcado (BUNDLED_LOCAL)")
-        return DiagnosticRunner.run(input, enabledAreas, gerarRecomendacoes = RecommendationEngine::recomendar)
+        return DiagnosticRunner.run(input, enabledAreas, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
             .copy(evaluationSource = DiagnosticEvaluationSource.BUNDLED_LOCAL)
     }
 
@@ -190,7 +190,7 @@ class RemoteDiagnosticRepository(
         enabledAreas: Set<DiagnosticArea> = DiagnosticArea.entries.toSet(),
     ): DiagnosticReport {
         val startedAtMs = System.currentTimeMillis()
-        val localReport = DiagnosticRunner.run(input, enabledAreas, gerarRecomendacoes = RecommendationEngine::recomendar)
+        val localReport = DiagnosticRunner.run(input, enabledAreas, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
         val localDurationMs = System.currentTimeMillis() - startedAtMs
 
         val reporter = divergenceReporter

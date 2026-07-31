@@ -23,7 +23,8 @@ object DiagnosticRunner {
      *   Kotlin puro — ver docs_ai/plataforma/13_..._v1.md §3.1. Default retorna lista vazia
      *   (seguro para uso a partir do Pro, que ainda nao tem camada de apresentacao propria).
      *   O unico chamador de producao do consumidor (RemoteDiagnosticRepository, em
-     *   :featureDiagnostico) DEVE passar `RecommendationEngine::recomendar` explicitamente.
+     *   :featureDiagnostico) DEVE passar `RecomendacaoPraticaEngine::recomendar` explicitamente
+     *   (motor renomeado de `RecommendationEngine` na Fatia 9a da auditoria #1228, corrige P1-1).
      */
     fun run(
         input: DiagnosticInput,

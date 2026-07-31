@@ -26,7 +26,8 @@ data class DiagnosticReport(
      *  epic #547). Vazio quando não há equipamento local ou nenhuma limitação se
      *  aplica. Calculado por [FindingEngine]. */
     val limitacoesEquipamentoLocal: List<String> = emptyList(),
-    /** Recomendações práticas geradas pelo [RecommendationEngine] a partir dos
+    /** Recomendações práticas geradas pelo `RecomendacaoPraticaEngine` (renomeado de
+     *  `RecommendationEngine` na Fatia 9a da auditoria #1228) a partir dos
      *  achados do [FindingEngine] — as 14 regras (REC-01..REC-14) documentadas na
      *  skill `motor-diagnostico`. Aditivo: pode ter zero, uma ou várias simultâneas. */
     val recomendacoes: List<DiagnosticResult> = emptyList(),

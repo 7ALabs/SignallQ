@@ -24,9 +24,15 @@ private const val CAT = "recomendacao"
  * gerar as 14 regras de recomendacao (REC-01..REC-14) documentadas na skill
  * `motor-diagnostico` (fase RecommendationEngine, SIG-287).
  *
+ * Renomeado de `RecommendationEngine` para `RecomendacaoPraticaEngine` na Fatia 9a
+ * da auditoria #1228 (corrige P1-1): o nome antigo colidia literalmente com
+ * `core.recommendation.RecommendationEngine` (motor de monetizacao, issue #790),
+ * sem nenhuma relacao de chamada entre os dois — ver
+ * `docs_ai/ARQUITETURA/AUDITORIA_1228_FASE0_INVENTARIO_COMPLETO.md`.
+ *
  * ## Por que separa de [FindingEngine]
  * O [FindingEngine] decide QUAL e o problema principal (desempate por score entre
- * causas concorrentes). O [RecommendationEngine] decide O QUE FAZER a respeito —
+ * causas concorrentes). O [RecomendacaoPraticaEngine] decide O QUE FAZER a respeito —
  * puramente aditivo, roda depois do achado principal estar definido e pode gerar
  * zero ou varias recomendacoes simultaneas (ex.: "troque para 5GHz" e "canal
  * congestionado" podem coexistir).
@@ -34,7 +40,7 @@ private const val CAT = "recomendacao"
  * Cada regra abaixo implementa exatamente uma das 12 situacoes do documento, com a
  * condicao de "quando mostrar" e "quando NAO mostrar" comentada no bloco.
  */
-object RecommendationEngine {
+object RecomendacaoPraticaEngine {
 
     fun recomendar(
         input: DiagnosticInput,

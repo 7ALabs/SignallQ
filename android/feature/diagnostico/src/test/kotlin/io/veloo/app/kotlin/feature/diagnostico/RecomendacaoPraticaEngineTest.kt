@@ -25,11 +25,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Testes do [RecommendationEngine]: as 12 situacoes documentadas na skill
+ * Testes do [RecomendacaoPraticaEngine] (renomeado de `RecommendationEngine` na
+ * Fatia 9a da auditoria #1228, corrige P1-1): as 12 situacoes documentadas na skill
  * `motor-diagnostico` (fase RecommendationEngine, SIG-287). Um teste de "mostrar" e
  * um de "nao mostrar" por situacao, no minimo.
  */
-class RecommendationEngineTest {
+class RecomendacaoPraticaEngineTest {
 
     private fun achadosOk() = FindingEngine.analisar(
         internetResultados = emptyList(),
@@ -71,7 +72,7 @@ class RecommendationEngineTest {
                 ),
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertTrue(r.any { it.id == "REC-01" })
     }
 
@@ -87,7 +88,7 @@ class RecommendationEngineTest {
                 ),
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-01" })
     }
 
@@ -114,7 +115,7 @@ class RecommendationEngineTest {
                 ),
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-01" }
         assertTrue(rec.evidencia?.contains("ouiConhecido=true") == true)
     }
@@ -139,7 +140,7 @@ class RecommendationEngineTest {
                 ),
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-01" }
         assertTrue(rec.evidencia?.contains("ouiConhecido=false") == true)
     }
@@ -156,7 +157,7 @@ class RecommendationEngineTest {
                 ),
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-01" }
         assertTrue(rec.evidencia?.contains("ouiConhecido=false") == true)
     }
@@ -173,7 +174,7 @@ class RecommendationEngineTest {
                 ),
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadoCritico("DECISAO-GW-01", "decisao"))
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadoCritico("DECISAO-GW-01", "decisao"))
         assertFalse(r.any { it.id == "REC-01" })
     }
 
@@ -195,7 +196,7 @@ class RecommendationEngineTest {
             ),
             wifiScan = null,
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertTrue(r.any { it.id == "REC-01" })
     }
 
@@ -206,7 +207,7 @@ class RecommendationEngineTest {
             wifi = WifiDiagnosticInput(rssiDbm = -78, linkSpeedMbps = 65, frequenciaMhz = 2437, ssid = "CasaWifi"),
             internet = InternetDiagnosticInput(downloadMbps = 15.0, uploadMbps = 10.0, latencyMs = 20.0, jitterMs = 5.0, perdaPercentual = 0.0),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-01" })
     }
 
@@ -223,7 +224,7 @@ class RecommendationEngineTest {
             ),
             internet = InternetDiagnosticInput(downloadMbps = 15.0, uploadMbps = 10.0, latencyMs = 20.0, jitterMs = 5.0, perdaPercentual = 0.0),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-01" })
     }
 
@@ -234,7 +235,7 @@ class RecommendationEngineTest {
             wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 65, frequenciaMhz = 5180, ssid = "CasaWifi"),
             internet = InternetDiagnosticInput(downloadMbps = 15.0, uploadMbps = 10.0, latencyMs = 20.0, jitterMs = 5.0, perdaPercentual = 0.0),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-01" })
     }
 
@@ -248,7 +249,7 @@ class RecommendationEngineTest {
             connectionType = ConnectionType.wifi,
             wifi = WifiDiagnosticInput(rssiDbm = -78, linkSpeedMbps = 24, frequenciaMhz = 2437),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertTrue(r.any { it.id == "REC-02" })
     }
 
@@ -259,7 +260,7 @@ class RecommendationEngineTest {
             wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 150, frequenciaMhz = 5180),
             internet = InternetDiagnosticInput(downloadMbps = 10.0, uploadMbps = 5.0, latencyMs = 20.0, jitterMs = 5.0, perdaPercentual = 0.0),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-02" })
     }
 
@@ -275,7 +276,7 @@ class RecommendationEngineTest {
         }
         val scan = WifiScanDiagnosticInput(redes = redesCongestionantes, conectadoCanal = 1, conectadoBanda = BandaWifi.ghz24)
         val input = DiagnosticInput(connectionType = ConnectionType.wifi, wifi = wifi, wifiScan = scan)
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertTrue(r.any { it.id == "REC-03" })
     }
 
@@ -292,7 +293,7 @@ class RecommendationEngineTest {
             wifiScan = scan,
             historico = HistoricalDiagnosticInput(degradationDetected = true),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-03" }
         assertTrue(rec.recomendacao!!.contains("Wi-Fi 6E/7"))
         assertFalse(rec.recomendacao!!.contains("Wi-Fi 6 "))
@@ -304,7 +305,7 @@ class RecommendationEngineTest {
             connectionType = ConnectionType.wifi,
             wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 150, frequenciaMhz = 2412),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-03" })
     }
 
@@ -319,7 +320,7 @@ class RecommendationEngineTest {
             wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 65, frequenciaMhz = 5180),
             velocidadeContratadaMbps = 300,
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertTrue(r.any { it.id == "REC-04" })
     }
 
@@ -329,7 +330,7 @@ class RecommendationEngineTest {
             connectionType = ConnectionType.wifi,
             wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 100, frequenciaMhz = 2412, wifiStandard = "Wi-Fi 4 (n)"),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertTrue(r.any { it.id == "REC-04" })
     }
 
@@ -339,7 +340,7 @@ class RecommendationEngineTest {
             connectionType = ConnectionType.wifi,
             wifi = WifiDiagnosticInput(rssiDbm = -55, linkSpeedMbps = 300, frequenciaMhz = 5180),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-04" })
     }
 
@@ -350,7 +351,7 @@ class RecommendationEngineTest {
     @Test
     fun `situacao 5 - mostra bufferbloat atencao quando maior que 30ms`() {
         val input = DiagnosticInput(internet = InternetDiagnosticInput(downloadMbps = 100.0, uploadMbps = 20.0, latencyMs = 10.0, jitterMs = 2.0, perdaPercentual = 0.0, bufferbloatMs = 45.0))
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-05" }
         assertEquals(DiagnosticStatus.attention, rec.status)
     }
@@ -358,7 +359,7 @@ class RecommendationEngineTest {
     @Test
     fun `situacao 5 - mostra bufferbloat critico quando maior que 100ms`() {
         val input = DiagnosticInput(internet = InternetDiagnosticInput(downloadMbps = 100.0, uploadMbps = 20.0, latencyMs = 10.0, jitterMs = 2.0, perdaPercentual = 0.0, bufferbloatMs = 150.0))
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-05" }
         assertEquals(DiagnosticStatus.critical, rec.status)
         assertTrue(rec.recomendacao!!.contains("QoS"))
@@ -367,7 +368,7 @@ class RecommendationEngineTest {
     @Test
     fun `situacao 5 - nao mostra quando bufferbloat abaixo de 30ms`() {
         val input = DiagnosticInput(internet = InternetDiagnosticInput(downloadMbps = 100.0, uploadMbps = 20.0, latencyMs = 10.0, jitterMs = 2.0, perdaPercentual = 0.0, bufferbloatMs = 10.0))
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-05" })
     }
 
@@ -387,7 +388,7 @@ class RecommendationEngineTest {
                 bestDnsLatencyMsFromComparison = 20,
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-06" }
         assertFalse("nao pode prometer aumento de velocidade contratada", rec.recomendacao!!.contains("velocidade contratada não"))
         assertTrue(rec.recomendacao!!.contains("não aumenta a velocidade contratada"))
@@ -404,7 +405,7 @@ class RecommendationEngineTest {
                 bestDnsLatencyMsFromComparison = 58,
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-06" })
     }
 
@@ -422,7 +423,7 @@ class RecommendationEngineTest {
                 rttGatewayMs = 4,
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-07" }
         assertTrue(rec.recomendacao!!.contains("pode estar"))
     }
@@ -437,7 +438,7 @@ class RecommendationEngineTest {
                 rttGatewayMs = 4,
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-07" })
     }
 
@@ -450,7 +451,7 @@ class RecommendationEngineTest {
                 rttGatewayMs = 4,
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-07" }
         assertFalse(rec.mensagemUsuario.contains("roteador"))
         assertFalse(rec.mensagemUsuario.contains("Wi-Fi"))
@@ -465,7 +466,7 @@ class RecommendationEngineTest {
         val input = DiagnosticInput(
             internet = InternetDiagnosticInput(downloadMbps = 80.0, uploadMbps = 20.0, latencyMs = 20.0, jitterMs = 3.0, perdaPercentual = 0.0, rttGatewayMs = 80),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertTrue(r.any { it.id == "REC-08" })
     }
 
@@ -474,7 +475,7 @@ class RecommendationEngineTest {
         val input = DiagnosticInput(
             internet = InternetDiagnosticInput(downloadMbps = 80.0, uploadMbps = 20.0, latencyMs = 20.0, jitterMs = 3.0, perdaPercentual = 0.0, rttGatewayMs = 15),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-08" })
     }
 
@@ -484,7 +485,7 @@ class RecommendationEngineTest {
             connectionType = ConnectionType.mobile,
             internet = InternetDiagnosticInput(downloadMbps = 80.0, uploadMbps = 20.0, latencyMs = 20.0, jitterMs = 3.0, perdaPercentual = 0.0, rttGatewayMs = 80),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-08" }
         assertFalse(rec.mensagemUsuario.contains("roteador"))
         assertFalse(rec.recomendacao!!.contains("roteador"))
@@ -499,7 +500,7 @@ class RecommendationEngineTest {
         val input = DiagnosticInput(
             fibra = FibraDiagnosticInput(rxPowerDbm = -30.0, txPowerDbm = 2.0, temperatureCelsius = 50.0, isUp = true),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-09" }
         assertEquals(DiagnosticStatus.critical, rec.status)
     }
@@ -509,7 +510,7 @@ class RecommendationEngineTest {
         val input = DiagnosticInput(
             fibra = FibraDiagnosticInput(rxPowerDbm = -20.0, txPowerDbm = 2.0, temperatureCelsius = 70.0, isUp = true),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-09" }
         assertEquals(DiagnosticStatus.attention, rec.status)
     }
@@ -519,7 +520,7 @@ class RecommendationEngineTest {
         val input = DiagnosticInput(
             fibra = FibraDiagnosticInput(rxPowerDbm = -18.0, txPowerDbm = 2.0, temperatureCelsius = 40.0, isUp = true),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-09" })
     }
 
@@ -533,7 +534,7 @@ class RecommendationEngineTest {
             connectionType = ConnectionType.mobile,
             mobile = MobileDiagnosticInput(mobileTechnology = "4G", rsrpDbm = -110),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertTrue(r.any { it.id == "REC-10" })
     }
 
@@ -543,7 +544,7 @@ class RecommendationEngineTest {
             connectionType = ConnectionType.mobile,
             mobile = MobileDiagnosticInput(mobileTechnology = "5G", sinrDb = -2),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertTrue(r.any { it.id == "REC-10" })
     }
 
@@ -553,7 +554,7 @@ class RecommendationEngineTest {
             connectionType = ConnectionType.mobile,
             mobile = MobileDiagnosticInput(mobileTechnology = "4G", rsrpDbm = -70, rsrqDb = -8, sinrDb = 25),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-10" })
     }
 
@@ -563,7 +564,7 @@ class RecommendationEngineTest {
             connectionType = ConnectionType.wifi,
             mobile = MobileDiagnosticInput(mobileTechnology = "4G", rsrpDbm = -110),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-10" })
     }
 
@@ -579,7 +580,7 @@ class RecommendationEngineTest {
                 perdaPercentual = 4.0, packetLossSource = "modem",
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-11" }
         assertTrue(rec.podeConcluir)
         assertFalse(rec.mensagemUsuario.contains("indício"))
@@ -593,7 +594,7 @@ class RecommendationEngineTest {
                 perdaPercentual = 4.0, packetLossSource = "estimated",
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-11" }
         assertFalse("nao pode cravar certeza quando estimado", rec.podeConcluir)
         assertTrue(rec.mensagemUsuario.contains("indício"))
@@ -608,7 +609,7 @@ class RecommendationEngineTest {
                 perdaPercentual = 4.0, packetLossSource = "modem",
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-11" }
         assertFalse(rec.recomendacao!!.contains("roteador"))
         assertFalse(rec.recomendacao!!.contains("modem"))
@@ -622,7 +623,7 @@ class RecommendationEngineTest {
                 perdaPercentual = 4.0, packetLossSource = "naoMedido",
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-11" })
     }
 
@@ -640,7 +641,7 @@ class RecommendationEngineTest {
                 bufferbloatMs = 150.0, rttGatewayMs = 80,
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadoCritico("DECISAO-02", "decisao"))
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadoCritico("DECISAO-02", "decisao"))
         assertTrue(r.any { it.id == "REC-12" })
     }
 
@@ -649,7 +650,7 @@ class RecommendationEngineTest {
         val input = DiagnosticInput(
             internet = InternetDiagnosticInput(downloadMbps = 100.0, uploadMbps = 20.0, latencyMs = 10.0, jitterMs = 2.0, perdaPercentual = 0.0, bufferbloatMs = 45.0),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-12" })
     }
 
@@ -666,7 +667,7 @@ class RecommendationEngineTest {
                 downloadMbps = 100.0, uploadMbps = 20.0, latencyMs = 150.0, jitterMs = 5.0, perdaPercentual = 0.0,
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertTrue(r.any { it.id == "REC-13" })
     }
 
@@ -680,7 +681,7 @@ class RecommendationEngineTest {
             ),
             deviceGamingSelecionado = "xbox",
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         val rec = r.first { it.id == "REC-13" }
         assertTrue(rec.recomendacao?.contains("NAT", ignoreCase = true) == true)
     }
@@ -695,7 +696,7 @@ class RecommendationEngineTest {
                 bufferbloatMs = 10.0,
             ),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-13" })
     }
 
@@ -710,7 +711,7 @@ class RecommendationEngineTest {
             wifi = WifiDiagnosticInput(rssiDbm = -78, linkSpeedMbps = 30, frequenciaMhz = 2437),
             historico = HistoricalDiagnosticInput(degradationDetected = true, degradationPercent = 35.0),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertTrue(r.any { it.id == "REC-14" })
     }
 
@@ -720,7 +721,7 @@ class RecommendationEngineTest {
             connectionType = ConnectionType.wifi,
             wifi = WifiDiagnosticInput(rssiDbm = -78, linkSpeedMbps = 30, frequenciaMhz = 2437),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-14" })
     }
 
@@ -731,7 +732,7 @@ class RecommendationEngineTest {
             wifi = WifiDiagnosticInput(rssiDbm = -78, linkSpeedMbps = 30, frequenciaMhz = 2437),
             historico = HistoricalDiagnosticInput(degradationDetected = false),
         )
-        val r = RecommendationEngine.recomendar(input, achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(input, achadosOk())
         assertFalse(r.any { it.id == "REC-14" })
     }
 
@@ -741,13 +742,13 @@ class RecommendationEngineTest {
 
     @Test
     fun `sem nenhum dado de input, nao gera nenhuma recomendacao`() {
-        val r = RecommendationEngine.recomendar(DiagnosticInput(), achadosOk())
+        val r = RecomendacaoPraticaEngine.recomendar(DiagnosticInput(), achadosOk())
         assertTrue(r.isEmpty())
     }
 
     @Test
     fun `campos nulos nao quebram o engine`() {
-        val r = RecommendationEngine.recomendar(
+        val r = RecomendacaoPraticaEngine.recomendar(
             DiagnosticInput(connectionType = ConnectionType.desconhecido),
             achadosOk(),
         )
