@@ -57,6 +57,16 @@ data class DiagnosticReport(
      *  passar por [io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository])
      *  esta, por definicao, usando o motor embarcado. */
     val evaluationSource: DiagnosticEvaluationSource = DiagnosticEvaluationSource.BUNDLED_LOCAL,
+    /** GH#1228 (Fase 3, executionId/rulesVersion) — espelha [DiagnosticInput.executionId]
+     *  (nunca recalculado aqui). Permite a quem consome este relatório (Laudo/PDF,
+     *  histórico, compartilhamento) confirmar que está combinando dados da MESMA
+     *  execução, nunca "Frankenstein" de execuções diferentes (ver P0-3,
+     *  `docs_ai/ARQUITETURA/AUDITORIA_1228_FASE0_INVENTARIO_COMPLETO.md`). */
+    val executionId: String = "",
+    /** GH#1228 (Fase 3) — versão canônica do conjunto de regras usado por este relatório
+     *  (ver [DiagnosticRulesVersion]). Sempre [DiagnosticRulesVersion.CURRENT] quando gerado
+     *  por [DiagnosticRunner.run] (motor local, autoritativo) — nunca varia por tela. */
+    val rulesVersion: String = DiagnosticRulesVersion.CURRENT,
 ) {
     private val todos: List<DiagnosticResult>
         get() =

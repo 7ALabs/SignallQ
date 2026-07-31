@@ -46,6 +46,9 @@ class DiagnosticOrchestrator(
         internetInput: InternetDiagnosticInput?,
         wifiInput: WifiDiagnosticInput?,
         fibraInput: FibraDiagnosticInput? = null,
+        // GH#1228 (Fase 3) — id da execucao de origem (ver DiagnosticInput.executionId).
+        // Default "" preserva os chamadores que ainda nao propagam.
+        executionId: String = "",
     ) {
         // Compatibilidade: fluxo legado do app.
         val tipo =
@@ -59,6 +62,7 @@ class DiagnosticOrchestrator(
                 internet = internetInput,
                 wifi = wifiInput,
                 fibra = fibraInput,
+                executionId = executionId,
             ),
         )
     }

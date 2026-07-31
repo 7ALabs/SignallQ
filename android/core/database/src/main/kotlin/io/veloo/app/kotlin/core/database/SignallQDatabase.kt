@@ -19,7 +19,7 @@ import io.signallq.app.core.database.recommendation.RecommendationHistoryEntity
         RecommendationHistoryEntity::class,
         ConnectivityDiagnosisHistoryEntity::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = true,
 )
 abstract class SignallQDatabase : RoomDatabase() {

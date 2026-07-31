@@ -7,6 +7,7 @@
 - **Relação com trabalho anterior:** esta fatia **não é o início** da Fase 0 de #1228 — ela já começou com o ADR-011 (`docs_ai/decisions/ADR-011-fase0-motor-canonico-diagnostico.md`, PR #1438) e teve uma migração parcial na PR #1467, que abriu a issue #1466 (divergência documentada entre `MetricClassifier` e `InternetDiagnosticEngine` para latência/perda/upload). Este documento **amplia** aquele trabalho para o escopo completo pedido pela issue-mãe: todos os motores, todos os contratos, todos os thresholds, todas as telas — não só Internet/Speedtest.
 - **Método:** 7 auditorias paralelas (medição/normalização, diagnóstico/classificação, recomendação, apresentação/UI, persistência/PDF, contratos, topologia/gateway/fibra), cada uma lendo o código-fonte real (não apenas grep). Achados cruzados manualmente para eliminar contradições entre auditorias quando encontradas.
 - **Convenção de gravidade:** P0 = risco de resultado falso ao usuário; P1 = duplicação que gera retrabalho/drift; P2 = dívida estrutural sem risco de correção imediato.
+- **Atualização 2026-07-31 (Fatia 3):** **P0-9 e P0-3 corrigidos** — ver `docs_ai/decisions/ADR-012-fase3-executionid-rulesversion.md` e as seções "Fatia 3"/"Fatia 7" abaixo. `MedicaoEntity` agora carrega `executionId`/`rulesVersion` (migração Room 15→16, aditiva) e `LaudoScreen` nunca mais combina métricas de uma execução com veredito de outra. Nenhum threshold/severidade/texto foi alterado nesta fatia.
 
 ---
 
@@ -486,13 +487,13 @@ graph TD
 |---|---|---|
 | **P0-1** | Mesma tela (`ResultadoVelocidadeScreen`) mostra conclusões incompatíveis para a mesma medição: card de latência "Bom" a 120ms enquanto o banner da mesma tela diz "demorando para responder" (fonte: `InternetDiagnosticEngine` `>100.0` vs. `MetricClassifier` `<=150`). Mesmo padrão para perda de pacotes (1.5%) e upload (4 Mbps). | Confirmado por leitura de código (`ResultadoVelocidadeScreen.kt:141-183` vs. `InternetDiagnosticEngine.kt`), já documentado arquiteturalmente na issue #1466 — mas **nunca demonstrado como "mesma tela, mesmo instante"** até esta auditoria |
 | **P0-2** | Wi-Fi RSSI no boundary -65dBm/5GHz é "Bom" (verde) nas telas Sinal/Home e "attention" (achado) no motor de diagnóstico, simultaneamente, para o mesmo valor. `MetricClassifier`'s próprio kdoc admite que a tela Sinal nunca foi migrada. | `SignalBars.kt`, `SinalTopologiaHelpers.kt`, `HomeScreen.kt` vs. `MetricClassifier.classificarRssiWifi` + `WifiSignalQualityEngine` |
-| **P0-3** | `LaudoScreen.gerarECompartilharLaudo()` pode combinar métricas de uma execução de speedtest com o veredito/recomendação de um diagnóstico posterior e não relacionado (ex.: Wi-Fi sem internet rodado depois) — `executionId` hardcoded para `""`, sem checagem de correspondência. Mesmo padrão de bug já corrigido na Home (`ResolvedorMedicaoHome`, GH#1223) mas não replicado ao Laudo. | `LaudoScreen.kt:513-571`, `AppShell.kt:359,594,1004-1018` |
+| **P0-3** | ~~`LaudoScreen.gerarECompartilharLaudo()` pode combinar métricas de uma execução de speedtest com o veredito/recomendação de um diagnóstico posterior e não relacionado~~ **RESOLVIDO (2026-07-31, Fatia 3)** — ver `diagnosticoCorrespondeAMedicao`/`montarSnapshotLaudo` em `LaudoScreen.kt` e ADR-012. | `LaudoScreen.kt:513-571`, `AppShell.kt:359,594,1004-1018` |
 | **P0-4** | `HistoricoScreen`'s cor de download usa escala própria (`>=30.0 Mbps = "bom"`) totalmente diferente de `MetricClassifier` (`>=50` para "bom"), e sua escala **nunca alcança vermelho/crítico** — um teste de 8 Mbps (crítico no canônico) tem a mesma cor visual que um de 28 Mbps (ruim). Também: valor ausente vira `0.0` e ganha a mesma cor de "teste ruim" em vez de "sem dado". | `HistoricoScreen.kt:557-567` |
 | **P0-5** | `UptimeChartUseCase` rotula latência alta (>800ms) como `"OFFLINE"` e a tela de Histórico narra isso como "sua rede ficou offline" quando, na verdade, a rede esteve no ar o tempo todo — conflito semântico entre "sem conectividade" e "latência ruim", potencialmente a causa raiz de relatos de usuário como os das issues #1502/#1512. | `feature/history/.../UptimeChartUseCase.kt:30-31,111-115`, `UptimeNarrativaEngine.kt:76-78` |
 | **P0-6** | Operadora fixa e móvel resolvidas por 3 mecanismos não coordenados (`ipapi.co`, `ipinfo.io`/`ip-api.com`, `TelephonyManager`), sem campo de confiança/fonte na camada de aquisição, e a camada de apresentação bifurca internamente (`BancoOperadoras.resolver` vs. `.resolverMovel`, catálogos de correspondência diferentes, só 3 de ~18 operadoras têm entrada móvel mapeada). Risco nomeado explicitamente pela própria issue #1228 ("operadora móvel substituir ou concorrer com a fixa") e confirmado estruturalmente. | `MainViewModel.kt:1757-1793`, `GeoIpResolver.kt:18-53`, `BancoOperadoras.kt:203-244` |
 | **P0-7** | `FibraSignalQualityEngine` pula o achado inteiramente quando `rx == 0.0` (tratando ausência de dado como "não avaliar"), enquanto `ClassificadorSaudeGpon` (que ele mesmo chama) trata `0.0` como pior caso ("ruim") quando invocado diretamente por outros caminhos — o mesmo sentinela de "sem dado" tem dois comportamentos incompatíveis dependendo de qual código o lê. | `FibraSignalQualityEngine.kt` (guarda `rx != 0.0`) vs. `ClassificadorSaudeGpon.kt` (trata `0.0` como ruim) — achado novo desta auditoria |
 | **P0-8** | `DiagnosticStatus.attention` renderiza como **vermelho** (mesmo peso visual de `critical`) em `DiagnosticoStatusBanner` (usado por Diagnóstico Guiado e Modo Gamer), mas como **laranja** em `EquipamentoModuloTecnicoCard` e no Laudo — o mesmo achado pode parecer "crítico" numa tela e "moderado" em outra. | `DiagnosticoResultadoComponents.kt:56-58` vs. `EquipamentoModuloTecnicoCard.kt:276-286`, `LocalDeviceSection.kt:1109-1118`, `LaudoScreen.kt:204-217` |
-| **P0-9** | Nenhuma linha de `MedicaoEntity` (nem qualquer outra tabela) carrega `executionId` ou `rulesVersion`. Um resultado antigo no Histórico é reclassificado (bufferbloat) com as regras **atuais** do app, não as vigentes quando o teste rodou — se um threshold mudar no futuro sem versão registrada, o histórico muda de rótulo silenciosamente sem qualquer forma de auditoria. Este é exatamente o requisito não-negociável descrito na issue #1228 ("Mudança futura de regra não reescreve silenciosamente o significado de resultados antigos"), hoje violado. | `MedicaoEntity.kt` (sem coluna), `CoreDatabaseModulo.kt` (nenhuma das 14 migrações adiciona a coluna), `HistoricoScreen.kt:196-205` |
+| **P0-9** | ~~Nenhuma linha de `MedicaoEntity` (nem qualquer outra tabela) carrega `executionId` ou `rulesVersion`.~~ **RESOLVIDO (2026-07-31, Fatia 3)** — migração Room 15→16 aditiva, ver ADR-012. Nota: `HistoricoScreen.kt` continua reclassificando bufferbloat com as regras atuais na leitura (não redesenhado nesta fatia, fora de escopo) — mas agora é possível, a partir desta fatia, saber com qual `rulesVersion` uma linha foi originalmente classificada. | `MedicaoEntity.kt` (colunas `executionId`/`rulesVersion`), `CoreDatabaseModulo.kt` (migração 15→16), `HistoricoScreen.kt:196-205` |
 | **P0-10** | Modo Gamer possui **dois** motores de "prontidão para jogos" que não se comunicam: `ModoGamerEngine` (delega a `MetricClassifier`) e `GameReadinessClassifier` (thresholds próprios, mais rígidos). Ambos endereçam o mesmo domínio ("Jogos") sem ponte, então uma mesma leitura pode ser "Ruim" num e "Bom" no outro, dependendo de qual caminho de tela o usuário seguir. | `ModoGamerEngine.kt` vs. `GameReadinessClassifier.kt` — a própria `ModoGamerEngine` cita explicitamente em kdoc que **não** reaproveita `GameReadinessClassifier` |
 
 ## P1 — duplicação que gera retrabalho
@@ -560,7 +561,7 @@ Baseada na evidência real desta auditoria — não na ordem genérica sugerida 
 - **Rollback:** deletar os arquivos de adapter.
 - **Testes necessários:** testes de adapter exaustivos por valor de enum.
 
-## Fatia 3 — Corrigir o P0-9 (executionId/rulesVersion em MedicaoEntity)
+## Fatia 3 — Corrigir o P0-9 (executionId/rulesVersion em MedicaoEntity) — **CONCLUÍDA (2026-07-31)**
 
 - **Objetivo:** adicionar `executionId` (nullable, migração aditiva) e `rulesVersion` a `MedicaoEntity` e `ConnectivityDiagnosisHistoryEntity`, preenchidos a partir de agora (linhas antigas ficam `null`, tratadas como "sem versão conhecida" na leitura — sem inventar valor).
 - **Arquivos envolvidos:** `MedicaoEntity.kt`, nova migração Room v15→v16, `SpeedtestPersistenceCoordinator.kt`.
@@ -569,6 +570,15 @@ Baseada na evidência real desta auditoria — não na ordem genérica sugerida 
 - **Critérios de aceite:** migração testada (`MigrationXParaYTest`), `executionId` não-null em toda escrita nova, leituras antigas continuam funcionando com `rulesVersion=null`.
 - **Rollback:** reverter migração (aditiva, sem perda de dado se revertida antes do release).
 - **Testes necessários:** teste de migração Room, teste de escrita/leitura do novo campo.
+- **Como foi implementada de fato (desvio deliberado do desenho acima):** em vez de `executionId`
+  nullable, os dois campos nasceram `NOT NULL` com default `""`/`"legacy-unversioned"` e a
+  migração faz `UPDATE ... SET executionId = 'legacy-' || id` para linhas existentes — decisão do
+  dispatch real (Claudete), que preferiu nunca ter `executionId` nulo em nenhuma leitura (mais
+  simples para os consumidores, sem `?.let` espalhado) em troca de escrever `legacy-{id}` (valor
+  sintético mas nunca ambíguo/vazio) em vez de `null` puro. `ConnectivityDiagnosisHistoryEntity`
+  **não foi tocada** — escopo explicitamente restrito a `MedicaoEntity` no dispatch real. Ver
+  `docs_ai/decisions/ADR-012-fase3-executionid-rulesversion.md` para o detalhe completo, e a PR
+  desta fatia (branch `architecture/1228-execution-versioning-phase3`).
 
 ## Fatia 4 — Migrar fluxo Speedtest (card vs. banner na mesma tela — corrige P0-1)
 
@@ -600,7 +610,7 @@ Baseada na evidência real desta auditoria — não na ordem genérica sugerida 
 - **Rollback:** reverter para as duas cópias.
 - **Testes necessários:** teste de caracterização já criado nesta fatia (`BufferbloatDualImplementationCharacterizationTest.kt`) vira o guard-rail.
 
-## Fatia 7 — Corrigir Laudo (executionId real, corrige P0-3)
+## Fatia 7 — Corrigir Laudo (executionId real, corrige P0-3) — **CONCLUÍDA (2026-07-31, adiantada junto com a Fatia 3)**
 
 - **Objetivo:** `LaudoScreen` usa o mesmo padrão de "nunca misturar" já aplicado em `ResolvedorMedicaoHome` (GH#1223) — ou usa tudo da execução atual, ou tudo da última persistida, nunca uma combinação.
 - **Arquivos envolvidos:** `LaudoScreen.kt`, `RelatorioDiagnosticoSnapshot.kt`, `AppShell.kt`.
@@ -609,6 +619,14 @@ Baseada na evidência real desta auditoria — não na ordem genérica sugerida 
 - **Critérios de aceite:** Laudo nunca combina métricas de uma execução com veredito de outra; se não houver execução consistente disponível, mostra estado explícito de "sem dado consistente" em vez de combinar.
 - **Rollback:** reverter para o comportamento atual (aceitando o risco documentado).
 - **Testes necessários:** teste de UI/integração simulando execução A seguida de diagnóstico B sem novo speedtest.
+- **Como foi implementada de fato:** `diagnosticoCorrespondeAMedicao()` (regra pura) +
+  `montarSnapshotLaudo()` (extraída de `gerarECompartilharLaudo`, testável sem Context/Compose) em
+  `LaudoScreen.kt`. Quando o diagnóstico em memória não corresponde à `executionId` da última
+  medição persistida, o resumo exibido passa a dizer explicitamente "Diagnóstico não disponível
+  para esta medição" (tanto no PDF exportado quanto no banner on-screen) — nunca busca outro
+  diagnóstico automaticamente. Cobertura: `LaudoScreenExecutionVersioningTest.kt` (12 testes,
+  incluindo regressão específica do cenário "Frankenstein" e de concorrência entre execuções).
+  `AppShell.kt` não precisou ser tocado — o problema estava inteiramente contido em `LaudoScreen.kt`.
 
 ## Fatia 8 — Reconciliar `DiagnosticStatus`→cor (corrige P0-8)
 
@@ -643,6 +661,12 @@ Baseada na evidência real desta auditoria — não na ordem genérica sugerida 
 ### Recomendação de próxima fatia
 
 **Fatia 3** (executionId/rulesVersion em `MedicaoEntity`) é a próxima fatia recomendada: é a base de dados para provar/auditar qualquer uma das outras fatias (sem ela, é impossível saber, depois do fato, se um resultado antigo reflete a regra da época ou uma regra futura), tem risco técnico moderado e controlado (migração aditiva, mesmo padrão já usado 14 vezes no schema), e não depende de nenhuma decisão de produto pendente — ao contrário da Fatia 4, que está bloqueada pela decisão de produto da issue #1466.
+
+**Atualização 2026-07-31:** Fatia 3 e Fatia 7 (P0-3, Laudo) concluídas — ver ADR-012. Próxima
+fatia candidata continua bloqueada por decisão de produto pendente (Fatia 4, issue #1466); Fatia
+6 (bufferbloat), Fatia 8 (`DiagnosticStatus`→cor) e Fatia 9 (rename dos `RecommendationEngine`)
+não têm bloqueio de produto e podem ser priorizadas antes da Fatia 4 se a decisão de #1466 não
+tiver sido tomada ainda.
 
 ---
 

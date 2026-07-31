@@ -172,4 +172,12 @@ data class DiagnosticInput(
      *  nunca o snapshot bruto. Null quando nenhum equipamento foi lido nesta
      *  sessao — o diagnostico continua funcionando normalmente sem ele. */
     val localDevice: SafeLocalDeviceContext? = null,
+    /** GH#1228 (Fase 3, executionId/rulesVersion) — identificador da execução de origem
+     *  desta entrada (mesmo `ResultadoSpeedtest.executionId`, GH#1221/#1225, quando o
+     *  diagnóstico segue um speedtest; ou o `MedicaoEntity.executionId` já persistido,
+     *  quando a entrada é reconstruída a partir da última medição salva). Nunca gerado
+     *  aqui — propagado por quem monta este input. Default `""` preserva os chamadores
+     *  que ainda não propagam (nenhum comportamento de classificação muda por causa
+     *  deste campo; ele só viaja até [DiagnosticReport.executionId]). */
+    val executionId: String = "",
 )

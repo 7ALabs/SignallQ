@@ -105,6 +105,10 @@ object DiagnosticRunner {
             perfisUso = UsageProfileClassifier.classificarTodos(input),
             gameReadiness = GameReadinessClassifier.classificarTodos(input),
             geradoEmMs = System.currentTimeMillis(),
+            // GH#1228 (Fase 3) — propaga a identidade da execucao de entrada (nunca gera
+            // uma nova aqui) e fixa a versao canonica das regras aplicadas por este motor.
+            executionId = input.executionId,
+            rulesVersion = DiagnosticRulesVersion.CURRENT,
         )
 
         val scoreResultado = ScoreEngine.calcular(
