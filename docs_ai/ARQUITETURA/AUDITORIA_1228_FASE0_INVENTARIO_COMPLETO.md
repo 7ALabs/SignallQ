@@ -8,6 +8,7 @@
 - **Método:** 7 auditorias paralelas (medição/normalização, diagnóstico/classificação, recomendação, apresentação/UI, persistência/PDF, contratos, topologia/gateway/fibra), cada uma lendo o código-fonte real (não apenas grep). Achados cruzados manualmente para eliminar contradições entre auditorias quando encontradas.
 - **Convenção de gravidade:** P0 = risco de resultado falso ao usuário; P1 = duplicação que gera retrabalho/drift; P2 = dívida estrutural sem risco de correção imediato.
 - **Atualização 2026-07-31 (Fatia 3):** **P0-9 e P0-3 corrigidos** — ver `docs_ai/decisions/ADR-012-fase3-executionid-rulesversion.md` e as seções "Fatia 3"/"Fatia 7" abaixo. `MedicaoEntity` agora carrega `executionId`/`rulesVersion` (migração Room 15→16, aditiva) e `LaudoScreen` nunca mais combina métricas de uma execução com veredito de outra. Nenhum threshold/severidade/texto foi alterado nesta fatia.
+- **Atualização 2026-07-31 (Fatia 9a):** **P1-1 corrigido** — ver seção "Fatia 9" abaixo. `feature/diagnostico.RecommendationEngine` (REC-01..REC-14) renomeado para `RecomendacaoPraticaEngine`, eliminando a colisão de nome com `core/recommendation.RecommendationEngine` (motor de monetização). Rename puro, comportamento de recomendação inalterado. **P1-2 continua em aberto de propósito** — mudar a lógica de `RecommendationRequestMapper.mapTags()` é decisão de produto, não de higiene, e não foi incluída nesta fatia.
 
 ---
 
@@ -500,8 +501,8 @@ graph TD
 
 | ID | Achado | Evidência |
 |---|---|---|
-| **P1-1** | Dois engines chamados literalmente `RecommendationEngine` (`core/recommendation` e `feature/diagnostico`), sem relação de chamada, tipos de entrada/saída diferentes, com colisão real de nome no autocomplete/import. | `core/recommendation/.../RecommendationEngine.kt`, `feature/diagnostico/.../RecommendationEngine.kt` |
-| **P1-2** | `RecommendationRequestMapper.mapTags()` deriva tags para o engine #1 independentemente das regras REC-01..14 do engine #2 (regex de prefixo de ID em vez de ler o resultado), incluindo um cálculo de "% do plano contratado" com tolerância diferente (20%) do que REC-04 usa (`linkSpeed`, não `download`). | `RecommendationRequestMapper.kt:86-135` |
+| **P1-1** | ~~Dois engines chamados literalmente `RecommendationEngine` (`core/recommendation` e `feature/diagnostico`), sem relação de chamada, tipos de entrada/saída diferentes, com colisão real de nome no autocomplete/import.~~ **RESOLVIDO (2026-07-31, Fatia 9a)** — engine legado (`feature/diagnostico`, REC-01..REC-14) renomeado para `RecomendacaoPraticaEngine`. Rename puro, sem alteração de comportamento (`recomendar()` idêntico, testes existentes intactos). | `core/recommendation/.../RecommendationEngine.kt` (monetização, mantido), `feature/diagnostico/.../RecomendacaoPraticaEngine.kt` (renomeado) |
+| **P1-2** | `RecommendationRequestMapper.mapTags()` deriva tags para o engine #1 independentemente das regras REC-01..14 do engine #2 (regex de prefixo de ID em vez de ler o resultado), incluindo um cálculo de "% do plano contratado" com tolerância diferente (20%) do que REC-04 usa (`linkSpeed`, não `download`). **Ainda em aberto (2026-07-31)** — a Fatia 9a deliberadamente não mexeu nessa lógica: mudar o mapeamento de tags altera o que o usuário vê recomendado, é decisão de produto, não item de higiene de nome. Ver issue de acompanhamento aberta/atualizada na Fatia 9a. | `RecommendationRequestMapper.kt:86-135` |
 | **P1-3** | `DeviceType`/`SupportLevel` duplicados byte-a-byte entre `contracts.gateway` e `contracts.localdevice` — dois tipos Kotlin distintos, mesmos 5/4 valores, sem conversor. | `core/network/.../contracts/gateway/DeviceType.kt`, `.../contracts/localdevice/DeviceType.kt` |
 | **P1-4** | ~~`SpeedtestQualityClassifier.classificarBufferbloat` e `MetricClassifier.classificarBufferbloat` reimplementam os mesmos 3 cortes (5/30/100ms) por causa de uma regra de dependência de módulo (`:feature* → :feature*` proibido) — funcionalmente duplicado, apesar de justificado arquiteturalmente.~~ **RESOLVIDO (2026-07-31, Fatia 6)** — `feature/speedtest` ganhou dependência em `core:diagnostico` (`:feature* → :core*`, direção permitida pela regra), e `SpeedtestQualityClassifier.classificarBufferbloat` passou a delegar para `MetricClassifier.classificarBufferbloat`, só traduzindo `MetricStatus` para o vocabulário próprio `SeveridadeBufferbloat`. Único ponto de verdade agora; `BufferbloatDualImplementationCharacterizationTest.kt` continua verde e vira guard-rail contra reintrodução da duplicação. | `SpeedtestQualityClassifier.kt` (delega), `MetricClassifier.kt:196-207` (fonte única), `feature/speedtest/build.gradle.kts` (nova dependência) |
 | **P1-5** | `DnsDiagnosticEngine` reimplementa (não chama) os mesmos números de `MetricClassifier.classificarLatenciaDns`, mesmo estando no mesmo módulo (`core/diagnostico`) — não há justificativa arquitetural aqui, ao contrário do P1-4. | `DnsDiagnosticEngine.kt:15-48` |
@@ -695,6 +696,31 @@ Baseada na evidência real desta auditoria — não na ordem genérica sugerida 
 - **Critérios de aceite:** sem colisão de nome; comportamento de recomendação inalterado se só renomear.
 - **Rollback:** reverter rename.
 - **Testes necessários:** compilação limpa, testes existentes de ambos os engines continuam verdes.
+- **Como foi implementada de fato (Fatia 9a) — CONCLUÍDA (2026-07-31):** só a metade de baixo risco
+  (rename, corrige P1-1) foi executada nesta fatia. `feature/diagnostico.RecommendationEngine` foi
+  renomeado para `RecomendacaoPraticaEngine` — nome escolhido para descrever o papel real do motor
+  ("recomendações práticas do diagnóstico local", termo já usado no próprio kdoc original) e para
+  não compartilhar sequer o prefixo em inglês com `core/recommendation.RecommendationEngine`
+  (motor de monetização, issue #790), eliminando a colisão de autocomplete/import por completo — não
+  só trocando um sufixo. Todos os imports/referências foram atualizados (arquivo principal, teste
+  dedicado renomeado para `RecomendacaoPraticaEngineTest.kt`, `RemoteDiagnosticRepository.kt`,
+  `DiagnosticRunnerCaracterizacaoTest.kt`, `RecommendationEnginesDivergenceCharacterizationTest.kt`,
+  e comentários/kdoc em `core/diagnostico` e `core/network` que citavam o motor legado por nome).
+  Comentários que citam o motor de monetização (`core/recommendation.RecommendationEngine`,
+  `DiagnosticoModule.kt`, `RecommendationHistoryRepository.kt`, `CoreDatabaseModulo.kt` etc.) foram
+  deliberadamente **não tocados** — nome correto, sem ambiguidade depois do rename do outro lado.
+  **A metade de risco médio (P1-2, mudar a lógica de `RecommendationRequestMapper.mapTags()` para
+  ler a saída real de REC-01..14 em vez de re-derivar tags por regex de prefixo) foi explicitamente
+  NÃO implementada** — mudar esse mapeamento muda o que o usuário recebe como recomendação
+  monetizável, é decisão de produto (Claudete/Luiz), não faz parte de uma PR de rename. Ver a
+  atualização da linha P1-2 na Parte 5 e a issue de acompanhamento aberta na mesma fatia.
+  Validação: `:featureDiagnostico:compileDebugKotlin`, `:core:diagnostico:compileDebugKotlin`,
+  `:coreNetwork:compileDebugKotlin` e as suítes de teste unitário dos três módulos — todos verdes
+  (`RecomendacaoPraticaEngineTest`: 50/50, `RecommendationEnginesDivergenceCharacterizationTest`:
+  2/2, `DiagnosticRunnerCaracterizacaoTest`: 5/5, sem falhas). `ktlintCheck`/`detekt` não têm task
+  configurada para `featureDiagnostico`/`core:diagnostico`/`coreNetwork` (só `app`/`pro/*` no
+  `build.gradle.kts` atual) — confirmado via `gradlew tasks --all`, não é dívida introduzida por
+  esta fatia.
 
 ## Fatia 10 — Remover motores legados órfãos/mortos
 
@@ -713,7 +739,8 @@ Baseada na evidência real desta auditoria — não na ordem genérica sugerida 
 **Atualização 2026-07-31:** Fatia 3, Fatia 6 (P1-4, bufferbloat), Fatia 7 (P0-3, Laudo), Fatia 8
 (P0-8, `DiagnosticStatus`→cor) e Fatia 9a (P1-1, rename `RecommendationEngine`) concluídas — ver
 ADR-012 (Fatia 3/7) e as seções "Fatia 6"/"Fatia 8"/"Fatia 9" acima. P1-2 (lógica do
-`RecommendationRequestMapper`) segue em aberto, rastreada separadamente na issue #1528. Única fatia
+`RecommendationRequestMapper.mapTags()`) segue em aberto, sem bloqueio técnico mas dependente de
+decisão de produto própria (não é higiene) — rastreada separadamente na issue #1528. Única fatia
 ainda bloqueada é a Fatia 4, por decisão de produto pendente da issue #1466.
 
 ---

@@ -14,14 +14,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Fase 0 da auditoria #1228 — congela a divergencia estrutural entre os DOIS motores
- * chamados "RecommendationEngine" no repositorio:
+ * Fase 0 da auditoria #1228 — congela a divergencia estrutural entre os dois motores
+ * de recomendacao do repositorio, que ate a Fatia 9a eram os DOIS chamados
+ * literalmente "RecommendationEngine" (P1-1, ja corrigido pelo rename abaixo):
  *
- * - `feature/diagnostico.RecommendationEngine` (este arquivo/pacote, REC-01..REC-14):
- *   decide se recomenda trocar para Wi-Fi 5GHz olhando o achado PRINCIPAL do
- *   [FindingEngine] -- se a causa raiz provavel e externa (`problemaExternoProvavel`,
- *   ex.: DNS/operadora/fibra), a recomendacao de Wi-Fi e explicitamente SUPRIMIDA
- *   (`recomendarWifi5Ghz`, ver o proprio codigo de producao).
+ * - `feature/diagnostico.RecomendacaoPraticaEngine` (este arquivo/pacote, REC-01..REC-14,
+ *   renomeado de `RecommendationEngine` na Fatia 9a): decide se recomenda trocar para
+ *   Wi-Fi 5GHz olhando o achado PRINCIPAL do [FindingEngine] -- se a causa raiz provavel
+ *   e externa (`problemaExternoProvavel`, ex.: DNS/operadora/fibra), a recomendacao de
+ *   Wi-Fi e explicitamente SUPRIMIDA (`recomendarWifi5Ghz`, ver o proprio codigo de
+ *   producao).
  * - `core/recommendation.RecommendationEngine` (via [RecommendationRequestMapper]):
  *   deriva a tag `WIFI_FRACO` so olhando se existe um `DiagnosticResult` com id
  *   `WIFI-03`/`WIFI-04` em `report.wifiResultados` -- SEM NENHUMA exclusao equivalente
@@ -33,8 +35,10 @@ import org.junit.Test
  * exatamente esse problema como relevante. Ver
  * `docs_ai/ARQUITETURA/AUDITORIA_1228_FASE0_INVENTARIO_COMPLETO.md`, Parte 8, P1-1/P1-2.
  *
- * Este teste nao decide qual dos dois esta "certo" -- so prova, com um cenario
- * concreto, que os dois podem divergir hoje.
+ * P1-1 (colisao de nome) foi resolvido na Fatia 9a. P1-2 (`RecommendationRequestMapper`
+ * nao ler a saida real do motor legado) segue em aberto -- este teste continua valido
+ * como evidencia da divergencia comportamental, so nao decide qual dos dois esta
+ * "certo".
  */
 class RecommendationEnginesDivergenceCharacterizationTest {
     private fun wifiFracoNaBanda24Input(): DiagnosticInput = DiagnosticInput(
@@ -80,7 +84,7 @@ class RecommendationEnginesDivergenceCharacterizationTest {
         )
         val achados = FindingResult(principal = achadoExterno)
 
-        val recomendacoes = RecommendationEngine.recomendar(input, achados)
+        val recomendacoes = RecomendacaoPraticaEngine.recomendar(input, achados)
 
         // Caracteriza o comportamento atual: nenhuma recomendacao de troca pra 5GHz
         // (REC-01) e gerada quando a causa raiz principal e externa (DNS, neste caso).
