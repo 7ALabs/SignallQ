@@ -222,6 +222,28 @@ object CoreDatabaseModulo {
             }
         }
 
+    /** GH#1228 (Fase 3) — adiciona `executionId`/`rulesVersion` a `medicao`, requisito
+     *  não-negociável da issue #1228 ("mudança futura de regra não reescreve
+     *  silenciosamente o significado de resultados antigos"). Aditiva: nenhuma coluna
+     *  existente é alterada/removida, nenhuma linha é perdida.
+     *
+     *  Linhas já existentes (gravadas antes desta migração) recebem:
+     *  - `executionId = 'legacy-' || id` — nunca vazio, nunca reaproveitado entre linhas
+     *    (usa o próprio PK da linha, que já é único).
+     *  - `rulesVersion = 'legacy-unversioned'` (default da própria coluna) — nunca
+     *    inventamos qual conjunto de regras classificou esses dados.
+     *
+     *  Escrita nova (pós-migração) sempre grava os dois campos explicitamente via
+     *  `SpeedtestPersistenceCoordinator` (nunca depende do default SQL da coluna). */
+    private val migracao15para16 =
+        object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE medicao ADD COLUMN executionId TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE medicao ADD COLUMN rulesVersion TEXT NOT NULL DEFAULT 'legacy-unversioned'")
+                db.execSQL("UPDATE medicao SET executionId = 'legacy-' || id")
+            }
+        }
+
     fun criarBanco(context: Context): SignallQDatabase {
         return Room.databaseBuilder(
             context.applicationContext,
@@ -241,6 +263,7 @@ object CoreDatabaseModulo {
             .addMigrations(migracao12para13)
             .addMigrations(migracao13para14)
             .addMigrations(migracao14para15)
+            .addMigrations(migracao15para16)
             .build()
     }
 

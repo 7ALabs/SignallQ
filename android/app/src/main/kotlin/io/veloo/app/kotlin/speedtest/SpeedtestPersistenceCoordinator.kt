@@ -4,6 +4,7 @@ import io.signallq.app.core.database.MedicaoDao
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.diagnostico.BandaWifi
 import io.signallq.app.core.diagnostico.DiagnosticReport
+import io.signallq.app.core.diagnostico.DiagnosticRulesVersion
 import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.MonitorRede
@@ -162,6 +163,11 @@ class SpeedtestPersistenceCoordinator
                                                 ?.frequenciaMhz,
                                     ),
                                 status = statusPersistenciaParaMeasurementStatus(resultado.status),
+                                // GH#1228 (Fase 3) — mesmo executionId gerado uma unica vez no
+                                // inicio do speedtest (GH#1221/#1225, nunca regenerado aqui) e a
+                                // versao canonica das regras vigentes no momento da persistencia.
+                                executionId = resultado.executionId,
+                                rulesVersion = DiagnosticRulesVersion.CURRENT,
                             ),
                         )
                         ultimaMedicaoId = novoId

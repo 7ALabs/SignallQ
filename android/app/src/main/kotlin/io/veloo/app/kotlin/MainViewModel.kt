@@ -835,6 +835,9 @@ class MainViewModel
                             wifiScan = montarWifiScanInput(),
                             velocidadeContratadaMbps = montarVelocidadeContratadaMbps(),
                             natStatus = natStatusAtual,
+                            // GH#1228 (Fase 3) — mesma medicao persistida usada para montar
+                            // internetInput acima (ultimaMedicao); nunca gera id novo aqui.
+                            executionId = ultimaMedicao?.executionId ?: "",
                         ),
                     )
                 }
@@ -1137,6 +1140,7 @@ class MainViewModel
                     // Ler do BD aqui causava race condition: o save acontece em outra
                     // coroutine e pode nao ter terminado quando este bloco executa.
                     val internetInput = speedtestResultToInternetInput()
+                    val executionIdAtual = executionIdAtual()
                     val wifiSnapshot = monitorRede.snapshotFlow.value.wifiLinkSnapshot
                     val wifiInput =
                         wifiSnapshot?.let {
@@ -1162,6 +1166,7 @@ class MainViewModel
                             wifiScan = montarWifiScanInput(),
                             velocidadeContratadaMbps = montarVelocidadeContratadaMbps(),
                             natStatus = natStatusAtual,
+                            executionId = executionIdAtual,
                         ),
                     )
                 }
@@ -1324,6 +1329,7 @@ class MainViewModel
                     coletarTopologiaRede()
                 }
                 val internetInput = speedtestResultToInternetInput()
+                val executionIdAtual = executionIdAtual()
                 val wifiSnapshot = monitorRede.snapshotFlow.value.wifiLinkSnapshot
                 val wifiInput =
                     wifiSnapshot?.let { ws ->
@@ -1349,6 +1355,7 @@ class MainViewModel
                         wifiScan = montarWifiScanInput(),
                         velocidadeContratadaMbps = montarVelocidadeContratadaMbps(),
                         natStatus = natStatusAtual,
+                        executionId = executionIdAtual,
                     ),
                 )
             }
@@ -2309,6 +2316,25 @@ class MainViewModel
                     packetLossSource = it.packetLossSource,
                 )
             }
+        }
+
+        /**
+         * GH#1228 (Fase 3, executionId/rulesVersion) — mesma resolucao de fonte de
+         * [speedtestResultToInternetInput] (resultado em memoria do speedtest atual, senao a
+         * ultima medicao persistida), devolvendo o `executionId` correspondente em vez das
+         * metricas. Garante que o [DiagnosticInput] construido a partir de qualquer uma das
+         * duas fontes carregue a MESMA identidade de execucao que alimentou o `internetInput`
+         * — nunca gera um id novo aqui, nunca deixa vazio quando a fonte tem um valor real.
+         */
+        private suspend fun executionIdAtual(): String {
+            executorSpeedtest.snapshotFlow.value.resultado
+                ?.let { return it.executionId }
+            return bancoDados
+                .medicaoDao()
+                .observarUltimas(1)
+                .first()
+                .firstOrNull()
+                ?.executionId ?: ""
         }
 
         // -------------------------------------------------------------------------
