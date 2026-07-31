@@ -65,6 +65,8 @@ import androidx.compose.ui.unit.dp
 import io.signallq.app.ads.AdSlot
 import io.signallq.app.ads.AdUnitIds
 import io.signallq.app.ads.NativeAdContentSignals
+import io.signallq.app.core.diagnostico.DiagnosticResult
+import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.core.diagnostico.MetricClassifier
 import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.core.recommendation.RecommendationDecision
@@ -86,6 +88,38 @@ import io.signallq.app.ui.component.ads.NativeAdSource
 import io.signallq.app.ui.component.corSemantica
 import io.signallq.app.ui.component.labelPt
 import kotlinx.coroutines.launch
+
+/**
+ * GH#1521 (P0-1 da auditoria #1228) — reconcilia o veredito do card de metrica desta
+ * tela com o achado que [InternetDiagnosticEngine] ja levantou pra essa mesma metrica
+ * (exposto em [DiagnosticReport.internetResultados]). As duas reguas numericas
+ * (MetricClassifier vs. InternetDiagnosticEngine) continuam divergentes por decisao —
+ * unifica-las e escopo separado da issue #1466, ainda sem decisao de produto sobre qual
+ * regua prevalece globalmente. Esta funcao nao altera nenhuma das duas reguas: so
+ * impede que o card mostre um veredito MAIS otimista do que o achado ativo (nunca
+ * abranda — se o [MetricClassifier] ja for mais severo que o achado, ele prevalece).
+ *
+ * @param achados lista de achados do dominio (ex.: `internetResultados`) onde procurar
+ *   um achado ativo para esta metrica.
+ * @param idPrefix prefixo do id do achado desta metrica (ex.: `"IN-NORMAL-05"` para
+ *   latencia, `"IN-NORMAL-04"` para upload — cobre tambem a variante `-04Z`).
+ */
+internal fun MetricStatus.comSeveridadeConciliada(
+    achados: List<DiagnosticResult>,
+    idPrefix: String,
+): MetricStatus {
+    if (this == MetricStatus.inconclusivo) return this
+    val achado = achados.firstOrNull { it.id.startsWith(idPrefix) } ?: return this
+    val pisoSeveridade =
+        when (achado.status) {
+            DiagnosticStatus.critical -> MetricStatus.critico
+            DiagnosticStatus.attention -> MetricStatus.regular
+            else -> return this
+        }
+    val ordemSeveridade =
+        listOf(MetricStatus.excelente, MetricStatus.bom, MetricStatus.regular, MetricStatus.ruim, MetricStatus.critico)
+    return if (ordemSeveridade.indexOf(pisoSeveridade) > ordemSeveridade.indexOf(this)) pisoSeveridade else this
+}
 
 /**
  * Tela "Resultado do teste" — GH#536.
@@ -155,13 +189,27 @@ fun ResultadoVelocidadeScreen(
     // limiares numericos diferentes para a MESMA metrica). "Perda" e rotulada como
     // ESTIMADA — GH#1221 RF-04, o metodo e por timeout de probes HTTP, nao medicao direta
     // de perda de pacotes IP.
+    //
+    // GH#1521 (P0-1 da auditoria #1228) — latencia e upload tinham divergencia confirmada
+    // entre este card (MetricClassifier) e o banner desta MESMA tela (que reflete os
+    // achados de InternetDiagnosticEngine via snapshotDiagnostico.relatorio). Unificar as
+    // duas reguas globalmente e escopo da issue #1466 (decisao de produto pendente) — aqui
+    // so garantimos, na composicao desta tela, que o card nunca mostre veredito melhor do
+    // que o achado ativo do motor pra essa metrica. Ver comSeveridadeConciliada().
+    val internetResultados = snapshotDiagnostico.relatorio?.internetResultados.orEmpty()
+
     val statusDownload = remember(resultado.downloadMbps) { MetricClassifier.classificarDownload(resultado.downloadMbps) }
     val corDownload = statusDownload.corSemantica(c)
     val veredictoDownload = statusDownload.labelPt()
 
     val statusUpload =
-        remember(resultado.uploadMbps, resultado.uploadNaoDetectado) {
-            if (resultado.uploadNaoDetectado) MetricStatus.inconclusivo else MetricClassifier.classificarUpload(resultado.uploadMbps)
+        remember(resultado.uploadMbps, resultado.uploadNaoDetectado, internetResultados) {
+            if (resultado.uploadNaoDetectado) {
+                MetricStatus.inconclusivo
+            } else {
+                val statusIsolado = MetricClassifier.classificarUpload(resultado.uploadMbps)
+                statusIsolado.comSeveridadeConciliada(internetResultados, idPrefix = "IN-NORMAL-04")
+            }
         }
     val corUpload = statusUpload.corSemantica(c)
     val veredictoUpload = statusUpload.labelPt()
@@ -170,7 +218,11 @@ fun ResultadoVelocidadeScreen(
     val corPerda = statusPerda.corSemantica(c)
     val veredictoPerda = statusPerda.labelPt()
 
-    val statusLatencia = remember(resultado.latenciaMs) { MetricClassifier.classificarLatencia(resultado.latenciaMs) }
+    val statusLatencia =
+        remember(resultado.latenciaMs, internetResultados) {
+            val statusIsolado = MetricClassifier.classificarLatencia(resultado.latenciaMs)
+            statusIsolado.comSeveridadeConciliada(internetResultados, idPrefix = "IN-NORMAL-05")
+        }
     val corLatencia = statusLatencia.corSemantica(c)
     val veredictoLatencia = statusLatencia.labelPt()
 
