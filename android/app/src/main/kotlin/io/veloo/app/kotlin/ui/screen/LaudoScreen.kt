@@ -46,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import io.signallq.app.BuildConfig
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.diagnostico.DiagnosticReport
-import io.signallq.app.core.diagnostico.DiagnosticStatus
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
@@ -55,6 +54,9 @@ import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkStatusDot
 import io.signallq.app.ui.component.LkSurfaceCard
+import io.signallq.app.ui.component.corContainer
+import io.signallq.app.ui.component.corConteudo
+import io.signallq.app.ui.component.labelPt
 import io.signallq.app.ui.relatorio.RelatorioDiagnosticoExporter
 import io.signallq.app.ui.relatorio.RelatorioDiagnosticoSnapshot
 import io.signallq.app.ui.relatorio.RelatorioPrivacidade
@@ -209,30 +211,9 @@ fun LaudoScreen(
             // Banner de status — colorido por severidade da decisão
             if (relatorio != null && decisao != null) {
                 item {
-                    val containerColor =
-                        when (decisao.status) {
-                            DiagnosticStatus.ok -> c.successContainer
-                            DiagnosticStatus.attention -> c.warningContainer
-                            DiagnosticStatus.critical -> c.errorContainer
-                            DiagnosticStatus.inconclusive -> c.warningContainer
-                            DiagnosticStatus.info -> c.primaryContainer
-                        }
-                    val textColor =
-                        when (decisao.status) {
-                            DiagnosticStatus.ok -> c.onSuccessContainer
-                            DiagnosticStatus.attention -> c.onWarningContainer
-                            DiagnosticStatus.critical -> c.onErrorContainer
-                            DiagnosticStatus.inconclusive -> c.onWarningContainer
-                            DiagnosticStatus.info -> c.onPrimaryContainer
-                        }
-                    val labelStatus =
-                        when (decisao.status) {
-                            DiagnosticStatus.ok -> "Conexão saudável"
-                            DiagnosticStatus.attention -> "Atenção"
-                            DiagnosticStatus.critical -> "Problema detectado"
-                            DiagnosticStatus.inconclusive -> "Inconclusivo"
-                            DiagnosticStatus.info -> "Informação"
-                        }
+                    val containerColor = decisao.status.corContainer(c)
+                    val textColor = decisao.status.corConteudo(c)
+                    val labelStatus = decisao.status.labelPt()
                     Row(
                         modifier =
                             Modifier

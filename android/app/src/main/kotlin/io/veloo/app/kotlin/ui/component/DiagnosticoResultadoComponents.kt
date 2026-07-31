@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Error
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.TaskAlt
 import androidx.compose.material.icons.outlined.Verified
@@ -53,10 +51,9 @@ fun DiagnosticoStatusBanner(
     mensagem: String,
     c: LkTokens,
 ) {
-    val positivo = status == DiagnosticStatus.ok || status == DiagnosticStatus.info
-    val containerColor = if (positivo) c.successContainer else c.errorContainer
-    val contentColor = if (positivo) c.onSuccessContainer else c.onErrorContainer
-    val icon = if (positivo) Icons.Outlined.CheckCircle else Icons.Outlined.Error
+    val containerColor = status.corContainer(c)
+    val contentColor = status.corConteudo(c)
+    val icon = status.icone()
     Row(
         modifier =
             Modifier

@@ -748,7 +748,7 @@ private fun LocalDeviceConectadoContent(
     refazerDisponivel: Boolean,
 ) {
     var detalhesExpandidos by remember { mutableStateOf(false) }
-    val statusColor = statusParaCor(state.resumoStatus, c)
+    val statusColor = state.resumoStatus.corSemantica(c)
 
     LkSurfaceCard(modifier = Modifier.fillMaxWidth()) {
         // Cabecalho: nome do equipamento + tipo (GH#538, deixa claro se e ONT ou
@@ -941,7 +941,7 @@ private fun EquipamentoSecaoRow(
                     item.valor,
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.W600,
-                    color = item.statusValor?.let { statusParaCor(it, c) } ?: c.textPrimary,
+                    color = item.statusValor?.let { it.corSemantica(c) } ?: c.textPrimary,
                     modifier = Modifier.weight(1.3f),
                     textAlign = TextAlign.End,
                     maxLines = 3,
@@ -1104,17 +1104,6 @@ private fun notaSemLeituraDeFibra(deviceType: DeviceType): String? =
         DeviceType.ROUTER -> "Este roteador não faz leitura de fibra. Esse dado aparece apenas no modem de fibra da operadora."
         DeviceType.MESH_OR_EXTENDER -> "Nós mesh não fazem leitura de fibra. Esse dado aparece apenas no modem de fibra da operadora."
         else -> null
-    }
-
-private fun statusParaCor(
-    status: DiagnosticStatus,
-    c: io.signallq.app.ui.LkTokens,
-): Color =
-    when (status) {
-        DiagnosticStatus.ok -> c.success
-        DiagnosticStatus.attention -> c.warning
-        DiagnosticStatus.critical -> c.error
-        DiagnosticStatus.inconclusive, DiagnosticStatus.info -> c.primary
     }
 
 // ─── Previews — cobrem os 7 estados obrigatorios do GH#544 ─────────────────
