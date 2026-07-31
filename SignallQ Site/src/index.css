@@ -584,3 +584,8 @@ html.sq-footer-visible .pwa-toast-stack {
     transform: translateY(0);
   }
 }
+
+.delay-100 { animation-delay: 100ms; opacity: 0; }
+.delay-200 { animation-delay: 200ms; opacity: 0; }
+.delay-300 { animation-delay: 300ms; opacity: 0; }
+

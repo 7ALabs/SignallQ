@@ -57,7 +57,7 @@ describe('HistoricoPage', () => {
   it('mostra o estado de carregando enquanto listRecords() está pendente', () => {
     vi.spyOn(historyStore, 'listRecords').mockImplementation(() => new Promise(() => {}))
     renderPage()
-    expect(screen.getByText('Carregando histórico…')).toBeInTheDocument()
+    expect(screen.getByTestId('skeleton-loader')).toBeInTheDocument()
   })
 
   it('mostra o estado indisponível quando listRecords() rejeita', async () => {

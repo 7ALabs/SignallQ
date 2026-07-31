@@ -145,11 +145,10 @@ export default function HistoricoPage() {
           </div>
 
           {status === 'loading' && (
-            <div className="flex flex-col items-center gap-3 py-24">
-              <span className="material-symbols-outlined" style={{ fontSize: 28, color: 'var(--text-tertiary)' }}>
-                hourglass_top
-              </span>
-              <div className="body-large">Carregando histórico…</div>
+            <div data-testid="skeleton-loader" className="flex flex-col gap-3 pt-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-28 w-full animate-pulse rounded-2xl" style={{ background: 'var(--bg-secondary)' }} />
+              ))}
             </div>
           )}
 

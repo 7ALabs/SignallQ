@@ -6,6 +6,7 @@ import { iconeConexao, labelConexao, type TipoRede } from '../../lib/connection'
 import type { SpeedTestResult } from '../../lib/speedEngine'
 import { FEATURE_SPEEDTEST_COMPARTILHOU, trackFeatureUsed } from '../../lib/telemetry'
 import { GuidedDiagnosis } from './GuidedDiagnosis'
+import { NumberTicker } from '../NumberTicker'
 
 const NIVEL_COR: Record<string, string> = {
   success: 'var(--success)',
@@ -157,7 +158,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
       </div>
 
       <div className="grid grid-cols-3 gap-4">
-        <div className="flex flex-col items-center gap-1 rounded-3xl px-2 py-5 glass-panel">
+        <div className="flex flex-col items-center gap-1 rounded-3xl px-2 py-5 glass-panel sq-fade-up delay-100">
           <div className="flex items-center gap-1.5">
             <span className="material-symbols-outlined" style={{ fontSize: 16, color: NIVEL_COR[downloadVerdict.nivel] }}>
               arrow_downward
@@ -165,13 +166,13 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
             <span className="label-overline">Download</span>
           </div>
           <div className="font-bold" style={{ font: '700 34px/1.1 var(--font-sans)', color: 'var(--text-primary)' }}>
-            {result.download.mbps.toFixed(1)}
+            <NumberTicker value={result.download.mbps} decimals={1} duration={800} />
           </div>
           <div className="body-small" style={{ color: 'var(--text-secondary)' }}>
             Mbps • {downloadVerdict.label}
           </div>
         </div>
-        <div className="flex flex-col items-center gap-1 rounded-3xl px-2 py-5 glass-panel">
+        <div className="flex flex-col items-center gap-1 rounded-3xl px-2 py-5 glass-panel sq-fade-up delay-200">
           <div className="flex items-center gap-1.5">
             <span className="material-symbols-outlined" style={{ fontSize: 16, color: NIVEL_COR[uploadVerdict.nivel] }}>
               arrow_upward
@@ -179,13 +180,13 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
             <span className="label-overline">Upload</span>
           </div>
           <div className="font-bold" style={{ font: '700 34px/1.1 var(--font-sans)', color: 'var(--text-primary)' }}>
-            {result.upload.mbps.toFixed(1)}
+            <NumberTicker value={result.upload.mbps} decimals={1} duration={1000} />
           </div>
           <div className="body-small" style={{ color: 'var(--text-secondary)' }}>
             Mbps • {uploadVerdict.label}
           </div>
         </div>
-        <div className="flex flex-col items-center gap-1 rounded-3xl px-2 py-5 glass-panel">
+        <div className="flex flex-col items-center gap-1 rounded-3xl px-2 py-5 glass-panel sq-fade-up delay-300">
           <div className="flex items-center gap-1.5">
             <span className="material-symbols-outlined" style={{ fontSize: 16, color: NIVEL_COR[latency.nivel] }}>
               network_ping
@@ -193,7 +194,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
             <span className="label-overline">Latência</span>
           </div>
           <div className="font-bold" style={{ font: '700 34px/1.1 var(--font-sans)', color: 'var(--text-primary)' }}>
-            {Math.round(result.latency.ms)}
+            <NumberTicker value={result.latency.ms} duration={1200} />
           </div>
           <div className="body-small" style={{ color: 'var(--text-secondary)' }}>
             ms • {latency.label}

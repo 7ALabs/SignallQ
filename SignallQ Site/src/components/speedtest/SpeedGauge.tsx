@@ -39,6 +39,12 @@ export function SpeedGauge(props: SpeedGaugeProps) {
   return (
     <div className="relative w-full lg:w-[440px]" style={{ aspectRatio: '360 / 210' }}>
       <svg viewBox="0 0 360 210" className="absolute inset-0 block h-full w-full">
+        <defs>
+          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="8" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
         {GAUGE_TICKS.map((t, i) => (
           <line
             key={i}
@@ -62,6 +68,7 @@ export function SpeedGauge(props: SpeedGaugeProps) {
               strokeLinecap="round"
               strokeDasharray={GAUGE_ARC_LEN}
               strokeDashoffset={GAUGE_ARC_LEN * (1 - fraction)}
+              filter="url(#glow)"
               style={{ transition: 'stroke-dashoffset 250ms ease-out' }}
             />
             <line
@@ -93,8 +100,8 @@ export function SpeedGauge(props: SpeedGaugeProps) {
           <button
             onClick={props.onIniciar}
             aria-label="Iniciar teste"
-            className="flex h-11 items-center gap-2 whitespace-nowrap rounded-full border-none px-[26px]"
-            style={{ background: 'var(--accent)', boxShadow: '0 10px 22px color-mix(in srgb, var(--accent) 28%, transparent)' }}
+            className="flex h-11 items-center gap-2 whitespace-nowrap rounded-full border-none px-[26px] transition-transform hover:scale-105 active:scale-95"
+            style={{ background: 'var(--accent)', boxShadow: '0 10px 22px color-mix(in srgb, var(--accent) 35%, transparent)' }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--on-accent)' }}>
               speed
@@ -117,7 +124,7 @@ export function SpeedGauge(props: SpeedGaugeProps) {
           </div>
           <div
             className="text-[44px] font-bold leading-none lg:text-[54px]"
-            style={{ fontFamily: 'var(--font-sans)', color: 'var(--text-primary)' }}
+            style={{ fontFamily: 'var(--font-sans)', color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}
           >
             {props.centerValue}
           </div>
