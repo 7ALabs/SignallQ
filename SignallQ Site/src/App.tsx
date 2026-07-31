@@ -11,6 +11,11 @@ import ProPage from './pages/ProPage'
 import QuemSomosPage from './pages/QuemSomosPage'
 import TermosPage from './pages/TermosPage'
 import TestePage from './pages/TestePage'
+import InternetLentaPage from './pages/diagnostico/InternetLentaPage'
+import PingAltoPage from './pages/diagnostico/PingAltoPage'
+import VideochamadaPage from './pages/diagnostico/VideochamadaPage'
+import WifiLentoPage from './pages/diagnostico/WifiLentoPage'
+import TesteLatenciaPage from './pages/ferramentas/TesteLatenciaPage'
 
 export default function App() {
   return (
@@ -26,6 +31,13 @@ export default function App() {
         <Route path="/internet-boa-mas-travando" element={<BufferbloatPage />} />
         <Route path="/lag-em-jogos-online" element={<CgnatPage />} />
         <Route path="/teste" element={<TestePage />} />
+        
+        <Route path="/diagnostico/internet-lenta" element={<InternetLentaPage />} />
+        <Route path="/diagnostico/ping-alto" element={<PingAltoPage />} />
+        <Route path="/diagnostico/videochamada-travando" element={<VideochamadaPage />} />
+        <Route path="/diagnostico/wifi-lento" element={<WifiLentoPage />} />
+        <Route path="/ferramentas/teste-de-latencia" element={<TesteLatenciaPage />} />
+        
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
       <PwaToastStack />

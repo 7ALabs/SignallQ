@@ -194,6 +194,13 @@ export default function HistoricoPage() {
 
           {hasRecords && (
             <div className="flex flex-col gap-3.5">
+              <div className="flex items-start gap-3 rounded-2xl p-4" style={{ background: 'color-mix(in srgb, var(--accent) 15%, transparent)' }}>
+                <span className="material-symbols-outlined mt-0.5" style={{ fontSize: 20, color: 'var(--accent)' }}>lightbulb</span>
+                <div className="body-small text-slate-300">
+                  <strong className="text-white">Dica de Diagnóstico:</strong> Compare a sua conexão fazendo um teste perto do roteador e outro no cômodo onde a internet fica lenta. A diferença mostra o quanto você perde no Wi-Fi.
+                </div>
+              </div>
+              
               <div className="flex items-center justify-between gap-3">
                 <SegmentedControl options={FILTROS} value={filtro} onChange={setFiltro} />
                 <button onClick={() => setConfirmOpen(true)} className="flex h-9 shrink-0 items-center gap-1.5 border-none bg-transparent">

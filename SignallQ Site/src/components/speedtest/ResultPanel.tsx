@@ -3,8 +3,9 @@ import { PlayStoreBadge } from '../PlayStoreBadge'
 import { ResultAdCard } from './ResultAdCard'
 import { classifyLatency, classifyUpload, interpretUseCases, type Classificacao } from '../../lib/classification'
 import { iconeConexao, labelConexao, type TipoRede } from '../../lib/connection'
-import { FEATURE_SPEEDTEST_COMPARTILHOU, trackFeatureUsed } from '../../lib/telemetry'
 import type { SpeedTestResult } from '../../lib/speedEngine'
+import { FEATURE_SPEEDTEST_COMPARTILHOU, trackFeatureUsed } from '../../lib/telemetry'
+import { GuidedDiagnosis } from './GuidedDiagnosis'
 
 const NIVEL_COR: Record<string, string> = {
   success: 'var(--success)',
@@ -138,6 +139,8 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
     }
     await copySummary(true)
   }
+
+  const needsDiagnosis = downloadVerdict.nivel !== 'success' || latency.nivel !== 'success' || uploadVerdict.nivel !== 'success'
 
   return (
     <div className="sq-fade-up flex w-full max-w-[620px] flex-col gap-4">
@@ -376,6 +379,10 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
         <div className="self-center label-medium" style={{ color: 'var(--success)' }}>
           Copiado!
         </div>
+      )}
+      
+      {needsDiagnosis && (
+         <GuidedDiagnosis />
       )}
     </div>
   )
