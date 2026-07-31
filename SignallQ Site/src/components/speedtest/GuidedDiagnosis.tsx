@@ -54,7 +54,7 @@ export function GuidedDiagnosis() {
 
   if (step === 4 && diagnosis) {
     return (
-      <div className="sq-fade-up flex flex-col gap-3 rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
+      <div className="sq-fade-up flex flex-col gap-3 rounded-3xl p-6 glass-panel">
         <div className="label-overline" style={{ color: 'var(--accent)' }}>Diagnóstico SignallQ</div>
         <h3 className="title-medium m-0 text-white">{diagnosis.title}</h3>
         <p className="body-medium m-0" style={{ color: 'var(--text-secondary)' }}>{diagnosis.action}</p>
@@ -66,7 +66,7 @@ export function GuidedDiagnosis() {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl p-5" style={{ background: 'var(--bg-secondary)' }}>
+    <div className="flex flex-col gap-3 rounded-3xl p-6 glass-panel">
       <div className="label-overline" style={{ color: 'var(--accent)' }}>Diagnóstico Guiado</div>
       
       {step === 0 && (

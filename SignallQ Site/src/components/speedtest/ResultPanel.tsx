@@ -143,7 +143,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
   const needsDiagnosis = downloadVerdict.nivel !== 'success' || latency.nivel !== 'success' || uploadVerdict.nivel !== 'success'
 
   return (
-    <div className="sq-fade-up flex w-full max-w-[620px] flex-col gap-4">
+    <div className="sq-fade-up flex w-full max-w-[680px] flex-col gap-6">
       <div className="flex items-center justify-center gap-2">
         <span className="material-symbols-outlined" style={{ fontSize: 18, color: completo ? 'var(--success)' : 'var(--warning)' }}>
           {completo ? 'check_circle' : 'warning'}
@@ -152,12 +152,12 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
           {statusCopy.title}
         </span>
         <span className="body-small" style={{ color: 'var(--text-tertiary)' }}>
-          · {formatarDataHora(result.timestamp)}
+          • {formatarDataHora(result.timestamp)}
         </span>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <div className="flex flex-col items-center gap-1 rounded-2xl px-2 py-5" style={{ background: 'var(--bg-secondary)' }}>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="flex flex-col items-center gap-1 rounded-3xl px-2 py-5 glass-panel">
           <div className="flex items-center gap-1.5">
             <span className="material-symbols-outlined" style={{ fontSize: 16, color: NIVEL_COR[downloadVerdict.nivel] }}>
               arrow_downward
@@ -168,10 +168,10 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
             {result.download.mbps.toFixed(1)}
           </div>
           <div className="body-small" style={{ color: 'var(--text-secondary)' }}>
-            Mbps · {downloadVerdict.label}
+            Mbps • {downloadVerdict.label}
           </div>
         </div>
-        <div className="flex flex-col items-center gap-1 rounded-2xl px-2 py-5" style={{ background: 'var(--bg-secondary)' }}>
+        <div className="flex flex-col items-center gap-1 rounded-3xl px-2 py-5 glass-panel">
           <div className="flex items-center gap-1.5">
             <span className="material-symbols-outlined" style={{ fontSize: 16, color: NIVEL_COR[uploadVerdict.nivel] }}>
               arrow_upward
@@ -182,10 +182,10 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
             {result.upload.mbps.toFixed(1)}
           </div>
           <div className="body-small" style={{ color: 'var(--text-secondary)' }}>
-            Mbps · {uploadVerdict.label}
+            Mbps • {uploadVerdict.label}
           </div>
         </div>
-        <div className="flex flex-col items-center gap-1 rounded-2xl px-2 py-5" style={{ background: 'var(--bg-secondary)' }}>
+        <div className="flex flex-col items-center gap-1 rounded-3xl px-2 py-5 glass-panel">
           <div className="flex items-center gap-1.5">
             <span className="material-symbols-outlined" style={{ fontSize: 16, color: NIVEL_COR[latency.nivel] }}>
               network_ping
@@ -196,7 +196,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
             {Math.round(result.latency.ms)}
           </div>
           <div className="body-small" style={{ color: 'var(--text-secondary)' }}>
-            ms · {latency.label}
+            ms • {latency.label}
           </div>
         </div>
       </div>
@@ -248,7 +248,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
       </section>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <section className="rounded-2xl p-4" style={{ background: 'var(--bg-secondary)' }} aria-labelledby="contexto-execucao">
+        <section className="rounded-3xl p-6 glass-panel" aria-labelledby="contexto-execucao">
           <div id="contexto-execucao" className="label-overline">
             Contexto da execução
           </div>
@@ -280,7 +280,7 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
           </p>
         </section>
 
-        <section className="rounded-2xl p-4" style={{ background: 'var(--bg-secondary)' }} aria-labelledby="detalhes-tecnicos">
+        <section className="rounded-3xl p-6 glass-panel" aria-labelledby="detalhes-tecnicos">
           <div id="detalhes-tecnicos" className="label-overline">
             Detalhes técnicos
           </div>
