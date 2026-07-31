@@ -28,17 +28,17 @@ export function GuidedDiagnosis() {
     let action = ''
     
     if (finalAnswers['cabo_ou_wifi'] === 'wifi' && finalAnswers['perto'] === 'nao') {
-      title = 'O sinal do Wi-Fi pode estar fraco.'
+      title = 'Pode ser um problema de sinal do Wi-Fi.'
       action = 'Aproxime-se do roteador e repita o teste para comparar.'
     } else if (finalAnswers['outras_pessoas'] === 'sim') {
-      title = 'Sua rede pode estar congestionada.'
-      action = 'Muitas pessoas usando a internet ao mesmo tempo podem causar lentidão e ping alto. Repita quando a rede estiver livre.'
+      title = 'Sua rede parece congestionada.'
+      action = 'Muitas pessoas usando a internet ao mesmo tempo causam lentidão e ping alto. Repita o teste quando a rede estiver mais livre.'
     } else if (finalAnswers['outros_aparelhos'] === 'nao') {
-      title = 'O problema parece estar no seu aparelho.'
+      title = 'O problema parece estar restrito a este aparelho.'
       action = 'Como os outros aparelhos funcionam bem, tente reiniciar este dispositivo e desativar a economia de bateria.'
     } else {
-      title = 'Pode haver uma instabilidade com sua operadora.'
-      action = 'Se você está perto do roteador (ou no cabo) e só você usa a internet, o problema provavelmente vem de fora. Entre em contato com seu provedor e mostre o resultado do teste.'
+      title = 'Há sinais de instabilidade na sua rede.'
+      action = 'Como você está no cabo ou perto do roteador e sem sobrecarga na rede, o problema provavelmente vem de fora. Entre em contato com seu provedor.'
     }
 
     setDiagnosis({ title, action })
@@ -71,40 +71,40 @@ export function GuidedDiagnosis() {
       
       {step === 0 && (
         <div className="sq-fade-up">
-          <p className="title-medium m-0 mb-3 text-white">Como você está conectado?</p>
+          <p className="title-medium m-0 mb-3 text-white">Isso acontece em qual conexão?</p>
           <div className="flex gap-2">
-            <button onClick={() => handleAnswer('cabo_ou_wifi', 'wifi')} className="flex-1 rounded-xl p-3 hover:bg-white/5" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Wi-Fi</button>
-            <button onClick={() => handleAnswer('cabo_ou_wifi', 'cabo')} className="flex-1 rounded-xl p-3 hover:bg-white/5" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Cabo de rede</button>
+            <button onClick={() => handleAnswer('cabo_ou_wifi', 'wifi')} className="flex-1 rounded-xl p-3 hover:bg-white/5 transition-colors" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Wi-Fi</button>
+            <button onClick={() => handleAnswer('cabo_ou_wifi', 'cabo')} className="flex-1 rounded-xl p-3 hover:bg-white/5 transition-colors" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Cabo de rede</button>
           </div>
         </div>
       )}
 
       {step === 1 && (
         <div className="sq-fade-up">
-          <p className="title-medium m-0 mb-3 text-white">Você está perto do roteador?</p>
+          <p className="title-medium m-0 mb-3 text-white">Onde você percebe isso?</p>
           <div className="flex gap-2">
-            <button onClick={() => handleAnswer('perto', 'sim')} className="flex-1 rounded-xl p-3 hover:bg-white/5" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Sim</button>
-            <button onClick={() => handleAnswer('perto', 'nao')} className="flex-1 rounded-xl p-3 hover:bg-white/5" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Não</button>
+            <button onClick={() => handleAnswer('perto', 'sim')} className="flex-1 rounded-xl p-3 hover:bg-white/5 transition-colors" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Perto do roteador</button>
+            <button onClick={() => handleAnswer('perto', 'nao')} className="flex-1 rounded-xl p-3 hover:bg-white/5 transition-colors" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Longe do roteador</button>
           </div>
         </div>
       )}
 
       {step === 2 && (
         <div className="sq-fade-up">
-          <p className="title-medium m-0 mb-3 text-white">Outras pessoas estão usando a conexão agora?</p>
+          <p className="title-medium m-0 mb-3 text-white">Piora se outra pessoa na casa estiver usando a internet?</p>
           <div className="flex gap-2">
-            <button onClick={() => handleAnswer('outras_pessoas', 'sim')} className="flex-1 rounded-xl p-3 hover:bg-white/5" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Sim</button>
-            <button onClick={() => handleAnswer('outras_pessoas', 'nao')} className="flex-1 rounded-xl p-3 hover:bg-white/5" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Não</button>
+            <button onClick={() => handleAnswer('outras_pessoas', 'sim')} className="flex-1 rounded-xl p-3 hover:bg-white/5 transition-colors" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Sim, bastante</button>
+            <button onClick={() => handleAnswer('outras_pessoas', 'nao')} className="flex-1 rounded-xl p-3 hover:bg-white/5 transition-colors" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Não muda</button>
           </div>
         </div>
       )}
 
       {step === 3 && (
         <div className="sq-fade-up">
-          <p className="title-medium m-0 mb-3 text-white">A lentidão também acontece em outros aparelhos?</p>
+          <p className="title-medium m-0 mb-3 text-white">Isso acontece com outros aparelhos?</p>
           <div className="flex gap-2">
-            <button onClick={() => handleAnswer('outros_aparelhos', 'sim')} className="flex-1 rounded-xl p-3 hover:bg-white/5" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Sim</button>
-            <button onClick={() => handleAnswer('outros_aparelhos', 'nao')} className="flex-1 rounded-xl p-3 hover:bg-white/5" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Não, só neste</button>
+            <button onClick={() => handleAnswer('outros_aparelhos', 'sim')} className="flex-1 rounded-xl p-3 hover:bg-white/5 transition-colors" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Com qualquer um</button>
+            <button onClick={() => handleAnswer('outros_aparelhos', 'nao')} className="flex-1 rounded-xl p-3 hover:bg-white/5 transition-colors" style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Só neste</button>
           </div>
         </div>
       )}

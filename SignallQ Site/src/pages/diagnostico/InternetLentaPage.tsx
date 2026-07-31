@@ -15,9 +15,9 @@ export default function InternetLentaPage() {
       
       <main className="mx-auto w-full max-w-4xl px-4 py-8">
         <header className="mb-8 text-center">
-          <h1 className="title-large text-white mb-4">Minha internet está lenta: o que fazer?</h1>
+          <h1 className="title-large text-white mb-4">Páginas demoram, ficam "girando" ou falham ao abrir?</h1>
           <p className="body-medium text-slate-300 max-w-2xl mx-auto">
-            Sua velocidade pode estar boa no papel, mas ruim na prática. Faça o teste abaixo para identificar exatamente onde está o problema (download, upload ou latência) e siga nosso diagnóstico guiado.
+            Sua velocidade pode estar boa no papel, mas ruim na prática. Faça o teste abaixo para identificar exatamente onde está o problema e siga nosso diagnóstico guiado.
           </p>
         </header>
 

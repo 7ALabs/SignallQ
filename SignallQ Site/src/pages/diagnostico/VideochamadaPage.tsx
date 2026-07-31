@@ -15,7 +15,7 @@ export default function VideochamadaPage() {
       
       <main className="mx-auto w-full max-w-4xl px-4 py-8">
         <header className="mb-8 text-center">
-          <h1 className="title-large text-white mb-4">A videochamada trava? Saiba por que a internet engasga</h1>
+          <h1 className="title-large text-white mb-4">Imagem trava, áudio corta ou a chamada cai?</h1>
           <p className="body-medium text-slate-300 max-w-2xl mx-auto">
             Sua reunião do Zoom ou Teams fica caindo, com voz cortada e vídeo travado? Isso costuma ser problema de upload ou oscilação, não de download. Descubra com o teste abaixo.
           </p>

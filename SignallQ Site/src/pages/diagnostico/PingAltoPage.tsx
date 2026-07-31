@@ -15,7 +15,7 @@ export default function PingAltoPage() {
       
       <main className="mx-auto w-full max-w-4xl px-4 py-8">
         <header className="mb-8 text-center">
-          <h1 className="title-large text-white mb-4">Ping alto em jogos: como reduzir a latência</h1>
+          <h1 className="title-large text-white mb-4">Atraso, travadas ou desconexões durante partidas online?</h1>
           <p className="body-medium text-slate-300 max-w-2xl mx-auto">
             Não importa se o seu download é de 500 Mega: se o ping for alto, você terá lag nos jogos online. Faça o teste abaixo focando na métrica de Latência.
           </p>

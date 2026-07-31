@@ -15,7 +15,7 @@ export default function WifiLentoPage() {
       
       <main className="mx-auto w-full max-w-4xl px-4 py-8">
         <header className="mb-8 text-center">
-          <h1 className="title-large text-white mb-4">O Wi-Fi não pega? Como resolver sinal fraco e lentidão</h1>
+          <h1 className="title-large text-white mb-4">Quer descobrir se o problema é do roteador ou da internet contratada?</h1>
           <p className="body-medium text-slate-300 max-w-2xl mx-auto">
             Ter 1 Giga de fibra não adianta nada se o roteador não alcançar o seu quarto. Faça o teste abaixo para avaliar a capacidade real do seu Wi-Fi.
           </p>
