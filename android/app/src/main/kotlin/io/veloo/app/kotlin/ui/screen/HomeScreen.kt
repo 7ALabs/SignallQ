@@ -103,6 +103,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.signallq.app.R
 import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.core.diagnostico.MetricClassifier
+import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionService
@@ -1904,12 +1906,15 @@ private fun WifiFactorsSection(
     network: RedeVizinha,
     c: LkTokens,
 ) {
+    // GH#1228 Fatia 5 (P0-2): delega a MetricClassifier.classificarRssiWifi em vez de regua
+    // propria fixa (nao considerava banda -- sempre usava os cortes de 5GHz), terceira
+    // implementacao divergente ao lado de SignalBars.signalColor/SinalTopologiaHelpers.signalQuality.
     val overall =
-        when {
-            network.rssiDbm >= -55 -> WifiQuality.Excelente
-            network.rssiDbm >= -65 -> WifiQuality.Bom
-            network.rssiDbm >= -75 -> WifiQuality.Razoavel
-            else -> WifiQuality.Ruim
+        when (MetricClassifier.classificarRssiWifi(network.rssiDbm, network.paraBandaWifi())) {
+            MetricStatus.excelente -> WifiQuality.Excelente
+            MetricStatus.bom -> WifiQuality.Bom
+            MetricStatus.regular -> WifiQuality.Razoavel
+            MetricStatus.ruim, MetricStatus.critico, MetricStatus.inconclusivo -> WifiQuality.Ruim
         }
     val spectrumOk = network.frequenciaMhz > 5000
     val radioOk = network.rssiDbm >= -65

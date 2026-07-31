@@ -486,7 +486,7 @@ graph TD
 | ID | Achado | Evidência |
 |---|---|---|
 | **P0-1** | Mesma tela (`ResultadoVelocidadeScreen`) mostra conclusões incompatíveis para a mesma medição: card de latência "Bom" a 120ms enquanto o banner da mesma tela diz "demorando para responder" (fonte: `InternetDiagnosticEngine` `>100.0` vs. `MetricClassifier` `<=150`). Mesmo padrão para perda de pacotes (1.5%) e upload (4 Mbps). | Confirmado por leitura de código (`ResultadoVelocidadeScreen.kt:141-183` vs. `InternetDiagnosticEngine.kt`), já documentado arquiteturalmente na issue #1466 — mas **nunca demonstrado como "mesma tela, mesmo instante"** até esta auditoria |
-| **P0-2** | Wi-Fi RSSI no boundary -65dBm/5GHz é "Bom" (verde) nas telas Sinal/Home e "attention" (achado) no motor de diagnóstico, simultaneamente, para o mesmo valor. `MetricClassifier`'s próprio kdoc admite que a tela Sinal nunca foi migrada. | `SignalBars.kt`, `SinalTopologiaHelpers.kt`, `HomeScreen.kt` vs. `MetricClassifier.classificarRssiWifi` + `WifiSignalQualityEngine` |
+| **P0-2** | ~~Wi-Fi RSSI no boundary -65dBm/5GHz é "Bom" (verde) nas telas Sinal/Home e "attention" (achado) no motor de diagnóstico, simultaneamente, para o mesmo valor. `MetricClassifier`'s próprio kdoc admite que a tela Sinal nunca foi migrada.~~ **RESOLVIDO (2026-07-31, Fatia 5)** — `SignalBars.signalColor`, `SinalTopologiaHelpers.signalQuality` e `HomeScreen.WifiFactorsSection` (`overall`) agora delegam a `MetricClassifier.classificarRssiWifi` (nova sobrecarga que aceita `BandaWifi`), mesmo padrão de `SinalMovelClassificacao.kt`. | `SignalBars.kt`, `SinalTopologiaHelpers.kt`, `HomeScreen.kt` vs. `MetricClassifier.classificarRssiWifi` (agora fonte única) + `WifiSignalQualityEngine` |
 | **P0-3** | ~~`LaudoScreen.gerarECompartilharLaudo()` pode combinar métricas de uma execução de speedtest com o veredito/recomendação de um diagnóstico posterior e não relacionado~~ **RESOLVIDO (2026-07-31, Fatia 3)** — ver `diagnosticoCorrespondeAMedicao`/`montarSnapshotLaudo` em `LaudoScreen.kt` e ADR-012. | `LaudoScreen.kt:513-571`, `AppShell.kt:359,594,1004-1018` |
 | **P0-4** | `HistoricoScreen`'s cor de download usa escala própria (`>=30.0 Mbps = "bom"`) totalmente diferente de `MetricClassifier` (`>=50` para "bom"), e sua escala **nunca alcança vermelho/crítico** — um teste de 8 Mbps (crítico no canônico) tem a mesma cor visual que um de 28 Mbps (ruim). Também: valor ausente vira `0.0` e ganha a mesma cor de "teste ruim" em vez de "sem dado". | `HistoricoScreen.kt:557-567` |
 | **P0-5** | ~~`UptimeChartUseCase` rotula latência alta (>800ms) como `"OFFLINE"` e a tela de Histórico narra isso como "sua rede ficou offline" quando, na verdade, a rede esteve no ar o tempo todo — conflito semântico entre "sem conectividade" e "latência ruim", potencialmente a causa raiz de relatos de usuário como os das issues #1502/#1512.~~ **RESOLVIDO (2026-07-31, GH#1518)** — novo status `StatusUptime.LATENCIA_ALTA` para o bucket >800ms (rede respondeu, devagar); `StatusUptime.OFFLINE` reservado à ausência real de resposta (amostras HTTP do monitor sem retorno). Narrativa e `UptimeGridChart` atualizados para nunca descrever latência alta como "offline"/"sem conexão". Thresholds numéricos 300/800ms **não** foram alterados — unificação entre motores segue como escopo separado (issue #1466). | `feature/history/.../UptimeChartUseCase.kt:30-31,111-115` (agora `LATENCIA_ALTA`), `UptimeNarrativaEngine.kt` (seção "Latencia muito alta"), `app/.../ui/screen/UptimeGridChart.kt` (`calcularResumoDegradacao`) |
@@ -590,7 +590,7 @@ Baseada na evidência real desta auditoria — não na ordem genérica sugerida 
 - **Rollback:** reverter a mudança de threshold; testes dourados voltam a falhar como sinal.
 - **Testes necessários:** testes de fronteira exaustivos (já existem como base, precisam de atualização deliberada).
 
-## Fatia 5 — Migrar Wi-Fi RSSI da UI para o motor (corrige P0-2)
+## Fatia 5 — Migrar Wi-Fi RSSI da UI para o motor (corrige P0-2) — **CONCLUÍDA (2026-07-31)**
 
 - **Objetivo:** `SignalBars`/`SinalTopologiaHelpers`/`HomeScreen` passam a consumir `MetricClassifier.classificarRssiWifi` (ou o adapter da Fatia 2), removendo as 3 implementações de UI. Seguir o padrão já correto de `SinalMovelClassificacao.kt` (RSRP/RSRQ/SINR).
 - **Arquivos envolvidos:** `SignalBars.kt`, `SinalTopologiaHelpers.kt`, `HomeScreen.kt` (`WifiFactorsSection`), testes de UI.
@@ -599,6 +599,28 @@ Baseada na evidência real desta auditoria — não na ordem genérica sugerida 
 - **Critérios de aceite:** as 3 telas mostram a mesma cor/rótulo que o motor de diagnóstico para o mesmo RSSI, em qualquer banda.
 - **Rollback:** reverter para os limites antigos por arquivo.
 - **Testes necessários:** teste de fronteira por banda (2.4/5/6GHz), teste de regressão visual se disponível.
+- **Como foi implementada de fato:** decisão tomada direto (sem esperar Fatia 1/2 formais) —
+  "usar `MetricClassifier` como está" era a única leitura possível, já que ele já é o canônico
+  usado pelo motor de diagnóstico (`WifiSignalQualityEngine`). Em vez de um "adapter" separado,
+  ganhou uma sobrecarga `MetricClassifier.classificarRssiWifi(rssiDbm: Int, banda: BandaWifi)`
+  (mesmo objeto, `core/diagnostico/MetricClassifier.kt`) que replica o mapeamento
+  `BandaWifi`→`WifiBand` que `WifiSignalQualityEngine` já fazia inline — único ponto de
+  conversão agora, em vez de reimplementá-lo em cada tela. `SignalBars.signalColor` (cor),
+  `SinalTopologiaHelpers.signalQuality` (rótulo "Excelente/Bom/Regular/Fraco") e
+  `HomeScreen.WifiFactorsSection`'s `overall`/`WifiQuality` (badge "Excelente/Bom/Razoável/Ruim")
+  passaram a delegar a essa sobrecarga, mapeando o `MetricStatus` (6 valores) de volta para o
+  vocabulário de 4 níveis que cada tela já usava — sem mudar rótulo/vocabulário, só a origem do
+  corte numérico. `HomeScreen` ganhou de brinde a banda correta (antes usava sempre a régua de
+  5GHz, mesmo em 2.4GHz, ignorando `network.frequenciaMhz`/`banda`) via a extensão
+  `RedeVizinha.paraBandaWifi()` já existente em `SinalTopologiaHelpers.kt` (mesmo pacote,
+  mesmo módulo `:app` — visível por ser `internal`). Fora de escopo, não tocado: os fatores
+  "espectro"/"rádio"/"canal" de `WifiFactorsSection` (thresholds próprios não citados como um
+  dos 3 duplicados pela auditoria) e o contador visual de barras (`SignalBars`'s `bars: Int`,
+  concern diferente de cor/veredito). Teste de caracterização antigo
+  (`WifiRssiUiVsMetricClassifierCharacterizationTest.kt`, que documentava a divergência) foi
+  substituído por `WifiRssiUiConvergenceTest.kt` (prova de convergência nos mesmos boundaries);
+  `MetricClassifierTest.kt` ganhou 3 testes novos para a sobrecarga `BandaWifi`. PR desta fatia:
+  branch `fix/1228-fatia5-rssi-wifi-unificado`.
 
 ## Fatia 6 — Consolidar bufferbloat (corrige risco latente P1-4)
 
