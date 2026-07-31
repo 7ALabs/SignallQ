@@ -49,10 +49,11 @@ class InternetDiagnosticEngineVsMetricClassifierCharacterizationTest {
 
     @Test
     fun `latencia no boundary exato de 100ms nao diverge -- fronteira coincide por acidente`() {
-        // Em exatos 100.0ms nenhum dos dois dispara (classifier: <100 excelente, senao bom
-        // ate 150; engine: so dispara em > 100.0, estritamente). Documenta que a divergencia
-        // comeca IMEDIATAMENTE ACIMA de 100.0ms, nao em 100.0ms.
-        assertEquals(MetricStatus.excelente, MetricClassifier.classificarLatencia(100.0))
+        // Em exatos 100.0ms nenhum dos dois dispara achado (classifier: 100.0 nao e < 100,
+        // cai em "bom" ate 150; engine: so dispara em > 100.0, estritamente, e 100.0 nao e
+        // > 100.0). Documenta que a divergencia comeca IMEDIATAMENTE ACIMA de 100.0ms
+        // (ver teste anterior, 120ms), nao em 100.0ms exatos.
+        assertEquals(MetricStatus.bom, MetricClassifier.classificarLatencia(100.0))
         val achados = InternetDiagnosticEngine.avaliar(baseline(lat = 100.0), wifiConfiavelParaTeste = true)
         assertTrue(achados.none { it.id == "IN-NORMAL-05" })
     }
