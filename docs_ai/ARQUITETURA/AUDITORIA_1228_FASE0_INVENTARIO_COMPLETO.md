@@ -503,7 +503,7 @@ graph TD
 | **P1-1** | Dois engines chamados literalmente `RecommendationEngine` (`core/recommendation` e `feature/diagnostico`), sem relação de chamada, tipos de entrada/saída diferentes, com colisão real de nome no autocomplete/import. | `core/recommendation/.../RecommendationEngine.kt`, `feature/diagnostico/.../RecommendationEngine.kt` |
 | **P1-2** | `RecommendationRequestMapper.mapTags()` deriva tags para o engine #1 independentemente das regras REC-01..14 do engine #2 (regex de prefixo de ID em vez de ler o resultado), incluindo um cálculo de "% do plano contratado" com tolerância diferente (20%) do que REC-04 usa (`linkSpeed`, não `download`). | `RecommendationRequestMapper.kt:86-135` |
 | **P1-3** | `DeviceType`/`SupportLevel` duplicados byte-a-byte entre `contracts.gateway` e `contracts.localdevice` — dois tipos Kotlin distintos, mesmos 5/4 valores, sem conversor. | `core/network/.../contracts/gateway/DeviceType.kt`, `.../contracts/localdevice/DeviceType.kt` |
-| **P1-4** | `SpeedtestQualityClassifier.classificarBufferbloat` e `MetricClassifier.classificarBufferbloat` reimplementam os mesmos 3 cortes (5/30/100ms) por causa de uma regra de dependência de módulo (`:feature* → :feature*` proibido) — funcionalmente duplicado, apesar de justificado arquiteturalmente. | `SpeedtestQualityClassifier.kt:9-14`, `MetricClassifier.kt:202-207` |
+| **P1-4** | ~~`SpeedtestQualityClassifier.classificarBufferbloat` e `MetricClassifier.classificarBufferbloat` reimplementam os mesmos 3 cortes (5/30/100ms) por causa de uma regra de dependência de módulo (`:feature* → :feature*` proibido) — funcionalmente duplicado, apesar de justificado arquiteturalmente.~~ **RESOLVIDO (2026-07-31, Fatia 6)** — `feature/speedtest` ganhou dependência em `core:diagnostico` (`:feature* → :core*`, direção permitida pela regra), e `SpeedtestQualityClassifier.classificarBufferbloat` passou a delegar para `MetricClassifier.classificarBufferbloat`, só traduzindo `MetricStatus` para o vocabulário próprio `SeveridadeBufferbloat`. Único ponto de verdade agora; `BufferbloatDualImplementationCharacterizationTest.kt` continua verde e vira guard-rail contra reintrodução da duplicação. | `SpeedtestQualityClassifier.kt` (delega), `MetricClassifier.kt:196-207` (fonte única), `feature/speedtest/build.gradle.kts` (nova dependência) |
 | **P1-5** | `DnsDiagnosticEngine` reimplementa (não chama) os mesmos números de `MetricClassifier.classificarLatenciaDns`, mesmo estando no mesmo módulo (`core/diagnostico`) — não há justificativa arquitetural aqui, ao contrário do P1-4. | `DnsDiagnosticEngine.kt:15-48` |
 | **P1-6** | `ScoreEvidenceBuilder` reimplementa thresholds de download/upload/link-speed/perda-de-pacotes em vez de chamar `MetricClassifier`, apesar de seu próprio kdoc afirmar "não reclassifica nada do zero". | `ScoreEvidenceBuilder.kt:68-97,166-182` |
 | **P1-7** | `NatClassifier` (core/diagnostico) e `StunNatProbe` (feature/diagnostico) são dois classificadores de NAT independentes, técnicas diferentes, sem contrato compartilhado — usuário pode ver "CGNAT" numa tela e "MODERADO" noutra para a mesma rede. | `core/diagnostico/.../topology/correlation/NatClassifier.kt`, `feature/diagnostico/.../topology/lan/StunNatProbe.kt` |
@@ -622,7 +622,7 @@ Baseada na evidência real desta auditoria — não na ordem genérica sugerida 
   `MetricClassifierTest.kt` ganhou 3 testes novos para a sobrecarga `BandaWifi`. PR desta fatia:
   branch `fix/1228-fatia5-rssi-wifi-unificado`.
 
-## Fatia 6 — Consolidar bufferbloat (corrige risco latente P1-4)
+## Fatia 6 — Consolidar bufferbloat (corrige risco latente P1-4) — **CONCLUÍDA (2026-07-31)**
 
 - **Objetivo:** uma única implementação de threshold de bufferbloat, resolvendo a regra `:feature* → :feature*` proibida via extração para `core` (não duplicação).
 - **Arquivos envolvidos:** `SpeedtestQualityClassifier.kt`, `MetricClassifier.kt`, possível novo local em `core/diagnostico` ou `core/network` acessível por ambos.
@@ -631,6 +631,17 @@ Baseada na evidência real desta auditoria — não na ordem genérica sugerida 
 - **Critérios de aceite:** um único ponto de verdade; `gargaloPrimario` persistido e badges de UI sempre concordam.
 - **Rollback:** reverter para as duas cópias.
 - **Testes necessários:** teste de caracterização já criado nesta fatia (`BufferbloatDualImplementationCharacterizationTest.kt`) vira o guard-rail.
+- **Como foi implementada de fato:** `core/diagnostico.MetricClassifier.classificarBufferbloat` já
+  era a implementação com o kdoc mais completo (fonte DSLReports/waveform) — em vez de criar um
+  terceiro local, `feature/speedtest` ganhou dependência direta em `:core:diagnostico`
+  (`implementation(project(":core:diagnostico"))` em `feature/speedtest/build.gradle.kts`), a
+  única direção permitida pela regra `:feature* → :core*`. `SpeedtestQualityClassifier.
+  classificarBufferbloat` deixou de reimplementar os 3 cortes e passou a chamar
+  `MetricClassifier.classificarBufferbloat`, só traduzindo o vocabulário canônico `MetricStatus`
+  para o vocabulário próprio do módulo (`SeveridadeBufferbloat`). Nenhum valor de corte mudou.
+  `BufferbloatDualImplementationCharacterizationTest.kt` (77+10+2 testes nos três módulos
+  envolvidos, todos verdes) continua existindo como guard-rail contra reintrodução da duplicação.
+  Ver PR desta fatia (branch `fix/1228-fatia6-bufferbloat-consolidado`).
 
 ## Fatia 7 — Corrigir Laudo (executionId real, corrige P0-3) — **CONCLUÍDA (2026-07-31, adiantada junto com a Fatia 3)**
 
@@ -699,11 +710,11 @@ Baseada na evidência real desta auditoria — não na ordem genérica sugerida 
 
 **Fatia 3** (executionId/rulesVersion em `MedicaoEntity`) é a próxima fatia recomendada: é a base de dados para provar/auditar qualquer uma das outras fatias (sem ela, é impossível saber, depois do fato, se um resultado antigo reflete a regra da época ou uma regra futura), tem risco técnico moderado e controlado (migração aditiva, mesmo padrão já usado 14 vezes no schema), e não depende de nenhuma decisão de produto pendente — ao contrário da Fatia 4, que está bloqueada pela decisão de produto da issue #1466.
 
-**Atualização 2026-07-31:** Fatia 3, Fatia 7 (P0-3, Laudo) e Fatia 8 (P0-8, `DiagnosticStatus`→cor)
-concluídas — ver ADR-012 (Fatia 3/7) e a seção "Fatia 8" acima. Próxima fatia candidata continua
-bloqueada por decisão de produto pendente (Fatia 4, issue #1466); Fatia 6 (bufferbloat) e Fatia 9
-(rename dos `RecommendationEngine`) não têm bloqueio de produto e podem ser priorizadas antes da
-Fatia 4 se a decisão de #1466 não tiver sido tomada ainda.
+**Atualização 2026-07-31:** Fatia 3, Fatia 6 (P1-4, bufferbloat), Fatia 7 (P0-3, Laudo), Fatia 8
+(P0-8, `DiagnosticStatus`→cor) e Fatia 9a (P1-1, rename `RecommendationEngine`) concluídas — ver
+ADR-012 (Fatia 3/7) e as seções "Fatia 6"/"Fatia 8"/"Fatia 9" acima. P1-2 (lógica do
+`RecommendationRequestMapper`) segue em aberto, rastreada separadamente na issue #1528. Única fatia
+ainda bloqueada é a Fatia 4, por decisão de produto pendente da issue #1466.
 
 ---
 

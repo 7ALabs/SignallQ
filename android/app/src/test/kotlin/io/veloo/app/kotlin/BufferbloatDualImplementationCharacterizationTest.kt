@@ -8,23 +8,21 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Fase 0 da auditoria #1228 — congela que as DUAS implementacoes independentes de
- * threshold de bufferbloat concordam hoje, valor a valor, em toda a fronteira testada.
+ * Fase 0 da auditoria #1228 — nasceu para congelar que as DUAS implementacoes
+ * independentes de threshold de bufferbloat concordavam, valor a valor, em toda a
+ * fronteira testada. **RESOLVIDO na GH#1228 Fatia 6 (P1-4, 2026-07-31):**
+ * [SpeedtestQualityClassifier.classificarBufferbloat] (feature/speedtest) passou a
+ * delegar para [MetricClassifier.classificarBufferbloat] (core/diagnostico) --
+ * `feature/speedtest` ganhou dependencia em `core:diagnostico` (`:feature* -> :core*`,
+ * direcao permitida), entao a concordancia deixou de ser coincidencia de valores e virou
+ * garantia estrutural (mesma fonte).
  *
- * [MetricClassifier.classificarBufferbloat] (core/diagnostico) e
- * [SpeedtestQualityClassifier.classificarBufferbloat] (feature/speedtest) usam os MESMOS
- * 3 cortes (5/30/100ms), mas sao DUAS implementacoes fisicamente separadas -- o proprio
- * kdoc de [MetricClassifier] explica que a duplicacao existe porque `:core:diagnostico`
- * nao pode depender de `:featureSpeedtest` (lei de dependencia `:feature* -> :feature*`
- * proibida). So `:app` depende dos dois modulos ao mesmo tempo, entao so aqui e possivel
- * comparar as duas implementacoes lado a lado.
- *
- * O valor persistido em `MedicaoEntity.gargaloPrimario` vem da implementacao de
- * [SpeedtestQualityClassifier]; o badge de bufferbloat mostrado ao usuario (tela de
- * Resultado, Historico) vem da implementacao de [MetricClassifier]. Hoje elas concordam
- * -- mas nao ha nenhuma constante compartilhada nem versao registrada amarrando as duas.
- * Se qualquer uma mudar no futuro sem a outra, ESTE TESTE E QUEM VAI QUEBRAR PRIMEIRO --
- * ele existe para ser o alarme dessa dessincronizacao (ver
+ * Este teste continua valendo como guard-rail: se a delegacao for revertida por engano
+ * (ex.: alguem reintroduzir um `when` literal em `SpeedtestQualityClassifier` em vez de
+ * chamar `MetricClassifier`), ele volta a ser o alarme de dessincronizacao. O valor
+ * persistido em `MedicaoEntity.gargaloPrimario` vem de [SpeedtestQualityClassifier]; o
+ * badge de bufferbloat mostrado ao usuario (tela de Resultado, Historico) vem de
+ * [MetricClassifier] -- ambos agora leem o mesmo corte numerico (ver
  * `docs_ai/ARQUITETURA/AUDITORIA_1228_FASE0_INVENTARIO_COMPLETO.md`, Parte 8, P1-4).
  */
 class BufferbloatDualImplementationCharacterizationTest {
