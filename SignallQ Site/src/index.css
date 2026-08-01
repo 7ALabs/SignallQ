@@ -10,11 +10,7 @@
 @source "./components";
 @source "./app";
 
-html,
-body,
-#root {
-  height: 100%;
-}
+/* Removido height 100% do html e body para evitar quebra do scroll nativo da janela */
 
 /* Reserva o espaço da barra de rolagem vertical em toda página, mesmo nas
    que não têm conteúdo suficiente pra precisar dela — sem isso, a largura
