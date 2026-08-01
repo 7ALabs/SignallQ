@@ -12,6 +12,12 @@ interface PageShellProps {
    * comportamento anterior à introdução deste prop.
    */
   align?: "start" | "center";
+  /**
+   * Padding do shell no mobile (classes Tailwind, <640px). Default 8/16/24
+   * (Home/Histórico/PRO — Guia §7.1). ScreenDoc usa 28/20/40 (Guia §7.3,
+   * `shellPadding` de `ScreenDoc.dc.html`), diferente das demais telas.
+   */
+  mobilePadding?: string;
   children: ReactNode;
 }
 
@@ -32,6 +38,7 @@ interface PageShellProps {
 export function PageShell({
   contentMax = "860px",
   align = "start",
+  mobilePadding = "py-2 px-4 pb-6",
   children,
 }: PageShellProps) {
   return (
@@ -39,7 +46,7 @@ export function PageShell({
       <SiteNav />
 
       <div
-        className={`flex w-full flex-1 justify-center box-border py-2 px-4 pb-6 lg:pt-5 lg:px-[var(--safe-x)] lg:pb-4 ${
+        className={`flex w-full flex-1 justify-center box-border ${mobilePadding} lg:pt-5 lg:px-[var(--safe-x)] lg:pb-4 ${
           align === "center" ? "items-center" : ""
         }`}
       >

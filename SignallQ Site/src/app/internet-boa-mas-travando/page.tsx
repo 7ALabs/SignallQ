@@ -35,13 +35,12 @@ export default function Page() {
   useDocumentMeta(PAGE_META['/internet-boa-mas-travando'])
 
   return (
-    <PageShell >
+    <PageShell align="center" mobilePadding="pt-7 px-5 pb-10">
       <DocPage
         overline="Diagnóstico"
         title="Internet boa mas travando? Veja por que isso acontece"
         intro="Se o Wi-Fi está com sinal forte e o teste de velocidade mostra número alto, mas a internet ainda trava ou engasga quando mais de uma coisa usa a rede ao mesmo tempo, o motivo normalmente não é velocidade — é latência sob carga, um efeito chamado bufferbloat."
         sections={SECTIONS}
-        card
         ctaLabel="Testar minha conexão"
         ctaTo="/"
       >

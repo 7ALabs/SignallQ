@@ -16,13 +16,12 @@ export default function Page() {
   useDocumentMeta(PAGE_META['/comparativo'])
 
   return (
-    <PageShell>
+    <PageShell align="center" mobilePadding="pt-7 px-5 pb-10">
       <DocPage
         overline="Comparativo"
         title="SignallQ x testes de velocidade tradicionais"
         intro="Um número de Mbps não diz por que a internet trava. Veja o que muda quando o teste também mede latência sob carga, DNS e o motivo provável do problema."
         sections={SECTIONS}
-        card
         ctaLabel="Fazer meu teste"
         ctaTo="/"
       />

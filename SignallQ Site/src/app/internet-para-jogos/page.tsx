@@ -16,13 +16,12 @@ export default function Page() {
   useDocumentMeta(PAGE_META['/internet-para-jogos'])
 
   return (
-    <PageShell>
+    <PageShell align="center" mobilePadding="pt-7 px-5 pb-10">
       <DocPage
         overline="Guia"
         title="Que internet você precisa para jogar online sem travar"
         intro="Não é só velocidade: latência baixa e estável importa mais que Mbps para a maioria dos jogos competitivos."
         sections={SECTIONS}
-        card
         ctaLabel="Testar minha conexão"
         ctaTo="/"
       />

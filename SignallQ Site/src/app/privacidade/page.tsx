@@ -4,10 +4,10 @@ import { PageShell } from '../../components/PageShell'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
 import { PAGE_META } from '../../lib/pageMetaCatalog'
 
-// Copy verbatim de `ScreenDoc.dc.html` (`PAGES['privacidade']`), reconstrução v2
-// (`.claude/design-specs/2026-07-25-site-webapp-v2/README.md`, Achado 3). Reconcilia
-// texto legal com o protótipo — 11 seções, incluindo Cloudflare Web Analytics, lista
-// de espera do SignallQ PRO e contato, que a versão anterior desta página não tinha.
+// Copy verbatim de `ScreenDoc.dc.html` (`PAGES['privacidade']`), reconstrução v4 —
+// 10 seções. A seção "Lista de espera do PRO" existia numa versão anterior desta
+// página mas não existe no protótipo atual (`/pro` foi removido do site na fase
+// de Fundação) e foi removida daqui para bater 1:1 com a fonte.
 const SECTIONS: DocSection[] = [
   {
     title: 'O que é processado durante o teste',
@@ -34,10 +34,6 @@ const SECTIONS: DocSection[] = [
     text: 'Usamos o Cloudflare Web Analytics para métricas agregadas de tráfego e desempenho. Esse serviço não usa cookies nem identifica visitantes individualmente.',
   },
   {
-    title: 'Lista de espera do PRO',
-    text: 'Se você pedir para ser avisado sobre o lançamento do PRO, coletamos o e-mail só para esse fim. Ele não é compartilhado com terceiros. Para remoção, escreva para giammattey.luiz@gmail.com.',
-  },
-  {
     title: 'Google AdSense',
     text: 'O site pode exibir anúncios via AdSense, carregados somente depois que uma medição termina. A Google pode processar dados conforme sua própria política.',
   },
@@ -59,7 +55,7 @@ export default function Page() {
   useDocumentMeta(PAGE_META['/privacidade'])
 
   return (
-    <PageShell >
+    <PageShell align="center" mobilePadding="pt-7 px-5 pb-10">
       <DocPage
         overline="Privacidade"
         title="Como este site trata seus dados"

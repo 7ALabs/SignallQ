@@ -28,7 +28,7 @@ const SECTIONS: DocSection[] = [
   },
   {
     title: '5. Disponibilidade',
-    text: 'O serviço é fornecido "como está". Não garantimos disponibilidade ininterrupta nem precisão absoluta — o teste depende de infraestrutura de terceiros (Cloudflare).',
+    text: 'O serviço é fornecido "como está". Não garantimos disponibilidade ininterrupta nem precisão absoluta: o teste depende de infraestrutura de terceiros (Cloudflare).',
   },
   {
     title: '6. Privacidade',
@@ -60,7 +60,7 @@ export default function Page() {
   useDocumentMeta(PAGE_META['/termos'])
 
   return (
-    <PageShell >
+    <PageShell align="center" mobilePadding="pt-7 px-5 pb-10">
       <DocPage
         overline="Termos de Uso"
         title="Termos de Uso do site SignallQ"
