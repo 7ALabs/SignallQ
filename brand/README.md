@@ -21,11 +21,14 @@ anteriores (2334×784) — adequado para a maioria dos usos web/mobile, mas sem 
 upscaling do arquivo anterior.
 
 **Pendência aberta (fora do escopo desta rodada, sinalizada e não executada):**
-- Ícone do launcher Android (`android/app/src/main/res/mipmap-*/ic_launcher*`) continua com o
-  símbolo antigo (4 barras) — precisa ser regenerado a partir do novo `signallq-symbol-1024.png`
-  e passar por um release novo pra valer em produção.
 - Favicon do `SignallQ Admin/public/` continua com o símbolo antigo — mesma regeneração
   pendente, não feita nesta rodada (só `brand/` e `SignallQ Site/` foram atualizados).
+
+**Ícone do launcher Android — sincronizado em 2026-08-01 (issue #1554):** os mipmaps em
+`android/app/src/main/res/mipmap-*/ic_launcher*` foram regenerados a partir de
+`signallq-symbol-1024.png` (script determinístico, sem edição manual), substituindo o símbolo
+antigo (4 barras). Detalhe em "Ícone do app (Android)" abaixo. Falta um release novo pra valer em
+produção (Play Store ainda distribui o build com o ícone antigo até o próximo bump de versão).
 
 ## Arquivos
 
@@ -62,8 +65,25 @@ upscaling do arquivo anterior.
 O ícone do app deriva do **símbolo**. Os recursos em
 `android/app/src/main/res/mipmap-*/ic_launcher*` devem sempre corresponder a
 `signallq-symbol-1024.png`. Ao atualizar a marca, regenerar os mipmaps a partir deste símbolo.
-**Estado atual (2026-08-01): DIVERGENTE** — o símbolo mudou (anéis + Q) mas os mipmaps ainda são
-o símbolo antigo (4 barras); regeneração pendente, ver "Pendência aberta" acima.
+
+**Sincronizado em 2026-08-01 (issue #1554).** Os 5 arquivos por densidade
+(`ic_launcher_foreground`, `ic_launcher_background`, `ic_launcher_monochrome`, `ic_launcher`
+legado, `ic_launcher_round` legado, em `mdpi`/`hdpi`/`xhdpi`/`xxhdpi`/`xxxhdpi`) foram regenerados
+a partir de `signallq-symbol-1024.png`. Detalhe da geração:
+- `ic_launcher_background`: branco sólido opaco (mesma decisão de antes — o símbolo já carrega
+  degradê próprio, sem precisar de fundo colorido).
+- `ic_launcher_foreground`/`ic_launcher_monochrome`: símbolo recortado (trim de transparência) e
+  redimensionado mantendo aspect ratio, ocupando 62,5% da altura do canvas 108dp — mesma
+  proporção de safe-zone medida no ícone antigo (4 barras: 62,5% de altura, 71,3% de largura no
+  canvas 432px/xxxhdpi), sem inventar margem nova. `ic_launcher_monochrome` é a silhueta branca
+  (alpha do símbolo, sem cor) do mesmo recorte, para o ícone temático do Android 13+.
+- `ic_launcher`/`ic_launcher_round` (legado pré-API26): mesmo recorte/proporção, achatado sobre
+  fundo branco opaco (`ic_launcher_round` com máscara circular, corners transparentes).
+- `mipmap-anydpi-v26/ic_launcher.xml` não mudou — adaptive icon já referenciava os três layers via
+  `@mipmap/`, sem vetor embutido.
+
+Ainda falta um **release novo** (bump de `versionCode`) pra esse ícone valer em produção — a Play
+Store hoje distribui o build anterior, com o símbolo antigo.
 
 ## Favicons / ícones web (`favicon/`)
 
