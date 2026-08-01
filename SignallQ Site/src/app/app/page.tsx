@@ -1,8 +1,12 @@
 "use client";
-import { useEffect, useRef } from 'react'
-import { PageShell } from '../../components/PageShell'
-import { useDocumentMeta } from '../../hooks/useDocumentMeta'
-import { PAGE_META } from '../../lib/pageMetaCatalog'
+import { useEffect } from 'react'
+import Link from 'next/link'
+import { SiteNav } from '@/components/SiteNav'
+import { SiteFooter } from '@/components/SiteFooter'
+import { useDocumentMeta } from '@/hooks/useDocumentMeta'
+import { PAGE_META } from '@/lib/pageMetaCatalog'
+import { SIGNALLQ_TEST_GROUP_URL } from '@/lib/config'
+import { FEATURE_DOWNLOAD_APP_CLICADO, trackFeatureUsed } from '@/lib/telemetry'
 
 const FEATURES = [
   { icon: 'wifi', title: 'Wi-Fi cômodo a cômodo', text: 'Mede o sinal em cada ambiente da casa e mostra onde ele morre.' },
@@ -34,7 +38,7 @@ export default function AppLandingPage() {
   useEffect(() => {
     let n = 0;
     const items: HTMLElement[] = [];
-    
+
     function scan() {
       document.querySelectorAll('.sq-app-reveal').forEach((el) => {
         const htmlEl = el as HTMLElement;
@@ -45,7 +49,7 @@ export default function AppLandingPage() {
       });
       check();
     }
-    
+
     function check() {
       const h = window.innerHeight || 800;
       for (let i = items.length - 1; i >= 0; i--) {
@@ -57,16 +61,16 @@ export default function AppLandingPage() {
         }
       }
     }
-    
+
     scan();
     const observer = new MutationObserver(scan);
     observer.observe(document.documentElement, { childList: true, subtree: true });
-    
+
     ['scroll', 'wheel', 'resize'].forEach(ev => {
       window.addEventListener(ev, check, { passive: true, capture: true });
     });
     const interval = setInterval(check, 250);
-    
+
     return () => {
       observer.disconnect();
       ['scroll', 'wheel', 'resize'].forEach(ev => {
@@ -76,32 +80,45 @@ export default function AppLandingPage() {
     }
   }, [])
 
+  // Teste fechado: entrar no grupo é a etapa correta antes da instalação pela
+  // Play Store — mesmo padrão de PlayStoreBadge/SiteFooter, não coleta e-mail.
+  const entrarNaListaDeTeste = () => {
+    trackFeatureUsed(FEATURE_DOWNLOAD_APP_CLICADO)
+    window.open(SIGNALLQ_TEST_GROUP_URL, '_blank', 'noopener,noreferrer')
+  }
+
   return (
-    <PageShell contentMax="1080px">
-      <div className="relative w-full box-border flex justify-center p-[28px_20px_24px] md:p-[56px_24px_40px] overflow-hidden">
+    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+      <SiteNav />
+
+      <div className="relative w-full box-border flex justify-center overflow-hidden p-[28px_20px_24px] sm:p-[56px_var(--safe-x)_40px]">
         <div className="sq-app-glow-a absolute left-[8%] top-[-80px] w-[420px] h-[420px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--accent) 30%, transparent), transparent 70%)' }} />
         <div className="sq-app-glow-b absolute right-[6%] top-[120px] w-[380px] h-[380px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--accent-blue) 26%, transparent), transparent 70%)' }} />
 
-        <div className="relative w-full max-w-[1080px] flex items-center gap-[48px] flex-wrap md:flex-nowrap">
-          <div className="flex-[1_1_420px] flex flex-col items-center md:items-start gap-4 text-center md:text-left">
+        <div className="relative w-full max-w-[1080px] flex items-center gap-[48px] flex-wrap">
+          <div className="flex-[1_1_420px] flex flex-col items-center sm:items-start gap-4 text-center sm:text-left">
             <span className="flex items-center gap-[6px] rounded-full py-[6px] px-[14px] bg-[color-mix(in_srgb,_var(--accent)_16%,_transparent)]">
               <span className="material-symbols-outlined text-[16px] text-[color:var(--accent)]">science</span>
               <span className="font-semibold text-[12px] leading-[1.3] text-[color:var(--accent)] tracking-[.02em]">Em teste fechado · vagas limitadas</span>
             </span>
-            <h1 className="m-0 max-w-[560px] font-bold text-[30px] md:text-[42px] leading-[1.12] text-[color:var(--text-primary)] text-pretty">
+            <h1 className="m-0 max-w-[560px] font-bold text-[30px] sm:text-[42px] leading-[1.12] text-[color:var(--text-primary)] text-pretty">
               O app que não para no número: descobre por que sua internet está ruim
             </h1>
             <p className="m-0 max-w-[480px] font-normal text-[16px] leading-[1.5] text-[color:var(--text-secondary)] text-pretty">
               Wi-Fi cômodo a cômodo, sinal 4G/5G real e diagnóstico por IA: o que nenhum teste de velocidade tradicional consegue ver.
             </p>
-            <div className="flex flex-wrap justify-center md:justify-start gap-3 pt-[6px]">
-              <div className="h-[48px] flex items-center gap-2 px-6 rounded-full bg-[color:var(--accent)] shadow-[0_14px_30px_color-mix(in_srgb,_var(--accent)_40%,_transparent)] cursor-pointer hover:brightness-110 transition-all">
+            <div className="flex flex-wrap justify-center sm:justify-start gap-3 pt-[6px]">
+              <button
+                type="button"
+                onClick={entrarNaListaDeTeste}
+                className="h-[48px] flex items-center gap-2 px-6 rounded-full border-none bg-[color:var(--accent)] shadow-[0_14px_30px_color-mix(in_srgb,_var(--accent)_40%,_transparent)] cursor-pointer hover:brightness-110 transition-all"
+              >
                 <span className="material-symbols-outlined text-[20px] text-[color:var(--on-accent)]">how_to_reg</span>
                 <span className="font-semibold text-[15px] leading-[1.2] text-[color:var(--on-accent)]">Entrar na lista de teste</span>
-              </div>
-              <a href="/" className="h-[48px] flex items-center px-[22px] rounded-full border border-[color:var(--border)] no-underline hover:bg-[color:var(--bg-secondary)] transition-colors cursor-pointer">
+              </button>
+              <Link href="/" className="h-[48px] flex items-center px-[22px] rounded-full border border-[color:var(--border)] no-underline hover:bg-[color:var(--bg-secondary)] transition-colors cursor-pointer">
                 <span className="font-medium text-[15px] leading-[1.2] text-[color:var(--text-primary)]">Testar no navegador agora</span>
-              </a>
+              </Link>
             </div>
             <div className="flex items-center gap-2">
               <span className="sq-app-dot w-2 h-2 rounded-full bg-[color:var(--success)]" />
@@ -111,19 +128,23 @@ export default function AppLandingPage() {
             </div>
           </div>
 
-          <div className="sq-app-float flex-none rounded-[30px] p-[6px] box-border bg-[#16181d] shadow-[0_18px_40px_-14px_rgba(0,0,0,.5)] mx-auto md:mx-0">
-            <img src="/assets/teste-01-home-dark.png" alt="Tela Início do SignallQ" className="h-[280px] md:h-[380px] w-auto block rounded-[22px]" />
+          <div className="sq-app-float flex-none rounded-[30px] p-[6px] box-border bg-[#16181d] shadow-[0_18px_40px_-14px_rgba(0,0,0,.5)] mx-auto sm:mx-0">
+            <img
+              src="/assets/teste-01-home-dark.png"
+              alt="Tela Início do SignallQ em modo escuro, mostrando o caminho da conexão entre aparelho, roteador e provedor, o resultado da última medição de velocidade e o status do Wi-Fi."
+              className="h-[280px] sm:h-[380px] w-auto block rounded-[22px]"
+            />
           </div>
         </div>
 
-        <div className="sq-app-bounce absolute left-1/2 bottom-2 -translate-x-1/2 hidden md:block">
+        <div className="sq-app-bounce absolute left-1/2 bottom-2 -translate-x-1/2 hidden sm:block">
           <span className="material-symbols-outlined text-[24px] text-[color:var(--text-tertiary)]">expand_more</span>
         </div>
       </div>
 
-      <div className="w-full box-border flex justify-center pb-4 px-6">
+      <div className="w-full box-border flex justify-center pb-4 px-[var(--safe-x)]">
         <div className="w-full max-w-[1080px] flex flex-col gap-[56px]">
-          
+
           <div className="sq-app-reveal flex flex-col gap-4">
             <div className="text-center font-medium text-[11px] leading-[1.45] text-[color:var(--accent)] tracking-[.3px] uppercase">
               Diferenciais
@@ -145,7 +166,7 @@ export default function AppLandingPage() {
             <h2 className="m-0 text-center font-bold text-[24px] leading-[1.3] text-[color:var(--text-primary)]">
               Como funciona a inscrição
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {STEPS.map((s, i) => (
                 <div key={i} className="flex flex-col gap-2 rounded-[20px] p-[22px] box-border bg-[color:var(--bg-secondary)] shadow-[0_10px_26px_rgba(0,0,0,.16)]">
                   <div className="w-[32px] h-[32px] rounded-full flex items-center justify-center bg-[color:var(--accent)] font-bold text-[14px] leading-none text-[color:var(--on-accent)]">
@@ -194,14 +215,20 @@ export default function AppLandingPage() {
                 Entre agora e ajude a moldar o app antes do lançamento
               </div>
             </div>
-            <div className="relative h-[48px] flex items-center gap-2 px-6 rounded-full bg-[color:var(--accent)] shadow-[0_14px_30px_color-mix(in_srgb,_var(--accent)_40%,_transparent)] shrink-0 cursor-pointer hover:brightness-110 transition-all">
+            <button
+              type="button"
+              onClick={entrarNaListaDeTeste}
+              className="relative h-[48px] flex items-center gap-2 px-6 rounded-full border-none bg-[color:var(--accent)] shadow-[0_14px_30px_color-mix(in_srgb,_var(--accent)_40%,_transparent)] shrink-0 cursor-pointer hover:brightness-110 transition-all"
+            >
               <span className="material-symbols-outlined text-[20px] text-[color:var(--on-accent)]">how_to_reg</span>
               <span className="font-semibold text-[15px] leading-[1.2] text-[color:var(--on-accent)] whitespace-nowrap">Entrar na lista de teste</span>
-            </div>
+            </button>
           </div>
 
         </div>
       </div>
-    </PageShell>
+
+      <SiteFooter />
+    </div>
   )
 }
