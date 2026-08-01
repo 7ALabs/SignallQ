@@ -1,6 +1,6 @@
 "use client";
 import { DocPage, type DocSection } from '../../components/DocPage'
-import { PageLayout } from '../../components/PageLayout'
+import { PageShell } from '../../components/PageShell'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
 import { PAGE_META } from '../../lib/pageMetaCatalog'
 
@@ -28,7 +28,7 @@ const SECTIONS: DocSection[] = [
   },
   {
     title: '5. Disponibilidade',
-    text: 'O serviço é fornecido "como está". Não garantimos disponibilidade ininterrupta nem precisão absoluta — o teste depende de infraestrutura de terceiros (Cloudflare).',
+    text: 'O serviço é fornecido "como está". Não garantimos disponibilidade ininterrupta nem precisão absoluta: o teste depende de infraestrutura de terceiros (Cloudflare).',
   },
   {
     title: '6. Privacidade',
@@ -60,14 +60,14 @@ export default function Page() {
   useDocumentMeta(PAGE_META['/termos'])
 
   return (
-    <PageLayout >
+    <PageShell align="center" mobilePadding="pt-7 px-5 pb-10">
       <DocPage
         overline="Termos de Uso"
         title="Termos de Uso do site SignallQ"
         updated="Última atualização: 18 de julho de 2026"
         sections={SECTIONS}
       />
-    </PageLayout>
+    </PageShell>
   )
 }
 

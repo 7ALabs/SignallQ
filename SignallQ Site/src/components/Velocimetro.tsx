@@ -38,19 +38,15 @@ const SCALE_LABELS = SCALE.map((text, i) => {
   };
 });
 
-export function SpeedDial({
-  value,
+export function Velocimetro({
   fraction,
   phaseColor,
   isRunning,
-  mobile = false,
   children,
 }: {
-  value: string;
   fraction: number;
   phaseColor: string;
   isRunning: boolean;
-  mobile?: boolean;
   children?: React.ReactNode;
 }) {
   const needle = point(R - 2, fraction);
@@ -58,10 +54,7 @@ export function SpeedDial({
   const dashOffset = ARC_LEN * (1 - fraction);
 
   return (
-    <div
-      className="relative aspect-[360/210]"
-      style={{ width: mobile ? "100%" : "440px" }}
-    >
+    <div className="relative aspect-[360/210] w-full sm:w-[440px]">
       {children}
       
       {/* Glow effect when running or idle */}
@@ -75,7 +68,7 @@ export function SpeedDial({
 
       <svg
         viewBox="0 0 360 210"
-        className="absolute inset-0 w-full h-full block"
+        className="absolute inset-0 w-full h-full block pointer-events-none"
       >
         {TICKS.map((t, i) => (
           <line

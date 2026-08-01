@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-export function SiteFooter({ variant }: { variant?: string } = {}) {
+export function SiteFooter() {
   const links = [
     { label: "Teste de velocidade", href: "/" },
     { label: "Histórico", href: "/historico" },
@@ -14,7 +14,7 @@ export function SiteFooter({ variant }: { variant?: string } = {}) {
   ];
 
   return (
-    <div className="relative z-[2] w-full mt-auto box-border bg-[color:var(--bg-secondary)] border-t border-[color-mix(in_srgb,_var(--border)_25%,_transparent)]">
+    <div className="relative z-[2] w-full box-border bg-transparent border-t border-[color-mix(in_srgb,_var(--border)_14%,_transparent)]">
       {/* Mobile */}
       <div className="flex sm:hidden flex-col gap-4 py-6 px-5 box-border">
         <div className="flex items-center gap-[10px]">

@@ -30,8 +30,8 @@ SignallQ Site/
 │   ├── lib/             # config, motor de medição real, classificação, histórico (IndexedDB),
 │   │                    # telemetria, SEO, matemática do velocímetro/gráfico — sem framework
 │   ├── hooks/           # useSpeedTest (state machine do teste), useSystemTheme, useDocumentMeta
-│   ├── components/      # SiteNav, SiteFooter, PageShell, AdRail/AdBannerWide, componentes de
-│   │                    # speedtest/histórico
+│   ├── components/      # SiteNav, SiteFooter, PageShell, CookieConsentBanner/AdSenseScript,
+│   │                    # componentes de speedtest/histórico
 │   └── shared/          # tipos/contratos compartilhados com functions/ (chamado, genieacs, etc.)
 ├── functions/api/       # Cloudflare Pages Functions — backend server-side (telemetria, waitlist,
 │                        # speedtest, admin, ERP, GenieACS; ver nota abaixo)
@@ -77,6 +77,30 @@ worker manual anterior. Auditoria 1:1 contra o protótipo mais recente (`Signall
 `fix/site-nextjs-auditoria-mobile-shell` para o detalhe (AdRail sem gate responsivo real,
 hambúrguer do SiteNav morto, Histórico duplicando cabeçalho em mobile, entre outras).
 
+**Reconstrução v4 (01/08/2026, `refactor/site-reconstrucao-prototipo-v4`, issues #1543/#1544/#1545):**
+reconstrução tela a tela 1:1 contra um protótipo novo (`SignallQ Web - Prototipo (4)`, guia de
+implementação próprio, arquivo local do Luiz não versionado no repo), em workflow sequencial
+(fundação → Home → Histórico → Doc → App → Brand → 404), cada fase com implementação + revisão
+independente. Decisões de escopo confirmadas com o Luiz nesta rodada:
+- `AdRail`/`AdBannerWide`/`AdSlotsProvider` (Feat #1402) removidos do layout visual — o protótipo
+  v4 não reserva mais posição de anúncio. Substituídos por infraestrutura técnica de AdSense sem
+  posição decidida: `CookieConsentBanner` (consentimento LGPD, aceitar/recusar persistido) +
+  `AdSenseScript` (`next/script`, só carrega com `NEXT_PUBLIC_ADSENSE_PUBLISHER_ID` configurada E
+  consentimento aceito — sem a env var, comportamento visual não muda). `public/ads.txt` já tinha o
+  publisher ID real do Luiz (`pub-5542349230926522`, commitado em jul/2026) — mantido como estava,
+  não foi sobrescrito.
+- `/pro` (vitrine SignallQ PRO) e `/teste` (convite pro teste fechado) removidos — não estavam no
+  mapa de rotas do protótipo v4. Redirect 301 em `next.config.ts`: `/pro` → `/`, `/teste` → `/app`.
+  `EmailCaptureDialog.tsx` removido por ter ficado órfão.
+- `PageLayout.tsx`/`PageShell.tsx`, que estavam duplicados (pendência documentada abaixo antes desta
+  entrada), foram consolidados numa fundação única `PageShell`.
+- Componentes de produto renomeados para PT-BR: `SpeedDial` → `Velocimetro`, `EmptyState` →
+  `EstadoVazio`, `KeyValueList` → `ListaChaveValor`; novos `FaixaMetricas`/`LinhaChips` extraídos
+  (reaproveitados por Home/Histórico/404).
+- `src/app/page.tsx` (Home) religou `jitter`/`bufferbloat`/`estabilidade`/`DNS` já calculados em
+  `speedEngine.ts` (achado da auditoria de 01/08/2026 abaixo, agora resolvido) — a implementação
+  antiga em `components/speedtest/*` que consumia esses campos estava órfã e foi removida.
+
 ## Decisões técnicas relevantes (não repetir sem reler o motivo)
 
 - **Design system consumido via CSS puro, não via pacote React**: `packages/design-system/`
@@ -97,24 +121,33 @@ hambúrguer do SiteNav morto, Histórico duplicando cabeçalho em mobile, entre 
 - **Cloudflare Web Analytics** (não GA4) cobre tráfego/pageview agregado — habilitar direto no
   dashboard do projeto Cloudflare Pages, sem código.
 - **Histórico**: IndexedDB (`src/lib/historyStore.ts`), só no navegador, sem sincronização.
-- **AdSense**: um único slot reservado, sem popup/banner extra, placeholder honesto quando não
-  configurado.
+- **AdSense**: desde a reconstrução v4 (01/08/2026), sem posição de anúncio no layout — só
+  infraestrutura técnica pronta (`ads.txt`, `AdSenseScript` gated por env var + consentimento,
+  `CookieConsentBanner`). Ativar exige decidir a posição do slot (fora de escopo desta rodada) e
+  confirmar com o Luiz que `NEXT_PUBLIC_ADSENSE_PUBLISHER_ID` deve ir para produção.
 
 ## Rotas
 
 | Rota | Página | Observação |
 |---|---|---|
 | `/` | `src/app/page.tsx` | Teste de velocidade real, auto-inicia ao carregar |
-| `/pro` | `src/app/pro/page.tsx` | Vitrine do SignallQ PRO — "Em breve", sem promessa de trial |
-| `/historico` | `src/app/historico/page.tsx` | Histórico local (IndexedDB) |
+| `/historico` | `src/app/historico/page.tsx` | Histórico local (IndexedDB) — `noindex,follow`, fora do sitemap (dado local, sem conteúdo pro Google) |
 | `/como-medimos` | `src/app/como-medimos/page.tsx` | Metodologia |
 | `/quem-somos` | `src/app/quem-somos/page.tsx` | Institucional |
-| `/privacidade` | `src/app/privacidade/page.tsx` | Política de privacidade do site (distinta da do app) — 11 seções, inclui Cloudflare Web Analytics e lista de espera do PRO |
+| `/privacidade` | `src/app/privacidade/page.tsx` | Política de privacidade do site (distinta da do app) — 10 seções (a seção "Lista de espera do PRO" saiu junto com `/pro` na reconstrução v4) |
 | `/termos` | `src/app/termos/page.tsx` | Termos de uso do site — 11 seções |
 | `/internet-boa-mas-travando` | `src/app/internet-boa-mas-travando/page.tsx` | Conteúdo long-tail SEO (issue #1399) — H1 ancorado na frase sintomática, explica bufferbloat como causa |
 | `/lag-em-jogos-online` | `src/app/lag-em-jogos-online/page.tsx` | Conteúdo long-tail SEO (issue #1399) — explica CGNAT/NAT Strict como causa de lag e falha ao hospedar partida |
+| `/internet-para-jogos` | `src/app/internet-para-jogos/page.tsx` | Guia de conteúdo por caso de uso (gaming) |
+| `/comparativo` | `src/app/comparativo/page.tsx` | SignallQ x testes de velocidade tradicionais |
+| `/app` | `src/app/app/page.tsx` | Landing do app Android em teste fechado — também recebe o redirect de `/teste` |
+| `/brand` | `src/app/brand/page.tsx` | Página institucional de marca (logo, paleta, favicons) |
 | `*` | `src/app/not-found.tsx` | 404 — composição 1:1 com `Screen404.dc.html` |
-| `/app`, `/brand`, `/comparativo`, `/internet-para-jogos`, `/teste` | `src/app/<rota>/page.tsx` | Rotas adicionadas depois da última revisão deste doc — pendente de descrição própria |
+
+`/pro` (vitrine SignallQ PRO) e `/teste` (convite pro teste fechado) foram **removidas** na
+reconstrução v4 (01/08/2026) — não estavam no mapa de rotas do protótipo novo. Redirecionam (301,
+`next.config.ts`) para `/` e `/app` respectivamente, pra não perder link externo/indexação já
+publicada.
 
 Páginas de conteúdo long-tail seguem "resposta primeiro" (cada seção responde a pergunta do título
 já nas 1-2 primeiras frases — única recomendação de formato validada pela consultoria de SEO em
@@ -167,23 +200,30 @@ Cloudflare Pages) — por isso:
   do projeto de hospedagem (Vercel — ou, enquanto ainda no ar, Cloudflare Pages `signallq`) —
   decisão/execução do Luiz, não é código.
 - O SignallQ gratuito encaminha para o grupo de testadores fechados, sem capturar e-mail. A lista
-  de espera do SignallQ PRO (`src/app/pro/page.tsx`) persiste em D1 via
-  `src/app/api/waitlist/route.ts`, mas requer `SITE_INGEST_KEY` e migration remota configuradas
-  para funcionar em produção.
-- Divergências restantes da auditoria 1:1 pós-migração Next.js (anúncios ausentes no estado de
-  resultado, texto de "Interpretação SignallQ" não variando por classificação, métricas de
-  detalhes técnicos hardcoded em "—" na home — **`src/components/speedtest/ResultPanel.tsx` +
-  `EmbeddedSpeedTest.tsx` já implementam essas métricas com dado real (jitter/bufferbloat/
-  estabilidade/DNS), mas estão órfãos, sem nenhum consumidor em `src/app/` — achado 01/08/2026,
-  candidato natural pra resolver essa pendência sem reescrever o cálculo, só rewiring da home**,
-  `PageShell`/`PageLayout` duplicados) — os 3 achados estruturais de mobile (AdRail sem gate
+  de espera do SignallQ PRO persistia em D1 via `src/app/api/waitlist/route.ts` — desde a remoção
+  de `/pro` na reconstrução v4 (01/08/2026), essa Route Handler ficou **órfã** (nenhuma UI chama
+  `submitWaitlistSignup`). Não removida (é `src/app/api/*/route.ts`, backend, fora do escopo da PR
+  de frontend que fez a remoção) — decidir em PR própria se a lista de espera do PRO volta em outro
+  lugar ou se a rota é descartada. Mesma situação em `functions/api/waitlist.ts` (Pages Function
+  equivalente, rede de segurança pré-cutover Vercel).
+- `functions/_middleware.ts` (Cloudflare Pages Function) ainda trata `/pro` como rota válida
+  (`buildProSoftwareApplicationJsonLd`, achado 01/08/2026 na reconstrução v4) — hoje é só peso morto
+  (o path responde via redirect 301 do Next.js antes de qualquer render, o JSON-LD nunca é servido
+  de verdade), não um bug funcional. Não corrigido por ser `functions/` (backend) — limpar junto da
+  waitlist órfã acima, numa PR de backend.
+- **RESOLVIDO na reconstrução v4 (01/08/2026):** anúncios ausentes / `PageShell`/`PageLayout`
+  duplicados / métricas reais órfãs (`ResultPanel.tsx`/`EmbeddedSpeedTest.tsx`) — o protótipo v4
+  removeu a posição de anúncio do design (não é mais divergência), `PageShell`/`PageLayout` foram
+  consolidados num único componente, e a Home foi religada direto aos campos reais já calculados em
+  `speedEngine.ts` (jitter/bufferbloat/estabilidade/DNS) — os componentes órfãos antigos foram
+  removidos, não mantidos em paralelo. Os 3 achados estruturais de mobile (AdRail sem gate
   responsivo real, hambúrguer do SiteNav morto, Histórico duplicando cabeçalho em mobile) foram
   corrigidos em `fix/site-nextjs-auditoria-mobile-shell` (01/08/2026): `PageShell`/`SiteNav`/`AdRail`
   deixaram de depender de uma prop `mobile` que nenhuma página ligava a um viewport real e passaram
   a gate CSS puro (`hidden lg:flex` no `AdRail`, `md:hidden`/`hidden md:flex` no `SiteNav`,
   consistente com o padrão já usado em `historico/page.tsx` e `SiteFooter.tsx`); o hambúrguer ganhou
   um menu mobile funcional (drawer com os mesmos itens da nav desktop, fecha ao navegar ou Esc) em
-  vez de ser removido.
+  vez de ser removido. (`AdRail` citado aqui como registro histórico — removido na reconstrução v4.)
 - **Infra de teste ausente (achado 01/08/2026, fora do escopo da correção de mobile shell acima):**
   `package.json` não tem script `test`, e `vitest`/`@testing-library/react`/`react-router-dom`
   não estão em `package.json`/`package-lock.json`/`node_modules` — a migração Vite→Next.js
@@ -194,9 +234,10 @@ Cloudflare Pages) — por isso:
   `npm run test` como comando válido, o que hoje é falso. Precisa de decisão dedicada (reinstalar
   Vitest + Testing Library, reescrever os 16 testes para Next.js) antes de reativar cobertura —
   não foi resolvido aqui por ser escopo maior que a correção pontual de mobile shell.
-- **`npm run lint` reporta 106 erros / 1022 warnings pré-existentes** (achado 01/08/2026, não
-  introduzido por `fix/site-nextjs-producao-motores` — confirmado que nenhum erro/warning cai em
-  arquivo tocado nesta branch). Maioria vem de regras novas e rígidas do React Compiler ESLint
+- **`npm run lint` reporta 103 erros / 1013 warnings pré-existentes** (baseline original 106/1022 em
+  01/08/2026 pré-v4; reconfirmado após a reconstrução v4 — nenhuma regressão líquida introduzida,
+  a diferença vem de arquivos removidos na v4, não de correções de lint deliberadas). Maioria vem
+  de regras novas e rígidas do React Compiler ESLint
   plugin (`eslint-config-next` 16), ex. `react-hooks/set-state-in-effect` e `react-hooks/purity`
   em `src/hooks/useEstadoRede.ts`, `src/hooks/useSpeedTest.ts`, `src/lib/speedEngine.ts` — padrões
   de código legados que passavam nas regras antigas do Vite/eslint anterior. Precisa de auditoria

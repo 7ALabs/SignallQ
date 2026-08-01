@@ -16,6 +16,25 @@ body,
   height: 100%;
 }
 
+/* Reserva o espaço da barra de rolagem vertical em toda página, mesmo nas
+   que não têm conteúdo suficiente pra precisar dela — sem isso, a largura
+   útil da página muda entre uma rota curta (sem scrollbar) e uma longa como
+   /privacidade (com scrollbar), fazendo o shell inteiro (nav, miolo
+   centralizado) "pular" alguns pixels de largura ao trocar de rota no
+   Windows (scrollbar clássica, ocupa espaço de layout — diferente da
+   scrollbar overlay do macOS). Achado 01/08/2026, distinto do bug de
+   remontagem do SiteNav (já corrigido movendo-o pro layout raiz). */
+html {
+  scrollbar-gutter: stable;
+}
+
+:root {
+  /* Área segura do shell de página (Guia de Implementação v4, §3) — mínimo
+     24px, escala com 6% da viewport, máximo 96px. Usada como padding-inline
+     do container do shell em toda tela; não recalcular por tela. */
+  --safe-x: clamp(24px, 6vw, 96px);
+}
+
 html.dark .sq-logo-light {
   display: none !important;
 }
@@ -91,6 +110,24 @@ a:hover {
   animation: sq-ring-pulse 5s ease-in-out infinite alternate;
 }
 
+/* Halo pulsante atrás do velocímetro (`Velocimetro.tsx`) — 1:1 com
+   `ScreenHome.dc.html` (`sq-gauge-pulse`). */
+@keyframes sq-gauge-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+.sq-gauge-glow {
+  animation: sq-gauge-pulse 4.5s ease-in-out infinite;
+}
+
 .sq-fade-up {
   animation: sq-fade-up 450ms ease-out both;
 }
@@ -116,434 +153,16 @@ html.sq-footer-visible .pwa-toast-stack {
   pointer-events: none;
 }
 
-/* Card de anúncio animado do rodapé (SiteFooter, coluna "Baixe o app") —
-   1:1 com SiteFooter.dc.html (barras de equalizador + brilho + sweep no CTA). */
-@keyframes sq-ad-bar {
-  0%,
-  100% {
-    transform: scaleY(0.55);
-  }
-  50% {
-    transform: scaleY(1);
-  }
-}
-
-@keyframes sq-ad-sweep {
-  0% {
-    transform: translateX(-40px);
-  }
-  100% {
-    transform: translateX(280px);
-  }
-}
-
-@keyframes sq-ad-glow {
-  0%,
-  100% {
-    opacity: 0.55;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.12);
-  }
-}
-
-.sq-ad-bar {
-  transform-origin: bottom;
-  animation: sq-ad-bar 1.5s ease-in-out infinite;
-}
-
-.sq-ad-sweep {
-  animation: sq-ad-sweep 3.2s ease-in-out infinite;
-}
-
-.sq-ad-glow-a {
-  animation: sq-ad-glow 5s ease-in-out infinite;
-}
-
-/* Animações do `AdRail` (coluna de anúncio lateral, cards grandes) — portadas 1:1 de
-   `AdRail.dc.html` (`sqGlowDrift`/`sqGlowDrift2`, `sqBarPulse`, `sqSweep`, `sqDotBlink`,
-   `sqScanLine`, `sqRiseIn`, `sqHeadSwap`/`sqHeadSwapAlt`, `sqRingOut`,
-   `sqRoomShift`/`sqRoomShiftAlt`, `sqCountPulse`, `sqTicker`) — issue #1402/#1405, achado da
-   auditoria 1:1 de 2026-07-25 (Marina): o componente React não tinha nenhuma dessas
-   animações. Nomes prefixados `sq-rail-*` pra não colidir com `.sq-ad-*` acima (skin
-   diferente, já usada pelo `SiteFooter`/`ResultAdCard`). */
-@keyframes sq-rail-glow-drift-a {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0.85;
-  }
-  50% {
-    transform: translate3d(14px, -18px, 0) scale(1.12);
-    opacity: 1;
-  }
-}
-
-@keyframes sq-rail-glow-drift-b {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1.05);
-    opacity: 0.7;
-  }
-  50% {
-    transform: translate3d(-16px, 12px, 0) scale(1);
-    opacity: 0.95;
-  }
-}
-
-@keyframes sq-rail-bar-pulse {
-  0%,
-  100% {
-    transform: scaleY(0.72);
-  }
-  50% {
-    transform: scaleY(1);
-  }
-}
-
-@keyframes sq-rail-sweep {
-  0% {
-    transform: translateX(-120%);
-  }
-  55%,
-  100% {
-    transform: translateX(320%);
-  }
-}
-
-@keyframes sq-rail-dot-blink {
-  0%,
-  100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 rgba(201, 242, 107, 0.55);
-  }
-  50% {
-    opacity: 0.6;
-    box-shadow: 0 0 0 6px rgba(201, 242, 107, 0);
-  }
-}
-
-@keyframes sq-rail-scan-line {
-  0% {
-    transform: translateY(0);
-    opacity: 0;
-  }
-  12% {
-    opacity: 0.5;
-  }
-  88% {
-    opacity: 0.5;
-  }
-  100% {
-    transform: translateY(96px);
-    opacity: 0;
-  }
-}
-
-@keyframes sq-rail-rise-in {
-  0%,
-  6% {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  16%,
-  92% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes sq-rail-head-swap {
-  0%,
-  44% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  50%,
-  94% {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes sq-rail-head-swap-alt {
-  0%,
-  44% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  50%,
-  94% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-@keyframes sq-rail-ring-out {
-  0% {
-    transform: scale(0.35);
-    opacity: 0.75;
-  }
-  80% {
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1.35);
-    opacity: 0;
-  }
-}
-
-@keyframes sq-rail-room-shift {
-  0%,
-  40% {
-    opacity: 1;
-  }
-  50%,
-  90% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-@keyframes sq-rail-room-shift-alt {
-  0%,
-  40% {
-    opacity: 0;
-  }
-  50%,
-  90% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes sq-rail-count-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.06);
-  }
-}
-
-@keyframes sq-rail-ticker {
-  0%,
-  45% {
-    transform: translateY(0);
-  }
-  55%,
-  100% {
-    transform: translateY(-22px);
-  }
-}
-
-.sq-rail-rise {
-  animation: sq-rail-rise-in 9s ease-out infinite;
-}
-
-.sq-rail-head-a {
-  animation: sq-rail-head-swap 9s ease-in-out infinite;
-}
-
-.sq-rail-head-b {
-  animation: sq-rail-head-swap-alt 9s ease-in-out infinite;
-}
-
-.sq-rail-glow-a {
-  animation: sq-rail-glow-drift-a 9s ease-in-out infinite;
-}
-
-.sq-rail-glow-b {
-  animation: sq-rail-glow-drift-b 11s ease-in-out infinite;
-}
-
-.sq-rail-bar {
-  transform-origin: bottom center;
-  animation: sq-rail-bar-pulse 2.4s ease-in-out infinite;
-}
-
-.sq-rail-sweep {
-  animation: sq-rail-sweep 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-
-.sq-rail-dot {
-  animation: sq-rail-dot-blink 1.8s ease-in-out infinite;
-}
-
-.sq-rail-scan {
-  animation: sq-rail-scan-line 3.2s ease-in-out infinite;
-}
-
-.sq-rail-ring {
-  animation: sq-rail-ring-out 3.4s ease-out infinite;
-}
-
-.sq-rail-room-a {
-  animation: sq-rail-room-shift 8s ease-in-out infinite;
-}
-
-.sq-rail-room-b {
-  animation: sq-rail-room-shift-alt 8s ease-in-out infinite;
-}
-
-.sq-rail-count {
-  animation: sq-rail-count-pulse 2.6s ease-in-out infinite;
-}
-
-.sq-rail-ticker {
-  animation: sq-rail-ticker 6s ease-in-out infinite;
-}
-
-/* Animações do `AdBannerWide` (banner horizontal) — portadas 1:1 de
-   `AdBannerWide.dc.html` (`sqWideGlow`, `sqWideSweep`, `sqWideBar`,
-   `sqWideSwap`/`sqWideSwapAlt`, `sqWideDot`, `sqWidePing`) — mesmo achado de auditoria acima:
-   o componente React não tinha nenhuma dessas animações. */
-@keyframes sq-wide-glow {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0.8;
-  }
-  50% {
-    transform: translate3d(24px, -10px, 0) scale(1.15);
-    opacity: 1;
-  }
-}
-
-@keyframes sq-wide-sweep {
-  0% {
-    transform: translateX(-120%);
-  }
-  55%,
-  100% {
-    transform: translateX(340%);
-  }
-}
-
-@keyframes sq-wide-bar {
-  0%,
-  100% {
-    transform: scaleY(0.55);
-  }
-  50% {
-    transform: scaleY(1);
-  }
-}
-
-@keyframes sq-wide-swap {
-  0%,
-  42% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  50%,
-  92% {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes sq-wide-swap-alt {
-  0%,
-  42% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  50%,
-  92% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
-@keyframes sq-wide-dot {
-  0%,
-  100% {
-    opacity: 1;
-    box-shadow: 0 0 0 0 rgba(201, 242, 107, 0.5);
-  }
-  50% {
-    opacity: 0.55;
-    box-shadow: 0 0 0 7px rgba(201, 242, 107, 0);
-  }
-}
-
-@keyframes sq-wide-ping {
-  0% {
-    transform: scale(0.4);
-    opacity: 0.7;
-  }
-  80% {
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1.4);
-    opacity: 0;
-  }
-}
-
-.sq-wide-glow {
-  animation: sq-wide-glow 10s ease-in-out infinite;
-}
-
-.sq-wide-sweep {
-  animation: sq-wide-sweep 3.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-}
-
-.sq-wide-bar {
-  transform-origin: bottom center;
-  animation: sq-wide-bar 2.2s ease-in-out infinite;
-}
-
-.sq-wide-a {
-  animation: sq-wide-swap 8s ease-in-out infinite;
-}
-
-.sq-wide-b {
-  animation: sq-wide-swap-alt 8s ease-in-out infinite;
-}
-
-.sq-wide-dot {
-  animation: sq-wide-dot 1.9s ease-in-out infinite;
-}
-
-.sq-wide-ping {
-  animation: sq-wide-ping 3.2s ease-out infinite;
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .sq-gauge-glow {
+    animation: none;
   }
 }
 
@@ -566,20 +185,6 @@ html.sq-footer-visible .pwa-toast-stack {
   }
 }
 
-.glass-panel {
-  background: rgba(30, 41, 59, 0.45) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.glass-panel:hover {
-  background: rgba(30, 41, 59, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
-
 .sq-fade-up {
   animation: sqFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -598,4 +203,32 @@ html.sq-footer-visible .pwa-toast-stack {
 .delay-100 { animation-delay: 100ms; opacity: 0; }
 .delay-200 { animation-delay: 200ms; opacity: 0; }
 .delay-300 { animation-delay: 300ms; opacity: 0; }
+
+/* Carrossel/animações da landing do app (`src/app/app/page.tsx`) — movidas de
+   `src/app/globals.css` (achado 01/08/2026: arquivo nunca importado por
+   nenhuma página, então essas regras nunca surtiam efeito; arquivo removido). */
+@keyframes sq-app-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes sq-app-glow { 0%,100% { transform: translate3d(0,0,0) scale(1); opacity: .8; } 50% { transform: translate3d(20px,-16px,0) scale(1.12); opacity: 1; } }
+@keyframes sq-app-glow2 { 0%,100% { transform: translate3d(0,0,0) scale(1.05); opacity: .6; } 50% { transform: translate3d(-18px,14px,0) scale(1); opacity: .9; } }
+@keyframes sq-app-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes sq-app-bounce { 0%,100% { transform: translateY(0); opacity: .6; } 50% { transform: translateY(6px); opacity: 1; } }
+@keyframes sq-app-dot { 0%,100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 55%, transparent); } 50% { opacity: .6; box-shadow: 0 0 0 6px transparent; } }
+
+.sq-app-track { display: flex; gap: 14px; width: max-content; animation: sq-app-marquee 26s linear infinite; }
+.sq-app-track:hover { animation-play-state: paused; }
+.sq-app-glow-a { animation: sq-app-glow 9s ease-in-out infinite; }
+.sq-app-glow-b { animation: sq-app-glow2 11s ease-in-out infinite; }
+.sq-app-float { animation: sq-app-float 4.5s ease-in-out infinite; }
+.sq-app-bounce { animation: sq-app-bounce 1.8s ease-in-out infinite; }
+.sq-app-dot { animation: sq-app-dot 1.8s ease-in-out infinite; }
+
+.sq-app-reveal { opacity: 0; transform: translateY(28px); }
+.sq-app-reveal.sq-in { opacity: 1; transform: none; transition: opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sq-app-track { animation: none; }
+  .sq-app-scroller { overflow-x: auto; }
+  .sq-app-glow-a, .sq-app-glow-b, .sq-app-float, .sq-app-bounce, .sq-app-dot { animation: none !important; }
+  .sq-app-reveal, .sq-app-reveal.sq-in { opacity: 1; transform: none; transition: none; }
+}
 

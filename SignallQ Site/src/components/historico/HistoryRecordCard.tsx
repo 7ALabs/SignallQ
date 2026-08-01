@@ -19,7 +19,7 @@ export function HistoryRecordCard({ record, onShare, onRemove }: HistoryRecordCa
   const verdict = classifyDownload(record.download)
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl p-3.5" style={{ background: 'var(--bg-secondary)' }}>
+    <div className="flex flex-col gap-2 rounded-2xl p-3.5" style={{ background: 'var(--bg-secondary)', boxShadow: '0 8px 20px rgba(0,0,0,.14)' }}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
           <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--text-tertiary)' }}>

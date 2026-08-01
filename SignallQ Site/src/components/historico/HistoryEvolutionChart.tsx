@@ -19,7 +19,7 @@ export function HistoryEvolutionChart({ records }: HistoryEvolutionChartProps) {
   if (!geometry || series.length < 2) return null
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl box-border" style={{ background: 'var(--bg-secondary)', padding: '14px 16px' }}>
+    <div className="flex flex-col gap-2 rounded-2xl box-border" style={{ background: 'var(--bg-secondary)', padding: '14px 16px', boxShadow: '0 10px 26px rgba(0,0,0,.16)' }}>
       <div className="flex items-center justify-between gap-3">
         <span className="label-overline">Evolução das medições</span>
         <div className="flex items-center gap-3.5">

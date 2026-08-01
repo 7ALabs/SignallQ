@@ -1,6 +1,6 @@
 "use client";
 import { DocPage, type DocSection } from '../../components/DocPage'
-import { PageLayout } from '../../components/PageLayout'
+import { PageShell } from '../../components/PageShell'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
 import { PAGE_META } from '../../lib/pageMetaCatalog'
 
@@ -16,16 +16,15 @@ export default function Page() {
   useDocumentMeta(PAGE_META['/internet-para-jogos'])
 
   return (
-    <PageLayout>
+    <PageShell align="center" mobilePadding="pt-7 px-5 pb-10">
       <DocPage
         overline="Guia"
         title="Que internet você precisa para jogar online sem travar"
         intro="Não é só velocidade: latência baixa e estável importa mais que Mbps para a maioria dos jogos competitivos."
         sections={SECTIONS}
-        card
         ctaLabel="Testar minha conexão"
         ctaTo="/"
       />
-    </PageLayout>
+    </PageShell>
   )
 }

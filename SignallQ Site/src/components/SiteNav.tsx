@@ -13,6 +13,35 @@ const ITENS = [
   { key: "privacidade", label: "Privacidade", href: "/privacidade" },
 ];
 
+// 3 grupos do menu mobile — 1:1 com `MENU_GROUPS` de `SiteNav.dc.html`.
+const MENU_GROUPS = [
+  {
+    title: "Produto",
+    items: [
+      { key: "home", label: "Velocidade", href: "/" },
+      { key: "historico", label: "Histórico", href: "/historico" },
+      { key: "como-medimos", label: "Como funciona", href: "/como-medimos" },
+    ],
+  },
+  {
+    title: "Guias",
+    items: [
+      { key: "bufferbloat", label: "Internet boa mas travando", href: "/internet-boa-mas-travando" },
+      { key: "cgnat", label: "Lag em jogos online", href: "/lag-em-jogos-online" },
+      { key: "comparativo", label: "Comparativos", href: "/comparativo" },
+    ],
+  },
+  {
+    title: "Institucional",
+    items: [
+      { key: "sobre", label: "Quem somos", href: "/quem-somos" },
+      { key: "brand", label: "Marca", href: "/brand" },
+      { key: "privacidade", label: "Política de Privacidade", href: "/privacidade" },
+      { key: "termos", label: "Termos de Uso", href: "/termos" },
+    ],
+  },
+];
+
 export function SiteNav() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -31,6 +60,13 @@ export function SiteNav() {
   else if (pathname?.includes("/como-medimos")) active = "como-medimos";
   else if (pathname?.includes("/quem-somos")) active = "sobre";
   else if (pathname?.includes("/privacidade")) active = "privacidade";
+  else if (pathname?.includes("/termos")) active = "termos";
+  else if (pathname?.includes("/brand")) active = "brand";
+  else if (pathname?.includes("/internet-boa-mas-travando")) active = "bufferbloat";
+  else if (pathname?.includes("/lag-em-jogos-online")) active = "cgnat";
+  else if (pathname?.includes("/comparativo")) active = "comparativo";
+  else if (pathname?.includes("/app")) active = "app";
+  const isApp = active === "app";
 
   // Fecha o menu mobile ao pressionar Esc.
   useEffect(() => {
@@ -43,8 +79,8 @@ export function SiteNav() {
   }, [menuOpen]);
 
   return (
-    <div className="sticky top-0 z-[3] w-full box-border bg-[color:var(--bg-primary)]">
-      <div className="mx-auto max-w-[1280px] min-h-[76px] flex items-center justify-between gap-4 py-[14px] px-[20px] box-border">
+    <div className="sticky top-0 z-[3] w-full box-border bg-transparent">
+      <div className="relative mx-auto max-w-[1280px] min-h-[76px] flex items-center justify-between gap-4 py-[14px] px-[20px] box-border">
         <Link href="/">
           <img
             className="sq-logo-light h-[32px] w-auto block shrink-0"
@@ -76,14 +112,30 @@ export function SiteNav() {
               </Link>
             );
           })}
-          <div className="flex items-center gap-[6px] rounded-full py-[8px] px-[14px] bg-[color-mix(in_srgb,_var(--accent)_12%,_transparent)]">
-            <span className="material-symbols-outlined text-[16px] text-[color:var(--accent)]">
+          <Link
+            href="/app"
+            className={clsx(
+              "flex items-center gap-[6px] rounded-full py-[8px] px-[14px] no-underline transition-colors",
+              isApp ? "bg-[color:var(--accent)]" : "bg-[color-mix(in_srgb,_var(--accent)_12%,_transparent)]"
+            )}
+          >
+            <span
+              className={clsx(
+                "material-symbols-outlined text-[16px]",
+                isApp ? "text-[color:var(--on-accent)]" : "text-[color:var(--accent)]"
+              )}
+            >
               android
             </span>
-            <span className="whitespace-nowrap font-medium text-[13px] leading-[1.3] text-[color:var(--accent)]">
+            <span
+              className={clsx(
+                "whitespace-nowrap font-medium text-[13px] leading-[1.3]",
+                isApp ? "text-[color:var(--on-accent)]" : "text-[color:var(--accent)]"
+              )}
+            >
               App
             </span>
-          </div>
+          </Link>
         </div>
 
         <button
@@ -98,49 +150,51 @@ export function SiteNav() {
             {menuOpen ? "close" : "menu"}
           </span>
         </button>
-      </div>
 
-      {menuOpen && (
-        <>
-          <div
-            aria-hidden="true"
-            onClick={() => setMenuOpen(false)}
-            className="md:hidden fixed inset-x-0 bottom-0 top-[76px] z-[2] bg-black/40"
-          />
-          <div
-            id="site-nav-mobile-menu"
-            role="menu"
-            className="md:hidden absolute left-0 right-0 top-full z-[3] flex flex-col gap-1 border-t border-[color-mix(in_srgb,_var(--border)_18%,_transparent)] bg-[color:var(--bg-primary)] p-3 box-border"
-          >
-            {ITENS.map((it) => {
-              const isActive = it.key === active;
-              return (
-                <Link
-                  key={it.key}
-                  role="menuitem"
-                  href={it.href}
-                  className={clsx(
-                    "rounded-[12px] px-4 py-3 font-medium text-[15px] leading-[1.4] font-sans",
-                    isActive
-                      ? "text-[color:var(--accent)] bg-[color-mix(in_srgb,_var(--accent)_12%,_transparent)]"
-                      : "text-[color:var(--text-primary)]"
-                  )}
-                >
-                  {it.label}
-                </Link>
-              );
-            })}
-            <div className="mt-1 self-start flex items-center gap-[6px] rounded-full py-[8px] px-[14px] bg-[color-mix(in_srgb,_var(--accent)_12%,_transparent)]">
-              <span className="material-symbols-outlined text-[16px] text-[color:var(--accent)]">
-                android
-              </span>
-              <span className="whitespace-nowrap font-medium text-[13px] leading-[1.3] text-[color:var(--accent)]">
-                App
-              </span>
+        {menuOpen && (
+          <>
+            <div
+              aria-hidden="true"
+              onClick={() => setMenuOpen(false)}
+              className="md:hidden fixed inset-0 z-[30] bg-black/40"
+            />
+            <div
+              id="site-nav-mobile-menu"
+              role="menu"
+              className="md:hidden absolute right-[20px] top-full z-[31] mt-2 w-[272px] max-h-[70vh] overflow-y-auto box-border rounded-2xl border border-[color-mix(in_srgb,_var(--border)_30%,_transparent)] bg-[color:var(--bg-card)] shadow-[0_24px_48px_rgba(0,0,0,.28)] p-2"
+            >
+              {MENU_GROUPS.map((group) => (
+                <div key={group.title}>
+                  <div className="px-3 pt-3 pb-1 font-medium text-[11px] leading-[1.45] text-[color:var(--text-tertiary)] tracking-[.3px] uppercase">
+                    {group.title}
+                  </div>
+                  {group.items.map((it) => {
+                    const isActive = it.key === active;
+                    return (
+                      <Link
+                        key={it.key}
+                        role="menuitem"
+                        href={it.href}
+                        className={clsx(
+                          "min-h-[44px] flex items-center px-3 rounded-[10px] font-medium text-[14px] leading-[1.4] font-sans no-underline",
+                          isActive
+                            ? "text-[color:var(--accent)] bg-[color-mix(in_srgb,_var(--accent)_12%,_transparent)]"
+                            : "text-[color:var(--text-primary)]"
+                        )}
+                      >
+                        {it.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              ))}
+              <div className="mt-1 border-t border-[color-mix(in_srgb,_var(--border)_18%,_transparent)] p-3 font-normal text-[11px] leading-[1.4] text-[color:var(--text-tertiary)]">
+                © 2026 SignallQ · by Buildea. Beta.
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
 
       <div className="absolute left-0 right-0 -bottom-[16px] h-[16px] pointer-events-none bg-gradient-to-b from-[color-mix(in_srgb,_var(--bg-primary)_92%,_transparent)] to-transparent" />
     </div>
