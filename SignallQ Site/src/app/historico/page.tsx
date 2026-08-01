@@ -81,7 +81,7 @@ export default function Page() {
   const filtered = records.filter((r) => filtro === 'todos' || r.connectionKind === filtro)
 
   return (
-    <PageShell align={isEmpty ? 'center' : 'start'}>
+    <PageShell>
       <div className="flex flex-wrap items-baseline justify-between gap-3 w-full">
         <h1 className="m-0 font-bold text-[26px] leading-[1.23] text-[color:var(--text-primary)]">Histórico</h1>
         <span className="font-normal text-[12px] leading-[1.33] text-[color:var(--text-tertiary)]">
@@ -89,8 +89,11 @@ export default function Page() {
         </span>
       </div>
 
+      {/* Título fica sempre fixo no topo (Guia §7.2) — só o bloco de estado
+          (carregando/indisponível/vazio) centraliza no espaço vertical que
+          sobra abaixo dele, nunca a página inteira como uma unidade só. */}
       {status === 'loading' && (
-        <div className="flex flex-col items-center gap-3 py-[96px] w-full">
+        <div className="flex w-full flex-1 flex-col items-center justify-center gap-3">
           <span className="material-symbols-outlined text-[28px] text-[color:var(--text-tertiary)]">
             hourglass_top
           </span>
@@ -99,32 +102,36 @@ export default function Page() {
       )}
 
       {status === 'unavailable' && (
-        <EstadoVazio
-          card
-          icon="storage"
-          iconSize={32}
-          messageSize={14}
-          color="var(--error)"
-          title="Histórico indisponível"
-          message="Não foi possível ler o armazenamento local deste navegador agora."
-          actionLabel="Tentar novamente"
-          actionVariant="outline"
-          onAction={load}
-        />
+        <div className="flex w-full flex-1 items-center justify-center">
+          <EstadoVazio
+            card
+            icon="storage"
+            iconSize={32}
+            messageSize={14}
+            color="var(--error)"
+            title="Histórico indisponível"
+            message="Não foi possível ler o armazenamento local deste navegador agora."
+            actionLabel="Tentar novamente"
+            actionVariant="outline"
+            onAction={load}
+          />
+        </div>
       )}
 
       {isEmpty && (
-        <EstadoVazio
-          icon="speed"
-          iconSize={36}
-          messageSize={14}
-          color="var(--text-tertiary)"
-          title="Nenhuma medição ainda"
-          message="Faça seu primeiro teste para ver o histórico aqui."
-          actionIcon="speed"
-          actionLabel="Testar velocidade"
-          onAction={() => navigate('/')}
-        />
+        <div className="flex w-full flex-1 items-center justify-center">
+          <EstadoVazio
+            icon="speed"
+            iconSize={36}
+            messageSize={14}
+            color="var(--text-tertiary)"
+            title="Nenhuma medição ainda"
+            message="Faça seu primeiro teste para ver o histórico aqui."
+            actionIcon="speed"
+            actionLabel="Testar velocidade"
+            onAction={() => navigate('/')}
+          />
+        </div>
       )}
 
       {hasRecords && (
