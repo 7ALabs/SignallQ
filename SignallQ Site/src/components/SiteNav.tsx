@@ -45,6 +45,16 @@ const MENU_GROUPS = [
 export function SiteNav() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    handleScroll(); // Verifica no primeiro render
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Fecha o menu mobile ao navegar (troca de rota) — ajuste de estado durante o
   // render (padrão React para "resetar estado quando uma prop muda"), não em
@@ -79,7 +89,10 @@ export function SiteNav() {
   }, [menuOpen]);
 
   return (
-    <div className="sticky top-0 z-[3] w-full box-border bg-transparent">
+    <div className={clsx(
+      "sticky top-0 z-[3] w-full box-border transition-colors duration-200",
+      scrolled ? "bg-[color:var(--bg-primary)]" : "bg-transparent"
+    )}>
       <div className="relative mx-auto max-w-[1280px] min-h-[76px] flex items-center justify-between gap-4 py-[14px] px-[20px] box-border">
         <Link href="/">
           <img
@@ -196,7 +209,10 @@ export function SiteNav() {
         )}
       </div>
 
-      <div className="absolute left-0 right-0 -bottom-[16px] h-[16px] pointer-events-none bg-gradient-to-b from-[color-mix(in_srgb,_var(--bg-primary)_92%,_transparent)] to-transparent" />
+      <div className={clsx(
+        "absolute left-0 right-0 -bottom-[16px] h-[16px] pointer-events-none bg-gradient-to-b from-[color-mix(in_srgb,_var(--bg-primary)_92%,_transparent)] to-transparent transition-opacity duration-200",
+        scrolled ? "opacity-100" : "opacity-0"
+      )} />
     </div>
   );
 }

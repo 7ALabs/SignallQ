@@ -21,7 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className="h-full antialiased" data-sq-theme="system" suppressHydrationWarning>
+    <html lang="pt-BR" className="antialiased" data-sq-theme="system" suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="/assets/google-sans-flex.css" />
         <link rel="stylesheet" href="/_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/_ds_bundle.css" />
@@ -38,7 +38,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col overflow-x-hidden bg-[radial-gradient(circle_at_50%_0%,_color-mix(in_srgb,_var(--accent)_10%,_transparent),_transparent_55%),_linear-gradient(180deg,_var(--bg-primary)_0%,_color-mix(in_srgb,_var(--bg-secondary)_55%,_var(--bg-primary))_100%)] text-[color:var(--text-primary)]">
+      <body className="overflow-x-hidden bg-[radial-gradient(circle_at_50%_0%,_color-mix(in_srgb,_var(--accent)_10%,_transparent),_transparent_55%),_linear-gradient(180deg,_var(--bg-primary)_0%,_color-mix(in_srgb,_var(--bg-secondary)_55%,_var(--bg-primary))_100%)] text-[color:var(--text-primary)]">
         {/* SiteNav + miolo em min-h-screen própria (não a <body> inteira, que
             também engloba o SiteFooter abaixo) — garante que o rodapé nunca
             apareça na primeira vista, mesmo em telas com pouco conteúdo
@@ -47,9 +47,9 @@ export default function RootLayout({
             layout raiz, pra persistir entre navegações (guia §1) — mover
             página não deve remontar o header/rodapé (achado 01/08/2026,
             "topbar sambando" ao trocar de rota). */}
-        <div className="flex min-h-screen w-full flex-col overflow-x-hidden">
+        <div className="min-h-screen w-full">
           <SiteNav />
-          <main className="flex w-full flex-1 flex-col">{children}</main>
+          <main className="w-full">{children}</main>
         </div>
         <SiteFooter />
         <CookieConsentBanner />

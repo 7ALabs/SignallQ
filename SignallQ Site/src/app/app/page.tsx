@@ -87,8 +87,7 @@ export default function AppLandingPage() {
 
   return (
     <div
-      className="relative flex w-full flex-1 flex-col overflow-x-hidden"
-      style={{ background: 'radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%), linear-gradient(180deg, var(--bg-primary) 0%, color-mix(in srgb, var(--bg-secondary) 55%, var(--bg-primary)) 100%)' }}
+      className="relative flex w-full flex-col"
     >
       <div className="relative w-full box-border flex justify-center overflow-hidden p-[28px_20px_24px] sm:p-[56px_var(--safe-x)_40px]">
         <div className="sq-app-glow-a absolute left-[8%] top-[-80px] w-[420px] h-[420px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--accent) 30%, transparent), transparent 70%)' }} />
