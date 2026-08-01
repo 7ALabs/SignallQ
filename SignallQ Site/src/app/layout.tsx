@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className="h-full antialiased" data-sq-theme="system">
+    <html lang="pt-BR" className="h-full antialiased" data-sq-theme="system" suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="/assets/google-sans-flex.css" />
         <link rel="stylesheet" href="/_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/_ds_bundle.css" />
