@@ -8,7 +8,7 @@ import { SiteNav } from './SiteNav'
 type RotaAtiva = 'home' | 'pro' | 'historico' | 'sobre' | 'privacidade' | 'termos' | 'como-medimos' | 'bufferbloat' | 'cgnat'
 
 interface PageLayoutProps {
-  active: RotaAtiva
+  active?: RotaAtiva
   children: ReactNode
 }
 
@@ -22,7 +22,7 @@ interface PageLayoutProps {
 export function PageLayout({ active, children }: PageLayoutProps) {
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden" style={{ background: 'var(--bg-primary)' }}>
-      <SiteNav active={active} />
+      <SiteNav  />
 
       {/* `AdSlotsProvider` coordena os espaços de anúncio desta página (2 AdRail +
           1 AdBannerWide) — busca o catálogo uma vez e distribui itens distintos, sem
@@ -43,3 +43,4 @@ export function PageLayout({ active, children }: PageLayoutProps) {
     </div>
   )
 }
+

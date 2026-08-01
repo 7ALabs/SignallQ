@@ -158,7 +158,7 @@ function uploadBlob(bytes: number): Blob {
     crypto.getRandomValues(chunk)
     chunks.push(chunk)
   }
-  return new Blob(chunks)
+  return new Blob(chunks as any)
 }
 
 async function measureLatency(token: CancelToken): Promise<number | null> {
@@ -363,3 +363,4 @@ export function createSpeedTest(mode: SpeedTestMode = 'rapido') {
 
   return { run, cancel, markContaminated }
 }
+

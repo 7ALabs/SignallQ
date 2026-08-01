@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 
 export interface DocSection {
   title: string
@@ -76,8 +76,7 @@ export function DocPage({ overline, title, intro, updated, sections, card = fals
       {children}
 
       {ctaLabel && (
-        <Link
-          to={ctaTo}
+        <Link href={ctaTo}
           className="flex h-10 w-fit items-center justify-center rounded-[var(--radius-button)] px-5 no-underline"
           style={{ background: 'var(--accent)', color: 'var(--on-accent)' }}
         >
@@ -89,3 +88,5 @@ export function DocPage({ overline, title, intro, updated, sections, card = fals
     </div>
   )
 }
+
+

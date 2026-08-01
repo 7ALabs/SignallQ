@@ -64,6 +64,26 @@ export const PAGE_META: Record<string, PageMeta> = {
     path: '/teste',
     ogImage: '/og/teste.png',
   },
+  '/comparativo': {
+    title: 'SignallQ x testes de velocidade tradicionais',
+    description: 'Um número de Mbps não diz por que a internet trava. Veja o que muda quando o teste também mede latência sob carga, DNS e o motivo provável do problema.',
+    path: '/comparativo',
+  },
+  '/internet-para-jogos': {
+    title: 'Que internet você precisa para jogar online sem travar',
+    description: 'Não é só velocidade: latência baixa e estável importa mais que Mbps para a maioria dos jogos competitivos.',
+    path: '/internet-para-jogos',
+  },
+  '/app': {
+    title: 'App SignallQ',
+    description: 'O app que não para no número: descobre por que sua internet está ruim. Em teste fechado.',
+    path: '/app',
+  },
+  '/brand': {
+    title: 'Identidade visual do SignallQ',
+    description: 'Logotipo, variações de cor e paleta oficial para uso consistente.',
+    path: '/brand',
+  },
 }
 
 export const NOT_FOUND_META: PageMeta = {

@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SiteFooter } from './SiteFooter'
 import { SIGNALLQ_TEST_GROUP_URL } from '../lib/config'
@@ -96,3 +96,4 @@ describe('SiteFooter', () => {
     })
   })
 })
+

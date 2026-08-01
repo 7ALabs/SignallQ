@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useRouter } from 'next/navigation'
 import { IdleStart, type ModoTeste } from './IdleStart'
 import { ProblemPanel } from './ProblemPanel'
 import { ResultPanel } from './ResultPanel'
@@ -32,7 +32,7 @@ function phaseColorVar(phase: FasePainel): string {
 }
 
 export function EmbeddedSpeedTest() {
-  const navigate = useNavigate()
+  const router = useRouter(); const navigate = (p: string) => router.push(p)
   const [modo, setModo] = useState<ModoTeste>('rapido')
   const { phase, liveValue, phaseResults, result, connectionKind, round, cancelTest, retry, forceStart } = useSpeedTest(modo)
 
@@ -112,3 +112,4 @@ export function EmbeddedSpeedTest() {
     </div>
   )
 }
+
