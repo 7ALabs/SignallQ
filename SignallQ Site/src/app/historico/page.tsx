@@ -103,6 +103,7 @@ export default function Page() {
           card
           icon="storage"
           iconSize={32}
+          messageSize={14}
           color="var(--error)"
           title="Histórico indisponível"
           message="Não foi possível ler o armazenamento local deste navegador agora."
@@ -116,6 +117,7 @@ export default function Page() {
         <EstadoVazio
           icon="speed"
           iconSize={36}
+          messageSize={14}
           color="var(--text-tertiary)"
           title="Nenhuma medição ainda"
           message="Faça seu primeiro teste para ver o histórico aqui."

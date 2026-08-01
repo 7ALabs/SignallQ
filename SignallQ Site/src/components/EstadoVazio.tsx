@@ -3,6 +3,7 @@ export function EstadoVazio({
   iconSize = 44,
   title,
   message,
+  messageSize = 16,
   actionIcon,
   actionLabel,
   actionVariant = "filled",
@@ -15,6 +16,8 @@ export function EstadoVazio({
   iconSize?: number;
   title: string;
   message: string;
+  /** Tamanho da mensagem em px — default 16 (Home, ScreenHome.dc.html "mensagem 16"); Histórico usa 14 (ScreenHistorico.dc.html, estados vazio/indisponível). */
+  messageSize?: 14 | 16;
   actionIcon?: string;
   actionLabel?: string;
   /** "filled" (accent, com ícone) ou "outline" (borda, sem ícone, ação secundária como "Tentar novamente"). */
@@ -41,7 +44,11 @@ export function EstadoVazio({
       <div className="font-semibold text-[22px] leading-[1.27] text-[color:var(--text-primary)]">
         {title}
       </div>
-      <div className="font-normal text-[16px] leading-[1.5] text-[color:var(--text-secondary)] text-balance">
+      <div
+        className={`font-normal text-[color:var(--text-secondary)] text-balance ${
+          messageSize === 14 ? "text-[14px] leading-[1.45]" : "text-[16px] leading-[1.5]"
+        }`}
+      >
         {message}
       </div>
       {actionLabel && actionVariant === "outline" && (
