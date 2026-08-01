@@ -2,9 +2,10 @@
 import Link from 'next/link'
 import { PageLayout } from '../components/PageLayout'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
+import { NOT_FOUND_META } from '../lib/pageMetaCatalog'
 
 export default function NotFound() {
-  useDocumentMeta({ title: 'Página não encontrada' })
+  useDocumentMeta(NOT_FOUND_META)
 
   return (
     <PageLayout>
