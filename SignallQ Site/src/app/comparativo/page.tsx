@@ -2,6 +2,7 @@
 import { DocPage, type DocSection } from '../../components/DocPage'
 import { PageLayout } from '../../components/PageLayout'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
+import { PAGE_META } from '../../lib/pageMetaCatalog'
 
 const SECTIONS: DocSection[] = [
   { title: 'Só Mbps x veredito completo', text: 'Testes tradicionais mostram download e upload soltos. O SignallQ classifica cada métrica (Excelente/Bom/Regular/Fraco) e explica o que ela significa no uso real: streaming, videochamada, jogos.' },
@@ -12,7 +13,7 @@ const SECTIONS: DocSection[] = [
 ]
 
 export default function Page() {
-  useDocumentMeta({ title: 'SignallQ x testes de velocidade tradicionais' })
+  useDocumentMeta(PAGE_META['/comparativo'])
 
   return (
     <PageLayout>
