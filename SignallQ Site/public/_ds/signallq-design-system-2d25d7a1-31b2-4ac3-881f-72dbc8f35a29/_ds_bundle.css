@@ -80,6 +80,7 @@
 /* ---- Surface — Dark (apply .dark to a container) ----------------------- */
 .dark {
   --accent:        #D0BCFF;
+  --on-accent:     #38137E;
   --accent-blue:   #AAC7FF;
   --success:       #83DA99;
   --warning:       #FFB870;
