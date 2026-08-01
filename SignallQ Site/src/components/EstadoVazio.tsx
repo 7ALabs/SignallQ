@@ -1,25 +1,40 @@
 export function EstadoVazio({
   icon,
+  iconSize = 44,
   title,
   message,
   actionIcon,
   actionLabel,
+  actionVariant = "filled",
+  card = false,
   color = "var(--text-secondary)",
   onAction,
 }: {
   icon: string;
+  /** Tamanho do ícone em px — estados diferentes usam 28–44 (Guia de Implementação, §7.2). */
+  iconSize?: number;
   title: string;
   message: string;
-  actionIcon: string;
-  actionLabel: string;
+  actionIcon?: string;
+  actionLabel?: string;
+  /** "filled" (accent, com ícone) ou "outline" (borda, sem ícone, ação secundária como "Tentar novamente"). */
+  actionVariant?: "filled" | "outline";
+  /** Envolve o bloco num card (bg-secondary + sombra) — usado pelo estado "indisponível" do Histórico. */
+  card?: boolean;
   color?: string;
   onAction?: () => void;
 }) {
   return (
-    <div className="max-w-[420px] flex flex-col items-center gap-[14px] py-[64px] px-2 text-center mx-auto">
+    <div
+      className={
+        card
+          ? "w-full flex flex-col items-center gap-2.5 rounded-2xl py-10 px-6 text-center bg-[color:var(--bg-secondary)] shadow-[0_10px_26px_rgba(0,0,0,.16)]"
+          : "max-w-[420px] flex flex-col items-center gap-[14px] py-16 px-2 text-center mx-auto"
+      }
+    >
       <span
-        className="material-symbols-outlined text-[44px]"
-        style={{ color }}
+        className="material-symbols-outlined"
+        style={{ fontSize: iconSize, color }}
       >
         {icon}
       </span>
@@ -29,17 +44,29 @@ export function EstadoVazio({
       <div className="font-normal text-[16px] leading-[1.5] text-[color:var(--text-secondary)] text-balance">
         {message}
       </div>
-      <button
-        onClick={onAction}
-        className="h-[44px] flex items-center gap-2 px-5 rounded-[var(--radius-button,_999px)] bg-[color:var(--accent)] hover:opacity-90 transition-opacity"
-      >
-        <span className="material-symbols-outlined text-[20px] text-[color:var(--on-accent)]">
-          {actionIcon}
-        </span>
-        <span className="font-medium text-[14px] leading-[1.43] text-[color:var(--on-accent)]">
+      {actionLabel && actionVariant === "outline" && (
+        <button
+          onClick={onAction}
+          className="mt-1 h-10 flex items-center px-4 rounded-[var(--radius-button)] border border-[color:var(--border)] font-medium text-[14px] leading-[1.43] text-[color:var(--text-primary)] bg-transparent cursor-pointer"
+        >
           {actionLabel}
-        </span>
-      </button>
+        </button>
+      )}
+      {actionLabel && actionVariant === "filled" && (
+        <button
+          onClick={onAction}
+          className="h-[44px] flex items-center gap-2 px-5 rounded-[var(--radius-button,_999px)] bg-[color:var(--accent)] hover:opacity-90 transition-opacity"
+        >
+          {actionIcon && (
+            <span className="material-symbols-outlined text-[20px] text-[color:var(--on-accent)]">
+              {actionIcon}
+            </span>
+          )}
+          <span className="font-medium text-[14px] leading-[1.43] text-[color:var(--on-accent)]">
+            {actionLabel}
+          </span>
+        </button>
+      )}
     </div>
   );
 }
