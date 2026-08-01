@@ -1,8 +1,6 @@
 "use client";
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { SiteNav } from '@/components/SiteNav'
-import { SiteFooter } from '@/components/SiteFooter'
 import { useDocumentMeta } from '@/hooks/useDocumentMeta'
 import { PAGE_META } from '@/lib/pageMetaCatalog'
 import { SIGNALLQ_TEST_GROUP_URL } from '@/lib/config'
@@ -89,11 +87,9 @@ export default function AppLandingPage() {
 
   return (
     <div
-      className="relative flex min-h-screen w-full flex-col overflow-x-hidden"
+      className="relative flex w-full flex-1 flex-col overflow-x-hidden"
       style={{ background: 'radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%), linear-gradient(180deg, var(--bg-primary) 0%, color-mix(in srgb, var(--bg-secondary) 55%, var(--bg-primary)) 100%)' }}
     >
-      <SiteNav />
-
       <div className="relative w-full box-border flex justify-center overflow-hidden p-[28px_20px_24px] sm:p-[56px_var(--safe-x)_40px]">
         <div className="sq-app-glow-a absolute left-[8%] top-[-80px] w-[420px] h-[420px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--accent) 30%, transparent), transparent 70%)' }} />
         <div className="sq-app-glow-b absolute right-[6%] top-[120px] w-[380px] h-[380px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--accent-blue) 26%, transparent), transparent 70%)' }} />
@@ -230,8 +226,6 @@ export default function AppLandingPage() {
 
         </div>
       </div>
-
-      <SiteFooter />
     </div>
   )
 }

@@ -46,10 +46,10 @@ const MODOS = [
 ];
 
 const DIAG_ITEMS = [
-  { icon: "speed", label: "Velocidade e latência" },
-  { icon: "hourglass_bottom", label: "Latência sob carga" },
-  { icon: "dns", label: "Servidores DNS" },
-  { icon: "sports_esports", label: "Modo gamer" },
+  { icon: "speed", label: "Velocidade e latência", href: "/velocidade-e-latencia" },
+  { icon: "hourglass_bottom", label: "Latência sob carga", href: "/latencia-sob-carga" },
+  { icon: "dns", label: "Servidores DNS", href: "/servidores-dns" },
+  { icon: "sports_esports", label: "Modo gamer", href: "/modo-gamer" },
 ];
 
 // Mapa de dados dos 6 estados de problema — 1:1 com `PROBLEMAS` de

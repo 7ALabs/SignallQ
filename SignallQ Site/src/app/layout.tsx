@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "../index.css";
 import { AdSenseScript } from "../components/AdSenseScript";
 import { CookieConsentBanner } from "../components/CookieConsentBanner";
+import { SiteNav } from "../components/SiteNav";
+import { SiteFooter } from "../components/SiteFooter";
 
 export const metadata: Metadata = {
   title: "SignallQ - Teste de Velocidade e Qualidade",
@@ -37,7 +39,19 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col overflow-x-hidden bg-[radial-gradient(circle_at_50%_0%,_color-mix(in_srgb,_var(--accent)_10%,_transparent),_transparent_55%),_linear-gradient(180deg,_var(--bg-primary)_0%,_color-mix(in_srgb,_var(--bg-secondary)_55%,_var(--bg-primary))_100%)] text-[color:var(--text-primary)]">
-        {children}
+        {/* SiteNav + miolo em min-h-screen própria (não a <body> inteira, que
+            também engloba o SiteFooter abaixo) — garante que o rodapé nunca
+            apareça na primeira vista, mesmo em telas com pouco conteúdo
+            (ex.: 404, Marca): é preciso rolar pra passar da altura de uma
+            viewport antes de alcançá-lo. SiteNav/SiteFooter vivem aqui, no
+            layout raiz, pra persistir entre navegações (guia §1) — mover
+            página não deve remontar o header/rodapé (achado 01/08/2026,
+            "topbar sambando" ao trocar de rota). */}
+        <div className="flex min-h-screen w-full flex-col overflow-x-hidden">
+          <SiteNav />
+          <main className="flex w-full flex-1 flex-col">{children}</main>
+        </div>
+        <SiteFooter />
         <CookieConsentBanner />
         <AdSenseScript />
       </body>

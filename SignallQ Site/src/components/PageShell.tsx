@@ -1,6 +1,4 @@
 import type { ReactNode } from "react";
-import { SiteNav } from "./SiteNav";
-import { SiteFooter } from "./SiteFooter";
 
 interface PageShellProps {
   contentMax?: string;
@@ -21,16 +19,16 @@ interface PageShellProps {
   children: ReactNode;
 }
 
-// Fundação única de tela — fase Fundação da reconstrução v4 (`Guia de
-// Implementação.dc.html`, §3/§6). Consolida os dois shells que existiam em
-// paralelo (`PageShell` + `PageLayout`, pendência registrada no CLAUDE.md
-// local) numa única implementação: SiteNav (sticky) -> miolo centralizado
-// (`flex:1; max-width: contentMax`) -> SiteFooter.
+// Miolo de tela — fase Fundação da reconstrução v4 (`Guia de Implementação.dc.html`,
+// §3/§6). Consolida os dois shells que existiam em paralelo (`PageShell` +
+// `PageLayout`, pendência registrada no CLAUDE.md local) numa única
+// implementação: miolo centralizado (`flex:1; max-width: contentMax`).
 //
-// `SiteNav`/`SiteFooter` já resolvem rota ativa e responsividade sozinhos
-// (pathname real via `usePathname` + gate CSS `md:`/`lg:`) — não repete prop
-// `active`/`mobile` aqui, que o próprio CLAUDE.md documenta como bug
-// corrigido em 01/08/2026 (prop nunca ligada a um viewport real).
+// `SiteNav`/`SiteFooter` NÃO são renderizados aqui — desde o achado de
+// 01/08/2026 ("topbar sambando" ao trocar de rota), os dois vivem no layout
+// raiz (`src/app/layout.tsx`), fora da árvore de cada página, pra persistir
+// entre navegações em vez de remontar a cada troca de tela (guia §1: "layout
+// raiz com SiteNav + SiteFooter").
 //
 // Sem `AdRail`/`AdBannerWide` — anúncio visual foi removido nesta fase; a
 // infraestrutura técnica de AdSense (`AdSenseScript`) fica no layout raiz,
@@ -42,23 +40,17 @@ export function PageShell({
   children,
 }: PageShellProps) {
   return (
-    <div className="flex min-h-screen w-full flex-col overflow-x-hidden">
-      <SiteNav />
-
+    <div
+      className={`flex w-full flex-1 justify-center box-border ${mobilePadding} lg:pt-5 lg:px-[var(--safe-x)] lg:pb-4 ${
+        align === "center" ? "items-center" : ""
+      }`}
+    >
       <div
-        className={`flex w-full flex-1 justify-center box-border ${mobilePadding} lg:pt-5 lg:px-[var(--safe-x)] lg:pb-4 ${
-          align === "center" ? "items-center" : ""
-        }`}
+        className="flex w-full flex-1 flex-col items-center gap-5"
+        style={{ maxWidth: contentMax }}
       >
-        <div
-          className="flex w-full flex-1 flex-col items-center gap-5"
-          style={{ maxWidth: contentMax }}
-        >
-          {children}
-        </div>
+        {children}
       </div>
-
-      <SiteFooter />
     </div>
   );
 }

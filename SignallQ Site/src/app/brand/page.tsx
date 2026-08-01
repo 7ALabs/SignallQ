@@ -1,6 +1,4 @@
 "use client";
-import { SiteFooter } from '../../components/SiteFooter'
-import { SiteNav } from '../../components/SiteNav'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
 import { PAGE_META } from '../../lib/pageMetaCatalog'
 
@@ -26,13 +24,12 @@ const OVERLINE = "font-medium text-[11px] leading-[1.45] text-[color:var(--text-
 // padding, gap e breakpoint de mobile próprios (48px de topo no desktop, gap
 // de 40px entre seções, troca em 640px), diferentes dos defaults do
 // PageShell — mesmo precedente de shell dedicado usado em ScreenApp (`/app`).
+// SiteNav/SiteFooter não são renderizados aqui — vivem no layout raiz.
 export default function BrandPage() {
   useDocumentMeta(PAGE_META['/brand'])
 
   return (
-    <div className="flex min-h-screen w-full flex-col overflow-x-hidden">
-      <SiteNav />
-
+    <div className="flex w-full flex-1 flex-col overflow-x-hidden">
       <div className="w-full box-border flex justify-center p-[28px_20px_40px] sm:p-[48px_var(--safe-x)_16px]">
         <div className="w-full flex flex-col gap-10" style={{ maxWidth: '1080px' }}>
 
@@ -168,8 +165,6 @@ export default function BrandPage() {
 
         </div>
       </div>
-
-      <SiteFooter />
     </div>
   )
 }

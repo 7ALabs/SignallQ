@@ -1,6 +1,7 @@
 export function EstadoVazio({
   icon,
   iconSize = 44,
+  badge,
   title,
   message,
   messageSize = 16,
@@ -14,6 +15,8 @@ export function EstadoVazio({
   icon: string;
   /** Tamanho do ícone em px — estados diferentes usam 28–44 (Guia de Implementação, §7.2). */
   iconSize?: number;
+  /** Selo pequeno acima do ícone (ex.: "Em breve") — opcional, usado pelas telas placeholder. */
+  badge?: string;
   title: string;
   message: string;
   /** Tamanho da mensagem em px — default 16 (Home, ScreenHome.dc.html "mensagem 16"); Histórico usa 14 (ScreenHistorico.dc.html, estados vazio/indisponível). */
@@ -35,6 +38,11 @@ export function EstadoVazio({
           : "max-w-[420px] flex flex-col items-center gap-[14px] py-16 px-2 text-center mx-auto"
       }
     >
+      {badge && (
+        <span className="rounded-full py-[2px] px-[10px] font-semibold text-[11px] leading-[1.4] tracking-[.04em] uppercase text-[color:var(--on-accent)] bg-[color:var(--accent)]">
+          {badge}
+        </span>
+      )}
       <span
         className="material-symbols-outlined"
         style={{ fontSize: iconSize, color }}

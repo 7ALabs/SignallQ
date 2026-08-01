@@ -69,6 +69,33 @@ export const PAGE_META: Record<string, PageMeta> = {
     description: 'Logotipo, variações de cor e paleta oficial para uso consistente.',
     path: '/brand',
   },
+  // As 4 rotas abaixo são placeholder ("Em breve") pros diagnósticos
+  // dedicados linkados pelos chips da Home (`DIAG_ITEMS`, `src/app/page.tsx`)
+  // — ainda não implementados, `noindex` até terem conteúdo real.
+  '/velocidade-e-latencia': {
+    title: 'Velocidade e latência — em breve — SignallQ',
+    description: 'Diagnóstico dedicado de velocidade e latência, em construção.',
+    path: '/velocidade-e-latencia',
+    robots: 'noindex,follow',
+  },
+  '/latencia-sob-carga': {
+    title: 'Latência sob carga — em breve — SignallQ',
+    description: 'Diagnóstico dedicado de latência sob carga (bufferbloat), em construção.',
+    path: '/latencia-sob-carga',
+    robots: 'noindex,follow',
+  },
+  '/servidores-dns': {
+    title: 'Servidores DNS — em breve — SignallQ',
+    description: 'Diagnóstico dedicado de servidores DNS, em construção.',
+    path: '/servidores-dns',
+    robots: 'noindex,follow',
+  },
+  '/modo-gamer': {
+    title: 'Modo gamer — em breve — SignallQ',
+    description: 'Diagnóstico dedicado de modo gamer por jogo, em construção.',
+    path: '/modo-gamer',
+    robots: 'noindex,follow',
+  },
 }
 
 export const NOT_FOUND_META: PageMeta = {

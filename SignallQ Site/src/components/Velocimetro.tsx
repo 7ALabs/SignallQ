@@ -68,7 +68,7 @@ export function Velocimetro({
 
       <svg
         viewBox="0 0 360 210"
-        className="absolute inset-0 w-full h-full block"
+        className="absolute inset-0 w-full h-full block pointer-events-none"
       >
         {TICKS.map((t, i) => (
           <line
