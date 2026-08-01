@@ -1,7 +1,7 @@
 "use client";
 import Link from 'next/link'
 import { DocPage, type DocSection } from '../../components/DocPage'
-import { PageLayout } from '../../components/PageLayout'
+import { PageShell } from '../../components/PageShell'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
 import { PAGE_META } from '../../lib/pageMetaCatalog'
 
@@ -11,7 +11,7 @@ import { PAGE_META } from '../../lib/pageMetaCatalog'
 // pesquise por esse termo. Cada seção segue "resposta primeiro": a(s) primeira(s)
 // frase(s) já respondem a pergunta do título, o resto elabora o mecanismo. Copy
 // preservado 1:1 na reconstrução v2 (README, "só a moldura visual muda") — só a
-// composição (SiteNav/AdRail/AdBannerWide/SiteFooter, via DocPage/PageLayout) mudou.
+// composição (SiteNav/SiteFooter, via DocPage/PageShell) mudou.
 const SECTIONS: DocSection[] = [
   {
     title: 'Por que a internet trava mesmo com Wi-Fi forte e velocidade boa',
@@ -35,7 +35,7 @@ export default function Page() {
   useDocumentMeta(PAGE_META['/internet-boa-mas-travando'])
 
   return (
-    <PageLayout >
+    <PageShell >
       <DocPage
         overline="Diagnóstico"
         title="Internet boa mas travando? Veja por que isso acontece"
@@ -50,7 +50,7 @@ export default function Page() {
           pode ser outra: veja <Link href="/lag-em-jogos-online">lag em jogos online e o CGNAT</Link>.
         </p>
       </DocPage>
-    </PageLayout>
+    </PageShell>
   )
 }
 

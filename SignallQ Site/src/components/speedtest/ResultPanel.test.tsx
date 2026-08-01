@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ResultPanel } from './ResultPanel'
-import { AdSlotsProvider } from '../AdSlotsProvider'
 import { classifyDownload } from '../../lib/classification'
 import type { SpeedTestResult } from '../../lib/speedEngine'
 
@@ -33,20 +32,15 @@ describe('ResultPanel — versão enxuta do PWA (sem recomendações/casos de us
   })
 
   it('conexão boa -> mostra veredito positivo, métricas principais e chip de conexão', () => {
-    // ResultPanel embute o AdBannerWide (achado 1, reconstrução v2) — sem
-    // mock, o fallback do anúncio local dispararia um fetch real.
-    vi.spyOn(global, 'fetch').mockImplementation(() => new Promise(() => {}))
     const result = makeResult()
     render(
-      <AdSlotsProvider>
-        <ResultPanel
-          result={result}
-          downloadVerdict={classifyDownload(result.download.mbps)}
-          connectionKind="wifi"
-          onRetry={vi.fn()}
-          onVerHistorico={vi.fn()}
-        />
-      </AdSlotsProvider>
+      <ResultPanel
+        result={result}
+        downloadVerdict={classifyDownload(result.download.mbps)}
+        connectionKind="wifi"
+        onRetry={vi.fn()}
+        onVerHistorico={vi.fn()}
+      />
     )
 
     expect(screen.getByText('Sua conexão está boa')).toBeInTheDocument()
@@ -59,18 +53,15 @@ describe('ResultPanel — versão enxuta do PWA (sem recomendações/casos de us
   })
 
   it('resultado parcial -> mostra aviso de resultado parcial e esconde o chip de conexão quando desconhecida', () => {
-    vi.spyOn(global, 'fetch').mockImplementation(() => new Promise(() => {}))
     const result = makeResult({ download: 10, partial: true })
     render(
-      <AdSlotsProvider>
-        <ResultPanel
-          result={result}
-          downloadVerdict={classifyDownload(result.download.mbps)}
-          connectionKind={null}
-          onRetry={vi.fn()}
-          onVerHistorico={vi.fn()}
-        />
-      </AdSlotsProvider>
+      <ResultPanel
+        result={result}
+        downloadVerdict={classifyDownload(result.download.mbps)}
+        connectionKind={null}
+        onRetry={vi.fn()}
+        onVerHistorico={vi.fn()}
+      />
     )
 
     expect(screen.getByText(/Resultado parcial\./)).toBeInTheDocument()

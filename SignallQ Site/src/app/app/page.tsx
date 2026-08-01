@@ -77,7 +77,7 @@ export default function AppLandingPage() {
   }, [])
 
   return (
-    <PageShell ads={false} contentMax="1080px">
+    <PageShell contentMax="1080px">
       <div className="relative w-full box-border flex justify-center p-[28px_20px_24px] md:p-[56px_24px_40px] overflow-hidden">
         <div className="sq-app-glow-a absolute left-[8%] top-[-80px] w-[420px] h-[420px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--accent) 30%, transparent), transparent 70%)' }} />
         <div className="sq-app-glow-b absolute right-[6%] top-[120px] w-[380px] h-[380px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, color-mix(in srgb, var(--accent-blue) 26%, transparent), transparent 70%)' }} />

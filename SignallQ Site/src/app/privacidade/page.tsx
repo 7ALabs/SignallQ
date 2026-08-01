@@ -1,6 +1,6 @@
 "use client";
 import { DocPage, type DocSection } from '../../components/DocPage'
-import { PageLayout } from '../../components/PageLayout'
+import { PageShell } from '../../components/PageShell'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
 import { PAGE_META } from '../../lib/pageMetaCatalog'
 
@@ -59,7 +59,7 @@ export default function Page() {
   useDocumentMeta(PAGE_META['/privacidade'])
 
   return (
-    <PageLayout >
+    <PageShell >
       <DocPage
         overline="Privacidade"
         title="Como este site trata seus dados"
@@ -67,7 +67,7 @@ export default function Page() {
         intro="Esta política cobre o site público do SignallQ. Ela é diferente da política do aplicativo Android."
         sections={SECTIONS}
       />
-    </PageLayout>
+    </PageShell>
   )
 }
 

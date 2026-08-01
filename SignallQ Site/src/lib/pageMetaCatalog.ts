@@ -11,14 +11,6 @@ export const PAGE_META: Record<string, PageMeta> = {
       'Meça agora a velocidade real da sua internet: download, upload e latência, com veredito claro para navegação, streaming, videochamadas e jogos.',
     path: '/',
   },
-  '/pro': {
-    title: 'SignallQ PRO — venda seu diagnóstico de Wi-Fi como serviço',
-    // Achado bloqueante da Lia: description prometia trial ("Experimente grátis por
-    // 14 dias") contradizendo "Em breve" da seção Planos/modal. Corrigido para vitrine honesta.
-    description:
-      'Organize clientes, registre medições por ambiente e entregue um laudo profissional com a sua marca. Em breve — entre na lista de espera.',
-    path: '/pro',
-  },
   '/historico': {
     title: 'Histórico de medições — SignallQ',
     description: 'Veja o histórico local das suas medições de velocidade. Armazenado somente neste navegador.',
@@ -56,13 +48,6 @@ export const PAGE_META: Record<string, PageMeta> = {
     description:
       'Internet parece boa mas dá lag em jogos, e você não consegue hospedar partida ou conectar direto com amigos? Entenda o CGNAT e o NAT Strict, e o que fazer.',
     path: '/lag-em-jogos-online',
-  },
-  '/teste': {
-    title: 'Ajude a testar o SignallQ',
-    description:
-      'Participe do teste fechado do SignallQ para Android e ajude a melhorar o diagnóstico de internet, Wi-Fi, fibra e rede móvel.',
-    path: '/teste',
-    ogImage: '/og/teste.png',
   },
   '/comparativo': {
     title: 'SignallQ x testes de velocidade tradicionais',

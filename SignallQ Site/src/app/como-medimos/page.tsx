@@ -1,6 +1,6 @@
 "use client";
 import { DocPage, type DocSection } from '../../components/DocPage'
-import { PageLayout } from '../../components/PageLayout'
+import { PageShell } from '../../components/PageShell'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
 import { PAGE_META } from '../../lib/pageMetaCatalog'
 
@@ -33,7 +33,7 @@ export default function Page() {
   useDocumentMeta(PAGE_META['/como-medimos'])
 
   return (
-    <PageLayout >
+    <PageShell >
       <DocPage
         overline="Metodologia"
         title="Como medimos sua conexão"
@@ -43,7 +43,7 @@ export default function Page() {
         ctaLabel="Iniciar teste"
         ctaTo="/"
       />
-    </PageLayout>
+    </PageShell>
   )
 }
 

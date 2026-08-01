@@ -3,7 +3,7 @@ import Link from 'next/link'
 // Topo mínimo do fluxo do PWA (telas Velocidade/Resultado/Histórico) — sem o
 // SiteNav institucional completo. Protótipo "SignallQ WebApp.dc.html" do Luiz
 // (GH#1186): "Sem barra de navegação inferior — o PWA é enxuto: teste,
-// resultado e histórico". As páginas institucionais (/pro, /quem-somos etc.)
+// resultado e histórico". As páginas institucionais (/quem-somos, /termos etc.)
 // continuam usando SiteNav/SiteFooter normalmente — não são tocadas aqui.
 
 interface FlowTopBarProps {

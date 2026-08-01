@@ -1,6 +1,6 @@
 "use client";
 import { DocPage, type DocSection } from '../../components/DocPage'
-import { PageLayout } from '../../components/PageLayout'
+import { PageShell } from '../../components/PageShell'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
 import { PAGE_META } from '../../lib/pageMetaCatalog'
 
@@ -16,7 +16,7 @@ export default function Page() {
   useDocumentMeta(PAGE_META['/comparativo'])
 
   return (
-    <PageLayout>
+    <PageShell>
       <DocPage
         overline="Comparativo"
         title="SignallQ x testes de velocidade tradicionais"
@@ -26,6 +26,6 @@ export default function Page() {
         ctaLabel="Fazer meu teste"
         ctaTo="/"
       />
-    </PageLayout>
+    </PageShell>
   )
 }

@@ -23,16 +23,11 @@ export const SIGNALLQ_TEST_GROUP_URL: string =
 export const SIGNALLQ_CLOSED_TESTING_URL: string =
   process.env.NEXT_PUBLIC_SIGNALLQ_CLOSED_TESTING_URL || 'https://play.google.com/apps/testing/io.signallq.app'
 
+// Publisher ID do Google AdSense — gate de carregamento de `AdSenseScript`
+// (só carrega o script real com a env var configurada E consentimento aceito,
+// ver `src/lib/adConsent.ts`). Sem posição de anúncio decidida ainda (fase
+// Fundação, reconstrução v4) — nenhuma tela reserva espaço visual de anúncio.
 export const ADSENSE_PUBLISHER_ID: string = process.env.NEXT_PUBLIC_ADSENSE_PUBLISHER_ID || ''
-export const ADSENSE_SLOT_RESULT: string = process.env.NEXT_PUBLIC_ADSENSE_SLOT_RESULT || ''
-
-// Catálogo de anúncios locais (house ads) — issue #1402/#1403. Endpoint público de
-// leitura no signallq-admin-worker (sem INGEST_KEY, é leitura pública — chamado direto
-// do navegador, sem Pages Function no meio, ao contrário de /api/track e /api/waitlist).
-// Sem override, aponta pro admin-worker de produção; se o contrato mudar (ver comentário
-// do Camilo em #1402), ajustar aqui.
-export const LOCAL_ADS_ENDPOINT: string =
-  process.env.NEXT_PUBLIC_LOCAL_ADS_ENDPOINT || 'https://signallq-admin.giammattey-luiz.workers.dev/local-ads'
 
 // Motor de medição real. Isolado aqui para poder trocar por um endpoint
 // próprio (ex.: o motor do app SignallQ hospedado na Cloudflare) sem tocar

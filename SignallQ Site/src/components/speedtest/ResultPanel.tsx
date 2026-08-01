@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { PlayStoreBadge } from '../PlayStoreBadge'
-import { ResultAdCard } from './ResultAdCard'
 import { classifyLatency, classifyUpload, interpretUseCases, type Classificacao } from '../../lib/classification'
 import { iconeConexao, labelConexao, type TipoRede } from '../../lib/connection'
 import type { SpeedTestResult } from '../../lib/speedEngine'
@@ -83,9 +82,8 @@ interface ResultPanelProps {
 // Resultado técnico do PWA — reconstrução v2
 // (`.claude/design-specs/2026-07-25-site-webapp-v2/ScreenHome.dc.html`, variant "result"):
 // pill de status com data, grade de 3 métricas, interpretação com casos de uso,
-// contexto/detalhes técnicos lado a lado e o anúncio local embutido no card
-// (achado 1 do README do pacote — 4º espaço de anúncio, distinto do
-// `AdBannerWide` de rodapé da página, que fica oculto neste estado).
+// contexto/detalhes técnicos lado a lado. Anúncio removido na fase Fundação
+// da reconstrução v4 (sem posição de anúncio decidida ainda).
 //
 // Divergências deliberadas do protótipo (documentadas, não são omissão):
 // - O protótipo mocka os ícones das 3 métricas sempre em verde/"Boa"; aqui a cor
@@ -343,12 +341,6 @@ export function ResultPanel({ result, downloadVerdict, connectionKind, onRetry, 
           </span>
         </button>
       </div>
-
-      {/* 4º espaço de anúncio (achado 1 do README de design-specs): embutido dentro do
-          próprio card de resultado, distinto do AdBannerWide de rodapé da página (oculto
-          neste estado — ver `showWideAd` em HomePage.tsx). Peça dedicada (`ResultAdCard`),
-          não o `AdBannerWide` genérico — achado da auditoria 1:1 de 2026-07-25 (Marina). */}
-      <ResultAdCard />
 
       <div className="flex items-center gap-3 rounded-2xl p-4" style={{ background: 'color-mix(in srgb, var(--accent) 8%, transparent)' }}>
         <div className="flex flex-1 flex-col gap-0.5">

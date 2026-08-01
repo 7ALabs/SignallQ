@@ -1,7 +1,7 @@
 "use client";
 import Link from 'next/link'
 import { DocPage, type DocSection } from '../../components/DocPage'
-import { PageLayout } from '../../components/PageLayout'
+import { PageShell } from '../../components/PageShell'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
 import { PAGE_META } from '../../lib/pageMetaCatalog'
 
@@ -11,7 +11,7 @@ import { PAGE_META } from '../../lib/pageMetaCatalog'
 // Cada seção segue "resposta primeiro": a(s) primeira(s) frase(s) já respondem a
 // pergunta do título, o resto elabora o mecanismo. Copy preservado 1:1 na
 // reconstrução v2 (README, "só a moldura visual muda") — só a composição
-// (SiteNav/AdRail/AdBannerWide/SiteFooter, via DocPage/PageLayout) mudou.
+// (SiteNav/SiteFooter, via DocPage/PageShell) mudou.
 const SECTIONS: DocSection[] = [
   {
     title: 'Por que dá lag em jogos mesmo com a internet parecendo boa',
@@ -39,7 +39,7 @@ export default function Page() {
   useDocumentMeta(PAGE_META['/lag-em-jogos-online'])
 
   return (
-    <PageLayout >
+    <PageShell >
       <DocPage
         overline="Diagnóstico"
         title="Lag em jogos online mesmo com boa internet? Pode ser CGNAT"
@@ -54,7 +54,7 @@ export default function Page() {
           causa pode ser diferente: veja <Link href="/internet-boa-mas-travando">internet boa mas travando e o bufferbloat</Link>.
         </p>
       </DocPage>
-    </PageLayout>
+    </PageShell>
   )
 }
 

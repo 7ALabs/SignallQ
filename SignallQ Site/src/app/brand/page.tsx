@@ -17,7 +17,7 @@ export default function BrandPage() {
   useDocumentMeta(PAGE_META['/brand'])
 
   return (
-    <PageShell ads={false} contentMax="1080px">
+    <PageShell contentMax="1080px">
       <div className="w-full box-border flex justify-center p-[28px_20px_40px] md:p-[48px_24px_16px]">
         <div className="w-full max-w-[1080px] flex flex-col gap-[40px]">
           

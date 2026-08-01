@@ -152,7 +152,7 @@ export default function Home() {
     : PROBLEMAS["erro-inesperado"];
 
   return (
-    <PageShell ads={!isResult}>
+    <PageShell>
       {isIdle && (
         <div className="flex flex-col items-center gap-[6px] text-center">
           <h1 className="m-0 font-bold text-[30px] leading-[1.2] text-[color:var(--text-primary)]">

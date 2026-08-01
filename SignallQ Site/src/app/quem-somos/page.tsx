@@ -1,6 +1,6 @@
 "use client";
 import { DocPage, type DocSection } from '../../components/DocPage'
-import { PageLayout } from '../../components/PageLayout'
+import { PageShell } from '../../components/PageShell'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
 import { PAGE_META } from '../../lib/pageMetaCatalog'
 
@@ -24,14 +24,14 @@ export default function Page() {
   useDocumentMeta(PAGE_META['/quem-somos'])
 
   return (
-    <PageLayout >
+    <PageShell >
       <DocPage
         overline="Quem somos"
         title="Conectividade explicada, não só medida"
         intro="Mostrar a métrica é só o começo: o valor está em explicar o que ela significa na prática, em português claro."
         sections={SECTIONS}
       />
-    </PageLayout>
+    </PageShell>
   )
 }
 

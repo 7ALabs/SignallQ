@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-export function SiteFooter({ variant }: { variant?: string } = {}) {
+export function SiteFooter() {
   const links = [
     { label: "Teste de velocidade", href: "/" },
     { label: "Histórico", href: "/historico" },

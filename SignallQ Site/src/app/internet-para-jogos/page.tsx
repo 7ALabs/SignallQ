@@ -1,6 +1,6 @@
 "use client";
 import { DocPage, type DocSection } from '../../components/DocPage'
-import { PageLayout } from '../../components/PageLayout'
+import { PageShell } from '../../components/PageShell'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
 import { PAGE_META } from '../../lib/pageMetaCatalog'
 
@@ -16,7 +16,7 @@ export default function Page() {
   useDocumentMeta(PAGE_META['/internet-para-jogos'])
 
   return (
-    <PageLayout>
+    <PageShell>
       <DocPage
         overline="Guia"
         title="Que internet você precisa para jogar online sem travar"
@@ -26,6 +26,6 @@ export default function Page() {
         ctaLabel="Testar minha conexão"
         ctaTo="/"
       />
-    </PageLayout>
+    </PageShell>
   )
 }

@@ -98,7 +98,7 @@ export default function Page() {
   const filtered = records.filter((r) => filtro === 'todos' || r.connectionKind === filtro)
 
   return (
-    <PageShell ads={hasRecords}>
+    <PageShell>
       <div className="md:hidden w-full flex items-center justify-between p-[14px_8px] box-border">
         <div className="w-[40px] h-[40px] flex items-center justify-center cursor-pointer" onClick={() => router.back()}>
           <span className="material-symbols-outlined text-[24px]">arrow_back</span>

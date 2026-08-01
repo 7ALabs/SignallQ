@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "../index.css";
+import { AdSenseScript } from "../components/AdSenseScript";
+import { CookieConsentBanner } from "../components/CookieConsentBanner";
 
 export const metadata: Metadata = {
   title: "SignallQ - Teste de Velocidade e Qualidade",
@@ -36,6 +38,8 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col overflow-x-hidden bg-[radial-gradient(circle_at_50%_0%,_color-mix(in_srgb,_var(--accent)_10%,_transparent),_transparent_55%),_linear-gradient(180deg,_var(--bg-primary)_0%,_color-mix(in_srgb,_var(--bg-secondary)_55%,_var(--bg-primary))_100%)] text-[color:var(--text-primary)]">
         {children}
+        <CookieConsentBanner />
+        <AdSenseScript />
       </body>
     </html>
   );

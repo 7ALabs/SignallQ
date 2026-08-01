@@ -8,7 +8,15 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
-  turbopack: {}
+  turbopack: {},
+  // /pro e /teste foram removidas na fase Fundação da reconstrução v4 —
+  // redirect 301 preserva links externos/indexados já publicados.
+  async redirects() {
+    return [
+      { source: "/pro", destination: "/", permanent: true },
+      { source: "/teste", destination: "/app", permanent: true },
+    ];
+  },
 };
 
 export default withSerwist(nextConfig);

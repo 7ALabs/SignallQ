@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link'
-import { PageLayout } from '../components/PageLayout'
+import { PageShell } from '../components/PageShell'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
 import { NOT_FOUND_META } from '../lib/pageMetaCatalog'
 
@@ -8,7 +8,7 @@ export default function NotFound() {
   useDocumentMeta(NOT_FOUND_META)
 
   return (
-    <PageLayout>
+    <PageShell>
       <div className="flex-1 w-full box-border flex items-center justify-center min-h-[520px]">
         <div className="w-full max-w-[860px] flex flex-col items-center justify-center gap-[14px] text-center">
           <div className="font-medium text-[11px] leading-[1.45] text-[color:var(--text-secondary)] tracking-[.3px] uppercase">
@@ -28,6 +28,6 @@ export default function NotFound() {
           </Link>
         </div>
       </div>
-    </PageLayout>
+    </PageShell>
   )
 }
