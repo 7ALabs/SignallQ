@@ -3,8 +3,10 @@ package io.signallq.app.ui.screen
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -328,7 +330,7 @@ fun ResultadoVelocidadeScreen(
                 Spacer(Modifier.height(LkSpacing.xl))
 
                 // Cards principais: Download + Upload
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
                     MetricCard(
                         label = "Velocidade de download",
                         value = "%.1f".format(resultado.downloadMbps),
@@ -368,7 +370,7 @@ fun ResultadoVelocidadeScreen(
 
                 AnimatedVisibility(visible = metricasDetalhadasAbertas) {
                     Column {
-                        Row(modifier = Modifier.fillMaxWidth()) {
+                        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
                             MetricCard(
                                 label = "Tempo de resposta",
                                 value = "%.0f".format(resultado.latenciaMs),
@@ -390,7 +392,7 @@ fun ResultadoVelocidadeScreen(
                             )
                         }
                         Spacer(Modifier.height(LkSpacing.md))
-                        Row(modifier = Modifier.fillMaxWidth()) {
+                        Row(modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
                             MetricCard(
                                 // GH#1221 RF-04/#1219 — "perda de pacotes" sugere medicao direta;
                                 // o metodo real e taxa de falha/timeout de probes HTTP (ver
@@ -733,6 +735,7 @@ private fun MetricCard(
     Column(
         modifier =
             modifier
+                .fillMaxHeight()
                 .clip(RoundedCornerShape(LkRadius.card))
                 .background(c.surfaceContainer)
                 .padding(LkSpacing.lg)
@@ -743,6 +746,8 @@ private fun MetricCard(
             text = label,
             style = MaterialTheme.typography.labelMedium,
             color = c.textSecondary,
+            textAlign = TextAlign.Center,
+            minLines = 2,
         )
         Spacer(Modifier.height(LkSpacing.xs))
         Text(
