@@ -11,6 +11,11 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ## [Unreleased]
 
+## [0.30.5] — 2026-08-01
+
+### Corrigido
+- `RecommendationRequestMapper.mapTags()` deixa de re-derivar tags do motor de recomendação comercial por regex de ID de achado bruto e passa a ler `report.recomendacoes`, a saída real das regras REC-01..REC-14 (`RecomendacaoPraticaEngine`). Corrige divergência onde o motor comercial podia sugerir troca de Wi-Fi mesmo quando o diagnóstico local já havia descartado essa causa por evidência de problema externo (DNS/operadora/fibra) — resolve P1-2 da auditoria #1228 (#1528).
+
 ## [0.30.4] — 2026-07-24
 
 ### Adicionado
