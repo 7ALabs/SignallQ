@@ -1,4 +1,4 @@
-export function EmptyState({
+export function EstadoVazio({
   icon,
   title,
   message,

@@ -98,6 +98,24 @@ a:hover {
   animation: sq-ring-pulse 5s ease-in-out infinite alternate;
 }
 
+/* Halo pulsante atrás do velocímetro (`Velocimetro.tsx`) — 1:1 com
+   `ScreenHome.dc.html` (`sq-gauge-pulse`). */
+@keyframes sq-gauge-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+.sq-gauge-glow {
+  animation: sq-gauge-pulse 4.5s ease-in-out infinite;
+}
+
 .sq-fade-up {
   animation: sq-fade-up 450ms ease-out both;
 }
@@ -130,6 +148,10 @@ html.sq-footer-visible .pwa-toast-stack {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+
+  .sq-gauge-glow {
+    animation: none;
+  }
 }
 
 /* Achado da Lia (nice-to-have): pista visual de overflow horizontal na
@@ -149,20 +171,6 @@ html.sq-footer-visible .pwa-toast-stack {
     background: linear-gradient(to right, transparent, var(--bg-primary));
     pointer-events: none;
   }
-}
-
-.glass-panel {
-  background: rgba(30, 41, 59, 0.45) !important;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.glass-panel:hover {
-  background: rgba(30, 41, 59, 0.6) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .sq-fade-up {

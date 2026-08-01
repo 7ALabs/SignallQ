@@ -1,6 +1,6 @@
 import React from "react";
 
-export function KeyValueList({
+export function ListaChaveValor({
   title,
   items,
 }: {
