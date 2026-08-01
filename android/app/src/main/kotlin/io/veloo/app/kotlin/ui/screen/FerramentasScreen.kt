@@ -5,10 +5,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -42,7 +45,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.signallq.app.R
 import io.signallq.app.ui.LkRadius
@@ -230,14 +235,14 @@ fun FerramentasScreen(
             item { LkSectionOverline(text = "Mais usadas") }
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                     horizontalArrangement = Arrangement.spacedBy(LkSpacing.sm),
                 ) {
                     maisUsadas.forEach { item ->
                         FerramentaDestacadaCard(
                             item = item,
                             destacada = item.tipo == ferramentaRecomendada,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
                             c = c,
                         )
                     }
@@ -260,11 +265,11 @@ private fun FerramentaDestacadaCard(
 ) {
     Box(modifier = modifier) {
         LkSurfaceCard(
-            modifier = Modifier.fillMaxWidth().clickable(onClick = item.onClick),
+            modifier = Modifier.fillMaxWidth().fillMaxHeight().clickable(onClick = item.onClick),
             outlined = false,
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth().padding(vertical = LkSpacing.md, horizontal = LkSpacing.sm),
+                modifier = Modifier.fillMaxWidth().fillMaxHeight().padding(vertical = LkSpacing.md, horizontal = LkSpacing.sm),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(LkSpacing.xs),
             ) {
@@ -285,11 +290,12 @@ private fun FerramentaDestacadaCard(
                 }
                 Text(
                     text = item.titulo,
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelMedium.copy(hyphens = Hyphens.Auto),
                     fontWeight = FontWeight.W600,
                     color = c.textPrimary,
                     textAlign = TextAlign.Center,
                     maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
