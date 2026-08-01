@@ -4,22 +4,48 @@ Fonte da verdade dos logos do SignallQ. **Use somente estes arquivos** em qualqu
 material (app, apresentações, site, admin, loja, ícones). Não redesenhar, não recriar
 em CSS/SVG à mão, não usar a marca anterior "linka/veloo".
 
+## Símbolo novo — "anéis + Q" (2026-08-01)
+
+Substitui o símbolo anterior de 4 barras de sinal. Origem: protótipo `SignallQ Web -
+Prototipo (4).zip` (pasta Downloads do Luiz), tela `ScreenBrand.dc.html` — já em uso na página
+`/brand` real do `SignallQ Site` (`signallq-lockup-*-bg-v5.png` e `signallq-icon-*-dark.png`)
+antes desta atualização propagar para cá. Motivo da troca: pedido direto do Luiz para alinhar a
+marca oficial (`brand/`, usada por Android e Admin) ao que já estava live no Site.
+
+Os arquivos `signallq-symbol-*.png` novos foram gerados a partir de
+`signallq-icon-1024-app-store.png` (fundo branco sólido) via chroma-key (remoção do branco,
+sem outro branco presente na arte) — não é um export vetorial original; se precisar de mais
+fidelidade/resolução, gerar de novo a partir do projeto Claude Design de origem do protótipo.
+`signallq-lockup-*-bg.png` novos vêm do protótipo em resolução menor (994×276) que os
+anteriores (2334×784) — adequado para a maioria dos usos web/mobile, mas sem a mesma folga de
+upscaling do arquivo anterior.
+
+**Pendência aberta (fora do escopo desta rodada, sinalizada e não executada):**
+- Ícone do launcher Android (`android/app/src/main/res/mipmap-*/ic_launcher*`) continua com o
+  símbolo antigo (4 barras) — precisa ser regenerado a partir do novo `signallq-symbol-1024.png`
+  e passar por um release novo pra valer em produção.
+- Favicon do `SignallQ Admin/public/` continua com o símbolo antigo — mesma regeneração
+  pendente, não feita nesta rodada (só `brand/` e `SignallQ Site/` foram atualizados).
+
 ## Arquivos
 
 | Arquivo | Uso |
 |---|---|
-| `signallq-symbol-1024.png` | Símbolo (4 barras) isolado, fundo transparente, 1024px. Base para ícone de app e usos quadrados. |
+| `signallq-symbol-1024.png` | Símbolo (anéis + Q) isolado, fundo transparente, 1024px. Base para ícone de app e usos quadrados. |
 | `signallq-symbol-512.png` | Mesmo símbolo, 512px (usos menores / web). |
 | `signallq-lockup-light-bg.png` | Lockup horizontal (símbolo + wordmark) para **fundos claros** — "Signall" em quase-preto, "Q" em violeta. |
 | `signallq-lockup-dark-bg.png` | Lockup horizontal para **fundos escuros** — "Signall" em branco, "Q" em violeta. |
-| `signallq-feature-graphic-1024x500.png` | Feature graphic da Play Store (banner 1024×500). |
-| `signallq-icon-512-play-store.png` | Ícone de app para listagem da Play Store (512×512). |
+| `signallq-feature-graphic-1024x500.png` | Feature graphic da Play Store (banner 1024×500) — **ainda com o símbolo antigo, não coberto pelo protótipo desta rodada**. |
+| `signallq-icon-512-play-store.png` | Ícone de app para listagem da Play Store (512×512), fundo branco sólido. |
+| `signallq-icon-512-play-store-dark.png` | Mesmo ícone, fundo escuro `#131217` (novo nesta rodada). |
+| `signallq-icon-1024-app-store.png` / `-dark.png` | Mesmo ícone em 1024×1024, fundo claro/escuro (novo nesta rodada — reserva para uma eventual listagem iOS/App Store; SignallQ não publica em iOS hoje). |
 
 ## Anatomia
 
-- **Símbolo:** 4 barras de sinal com cantos arredondados, alturas curta · média · **alta** · média
-  (a 3ª barra é a mais alta), em degradê de cor da esquerda para a direita: **violeta → azul**
-  (violeta `#6C2BFF` no início, azul no fim). Cada barra tem sua própria cor da paleta.
+- **Símbolo:** anéis concêntricos (2 arcos + ponto central, referência a sinal/radar) com um
+  traço que se estende formando a "cauda" do "Q" (lupa), em degradê **azul → violeta** da
+  esquerda para a direita. Fundo transparente na versão isolada; fundo branco sólido ou
+  `#131217` nas versões "-dark" usadas como ícone de app.
 - **Wordmark:** "SignallQ" — "Signall" em `#0D0D1A` (fundo claro) ou branco (fundo escuro),
   e o **"Q" em violeta `#6C2BFF`**.
 
@@ -36,7 +62,8 @@ em CSS/SVG à mão, não usar a marca anterior "linka/veloo".
 O ícone do app deriva do **símbolo**. Os recursos em
 `android/app/src/main/res/mipmap-*/ic_launcher*` devem sempre corresponder a
 `signallq-symbol-1024.png`. Ao atualizar a marca, regenerar os mipmaps a partir deste símbolo.
-Estado atual (2026-07-05): já correspondem — confirmado visualmente, nenhuma ação necessária.
+**Estado atual (2026-08-01): DIVERGENTE** — o símbolo mudou (anéis + Q) mas os mipmaps ainda são
+o símbolo antigo (4 barras); regeneração pendente, ver "Pendência aberta" acima.
 
 ## Favicons / ícones web (`favicon/`)
 
@@ -51,8 +78,10 @@ funciona em fundo claro ou escuro sem precisar de variante própria).
 | `icon-192-maskable.png` / `icon-512-maskable.png` | PWA `manifest.json` (`purpose: maskable`) | Branco `#FFFFFF`, símbolo a ~62% (zona segura) |
 | `apple-touch-icon.png` (180×180) | iOS home screen | Branco `#FFFFFF` (iOS não aceita transparência) |
 
-Aplicado em `SignallQ Admin/public/` em 2026-07-05, substituindo um ícone antigo (Wi-Fi/scan)
-que não correspondia à marca. Regenerar a partir do mesmo símbolo se o ícone mudar.
+Aplicado em `SignallQ Site/` (`src/app/favicon.ico` + `public/icons/`) em 2026-08-01, junto da
+troca de símbolo — ver nota acima. **Ainda não reaplicado em `SignallQ Admin/public/`** (símbolo
+antigo, aplicado 2026-07-05, substituindo um ícone antigo de Wi-Fi/scan que não correspondia à
+marca) — regenerar a partir do mesmo símbolo quando essa frente for priorizada.
 
 **Pendente:** a landing page pública (`https://7agentsstudio.github.io/signallq/`) fica em
 repositório separado (`7agentsstudio` no GitHub, fora deste monorepo) — não verificado/atualizado
