@@ -2,6 +2,7 @@
 import { useEffect, useRef } from 'react'
 import { PageShell } from '../../components/PageShell'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
+import { PAGE_META } from '../../lib/pageMetaCatalog'
 
 const FEATURES = [
   { icon: 'wifi', title: 'Wi-Fi cômodo a cômodo', text: 'Mede o sinal em cada ambiente da casa e mostra onde ele morre.' },
@@ -28,7 +29,7 @@ const COMPARE_ROWS = [
 ];
 
 export default function AppLandingPage() {
-  useDocumentMeta({ title: 'App SignallQ', description: 'O app que não para no número' })
+  useDocumentMeta(PAGE_META['/app'])
 
   useEffect(() => {
     let n = 0;

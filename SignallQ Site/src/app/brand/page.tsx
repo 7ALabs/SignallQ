@@ -1,6 +1,7 @@
 "use client";
 import { PageShell } from '../../components/PageShell'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
+import { PAGE_META } from '../../lib/pageMetaCatalog'
 
 const PALETTE = [
   { name: 'Accent (violeta)', hex: '#5B21D6' },
@@ -13,7 +14,7 @@ const PALETTE = [
 ]
 
 export default function BrandPage() {
-  useDocumentMeta({ title: 'Identidade visual do SignallQ', description: 'Logotipo, variações de cor e paleta oficial.' })
+  useDocumentMeta(PAGE_META['/brand'])
 
   return (
     <PageShell ads={false} contentMax="1080px">

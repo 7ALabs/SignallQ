@@ -2,6 +2,7 @@
 import { DocPage, type DocSection } from '../../components/DocPage'
 import { PageLayout } from '../../components/PageLayout'
 import { useDocumentMeta } from '../../hooks/useDocumentMeta'
+import { PAGE_META } from '../../lib/pageMetaCatalog'
 
 const SECTIONS: DocSection[] = [
   { title: 'Velocidade não é o gargalo', text: 'A maioria dos jogos online usa pouca banda: poucos Mbps já bastam. O que derruba a experiência é latência alta ou instável, não a velocidade contratada.' },
@@ -12,7 +13,7 @@ const SECTIONS: DocSection[] = [
 ]
 
 export default function Page() {
-  useDocumentMeta({ title: 'Que internet você precisa para jogar online sem travar' })
+  useDocumentMeta(PAGE_META['/internet-para-jogos'])
 
   return (
     <PageLayout>
