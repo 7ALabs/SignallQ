@@ -385,7 +385,7 @@ export default function Home() {
 
           {isIdle && (
             <>
-              <div className="w-full max-w-[220px] flex">
+              <div className="w-full max-w-[220px] flex justify-center">
                 <SegmentedControl options={MODOS} value={modo} onChange={setModo} />
               </div>
               <a
