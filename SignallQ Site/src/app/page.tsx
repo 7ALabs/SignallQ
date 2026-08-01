@@ -7,7 +7,6 @@ import { FaixaMetricas, type ItemFaixaMetricas } from "@/components/FaixaMetrica
 import { EstadoVazio } from "@/components/EstadoVazio";
 import { ListaChaveValor } from "@/components/ListaChaveValor";
 import { LinhaChips } from "@/components/LinhaChips";
-import { NoticeBar } from "@/components/NoticeBar";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { PlayStoreBadge } from "@/components/PlayStoreBadge";
 import { GuidedDiagnosis } from "@/components/speedtest/GuidedDiagnosis";
@@ -450,8 +449,13 @@ export default function Home() {
           <FaixaMetricas items={resultadoTrio} variant="resultado" />
 
           {statusMensagem && (
-            <div className="pt-4 pb-0">
-              <NoticeBar title={`${STATUS_LABEL[result.status]}.`} message={statusMensagem} type="warning" />
+            <div className="flex items-start justify-center gap-2 py-4 border-b border-[color-mix(in_srgb,_var(--border)_16%,_transparent)]">
+              <span className="material-symbols-outlined text-[16px] text-[color:var(--warning)]">
+                warning
+              </span>
+              <div className="font-normal text-[12px] leading-[1.4] text-[color:var(--text-secondary)]">
+                <b className="text-[color:var(--text-primary)]">{STATUS_LABEL[result.status]}.</b> {statusMensagem}
+              </div>
             </div>
           )}
 
@@ -581,7 +585,7 @@ export default function Home() {
           </div>
 
           {phase === "inconclusivo" && (
-            <div className="mt-6">
+            <div className="mt-6 pt-6 border-t border-[color-mix(in_srgb,_var(--border)_16%,_transparent)]">
               <GuidedDiagnosis />
             </div>
           )}

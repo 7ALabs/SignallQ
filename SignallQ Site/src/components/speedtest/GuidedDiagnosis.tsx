@@ -63,7 +63,7 @@ export function GuidedDiagnosis() {
 
   if (step === 4 && diagnosis) {
     return (
-      <div className="flex flex-col gap-3 rounded-2xl p-5 bg-[color:var(--bg-secondary)]">
+      <div className="flex flex-col gap-[10px]">
         <div className="font-medium text-[11px] leading-[1.45] text-[color:var(--accent)] tracking-[.3px] uppercase">
           Diagnóstico SignallQ
         </div>
@@ -71,7 +71,7 @@ export function GuidedDiagnosis() {
         <p className="m-0 font-normal text-[14px] leading-[1.43] text-[color:var(--text-secondary)]">{diagnosis.action}</p>
         <button
           onClick={reset}
-          className="mt-2 w-fit rounded-full px-4 py-2 text-[13px] font-medium bg-[color:var(--bg-primary)] text-[color:var(--text-primary)] border border-[color:var(--border)]"
+          className="mt-2 w-fit rounded-full px-4 py-2 text-[13px] font-medium bg-[color:var(--bg-secondary)] text-[color:var(--text-primary)] border border-[color:var(--border)]"
         >
           Refazer diagnóstico
         </button>
@@ -80,7 +80,7 @@ export function GuidedDiagnosis() {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl p-5 bg-[color:var(--bg-secondary)]">
+    <div className="flex flex-col gap-[10px]">
       <div className="font-medium text-[11px] leading-[1.45] text-[color:var(--accent)] tracking-[.3px] uppercase">
         Diagnóstico guiado
       </div>
