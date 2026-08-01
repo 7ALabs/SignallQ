@@ -79,8 +79,17 @@ a partir de `signallq-symbol-1024.png`. Detalhe da geração:
   (alpha do símbolo, sem cor) do mesmo recorte, para o ícone temático do Android 13+.
 - `ic_launcher`/`ic_launcher_round` (legado pré-API26): mesmo recorte/proporção, achatado sobre
   fundo branco opaco (`ic_launcher_round` com máscara circular, corners transparentes).
-- `mipmap-anydpi-v26/ic_launcher.xml` não mudou — adaptive icon já referenciava os três layers via
-  `@mipmap/`, sem vetor embutido.
+- `mipmap-anydpi-v26/ic_launcher.xml` não mudou — o adaptive icon já referenciava os três layers via
+  `@mipmap/`.
+- **Achado na verificação em emulador (2026-08-01):** a regeneração inicial dos PNGs não bastou —
+  `mipmap-anydpi-v26/ic_launcher_foreground.xml` e `ic_launcher_monochrome.xml` existiam como
+  **vetores com o símbolo antigo (4 barras) embutido como path data**, e no Android 8+ (API 26+)
+  esse vetor em `anydpi-v26` tem prioridade sobre os PNGs por densidade — por isso o launcher
+  continuava mostrando o ícone velho mesmo com o build verde. Os 3 arquivos (`ic_launcher_foreground.xml`,
+  `ic_launcher_background.xml`, `ic_launcher_monochrome.xml`) foram removidos; a resolução cai
+  agora para os PNGs corretos. Confirmado visualmente em emulador (Pixel 10, API 26+, install
+  limpo) — não presumir "build verde" como prova de ícone correto numa próxima atualização de
+  marca; sempre instalar e olhar o launcher de verdade.
 
 Ainda falta um **release novo** (bump de `versionCode`) pra esse ícone valer em produção — a Play
 Store hoje distribui o build anterior, com o símbolo antigo.
