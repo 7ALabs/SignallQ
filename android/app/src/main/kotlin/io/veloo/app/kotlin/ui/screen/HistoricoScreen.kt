@@ -356,16 +356,7 @@ fun HistoricoScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Outlined.History,
-                            contentDescription = null,
-                            tint = c.textPrimary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(LkSpacing.xs))
-                        Text("Histórico", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
-                    }
+                    Text("Histórico", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
                 },
                 navigationIcon = {
                     IconButton(onClick = onAbrirMenu) {
