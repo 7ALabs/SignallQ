@@ -3,6 +3,7 @@ package io.signallq.app.ui.screen
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -403,7 +404,7 @@ private fun PerguntaFechadaConteudo(
                         Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(LkRadius.card))
-                            .background(if (selecionada) c.primary.copy(alpha = 0.08f) else c.bgPrimary)
+                            .background(if (selecionada) c.primary.copy(alpha = 0.08f) else c.bgCard)
                             .clickable { onEscolher(index) }
                             .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
                     verticalAlignment = Alignment.CenterVertically,
@@ -413,7 +414,13 @@ private fun PerguntaFechadaConteudo(
                             Modifier
                                 .size(20.dp)
                                 .clip(CircleShape)
-                                .background(if (selecionada) c.primary else Color.Transparent),
+                                .then(
+                                    if (selecionada) {
+                                        Modifier
+                                    } else {
+                                        Modifier.border(1.5.dp, c.border, CircleShape)
+                                    },
+                                ).background(if (selecionada) c.primary else Color.Transparent),
                     ) {
                         if (selecionada) {
                             Icon(

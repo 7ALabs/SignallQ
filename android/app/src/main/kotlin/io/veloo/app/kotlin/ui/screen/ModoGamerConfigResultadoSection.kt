@@ -237,7 +237,7 @@ private fun ModoGamerOpcaoConfig(
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(LkRadius.input))
-                .background(if (selecionada) c.primary.copy(alpha = 0.08f) else c.bgPrimary)
+                .background(if (selecionada) c.primary.copy(alpha = 0.08f) else c.bgCard)
                 .clickable(onClick = onClick)
                 .padding(LkSpacing.lg),
         verticalAlignment = Alignment.Top,
