@@ -139,10 +139,29 @@ npm run build     # next build
   de espera do SignallQ PRO (`src/app/pro/page.tsx`) persiste em D1 via
   `functions/api/waitlist.ts`, mas requer `SITE_INGEST_KEY` e migration remota configuradas para
   funcionar em produção.
-- Divergências da auditoria 1:1 pós-migração Next.js (AdRail sem gate responsivo real, hambúrguer
-  do SiteNav morto, Histórico duplicando cabeçalho em mobile, anúncios ausentes no estado de
+- Divergências restantes da auditoria 1:1 pós-migração Next.js (anúncios ausentes no estado de
   resultado, texto de "Interpretação SignallQ" não variando por classificação, métricas de
-  detalhes técnicos hardcoded em "—", `PageShell`/`PageLayout` duplicados) — ver PR de
-  `fix/site-nextjs-auditoria-mobile-shell`.
+  detalhes técnicos hardcoded em "—", `PageShell`/`PageLayout` duplicados) — os 3 achados
+  estruturais de mobile (AdRail sem gate responsivo real, hambúrguer do SiteNav morto, Histórico
+  duplicando cabeçalho em mobile) foram corrigidos em `fix/site-nextjs-auditoria-mobile-shell`
+  (01/08/2026): `PageShell`/`SiteNav`/`AdRail` deixaram de depender de uma prop `mobile` que
+  nenhuma página ligava a um viewport real e passaram a gate CSS puro (`hidden lg:flex` no
+  `AdRail`, `md:hidden`/`hidden md:flex` no `SiteNav`, consistente com o padrão já usado em
+  `historico/page.tsx` e `SiteFooter.tsx`); o hambúrguer ganhou um menu mobile funcional (drawer
+  com os mesmos itens da nav desktop, fecha ao navegar ou Esc) em vez de ser removido.
+- **Infra de teste ausente (achado 01/08/2026, fora do escopo da correção de mobile shell acima):**
+  `package.json` não tem script `test`, e `vitest`/`@testing-library/react`/`react-router-dom`
+  não estão em `package.json`/`package-lock.json`/`node_modules` — a migração Vite→Next.js
+  (31/07-01/08/2026) descontinuou a infra de teste sem que ninguém percebesse. Os 16 arquivos
+  `*.test.tsx`/`*.test.ts` em `src/` (ex.: `SiteNav.test.tsx`, `SiteFooter.test.tsx`,
+  `DocPage.test.tsx`) ainda importam `MemoryRouter` de `react-router-dom` (rota que não existe
+  mais no app real, que usa `next/navigation`) e não rodam — este documento ainda lista
+  `npm run test` como comando válido, o que hoje é falso. Precisa de decisão dedicada (reinstalar
+  Vitest + Testing Library, reescrever os 16 testes para Next.js) antes de reativar cobertura —
+  não foi resolvido aqui por ser escopo maior que a correção pontual de mobile shell.
+- **`npm run build` falha hoje** (achado 01/08/2026, pré-existente, não introduzido por
+  `fix/site-nextjs-auditoria-mobile-shell`): erro de tipo em `src/app/app/page.tsx:31` —
+  `useDocumentMeta({ title, description })` sem a propriedade `path` exigida por `PageMeta`.
+  Precisa de correção antes do próximo deploy.
 - `functions/api/` cresceu sem acompanhamento de documentação (ver nota em "Estrutura") — precisa
   de auditoria própria antes de virar dívida maior.

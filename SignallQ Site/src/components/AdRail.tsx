@@ -2,7 +2,7 @@ export function AdRail({ variant = "a" }: { variant?: "a" | "b" }) {
   return (
     <aside
       aria-label="Publicidade"
-      className="w-[240px] shrink-0 flex flex-col gap-3"
+      className="hidden w-[240px] shrink-0 flex-col gap-3 lg:flex"
     >
       <div className="relative w-[240px] h-[600px] box-border overflow-hidden rounded-xl border border-[color-mix(in_srgb,_var(--border)_22%,_transparent)] bg-[color:var(--bg-secondary)] flex flex-col items-center justify-center gap-2">
         <span className="material-symbols-outlined text-[22px] text-[color:var(--text-tertiary)]">
