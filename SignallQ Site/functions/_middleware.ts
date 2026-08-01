@@ -33,6 +33,8 @@ import {
 } from '../src/lib/structuredData'
 
 const HAS_FILE_EXTENSION = /\.[a-zA-Z0-9]+$/
+const LEGACY_PAGES_HOST = 'signallq.pages.dev'
+const CANONICAL_SITE_ORIGIN = 'https://signallq.com'
 
 // Data de publicação das páginas editoriais de long-tail SEO (issue #1399) --
 // usada só pro Article JSON-LD (datePublished/dateModified), não é dado inventado.
@@ -118,6 +120,17 @@ export const onRequest: PagesFunction = async (context) => {
   const { request, next } = context
   const url = new URL(request.url)
   const path = url.pathname
+
+  // O site público migrou para a Vercel. Mantém as superfícies que ainda
+  // pertencem a outros produtos neste projeto Pages e redireciona somente o
+  // conteúdo público legado para a origem canônica, preservando path e query.
+  // `/teste` foi removida e deve continuar apontando diretamente para `/app`.
+  const preservesLegacySurface =
+    path === '/admin' || path.startsWith('/admin/') || path.startsWith('/api/') || path.startsWith('/leste/')
+  if (url.hostname === LEGACY_PAGES_HOST && !preservesLegacySurface) {
+    const canonicalPath = path === '/teste' || path.startsWith('/teste/') ? '/app' : path
+    return Response.redirect(new URL(`${canonicalPath}${url.search}`, CANONICAL_SITE_ORIGIN), 308)
+  }
 
   // API do site (functions/api/*) e o embed /leste (tenant piloto, própria árvore
   // de rotas/arquivos) não passam pela lógica de meta/404 do SPA -- seguem intactos.
