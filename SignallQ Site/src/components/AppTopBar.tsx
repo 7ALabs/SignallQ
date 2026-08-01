@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 
 // Topo mínimo do fluxo do PWA (telas Velocidade/Resultado/Histórico) — sem o
 // SiteNav institucional completo. Protótipo "SignallQ WebApp.dc.html" do Luiz
@@ -13,12 +13,12 @@ interface FlowTopBarProps {
 export function FlowTopBar({ onHistoryClick }: FlowTopBarProps) {
   return (
     <div className="flex w-full items-center justify-between px-5 py-3.5 box-border">
-      <Link to="/" className="flex items-center" aria-label="SignallQ">
+      <Link href="/" className="flex items-center" aria-label="SignallQ">
         <img src="/signallq-symbol.png" alt="" height={26} style={{ height: 26, width: 'auto', display: 'block' }} />
       </Link>
       <nav className="hidden items-center gap-5 sm:flex" aria-label="Navegação principal">
-        <Link to="/" className="label-medium no-underline" style={{ color: 'var(--text-primary)' }}>Teste</Link>
-        <Link to="/como-medimos" className="label-medium no-underline" style={{ color: 'var(--text-primary)' }}>Como funciona</Link>
+        <Link href="/" className="label-medium no-underline" style={{ color: 'var(--text-primary)' }}>Teste</Link>
+        <Link href="/como-medimos" className="label-medium no-underline" style={{ color: 'var(--text-primary)' }}>Como funciona</Link>
         <a href="https://play.google.com/store/apps/details?id=io.signallq.app" className="label-medium no-underline" style={{ color: 'var(--text-primary)' }}>Aplicativo</a>
       </nav>
       <button
@@ -59,3 +59,5 @@ export function DetailTopBar({ title, onBack, rightIcon, rightLabel, onRightClic
     </div>
   )
 }
+
+

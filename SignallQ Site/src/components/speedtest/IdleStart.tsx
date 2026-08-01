@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 import type { SpeedTestMode } from '../../lib/speedEngine'
 import { SegmentedControl } from '../SegmentedControl'
 import { InfraInfoCard } from './InfraInfoCard'
@@ -48,9 +48,11 @@ export function IdleStart({ modo, onModoChange, onIniciar }: IdleStartProps) {
         <SegmentedControl options={MODOS} value={modo} onChange={onModoChange} />
       </div>
 
-      <Link to="/como-medimos" className="label-medium no-underline" style={{ color: 'var(--accent)' }}>
+      <Link href="/como-medimos" className="label-medium no-underline" style={{ color: 'var(--accent)' }}>
         Como medimos sua conexão
       </Link>
     </div>
   )
 }
+
+

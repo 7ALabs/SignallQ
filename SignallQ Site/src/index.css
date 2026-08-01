@@ -7,11 +7,21 @@
    topo do arquivo, e tokens.css também começa com @import (fontes do Google). */
 @import '../../packages/design-system/styles/tokens.css';
 @import 'tailwindcss';
+@source "./components";
+@source "./app";
 
 html,
 body,
 #root {
   height: 100%;
+}
+
+html.dark .sq-logo-light {
+  display: none !important;
+}
+
+html.dark .sq-logo-dark {
+  display: block !important;
 }
 
 body {
