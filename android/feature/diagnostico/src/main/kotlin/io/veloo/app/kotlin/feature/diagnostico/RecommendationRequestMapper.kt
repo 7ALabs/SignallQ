@@ -33,7 +33,7 @@ object RecommendationRequestMapper {
         flags: RecommendationFlags = RecommendationFlags(),
         diagnosticId: String? = null,
     ): RecommendationRequest = RecommendationRequest(
-        tags = mapTags(report, input),
+        tags = mapTags(report),
         network = mapNetworkContext(input.connectionType),
         metrics = mapMetrics(input),
         isp = isp,
@@ -77,13 +77,21 @@ object RecommendationRequestMapper {
     }
 
     /**
-     * Mapeia tags a partir dos IDs de [DiagnosticResult] ja emitidos pelos engines de
-     * diagnostico existentes (nao reimplementa os thresholds -- so traduz o resultado).
-     * Cobre os cenarios exigidos pela #811: perda de pacotes, Wi-Fi fraco, DNS lento,
-     * muitos dispositivos e bufferbloat -- mais latencia alta e sinal movel baixo, ja
-     * que os engines correspondentes ja existem.
+     * Mapeia tags para o motor de recomendacao comercial (`coreRecommendation`).
+     *
+     * Issue #1528 (P1-2 da auditoria #1228): tags que tem uma regra REC-01..14 equivalente
+     * direta em [RecomendacaoPraticaEngine] passam a ler `report.recomendacoes` (saida real
+     * do motor local) em vez de re-derivar por regex sobre IDs brutos de [DiagnosticResult].
+     * Isso elimina a divergencia onde o motor legado suprime uma recomendacao por causa raiz
+     * externa (ex.: REC-01 nao dispara quando ha causa DNS/operadora/fibra), mas o mapper
+     * antigo gerava a tag de qualquer forma so por olhar o achado bruto WIFI-03/04.
+     *
+     * Tags SEM regra REC dedicada continuam via regex sobre IDs brutos (comportamento
+     * preservado, fora do escopo da #1528): LATENCIA_ALTA (IN-NORMAL-05, sem REC equivalente)
+     * e MUITOS_DISPOSITIVOS (WIFI-DEV-01/02 -- e so um dos 3 motivos possiveis dentro de
+     * REC-04, nao tem regra dedicada so pra "muitos dispositivos").
      */
-    private fun mapTags(report: DiagnosticReport, input: DiagnosticInput): Set<DiagnosticTag> {
+    private fun mapTags(report: DiagnosticReport): Set<DiagnosticTag> {
         val ids = (
             report.wifiResultados +
                 report.internetResultados +
@@ -95,51 +103,41 @@ object RecommendationRequestMapper {
                 listOf(report.decisao)
             ).map { it.id }.toSet()
 
+        val recIds = report.recomendacoes.map { it.id }.toSet()
+
         val tags = mutableSetOf<DiagnosticTag>()
 
-        // IN-NORMAL-07/07b (perda de pacotes critica/moderada); sufixo "-inc" quando
-        // o wifi nao confiavel torna o achado inconclusivo -- ainda assim a tag se aplica.
-        if (ids.any { it.startsWith("IN-NORMAL-07") }) tags += DiagnosticTag.PERDA_PACOTES_ALTA
+        // REC-11 (perda de pacotes).
+        if (recIds.contains("REC-11")) tags += DiagnosticTag.PERDA_PACOTES_ALTA
 
-        // WIFI-03 (fraco) / WIFI-04 (muito fraco).
-        if (ids.any { it.startsWith("WIFI-03") || it.startsWith("WIFI-04") }) tags += DiagnosticTag.WIFI_FRACO
+        // REC-01 (Troque para Wi-Fi 5GHz) / REC-02 (Aproxime-se do roteador) -- ambas ja
+        // suprimem quando a causa raiz principal e externa (DNS/operadora/fibra).
+        if (recIds.contains("REC-01") || recIds.contains("REC-02")) tags += DiagnosticTag.WIFI_FRACO
 
-        // DNS-01 (muito lento) / DNS-02 (lento). DNS-03 ("acima do ideal") nao entra --
-        // e apenas informativo, navegacao normal nao e afetada.
-        if (ids.any { it.startsWith("DNS-01") || it.startsWith("DNS-02") }) tags += DiagnosticTag.DNS_LENTO
+        // REC-06 (Troque o DNS) -- so dispara com alternativa de DNS com margem segura.
+        if (recIds.contains("REC-06")) tags += DiagnosticTag.DNS_LENTO
 
-        // WIFI-DEV-01 (varios) / WIFI-DEV-02 (muitos) dispositivos na rede.
+        // WIFI-DEV-01 (varios) / WIFI-DEV-02 (muitos) dispositivos na rede -- sem REC dedicado.
         if (ids.any { it.startsWith("WIFI-DEV-01") || it.startsWith("WIFI-DEV-02") }) {
             tags += DiagnosticTag.MUITOS_DISPOSITIVOS
         }
 
-        // IN-NORMAL-09/09b (bufferbloat critico/elevado).
-        if (ids.any { it.startsWith("IN-NORMAL-09") }) tags += DiagnosticTag.BUFFERBLOAT_ALTO
+        // REC-05 (bufferbloat).
+        if (recIds.contains("REC-05")) tags += DiagnosticTag.BUFFERBLOAT_ALTO
 
-        // IN-NORMAL-05 (latencia acima de 100ms -- limiar historico, ver InternetDiagnosticEngine.kt).
+        // IN-NORMAL-05 (latencia acima de 100ms -- limiar historico) -- sem REC dedicado.
         if (ids.any { it.startsWith("IN-NORMAL-05") }) tags += DiagnosticTag.LATENCIA_ALTA
 
-        // MOB-01/MOB-01b (sinal movel muito ruim/ruim).
-        if (ids.any { it.startsWith("MOB-01") }) tags += DiagnosticTag.SINAL_BAIXO
+        // REC-10 (sinal de rede movel fraco).
+        if (recIds.contains("REC-10")) tags += DiagnosticTag.SINAL_BAIXO
 
-        // Sem DiagnosticResult dedicado para "abaixo do contratado" -- calculado direto
-        // das metricas brutas (mesma comparacao ja usada pelo RecomendacaoPraticaEngine legado
-        // em recomendarRoteadorLimitado, so que aqui vira tag estruturada para o engine novo).
-        // NOTA (P1-2, auditoria #1228, ainda em aberto): essa tolerancia de 20% (CONTRATADO_TOLERANCIA)
-        // diverge da que REC-04 usa de fato (compara contra linkSpeed, nao download) -- rename da
-        // Fatia 9a nao mexeu nessa logica de proposito, ver issue de acompanhamento do P1-2.
-        val download = input.internet?.downloadMbps
-        val contratado = input.velocidadeContratadaMbps
-        if (download != null && contratado != null && contratado > 0 && download < contratado * CONTRATADO_TOLERANCIA) {
-            tags += DiagnosticTag.VELOCIDADE_ABAIXO_DO_CONTRATADO
-        }
+        // REC-04 (o roteador pode estar limitando sua velocidade) -- compara contra linkSpeed,
+        // nao contra download; substitui o calculo manual com tolerancia de 20% contra download
+        // que divergia de REC-04 (P1-2).
+        if (recIds.contains("REC-04")) tags += DiagnosticTag.VELOCIDADE_ABAIXO_DO_CONTRATADO
 
         return tags
     }
 
     private const val MHZ_PER_GHZ = 1000.0
-
-    // Tolerancia de 20% abaixo do contratado antes de marcar a tag -- evita marcar
-    // por variacao normal de speedtest.
-    private const val CONTRATADO_TOLERANCIA = 0.8
 }
