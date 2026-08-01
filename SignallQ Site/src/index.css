@@ -16,6 +16,18 @@ body,
   height: 100%;
 }
 
+/* Reserva o espaço da barra de rolagem vertical em toda página, mesmo nas
+   que não têm conteúdo suficiente pra precisar dela — sem isso, a largura
+   útil da página muda entre uma rota curta (sem scrollbar) e uma longa como
+   /privacidade (com scrollbar), fazendo o shell inteiro (nav, miolo
+   centralizado) "pular" alguns pixels de largura ao trocar de rota no
+   Windows (scrollbar clássica, ocupa espaço de layout — diferente da
+   scrollbar overlay do macOS). Achado 01/08/2026, distinto do bug de
+   remontagem do SiteNav (já corrigido movendo-o pro layout raiz). */
+html {
+  scrollbar-gutter: stable;
+}
+
 :root {
   /* Área segura do shell de página (Guia de Implementação v4, §3) — mínimo
      24px, escala com 6% da viewport, máximo 96px. Usada como padding-inline
