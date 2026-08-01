@@ -88,7 +88,10 @@ export default function AppLandingPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+    <div
+      className="relative flex min-h-screen w-full flex-col overflow-x-hidden"
+      style={{ background: 'radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 55%), linear-gradient(180deg, var(--bg-primary) 0%, color-mix(in srgb, var(--bg-secondary) 55%, var(--bg-primary)) 100%)' }}
+    >
       <SiteNav />
 
       <div className="relative w-full box-border flex justify-center overflow-hidden p-[28px_20px_24px] sm:p-[56px_var(--safe-x)_40px]">
