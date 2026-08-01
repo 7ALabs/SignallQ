@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,7 +28,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.ExpandMore
-import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -181,20 +179,11 @@ fun SpeedTestScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Outlined.Speed,
-                            contentDescription = null,
-                            tint = c.textPrimary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(LkSpacing.xs))
-                        Text(
-                            text = "Velocidade",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = c.textPrimary,
-                        )
-                    }
+                    Text(
+                        text = "Velocidade",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = c.textPrimary,
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onAbrirMenu) {

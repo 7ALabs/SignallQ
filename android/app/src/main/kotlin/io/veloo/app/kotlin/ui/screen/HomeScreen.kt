@@ -40,7 +40,6 @@ import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeviceHub
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Insights
@@ -352,21 +351,12 @@ fun HomeScreen(
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.Home,
-                                contentDescription = null,
-                                tint = c.textPrimary,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(Modifier.width(LkSpacing.sm))
-                            Text(
-                                text = stringResource(R.string.home_titulo),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.W600,
-                                color = c.textPrimary,
-                            )
-                        }
+                        Text(
+                            text = stringResource(R.string.home_titulo),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.W600,
+                            color = c.textPrimary,
+                        )
                         if (estaConectado) {
                             Text(
                                 text = topBarSubtitulo(snapshotRede, movelSnapshot),
