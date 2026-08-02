@@ -220,7 +220,9 @@ class SignallQOrchestrator(
             }
 
         withContext(Dispatchers.Default) {
-            diagnosticOrchestrator.executar(internetInput, wifiInput)
+            // GH#1228 (Fase 3) — executionId ja existente do resultado recebido, nunca
+            // gerado aqui.
+            diagnosticOrchestrator.executar(internetInput, wifiInput, executionId = resultado.executionId)
         }
 
         val relatorio =
@@ -391,6 +393,11 @@ class SignallQOrchestrator(
                 }
             }
 
+        // GH#1228 (Fase 3) — le a ultima medicao no maximo uma vez (antes usada so dentro do
+        // fallback de internetInput); reaproveitada tambem pra resolver o executionId, sem
+        // duplicar a query.
+        val ultimaMedicaoFallback = if (speedtestResult == null) medicaoDao.observarUltimas(1).first().firstOrNull() else null
+
         val internetInput =
             speedtestResult?.let {
                 InternetDiagnosticInput(
@@ -403,21 +410,22 @@ class SignallQOrchestrator(
                     rttGatewayMs = rttGatewayMs,
                     packetLossSource = it.packetLossSource,
                 )
-            } ?: run {
-                val ultimaMedicao = medicaoDao.observarUltimas(1).first().firstOrNull()
-                ultimaMedicao?.let {
-                    InternetDiagnosticInput(
-                        downloadMbps = it.downloadMbps,
-                        uploadMbps = it.uploadMbps,
-                        latencyMs = it.latencyMs,
-                        jitterMs = it.jitterMs,
-                        perdaPercentual = it.perdaPercentual,
-                        bufferbloatMs = it.bufferbloatMs,
-                        rttGatewayMs = rttGatewayMs,
-                        packetLossSource = it.packetLossSource,
-                    )
-                }
+            } ?: ultimaMedicaoFallback?.let {
+                InternetDiagnosticInput(
+                    downloadMbps = it.downloadMbps,
+                    uploadMbps = it.uploadMbps,
+                    latencyMs = it.latencyMs,
+                    jitterMs = it.jitterMs,
+                    perdaPercentual = it.perdaPercentual,
+                    bufferbloatMs = it.bufferbloatMs,
+                    rttGatewayMs = rttGatewayMs,
+                    packetLossSource = it.packetLossSource,
+                )
             }
+
+        // GH#1228 (Fase 3) — mesma fonte (resultado em memoria ou ultima medicao) usada acima
+        // pra montar internetInput; nunca gera id novo aqui.
+        val executionIdAtual = speedtestResult?.executionId ?: ultimaMedicaoFallback?.executionId ?: ""
 
         val wifiInput =
             wifiSnapshot?.let { ws ->
@@ -431,7 +439,7 @@ class SignallQOrchestrator(
             }
 
         withContext(Dispatchers.Default) {
-            diagnosticOrchestrator.executar(internetInput, wifiInput)
+            diagnosticOrchestrator.executar(internetInput, wifiInput, executionId = executionIdAtual)
         }
 
         val relatorio =

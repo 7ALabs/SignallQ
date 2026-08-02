@@ -25,6 +25,7 @@
 import { NOT_FOUND_META, PAGE_META } from '../src/lib/pageMetaCatalog'
 import type { PageMeta } from '../src/lib/seo'
 import {
+  buildArticleJsonLd,
   buildOrganizationJsonLd,
   buildProSoftwareApplicationJsonLd,
   buildSpeedTestWebApplicationJsonLd,
@@ -32,6 +33,19 @@ import {
 } from '../src/lib/structuredData'
 
 const HAS_FILE_EXTENSION = /\.[a-zA-Z0-9]+$/
+
+// Data de publicação das páginas editoriais de long-tail SEO (issue #1399) --
+// usada só pro Article JSON-LD (datePublished/dateModified), não é dado inventado.
+const LONGTAIL_ARTICLE_PUBLISHED_AT = '2026-07-25'
+
+// Token público emitido pelo Google Search Console para verificar a propriedade
+// https://signallq.pages.dev/. Fica no HTML inicial, entregue pelo Worker, para
+// que a validação não dependa da hidratação do React.
+const GOOGLE_SITE_VERIFICATION_CONTENT = 'Kb_Flz9uN3gJfrushxDl3GbMWkfkifjlz-x5JC9rQP0'
+
+// Identifica a conta que pode monetizar este domínio no Google AdSense. A tag
+// verifica a propriedade sem carregar anúncios nem scripts de publicidade.
+const GOOGLE_ADSENSE_ACCOUNT_ID = 'ca-pub-5542349230926522'
 
 function escapeHtmlAttr(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -52,15 +66,20 @@ function structuredDataFor(path: string, meta: PageMeta, origin: string): unknow
   const data: unknown[] = [buildOrganizationJsonLd(origin), buildWebSiteJsonLd(origin)]
   if (path === '/') data.push(buildSpeedTestWebApplicationJsonLd(origin, meta.description))
   if (path === '/pro') data.push(buildProSoftwareApplicationJsonLd(origin, meta.description))
+  if (path === '/internet-boa-mas-travando' || path === '/lag-em-jogos-online') {
+    data.push(buildArticleJsonLd(origin, path, meta.title, meta.description, LONGTAIL_ARTICLE_PUBLISHED_AT))
+  }
   return data
 }
 
 function buildHeadInjectionHtml(meta: PageMeta, origin: string, structuredData: unknown[]): string {
   const url = origin + meta.path
   const robots = meta.robots ?? 'index,follow'
-  const image = origin + '/signallq-symbol.png'
+  const image = origin + (meta.ogImage ?? '/signallq-symbol.png')
 
   const tags = [
+    `<meta name="google-site-verification" content="${GOOGLE_SITE_VERIFICATION_CONTENT}">`,
+    `<meta name="google-adsense-account" content="${GOOGLE_ADSENSE_ACCOUNT_ID}">`,
     `<meta name="description" content="${escapeHtmlAttr(meta.description)}">`,
     `<meta name="robots" content="${escapeHtmlAttr(robots)}">`,
     `<link rel="canonical" href="${escapeHtmlAttr(url)}">`,

@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Cable
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -53,6 +54,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -131,7 +133,6 @@ import io.signallq.app.ui.component.LkStatusDot
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.OfflineBanner
 import io.signallq.app.ui.component.OperadoraBadge
-import io.signallq.app.ui.component.ProfileAvatarButton
 import io.signallq.app.ui.component.SignalBars
 import io.signallq.app.ui.component.signalColor
 import kotlinx.coroutines.delay
@@ -172,9 +173,7 @@ fun SinalScreen(
     onSolicitarPermissaoLocalizacao: () -> Unit = {},
     onRefresh: () -> Unit,
     onVoltar: () -> Unit,
-    nomeUsuario: String = "",
-    fotoUri: String? = null,
-    onAbrirPerfil: () -> Unit = {},
+    onAbrirMenu: () -> Unit = {},
     wifiLinkSnapshot: WifiLinkSnapshot? = null,
     // GH#1025 — dado do scan LAN (mesmo carregado em Dispositivos/5a), usado só pra correlacionar
     // um nó da árvore de topologia classificado como AP/mesh com o DispositivoRede real e abrir
@@ -217,23 +216,16 @@ fun SinalScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Outlined.CellTower,
-                            contentDescription = "Sinal",
-                            tint = c.textPrimary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(LkSpacing.xs))
-                        Text("Sinal", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
-                    }
+                    Text("Sinal", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
                 },
                 navigationIcon = {
-                    ProfileAvatarButton(
-                        nomeUsuario = nomeUsuario,
-                        fotoUri = fotoUri,
-                        onClick = onAbrirPerfil,
-                    )
+                    IconButton(onClick = onAbrirMenu) {
+                        Icon(
+                            imageVector = Icons.Filled.Menu,
+                            contentDescription = stringResource(R.string.appshell_cd_abrir_menu),
+                            tint = c.textPrimary,
+                        )
+                    }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = c.bgPrimary),
             )

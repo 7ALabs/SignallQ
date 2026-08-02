@@ -9,6 +9,11 @@ import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.network.NetworkCapabilitiesProvider
 import io.signallq.app.core.telephony.MonitorTelephony
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisMensagem
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisPresenter
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisRepository
+import io.signallq.app.feature.speedtest.connectivity.indicaAusenciaDeInternetParaBloquearSpeedtest
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -50,6 +55,8 @@ class SpeedtestViewModel
          *  aqui reaproveita feature_used (mesmo schema de "wifi"/"historico"/etc), com
          *  feature_id "speedtest_iniciado"/"speedtest_completou" — sem endpoint novo no worker. */
         private val analyticsTracker: AnalyticsTracker,
+        /** GH#1512 — diagnostico local de conectividade (Wi-Fi conectado sem internet). */
+        private val connectivityDiagnosisRepository: ConnectivityDiagnosisRepository,
     ) : ViewModel() {
         private companion object {
             const val LOG_TAG = "SpeedtestViewModel"
@@ -58,6 +65,16 @@ class SpeedtestViewModel
         /** Modo de speedtest aguardando confirmacao do usuario em rede medida. null = sem pendencia. */
         private val _speedtestPendenteModoMovel = MutableStateFlow<ModoSpeedtest?>(null)
         val speedtestPendenteModoMovel: StateFlow<ModoSpeedtest?> = _speedtestPendenteModoMovel
+
+        /** GH#1512 — conclusao do diagnostico local quando o Speedtest e interrompido por
+         *  Wi-Fi sem internet (nao um erro generico de execucao). null = sem pendencia;
+         *  UI limpa apos exibir (ver [limparDiagnosticoConectividade]). */
+        private val _diagnosticoConectividade = MutableStateFlow<ConnectivityDiagnosisMensagem?>(null)
+        val diagnosticoConectividade: StateFlow<ConnectivityDiagnosisMensagem?> = _diagnosticoConectividade
+
+        fun limparDiagnosticoConectividade() {
+            _diagnosticoConectividade.value = null
+        }
 
         /** Callback disparado apos execucao bem-sucedida (ou falha) de um speedtest. */
         var onSpeedtestConcluido: (() -> Unit)? = null
@@ -92,9 +109,17 @@ class SpeedtestViewModel
                         return@launch
                     }
                 }
+                // GH#1512 — verificado ANTES do try/finally de baixo: se o diagnóstico
+                // interromper, não queremos acionar acumularMbConsumidos/onSpeedtestConcluido
+                // (nenhum teste real rodou) nem duplicar a lógica de erro do speedtest.
+                if (interromperPorWifiSemInternet()) {
+                    execucaoEmAndamento.set(false)
+                    return@launch
+                }
                 try {
                     executarSpeedtest(modo)
                 } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
                     Timber.e(t, "$LOG_TAG: erro ao executar speedtest modo=${modo.name}")
                 } finally {
                     acumularMbConsumidos(modo)
@@ -113,9 +138,23 @@ class SpeedtestViewModel
             }
             _speedtestPendenteModoMovel.value = null
             viewModelScope.launch {
+                // GH#1512 (3a revisao, correcao) -- reintroduzido: o dialog que leva ate
+                // aqui e sobre rede MEDIDA (`metered`), nao sobre transporte celular --
+                // `networkCapabilitiesProvider.isMeteredNetwork()` e true para qualquer
+                // rede medida, Wi-Fi tarifado incluso (hotspot, rede marcada como
+                // limitada). Remover o gate daqui permitia rodar um Speedtest completo
+                // sobre um Wi-Fi tarifado e sem internet, sem nenhum aviso. O gate ja e
+                // auto-limitado -- devolve false de cara quando nao ha rede Wi-Fi nenhuma
+                // (dados moveis puros) -- entao mante-lo aqui nao interfere no caso de
+                // dados moveis de verdade.
+                if (interromperPorWifiSemInternet()) {
+                    execucaoEmAndamento.set(false)
+                    return@launch
+                }
                 try {
                     executarSpeedtest(modo)
                 } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
                     Timber.e(t, "$LOG_TAG: erro ao confirmar speedtest em rede movel modo=${modo.name}")
                 } finally {
                     acumularMbConsumidos(modo)
@@ -156,6 +195,43 @@ class SpeedtestViewModel
             )
             Timber.i("$LOG_TAG: finalizado modo=${modo.name}")
             registrarSpeedtestConcluidoSeDisponivel(modo, System.currentTimeMillis() - inicioMs)
+        }
+
+        /**
+         * GH#1512 — decide localmente rodando o diagnóstico ativo de verdade sempre que há
+         * uma rede Wi-Fi presente ([ConnectivityDiagnosisRepository.existeRedeWifiAtiva],
+         * checagem direta via `ConnectivityManager`, nunca via [MonitorRede]/rede default —
+         * achado de revisão: `SnapshotRede.conectado`/`estadoConexao` podem ficar
+         * "otimistas" por até ~600ms após instabilidade, ou seguir dados móveis quando o
+         * Android promove a rede móvel a default, mascarando exatamente o cenário que esta
+         * issue pede para detectar). Sem rede Wi-Fi nenhuma, não intervém aqui — o fluxo/
+         * diálogo já existente (`ForaDoWifiDialog`) cobre rede móvel pura.
+         */
+        private suspend fun interromperPorWifiSemInternet(): Boolean {
+            // GH#1512 (achado de revisao) -- existeRedeWifiAtiva() e diagnosticar() ficam
+            // no MESMO try/catch: uma excecao inesperada em qualquer uma delas (binder
+            // IPC do ConnectivityManager, I/O de persistencia, etc.) nunca pode propagar
+            // como crash nem travar execucaoEmAndamento -- so nao bloqueia o teste
+            // (equivalente a "sem evidencia suficiente", igual a INCONCLUSIVE logo
+            // abaixo), deixando o Speedtest seguir seu proprio caminho normal de erro.
+            val diagnostico =
+                try {
+                    if (!connectivityDiagnosisRepository.existeRedeWifiAtiva()) return false
+                    connectivityDiagnosisRepository.diagnosticar()
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    Timber.e(t, "$LOG_TAG: diagnostico de conectividade falhou inesperadamente -- nao bloqueia o speedtest")
+                    return false
+                }
+
+            // GH#1512 (3a revisao) -- politica extraida para ConnectivityBlockingPolicy.kt
+            // (testavel isoladamente, sem duplicar entre MainViewModel/SpeedtestViewModel --
+            // achado de revisao R-6). Ver KDoc la para o raciocinio completo.
+            if (!diagnostico.indicaAusenciaDeInternetParaBloquearSpeedtest()) return false
+
+            _diagnosticoConectividade.value = ConnectivityDiagnosisPresenter.apresentar(diagnostico)
+            Timber.i("$LOG_TAG: speedtest interrompido -- wifi sem internet, status=${diagnostico.status}")
+            return true
         }
 
         /**

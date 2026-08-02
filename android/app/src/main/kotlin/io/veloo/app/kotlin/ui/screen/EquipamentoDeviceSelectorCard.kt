@@ -59,7 +59,7 @@ internal fun equipamentoIdentidadeLabel(
     val titulo =
         listOfNotNull(vendor?.takeIf { it.isNotBlank() }, modelo?.takeIf { it.isNotBlank() })
             .joinToString(" ")
-            .ifBlank { "Equipamento local" }
+            .ifBlank { "Seu equipamento de internet" }
     return "$titulo · $atualizadoEm"
 }
 

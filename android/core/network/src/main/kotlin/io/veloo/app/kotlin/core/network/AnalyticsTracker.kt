@@ -12,6 +12,7 @@ package io.signallq.app.core.network
  * - app_session_start:  session_id, app_version
  * - feature_crash:    feature_id, error_type, app_version
  * - battery_snapshot: level, charging, session_id
+ * - feature_blocked_remote: feature_id, session_id, app_version (GH#1480, Epico #1347)
  *
  * Sem PII � session_id e anonimo (UUID por sessao de app).
  */
@@ -28,4 +29,13 @@ interface AnalyticsTracker {
     fun registrarSessionStart()
     fun registrarFeatureCrash(featureId: String, errorType: String)
     fun registrarBatterySnapshot(level: Int, charging: Boolean)
+
+    /**
+     * GH#1480 (Epico #1347, F4) — usuario tentou alcancar rota/overlay de um modulo
+     * do Consumer com a flag principal desligada remotamente (Firebase Remote Config
+     * via `:core:featureflags`). [featureId] e o identificador curto do modulo (mesmo
+     * padrao de [registrarFeatureUsada], ex.: "wifi", "dns", "fibra") -- nunca a chave
+     * completa do catalogo nem qualquer dado do usuario.
+     */
+    fun registrarFeatureBloqueadaRemota(featureId: String)
 }

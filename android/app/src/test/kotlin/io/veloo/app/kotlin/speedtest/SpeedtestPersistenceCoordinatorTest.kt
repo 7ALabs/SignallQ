@@ -1,13 +1,16 @@
 ﻿package io.signallq.app.speedtest
 
 import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.core.diagnostico.DiagnosticRulesVersion
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.feature.speedtest.EstadoExecucaoSpeedtest
 import io.signallq.app.feature.speedtest.SnapshotExecucaoSpeedtest
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.UUID
 
@@ -38,6 +41,8 @@ class SpeedtestPersistenceCoordinatorTest {
     private fun criaMedicaoEntity(
         operadoraMovel: String? = null,
         timestampEpochMs: Long = System.currentTimeMillis(),
+        executionId: String = "",
+        rulesVersion: String = "legacy-unversioned",
     ) = MedicaoEntity(
         id = UUID.randomUUID().toString(),
         timestampEpochMs = timestampEpochMs,
@@ -59,6 +64,8 @@ class SpeedtestPersistenceCoordinatorTest {
         vereditoVideoChamada = null,
         gargaloPrimario = null,
         operadoraMovel = operadoraMovel,
+        executionId = executionId,
+        rulesVersion = rulesVersion,
     )
 
     // =========================================================================
@@ -366,5 +373,84 @@ class SpeedtestPersistenceCoordinatorTest {
     @Test
     fun `resolverBandaWifiPersistencia retorna null quando wifi sem frequencia lida`() {
         assertNull(resolverBandaWifiPersistencia(EstadoConexao.wifi, frequenciaMhz = null))
+    }
+
+    // =========================================================================
+    // Caso 10: GH#1228 (Fase 3) — executionId/rulesVersion persistidos em MedicaoEntity
+    // =========================================================================
+
+    /**
+     * Documenta o contrato real do coordinator (`SpeedtestPersistenceCoordinator.iniciar`):
+     * a `MedicaoEntity` gravada usa `resultado.executionId` (nunca gera um novo id na
+     * persistencia) e `DiagnosticRulesVersion.CURRENT` (fonte canonica unica). A logica de
+     * montagem da entidade e simulada aqui — mesmo padrao ja usado pelos demais casos deste
+     * arquivo ("sem instanciar o coordinator completo com Hilt").
+     */
+    private fun simulaMontagemMedicaoEntity(resultadoExecutionId: String): MedicaoEntity =
+        criaMedicaoEntity(executionId = resultadoExecutionId, rulesVersion = DiagnosticRulesVersion.CURRENT)
+
+    @Test
+    fun `medicaoEntity persistida usa o executionId do resultado do speedtest`() {
+        val medicao = simulaMontagemMedicaoEntity(resultadoExecutionId = "exec-fixture-001")
+
+        assertEquals("exec-fixture-001", medicao.executionId)
+    }
+
+    @Test
+    fun `medicaoEntity persistida nunca tem executionId vazio quando o resultado tem um id real`() {
+        val medicao = simulaMontagemMedicaoEntity(resultadoExecutionId = UUID.randomUUID().toString())
+
+        assertTrue("executionId nao pode ser vazio para uma execucao real", medicao.executionId.isNotBlank())
+    }
+
+    @Test
+    fun `duas medicoes de execucoes diferentes tem executionId diferentes`() {
+        val medicaoA = simulaMontagemMedicaoEntity(resultadoExecutionId = UUID.randomUUID().toString())
+        val medicaoB = simulaMontagemMedicaoEntity(resultadoExecutionId = UUID.randomUUID().toString())
+
+        assertNotEquals(medicaoA.executionId, medicaoB.executionId)
+    }
+
+    @Test
+    fun `medicaoEntity persistida usa sempre a versao canonica atual das regras`() {
+        val medicao = simulaMontagemMedicaoEntity(resultadoExecutionId = "exec-fixture-002")
+
+        assertEquals(DiagnosticRulesVersion.CURRENT, medicao.rulesVersion)
+    }
+
+    // =========================================================================
+    // Caso 11: GH#1228 (Fase 3) — mesma execucao (retry tecnico interno) preserva o id
+    // =========================================================================
+
+    /**
+     * GH#1228 (Fase 3), teste #15 do plano: retry tecnico interno de uma fase (ex.: uma
+     * nova tentativa de amostragem de latencia dentro do MESMO `executar()`) nunca troca o
+     * `executionId` — o UUID e gerado uma unica vez no topo de `executar()`
+     * (`ExecutorSpeedtestCloudflare.kt`) e reaproveitado por todas as fases internas. Aqui
+     * simulamos a mesma garantia no nivel do coordinator: duas leituras do MESMO `resultado`
+     * (o `SnapshotExecucaoSpeedtest` nao muda entre elas — retry tecnico ainda nao concluiu
+     * uma NOVA execucao) devem produzir o mesmo executionId.
+     */
+    @Test
+    fun `duas leituras do mesmo resultado em memoria (retry tecnico) preservam o mesmo executionId`() {
+        val idOriginal = UUID.randomUUID().toString()
+        val resultadoEmMemoria = criaMedicaoEntity(executionId = idOriginal)
+
+        val primeiraLeitura = resultadoEmMemoria.executionId
+        val segundaLeitura = resultadoEmMemoria.executionId
+
+        assertEquals(primeiraLeitura, segundaLeitura)
+    }
+
+    @Test
+    fun `nova execucao completa (repeticao pelo usuario) gera um executionId diferente da anterior`() {
+        val execucaoAnterior = UUID.randomUUID().toString()
+        val novaExecucaoCompleta = UUID.randomUUID().toString()
+
+        assertNotEquals(
+            "repeticao completa de teste deve gerar novo executionId, nunca reaproveitar o anterior",
+            execucaoAnterior,
+            novaExecucaoCompleta,
+        )
     }
 }

@@ -12,7 +12,13 @@ import java.time.ZoneId
 // Modelos de dominio
 // ---------------------------------------------------------------------------
 
-enum class StatusUptime { OK, LENTO, OFFLINE, SEM_DADO }
+/**
+ * [LATENCIA_ALTA] e [OFFLINE] representam situacoes tecnicamente distintas: a rede
+ * respondeu (devagar) vs a rede nao respondeu (sem conectividade real).
+ * Ver GH#1518 (P0-5 da auditoria #1228) — antes de 2026-07-31, latencia > 800ms
+ * era rotulada erroneamente como OFFLINE.
+ */
+enum class StatusUptime { OK, LENTO, LATENCIA_ALTA, OFFLINE, SEM_DADO }
 
 data class BlocoUptime(
     val dataHora: LocalDateTime,
@@ -95,8 +101,10 @@ class UptimeChartUseCase(
         val latencias = medicoes.mapNotNull { it.latencyMs?.toInt() }.filter { it > 0 }
 
         if (latencias.isEmpty()) {
-            // Medicoes existem mas sem latencia mensuravel — pode ser medicao de monitor
-            // onde a conexao estava indisponivel (latencia null = OFFLINE)
+            // Medicoes existem mas sem latencia mensuravel: as 3 amostras HTTP do
+            // MonitoramentoWorker falharam (timeout/erro de conexao) — este e o unico
+            // sinal real de ausencia de conectividade que este use case possui, por isso
+            // e o unico caso que classificamos como OFFLINE de fato.
             return BlocoUptime(
                 dataHora = dataHora,
                 status = StatusUptime.OFFLINE,
@@ -108,10 +116,14 @@ class UptimeChartUseCase(
         val mediaLatencia = latencias.average().toInt()
         val primeiraLatencia = latencias.first()
 
+        // GH#1518: latencia alta (>800ms) significa que o servidor respondeu, so que devagar
+        // — a rede esteve no ar. Nao classificar como OFFLINE (reservado para ausencia real
+        // de resposta, ver bloco acima). Thresholds 300/800ms mantidos como estavam
+        // (unificacao entre motores e escopo separado, GH#1466).
         val status = when {
             mediaLatencia <= LATENCY_OK_MAX_MS -> StatusUptime.OK
             mediaLatencia <= LATENCY_LENTO_MAX_MS -> StatusUptime.LENTO
-            else -> StatusUptime.OFFLINE
+            else -> StatusUptime.LATENCIA_ALTA
         }
 
         return BlocoUptime(

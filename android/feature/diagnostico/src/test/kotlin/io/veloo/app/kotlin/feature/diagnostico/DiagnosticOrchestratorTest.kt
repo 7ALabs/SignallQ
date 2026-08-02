@@ -1,6 +1,7 @@
 package io.signallq.app.feature.diagnostico
 
 import io.signallq.app.core.diagnostico.ConnectionType
+import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticInput
 import io.signallq.app.core.diagnostico.InternetDiagnosticInput
 import io.signallq.app.core.diagnostico.WifiDiagnosticInput
@@ -20,10 +21,12 @@ import org.junit.Test
 import java.util.concurrent.TimeUnit
 
 /**
- * Cobre a ligacao do GH#969: [DiagnosticOrchestrator.executar] delega pro
- * [RemoteDiagnosticRepository], que resolve remoto-vs-local. Os dois caminhos
- * exigidos pelo criterio de aceite da issue: worker respondendo (remoto vence)
- * e worker fora do ar/timeout (fallback local, sem travar e sem excecao).
+ * Cobre a ligacao do GH#1444 (shadow mode, parte de #952): desde essa issue,
+ * [DiagnosticOrchestrator.executar] delega pro
+ * [RemoteDiagnosticRepository.evaluateShadow], NAO mais [RemoteDiagnosticRepository.evaluate]
+ * (GH#969, remoto-primeiro) — motor LOCAL sempre autoritativo, worker remoto
+ * saudavel ou fora do ar NUNCA muda o que a UI mostra. Ver kdoc de
+ * [RemoteDiagnosticRepository] para a distincao completa entre os dois metodos.
  */
 class DiagnosticOrchestratorTest {
 
@@ -90,7 +93,7 @@ class DiagnosticOrchestratorTest {
     """.trimIndent()
 
     @Test
-    fun `worker remoto respondendo - orquestrador usa decisao do relatorio remoto`() = runTest {
+    fun `worker remoto saudavel respondendo - orquestrador ainda assim usa decisao do motor LOCAL`() = runTest {
         server.enqueue(MockResponse().setResponseCode(200).setBody(remoteReportJson()))
         val repo = RemoteDiagnosticRepository(baseUrl = server.url("/").toString())
         val orchestrator = DiagnosticOrchestrator(remoteDiagnosticRepository = repo)
@@ -99,9 +102,12 @@ class DiagnosticOrchestratorTest {
 
         val snapshot = orchestrator.snapshotFlow.value
         assertEquals(EstadoDiagnostico.concluido, snapshot.estado)
-        assertEquals("DECISAO-REMOTA-TESTE", snapshot.relatorio?.decisao?.id)
-        // Nunca trava a UI: fluxo sincrono ate aqui, sem excecao.
         assertNotNull(snapshot.relatorio)
+        // GH#1444: shadow mode -- mesmo com o worker saudavel e respondendo rapido,
+        // o resultado exibido e sempre o do motor local, nunca o id fabricado do
+        // fixture remoto usado neste teste.
+        assertNotEquals("DECISAO-REMOTA-TESTE", snapshot.relatorio?.decisao?.id)
+        assertEquals(DiagnosticEvaluationSource.BUNDLED_LOCAL, snapshot.relatorio?.evaluationSource)
     }
 
     @Test

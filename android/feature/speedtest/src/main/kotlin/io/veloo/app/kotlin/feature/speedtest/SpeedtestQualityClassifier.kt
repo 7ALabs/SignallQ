@@ -1,17 +1,30 @@
 ﻿package io.signallq.app.feature.speedtest
 
+import io.signallq.app.core.diagnostico.MetricClassifier
+import io.signallq.app.core.diagnostico.MetricStatus
+
 /**
  * Classificador extraido do ExecutorSpeedtestCloudflare para permitir reuso no diagnostico
  * sem duplicar thresholds. Nao alterar a logica aqui sem testes de regressao.
  */
 object SpeedtestQualityClassifier {
 
-    fun classificarBufferbloat(deltaMs: Double): SeveridadeBufferbloat {
-        if (deltaMs < 5.0) return SeveridadeBufferbloat.none
-        if (deltaMs <= 30.0) return SeveridadeBufferbloat.mild
-        if (deltaMs <= 100.0) return SeveridadeBufferbloat.moderate
-        return SeveridadeBufferbloat.severe
-    }
+    /**
+     * GH#1228 Fatia 6 (P1-4): fonte unica dos 3 cortes de bufferbloat (5/30/100ms) e
+     * [MetricClassifier.classificarBufferbloat] (`core/diagnostico`) — aqui so traduz o
+     * vocabulario canonico [MetricStatus] para [SeveridadeBufferbloat], vocabulario proprio
+     * deste modulo. Ate esta fatia, os thresholds eram reimplementados aqui porque
+     * `core/diagnostico` nao podia depender de `feature/speedtest`; a duplicacao foi resolvida
+     * na direcao permitida pela regra `:feature* -> :core*` (`feature/speedtest` passou a
+     * depender de `core/diagnostico`, nunca o contrario).
+     */
+    fun classificarBufferbloat(deltaMs: Double): SeveridadeBufferbloat =
+        when (MetricClassifier.classificarBufferbloat(deltaMs)) {
+            MetricStatus.excelente -> SeveridadeBufferbloat.none
+            MetricStatus.bom -> SeveridadeBufferbloat.mild
+            MetricStatus.regular -> SeveridadeBufferbloat.moderate
+            MetricStatus.ruim, MetricStatus.critico, MetricStatus.inconclusivo -> SeveridadeBufferbloat.severe
+        }
 
     fun classificarQualidade(
         dl: Double,

@@ -43,4 +43,17 @@ data class MedicaoEntity(
      *  (rede mudou durante o teste, GH#1221/#1225) ou "inconclusive" (amostras de
      *  latência abaixo do mínimo estatístico, GH#1221 RF-08). */
     val status: String = "completed",
+    /** GH#1228 (Fase 3, migração 15→16) — identificador único da execução que produziu
+     *  esta linha (mesmo `ResultadoSpeedtest.executionId`, GH#1221/#1225), correlacionando
+     *  medição/diagnóstico/IA/recomendação/exportação da MESMA execução. Nunca vazio para
+     *  escrita nova (o coordinator sempre grava `resultado.executionId`, gerado uma única
+     *  vez no início do speedtest). Linhas persistidas antes desta coluna existir recebem
+     *  `"legacy-{id}"` na migração — nunca reaproveitado entre linhas, nunca inventado. */
+    val executionId: String = "",
+    /** GH#1228 (Fase 3, migração 15→16) — versão canônica do conjunto de regras de
+     *  classificação/diagnóstico em vigor quando esta linha foi classificada (ver
+     *  [io.signallq.app.core.diagnostico.DiagnosticRulesVersion]). Linhas persistidas antes
+     *  desta coluna existir recebem `"legacy-unversioned"` — nunca inventamos qual regra
+     *  classificou dados antigos. */
+    val rulesVersion: String = "legacy-unversioned",
 )

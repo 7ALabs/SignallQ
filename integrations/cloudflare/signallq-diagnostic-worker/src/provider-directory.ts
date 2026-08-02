@@ -1,4 +1,16 @@
-import type { ProviderDetectionInput, ProviderRecord, ProviderSupport } from "./contracts.ts";
+import type { ProviderAuditEntry, ProviderDetectionInput, ProviderRecord, ProviderSupport } from "./contracts.ts";
+
+// GH#1461 — quem/como uma escrita administrativa de provider aconteceu.
+// `email` fica `null` quando a sessao nao resolve pra um `admin_users` real
+// (nao deveria acontecer nas rotas de provider, que nunca aceitam a secret de
+// proxy do diagnostic-worker -- ver comentario em `resolveAdminSession`,
+// index.ts). `source` identifica o canal de origem da escrita (hoje sempre
+// "admin-console", unico caminho de escrita deste worker).
+export type ProviderAdminActor = {
+  userId: string;
+  email: string | null;
+  source: string;
+};
 
 type SeedEnv = {
   DB?: D1Database;
@@ -435,12 +447,87 @@ export async function getProviderByAsn(env: SeedEnv, asn: number): Promise<Provi
   return providers.find((provider) => provider.asns.includes(asn)) ?? null;
 }
 
-export async function upsertProvider(env: SeedEnv, input: ProviderAdminInput): Promise<{ providerId: string; syncedIdentifiers: number }> {
+// GH#1461 — grava uma linha de `provider_audit_log` por escrita administrativa.
+// `beforeJson`/`afterJson` sao snapshots de `ProviderRecord` (nunca o BLOB da
+// logo -- `ProviderLogo` so carrega url/version/updatedAt) e nao contem
+// nenhum dado pessoal de usuario final (o provedor e uma operadora, nao uma
+// pessoa) -- respeita a mesma regra de privacidade do resto do worker.
+async function writeProviderAudit(
+  db: D1Database,
+  providerId: string,
+  operation: string,
+  actor: ProviderAdminActor,
+  beforeJson: string | null,
+  afterJson: string | null,
+  reason: string | null,
+): Promise<void> {
+  await db.prepare(
+    `INSERT INTO provider_audit_log (
+      id, provider_id, operation, before_json, after_json, actor_user_id, actor_email, source, reason, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(
+    crypto.randomUUID(),
+    providerId,
+    operation,
+    beforeJson,
+    afterJson,
+    actor.userId,
+    actor.email,
+    actor.source,
+    reason,
+    nowIso(),
+  ).run();
+}
+
+// GH#1461 — leitura da trilha de auditoria pro Admin consumir (endpoint,
+// nao UI -- issue #1465 cobre a UI). `providerId` ausente lista as ultimas
+// 100 entradas de todos os provedores, igual ao padrao de `listGameAudit`.
+export async function listProviderAuditLog(env: SeedEnv, providerId?: string | null): Promise<ProviderAuditEntry[]> {
+  if (!env.DB) return [];
+  const { results } = await env.DB.prepare(
+    `SELECT id, provider_id, operation, before_json, after_json, actor_user_id, actor_email, source, reason, created_at
+     FROM provider_audit_log
+     WHERE (? IS NULL OR provider_id = ?)
+     ORDER BY created_at DESC
+     LIMIT 100`,
+  ).bind(providerId ?? null, providerId ?? null).all<{
+    id: string;
+    provider_id: string;
+    operation: string;
+    before_json: string | null;
+    after_json: string | null;
+    actor_user_id: string;
+    actor_email: string | null;
+    source: string;
+    reason: string | null;
+    created_at: string;
+  }>();
+  return results.map((row) => ({
+    id: row.id,
+    providerId: row.provider_id,
+    operation: row.operation,
+    beforeJson: row.before_json,
+    afterJson: row.after_json,
+    actorUserId: row.actor_user_id,
+    actorEmail: row.actor_email,
+    source: row.source,
+    reason: row.reason,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function upsertProvider(
+  env: SeedEnv,
+  input: ProviderAdminInput,
+  actor: ProviderAdminActor,
+  reason: string | null = null,
+): Promise<{ providerId: string; syncedIdentifiers: number }> {
   if (!env.DB) {
     throw new Error("DB binding not configured.");
   }
 
   const timestamp = nowIso();
+  const previous = await loadProviderFromDb(env.DB, input.id, env);
   const providerType = input.providerType ?? "UNKNOWN";
   const status = input.status ?? "DRAFT";
   const verifiedAt = input.verifiedAt ?? null;
@@ -541,16 +628,31 @@ export async function upsertProvider(env: SeedEnv, input: ProviderAdminInput): P
     ).run();
   }
 
+  const current = await loadProviderFromDb(env.DB, input.id, env);
+  await writeProviderAudit(
+    env.DB,
+    input.id,
+    previous ? "UPSERT_PROVIDER" : "CREATE_PROVIDER",
+    actor,
+    previous ? JSON.stringify(previous) : null,
+    current ? JSON.stringify(current) : null,
+    reason,
+  );
+
   return {
     providerId: input.id,
     syncedIdentifiers: aliases.length + asns.length + (input.officialDomain ? 1 : 0),
   };
 }
 
-export async function syncSeedProvidersToDb(env: SeedEnv): Promise<{ synced: number }> {
+// GH#1461 — cada provedor sincronizado grava sua propria linha de auditoria
+// via `upsertProvider` (mesmo padrao de `syncGameSeedToDb`, que reaproveita a
+// auditoria de `upsertGameCatalogItem`/`upsertGameProfile`) -- nao duplica
+// uma linha "sync" agregada em cima disso.
+export async function syncSeedProvidersToDb(env: SeedEnv, actor: ProviderAdminActor): Promise<{ synced: number }> {
   const providers = await loadSeedProviders(env);
   for (const provider of providers) {
-    await upsertProvider(env, toProviderAdminInput(provider));
+    await upsertProvider(env, toProviderAdminInput(provider), actor, "seed-sync");
   }
   return { synced: providers.length };
 }
@@ -616,10 +718,16 @@ export async function listStaleProviders(env: SeedEnv): Promise<ProviderRecord[]
   return providers.filter((provider): provider is ProviderRecord => Boolean(provider));
 }
 
-export async function reviewProvider(env: SeedEnv, providerId: string, input: ProviderReviewInput): Promise<{ ok: true; providerId: string }> {
+export async function reviewProvider(
+  env: SeedEnv,
+  providerId: string,
+  input: ProviderReviewInput,
+  actor: ProviderAdminActor,
+): Promise<{ ok: true; providerId: string }> {
   if (!env.DB) {
     throw new Error("DB binding not configured.");
   }
+  const previous = await loadProviderFromDb(env.DB, providerId, env);
   const timestamp = nowIso();
   await env.DB.prepare(
     `UPDATE providers
@@ -646,6 +754,18 @@ export async function reviewProvider(env: SeedEnv, providerId: string, input: Pr
      WHERE provider_id = ?
        AND status IN ('PENDING', 'PENDING_REVIEW', 'RUNNING')`,
   ).bind(timestamp, input.notes ?? null, providerId).run();
+
+  const current = await loadProviderFromDb(env.DB, providerId, env);
+  await writeProviderAudit(
+    env.DB,
+    providerId,
+    "REVIEW_PROVIDER",
+    actor,
+    previous ? JSON.stringify(previous) : null,
+    current ? JSON.stringify(current) : null,
+    input.notes ?? null,
+  );
+
   return { ok: true, providerId };
 }
 
@@ -810,15 +930,15 @@ export async function updateProviderSupport(
   env: SeedEnv,
   providerId: string,
   support: Partial<ProviderSupport>,
+  actor: ProviderAdminActor,
+  reason: string | null = null,
 ): Promise<{ ok: true; providerId: string } | null> {
   if (!env.DB) {
     throw new Error("DB binding not configured.");
   }
 
-  const existing = await env.DB.prepare("SELECT id FROM providers WHERE id = ?")
-    .bind(providerId)
-    .first<{ id: string }>();
-  if (!existing) return null;
+  const previous = await loadProviderFromDb(env.DB, providerId, env);
+  if (!previous) return null;
 
   const timestamp = nowIso();
 
@@ -844,6 +964,17 @@ export async function updateProviderSupport(
     .bind(timestamp, providerId)
     .run();
 
+  const current = await loadProviderFromDb(env.DB, providerId, env);
+  await writeProviderAudit(
+    env.DB,
+    providerId,
+    "UPDATE_SUPPORT",
+    actor,
+    JSON.stringify(previous),
+    current ? JSON.stringify(current) : null,
+    reason,
+  );
+
   return { ok: true, providerId };
 }
 
@@ -862,6 +993,8 @@ export async function uploadProviderLogo(
   providerId: string,
   bytes: ArrayBuffer,
   contentType: string,
+  actor: ProviderAdminActor,
+  reason: string | null = null,
 ): Promise<{ ok: true; url: string; version: number } | { ok: false; status: number; error: string }> {
   if (!env.DB) {
     return { ok: false, status: 500, error: "DB binding not configured." };
@@ -903,6 +1036,20 @@ export async function uploadProviderLogo(
   await env.DB.prepare(
     "UPDATE providers SET logo_version = ?, updated_at = ? WHERE id = ?",
   ).bind(nextVersion, timestamp, providerId).run();
+
+  // before/after guardam so metadado (ProviderRecord.logo = url/version/
+  // updatedAt) -- nunca o BLOB base64 que acabou de ser gravado em
+  // provider_assets, pra nao inflar a trilha de auditoria com binario.
+  const current = await loadProviderFromDb(env.DB, providerId, env);
+  await writeProviderAudit(
+    env.DB,
+    providerId,
+    "UPLOAD_LOGO",
+    actor,
+    JSON.stringify(provider),
+    current ? JSON.stringify(current) : null,
+    reason,
+  );
 
   return { ok: true, url, version: nextVersion };
 }

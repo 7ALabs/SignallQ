@@ -1,10 +1,22 @@
 package io.signallq.app.ui
 
 import androidx.compose.ui.graphics.Color
+import io.signallq.app.core.network.FeatureFlagProvider
 import io.signallq.app.feature.diagnostico.remote.ProviderDirectoryRepository
 import io.signallq.app.feature.diagnostico.remote.RemoteProviderInfo
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/** Status de curadoria considerado "confirmado" pelo worker `signallq-diagnostic` —
+ *  vocabulario fixo definido la (GH#951), nao reinterpretado aqui. */
+private const val PROVIDER_STATUS_VERIFIED = "VERIFIED"
+
+/** Sempre habilitado — default do parametro [OperadoraDirectoryResolver.featureFlagProvider]
+ *  quando nao ha Hilt (ex.: instanciacao direta em teste), preservando o comportamento
+ *  anterior a GH#1464 (diretorio remoto sempre tentado). */
+private object AlwaysEnabledFeatureFlagProvider : FeatureFlagProvider {
+    override fun isEnabled(key: String): Boolean = true
+}
 
 /** De onde veio a identidade/contato resolvido — usado so para telemetria/debug, nunca para logica de UI. */
 enum class OperadoraSource { LOCAL, REMOTE, FALLBACK }
@@ -21,6 +33,10 @@ data class ResolvedOperadoraIdentity(
     val logoRes: Int?,
     val logoUrl: String?,
     val source: OperadoraSource,
+    /** GH#1464 (parte de #951) — status de curadoria do registro no worker
+     *  `signallq-diagnostic` (`ProviderRecord.status`), so preenchido para
+     *  [OperadoraSource.REMOTE]. `null` para LOCAL/FALLBACK (nao ha curadoria remota). */
+    val status: String? = null,
 )
 
 /** Contato final de uma operadora, ja resolvido pela cadeia de fallback (GH#965). */
@@ -34,9 +50,22 @@ data class ResolvedOperadoraContact(
      *  (as ~12 operadoras principais); o diretorio remoto (GH#965) nao tem esse dado,
      *  nunca inventamos um app pra operadora regional desconhecida (GH#970). */
     val grupo: String? = null,
+    /** GH#1464 (parte de #951) — ver kdoc de [ResolvedOperadoraIdentity.status]. */
+    val status: String? = null,
 ) {
     val hasAnyContact: Boolean get() = sacPhone != null || whatsapp != null || site != null
 }
+
+/** GH#1464 (parte de #951) — indica que o dado veio do diretorio remoto e ainda nao passou
+ *  pela curadoria manual (`status != "VERIFIED"`). Usado so pra UI mostrar o rotulo "nao
+ *  verificado" e pra nunca abrir contato automaticamente — o dado continua sendo exibido,
+ *  so marcado. Nunca `true` para LOCAL/FALLBACK (catalogo local e sempre curado). */
+val ResolvedOperadoraIdentity.isNaoVerificado: Boolean
+    get() = source == OperadoraSource.REMOTE && status != PROVIDER_STATUS_VERIFIED
+
+/** Ver kdoc de [ResolvedOperadoraIdentity.isNaoVerificado]. */
+val ResolvedOperadoraContact.isNaoVerificado: Boolean
+    get() = source == OperadoraSource.REMOTE && status != PROVIDER_STATUS_VERIFIED
 
 /**
  * GH#1226 item D — única função de normalização de WhatsApp cru (DDD+número local, sem `55`
@@ -84,6 +113,11 @@ class OperadoraDirectoryResolver
     @Inject
     constructor(
         private val providerDirectoryRepository: ProviderDirectoryRepository,
+        // GH#1464 (parte de #951) — kill switch do nivel 2 (diretorio remoto). Default
+        // preserva o comportamento anterior (sempre tentado) pra instanciacao direta em
+        // teste; producao recebe a implementacao real via Hilt (mesmo binding usado por
+        // DiagnosticDivergenceReporter, ver kdoc de FeatureFlagProvider).
+        private val featureFlagProvider: FeatureFlagProvider = AlwaysEnabledFeatureFlagProvider,
     ) {
         /**
          * So o nivel 1 (catalogo local), sincrono — nunca faz I/O. Usado pela camada de
@@ -138,6 +172,7 @@ class OperadoraDirectoryResolver
                     logoRes = null,
                     logoUrl = remote.logoUrl,
                     source = OperadoraSource.REMOTE,
+                    status = remote.status,
                 )
             }
 
@@ -166,6 +201,7 @@ class OperadoraDirectoryResolver
                     whatsapp = remote.whatsappUrl,
                     site = remote.websiteUrl,
                     source = OperadoraSource.REMOTE,
+                    status = remote.status,
                 )
             }
 
@@ -184,9 +220,13 @@ class OperadoraDirectoryResolver
         ): ContatoOperadora? =
             if (viaMovel) BancoOperadoras.resolverMovel(ispNomeBruto) else BancoOperadoras.resolver(ispNomeBruto)
 
-        /** `null` quando nao ha nome pra buscar OU a chamada remota falhou/nao achou nada. */
+        /** `null` quando nao ha nome pra buscar, a flag `feature_provider_directory_enabled`
+         *  (GH#1464) esta desligada, OU a chamada remota falhou/nao achou nada. Com a flag
+         *  desligada, o resolver pula direto pro fallback final — nivel 1 (catalogo local)
+         *  nunca e afetado, ja resolvido antes deste ponto ser alcancado. */
         private suspend fun buscarRemoto(ispNomeBruto: String?): RemoteProviderInfo? {
             if (ispNomeBruto.isNullOrBlank()) return null
+            if (!featureFlagProvider.isProviderDirectoryEnabled()) return null
             return providerDirectoryRepository.searchByName(ispNomeBruto)
         }
     }

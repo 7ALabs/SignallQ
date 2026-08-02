@@ -130,4 +130,36 @@ class MedicaoEntityTest {
         val e = entidadeMinima()
         assertEquals("wifi", e.connectionType)
     }
+
+    // =========================================================================
+    // GH#1228 (Fase 3) — executionId/rulesVersion
+    // =========================================================================
+
+    @Test
+    fun `executionId tem default vazio e rulesVersion default legacy-unversioned na entidade minima`() {
+        val e = entidadeMinima()
+
+        assertEquals("", e.executionId)
+        assertEquals("legacy-unversioned", e.rulesVersion)
+    }
+
+    @Test
+    fun `executionId e rulesVersion explicitos sao preservados`() {
+        val e =
+            entidadeMinima().copy(
+                executionId = "exec-real-001",
+                rulesVersion = "diagnostic-rules-v1",
+            )
+
+        assertEquals("exec-real-001", e.executionId)
+        assertEquals("diagnostic-rules-v1", e.rulesVersion)
+    }
+
+    @Test
+    fun `duas entidades com o mesmo id mas executionId diferentes nao sao iguais`() {
+        val a = entidadeMinima("mesmo-id").copy(executionId = "exec-A")
+        val b = entidadeMinima("mesmo-id").copy(executionId = "exec-B")
+
+        assertNotEquals(a, b)
+    }
 }

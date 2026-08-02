@@ -239,3 +239,81 @@ CREATE TABLE IF NOT EXISTS google_play_reviews (
 CREATE INDEX IF NOT EXISTS idx_google_play_reviews_rating          ON google_play_reviews(rating);
 CREATE INDEX IF NOT EXISTS idx_google_play_reviews_last_synced     ON google_play_reviews(last_synced_at);
 CREATE INDEX IF NOT EXISTS idx_google_play_reviews_handling_status ON google_play_reviews(handling_status);
+
+-- GH#1405 (Feature #1402): catálogo de anúncios locais (house ads) exibido no Site/PWA quando o
+-- AdSense não preenche o slot -- administrável via Console, sem deploy. `active` segue a mesma
+-- convenção booleana (0/1) de feature_flags.enabled.
+-- Aplicar via: migrations/018_gh1405_local_ads.sql (npx wrangler d1 execute --file=... --remote)
+CREATE TABLE IF NOT EXISTS local_ads (
+  id          TEXT    PRIMARY KEY,
+  title       TEXT    NOT NULL,
+  description TEXT    NOT NULL DEFAULT '',
+  cta_label   TEXT    NOT NULL,
+  target_url  TEXT    NOT NULL,
+  active      INTEGER NOT NULL DEFAULT 1,
+  created_at  INTEGER NOT NULL,
+  updated_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_local_ads_active ON local_ads(active);
+
+-- GH#1312: catálogo remoto de releases do app (produto+canal), consumido em leitura pelo Android
+-- (comparação por versionCode) e administrado pelo Console. `status` distingue active (comunicada
+-- agora) | superseded (substituída por versão maior) | deactivated (comunicação desligada sem
+-- apagar). Índice único parcial garante no máximo uma linha 'active' por product+channel.
+-- Aplicar via: migrations/020_gh1312_app_releases.sql (npx wrangler d1 execute --file=... --remote)
+CREATE TABLE IF NOT EXISTS app_releases (
+  release_id TEXT PRIMARY KEY,
+  product TEXT NOT NULL,
+  channel TEXT NOT NULL,
+  version_name TEXT NOT NULL,
+  version_code INTEGER NOT NULL,
+  release_notes TEXT NOT NULL DEFAULT '',
+  store_url TEXT NOT NULL,
+  notification_enabled INTEGER NOT NULL DEFAULT 1,
+  reminder_campaign_id TEXT DEFAULT NULL,
+  status TEXT NOT NULL DEFAULT 'active',
+  published_at INTEGER NOT NULL,
+  published_by TEXT NOT NULL DEFAULT '',
+  push_status TEXT DEFAULT NULL,
+  push_sent_at INTEGER DEFAULT NULL,
+  push_error TEXT DEFAULT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_app_releases_lookup ON app_releases(product, channel, status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_app_releases_active_unique ON app_releases(product, channel) WHERE status = 'active';
+
+-- GH#1478 (Épico #1347): trilha de auditoria do backend admin de Feature Flags / Firebase Remote
+-- Config (GET/validate/publish/rollback via /admin/firebase/remote-config/*). Distinta de
+-- `feature_flags`/`feature_flag_audit` (SIG-13, mecanismo local simples sem Firebase).
+-- Aplicar via: migrations/021_gh1478_remote_config_audit.sql (npx wrangler d1 execute --file=... --remote)
+CREATE TABLE IF NOT EXISTS remote_config_audit_log (
+  id TEXT PRIMARY KEY,
+  action TEXT NOT NULL,
+  status TEXT NOT NULL,
+  template_version_before TEXT,
+  template_version_after TEXT,
+  etag_before TEXT,
+  etag_after TEXT,
+  before_json TEXT,
+  after_json TEXT,
+  message TEXT NOT NULL DEFAULT '',
+  actor_user_id TEXT NOT NULL,
+  actor_role TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_rcal_action ON remote_config_audit_log(action);
+CREATE INDEX IF NOT EXISTS idx_rcal_created_at ON remote_config_audit_log(created_at);
+CREATE INDEX IF NOT EXISTS idx_rcal_actor ON remote_config_audit_log(actor_user_id);
+
+-- GH#1478 (Épico #1347): rate limit dedicado das rotas de escrita (publish/rollback/
+-- feature-flags/sync) do backend admin de Feature Flags, por usuário autenticado — distinto de
+-- `auth_rate_limit` (por IP, só protege login).
+-- Aplicar via: migrations/022_gh1478_remote_config_write_rate_limit.sql (npx wrangler d1 execute --file=... --remote)
+CREATE TABLE IF NOT EXISTS remote_config_write_rate_limit (
+  actor_user_id TEXT NOT NULL,
+  route TEXT NOT NULL,
+  count INTEGER NOT NULL DEFAULT 1,
+  window_start INTEGER NOT NULL,
+  PRIMARY KEY (actor_user_id, route)
+);

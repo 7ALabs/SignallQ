@@ -19,11 +19,12 @@ import org.junit.Test
  * ANTES da extracao do dominio de diagnostico para :core:diagnostico (issue #1157, Fase 1a).
  *
  * Objetivo: travar o comportamento hoje — sobretudo o acoplamento direto
- * `DiagnosticRunner.run() -> RecommendationEngine.recomendar()` (linha 77 de DiagnosticRunner.kt)
+ * `DiagnosticRunner.run() -> RecomendacaoPraticaEngine.recomendar()` (linha 77 de DiagnosticRunner.kt;
+ * motor renomeado de `RecommendationEngine` na Fatia 9a da auditoria #1228, corrige P1-1)
  * que sera substituido por inversao de dependencia (parametro `gerarRecomendacoes`). Depois da
  * extracao, este mesmo arquivo de teste deve continuar passando sem alterar nenhuma asserção —
  * só o import de `DiagnosticRunner`/`FindingResult`/etc muda de pacote, e o call site aqui passa
- * a fornecer `gerarRecomendacoes = RecommendationEngine::recomendar` explicitamente (documentado
+ * a fornecer `gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar` explicitamente (documentado
  * em cada teste abaixo).
  *
  * Não é teste de regra de negócio nova — é rede de segurança pra um refactor mecânico.
@@ -31,9 +32,9 @@ import org.junit.Test
 class DiagnosticRunnerCaracterizacaoTest {
 
     @Test
-    fun `REC-01 flui do DiagnosticRunner fim-a-fim ate o report final via RecommendationEngine`() {
-        // Cenario identico ao "situacao 1" de RecommendationEngineTest — 2,4GHz fraco com 5GHz
-        // forte disponivel no mesmo SSID. Aqui rodamos o pipeline INTEIRO (nao RecommendationEngine
+    fun `REC-01 flui do DiagnosticRunner fim-a-fim ate o report final via RecomendacaoPraticaEngine`() {
+        // Cenario identico ao "situacao 1" de RecomendacaoPraticaEngineTest — 2,4GHz fraco com 5GHz
+        // forte disponivel no mesmo SSID. Aqui rodamos o pipeline INTEIRO (nao RecomendacaoPraticaEngine
         // isolado) pra caracterizar o wiring real que o DiagnosticRunner faz hoje.
         val input = DiagnosticInput(
             connectionType = ConnectionType.wifi,
@@ -64,8 +65,8 @@ class DiagnosticRunnerCaracterizacaoTest {
         )
 
         // A partir da extracao (Fase 1a): gerarRecomendacoes precisa ser explicito, pois
-        // RecommendationEngine ficou em :featureDiagnostico e nao e mais o default do runner.
-        val r = DiagnosticRunner.run(input, gerarRecomendacoes = RecommendationEngine::recomendar)
+        // RecomendacaoPraticaEngine ficou em :featureDiagnostico e nao e mais o default do runner.
+        val r = DiagnosticRunner.run(input, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
 
         assertTrue("esperava REC-01 nas recomendacoes do report", r.recomendacoes.any { it.id == "REC-01" })
     }
