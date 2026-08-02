@@ -71,5 +71,103 @@ class SpeedtestQualityClassifierTest {
         )
         assertEquals(VereditoUso.acceptable, acceptable.vereditoVideoChamada)
     }
+
+    // ── Testes dourados (caracterizacao) — Fase 0 da issue #1228, ver ADR-011 ──────────────
+    // Congelam o comportamento atual EXATO das fronteiras good/acceptable/poor de cada perfil
+    // de uso e a ordem de prioridade do gargalo primario. Nao alterar producao pra fazer estes
+    // testes passarem — mudanca de valor aqui so por decisao deliberada de migracao (Fase 1+).
+
+    private fun qualidadeBase(
+        dl: Double = 100.0,
+        ul: Double = 50.0,
+        latency: Double = 10.0,
+        jitter: Double = 1.0,
+        packetLoss: Double = 0.0,
+        bufferbloatDeltaMs: Double = 0.0,
+        bufferbloat: SeveridadeBufferbloat = SeveridadeBufferbloat.none,
+    ) = SpeedtestQualityClassifier.classificarQualidade(dl, ul, latency, jitter, packetLoss, bufferbloatDeltaMs, bufferbloat)
+
+    @Test
+    fun `golden - streaming good ate 25Mbps e 200ms, acceptable abaixo disso`() {
+        val naFronteira = qualidadeBase(dl = 25.0, latency = 200.0, jitter = 50.0, packetLoss = 2.0)
+        assertEquals(VereditoUso.good, naFronteira.vereditoStreaming)
+
+        val abaixoDl = qualidadeBase(dl = 24.99, latency = 200.0, jitter = 50.0, packetLoss = 2.0)
+        assertEquals(VereditoUso.acceptable, abaixoDl.vereditoStreaming)
+    }
+
+    @Test
+    fun `golden - streaming poor abaixo do piso acceptable`() {
+        val poor = qualidadeBase(dl = 14.99, latency = 500.0, jitter = 100.0, packetLoss = 5.0)
+        assertEquals(VereditoUso.poor, poor.vereditoStreaming)
+    }
+
+    @Test
+    fun `golden - gamer good exige dl 10 ul 3 latencia 50 jitter 15 perda 0_5`() {
+        val naFronteira = qualidadeBase(dl = 10.0, ul = 3.0, latency = 50.0, jitter = 15.0, packetLoss = 0.5)
+        assertEquals(VereditoUso.good, naFronteira.vereditoGamer)
+
+        val abaixoUl = qualidadeBase(dl = 10.0, ul = 2.99, latency = 50.0, jitter = 15.0, packetLoss = 0.5)
+        assertEquals(VereditoUso.acceptable, abaixoUl.vereditoGamer)
+    }
+
+    @Test
+    fun `golden - gamer poor abaixo do piso acceptable`() {
+        val poor = qualidadeBase(dl = 4.99, ul = 0.99, latency = 100.0, jitter = 30.0, packetLoss = 1.0)
+        assertEquals(VereditoUso.poor, poor.vereditoGamer)
+    }
+
+    @Test
+    fun `golden - videochamada good exige dl 10 ul 3 latencia 80 jitter 30 perda 1_0`() {
+        val naFronteira = qualidadeBase(dl = 10.0, ul = 3.0, latency = 80.0, jitter = 30.0, packetLoss = 1.0)
+        assertEquals(VereditoUso.good, naFronteira.vereditoVideoChamada)
+
+        val acimaLatencia = qualidadeBase(dl = 10.0, ul = 3.0, latency = 80.01, jitter = 30.0, packetLoss = 1.0)
+        assertEquals(VereditoUso.acceptable, acimaLatencia.vereditoVideoChamada)
+    }
+
+    @Test
+    fun `golden - gargalo primario segue ordem packetLoss maior que bufferbloat maior que latency maior que upload`() {
+        // packetLoss > 2.0 vence mesmo com bufferbloat severo e upload baixo simultaneos
+        val comTudo = qualidadeBase(
+            ul = 1.0,
+            latency = 200.0,
+            packetLoss = 2.01,
+            bufferbloatDeltaMs = 150.0,
+            bufferbloat = SeveridadeBufferbloat.severe,
+        )
+        assertEquals(GargaloPrimario.packetLoss, comTudo.gargaloPrimario)
+
+        // sem packetLoss, bufferbloat severo vence sobre latencia e upload baixos
+        val semPerda = qualidadeBase(
+            ul = 1.0,
+            latency = 200.0,
+            packetLoss = 0.0,
+            bufferbloatDeltaMs = 150.0,
+            bufferbloat = SeveridadeBufferbloat.severe,
+        )
+        assertEquals(GargaloPrimario.bufferbloat, semPerda.gargaloPrimario)
+
+        // sem perda nem bufferbloat severo, latencia > 100 vence sobre upload baixo
+        val soLatencia = qualidadeBase(ul = 1.0, latency = 100.01, packetLoss = 0.0, bufferbloatDeltaMs = 0.0)
+        assertEquals(GargaloPrimario.latency, soLatencia.gargaloPrimario)
+
+        // restando so upload baixo
+        val soUpload = qualidadeBase(ul = 4.99, latency = 100.0, packetLoss = 0.0, bufferbloatDeltaMs = 0.0)
+        assertEquals(GargaloPrimario.upload, soUpload.gargaloPrimario)
+
+        // nada abaixo do limiar -> nenhum gargalo
+        val nenhum = qualidadeBase(ul = 5.0, latency = 100.0, packetLoss = 0.0, bufferbloatDeltaMs = 0.0)
+        assertEquals(GargaloPrimario.none, nenhum.gargaloPrimario)
+    }
+
+    @Test
+    fun `golden - bufferbloatDeltaMs fronteira 100_0 e maior-ou-igual, ja aciona gargalo`() {
+        val abaixo = qualidadeBase(ul = 10.0, latency = 10.0, packetLoss = 0.0, bufferbloatDeltaMs = 99.99)
+        assertEquals(GargaloPrimario.none, abaixo.gargaloPrimario)
+
+        val naFronteira = qualidadeBase(ul = 10.0, latency = 10.0, packetLoss = 0.0, bufferbloatDeltaMs = 100.0)
+        assertEquals(GargaloPrimario.bufferbloat, naFronteira.gargaloPrimario)
+    }
 }
 

@@ -107,6 +107,40 @@ type GameAuditRow = {
   created_at: string;
 };
 
+type ProviderAuditRow = {
+  id: string;
+  provider_id: string;
+  operation: string;
+  before_json: string | null;
+  after_json: string | null;
+  actor_user_id: string;
+  actor_email: string | null;
+  source: string;
+  reason: string | null;
+  created_at: string;
+};
+
+// GH#1444 (parte de #952) — shadow mode.
+type DiagnosticDivergenceRow = {
+  id: string;
+  execution_id: string;
+  snapshot_hash: string;
+  classification: string;
+  local_status: string | null;
+  remote_status: string | null;
+  local_score: number | null;
+  remote_score: number | null;
+  local_flow: string | null;
+  remote_flow: string | null;
+  local_source: string | null;
+  remote_source: string | null;
+  local_duration_ms: number | null;
+  remote_duration_ms: number | null;
+  app_version: string | null;
+  version_code: number | null;
+  created_at: string;
+};
+
 function normalize(sql: string): string {
   return sql.replace(/\s+/g, " ").trim().toLowerCase();
 }
@@ -161,6 +195,8 @@ export class FakeD1Database {
   gameCatalog = new Map<string, GameCatalogRow>();
   gamePlatforms: GamePlatformRow[] = [];
   gameAudit: GameAuditRow[] = [];
+  providerAudit: ProviderAuditRow[] = [];
+  diagnosticDivergences: DiagnosticDivergenceRow[] = [];
 
   prepare(sql: string): FakeStatement {
     return new FakeStatement(this, sql);
@@ -225,6 +261,8 @@ export class FakeD1Database {
         engine_version: engineVersion,
         status: "DRAFT",
         rollout_percent: 0,
+        rollout_min_version_code: null,
+        rollout_channels: null,
         published_at: null,
         created_at: createdAt,
         updated_at: updatedAt,
@@ -246,15 +284,47 @@ export class FakeD1Database {
       return;
     }
 
-    if (q.startsWith("update diagnostic_rulesets set status = 'published'")) {
-      const [publishedAt, updatedAt, actor, version] = bindings;
+    // GH#1445 — publish agora recebe rollout_percent/rollout_min_version_code/
+    // rollout_channels explicitos (nao forca mais 100).
+    if (q.startsWith("update diagnostic_rulesets set status = 'published', rollout_percent = ?")) {
+      const [rolloutPercent, rolloutMinVersionCode, rolloutChannels, publishedAt, updatedAt, actor, version] = bindings;
       const row = this.diagnosticRulesets.get(Number(version));
       if (row) {
         row.status = "PUBLISHED";
-        row.rollout_percent = 100;
+        row.rollout_percent = Number(rolloutPercent);
+        row.rollout_min_version_code = rolloutMinVersionCode == null ? null : Number(rolloutMinVersionCode);
+        row.rollout_channels = (rolloutChannels as string | null) ?? null;
         row.published_at = publishedAt;
         row.updated_at = updatedAt;
         row.author = row.author ?? actor;
+      }
+      return;
+    }
+
+    // GH#1445 — atualiza so o rollout do ruleset PUBLISHED atual, sem trocar status/versao.
+    if (q.startsWith("update diagnostic_rulesets set rollout_percent = ?")) {
+      const [rolloutPercent, rolloutMinVersionCode, rolloutChannels, updatedAt, version] = bindings;
+      const row = this.diagnosticRulesets.get(Number(version));
+      if (row) {
+        row.rollout_percent = Number(rolloutPercent);
+        row.rollout_min_version_code = rolloutMinVersionCode == null ? null : Number(rolloutMinVersionCode);
+        row.rollout_channels = (rolloutChannels as string | null) ?? null;
+        row.updated_at = updatedAt;
+      }
+      return;
+    }
+
+    // GH#1445 (correcao pos-revisao Rhodolfo, PR #1455) — rollback preserva o
+    // rollout_percent que o ruleset restaurado ja tinha na coluna (nunca forca
+    // 100 mais), so `COALESCE(..., 0)` como defesa contra null.
+    if (q.startsWith("update diagnostic_rulesets set status = 'published', rollout_percent = coalesce(rollout_percent, 0)")) {
+      const [updatedAt, publishedAt, version] = bindings;
+      const row = this.diagnosticRulesets.get(Number(version));
+      if (row) {
+        row.status = "PUBLISHED";
+        row.rollout_percent = row.rollout_percent ?? 0;
+        row.updated_at = updatedAt;
+        row.published_at = row.published_at ?? publishedAt;
       }
       return;
     }
@@ -629,6 +699,23 @@ export class FakeD1Database {
       return;
     }
 
+    if (q.startsWith("insert into provider_audit_log")) {
+      const [id, providerId, operation, beforeJson, afterJson, actorUserId, actorEmail, source, reason, createdAt] = bindings;
+      this.providerAudit.push({
+        id: String(id),
+        provider_id: String(providerId),
+        operation: String(operation),
+        before_json: (beforeJson as string | null) ?? null,
+        after_json: (afterJson as string | null) ?? null,
+        actor_user_id: String(actorUserId),
+        actor_email: (actorEmail as string | null) ?? null,
+        source: String(source),
+        reason: (reason as string | null) ?? null,
+        created_at: String(createdAt),
+      });
+      return;
+    }
+
     if (q.startsWith("update game_catalog set active = ?")) {
       const [active, updatedAt, gameId] = bindings;
       const row = this.gameCatalog.get(String(gameId));
@@ -636,6 +723,35 @@ export class FakeD1Database {
         row.active = Number(active);
         row.updated_at = String(updatedAt);
       }
+      return;
+    }
+
+    if (q.startsWith("insert into diagnostic_divergences")) {
+      const [
+        id, executionId, snapshotHash, classification, localStatus, remoteStatus,
+        localScore, remoteScore, localFlow, remoteFlow, localSource, remoteSource,
+        localDurationMs, remoteDurationMs, appVersion, versionCode, createdAt,
+      ] = bindings;
+      this.diagnosticDivergences.push({
+        id: String(id),
+        execution_id: String(executionId),
+        snapshot_hash: String(snapshotHash),
+        classification: String(classification),
+        local_status: (localStatus as string | null) ?? null,
+        remote_status: (remoteStatus as string | null) ?? null,
+        local_score: localScore == null ? null : Number(localScore),
+        remote_score: remoteScore == null ? null : Number(remoteScore),
+        local_flow: (localFlow as string | null) ?? null,
+        remote_flow: (remoteFlow as string | null) ?? null,
+        local_source: (localSource as string | null) ?? null,
+        remote_source: (remoteSource as string | null) ?? null,
+        local_duration_ms: localDurationMs == null ? null : Number(localDurationMs),
+        remote_duration_ms: remoteDurationMs == null ? null : Number(remoteDurationMs),
+        app_version: (appVersion as string | null) ?? null,
+        version_code: versionCode == null ? null : Number(versionCode),
+        created_at: String(createdAt),
+      });
+      return;
     }
   }
 
@@ -683,9 +799,31 @@ export class FakeD1Database {
       return { count: this.adminUsers.size };
     }
 
-    if (q.startsWith("select version, schema_version, engine_version, status, rollout_percent, published_at, updated_at, author, justification, rules_json from diagnostic_rulesets where version = ?")) {
+    if (q.startsWith("select version, schema_version, engine_version, status, rollout_percent, rollout_min_version_code, rollout_channels, published_at, updated_at, author, justification, rules_json from diagnostic_rulesets where version = ?")) {
       const [version] = bindings;
       return this.diagnosticRulesets.get(Number(version)) ?? null;
+    }
+
+    // GH#1445 — status isolado, usado por updateRolloutConfig pra validar alvo PUBLISHED.
+    if (q.startsWith("select status from diagnostic_rulesets where version = ?")) {
+      const [version] = bindings;
+      const row = this.diagnosticRulesets.get(Number(version));
+      return row ? { status: row.status } : null;
+    }
+
+    // GH#1445 — status de rollout do ruleset PUBLISHED atual (endpoint publico).
+    if (q.startsWith("select version, rollout_percent, rollout_min_version_code, rollout_channels from diagnostic_rulesets where status = 'published'")) {
+      const row = [...this.diagnosticRulesets.values()]
+        .filter((entry) => entry.status === "PUBLISHED")
+        .sort((left, right) => Number(right.version) - Number(left.version))[0];
+      return row
+        ? {
+            version: row.version,
+            rollout_percent: row.rollout_percent,
+            rollout_min_version_code: row.rollout_min_version_code ?? null,
+            rollout_channels: row.rollout_channels ?? null,
+          }
+        : null;
     }
 
     if (q.startsWith("select rules_json from diagnostic_rulesets where status = 'published'")) {
@@ -695,10 +833,12 @@ export class FakeD1Database {
       return row ? { rules_json: row.rules_json } : null;
     }
 
-    if (q.startsWith("select version from diagnostic_rulesets where version < ? order by version desc limit 1")) {
+    if (q.startsWith("select version, rollout_percent from diagnostic_rulesets where version < ? order by version desc limit 1")) {
       const [version] = bindings;
       const previous = [...this.diagnosticRulesets.keys()].filter((key) => key < Number(version)).sort((a, b) => b - a)[0];
-      return typeof previous === "number" ? { version: previous } : null;
+      if (typeof previous !== "number") return null;
+      const previousRow = this.diagnosticRulesets.get(previous);
+      return { version: previous, rollout_percent: previousRow?.rollout_percent ?? 0 };
     }
 
     if (q.startsWith("select id, display_name, legal_name, cnpj, provider_type, status, official_domain,")) {
@@ -771,7 +911,7 @@ export class FakeD1Database {
   all(sql: string, bindings: unknown[]): Row[] {
     const q = normalize(sql);
 
-    if (q.startsWith("select version, schema_version, engine_version, status, rollout_percent, published_at, updated_at from diagnostic_rulesets")) {
+    if (q.startsWith("select version, schema_version, engine_version, status, rollout_percent, rollout_min_version_code, rollout_channels, published_at, updated_at from diagnostic_rulesets")) {
       return [...this.diagnosticRulesets.values()].sort((a, b) => Number(b.version) - Number(a.version));
     }
 
@@ -918,6 +1058,32 @@ export class FakeD1Database {
 
     if (q.startsWith("select id, entity_type, entity_id, action, actor, before_json, after_json, created_at from game_catalog_audit")) {
       return [...this.gameAudit.values()].sort((left, right) => right.created_at.localeCompare(left.created_at));
+    }
+
+    if (q.startsWith("select id, provider_id, operation, before_json, after_json, actor_user_id, actor_email, source, reason, created_at from provider_audit_log")) {
+      const [providerId] = bindings;
+      return this.providerAudit
+        .filter((row) => providerId == null || row.provider_id === String(providerId))
+        .sort((left, right) => right.created_at.localeCompare(left.created_at));
+    }
+
+    if (q.startsWith("select classification, count(*) as count from diagnostic_divergences group by classification")) {
+      const counts = new Map<string, number>();
+      for (const row of this.diagnosticDivergences) {
+        counts.set(row.classification, (counts.get(row.classification) ?? 0) + 1);
+      }
+      return [...counts.entries()].map(([classification, count]) => ({ classification, count }));
+    }
+
+    if (q.startsWith("select * from diagnostic_divergences where classification = ? order by created_at desc limit ?")) {
+      const [classification] = bindings;
+      return this.diagnosticDivergences
+        .filter((row) => row.classification === String(classification))
+        .sort((left, right) => right.created_at.localeCompare(left.created_at));
+    }
+
+    if (q.startsWith("select * from diagnostic_divergences order by created_at desc limit ?")) {
+      return [...this.diagnosticDivergences].sort((left, right) => right.created_at.localeCompare(left.created_at));
     }
 
     return [];

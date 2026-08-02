@@ -110,7 +110,7 @@ class RecommendationEngine(
             matchedTags = matched,
             score = score,
             priorityTier = tierOf(candidate.type),
-            reason = buildReason(candidate, matched, ratio),
+            reason = buildReason(matched),
             trackingId = "${candidate.id}-$nowMs",
         )
     }
@@ -138,11 +138,9 @@ class RecommendationEngine(
         RecommendationType.NATIVE_AD_FALLBACK -> 2
     }
 
-    private fun buildReason(candidate: Recommendation, matched: Set<DiagnosticTag>, ratio: Double): String {
-        if (matched.isEmpty()) return "Sem recomendacao contextual elegivel; usando fallback ${candidate.type}."
-        val tagList = matched.joinToString(", ") { it.id }
-        val matchPercent = (ratio * PERCENT).toInt()
-        return "Casou com tags: $tagList ($matchPercent% de match)."
+    private fun buildReason(matched: Set<DiagnosticTag>): String {
+        if (matched.isEmpty()) return "Não encontrei uma sugestão específica para este resultado."
+        return "Esta sugestão combina com o problema identificado."
     }
 
     private companion object {

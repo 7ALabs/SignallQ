@@ -27,7 +27,7 @@ class LocalRecommendationCatalog : RecommendationCatalog {
             Recommendation(
                 id = "free_tip_sinal_movel_fraco",
                 type = RecommendationType.FREE_TIP,
-                title = "Melhore o sinal da rede movel",
+                title = "Melhore o sinal da rede móvel",
                 tags = setOf(DiagnosticTag.SINAL_BAIXO),
                 applicableNetworkTypes = setOf(NetworkContextType.MOVEL),
                 basePriority = 70,
@@ -35,14 +35,14 @@ class LocalRecommendationCatalog : RecommendationCatalog {
             Recommendation(
                 id = "configuration_trocar_dns",
                 type = RecommendationType.CONFIGURATION,
-                title = "Troque o DNS da sua rede",
+                title = "Troque o serviço que localiza sites da sua rede",
                 tags = setOf(DiagnosticTag.DNS_LENTO),
                 basePriority = 65,
             ),
             Recommendation(
                 id = "tutorial_reduzir_bufferbloat",
                 type = RecommendationType.TUTORIAL,
-                title = "Como reduzir o bufferbloat ativando QoS no roteador",
+                title = "Como deixar a internet mais estável quando a rede está ocupada",
                 tags = setOf(DiagnosticTag.BUFFERBLOAT_ALTO),
                 basePriority = 60,
             ),
@@ -69,7 +69,7 @@ class LocalRecommendationCatalog : RecommendationCatalog {
             Recommendation(
                 id = "operator_offer_upgrade_plano",
                 type = RecommendationType.OPERATOR_OFFER,
-                title = "Planos com mais velocidade disponiveis para o seu endereco",
+                title = "Veja planos com mais velocidade disponíveis na sua região",
                 tags = setOf(DiagnosticTag.VELOCIDADE_ABAIXO_DO_CONTRATADO),
                 basePriority = 50,
                 cooldownHours = 168,
@@ -78,7 +78,7 @@ class LocalRecommendationCatalog : RecommendationCatalog {
             Recommendation(
                 id = "native_ad_fallback_default",
                 type = RecommendationType.NATIVE_AD_FALLBACK,
-                title = "Anuncio nativo (fallback)",
+                title = "Conteúdo patrocinado",
                 tags = emptySet(),
                 basePriority = 0,
                 cooldownHours = 4,

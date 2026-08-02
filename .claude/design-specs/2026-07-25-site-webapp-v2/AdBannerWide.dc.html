@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="assets/google-sans-flex.css">
+  <link rel="stylesheet" href="_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/_ds_bundle.css">
+  <link rel="stylesheet" href="_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/styles.css">
+  <script src="_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/_ds_bundle.js"></script>
+  <style>
+    :root {
+      --gal-bg:    #E9E6EF;
+      --gal-fg:    #1C1B1F;
+      --gal-muted: #5C5670;
+      --gal-bezel: #26232E;
+      --gal-neck:  #33303B;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --accent:        #D0BCFF;
+        --on-accent:     #371E73;
+        --accent-blue:   #AAC7FF;
+        --success:       #83DA99;
+        --warning:       #FFB870;
+        --error:         #FFB4AB;
+        --phase-latencia:#AAC7FF;
+        --phase-download:#83DA99;
+        --phase-upload:  #FFB870;
+        --bg-primary:    #131217;
+        --bg-secondary:  #1D1B20;
+        --bg-card:       #211F26;
+        --text-primary:  #E6E0E9;
+        --text-secondary:#CAC4D0;
+        --text-tertiary: #CAC4D0;
+        --border:        #948F99;
+        --warning-container:    #693D00;
+        --on-warning-container: #FFDDB3;
+        --amber-surface:        #2E2000;
+        --success-container:    #0A5321;
+        --on-success-container: #9DF4AC;
+        --gal-bg:    #16151A;
+        --gal-fg:    #E6E0E9;
+        --gal-muted: #A9A2B4;
+        --gal-bezel: #0B0A0F;
+        --gal-neck:  #1F1D26;
+      }
+    }
+  </style>
+  <style>
+    @keyframes sqWideGlow { 0%, 100% { transform: translate3d(0,0,0) scale(1); opacity: .8; } 50% { transform: translate3d(24px,-10px,0) scale(1.15); opacity: 1; } }
+    @keyframes sqWideSweep { 0% { transform: translateX(-120%); } 55%, 100% { transform: translateX(340%); } }
+    @keyframes sqWideBar { 0%, 100% { transform: scaleY(.55); } 50% { transform: scaleY(1); } }
+    @keyframes sqWideSwap { 0%, 42% { opacity: 1; transform: translateY(0); } 50%, 92% { opacity: 0; transform: translateY(-8px); } 100% { opacity: 1; transform: translateY(0); } }
+    @keyframes sqWideSwapAlt { 0%, 42% { opacity: 0; transform: translateY(8px); } 50%, 92% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(8px); } }
+    @keyframes sqWideDot { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(201,242,107,.5); } 50% { opacity: .55; box-shadow: 0 0 0 7px rgba(201,242,107,0); } }
+    @keyframes sqWidePing { 0% { transform: scale(.4); opacity: .7; } 80% { opacity: 0; } 100% { transform: scale(1.4); opacity: 0; } }
+    .sq-w-glow { animation: sqWideGlow 10s ease-in-out infinite; }
+    .sq-w-sweep { animation: sqWideSweep 3.8s cubic-bezier(.4,0,.2,1) infinite; }
+    .sq-w-bar { transform-origin: bottom center; animation: sqWideBar 2.2s ease-in-out infinite; }
+    .sq-w-a { animation: sqWideSwap 8s ease-in-out infinite; }
+    .sq-w-b { animation: sqWideSwapAlt 8s ease-in-out infinite; }
+    .sq-w-dot { animation: sqWideDot 1.9s ease-in-out infinite; }
+    .sq-w-ping { animation: sqWidePing 3.2s ease-out infinite; }
+    @media (prefers-reduced-motion: reduce) {
+      .sq-w-glow, .sq-w-sweep, .sq-w-bar, .sq-w-a, .sq-w-b, .sq-w-dot, .sq-w-ping { animation: none !important; }
+      .sq-w-b { display: none; }
+    }
+  </style>
+</helmet>
+
+<sc-if value="{{ isCompact }}" hint-placeholder-val="{{ false }}">
+  <div style="position: relative; width: 100%; box-sizing: border-box; overflow: hidden; border-radius: 12px; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px; background: {{ cBg }};">
+    <div class="sq-w-glow" style="position: absolute; right: -60px; top: -80px; width: 200px; height: 200px; border-radius: 50%; background: {{ cGlow }};"></div>
+
+    <div style="position: relative; display: flex; align-items: center; gap: 12px;">
+      <div style="display: flex; align-items: flex-end; gap: 3px; width: 38px; height: 34px; flex-shrink: 0;">
+        <sc-for list="{{ cBars }}" as="b" hint-placeholder-count="4">
+          <div class="sq-w-bar" style="flex: 1; height: {{ b.h }}; border-radius: 2px; background: {{ b.color }}; animation-delay: {{ b.delay }};"></div>
+        </sc-for>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+        <span style="align-self: flex-start; border-radius: 999px; padding: 2px 8px; font: 700 8px/1.2 var(--font-sans); letter-spacing: .1em; text-transform: uppercase; color: {{ cBadgeFg }}; background: {{ cBadgeBg }};">Teste fechado</span>
+        <div style="font: 700 16px/1.2 var(--font-sans); color: #fff; letter-spacing: -0.01em; text-wrap: pretty;">{{ cTitle }}</div>
+      </div>
+    </div>
+
+    <div style="position: relative; font: 400 12px/1.4 var(--font-sans); color: rgba(255,255,255,.66); text-wrap: pretty;">{{ cSub }}</div>
+
+    <div style="position: relative; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 22px; overflow: hidden; background: {{ cCtaBg }};">
+      <span style="position: relative; font: 600 14px/1.2 var(--font-sans); color: {{ cCtaFg }};">Entrar na lista de teste</span>
+      <span class="sq-w-sweep" style="position: absolute; top: 0; bottom: 0; left: 0; width: 40px; background: linear-gradient(100deg, transparent, rgba(255,255,255,.34), transparent);"></span>
+    </div>
+
+    <span style="position: absolute; top: 8px; right: 12px; font: 700 8px/1 var(--font-sans); letter-spacing: .08em; color: rgba(255,255,255,.3);">PUBLICIDADE</span>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isA }}" hint-placeholder-val="{{ true }}">
+  <div style="position: relative; width: 100%; height: 140px; box-sizing: border-box; overflow: hidden; border-radius: 12px; padding: 20px 24px; display: flex; align-items: center; gap: 24px; background: linear-gradient(100deg, #1B1533 0%, #241C42 46%, #0E0D14 100%);">
+    <div class="sq-w-glow" style="position: absolute; left: 180px; top: -60px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(124,77,255,.45), rgba(124,77,255,0) 70%);"></div>
+
+    <div style="position: relative; display: flex; align-items: flex-end; gap: 5px; width: 96px; height: 68px;">
+      <sc-for list="{{ bars }}" as="b" hint-placeholder-count="7">
+        <div class="sq-w-bar" style="flex: 1; height: {{ b.h }}; border-radius: 3px; background: {{ b.color }}; animation-delay: {{ b.delay }};"></div>
+      </sc-for>
+    </div>
+
+    <div style="position: relative; flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+      <span style="align-self: flex-start; border-radius: 999px; padding: 3px 9px; font: 700 9px/1.2 var(--font-sans); letter-spacing: .1em; text-transform: uppercase; color: #0E0D14; background: #C9F26B;">Teste fechado</span>
+      <div style="position: relative; height: 30px;">
+        <div class="sq-w-a" style="position: absolute; inset: 0; font: 700 24px/1.15 var(--font-sans); color: #fff; letter-spacing: -0.02em;">A internet caiu de novo?</div>
+        <div class="sq-w-b" style="position: absolute; inset: 0; font: 700 24px/1.15 var(--font-sans); color: #fff; letter-spacing: -0.02em;">O culpado não é o plano.</div>
+      </div>
+      <div style="font: 400 13px/1.4 var(--font-sans); color: rgba(255,255,255,.7);">O app SignallQ mede cômodo a cômodo e mostra onde o sinal morre.</div>
+    </div>
+
+    <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+      <div style="position: relative; height: 44px; display: flex; align-items: center; padding: 0 22px; border-radius: 22px; overflow: hidden; background: linear-gradient(135deg, #7C4DFF, #5B21D6); box-shadow: 0 10px 24px rgba(91,33,214,.45);">
+        <span style="position: relative; font: 600 14px/1.2 var(--font-sans); color: #fff;">Entrar na lista de teste</span>
+        <span class="sq-w-sweep" style="position: absolute; top: 0; bottom: 0; left: 0; width: 40px; background: linear-gradient(100deg, transparent, rgba(255,255,255,.34), transparent);"></span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span class="sq-w-dot" style="width: 6px; height: 6px; border-radius: 999px; background: #C9F26B;"></span>
+        <span style="font: 400 11px/1.4 var(--font-sans); color: rgba(255,255,255,.6);">App em desenvolvimento</span>
+      </div>
+    </div>
+
+    <span style="position: absolute; top: 8px; right: 12px; font: 700 8px/1 var(--font-sans); letter-spacing: .08em; color: rgba(255,255,255,.3);">PUBLICIDADE</span>
+  </div>
+</sc-if>
+
+<sc-if value="{{ isB }}" hint-placeholder-val="{{ false }}">
+  <div style="position: relative; width: 100%; height: 140px; box-sizing: border-box; overflow: hidden; border-radius: 12px; padding: 20px 24px; display: flex; align-items: center; gap: 24px; background: linear-gradient(100deg, #0B1533 0%, #131A3C 52%, #0E0D14 100%);">
+    <div class="sq-w-glow" style="position: absolute; right: 160px; bottom: -90px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(circle, rgba(40,81,184,.5), rgba(40,81,184,0) 70%);"></div>
+
+    <div style="position: relative; width: 96px; height: 96px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+      <sc-for list="{{ rings }}" as="r" hint-placeholder-count="3">
+        <span class="sq-w-ping" style="position: absolute; width: 92px; height: 92px; border-radius: 50%; border: 1px solid rgba(127,209,255,.5); animation-delay: {{ r.delay }};"></span>
+      </sc-for>
+      <span style="position: relative; width: 42px; height: 42px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(127,209,255,.16);">
+        <x-import component-from-global-scope="SignallqDesignSystem.Icon" name="router" size="22" color="#7FD1FF" hint-size="22px,22px"></x-import>
+      </span>
+    </div>
+
+    <div style="position: relative; flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+      <span style="align-self: flex-start; border-radius: 999px; padding: 3px 9px; font: 700 9px/1.2 var(--font-sans); letter-spacing: .1em; text-transform: uppercase; color: #0B1533; background: #7FD1FF;">Teste fechado</span>
+      <div style="font: 700 24px/1.15 var(--font-sans); color: #fff; letter-spacing: -0.02em;">No sofá vai. No quarto, trava.</div>
+      <div style="position: relative; height: 20px;">
+        <div class="sq-w-a" style="position: absolute; inset: 0; font: 400 13px/1.4 var(--font-sans); color: rgba(255,255,255,.7);">Mapeie a casa inteira em 3 minutos.</div>
+        <div class="sq-w-b" style="position: absolute; inset: 0; font: 400 13px/1.4 var(--font-sans); color: rgba(255,255,255,.7);">Saiba onde vale trocar o roteador de lugar.</div>
+      </div>
+    </div>
+
+    <div style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+      <div style="position: relative; height: 44px; display: flex; align-items: center; padding: 0 22px; border-radius: 22px; overflow: hidden; background: #7FD1FF; box-shadow: 0 10px 24px rgba(40,81,184,.42);">
+        <span style="position: relative; font: 600 14px/1.2 var(--font-sans); color: #0B1533;">Entrar na lista de teste</span>
+        <span class="sq-w-sweep" style="position: absolute; top: 0; bottom: 0; left: 0; width: 40px; background: linear-gradient(100deg, transparent, rgba(255,255,255,.6), transparent);"></span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span class="sq-w-dot" style="width: 6px; height: 6px; border-radius: 999px; background: #7FD1FF;"></span>
+        <span style="font: 400 11px/1.4 var(--font-sans); color: rgba(255,255,255,.6);">App em desenvolvimento</span>
+      </div>
+    </div>
+
+    <span style="position: absolute; top: 8px; right: 12px; font: 700 8px/1 var(--font-sans); letter-spacing: .08em; color: rgba(255,255,255,.3);">PUBLICIDADE</span>
+  </div>
+</sc-if>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:860,&quot;height&quot;:140},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;a&quot;,&quot;b&quot;],&quot;default&quot;:&quot;a&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const HEIGHTS = [40, 62, 48, 88, 100, 70, 54];
+
+class Component extends DCLogic {
+  renderVals() {
+    const variant = this.props.variant === 'b' ? 'b' : 'a';
+    const compact = !!this.props.compact;
+    const b = variant === 'b';
+    return {
+      isCompact: compact,
+      isA: !compact && variant === 'a',
+      isB: !compact && variant === 'b',
+      cBg: b
+        ? 'linear-gradient(120deg, #0B1533 0%, #131A3C 55%, #0E0D14 100%)'
+        : 'linear-gradient(120deg, #1B1533 0%, #241C42 50%, #0E0D14 100%)',
+      cGlow: b
+        ? 'radial-gradient(circle, rgba(40,81,184,.5), rgba(40,81,184,0) 70%)'
+        : 'radial-gradient(circle, rgba(124,77,255,.45), rgba(124,77,255,0) 70%)',
+      cBadgeBg: b ? '#7FD1FF' : '#C9F26B',
+      cBadgeFg: b ? '#0B1533' : '#0E0D14',
+      cCtaBg: b ? '#7FD1FF' : 'linear-gradient(135deg, #7C4DFF, #5B21D6)',
+      cCtaFg: b ? '#0B1533' : '#fff',
+      cTitle: b ? 'No sofá vai. No quarto, trava.' : 'A internet caiu de novo?',
+      cSub: b
+        ? 'Mapeie a casa inteira em 3 minutos e saiba onde vale trocar o roteador de lugar.'
+        : 'O app SignallQ mede cômodo a cômodo e mostra onde o sinal morre.',
+      cBars: [40, 68, 100, 56].map((h, i) => ({
+        h: `${h}%`,
+        delay: `${(i * 0.14).toFixed(2)}s`,
+        color: i === 2 ? (b ? '#7FD1FF' : '#C9F26B') : i % 2 === 0 ? 'rgba(255,255,255,.18)' : (b ? 'rgba(40,81,184,.8)' : 'rgba(124,77,255,.6)'),
+      })),
+      bars: HEIGHTS.map((h, i) => ({
+        h: `${h}%`,
+        delay: `${(i * 0.12).toFixed(2)}s`,
+        color: i === 4 ? '#C9F26B' : i % 2 === 0 ? 'rgba(255,255,255,.16)' : 'rgba(124,77,255,.6)',
+      })),
+      rings: [{ delay: '0s' }, { delay: '1.05s' }, { delay: '2.1s' }],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

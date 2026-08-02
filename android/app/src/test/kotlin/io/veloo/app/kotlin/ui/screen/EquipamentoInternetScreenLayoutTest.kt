@@ -197,7 +197,7 @@ class EquipamentoInternetScreenLayoutTest {
         val idxZonaDetalhesTecnicos = arvore.indexOf("DETALHES TÉCNICOS")
         val idxWifi24 = arvore.indexOf("Casa_24")
         val idxWifi56 = arvore.indexOf("Casa_5G")
-        val idxLan = arvore.indexOf("Rede local (LAN)")
+        val idxLan = arvore.indexOf("Rede dentro de casa")
         val idxDispositivos = arvore.indexOf("Dispositivos conectados")
         val idxAcoes = arvore.indexOf("AÇÕES DISPONÍVEIS")
 

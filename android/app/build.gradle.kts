@@ -324,6 +324,10 @@ dependencies {
     // Pro (:pro:feature:laudo) e por :featureHistory. Unifica ResultadoPdfGenerator/LaudoScreen
     // no mesmo renderer, com paginacao real em vez de Canvas manual.
     implementation(project(":core:relatorio"))
+    // Fundacao de Feature Flags do Consumer via Firebase Remote Config (issue #1477, Epico
+    // #1347) — catalogo tipado + FeatureFlagProvider. So :app consome nesta fase (F4/#1480
+    // instrumenta os modulos feature de verdade).
+    implementation(project(":core:featureflags"))
 
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 

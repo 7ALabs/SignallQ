@@ -45,7 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.signallq.app.BuildConfig
 import io.signallq.app.core.database.MedicaoEntity
-import io.signallq.app.core.diagnostico.DiagnosticStatus
+import io.signallq.app.core.diagnostico.DiagnosticReport
 import io.signallq.app.feature.diagnostico.SnapshotDiagnostico
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
@@ -54,6 +54,9 @@ import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkStatusDot
 import io.signallq.app.ui.component.LkSurfaceCard
+import io.signallq.app.ui.component.corContainer
+import io.signallq.app.ui.component.corConteudo
+import io.signallq.app.ui.component.labelPt
 import io.signallq.app.ui.relatorio.RelatorioDiagnosticoExporter
 import io.signallq.app.ui.relatorio.RelatorioDiagnosticoSnapshot
 import io.signallq.app.ui.relatorio.RelatorioPrivacidade
@@ -84,7 +87,15 @@ fun LaudoScreen(
     var erro by remember { mutableStateOf<String?>(null) }
 
     val relatorio = snapshotDiagnostico.relatorio
-    val decisao = relatorio?.decisao
+    // GH#1228 (Fase 3, corrige P0-3) — so usa a decisao (veredito/resumo/recomendacao) do
+    // diagnostico em memoria quando ela pertence a MESMA execucao da medicao persistida
+    // sendo exibida (ultimaMedicao); nunca combina metricas de uma execucao com o veredito
+    // de outra ("Frankenstein" ja documentado na auditoria da #1228). Sem medicao persistida
+    // ainda (ultimaMedicao == null), nao ha metrica pra conflitar — decisao segue disponivel.
+    val diagnosticoCorresponde =
+        ultimaMedicao == null || diagnosticoCorrespondeAMedicao(relatorio?.executionId, ultimaMedicao.executionId)
+    val decisao = relatorio?.decisao.takeIf { diagnosticoCorresponde }
+    val diagnosticoIndisponivelPorDivergencia = relatorio != null && !diagnosticoCorresponde
 
     val compartilharLaudo: () -> Unit = {
         scope.launch {
@@ -198,32 +209,11 @@ fun LaudoScreen(
             verticalArrangement = Arrangement.spacedBy(LkSpacing.lg),
         ) {
             // Banner de status — colorido por severidade da decisão
-            if (decisao != null) {
+            if (relatorio != null && decisao != null) {
                 item {
-                    val containerColor =
-                        when (decisao.status) {
-                            DiagnosticStatus.ok -> c.successContainer
-                            DiagnosticStatus.attention -> c.warningContainer
-                            DiagnosticStatus.critical -> c.errorContainer
-                            DiagnosticStatus.inconclusive -> c.warningContainer
-                            DiagnosticStatus.info -> c.primaryContainer
-                        }
-                    val textColor =
-                        when (decisao.status) {
-                            DiagnosticStatus.ok -> c.onSuccessContainer
-                            DiagnosticStatus.attention -> c.onWarningContainer
-                            DiagnosticStatus.critical -> c.onErrorContainer
-                            DiagnosticStatus.inconclusive -> c.onWarningContainer
-                            DiagnosticStatus.info -> c.onPrimaryContainer
-                        }
-                    val labelStatus =
-                        when (decisao.status) {
-                            DiagnosticStatus.ok -> "Conexão saudável"
-                            DiagnosticStatus.attention -> "Atenção"
-                            DiagnosticStatus.critical -> "Problema detectado"
-                            DiagnosticStatus.inconclusive -> "Inconclusivo"
-                            DiagnosticStatus.info -> "Informação"
-                        }
+                    val containerColor = decisao.status.corContainer(c)
+                    val textColor = decisao.status.corConteudo(c)
+                    val labelStatus = decisao.status.labelPt()
                     Row(
                         modifier =
                             Modifier
@@ -270,6 +260,28 @@ fun LaudoScreen(
                                 color = textColor,
                             )
                         }
+                    }
+                }
+            } else if (diagnosticoIndisponivelPorDivergencia) {
+                // GH#1228 (Fase 3, corrige P0-3) — ha um diagnostico em memoria, mas ele nao
+                // corresponde a mesma execucao da medicao exibida abaixo (ex.: um diagnostico
+                // de Wi-Fi rodou depois, sem um novo speedtest) — nunca combinar, avisar.
+                item {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(LkRadius.card))
+                                .background(c.warningContainer)
+                                .padding(horizontal = LkSpacing.lg, vertical = LkSpacing.md),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "Diagnóstico não disponível para esta medição (resultado de uma execução diferente).",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.W600,
+                            color = c.onWarningContainer,
+                        )
                     }
                 }
             }
@@ -503,12 +515,107 @@ private fun LaudoMetrica(
 }
 
 /**
+ * GH#1228 (Fase 3, corrige P0-3) — decide se o diagnóstico em memória ([relatorioExecutionId])
+ * pertence à MESMA execução que a medição persistida sendo exibida ([medicaoExecutionId]).
+ *
+ * Ambos os lados precisam ter `executionId` não vazio E iguais. Se qualquer lado for
+ * desconhecido (linha legada persistida antes desta coluna existir, ou fluxo que ainda não
+ * propaga o id — ver `DiagnosticInput.executionId`), a correspondência NUNCA é assumida como
+ * verdadeira — "não sei" nunca vira "sim" por omissão. Função pura, sem Compose/Context,
+ * testável diretamente.
+ */
+internal fun diagnosticoCorrespondeAMedicao(
+    relatorioExecutionId: String?,
+    medicaoExecutionId: String?,
+): Boolean {
+    if (relatorioExecutionId.isNullOrBlank() || medicaoExecutionId.isNullOrBlank()) return false
+    return relatorioExecutionId == medicaoExecutionId
+}
+
+/**
+ * GH#1228 (Fase 3, corrige P0-3) — monta o [RelatorioDiagnosticoSnapshot] exportável usando
+ * SOMENTE a decisão (veredito/resumo/recomendação) do [relatorio] quando ela pertence à MESMA
+ * execução da [ultimaMedicao] persistida — nunca combina métricas de uma execução com o
+ * veredito de outra ("Frankenstein" já documentado na auditoria da #1228, ex.: um diagnóstico
+ * de Wi-Fi sem internet rodado depois de um speedtest antigo). Quando não há correspondência
+ * (mas há diagnóstico em memória), o resumo exibido é explícito sobre a indisponibilidade —
+ * nunca busca automaticamente um diagnóstico de outra execução para preencher a lacuna.
+ *
+ * Função pura (sem Context/IO/Compose) — testável diretamente, sem instrumentação Android.
+ */
+internal fun montarSnapshotLaudo(
+    relatorio: DiagnosticReport?,
+    ultimaMedicao: MedicaoEntity?,
+    operadora: String,
+    ssid: String?,
+    ipLocal: String?,
+    ipPublico: String?,
+    velocidadeContratadaMbps: Int?,
+    conectado: Boolean,
+    versaoApp: String,
+    agoraEpochMs: Long = System.currentTimeMillis(),
+): RelatorioDiagnosticoSnapshot {
+    val diagnosticoCorresponde =
+        ultimaMedicao == null || diagnosticoCorrespondeAMedicao(relatorio?.executionId, ultimaMedicao.executionId)
+    val decisao = relatorio?.decisao.takeIf { diagnosticoCorresponde }
+
+    // #375: offline reaproveita a ultima medicao salva — o horario exibido precisa ser o
+    // da MEDICAO real, nunca o momento da geracao do PDF (GH#1219 item 5).
+    val medidoEmEpochMs = if (!conectado) ultimaMedicao?.timestampEpochMs ?: agoraEpochMs else agoraEpochMs
+
+    val operadoraOuIsp = (operadora.ifBlank { null } ?: ultimaMedicao?.operadoraMovel)
+    val planoInfo =
+        if (velocidadeContratadaMbps != null && velocidadeContratadaMbps > 0) {
+            "Plano contratado informado: $velocidadeContratadaMbps Mbps (comparação apenas informativa, não é aferição oficial)."
+        } else {
+            null
+        }
+
+    val resumo =
+        when {
+            decisao != null -> decisao.mensagemUsuario.ifBlank { null }
+            relatorio != null && !diagnosticoCorresponde ->
+                "Diagnóstico não disponível para esta medição — o último diagnóstico calculado " +
+                    "pertence a uma execução diferente da medição exibida acima."
+            else -> null
+        }
+
+    return RelatorioDiagnosticoSnapshot(
+        // GH#1228 (Fase 3) — id da medicao que originou os numeros abaixo (fonte real das
+        // metricas exibidas), nunca o id de um diagnostico que nao corresponde a ela.
+        executionId = ultimaMedicao?.executionId ?: "",
+        nomeDocumento = "Relatório de diagnóstico da conexão",
+        medidoEmEpochMs = medidoEmEpochMs,
+        tipoRede = ultimaMedicao?.connectionType?.let { tipoRedeLabelLaudo(it) } ?: "Não identificado",
+        downloadMbps = ultimaMedicao?.downloadMbps,
+        uploadMbps = ultimaMedicao?.uploadMbps,
+        latenciaMs = ultimaMedicao?.latencyMs,
+        jitterMs = ultimaMedicao?.jitterMs,
+        perdaPercentual = ultimaMedicao?.perdaPercentual,
+        perdaEstimada = ultimaMedicao?.packetLossSource == "estimated",
+        bufferbloatMs = ultimaMedicao?.bufferbloatMs,
+        veredito = decisao?.titulo,
+        resumo = resumo,
+        recomendacao = listOfNotNull(decisao?.recomendacao, planoInfo).joinToString(" ").ifBlank { null },
+        diagnosticoOrigem = ultimaMedicao?.diagnosticoOrigem,
+        ssidMascarado = RelatorioPrivacidade.mascararSsid(ssid),
+        ipLocalMascarado = RelatorioPrivacidade.mascararIpLocal(ipLocal),
+        ipPublicoMascarado = RelatorioPrivacidade.mascararIpPublico(ipPublico),
+        operadora = operadoraOuIsp,
+        versaoApp = versaoApp,
+        versaoMotor = ultimaMedicao?.specVersion ?: "n/d",
+        offline = !conectado,
+    )
+}
+
+/**
  * GH#1219 — antes gerava o PDF direto via `PdfDocument`/`Canvas` manual, com texto
  * truncado por limite de caracteres, sem paginação e com a seção "CONFORMIDADE ANATEL"
  * (mínimo garantido 40%/meta 80%/Resolução 574/2011 — afirmações regulatórias
  * desatualizadas, removidas nesta correção; ver critérios de aceite da issue). Agora monta
- * um [RelatorioDiagnosticoSnapshot] com SSID/IPs já mascarados e delega pro renderer único
- * ([RelatorioDiagnosticoExporter], mesmo motor HTML→PDF do `ResultadoPdfGenerator`).
+ * um [RelatorioDiagnosticoSnapshot] com SSID/IPs já mascarados (via [montarSnapshotLaudo]) e
+ * delega pro renderer único ([RelatorioDiagnosticoExporter], mesmo motor HTML→PDF do
+ * `ResultadoPdfGenerator`).
  */
 private suspend fun gerarECompartilharLaudo(
     context: Context,
@@ -524,43 +631,17 @@ private suspend fun gerarECompartilharLaudo(
     velocidadeContratadaMbps: Int? = null,
     conectado: Boolean = true,
 ) {
-    // #375: offline reaproveita a ultima medicao salva — o horario exibido precisa ser o
-    // da MEDICAO real, nunca o momento da geracao do PDF (GH#1219 item 5).
-    val medidoEmEpochMs = if (!conectado) ultimaMedicao?.timestampEpochMs ?: System.currentTimeMillis() else System.currentTimeMillis()
-    val decisao = snapshotDiagnostico.relatorio?.decisao
-
-    val operadoraOuIsp = (operadora.ifBlank { null } ?: ultimaMedicao?.operadoraMovel)
-    val planoInfo =
-        if (velocidadeContratadaMbps != null && velocidadeContratadaMbps > 0) {
-            "Plano contratado informado: $velocidadeContratadaMbps Mbps (comparação apenas informativa, não é aferição oficial)."
-        } else {
-            null
-        }
-
     val snapshot =
-        RelatorioDiagnosticoSnapshot(
-            executionId = "",
-            nomeDocumento = "Relatório de diagnóstico da conexão",
-            medidoEmEpochMs = medidoEmEpochMs,
-            tipoRede = ultimaMedicao?.connectionType?.let { tipoRedeLabelLaudo(it) } ?: "Não identificado",
-            downloadMbps = ultimaMedicao?.downloadMbps,
-            uploadMbps = ultimaMedicao?.uploadMbps,
-            latenciaMs = ultimaMedicao?.latencyMs,
-            jitterMs = ultimaMedicao?.jitterMs,
-            perdaPercentual = ultimaMedicao?.perdaPercentual,
-            perdaEstimada = ultimaMedicao?.packetLossSource == "estimated",
-            bufferbloatMs = ultimaMedicao?.bufferbloatMs,
-            veredito = decisao?.titulo,
-            resumo = decisao?.mensagemUsuario?.ifBlank { null },
-            recomendacao = listOfNotNull(decisao?.recomendacao, planoInfo).joinToString(" ").ifBlank { null },
-            diagnosticoOrigem = ultimaMedicao?.diagnosticoOrigem,
-            ssidMascarado = RelatorioPrivacidade.mascararSsid(ssid),
-            ipLocalMascarado = RelatorioPrivacidade.mascararIpLocal(ipLocal),
-            ipPublicoMascarado = RelatorioPrivacidade.mascararIpPublico(ipPublico),
-            operadora = operadoraOuIsp,
+        montarSnapshotLaudo(
+            relatorio = snapshotDiagnostico.relatorio,
+            ultimaMedicao = ultimaMedicao,
+            operadora = operadora,
+            ssid = ssid,
+            ipLocal = ipLocal,
+            ipPublico = ipPublico,
+            velocidadeContratadaMbps = velocidadeContratadaMbps,
+            conectado = conectado,
             versaoApp = BuildConfig.VERSION_NAME,
-            versaoMotor = ultimaMedicao?.specVersion ?: "n/d",
-            offline = !conectado,
         )
 
     RelatorioDiagnosticoExporter.gerarECompartilhar(

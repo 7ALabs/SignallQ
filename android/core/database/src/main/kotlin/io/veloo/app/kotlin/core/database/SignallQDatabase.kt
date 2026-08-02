@@ -5,6 +5,8 @@ import androidx.room.RoomDatabase
 import io.signallq.app.core.database.chat.ChatMessageEntity
 import io.signallq.app.core.database.chat.ChatSessionDao
 import io.signallq.app.core.database.chat.ChatSessionEntity
+import io.signallq.app.core.database.connectivity.ConnectivityDiagnosisHistoryDao
+import io.signallq.app.core.database.connectivity.ConnectivityDiagnosisHistoryEntity
 import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
 import io.signallq.app.core.database.recommendation.RecommendationHistoryEntity
 
@@ -15,8 +17,9 @@ import io.signallq.app.core.database.recommendation.RecommendationHistoryEntity
         ChatSessionEntity::class,
         ChatMessageEntity::class,
         RecommendationHistoryEntity::class,
+        ConnectivityDiagnosisHistoryEntity::class,
     ],
-    version = 14,
+    version = 16,
     exportSchema = true,
 )
 abstract class SignallQDatabase : RoomDatabase() {
@@ -24,4 +27,5 @@ abstract class SignallQDatabase : RoomDatabase() {
     abstract fun apelidoDispositivoDao(): ApelidoDispositivoDao
     abstract fun chatSessionDao(): ChatSessionDao
     abstract fun recommendationHistoryDao(): RecommendationHistoryDao
+    abstract fun connectivityDiagnosisHistoryDao(): ConnectivityDiagnosisHistoryDao
 }

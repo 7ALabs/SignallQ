@@ -79,6 +79,12 @@ private sealed interface GatewayConnectionSheetState {
 
 internal const val MENSAGEM_ERRO_ALCANCABILIDADE = "Não foi possível alcançar esse endereço na rede."
 
+// BUG#1511 (P0) — mensagem honesta para GatewayConnectionResultado.Indisponivel: nenhuma
+// implementação real de autenticação existe ainda para este fluxo (aguardando #547). Nunca
+// trocar por uma mensagem de "conectado"/sucesso.
+internal const val MENSAGEM_GATEWAY_INDISPONIVEL =
+    "A verificação de conexão com o roteador ainda não está disponível nesta versão do app."
+
 private const val TIMEOUT_ALCANCABILIDADE_MS = 2000
 private val PORTAS_ADMIN_ROTEADOR = listOf(80, 443)
 
@@ -206,6 +212,12 @@ internal fun GatewayConnectionSheetContent(
                 }
                 is GatewayConnectionResultado.Falha -> {
                     estado = GatewayConnectionSheetState.Erro(resultado.mensagemUsuario)
+                }
+                // BUG#1511 (P0) — sem implementação real de autenticação, nunca chama
+                // onConectado (isso persistiria credencial/sessão como validada sem
+                // nenhuma evidência real). Mensagem honesta, sem sucesso simulado.
+                is GatewayConnectionResultado.Indisponivel -> {
+                    estado = GatewayConnectionSheetState.Erro(MENSAGEM_GATEWAY_INDISPONIVEL)
                 }
             }
         }

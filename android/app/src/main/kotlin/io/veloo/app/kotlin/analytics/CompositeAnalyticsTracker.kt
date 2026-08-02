@@ -73,6 +73,15 @@ class CompositeAnalyticsTracker
             enviarEvento(name = "battery_snapshot", batteryLevel = level, batteryCharging = charging)
         }
 
+        // GH#1480 (Epico #1347, F4) — encaminha so ao Firebase (GA4), sem replicar para o
+        // ingest do signallq-admin-worker: `AnalyticsEventIngestPayload`/schema D1 nao tem
+        // campo equivalente ainda, e estender esse contrato e escopo separado (nao desta
+        // instrumentacao). O evento fica completo no Firebase, que ja e a fonte usada pelo
+        // criterio de aceite da issue ("feature_blocked_remote registrado sem dado pessoal").
+        override fun registrarFeatureBloqueadaRemota(featureId: String) {
+            firebaseTracker.registrarFeatureBloqueadaRemota(featureId)
+        }
+
         private fun enviarEvento(
             name: String,
             featureId: String? = null,

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="assets/google-sans-flex.css">
+  <link rel="stylesheet" href="_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/_ds_bundle.css">
+  <link rel="stylesheet" href="_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/styles.css">
+  <script src="_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/_ds_bundle.js"></script>
+  <style>
+    :root {
+      --gal-bg:    #E9E6EF;
+      --gal-fg:    #1C1B1F;
+      --gal-muted: #5C5670;
+      --gal-bezel: #26232E;
+      --gal-neck:  #33303B;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --accent:        #D0BCFF;
+        --on-accent:     #371E73;
+        --accent-blue:   #AAC7FF;
+        --success:       #83DA99;
+        --warning:       #FFB870;
+        --error:         #FFB4AB;
+        --phase-latencia:#AAC7FF;
+        --phase-download:#83DA99;
+        --phase-upload:  #FFB870;
+        --bg-primary:    #131217;
+        --bg-secondary:  #1D1B20;
+        --bg-card:       #211F26;
+        --text-primary:  #E6E0E9;
+        --text-secondary:#CAC4D0;
+        --text-tertiary: #CAC4D0;
+        --border:        #948F99;
+        --warning-container:    #693D00;
+        --on-warning-container: #FFDDB3;
+        --amber-surface:        #2E2000;
+        --success-container:    #0A5321;
+        --on-success-container: #9DF4AC;
+        --gal-bg:    #16151A;
+        --gal-fg:    #E6E0E9;
+        --gal-muted: #A9A2B4;
+        --gal-bezel: #0B0A0F;
+        --gal-neck:  #1F1D26;
+      }
+    }
+  </style>
+</helmet>
+
+<div style="position: relative; min-height: 100%; display: flex; flex-direction: column; overflow: hidden; background: var(--bg-primary);">
+  <dc-import name="SiteNav" active="pro" mobile="{{ mobile }}" hint-size="100%,76px"></dc-import>
+
+  <div style="flex: 1; width: 100%; box-sizing: border-box; display: flex; align-items: flex-start; justify-content: center; gap: 24px; padding: {{ shellPadding }};">
+
+    <sc-if value="{{ desktop }}" hint-placeholder-val="{{ true }}">
+      <dc-import name="AdRail" hint-size="240px,880px"></dc-import>
+    </sc-if>
+
+    <div style="flex: 1; max-width: {{ contentMax }}; display: flex; flex-direction: column; gap: 24px;">
+
+      <sc-if value="{{ partOne }}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <span style="align-self: flex-start; border-radius: 999px; padding: 5px 12px; font: 700 11px/1.2 var(--font-sans); text-transform: uppercase; letter-spacing: .04em; color: #fff; background: linear-gradient(135deg, #0B6CFF, #6558E8);">SignallQ PRO</span>
+          <h1 style="margin: 0; max-width: 640px; font: 700 {{ heroSize }}/1.2 var(--font-sans); color: var(--text-primary); text-wrap: pretty;">Sua visita técnica merece um resultado que o cliente guarda.</h1>
+          <p style="margin: 0; max-width: 560px; font: 400 14px/1.5 var(--font-sans); color: var(--text-secondary);">Cliente, ambientes, comparações e um laudo em PDF com a sua marca.</p>
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; padding-top: 4px;">
+            <div style="height: 44px; display: flex; align-items: center; padding: 0 20px; border-radius: var(--radius-button); background: linear-gradient(135deg, #0B6CFF, #6558E8); font: 500 14px/1.43 var(--font-sans); color: #fff;">Entrar na lista de espera</div>
+            <div style="height: 44px; display: flex; align-items: center; padding: 0 20px; border: 1px solid var(--border); border-radius: var(--radius-button); font: 500 14px/1.43 var(--font-sans); color: var(--text-primary);">Usar o SignallQ gratuito</div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: {{ twoCols }}; gap: 20px;">
+          <section style="border-radius: 16px; padding: 18px; box-sizing: border-box; background: var(--bg-secondary); display: flex; flex-direction: column; gap: 10px;">
+            <div style="font: 600 16px/1.38 var(--font-sans); color: var(--text-primary);">Sem o PRO, hoje</div>
+            <sc-for list="{{ pains }}" as="p" hint-placeholder-count="3">
+              <div style="display: flex; align-items: flex-start; gap: 10px;">
+                <span style="margin-top: 7px; width: 5px; height: 5px; flex-shrink: 0; border-radius: 999px; background: var(--error);"></span>
+                <div style="font: 400 13px/1.45 var(--font-sans); color: var(--text-secondary); text-wrap: pretty;">{{ p }}</div>
+              </div>
+            </sc-for>
+          </section>
+
+          <section style="border-radius: 16px; padding: 18px; box-sizing: border-box; background: var(--bg-secondary); display: flex; flex-direction: column; gap: 10px;">
+            <div style="font: 600 16px/1.38 var(--font-sans); color: var(--text-primary);">Para quem é</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <sc-for list="{{ audiences }}" as="a" hint-placeholder-count="6">
+                <span style="border-radius: 999px; padding: 5px 12px; font: 500 12px/1.33 var(--font-sans); color: var(--text-primary); background: var(--bg-primary);">{{ a }}</span>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="font: 600 16px/1.38 var(--font-sans); color: var(--text-primary);">O que o PRO entrega</div>
+          <div style="display: grid; grid-template-columns: {{ threeCols }}; gap: 16px;">
+            <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="font: 500 11px/1.45 var(--font-sans); color: var(--text-tertiary); letter-spacing: .3px; text-transform: uppercase;">{{ g.title }}</div>
+                <sc-for list="{{ g.items }}" as="f" hint-placeholder-count="4">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <x-import component-from-global-scope="SignallqDesignSystem.Icon" name="{{ f.icon }}" size="18" color="#0B6CFF" hint-size="18px,18px"></x-import>
+                    <div style="font: 400 13px/1.4 var(--font-sans); color: var(--text-secondary);">{{ f.label }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ partTwo }}" hint-placeholder-val="{{ false }}">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="font: 600 16px/1.38 var(--font-sans); color: var(--text-primary);">Como funciona na prática</div>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+            <sc-for list="{{ flow }}" as="s" hint-placeholder-count="7">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="border-radius: 999px; padding: 5px 12px; font: 500 12px/1.33 var(--font-sans); color: #fff; background: linear-gradient(135deg, #0B6CFF, #6558E8);">{{ s.label }}</span>
+                <span style="font: 600 13px/1 var(--font-sans); color: var(--text-tertiary);">{{ s.arrow }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="font: 600 16px/1.38 var(--font-sans); color: var(--text-primary);">Gratuito × PRO</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; border: 1px solid color-mix(in srgb, var(--border) 30%, transparent); border-radius: 16px;">
+            <div style="padding: 10px 14px; background: var(--bg-secondary); font: 500 13px/1.4 var(--font-sans); color: var(--text-primary);">Gratuito</div>
+            <div style="padding: 10px 14px; background: linear-gradient(135deg, #0B6CFF, #6558E8); font: 700 13px/1.4 var(--font-sans); color: #fff;">PRO</div>
+            <sc-for list="{{ comparisons }}" as="c" hint-placeholder-count="4">
+              <div style="border-top: 1px solid color-mix(in srgb, var(--border) 20%, transparent); padding: 10px 14px; font: 400 12px/1.45 var(--font-sans); color: var(--text-secondary);">{{ c.free }}</div>
+              <div style="border-top: 1px solid color-mix(in srgb, var(--border) 20%, transparent); border-left: 1px solid color-mix(in srgb, var(--border) 20%, transparent); padding: 10px 14px; font: 500 12px/1.45 var(--font-sans); color: var(--text-primary);">{{ c.pro }}</div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: {{ twoCols }}; gap: 16px;">
+          <div style="display: flex; flex-direction: column; gap: 4px; border-radius: 16px; padding: 16px; background: var(--bg-secondary);">
+            <div style="font: 500 11px/1.45 var(--font-sans); color: var(--text-tertiary); letter-spacing: .3px; text-transform: uppercase;">Mensal</div>
+            <div style="font: 600 20px/1.3 var(--font-sans); color: var(--text-primary);">Em breve</div>
+            <div style="font: 400 12px/1.4 var(--font-sans); color: var(--text-secondary);">Cobrança recorrente mensal.</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px; border-radius: 16px; padding: 16px; background: var(--bg-secondary);">
+            <div style="font: 500 11px/1.45 var(--font-sans); color: var(--text-tertiary); letter-spacing: .3px; text-transform: uppercase;">Anual</div>
+            <div style="font: 600 20px/1.3 var(--font-sans); color: var(--text-primary);">Em breve</div>
+            <div style="font: 400 12px/1.4 var(--font-sans); color: var(--text-secondary);">Cobrança recorrente anual.</div>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; border-radius: 16px; padding: 18px 20px; background: var(--bg-secondary);">
+          <div style="font: 600 16px/1.38 var(--font-sans); color: var(--text-primary); max-width: 420px;">Seu próximo atendimento pode ser o primeiro com laudo profissional.</div>
+          <div style="height: 44px; display: flex; align-items: center; padding: 0 20px; border-radius: var(--radius-button); background: linear-gradient(135deg, #0B6CFF, #6558E8); font: 500 14px/1.43 var(--font-sans); color: #fff;">Entrar na lista de espera</div>
+        </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ desktop }}" hint-placeholder-val="{{ true }}">
+      <dc-import name="AdRail" variant="b" hint-size="240px,880px"></dc-import>
+    </sc-if>
+  </div>
+
+  <div style="width: 100%; box-sizing: border-box; padding: 0 20px 28px; display: flex; justify-content: center;">
+    <div style="width: 100%; max-width: 860px;">
+      <dc-import name="AdBannerWide" variant="b" compact="{{ mobile }}" hint-size="100%,140px"></dc-import>
+    </div>
+  </div>
+
+  <dc-import name="SiteFooter" compact="{{ true }}" mobile="{{ mobile }}" hint-size="100%,auto"></dc-import>
+
+  <sc-if value="{{ showModal }}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(0,0,0,.4);">
+      <div style="width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center; gap: 12px; border-radius: 24px; padding: 24px; text-align: center; background: var(--bg-card);">
+        <x-import component-from-global-scope="SignallqDesignSystem.Icon" name="workspace_premium" size="32" color="#0B6CFF" hint-size="32px,32px"></x-import>
+        <div style="font: 600 20px/1.3 var(--font-sans); color: var(--text-primary);">O PRO chega em breve</div>
+        <div style="font: 400 14px/1.43 var(--font-sans); color: var(--text-secondary);">Deixe seu e-mail e avisamos no lançamento.</div>
+        <div style="width: 100%; border: 1px solid var(--border); border-radius: var(--radius-field); padding: 10px 14px; box-sizing: border-box; text-align: left; font: 400 14px/1.43 var(--font-sans); color: var(--text-tertiary);">seu@email.com</div>
+        <div style="width: 100%; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-button); background: linear-gradient(135deg, #0B6CFF, #6558E8); opacity: .4; font: 500 14px/1.43 var(--font-sans); color: #fff;">Quero ser avisado</div>
+        <div style="display: flex; width: 100%; gap: 10px;">
+          <div style="flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: var(--radius-button); font: 500 14px/1.43 var(--font-sans); color: var(--text-primary);">Fechar</div>
+          <div style="flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-button); background: var(--accent); font: 500 14px/1.43 var(--font-sans); color: var(--on-accent);">Usar o gratuito</div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1050},&quot;mobile&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;modal&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;part&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;}}">
+const FLOW = ['Cliente', 'Local', 'Visita', 'Ambientes', 'Medições', 'Evidências', 'Laudo'];
+
+class Component extends DCLogic {
+  renderVals() {
+    const mobile = !!this.props.mobile;
+    const part = Number(this.props.part || 0);
+    return {
+      mobile, desktop: !mobile,
+      showModal: !!this.props.modal,
+      partOne: mobile || part !== 2,
+      partTwo: mobile || part === 2,
+      shellPadding: mobile ? '28px 20px 40px' : '20px 24px 16px',
+      contentMax: mobile ? '100%' : '860px',
+      heroSize: mobile ? '28px' : '30px',
+      twoCols: mobile ? '1fr' : '1fr 1fr',
+      threeCols: mobile ? '1fr' : '1fr 1fr 1fr',
+      pains: [
+        'Medições ficam soltas no WhatsApp e somem antes do próximo atendimento.',
+        'O cliente vê um número na tela, mas não entende o que você fez.',
+        'Trabalho técnico com cara de favor, não de serviço profissional.',
+      ],
+      audiences: ['Técnicos de informática', 'Instaladores de redes', 'Consultores', 'Profissionais autônomos', 'Pequenos provedores', 'Prestadores de Wi-Fi'],
+      groups: [
+        { title: 'Clientes e visitas', items: [
+          { icon: 'group', label: 'Cadastro de clientes' },
+          { icon: 'location_on', label: 'Cadastro de locais' },
+          { icon: 'event_available', label: 'Visitas técnicas' },
+          { icon: 'meeting_room', label: 'Ambientes e cômodos' },
+        ] },
+        { title: 'Registro técnico', items: [
+          { icon: 'speed', label: 'Medições por ambiente' },
+          { icon: 'photo_camera', label: 'Fotos e evidências' },
+          { icon: 'compare', label: 'Antes e depois' },
+          { icon: 'history', label: 'Histórico por cliente' },
+        ] },
+        { title: 'Laudo e entrega', items: [
+          { icon: 'picture_as_pdf', label: 'Laudo em PDF' },
+          { icon: 'branding_watermark', label: 'Sua marca no laudo' },
+          { icon: 'ios_share', label: 'Envio ao cliente' },
+        ] },
+      ],
+      flow: FLOW.map((label, i) => ({ label, arrow: i < FLOW.length - 1 ? '→' : '' })),
+      comparisons: [
+        { free: 'Você mede a sua própria conexão', pro: 'Você mede e documenta a de cada cliente' },
+        { free: 'Resultado fica só na tela', pro: 'Resultado vira laudo em PDF com sua marca' },
+        { free: 'Sem histórico por cliente', pro: 'Histórico por cliente e por visita' },
+        { free: 'Sem evidências nem comparação', pro: 'Fotos, observações e antes/depois' },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

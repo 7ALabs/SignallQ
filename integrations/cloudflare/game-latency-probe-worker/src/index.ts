@@ -16,19 +16,28 @@ export default {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
 
+    const corsHeaders = {
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "GET, HEAD, OPTIONS",
+      "access-control-max-age": "86400",
+      "cache-control": "no-store",
+    };
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: corsHeaders });
+    }
+
     if (url.pathname !== "/probe" && url.pathname !== "/") {
-      return new Response(null, { status: 404 });
+      return new Response(null, { status: 404, headers: corsHeaders });
     }
 
     if (request.method !== "GET" && request.method !== "HEAD") {
-      return new Response(null, { status: 405 });
+      return new Response(null, { status: 405, headers: corsHeaders });
     }
 
     return new Response(null, {
       status: 204,
-      headers: {
-        "cache-control": "no-store",
-      },
+      headers: corsHeaders,
     });
   },
 };

@@ -34,8 +34,12 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.okhttp)
     implementation(project(":coreNetwork"))
+    implementation(project(":coreDatabase"))
     implementation(project(":coreDatastore"))
     implementation(project(":coreTelephony"))
+    // GH#1228 Fatia 6 (P1-4): fonte unica de threshold de bufferbloat
+    // (SpeedtestQualityClassifier delega a MetricClassifier.classificarBufferbloat).
+    implementation(project(":core:diagnostico"))
     implementation(libs.timber)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
