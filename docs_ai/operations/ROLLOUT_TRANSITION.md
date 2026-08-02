@@ -1,17 +1,20 @@
 # Transição Closed Beta → Open Beta → Produção
 
-> **Atualizado em 2026-07-17** — cronograma comprimido pra produção em 07/08/2026 (pedido do
-> Luiz). Viável sem cortar o mínimo de 14 dias de cada fase porque a trilha `alpha` já está
-> ativa desde 10/07 — mais cedo do que o plano original (28/06) assumia. Riscos reais dessa
-> compressão em `.claude/CLAUDE.md` (seção "Milestones") e `GO_NOGO_CHECKLIST.md`.
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Fonte de verdade das datas:** GitHub issue
+  [#1222](https://github.com/7ALabs/SignallQ/issues/1222) e
+  `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md` — lançamento público (M5) em
+  **21/08/2026** (revisão mais recente, substitui o 07/08 abaixo, que é de 2026-07-17). Datas de
+  M4 não reconfirmadas contra a decisão de 2026-07-20 — tratar como **[a confirmar]**.
 
 ## Visão Geral
 
 | Fase | Track Play Store | Audiência | Duração mín. | Milestone |
 |---|---|---|---|---|
 | Closed Beta | `internal` → `alpha` | 10-30 convidados | 14 dias | M2 (21/07, já satisfeito — ativo desde 10/07) |
-| Open Beta | `beta` (teste aberto) | Qualquer pessoa | 14 dias | M4 (início ~21/07, conclui ~04/08) |
-| Produção | `production` (staged) | Público | Permanente | M5 (07/08) |
+| Open Beta | `beta` (teste aberto) | Qualquer pessoa | 14 dias | M4 — **[a confirmar, ver issue #1222]** |
+| Produção | `production` (staged) | Público | Permanente | M5 — **21/08/2026** (issue #1222) |
 
 ## Closed Beta → Open Beta
 

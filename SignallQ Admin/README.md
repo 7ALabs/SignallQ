@@ -9,7 +9,7 @@ Este projeto é um frontend React + TypeScript + Vite. Ele roda com mocks por pa
 - O frontend não chama Firebase Admin, Google Play Console, App Store Connect, Gemini, OpenAI ou Workers AI diretamente.
 - Integrações sensíveis devem passar pela futura Admin API.
 - Dados mockados ficam centralizados em `src/mocks` e `src/services`.
-- Contratos futuros ficam em `docs/openapi`.
+- Contrato OpenAPI real fica em `../docs_ai/CONTRATOS/openapi/signallq-admin-api.yaml` (monorepo).
 - A App Store está preparada para uso futuro, mas desativada no momento.
 - Anúncios e monetização estão planejados/desativados por padrão.
 
@@ -52,9 +52,12 @@ src/
   types/            Tipos TypeScript compartilhados
 
 docs/
-  openapi/          Swagger/OpenAPI da futura Admin API
+  architecture/     Decisões de arquitetura do Console
   privacy/          Políticas de dados e privacidade
 ```
+
+Contrato OpenAPI real do Console vive no monorepo, em `docs_ai/CONTRATOS/openapi/signallq-admin-api.yaml`
+(não duplicado aqui).
 
 ## Próximos passos recomendados
 

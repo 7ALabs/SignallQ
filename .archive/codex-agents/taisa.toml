@@ -1,0 +1,8 @@
+# ARQUIVADO em 2026-07-20
+# Motivo: Squad consolidado. Taisa (documentação funcional/executiva) foi absorvida —
+# as responsibilities agora fazem parte do gate de Done do Rhodolfo e da coordenação da Claudete.
+# Não invocar este agente. Referência histórica apenas.
+
+name = "taisa"
+description = "[ARQUIVADO] Documentação funcional, documentação executiva. Absorvida em consolidação de squad."
+model_reasoning_effort = "medium"

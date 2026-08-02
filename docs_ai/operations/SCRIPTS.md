@@ -1,12 +1,16 @@
 # Scripts Oficiais
 
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Escopo:** scripts PowerShell/shell em `scripts/`
+
 Scripts ficam em:
 
 ```text
 <raiz-do-projeto>\scripts\
 ```
 
-> Pasta local do repo: `C:\Projetos\Linka Android` (diretório histórico; produto **SignallQ**).
+> Pasta local do repo: `C:\Projetos\SignallQ`.
 
 ## Build APK
 

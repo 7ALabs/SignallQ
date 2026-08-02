@@ -19,7 +19,7 @@ export function HistoryRecordCard({ record, onShare, onRemove }: HistoryRecordCa
   const verdict = classifyDownload(record.download)
 
   return (
-    <div className="flex flex-col gap-2.5 rounded-2xl p-3.5" style={{ background: 'var(--bg-secondary)' }}>
+    <div className="flex flex-col gap-2 rounded-2xl p-3.5" style={{ background: 'var(--bg-secondary)', boxShadow: '0 8px 20px rgba(0,0,0,.14)' }}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
           <span className="material-symbols-outlined" style={{ fontSize: 16, color: 'var(--text-tertiary)' }}>
@@ -27,14 +27,14 @@ export function HistoryRecordCard({ record, onShare, onRemove }: HistoryRecordCa
           </span>
           <span className="label-medium">{labelConexao(record.connectionKind)}</span>
         </div>
-        <span className="label-small" style={{ color: 'var(--text-tertiary)' }}>
+        <span style={{ font: '400 11px/1.45 var(--font-sans)', color: 'var(--text-tertiary)' }}>
           {formatarTempoRelativo(record.timestamp)}
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <div className="flex items-center gap-3.5">
         <div className="flex items-center gap-1">
-          <span className="material-symbols-outlined" style={{ fontSize: 14, color: 'var(--success)' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 14, color: NIVEL_COR[verdict.nivel] }}>
             arrow_downward
           </span>
           <span className="label-large" style={{ color: NIVEL_COR[verdict.nivel] }}>
@@ -49,7 +49,7 @@ export function HistoryRecordCard({ record, onShare, onRemove }: HistoryRecordCa
         </div>
         <div className="body-small">{Math.round(record.latency)} ms</div>
 
-        <div className="ml-auto flex gap-0.5">
+        <div className="ml-auto flex gap-1">
           <button aria-label="Compartilhar medição" onClick={() => onShare(record)} className="flex h-8 w-8 items-center justify-center border-none bg-transparent">
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
               share

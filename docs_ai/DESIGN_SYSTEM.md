@@ -727,11 +727,11 @@ cópias redundantes entre si mesmo compartilhando os mesmos tokens visuais (refe
 | Onde | Escopo | Finalidade |
 | --- | --- | --- |
 | `.claude/skills/SignallQ-design/` | Android (app real) | Skill do Claude Code — ativa sozinha ao pedir UI Android; fonte de verdade para gerar código/protótipo on-brand |
-| `packages/design-system/` | Android (app real) | Pacote React "fonte do Design System"; sincroniza via `/design-sync` com o projeto Claude Design "SignallQ Design System" (`2d25d7a1-…`) — 25 componentes |
+| `packages/design-system/` | Android (app real) | Pacote React "fonte do Design System"; sincroniza via `/design-sync` com o projeto [SignallQ Design System](https://claude.ai/design/p/2d25d7a1-31b2-4ac3-881f-72dbc8f35a29) — contagem de componentes: ver projeto |
 | `docs_ai/design-system/` (histórico) | Android (app real) | Os seis documentos-fonte consolidados aqui — movidos para `docs_ai/_archive/` |
 | `DESIGN.md` / `PRODUCT.md` (raiz do repo) | Android (app real) | Spec no formato da skill `impeccable`, North Star "The Calm Translator" |
 | `SignallQ Admin/DESIGN.md` / `PRODUCT.md` | SignallQ Console (Admin) | Mesmo formato impeccable, mas do Console — North Star e paleta próprias, não confundir com o app Android |
-| `docs_ai/plataforma/08..11_*` + skill `/signallq-pro-design` | SignallQ Pro | Design do Pro — identidade azul `#0B6CFF`, projeto Claude Design `77a19317-…`, não misturar com este documento |
+| `docs_ai/plataforma/08..11_*` + skill `/signallq-pro-design` | SignallQ Pro | Design do Pro — identidade azul, projeto [SignallQ PRO - Design System](https://claude.ai/design/p/77a19317-ea64-4e47-b55c-578eca776c09), não misturar com este documento |
 
 Não criar artefato de design novo sem checar se já existe em algum destes.
 

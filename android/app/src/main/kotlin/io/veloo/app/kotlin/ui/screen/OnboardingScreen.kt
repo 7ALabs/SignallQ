@@ -92,6 +92,7 @@ private enum class OnboardingOverlay { TERMOS, PRIVACIDADE }
 fun OnboardingScreen(
     onConcluir: () -> Unit,
     onPermissoesConcedidas: (Set<String>) -> Unit = {},
+    onPermissoesSolicitadas: (Set<String>) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val c = LocalLkTokens.current
@@ -140,6 +141,10 @@ fun OnboardingScreen(
                     )
             }
             permissoesMarcadasAposSolicitacao = null
+            // #1182 -- reporta TODAS as permissoes que o SO efetivamente perguntou nesta rodada
+            // (concedidas ou nao), pra quem precisa saber que o dialogo real ja apareceu -- ao
+            // contrario de onPermissoesConcedidas, que so reporta as concedidas.
+            if (resultado.keys.isNotEmpty()) onPermissoesSolicitadas(resultado.keys)
             val concedidasNestaRodada = resultado.filterValues { it }.keys
             if (concedidasNestaRodada.isNotEmpty()) onPermissoesConcedidas(concedidasNestaRodada)
         }

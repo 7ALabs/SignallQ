@@ -3,7 +3,7 @@
 - **Status:** ativo
 - **Última validação:** 2026-07-16
 - **Fonte de verdade:** este arquivo (`.claude/rules/higiene-e-padronizacao-repositorio.md`) — não duplicar em `docs_ai/`, `AGENTS.md`, mirrors ou docs de módulo
-- **Escopo:** repositório `gmmattey/linka-android` (monorepo SignallQ) inteiro — Android, Admin, Cloudflare, docs
+- **Escopo:** repositório `buildea-labs/SignallQ` (monorepo SignallQ) inteiro — Android, Admin, Cloudflare, docs
 - **Responsável:** Claudete (dono do processo), aplicado por todo agente (Camilo, Lia, Rhodolfo) e por qualquer sessão humana no repo
 
 Referenciada a partir de `.claude/CLAUDE.md` (seção "Higiene e padronização do repositório") e dos
@@ -61,7 +61,7 @@ Ao tocar em código antigo que mistura idiomas, padronize somente quando a renom
 segura e completamente validável. Renomeações espalhadas por vários módulos são tarefa específica.
 
 Não renomear identificadores técnicos preservados pelo projeto: `io.signallq.app`,
-`gmmattey/linka-android`, `linkaKotlin.db`, `linkaPreferencias`, canais `linka_*`, workers cujos
+`buildea-labs/SignallQ`, `linkaKotlin.db`, `linkaPreferencias`, canais `linka_*`, workers cujos
 nomes técnicos já estejam publicados (ver `.claude/CLAUDE.md`, seção "Identidade").
 
 ---
@@ -162,17 +162,21 @@ Ao tocar nele:
    `InternetProveedorSheet.kt`, `MedicaoTipoSheet.kt`);
 6. crie testes de caracterização antes de extrações com risco de comportamento visual ou estado.
 
-### 4.6 `EquipamentoInternetScreen.kt`
+### 4.6 `EquipamentoInternetScreen.kt` — RESOLVIDO (atualizado 2026-07-24)
 
-Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/EquipamentoInternetScreen.kt` — **1549 linhas** (acima do limiar de "dívida crítica" da seção 7). Concentra a tela de equipamento de internet/fibra/roteador com múltiplos painéis por capacidade.
+Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/EquipamentoInternetScreen.kt`
+— **550 linhas** (abaixo do limiar de extração obrigatória da seção 7). A entrada anterior desta
+seção citava 1549 linhas; o número está desatualizado — o redesign de 2026-07-18 (bug #6, spec Lia)
+já extraiu os painéis por capacidade em componentes próprios no mesmo pacote:
+`EquipamentoStatusPanel.kt` (status/disponibilidade/uso/alerta), `EquipamentoModuloTecnicoCard.kt`
+(módulos técnicos Fibra/WAN/LAN/Wi-Fi/dispositivos), `EquipamentoTopologiaCard.kt`,
+`EquipamentoDeviceSelectorCard.kt`, `EquipamentoInfoTecnicaCard.kt`, `EquipamentoAcoesCard.kt`,
+`EquipamentoPanelMapper.kt`. `EquipamentoInternetScreen.kt` hoje é só chrome (TopBar, estados
+carregando/indisponível) e composição/ordem dos cards, como a seção pedia.
 
-Ao tocar nele:
-1. identifique qual painel ou seção de capacidade está sendo modificada;
-2. não adicione novo painel diretamente — extraia para componente dedicado antes;
-3. prefira separar: estado de cada painel, adaptadores de dados de equipamento, classificadores de capacidade, componentes de visualização, wiring com dados de rede;
-4. mantenha em `EquipamentoInternetScreen.kt` apenas a composição da tela principal e delegação dos painéis;
-5. cada painel independente deve ter seu próprio arquivo (ex.: `OntSheet.kt`, `RotadorSheet.kt`, `EquipamentoCapacidadePanel.kt`);
-6. crie testes de caracterização antes de extrações com risco de comportamento de dados ou estado.
+Continua valendo ao adicionar um painel novo: cada capacidade nova ganha seu próprio arquivo
+(`Equipamento*Card.kt`), nunca inchar `ModuloTecnicoCard`/`StatusEquipamentoCard`. Reavaliar esta
+seção se o arquivo voltar a crescer.
 
 ### 4.7 `DispositivosScreen.kt`
 
@@ -186,17 +190,18 @@ Ao tocar nele:
 5. cada sheet independente deve ter seu próprio arquivo (ex.: `DispositivoDetalheSheet.kt`, `DispositivoConfiguracaoSheet.kt`);
 6. crie testes de caracterização antes de extrações com risco de comportamento de lista ou estado.
 
-### 4.8 `JogosScreen.kt`
+### 4.8 `JogosScreen.kt` — RESOLVIDO (removido em 2026-07-26)
 
-Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/JogosScreen.kt` — **1120 linhas** (acima do limiar de extração obrigatória da seção 7). Concentra o fluxo de teste direcionado por jogo com 5 etapas.
+Caminho antigo: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/JogosScreen.kt` —
+**1120 linhas** (acima do limiar de extração obrigatória da seção 7). Concentrava o fluxo de
+teste direcionado por jogo com 5 etapas (GH#935).
 
-Ao tocar nele:
-1. identifique qual etapa ou jogo está sendo modificado;
-2. não adicione nova etapa diretamente — extraia para componente dedicado antes;
-3. prefira separar: estado de cada etapa, orquestração de fluxo (navegação entre etapas), adaptadores de dados de jogo, componentes de visualização;
-4. mantenha em `JogosScreen.kt` apenas a composição do fluxo principal e delegação das etapas;
-5. cada etapa independente deve ter seu próprio arquivo (ex.: `JogoEtapa1Screen.kt`, `JogoEtapa2Screen.kt`) ou componente reutilizável;
-6. crie testes de caracterização antes de extrações com risco de comportamento de fluxo ou estado.
+A issue #1487 fundiu esse fluxo com o Modo gamer (Feature #550, `ModoGamerScreen.kt` +
+`ModoGamerConfigResultadoSection.kt`, ambos bem menores e já divididos por etapa/responsabilidade)
+— `JogosScreen.kt`, `JogosViewModel.kt`, `JogoConexaoEngine.kt`, `PerfilThresholds.kt`,
+`GameCatalog.kt`, `GameArtworkCatalog.kt`/`GameIconCatalog.kt` foram removidos, junto com
+`Overlay.Jogos`. A dívida está resolvida — não recriar um segundo fluxo "Jogos" paralelo ao
+Modo gamer; qualquer refinamento de teste de jogo entra em `ModoGamerEngine`/`ModoGamerScreen`.
 
 ### 4.8b `SinalScreen.kt`
 
@@ -244,6 +249,21 @@ caminhos `io/veloo`, nomes antigos da marca, navegação anterior, agentes arqui
 telas ou superfícies descontinuadas, módulos que já mudaram de localização. Ao modificar uma
 funcionalidade, atualize somente a documentação diretamente relacionada — não revise todos os
 documentos do projeto dentro de uma tarefa comum.
+
+### 4.11 Espaçamento hardcoded em vez de token (Android)
+
+Auditoria (Juninho, 2026-07-26): ~270 ocorrências de `.dp` literal em `padding()`/`size()`/
+`width()`/`height()`/`offset()` direto em Composables do Consumer (`android/app/.../ui/component/`,
+`ui/screen/`), em vez de constante de espaçamento do design system. Tipografia está limpa (zero
+achado — tudo via `MaterialTheme.typography.*`); cor está majoritariamente limpa (as ocorrências de
+`Color(0xFF...)` encontradas são cor de marca de operadora/WhatsApp, não violação — ver #1499 pros
+6 casos reais de `Color.White` hardcoded).
+
+Volume disperso demais (~9 telas/componentes diferentes) pra virar um bug único executável — não
+abrir issue "arrumar espaçamento do app inteiro". Se for tocar em um desses arquivos por outro
+motivo, aproveite pra trocar o `.dp` literal local por token, sem expandir a tarefa. Migração
+completa e deliberada (se algum dia for priorizada) deve ser incremental por tela, não
+correção-em-massa numa PR só.
 
 ---
 
@@ -383,7 +403,7 @@ problemas relacionados por domínio — não abrir uma issue para cada arquivo r
 
 A issue deve conter: contexto, evidências, arquivos e módulos afetados, comportamento atual, risco,
 destino arquitetural, plano incremental, critérios de aceite, testes necessários, dependências,
-estratégia de rollback quando aplicável. Seguir `issue-conventions` para nomenclatura e roteamento.
+estratégia de rollback quando aplicável. Seguir `abrir-issue` para nomenclatura e roteamento.
 
 ---
 
@@ -401,28 +421,33 @@ docs_ai/
 │   ├── README.md            (visão de sistema, dependências entre módulos)
 │   └── MODULOS/              (um doc por módulo Gradle real — 16 arquivos)
 ├── CONTRATOS/
-│   ├── openapi/               (contrato OpenAPI 3.0 por Worker Cloudflare — 5 arquivos)
+│   ├── openapi/               (contrato OpenAPI 3.0 — 7 arquivos: 5 por Worker Cloudflare + 2
+│   │                            transversais — analytics-events, integrations-api)
 │   └── schemas/                (índice de schemas reais: Room, D1, analytics — referencia a origem)
 ├── RELEASES.md
 ├── ai/
-├── brand/
 ├── decisions/
 ├── design-system/            (histórico — conteúdo vigente em DESIGN_SYSTEM.md)
 ├── functional/                (specs pontuais que não migraram para FUNCIONAL.md)
 ├── legal/
 ├── operations/
+├── plataforma/                (visão-alvo do ecossistema, pacote v5 — ver `.claude/CLAUDE.md`,
+│                                seção "Produtos e Superficies")
 ├── technical/                  (docs pontuais que não migraram para TECNICO.md/ARQUITETURA/)
 ├── testing/
 └── _archive/
 ```
 
+Nota: assets de marca (`signallq-*.png`) vivem em `brand/` na raiz do repo, não em `docs_ai/` — é a
+fonte da verdade de logo/ícone/favicon, referenciada por build Android e Admin (ver `brand/README.md`).
+
 A árvore `FUNCIONAL.md`/`TECNICO.md`/`ARQUITETURA/`/`CONTRATOS/`/`DESIGN_SYSTEM.md` é o alvo para
 conteúdo funcional, técnico, arquitetural, de contrato e de design — não uma exigência de mover
 tudo para dentro dela. `ai/`, `decisions/`, `functional/` (residual), `legal/`, `operations/`,
-`technical/` (residual), `testing/`, `brand/` e `_archive/` continuam existindo para o que não se
-encaixa nessa árvore (processo do squad, ADRs, planos pontuais, mapas de campo de equipamento,
-runbooks, termos legais). Ver `docs_ai/README.md` para o índice completo e a justificativa de cada
-pasta residual.
+`plataforma/`, `technical/` (residual), `testing/` e `_archive/` continuam existindo para o que não
+se encaixa nessa árvore (processo do squad, ADRs, visão-alvo consolidada, planos pontuais, mapas de
+campo de equipamento, runbooks, termos legais). Ver `docs_ai/README.md` para o índice completo e a
+justificativa de cada pasta residual.
 
 `docs_ai/README.md` deve funcionar como índice, não como uma segunda documentação completa.
 
@@ -438,6 +463,27 @@ atualizados no mesmo trabalho.
 
 Todo documento ativo relevante deve informar: status, última validação, fonte de verdade, escopo,
 responsável ou domínio, documentos substituídos (quando houver).
+
+### Templates de documento (decisão 2026-07-23)
+
+O projeto [SignallQ Design System](https://claude.ai/design/p/2d25d7a1-31b2-4ac3-881f-72dbc8f35a29)
+(`templates/`) define a estrutura de seção obrigatória para os três tipos de documento vivo — a
+estrutura de metadados acima (status/última validação/fonte de verdade/escopo/responsável) cobre o
+mesmo papel do cabeçalho do template (produto/autor/status/revisores/versão) e continua sendo usada
+como está, em vez do formato visual do template.
+
+- **Especificação Funcional** (`FUNCIONAL.md`, `functional/*`): Objetivo → Contexto e problema →
+  Personas e casos de uso → Histórias de usuário → Fluxo principal → Requisitos funcionais (`RF-NN`)
+  → Requisitos não funcionais → Critérios de aceite → Fora de escopo → Métricas de sucesso.
+- **Especificação Técnica** (`TECNICO.md`, `technical/*`): Objetivo técnico → Visão geral da solução
+  → Modelo de dados → APIs/Endpoints → Integrações e dependências → Segurança e privacidade →
+  Performance e escalabilidade → Rollout e observabilidade → Riscos técnicos.
+- **Arquitetura** (`ARQUITETURA/README.md`, `ARQUITETURA/MODULOS/*`): Visão geral → Diagrama de
+  componentes → Componentes em detalhe → Fluxo de dados principal → Decisões arquiteturais (ADR) →
+  Riscos e mitigação.
+
+Documento novo desses três tipos nasce com essa estrutura de seções. Documento existente é
+migrado quando tocado (não é obrigatório revisar tudo de uma vez — ver princípio geral, seção 1).
 
 ### ADRs
 
@@ -471,7 +517,8 @@ documentação; verificar uso por ferramentas e agentes; confirmar que não é m
 Os mirrors `.agents/skills/` e `.github/skills/` (sincronização de skill para Codex e hooks do
 GitHub) já têm regra própria documentada em `.claude/CLAUDE.md`, seção "Design System" → "Onde fica
 cada 'design system'" — não duplicar aqui, só aplicar: fonte canônica é `.claude/skills/`, nunca
-editar o mirror direto, resincronizar após editar a skill original.
+editar o mirror direto, resincronizar com `scripts/sync-skills-mirrors.sh` após editar a skill
+original (`--check` valida sem escrever).
 
 ---
 

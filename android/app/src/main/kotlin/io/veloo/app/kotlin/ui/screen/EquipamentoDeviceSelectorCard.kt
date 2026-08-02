@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -27,7 +26,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -35,47 +33,34 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.component.LkSectionOverline
-import io.signallq.app.ui.component.LkSurfaceCard
 
 /**
- * Cards de identidade do equipamento — passo 1 e 2 da narrativa da tela
- * "Equipamento de internet" (bug #6, spec Lia): quem é o equipamento antes
- * de qualquer veredito de status. Extraído de `EquipamentoInternetScreen.kt`
- * (dívida crítica, ver `.claude/rules/higiene-e-padronizacao-repositorio.md`
- * seção 4.6).
+ * Identidade do equipamento — passos 1 e 2 da narrativa da tela "Equipamento
+ * de internet" (bug #6, spec Lia): quem é o equipamento antes de qualquer
+ * veredito de status. Extraído de `EquipamentoInternetScreen.kt` (dívida
+ * crítica, ver `.claude/rules/higiene-e-padronizacao-repositorio.md` seção
+ * 4.6).
+ *
+ * ## Card próprio removido (revisão Lia 2026-07-25)
+ * Wireframe aprovado pelo Luiz (reorganização de hierarquia, artifact
+ * `547faba7-3981-42d0-a82f-58e0eba64da8`): `IdentificacaoEquipamentoCard`
+ * (nome do device em manchete própria, competindo com "Conectado ao
+ * equipamento") foi removido — [equipamentoIdentidadeLabel] gera só o texto,
+ * consumido como subtítulo dentro de `StatusEquipamentoCard`
+ * (`EquipamentoStatusPanel.kt`). `deviceType` deixou de aparecer nesta linha
+ * (não fazia parte do subtítulo aprovado no wireframe); segue disponível via
+ * seletor de equipamento quando há mais de um painel.
  */
-@Composable
-internal fun IdentificacaoEquipamentoCard(
+internal fun equipamentoIdentidadeLabel(
     vendor: String?,
     modelo: String?,
-    deviceType: String,
     atualizadoEm: String,
-    c: LkTokens,
-) {
+): String {
     val titulo =
         listOfNotNull(vendor?.takeIf { it.isNotBlank() }, modelo?.takeIf { it.isNotBlank() })
             .joinToString(" ")
-            .ifBlank { "Equipamento local" }
-    LkSurfaceCard {
-        Text(
-            text = titulo,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.W600,
-            color = c.textPrimary,
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            text = deviceType,
-            style = MaterialTheme.typography.bodyMedium,
-            color = c.textSecondary,
-        )
-        Spacer(Modifier.height(LkSpacing.sm))
-        Text(
-            text = atualizadoEm,
-            style = MaterialTheme.typography.labelMedium,
-            color = c.textTertiary,
-        )
-    }
+            .ifBlank { "Seu equipamento de internet" }
+    return "$titulo · $atualizadoEm"
 }
 
 @Composable

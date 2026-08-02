@@ -160,6 +160,10 @@
      Telas (documento de telas, não de tokens sistêmicos); mantida da
      migração 2026-07-11, só com os tints realinhados aos novos hex de
      surface-container acima.
+     DEPRECATED (2026-07-19): substituído pelo modelo de PROFUNIDADE de 4
+     níveis abaixo (--depth-level0..3), documentado em
+     docs_ai/DESIGN_SYSTEM.md seção 6. Mantido só por compatibilidade com
+     artefatos ainda não migrados — não usar em artefato novo.
      ========================================================================== */
   --md-sys-elevation-level0-tint:   var(--md-sys-color-surface);
   --md-sys-elevation-level0-shadow: none;
@@ -171,6 +175,33 @@
   --md-sys-elevation-level3-shadow: 0 2px 6px rgba(0,0,0,.16);
   --md-sys-elevation-level4-tint:   var(--md-sys-color-surface-container-highest);
   --md-sys-elevation-level4-shadow: 0 3px 8px rgba(0,0,0,.18);
+
+  /* ==========================================================================
+     PROFUNDIDADE — modelo novo de 4 níveis (2026-07-19), ver
+     docs_ai/DESIGN_SYSTEM.md seção 6. Aplicado de forma equivalente nos 3
+     produtos do ecossistema (consumer/Pro/Console), só os nomes de token
+     mudam por produto. Profundidade comunica hierarquia/interação, nunca
+     decoração — card não deve parecer elevado se não for interativo ou
+     prioritário.
+     ========================================================================== */
+  --depth-level0-tint:   var(--md-sys-color-surface);                  /* fundo da tela */
+  --depth-level0-shadow: none;
+  --depth-level1-tint:   var(--md-sys-color-surface-container);        /* conteúdo agrupado (card comum) */
+  --depth-level1-shadow: none;
+  --depth-level2-tint:   var(--md-sys-color-surface-container-high);   /* interativo/destacado (selecionado, prioritário) */
+  --depth-level2-shadow: 0 1px 3px rgba(0,0,0,.12);
+  --depth-level3-tint:   var(--md-sys-color-surface-container-highest);/* sobreposto (dialog, sheet, menu, tooltip) */
+  --depth-level3-shadow: 0 4px 12px rgba(0,0,0,.20);
+
+  /* Estado de superfície selecionada (nível 2 + destaque de marca) — token
+     novo, hoje resolvido ad hoc por componente no código Kotlin. */
+  --color-surface-selected-bg:     var(--md-sys-color-surface-container-high);
+  --color-surface-selected-border: rgba(91,33,214,.28); /* primary @28% */
+
+  /* Scrim — fundo de dialog/bottom sheet modal (nível 3). Documentado como
+     alvo; ainda NÃO implementado no Kotlin de produção (só existe hoje em
+     packages/design-system/src/tokens.ts). */
+  --color-scrim: rgba(0,0,0,.5);
 
   /* ==========================================================================
      STATE LAYERS — não redefinidos pelo Fluxo de Telas, mantidos da
@@ -303,6 +334,20 @@
   --md-sys-color-outline-variant:        #49454F;
   --md-sys-color-inverse-surface:        #E6E0E9;
   --md-sys-color-inverse-on-surface:     #313033;
+
+  /* PROFUNDIDADE — dark theme (ver docs_ai/DESIGN_SYSTEM.md seção 6):
+     superfícies mais elevadas ligeiramente mais claras, nunca preto
+     absoluto em toda camada, sombra sutil (não a forma principal de
+     separação). */
+  --depth-level0-tint:   var(--md-sys-color-surface);
+  --depth-level1-tint:   var(--md-sys-color-surface-container);
+  --depth-level2-tint:   var(--md-sys-color-surface-container-high);
+  --depth-level2-shadow: 0 1px 3px rgba(0,0,0,.24);
+  --depth-level3-tint:   var(--md-sys-color-surface-container-highest);
+  --depth-level3-shadow: 0 4px 12px rgba(0,0,0,.36);
+  --color-surface-selected-bg:     var(--md-sys-color-surface-container-high);
+  --color-surface-selected-border: rgba(208,188,255,.30); /* primary dark @30% */
+  --color-scrim: rgba(0,0,0,.6);
 }
 
 /* ============================================================================

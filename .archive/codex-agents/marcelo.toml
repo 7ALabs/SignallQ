@@ -1,0 +1,7 @@
+# ARQUIVADO em 2026-07-20
+# Motivo: Squad consolidado. Marcelo (triagem/busca de código) foi absorvido — essas tarefas são skills nativas ou delegadas ao Juninho.
+# Não invocar este agente. Referência histórica apenas.
+
+name = "marcelo"
+description = "[ARQUIVADO] Triagem de código, busca de contexto, verificação de duplicatas. Absorvido em consolidação de squad."
+model_reasoning_effort = "low"

@@ -1,6 +1,9 @@
 # Custos de Infraestrutura — SignallQ
 
-> Atualizado em 2026-06-28. Revisão obrigatória a cada milestone.
+- **Status:** ativo
+- **Última validação:** 2026-07-23 (revisão obrigatória a cada milestone)
+- **Fonte de verdade:** `integrations/cloudflare/*/wrangler.toml` (workers reais), Cloudflare Dashboard (uso real)
+- **Escopo:** custo de infraestrutura por serviço/fase
 
 ## Resumo
 
@@ -14,7 +17,7 @@ O SignallQ opera **inteiramente em free tiers** na fase atual. Custos reais surg
 |---|---|---|---|
 | Requests/dia | 100.000 | ~5.000 | Baixo |
 | CPU time/invocation | 10ms | ~3-5ms | Baixo |
-| Workers ativos | 10 | 3 (ai-diagnosis, admin, privacy) | Baixo |
+| Workers ativos | 10 | 5 (ai-diagnosis, admin, diagnostic, privacy, game-latency-probe) | Baixo |
 
 ### Cloudflare D1 (Free)
 

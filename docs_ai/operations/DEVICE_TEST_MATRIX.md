@@ -1,6 +1,9 @@
 # Matriz de Dispositivos para Teste — SignallQ
 
-> Atualizado em 2026-06-28.
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Fonte de verdade:** `android/gradle/libs.versions.toml` (minSdk/targetSdk/compileSdk reais)
+- **Escopo:** matriz de dispositivo/Android/operadora obrigatória por release
 
 ## Critérios de Seleção
 
@@ -63,5 +66,5 @@
 ## Emuladores (complementar, não substitui device real)
 
 - API 24 (Android 7.0) — teste de compatibilidade minSdk
-- API 35 (Android 15) — targetSdk behavior changes
-- API 36 (Android 16) — compileSdk/preview
+- API 36 (Android 16) — targetSdk real (`android/gradle/libs.versions.toml`), behavior changes
+- API 37 — compileSdk real; usar para pegar warning/preview antes do targetSdk subir

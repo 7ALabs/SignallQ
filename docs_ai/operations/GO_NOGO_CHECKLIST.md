@@ -1,11 +1,15 @@
 # Checklist Go/No-Go — SignallQ
 
-> Atualizado em 2026-07-17. Cronograma comprimido pra produção em 07/08/2026 (pedido do
-> Luiz) — a trilha `alpha` já está ativa desde 10/07, mais cedo do que o plano original
-> (datado 2026-06-28) assumia, o que abre espaço pra antecipar o Open Beta sem cortar o
-> mínimo de 14 dias. Riscos reais dessa compressão documentados em `.claude/CLAUDE.md`
-> (seção "Milestones") — não repetidos aqui, só as datas revisadas. Usar antes de cada fase
-> de lançamento.
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Fonte de verdade das datas:** GitHub issue
+  [#1222](https://github.com/7ALabs/SignallQ/issues/1222) e
+  `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md` (revisão mais recente:
+  lançamento público em **21/08/2026**, não mais 07/08). As datas de M2/M4 abaixo são da
+  revisão de 2026-07-17, anterior à decisão de 2026-07-20 — os critérios (o que precisa estar
+  verde) continuam válidos, mas as datas específicas de M3/M4/M5 devem ser tratadas como
+  **[a confirmar]** até reconferir contra a issue #1222.
+- **Escopo:** critérios técnicos de avanço entre fases de lançamento
 
 ## M2 — Beta Fechado (21/07/2026)
 
@@ -87,7 +91,7 @@ privacidade, docs de lançamento) — não é o go-live em produção em si, que
 
 ---
 
-## M4 — Open Beta (início ~21/07/2026, mínimo 14 dias → conclui ~04/08/2026)
+## M4 — Open Beta (datas [a confirmar, ver issue #1222] — revisão anterior estimava início ~21/07, conclusão ~04/08)
 
 ### Go Criteria (todos do M2 +)
 
@@ -101,7 +105,7 @@ privacidade, docs de lançamento) — não é o go-live em produção em si, que
 
 ---
 
-## M5 — Produção (07/08/2026)
+## M5 — Produção (lançamento público em 21/08/2026, ver issue #1222)
 
 ### Go Criteria (todos do M4 +)
 

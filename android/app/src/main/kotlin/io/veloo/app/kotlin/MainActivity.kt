@@ -196,6 +196,9 @@ class MainActivity : ComponentActivity() {
             val temaSelecionado = preferenciasUi.temaSelecionado
             val analiseAvancada = preferenciasUi.analiseAvancada
 
+            // Modo gamer (Feature #550, issue #1476) — combinação jogo+device salva como padrão.
+            val modoGamerPadrao = viewModel.modoGamerPadrao.collectAsStateWithLifecycle().value
+
             val perfilProvedor = viewModel.preferenciasPerfilProvedor.collectAsStateWithLifecycle().value
             val nomeUsuario = perfilProvedor.nomeUsuario
             val fotoUriUsuario = perfilProvedor.fotoUriUsuario
@@ -219,6 +222,12 @@ class MainActivity : ComponentActivity() {
                 viewModel.speedtestPendenteModoMovel
                     .collectAsStateWithLifecycle()
                     .value
+            // GH#1512 — conclusao do diagnostico local quando o Speedtest e interrompido
+            // por Wi-Fi conectado sem internet.
+            val diagnosticoConectividade =
+                viewModel.diagnosticoConectividade
+                    .collectAsStateWithLifecycle()
+                    .value
             val apelidos = viewModel.apelidos.collectAsStateWithLifecycle().value
             val correlacoesTopologia = viewModel.correlacoesTopologia.collectAsStateWithLifecycle().value
             val snapshotDiagnostico =
@@ -237,6 +246,8 @@ class MainActivity : ComponentActivity() {
             val anatelBannerDismissed = viewModel.anatelBannerDismissed.collectAsStateWithLifecycle().value
             // Issue #555 -- toggle remoto (Firebase Remote Config) de anuncios nativos.
             val adsFlags by adsFlagsManager.flags.collectAsStateWithLifecycle()
+            // GH#1480 (Epico #1347, F4) -- gate de navegacao dos 9 modulos feature do Consumer.
+            val featureFlagsState by viewModel.featureFlagsState.collectAsStateWithLifecycle()
 
             val gatewayIpDetectado = gateways.firstOrNull()?.ip
             val darkTheme =
@@ -313,6 +324,14 @@ class MainActivity : ComponentActivity() {
                     // do fluxo antigo de callbacks por permissao.
                     OnboardingScreen(
                         onConcluir = { viewModel.marcarOnboardingConcluido() },
+                        onPermissoesSolicitadas = { solicitadas ->
+                            // #1182 -- marca ANTES de saber se foi concedida, igual a #1179 no Pro:
+                            // e o proprio ato de o SO ja ter perguntado que distingue "nunca pedida"
+                            // de "negada permanentemente" na proxima leitura de onResume().
+                            if (Manifest.permission.ACCESS_FINE_LOCATION in solicitadas) {
+                                viewModel.marcarLocalizacaoPermissaoJaSolicitada()
+                            }
+                        },
                         onPermissoesConcedidas = { concedidas ->
                             if (Manifest.permission.ACCESS_FINE_LOCATION in concedidas) {
                                 temPermissaoLocalizacao = true
@@ -349,6 +368,8 @@ class MainActivity : ComponentActivity() {
                                 onConfirmarSpeedtestMovel = { viewModel.confirmarSpeedtestEmMovel() },
                                 onCancelarSpeedtestMovel = { viewModel.cancelarSpeedtestMovel() },
                                 onSetSpeedtestPermiteHeavyMovel = { valor -> viewModel.setSpeedtestPermiteHeavyMovel(valor) },
+                                diagnosticoConectividade = diagnosticoConectividade,
+                                onLimparDiagnosticoConectividade = { viewModel.limparDiagnosticoConectividade() },
                             ),
                         wifi =
                             io.signallq.app.ui.screen.AppShellWifiState(
@@ -398,6 +419,7 @@ class MainActivity : ComponentActivity() {
                                 flags = adsFlags,
                                 podeRequisitarAnuncio = podeRequisitarAnuncio,
                             ),
+                        featureFlags = featureFlagsState,
                         snapshotDns = snapshotDns,
                         history = history,
                         localIp = localIpUiState,
@@ -509,6 +531,8 @@ class MainActivity : ComponentActivity() {
                         resolveOperadoraContatoLocal = operadoraDirectoryResolver::resolveLocalContact,
                         resolveOperadoraIdentidadeRemota = operadoraDirectoryResolver::resolveIdentity,
                         resolveOperadoraContatoRemoto = operadoraDirectoryResolver::resolveContact,
+                        modoGamerPadrao = modoGamerPadrao,
+                        onSalvarModoGamerPadrao = viewModel::salvarModoGamerPadrao,
                     )
                 } // else onboardingConcluido
             }
@@ -533,9 +557,13 @@ class MainActivity : ComponentActivity() {
             this,
             Manifest.permission.ACCESS_FINE_LOCATION,
         ) == PackageManager.PERMISSION_GRANTED
-        // #155/9.3: bloqueada = não concedida E não pode mais mostrar rationale
+        // #155/9.3, corrigido em #1182: shouldShowRequestPermissionRationale() sozinho retorna
+        // false tanto para "nunca pedida" quanto para "negada permanentemente" -- so trata como
+        // bloqueio permanente quando ja existe um pedido real registrado (marcado no callback do
+        // RequestMultiplePermissions do onboarding, unica tela que de fato solicita esta permissao).
         localizacaoBloqueadaPermanentemente = !temPermissaoLocalizacao &&
-            !shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)
+            !shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION) &&
+            viewModel.localizacaoPermissaoJaSolicitada.value
         val emWifi = viewModel.monitorRede.snapshotFlow.value.estadoConexao == EstadoConexao.wifi
         // Usa DevicesViewModel para verificar novos dispositivos (etapa A do refactor).
         // O MainViewModel.verificarDispositivosNovos() ainda existe mas nao e mais chamado aqui.

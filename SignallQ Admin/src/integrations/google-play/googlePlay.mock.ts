@@ -8,7 +8,10 @@ import {
   GooglePlayCrashAnrSummary,
   GooglePlayTracksStatus,
   GooglePlayTracksSyncResult,
-  GooglePlayTracksBackfillResult
+  GooglePlayTracksBackfillResult,
+  GooglePlayVitalsStatus,
+  GooglePlayCrashRateStatus,
+  GooglePlayStoreListingStatus
 } from "./googlePlay.types";
 
 export const mockGooglePlayStatus: GooglePlayIntegrationStatus = {
@@ -115,10 +118,103 @@ export const mockGooglePlayReviews: GooglePlayReviewSummary[] = [
   }
 ];
 
+// GH#1341 — amostra com idioma/dispositivo/handlingStatus, pra exercitar Avaliações (item 2.3
+// do plano de UX) com mock realista. Mocks separados de mockGooglePlayReviews (legado, usado
+// pelo endpoint antigo /reviews sem esses campos) pra não quebrar quem já consumia o formato antigo.
+export const mockGooglePlayReviewsList: GooglePlayReviewSummary[] = [
+  {
+    reviewId: "gp_rev_9041",
+    rating: 5,
+    comment: "Melhor app de speedtest e diagnóstico! O laudo da inteligência me ajudou a fixar o meu Wi-Fi de 5Ghz.",
+    appVersion: "0.18.1",
+    commentTime: "2026-07-20T14:00:00.000Z",
+    replyText: "Ficamos extremamente felizes em ajudar! Conte sempre conosco.",
+    replyTime: "2026-07-20T18:00:00.000Z",
+    language: "pt-BR",
+    device: "Samsung Galaxy S23",
+    handlingStatus: "replied",
+  },
+  {
+    reviewId: "gp_rev_2011",
+    rating: 4,
+    comment: "Interface impecável, muito bonita e as métricas de bufferbloat estão perfeitas. Falta apenas suporte a iOS.",
+    appVersion: "0.18.1",
+    commentTime: "2026-07-21T09:30:00.000Z",
+    language: "pt-BR",
+    device: "Motorola Edge 40",
+    handlingStatus: "pending",
+  },
+  {
+    reviewId: "gp_rev_5522",
+    rating: 1,
+    comment: "Trava toda vez que tento medir a velocidade com dados móveis. Já reinstalei duas vezes e continua o mesmo problema.",
+    appVersion: "0.18.0",
+    commentTime: "2026-07-10T11:15:00.000Z",
+    language: "pt-BR",
+    device: "Xiaomi Redmi Note 12",
+    handlingStatus: "pending",
+  },
+  {
+    reviewId: "gp_rev_5980",
+    rating: 3,
+    comment: "App bom, mas o diagnóstico de rede móvel demora demais pra concluir.",
+    appVersion: "0.17.0",
+    commentTime: "2026-07-08T08:00:00.000Z",
+    language: "en-US",
+    device: "Google Pixel 8",
+    handlingStatus: "pending",
+  },
+  {
+    reviewId: "gp_rev_6104",
+    rating: 2,
+    comment: "Notificação de monitoramento em segundo plano consome muita bateria.",
+    appVersion: "0.18.1",
+    commentTime: "2026-05-02T08:00:00.000Z",
+    language: "pt-BR",
+    device: "Samsung Galaxy A54",
+    replyText: "Obrigado pelo relato! Já ajustamos o intervalo do monitoramento na versão 0.18.1 — atualize e nos conte se melhorou.",
+    replyTime: "2026-05-03T10:00:00.000Z",
+    handlingStatus: "replied",
+  },
+];
+
+export const mockGooglePlayVitalsStatus: GooglePlayVitalsStatus = {
+  status: "connected",
+  hasCredentials: true,
+  lastSyncTimestamp: "2026-07-24T10:00:00.000Z",
+  anrRatePercent: 0.32,
+  rangeStart: "2026-07-17",
+  rangeEnd: "2026-07-23",
+};
+
 export const mockGooglePlayCrashAnr: GooglePlayCrashAnrSummary = {
   anrCountWeekly: 3,
   crashCountWeekly: 11,
   crashFreeSessionRate: 99.45
+};
+
+export const mockGooglePlayCrashRateStatus: GooglePlayCrashRateStatus = {
+  status: "connected",
+  hasCredentials: true,
+  lastSyncTimestamp: "2026-07-24T10:00:00.000Z",
+  crashRatePercent: 0.61,
+  rangeStart: "2026-07-17",
+  rangeEnd: "2026-07-23",
+};
+
+export const mockGooglePlayStoreListingStatus: GooglePlayStoreListingStatus = {
+  status: "connected",
+  hasCredentials: true,
+  lastSyncTimestamp: "2026-07-24T10:00:00.000Z",
+  listings: [
+    {
+      language: "pt-BR",
+      title: "SignallQ — Diagnóstico de Wi-Fi e Internet",
+      shortDescription: "Teste de velocidade, diagnóstico de rede e recomendações práticas.",
+      fullDescription:
+        "SignallQ mede sua velocidade de internet, analisa a qualidade do seu Wi-Fi e do sinal móvel, identifica problemas na sua rede doméstica e recomenda ações práticas para melhorar sua conexão.",
+    },
+  ],
 };
 
 export const mockGooglePlayTracksStatus: GooglePlayTracksStatus = {

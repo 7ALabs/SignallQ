@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>SignallQ Admin — Firebase · Estabilidade (protótipo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-base:#141019; --bg-sidebar:#1D1A22; --bg-surface:#2B2831; --bg-surface-variant:#211E27;
+    --bg-surface-hover:#332F3B; --bg-sidebar-active:#4A4458;
+    --border:#49454F; --border-subtle:#38343D;
+    --text-primary:#E6E0E9; --text-secondary:#CAC4D0; --text-tertiary:#938F99;
+    --primary:#CFBCFF;
+    --success:#7DDB93; --attention:#FFB955; --error:#FFB4AB; --error-container:#93000A; --on-error-container:#FFDAD6;
+    --info:#8AB4F8; --attention-container:#5C3F00; --on-attention-container:#FFDDB0;
+    --nav-active-bg:#4A4458; --nav-active-fg:#E8DEF8;
+    --radius-card:12px; --radius-pill:999px;
+    --font-sans:"Roboto",ui-sans-serif,system-ui,sans-serif;
+    --font-mono:"Roboto Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg-base);color:var(--text-primary);font-family:var(--font-sans);}
+  .app{display:flex;min-height:100vh;}
+  .sidebar{width:220px;flex-shrink:0;background:var(--bg-sidebar);border-right:1px solid var(--border-subtle);padding:20px 12px;}
+  .brand{font-size:15px;font-weight:700;letter-spacing:-0.01em;padding:0 10px 20px;}
+  .nav-group{margin-bottom:18px;}
+  .nav-label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary);padding:0 10px;margin-bottom:6px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;font-size:13px;color:var(--text-secondary);}
+  .nav-item.active{background:var(--nav-active-bg);color:var(--nav-active-fg);font-weight:600;}
+  .main{flex:1;padding:32px 40px 64px;max-width:1360px;}
+  .overline{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-tertiary);}
+  h1.q{font-size:24px;font-weight:500;letter-spacing:-.02em;margin:6px 0 6px;}
+  p.desc{font-size:13px;line-height:1.6;color:var(--text-secondary);max-width:640px;margin:0 0 6px;}
+  .source-line{font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--text-tertiary);margin-bottom:22px;}
+
+  .tabs{display:flex;gap:6px;background:var(--bg-surface-variant);border:1px solid var(--border-subtle);padding:4px;border-radius:var(--radius-pill);width:fit-content;margin-bottom:24px;}
+  .tab{padding:7px 16px;border-radius:var(--radius-pill);font-size:12.5px;font-weight:600;color:var(--text-tertiary);}
+  .tab.active{background:var(--bg-sidebar-active);color:var(--nav-active-fg);}
+
+  .health-strip{display:flex;gap:8px;margin-bottom:28px;flex-wrap:wrap;}
+  .health-pill{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:10px;border:1px solid var(--border-subtle);background:var(--bg-surface-variant);font-size:11.5px;color:var(--text-secondary);}
+  .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .dot.ok{background:var(--success);} .dot.att{background:var(--attention);} .dot.crit{background:var(--error);}
+  .health-pill.current{border-color:var(--primary);background:rgba(207,188,255,.08);color:var(--text-primary);font-weight:600;}
+
+  .row{display:grid;gap:16px;margin-bottom:16px;}
+  .row.hero{grid-template-columns:1.6fr 1fr;}
+  .row.two{grid-template-columns:1.4fr 1fr;}
+
+  .card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-card);padding:20px;}
+
+  .hero-card{position:relative;overflow:hidden;}
+  .hero-card.status-att{border-color:rgba(255,185,85,.4);background:linear-gradient(160deg, rgba(255,185,85,.08), var(--bg-surface) 55%);}
+  .hero-top{display:flex;justify-content:space-between;align-items:flex-start;}
+  .hero-label{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);}
+  .source-mark{display:flex;align-items:center;gap:5px;font-size:9px;font-family:var(--font-mono);color:var(--text-tertiary);background:var(--bg-base);border:1px solid var(--border-subtle);border-radius:6px;padding:3px 7px;}
+  .hero-value-row{display:flex;align-items:baseline;gap:10px;margin-top:10px;}
+  .hero-value{font-size:56px;font-weight:700;letter-spacing:-.03em;line-height:1;}
+  .hero-verdict{font-size:14px;font-weight:700;color:var(--attention);}
+  .hero-note{font-size:12px;color:var(--text-tertiary);margin-top:6px;}
+  .hero-trend{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--error);margin-top:2px;}
+  .spark{margin-top:14px;}
+
+  .stat-strip{display:flex;flex-direction:column;gap:10px;}
+  .stat-row{background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:13px 16px;}
+  .stat-row-top{display:flex;justify-content:space-between;align-items:center;}
+  .stat-row-label{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-tertiary);}
+  .stat-row-value{font-size:22px;font-weight:700;margin-top:4px;}
+  .pill-badge{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:6px;}
+  .pill-badge.ok{background:rgba(125,219,147,.14);color:var(--success);}
+  .pill-badge.att{background:var(--attention-container);color:var(--on-attention-container);}
+  .pill-badge.crit{background:var(--error-container);color:var(--on-error-container);}
+
+  .card-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:16px;}
+  .card-title{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary);}
+  .card-sub{font-size:11px;color:var(--text-tertiary);margin-top:2px;}
+  .legend{display:flex;gap:14px;font-size:10.5px;color:var(--text-tertiary);}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .swatch{width:9px;height:9px;border-radius:2px;}
+
+  .ranked-list{display:flex;flex-direction:column;gap:2px;}
+  .ranked-item{display:grid;grid-template-columns:22px 1fr auto auto;align-items:center;gap:12px;padding:11px 4px;border-bottom:1px solid var(--border-subtle);}
+  .ranked-item:last-child{border-bottom:none;}
+  .rank-num{font-family:var(--font-mono);font-size:11px;color:var(--text-tertiary);}
+  .rank-name{font-size:12.5px;font-weight:500;}
+  .rank-meta{font-size:10.5px;color:var(--text-tertiary);font-family:var(--font-mono);margin-top:2px;}
+  .rank-count{font-size:13px;font-weight:700;font-family:var(--font-mono);text-align:right;}
+  .sev{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;text-transform:uppercase;}
+  .sev.crit{background:var(--error-container);color:var(--on-error-container);}
+  .sev.att{background:var(--attention-container);color:var(--on-attention-container);}
+
+  /* Card de atalho — deliberadamente subordinado: linha fina, não card de dado. */
+  .shortcut-row{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border:1px dashed var(--border);border-radius:10px;background:var(--bg-surface-variant);margin-top:16px;}
+  .shortcut-left{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-tertiary);}
+  .shortcut-right{font-size:12px;font-weight:600;color:var(--primary);}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">SignallQ Console</div>
+    <div class="nav-group">
+      <div class="nav-label">Uso</div>
+      <div class="nav-item">Visão Geral</div>
+      <div class="nav-item">Uso do App</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Problemas &amp; Incidentes</div>
+      <div class="nav-item">Erros</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">Plataformas</div>
+      <div class="nav-item">Google Play</div>
+      <div class="nav-item active">▶ Firebase</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="overline">FIREBASE · CATEGORIA ESTABILIDADE</div>
+    <h1 class="q">O Firebase está vendo algo que o Google Play não vê?</h1>
+    <p class="desc">Crashlytics — usuários e sessões sem crash, issues abertas vs. resolvidas. Detalhe de issue individual continua em Erros; aqui é o resumo de proveniência Firebase.</p>
+    <div class="source-line">FONTE · FIREBASE CRASHLYTICS · ATUALIZADO HÁ 12MIN · HORÁRIO: AMERICA/SAO_PAULO</div>
+
+    <div class="tabs">
+      <div class="tab">Comportamento</div>
+      <div class="tab active">Estabilidade</div>
+      <div class="tab">Performance</div>
+      <div class="tab">Mensageria</div>
+    </div>
+
+    <div class="health-strip">
+      <div class="health-pill"><span class="dot ok"></span>Comportamento · retenção D7 34%</div>
+      <div class="health-pill current"><span class="dot att"></span>Estabilidade · 3 issues não resolvidas</div>
+      <div class="health-pill"><span class="dot ok"></span>Performance · TTI 1,8s</div>
+      <div class="health-pill"><span class="dot ok"></span>Mensageria · 2 campanhas ativas</div>
+    </div>
+
+    <!-- Hero em tom âmbar — issues não resolvidas é o que exige atenção agora,
+         diferente da tela do Google Play (que estava toda verde). A cor muda de
+         verdade conforme o estado real, não é decoração fixa. -->
+    <div class="row hero">
+      <div class="card hero-card status-att">
+        <div class="hero-top">
+          <div class="hero-label">Usuários sem crash (7 dias)</div>
+          <div class="source-mark">🔥 FIREBASE</div>
+        </div>
+        <div class="hero-value-row">
+          <div class="hero-value">97,8%</div>
+          <div class="hero-verdict">Atenção</div>
+        </div>
+        <div class="hero-trend">↘ -0,6pp vs. semana anterior</div>
+        <div class="hero-note">Abaixo do padrão recente do app (98,4% na média de 90 dias) — puxado por 1 issue nova crítica.</div>
+        <svg class="spark" width="100%" height="64" viewBox="0 0 520 64" preserveAspectRatio="none">
+          <line x1="0" y1="20" x2="520" y2="20" stroke="#49454F" stroke-dasharray="3 4" stroke-width="1"/>
+          <polyline fill="none" stroke="#FFB955" stroke-width="2.5"
+            points="0,14 60,16 120,15 180,18 240,17 300,22 360,26 420,30 480,34 520,36"/>
+          <circle cx="520" cy="36" r="4" fill="#FFB955"/>
+        </svg>
+      </div>
+
+      <div class="stat-strip">
+        <div class="stat-row">
+          <div class="stat-row-top">
+            <div class="stat-row-label">Crash-free sessions</div>
+            <span class="pill-badge ok">OK</span>
+          </div>
+          <div class="stat-row-value">99,0%</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-row-top">
+            <div class="stat-row-label">Issues não resolvidas</div>
+            <span class="pill-badge att">3 abertas</span>
+          </div>
+          <div class="stat-row-value" style="color:var(--attention)">3</div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-row-top">
+            <div class="stat-row-label">Nova issue crítica</div>
+            <span class="pill-badge crit">Crítico</span>
+          </div>
+          <div class="stat-row-value" style="font-size:16px;">Detectada há 6h</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row two">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">Issues abertas vs. resolvidas · 14 dias</div>
+            <div class="card-sub">Barras empilhadas — volume novo (vermelho) contra volume fechado (verde)</div>
+          </div>
+          <div class="legend">
+            <span><span class="swatch" style="background:#FFB4AB"></span>Abertas</span>
+            <span><span class="swatch" style="background:#7DDB93"></span>Resolvidas</span>
+          </div>
+        </div>
+        <svg width="100%" height="150" viewBox="0 0 620 150" preserveAspectRatio="none">
+          <!-- 7 pares de barras, dia 6 com pico de aberturas (issue crítica) -->
+          <g font-family="Roboto Mono" font-size="8" fill="#938F99">
+          <!-- dia1 -->
+          <rect x="20" y="110" width="18" height="20" fill="#FFB4AB"/><rect x="20" y="90" width="18" height="20" fill="#7DDB93"/>
+          <!-- dia2 -->
+          <rect x="100" y="112" width="18" height="18" fill="#FFB4AB"/><rect x="100" y="88" width="18" height="24" fill="#7DDB93"/>
+          <!-- dia3 -->
+          <rect x="180" y="108" width="18" height="22" fill="#FFB4AB"/><rect x="180" y="92" width="18" height="16" fill="#7DDB93"/>
+          <!-- dia4 -->
+          <rect x="260" y="114" width="18" height="16" fill="#FFB4AB"/><rect x="260" y="86" width="18" height="28" fill="#7DDB93"/>
+          <!-- dia5 -->
+          <rect x="340" y="110" width="18" height="20" fill="#FFB4AB"/><rect x="340" y="90" width="18" height="20" fill="#7DDB93"/>
+          <!-- dia6 — pico -->
+          <rect x="420" y="60" width="18" height="70" fill="#FFB4AB"/><rect x="420" y="96" width="18" height="14" fill="#7DDB93"/>
+          <!-- dia7 -->
+          <rect x="500" y="100" width="18" height="30" fill="#FFB4AB"/><rect x="500" y="80" width="18" height="20" fill="#7DDB93"/>
+          </g>
+          <line x1="0" y1="130" x2="620" y2="130" stroke="#38343D" stroke-width="1"/>
+          <text x="429" y="55" font-size="9" fill="#FFB955" font-family="Roboto Mono" text-anchor="middle">pico dia 6</text>
+        </svg>
+      </div>
+
+      <div class="card">
+        <div class="card-head" style="border-bottom:none;margin-bottom:8px;padding-bottom:8px;">
+          <div class="card-title">Issues em aberto</div>
+        </div>
+        <div class="ranked-list">
+          <div class="ranked-item">
+            <span class="rank-num">01</span>
+            <div><div class="rank-name">Fatal Exception: SQLiteException</div><div class="rank-meta">RoomDatabase · v0.24.1 · 6h atrás</div></div>
+            <span class="sev crit">Crítico</span>
+            <span class="rank-count">89 usr</span>
+          </div>
+          <div class="ranked-item">
+            <span class="rank-num">02</span>
+            <div><div class="rank-name">Non-fatal: NetworkOnMainThread</div><div class="rank-meta">v0.23.9 · 2 dias atrás</div></div>
+            <span class="sev att">Regular</span>
+            <span class="rank-count">22 usr</span>
+          </div>
+          <div class="ranked-item">
+            <span class="rank-num">03</span>
+            <div><div class="rank-name">ANR: WorkManager dispatch</div><div class="rank-meta">v0.24.0 · 5 dias atrás</div></div>
+            <span class="sev att">Regular</span>
+            <span class="rank-count">14 usr</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Atalho para /errors — mesma altura de linha do texto, sem peso de card de
+         dado: comunica "essa categoria já vive em outro lugar" sem competir
+         visualmente com a issue crítica acima, que é o que precisa de atenção agora. -->
+    <div class="shortcut-row">
+      <div class="shortcut-left">↪ Esta categoria também vive em <strong style="color:var(--text-secondary)">Problemas &amp; Incidentes → Erros</strong> — mesma fonte, análise completa por endpoint/tela.</div>
+      <div class="shortcut-right">Abrir análise completa →</div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

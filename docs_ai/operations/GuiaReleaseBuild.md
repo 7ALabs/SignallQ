@@ -1,18 +1,22 @@
 # Guia De Release Build - SignallQ Android
 
-Use este guia para gerar APK release assinado sem perder versao, nome ou local do artefato.
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Fonte de verdade:** versão real em `android/gradle/libs.versions.toml` (não fixar número aqui)
+- **Escopo:** build local de APK release assinado
 
-> Versao atual: **0.23.0** (versionCode 56). Para o processo completo de
-> deploy (commit → push → clean build → Firebase) veja `docs_ai/operations/RELEASE.md`.
-> Resumo Firebase: `./gradlew clean assembleRelease --no-build-cache` e depois
-> `./gradlew appDistributionUploadRelease` (nunca usar cache em release).
+Use este guia para gerar APK release assinado sem perder versao, nome ou local do artefato. Para
+o processo completo de deploy (commit → push → clean build → Firebase) veja
+`docs_ai/operations/RELEASE.md`. Resumo Firebase: `./gradlew clean assembleRelease
+--no-build-cache` e depois `./gradlew appDistributionUploadRelease` (nunca usar cache em
+release).
 
 ## Saida oficial
 
 Todo APK release deve ficar em:
 
 ```text
-C:\Projetos\Linka Android\builds\apk\release\<versionName>\
+C:\Projetos\SignallQ\builds\apk\release\<versionName>\
 ```
 
 Nome obrigatorio:
@@ -24,7 +28,7 @@ signallq-android-v<versionName>+<versionCode>-release-<yyyyMMdd-HHmmss>.apk
 Exemplo:
 
 ```text
-C:\Projetos\Linka Android\builds\apk\release\0.23.0\signallq-android-v0.23.0+56-release-20260705-112233.apk
+C:\Projetos\SignallQ\builds\apk\release\0.30.1\signallq-android-v0.30.1+67-release-20260705-112233.apk
 ```
 
 ## Pre-requisitos
@@ -46,7 +50,7 @@ storeFile=segredos/signallq.jks
 Versao fica em:
 
 ```text
-gradle/libs.versions.toml
+android/gradle/libs.versions.toml
 ```
 
 Antes de um release publico, incremente versao:
@@ -60,7 +64,7 @@ Use `minor`, `major` ou `build` quando fizer sentido. `versionCode` nunca deve d
 ## Build release oficial
 
 ```powershell
-cd "C:\Projetos\SignallQ Android"
+cd "C:\Projetos\SignallQ"
 .\scripts\build-apk-release.ps1
 ```
 
@@ -87,7 +91,7 @@ O arquivo `app/build/outputs/apk/release/app-release.apk` e apenas uma saida bru
 ## Validacao pos-build
 
 ```powershell
-$apk = "C:\Projetos\Linka Android\builds\apk\release\<versionName>\<arquivo>.apk"
+$apk = "C:\Projetos\SignallQ\builds\apk\release\<versionName>\<arquivo>.apk"
 aapt dump badging $apk | findstr version
 jarsigner -verify $apk
 adb install -r $apk

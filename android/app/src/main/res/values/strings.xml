@@ -98,8 +98,6 @@
          da execução atual, e sim de uma medição anterior salva no histórico. -->
     <string name="home_medicoes_resultado_anterior_prefixo">Resultado anterior</string>
     <string name="home_btn_medir_velocidade">Medir velocidade</string>
-    <string name="home_shortcut_gaming_titulo">Jogar Online</string>
-    <string name="home_shortcut_gaming_descricao">Análise da conexão para gaming</string>
     <string name="home_uso_jogos">Jogos</string>
     <string name="home_uso_streaming">Streaming</string>
     <string name="home_uso_home_office">Home Office</string>
@@ -236,6 +234,15 @@
     <string name="appshell_continuar_mesmo_assim">Continuar mesmo assim</string>
     <string name="appshell_concluido">Concluído</string>
     <string name="appshell_cd_concluido">Concluído</string>
+
+    <!-- AppShell: menu lateral (GH#1358) -->
+    <string name="appshell_cd_abrir_menu">Abrir menu</string>
+    <string name="appshell_menu_ajustes">Ajustes</string>
+    <string name="appshell_menu_ajuda_suporte">Ajuda e suporte</string>
+    <string name="appshell_menu_privacidade">Política de privacidade</string>
+    <string name="appshell_menu_termos">Termos de uso</string>
+    <string name="appshell_menu_sobre">Sobre o SignallQ</string>
+    <string name="appshell_menu_versao">Versão %1$s</string>
 
     <!-- Pulse / SignallQ IA (SIG-238) -->
     <string name="pulse_btn_iniciar">Iniciar diagnóstico</string>

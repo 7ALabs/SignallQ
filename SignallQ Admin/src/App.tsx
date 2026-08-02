@@ -17,6 +17,10 @@ import { VersionsTab } from "./features/app-versions/VersionsTab";
 import { SettingsTab } from "./features/settings/SettingsTab";
 import { SystemHealthTab } from "./features/system-health/SystemHealthTab";
 import { ToolsTab } from "./features/tools/ToolsTab";
+import { GooglePlayTab } from "./features/google-play/GooglePlayTab";
+import { FirebaseTab } from "./features/firebase/FirebaseTab";
+import { DiagnosticRulesetsTab } from "./features/diagnostic-rulesets/DiagnosticRulesetsTab";
+import { DiagnosticDivergencesTab } from "./features/diagnostic-divergences/DiagnosticDivergencesTab";
 
 export default function App() {
   const { theme, toggle: onToggleTheme } = useTheme();
@@ -102,6 +106,10 @@ export default function App() {
         "/diagnostics",
         "/networks",
         "/operators",
+        "/diagnostic-rulesets",
+        "/diagnostic-divergences",
+        "/google-play",
+        "/firebase",
         "/ai-cost",
         "/errors",
         "/app-versions",
@@ -177,7 +185,7 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
-    return <LoginPage onLogin={handleLogin} />;
+    return <LoginPage onLogin={handleLogin} theme={theme} />;
   }
 
   return (
@@ -228,6 +236,24 @@ export default function App() {
           renderizado nos dois hashes até que nada mais linke pro slug antigo. */}
       {(currentPath === "/networks" || currentPath === "/operators") && (
         <NetworksTab
+          environment={environment}
+          period={period}
+          onNavigate={handleNavigate}
+          triggerRefreshCounter={refreshCounter}
+        />
+      )}
+      {currentPath === "/diagnostic-rulesets" && <DiagnosticRulesetsTab />}
+      {currentPath === "/diagnostic-divergences" && <DiagnosticDivergencesTab />}
+      {currentPath === "/google-play" && (
+        <GooglePlayTab
+          environment={environment}
+          period={period}
+          onNavigate={handleNavigate}
+          triggerRefreshCounter={refreshCounter}
+        />
+      )}
+      {currentPath === "/firebase" && (
+        <FirebaseTab
           environment={environment}
           period={period}
           onNavigate={handleNavigate}

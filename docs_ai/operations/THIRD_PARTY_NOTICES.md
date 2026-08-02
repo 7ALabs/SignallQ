@@ -1,7 +1,11 @@
 # Third-Party Notices
 
-Este arquivo lista as bibliotecas de código aberto utilizadas pelo SignallQ (Veloo)
-com suas respectivas licenças e informações de atribuição.
+- **Status:** ativo
+- **Última validação:** 2026-07-23 (versões conferidas contra `android/gradle/libs.versions.toml` e `android/feature/devices/build.gradle.kts`)
+- **Escopo:** licenças de terceiros usadas pelo módulo `featureDevices`
+
+Este arquivo lista as bibliotecas de código aberto utilizadas pelo SignallQ com suas
+respectivas licenças e informações de atribuição.
 
 ---
 
@@ -112,4 +116,4 @@ Texto completo disponível em: https://www.apache.org/licenses/LICENSE-2.0
 
 ---
 
-*Última atualização: 2026-06-21*
+*Última atualização: 2026-07-23*

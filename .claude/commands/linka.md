@@ -45,8 +45,7 @@ Em seguida, pergunte: **"Em que vamos trabalhar hoje?"**
 | `/linka-docs new` | Criar novo documento oficial |
 | `/linka-docs check` | Auditar docs de uma feature |
 | `/estimativa-impacto` | Avaliar tamanho/risco/milestone de uma issue antes do breakdown |
-| `/checar-release` | Checklist pré-release (Android + Cloudflare Pages) |
-| `/validar-release` | Checklist executável de release com validação de versionamento/build |
+| `/checar-release` | Checklist pré-release (Android + Cloudflare Pages), inclui validação executável de versionamento/build (fundida com `/validar-release` em 2026-07-23) |
 | `/gerar-docs` | Gerar ou atualizar documentação funcional/técnica/testes |
 | `/auditar-ux` | Auditoria de design system e usabilidade |
 | `/motor-diagnostico` | Trabalho no engine de diagnóstico, speedtest ou IA |

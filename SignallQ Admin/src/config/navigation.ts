@@ -1,7 +1,7 @@
 export interface NavigationItem {
   name: string;
   path: string;
-  iconName: "LayoutDashboard" | "LineChart" | "Activity" | "Wifi" | "Globe" | "BrainCircuit" | "AlertTriangle" | "GitBranch" | "ToggleRight" | "Settings" | "HeartPulse" | "Wrench";
+  iconName: "LayoutDashboard" | "LineChart" | "Activity" | "Wifi" | "Globe" | "BrainCircuit" | "AlertTriangle" | "GitBranch" | "ToggleRight" | "Settings" | "HeartPulse" | "Wrench" | "PlayCircle" | "Flame" | "ListChecks" | "GitCompare";
   badge?: string;
   badgeType?: "info" | "error" | "warning";
 }
@@ -55,6 +55,25 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     items: [
       { name: "Diagnósticos", path: "/diagnostics", iconName: "Activity" },
       { name: "Redes & Provedores", path: "/networks", iconName: "Wifi" },
+      // Refs #1446 — motor de diagnóstico remoto (épico #952): editor/validate/
+      // simulate/publish/rollback de ruleset, distinto de "/diagnostics" (que é
+      // métrica/telemetria de sessões, não gestão do motor em si).
+      { name: "Regras do Motor", path: "/diagnostic-rulesets", iconName: "ListChecks" },
+      // Refs #1446 — leitura do shadow mode (GH#1444): compara local-vs-remoto já
+      // classificado no cliente, informa se um rollout está seguro pra subir.
+      { name: "Divergências (Shadow)", path: "/diagnostic-divergences", iconName: "GitCompare" },
+    ],
+  },
+  {
+    // GH#1341/#1342/#1343/#1344 — item 1 do plano de UX Google Play/Firebase: fontes externas
+    // (proveniência SIG-294), não features do produto. "Firebase" adicionado com as 5
+    // integrações que já têm endpoint real em produção (Management, Remote Config, App Check,
+    // App Distribution, FCM delivery) — RTDN, CSV instalação/desinstalação, Crashlytics/
+    // Performance via BigQuery, A/B Testing e In-App Messaging seguem fora de escopo.
+    label: "Plataformas",
+    items: [
+      { name: "Google Play", path: "/google-play", iconName: "PlayCircle" },
+      { name: "Firebase", path: "/firebase", iconName: "Flame" },
     ],
   },
   {

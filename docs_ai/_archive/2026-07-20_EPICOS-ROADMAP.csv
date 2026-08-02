@@ -1,0 +1,8 @@
+epico,produto,fase,data_inicio,data_alvo,responsavel,features,progresso_estimado,riscos
+Confiabilidade e lançamento do SignallQ,SignallQ,Lançamento,,2026-08-21,Claudete e Rhodolfo,"QA de release; Rollout e hypercare",45%,"QA em device real; gates da Play"
+Inteligência de equipamento local,SignallQ,Fase 2,,,"Camilo","Inventário local de equipamento; Suporte a roteadores adicionais",55%,"Hardware/firmware; dependência NetHAL"
+Motor canônico de diagnóstico,Plataforma Compartilhada,Estruturante,,,"Camilo","Sessão de medição e contexto; Controles remotos",15%,"Migração multi-módulo; compatibilidade Consumer/Pro"
+SignallQ Pro — evolução do produto,SignallQ PRO,Fase 1,,,"Claudete e Camilo","MVP0 profissional; MVP1 e operação profissional; Qualidade Pro",40%,"Escopo pós-MVP0 depende de aprovação"
+Plataforma de dados e Console,SignallQ Admin,Estruturante,,,"Camilo","Dados operacionais do Console; Qualidade de plataforma",35%,"Permissões Google/GCS; dependência Android"
+Experiência e consistência do Consumer,SignallQ,Fase 2,,,"Lia e Camilo","Jornada de diagnóstico Consumer; Qualidade técnica e design Consumer",50%,"Auditoria grande; regressão visual/funcional"
+Presença digital do SignallQ,Decisão pendente: SignallQ Site,Fase 1,,,"Lia e Camilo","Site institucional",70%,"Produto não existe na lista de valores solicitada"

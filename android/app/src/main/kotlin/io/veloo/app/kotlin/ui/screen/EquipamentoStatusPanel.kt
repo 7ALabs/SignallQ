@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -51,11 +53,22 @@ import io.signallq.app.ui.component.LkSurfaceCard
  * sistema de card. Aqui o status volta a ser só título+ícone+descrição, a
  * saúde óptica vira uma linha absorvida dentro do próprio card, e as
  * mini-stats saem para dois pares de cards full-width dedicados.
+ *
+ * ## Identidade do device absorvida (revisão Lia 2026-07-25)
+ * Wireframe aprovado pelo Luiz (reorganização de hierarquia, artifact
+ * `547faba7-3981-42d0-a82f-58e0eba64da8`): o antigo card
+ * `IdentificacaoEquipamentoCard` (nome do device em `headlineSmall`, próprio
+ * card, logo no topo) competia em peso visual com "Conectado ao equipamento"
+ * — duas manchetes grandes empatando a atenção de entrada. O nome do device
+ * agora entra como [identidade], um subtítulo discreto dentro deste mesmo
+ * card, e "Conectado ao equipamento" passa a ser a única manchete grande da
+ * tela.
  */
 @Composable
 internal fun StatusEquipamentoCard(
     titulo: String,
     descricao: String,
+    identidade: String?,
     cor: Color,
     gponSaude: GponSaudeStatus?,
     c: LkTokens,
@@ -81,6 +94,13 @@ internal fun StatusEquipamentoCard(
                     fontWeight = FontWeight.W600,
                     color = c.textPrimary,
                 )
+                identidade?.takeIf { it.isNotBlank() }?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = c.textTertiary,
+                    )
+                }
                 Text(
                     text = descricao,
                     style = MaterialTheme.typography.bodyMedium,
@@ -158,17 +178,20 @@ internal fun DisponibilidadeCardsRow(
     suportaWifi: Boolean,
     c: LkTokens,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.md)) {
+    Row(
+        modifier = Modifier.height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+    ) {
         EquipamentoParInfoCard(
             label = "Fibra",
             valor = if (suportaFibra) "Disponível" else "Não se aplica",
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).fillMaxHeight(),
             c = c,
         )
         EquipamentoParInfoCard(
             label = "Wi-Fi",
             valor = if (suportaWifi) "Disponível" else "Não se aplica",
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).fillMaxHeight(),
             c = c,
         )
     }
@@ -180,17 +203,20 @@ internal fun UsoCardsRow(
     acessoLabel: String,
     c: LkTokens,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.md)) {
+    Row(
+        modifier = Modifier.height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+    ) {
         EquipamentoParInfoCard(
             label = "Clientes",
             valor = totalClientes.toString(),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).fillMaxHeight(),
             c = c,
         )
         EquipamentoParInfoCard(
             label = "Acesso",
             valor = acessoLabel,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).fillMaxHeight(),
             c = c,
         )
     }

@@ -1,10 +1,16 @@
 # Auditoria de Seguranca — AndroidManifest.xml
 
-> SIG-218 | Data: 2026-06-28 | Versao: 0.21.0 (versionCode 52)
+- **Status:** ativo
+- **Última validação:** 2026-07-23 (achados originais de 2026-06-28, contagem de módulos corrigida)
+- **Fonte de verdade:** `android/settings.gradle.kts` (16 módulos: `:app` + 6 core + 9 feature)
+- **Escopo:** manifesto principal + manifestos dos 15 módulos de biblioteca
 
 ## Resumo
 
-Auditoria completa do manifesto principal e dos 14 modulos (9 feature + 5 core). Nenhuma vulnerabilidade encontrada. O manifesto segue as melhores praticas de seguranca Android.
+Auditoria do manifesto principal e dos 15 modulos de biblioteca (9 feature + 6 core — `core/recommendation`,
+issue #790, nasceu depois da auditoria original de 2026-06-28 e foi conferido agora: manifesto
+vazio, sem permissão adicional, mesmo padrão dos outros core sem telephony). Nenhuma vulnerabilidade
+encontrada nesta revisão. O manifesto segue as melhores praticas de seguranca Android.
 
 ---
 
@@ -42,7 +48,7 @@ Todas declaradas em `android/app/src/main/AndroidManifest.xml`, exceto `READ_PHO
 
 Todos os 9 modulos feature (`devices`, `diagnostico`, `dns`, `fibra`, `history`, `home`, `settings`, `speedtest`, `wifi`) possuem manifestos vazios (`<manifest />`). Nenhum componente exportado, nenhuma permissao adicional.
 
-### Modulos Core (5)
+### Modulos Core (6)
 
 | Modulo | Conteudo |
 |---|---|
@@ -50,6 +56,7 @@ Todos os 9 modulos feature (`devices`, `diagnostico`, `dns`, `fibra`, `history`,
 | `core/datastore` | Manifesto vazio |
 | `core/network` | Manifesto vazio |
 | `core/permissions` | Manifesto vazio |
+| `core/recommendation` | Manifesto vazio (conferido em 2026-07-23) |
 | `core/telephony` | Declara `READ_PHONE_STATE` com documentacao detalhada de privacidade |
 
 ---

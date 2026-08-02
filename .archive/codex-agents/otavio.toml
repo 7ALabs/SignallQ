@@ -1,0 +1,8 @@
+# ARQUIVADO em 2026-07-20
+# Motivo: Squad consolidado. Otávio (validação de comportamento em device Android) foi absorvido —
+# essas tarefas agora são skill `/regras-android` ou responsabilidade de Camilo (implementação + testes).
+# Não invocar este agente. Referência histórica apenas.
+
+name = "otavio"
+description = "[ARQUIVADO] Validação de comportamento em device Android, casos de uso por API level. Absorvido em consolidação."
+model_reasoning_effort = "medium"

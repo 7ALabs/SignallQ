@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="assets/google-sans-flex.css">
+  <link rel="stylesheet" href="_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/_ds_bundle.css">
+  <link rel="stylesheet" href="_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/styles.css">
+  <script src="_ds/signallq-design-system-2d25d7a1-31b2-4ac3-881f-72dbc8f35a29/_ds_bundle.js"></script>
+  <script src="./doc-page.js"></script>
+  <style>
+    doc-page:not(:defined) { visibility: hidden; }
+    .kb { font: 500 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; background: #F1EEF7; border-radius: 4px; padding: 1px 5px; color: #3A2A6B; }
+    .tb { width: 100%; border-collapse: collapse; margin: 10px 0 4px; }
+    .tb th { text-align: left; font: 600 11px/1.4 var(--font-sans); letter-spacing: .04em; text-transform: uppercase; color: #5C5670; border-bottom: 1px solid #C9C4D4; padding: 7px 10px 7px 0; }
+    .tb td { font: 400 13px/1.5 var(--font-sans); color: #2A2733; border-bottom: 1px solid #E4E0EC; padding: 8px 10px 8px 0; vertical-align: top; }
+    .tb td:first-child { font-weight: 500; color: #1C1B1F; white-space: nowrap; }
+    .cal { break-inside: avoid; orphans: 3; widows: 3; border-left: 2px solid #5B21D6; padding: 10px 0 10px 14px; margin: 16px 0; font: 400 13.5px/1.6 var(--font-sans); color: #3A3646; }
+  </style>
+</helmet>
+
+<doc-page margin="0.8in">
+  <h1 style="margin: 0 0 6px; font: 700 30px/1.2 var(--font-sans); color: #1C1B1F;">SignallQ Web — Guia de implementação do protótipo</h1>
+  <p style="margin: 0 0 4px; font: 400 15px/1.6 var(--font-sans); color: #5C5670;">Como cada tela do protótipo é montada: componentes, tokens, espaçamentos e estados. Escrito para reimplementação em produção sem valores mágicos — tudo que se repete vira componente ou token.</p>
+  <p style="margin: 0 0 24px; font: 400 12px/1.5 var(--font-sans); color: #8A8397;">Base: SignallQ Design System (<span class="kb">@signallq/design-system</span>) · Protótipo em Design Components · 26 jul 2026</p>
+
+  <h2 style="margin: 26px 0 6px; font: 600 20px/1.3 var(--font-sans); color: #1C1B1F;">1 · Princípios de implementação</h2>
+  <ol style="margin: 0; padding-left: 20px; font: 400 14px/1.65 var(--font-sans); color: #2A2733;">
+    <li><b>Nada de cor literal na tela.</b> Toda cor vem de token (<span class="kb">var(--accent)</span>, <span class="kb">var(--text-secondary)</span>). Exceção única e documentada: as peças publicitárias (<span class="kb">AdRail</span>, <span class="kb">AdBannerWide</span>) que têm paleta própria de campanha.</li>
+    <li><b>Toda tela é um shell + um conteúdo.</b> Nav, trilhos de anúncio, banner e rodapé são sempre os mesmos componentes; a tela só troca o miolo.</li>
+    <li><b>Estado por prop enumerada</b>, nunca por duplicação de tela. <span class="kb">ScreenHome</span> tem 10 variantes na mesma implementação.</li>
+    <li><b>Conteúdo textual em mapa de dados</b> (objeto/JSON), não no markup — ver <span class="kb">PROBLEMAS</span> em ScreenHome e <span class="kb">PAGES</span> em ScreenDoc.</li>
+    <li><b>Espaçamento na grade de 4/8</b> e sempre via <span class="kb">gap</span> de flex/grid, não margens soltas.</li>
+    <li><b>Responsividade por prop <span class="kb">mobile</span></b> (booleano), que só troca tokens de layout (padding, max-width, tamanho de fonte) calculados em um único ponto do componente.</li>
+  </ol>
+
+  <h2 style="margin: 26px 0 6px; font: 600 20px/1.3 var(--font-sans); color: #1C1B1F;">2 · Fundações (tokens)</h2>
+  <p style="margin: 0; font: 400 14px/1.6 var(--font-sans); color: #2A2733;">Todos os tokens já existem no bundle do design system. O protótipo só sobrescreve o bloco de tema escuro em <span class="kb">@media (prefers-color-scheme: dark)</span>; em produção isso deve virar um <span class="kb">SignallQThemeProvider</span> com <span class="kb">mode="system"</span>.</p>
+
+  <h3 style="margin: 16px 0 0; font: 600 14px/1.4 var(--font-sans); color: #1C1B1F;">Cor</h3>
+  <table class="tb">
+    <thead><tr><th>Token</th><th>Claro</th><th>Uso no protótipo</th></tr></thead>
+    <tbody>
+      <tr><td>--accent</td><td>#5B21D6</td><td>CTA primário, item ativo da nav, link, faixa "Interpretação SignallQ"</td></tr>
+      <tr><td>--on-accent</td><td>#FFFFFF</td><td>Texto/ícone sobre accent</td></tr>
+      <tr><td>--success / --warning / --error</td><td>#146C2E / #8A5000 / #BA1A1A</td><td>Veredito das métricas, avisos de resultado parcial, telas de erro</td></tr>
+      <tr><td>--phase-latencia / download / upload</td><td>azul / verde / âmbar</td><td>Cor por fase durante a medição (arco, agulha, valor)</td></tr>
+      <tr><td>--bg-primary / --bg-secondary / --bg-card</td><td>fundo, cards, superfície elevada</td><td>Fundo da tela, cards de métrica, rodapé</td></tr>
+      <tr><td>--text-primary / secondary / tertiary</td><td>hierarquia de texto</td><td>Título / apoio / overline e legendas</td></tr>
+      <tr><td>--border</td><td>hairline</td><td>Sempre com <span class="kb">color-mix(in srgb, var(--border) 22%, transparent)</span> em divisórias internas</td></tr>
+    </tbody>
+  </table>
+
+  <h3 style="margin: 16px 0 0; font: 600 14px/1.4 var(--font-sans); color: #1C1B1F;">Tipografia — Google Sans Flex (<span class="kb">var(--font-sans)</span>)</h3>
+  <table class="tb">
+    <thead><tr><th>Papel</th><th>Shorthand</th><th>Onde</th></tr></thead>
+    <tbody>
+      <tr><td>Display do medidor</td><td>700 54px/1 (mobile 44px)</td><td>Número corrente durante o teste</td></tr>
+      <tr><td>Métrica de resultado</td><td>700 34px/1.1 + tabular-nums</td><td>Cards download / upload / latência</td></tr>
+      <tr><td>H1 de tela</td><td>700 30px/1.2 (mobile 26px)</td><td>Home, Histórico, PRO, Doc</td></tr>
+      <tr><td>Título de bloco</td><td>600 22px/1.27</td><td>Estados vazios, veredito, modal</td></tr>
+      <tr><td>Título de card</td><td>600 16px/1.38</td><td>Artigos, seções secundárias</td></tr>
+      <tr><td>Corpo</td><td>400 14px/1.43 · 400 16px/1.5</td><td>Texto de apoio e documentos</td></tr>
+      <tr><td>Overline</td><td>500 11px/1.45, letter-spacing .3px, uppercase</td><td>Rótulos de métrica e de seção</td></tr>
+      <tr><td>Legenda</td><td>400 12px/1.33</td><td>Datas, unidades, disclaimers</td></tr>
+    </tbody>
+  </table>
+
+  <h3 style="margin: 16px 0 0; font: 600 14px/1.4 var(--font-sans); color: #1C1B1F;">Espaçamento e forma</h3>
+  <table class="tb">
+    <thead><tr><th>Item</th><th>Valor</th><th>Regra</th></tr></thead>
+    <tbody>
+      <tr><td>Grade</td><td>4 · 8 · 12 · 16 · 20 · 24 · 32 · 40</td><td>Nenhum valor fora da escala</td></tr>
+      <tr><td>Gap vertical do miolo</td><td>20px (Home) · 16px (Histórico, PRO, Doc)</td><td>Um único <span class="kb">gap</span> na coluna, sem margens por filho</td></tr>
+      <tr><td>Padding do shell</td><td>desktop <span class="kb">20px 24px 16px</span> · mobile <span class="kb">8px 16px 24px</span></td><td>Vem da variável <span class="kb">shellPadding</span></td></tr>
+      <tr><td>Largura do conteúdo</td><td>desktop 860px · mobile 100%</td><td><span class="kb">contentMax</span></td></tr>
+      <tr><td>Gap shell ↔ trilhos</td><td>24px</td><td>Trilho fixo em 240px</td></tr>
+      <tr><td>Raios</td><td>Card 16 · Button/pill 999 ou <span class="kb">var(--radius-button)</span> · Field 12 · Dialog 24</td><td>Nunca raio arbitrário</td></tr>
+      <tr><td>Alvo de toque</td><td>≥ 44px</td><td>Botões, itens de lista e ícones-botão (40px + área)</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="margin: 26px 0 6px; font: 600 20px/1.3 var(--font-sans); color: #1C1B1F;">3 · Componentes reaproveitáveis</h2>
+  <p style="margin: 0 0 4px; font: 400 14px/1.6 var(--font-sans); color: #2A2733;">Do design system, usados direto: <span class="kb">Icon</span> (Material Symbols Outlined, 24dp padrão), <span class="kb">Card</span>, <span class="kb">Badge</span>, <span class="kb">Overline</span>, <span class="kb">Button</span>, <span class="kb">TextField</span>, <span class="kb">SegmentedControl</span>, <span class="kb">Dialog</span>. Os quatro abaixo são do produto e devem existir como componentes de verdade — hoje o protótipo já os isola assim.</p>
+
+  <table class="tb">
+    <thead><tr><th>Componente</th><th>Props</th><th>Comportamento</th></tr></thead>
+    <tbody>
+      <tr><td>SiteNav</td><td><span class="kb">active</span>: home | historico | como-medimos | sobre | privacidade | pro | bufferbloat | cgnat · <span class="kb">mobile</span></td><td>Sticky, altura mínima 76px, max-width 1280, padding 14/20. Lista de links é constante (<span class="kb">ITENS</span>); o item ativo recebe cor accent + sublinhado 2px. Mobile: só logo + ícone <span class="kb">menu</span> 40×40. Logo em duas imagens (clara/escura) trocadas por media query.</td></tr>
+      <tr><td>SiteFooter</td><td>—</td><td>Versão única compacta: logo 22px, badge Beta, links em linha (12px) e copyright empurrado por <span class="kb">margin-left: auto</span>. Envolve tudo em <span class="kb">flex-wrap</span>, então serve mobile e desktop sem variante.</td></tr>
+      <tr><td>AdRail</td><td><span class="kb">variant</span>: a | b</td><td>Trilho lateral 240×860, só desktop. Duas criações; animações puramente CSS com <span class="kb">prefers-reduced-motion</span> desligando tudo.</td></tr>
+      <tr><td>AdBannerWide</td><td><span class="kb">variant</span>: a | b · <span class="kb">compact</span></td><td>Faixa 100% × 172px (compacta: coluna, altura livre). Rótulo PUBLICIDADE fixo no canto. Textos e cores da campanha vêm de mapa no logic, não do markup.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="cal">Shell de página (repetido em todas as telas, candidato número 1 a virar <span class="kb">&lt;PageShell&gt;</span>): <span class="kb">SiteNav</span> → linha flex com <span class="kb">AdRail a</span>, coluna de conteúdo (<span class="kb">flex: 1; max-width: contentMax</span>) e <span class="kb">AdRail b</span> → faixa <span class="kb">AdBannerWide</span> → <span class="kb">SiteFooter</span>. Props do shell: <span class="kb">active</span>, <span class="kb">mobile</span>, <span class="kb">ads</span> (bool), <span class="kb">contentMax</span>.</div>
+
+  <h2 style="margin: 26px 0 6px; font: 600 20px/1.3 var(--font-sans); color: #1C1B1F;">4 · Telas</h2>
+
+  <h3 style="margin: 18px 0 2px; font: 600 16px/1.4 var(--font-sans); color: #1C1B1F;">4.1 ScreenHome — teste de velocidade</h3>
+  <p style="margin: 0 0 2px; font: 400 13.5px/1.6 var(--font-sans); color: #3A3646;">Props: <span class="kb">variant</span> (10 valores) · <span class="kb">mobile</span>. Todos os estados derivam de flags calculadas num único lugar: <span class="kb">isIdle</span>, <span class="kb">isRunning</span>, <span class="kb">isResult</span>, <span class="kb">isPartial</span>, <span class="kb">isProblem</span>.</p>
+  <table class="tb">
+    <thead><tr><th>Estado</th><th>Composição</th></tr></thead>
+    <tbody>
+      <tr><td>idle</td><td>H1 + subtítulo · medidor SVG 360×210 (ticks gerados por laço, 49 traços; escala 0→100) · CTA pill 44px "Iniciar teste" com ícone <span class="kb">speed</span> 18 · legenda "Rápido · ~20 s" · linha "Rede Cloudflare" (ícone <span class="kb">dns</span> 20, centralizada, sem moldura) · seletor de modo pill 300px (Rápido/Completo/3 testes) · link "Como medimos sua conexão"</td></tr>
+      <tr><td>running</td><td>Arco preenchido + agulha na cor da fase · número 54px tabular · trio Latência/Download/Upload em faixa 520px com divisórias hairline · "Cancelar teste" com ícone <span class="kb">close</span></td></tr>
+      <tr><td>result / result-parcial</td><td>Selo de status (ícone + rótulo + data) · grid 3×1 de cards de métrica (raio 16, bg-secondary, número 34px) · bloco "Interpretação SignallQ" (fundo accent 7%, grid de 4 casos de uso, 2 colunas no mobile) · dois cards de contexto/detalhes técnicos em grid 1fr 1fr · par de botões 46px (primário + outline) · banner de app. Parcial adiciona faixa de aviso âmbar 10%.</td></tr>
+      <tr><td>6 estados de problema</td><td>Um só bloco genérico centralizado (ícone 44 · título 22 · mensagem 16 · botão 44) alimentado pelo mapa <span class="kb">PROBLEMAS</span>: sem-conexao, cancelado, bloqueado-outra-aba, conexao-interrompida, endpoint-indisponivel, erro-inesperado.</td></tr>
+    </tbody>
+  </table>
+  <p style="margin: 6px 0 0; font: 400 13.5px/1.6 var(--font-sans); color: #3A3646;">Medidor: implementar como componente próprio <span class="kb">&lt;SpeedDial value fraction phase state /&gt;</span>. Geometria toda derivada de três constantes (<span class="kb">CX 180, CY 186, R 136</span>) e de uma função <span class="kb">point(raio, fração)</span> — nenhuma coordenada escrita à mão.</p>
+
+  <h3 style="margin: 18px 0 2px; font: 600 16px/1.4 var(--font-sans); color: #1C1B1F;">4.2 ScreenHistorico</h3>
+  <p style="margin: 0; font: 400 13.5px/1.6 var(--font-sans); color: #3A3646;">Props: <span class="kb">variant</span> = lista | vazio | carregando | indisponivel | limpar · <span class="kb">mobile</span>. Desktop usa SiteNav; mobile troca por barra de detalhe (voltar / título / compartilhar, ícones 24 em alvos 40×40). Cabeçalho: H1 26px + nota "Salvo só neste navegador". Estados vazio/carregando/indisponível seguem o mesmo bloco centralizado (ícone 28–36, título 22, texto 14, ação 40–44px). "limpar" é o diálogo de confirmação sobre a lista.</p>
+
+  <h3 style="margin: 18px 0 2px; font: 600 16px/1.4 var(--font-sans); color: #1C1B1F;">4.3 ScreenPro</h3>
+  <p style="margin: 0; font: 400 13.5px/1.6 var(--font-sans); color: #3A3646;">Props: <span class="kb">part</span> (1 = oferta, 2 = detalhamento) · <span class="kb">modal</span> · <span class="kb">mobile</span>. Fluxo de 7 etapas vem da constante <span class="kb">FLOW</span>; grupos de recursos vêm de lista de dados com <span class="kb">icon</span> + <span class="kb">label</span> (ícone 18). O modal "O PRO chega em breve" é overlay <span class="kb">inset: 0</span> com scrim 40%, card 380px, raio 24 — trocar por <span class="kb">Dialog</span> do DS na implementação.</p>
+
+  <h3 style="margin: 18px 0 2px; font: 600 16px/1.4 var(--font-sans); color: #1C1B1F;">4.4 ScreenDoc</h3>
+  <p style="margin: 0; font: 400 13.5px/1.6 var(--font-sans); color: #3A3646;">Prop <span class="kb">page</span>: como-medimos, quem-somos, bufferbloat, cgnat, privacidade, termos. Uma implementação só; todo o conteúdo (título, resumo, seções) mora no mapa <span class="kb">PAGES</span> e o item ativo da nav é derivado da chave da página. Em produção, esse mapa vira CMS/markdown — o componente não muda.</p>
+
+  <h3 style="margin: 18px 0 2px; font: 600 16px/1.4 var(--font-sans); color: #1C1B1F;">4.5 Screen404</h3>
+  <p style="margin: 0; font: 400 13.5px/1.6 var(--font-sans); color: #3A3646;">Prop <span class="kb">mobile</span>. Mesmo shell das demais (SiteNav <span class="kb">active="home"</span>, AdRail a/b, AdBannerWide <span class="kb">variant="a"</span>, SiteFooter) e o mesmo <span class="kb">shellPadding</span>; miolo é o bloco genérico de estado com botão 44px "Ir para o teste de velocidade" (ícone <span class="kb">speed</span> 20).</p>
+
+  <h3 style="margin: 18px 0 2px; font: 600 16px/1.4 var(--font-sans); color: #1C1B1F;">4.6 Desktop (galeria)</h3>
+  <p style="margin: 0; font: 400 13.5px/1.6 var(--font-sans); color: #3A3646;">Artefato de review, não de produção: 22 monitores com viewport interno de 1440×1320 exibido a 660px (<span class="kb">zoom: .5</span>), duas colunas, revelação por <span class="kb">IntersectionObserver</span>. Ao acrescentar tela nova, medir a mais alta e manter folga — a moldura recorta o excedente.</p>
+
+  <h2 style="margin: 26px 0 6px; font: 600 20px/1.3 var(--font-sans); color: #1C1B1F;">5 · Checklist anti-hardcode</h2>
+  <ul style="margin: 0; padding-left: 20px; font: 400 14px/1.65 var(--font-sans); color: #2A2733;">
+    <li>Cor literal (<span class="kb">#hex</span>, <span class="kb">rgba()</span>) fora das peças de anúncio → trocar por token.</li>
+    <li>Tamanho de fonte fora da escala de 12 estilos → usar o papel mais próximo da tabela §2.</li>
+    <li>Padding/gap fora de 4·8·12·16·20·24·32·40 → ajustar.</li>
+    <li>Texto de estado escrito no markup → mover para mapa de dados.</li>
+    <li>Tela duplicada para uma variação visual → transformar em prop enumerada.</li>
+    <li>Divisória com <span class="kb">var(--border)</span> puro → aplicar <span class="kb">color-mix</span> em 22%.</li>
+    <li>Número mágico em SVG → derivar de constante geométrica.</li>
+    <li>Bloco repetido em 2+ telas (estado vazio, card de métrica, faixa de aviso) → extrair componente.</li>
+  </ul>
+
+  <h2 style="margin: 26px 0 6px; font: 600 20px/1.3 var(--font-sans); color: #1C1B1F;">6 · Extrações prioritárias</h2>
+  <table class="tb">
+    <thead><tr><th>Componente novo</th><th>Substitui</th></tr></thead>
+    <tbody>
+      <tr><td>PageShell</td><td>Nav + trilhos + banner + rodapé repetidos em 5 telas</td></tr>
+      <tr><td>SpeedDial</td><td>Medidor SVG de ScreenHome (idle e running)</td></tr>
+      <tr><td>MetricCard</td><td>Cards de download/upload/latência e blocos de caso de uso</td></tr>
+      <tr><td>EmptyState</td><td>6 estados de problema da Home + vazio/carregando/indisponível do Histórico + 404</td></tr>
+      <tr><td>NoticeBar</td><td>Faixa de resultado parcial e demais avisos por severidade</td></tr>
+      <tr><td>KeyValueList</td><td>Grids "auto 1fr" de contexto da execução e detalhes técnicos</td></tr>
+    </tbody>
+  </table>
+</doc-page>
+
+</x-dc>
+</body>
+</html>

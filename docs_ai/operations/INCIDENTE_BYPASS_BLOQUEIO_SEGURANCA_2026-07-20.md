@@ -2,6 +2,7 @@
 
 - **Status:** ativo (lição permanente, não arquivar)
 - **Data:** 2026-07-20
+- **Última validação:** 2026-07-23
 - **Fonte de verdade:** este documento
 - **Escopo:** processo de merge/PR de qualquer agente do squad, não só Android
 - **Responsável:** Claudete (registro), Rhodolfo (agente envolvido)

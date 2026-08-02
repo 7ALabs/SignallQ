@@ -46,6 +46,18 @@ class UptimeNarrativaEngineTest {
         latencyMediaMs = null,
     )
 
+    /** GH#1518: latencia > 800ms, mas a rede respondeu — nunca e OFFLINE. */
+    private fun blocoLatenciaAlta(
+        hora: Int = 12,
+        minuto: Int = 0,
+        dia: Int = 1,
+    ): BlocoUptime = BlocoUptime(
+        dataHora = LocalDateTime.of(2025, 5, dia, hora, minuto),
+        status = StatusUptime.LATENCIA_ALTA,
+        latencyMs = 1200,
+        latencyMediaMs = 1100,
+    )
+
     private fun blocoSemDado(dia: Int = 1): BlocoUptime = BlocoUptime(
         dataHora = LocalDateTime.of(2025, 5, dia, 0, 0),
         status = StatusUptime.SEM_DADO,
@@ -100,6 +112,90 @@ class UptimeNarrativaEngineTest {
         assertTrue(
             "Sequencia de 4h offline deve gerar narrativa especifica: $narrativa",
             narrativa.contains("offline", ignoreCase = true),
+        )
+    }
+
+    // ---------------------------------------------------------------------------
+    // GH#1518 — latencia alta nunca e narrada como offline/sem conexao
+    // ---------------------------------------------------------------------------
+
+    @Test
+    fun `blocos de latencia alta nunca geram narrativa de offline ou sem conexao`() {
+        // 20 blocos (10h) de latencia alta, sem nenhum bloco OFFLINE real no historico
+        val blocos = List(150) { blocoOk() } + List(20) { blocoLatenciaAlta() } + List(166) { blocoOk() }
+        val narrativa = UptimeNarrativaEngine.gerarNarrativa(blocos)
+
+        assertTrue(
+            "Narrativa nao pode dizer que a rede ficou offline: $narrativa",
+            !narrativa.contains("offline", ignoreCase = true),
+        )
+        assertTrue(
+            "Narrativa nao pode dizer sem conexao: $narrativa",
+            !narrativa.contains("sem conexão", ignoreCase = true) && !narrativa.contains("sem conexao", ignoreCase = true),
+        )
+        assertTrue(
+            "Narrativa nao pode dizer que a rede caiu: $narrativa",
+            !narrativa.contains("rede caiu", ignoreCase = true) && !narrativa.contains("ficou offline", ignoreCase = true),
+        )
+        assertTrue(
+            "Narrativa deve mencionar latencia alta: $narrativa",
+            narrativa.contains("latência", ignoreCase = true),
+        )
+    }
+
+    @Test
+    fun `sequencia longa de latencia alta menciona que a rede seguiu conectada`() {
+        // 8 blocos consecutivos de latencia alta = 4h — dispara ramo de "sequencia longa"
+        val blocos = List(164) { blocoOk() } + List(8) { blocoLatenciaAlta() } + List(164) { blocoOk() }
+        val narrativa = UptimeNarrativaEngine.gerarNarrativa(blocos)
+
+        assertTrue(
+            "Deve indicar que a rede seguiu conectada apesar da latencia alta: $narrativa",
+            narrativa.contains("conectada", ignoreCase = true),
+        )
+        assertTrue(
+            "Nao pode mencionar offline mesmo em sequencia longa de latencia alta: $narrativa",
+            !narrativa.contains("offline", ignoreCase = true),
+        )
+    }
+
+    @Test
+    fun `mix de offline real e latencia alta narra os dois separadamente`() {
+        val blocos = List(100) { blocoOk() } +
+            List(10) { blocoOffline() } +
+            List(10) { blocoLatenciaAlta() } +
+            List(216) { blocoOk() }
+        val narrativa = UptimeNarrativaEngine.gerarNarrativa(blocos)
+
+        assertTrue(
+            "Deve mencionar a indisponibilidade real (offline): $narrativa",
+            narrativa.contains("offline", ignoreCase = true) || narrativa.contains("indisponível", ignoreCase = true),
+        )
+        assertTrue(
+            "Deve mencionar latencia alta separadamente: $narrativa",
+            narrativa.contains("latência", ignoreCase = true),
+        )
+    }
+
+    @Test
+    fun `latencia normal ate 300ms nao afeta narrativa de estabilidade`() {
+        // Regressao: bloco OK (latencia <=300ms) nao pode ser afetado pela correcao do #1518
+        val blocos = List(336) { blocoOk() }
+        val narrativa = UptimeNarrativaEngine.gerarNarrativa(blocos)
+        assertTrue(
+            "Latencia normal deve continuar gerando narrativa de rede estavel",
+            narrativa.contains("estável", ignoreCase = true),
+        )
+    }
+
+    @Test
+    fun `latencia intermediaria (LENTO) continua classificada e narrada como antes`() {
+        // Regressao: bucket LENTO (<=800ms) nao pode ser afetado pela correcao do #1518
+        val blocos = List(200) { blocoOk() } + List(80) { blocoLento() } + List(56) { blocoOk() }
+        val narrativa = UptimeNarrativaEngine.gerarNarrativa(blocos)
+        assertTrue(
+            "Narrativa deve mencionar lentidao para bucket LENTO, sem falar de offline ou latencia alta: $narrativa",
+            narrativa.contains("lent", ignoreCase = true),
         )
     }
 

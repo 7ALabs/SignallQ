@@ -6,10 +6,14 @@ import {
   mockGooglePlayAppVersions,
   mockGooglePlayRatings,
   mockGooglePlayReviews,
+  mockGooglePlayReviewsList,
   mockGooglePlayCrashAnr,
   mockGooglePlayTracksStatus,
   mockGooglePlayTracksSyncResult,
-  mockGooglePlayTracksBackfillResult
+  mockGooglePlayTracksBackfillResult,
+  mockGooglePlayVitalsStatus,
+  mockGooglePlayCrashRateStatus,
+  mockGooglePlayStoreListingStatus
 } from "./googlePlay.mock";
 import {
   GooglePlayIntegrationStatus,
@@ -18,10 +22,18 @@ import {
   GooglePlayAppVersionStats,
   GooglePlayRatingSummary,
   GooglePlayReviewSummary,
+  GooglePlayReviewHandlingStatus,
   GooglePlayCrashAnrSummary,
   GooglePlayTracksStatus,
   GooglePlayTracksSyncResult,
-  GooglePlayTracksBackfillResult
+  GooglePlayTracksBackfillResult,
+  GooglePlayVitalsStatus,
+  GooglePlayVitalsSyncResult,
+  GooglePlayCrashRateStatus,
+  GooglePlayCrashRateSyncResult,
+  GooglePlayStoreListingStatus,
+  GooglePlayStoreListingSyncResult,
+  GooglePlayStoreListingEntry
 } from "./googlePlay.types";
 import { DashboardFilters } from "../../services/adminMetricsService";
 
@@ -194,4 +206,191 @@ export async function backfillGooglePlayTracks(): Promise<GooglePlayTracksBackfi
     return apiClient.simulateFetch(mockGooglePlayTracksBackfillResult, {});
   }
   return apiClient.request<GooglePlayTracksBackfillResult>("POST", "/admin/integrations/google-play/tracks/backfill");
+}
+
+// --- GH#1341/#1346 — Android Vitals (ANR rate) e Avaliações completas ---
+
+interface GooglePlayVitalsStatusWorkerResponse {
+  source: string;
+  packageName?: string;
+  status: "connected" | "disabled";
+  hasCredentials: boolean;
+  lastSyncTimestamp: string | null;
+  anrRatePercent: number | null;
+  rangeStart: string | null;
+  rangeEnd: string | null;
+}
+
+export async function getGooglePlayVitalsStatus(): Promise<GooglePlayVitalsStatus> {
+  if (apiClient.isMockEnabled()) {
+    return apiClient.simulateFetch(mockGooglePlayVitalsStatus, {});
+  }
+
+  const raw = await apiClient.request<GooglePlayVitalsStatusWorkerResponse>(
+    "GET",
+    "/admin/integrations/google-play/vitals/status"
+  );
+
+  return {
+    status: raw.status,
+    hasCredentials: raw.hasCredentials,
+    lastSyncTimestamp: raw.lastSyncTimestamp,
+    anrRatePercent: raw.anrRatePercent,
+    rangeStart: raw.rangeStart,
+    rangeEnd: raw.rangeEnd,
+  };
+}
+
+export async function syncGooglePlayVitals(): Promise<GooglePlayVitalsSyncResult> {
+  if (apiClient.isMockEnabled()) {
+    return {
+      status: "ok",
+      anrRatePercent: mockGooglePlayVitalsStatus.anrRatePercent,
+      rangeStart: mockGooglePlayVitalsStatus.rangeStart ?? undefined,
+      rangeEnd: mockGooglePlayVitalsStatus.rangeEnd ?? undefined,
+      syncedAt: new Date().toISOString(),
+    };
+  }
+  return apiClient.request<GooglePlayVitalsSyncResult>("POST", "/admin/integrations/google-play/vitals/sync");
+}
+
+// GH#1341/#1352 — crash rate (Android Vitals), mesma metric set family do ANR rate, endpoint
+// próprio (`/vitals/crash-rate/*`) pra nunca fundir os dois na mesma linha de admin_settings.
+interface GooglePlayCrashRateStatusWorkerResponse {
+  source: string;
+  packageName?: string;
+  status: "connected" | "disabled";
+  hasCredentials: boolean;
+  lastSyncTimestamp: string | null;
+  crashRatePercent: number | null;
+  rangeStart: string | null;
+  rangeEnd: string | null;
+}
+
+export async function getGooglePlayCrashRateStatus(): Promise<GooglePlayCrashRateStatus> {
+  if (apiClient.isMockEnabled()) {
+    return apiClient.simulateFetch(mockGooglePlayCrashRateStatus, {});
+  }
+
+  const raw = await apiClient.request<GooglePlayCrashRateStatusWorkerResponse>(
+    "GET",
+    "/admin/integrations/google-play/vitals/crash-rate/status"
+  );
+
+  return {
+    status: raw.status,
+    hasCredentials: raw.hasCredentials,
+    lastSyncTimestamp: raw.lastSyncTimestamp,
+    crashRatePercent: raw.crashRatePercent,
+    rangeStart: raw.rangeStart,
+    rangeEnd: raw.rangeEnd,
+  };
+}
+
+export async function syncGooglePlayCrashRate(): Promise<GooglePlayCrashRateSyncResult> {
+  if (apiClient.isMockEnabled()) {
+    return {
+      status: "ok",
+      crashRatePercent: mockGooglePlayCrashRateStatus.crashRatePercent,
+      rangeStart: mockGooglePlayCrashRateStatus.rangeStart ?? undefined,
+      rangeEnd: mockGooglePlayCrashRateStatus.rangeEnd ?? undefined,
+      syncedAt: new Date().toISOString(),
+    };
+  }
+  return apiClient.request<GooglePlayCrashRateSyncResult>("POST", "/admin/integrations/google-play/vitals/crash-rate/sync");
+}
+
+// GH#1342 — store listing (título/descrição por idioma). Só pt-BR publicado hoje — `listings`
+// pode vir com 1 item, a UI não deve assumir mais que isso.
+interface GooglePlayStoreListingStatusWorkerResponse {
+  source: string;
+  packageName?: string;
+  status: "connected" | "disabled";
+  hasCredentials: boolean;
+  lastSyncTimestamp: string | null;
+  listings: GooglePlayStoreListingEntry[];
+}
+
+export async function getGooglePlayStoreListingStatus(): Promise<GooglePlayStoreListingStatus> {
+  if (apiClient.isMockEnabled()) {
+    return apiClient.simulateFetch(mockGooglePlayStoreListingStatus, {});
+  }
+
+  const raw = await apiClient.request<GooglePlayStoreListingStatusWorkerResponse>(
+    "GET",
+    "/admin/integrations/google-play/store-listing/status"
+  );
+
+  return {
+    status: raw.status,
+    hasCredentials: raw.hasCredentials,
+    lastSyncTimestamp: raw.lastSyncTimestamp,
+    listings: raw.listings ?? [],
+  };
+}
+
+export async function syncGooglePlayStoreListing(): Promise<GooglePlayStoreListingSyncResult> {
+  if (apiClient.isMockEnabled()) {
+    return {
+      status: "ok",
+      listings: mockGooglePlayStoreListingStatus.listings,
+      syncedAt: new Date().toISOString(),
+    };
+  }
+  return apiClient.request<GooglePlayStoreListingSyncResult>("POST", "/admin/integrations/google-play/store-listing/sync");
+}
+
+// Linha do D1 (migration 017_gh1341_google_play_reviews.sql) — snake_case, cru, nunca exposta
+// direto pra tela; mapeada para GooglePlayReviewSummary por mapGooglePlayReviewRow.
+interface GooglePlayReviewRow {
+  review_id: string;
+  rating: number;
+  comment_text: string;
+  language: string;
+  device: string;
+  android_os_version: number | null;
+  app_version_code: number | null;
+  app_version_name: string;
+  review_last_modified: number | null;
+  developer_reply_text: string | null;
+  developer_reply_at: number | null;
+  handling_status: GooglePlayReviewHandlingStatus;
+  first_synced_at: number;
+  last_synced_at: number;
+}
+
+function mapGooglePlayReviewRow(row: GooglePlayReviewRow): GooglePlayReviewSummary {
+  return {
+    reviewId: row.review_id,
+    rating: row.rating,
+    comment: row.comment_text ?? "",
+    appVersion: row.app_version_name || (row.app_version_code ? String(row.app_version_code) : ""),
+    replyText: row.developer_reply_text ?? undefined,
+    replyTime: row.developer_reply_at ? new Date(row.developer_reply_at * 1000).toISOString() : undefined,
+    commentTime: row.review_last_modified
+      ? new Date(row.review_last_modified * 1000).toISOString()
+      : new Date(row.last_synced_at * 1000).toISOString(),
+    language: row.language || undefined,
+    device: row.device || undefined,
+    handlingStatus: row.handling_status,
+  };
+}
+
+export async function getGooglePlayReviewsList(params: {
+  handlingStatus?: GooglePlayReviewHandlingStatus;
+  limit?: number;
+} = {}): Promise<GooglePlayReviewSummary[]> {
+  if (apiClient.isMockEnabled()) {
+    return apiClient.simulateFetch(mockGooglePlayReviewsList, params);
+  }
+
+  const query = new URLSearchParams();
+  if (params.handlingStatus) query.set("handlingStatus", params.handlingStatus);
+  query.set("limit", String(params.limit ?? 200));
+
+  const raw = await apiClient.request<{ source: string; reviews: GooglePlayReviewRow[] }>(
+    "GET",
+    `/admin/integrations/google-play/reviews?${query.toString()}`
+  );
+  return (raw.reviews ?? []).map(mapGooglePlayReviewRow);
 }

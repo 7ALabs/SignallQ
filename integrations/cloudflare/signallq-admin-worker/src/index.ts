@@ -1,11 +1,22 @@
 // SignallQ Admin API Worker
 // /admin/* exige sessão httpOnly via cookie (SIG-136 — auth própria via D1).
-// /ingest/* exige Bearer INGEST_KEY (chave separada, scope limitado, vai no APK).
+// /ingest/* exige Bearer INGEST_KEY (chave separada, scope limitado, vai no APK)
+// OU SITE_INGEST_KEY (#1155 — chave dedicada ao SignallQ Site, mesmo scope).
 // /health exige Bearer ADMIN_SECRET (retrocompat dev/monitoramento externo).
 // Separar os secrets reduz o blast radius: vazar INGEST_KEY nao da acesso
 // aos dados do admin. INGEST_KEY so pode escrever em /ingest/*.
 
-import { hashPassword, verifyPassword, createSession, validateSession, revokeSession } from './auth'
+import { hashPassword, verifyPassword, createSession, validateSession, revokeSession } from './auth.ts'
+import { getFirebaseAccessToken } from './firebaseAuth.ts'
+import {
+  handleRemoteConfigAdminGet,
+  handleRemoteConfigAdminVersions,
+  handleRemoteConfigAdminValidate,
+  handleRemoteConfigAdminPublish,
+  handleRemoteConfigAdminRollback,
+  handleFeatureFlagsCatalogGet,
+  handleFeatureFlagsSync,
+} from './remoteConfigAdmin.ts'
 
 // #788 — tipos mínimos do Cron Trigger (workerd runtime). O projeto não tem
 // @cloudflare/workers-types instalado (gap pré-existente, mesma causa dos
@@ -30,6 +41,10 @@ export interface Env {
   ADMIN_SECRET: string;
   /** Chave separada para ingest do app Android. Scope: POST /ingest/* apenas. */
   INGEST_KEY: string;
+  /** #1155 — chave dedicada ao SignallQ Site (Pages Function track.ts), separada da
+   * INGEST_KEY do app Android para não precisar rotacionar a chave já embutida no APK
+   * publicado. Opcional até ser configurada em produção via `wrangler secret put`. */
+  SITE_INGEST_KEY?: string;
   FIREBASE_CLIENT_EMAIL: string;
   FIREBASE_PRIVATE_KEY: string;
   /** GH#761 — service account com acesso à Android Publisher API (reviews). */
@@ -43,26 +58,53 @@ export interface Env {
   /** #883 — não é secret (já visível em wrangler.toml/dashboard), mas fica no Env para não hardcodear no handler. */
   CLOUDFLARE_ACCOUNT_ID?: string;
   CLOUDFLARE_D1_DATABASE_ID?: string;
+  /** Refs #1446 — service binding pro signallq-diagnostic-worker (proxy de /admin/diagnostic/*).
+   * Worker-to-Worker fetch entre dois *.workers.dev é bloqueado pela Cloudflare (erro 1042,
+   * mesmo motivo do GH#767 no ai-diagnosis-worker) — service binding é a forma correta. */
+  DIAGNOSTIC_WORKER?: { fetch: typeof fetch };
+  /** Refs #1446 — secret compartilhada com o signallq-diagnostic-worker: prova pro worker de
+   * destino que a chamada já passou pela sessão do admin-worker, sem exigir uma segunda sessão
+   * (evita duas fontes de verdade de "quem é admin"). Sem esta secret, o proxy responde 502. */
+  DIAGNOSTIC_PROXY_SECRET?: string;
 }
 
 function corsHeaders(env: Env): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN,
-    "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Environment",
     "Access-Control-Allow-Credentials": "true",
     "Access-Control-Max-Age": "86400",
   };
 }
 
-function json(body: unknown, status = 200, env: Env): Response {
+export function json(body: unknown, status = 200, env: Env): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "Content-Type": "application/json", ...corsHeaders(env) },
   });
 }
 
-function err(message: string, status: number, env: Env): Response {
+// CORS pra endpoints públicos de leitura (sem sessão/credential, ex.: /local-ads) — GH#1422
+// pós-mortem: o Site (signallq.pages.dev) nunca conseguiu ler o catálogo de anúncios em
+// produção porque `corsHeaders(env)` só libera `ALLOWED_ORIGIN` (signallq-admin-panel.pages.dev,
+// origem do Console) — o browser bloqueava a resposta por CORS antes mesmo do client
+// processar, e o catch de `buscarAnunciosLocais` engolia o erro silenciosamente, caindo
+// sempre no placeholder. Origin aberto é seguro aqui porque o endpoint não usa
+// Allow-Credentials nem devolve nada além de conteúdo de anúncio já público.
+function publicJson(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Max-Age": "86400",
+    },
+  });
+}
+
+export function err(message: string, status: number, env: Env): Response {
   return json({ error: message }, status, env);
 }
 
@@ -78,8 +120,14 @@ function authenticateIngest(request: Request, env: Env): boolean {
   const auth = request.headers.get("Authorization") ?? "";
   const [scheme, token] = auth.split(" ");
   if (scheme !== "Bearer") return false;
-  // Aceita INGEST_KEY (chave do app) OU ADMIN_SECRET (retrocompat e dev local).
-  return token === env.INGEST_KEY || token === env.ADMIN_SECRET;
+  // Aceita INGEST_KEY (chave do app) OU ADMIN_SECRET (retrocompat e dev local)
+  // OU SITE_INGEST_KEY (#1155 — chave dedicada ao Site, evita rotacionar a
+  // INGEST_KEY já embutida no APK Android publicado).
+  return (
+    token === env.INGEST_KEY ||
+    token === env.ADMIN_SECRET ||
+    (!!env.SITE_INGEST_KEY && token === env.SITE_INGEST_KEY)
+  );
 }
 
 // --- SIG-136: Auth por sessão ---
@@ -94,6 +142,55 @@ async function authenticateSession(request: Request, env: Env): Promise<{ userId
   const token = getSessionToken(request)
   if (!token) return null
   return validateSession(token, env.DB)
+}
+
+// Refs #1446 — proxy de /admin/diagnostic/* pro signallq-diagnostic-worker.
+// Motivo: o Console autentica só contra este worker (D1/sessão/admin_users próprios), mas os
+// endpoints administrativos do motor de diagnóstico vivem num segundo worker com D1/sessão
+// próprios e completamente separados. Em vez do Console logar duas vezes (duas fontes de "quem é
+// admin"), este worker repassa a chamada pro diagnostic-worker via service binding, provando com
+// DIAGNOSTIC_PROXY_SECRET que a sessão já foi validada aqui — o diagnostic-worker não deve (e não
+// passa a) checar a própria sessão nesse caminho. O frontend nunca fala com o diagnostic-worker.
+const DIAGNOSTIC_PROXY_SECRET_HEADER = 'X-Internal-Diagnostic-Proxy-Secret'
+const DIAGNOSTIC_PROXY_USER_HEADER = 'X-Internal-Admin-User'
+const DIAGNOSTIC_PROXY_ROLE_HEADER = 'X-Internal-Admin-Role'
+
+async function proxyDiagnosticAdmin(
+  request: Request,
+  env: Env,
+  session: { userId: string; role: string }
+): Promise<Response> {
+  if (!env.DIAGNOSTIC_WORKER || !env.DIAGNOSTIC_PROXY_SECRET) {
+    return err('Proxy do diagnostic-worker não configurado (service binding ou secret ausente).', 502, env)
+  }
+
+  const url = new URL(request.url)
+  // Host arbitrário — descartado pelo runtime, o service binding roteia pelo binding, não pela URL.
+  const upstreamUrl = `https://signallq-diagnostic.internal${url.pathname}${url.search}`
+
+  const upstreamHeaders = new Headers(request.headers)
+  upstreamHeaders.delete('Cookie') // sessão do admin-worker não deve vazar pro segundo worker
+  upstreamHeaders.set(DIAGNOSTIC_PROXY_SECRET_HEADER, env.DIAGNOSTIC_PROXY_SECRET)
+  // Prefixo pra deixar claro no audit trail do diagnostic-worker (campo `author`, texto livre,
+  // sem FK) que o id pertence ao espaço de admin_users do admin-worker, não ao dele próprio.
+  upstreamHeaders.set(DIAGNOSTIC_PROXY_USER_HEADER, `admin-worker:${session.userId}`)
+  upstreamHeaders.set(DIAGNOSTIC_PROXY_ROLE_HEADER, session.role)
+
+  const upstreamRequest = new Request(upstreamUrl, {
+    method: request.method,
+    headers: upstreamHeaders,
+    body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body,
+  })
+
+  const upstreamResponse = await env.DIAGNOSTIC_WORKER.fetch(upstreamRequest)
+
+  // Repassa status e corpo de forma transparente — não inventa formato de erro novo. Só troca os
+  // headers de CORS pelos deste worker (o browser só fala com o admin-worker).
+  const responseHeaders = new Headers(upstreamResponse.headers)
+  for (const key of Object.keys(corsHeaders(env))) responseHeaders.delete(key)
+  for (const [key, value] of Object.entries(corsHeaders(env))) responseHeaders.set(key, value)
+
+  return new Response(upstreamResponse.body, { status: upstreamResponse.status, headers: responseHeaders })
 }
 
 /** Verifica rate limit: > 5 tentativas em 15 min por IP → bloqueado. */
@@ -238,6 +335,38 @@ function nowSec(): number {
   return Math.floor(Date.now() / 1000);
 }
 
+// GH#1342/#1344 (migration 016) — grava uma linha de histórico append-only por sync, além do
+// cache "última sincronização" em admin_settings. Sem isso, nenhuma das integrações de Google
+// Play/Firebase teria série temporal pra plotar tendência (ChartCard) ou correlacionar por
+// período — cada sync sobrescrevia o anterior. payload é sempre o JSON bruto do registro
+// completo, nunca só o valor numérico, para preservar campos novos que a fonte adicionar depois.
+async function recordIntegrationSnapshot(env: Env, params: {
+  provider: string;
+  service: string;
+  resource: string;
+  metric?: string | null;
+  periodStart?: string | null;
+  periodEnd?: string | null;
+  valueNumeric?: number | null;
+  payload: unknown;
+}): Promise<void> {
+  await env.DB.prepare(
+    `INSERT INTO integration_metric_snapshots
+     (provider, service, resource, metric, period_start, period_end, value_numeric, payload, synced_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    params.provider,
+    params.service,
+    params.resource,
+    params.metric ?? null,
+    params.periodStart ?? null,
+    params.periodEnd ?? null,
+    params.valueNumeric ?? null,
+    JSON.stringify(params.payload),
+    nowSec()
+  ).run();
+}
+
 // Achado ao validar #883/#884 em produção: um valor corrompido em
 // admin_settings.value (ex.: escrita manual malformada) derrubava
 // generateAndPersistAlerts inteiro (500 em /admin/alerts) via JSON.parse sem
@@ -301,49 +430,8 @@ function productionTrackClause(envFilter: string | null, columnPrefix = ""): str
   return ` AND (${columnPrefix}play_track IS NULL OR ${columnPrefix}play_track = 'production')`;
 }
 
-async function getFirebaseAccessToken(env: Env): Promise<string> {
-  const now = nowSec();
-  const payload = {
-    iss: env.FIREBASE_CLIENT_EMAIL,
-    sub: env.FIREBASE_CLIENT_EMAIL,
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-    scope: [
-      "https://www.googleapis.com/auth/firebase",
-      "https://www.googleapis.com/auth/analytics.readonly",
-      "https://www.googleapis.com/auth/cloud-platform",
-    ].join(" "),
-  };
-  const privateKey = env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n");
-  const keyData = privateKey
-    .replace("-----BEGIN PRIVATE KEY-----", "")
-    .replace("-----END PRIVATE KEY-----", "")
-    .replace(/\s/g, "");
-  const binaryKey = Uint8Array.from(atob(keyData), (c) => c.charCodeAt(0));
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8", binaryKey,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false, ["sign"]
-  );
-  const toB64Url = (s: string) =>
-    btoa(s).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-  const header = toB64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
-  const body   = toB64Url(JSON.stringify(payload));
-  const sigInput = new TextEncoder().encode(`${header}.${body}`);
-  const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", cryptoKey, sigInput);
-  const sig = toB64Url(String.fromCharCode(...new Uint8Array(signature)));
-  const tokenResp = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: `${header}.${body}.${sig}`,
-    }),
-  });
-  const tokenData = (await tokenResp.json()) as { access_token: string };
-  return tokenData.access_token;
-}
+// getFirebaseAccessToken foi extraída pra src/firebaseAuth.ts (groundwork #1478, 2026-07-26) —
+// mesmo comportamento, só movida pra módulo próprio. Ver import no topo do arquivo.
 
 async function queryBigQuery<T = unknown>(
   env: Env,
@@ -1773,7 +1861,7 @@ async function handleDiagnosticsIntelligence(request: Request, env: Env): Promis
   return json({ source: "d1", period, environment: envFilter ?? "all", patterns }, 200, env);
 }
 
-async function handleFirebaseAnalytics(request: Request, env: Env): Promise<Response> {
+async function handleFirebaseAnalytics(_request: Request, env: Env): Promise<Response> {
   if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
     return json({ source: "no_credentials", activeUsersToday: 0, sessionsToday: 0 }, 200, env);
   }
@@ -1801,6 +1889,83 @@ async function handleFirebaseAnalytics(request: Request, env: Env): Promise<Resp
     return json({ source: "firebase_analytics", data }, 200, env);
   } catch (e) {
     await logError(env, 'firebase', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ source: "error", message: String(e) }, 500, env);
+  }
+}
+
+// GH#1343 — ampliação do GA4 além do runReport básico: aquisição, telas, retenção. Mesmo padrão
+// live/passthrough do handleFirebaseAnalytics acima (sem persistência — é dashboard consultado
+// ao vivo, não série histórica gravada; property ID corrigido em 2026-07-24, ver wrangler.toml).
+async function runGa4Report(env: Env, body: unknown): Promise<{ status: number; data: unknown }> {
+  const token = await getFirebaseAccessToken(env);
+  const resp = await fetch(
+    `https://analyticsdata.googleapis.com/v1beta/properties/${env.FIREBASE_GA4_PROPERTY_ID}:runReport`,
+    { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(body) }
+  );
+  return { status: resp.status, data: await resp.json() };
+}
+
+async function handleFirebaseAcquisition(_req: Request, env: Env): Promise<Response> {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return json({ source: "no_credentials" }, 200, env);
+  }
+  if (!env.FIREBASE_GA4_PROPERTY_ID) {
+    return json({ source: "no_ga4_property_id", message: "Configure FIREBASE_GA4_PROPERTY_ID no wrangler.toml." }, 200, env);
+  }
+  try {
+    const { status, data } = await runGa4Report(env, {
+      dateRanges: [{ startDate: "7daysAgo", endDate: "today" }],
+      dimensions: [{ name: "sessionSource" }, { name: "sessionMedium" }, { name: "sessionCampaignName" }],
+      metrics: [{ name: "newUsers" }, { name: "sessions" }, { name: "engagedSessions" }],
+    });
+    if (status !== 200) await logError(env, 'firebase-ga4-acquisition', `runReport_${status}: ${JSON.stringify(data).slice(0, 300)}`, '');
+    return json({ source: "firebase_analytics", data }, 200, env);
+  } catch (e) {
+    await logError(env, 'firebase-ga4-acquisition', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ source: "error", message: String(e) }, 500, env);
+  }
+}
+
+async function handleFirebaseScreens(_req: Request, env: Env): Promise<Response> {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return json({ source: "no_credentials" }, 200, env);
+  }
+  if (!env.FIREBASE_GA4_PROPERTY_ID) {
+    return json({ source: "no_ga4_property_id", message: "Configure FIREBASE_GA4_PROPERTY_ID no wrangler.toml." }, 200, env);
+  }
+  try {
+    const { status, data } = await runGa4Report(env, {
+      dateRanges: [{ startDate: "7daysAgo", endDate: "today" }],
+      dimensions: [{ name: "unifiedScreenName" }],
+      metrics: [{ name: "screenPageViews" }, { name: "activeUsers" }],
+      orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+      limit: "20",
+    });
+    if (status !== 200) await logError(env, 'firebase-ga4-screens', `runReport_${status}: ${JSON.stringify(data).slice(0, 300)}`, '');
+    return json({ source: "firebase_analytics", data }, 200, env);
+  } catch (e) {
+    await logError(env, 'firebase-ga4-screens', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ source: "error", message: String(e) }, 500, env);
+  }
+}
+
+async function handleFirebaseRetention(_req: Request, env: Env): Promise<Response> {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return json({ source: "no_credentials" }, 200, env);
+  }
+  if (!env.FIREBASE_GA4_PROPERTY_ID) {
+    return json({ source: "no_ga4_property_id", message: "Configure FIREBASE_GA4_PROPERTY_ID no wrangler.toml." }, 200, env);
+  }
+  try {
+    const { status, data } = await runGa4Report(env, {
+      dateRanges: [{ startDate: "28daysAgo", endDate: "today" }],
+      dimensions: [{ name: "date" }],
+      metrics: [{ name: "active1DayUsers" }, { name: "active7DayUsers" }, { name: "active28DayUsers" }],
+    });
+    if (status !== 200) await logError(env, 'firebase-ga4-retention', `runReport_${status}: ${JSON.stringify(data).slice(0, 300)}`, '');
+    return json({ source: "firebase_analytics", data }, 200, env);
+  } catch (e) {
+    await logError(env, 'firebase-ga4-retention', String(e), e instanceof Error ? (e.stack ?? '') : '');
     return json({ source: "error", message: String(e) }, 500, env);
   }
 }
@@ -1841,6 +2006,413 @@ async function handleFirebaseStatus(_req: Request, env: Env): Promise<Response> 
     eventsImported: syncState?.eventsImported ?? 0,
     crashesImported: syncState?.crashesImported ?? 0,
   }, 200, env);
+}
+
+// --- GH#1344: Firebase Management API + Remote Config ---
+// Mesma credencial já usada por GA4/BigQuery (FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY,
+// getFirebaseAccessToken() com scope "cloud-platform" já incluso). Permissão confirmada via
+// chamada real em 2026-07-24 (200 em ambas) — ver docs_ai/decisions/
+// DECISAO_STATUS_CREDENCIAIS_GOOGLE_PLAY_FIREBASE_2026-07-24.md.
+
+interface FirebaseSourceRecord {
+  provider: "firebase";
+  service: string;
+  apiVersion: string;
+  resource: string;
+  endpoint: string;
+}
+
+interface FirebaseManagementSyncState {
+  syncedAt: string;
+  source: FirebaseSourceRecord;
+  project: { projectId: string; projectNumber: string; displayName: string; state: string } | null;
+  androidApps: Array<{ appId: string; displayName: string; packageName: string; state: string }>;
+}
+
+async function readFirebaseManagementSyncState(env: Env): Promise<FirebaseManagementSyncState | null> {
+  const row = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'firebase_management_sync'"
+  ).first<{ value: string }>();
+  if (!row?.value) return null;
+  try {
+    return JSON.parse(row.value) as FirebaseManagementSyncState;
+  } catch {
+    return null;
+  }
+}
+
+async function writeFirebaseManagementSyncState(env: Env, state: FirebaseManagementSyncState): Promise<void> {
+  await env.DB.prepare(
+    "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES ('firebase_management_sync', ?, ?)"
+  ).bind(JSON.stringify(state), nowSec()).run();
+}
+
+async function handleFirebaseManagementStatus(_req: Request, env: Env): Promise<Response> {
+  const hasCredentials = !!(env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY);
+  const syncState = await readFirebaseManagementSyncState(env);
+  return json({
+    source: "worker",
+    projectId: env.FIREBASE_PROJECT_ID,
+    status: hasCredentials ? "connected" : "disabled",
+    hasCredentials,
+    lastSyncTimestamp: syncState?.syncedAt ?? null,
+    project: syncState?.project ?? null,
+    androidApps: syncState?.androidApps ?? [],
+  }, 200, env);
+}
+
+async function handleFirebaseManagementSync(_req: Request, env: Env): Promise<Response> {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return json({ status: "not_configured", message: "FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY não configurados." }, 200, env);
+  }
+  try {
+    const token = await getFirebaseAccessToken(env);
+    const projectResp = await fetch(
+      `https://firebase.googleapis.com/v1beta1/projects/${env.FIREBASE_PROJECT_ID}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!projectResp.ok) {
+      const errText = await projectResp.text();
+      await logError(env, 'firebase-management', `project_${projectResp.status}: ${errText.slice(0, 300)}`, '');
+      return json({ status: "error", message: `Falha ao consultar projeto (HTTP ${projectResp.status}).` }, 200, env);
+    }
+    const projectData = await projectResp.json() as { projectId: string; projectNumber: string; displayName: string; state: string };
+
+    const appsResp = await fetch(
+      `https://firebase.googleapis.com/v1beta1/projects/${env.FIREBASE_PROJECT_ID}/androidApps`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!appsResp.ok) {
+      const errText = await appsResp.text();
+      await logError(env, 'firebase-management', `apps_${appsResp.status}: ${errText.slice(0, 300)}`, '');
+      return json({ status: "error", message: `Falha ao consultar androidApps (HTTP ${appsResp.status}).` }, 200, env);
+    }
+    const appsData = await appsResp.json() as { apps?: Array<{ appId: string; displayName: string; packageName: string; state: string }> };
+
+    const syncedAt = new Date().toISOString();
+    const state: FirebaseManagementSyncState = {
+      syncedAt,
+      source: {
+        provider: "firebase", service: "firebase_management", apiVersion: "v1beta1",
+        resource: `projects/${env.FIREBASE_PROJECT_ID}`,
+        endpoint: `https://firebase.googleapis.com/v1beta1/projects/${env.FIREBASE_PROJECT_ID}`,
+      },
+      project: {
+        projectId: projectData.projectId,
+        projectNumber: projectData.projectNumber,
+        displayName: projectData.displayName,
+        state: projectData.state,
+      },
+      androidApps: (appsData.apps ?? []).map(a => ({
+        appId: a.appId, displayName: a.displayName, packageName: a.packageName, state: a.state,
+      })),
+    };
+    await writeFirebaseManagementSyncState(env, state);
+    return json({ status: "ok", ...state }, 200, env);
+  } catch (e) {
+    await logError(env, 'firebase-management', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ status: "error", message: String(e) }, 200, env);
+  }
+}
+
+interface RemoteConfigSyncState {
+  syncedAt: string;
+  source: FirebaseSourceRecord;
+  parameterCount: number;
+  parameterKeys: string[];
+}
+
+async function readRemoteConfigSyncState(env: Env): Promise<RemoteConfigSyncState | null> {
+  const row = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'firebase_remote_config_sync'"
+  ).first<{ value: string }>();
+  if (!row?.value) return null;
+  try {
+    return JSON.parse(row.value) as RemoteConfigSyncState;
+  } catch {
+    return null;
+  }
+}
+
+async function writeRemoteConfigSyncState(env: Env, state: RemoteConfigSyncState): Promise<void> {
+  await env.DB.prepare(
+    "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES ('firebase_remote_config_sync', ?, ?)"
+  ).bind(JSON.stringify(state), nowSec()).run();
+}
+
+async function handleRemoteConfigStatus(_req: Request, env: Env): Promise<Response> {
+  const hasCredentials = !!(env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY);
+  const syncState = await readRemoteConfigSyncState(env);
+  return json({
+    source: "worker",
+    projectId: env.FIREBASE_PROJECT_ID,
+    status: hasCredentials ? "connected" : "disabled",
+    hasCredentials,
+    lastSyncTimestamp: syncState?.syncedAt ?? null,
+    parameterCount: syncState?.parameterCount ?? 0,
+    parameterKeys: syncState?.parameterKeys ?? [],
+  }, 200, env);
+}
+
+async function handleRemoteConfigSync(_req: Request, env: Env): Promise<Response> {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return json({ status: "not_configured", message: "FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY não configurados." }, 200, env);
+  }
+  const endpoint = `https://firebaseremoteconfig.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/remoteConfig`;
+  try {
+    const token = await getFirebaseAccessToken(env);
+    const resp = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` } });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      await logError(env, 'firebase-remote-config', `template_${resp.status}: ${errText.slice(0, 300)}`, '');
+      return json({ status: "error", message: `Falha ao consultar template (HTTP ${resp.status}).` }, 200, env);
+    }
+    const data = await resp.json() as { parameters?: Record<string, unknown> };
+    const parameterKeys = Object.keys(data.parameters ?? {});
+
+    const syncedAt = new Date().toISOString();
+    const state: RemoteConfigSyncState = {
+      syncedAt,
+      source: {
+        provider: "firebase", service: "remote_config", apiVersion: "v1",
+        resource: `projects/${env.FIREBASE_PROJECT_ID}/remoteConfig`,
+        endpoint,
+      },
+      parameterCount: parameterKeys.length,
+      parameterKeys,
+    };
+    await writeRemoteConfigSyncState(env, state);
+    return json({ status: "ok", ...state }, 200, env);
+  } catch (e) {
+    await logError(env, 'firebase-remote-config', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ status: "error", message: String(e) }, 200, env);
+  }
+}
+
+// --- GH#1344: Firebase App Check + App Distribution ---
+// Mesma credencial (FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY). Firebase App Check API
+// habilitada e papel "Administrador do Firebase" concedido no IAM em 2026-07-24 (ação do Luiz),
+// destravando o 403 anterior — ver docs_ai/decisions/
+// DECISAO_STATUS_CREDENCIAIS_GOOGLE_PLAY_FIREBASE_2026-07-24.md.
+
+const FIREBASE_PROJECT_NUMBER = "741421457740";
+const FIREBASE_ANDROID_APP_ID = "1:741421457740:android:a8658a91308fba058fefe9";
+
+interface AppCheckSyncState {
+  syncedAt: string;
+  source: FirebaseSourceRecord;
+  services: unknown;
+}
+
+async function readAppCheckSyncState(env: Env): Promise<AppCheckSyncState | null> {
+  const row = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'firebase_app_check_sync'"
+  ).first<{ value: string }>();
+  if (!row?.value) return null;
+  try {
+    return JSON.parse(row.value) as AppCheckSyncState;
+  } catch {
+    return null;
+  }
+}
+
+async function writeAppCheckSyncState(env: Env, state: AppCheckSyncState): Promise<void> {
+  await env.DB.prepare(
+    "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES ('firebase_app_check_sync', ?, ?)"
+  ).bind(JSON.stringify(state), nowSec()).run();
+}
+
+async function handleAppCheckStatus(_req: Request, env: Env): Promise<Response> {
+  const hasCredentials = !!(env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY);
+  const syncState = await readAppCheckSyncState(env);
+  return json({
+    source: "worker",
+    projectId: env.FIREBASE_PROJECT_ID,
+    status: hasCredentials ? "connected" : "disabled",
+    hasCredentials,
+    lastSyncTimestamp: syncState?.syncedAt ?? null,
+    services: syncState?.services ?? null,
+  }, 200, env);
+}
+
+async function handleAppCheckSync(_req: Request, env: Env): Promise<Response> {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return json({ status: "not_configured", message: "FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY não configurados." }, 200, env);
+  }
+  const endpoint = `https://firebaseappcheck.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/services`;
+  try {
+    const token = await getFirebaseAccessToken(env);
+    const resp = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` } });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      await logError(env, 'firebase-app-check', `services_${resp.status}: ${errText.slice(0, 300)}`, '');
+      return json({ status: "error", message: `Falha ao consultar App Check (HTTP ${resp.status}).` }, 200, env);
+    }
+    const services = await resp.json();
+    const syncedAt = new Date().toISOString();
+    const state: AppCheckSyncState = {
+      syncedAt,
+      source: { provider: "firebase", service: "app_check", apiVersion: "v1", resource: `projects/${env.FIREBASE_PROJECT_ID}/services`, endpoint },
+      services,
+    };
+    await writeAppCheckSyncState(env, state);
+    return json({ status: "ok", ...state }, 200, env);
+  } catch (e) {
+    await logError(env, 'firebase-app-check', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ status: "error", message: String(e) }, 200, env);
+  }
+}
+
+interface AppDistributionRelease {
+  name: string;
+  displayVersion: string;
+  buildVersion: string;
+  createTime: string;
+  releaseNotesText: string | null;
+}
+
+interface AppDistributionSyncState {
+  syncedAt: string;
+  source: FirebaseSourceRecord;
+  releases: AppDistributionRelease[];
+}
+
+async function readAppDistributionSyncState(env: Env): Promise<AppDistributionSyncState | null> {
+  const row = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'firebase_app_distribution_sync'"
+  ).first<{ value: string }>();
+  if (!row?.value) return null;
+  try {
+    return JSON.parse(row.value) as AppDistributionSyncState;
+  } catch {
+    return null;
+  }
+}
+
+async function writeAppDistributionSyncState(env: Env, state: AppDistributionSyncState): Promise<void> {
+  await env.DB.prepare(
+    "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES ('firebase_app_distribution_sync', ?, ?)"
+  ).bind(JSON.stringify(state), nowSec()).run();
+}
+
+async function handleAppDistributionStatus(_req: Request, env: Env): Promise<Response> {
+  const hasCredentials = !!(env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY);
+  const syncState = await readAppDistributionSyncState(env);
+  return json({
+    source: "worker",
+    projectId: env.FIREBASE_PROJECT_ID,
+    status: hasCredentials ? "connected" : "disabled",
+    hasCredentials,
+    lastSyncTimestamp: syncState?.syncedAt ?? null,
+    releases: syncState?.releases ?? [],
+  }, 200, env);
+}
+
+async function handleAppDistributionSync(_req: Request, env: Env): Promise<Response> {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return json({ status: "not_configured", message: "FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY não configurados." }, 200, env);
+  }
+  const resource = `projects/${FIREBASE_PROJECT_NUMBER}/apps/${FIREBASE_ANDROID_APP_ID}/releases`;
+  const endpoint = `https://firebaseappdistribution.googleapis.com/v1/${resource}`;
+  try {
+    const token = await getFirebaseAccessToken(env);
+    const resp = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` } });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      await logError(env, 'firebase-app-distribution', `releases_${resp.status}: ${errText.slice(0, 300)}`, '');
+      return json({ status: "error", message: `Falha ao consultar App Distribution (HTTP ${resp.status}).` }, 200, env);
+    }
+    const data = await resp.json() as {
+      releases?: Array<{ name: string; displayVersion: string; buildVersion: string; createTime: string; releaseNotes?: { text?: string } }>;
+    };
+    const releases: AppDistributionRelease[] = (data.releases ?? []).map(r => ({
+      name: r.name, displayVersion: r.displayVersion, buildVersion: r.buildVersion,
+      createTime: r.createTime, releaseNotesText: r.releaseNotes?.text ?? null,
+    }));
+    const syncedAt = new Date().toISOString();
+    const state: AppDistributionSyncState = {
+      syncedAt,
+      source: { provider: "firebase", service: "app_distribution", apiVersion: "v1", resource, endpoint },
+      releases,
+    };
+    await writeAppDistributionSyncState(env, state);
+    return json({ status: "ok", ...state }, 200, env);
+  } catch (e) {
+    await logError(env, 'firebase-app-distribution', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ status: "error", message: String(e) }, 200, env);
+  }
+}
+
+// --- GH#1344: Firebase Cloud Messaging Data API ---
+// FCM Data API habilitada pelo Luiz em 2026-07-24 (estava desabilitada, causa do 403 anterior).
+// androidDeliveryData vem por app/dia — sem envio de mensagem própria ainda (SignallQ não usa FCM
+// pra push hoje), então os campos de `data` chegam vazios; guardamos o payload bruto de qualquer
+// forma para não perder estrutura quando isso mudar.
+
+interface FcmDeliveryDataSyncState {
+  syncedAt: string;
+  source: FirebaseSourceRecord;
+  androidDeliveryData: unknown[];
+}
+
+async function readFcmDeliveryDataSyncState(env: Env): Promise<FcmDeliveryDataSyncState | null> {
+  const row = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'firebase_fcm_delivery_sync'"
+  ).first<{ value: string }>();
+  if (!row?.value) return null;
+  try {
+    return JSON.parse(row.value) as FcmDeliveryDataSyncState;
+  } catch {
+    return null;
+  }
+}
+
+async function writeFcmDeliveryDataSyncState(env: Env, state: FcmDeliveryDataSyncState): Promise<void> {
+  await env.DB.prepare(
+    "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES ('firebase_fcm_delivery_sync', ?, ?)"
+  ).bind(JSON.stringify(state), nowSec()).run();
+}
+
+async function handleFcmDeliveryDataStatus(_req: Request, env: Env): Promise<Response> {
+  const hasCredentials = !!(env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY);
+  const syncState = await readFcmDeliveryDataSyncState(env);
+  return json({
+    source: "worker",
+    projectId: env.FIREBASE_PROJECT_ID,
+    status: hasCredentials ? "connected" : "disabled",
+    hasCredentials,
+    lastSyncTimestamp: syncState?.syncedAt ?? null,
+    androidDeliveryData: syncState?.androidDeliveryData ?? [],
+  }, 200, env);
+}
+
+async function handleFcmDeliveryDataSync(_req: Request, env: Env): Promise<Response> {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return json({ status: "not_configured", message: "FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY não configurados." }, 200, env);
+  }
+  const resource = `projects/${env.FIREBASE_PROJECT_ID}/androidApps/${FIREBASE_ANDROID_APP_ID}/deliveryData`;
+  const endpoint = `https://fcmdata.googleapis.com/v1beta1/${resource}`;
+  try {
+    const token = await getFirebaseAccessToken(env);
+    const resp = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` } });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      await logError(env, 'firebase-fcm-delivery', `delivery_${resp.status}: ${errText.slice(0, 300)}`, '');
+      return json({ status: "error", message: `Falha ao consultar FCM delivery data (HTTP ${resp.status}).` }, 200, env);
+    }
+    const data = await resp.json() as { androidDeliveryData?: unknown[] };
+    const syncedAt = new Date().toISOString();
+    const state: FcmDeliveryDataSyncState = {
+      syncedAt,
+      source: { provider: "firebase", service: "fcm_data", apiVersion: "v1beta1", resource, endpoint },
+      androidDeliveryData: data.androidDeliveryData ?? [],
+    };
+    await writeFcmDeliveryDataSyncState(env, state);
+    return json({ status: "ok", ...state }, 200, env);
+  } catch (e) {
+    await logError(env, 'firebase-fcm-delivery', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ status: "error", message: String(e) }, 200, env);
+  }
 }
 
 // --- GH#761: integração real com Google Play (Android Publisher API) ---
@@ -1934,44 +2506,139 @@ async function handleGooglePlayStatus(_req: Request, env: Env): Promise<Response
 // via API é a lista de reviews (reviews.list), com nota (starRating) por
 // review — usamos a média de uma amostra recente como sinal real de
 // satisfação, sem inventar número de instalações.
+// GH#1341 — reviews.list expõe nota/comentário/idioma/dispositivo/resposta do dev, não só
+// starRating. Guardado em tabela própria (migration 017, google_play_reviews, review_id como
+// chave) porque é lista de registros identificáveis, não estado pontual/série temporal — decisão
+// da Claudete em docs_ai/decisions/DECISAO_MODELO_DADOS_AVALIACOES_GOOGLE_PLAY_2026-07-24.md.
+// Upsert com ON CONFLICT preserva handling_status/first_synced_at (campo admin-side, nunca vem da
+// API — sync nunca pode resetá-lo). google_play_sync em admin_settings continua como cache
+// rápido de resumo pro /status.
+
+interface GooglePlayReviewApiComment {
+  userComment?: {
+    text?: string;
+    starRating?: number;
+    reviewerLanguage?: string;
+    device?: string;
+    androidOsVersion?: number;
+    appVersionCode?: number;
+    appVersionName?: string;
+    lastModified?: { seconds?: string };
+  };
+  developerComment?: {
+    text?: string;
+    lastModified?: { seconds?: string };
+  };
+}
+
+interface GooglePlayReviewApiEntry {
+  reviewId: string;
+  comments?: GooglePlayReviewApiComment[];
+}
+
+async function upsertGooglePlayReview(env: Env, review: GooglePlayReviewApiEntry, syncedAtSec: number): Promise<number | null> {
+  const userComment = review.comments?.find(c => c.userComment)?.userComment;
+  const developerComment = review.comments?.find(c => c.developerComment)?.developerComment;
+  if (!userComment || typeof userComment.starRating !== "number") return null;
+
+  await env.DB.prepare(
+    `INSERT INTO google_play_reviews (
+       review_id, rating, comment_text, language, device, android_os_version, app_version_code,
+       app_version_name, review_last_modified, developer_reply_text, developer_reply_at,
+       handling_status, first_synced_at, last_synced_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+     ON CONFLICT(review_id) DO UPDATE SET
+       rating               = excluded.rating,
+       comment_text         = excluded.comment_text,
+       language             = excluded.language,
+       device               = excluded.device,
+       android_os_version   = excluded.android_os_version,
+       app_version_code     = excluded.app_version_code,
+       app_version_name     = excluded.app_version_name,
+       review_last_modified = excluded.review_last_modified,
+       developer_reply_text = excluded.developer_reply_text,
+       developer_reply_at   = excluded.developer_reply_at,
+       last_synced_at       = excluded.last_synced_at`
+  ).bind(
+    review.reviewId,
+    userComment.starRating,
+    userComment.text ?? "",
+    userComment.reviewerLanguage ?? "",
+    userComment.device ?? "",
+    userComment.androidOsVersion ?? null,
+    userComment.appVersionCode ?? null,
+    userComment.appVersionName ?? "",
+    userComment.lastModified?.seconds ? Number(userComment.lastModified.seconds) : null,
+    developerComment?.text ?? null,
+    developerComment?.lastModified?.seconds ? Number(developerComment.lastModified.seconds) : null,
+    syncedAtSec,
+    syncedAtSec
+  ).run();
+  return userComment.starRating;
+}
+
 async function handleGooglePlaySync(_req: Request, env: Env): Promise<Response> {
   if (!env.GOOGLE_PLAY_CLIENT_EMAIL || !env.GOOGLE_PLAY_PRIVATE_KEY) {
     return json({ status: "not_configured", message: "GOOGLE_PLAY_CLIENT_EMAIL/GOOGLE_PLAY_PRIVATE_KEY não configurados." }, 200, env);
   }
   try {
-    const token = await getGooglePlayAccessToken(
-      env,
-      "https://www.googleapis.com/auth/androidpublisher"
-    );
-    const resp = await fetch(
-      `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${GOOGLE_PLAY_PACKAGE_NAME}/reviews?maxResults=100`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (!resp.ok) {
-      const errText = await resp.text();
-      await logError(env, 'google-play', `reviews_${resp.status}: ${errText.slice(0, 300)}`, '');
-      return json({ status: "error", message: `Falha ao consultar reviews (HTTP ${resp.status}) — app pode ainda não estar publicado.` }, 200, env);
-    }
-    const data = await resp.json() as {
-      reviews?: Array<{ comments?: Array<{ userComment?: { starRating?: number } }> }>;
-    };
+    const token = await getGooglePlayAccessToken(env, "https://www.googleapis.com/auth/androidpublisher");
+    const syncedAtSec = nowSec();
     const ratings: number[] = [];
-    for (const review of data.reviews ?? []) {
-      for (const comment of review.comments ?? []) {
-        const rating = comment.userComment?.starRating;
-        if (typeof rating === "number") ratings.push(rating);
+    let pageToken: string | undefined;
+    let pages = 0;
+
+    do {
+      const url = new URL(`https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${GOOGLE_PLAY_PACKAGE_NAME}/reviews`);
+      url.searchParams.set("maxResults", "100");
+      if (pageToken) url.searchParams.set("token", pageToken);
+      const resp = await fetch(url.toString(), { headers: { Authorization: `Bearer ${token}` } });
+      if (!resp.ok) {
+        const errText = await resp.text();
+        await logError(env, 'google-play', `reviews_${resp.status}: ${errText.slice(0, 300)}`, '');
+        return json({ status: "error", message: `Falha ao consultar reviews (HTTP ${resp.status}) — app pode ainda não estar publicado.` }, 200, env);
       }
-    }
+      const data = await resp.json() as {
+        reviews?: GooglePlayReviewApiEntry[];
+        tokenPagination?: { nextPageToken?: string };
+      };
+      for (const review of data.reviews ?? []) {
+        const rating = await upsertGooglePlayReview(env, review, syncedAtSec);
+        if (rating !== null) ratings.push(rating);
+      }
+      pageToken = data.tokenPagination?.nextPageToken;
+      pages++;
+      // Trava de segurança — reviews.list não documenta limite superior de páginas; 50 páginas
+      // (até 5000 reviews) é folga generosa pro volume atual do app sem risco de loop infinito
+      // caso a API devolva token repetido por bug.
+    } while (pageToken && pages < 50);
+
     const ratingAverage = ratings.length
       ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 100) / 100
       : null;
     const syncedAt = new Date().toISOString();
     await writeGooglePlaySyncState(env, { syncedAt, ratingAverage, reviewsSampled: ratings.length });
-    return json({ status: "ok", syncedAt, ratingAverage, reviewsSampled: ratings.length }, 200, env);
+    return json({ status: "ok", syncedAt, ratingAverage, reviewsSampled: ratings.length, pagesFetched: pages }, 200, env);
   } catch (e) {
     await logError(env, 'google-play', String(e), e instanceof Error ? (e.stack ?? '') : '');
     return json({ status: "error", message: String(e) }, 200, env);
   }
+}
+
+async function handleGooglePlayReviewsList(req: Request, env: Env): Promise<Response> {
+  const url = new URL(req.url);
+  const handlingStatus = url.searchParams.get("handlingStatus");
+  const limit = Math.min(Number(url.searchParams.get("limit") ?? "50") || 50, 200);
+  let query = "SELECT * FROM google_play_reviews";
+  const binds: unknown[] = [];
+  if (handlingStatus) {
+    query += " WHERE handling_status = ?";
+    binds.push(handlingStatus);
+  }
+  query += " ORDER BY rating ASC, review_last_modified DESC LIMIT ?";
+  binds.push(limit);
+  const { results } = await env.DB.prepare(query).bind(...binds).all();
+  return json({ source: "worker", reviews: results ?? [] }, 200, env);
 }
 
 // --- migration 012_play_track.sql — mapeamento version_code -> trilha do Play Console ---
@@ -2109,6 +2776,118 @@ async function handleGooglePlayTracksSync(_req: Request, env: Env): Promise<Resp
   }
 }
 
+// GH#1342 — store listing (título/descrição por idioma via Publisher API). Mesmo padrão de
+// edit→read→discard do #761 (tracks): cria edit, lê listings, descarta sem PUT. `admin_settings`
+// é suficiente aqui (estado pontual de config, não série temporal) — mesmo critério já aplicado
+// em Firebase Management/Remote Config/App Check/App Distribution/FCM, revisado pela Claudete em
+// docs_ai/decisions/DECISAO_MODELO_DADOS_INTEGRACOES_PLAY_FIREBASE_2026-07-24.md.
+
+interface StoreListingEntry {
+  language: string;
+  title: string;
+  fullDescription: string;
+  shortDescription: string;
+}
+
+interface StoreListingSyncState {
+  syncedAt: string;
+  source: { provider: "google_play"; service: "android_publisher"; apiVersion: "v3"; resource: string; endpoint: string };
+  listings: StoreListingEntry[];
+}
+
+async function readStoreListingSyncState(env: Env): Promise<StoreListingSyncState | null> {
+  const row = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'google_play_store_listing_sync'"
+  ).first<{ value: string }>();
+  if (!row?.value) return null;
+  try {
+    return JSON.parse(row.value) as StoreListingSyncState;
+  } catch {
+    return null;
+  }
+}
+
+async function writeStoreListingSyncState(env: Env, state: StoreListingSyncState): Promise<void> {
+  await env.DB.prepare(
+    "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES ('google_play_store_listing_sync', ?, ?)"
+  ).bind(JSON.stringify(state), nowSec()).run();
+}
+
+async function handleStoreListingStatus(_req: Request, env: Env): Promise<Response> {
+  const hasCredentials = !!(env.GOOGLE_PLAY_CLIENT_EMAIL && env.GOOGLE_PLAY_PRIVATE_KEY);
+  const syncState = await readStoreListingSyncState(env);
+  return json({
+    source: "worker",
+    packageName: GOOGLE_PLAY_PACKAGE_NAME,
+    status: hasCredentials ? "connected" : "disabled",
+    hasCredentials,
+    lastSyncTimestamp: syncState?.syncedAt ?? null,
+    listings: syncState?.listings ?? [],
+  }, 200, env);
+}
+
+async function handleStoreListingSync(_req: Request, env: Env): Promise<Response> {
+  if (!env.GOOGLE_PLAY_CLIENT_EMAIL || !env.GOOGLE_PLAY_PRIVATE_KEY) {
+    return json({ status: "not_configured", message: "GOOGLE_PLAY_CLIENT_EMAIL/GOOGLE_PLAY_PRIVATE_KEY não configurados." }, 200, env);
+  }
+  const base = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${GOOGLE_PLAY_PACKAGE_NAME}`;
+  let token: string;
+  try {
+    token = await getGooglePlayAccessToken(env, "https://www.googleapis.com/auth/androidpublisher");
+  } catch (e) {
+    await logError(env, 'google-play-store-listing', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ status: "error", message: String(e) }, 200, env);
+  }
+
+  let editId: string | null = null;
+  try {
+    const editResp = await fetch(`${base}/edits`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+    if (!editResp.ok) {
+      const errText = await editResp.text();
+      await logError(env, 'google-play-store-listing', `edits_insert_${editResp.status}: ${errText.slice(0, 300)}`, '');
+      return json({ status: "error", message: `Falha ao criar edit (HTTP ${editResp.status}).` }, 200, env);
+    }
+    editId = ((await editResp.json()) as { id: string }).id;
+
+    const listingsResp = await fetch(`${base}/edits/${editId}/listings`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!listingsResp.ok) {
+      const errText = await listingsResp.text();
+      await logError(env, 'google-play-store-listing', `listings_${listingsResp.status}: ${errText.slice(0, 300)}`, '');
+      return json({ status: "error", message: `Falha ao consultar listings (HTTP ${listingsResp.status}).` }, 200, env);
+    }
+    const listingsData = await listingsResp.json() as {
+      listings?: Array<{ language: string; title: string; fullDescription: string; shortDescription: string }>;
+    };
+    const listings: StoreListingEntry[] = (listingsData.listings ?? []).map(l => ({
+      language: l.language, title: l.title, fullDescription: l.fullDescription, shortDescription: l.shortDescription,
+    }));
+
+    const syncedAt = new Date().toISOString();
+    const state: StoreListingSyncState = {
+      syncedAt,
+      source: {
+        provider: "google_play", service: "android_publisher", apiVersion: "v3",
+        resource: `applications/${GOOGLE_PLAY_PACKAGE_NAME}/edits/listings`,
+        endpoint: `${base}/edits/{editId}/listings`,
+      },
+      listings,
+    };
+    await writeStoreListingSyncState(env, state);
+    return json({ status: "ok", ...state }, 200, env);
+  } catch (e) {
+    await logError(env, 'google-play-store-listing', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ status: "error", message: String(e) }, 200, env);
+  } finally {
+    if (editId) {
+      try {
+        await fetch(`${base}/edits/${editId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      } catch (e) {
+        await logError(env, 'google-play-store-listing', `edit_discard_failed: ${String(e)}`, '');
+      }
+    }
+  }
+}
+
 // Backfill explícito e separado do sync: só aplica o mapeamento já salvo em
 // play_console_tracks aos dados históricos, sem chamar a API do Google. Idempotente —
 // só toca linhas com play_track IS NULL, então rodar de novo nunca duplica/sobrescreve
@@ -2155,6 +2934,205 @@ async function handleGooglePlayTracksBackfill(_req: Request, env: Env): Promise<
     }, 200, env);
   } catch (e) {
     await logError(env, 'google-play', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ status: "error", message: String(e) }, 200, env);
+  }
+}
+
+// --- GH#1342: Play Developer Reporting API v1beta1 (Android Vitals — ANR rate) ---
+// Mesma service account/chave do #761 (GOOGLE_PLAY_CLIENT_EMAIL/GOOGLE_PLAY_PRIVATE_KEY),
+// scope adicional `playdeveloperreporting`. Permissão confirmada via chamada real em
+// 2026-07-24 (200 com freshnessInfo real) — ver docs_ai/decisions/
+// DECISAO_STATUS_CREDENCIAIS_GOOGLE_PLAY_FIREBASE_2026-07-24.md.
+//
+// `source` estruturado por registro (provider/service/apiVersion/resource/endpoint) —
+// nunca uma string solta — pra permitir isolar cada fonte na UI sem fundir com outras
+// (ex.: nunca somar/misturar com crash rate do Firebase Crashlytics).
+
+interface PlayVitalsSource {
+  provider: "google_play";
+  service: "play_developer_reporting";
+  apiVersion: "v1beta1";
+  resource: string;
+  endpoint: string;
+}
+
+interface PlayVitalsSyncState {
+  syncedAt: string;
+  source: PlayVitalsSource;
+  freshnessInfo: unknown;
+  anrRatePercent: number | null;
+  aggregationPeriod: string;
+  rangeStart: string;
+  rangeEnd: string;
+}
+
+async function readPlayVitalsSyncState(env: Env): Promise<PlayVitalsSyncState | null> {
+  const row = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'google_play_vitals_sync'"
+  ).first<{ value: string }>();
+  if (!row?.value) return null;
+  try {
+    return JSON.parse(row.value) as PlayVitalsSyncState;
+  } catch {
+    return null;
+  }
+}
+
+async function handlePlayVitalsStatus(_req: Request, env: Env): Promise<Response> {
+  const hasCredentials = !!(env.GOOGLE_PLAY_CLIENT_EMAIL && env.GOOGLE_PLAY_PRIVATE_KEY);
+  const syncState = await readPlayVitalsSyncState(env);
+  return json({
+    source: "worker",
+    packageName: GOOGLE_PLAY_PACKAGE_NAME,
+    status: hasCredentials ? "connected" : "disabled",
+    hasCredentials,
+    lastSyncTimestamp: syncState?.syncedAt ?? null,
+    anrRatePercent: syncState?.anrRatePercent ?? null,
+    rangeStart: syncState?.rangeStart ?? null,
+    rangeEnd: syncState?.rangeEnd ?? null,
+  }, 200, env);
+}
+
+function ymd(date: Date): { year: number; month: number; day: number } {
+  return { year: date.getUTCFullYear(), month: date.getUTCMonth() + 1, day: date.getUTCDate() };
+}
+
+// GH#1341 — generalização pra cobrir crash rate além de ANR: mesma API, mesma forma de query
+// (sem dimensão obrigatória). slowStartRate/excessiveWakeupRate/stuckBackgroundWakelockRate
+// exigem dimensão obrigatória (ex.: startType) — shape de query diferente, não cabem nesta
+// função; ficam como próxima fatia documentada, não implementadas às pressas.
+interface SimpleVitalsMetricConfig {
+  metricSetResource: string; // ex.: "anrRateMetricSet"
+  metricName: string;        // ex.: "anrRate"
+  settingsKey: string;       // ex.: "google_play_vitals_sync"
+}
+
+async function syncSimpleVitalsMetric(env: Env, config: SimpleVitalsMetricConfig): Promise<PlayVitalsSyncState | { error: string }> {
+  const resource = `apps/${GOOGLE_PLAY_PACKAGE_NAME}/${config.metricSetResource}`;
+  const base = `https://playdeveloperreporting.googleapis.com/v1beta1/${resource}`;
+  const token = await getGooglePlayAccessToken(env, "https://www.googleapis.com/auth/playdeveloperreporting");
+
+  // Freshness primeiro — confirma que a fonte está acessível e até quando os dados chegam,
+  // sem assumir um range fixo de datas que pode não ter dado disponível ainda.
+  const metricSetResp = await fetch(base, { headers: { Authorization: `Bearer ${token}` } });
+  if (!metricSetResp.ok) {
+    const errText = await metricSetResp.text();
+    await logError(env, 'google-play-vitals', `metricset_${config.metricSetResource}_${metricSetResp.status}: ${errText.slice(0, 300)}`, '');
+    return { error: `Falha ao consultar ${config.metricSetResource} (HTTP ${metricSetResp.status}).` };
+  }
+  const metricSet = await metricSetResp.json() as {
+    freshnessInfo?: { freshnesses?: Array<{ aggregationPeriod?: string; latestEndTime?: { year: number; month: number; day: number } }> };
+  };
+  const daily = metricSet.freshnessInfo?.freshnesses?.find(f => f.aggregationPeriod === "DAILY");
+  if (!daily?.latestEndTime) {
+    return { error: `${config.metricSetResource}: freshnessInfo sem aggregationPeriod DAILY — sem dado disponível ainda.` };
+  }
+  const endDate = new Date(Date.UTC(daily.latestEndTime.year, daily.latestEndTime.month - 1, daily.latestEndTime.day));
+  const startDate = new Date(endDate);
+  startDate.setUTCDate(startDate.getUTCDate() - 6); // janela de 7 dias terminando no último dia com dado
+
+  const queryResp = await fetch(`${base}:query`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      timelineSpec: { aggregationPeriod: "DAILY", startTime: ymd(startDate), endTime: ymd(endDate) },
+      metrics: [config.metricName],
+      pageSize: 100,
+    }),
+  });
+  if (!queryResp.ok) {
+    const errText = await queryResp.text();
+    await logError(env, 'google-play-vitals', `query_${config.metricSetResource}_${queryResp.status}: ${errText.slice(0, 300)}`, '');
+    return { error: `Falha ao consultar ${config.metricSetResource}:query (HTTP ${queryResp.status}).` };
+  }
+  const queryData = await queryResp.json() as { rows?: Array<{ metrics?: Array<{ metric?: string; decimalValue?: { value?: string } }> }> };
+  const values: number[] = [];
+  for (const row of queryData.rows ?? []) {
+    for (const m of row.metrics ?? []) {
+      if (m.metric === config.metricName && m.decimalValue?.value) values.push(Number(m.decimalValue.value));
+    }
+  }
+  const ratePercent = values.length
+    ? Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10000) / 100
+    : null;
+
+  const syncedAt = new Date().toISOString();
+  const state: PlayVitalsSyncState = {
+    syncedAt,
+    source: { provider: "google_play", service: "play_developer_reporting", apiVersion: "v1beta1", resource, endpoint: `${base}:query` },
+    freshnessInfo: metricSet.freshnessInfo ?? null,
+    anrRatePercent: ratePercent,
+    aggregationPeriod: "DAILY",
+    rangeStart: startDate.toISOString().slice(0, 10),
+    rangeEnd: endDate.toISOString().slice(0, 10),
+  };
+  await recordIntegrationSnapshot(env, {
+    provider: "google_play", service: "play_developer_reporting", resource: state.source.resource,
+    metric: config.metricName, periodStart: state.rangeStart, periodEnd: state.rangeEnd,
+    valueNumeric: ratePercent, payload: state,
+  });
+  await env.DB.prepare(
+    "INSERT OR REPLACE INTO admin_settings (key, value, updated_at) VALUES (?, ?, ?)"
+  ).bind(config.settingsKey, JSON.stringify(state), nowSec()).run();
+  return state;
+}
+
+async function handlePlayVitalsSync(_req: Request, env: Env): Promise<Response> {
+  if (!env.GOOGLE_PLAY_CLIENT_EMAIL || !env.GOOGLE_PLAY_PRIVATE_KEY) {
+    return json({ status: "not_configured", message: "GOOGLE_PLAY_CLIENT_EMAIL/GOOGLE_PLAY_PRIVATE_KEY não configurados." }, 200, env);
+  }
+  try {
+    const result = await syncSimpleVitalsMetric(env, {
+      metricSetResource: "anrRateMetricSet", metricName: "anrRate", settingsKey: "google_play_vitals_sync",
+    });
+    if ("error" in result) return json({ status: "error", message: result.error }, 200, env);
+    return json({ status: "ok", ...result }, 200, env);
+  } catch (e) {
+    await logError(env, 'google-play-vitals', String(e), e instanceof Error ? (e.stack ?? '') : '');
+    return json({ status: "error", message: String(e) }, 200, env);
+  }
+}
+
+async function readPlayCrashRateSyncState(env: Env): Promise<PlayVitalsSyncState | null> {
+  const row = await env.DB.prepare(
+    "SELECT value FROM admin_settings WHERE key = 'google_play_crash_rate_sync'"
+  ).first<{ value: string }>();
+  if (!row?.value) return null;
+  try {
+    return JSON.parse(row.value) as PlayVitalsSyncState;
+  } catch {
+    return null;
+  }
+}
+
+async function handlePlayCrashRateStatus(_req: Request, env: Env): Promise<Response> {
+  const hasCredentials = !!(env.GOOGLE_PLAY_CLIENT_EMAIL && env.GOOGLE_PLAY_PRIVATE_KEY);
+  const syncState = await readPlayCrashRateSyncState(env);
+  return json({
+    source: "worker",
+    packageName: GOOGLE_PLAY_PACKAGE_NAME,
+    status: hasCredentials ? "connected" : "disabled",
+    hasCredentials,
+    lastSyncTimestamp: syncState?.syncedAt ?? null,
+    crashRatePercent: syncState?.anrRatePercent ?? null,
+    rangeStart: syncState?.rangeStart ?? null,
+    rangeEnd: syncState?.rangeEnd ?? null,
+  }, 200, env);
+}
+
+async function handlePlayCrashRateSync(_req: Request, env: Env): Promise<Response> {
+  if (!env.GOOGLE_PLAY_CLIENT_EMAIL || !env.GOOGLE_PLAY_PRIVATE_KEY) {
+    return json({ status: "not_configured", message: "GOOGLE_PLAY_CLIENT_EMAIL/GOOGLE_PLAY_PRIVATE_KEY não configurados." }, 200, env);
+  }
+  try {
+    const result = await syncSimpleVitalsMetric(env, {
+      metricSetResource: "crashRateMetricSet", metricName: "crashRate", settingsKey: "google_play_crash_rate_sync",
+    });
+    if ("error" in result) return json({ status: "error", message: result.error }, 200, env);
+    const { anrRatePercent, ...rest } = result;
+    return json({ status: "ok", ...rest, crashRatePercent: anrRatePercent }, 200, env);
+  } catch (e) {
+    await logError(env, 'google-play-vitals', String(e), e instanceof Error ? (e.stack ?? '') : '');
     return json({ status: "error", message: String(e) }, 200, env);
   }
 }
@@ -2678,6 +3656,7 @@ const ERROR_CATEGORY_BY_SOURCE: Record<string, 'app' | 'backend' | 'ia' | 'integ
   'ai-usage':               'ia',
   'ai-quota':               'ia',
   'cloudflare-usage':       'integration',
+  'remote-config-admin':    'integration', // #1478 — GET/validate/publish/rollback do backend admin
 };
 
 function errorCategoryForSource(source: string): 'app' | 'backend' | 'ia' | 'integration' {
@@ -2685,7 +3664,7 @@ function errorCategoryForSource(source: string): 'app' | 'backend' | 'ia' | 'int
 }
 
 // Fire-and-forget: nunca propaga exceção. Deduplica por (source + message) via hash djb2.
-async function logError(env: Env, source: string, message: string, stack = ''): Promise<void> {
+export async function logError(env: Env, source: string, message: string, stack = ''): Promise<void> {
   try {
     const id = djb2(`${source}:${message}`);
     const now = Date.now();
@@ -3579,6 +4558,432 @@ async function handlePublicFlags(_request: Request, env: Env): Promise<Response>
   return json({ flags }, 200, env);
 }
 
+// --- GH#1402 (#1405/#1406/#1407): catálogo de anúncios locais (house ads) ---
+// Exibido pelo AdBanner do Site/PWA quando o AdSense não preenche o slot (no-fill) ou não está
+// configurado. Conteúdo administrável via Console (CRUD abaixo), sorteado no client a cada
+// exibição — este worker só entrega o catálogo de ativos, não decide qual sortear.
+
+interface LocalAdRow {
+  id: string;
+  title: string;
+  description: string;
+  cta_label: string;
+  target_url: string;
+  active: number;
+  created_at: number;
+  updated_at: number;
+}
+
+function mapLocalAd(r: LocalAdRow) {
+  return {
+    id:          r.id,
+    title:       r.title,
+    description: r.description,
+    ctaLabel:    r.cta_label,
+    targetUrl:   r.target_url,
+    active:      r.active === 1,
+    createdAt:   r.created_at,
+    updatedAt:   r.updated_at,
+  };
+}
+
+/** Só http/https — evita `javascript:`/esquema não navegável salvo por engano no Console. */
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const u = new URL(value);
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+// GET /local-ads — público, sem auth. Só anúncios ativos, para o AdBanner do Site sortear.
+async function handlePublicLocalAds(_request: Request, env: Env): Promise<Response> {
+  const rows = await env.DB.prepare(
+    'SELECT id, title, description, cta_label, target_url, active, created_at, updated_at FROM local_ads WHERE active = 1 ORDER BY created_at DESC'
+  ).all<LocalAdRow>();
+
+  // Client só precisa do conteúdo exibível — active/createdAt/updatedAt são detalhe
+  // administrativo (já filtrado por active = 1 na query acima).
+  const ads = (rows.results ?? []).map((r) => ({
+    id:          r.id,
+    title:       r.title,
+    description: r.description,
+    ctaLabel:    r.cta_label,
+    targetUrl:   r.target_url,
+  }));
+
+  return publicJson({ ads });
+}
+
+// GET /admin/local-ads — lista completa (ativos e inativos) para a tabela do painel.
+async function handleAdminLocalAdsList(_request: Request, env: Env): Promise<Response> {
+  const rows = await env.DB.prepare(
+    'SELECT id, title, description, cta_label, target_url, active, created_at, updated_at FROM local_ads ORDER BY created_at DESC'
+  ).all<LocalAdRow>();
+
+  return json({ ads: (rows.results ?? []).map(mapLocalAd) }, 200, env);
+}
+
+// POST /admin/local-ads — cria um anúncio local.
+async function handleAdminCreateLocalAd(request: Request, env: Env): Promise<Response> {
+  let body: { title?: string; description?: string; ctaLabel?: string; targetUrl?: string; active?: boolean };
+  try { body = await request.json(); } catch { return err('body JSON inválido', 400, env); }
+
+  const title      = (body.title ?? '').trim();
+  const ctaLabel   = (body.ctaLabel ?? '').trim();
+  const targetUrl  = (body.targetUrl ?? '').trim();
+  const description = (body.description ?? '').trim();
+
+  if (!title) return err('title obrigatório', 400, env);
+  if (!ctaLabel) return err('ctaLabel obrigatório', 400, env);
+  if (!targetUrl || !isValidHttpUrl(targetUrl)) return err('targetUrl obrigatório e precisa ser http(s) válido', 400, env);
+
+  const id  = crypto.randomUUID();
+  const now = Math.floor(Date.now() / 1000);
+  const active = body.active === false ? 0 : 1;
+
+  await env.DB.prepare(
+    'INSERT INTO local_ads (id, title, description, cta_label, target_url, active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).bind(id, title, description, ctaLabel, targetUrl, active, now, now).run();
+
+  return json({ ad: { id, title, description, ctaLabel, targetUrl, active: active === 1, createdAt: now, updatedAt: now } }, 201, env);
+}
+
+// PUT /admin/local-ads/:id — edita campos e/ou alterna active.
+async function handleAdminUpdateLocalAd(request: Request, env: Env): Promise<Response> {
+  const url   = new URL(request.url);
+  const match = url.pathname.match(/^\/admin\/local-ads\/([^/]+)$/);
+  if (!match) return err('id inválido', 400, env);
+  const id = match[1];
+
+  const current = await env.DB.prepare(
+    'SELECT id, title, description, cta_label, target_url, active, created_at, updated_at FROM local_ads WHERE id = ?'
+  ).bind(id).first<LocalAdRow>();
+  if (!current) return err('anúncio não encontrado', 404, env);
+
+  let body: { title?: string; description?: string; ctaLabel?: string; targetUrl?: string; active?: boolean };
+  try { body = await request.json(); } catch { return err('body JSON inválido', 400, env); }
+
+  const title       = body.title       !== undefined ? body.title.trim()       : current.title;
+  const ctaLabel    = body.ctaLabel    !== undefined ? body.ctaLabel.trim()    : current.cta_label;
+  const targetUrl   = body.targetUrl   !== undefined ? body.targetUrl.trim()   : current.target_url;
+  const description = body.description !== undefined ? body.description.trim() : current.description;
+  const active      = body.active      !== undefined ? (body.active ? 1 : 0)   : current.active;
+
+  if (!title) return err('title não pode ficar vazio', 400, env);
+  if (!ctaLabel) return err('ctaLabel não pode ficar vazio', 400, env);
+  if (!targetUrl || !isValidHttpUrl(targetUrl)) return err('targetUrl precisa ser http(s) válido', 400, env);
+
+  const now = Math.floor(Date.now() / 1000);
+  await env.DB.prepare(
+    'UPDATE local_ads SET title = ?, description = ?, cta_label = ?, target_url = ?, active = ?, updated_at = ? WHERE id = ?'
+  ).bind(title, description, ctaLabel, targetUrl, active, now, id).run();
+
+  return json({ ad: { id, title, description, ctaLabel, targetUrl, active: active === 1, createdAt: current.created_at, updatedAt: now } }, 200, env);
+}
+
+// DELETE /admin/local-ads/:id — remove um anúncio.
+async function handleAdminDeleteLocalAd(request: Request, env: Env): Promise<Response> {
+  const url   = new URL(request.url);
+  const match = url.pathname.match(/^\/admin\/local-ads\/([^/]+)$/);
+  if (!match) return err('id inválido', 400, env);
+  const id = match[1];
+
+  const result = await env.DB.prepare('DELETE FROM local_ads WHERE id = ?').bind(id).run();
+  if (result.meta.changes === 0) return err('anúncio não encontrado', 404, env);
+
+  return json({ ok: true, id }, 200, env);
+}
+
+// --- GH#1312: catálogo remoto de releases (produto+canal) ---
+// Backend/Worker do épico "Detectar, comunicar e exibir atualizações do SignallQ Android"
+// (consolida #1313/#1314/#1315). Recepção/dedup/UI de Ajustes no Android ficam para o Camilo --
+// este recorte cobre só o catálogo (D1, migration 020) e o disparo de push (FCM).
+
+const APP_UPDATE_CHANNELS = ['internal', 'alpha', 'beta', 'production'] as const;
+type AppUpdateChannel = typeof APP_UPDATE_CHANNELS[number];
+
+const APP_UPDATE_SLUG_RE = /^[a-z0-9_]+$/;
+
+interface AppReleaseRow {
+  release_id: string;
+  product: string;
+  channel: string;
+  version_name: string;
+  version_code: number;
+  release_notes: string;
+  store_url: string;
+  notification_enabled: number;
+  reminder_campaign_id: string | null;
+  status: string;
+  published_at: number;
+  published_by: string;
+  push_status: string | null;
+  push_sent_at: number | null;
+  push_error: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+function isoOrNull(sec: number | null): string | null {
+  return sec === null ? null : new Date(sec * 1000).toISOString();
+}
+
+// Contrato exato pedido pela issue #1312 -- é o que o Android consome em GET /app-updates.
+function mapReleasePublic(r: AppReleaseRow) {
+  return {
+    product: r.product,
+    channel: r.channel,
+    versionName: r.version_name,
+    versionCode: r.version_code,
+    publishedAt: isoOrNull(r.published_at),
+    releaseNotes: r.release_notes,
+    storeUrl: r.store_url,
+    notificationEnabled: r.notification_enabled === 1,
+    releaseId: r.release_id,
+    reminderCampaignId: r.reminder_campaign_id,
+  };
+}
+
+// Visão administrativa (Console) -- inclui status/audit/resultado do último push, que o Android
+// não precisa e não deve enxergar.
+function mapReleaseAdmin(r: AppReleaseRow) {
+  return {
+    ...mapReleasePublic(r),
+    status: r.status,
+    publishedBy: r.published_by,
+    pushStatus: r.push_status,
+    pushSentAt: isoOrNull(r.push_sent_at),
+    pushError: r.push_error,
+    createdAt: isoOrNull(r.created_at),
+    updatedAt: isoOrNull(r.updated_at),
+  };
+}
+
+// GET /app-updates?product=X&channel=Y -- público, sem auth (mesmo modelo de /flags e
+// /local-ads: o app Android não carrega sessão admin). Só devolve a release com status='active';
+// ausência de release ativa é uma resposta válida (release: null), não erro -- comunicação
+// desativada ou produto/canal sem publicação ainda não é uma falha de leitura.
+async function handlePublicAppUpdates(request: Request, env: Env): Promise<Response> {
+  const url     = new URL(request.url);
+  const product = (url.searchParams.get('product') ?? '').trim().toLowerCase();
+  const channel = (url.searchParams.get('channel') ?? '').trim().toLowerCase();
+
+  if (!product || !APP_UPDATE_SLUG_RE.test(product)) return err('product obrigatório (a-z0-9_)', 400, env);
+  if (!APP_UPDATE_CHANNELS.includes(channel as AppUpdateChannel)) {
+    return err(`channel obrigatório, um de: ${APP_UPDATE_CHANNELS.join(', ')}`, 400, env);
+  }
+
+  const row = await env.DB.prepare(
+    "SELECT * FROM app_releases WHERE product = ? AND channel = ? AND status = 'active'"
+  ).bind(product, channel).first<AppReleaseRow>();
+
+  return publicJson({ release: row ? mapReleasePublic(row) : null });
+}
+
+// GET /admin/app-updates -- histórico (filtros opcionais product/channel/limit) para a tabela do
+// Console. Sempre inclui todas as linhas (active/superseded/deactivated) -- é a fonte de "manter
+// histórico mínimo" da issue.
+async function handleAdminAppUpdatesList(request: Request, env: Env): Promise<Response> {
+  const url         = new URL(request.url);
+  const product     = url.searchParams.get('product');
+  const channel     = url.searchParams.get('channel');
+  const limitParam  = parseInt(url.searchParams.get('limit') ?? '50', 10);
+  const limit       = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 200) : 50;
+
+  const conditions: string[] = [];
+  const params: string[] = [];
+  if (product) { conditions.push('product = ?'); params.push(product); }
+  if (channel) { conditions.push('channel = ?'); params.push(channel); }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  const rows = await env.DB.prepare(
+    `SELECT * FROM app_releases ${where} ORDER BY published_at DESC LIMIT ?`
+  ).bind(...params, limit).all<AppReleaseRow>();
+
+  return json({ releases: (rows.results ?? []).map(mapReleaseAdmin) }, 200, env);
+}
+
+interface PublishAppReleaseBody {
+  product?: string;
+  channel?: string;
+  versionName?: string;
+  versionCode?: number;
+  releaseNotes?: string;
+  storeUrl?: string;
+  notificationEnabled?: boolean;
+  reminderCampaignId?: string | null;
+  confirmDowngrade?: boolean;
+}
+
+// POST /admin/app-updates -- publica uma release. Regras da issue #1312:
+// - comparação por versionCode contra a release 'active' atual do mesmo product+channel;
+// - versionCode MENOR que o ativo exige confirmDowngrade=true explícito (nunca silencioso);
+// - versionCode IGUAL ao ativo é tratado como correção (UPDATE in-place, mesma release_id);
+// - versionCode MAIOR promove a nova linha a 'active' e rebaixa a anterior a 'superseded'.
+// releaseId é sempre derivado (`${product}-${channel}-${versionCode}`), nunca aceito do body --
+// evita duas linhas 'active' concorrentes com IDs divergentes para o mesmo product+channel.
+async function handleAdminPublishAppUpdate(request: Request, env: Env, session: { userId: string; role: string }): Promise<Response> {
+  let body: PublishAppReleaseBody;
+  try { body = await request.json(); } catch { return err('body JSON inválido', 400, env); }
+
+  const product              = (body.product ?? '').trim().toLowerCase();
+  const channel              = (body.channel ?? '').trim().toLowerCase();
+  const versionName          = (body.versionName ?? '').trim();
+  const versionCode          = body.versionCode;
+  const storeUrl             = (body.storeUrl ?? '').trim();
+  const releaseNotes         = (body.releaseNotes ?? '').trim();
+  const notificationEnabled  = body.notificationEnabled !== false; // default true
+  const reminderCampaignId   = body.reminderCampaignId ?? null;
+
+  if (!product || !APP_UPDATE_SLUG_RE.test(product)) return err('product obrigatório (a-z0-9_)', 400, env);
+  if (!APP_UPDATE_CHANNELS.includes(channel as AppUpdateChannel)) {
+    return err(`channel obrigatório, um de: ${APP_UPDATE_CHANNELS.join(', ')}`, 400, env);
+  }
+  if (!versionName) return err('versionName obrigatório', 400, env);
+  if (typeof versionCode !== 'number' || !Number.isInteger(versionCode) || versionCode <= 0) {
+    return err('versionCode obrigatório (inteiro positivo)', 400, env);
+  }
+  if (!storeUrl || !isValidHttpUrl(storeUrl)) return err('storeUrl obrigatório e precisa ser http(s) válido', 400, env);
+
+  const releaseId = `${product}-${channel}-${versionCode}`;
+  const now = nowSec();
+
+  const userRow = await env.DB.prepare('SELECT email FROM admin_users WHERE id = ?').bind(session.userId).first<{ email: string }>();
+  const publishedBy = userRow?.email ?? 'admin';
+
+  const currentActive = await env.DB.prepare(
+    "SELECT * FROM app_releases WHERE product = ? AND channel = ? AND status = 'active'"
+  ).bind(product, channel).first<AppReleaseRow>();
+
+  if (currentActive && currentActive.release_id !== releaseId && versionCode < currentActive.version_code && body.confirmDowngrade !== true) {
+    return err(
+      `versionCode ${versionCode} é menor que o ativo atual (${currentActive.version_code}). Reenvie com confirmDowngrade=true para confirmar o downgrade intencional.`,
+      409, env
+    );
+  }
+
+  if (currentActive && currentActive.release_id === releaseId) {
+    // Mesmo versionCode do que já está ativo -- correção in-place (nota/URL/flags), não duplica histórico.
+    await env.DB.prepare(
+      `UPDATE app_releases SET version_name = ?, release_notes = ?, store_url = ?, notification_enabled = ?,
+       reminder_campaign_id = ?, published_by = ?, updated_at = ? WHERE release_id = ?`
+    ).bind(versionName, releaseNotes, storeUrl, notificationEnabled ? 1 : 0, reminderCampaignId, publishedBy, now, releaseId).run();
+  } else {
+    const statements = [
+      env.DB.prepare(
+        `INSERT INTO app_releases (release_id, product, channel, version_name, version_code, release_notes, store_url,
+         notification_enabled, reminder_campaign_id, status, published_at, published_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`
+      ).bind(releaseId, product, channel, versionName, versionCode, releaseNotes, storeUrl,
+             notificationEnabled ? 1 : 0, reminderCampaignId, now, publishedBy, now, now),
+    ];
+    if (currentActive) {
+      statements.push(
+        env.DB.prepare("UPDATE app_releases SET status = 'superseded', updated_at = ? WHERE release_id = ?")
+          .bind(now, currentActive.release_id)
+      );
+    }
+    await env.DB.batch(statements);
+  }
+
+  const saved = await env.DB.prepare('SELECT * FROM app_releases WHERE release_id = ?').bind(releaseId).first<AppReleaseRow>();
+  const wasUpdateInPlace = currentActive?.release_id === releaseId;
+  return json({ release: saved ? mapReleaseAdmin(saved) : null }, wasUpdateInPlace ? 200 : 201, env);
+}
+
+// POST /admin/app-updates/:releaseId/deactivate -- desliga a comunicação sem apagar a release
+// (regra explícita da issue). Idempotente: já desativada só retorna o estado atual.
+async function handleAdminDeactivateAppUpdate(request: Request, env: Env): Promise<Response> {
+  const url   = new URL(request.url);
+  const match = url.pathname.match(/^\/admin\/app-updates\/([^/]+)\/deactivate$/);
+  if (!match) return err('releaseId inválido', 400, env);
+  const releaseId = decodeURIComponent(match[1]);
+
+  const current = await env.DB.prepare('SELECT * FROM app_releases WHERE release_id = ?').bind(releaseId).first<AppReleaseRow>();
+  if (!current) return err('release não encontrada', 404, env);
+
+  if (current.status !== 'deactivated') {
+    await env.DB.prepare("UPDATE app_releases SET status = 'deactivated', updated_at = ? WHERE release_id = ?")
+      .bind(nowSec(), releaseId).run();
+  }
+
+  const saved = await env.DB.prepare('SELECT * FROM app_releases WHERE release_id = ?').bind(releaseId).first<AppReleaseRow>();
+  return json({ release: saved ? mapReleaseAdmin(saved) : null }, 200, env);
+}
+
+// Reaproveita a mesma credencial de serviço (FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY, escopo
+// cloud-platform) já usada por getFirebaseAccessToken() -- FCM HTTP v1 aceita esse escopo. Requer
+// a Firebase Cloud Messaging API habilitada no projeto GCP (mesmo tipo de passo manual do Luiz já
+// feito para GA4/Play Console -- ativação de API, sem custo novo).
+async function sendFcmTopicMessage(
+  env: Env,
+  topic: string,
+  data: Record<string, string>
+): Promise<{ ok: boolean; message?: string }> {
+  if (!env.FIREBASE_CLIENT_EMAIL || !env.FIREBASE_PRIVATE_KEY) {
+    return { ok: false, message: 'FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY não configurados.' };
+  }
+  let token: string;
+  try {
+    token = await getFirebaseAccessToken(env);
+  } catch (e) {
+    return { ok: false, message: `auth_failed: ${String(e)}` };
+  }
+  const resp = await fetch(`https://fcm.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/messages:send`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: { topic, data } }),
+  });
+  if (!resp.ok) {
+    const errText = await resp.text();
+    return { ok: false, message: `fcm_error_${resp.status}: ${errText.slice(0, 300)}` };
+  }
+  return { ok: true };
+}
+
+// POST /admin/app-updates/:releaseId/push -- dispara APP_UPDATE_AVAILABLE via FCM (tópico
+// `app_updates_${product}_${channel}`, ao qual o Android se inscreve -- fora do escopo deste
+// worker). Exige confirmed=true no body: é a confirmação manual de disponibilidade na Google Play
+// que a issue pede -- o worker não tem como verificar isso sozinho, então o contrato obriga o
+// admin a declarar explicitamente que já checou. Resultado (sucesso ou falha) é sempre registrado
+// na própria release (push_status/push_sent_at/push_error), nunca silencioso.
+async function handleAdminPushAppUpdate(request: Request, env: Env): Promise<Response> {
+  const url   = new URL(request.url);
+  const match = url.pathname.match(/^\/admin\/app-updates\/([^/]+)\/push$/);
+  if (!match) return err('releaseId inválido', 400, env);
+  const releaseId = decodeURIComponent(match[1]);
+
+  let body: { confirmed?: boolean };
+  try { body = await request.json(); } catch { body = {}; }
+  if (body.confirmed !== true) {
+    return err('confirmed=true obrigatório -- confirme manualmente que a versão está disponível na Google Play antes de disparar.', 400, env);
+  }
+
+  const release = await env.DB.prepare('SELECT * FROM app_releases WHERE release_id = ?').bind(releaseId).first<AppReleaseRow>();
+  if (!release) return err('release não encontrada', 404, env);
+  if (release.status !== 'active') return err(`release não está ativa (status atual: ${release.status})`, 409, env);
+  if (release.notification_enabled !== 1) return err('notificação desabilitada nesta release (notificationEnabled=false)', 409, env);
+
+  const topic  = `app_updates_${release.product}_${release.channel}`;
+  const result = await sendFcmTopicMessage(env, topic, {
+    type:        'APP_UPDATE_AVAILABLE',
+    product:     release.product,
+    channel:     release.channel,
+    versionCode: String(release.version_code),
+    releaseId:   release.release_id,
+  });
+
+  const now = nowSec();
+  await env.DB.prepare(
+    'UPDATE app_releases SET push_status = ?, push_sent_at = ?, push_error = ?, updated_at = ? WHERE release_id = ?'
+  ).bind(result.ok ? 'sent' : 'error', now, result.ok ? null : (result.message ?? 'falha desconhecida'), now, releaseId).run();
+
+  const saved = await env.DB.prepare('SELECT * FROM app_releases WHERE release_id = ?').bind(releaseId).first<AppReleaseRow>();
+  return json({ ok: result.ok, release: saved ? mapReleaseAdmin(saved) : null, message: result.message }, 200, env);
+}
+
 // --- router ---
 
 type Handler = (req: Request, env: Env) => Promise<Response>;
@@ -3624,15 +5029,78 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
   { method: "GET",  pattern: /^\/admin\/cloudflare-usage$/,                     handler: withErrorLogging('cloudflare-usage', handleCloudflareUsage) },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/status$/,       handler: handleFirebaseStatus },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/analytics$/,    handler: handleFirebaseAnalytics },
+  { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/acquisition$/,  handler: handleFirebaseAcquisition },
+  { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/screens$/,      handler: handleFirebaseScreens },
+  { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/retention$/,    handler: handleFirebaseRetention },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/crashlytics$/,  handler: handleFirebaseCrashlytics },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/versions$/,     handler: handleFirebaseVersions },
   { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/crash-issues$/, handler: handleFirebaseCrashIssues },
   { method: "POST", pattern: /^\/admin\/integrations\/firebase\/sync$/,         handler: handleFirebaseSync },
   { method: "GET",  pattern: /^\/admin\/integrations\/google-play\/status$/,   handler: handleGooglePlayStatus },
   { method: "POST", pattern: /^\/admin\/integrations\/google-play\/sync$/,     handler: handleGooglePlaySync },
+  { method: "GET",  pattern: /^\/admin\/integrations\/google-play\/reviews$/,  handler: handleGooglePlayReviewsList },
   { method: "GET",  pattern: /^\/admin\/integrations\/google-play\/tracks\/status$/,   handler: handleGooglePlayTracksStatus },
   { method: "POST", pattern: /^\/admin\/integrations\/google-play\/tracks\/sync$/,     handler: handleGooglePlayTracksSync },
   { method: "POST", pattern: /^\/admin\/integrations\/google-play\/tracks\/backfill$/, handler: handleGooglePlayTracksBackfill },
+  { method: "GET",  pattern: /^\/admin\/integrations\/google-play\/vitals\/status$/,  handler: handlePlayVitalsStatus },
+  { method: "POST", pattern: /^\/admin\/integrations\/google-play\/vitals\/sync$/,    handler: handlePlayVitalsSync },
+  { method: "GET",  pattern: /^\/admin\/integrations\/google-play\/vitals\/crash-rate\/status$/, handler: handlePlayCrashRateStatus },
+  { method: "POST", pattern: /^\/admin\/integrations\/google-play\/vitals\/crash-rate\/sync$/,   handler: handlePlayCrashRateSync },
+  { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/management\/status$/,     handler: handleFirebaseManagementStatus },
+  { method: "POST", pattern: /^\/admin\/integrations\/firebase\/management\/sync$/,       handler: handleFirebaseManagementSync },
+  { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/remote-config\/status$/,  handler: handleRemoteConfigStatus },
+  { method: "POST", pattern: /^\/admin\/integrations\/firebase\/remote-config\/sync$/,    handler: handleRemoteConfigSync },
+  // GH#1478 (Épico #1347, F2) — backend admin de Feature Flags / Remote Config. Namespace
+  // /admin/firebase/remote-config/* (sem "integrations") é deliberadamente separado do par
+  // status/sync acima (GH#1344, leitura read-only pro dashboard de integrações) — este é o CRUD
+  // administrativo real (GET/validate/publish/rollback com ETag). Ver src/remoteConfigAdmin.ts —
+  // validate/publish/rollback validam contra o catálogo canônico (`src/featureFlagCatalog.ts`,
+  // #1477) desde 2026-07-26 (fechamento de #1478); não são mais skeleton bloqueado.
+  { method: "GET",  pattern: /^\/admin\/firebase\/remote-config$/,              handler: withErrorLogging('remote-config-admin', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleRemoteConfigAdminGet(req, env, session);
+    }) },
+  { method: "GET",  pattern: /^\/admin\/firebase\/remote-config\/versions$/,    handler: withErrorLogging('remote-config-admin', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleRemoteConfigAdminVersions(req, env, session);
+    }) },
+  { method: "POST", pattern: /^\/admin\/firebase\/remote-config\/validate$/,    handler: withErrorLogging('remote-config-admin', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleRemoteConfigAdminValidate(req, env, session);
+    }) },
+  { method: "POST", pattern: /^\/admin\/firebase\/remote-config\/publish$/,     handler: withErrorLogging('remote-config-admin', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleRemoteConfigAdminPublish(req, env, session);
+    }) },
+  { method: "POST", pattern: /^\/admin\/firebase\/remote-config\/rollback$/,    handler: withErrorLogging('remote-config-admin', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleRemoteConfigAdminRollback(req, env, session);
+    }) },
+  // GH#1478 — catálogo canônico (leitura, pro Admin F3 consumir) e sincronização catálogo→Firebase
+  // (cria parâmetros ausentes, detecta órfãos/divergências). ?dryRun=true simula sem publicar.
+  { method: "GET",  pattern: /^\/admin\/firebase\/feature-flags\/catalog$/,     handler: withErrorLogging('remote-config-admin', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleFeatureFlagsCatalogGet(req, env, session);
+    }) },
+  { method: "POST", pattern: /^\/admin\/firebase\/feature-flags\/sync$/,        handler: withErrorLogging('remote-config-admin', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleFeatureFlagsSync(req, env, session);
+    }) },
+  { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/app-check\/status$/,       handler: handleAppCheckStatus },
+  { method: "POST", pattern: /^\/admin\/integrations\/firebase\/app-check\/sync$/,         handler: handleAppCheckSync },
+  { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/app-distribution\/status$/, handler: handleAppDistributionStatus },
+  { method: "POST", pattern: /^\/admin\/integrations\/firebase\/app-distribution\/sync$/,   handler: handleAppDistributionSync },
+  { method: "GET",  pattern: /^\/admin\/integrations\/firebase\/fcm-delivery\/status$/,     handler: handleFcmDeliveryDataStatus },
+  { method: "POST", pattern: /^\/admin\/integrations\/firebase\/fcm-delivery\/sync$/,       handler: handleFcmDeliveryDataSync },
+  { method: "GET",  pattern: /^\/admin\/integrations\/google-play\/store-listing\/status$/, handler: handleStoreListingStatus },
+  { method: "POST", pattern: /^\/admin\/integrations\/google-play\/store-listing\/sync$/,   handler: handleStoreListingSync },
   { method: "GET",  pattern: /^\/admin\/analytics\/product$/,                   handler: withErrorLogging('analytics', handleProductAnalytics) },
   { method: "GET",  pattern: /^\/admin\/analytics\/battery$/,                   handler: withErrorLogging('analytics', handleBatteryAnalytics) },
   { method: "GET",  pattern: /^\/admin\/settings$/,                             handler: handleSettings },
@@ -3643,6 +5111,21 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
       if (!session) return err('Unauthorized', 401, env);
       return handleUpdateFeatureFlag(req, env, session);
     }) },
+  // GH#1407 (Feature #1402): CRUD admin do catálogo de anúncios locais — já protegido pela
+  // sessão httpOnly checada antes do loop das ROUTES (ver export default.fetch abaixo).
+  { method: "GET",    pattern: /^\/admin\/local-ads$/,          handler: withErrorLogging('local-ads', handleAdminLocalAdsList) },
+  { method: "POST",   pattern: /^\/admin\/local-ads$/,          handler: withErrorLogging('local-ads', handleAdminCreateLocalAd) },
+  { method: "PUT",    pattern: /^\/admin\/local-ads\/[^/]+$/,   handler: withErrorLogging('local-ads', handleAdminUpdateLocalAd) },
+  { method: "DELETE", pattern: /^\/admin\/local-ads\/[^/]+$/,   handler: withErrorLogging('local-ads', handleAdminDeleteLocalAd) },
+  // GH#1312: catálogo remoto de releases — histórico, publicação e disparo de push.
+  { method: "GET",  pattern: /^\/admin\/app-updates$/,                    handler: withErrorLogging('app-updates', handleAdminAppUpdatesList) },
+  { method: "POST", pattern: /^\/admin\/app-updates$/,                    handler: withErrorLogging('app-updates', async (req, env) => {
+      const session = await authenticateSession(req, env);
+      if (!session) return err('Unauthorized', 401, env);
+      return handleAdminPublishAppUpdate(req, env, session);
+    }) },
+  { method: "POST", pattern: /^\/admin\/app-updates\/[^/]+\/deactivate$/,  handler: withErrorLogging('app-updates', handleAdminDeactivateAppUpdate) },
+  { method: "POST", pattern: /^\/admin\/app-updates\/[^/]+\/push$/,       handler: withErrorLogging('app-updates', handleAdminPushAppUpdate) },
 ];
 
 const INGEST_ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
@@ -3685,6 +5168,46 @@ const SCHEDULED_SYNC_JOBS: Array<{
   {
     name: 'google-play-tracks',
     run: (env) => handleGooglePlayTracksSync(new Request('https://internal/scheduled-sync'), env),
+    isError: (data) => data.status === 'error',
+  },
+  {
+    name: 'google-play-vitals',
+    run: (env) => handlePlayVitalsSync(new Request('https://internal/scheduled-sync'), env),
+    isError: (data) => data.status === 'error',
+  },
+  {
+    name: 'google-play-crash-rate',
+    run: (env) => handlePlayCrashRateSync(new Request('https://internal/scheduled-sync'), env),
+    isError: (data) => data.status === 'error',
+  },
+  {
+    name: 'firebase-management',
+    run: (env) => handleFirebaseManagementSync(new Request('https://internal/scheduled-sync'), env),
+    isError: (data) => data.status === 'error',
+  },
+  {
+    name: 'firebase-remote-config',
+    run: (env) => handleRemoteConfigSync(new Request('https://internal/scheduled-sync'), env),
+    isError: (data) => data.status === 'error',
+  },
+  {
+    name: 'firebase-app-check',
+    run: (env) => handleAppCheckSync(new Request('https://internal/scheduled-sync'), env),
+    isError: (data) => data.status === 'error',
+  },
+  {
+    name: 'firebase-app-distribution',
+    run: (env) => handleAppDistributionSync(new Request('https://internal/scheduled-sync'), env),
+    isError: (data) => data.status === 'error',
+  },
+  {
+    name: 'firebase-fcm-delivery',
+    run: (env) => handleFcmDeliveryDataSync(new Request('https://internal/scheduled-sync'), env),
+    isError: (data) => data.status === 'error',
+  },
+  {
+    name: 'google-play-store-listing',
+    run: (env) => handleStoreListingSync(new Request('https://internal/scheduled-sync'), env),
     isError: (data) => data.status === 'error',
   },
 ];
@@ -3730,6 +5253,14 @@ export default {
     if (url.pathname === '/flags' && request.method === 'GET') {
       return withErrorLogging('flags', handlePublicFlags)(request, env);
     }
+    // GH#1406 (Feature #1402): catálogo de anúncios locais (house ads) — público, só ativos.
+    if (url.pathname === '/local-ads' && request.method === 'GET') {
+      return withErrorLogging('local-ads', handlePublicLocalAds)(request, env);
+    }
+    // GH#1312: catálogo remoto de releases — público, o app Android não carrega sessão admin.
+    if (url.pathname === '/app-updates' && request.method === 'GET') {
+      return withErrorLogging('app-updates', handlePublicAppUpdates)(request, env);
+    }
 
     // Rotas /ingest/* — autenticam com INGEST_KEY (scope limitado, vai no APK).
     for (const route of INGEST_ROUTES) {
@@ -3765,6 +5296,15 @@ export default {
     if (!session) {
       return err("Unauthorized", 401, env);
     }
+
+    // Refs #1446 — /admin/diagnostic/* é proxy pro signallq-diagnostic-worker (ver
+    // proxyDiagnosticAdmin acima). Prefixo genérico, não uma lista fixa de endpoints: cobre tudo
+    // que já existe hoje (rulesets, validate, simulate, publish, rollback) e o que for adicionado
+    // no diagnostic-worker depois, sem precisar tocar neste arquivo de novo.
+    if (url.pathname.startsWith('/admin/diagnostic/')) {
+      return proxyDiagnosticAdmin(request, env, session)
+    }
+
     for (const route of ROUTES) {
       if (route.method === request.method && route.pattern.test(url.pathname)) {
         return route.handler(request, env);

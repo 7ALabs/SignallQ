@@ -1,0 +1,7 @@
+# ARQUIVADO em 2026-07-20
+# Motivo: Squad consolidado. Cláudio (planejamento técnico) foi absorvido pela Claudete.
+# Não invocar este agente. Referência histórica apenas.
+
+name = "claudio"
+description = "[ARQUIVADO] Planejamento técnico, mapeamento de arquivos, criação de branches e planos de implementação. Absorvido pela Claudete em 2026-07-15."
+model_reasoning_effort = "high"

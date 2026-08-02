@@ -86,7 +86,7 @@ rótulo acessível), `Spacer(Modifier.width(LkSpacing.xs))` entre ícone e texto
 **Nota sobre a spec do Claude Design ("SignallQ App - Fluxo de Telas"):** não consegui abrir o
 artefato Claude Design diretamente nesta sessão (sem acesso à ferramenta de design neste ambiente).
 A decisão acima usa como evidência (a) `chrome.jsx` — que já confirma o ícone como escolha por tela,
-não "todas ou nenhuma" — e (b) `docs_ai/operations/AUDITORIA_DESIGN_TOBE_2026-07-13.md`, que valida
+não "todas ou nenhuma" — e (b) `docs_ai/_archive/2026-07-13_AUDITORIA_DESIGN_TOBE.md`, que valida
 Sinal com ✅ (ícone bate com a spec) e classifica o ícone de Início como "TopBar customizada mais
 rica que a spec (não é regressão, é extensão de produto)" — ou seja, mesmo a spec original não exige
 remover ícone de Início. Nenhuma evidência disponível contradiz a regra "ícone = raiz de aba".

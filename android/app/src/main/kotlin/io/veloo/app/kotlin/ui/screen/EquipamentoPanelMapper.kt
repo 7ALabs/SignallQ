@@ -210,13 +210,13 @@ private fun buildSectionsFromFibra(snapshotFibra: SnapshotFibra): List<Equipamen
         snapshotFibra.gpon?.let { gpon ->
             add(
                 EquipamentoSecaoTecnica(
-                    titulo = "Fibra óptica",
+                    titulo = "Fibra",
                     icone = Icons.Outlined.SettingsEthernet,
                     itens =
                         listOf(
-                            EquipamentoItemTecnico("Link óptico", if (gpon.isUp) "Ativo" else "Inativo"),
-                            EquipamentoItemTecnico("Potência RX", "%.2f dBm".format(gpon.rxPowerDbm)),
-                            EquipamentoItemTecnico("Potência TX", "%.2f dBm".format(gpon.txPowerDbm)),
+                            EquipamentoItemTecnico("Conexão da fibra", if (gpon.isUp) "Ativo" else "Inativo"),
+                            EquipamentoItemTecnico("Sinal recebido da fibra", "%.2f dBm".format(gpon.rxPowerDbm)),
+                            EquipamentoItemTecnico("Sinal enviado pela fibra", "%.2f dBm".format(gpon.txPowerDbm)),
                             EquipamentoItemTecnico("Temperatura", "%.1f °C".format(gpon.temperatureCelsius)),
                             EquipamentoItemTecnico("Modo de operação", gpon.mode),
                             EquipamentoItemTecnico("Número de série da ONT", gpon.serial),
@@ -227,16 +227,16 @@ private fun buildSectionsFromFibra(snapshotFibra: SnapshotFibra): List<Equipamen
         snapshotFibra.wan?.let { wan ->
             add(
                 EquipamentoSecaoTecnica(
-                    titulo = "Internet (WAN)",
+                    titulo = "Conexão com a operadora",
                     icone = Icons.Outlined.Router,
                     itens =
                         listOf(
-                            EquipamentoItemTecnico("IP externo", wan.externalIp),
-                            EquipamentoItemTecnico("Gateway", wan.gateway),
+                            EquipamentoItemTecnico("Endereço de internet", wan.externalIp),
+                            EquipamentoItemTecnico("Saída da rede", wan.gateway),
                             EquipamentoItemTecnico("DNS primário", wan.primaryDns),
                             EquipamentoItemTecnico("DNS secundário", wan.secondaryDns),
                             EquipamentoItemTecnico("Tipo de conexão", wan.connectionType),
-                            EquipamentoItemTecnico("Interface", wan.interfaceName),
+                            EquipamentoItemTecnico("Conexão usada", wan.interfaceName),
                         ),
                 ),
             )
@@ -264,13 +264,13 @@ private fun buildSectionsFromFibra(snapshotFibra: SnapshotFibra): List<Equipamen
         snapshotFibra.lan?.let { lan ->
             add(
                 EquipamentoSecaoTecnica(
-                    titulo = "Rede local (LAN)",
+                    titulo = "Rede dentro de casa",
                     icone = Icons.Outlined.Router,
                     itens =
                         listOf(
                             EquipamentoItemTecnico("IP do roteador", lan.routerIp),
                             EquipamentoItemTecnico("Máscara de sub-rede", lan.subnetMask),
-                            EquipamentoItemTecnico("DHCP", if (lan.dhcpHabilitado) "Ativo" else "Desligado"),
+                            EquipamentoItemTecnico("Distribuição automática de endereços", if (lan.dhcpHabilitado) "Ativo" else "Desligado"),
                             EquipamentoItemTecnico("Faixa DHCP", "${lan.dhcpFaixaInicio} – ${lan.dhcpFaixaFim}"),
                         ),
                 ),
@@ -415,7 +415,7 @@ private fun io.signallq.app.core.network.contracts.localdevice.DeviceType.label(
         io.signallq.app.core.network.contracts.localdevice.DeviceType.MESH_OR_EXTENDER -> "Ponto de acesso / mesh"
         io.signallq.app.core.network.contracts.localdevice.DeviceType.UNKNOWN_SUPPORTED,
         io.signallq.app.core.network.contracts.localdevice.DeviceType.UNKNOWN_UNSUPPORTED,
-        -> "Equipamento local"
+        -> "Seu equipamento de internet"
     }
 
 internal fun acessoLabel(acesso: AcessoEquipamento): String =

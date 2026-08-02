@@ -1,0 +1,11 @@
+# ARQUIVADO em 2026-07-10
+# Motivo: Gema foi substituída pelo Rhodolfo após padrão recorrente de validação rasa mesmo com advertência formal.
+# Erros documentados: relatou merge sem executar (#844/#859/#860), contagem de cenários errada (153 vs 3 reais),
+# aprovação visual "por vibe" sem comparar pixel a pixel, aprovação de fix lógico no-op sem rastrear origem real do dado (#832).
+# Papel de QA/Release/Higiene/Documentação passa integralmente para Rhodolfo (`.claude/agents/rhodolfo.md`),
+# que herda o mandato com regras operacionais explícitas contra cada uma dessas falhas.
+# Não invocar este agente. Referência histórica apenas.
+
+name = "gema"
+description = "[ARQUIVADO] QA, Release e Higiene. Gate de Done. Substituída pelo Rhodolfo em 2026-07-10 após validação rasa."
+model_reasoning_effort = "medium"

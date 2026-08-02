@@ -2,7 +2,6 @@
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkRequest
@@ -35,13 +34,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowForwardIos
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.Adjust
 import androidx.compose.material.icons.outlined.AirplanemodeActive
 import androidx.compose.material.icons.outlined.CellTower
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.DeviceHub
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Hub
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Insights
@@ -54,7 +52,6 @@ import androidx.compose.material.icons.outlined.SettingsInputAntenna
 import androidx.compose.material.icons.outlined.SignalCellularAlt
 import androidx.compose.material.icons.outlined.Smartphone
 import androidx.compose.material.icons.outlined.Speed
-import androidx.compose.material.icons.outlined.SportsEsports
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.AssistChip
@@ -67,6 +64,7 @@ import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -89,7 +87,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -103,13 +100,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.net.toUri
 import io.signallq.app.R
 import io.signallq.app.core.database.MedicaoEntity
+import io.signallq.app.core.diagnostico.MetricClassifier
+import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.core.network.EstadoConexao
 import io.signallq.app.core.network.SnapshotRede
-import io.signallq.app.core.network.contracts.gateway.GatewayConnectionResultado
 import io.signallq.app.core.network.contracts.gateway.GatewayConnectionService
+import io.signallq.app.core.network.contracts.gateway.GatewayConnectionServiceIndisponivelPadrao
 import io.signallq.app.core.network.contracts.topologia.NivelConfianca
 import io.signallq.app.core.telephony.MovelSimSnapshot
 import io.signallq.app.core.telephony.MovelSnapshot
@@ -135,7 +133,6 @@ import io.signallq.app.ui.component.LkSheetInfoRow
 import io.signallq.app.ui.component.LkSheetSectionTitle
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.OperadoraBadge
-import io.signallq.app.ui.component.ProfileAvatarButton
 import io.signallq.app.ui.component.SheetDragHandle
 import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
 import java.util.concurrent.TimeUnit
@@ -186,15 +183,15 @@ fun HomeScreen(
     isIspInfoLoading: Boolean = true,
     gateways: List<GatewayInfo>,
     deviceName: String,
-    nomeUsuario: String,
-    fotoUriUsuario: String?,
     connectedNetwork: RedeVizinha?,
     movelSnapshot: MovelSnapshot?,
     simsAtivos: List<MovelSimSnapshot>,
     // GH#530 — reuso da GatewayConnectionSheet no nó do gateway (roteador) da trilha.
     // Sessão válida (BSSID atual == BSSID salvo com "manter conectado") pula a sheet.
     gatewaySessaoValida: Boolean = false,
-    conectarGateway: GatewayConnectionService = GatewayConnectionService { _, _, _ -> GatewayConnectionResultado.Sucesso },
+    // BUG#1511 (P0) — default nunca pode simular sucesso: sem implementação real conectada
+    // pelo caller, o resultado honesto é "indisponível", nunca "conectado".
+    conectarGateway: GatewayConnectionService = GatewayConnectionServiceIndisponivelPadrao,
     modemUsername: String = "",
     modemPassword: String = "",
     modemPermanecerConectado: Boolean = false,
@@ -205,7 +202,7 @@ fun HomeScreen(
     onDismissAnatelBanner: () -> Unit,
     onIniciarTeste: (ModoSpeedtest) -> Unit,
     onAbrirHistorico: () -> Unit,
-    onAbrirPerfil: () -> Unit,
+    onAbrirMenu: () -> Unit,
     onAbrirRedes: () -> Unit,
     /** GH#970 — resolucao de identidade de operadora (nivel 1, catalogo local, sincrono).
      *  Sem I/O, sem corrotina — mesmo comportamento de sempre pras ~12 operadoras principais. */
@@ -226,17 +223,6 @@ fun HomeScreen(
         },
 ) {
     val c = LocalLkTokens.current
-    val context = LocalContext.current
-    val fotoBitmap =
-        remember(fotoUriUsuario) {
-            fotoUriUsuario?.let { uriStr ->
-                runCatching {
-                    context.contentResolver
-                        .openInputStream(uriStr.toUri())
-                        ?.use { stream -> BitmapFactory.decodeStream(stream)?.asImageBitmap() }
-                }.getOrNull()
-            }
-        }
     val isOnWifi = snapshotRede.estadoConexao == EstadoConexao.wifi
     val ssid = snapshotRede.wifiLinkSnapshot?.ssid
     val linkSpeedMbps = snapshotRede.wifiLinkSnapshot?.linkSpeedMbps
@@ -354,7 +340,6 @@ fun HomeScreen(
         )
     }
 
-    val profileBrush = remember { Brush.linearGradient(colors = listOf(c.primary, c.secondary)) }
     val listState = rememberLazyListState()
     Scaffold(
         topBar = {
@@ -366,21 +351,12 @@ fun HomeScreen(
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Outlined.Home,
-                                contentDescription = null,
-                                tint = c.textPrimary,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Spacer(Modifier.width(LkSpacing.sm))
-                            Text(
-                                text = stringResource(R.string.home_titulo),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.W600,
-                                color = c.textPrimary,
-                            )
-                        }
+                        Text(
+                            text = stringResource(R.string.home_titulo),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.W600,
+                            color = c.textPrimary,
+                        )
                         if (estaConectado) {
                             Text(
                                 text = topBarSubtitulo(snapshotRede, movelSnapshot),
@@ -391,11 +367,13 @@ fun HomeScreen(
                     }
                 },
                 navigationIcon = {
-                    ProfileAvatarButton(
-                        nomeUsuario = nomeUsuario,
-                        fotoUri = fotoUriUsuario,
-                        onClick = onAbrirPerfil,
-                    )
+                    IconButton(onClick = onAbrirMenu) {
+                        Icon(
+                            imageVector = Icons.Filled.Menu,
+                            contentDescription = stringResource(R.string.appshell_cd_abrir_menu),
+                            tint = c.textPrimary,
+                        )
+                    }
                 },
                 colors =
                     TopAppBarDefaults.centerAlignedTopAppBarColors(
@@ -1918,12 +1896,15 @@ private fun WifiFactorsSection(
     network: RedeVizinha,
     c: LkTokens,
 ) {
+    // GH#1228 Fatia 5 (P0-2): delega a MetricClassifier.classificarRssiWifi em vez de regua
+    // propria fixa (nao considerava banda -- sempre usava os cortes de 5GHz), terceira
+    // implementacao divergente ao lado de SignalBars.signalColor/SinalTopologiaHelpers.signalQuality.
     val overall =
-        when {
-            network.rssiDbm >= -55 -> WifiQuality.Excelente
-            network.rssiDbm >= -65 -> WifiQuality.Bom
-            network.rssiDbm >= -75 -> WifiQuality.Razoavel
-            else -> WifiQuality.Ruim
+        when (MetricClassifier.classificarRssiWifi(network.rssiDbm, network.paraBandaWifi())) {
+            MetricStatus.excelente -> WifiQuality.Excelente
+            MetricStatus.bom -> WifiQuality.Bom
+            MetricStatus.regular -> WifiQuality.Razoavel
+            MetricStatus.ruim, MetricStatus.critico, MetricStatus.inconclusivo -> WifiQuality.Ruim
         }
     val spectrumOk = network.frequenciaMhz > 5000
     val radioOk = network.rssiDbm >= -65
@@ -2445,62 +2426,6 @@ private fun CellularInfoSheet(
                 color = c.textTertiary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-            )
-        }
-    }
-}
-
-// ─── Gamer shortcut card ──────────────────────────────────────────────────────
-
-@Composable
-internal fun GamerShortcutCard(
-    c: LkTokens,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(LkRadius.card))
-                .background(c.bgCard)
-                .clickable(onClick = onClick)
-                .padding(LkSpacing.lg),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier =
-                    Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(c.success.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.SportsEsports,
-                    contentDescription = null,
-                    tint = c.success,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            Spacer(Modifier.width(LkSpacing.md))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.home_shortcut_gaming_titulo),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.W600,
-                    color = c.textPrimary,
-                )
-                Text(
-                    stringResource(R.string.home_shortcut_gaming_descricao),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.textSecondary,
-                )
-            }
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.ArrowForwardIos,
-                contentDescription = null,
-                tint = c.textTertiary,
-                modifier = Modifier.size(14.dp),
             )
         }
     }

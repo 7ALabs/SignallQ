@@ -22,6 +22,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Speed
@@ -53,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -61,6 +63,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.signallq.app.R
 import io.signallq.app.ads.AdSlot
 import io.signallq.app.ads.AdUnitIds
 import io.signallq.app.ads.NativeAdContentSignals
@@ -82,7 +85,6 @@ import io.signallq.app.ui.component.LkSheetFrame
 import io.signallq.app.ui.component.LkSheetInfoRow
 import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.Overline
-import io.signallq.app.ui.component.ProfileAvatarButton
 import io.signallq.app.ui.component.ads.NativeAdCard
 import io.signallq.app.ui.component.ads.NativeAdSource
 import kotlinx.coroutines.launch
@@ -293,9 +295,7 @@ private fun FiltrosConexao(
 fun HistoricoScreen(
     historico: List<MedicaoEntity>,
     resumoHistorico: ResumoHistorico? = null,
-    nomeUsuario: String = "",
-    fotoUri: String? = null,
-    onAbrirPerfil: () -> Unit = {},
+    onAbrirMenu: () -> Unit = {},
     onIniciarTeste: () -> Unit = {},
     filtroConexao: FiltroConexaoHistorico? = null,
     onFiltroConexaoChange: (FiltroConexaoHistorico) -> Unit = {},
@@ -356,19 +356,16 @@ fun HistoricoScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Outlined.History,
-                            contentDescription = null,
-                            tint = c.textPrimary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                        Spacer(Modifier.width(LkSpacing.xs))
-                        Text("Histórico", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
-                    }
+                    Text("Histórico", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.W600, color = c.textPrimary)
                 },
                 navigationIcon = {
-                    ProfileAvatarButton(nomeUsuario = nomeUsuario, fotoUri = fotoUri, onClick = onAbrirPerfil)
+                    IconButton(onClick = onAbrirMenu) {
+                        Icon(
+                            imageVector = Icons.Filled.Menu,
+                            contentDescription = stringResource(R.string.appshell_cd_abrir_menu),
+                            tint = c.textPrimary,
+                        )
+                    }
                 },
                 actions = {
                     IconButton(

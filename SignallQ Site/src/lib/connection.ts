@@ -17,9 +17,12 @@ export function labelConexao(tipo: TipoRede | null | undefined): string {
   }
 }
 
-// Ícone Material Symbol por tipo — só distingue Wi-Fi do resto (protótipo
-// "SignallQ WebApp.dc.html" do Luiz especifica só esses dois ícones para o
-// card de histórico).
+// Ícone Material Symbol por tipo. Ampliado na reconstrução v2 do Histórico
+// (`.claude/design-specs/2026-07-25-site-webapp-v2/ScreenHistorico.dc.html`,
+// RECORDS usa `settings_ethernet` para Ethernet) — antes só distinguia Wi-Fi
+// do resto porque o filtro de Ethernet ainda não existia na UI.
 export function iconeConexao(tipo: TipoRede | null | undefined): string {
-  return tipo === 'wifi' ? 'wifi' : 'speed'
+  if (tipo === 'wifi') return 'wifi'
+  if (tipo === 'ethernet') return 'settings_ethernet'
+  return 'speed'
 }

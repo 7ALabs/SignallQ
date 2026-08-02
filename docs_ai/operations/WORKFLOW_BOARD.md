@@ -1,6 +1,17 @@
 # Workflow do Board — Como os agentes movimentam as issues
 
-O Project **SIGNALLQ Android — Roadmap** (https://github.com/users/gmmattey/projects/8) é atualizado automaticamente conforme os agentes do squad trabalham. Existem **3 camadas** de automação:
+- **Status:** ativo
+- **Última validação:** 2026-07-23 (nome do Project corrigido; conferir se este mecanismo segue
+  em uso junto com os 4 Projects por produto criados em 2026-07-21 — ver `.claude/CLAUDE.md`,
+  seção "Fontes da Verdade" → "Hierarquia obrigatória por Project". Este board (#8) parece ser o
+  mecanismo mais antigo, anterior à divisão por produto; **[a confirmar]** se ainda é o fluxo
+  vigente ou se foi substituído.)
+- **Escopo:** automação de coluna/label do Project GitHub via `scripts/agent-handoff.sh`
+
+O Project real hoje é **"LINKA Android — Roadmap"** (nome do Project não foi renomeado no rebrand
+SignallQ; confirmado via `gh project list --owner gmmattey`), Project #8
+(https://github.com/users/gmmattey/projects/8), é atualizado automaticamente conforme os agentes
+do squad trabalham. Existem **3 camadas** de automação:
 
 ## 1. Agente chama `scripts/agent-handoff.sh` em cada handoff
 
@@ -103,5 +114,5 @@ Os scripts já têm os IDs do projeto atual hardcoded como default. Se mover de 
 PROJ_NUM=8
 PROJ_ID=PVT_kwHOD83n7c4BYmdL
 FIELD_COLUNA=PVTSSF_lAHOD83n7c4BYmdLzhTrIt4
-REPO=gmmattey/signallq-android
+REPO=7ALabs/SignallQ
 ```

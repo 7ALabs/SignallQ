@@ -67,7 +67,6 @@ import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.component.GaugeCircular
-import io.signallq.app.ui.component.MiniGrafico
 import kotlinx.coroutines.isActive
 import androidx.compose.animation.core.tween as tweenSpec
 
@@ -227,27 +226,6 @@ fun VelocidadeScreen(
                             color = c.textTertiary,
                         )
                     }
-                }
-            }
-
-            // Mini-gráfico ao vivo (apenas DL/UP)
-            AnimatedVisibility(
-                visible = fase == FaseSpeedtest.download || fase == FaseSpeedtest.upload,
-                enter = fadeIn(),
-                exit = fadeOut(),
-            ) {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = LkSpacing.xl),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    MiniGrafico(
-                        pontos = snapshot.pontosAoVivo,
-                        fase = fase,
-                        corFase = corFase,
-                    )
                 }
             }
 

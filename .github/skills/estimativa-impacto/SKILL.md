@@ -69,9 +69,9 @@ Responda cada pergunta. Qualquer NÃO é um risco ativo — registre e decida an
 
 **Qualidade**
 - [ ] Tem cobertura de teste unitário prevista ou já existente?
-  - NÃO → adicionar ao escopo da issue antes de fechar estimativa. Projeto tem ~37 classes de teste em `android/*/src/test/`.
+  - NÃO → adicionar ao escopo da issue antes de fechar estimativa. Ver cobertura real em `android/*/src/test/`.
 - [ ] Há dependência de outra issue em andamento (bloqueio cruzado)?
-  - SIM → registrar dependência no Linear antes de iniciar.
+  - SIM → registrar dependência na issue do GitHub antes de iniciar.
 
 **Nível de Risco Consolidado:**
 

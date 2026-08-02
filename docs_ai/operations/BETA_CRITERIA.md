@@ -1,8 +1,16 @@
 # Critérios do Beta Program — SignallQ
 
-> Atualizado em 2026-06-28.
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Fonte de verdade das datas de milestone:** GitHub issue
+  [#1222](https://github.com/7ALabs/SignallQ/issues/1222) e
+  `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md` — **não este documento**.
+  Lançamento público confirmado em **21/08/2026**. As datas de M2/M4 abaixo são de uma revisão
+  anterior (28/06) e não foram reconfirmadas contra a decisão de 2026-07-20 — tratar como
+  **[a confirmar]** até checar a issue #1222 diretamente.
+- **Escopo:** critérios de entrada/saída de cada fase de beta
 
-## Closed Beta (M2 — 31/07/2026)
+## Closed Beta (M2 — [a confirmar, ver issue #1222])
 
 ### Critérios de Entrada
 
@@ -34,7 +42,7 @@
 
 ---
 
-## Open Beta (M4 — 21/08/2026)
+## Open Beta (M4 — [a confirmar, ver issue #1222]; lançamento público em 21/08/2026 é o M5)
 
 ### Critérios de Entrada
 

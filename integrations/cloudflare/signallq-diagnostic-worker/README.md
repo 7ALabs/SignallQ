@@ -7,7 +7,7 @@ Worker Cloudflare isolado para tres frentes remotas do SignallQ:
 - `GH#935`: catalogo remoto de jogos e perfis de sensibilidade
 
 Migrado de `D:\Cloudflare\signallq-diagnostic-worker` (fora do monorepo, sem git) para
-`integrations/cloudflare/signallq-diagnostic-worker/` em `gmmattey/linka-android` — ver `GH#963`.
+`integrations/cloudflare/signallq-diagnostic-worker/` em `7ALabs/SignallQ` — ver `GH#963`.
 Correcoes de paridade com o motor Android real (`GH#953`) aplicadas antes da migracao: ver
 `TESTING.md` para o log completo de validacao.
 
@@ -107,6 +107,10 @@ npx wrangler d1 execute signallq-diagnostic-db --file=migrations/002_gh951_provi
 npx wrangler d1 execute signallq-diagnostic-db --file=migrations/003_admin_auth.sql --remote
 npx wrangler d1 execute signallq-diagnostic-db --file=migrations/004_gh935_game_catalog.sql --remote
 npx wrangler d1 execute signallq-diagnostic-db --file=migrations/005_gh956_provider_installations.sql --remote
+npx wrangler d1 execute signallq-diagnostic-db --file=migrations/006_gh965_provider_logo_d1.sql --remote
+npx wrangler d1 execute signallq-diagnostic-db --file=migrations/007_gh1444_diagnostic_divergences.sql --remote
+npx wrangler d1 execute signallq-diagnostic-db --file=migrations/008_gh1445_rollout_segmentation.sql --remote
+npx wrangler d1 execute signallq-diagnostic-db --file=migrations/009_gh1461_provider_audit_log.sql --remote
 ```
 
 ### 3. Configurar secrets
@@ -427,8 +431,11 @@ curl https://signallq-diagnostic.<subdominio>.workers.dev/admin/games/audit \
 - `POST /admin/providers/sync-seed`
 - `GET /admin/providers/review-queue`
 - `GET /admin/providers/stale`
+- `GET /admin/providers/audit` (GH#1461 — trilha de auditoria das escritas abaixo; `?providerId=` opcional filtra por provedor)
 - `POST /admin/providers`
 - `POST /admin/providers/:providerId/review`
+- `POST` ou `PUT /admin/providers/:providerId/support`
+- `POST /admin/providers/:providerId/logo`
 
 ### Publico provedores
 

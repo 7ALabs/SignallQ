@@ -1,14 +1,20 @@
 # Plano De Atualizacao - Documentos, Agentes E Skills
 
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Escopo:** cadência/rotina de atualização de documentação, não conteúdo técnico em si
+
 ## Rotina por mudanca
 
 1. Atualizar codigo e testes no modulo Gradle afetado.
-2. Atualizar o documento funcional em `docs_ai/functional/` quando mudar fluxo, tela ou comportamento.
-3. Atualizar o documento tecnico em `docs_ai/technical/` quando mudar arquitetura, modulo, servico, storage ou integracao.
-4. Atualizar `docs_ai/design-system/` quando mudar componente visual, token, navegacao ou guideline.
+2. Atualizar `docs_ai/FUNCIONAL.md` quando mudar fluxo, tela ou comportamento (`docs_ai/functional/`
+   só para specs pontuais que ainda não migraram — ver `.claude/rules/higiene-e-padronizacao-repositorio.md`, seção 10).
+3. Atualizar `docs_ai/TECNICO.md` e `docs_ai/ARQUITETURA/` quando mudar arquitetura, modulo, servico,
+   storage ou integracao (`docs_ai/technical/` idem, só residual).
+4. Atualizar `docs_ai/DESIGN_SYSTEM.md` quando mudar componente visual, token, navegacao ou guideline.
 5. Atualizar `docs_ai/operations/` quando mudar build, release, ambiente, script ou versionamento.
 6. Registrar impacto em `CHANGELOG.md` quando a mudanca for entregavel.
-7. Quando gerar APK, seguir `docs/APK_OUTPUT_POLICY.md`.
+7. Quando gerar APK, seguir `docs_ai/operations/APK_OUTPUT_POLICY.md`.
 
 ## Agentes
 

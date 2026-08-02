@@ -1,9 +1,11 @@
 package io.signallq.app.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowForward
 import androidx.compose.material.icons.outlined.AccountTree
@@ -29,15 +32,22 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
-import io.signallq.app.ui.component.LkSurfaceCard
 
 /**
  * "Como sua rede está conectada" — passo 8 da narrativa (bug #6, spec Lia):
  * peça central da tela, entre o painel de status/uso e os módulos técnicos.
  * Extraído de `EquipamentoInternetScreen.kt` (dívida crítica, ver
  * `.claude/rules/higiene-e-padronizacao-repositorio.md` seção 4.6).
+ *
+ * ## Destaque de borda (revisão Lia 2026-07-25)
+ * Wireframe aprovado pelo Luiz (reorganização de hierarquia, artifact
+ * `547faba7-3981-42d0-a82f-58e0eba64da8`): este é o resumo visual central da
+ * tela, então ganha borda `primary @45%` (1,5dp) + fundo `surfaceContainerHigh`
+ * em vez do `surfaceContainer` plano dos vizinhos — único card com esse
+ * tratamento, de propósito.
  */
 @Composable
 internal fun TopologiaRedeCard(
@@ -47,7 +57,7 @@ internal fun TopologiaRedeCard(
     c: LkTokens,
 ) {
     val compacto = paineis.size <= 1
-    LkSurfaceCard {
+    LkSurfaceCardDestaque(c = c) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.AccountTree, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(LkSpacing.xs))
@@ -109,6 +119,24 @@ internal fun TopologiaRedeCard(
             }
         }
     }
+}
+
+/** Container com borda de destaque na cor de marca — só o card de topologia usa este
+ *  tratamento, ver KDoc de [TopologiaRedeCard]. */
+@Composable
+private fun LkSurfaceCardDestaque(
+    c: LkTokens,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(
+        modifier =
+            Modifier
+                .clip(RoundedCornerShape(LkRadius.card))
+                .background(c.surfaceContainerHigh)
+                .border(1.5.dp, c.primary.copy(alpha = 0.45f), RoundedCornerShape(LkRadius.card))
+                .padding(LkSpacing.base),
+        content = content,
+    )
 }
 
 @Composable

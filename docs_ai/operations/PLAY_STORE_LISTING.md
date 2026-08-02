@@ -1,6 +1,13 @@
 # Descrição Play Store — SignallQ
 
-> Atualizado em 2026-06-28. Usar no Play Console ao configurar o listing.
+- **Status:** ativo
+- **Última validação:** 2026-07-23
+- **Escopo:** copy oficial do listing na Play Console
+
+> **Verificado em 2026-07-23:** mesma apuração de `docs_ai/operations/FAQ_USERS.md` — AdMob está
+> integrado no código (issue #555) mas com a chave mestra do Remote Config desligada por padrão até
+> Luiz criar as chaves no Firebase; nenhum usuário vê anúncio hoje. **O texto abaixo é verdade no
+> estado atual.** Atualizar quando as chaves forem ligadas — não antes.
 
 ## Descrição Curta (máx. 80 caracteres)
 

@@ -5,25 +5,48 @@ compatibility_date = "2026-06-21"
 [vars]
 ALLOWED_ORIGIN = "https://signallq-admin-panel.pages.dev"
 FIREBASE_PROJECT_ID = "signallq-app"
-FIREBASE_GA4_PROPERTY_ID = "542463828"
+FIREBASE_GA4_PROPERTY_ID = "543555227"
 # #883 — nao sao secret (account_id e database_id ja sao publicos no dashboard/neste arquivo).
 CLOUDFLARE_ACCOUNT_ID = "2f38f7354f204d7b3f7d6c750b3e43ff"
 CLOUDFLARE_D1_DATABASE_ID = "952cb253-1a84-48ac-9018-a4ca31036915"
 
 # Decisao 2026-07-11: o export GA4->BigQuery nunca foi criado (projeto signallq-app em
 # modo Sandbox, sem billing habilitado por decisao do Luiz de nao assumir custo novo) —
-# o dataset `analytics_542463828` nao existe, entao handleFirebaseSync so produziria
+# o dataset `analytics_543555227` nao existe, entao handleFirebaseSync so produziria
 # bq_error_403 todo dia via cron (GH#877/#878). Flag desliga essa perna sem apagar o
 # codigo. Reativar: habilitar billing -> criar vinculo GA4->BigQuery -> virar "true" aqui
 # -> conceder dataViewer a SA signallq-admin-bq.
+#
+# 2026-07-24: FIREBASE_GA4_PROPERTY_ID corrigido de 542463828 (propriedade errada, projeto
+# "device-streaming-ef179de4", nunca recebeu dado) para 543555227 (propriedade real do
+# projeto signallq-app, confirmada em Firebase Console > Configuracoes > Integracoes >
+# Google Analytics). Erro de configuracao legado, nunca detectado antes por falta de teste
+# real contra a API.
 FIREBASE_SYNC_ENABLED = "false"
 
+# DIAGNOSTIC_PROXY_SECRET (Refs #1446): compartilhada com o signallq-diagnostic-worker (mesmo
+#   valor nos dois lados) — autentica o proxy de /admin/diagnostic/* worker-to-worker, sem expor
+#   nada ao browser. Gerar: openssl rand -hex 32.
+#   Deploy: npx wrangler secret put DIAGNOSTIC_PROXY_SECRET (aqui) e
+#           npx wrangler secret put DIAGNOSTIC_PROXY_SECRET --name signallq-diagnostic (lá).
+#
 # Secrets: npx wrangler secret put ADMIN_SECRET / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY
 # INGEST_KEY: chave separada para autenticar o app Android em POST /ingest/*
 #   Scope limitado — nao da acesso de leitura ao painel.
 #   Gerar: openssl rand -hex 32
 #   Deploy: npx wrangler secret put INGEST_KEY
 #   App: adicionar em local.properties -> ADMIN_INGEST_KEY=<valor>
+# SITE_INGEST_KEY (#1155): chave separada e dedicada para autenticar o SignallQ Site
+#   (Pages Function functions/api/track.ts) em POST /ingest/* — mesmo scope da INGEST_KEY,
+#   mas nao reaproveita o mesmo valor por ser dedicada a outra superficie.
+#   Motivo de nao reaproveitar INGEST_KEY/ADMIN_SECRET: INGEST_KEY ja esta embutida no APK
+#   Android publicado (rotacionar quebraria quem ja instalou); ADMIN_SECRET protege /health
+#   com retrocompat externa desconhecida. Aditiva, opcional — sem ela configurada,
+#   authenticateIngest() so aceita INGEST_KEY/ADMIN_SECRET como sempre.
+#   Gerar: openssl rand -hex 32 (mesmo valor configurado nos dois lados, Worker e Pages — sem
+#   nenhum agente ver o valor real, so o Luiz no painel Cloudflare).
+#   Deploy: npx wrangler secret put SITE_INGEST_KEY (aqui) + variavel/secret equivalente no
+#   projeto Pages "signallq" (consumida por functions/api/track.ts).
 # CLOUDFLARE_API_TOKEN (#883): token escopado "Account Analytics: Read" para a GraphQL
 # Analytics API (uso vs. limite do free tier). Sem custo, mas requer criacao manual no
 # dashboard Cloudflare (My Profile > API Tokens > Create Token) -- o token OAuth do
@@ -36,6 +59,14 @@ FIREBASE_SYNC_ENABLED = "false"
 binding = "DB"
 database_name = "signallq-admin-db"
 database_id = "952cb253-1a84-48ac-9018-a4ca31036915"
+
+# Refs #1446 — service binding pro signallq-diagnostic-worker, usado só pra fazer proxy de
+# /admin/diagnostic/* (ver proxyDiagnosticAdmin em src/index.ts). Mesmo padrão do GH#767
+# (ai-diagnosis-worker -> signallq-admin): fetch() direto entre dois *.workers.dev é bloqueado
+# pela Cloudflare (erro 1042, anti-loop), service binding é Worker-to-Worker de verdade.
+[[services]]
+binding = "DIAGNOSTIC_WORKER"
+service = "signallq-diagnostic"
 
 # GH#788 — snapshot de latencia/uptime a cada 15min (96 execucoes/dia, dentro do
 # free tier de Workers requests). Cron Triggers sao gratuitos em todos os planos.

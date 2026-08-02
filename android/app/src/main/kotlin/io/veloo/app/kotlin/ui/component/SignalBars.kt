@@ -14,6 +14,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import io.signallq.app.core.diagnostico.BandaWifi
+import io.signallq.app.core.diagnostico.MetricClassifier
+import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
 
@@ -55,23 +57,18 @@ fun SignalBars(
  * (RSSI naturalmente mais baixo por atenuação de frequência). Extraído junto com [SignalBars]
  * porque é a única consumidora fora de `SinalScreen.kt`; os 3 usos que restaram em
  * `SinalScreen.kt` (cores de item de lista de rede) importam esta função pública.
+ *
+ * GH#1228 Fatia 5 (P0-2): delega a [MetricClassifier.classificarRssiWifi] em vez de reguas
+ * proprias (`>=` inclusivo, divergentes do canonico) — mesmo padrao ja aplicado em
+ * `SinalMovelClassificacao.kt` para RSRP/RSRQ/SINR.
  */
 fun signalColor(
     rssiDbm: Int,
     banda: BandaWifi = BandaWifi.desconhecida,
     c: LkTokens,
 ): Color =
-    when (banda) {
-        BandaWifi.ghz5 ->
-            when {
-                rssiDbm >= -65 -> c.success
-                rssiDbm >= -75 -> c.warning
-                else -> c.error
-            }
-        else ->
-            when {
-                rssiDbm >= -60 -> c.success
-                rssiDbm >= -70 -> c.warning
-                else -> c.error
-            }
+    when (MetricClassifier.classificarRssiWifi(rssiDbm, banda)) {
+        MetricStatus.excelente, MetricStatus.bom -> c.success
+        MetricStatus.regular -> c.warning
+        MetricStatus.ruim, MetricStatus.critico, MetricStatus.inconclusivo -> c.error
     }

@@ -7,15 +7,15 @@ Consulte as regras Android relevantes para a tarefa abaixo:
 
 $ARGUMENTS
 
-**Antes de qualquer implementação crítica, consulte o Otávio.**
+**Antes de qualquer implementação crítica, consulte esta skill e o arquivo `oem-quirks-e-testes-device.md`.**
 
 ---
 
 ## API Levels suportados pelo SignallQ
 
-- **Mínimo:** Android 8.0 (API 24)
+- **Mínimo:** Android 7.0 (API 24)
 - **Target:** Android 16 (API 36)
-- **Compilação:** Android 16 (API 36)
+- **Compilação:** Android 16+ (API 37)
 
 ---
 
@@ -148,16 +148,12 @@ Antes de implementar qualquer feature nas categorias acima, o agente **deve**:
 
 1. Verificar a tabela de restrições correspondente nesta skill.
 2. Confirmar qual API level mínimo afeta o comportamento.
-3. Acionar o **Otávio** para validação se houver dúvida de comportamento real em device.
+3. Consultar `oem-quirks-e-testes-device.md` se houver dúvida de comportamento real em device.
 
-**Documentação oficial não equivale a comportamento OEM real.** Sempre validar com Otávio antes de implementar Wi-Fi, DNS, permissão ou background service.
+**Documentação oficial não equivale a comportamento OEM real.** Consultar quirks documentados e testar em device real antes de implementar Wi-Fi, DNS, permissão ou background service.
 
 ## Limites
 
 - Esta skill orienta, não implementa.
 - Implementação → Camilo.
 - Comportamento incerto em OEM específico → declarar explicitamente.
-
-> Consolidação de `regras-android` + `regras-android` em 2026-06-24. Conteúdo equivalente fundido em uma skill única.
-
-[PROXIMO: Otávio — validar comportamento real antes de implementar]

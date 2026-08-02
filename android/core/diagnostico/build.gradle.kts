@@ -36,7 +36,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
     // org.json.JSONObject (GeoIpResolver) nao esta disponivel no runtime JVM dos testes.
-    testImplementation("org.json:json:20240303")
+    testImplementation("org.json:json:20260719")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }

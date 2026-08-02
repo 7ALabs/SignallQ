@@ -1,9 +1,14 @@
-import { 
-  FirebaseIntegrationStatus, 
-  FirebaseAnalyticsSummary, 
-  FirebaseCrashlyticsSummary, 
-  FirebaseAppVersionCrashStats, 
-  FirebaseCrashIssue 
+import {
+  FirebaseIntegrationStatus,
+  FirebaseAnalyticsSummary,
+  FirebaseCrashlyticsSummary,
+  FirebaseAppVersionCrashStats,
+  FirebaseCrashIssue,
+  FirebaseManagementStatus,
+  FirebaseRemoteConfigStatus,
+  FirebaseAppCheckStatus,
+  FirebaseAppDistributionStatus,
+  FirebaseFcmDeliveryStatus,
 } from "./firebase.types";
 
 export const mockFirebaseStatus: FirebaseIntegrationStatus = {
@@ -88,3 +93,71 @@ export const mockFirebaseCrashIssues: FirebaseCrashIssue[] = [
     appVersion: "0.18.1"
   }
 ];
+
+// GH#1343/#1344 — inventário técnico. App Check e FCM nascem vazios de propósito (nenhum
+// provedor configurado no Console / SignallQ não usa push ainda) — os outros três mocks
+// carregam dado real de exemplo.
+
+export const mockFirebaseManagementStatus: FirebaseManagementStatus = {
+  hasCredentials: true,
+  status: "connected",
+  lastSyncTimestamp: "2026-07-24T12:00:00.000Z",
+  project: {
+    projectId: "signallq-app",
+    projectNumber: "741421457740",
+    displayName: "SignallQ",
+    state: "ACTIVE",
+  },
+  androidApps: [
+    {
+      appId: "1:741421457740:android:a8658a91308fba058fefe9",
+      displayName: "SignallQ",
+      packageName: "io.signallq.app",
+      state: "ACTIVE",
+    },
+  ],
+};
+
+export const mockFirebaseRemoteConfigStatus: FirebaseRemoteConfigStatus = {
+  hasCredentials: true,
+  status: "connected",
+  lastSyncTimestamp: "2026-07-24T12:00:00.000Z",
+  parameterCount: 3,
+  parameterKeys: ["diagnostico_ai_provider", "speedtest_timeout_ms", "onboarding_flow_v2"],
+};
+
+export const mockFirebaseAppCheckStatus: FirebaseAppCheckStatus = {
+  hasCredentials: true,
+  status: "connected",
+  lastSyncTimestamp: null,
+  services: null,
+};
+
+export const mockFirebaseAppDistributionStatus: FirebaseAppDistributionStatus = {
+  hasCredentials: true,
+  status: "connected",
+  lastSyncTimestamp: "2026-07-24T12:00:00.000Z",
+  releases: [
+    {
+      name: "projects/741421457740/apps/1:741421457740:android:a8658a91308fba058fefe9/releases/1",
+      displayVersion: "0.25.0",
+      buildVersion: "60",
+      createTime: "2026-07-22T18:30:00.000Z",
+      releaseNotesText: "Correções de estabilidade no diagnóstico Wi-Fi.",
+    },
+    {
+      name: "projects/741421457740/apps/1:741421457740:android:a8658a91308fba058fefe9/releases/2",
+      displayVersion: "0.24.2",
+      buildVersion: "58",
+      createTime: "2026-07-15T14:10:00.000Z",
+      releaseNotesText: null,
+    },
+  ],
+};
+
+export const mockFirebaseFcmDeliveryStatus: FirebaseFcmDeliveryStatus = {
+  hasCredentials: true,
+  status: "connected",
+  lastSyncTimestamp: "2026-07-24T12:00:00.000Z",
+  androidDeliveryData: [],
+};

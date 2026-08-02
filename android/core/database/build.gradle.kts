@@ -34,6 +34,11 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.room.testing)
+    // Dependencia pre-existente faltante (`runTest`/Flow.first() usados por
+    // ChatSessionDaoTest.kt, ja em main, nunca compilavam antes deste ajuste) —
+    // corrigido de passagem ao validar Migration15Para16Test.kt (GH#1228 Fase 3),
+    // mesmo pacote/source-set desta fatia.
+    androidTestImplementation(libs.kotlinx.coroutines.test)
 }
 
 kapt {

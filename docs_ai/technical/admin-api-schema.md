@@ -1,7 +1,11 @@
 # Admin API — Schema de Contratos
 
-**Última atualização:** 2026-07-16 (v0.23.0, versionCode 56) — GH#1043: cobre `play_track`,
-`system_health_snapshots`, `uf` e corrige vocabulário de `status`
+**Status:** ativo
+**Última validação:** 2026-07-26 (v0.30.4, versionCode 70) — GH#1471/#1312: documenta o catálogo
+remoto de releases (`app_releases`) e o disparo de push por versão/canal
+**Fonte de verdade:** código real (`integrations/cloudflare/signallq-admin-worker/src/index.ts`) + `docs_ai/CONTRATOS/openapi/signallq-admin-api.yaml` (contrato OpenAPI formal)
+**Escopo:** todos os endpoints do worker `signallq-admin` (painel Admin, ingest do app, feature flags, health)
+**Responsável:** Camilo (Backend Android + Workers)
 **Versão do worker:** 1.x (Cloudflare Worker — name `signallq-admin`, diretório `signallq-admin-worker`)
 **Base URL (produção):** `https://signallq-admin.giammattey-luiz.workers.dev`
 **Configurada no frontend via:** `VITE_ADMIN_API_BASE_URL`
@@ -883,7 +887,7 @@ Roda a query de conectividade no BigQuery (conta `session_start` do dia anterior
 
 **Decisão 2026-07-11 (GH#877/#878) — sync de Firebase desligado por flag:** o job do cron
 começou (PR #878) a registrar corretamente os erros reais do BigQuery em vez de escondê-los
-como `no_data_yet`. Só que o export GA4→BigQuery (`analytics_542463828`) **nunca foi criado**
+como `no_data_yet`. Só que o export GA4→BigQuery (`analytics_543555227`) **nunca foi criado**
 — o projeto Firebase `signallq-app` está em modo Sandbox e o Luiz decidiu **não habilitar
 billing** (sem custo novo). Resultado: todo dia às 06:00 UTC o cron ia gravar um
 `bq_error_403` real em `system_errors`, ruído permanente sem solução no horizonte.
@@ -1031,6 +1035,116 @@ Sem prefixo `/admin/`. Sem auth. Retorna apenas flags com `scope: "public"`. Con
   ]
 }
 ```
+
+---
+
+## Endpoints de catálogo de releases (GH#1471/#1312)
+
+Catálogo remoto de releases por produto+canal, consumido em leitura pelo app Android (comparação
+sempre por `versionCode`, nunca por `versionName`) e administrado via CLI/pipeline autenticado
+(sem painel dedicado no MVP — ver issue #1471, "Fora de escopo"). Tabela `app_releases` (D1),
+histórico append-only por linha publicada; `status` (`active`/`superseded`/`deactivated`) controla
+qual linha é a comunicada agora. Índice único parcial garante no máximo uma linha `active` por
+`product`+`channel` no nível de banco.
+
+**Canais suportados:** `internal` | `alpha` | `beta` | `production` (mesmo enum de `play_track`,
+migration 012).
+
+### GET /app-updates (público)
+
+Sem prefixo `/admin/`. Sem auth — o app Android não carrega sessão admin. Query obrigatória:
+`product`, `channel`. Retorna a release `active` do product+channel, ou `release: null` quando não
+há release ativa (produto/canal sem publicação, ou comunicação desativada) — isso é resposta
+válida, não erro.
+
+```json
+{
+  "release": {
+    "product": "signallq",
+    "channel": "alpha",
+    "versionName": "1.0.0",
+    "versionCode": 100,
+    "publishedAt": "2026-07-22T00:00:00.000Z",
+    "releaseNotes": "Melhorias no diagnóstico e correções de estabilidade.",
+    "storeUrl": "https://play.google.com/store/apps/details?id=io.signallq.app",
+    "notificationEnabled": true,
+    "releaseId": "signallq-alpha-100",
+    "reminderCampaignId": null
+  }
+}
+```
+
+**Erros:** `400` (`product` ausente/inválido, ou `channel` fora do enum).
+
+### GET /admin/app-updates
+
+Histórico completo (todas as `status`), mais recente primeiro. Exige sessão. Filtros opcionais via
+query: `product`, `channel`, `limit` (padrão 50, máx. 200). Cada item inclui os mesmos campos do
+contrato público, mais `status`, `publishedBy`, `pushStatus`, `pushSentAt`, `pushError`,
+`createdAt`, `updatedAt` — campos que o Android nunca vê.
+
+### POST /admin/app-updates
+
+Publica uma release. Exige sessão. `releaseId` é sempre derivado
+(`${product}-${channel}-${versionCode}`), nunca aceito do body.
+
+**Request:**
+```json
+{
+  "product": "signallq",
+  "channel": "alpha",
+  "versionName": "1.0.0",
+  "versionCode": 100,
+  "releaseNotes": "Melhorias no diagnóstico e correções de estabilidade.",
+  "storeUrl": "https://play.google.com/store/apps/details?id=io.signallq.app",
+  "notificationEnabled": true,
+  "reminderCampaignId": null,
+  "confirmDowngrade": false
+}
+```
+
+Regras de comparação contra a release `active` atual do mesmo `product`+`channel`:
+- `versionCode` **maior** → nova linha vira `active`, a anterior vira `superseded` (Response `201`).
+- `versionCode` **igual** ao ativo → correção in-place (mesma `release_id`, não duplica histórico;
+  Response `200`).
+- `versionCode` **menor** → bloqueado (`409`) a menos que o body traga `confirmDowngrade: true`
+  explícito — é o mecanismo que impede regressão acidental exigido pela issue.
+
+**Erros:** `400` (campo obrigatório ausente/inválido, `storeUrl` não é http(s) válido), `401`
+(sem sessão), `409` (downgrade sem confirmação).
+
+### POST /admin/app-updates/:releaseId/deactivate
+
+Desliga a comunicação da release **sem apagar o registro** (regra explícita da issue — permite
+reverter um push errado sem perder histórico). Idempotente. Exige sessão.
+
+### POST /admin/app-updates/:releaseId/push
+
+Dispara `APP_UPDATE_AVAILABLE` via FCM (tópico `app_updates_<product>_<channel>`, ao qual o
+Android se inscreve — task #1472). Exige sessão **e** `confirmed: true` no body — confirmação
+manual de que a versão já está disponível na Google Play (o worker não consegue verificar isso
+sozinho; publicar a release não dispara push automaticamente). Resultado (sucesso ou falha) é
+sempre gravado na própria release (`pushStatus`/`pushSentAt`/`pushError`) — falha no disparo nunca
+altera `status`/dados do catálogo.
+
+**Payload FCM (dados, sem segredo):**
+```json
+{
+  "type": "APP_UPDATE_AVAILABLE",
+  "product": "signallq",
+  "channel": "alpha",
+  "versionCode": "100",
+  "releaseId": "signallq-alpha-100"
+}
+```
+
+**Erros:** `400` (`confirmed` ausente/`false`, `releaseId` inválido), `401` (sem sessão), `404`
+(release inexistente), `409` (release não está `active`, ou `notificationEnabled: false`).
+
+Requer os secrets `FIREBASE_CLIENT_EMAIL`/`FIREBASE_PRIVATE_KEY` (já usados por
+`getFirebaseAccessToken()` para GA4/Play Console) com a **Firebase Cloud Messaging API habilitada**
+no projeto GCP `signallq-app` — sem isso, retorna `pushError: "fcm_error_*"` de forma auditável, sem
+quebrar o catálogo.
 
 ---
 
@@ -1229,6 +1343,31 @@ Sistema" (o endpoint `GET /admin/system-health` acima só reflete o instante atu
 | `key` | TEXT PK | `'admin'` (settings) ou `'feature_flags'` |
 | `value` | TEXT | JSON serializado do payload |
 | `updated_at` | INTEGER | Unix timestamp (segundos) |
+
+### Tabela `app_releases` (GH#1471/#1312)
+
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `release_id` | TEXT PK | Determinístico: `${product}-${channel}-${versionCode}` |
+| `product` | TEXT | Ex.: `signallq`, `signallq_pro` |
+| `channel` | TEXT | `internal` \| `alpha` \| `beta` \| `production` |
+| `version_name` | TEXT | Texto de exibição (ex.: `1.0.0`) |
+| `version_code` | INTEGER | Fonte de comparação real — nunca `version_name` |
+| `release_notes` | TEXT | Notas em PT-BR |
+| `store_url` | TEXT | URL da Google Play |
+| `notification_enabled` | INTEGER | 0/1 — se essa release dispara comunicação |
+| `reminder_campaign_id` | TEXT \| NULL | Distingue lembrete novo de duplicata (dedup Android) |
+| `status` | TEXT | `active` \| `superseded` \| `deactivated` |
+| `published_at` | INTEGER | Unix timestamp (segundos) |
+| `published_by` | TEXT | E-mail do admin (audit) |
+| `push_status` | TEXT \| NULL | `NULL` (nunca disparado) \| `sent` \| `error` \| `not_configured` |
+| `push_sent_at` | INTEGER \| NULL | Unix timestamp do último disparo |
+| `push_error` | TEXT \| NULL | Mensagem de erro do último disparo |
+| `created_at` / `updated_at` | INTEGER | Unix timestamp (segundos) |
+
+Índice único parcial `idx_app_releases_active_unique` garante no máximo uma linha `active` por
+`product`+`channel` — validado em produção (2026-07-26): segunda inserção `active` no mesmo par
+falha com `SQLITE_CONSTRAINT_UNIQUE`.
 
 ### Tabela `system_errors`
 

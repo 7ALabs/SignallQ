@@ -26,7 +26,8 @@ data class DiagnosticReport(
      *  epic #547). Vazio quando não há equipamento local ou nenhuma limitação se
      *  aplica. Calculado por [FindingEngine]. */
     val limitacoesEquipamentoLocal: List<String> = emptyList(),
-    /** Recomendações práticas geradas pelo [RecommendationEngine] a partir dos
+    /** Recomendações práticas geradas pelo `RecomendacaoPraticaEngine` (renomeado de
+     *  `RecommendationEngine` na Fatia 9a da auditoria #1228) a partir dos
      *  achados do [FindingEngine] — as 14 regras (REC-01..REC-14) documentadas na
      *  skill `motor-diagnostico`. Aditivo: pode ter zero, uma ou várias simultâneas. */
     val recomendacoes: List<DiagnosticResult> = emptyList(),
@@ -49,6 +50,24 @@ data class DiagnosticReport(
      *  (nunca deve acontecer em producao). */
     val gameReadiness: List<GameReadinessClassifier.GameReadinessResult> = emptyList(),
     val geradoEmMs: Long,
+    /** Origem da avaliacao que gerou este relatorio -- REMOTE (worker respondeu com
+     *  sucesso), CACHED_LOCAL (worker falhou, mas havia ultimo ruleset remoto valido
+     *  persistido) ou BUNDLED_LOCAL (motor 100% embarcado no APK, fallback final).
+     *  Ver [DiagnosticEvaluationSource] e issue #1450 (fallback local de 3 niveis, #952).
+     *  Default BUNDLED_LOCAL: todo caller que roda [DiagnosticRunner] diretamente (sem
+     *  passar por [io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository])
+     *  esta, por definicao, usando o motor embarcado. */
+    val evaluationSource: DiagnosticEvaluationSource = DiagnosticEvaluationSource.BUNDLED_LOCAL,
+    /** GH#1228 (Fase 3, executionId/rulesVersion) — espelha [DiagnosticInput.executionId]
+     *  (nunca recalculado aqui). Permite a quem consome este relatório (Laudo/PDF,
+     *  histórico, compartilhamento) confirmar que está combinando dados da MESMA
+     *  execução, nunca "Frankenstein" de execuções diferentes (ver P0-3,
+     *  `docs_ai/ARQUITETURA/AUDITORIA_1228_FASE0_INVENTARIO_COMPLETO.md`). */
+    val executionId: String = "",
+    /** GH#1228 (Fase 3) — versão canônica do conjunto de regras usado por este relatório
+     *  (ver [DiagnosticRulesVersion]). Sempre [DiagnosticRulesVersion.CURRENT] quando gerado
+     *  por [DiagnosticRunner.run] (motor local, autoritativo) — nunca varia por tela. */
+    val rulesVersion: String = DiagnosticRulesVersion.CURRENT,
 ) {
     private val todos: List<DiagnosticResult>
         get() =

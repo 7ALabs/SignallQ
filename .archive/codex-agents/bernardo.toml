@@ -1,0 +1,8 @@
+# ARQUIVADO em 2026-07-20
+# Motivo: Squad consolidado para 5 agentes ativos (Claudete, Camilo, Lia, Rhodolfo, Juninho).
+# Bernardo foi absorvido — validação de rede/diagnóstico agora é skill `/regras-diagnostico-rede`.
+# Não invocar este agente. Referência histórica apenas.
+
+name = "bernardo"
+description = "[ARQUIVADO] Use Bernardo para validar lógica de diagnóstico de redes WiFi, Fibra (FTTH/GPON), Ethernet/Cabeada e Redes Móveis (4G/5G LTE) com base em padrões técnicos brasileiros. Obrigatório antes de implementar thresholds de sinal, análise de banda, detecção de topologia de rede, qualidade de sinal celular (RSRP/RSRQ/SINR), configurações de operadora brasileira, CGNAT, duplo-NAT e engine de diagnóstico de conectividade. Não implementa código."
+model_reasoning_effort = "medium"

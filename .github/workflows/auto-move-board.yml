@@ -17,17 +17,21 @@ permissions:
   pull-requests: read
 
 env:
-  PROJECT_NUMBER: "8"
   PROJECT_OWNER: "gmmattey"
-  PROJECT_ID: "PVT_kwHOD83n7c4BYmdL"
-  FIELD_COLUNA_ID: "PVTSSF_lAHOD83n7c4BYmdLzhTrIt4"
-  OPT_BACKLOG: "aed7967a"
-  OPT_TRIAGEM: "6193a896"
-  OPT_READY: "22f4f491"
-  OPT_IN_PROGRESS: "55b9be2a"
-  OPT_REVIEW: "dd9ed333"
-  OPT_DOCS: "bff9d55b"
-  OPT_DONE: "9305bbcf"
+  # Projects reais por produto (decisao 2026-07-21, ver .claude/CLAUDE.md secao "Fontes da Verdade").
+  # Project #8 "LINKA Android -- Roadmap" e legado (marca anterior ao rebrand) e nao e mais escrito aqui.
+  PROJECT_10_ID: "PVT_kwHOD83n7c4Bd-Yz"   # SignallQ
+  FIELD_10: "PVTSSF_lAHOD83n7c4Bd-YzzhYb_h4"
+  PROJECT_11_ID: "PVT_kwHOD83n7c4Bd-Y0"   # SignallQ PRO
+  FIELD_11: "PVTSSF_lAHOD83n7c4Bd-Y0zhYb_is"
+  PROJECT_12_ID: "PVT_kwHOD83n7c4Bd-Y1"   # SignallQ Admin
+  FIELD_12: "PVTSSF_lAHOD83n7c4Bd-Y1zhYb_jg"
+  PROJECT_13_ID: "PVT_kwHOD83n7c4Bd-ZN"   # SignallQ Site
+  FIELD_13: "PVTSSF_lAHOD83n7c4Bd-ZNzhYb_4U"
+  # Mesmas 3 opcoes de Status em todos os projects acima (schema compartilhado).
+  OPT_TODO: "f75ad846"
+  OPT_IN_PROGRESS: "47fc9ee4"
+  OPT_DONE: "98236657"
 
 jobs:
   move-card:
@@ -52,22 +56,15 @@ jobs:
           if [ "$EVENT" = "issues" ]; then
             NUM="${{ github.event.issue.number }}"
             case "$ACTION" in
-              opened|reopened)
-                # Se vier com status:agent-ready -> "Pronta para dev"; senao "Triagem"
-                if echo "$ISSUE_LABELS" | grep -q 'status:agent-ready'; then
-                  TARGET="$OPT_READY"
-                else
-                  TARGET="$OPT_TRIAGEM"
-                fi
-                ;;
+              opened|reopened) TARGET="$OPT_TODO" ;;
               closed) TARGET="$OPT_DONE" ;;
               labeled|unlabeled)
                 LABEL="$LABEL_NAME"
                 case "$LABEL" in
-                  status:agent-ready) [ "$ACTION" = labeled ] && TARGET="$OPT_READY" ;;
+                  status:agent-ready) [ "$ACTION" = labeled ] && TARGET="$OPT_TODO" ;;
                   status:in-progress) [ "$ACTION" = labeled ] && TARGET="$OPT_IN_PROGRESS" ;;
-                  status:waiting-review) [ "$ACTION" = labeled ] && TARGET="$OPT_REVIEW" ;;
-                  status:blocked) [ "$ACTION" = labeled ] && TARGET="$OPT_TRIAGEM" ;;
+                  status:waiting-review) [ "$ACTION" = labeled ] && TARGET="$OPT_IN_PROGRESS" ;;
+                  status:blocked) [ "$ACTION" = labeled ] && TARGET="$OPT_TODO" ;;
                 esac
                 ;;
             esac
@@ -88,10 +85,10 @@ jobs:
               | tail -1)
             if [ -n "$NUM" ]; then
               case "$ACTION" in
-                opened|reopened|ready_for_review) TARGET="$OPT_REVIEW" ;;
+                opened|reopened|ready_for_review) TARGET="$OPT_IN_PROGRESS" ;;
                 closed)
                   if [ "$PR_MERGED" = "true" ]; then
-                    TARGET="$OPT_DOCS"
+                    TARGET="$OPT_DONE"
                   fi
                   ;;
               esac
@@ -109,21 +106,58 @@ jobs:
           TARGET: ${{ steps.decide.outputs.target }}
         run: |
           set -e
-          # Acha item ID no project
-          ITEM_ID=$(gh project item-list "$PROJECT_NUMBER" --owner "$PROJECT_OWNER" \
-            --format json --limit 200 \
-            --jq ".items[] | select(.content.number == $NUM) | .id")
 
-          if [ -z "$ITEM_ID" ]; then
-            ITEM_ID=$(gh project item-add "$PROJECT_NUMBER" --owner "$PROJECT_OWNER" \
-              --url "https://github.com/${{ github.repository }}/issues/$NUM" \
-              --format json --jq '.id')
+          # Retry com backoff -- runs concorrentes (ex.: varias issues fechadas juntas) podem
+          # esbarrar em rate-limit intermitente da API de Projects ("unknown owner type" e o
+          # jeito capenga do gh CLI reportar isso). Ver incidente 2026-07-23.
+          retry() {
+            local attempt=1 max=4 delay=3
+            until "$@"; do
+              if [ "$attempt" -ge "$max" ]; then
+                echo "::error::comando falhou apos $max tentativas: $*"
+                return 1
+              fi
+              echo "tentativa $attempt falhou, retry em ${delay}s..."
+              sleep "$delay"
+              attempt=$((attempt + 1))
+              delay=$((delay * 2))
+            done
+          }
+
+          # Roteia por label product:* -- issue pode estar em mais de um Project.
+          # Sem label product:* (nao deveria acontecer, ver .claude/CLAUDE.md secao "Hierarquia
+          # obrigatoria por Project"), cai em SignallQ (#10) como default e loga o gap.
+          RAW_LABELS=$(gh issue view "$NUM" --repo "${{ github.repository }}" \
+            --json labels --jq '[.labels[].name] | map(select(startswith("product:"))) | join(",")')
+          PRODUCT_LABELS=",$RAW_LABELS,"
+          if [ "$PRODUCT_LABELS" = ",," ]; then
+            echo "::warning::issue #$NUM sem label product:* -- default para Project #10 (SignallQ)"
+            PRODUCT_LABELS=",product:signallq,"
           fi
 
-          gh project item-edit --project-id "$PROJECT_ID" --id "$ITEM_ID" \
-            --field-id "$FIELD_COLUNA_ID" --single-select-option-id "$TARGET"
+          move_in_project() {
+            local proj_num="$1" proj_id="$2" field_id="$3"
+            local item_id
+            item_id=$(retry gh project item-list "$proj_num" --owner "$PROJECT_OWNER" \
+              --format json --limit 200 \
+              --jq ".items[] | select(.content.number == $NUM) | .id")
 
-          echo "#$NUM movida no board"
+            if [ -z "$item_id" ]; then
+              item_id=$(retry gh project item-add "$proj_num" --owner "$PROJECT_OWNER" \
+                --url "https://github.com/${{ github.repository }}/issues/$NUM" \
+                --format json --jq '.id')
+            fi
+
+            retry gh project item-edit --project-id "$proj_id" --id "$item_id" \
+              --field-id "$field_id" --single-select-option-id "$TARGET"
+
+            echo "#$NUM movida no Project #$proj_num"
+          }
+
+          case "$PRODUCT_LABELS" in *,product:signallq,*) move_in_project 10 "$PROJECT_10_ID" "$FIELD_10" ;; esac
+          case "$PRODUCT_LABELS" in *,product:signallq-pro,*) move_in_project 11 "$PROJECT_11_ID" "$FIELD_11" ;; esac
+          case "$PRODUCT_LABELS" in *,product:signallq-admin,*) move_in_project 12 "$PROJECT_12_ID" "$FIELD_12" ;; esac
+          case "$PRODUCT_LABELS" in *,product:signallq-site,*) move_in_project 13 "$PROJECT_13_ID" "$FIELD_13" ;; esac
 
       - name: Sincronizar Project #9 (Bug Control) se issue for bug
         if: steps.decide.outputs.num != '' && github.event_name == 'pull_request'

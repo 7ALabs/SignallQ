@@ -1,3 +1,8 @@
+**Status:** ativo (documento de reconhecimento, não de produto — ver skill `/reconhecimento-equipamento-rede`)
+**Última validação:** 2026-07-23 — `NokiaModemClient.kt`/`NokiaModemParser.kt`/`ExecutorFibra.kt` confirmados em `android/feature/fibra/`, único scraper real de gateway hoje
+**Escopo:** levantamento exaustivo da interface web da ONT Nokia G-1425G-B (série ALCL), insumo do epic SIG-343
+**Responsável:** Camilo (Backend Android)
+
 # Mapeamento de campos — Interface Web ONT Nokia GPON
 
 > Levantamento exaustivo de schema/capacidade da interface administrativa web da ONT

@@ -28,6 +28,11 @@ data class RemoteProviderInfo(
     val websiteUrl: String?,
     val customerAreaUrl: String?,
     val ombudsmanPhone: String?,
+    // GH#1464 (parte de #951) — status de curadoria do registro no worker
+    // (`PENDING_REVIEW`/`DRAFT`/`AUTO_DISCOVERED`/`VERIFIED`/`STALE`/`DISABLED`, vocabulario
+    // fixo, definido la — nunca reinterpretado aqui). So `VERIFIED` e considerado dado
+    // confirmado pela UI; qualquer outro valor (ou nulo) e tratado como "nao verificado".
+    val status: String?,
 )
 
 /**
@@ -113,6 +118,7 @@ class ProviderDirectoryRepository(
             websiteUrl = support?.optStringOrNull("websiteUrl"),
             customerAreaUrl = support?.optStringOrNull("customerAreaUrl"),
             ombudsmanPhone = support?.optStringOrNull("ombudsmanPhone"),
+            status = o.optStringOrNull("status"),
         )
     }
 }
