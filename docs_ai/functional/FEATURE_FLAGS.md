@@ -1,7 +1,8 @@
 # Feature Flags remotas — SignallQ Android + Admin Panel
 
 - **Status:** ativo
-- **Última validação:** 2026-07-26 (seção 12 adicionada — fundação do terceiro sistema, Épico #1347)
+- **Última validação:** 2026-08-01 (seção 12 atualizada — issue #1497 migrou o último consumidor
+  real do sistema SIG-13 pro terceiro sistema)
 - **Fonte de verdade:** este arquivo, para o efeito de produto das flags remotas (rollout gradual,
   kill switch). Mecanismo técnico completo (endpoints, schema D1) referenciado em
   `docs_ai/TECNICO.md` seção 5.2 — não duplicado lá. **Não cobre** as feature flags de compile-time
@@ -197,15 +198,23 @@ de **substituir** o sistema SIG-13 descrito neste documento — não é mais um 
 - **Governança completa pelo SignallQ Admin** (criar/editar/publicar/rollback parâmetros, ETag,
   auditoria) é o objetivo do Épico #1347 — ainda não implementada (F2/#1478 backend, F3/#1479 UI).
 
-**Estado real em 2026-07-26:** fundação Android (GH#1477) criou o módulo `:core:featureflags` e o
-`FeatureFlagProvider` funcional sobre Firebase Remote Config. F4 (GH#1480, mesmo dia) instrumentou
+**Estado real em 2026-08-01:** fundação Android (GH#1477) criou o módulo `:core:featureflags` e o
+`FeatureFlagProvider` funcional sobre Firebase Remote Config. F4 (GH#1480, 2026-07-26) instrumentou
 de verdade as 9 flags principais de módulo (`consumer.{modulo}.enabled` — home, speedtest, wifi,
 devices, dns, fibra, diagnostico, history, settings), todas `androidImplemented=true`, gateando
 tab/overlay em `AppShell.kt` (detalhe completo:
 `docs_ai/technical/feature-flags-remote-config.md`, seção 10). Só
 `consumer.speedtest.cloudflare_engine_enabled` continua smoke-test (`androidImplemented=false`).
-O sistema SIG-13 acima continua em produção sem mudança nenhuma — a migração dos consumidores
-legados pro sistema novo ainda não aconteceu.
+
+**Issue #1497 (2026-08-01):** migrou `DiagnosticDivergenceReporter` — único consumidor real
+restante do sistema SIG-13 acima (kill switch do shadow mode de diagnóstico,
+`feature_diagnostic_shadow_mode`) — para `consumer.diagnostico.shadow_mode_enabled` no catálogo
+novo. O sistema SIG-13 descrito neste documento (`FeatureFlagManager`/`FeatureFlagRepository`,
+endpoints `GET /flags`/`GET /feature-flags`, tabelas D1 `feature_flags`/`feature_flag_audit`)
+**continua existindo e em produção** — #1497 não o removeu, só migrou o último ponto de consumo
+real. Sem nenhum consumidor real restante, a remoção completa do sistema SIG-13 é uma decisão de
+arquitetura candidata a uma issue futura dedicada (avaliação registrada, não executada), não algo
+que aconteceu automaticamente por não sobrar consumidor.
 
 Detalhe técnico completo (schema, contratos, decisões de arquitetura): ver
 `docs_ai/technical/feature-flags-remote-config.md`.

@@ -4,7 +4,14 @@ import io.signallq.app.core.diagnostico.DiagnosticDivergenceClassifier
 import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticRolloutStatus
 import io.signallq.app.core.diagnostico.DiagnosticStatus
-import io.signallq.app.core.network.FeatureFlagProvider
+import io.signallq.app.core.featureflags.FeatureFlagKey
+import io.signallq.app.core.featureflags.FeatureFlagProvider
+import io.signallq.app.core.featureflags.FeatureFlagRawValue
+import io.signallq.app.core.featureflags.FeatureFlagRefreshResult
+import io.signallq.app.core.featureflags.FeatureFlagSource
+import io.signallq.app.core.featureflags.FeatureFlagValue
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -37,7 +44,13 @@ class DiagnosticDivergenceReporterTest {
     }
 
     private fun flagProvider(enabled: Boolean): FeatureFlagProvider = object : FeatureFlagProvider {
-        override fun isEnabled(key: String): Boolean = enabled
+        override fun observe(key: FeatureFlagKey): Flow<FeatureFlagValue> =
+            flowOf(FeatureFlagValue(key = key, raw = FeatureFlagRawValue.BooleanValue(enabled), source = FeatureFlagSource.STATIC))
+
+        override fun isEnabled(key: FeatureFlagKey): Boolean = enabled
+
+        override suspend fun refresh(force: Boolean): FeatureFlagRefreshResult =
+            FeatureFlagRefreshResult.Success(activated = false, fetchTimeMillis = null)
     }
 
     private fun sampleComparison() = DiagnosticDivergenceClassifier.Comparison(

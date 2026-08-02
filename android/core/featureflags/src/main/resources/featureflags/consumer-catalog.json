@@ -122,6 +122,21 @@
       "analyticsEvent": "feature_blocked_remote"
     },
     {
+      "key": "consumer.diagnostico.shadow_mode_enabled",
+      "module": ":featureDiagnostico",
+      "type": "BOOLEAN",
+      "defaultValue": true,
+      "criticality": "MEDIUM",
+      "owner": "product-signallq",
+      "description": "Kill switch do shadow mode de diagnostico (comparacao local-vs-remoto para observabilidade, envia registro classificado ao worker signallq-diagnostic; nunca altera o que a UI mostra).",
+      "disabledBehavior": "SILENT_NO_OP",
+      "disabledMessage": null,
+      "dependencies": ["consumer.diagnostico.enabled"],
+      "androidImplemented": true,
+      "adminManaged": true,
+      "analyticsEvent": null
+    },
+    {
       "key": "consumer.history.enabled",
       "module": ":featureHistory",
       "type": "BOOLEAN",

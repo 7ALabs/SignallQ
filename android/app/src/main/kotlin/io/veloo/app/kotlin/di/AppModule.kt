@@ -53,7 +53,6 @@ import io.signallq.app.feature.speedtest.FeatureSpeedtestModulo
 import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisRepository
 import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisRepositoryImpl
 import io.signallq.app.feature.wifi.FeatureWifiModulo
-import io.signallq.app.featureflags.FeatureFlagManager
 import io.signallq.app.featureflags.FeatureFlagRepository
 import io.signallq.app.network.IspInfoCache
 import io.signallq.app.speedtest.SpeedtestPersistenceCoordinator
@@ -65,7 +64,6 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Qualifier
 import javax.inject.Singleton
-import io.signallq.app.core.network.FeatureFlagProvider as LegacyHttpFeatureFlagProvider
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
@@ -241,16 +239,6 @@ object AppModule {
     @Provides
     @Singleton
     fun provideFeatureFlagStore(prefs: PreferenciasAppRepository): FeatureFlagStore = prefs
-
-    /**
-     * Expoe FeatureFlagManager como o FeatureFlagProvider LEGADO (HTTP/SIG-13) para os
-     * consumidores ainda nao migrados (`DiagnosticDivergenceReporter`). Nao usar para
-     * nenhum consumidor novo -- ver [io.signallq.app.core.featureflags.FeatureFlagProvider]
-     * (Firebase Remote Config, #1347).
-     */
-    @Provides
-    @Singleton
-    fun provideLegacyHttpFeatureFlagProvider(manager: FeatureFlagManager): LegacyHttpFeatureFlagProvider = manager
 
     /** Catalogo canonico de feature flags do Consumer (issue #1477, Epico #1347) --
      *  carregado uma vez do classpath de `:core:featureflags`. */
