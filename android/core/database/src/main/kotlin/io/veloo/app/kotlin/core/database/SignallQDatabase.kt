@@ -7,6 +7,8 @@ import io.signallq.app.core.database.chat.ChatSessionDao
 import io.signallq.app.core.database.chat.ChatSessionEntity
 import io.signallq.app.core.database.connectivity.ConnectivityDiagnosisHistoryDao
 import io.signallq.app.core.database.connectivity.ConnectivityDiagnosisHistoryEntity
+import io.signallq.app.core.database.provider.ProviderDirectoryCacheDao
+import io.signallq.app.core.database.provider.ProviderDirectoryCacheEntity
 import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
 import io.signallq.app.core.database.recommendation.RecommendationHistoryEntity
 
@@ -18,8 +20,9 @@ import io.signallq.app.core.database.recommendation.RecommendationHistoryEntity
         ChatMessageEntity::class,
         RecommendationHistoryEntity::class,
         ConnectivityDiagnosisHistoryEntity::class,
+        ProviderDirectoryCacheEntity::class,
     ],
-    version = 16,
+    version = 17,
     exportSchema = true,
 )
 abstract class SignallQDatabase : RoomDatabase() {
@@ -28,4 +31,5 @@ abstract class SignallQDatabase : RoomDatabase() {
     abstract fun chatSessionDao(): ChatSessionDao
     abstract fun recommendationHistoryDao(): RecommendationHistoryDao
     abstract fun connectivityDiagnosisHistoryDao(): ConnectivityDiagnosisHistoryDao
+    abstract fun providerDirectoryCacheDao(): ProviderDirectoryCacheDao
 }

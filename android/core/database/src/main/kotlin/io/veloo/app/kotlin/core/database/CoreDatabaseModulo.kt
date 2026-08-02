@@ -244,6 +244,33 @@ object CoreDatabaseModulo {
             }
         }
 
+    /** GH#1462 (parte de #951): cache local por resultado individual do diretorio remoto
+     *  de provedores -- nunca uma copia da tabela inteira do worker (ver kdoc de
+     *  `ProviderDirectoryCacheEntity`, `:coreDatabase`). */
+    private val migracao16para17 =
+        object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `provider_directory_cache` (" +
+                        "`cacheKey` TEXT NOT NULL, " +
+                        "`providerId` TEXT NOT NULL, " +
+                        "`displayName` TEXT NOT NULL, " +
+                        "`logoUrl` TEXT, " +
+                        "`sacPhone` TEXT, " +
+                        "`technicalSupportPhone` TEXT, " +
+                        "`whatsappUrl` TEXT, " +
+                        "`websiteUrl` TEXT, " +
+                        "`customerAreaUrl` TEXT, " +
+                        "`ombudsmanPhone` TEXT, " +
+                        "`status` TEXT, " +
+                        "`cacheVersion` INTEGER, " +
+                        "`cacheExpiresAtMs` INTEGER, " +
+                        "`fetchedAtEpochMs` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`cacheKey`))",
+                )
+            }
+        }
+
     fun criarBanco(context: Context): SignallQDatabase {
         return Room.databaseBuilder(
             context.applicationContext,
@@ -264,6 +291,7 @@ object CoreDatabaseModulo {
             .addMigrations(migracao13para14)
             .addMigrations(migracao14para15)
             .addMigrations(migracao15para16)
+            .addMigrations(migracao16para17)
             .build()
     }
 
