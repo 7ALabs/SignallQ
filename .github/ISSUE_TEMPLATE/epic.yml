@@ -1,0 +1,91 @@
+name: Épico
+description: Organizar uma iniciativa ampla em features e frentes de trabalho.
+title: "[ÉPICO] "
+labels:
+  - "type:feature"
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Um épico organiza resultado, escopo e dependências. A implementação deve acontecer por features ou tarefas vinculadas, não dentro de um PR gigante.
+
+  - type: dropdown
+    id: produto
+    attributes:
+      label: Produtos envolvidos
+      multiple: true
+      options:
+        - SignallQ
+        - SignallQ PRO
+        - SignallQ Admin
+        - SignallQ Agente
+        - SignallQ NetHAL / NetHAL Lab
+        - Plataforma compartilhada
+    validations:
+      required: true
+
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto estratégico
+      description: Explique por que esta iniciativa existe e qual problema maior ela resolve.
+    validations:
+      required: true
+
+  - type: textarea
+    id: objetivo
+    attributes:
+      label: Objetivo e resultado
+      description: Defina o estado final esperado, sem transformar o épico em especificação de código.
+    validations:
+      required: true
+
+  - type: textarea
+    id: frentes
+    attributes:
+      label: Features ou frentes previstas
+      value: "- [ ] Feature 1 — descrição curta\n- [ ] Feature 2 — descrição curta\n- [ ] Feature 3 — descrição curta"
+    validations:
+      required: true
+
+  - type: textarea
+    id: escopo
+    attributes:
+      label: Escopo e limites
+      description: O que faz parte e o que fica explicitamente fora.
+    validations:
+      required: true
+
+  - type: textarea
+    id: metricas
+    attributes:
+      label: Indicadores de sucesso
+      description: Como saberemos que o épico entregou valor?
+    validations:
+      required: true
+
+  - type: textarea
+    id: riscos
+    attributes:
+      label: Dependências, riscos e decisões pendentes
+    validations:
+      required: true
+
+  - type: textarea
+    id: aceite
+    attributes:
+      label: Critérios de conclusão do épico
+      value: "- [ ] Features vinculadas concluídas ou descartadas com justificativa\n- [ ] Fluxo ponta a ponta validado\n- [ ] Documentação oficial atualizada\n- [ ] Métricas e operação definidas"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: governanca
+    attributes:
+      label: Governança
+      options:
+        - label: Este épico será decomposto; não será implementado inteiro em um único PR.
+          required: true
+        - label: Pesquisei iniciativas equivalentes antes de abrir esta issue.
+          required: true

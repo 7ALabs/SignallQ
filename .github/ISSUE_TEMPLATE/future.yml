@@ -1,0 +1,85 @@
+name: Melhoria futura
+description: Registrar uma oportunidade válida que não pertence ao escopo atual.
+title: "[FUTURO] "
+labels:
+  - "type:feature"
+  - "priority:p2"
+assignees: []
+body:
+  - type: dropdown
+    id: produto
+    attributes:
+      label: Produto
+      multiple: true
+      options:
+        - SignallQ
+        - SignallQ PRO
+        - SignallQ Admin
+        - SignallQ Agente
+        - SignallQ NetHAL / NetHAL Lab
+        - Plataforma compartilhada
+    validations:
+      required: true
+
+  - type: textarea
+    id: oportunidade
+    attributes:
+      label: Oportunidade ou problema
+      description: Qual valor futuro pode ser capturado e para quem?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Proposta
+      description: Descreva a capacidade em nível funcional, sem antecipar uma arquitetura fechada.
+    validations:
+      required: true
+
+  - type: textarea
+    id: valor
+    attributes:
+      label: Valor esperado
+      description: Impacto para usuário, receita, operação, qualidade ou estratégia.
+    validations:
+      required: true
+
+  - type: textarea
+    id: agora
+    attributes:
+      label: Por que não entra no escopo atual?
+      description: Limitação de prioridade, dependência, custo, maturidade ou falta de validação.
+    validations:
+      required: true
+
+  - type: textarea
+    id: gatilho
+    attributes:
+      label: Gatilho para priorização
+      description: Que condição objetiva justificará tirar esta melhoria do backlog futuro?
+      placeholder: "Ex.: demanda de parceiros, X usuários afetados, MVP validado, API disponível"
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencias
+    attributes:
+      label: Dependências, riscos e premissas
+
+  - type: textarea
+    id: aceite
+    attributes:
+      label: Resultado mínimo esperado quando for implementada
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: verificacoes
+    attributes:
+      label: Verificações
+      options:
+        - label: Esta melhoria não deve ser misturada ao MVP ou entrega atual sem nova decisão de prioridade.
+          required: true
+        - label: Pesquisei propostas equivalentes antes de abrir esta issue.
+          required: true

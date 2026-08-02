@@ -1,51 +1,108 @@
-name: "Feature"
-description: "Nova funcionalidade ou melhoria perceptível ao usuário"
+name: Feature
+description: Propor uma capacidade nova ou uma evolução relevante de produto.
 title: "[FEATURE] "
-labels: ["type:feature"]
+labels:
+  - "type:feature"
+assignees: []
 body:
-  - type: textarea
-    id: objetivo
+  - type: markdown
     attributes:
-      label: "Objetivo"
-      description: "O que o usuário vai conseguir fazer? Uma frase."
-      placeholder: "O usuário verá um card de alerta quando CGNAT for detectado na HomeScreen."
+      value: |
+        Descreva primeiro o problema e o resultado esperado. Feature não é uma lista solta de ideias.
+
+  - type: dropdown
+    id: produto
+    attributes:
+      label: Produto
+      multiple: true
+      options:
+        - SignallQ
+        - SignallQ PRO
+        - SignallQ Admin
+        - SignallQ Agente
+        - SignallQ NetHAL / NetHAL Lab
+        - Plataforma compartilhada
     validations:
       required: true
 
   - type: textarea
-    id: contexto
+    id: problema
     attributes:
-      label: "Contexto"
-      description: "Por que isso é necessário agora? Qual problema resolve?"
+      label: Problema ou oportunidade
+      description: Qual dor real será resolvida e para quem?
     validations:
       required: true
 
   - type: textarea
-    id: criterios
+    id: resultado
     attributes:
-      label: "Critérios de aceite"
-      value: "- [ ] \n- [ ] \n- [ ] "
+      label: Resultado esperado
+      description: Descreva o ganho para usuário ou operação sem amarrar prematuramente a solução técnica.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Proposta funcional
+      description: Explique o fluxo principal e o comportamento esperado.
+    validations:
+      required: true
+
+  - type: textarea
+    id: escopo
+    attributes:
+      label: Escopo incluído
+      value: "- \n- "
     validations:
       required: true
 
   - type: textarea
     id: fora_escopo
     attributes:
-      label: "Fora de escopo"
-      description: "O que explicitamente NÃO será feito nesta task."
-
-  - type: dropdown
-    id: plataforma
-    attributes:
-      label: "Plataforma"
-      options: ["Android", "Infraestrutura"]
+      label: Fora do escopo
+      description: Registre o que não deve ser misturado nesta entrega.
     validations:
       required: true
 
-  - type: dropdown
-    id: prioridade
+  - type: textarea
+    id: referencias
     attributes:
-      label: "Prioridade"
-      options: ["P0 — Urgente", "P1 — Importante", "P2 — Backlog"]
+      label: Referências e evidências
+      description: Protótipos, pesquisa, concorrentes, métricas, documentação ou issues relacionadas.
+
+  - type: textarea
+    id: dependencias
+    attributes:
+      label: Dependências e integrações
+      placeholder: "Ex.: #123, Firebase, Cloudflare, API do equipamento, Design System"
+
+  - type: dropdown
+    id: decomposicao
+    attributes:
+      label: Decomposição
+      options:
+        - Não precisa — cabe em uma entrega controlada
+        - Precisa ser quebrada em tarefas técnicas
+        - Precisa ser vinculada a um épico
+        - Ainda precisa de descoberta
     validations:
       required: true
+
+  - type: textarea
+    id: aceite
+    attributes:
+      label: Critérios de aceite
+      value: "- [ ] \n- [ ] \n- [ ] Testes e telemetria definidos"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: verificacoes
+    attributes:
+      label: Verificações
+      options:
+        - label: Pesquisei issues abertas e fechadas e não encontrei uma proposta equivalente.
+          required: true
+        - label: A proposta descreve uma necessidade real, não apenas preferência visual ou técnica.
+          required: true

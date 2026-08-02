@@ -1,74 +1,125 @@
-name: "Bug"
-description: "Comportamento incorreto, crash ou regressão"
+name: Bug
+description: Registrar um comportamento incorreto com evidências reproduzíveis.
 title: "[BUG] "
-labels: ["type:bug"]
+labels:
+  - bug
+assignees: []
 body:
-  - type: textarea
-    id: objetivo
+  - type: markdown
     attributes:
-      label: "Comportamento atual"
-      description: "O que está acontecendo? Uma frase direta."
-      placeholder: "O app trava ao abrir o diagnóstico com Wi-Fi desativado."
+      value: |
+        Use este formulário apenas para comportamento incorreto comprovado. Pesquise issues equivalentes antes de continuar.
+
+  - type: dropdown
+    id: produto
+    attributes:
+      label: Produto afetado
+      description: Selecione todos os produtos realmente afetados.
+      multiple: true
+      options:
+        - SignallQ
+        - SignallQ PRO
+        - SignallQ Admin
+        - SignallQ Agente
+        - SignallQ NetHAL / NetHAL Lab
+        - Plataforma compartilhada
+    validations:
+      required: true
+
+  - type: input
+    id: area
+    attributes:
+      label: Tela, fluxo ou módulo
+      placeholder: "Ex.: Home, Diagnóstico, Speedtest, Cloudflare Worker"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema observado
+      description: Descreva objetivamente o que está errado e em que momento ocorre.
     validations:
       required: true
 
   - type: textarea
     id: esperado
     attributes:
-      label: "Comportamento esperado"
-      description: "O que deveria acontecer?"
-      placeholder: "O diagnóstico abre normalmente e exibe o estado da rede."
+      label: Comportamento esperado
+      description: Diga o que deveria acontecer e qual regra, protótipo ou fluxo sustenta o esperado.
     validations:
       required: true
 
   - type: textarea
-    id: passos
+    id: reproducao
     attributes:
-      label: "Passos para reproduzir"
+      label: Passos para reproduzir
       value: "1. \n2. \n3. "
     validations:
       required: true
 
   - type: textarea
-    id: logs
+    id: evidencias
     attributes:
-      label: "Logs / stacktrace"
-      description: "Cole aqui o stack trace, logcat relevante ou mensagem de erro."
-      render: text
+      label: Evidências
+      description: Anexe prints, vídeo, logs ou stack trace. Remova dados pessoais, credenciais e segredos.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ambiente
+    attributes:
+      label: Ambiente
+      multiple: true
+      options:
+        - Android — emulador
+        - Android — aparelho físico
+        - Web / PWA
+        - Cloudflare / backend
+        - Painel administrativo
+        - CI / infraestrutura
+        - Não determinado
+    validations:
+      required: true
 
   - type: input
-    id: device
+    id: versao
     attributes:
-      label: "Device / API level"
-      placeholder: "Samsung Galaxy A33 — Android 11 (API 30)"
+      label: Versão, build e dispositivo
+      placeholder: "Ex.: 1.4.0-alpha, Pixel 10 API 36, Android 16"
 
-  - type: checkboxes
-    id: regressao
+  - type: dropdown
+    id: impacto
     attributes:
-      label: "Regressão"
+      label: Impacto
       options:
-        - label: "Funcionava antes e parou de funcionar"
+        - Bloqueador — impede o fluxo principal ou causa perda de dados
+        - Alto — função importante indisponível ou resultado enganoso
+        - Médio — há contorno, mas a experiência ou confiabilidade é afetada
+        - Baixo — problema localizado ou visual
+    validations:
+      required: true
 
   - type: textarea
-    id: criterios
+    id: causa
     attributes:
-      label: "Critérios de aceite"
-      value: "- [ ] \n- [ ] "
+      label: Causa raiz ou hipótese
+      description: Preencha somente quando houver evidência técnica. Não chute.
+
+  - type: textarea
+    id: aceite
+    attributes:
+      label: Critérios de aceite
+      value: "- [ ] O cenário reportado deixa de ocorrer\n- [ ] Existe teste cobrindo a regressão\n- [ ] Fluxos relacionados continuam funcionando"
     validations:
       required: true
 
-  - type: dropdown
-    id: plataforma
+  - type: checkboxes
+    id: verificacoes
     attributes:
-      label: "Plataforma"
-      options: ["Android", "Infraestrutura"]
-    validations:
-      required: true
-
-  - type: dropdown
-    id: prioridade
-    attributes:
-      label: "Prioridade"
-      options: ["P0 — Urgente (produção quebrada)", "P1 — Importante (caminho crítico)", "P2 — Backlog"]
-    validations:
-      required: true
+      label: Verificações
+      options:
+        - label: Pesquisei issues abertas e fechadas e não encontrei uma equivalente.
+          required: true
+        - label: Removi das evidências qualquer senha, token, chave ou dado pessoal.
+          required: true
