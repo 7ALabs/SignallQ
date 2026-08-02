@@ -41,6 +41,13 @@ class FeatureFlagRepositoryTest {
         }
 
     @Test
+    fun `lerFlags retorna default ligado para feature_provider_directory_enabled (GH#1464)`() =
+        runTest {
+            val flags = criarRepository().lerFlags()
+            assertTrue(flags["feature_provider_directory_enabled"] == true)
+        }
+
+    @Test
     fun `lerFlags mescla DataStore com defaults para flags ausentes`() =
         runTest {
             val prefs = FakePreferenciasAppRepository()

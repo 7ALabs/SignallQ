@@ -53,6 +53,7 @@ import io.signallq.app.ui.OperadoraUiState
 import io.signallq.app.ui.OperatorScope
 import io.signallq.app.ui.ResolvedOperadoraContact
 import io.signallq.app.ui.ResolvedOperadoraIdentity
+import io.signallq.app.ui.isNaoVerificado
 import io.signallq.app.ui.normalizarWhatsappLocal
 import io.signallq.app.ui.resolverOperadoraUiState
 import io.signallq.app.ui.whatsappUrl
@@ -299,11 +300,23 @@ private fun OperadoraDetectadaSection(
             OperadoraBadge(identidade = identidade, size = 40.dp)
             Spacer(Modifier.width(LkSpacing.md))
             Column {
-                Text(
-                    text = contato?.displayName ?: identidade.displayName,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = c.textPrimary,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = contato?.displayName ?: identidade.displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = c.textPrimary,
+                    )
+                    // GH#1464 (parte de #951) — dado vindo do diretorio remoto ainda sem
+                    // curadoria manual (status != VERIFIED) nunca deve parecer confirmado.
+                    if (identidade.isNaoVerificado) {
+                        Spacer(Modifier.width(LkSpacing.sm))
+                        LkPillBadge(
+                            text = "não verificado",
+                            containerColor = c.warning.copy(alpha = 0.12f),
+                            contentColor = c.warning,
+                        )
+                    }
+                }
                 Text(
                     text = legenda,
                     style = MaterialTheme.typography.bodyMedium,

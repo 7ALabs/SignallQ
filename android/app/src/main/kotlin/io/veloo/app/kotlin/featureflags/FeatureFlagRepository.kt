@@ -42,6 +42,12 @@ class FeatureFlagRepository(
                 // ligar por padrao (observabilidade), desligar remotamente sem deploy
                 // se virar ruido/custo. Endpoint /flags — mesmo mecanismo das demais.
                 "feature_diagnostic_shadow_mode" to true,
+                // GH#1464 (parte de #951) — kill switch do diretorio remoto de operadoras
+                // (ProviderDirectoryRepository/OperadoraDirectoryResolver, GH#965). Default
+                // true: comportamento atual preservado; desligar remotamente sem deploy se o
+                // worker `signallq-diagnostic` apresentar problema — catalogo local (nivel 1)
+                // continua funcionando normalmente com a flag desligada.
+                "feature_provider_directory_enabled" to true,
             )
     }
 
