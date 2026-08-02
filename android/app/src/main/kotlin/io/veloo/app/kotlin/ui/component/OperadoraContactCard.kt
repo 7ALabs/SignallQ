@@ -36,6 +36,7 @@ import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LocalLkTokens
 import io.signallq.app.ui.ResolvedOperadoraContact
 import io.signallq.app.ui.ResolvedOperadoraIdentity
+import io.signallq.app.ui.isNaoVerificado
 import io.signallq.app.ui.whatsappUrl
 
 // Verde oficial da marca WhatsApp -- mesma exceção intencional documentada em
@@ -79,6 +80,16 @@ fun OperadoraContactCard(
                     fontWeight = FontWeight.W600,
                     color = c.textPrimary,
                 )
+                // GH#1464 (parte de #951) — dado vindo do diretorio remoto ainda sem
+                // curadoria manual (status != VERIFIED) nunca deve parecer confirmado.
+                if (contato.isNaoVerificado) {
+                    Spacer(Modifier.width(LkSpacing.sm))
+                    LkPillBadge(
+                        text = "não verificado",
+                        containerColor = c.warning.copy(alpha = 0.12f),
+                        contentColor = c.warning,
+                    )
+                }
             }
             Spacer(Modifier.height(LkSpacing.xs))
             Text(
