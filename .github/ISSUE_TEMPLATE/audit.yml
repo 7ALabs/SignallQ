@@ -1,6 +1,6 @@
 name: Auditoria ou divergência
 description: Registrar divergência entre implementação, protótipo, documentação, código ou comportamento real.
-title: "[AUDITORIA] "
+title: "Task - "
 labels:
   - "type:task"
 assignees: []

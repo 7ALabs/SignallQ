@@ -1,6 +1,6 @@
 name: Tarefa técnica
 description: Registrar trabalho técnico delimitado, preferencialmente ligado a uma feature ou bug.
-title: "[TASK] "
+title: "Task - "
 labels:
   - "type:task"
 assignees: []

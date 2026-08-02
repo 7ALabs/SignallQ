@@ -1,6 +1,6 @@
 name: Melhoria futura
 description: Registrar uma oportunidade válida que não pertence ao escopo atual.
-title: "[FUTURO] "
+title: "Feat - "
 labels:
   - "type:feature"
   - "priority:p2"
