@@ -286,6 +286,14 @@ Endpoints: ver `docs_ai/CONTRATOS/openapi/signallq-admin-api.yaml`.
 > sistema existe (`FeatureFlagManager.kt`, `FeatureFlagRepository.kt`), mas seu detalhe de produto
 > pertence a `FUNCIONAL.md`, não a este documento.
 
+**Terceiro sistema — Firebase Remote Config (GH#1477 + GH#1480, Épico #1347, 2026-07-26):** módulo
+`:core:featureflags` (`android/core/featureflags/`), catálogo tipado versionado
+(`consumer-catalog.json`) + `FeatureFlagProvider` sobre a mesma instância de `FirebaseRemoteConfig`
+já usada pelo toggle de anúncios acima. Destino é substituir o sistema SIG-13 (D1). Desde GH#1480
+(F4), as 9 flags principais de módulo (`consumer.{modulo}.enabled`) já gateiam tab/overlay real em
+`AppShell.kt` (`androidImplemented=true`) — só `consumer.speedtest.cloudflare_engine_enabled`
+continua smoke-test. Detalhe completo: `docs_ai/technical/feature-flags-remote-config.md`.
+
 ### 5.3 Firebase
 
 **Projeto ativo:** `signallq-app` (conta 7Agents) — app Android `io.signallq.app`.

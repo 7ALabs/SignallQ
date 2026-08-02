@@ -14,6 +14,8 @@ import dagger.assisted.AssistedInject
 import io.signallq.app.core.database.MedicaoDao
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.core.featureflags.FeatureFlagKeys
+import io.signallq.app.core.featureflags.FeatureFlagProvider
 import io.signallq.app.notificacao.SignallQNotificationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -37,6 +39,10 @@ internal class MonitoramentoWorker
         @Assisted params: WorkerParameters,
         private val preferenciasAppRepository: PreferenciasAppRepository,
         private val medicaoDao: MedicaoDao,
+        // GH#1480 (Epico #1347, F4) — "interromper novos jobs... relacionados" quando o
+        // modulo desliga remotamente. Monitoramento vive dentro de featureSettings no
+        // catalogo ("grupos de configuracao, monitoramento, privacidade").
+        private val featureFlagProvider: FeatureFlagProvider,
     ) : CoroutineWorker(appContext, params) {
         private companion object {
             /** Timeout total por amostra HTTP (cobre connect + read + overhead de rede). */
@@ -74,6 +80,14 @@ internal class MonitoramentoWorker
         )
 
         override suspend fun doWork(): Result {
+            // GH#1480 — modulo desligado remotamente: nao mede, nao persiste, nao notifica
+            // nesta execucao. Nao apaga historico ja salvo, so pula esta rodada -- proxima
+            // execucao agendada reavalia a flag de novo (sem cancelar o WorkManager em si).
+            if (!featureFlagProvider.isEnabled(FeatureFlagKeys.CONSUMER_SETTINGS_ENABLED)) {
+                Timber.d("MonitoramentoWorker ocioso: consumer.settings.enabled desligado remotamente")
+                return Result.success()
+            }
+
             val latencia = medirLatenciaHttp()
             val dns = medirDnsResolveTime()
             val rssiInfo = medirRssiWifi()

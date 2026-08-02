@@ -50,7 +50,7 @@ pequeno, seguro e relacionado à tarefa, ou registrá-lo em uma issue quando amp
 - Navegacao: `AppShell.kt` -- 5 abas (Inicio, Velocidade, Sinal, Historico, Ferramentas). Desde GH#936 (Fase 7), Ajustes deixou de ser aba e virou overlay (`Overlay.Perfil`) alcancado pelo avatar no TopBar -- ver `AppShell.kt`. Diagnostico/IA, Dispositivos, Fibra sao overlays, nao abas.
 - Background: WorkManager `MonitoramentoWorker` (30 min).
 
-**Identificadores tecnicos a preservar** (parecem marca, sao tecnicos): `io.signallq.app`, repo `7ALabs/SignallQ`, worker `linka-ai-diagnosis-worker`, banco `linkaKotlin.db`, canais `linka_*`, DataStore `linkaPreferencias`. A skill de design system foi renomeada de `linka-design` para `SignallQ-design` em 2026-07-11 -- essa e uma renomeacao de marca intencional, nao um identificador tecnico a preservar (ver secao Design System).
+**Identificadores tecnicos a preservar** (parecem marca, sao tecnicos): `io.signallq.app`, repo `buildea-labs/SignallQ`, worker `linka-ai-diagnosis-worker`, banco `linkaKotlin.db`, canais `linka_*`, DataStore `linkaPreferencias`. A skill de design system foi renomeada de `linka-design` para `SignallQ-design` em 2026-07-11 -- essa e uma renomeacao de marca intencional, nao um identificador tecnico a preservar (ver secao Design System).
 
 ---
 
@@ -77,11 +77,11 @@ O monorepo-alvo `signallq-platform` (que unifica os tres + Portal + SignallQ Net
 
 ## Fontes da Verdade
 
-> **Migracao 2026-07-09:** execucao/backlog saiu do Linear e passou para **GitHub Issues** (repo `7ALabs/SignallQ`). Linear deixou de ser fonte da verdade de tarefas — historico anterior a essa data (IDs `SIG-XXX`) continua valido como referencia, mas qualquer issue nova, prioridade ou status de trabalho vive no GitHub a partir de agora.
+> **Migracao 2026-07-09:** execucao/backlog saiu do Linear e passou para **GitHub Issues** (repo `buildea-labs/SignallQ`). Linear deixou de ser fonte da verdade de tarefas — historico anterior a essa data (IDs `SIG-XXX`) continua valido como referencia, mas qualquer issue nova, prioridade ou status de trabalho vive no GitHub a partir de agora.
 
 | Dominio | Ferramenta |
 |---|---|
-| Execucao, backlog, prioridades, issues | **GitHub Issues** (`7ALabs/SignallQ`) |
+| Execucao, backlog, prioridades, issues | **GitHub Issues** (`buildea-labs/SignallQ`) |
 | Codigo, branches, PRs, releases, historico tecnico | **GitHub** |
 | Documentacao viva, decisoes consolidadas, roadmap, OS | **Notion** |
 | Comunicacao e alertas | **Slack** (via integracao GitHub -- nao criar fluxo manual paralelo) |
@@ -92,12 +92,10 @@ O monorepo-alvo `signallq-platform` (que unifica os tres + Portal + SignallQ Net
 
 **Regra Slack:** o GitHub notifica o Slack diretamente. Decisao que surgir no Slack vira issue no GitHub ou pagina no Notion. Slack e saida, nao fonte da verdade.
 
-**Convencao de issue no GitHub:** titulo `Task - <descricao>` para trabalho planejado e `[BUG] <descricao>` para defeito, label `enhancement`/`bug` conforme o caso, mais labels de `area:*`/`priority:*` quando fizer sentido (ver `gh label list --repo 7ALabs/SignallQ`). Ver skill `abrir-issue` para o detalhe completo (roteamento/titulo/corpo, agnostico de projeto).
+**Convencao de issue no GitHub:** titulo `Task - <descricao>` para trabalho planejado e `[BUG] <descricao>` para defeito, label `enhancement`/`bug` conforme o caso, mais labels de `area:*`/`priority:*` quando fizer sentido (ver `gh label list --repo buildea-labs/SignallQ`). Ver skill `abrir-issue` para o detalhe completo (roteamento/titulo/corpo, agnostico de projeto).
 
 **Hierarquia obrigatoria por Project — Epico > Feature > Task (decisao 2026-07-21):** toda issue nova nasce ja
-classificada num dos 4 GitHub Projects do repo, segmentados por produto -- **SignallQ** (#10),
-**SignallQ PRO** (#11), **SignallQ Admin** (#12), **SignallQ Site** (#13). Nao fica pra depois, nao
-fica "sem epico" por preguica de classificar.
+classificada no GitHub Project vigente. Hoje existe apenas **SignallQ Consumer** (Project #3); os Projects segmentados por produto (**SignallQ PRO**, **SignallQ Admin**, **SignallQ Site**) ainda nao foram criados. Preencher Tipo/Epico/Feature na hora, nao deixar "sem epico" por preguica de classificar.
 
 Mecanismo (campos de Project, nao labels -- decisao deliberada pra nao colidir com o uso de labels
 do Luiz pra outra classificacao em paralelo):
@@ -140,7 +138,7 @@ tratar o campo plano como definitivo.
 
 ## Milestones
 
-**Fonte viva:** GitHub issue [#1222](https://github.com/7ALabs/SignallQ/issues/1222). Decisão vigente de 2026-07-20: **lançamento público em 21/08/2026** (trilha `production`, staged rollout). Motivo: espaço pra não cortar escopo/dívida técnica sob pressão — ver `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md`.
+**Fonte viva:** GitHub issue [#1222](https://github.com/buildea-labs/SignallQ/issues/1222). Decisão vigente de 2026-07-20: **lançamento público em 21/08/2026** (trilha `production`, staged rollout). Motivo: espaço pra não cortar escopo/dívida técnica sob pressão — ver `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md`.
 
 ---
 
@@ -230,6 +228,26 @@ logs e memory files. Antes de criar um `.md` novo, checar se o conteúdo já cab
 
 Tarefas bem delimitadas rodam em autopilot: Juninho triages → Claudete refina → agente implementa → Rhodolfo valida → Done. Classificação de tamanho: pequena (Juninho/Haiku por padrão), média (agente default), grande (propor plano antes), sensível (aguardar Luiz).
 
+### Sessão de agente por task (decisão 2026-07-26)
+
+Cada dispatch de agente (`Agent` tool) para uma task nova abre **sessão nova**, sem reaproveitar
+uma sessão anterior do mesmo agente — mesmo que a task seja tecnicamente relacionada (ex.: mesma
+Feature-mãe, mesmo módulo, agente que acabou de fechar a task anterior da sequência). Retomar uma
+sessão anterior (`SendMessage` pro mesmo agentId) só quando a própria task pedir explicitamente
+continuidade do que já estava em andamento — não como atalho padrão para "a próxima task é parecida
+com a que ele acabou de fazer".
+
+**Por quê:** contexto de sessão anterior tende a vazar decisões e memória de uma task pra outra sem
+necessidade, mesmo quando a nova task não tem nada a ver com o que motivou a sessão original — e
+carrega o custo de contexto acumulado à toa. Sessão nova força o agente a reler a issue e o estado
+real do repo do zero, em vez de confiar em memória potencialmente desatualizada da sessão anterior.
+
+**Como aplicar:** ao despachar qualquer agente (Camilo, Marina, Rhodolfo etc.) para uma task, usar
+sempre uma chamada nova de `Agent`, nunca `SendMessage` pra um agentId de uma task anterior — mesmo
+dentro da mesma sequência de tasks de uma Feature (ex.: #1475 → #1476 → #1487 do mesmo épico, cada
+uma abre sessão própria). O prompt de cada dispatch deve ser autocontido — reler a issue e os PRs
+relevantes das tasks anteriores via `gh`, não herdar memória de conversa.
+
 ---
 
 ## Agentes
@@ -240,14 +258,14 @@ workspace) — é o doc que o Marcos (VP) usa pra rotear entre squads, e fica er
 se ninguém atualizar de fora.
 
 **Agentes agora vivem em `~/.claude/agents/` (2026-07-23), não mais em `.claude/agents/` deste
-repo.** Claudete, Camilo, Lia, Rhodolfo e Juninho são um quadro único da 7ALabs, compartilhado com
+repo.** Claudete, Camilo, Lia, Rhodolfo e Juninho são um quadro único da Buildea, compartilhado com
 o SignallQ Nethal — cada um lê este `CLAUDE.md` para se contextualizar ao SignallQ especificamente. Detalhe
 da consolidação: `docs_ai/decisions/DECISAO_CONSOLIDACAO_SQUAD_7ALABS_2026-07-23.md`. Validacao de
 device/rede e planejamento tecnico continuam como skills (`/regras-android`,
 `/regras-diagnostico-rede`); busca de codigo e documentacao sao nativas/skill (`/gerar-docs`).
 
 **Bruno emprestado do Agente Virtual (decisão 2026-07-23):** o projeto Agente Virtual (squad
-irmã, `SignallQ Agents/`, repo `7ALabs/signallq-agent`) entrou em backlog — Bruno (líder daquele
+irmã, `SignallQ Agents/`, repo `buildea-labs/signallq-agent`) entrou em backlog — Bruno (líder daquele
 projeto, também agente global, stack React/TS/Vite/Tailwind + Cloudflare Workers, mesma stack do
 Console/Admin) fica disponível como **capacidade extra ad-hoc** para esta squad, acionado pela
 Claudete quando Camilo (backend) ou Lia (frontend) estiverem no limite em tarefa de Console/Admin.

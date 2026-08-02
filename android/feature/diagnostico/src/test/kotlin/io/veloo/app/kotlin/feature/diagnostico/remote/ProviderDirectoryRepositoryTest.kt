@@ -24,7 +24,10 @@ class ProviderDirectoryRepositoryTest {
         server.shutdown()
     }
 
-    private fun providerJson(id: String = "regional_teste"): String = """
+    private fun providerJson(
+        id: String = "regional_teste",
+        status: String? = "VERIFIED",
+    ): String = """
         {
           "id": "$id",
           "displayName": "Regional Teste",
@@ -36,7 +39,7 @@ class ProviderDirectoryRepositoryTest {
             "websiteUrl": "https://regional.example.com",
             "customerAreaUrl": null,
             "ombudsmanPhone": null
-          }
+          }${if (status != null) ""","status": "$status"""" else ""}
         }
     """.trimIndent()
 
@@ -52,6 +55,28 @@ class ProviderDirectoryRepositoryTest {
         assertEquals("10000", info?.sacPhone)
         assertEquals("https://wa.me/5511999999999", info?.whatsappUrl)
         assertNull(info?.technicalSupportPhone)
+    }
+
+    // ── GH#1464 (parte de #951): campo `status` de curadoria ────────────────────────────────
+
+    @Test
+    fun `findById mapeia o status de curadoria quando presente`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(providerJson(status = "PENDING_REVIEW")))
+        val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
+
+        val info = repo.findById("regional_teste")
+
+        assertEquals("PENDING_REVIEW", info?.status)
+    }
+
+    @Test
+    fun `findById com status ausente no JSON mapeia status nulo`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(providerJson(status = null)))
+        val repo = ProviderDirectoryRepository(baseUrl = server.url("/").toString())
+
+        val info = repo.findById("regional_teste")
+
+        assertNull(info?.status)
     }
 
     @Test

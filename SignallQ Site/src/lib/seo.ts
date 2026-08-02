@@ -15,13 +15,17 @@ export interface PageMeta {
   /** 'index,follow' por padrão — usar 'noindex,follow' pra página cujo conteúdo
    * depende de dado local do visitante (ex. histórico) ou não deve ser indexada. */
   robots?: string
+  /** Caminho absoluto (a partir da raiz) de uma imagem Open Graph específica
+   * desta rota — ex. '/og/teste.png'. Sem isso, usa `signallq-symbol.png`. */
+  ogImage?: string
 }
 
-export function applyPageMeta({ title, description, path, robots = 'index,follow' }: PageMeta) {
+export function applyPageMeta({ title, description, path, robots = 'index,follow', ogImage }: PageMeta) {
   if (typeof document === 'undefined') return
   document.title = title
   const origin = typeof location !== 'undefined' ? location.origin : ''
   const url = origin ? origin + path : path
+  const image = origin + (ogImage ?? '/signallq-symbol.png')
 
   const upsert = (selector: string, attrs: Record<string, string>) => {
     let el = document.head.querySelector(selector)
@@ -38,7 +42,7 @@ export function applyPageMeta({ title, description, path, robots = 'index,follow
   upsert('meta[property="og:description"]', { property: 'og:description', content: description })
   upsert('meta[property="og:type"]', { property: 'og:type', content: 'website' })
   upsert('meta[property="og:url"]', { property: 'og:url', content: url })
-  upsert('meta[property="og:image"]', { property: 'og:image', content: `${origin}/signallq-symbol.png` })
+  upsert('meta[property="og:image"]', { property: 'og:image', content: image })
   upsert('meta[name="twitter:card"]', { name: 'twitter:card', content: 'summary_large_image' })
   upsert('link[rel="canonical"]', { rel: 'canonical', href: url })
 }

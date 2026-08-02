@@ -273,7 +273,7 @@ class DynamicQuestionEngine {
             ),
         ),
         // Nó novo (SIG-290, GameReadinessClassifier): pergunta o jogo/console mais
-        // usado para acionar o preset de device certo no RecommendationEngine. Raiz
+        // usado para acionar o preset de device certo no RecomendacaoPraticaEngine. Raiz
         // separada (nao acoplada a "jogos_travando") para nao alterar a arvore
         // existente ja coberta por teste. Acionada pela UI de diagnostico de jogos,
         // nao faz parte de getInitialChips().

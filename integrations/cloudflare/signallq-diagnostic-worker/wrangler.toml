@@ -42,6 +42,12 @@ ALLOWED_ORIGIN = "https://signallq-admin-panel.pages.dev"
 # relativo (nao quebra, mas nao resolve pra um link absoluto de verdade).
 PROVIDER_LOGO_PUBLIC_BASE_URL = "https://signallq-diagnostic.giammattey-luiz.workers.dev"
 
+# DIAGNOSTIC_PROXY_SECRET (Refs #1446): compartilhada com o signallq-admin-worker, que faz proxy
+#   de /admin/diagnostic/* via service binding (Console autentica só lá, fonte única de "quem é
+#   admin"). Mesmo valor nos dois lados. Sem esta secret, /admin/diagnostic/* segue exigindo a
+#   sessão própria deste worker (comportamento anterior preservado).
+#   Deploy: npx wrangler secret put DIAGNOSTIC_PROXY_SECRET --name signallq-diagnostic
+
 [triggers]
 crons = ["0 * * * *"]
 

@@ -3,7 +3,7 @@
 - **Status:** ativo
 - **Última validação:** 2026-07-16
 - **Fonte de verdade:** este arquivo (`.claude/rules/higiene-e-padronizacao-repositorio.md`) — não duplicar em `docs_ai/`, `AGENTS.md`, mirrors ou docs de módulo
-- **Escopo:** repositório `7ALabs/SignallQ` (monorepo SignallQ) inteiro — Android, Admin, Cloudflare, docs
+- **Escopo:** repositório `buildea-labs/SignallQ` (monorepo SignallQ) inteiro — Android, Admin, Cloudflare, docs
 - **Responsável:** Claudete (dono do processo), aplicado por todo agente (Camilo, Lia, Rhodolfo) e por qualquer sessão humana no repo
 
 Referenciada a partir de `.claude/CLAUDE.md` (seção "Higiene e padronização do repositório") e dos
@@ -61,7 +61,7 @@ Ao tocar em código antigo que mistura idiomas, padronize somente quando a renom
 segura e completamente validável. Renomeações espalhadas por vários módulos são tarefa específica.
 
 Não renomear identificadores técnicos preservados pelo projeto: `io.signallq.app`,
-`7ALabs/SignallQ`, `linkaKotlin.db`, `linkaPreferencias`, canais `linka_*`, workers cujos
+`buildea-labs/SignallQ`, `linkaKotlin.db`, `linkaPreferencias`, canais `linka_*`, workers cujos
 nomes técnicos já estejam publicados (ver `.claude/CLAUDE.md`, seção "Identidade").
 
 ---
@@ -190,17 +190,18 @@ Ao tocar nele:
 5. cada sheet independente deve ter seu próprio arquivo (ex.: `DispositivoDetalheSheet.kt`, `DispositivoConfiguracaoSheet.kt`);
 6. crie testes de caracterização antes de extrações com risco de comportamento de lista ou estado.
 
-### 4.8 `JogosScreen.kt`
+### 4.8 `JogosScreen.kt` — RESOLVIDO (removido em 2026-07-26)
 
-Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/JogosScreen.kt` — **1120 linhas** (acima do limiar de extração obrigatória da seção 7). Concentra o fluxo de teste direcionado por jogo com 5 etapas.
+Caminho antigo: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/JogosScreen.kt` —
+**1120 linhas** (acima do limiar de extração obrigatória da seção 7). Concentrava o fluxo de
+teste direcionado por jogo com 5 etapas (GH#935).
 
-Ao tocar nele:
-1. identifique qual etapa ou jogo está sendo modificado;
-2. não adicione nova etapa diretamente — extraia para componente dedicado antes;
-3. prefira separar: estado de cada etapa, orquestração de fluxo (navegação entre etapas), adaptadores de dados de jogo, componentes de visualização;
-4. mantenha em `JogosScreen.kt` apenas a composição do fluxo principal e delegação das etapas;
-5. cada etapa independente deve ter seu próprio arquivo (ex.: `JogoEtapa1Screen.kt`, `JogoEtapa2Screen.kt`) ou componente reutilizável;
-6. crie testes de caracterização antes de extrações com risco de comportamento de fluxo ou estado.
+A issue #1487 fundiu esse fluxo com o Modo gamer (Feature #550, `ModoGamerScreen.kt` +
+`ModoGamerConfigResultadoSection.kt`, ambos bem menores e já divididos por etapa/responsabilidade)
+— `JogosScreen.kt`, `JogosViewModel.kt`, `JogoConexaoEngine.kt`, `PerfilThresholds.kt`,
+`GameCatalog.kt`, `GameArtworkCatalog.kt`/`GameIconCatalog.kt` foram removidos, junto com
+`Overlay.Jogos`. A dívida está resolvida — não recriar um segundo fluxo "Jogos" paralelo ao
+Modo gamer; qualquer refinamento de teste de jogo entra em `ModoGamerEngine`/`ModoGamerScreen`.
 
 ### 4.8b `SinalScreen.kt`
 
@@ -248,6 +249,21 @@ caminhos `io/veloo`, nomes antigos da marca, navegação anterior, agentes arqui
 telas ou superfícies descontinuadas, módulos que já mudaram de localização. Ao modificar uma
 funcionalidade, atualize somente a documentação diretamente relacionada — não revise todos os
 documentos do projeto dentro de uma tarefa comum.
+
+### 4.11 Espaçamento hardcoded em vez de token (Android)
+
+Auditoria (Juninho, 2026-07-26): ~270 ocorrências de `.dp` literal em `padding()`/`size()`/
+`width()`/`height()`/`offset()` direto em Composables do Consumer (`android/app/.../ui/component/`,
+`ui/screen/`), em vez de constante de espaçamento do design system. Tipografia está limpa (zero
+achado — tudo via `MaterialTheme.typography.*`); cor está majoritariamente limpa (as ocorrências de
+`Color(0xFF...)` encontradas são cor de marca de operadora/WhatsApp, não violação — ver #1499 pros
+6 casos reais de `Color.White` hardcoded).
+
+Volume disperso demais (~9 telas/componentes diferentes) pra virar um bug único executável — não
+abrir issue "arrumar espaçamento do app inteiro". Se for tocar em um desses arquivos por outro
+motivo, aproveite pra trocar o `.dp` literal local por token, sem expandir a tarefa. Migração
+completa e deliberada (se algum dia for priorizada) deve ser incremental por tela, não
+correção-em-massa numa PR só.
 
 ---
 

@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -176,17 +178,20 @@ internal fun DisponibilidadeCardsRow(
     suportaWifi: Boolean,
     c: LkTokens,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.md)) {
+    Row(
+        modifier = Modifier.height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+    ) {
         EquipamentoParInfoCard(
             label = "Fibra",
             valor = if (suportaFibra) "Disponível" else "Não se aplica",
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).fillMaxHeight(),
             c = c,
         )
         EquipamentoParInfoCard(
             label = "Wi-Fi",
             valor = if (suportaWifi) "Disponível" else "Não se aplica",
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).fillMaxHeight(),
             c = c,
         )
     }
@@ -198,17 +203,20 @@ internal fun UsoCardsRow(
     acessoLabel: String,
     c: LkTokens,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(LkSpacing.md)) {
+    Row(
+        modifier = Modifier.height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(LkSpacing.md),
+    ) {
         EquipamentoParInfoCard(
             label = "Clientes",
             valor = totalClientes.toString(),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).fillMaxHeight(),
             c = c,
         )
         EquipamentoParInfoCard(
             label = "Acesso",
             valor = acessoLabel,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).fillMaxHeight(),
             c = c,
         )
     }

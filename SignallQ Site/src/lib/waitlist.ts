@@ -1,5 +1,5 @@
-// Lista de espera dos modais "avisar quando lançar" (EmailCaptureDialog) —
-// GH#1155. Chama o proxy server-side (functions/api/waitlist.ts), que repassa
+// Lista de espera do SignallQ PRO — GH#1155. Chama o proxy server-side
+// (functions/api/waitlist.ts), que repassa
 // pro signallq-admin-worker (POST /ingest/waitlist) guardando a INGEST_KEY
 // como secret — nunca exposta ao navegador.
 //

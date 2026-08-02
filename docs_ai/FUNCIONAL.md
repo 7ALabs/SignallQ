@@ -8,10 +8,11 @@
   `docs_ai/functional/FEATURES.md`, `docs_ai/functional/SCREENS_ANDROID.md`,
   `docs_ai/functional/SETTINGS.md`, `docs_ai/functional/SPEEDTEST_FLOW.md`,
   `docs_ai/functional/WIFI_FEATURES.md` (originais movidos para `docs_ai/_archive/` com nota de
-  substituição). `docs_ai/functional/FEATURE_FLAGS.md` e
-  `docs_ai/functional/JOGOS_TESTE_CONEXAO_SPEC.md` continuam vivos à parte (o primeiro cobre
-  também a metade técnica/painel Admin fora do escopo deste documento; o segundo já está
-  atualizado e serve como spec de referência do domínio Jogos).
+  substituição). `docs_ai/functional/FEATURE_FLAGS.md` continua vivo à parte (cobre também a
+  metade técnica/painel Admin fora do escopo deste documento).
+  `docs_ai/functional/JOGOS_TESTE_CONEXAO_SPEC.md` (fluxo "Jogos" legado, GH#935) foi arquivada
+  em 2026-07-26 (issue #1487) — fundida no Modo gamer, spec de referência agora é
+  `docs_ai/functional/DIAGNOSTICO_GUIADO_MODO_GAMER_SPEC.md`.
 - **Escopo:** app Android SignallQ consumer (`7ALabs/SignallQ`, diretório `android/`, package
   `io.signallq.app`) — o que o usuário final vê e faz. Não cobre arquitetura interna, engines
   internos ou contratos técnicos (ver `docs_ai/TECNICO.md`). Não cobre SignallQ Pro
@@ -125,7 +126,7 @@ Fonte: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/AppShell.kt`.
 | `Dns` | `DnsScreen` | Ferramentas, SpeedTestScreen |
 | `Dispositivos` | `DispositivosScreen` | Ferramentas |
 | `Fibra` / `EquipamentoInternet` | `EquipamentoInternetScreen` | Ferramentas, nó do gateway na Início |
-| `Jogos` | `JogosScreen` | Ferramentas |
+| `ModoGamer` | `ModoGamerScreen` | Ferramentas (card "Jogos"), `ResultadoVelocidadeScreen` (CTA "Modo gamer"), `DiagnosticoGuiadoScreen` (objetivo "Jogos com lag") |
 | `Perfil` | `AjustesScreen` (reorganizada em 6 seções) | Avatar no TopBar de qualquer aba |
 | `Privacidade` | `PrivacidadeScreen` | Dentro do overlay Perfil |
 | `Novidades` | `NovidadesScreen` | Dentro do overlay Perfil |
@@ -174,7 +175,7 @@ Inventário real (`android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/`):
 | `LaudoScreen` | Overlay | laudo técnico completo |
 | `PingScreen` | Overlay | teste isolado de latência |
 | `DnsScreen` | Overlay | benchmark DNS |
-| `JogosScreen` | Overlay | teste de conexão para jogos |
+| `ModoGamerScreen` | Overlay | diagnóstico de jogo por categoria (jogo → device → resultado), fundido com o antigo fluxo "Jogos" pela issue #1487 |
 | `PrivacidadeScreen` | Overlay (dentro de Perfil) | política/LGPD |
 | `NovidadesScreen` | Overlay (dentro de Perfil) | changelog |
 | `SinalWifiScreen` | Overlay | indicador RSSI/PHY/padrão Wi-Fi em tempo real (GH#1201) |
@@ -399,7 +400,7 @@ navega para um overlay:
 | DNS | "Compare servidores e troque o seu" | `DnsScreen` |
 | Laudo | "Laudo técnico completo da sua conexão" | `LaudoScreen` |
 | Monitoramento | "Análise avançada e alertas em segundo plano" | `MonitoramentoSheet` |
-| Jogos | "Games multiplayer e dicas para PS5, Xbox e PC" | `JogosScreen` |
+| Jogos | "Games multiplayer e dicas para PS5, Xbox e PC" | `ModoGamerScreen` (fundido, ver RF-11) |
 | Sinal WiFi | "Veja o sinal, a velocidade e o padrão Wi-Fi em tempo real" | `SinalWifiScreen` |
 
 ### RF-10 — Ping
@@ -411,25 +412,32 @@ navega para um overlay:
 - Referência de leitura: latência boa < 50ms / ruim > 150ms; jitter bom < 10ms / ruim > 30ms; perda
   boa 0% / ruim > 2%
 
-### RF-11 — Jogos — teste de conexão
+### RF-11 — Modo gamer — diagnóstico de jogo
 
-**Tela:** `JogosScreen` (overlay via Ferramentas). Feature completa e recente (issue #935,
-implementada em 2026-07-14) — spec detalhada mantida separadamente em
-`docs_ai/functional/JOGOS_TESTE_CONEXAO_SPEC.md` (não duplicada aqui). Resumo:
+**Tela:** `ModoGamerScreen` (overlay `Overlay.ModoGamer`, 3 pontos de entrada: card "Jogos" em
+Ferramentas, CTA "Modo gamer" no resultado do teste de velocidade, botão "Ver diagnóstico por
+jogo" do diagnóstico guiado com objetivo "Jogos com lag"). Feature #550 (issues #1476/#1483),
+fundida em 2026-07-26 com o fluxo legado "Jogos" (issue #935, ver histórico em
+`docs_ai/_archive/2026-07-26_JOGOS_TESTE_CONEXAO_SPEC.md`) pela issue #1487 — spec de
+referência: `docs_ai/functional/DIAGNOSTICO_GUIADO_MODO_GAMER_SPEC.md`. Resumo:
 
-- Fluxo de 5 etapas: escolher plataforma (PC/PS5/Xbox Series) → escolher jogo (16 jogos no
-  catálogo inicial, busca) → executar teste nomeado pelo jogo → progresso (10–15s, sem jargão
-  técnico) → resultado único (veredito + latência/jitter/perda/estabilidade/região testada)
-- 4 perfis de sensibilidade com thresholds próprios (competitivo extremo, competitivo, esporte
-  competitivo, multiplayer moderado); prioridade de avaliação: perda > jitter > estabilidade >
-  latência > qualidade Wi-Fi > velocidade
-- Estratégia de endpoint: `REGIONAL_ESTIMATE` via Worker Cloudflare dedicado
-  (`game-latency-probe-worker`, reaproveita `PingExecutor` de `:featureSpeedtest`) é a única
-  implementada; `PROVIDER_NETWORK` (rede oficial Riot/Valve) cai automaticamente em estimativa
-  regional com aviso explícito — nunca inventa dado de rede não medido
-- **Limitações conhecidas (declaradas na spec):** sem detecção real de rede Riot/Valve;
-  "estabilidade" não é uma quarta dimensão pontuada própria (tratada via jitter); bufferbloat não é
-  medido neste fluxo; histórico por jogo não implementado (era opcional no MVP)
+- Fluxo de 3 etapas: escolher jogo (catálogo de 21 jogos fundido dos dois fluxos, busca, ou
+  fallback "Outro jogo" por uma das 6 categorias genéricas) → escolher device (7 opções
+  informativas: PS5/PS4, Xbox, PC, Android, iPhone, Switch, TV/Cloud gaming — não filtra o
+  catálogo, só contextualiza o resultado) → salvar como padrão ou usar só desta vez → resultado
+- Reaproveita o `DiagnosticInput` do teste de velocidade já rodado (sem re-testar a rede por
+  padrão) e o mesmo motor/vocabulário do diagnóstico guiado (`ModoGamerEngine`,
+  `MetricClassifier`, "pior faixa vence") — 6 categorias com dimensões priorizadas por gênero
+  (FPS competitivo, battle royale, MOBA, casual/mobile, cloud gaming, outro)
+- **Refinamento opcional** (issue #1487): na etapa de configuração, "Medir ping específico
+  agora" mede uma sonda dedicada (`PingExecutor`, 24 amostras, contra o
+  `game-latency-probe-worker` — mesma infra do antigo fluxo "Jogos") + NAT UDP
+  (`StunNatProbe`) em paralelo; refina a dimensão de latência do resultado quando concluído a
+  tempo, nunca bloqueia ou obriga o fluxo padrão
+- Combinação jogo+device pode ser salva como padrão (DataStore) — próxima abertura já mostra o
+  resultado direto, sem repetir as 2 primeiras etapas
+- Padrão salvo do modo gamer não é filtrado por plataforma (PC/PS5/Xbox) como o fluxo legado
+  fazia — decisão de produto da fusão #1487 (simplicidade > precisão marginal de filtro)
 
 ### Nota — "Central de Testes" (nomenclatura anterior)
 
@@ -507,7 +515,7 @@ RF-02, não chat), `FEATURE_WIFI_ANALISE`, `FEATURE_REDE_MOVEL_ANALISE`, `FEATUR
 `FEATURE_AGENDAMENTO_TESTES`, `FEATURE_LINKASYNC`, `FEATURE_BACKUP_LOCAL`,
 `FEATURE_CONTRIBUICAO_ANONIMA`, `FEATURE_RATE_US`, `FEATURE_ACESSIBILIDADE`.
 
-> Jogos (`JogosScreen`), DNS Benchmark e Sinal WiFi (`SinalWifiScreen`) não têm flag própria de
+> Modo gamer (`ModoGamerScreen`), DNS Benchmark e Sinal WiFi (`SinalWifiScreen`) não têm flag própria de
 > build type — estão sempre presentes, controlados apenas pela navegação real (aba Ferramentas).
 > Regras de build/flag puramente técnicas (como ativar uma flag nova) ficam em
 > `docs_ai/functional/FEATURE_FLAGS.md` e em `docs_ai/TECNICO.md` — fora do escopo funcional deste
@@ -525,8 +533,9 @@ Critérios transversais, válidos para o app como um todo (não repetidos por RF
   ocultado/degradado, nunca uma tela de erro (ver 8.1).
 - O app nunca altera configuração de rede do sistema (DNS, Wi-Fi) sem ação explícita do usuário
   fora do app — apenas orienta.
-- Toda estimativa de rede (ex.: `REGIONAL_ESTIMATE` em Jogos) é identificada como estimativa na UI,
-  nunca apresentada como medição direta/"ping real" do servidor oficial.
+- Toda estimativa de rede (ex.: medição de ping via `game-latency-probe-worker`, RF-11) é
+  identificada como estimativa na UI, nunca apresentada como medição direta/"ping real" do
+  servidor oficial do jogo.
 - Todo resultado de speedtest completo é persistido automaticamente em Room, sem ação extra do
   usuário.
 - O cold start abre na aba Velocidade (índice 1), nunca em Início.
@@ -542,10 +551,9 @@ Critérios transversais, válidos para o app como um todo (não repetidos por RF
 - **Chat contínuo de diagnóstico** — removido do produto; o diagnóstico por IA (RF-02) é uma
   interação de turno único, não uma conversa com histórico multi-turno.
 - **Alteração do DNS do sistema pelo app** — o app apenas orienta a configuração manual (RF-05).
-- **Detecção real de rede oficial de fornecedor de jogo** (`PROVIDER_NETWORK`, Riot/Valve) — não
-  implementada; os 4 jogos que a declaram caem em `REGIONAL_ESTIMATE` (RF-11).
-- **Bufferbloat medido no fluxo de Jogos** — não incluído no teste de 10-15s (RF-11).
-- **Histórico por jogo** — opcional no MVP de Jogos, não implementado (RF-11).
+- **Filtro de jogo por plataforma (PC/PS5/Xbox)** — existia no fluxo legado "Jogos" (GH#935),
+  não entrou na fusão #1487; o device selecionado no Modo gamer é só informativo (RF-11).
+- **Histórico por jogo** — não implementado no Modo gamer (RF-11).
 - **`MinhaConexaoScreen`** — existe no diretório de telas mas não está ligada a nenhuma navegação
   real, possível código morto; não confirmado/removido nesta revisão (ver seção 6).
 - **Taxa PHY e label MIMO no Wi-Fi** — não exibidos na UI, bloqueados por falta de API pública

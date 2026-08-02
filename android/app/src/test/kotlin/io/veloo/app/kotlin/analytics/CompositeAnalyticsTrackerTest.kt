@@ -121,6 +121,16 @@ class CompositeAnalyticsTrackerTest {
         assertEquals(true, slot.captured.batteryCharging)
     }
 
+    // GH#1480 (Epico #1347, F4) — decisao registrada no KDoc do metodo: encaminha so ao
+    // Firebase, sem replicar pro ingest do admin-worker (schema separado, fora de escopo).
+    @Test
+    fun `registrarFeatureBloqueadaRemota encaminha so ao Firebase, sem chamar o admin-worker`() {
+        tracker.registrarFeatureBloqueadaRemota("fibra")
+
+        verify { firebaseTracker.registrarFeatureBloqueadaRemota("fibra") }
+        coVerify(exactly = 0) { adminIngestRepository.sendAnalyticsEvent(any()) }
+    }
+
     @Test
     fun `sessionId permanece o mesmo entre eventos consecutivos`() {
         tracker.registrarFeatureUsada("wifi_scan")

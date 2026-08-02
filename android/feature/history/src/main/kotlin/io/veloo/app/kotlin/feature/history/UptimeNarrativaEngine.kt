@@ -13,6 +13,10 @@ import java.util.Locale
  *
  * v2.0: detecta padroes horarios recorrentes, sequencias longas de OFFLINE
  *       e tendencia de qualidade (melhora / piora / estavel).
+ *
+ * v2.1 (GH#1518): narrativa distingue OFFLINE (ausencia real de conectividade,
+ *       amostras do monitor sem resposta) de LATENCIA_ALTA (rede respondeu, so que
+ *       devagar) — nunca descreve o segundo caso como "offline"/"sem conexao".
  */
 object UptimeNarrativaEngine {
 
@@ -33,6 +37,7 @@ object UptimeNarrativaEngine {
 
         val total = blocos.size
         val offline = blocos.count { it.status == StatusUptime.OFFLINE }
+        val latenciaAlta = blocos.count { it.status == StatusUptime.LATENCIA_ALTA }
         val lento = blocos.count { it.status == StatusUptime.LENTO }
         val ok = blocos.count { it.status == StatusUptime.OK }
         val semDado = blocos.count { it.status == StatusUptime.SEM_DADO }
@@ -44,7 +49,7 @@ object UptimeNarrativaEngine {
         }
 
         // Tudo OK
-        if (offline == 0 && lento == 0) {
+        if (offline == 0 && latenciaAlta == 0 && lento == 0) {
             return "Sua rede esteve estável nos últimos 7 dias. Nenhuma lentidão ou queda detectada."
         }
 
@@ -76,6 +81,34 @@ object UptimeNarrativaEngine {
                 partes.add("Sua rede ficou offline por $duracaoStr $descricaoPeriodo.")
             } else {
                 partes.add("Sua rede ficou indisponível por $duracaoOffline nos últimos 7 dias.")
+            }
+        }
+
+        // Latencia muito alta (GH#1518: rede respondeu, so que devagar — nunca "offline")
+        if (latenciaAlta > 0) {
+            val horasLatenciaAlta = (latenciaAlta * MINUTOS_POR_BLOCO) / 60
+            val minutosLatenciaAlta = (latenciaAlta * MINUTOS_POR_BLOCO) % 60
+            val duracaoLatenciaAlta = when {
+                horasLatenciaAlta > 0 && minutosLatenciaAlta > 0 -> "${horasLatenciaAlta}h ${minutosLatenciaAlta}min"
+                horasLatenciaAlta > 0 -> "${horasLatenciaAlta}h"
+                else -> "${minutosLatenciaAlta}min"
+            }
+
+            val sequenciasLongasLatenciaAlta = detectarInterrupcoesLongas(blocos, StatusUptime.LATENCIA_ALTA)
+            val maiorSequenciaLatenciaAlta = sequenciasLongasLatenciaAlta.maxByOrNull { it.duracaoMinutos }
+
+            if (maiorSequenciaLatenciaAlta != null && maiorSequenciaLatenciaAlta.duracaoMinutos > 30) {
+                val horas = maiorSequenciaLatenciaAlta.duracaoMinutos / 60
+                val minutos = maiorSequenciaLatenciaAlta.duracaoMinutos % 60
+                val duracaoStr = when {
+                    horas > 0 && minutos > 0 -> "${horas}h ${minutos}min"
+                    horas > 0 -> "${horas}h"
+                    else -> "${minutos}min"
+                }
+                val descricaoPeriodo = descreverPeriodo(maiorSequenciaLatenciaAlta.inicio)
+                partes.add("A rede respondeu devagar (latência muito alta) por $duracaoStr $descricaoPeriodo, mas seguiu conectada.")
+            } else {
+                partes.add("A rede apresentou latência muito alta por $duracaoLatenciaAlta nos últimos 7 dias, mas seguiu conectada.")
             }
         }
 
@@ -164,18 +197,23 @@ object UptimeNarrativaEngine {
     // ---------------------------------------------------------------------------
 
     /**
-     * Retorna todas as interrupcoes continuas de OFFLINE com duracao > 30 minutos,
-     * ordenadas da mais longa para a mais curta.
+     * Retorna todas as interrupcoes continuas do [status] informado (default [StatusUptime.OFFLINE])
+     * com duracao > 30 minutos, ordenadas da mais longa para a mais curta.
      *
-     * Cada [InterrupcaoOffline] contem o horario de inicio e a duracao em minutos.
+     * Cada [InterrupcaoOffline] contem o horario de inicio e a duracao em minutos. Nome do tipo
+     * mantido por compatibilidade — representa qualquer sequencia continua do status pesquisado,
+     * nao so OFFLINE (ver uso com [StatusUptime.LATENCIA_ALTA] em [gerarNarrativa]).
      */
-    fun detectarInterrupcoesLongas(blocos: List<BlocoUptime>): List<InterrupcaoOffline> {
+    fun detectarInterrupcoesLongas(
+        blocos: List<BlocoUptime>,
+        status: StatusUptime = StatusUptime.OFFLINE,
+    ): List<InterrupcaoOffline> {
         val interrupcoes = mutableListOf<InterrupcaoOffline>()
         var inicioAtual: LocalDateTime? = null
         var contadorAtual = 0
 
         for (bloco in blocos) {
-            if (bloco.status == StatusUptime.OFFLINE) {
+            if (bloco.status == status) {
                 if (contadorAtual == 0) inicioAtual = bloco.dataHora
                 contadorAtual++
             } else {

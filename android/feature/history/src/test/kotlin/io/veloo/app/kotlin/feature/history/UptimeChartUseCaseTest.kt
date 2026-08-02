@@ -138,7 +138,9 @@ class UptimeChartUseCaseTest {
     }
 
     @Test
-    fun `medicoes com latencia muito alta classificam bloco como OFFLINE`() = runBlocking {
+    fun `medicoes com latencia muito alta classificam bloco como LATENCIA_ALTA, nunca OFFLINE`() = runBlocking {
+        // GH#1518: latencia > 800ms significa que o servidor respondeu (devagar) — a rede
+        // esteve no ar. Nunca pode ser rotulado como OFFLINE (reservado a ausencia real de resposta).
         val agora = System.currentTimeMillis()
         val medicoes = listOf(
             medicaoMonitor(agora - 5 * 60 * 1000L, 1200.0),
@@ -148,7 +150,15 @@ class UptimeChartUseCaseTest {
         val blocos = useCase.gerar7dias()
 
         val ultimoBloco = blocos.last()
-        assertEquals("Latencia media > 800ms deve classificar como OFFLINE", StatusUptime.OFFLINE, ultimoBloco.status)
+        assertEquals(
+            "Latencia media > 800ms deve classificar como LATENCIA_ALTA",
+            StatusUptime.LATENCIA_ALTA,
+            ultimoBloco.status,
+        )
+        assertTrue(
+            "Bloco de latencia alta nunca pode ser rotulado como OFFLINE",
+            ultimoBloco.status != StatusUptime.OFFLINE,
+        )
     }
 
     @Test

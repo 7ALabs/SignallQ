@@ -31,8 +31,8 @@ export function ConfirmDialog({ title, description, confirmLabel, cancelLabel, i
           </button>
           <button
             onClick={onConfirm}
-            className="h-11 flex-1 rounded-[var(--radius-button)] text-white label-large"
-            style={{ background: danger ? 'var(--error)' : 'var(--accent)' }}
+            className="h-11 flex-1 rounded-[var(--radius-button)] label-large"
+            style={{ background: danger ? 'var(--error)' : 'var(--accent)', color: 'var(--on-accent)' }}
           >
             {confirmLabel}
           </button>

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.NewReleases
 import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Router
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.VerifiedUser
@@ -57,7 +58,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -71,7 +71,6 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
-import io.signallq.app.ui.component.UserAvatar
 
 @SuppressLint("InlinedApi")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,7 +89,6 @@ fun AjustesScreen(
     onResetarApp: () -> Unit,
     onAbrirHistorico: () -> Unit,
     onAbrirLaudo: () -> Unit,
-    onAbrirPerfil: () -> Unit = {},
     onAbrirPrivacidade: () -> Unit = {},
     onAbrirNovidades: () -> Unit = {},
     onAbrirFibra: () -> Unit = {},
@@ -110,7 +108,6 @@ fun AjustesScreen(
         ),
 ) {
     val c = LocalLkTokens.current
-    val context = LocalContext.current
     // aliases locais para não explodir o código interno com prefixos
     val deviceName = perfil.deviceName
     val appVersion = perfil.appVersion
@@ -186,54 +183,22 @@ fun AjustesScreen(
                     .padding(padding)
                     .background(c.bgPrimary),
         ) {
-            // ── HERO CARD ────────────────────────────────────────────────────────────
+            // ── PERFIL ───────────────────────────────────────────────────────────────
+            // GH#1358 — hero card com avatar/foto removido: qualquer imagem/foto de perfil
+            // fica desabilitada em todo o app. Edição de nome preservada, agora como linha
+            // no mesmo padrão visual das demais seções (ValueSettingRow).
+            item { Spacer(Modifier.height(LkSpacing.md)) }
+            item { SectionHeader("Perfil", c) }
             item {
                 val nomeDisplay = if (nomeUsuario.isNotBlank()) nomeUsuario else "Seu perfil"
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = LkSpacing.lg)
-                            .padding(top = LkSpacing.xl, bottom = LkSpacing.md)
-                            .clip(RoundedCornerShape(LkRadius.card))
-                            .background(c.surfaceContainer)
-                            .clickable { showPerfilSheet = true }
-                            .padding(LkSpacing.lg),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        UserAvatar(
-                            fotoUri = fotoUriUsuario,
-                            fallbackInitial = nomeUsuario.firstOrNull(),
-                            size = 52.dp,
-                        )
-                        Spacer(Modifier.width(LkSpacing.md))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = nomeDisplay,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.W600,
-                                color = c.textPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = "Ver perfil",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = c.textSecondary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                            contentDescription = null,
-                            tint = c.textTertiary,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
+                SettingsSectionCard(c = c) {
+                    ValueSettingRow(
+                        c = c,
+                        icon = Icons.Outlined.Person,
+                        label = "Nome",
+                        value = nomeDisplay,
+                        onClick = { showPerfilSheet = true },
+                    )
                 }
             }
 
