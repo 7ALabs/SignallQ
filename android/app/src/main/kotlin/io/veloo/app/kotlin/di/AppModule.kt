@@ -53,6 +53,7 @@ import io.signallq.app.feature.speedtest.FeatureSpeedtestModulo
 import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisRepository
 import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisRepositoryImpl
 import io.signallq.app.feature.wifi.FeatureWifiModulo
+import io.signallq.app.featureflags.FeatureFlagManager
 import io.signallq.app.featureflags.FeatureFlagRepository
 import io.signallq.app.network.IspInfoCache
 import io.signallq.app.speedtest.SpeedtestPersistenceCoordinator
@@ -64,6 +65,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Qualifier
 import javax.inject.Singleton
+import io.signallq.app.core.network.FeatureFlagProvider as LegacyHttpFeatureFlagProvider
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
@@ -259,6 +261,18 @@ object AppModule {
         remoteConfig: Lazy<FirebaseRemoteConfig>,
         catalog: FeatureFlagCatalog,
     ): FeatureFlagProvider = FeatureFlagsModulo.criarProvider(remoteConfigProvider = { remoteConfig.get() }, catalog = catalog)
+
+    /**
+     * Expoe [FeatureFlagManager] como o [LegacyHttpFeatureFlagProvider] (HTTP/SIG-13,
+     * `io.signallq.app.core.network.FeatureFlagProvider`) para consumidores que ainda dependem
+     * desse contrato -- hoje: [io.signallq.app.ui.OperadoraDirectoryResolver] (issue #1464).
+     * Binding removido por engano no PR #1560 (migracao do #1497) por nao ter consumidor
+     * conhecido naquele momento; o PR #1561, em paralelo, adicionou este novo consumidor sem
+     * ver a remocao -- achado real do PR #1560 -- ver issue #1562.
+     */
+    @Provides
+    @Singleton
+    fun provideLegacyHttpFeatureFlagProvider(manager: FeatureFlagManager): LegacyHttpFeatureFlagProvider = manager
 
     @Provides
     @Singleton
