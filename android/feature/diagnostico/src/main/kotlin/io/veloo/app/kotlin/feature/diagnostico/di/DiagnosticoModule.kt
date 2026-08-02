@@ -12,9 +12,12 @@ import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
 import io.signallq.app.feature.diagnostico.remote.DiagnosticDivergenceReporter
 import io.signallq.app.feature.diagnostico.remote.DiagnosticRolloutStatusRepository
 import io.signallq.app.feature.diagnostico.remote.FileRulesetCacheStore
+import io.signallq.app.feature.diagnostico.remote.ProviderDirectoryCache
 import io.signallq.app.feature.diagnostico.remote.ProviderDirectoryRepository
 import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
+import io.signallq.app.feature.diagnostico.remote.RoomProviderDirectoryCache
 import io.signallq.app.core.database.SignallQDatabase
+import io.signallq.app.core.database.provider.ProviderDirectoryCacheDao
 import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.core.featureflags.FeatureFlagProvider
@@ -148,16 +151,33 @@ object DiagnosticoModule {
             appChannel = appChannel,
         )
 
+    /** Provê o DAO do cache local do diretorio remoto de provedores (GH#1462, parte de #951). */
+    @Provides
+    @Singleton
+    fun provideProviderDirectoryCacheDao(bancoDados: SignallQDatabase): ProviderDirectoryCacheDao =
+        bancoDados.providerDirectoryCacheDao()
+
+    /** Provê ProviderDirectoryCache no grafo Hilt (GH#1462, parte de #951) — implementacao
+     *  Room, ultimo resultado valido por consulta (findById/searchByName). */
+    @Provides
+    @Singleton
+    fun provideProviderDirectoryCache(dao: ProviderDirectoryCacheDao): ProviderDirectoryCache =
+        RoomProviderDirectoryCache(dao)
+
     /**
      * Provê ProviderDirectoryRepository no grafo Hilt (GH#965) — diretorio remoto
      * de provedores de cauda longa (logo + contato). Consumido pelo resolver de
      * identidade de operadora em `:app` (catalogo local -> este repository ->
      * fallback generico), nunca direto por Composable.
+     *
+     * GH#1462: [cache] permite responder com o ultimo dado valido conhecido quando a
+     * rede falha, antes do resolver cair no fallback generico final (ver kdoc de
+     * [ProviderDirectoryRepository]).
      */
     @Provides
     @Singleton
-    fun provideProviderDirectoryRepository(): ProviderDirectoryRepository =
-        ProviderDirectoryRepository(baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL)
+    fun provideProviderDirectoryRepository(cache: ProviderDirectoryCache): ProviderDirectoryRepository =
+        ProviderDirectoryRepository(baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL, cache = cache)
 
     /**
      * Provê TopologyDiagnostic no grafo Hilt.
