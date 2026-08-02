@@ -1,6 +1,6 @@
 name: Épico
 description: Organizar uma iniciativa ampla em features e frentes de trabalho.
-title: "[ÉPICO] "
+title: "Feat - "
 labels:
   - "type:feature"
 assignees: []
