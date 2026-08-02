@@ -73,9 +73,14 @@ export const LocalAdsSection: React.FC = () => {
     carregar();
   };
 
-  const excluir = async (id: string) => {
+  const excluir = async (ad: LocalAd) => {
+    // Achado da Marina (revisão de 2026-07-25, issue #1402/#1405): exclusão disparava
+    // direto no clique, sem confirmação — risco real pro Luiz apagar por engano um
+    // anúncio já curado, sem undo (mesmo padrão de confirmação de ação destrutiva já usado
+    // em `ToolsPage.tsx`/`IntegrationsSettings.tsx`).
+    if (!window.confirm(`Excluir o anúncio "${ad.title}"? Essa ação não pode ser desfeita.`)) return;
     setSalvando(true);
-    const ok = await localAdsService.deleteAd(id);
+    const ok = await localAdsService.deleteAd(ad.id);
     setSalvando(false);
     if (ok) carregar();
     else setErro("Falha ao excluir. Tente novamente.");
@@ -257,7 +262,7 @@ export const LocalAdsSection: React.FC = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => excluir(ad.id)}
+                    onClick={() => excluir(ad)}
                     aria-label={`Excluir ${ad.title}`}
                     disabled={salvando}
                     className="p-1.5 cursor-pointer text-[var(--text-tertiary)] hover:text-red-400 disabled:opacity-50"

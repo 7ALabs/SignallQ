@@ -13,6 +13,13 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+/**
+ * Issue #1528: desde que [RecommendationRequestMapper.mapTags] passou a ler
+ * `report.recomendacoes` (saida real do [RecomendacaoPraticaEngine]) para as tags com regra
+ * REC equivalente, todo teste aqui precisa passar `gerarRecomendacoes =
+ * RecomendacaoPraticaEngine::recomendar` para [DiagnosticRunner.run] -- sem isso
+ * `report.recomendacoes` fica vazio e as tags correspondentes nunca aparecem.
+ */
 class RecommendationRequestMapperTest {
 
     @Test
@@ -27,14 +34,18 @@ class RecommendationRequestMapperTest {
                 perdaPercentual = 0.0,
                 bufferbloatMs = 0.0,
             ),
+            // rssi=-75dBm (2.4GHz) + linkSpeed=40Mbps dispara REC-02 (Aproxime-se do
+            // roteador) -- rssi mais fraco que -80 bloquearia REC-01/02 (ver
+            // recomendarWifi5Ghz/recomendarDistanciaRoteador), e linkSpeed >= 54 tambem
+            // bloquearia REC-02.
             wifi = WifiDiagnosticInput(
-                rssiDbm = -80,
-                linkSpeedMbps = 100,
+                rssiDbm = -75,
+                linkSpeedMbps = 40,
                 frequenciaMhz = 2412,
                 dispositivosNaRede = 25,
             ),
         )
-        val report = DiagnosticRunner.run(input)
+        val report = DiagnosticRunner.run(input, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
 
         val request = RecommendationRequestMapper.map(report, input)
 
@@ -61,7 +72,7 @@ class RecommendationRequestMapperTest {
                 signalQualityPercent = 80,
             ),
         )
-        val report = DiagnosticRunner.run(input)
+        val report = DiagnosticRunner.run(input, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
 
         val request = RecommendationRequestMapper.map(report, input)
 
@@ -89,13 +100,18 @@ class RecommendationRequestMapperTest {
                 linkSpeedMbps = 300,
                 frequenciaMhz = 5180,
             ),
+            // REC-06 exige uma alternativa de DNS com margem segura de 5ms (ver
+            // recomendarDnsLento) -- so a latencia atual alta (DNS-01/02 bruto) nao basta.
             dns = DnsDiagnosticInput(
                 currentDnsIp = "10.0.0.1",
                 currentDnsName = "operadora",
                 currentDnsLatencyMs = 320,
+                bestDnsNameFromComparison = "Cloudflare",
+                bestDnsLatencyMsFromComparison = 30,
+                dnsComparisonAvailable = true,
             ),
         )
-        val report = DiagnosticRunner.run(input)
+        val report = DiagnosticRunner.run(input, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
 
         val request = RecommendationRequestMapper.map(report, input)
 
@@ -104,7 +120,7 @@ class RecommendationRequestMapperTest {
     }
 
     @Test
-    fun `velocidade abaixo do contratado e calculada direto das metricas`() {
+    fun `velocidade abaixo do contratado reflete a comparacao REC-04 com o linkSpeed`() {
         val input = DiagnosticInput(
             connectionType = ConnectionType.ethernet,
             internet = InternetDiagnosticInput(
@@ -115,9 +131,17 @@ class RecommendationRequestMapperTest {
                 perdaPercentual = 0.0,
                 bufferbloatMs = 0.0,
             ),
+            // REC-04 (recomendarRoteadorLimitado) exige input.wifi != null e compara
+            // velocidadeContratadaMbps contra linkSpeedMbps (nao contra download) -- rssi
+            // bom + linkSpeed < 144 + plano (100) > linkSpeed (80) dispara a regra.
+            wifi = WifiDiagnosticInput(
+                rssiDbm = -55,
+                linkSpeedMbps = 80,
+                frequenciaMhz = 5180,
+            ),
             velocidadeContratadaMbps = 100,
         )
-        val report = DiagnosticRunner.run(input)
+        val report = DiagnosticRunner.run(input, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
 
         val request = RecommendationRequestMapper.map(report, input)
 
@@ -143,7 +167,7 @@ class RecommendationRequestMapperTest {
                 frequenciaMhz = 5180,
             ),
         )
-        val report = DiagnosticRunner.run(input)
+        val report = DiagnosticRunner.run(input, gerarRecomendacoes = RecomendacaoPraticaEngine::recomendar)
 
         val request = RecommendationRequestMapper.map(report, input)
 

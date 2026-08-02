@@ -25,8 +25,10 @@ data class ResultadoAmostragemPing(
 
 /**
  * Algoritmo puro de amostragem de ping, extraído em GH#1019 por estar duplicado
- * literalmente entre [ExecutorSpeedtestCloudflare] (Tela 1 · Velocidade) e
- * [PingExecutor] (tela Ping + [io.signallq.app.jogos.JogoConexaoEngine]).
+ * literalmente entre [ExecutorSpeedtestCloudflare] (Tela 1 · Velocidade) e [PingExecutor]
+ * (tela Ping + refinamento opcional de latência do Modo gamer,
+ * `io.signallq.app.ui.screen.ModoGamerConfigConteudo` — reaproveitado do antigo
+ * `JogoConexaoEngine`/GH#935 pela fusão #1487).
  *
  * Regras (preservadas exatamente como estavam nos dois consumidores originais):
  * - a 1ª amostra é sempre descartada (aquecimento de conexão);

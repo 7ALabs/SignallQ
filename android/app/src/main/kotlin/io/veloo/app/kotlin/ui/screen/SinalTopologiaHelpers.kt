@@ -8,6 +8,8 @@ import androidx.compose.material.icons.outlined.Router
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import io.signallq.app.core.diagnostico.BandaWifi
+import io.signallq.app.core.diagnostico.MetricClassifier
+import io.signallq.app.core.diagnostico.MetricStatus
 import io.signallq.app.core.diagnostico.NivelCongestionamento
 import io.signallq.app.core.network.contracts.topologia.NivelConfianca
 import io.signallq.app.core.network.contracts.topologia.PapelTopologia
@@ -150,25 +152,20 @@ internal fun List<RedeVizinha>.bandaCombinadaLabel(): String {
     return ordem.filter { it in bandas }.mapNotNull { numeros[it] }.joinToString(" + ") + " GHz"
 }
 
+/**
+ * GH#1228 Fatia 5 (P0-2): delega a [MetricClassifier.classificarRssiWifi] em vez da regua
+ * propria (`>=` inclusivo, divergente do canonico usado por `WifiSignalQualityEngine`) --
+ * mesmo padrao ja aplicado em `SinalMovelClassificacao.kt` para RSRP/RSRQ/SINR.
+ */
 internal fun signalQuality(
     rssiDbm: Int,
     banda: BandaWifi = BandaWifi.desconhecida,
 ): String =
-    when (banda) {
-        BandaWifi.ghz5 ->
-            when {
-                rssiDbm >= -55 -> "Excelente"
-                rssiDbm >= -65 -> "Bom"
-                rssiDbm >= -75 -> "Regular"
-                else -> "Fraco"
-            }
-        else ->
-            when {
-                rssiDbm >= -50 -> "Excelente"
-                rssiDbm >= -60 -> "Bom"
-                rssiDbm >= -70 -> "Regular"
-                else -> "Fraco"
-            }
+    when (MetricClassifier.classificarRssiWifi(rssiDbm, banda)) {
+        MetricStatus.excelente -> "Excelente"
+        MetricStatus.bom -> "Bom"
+        MetricStatus.regular -> "Regular"
+        MetricStatus.ruim, MetricStatus.critico, MetricStatus.inconclusivo -> "Fraco"
     }
 
 internal fun congestionColor(

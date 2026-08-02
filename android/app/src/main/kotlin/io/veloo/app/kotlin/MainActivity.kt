@@ -196,6 +196,9 @@ class MainActivity : ComponentActivity() {
             val temaSelecionado = preferenciasUi.temaSelecionado
             val analiseAvancada = preferenciasUi.analiseAvancada
 
+            // Modo gamer (Feature #550, issue #1476) — combinação jogo+device salva como padrão.
+            val modoGamerPadrao = viewModel.modoGamerPadrao.collectAsStateWithLifecycle().value
+
             val perfilProvedor = viewModel.preferenciasPerfilProvedor.collectAsStateWithLifecycle().value
             val nomeUsuario = perfilProvedor.nomeUsuario
             val fotoUriUsuario = perfilProvedor.fotoUriUsuario
@@ -219,6 +222,12 @@ class MainActivity : ComponentActivity() {
                 viewModel.speedtestPendenteModoMovel
                     .collectAsStateWithLifecycle()
                     .value
+            // GH#1512 — conclusao do diagnostico local quando o Speedtest e interrompido
+            // por Wi-Fi conectado sem internet.
+            val diagnosticoConectividade =
+                viewModel.diagnosticoConectividade
+                    .collectAsStateWithLifecycle()
+                    .value
             val apelidos = viewModel.apelidos.collectAsStateWithLifecycle().value
             val correlacoesTopologia = viewModel.correlacoesTopologia.collectAsStateWithLifecycle().value
             val snapshotDiagnostico =
@@ -237,6 +246,8 @@ class MainActivity : ComponentActivity() {
             val anatelBannerDismissed = viewModel.anatelBannerDismissed.collectAsStateWithLifecycle().value
             // Issue #555 -- toggle remoto (Firebase Remote Config) de anuncios nativos.
             val adsFlags by adsFlagsManager.flags.collectAsStateWithLifecycle()
+            // GH#1480 (Epico #1347, F4) -- gate de navegacao dos 9 modulos feature do Consumer.
+            val featureFlagsState by viewModel.featureFlagsState.collectAsStateWithLifecycle()
 
             val gatewayIpDetectado = gateways.firstOrNull()?.ip
             val darkTheme =
@@ -357,6 +368,8 @@ class MainActivity : ComponentActivity() {
                                 onConfirmarSpeedtestMovel = { viewModel.confirmarSpeedtestEmMovel() },
                                 onCancelarSpeedtestMovel = { viewModel.cancelarSpeedtestMovel() },
                                 onSetSpeedtestPermiteHeavyMovel = { valor -> viewModel.setSpeedtestPermiteHeavyMovel(valor) },
+                                diagnosticoConectividade = diagnosticoConectividade,
+                                onLimparDiagnosticoConectividade = { viewModel.limparDiagnosticoConectividade() },
                             ),
                         wifi =
                             io.signallq.app.ui.screen.AppShellWifiState(
@@ -406,6 +419,7 @@ class MainActivity : ComponentActivity() {
                                 flags = adsFlags,
                                 podeRequisitarAnuncio = podeRequisitarAnuncio,
                             ),
+                        featureFlags = featureFlagsState,
                         snapshotDns = snapshotDns,
                         history = history,
                         localIp = localIpUiState,
@@ -517,6 +531,8 @@ class MainActivity : ComponentActivity() {
                         resolveOperadoraContatoLocal = operadoraDirectoryResolver::resolveLocalContact,
                         resolveOperadoraIdentidadeRemota = operadoraDirectoryResolver::resolveIdentity,
                         resolveOperadoraContatoRemoto = operadoraDirectoryResolver::resolveContact,
+                        modoGamerPadrao = modoGamerPadrao,
+                        onSalvarModoGamerPadrao = viewModel::salvarModoGamerPadrao,
                     )
                 } // else onboardingConcluido
             }

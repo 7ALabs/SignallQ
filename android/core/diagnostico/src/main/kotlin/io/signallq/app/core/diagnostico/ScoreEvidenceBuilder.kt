@@ -161,7 +161,7 @@ object ScoreEvidenceBuilder {
     // MetricClassifier.classificarPerdaPacotes nao tem faixa "critico" dedicada (so
     // vai ate "ruim" — ver kdoc do MetricClassifier). O teto de score, porem, precisa
     // reconhecer perda REALMENTE critica pelo threshold de negocio ja usado em
-    // InternetDiagnosticEngine/RecommendationEngine (>=3% = critico), entao a nota
+    // InternetDiagnosticEngine/RecomendacaoPraticaEngine (>=3% = critico), entao a nota
     // aqui e calculada direto (nao via MetricClassifier) para preservar essa faixa.
     private fun perdaPacotesStatus(input: DiagnosticInput): EvidenceScore {
         val internet = input.internet

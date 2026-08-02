@@ -147,7 +147,8 @@ export function useSpeedTest(modo: SpeedTestMode) {
           onPhase: (p) => {
             if (STEP_ORDER.includes(phaseRef.current)) {
               const key = phaseRef.current as 'latencia' | 'download' | 'upload'
-              setPhaseResults((prev) => ({ ...prev, [key]: liveValueRef.current }))
+              const finalVal = liveValueRef.current
+              setPhaseResults((prev) => ({ ...prev, [key]: finalVal }))
             }
             phaseRef.current = p
             liveValueRef.current = 0

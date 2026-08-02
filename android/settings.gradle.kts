@@ -53,6 +53,11 @@ include(
     // Fase 3 do MVP0 (issue #1164) -- laudo tecnico em PDF (Grupo 3, trimmed) reaproveitando
     // o motor de paginacao HTML->PDF ja extraido na Fase 1 (":core:relatorio").
     ":pro:feature:laudo",
+    // Fundacao de Feature Flags do Consumer (issue #1477, Epico #1347) -- modulo novo,
+    // nasce hierarquico (":core:featureflags", nao ":coreFeatureFlags"), conforme
+    // .claude/rules/higiene-e-padronizacao-repositorio.md §5. Consumido apenas por :app
+    // e modulos core/feature do Consumer -- nunca por :pro:*.
+    ":core:featureflags",
 )
 
 project(":coreNetwork").projectDir    = File("core/network")

@@ -7,16 +7,42 @@
    topo do arquivo, e tokens.css também começa com @import (fontes do Google). */
 @import '../../packages/design-system/styles/tokens.css';
 @import 'tailwindcss';
+@source "./components";
+@source "./app";
 
-html,
-body,
-#root {
-  height: 100%;
+/* Removido height 100% do html e body para evitar quebra do scroll nativo da janela */
+
+/* Reserva o espaço da barra de rolagem vertical em toda página, mesmo nas
+   que não têm conteúdo suficiente pra precisar dela — sem isso, a largura
+   útil da página muda entre uma rota curta (sem scrollbar) e uma longa como
+   /privacidade (com scrollbar), fazendo o shell inteiro (nav, miolo
+   centralizado) "pular" alguns pixels de largura ao trocar de rota no
+   Windows (scrollbar clássica, ocupa espaço de layout — diferente da
+   scrollbar overlay do macOS). Achado 01/08/2026, distinto do bug de
+   remontagem do SiteNav (já corrigido movendo-o pro layout raiz). */
+html {
+  scrollbar-gutter: stable;
+}
+
+:root {
+  /* Área segura do shell de página (Guia de Implementação v4, §3) — mínimo
+     24px, escala com 6% da viewport, máximo 96px. Usada como padding-inline
+     do container do shell em toda tela; não recalcular por tela. */
+  --safe-x: clamp(24px, 6vw, 96px);
+}
+
+html.dark .sq-logo-light {
+  display: none !important;
+}
+
+html.dark .sq-logo-dark {
+  display: block !important;
 }
 
 body {
   margin: 0;
-  background: var(--bg-primary);
+  background: radial-gradient(circle at top center, #0B1120 0%, var(--bg-primary) 100%);
+  background-attachment: fixed;
   font-family: var(--font-sans);
   color: var(--text-primary);
 }
@@ -80,6 +106,24 @@ a:hover {
   animation: sq-ring-pulse 5s ease-in-out infinite alternate;
 }
 
+/* Halo pulsante atrás do velocímetro (`Velocimetro.tsx`) — 1:1 com
+   `ScreenHome.dc.html` (`sq-gauge-pulse`). */
+@keyframes sq-gauge-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+.sq-gauge-glow {
+  animation: sq-gauge-pulse 4.5s ease-in-out infinite;
+}
+
 .sq-fade-up {
   animation: sq-fade-up 450ms ease-out both;
 }
@@ -88,50 +132,21 @@ a:hover {
   animation: sq-pulse-dot 1.4s ease-in-out infinite;
 }
 
-/* Card de anúncio animado do rodapé (SiteFooter, coluna "Baixe o app") —
-   1:1 com SiteFooter.dc.html (barras de equalizador + brilho + sweep no CTA). */
-@keyframes sq-ad-bar {
-  0%,
-  100% {
-    transform: scaleY(0.55);
-  }
-  50% {
-    transform: scaleY(1);
-  }
+/* PwaToastStack — some quando o rodapé (SiteFooter) entra na viewport, senão
+   o toast fixed fica sobreposto ao conteúdo do rodapé (bug real, 2026-07-26).
+   Classe `sq-footer-visible` publicada no <html> pelo próprio SiteFooter via
+   IntersectionObserver — reaparece com a mesma transição se o usuário rolar
+   de volta pra cima antes do rodapé sair de vista. */
+.pwa-toast-stack {
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
 }
 
-@keyframes sq-ad-sweep {
-  0% {
-    transform: translateX(-40px);
-  }
-  100% {
-    transform: translateX(280px);
-  }
-}
-
-@keyframes sq-ad-glow {
-  0%,
-  100% {
-    opacity: 0.55;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.12);
-  }
-}
-
-.sq-ad-bar {
-  transform-origin: bottom;
-  animation: sq-ad-bar 1.5s ease-in-out infinite;
-}
-
-.sq-ad-sweep {
-  animation: sq-ad-sweep 3.2s ease-in-out infinite;
-}
-
-.sq-ad-glow-a {
-  animation: sq-ad-glow 5s ease-in-out infinite;
+html.sq-footer-visible .pwa-toast-stack {
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -140,6 +155,10 @@ a:hover {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .sq-gauge-glow {
+    animation: none;
   }
 }
 
@@ -161,3 +180,51 @@ a:hover {
     pointer-events: none;
   }
 }
+
+.sq-fade-up {
+  animation: sqFadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes sqFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.delay-100 { animation-delay: 100ms; opacity: 0; }
+.delay-200 { animation-delay: 200ms; opacity: 0; }
+.delay-300 { animation-delay: 300ms; opacity: 0; }
+
+/* Carrossel/animações da landing do app (`src/app/app/page.tsx`) — movidas de
+   `src/app/globals.css` (achado 01/08/2026: arquivo nunca importado por
+   nenhuma página, então essas regras nunca surtiam efeito; arquivo removido). */
+@keyframes sq-app-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes sq-app-glow { 0%,100% { transform: translate3d(0,0,0) scale(1); opacity: .8; } 50% { transform: translate3d(20px,-16px,0) scale(1.12); opacity: 1; } }
+@keyframes sq-app-glow2 { 0%,100% { transform: translate3d(0,0,0) scale(1.05); opacity: .6; } 50% { transform: translate3d(-18px,14px,0) scale(1); opacity: .9; } }
+@keyframes sq-app-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes sq-app-bounce { 0%,100% { transform: translateY(0); opacity: .6; } 50% { transform: translateY(6px); opacity: 1; } }
+@keyframes sq-app-dot { 0%,100% { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 55%, transparent); } 50% { opacity: .6; box-shadow: 0 0 0 6px transparent; } }
+
+.sq-app-track { display: flex; gap: 14px; width: max-content; animation: sq-app-marquee 26s linear infinite; }
+.sq-app-track:hover { animation-play-state: paused; }
+.sq-app-glow-a { animation: sq-app-glow 9s ease-in-out infinite; }
+.sq-app-glow-b { animation: sq-app-glow2 11s ease-in-out infinite; }
+.sq-app-float { animation: sq-app-float 4.5s ease-in-out infinite; }
+.sq-app-bounce { animation: sq-app-bounce 1.8s ease-in-out infinite; }
+.sq-app-dot { animation: sq-app-dot 1.8s ease-in-out infinite; }
+
+.sq-app-reveal { opacity: 0; transform: translateY(28px); }
+.sq-app-reveal.sq-in { opacity: 1; transform: none; transition: opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sq-app-track { animation: none; }
+  .sq-app-scroller { overflow-x: auto; }
+  .sq-app-glow-a, .sq-app-glow-b, .sq-app-float, .sq-app-bounce, .sq-app-dot { animation: none !important; }
+  .sq-app-reveal, .sq-app-reveal.sq-in { opacity: 1; transform: none; transition: none; }
+}
+

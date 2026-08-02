@@ -9,17 +9,16 @@ import { PwaUpdatePrompt } from './PwaUpdatePrompt'
 // vivem na mesma casca visual dentro de um único container fixo,
 // column-reverse com gap fixo — nunca dois `fixed` disputando espaço.
 //
-// `bottom` soma a altura real do banner de anúncio (achado do Rhodolfo, QA de PR
-// #1186: nas telas Velocidade/Resultado/Histórico o banner ocupa a faixa
-// inferior e o toast cortava o texto dele). A var `--ad-banner-height` é
-// publicada pelo `AdBannerWide` (antigo `AdBanner`, substituído na reconstrução
-// v2 — issue #1402/#1403) e cai pra 0px nas páginas sem banner.
+// A classe `pwa-toast-stack` (estilo em `index.css`) é o gancho que o
+// `SiteFooter` usa pra esconder este container quando o rodapé entra na
+// viewport — sem isso o toast (fixed na base) fica sobreposto ao conteúdo do
+// rodapé ao rolar até o fim (bug real reportado pelo Luiz, 2026-07-26).
 export function PwaToastStack() {
   return (
     <div
-      className="fixed inset-x-0 z-[1000] flex flex-col-reverse items-center gap-2 px-4"
+      className="pwa-toast-stack fixed inset-x-0 z-[1000] flex flex-col-reverse items-center gap-2 px-4"
       style={{
-        bottom: 'calc(1rem + var(--ad-banner-height, 0px))',
+        bottom: '1rem',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
     >

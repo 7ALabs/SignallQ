@@ -16,20 +16,25 @@ import io.signallq.app.ads.AdsRemoteConfigRepository
 import io.signallq.app.analytics.CompositeAnalyticsTracker
 import io.signallq.app.analytics.FirebaseAnalyticsHelper
 import io.signallq.app.analytics.FirebaseRecommendationAnalyticsTracker
+import io.signallq.app.analytics.distributionChannel
 import io.signallq.app.core.database.CoreDatabaseModulo
 import io.signallq.app.core.database.MedicaoDao
 import io.signallq.app.core.database.SignallQDatabase
 import io.signallq.app.core.database.chat.ChatSessionDao
+import io.signallq.app.core.database.connectivity.ConnectivityDiagnosisHistoryDao
 import io.signallq.app.core.datastore.FeatureFlagStore
 import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.core.featureflags.FeatureFlagCatalog
+import io.signallq.app.core.featureflags.FeatureFlagProvider
+import io.signallq.app.core.featureflags.FeatureFlagsModulo
 import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.core.network.CoreNetworkModulo
 import io.signallq.app.core.network.DefaultDispatcherProvider
 import io.signallq.app.core.network.DispatcherProvider
-import io.signallq.app.core.network.FeatureFlagProvider
 import io.signallq.app.core.network.MonitorRede
 import io.signallq.app.core.network.NetworkCapabilitiesProvider
+import io.signallq.app.core.network.connectivity.ConnectivityDiagnosisRunner
 import io.signallq.app.core.network.wifi.ScannerRedesWifi
 import io.signallq.app.core.permissions.CorePermissionsModulo
 import io.signallq.app.core.permissions.GerenciadorPermissoesRede
@@ -45,6 +50,8 @@ import io.signallq.app.feature.fibra.ExecutorFibra
 import io.signallq.app.feature.fibra.FeatureFibraModulo
 import io.signallq.app.feature.speedtest.ExecutorSpeedtest
 import io.signallq.app.feature.speedtest.FeatureSpeedtestModulo
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisRepository
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisRepositoryImpl
 import io.signallq.app.feature.wifi.FeatureWifiModulo
 import io.signallq.app.featureflags.FeatureFlagManager
 import io.signallq.app.featureflags.FeatureFlagRepository
@@ -58,6 +65,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Qualifier
 import javax.inject.Singleton
+import io.signallq.app.core.network.FeatureFlagProvider as LegacyHttpFeatureFlagProvider
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
@@ -198,6 +206,20 @@ object AppModule {
     fun provideAdminIngestKey(): String = BuildConfig.ADMIN_INGEST_KEY
 
     /**
+     * Canal de distribuicao desta instalacao ("play_store"/"sideload"/etc.) —
+     * GH#1445 (parte de #952). `distributionChannel()` vive em
+     * `io.signallq.app.analytics` (`:app`); expor via `@Named` permite que
+     * modulos `:feature:*` (que nao podem depender de `:app`) consumam o mesmo
+     * calculo sem duplica-lo — usado hoje pela segmentacao de rollout do shadow
+     * mode ([io.signallq.app.feature.diagnostico.remote.DiagnosticDivergenceReporter]).
+     */
+    @Provides
+    @Named("appDistributionChannel")
+    fun provideAppDistributionChannel(
+        @ApplicationContext context: Context,
+    ): String = distributionChannel(context)
+
+    /**
      * Repository para busca e persistencia de feature flags remotas.
      * Usa ADMIN_INGEST_URL como base — o Admin Worker expoe /flags (SIG-13) e /feature-flags (legado).
      */
@@ -220,13 +242,37 @@ object AppModule {
     @Singleton
     fun provideFeatureFlagStore(prefs: PreferenciasAppRepository): FeatureFlagStore = prefs
 
+    /** Catalogo canonico de feature flags do Consumer (issue #1477, Epico #1347) --
+     *  carregado uma vez do classpath de `:core:featureflags`. */
+    @Provides
+    @Singleton
+    fun provideFeatureFlagCatalog(): FeatureFlagCatalog = FeatureFlagsModulo.criarCatalogo()
+
     /**
-     * Expoe FeatureFlagManager como FeatureFlagProvider para os modulos feature.
-     * O FeatureFlagManager e @Singleton via @Inject constructor — aqui apenas bind a interface.
+     * Unico ponto de acesso a feature flags do Consumer via Firebase Remote Config
+     * (issue #1477, Epico #1347). Reusa a MESMA instancia de [FirebaseRemoteConfig] do
+     * toggle de anuncios (issue #555) -- um unico template remoto, chaves diferentes
+     * (`consumer.*`/`shared.*`/`app.*` aqui, `ads_native_*` la), nao dois Remote Config
+     * separados.
      */
     @Provides
     @Singleton
-    fun provideFeatureFlagProvider(manager: FeatureFlagManager): FeatureFlagProvider = manager
+    fun provideConsumerFeatureFlagProvider(
+        remoteConfig: Lazy<FirebaseRemoteConfig>,
+        catalog: FeatureFlagCatalog,
+    ): FeatureFlagProvider = FeatureFlagsModulo.criarProvider(remoteConfigProvider = { remoteConfig.get() }, catalog = catalog)
+
+    /**
+     * Expoe [FeatureFlagManager] como o [LegacyHttpFeatureFlagProvider] (HTTP/SIG-13,
+     * `io.signallq.app.core.network.FeatureFlagProvider`) para consumidores que ainda dependem
+     * desse contrato -- hoje: [io.signallq.app.ui.OperadoraDirectoryResolver] (issue #1464).
+     * Binding removido por engano no PR #1560 (migracao do #1497) por nao ter consumidor
+     * conhecido naquele momento; o PR #1561, em paralelo, adicionou este novo consumidor sem
+     * ver a remocao -- achado real do PR #1560 -- ver issue #1562.
+     */
+    @Provides
+    @Singleton
+    fun provideLegacyHttpFeatureFlagProvider(manager: FeatureFlagManager): LegacyHttpFeatureFlagProvider = manager
 
     @Provides
     @Singleton
@@ -235,15 +281,19 @@ object AppModule {
     ): FirebaseAnalytics = FirebaseAnalytics.getInstance(ctx)
 
     /**
-     * Remote Config para o toggle de anuncios nativos (issue #555).
+     * Remote Config compartilhado -- toggle de anuncios nativos (issue #555) E feature
+     * flags do Consumer (issue #1477, Epico #1347) leem da MESMA instancia, cada um com
+     * seu proprio conjunto de chaves. Defaults dos dois catalogos sao mesclados num unico
+     * `setDefaultsAsync` -- chamar duas vezes SUBSTITUIRIA o mapa de defaults inteiro em
+     * vez de somar, apagando o outro conjunto de chaves.
      *
-     * [AdsRemoteConfigRepository] injeta isso como `dagger.Lazy<FirebaseRemoteConfig>`
-     * (nao `kotlin.Lazy` -- variancia do tipo Kotlin gera wildcard incompativel com o
-     * binding do Dagger), entao este metodo so roda no primeiro `.get()` de verdade.
-     * `FirebaseRemoteConfig.getInstance()` exige `FirebaseApp` ja inicializado, o que
-     * nao e verdade em testes Robolectric -- construir isso eagerly aqui (sem o Lazy do
-     * Dagger) derrubava QUALQUER teste que instanciasse a Application real, nao so os
-     * testes de ads.
+     * [AdsRemoteConfigRepository]/[io.signallq.app.core.featureflags.RemoteConfigFeatureFlagProvider]
+     * injetam isso como `dagger.Lazy<FirebaseRemoteConfig>` (nao `kotlin.Lazy` -- variancia
+     * do tipo Kotlin gera wildcard incompativel com o binding do Dagger), entao este metodo
+     * so roda no primeiro `.get()` de verdade. `FirebaseRemoteConfig.getInstance()` exige
+     * `FirebaseApp` ja inicializado, o que nao e verdade em testes Robolectric -- construir
+     * isso eagerly aqui (sem o Lazy do Dagger) derrubava QUALQUER teste que instanciasse a
+     * Application real, nao so os testes de ads.
      *
      * Fetch minimo de 0 em debug para iterar rapido testando o painel do Firebase
      * Console; em release o SDK ja aplica seu proprio intervalo minimo padrao
@@ -251,14 +301,14 @@ object AppModule {
      */
     @Provides
     @Singleton
-    fun provideFirebaseRemoteConfig(): FirebaseRemoteConfig {
+    fun provideFirebaseRemoteConfig(catalog: FeatureFlagCatalog): FirebaseRemoteConfig {
         val remoteConfig = FirebaseRemoteConfig.getInstance()
         val settings: FirebaseRemoteConfigSettings =
             remoteConfigSettings {
                 minimumFetchIntervalInSeconds = if (BuildConfig.DEBUG) 0L else 3_600L
             }
         remoteConfig.setConfigSettingsAsync(settings)
-        remoteConfig.setDefaultsAsync(AdsRemoteConfigRepository.DEFAULTS_REMOTE_CONFIG)
+        remoteConfig.setDefaultsAsync(AdsRemoteConfigRepository.DEFAULTS_REMOTE_CONFIG + catalog.toRemoteConfigDefaultsMap())
         return remoteConfig
     }
 
@@ -295,6 +345,25 @@ object AppModule {
     @Provides
     @Singleton
     fun provideChatSessionDao(bancoDados: SignallQDatabase): ChatSessionDao = bancoDados.chatSessionDao()
+
+    @Provides
+    @Singleton
+    fun provideConnectivityDiagnosisHistoryDao(
+        bancoDados: SignallQDatabase,
+    ): ConnectivityDiagnosisHistoryDao = bancoDados.connectivityDiagnosisHistoryDao()
+
+    @Provides
+    @Singleton
+    fun provideConnectivityDiagnosisRunner(
+        @ApplicationContext ctx: Context,
+    ): ConnectivityDiagnosisRunner = ConnectivityDiagnosisRunner(ctx)
+
+    @Provides
+    @Singleton
+    fun provideConnectivityDiagnosisRepository(
+        runner: ConnectivityDiagnosisRunner,
+        historyDao: ConnectivityDiagnosisHistoryDao,
+    ): ConnectivityDiagnosisRepository = ConnectivityDiagnosisRepositoryImpl(runner, historyDao)
 
     @Provides
     @Singleton

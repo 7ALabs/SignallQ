@@ -11,14 +11,6 @@ export const PAGE_META: Record<string, PageMeta> = {
       'Meça agora a velocidade real da sua internet: download, upload e latência, com veredito claro para navegação, streaming, videochamadas e jogos.',
     path: '/',
   },
-  '/pro': {
-    title: 'SignallQ PRO — venda seu diagnóstico de Wi-Fi como serviço',
-    // Achado bloqueante da Lia: description prometia trial ("Experimente grátis por
-    // 14 dias") contradizendo "Em breve" da seção Planos/modal. Corrigido para vitrine honesta.
-    description:
-      'Organize clientes, registre medições por ambiente e entregue um laudo profissional com a sua marca. Em breve — entre na lista de espera.',
-    path: '/pro',
-  },
   '/historico': {
     title: 'Histórico de medições — SignallQ',
     description: 'Veja o histórico local das suas medições de velocidade. Armazenado somente neste navegador.',
@@ -56,6 +48,53 @@ export const PAGE_META: Record<string, PageMeta> = {
     description:
       'Internet parece boa mas dá lag em jogos, e você não consegue hospedar partida ou conectar direto com amigos? Entenda o CGNAT e o NAT Strict, e o que fazer.',
     path: '/lag-em-jogos-online',
+  },
+  '/comparativo': {
+    title: 'SignallQ x testes de velocidade tradicionais',
+    description: 'Um número de Mbps não diz por que a internet trava. Veja o que muda quando o teste também mede latência sob carga, DNS e o motivo provável do problema.',
+    path: '/comparativo',
+  },
+  '/internet-para-jogos': {
+    title: 'Que internet você precisa para jogar online sem travar',
+    description: 'Não é só velocidade: latência baixa e estável importa mais que Mbps para a maioria dos jogos competitivos.',
+    path: '/internet-para-jogos',
+  },
+  '/app': {
+    title: 'App SignallQ',
+    description: 'O app que não para no número: descobre por que sua internet está ruim. Em teste fechado.',
+    path: '/app',
+  },
+  '/brand': {
+    title: 'Identidade visual do SignallQ',
+    description: 'Logotipo, variações de cor e paleta oficial para uso consistente.',
+    path: '/brand',
+  },
+  // As 4 rotas abaixo são placeholder ("Em breve") pros diagnósticos
+  // dedicados linkados pelos chips da Home (`DIAG_ITEMS`, `src/app/page.tsx`)
+  // — ainda não implementados, `noindex` até terem conteúdo real.
+  '/velocidade-e-latencia': {
+    title: 'Velocidade e latência — em breve — SignallQ',
+    description: 'Diagnóstico dedicado de velocidade e latência, em construção.',
+    path: '/velocidade-e-latencia',
+    robots: 'noindex,follow',
+  },
+  '/latencia-sob-carga': {
+    title: 'Latência sob carga — em breve — SignallQ',
+    description: 'Diagnóstico dedicado de latência sob carga (bufferbloat), em construção.',
+    path: '/latencia-sob-carga',
+    robots: 'noindex,follow',
+  },
+  '/servidores-dns': {
+    title: 'Servidores DNS — em breve — SignallQ',
+    description: 'Diagnóstico dedicado de servidores DNS, em construção.',
+    path: '/servidores-dns',
+    robots: 'noindex,follow',
+  },
+  '/modo-gamer': {
+    title: 'Modo gamer — em breve — SignallQ',
+    description: 'Diagnóstico dedicado de modo gamer por jogo, em construção.',
+    path: '/modo-gamer',
+    robots: 'noindex,follow',
   },
 }
 

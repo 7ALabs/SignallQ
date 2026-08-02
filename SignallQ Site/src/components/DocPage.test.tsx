@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+
 import { describe, expect, it } from 'vitest'
 import { DocPage } from './DocPage'
 
@@ -40,3 +40,4 @@ describe('DocPage', () => {
     expect(screen.getByText('Atualizado em X')).toBeInTheDocument()
   })
 })
+

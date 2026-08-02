@@ -24,6 +24,12 @@ CLOUDFLARE_D1_DATABASE_ID = "952cb253-1a84-48ac-9018-a4ca31036915"
 # real contra a API.
 FIREBASE_SYNC_ENABLED = "false"
 
+# DIAGNOSTIC_PROXY_SECRET (Refs #1446): compartilhada com o signallq-diagnostic-worker (mesmo
+#   valor nos dois lados) — autentica o proxy de /admin/diagnostic/* worker-to-worker, sem expor
+#   nada ao browser. Gerar: openssl rand -hex 32.
+#   Deploy: npx wrangler secret put DIAGNOSTIC_PROXY_SECRET (aqui) e
+#           npx wrangler secret put DIAGNOSTIC_PROXY_SECRET --name signallq-diagnostic (lá).
+#
 # Secrets: npx wrangler secret put ADMIN_SECRET / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY
 # INGEST_KEY: chave separada para autenticar o app Android em POST /ingest/*
 #   Scope limitado — nao da acesso de leitura ao painel.
@@ -53,6 +59,14 @@ FIREBASE_SYNC_ENABLED = "false"
 binding = "DB"
 database_name = "signallq-admin-db"
 database_id = "952cb253-1a84-48ac-9018-a4ca31036915"
+
+# Refs #1446 — service binding pro signallq-diagnostic-worker, usado só pra fazer proxy de
+# /admin/diagnostic/* (ver proxyDiagnosticAdmin em src/index.ts). Mesmo padrão do GH#767
+# (ai-diagnosis-worker -> signallq-admin): fetch() direto entre dois *.workers.dev é bloqueado
+# pela Cloudflare (erro 1042, anti-loop), service binding é Worker-to-Worker de verdade.
+[[services]]
+binding = "DIAGNOSTIC_WORKER"
+service = "signallq-diagnostic"
 
 # GH#788 — snapshot de latencia/uptime a cada 15min (96 execucoes/dia, dentro do
 # free tier de Workers requests). Cron Triggers sao gratuitos em todos os planos.

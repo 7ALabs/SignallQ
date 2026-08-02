@@ -14,11 +14,11 @@ object FibraSignalQualityEngine {
             return listOf(
                 DiagnosticResult(
                     id = "FIB-01",
-                    titulo = "Fibra Desconectada",
+                    titulo = "A fibra está sem sinal",
                     status = DiagnosticStatus.critical,
                     evidencia = "gpon=down",
-                    mensagemUsuario = "A conexão de fibra óptica está inativa. Sem sinal da OLT da operadora.",
-                    recomendacao = "Verifique se o cabo de fibra está bem conectado na ONT. Se o problema persistir, contate o provedor.",
+                    mensagemUsuario = "A conexão de fibra óptica está inativa. Sem sinal do equipamento da operadora.",
+                    recomendacao = "Verifique se o cabo de fibra está bem conectado no modem de fibra. Se o problema persistir, contate a operadora.",
                     categoria = CAT,
                     podeConcluir = true,
                 ),
@@ -34,11 +34,11 @@ object FibraSignalQualityEngine {
                 GponSaudeStatus.ruim -> resultados.add(
                     DiagnosticResult(
                         id = "FIB-02",
-                        titulo = "Sinal de Recepção Ruim",
+                        titulo = "O sinal recebido da fibra está muito fraco",
                         status = DiagnosticStatus.critical,
                         evidencia = "rx=${"%.2f".format(rx)} dBm",
                         mensagemUsuario = "O sinal de recepção da fibra está muito fraco (${"%.2f".format(rx)} dBm). Abaixo de -27 dBm o link pode cair.",
-                        recomendacao = "Verifique se o cabo de fibra está dobrado ou danificado. Contate o provedor para verificar a potência na OLT.",
+                        recomendacao = "Verifique se o cabo de fibra está dobrado ou danificado. Contate a operadora para verificar a potência no equipamento da operadora.",
                         categoria = CAT,
                         podeConcluir = true,
                     ),
@@ -46,18 +46,18 @@ object FibraSignalQualityEngine {
                 GponSaudeStatus.regular -> resultados.add(
                     DiagnosticResult(
                         id = "FIB-02b",
-                        titulo = "Sinal de Recepção Fraco",
+                        titulo = "O sinal recebido da fibra está fraco",
                         status = DiagnosticStatus.attention,
                         evidencia = "rx=${"%.2f".format(rx)} dBm",
                         mensagemUsuario = "O sinal de recepção da fibra está abaixo do ideal (${"%.2f".format(rx)} dBm). Pode indicar desgaste ou dobra no cabo.",
-                        recomendacao = "Informe o valor ao provedor em caso de instabilidade recorrente.",
+                        recomendacao = "Informe o valor à operadora em caso de instabilidade recorrente.",
                         categoria = CAT,
                     ),
                 )
                 GponSaudeStatus.boa -> resultados.add(
                     DiagnosticResult(
                         id = "FIB-02-OK",
-                        titulo = "Sinal de Recepção Bom",
+                        titulo = "O sinal recebido da fibra está bom",
                         status = DiagnosticStatus.ok,
                         evidencia = "rx=${"%.2f".format(rx)} dBm",
                         mensagemUsuario = "O sinal de recepção da fibra está dentro da faixa ideal (${"%.2f".format(rx)} dBm).",
@@ -76,11 +76,11 @@ object FibraSignalQualityEngine {
                 GponSaudeStatus.ruim -> resultados.add(
                     DiagnosticResult(
                         id = "FIB-03",
-                        titulo = "Potência de Transmissão Ruim",
+                        titulo = "O sinal enviado pela fibra está muito fraco",
                         status = DiagnosticStatus.critical,
                         evidencia = "tx=${"%.2f".format(tx)} dBm",
-                        mensagemUsuario = "A potência de transmissão do laser da ONT está muito baixa (${"%.2f".format(tx)} dBm). O equipamento pode estar com defeito.",
-                        recomendacao = "Reinicie a ONT. Se o problema persistir, o equipamento pode precisar de substituição pelo provedor.",
+                        mensagemUsuario = "A potência de transmissão do laser do modem de fibra está muito baixa (${"%.2f".format(tx)} dBm). O equipamento pode estar com defeito.",
+                        recomendacao = "Reinicie o modem de fibra. Se o problema persistir, o equipamento pode precisar de substituição pela operadora.",
                         categoria = CAT,
                         podeConcluir = true,
                     ),
@@ -88,11 +88,11 @@ object FibraSignalQualityEngine {
                 GponSaudeStatus.regular -> resultados.add(
                     DiagnosticResult(
                         id = "FIB-03b",
-                        titulo = "Potência de Transmissão Baixa",
+                        titulo = "O sinal enviado pela fibra está fraco",
                         status = DiagnosticStatus.attention,
                         evidencia = "tx=${"%.2f".format(tx)} dBm",
                         mensagemUsuario = "A potência de transmissão está abaixo do ideal (${"%.2f".format(tx)} dBm). Pode indicar desgaste do laser.",
-                        recomendacao = "Monitore. Se houver quedas frequentes, solicite visita técnica ao provedor.",
+                        recomendacao = "Monitore. Se houver quedas frequentes, solicite visita técnica à operadora.",
                         categoria = CAT,
                     ),
                 )
@@ -102,11 +102,11 @@ object FibraSignalQualityEngine {
                         resultados.add(
                             DiagnosticResult(
                                 id = "FIB-03-ALTO",
-                                titulo = "Potência de Transmissão Alta",
+                                titulo = "O sinal enviado pela fibra está acima do esperado",
                                 status = DiagnosticStatus.attention,
                                 evidencia = "tx=${"%.2f".format(tx)} dBm",
-                                mensagemUsuario = "A potência de transmissão está acima do esperado (${"%.2f".format(tx)} dBm). Pode causar saturação no receptor da OLT.",
-                                recomendacao = "Informe o provedor para verificação da configuração da OLT.",
+                                mensagemUsuario = "A potência de transmissão está acima do esperado (${"%.2f".format(tx)} dBm). Pode causar saturação no receptor do equipamento da operadora.",
+                                recomendacao = "Informe a operadora para verificação da configuração do equipamento da operadora.",
                                 categoria = CAT,
                             ),
                         )
@@ -114,10 +114,10 @@ object FibraSignalQualityEngine {
                         resultados.add(
                             DiagnosticResult(
                                 id = "FIB-03-OK",
-                                titulo = "Potência de Transmissão Boa",
+                                titulo = "O sinal enviado pela fibra está bom",
                                 status = DiagnosticStatus.ok,
                                 evidencia = "tx=${"%.2f".format(tx)} dBm",
-                                mensagemUsuario = "A potência de transmissão da ONT está na faixa ideal (${"%.2f".format(tx)} dBm).",
+                                mensagemUsuario = "A potência de transmissão do modem de fibra está na faixa ideal (${"%.2f".format(tx)} dBm).",
                                 recomendacao = null,
                                 categoria = CAT,
                                 podeConcluir = true,
@@ -135,11 +135,11 @@ object FibraSignalQualityEngine {
                 GponSaudeStatus.ruim -> resultados.add(
                     DiagnosticResult(
                         id = "FIB-04",
-                        titulo = "Temperatura Crítica da ONT",
+                        titulo = "O modem de fibra está muito quente",
                         status = DiagnosticStatus.critical,
                         evidencia = "temp=${"%.1f".format(temp)} °C",
-                        mensagemUsuario = "A ONT está com temperatura muito alta (${"%.1f".format(temp)} °C). Risco de desligamento por proteção térmica.",
-                        recomendacao = "Melhore a ventilação ao redor da ONT. Certifique-se de que não está coberta ou próxima a fontes de calor.",
+                        mensagemUsuario = "O modem de fibra está com temperatura muito alta (${"%.1f".format(temp)} °C). Risco de desligamento por proteção térmica.",
+                        recomendacao = "Melhore a ventilação ao redor do modem de fibra. Certifique-se de que ele não está coberto ou próximo a fontes de calor.",
                         categoria = CAT,
                         podeConcluir = true,
                     ),
@@ -147,21 +147,21 @@ object FibraSignalQualityEngine {
                 GponSaudeStatus.regular -> resultados.add(
                     DiagnosticResult(
                         id = "FIB-04b",
-                        titulo = "Temperatura Elevada da ONT",
+                        titulo = "O modem de fibra está quente",
                         status = DiagnosticStatus.attention,
                         evidencia = "temp=${"%.1f".format(temp)} °C",
-                        mensagemUsuario = "A ONT está aquecida (${"%.1f".format(temp)} °C). Temperaturas acima de 65 °C reduzem a vida útil do equipamento.",
-                        recomendacao = "Verifique se há ventilação adequada ao redor da ONT.",
+                        mensagemUsuario = "O modem de fibra está aquecido (${"%.1f".format(temp)} °C). Temperaturas acima de 65 °C reduzem a vida útil do equipamento.",
+                        recomendacao = "Verifique se há ventilação adequada ao redor do modem de fibra.",
                         categoria = CAT,
                     ),
                 )
                 GponSaudeStatus.boa -> resultados.add(
                     DiagnosticResult(
                         id = "FIB-04-OK",
-                        titulo = "Temperatura Normal da ONT",
+                        titulo = "A temperatura do modem de fibra está normal",
                         status = DiagnosticStatus.ok,
                         evidencia = "temp=${"%.1f".format(temp)} °C",
-                        mensagemUsuario = "A temperatura da ONT está normal (${"%.1f".format(temp)} °C).",
+                        mensagemUsuario = "A temperatura do modem de fibra está normal (${"%.1f".format(temp)} °C).",
                         recomendacao = null,
                         categoria = CAT,
                         podeConcluir = true,

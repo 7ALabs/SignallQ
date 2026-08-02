@@ -62,6 +62,8 @@ export function buildArticleJsonLd(origin: string, path: string, headline: strin
   }
 }
 
+// Ainda consumida por functions/_middleware.ts (Cloudflare Pages Function, fora do escopo desta
+// PR de frontend) — não remover sem também atualizar aquele arquivo numa PR de backend própria.
 export function buildProSoftwareApplicationJsonLd(origin: string, description: string) {
   return {
     '@context': 'https://schema.org',

@@ -105,6 +105,9 @@ export const FEATURE_SPEEDTEST_COMPARTILHOU = 'speedtest_compartilhou'
 // Novos feature_id do site (dentro do mesmo evento feature_used já
 // whitelistado — nenhuma mudança de schema no worker).
 export const FEATURE_DOWNLOAD_APP_CLICADO = 'download_app_clicado'
+export const FEATURE_DIAGNOSIS_EXPANDED = 'diagnosis_expanded'
+export const FEATURE_TEST_REPEATED = 'speedtest_repetido'
+export const FEATURE_RECOMMENDATION_CLICKED = 'recommended_action_clicked'
 export const FEATURE_PRO_LISTA_ESPERA = 'pro_lista_espera_clicado'
 // PWA instalável (GH#1184) — funil de instalação: 'prompted' dispara quando o
 // prompt nativo (Android/Chrome/Edge/desktop) ou o fallback manual (iOS) é

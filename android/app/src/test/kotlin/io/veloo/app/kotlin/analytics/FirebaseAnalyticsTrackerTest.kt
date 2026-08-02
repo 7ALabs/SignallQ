@@ -54,4 +54,12 @@ class FirebaseAnalyticsTrackerTest {
 
         verify { firebaseAnalytics.logEvent("app_session_start", any()) }
     }
+
+    // GH#1480 (Epico #1347, F4) — feature_blocked_remote.
+    @Test
+    fun `registrarFeatureBloqueadaRemota envia feature_blocked_remote com o feature_id`() {
+        tracker.registrarFeatureBloqueadaRemota("wifi")
+
+        verify { firebaseAnalytics.logEvent("feature_blocked_remote", any()) }
+    }
 }

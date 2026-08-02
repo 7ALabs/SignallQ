@@ -1,9 +1,5 @@
 package io.signallq.app.ui.screen
 
-import android.content.Intent
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,7 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -42,11 +37,13 @@ import androidx.compose.ui.unit.dp
 import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
-import io.signallq.app.ui.component.UserAvatar
 
 // ─── Perfil edit sheet ────────────────────────────────────────────────────────
-// GH#936 — Fase 7 MD3 (6a): extraido de AjustesScreen.kt. Entrada pela tela de
-// Perfil (hero card) e pelo avatar no TopBar de qualquer tela (AppShell.kt).
+// GH#936 — Fase 7 MD3 (6a): extraido de AjustesScreen.kt. Entrada pela linha "Nome"
+// da tela de Ajustes (alcançada pelo menu lateral, ver AppShell.kt).
+// GH#1358 — avatar/seletor de foto removidos: qualquer imagem de perfil fica
+// desabilitada em todo o app. `fotoUriAtual` segue sendo repassado a `onSalvar`
+// sem alteração (persistência intocada), só a UI de troca de foto saiu daqui.
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,23 +58,8 @@ internal fun PerfilEditSheet(
     onDismiss: () -> Unit,
     onSalvar: (nome: String, fotoUri: String?) -> Unit,
 ) {
-    val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var nomeInput by remember { mutableStateOf(nomeAtual) }
-    var fotoUriInput by remember { mutableStateOf(fotoUriAtual) }
-
-    val pickerFoto =
-        rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.GetContent(),
-        ) { uri: Uri? ->
-            if (uri != null) {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                )
-                fotoUriInput = uri.toString()
-            }
-        }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -108,26 +90,6 @@ internal fun PerfilEditSheet(
             Spacer(Modifier.height(LkSpacing.sm))
             Text("Meu perfil", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = c.textPrimary)
 
-            // Avatar
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center,
-            ) {
-                UserAvatar(
-                    fotoUri = fotoUriInput,
-                    fallbackInitial = nomeInput.firstOrNull() ?: deviceName.firstOrNull(),
-                    size = 80.dp,
-                    onClick = { pickerFoto.launch("image/*") },
-                )
-            }
-            Text(
-                "Toque no avatar para alterar a foto",
-                style = MaterialTheme.typography.labelMedium,
-                // GH#937: textTertiary sobre branco ~2.5:1 (fail AA). textSecondary ~4.8:1.
-                color = c.textSecondary,
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-            )
-
             val fieldColors =
                 OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = c.primary,
@@ -152,7 +114,7 @@ internal fun PerfilEditSheet(
 
             Spacer(Modifier.height(LkSpacing.sm))
             Button(
-                onClick = { onSalvar(nomeInput.trim(), fotoUriInput) },
+                onClick = { onSalvar(nomeInput.trim(), fotoUriAtual) },
                 modifier =
                     Modifier
                         .fillMaxWidth()
