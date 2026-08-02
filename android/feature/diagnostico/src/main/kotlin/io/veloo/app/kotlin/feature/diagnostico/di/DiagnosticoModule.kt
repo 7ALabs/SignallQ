@@ -17,8 +17,8 @@ import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
 import io.signallq.app.core.database.SignallQDatabase
 import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
 import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.core.featureflags.FeatureFlagProvider
 import io.signallq.app.core.network.AnalyticsHelper
-import io.signallq.app.core.network.FeatureFlagProvider
 import io.signallq.app.core.recommendation.RecommendationEngine
 import io.signallq.app.core.recommendation.catalog.LocalRecommendationCatalog
 import io.signallq.app.core.recommendation.catalog.RecommendationCatalog

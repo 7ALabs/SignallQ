@@ -1,18 +1,21 @@
 # Fundação de Feature Flags do Consumer — Firebase Remote Config (`:core:featureflags`)
 
 - **Status:** ativo
-- **Última validação:** 2026-07-26
+- **Última validação:** 2026-08-01 (issue #1497 — migração do último consumidor legado)
 - **Fonte de verdade:** este arquivo para o mecanismo técnico do módulo `:core:featureflags`; o
   catálogo em si (schema completo, valores reais) tem fonte de verdade única no arquivo JSON —
   `android/core/featureflags/src/main/resources/featureflags/consumer-catalog.json` — não copiado
   aqui além de exemplos ilustrativos.
 - **Escopo:** módulo Android `:core:featureflags` (issue #1477, Épico #1347) — catálogo tipado,
   `FeatureFlagProvider`, integração com Firebase Remote Config — **mais F4/#1480** (instrumentação
-  das 9 flags principais de módulo em `AppShell.kt`, ver seção 10). **Não cobre** a UI do SignallQ
-  Admin (F3/#1479, protótipo apenas) — nem os dois sistemas de feature flags mais antigos do
-  repositório (compile-time `FeatureFlags.kt` e o remoto legado SIG-13
-  `FeatureFlagManager`/`FeatureFlagRepository`), documentados em `docs_ai/TECNICO.md` §5.2 e
-  `docs_ai/functional/FEATURE_FLAGS.md`. O backend do Admin (F2/#1478,
+  das 9 flags principais de módulo em `AppShell.kt`, ver seção 10) **e #1497** (migração do kill
+  switch do shadow mode de diagnóstico, ver seção 9). **Não cobre** a UI do SignallQ
+  Admin (F3/#1479, protótipo apenas) — nem o sistema de feature flags de compile-time
+  (`FeatureFlags.kt`), documentado em `docs_ai/TECNICO.md` §5.2 e
+  `docs_ai/functional/FEATURE_FLAGS.md`. O sistema remoto legado SIG-13
+  (`FeatureFlagManager`/`FeatureFlagRepository`) continua existindo no repositório (não removido
+  nesta Feature nem em #1497 — ver seção 9), mas **sem nenhum consumidor real** desde #1497. O
+  backend do Admin (F2/#1478,
   `integrations/cloudflare/signallq-admin-worker/src/remoteConfigAdmin.ts` +
   `src/featureFlagCatalog.ts`) fechou em 2026-07-26 e já lê este mesmo catálogo diretamente (import
   JSON cross-diretório, embarcado no bundle a cada `wrangler deploy`) — contrato completo em
@@ -33,7 +36,9 @@ Esta Feature (#1477) entregou só a fundação: módulo, contratos, catálogo co
 smoke-test. F4 (#1480, ver seção 10) instrumentou as 9 flags principais de módulo de verdade em
 `AppShell.kt` — o catálogo tem 10 entradas desde então (as 2 de #1477 + as 8 novas; a 9ª chave
 principal, `consumer.speedtest.enabled`, já existia como smoke-test e passou a `androidImplemented:
-true`). Backend/UI do Admin (F2/#1478, F3/#1479) continuam fora do escopo deste documento.
+true`). #1497 (ver seção 9) acrescentou a 11ª entrada, `consumer.diagnostico.shadow_mode_enabled`,
+migrando o último consumidor real do sistema legado SIG-13. Backend/UI do Admin (F2/#1478,
+F3/#1479) continuam fora do escopo deste documento.
 
 ---
 
@@ -149,11 +154,16 @@ Feature, não desta.
   `ads_native_*` lá). `AppModule.provideFirebaseRemoteConfig()` foi ajustado para mesclar os dois
   mapas de defaults num único `setDefaultsAsync` (chamar duas vezes substituiria o mapa inteiro, não
   soma).
-- **Sistema legado SIG-13 não tocado:** `io.signallq.app.core.network.FeatureFlagProvider`
-  (`FeatureFlagManager`/`FeatureFlagRepository`, HTTP `signallq-admin-worker`) continua existindo,
-  sem mudança de comportamento — colisão de nome resolvida com alias de import
-  (`LegacyHttpFeatureFlagProvider`) em `AppModule.kt`. Migração dos consumidores legados
-  (`DiagnosticDivergenceReporter`) para o novo mecanismo é F4/#1480, não esta Feature.
+- **Sistema legado SIG-13 sem consumidor real (atualizado #1497):**
+  `io.signallq.app.core.network.FeatureFlagProvider` (`FeatureFlagManager`/`FeatureFlagRepository`,
+  HTTP `signallq-admin-worker`) continua existindo no repositório, sem mudança de comportamento —
+  `SignallQApplication` ainda injeta `FeatureFlagManager` e chama `inicializar()` no startup
+  (sincroniza `GET /flags`/`GET /feature-flags` e persiste em DataStore). A binding Hilt
+  `provideLegacyHttpFeatureFlagProvider`/alias `LegacyHttpFeatureFlagProvider` em `AppModule.kt` foi
+  **removida** em #1497 por ter ficado morta (nenhum consumidor pedia mais o tipo
+  `io.signallq.app.core.network.FeatureFlagProvider` via injeção). `DiagnosticDivergenceReporter`
+  era o único consumidor real do sistema legado e migrou para
+  `FeatureFlagKeys.CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED` (`:core:featureflags`).
 - **`:app`:** injeta `FeatureFlagCatalog` e `FeatureFlagProvider` via Hilt (`AppModule.kt`), chama
   `refresh()` uma vez no startup (`SignallQApplication.onCreate`, não bloqueante).
 
@@ -196,11 +206,22 @@ Feature, não desta.
   validação automática em CI de PR — herdado como escopo do backlog de CI do Épico (§ "Automação e
   CI obrigatórias" do #1347), não desta Feature.
 - **Dois `FeatureFlagProvider` com o mesmo nome simples** (legado `core.network` vs. novo
-  `core.featureflags`) é uma fonte real de confusão para quem for tocar `AppModule.kt` no futuro —
-  mitigado com KDoc explícito nos dois pontos e o alias `LegacyHttpFeatureFlagProvider`, mas
-  **não** resolve a raiz (dois sistemas paralelos coexistindo). F4/#1480 instrumentou as 9 flags de
-  módulo sobre o sistema novo, mas **não migrou** o único consumidor do sistema legado
-  (`DiagnosticDivergenceReporter`) — fica como dívida registrada, não decidida ainda.
+  `core.featureflags`) continua sendo uma fonte real de confusão para quem for tocar código nos dois
+  módulos — mitigado com KDoc explícito nos dois pontos. **Atualizado por #1497:** F4/#1480
+  instrumentou as 9 flags de módulo sobre o sistema novo; #1497 migrou o único consumidor real do
+  sistema legado (`DiagnosticDivergenceReporter`, kill switch do shadow mode de diagnóstico,
+  GH#1444/#1445) para `FeatureFlagKeys.CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED`
+  (`consumer.diagnostico.shadow_mode_enabled` no catálogo, `disabledBehavior: SILENT_NO_OP`,
+  `defaultValue: true` — preserva o default do sistema legado). O binding Hilt que só existia para
+  esse consumidor (`provideLegacyHttpFeatureFlagProvider`/`LegacyHttpFeatureFlagProvider`) foi
+  removido de `AppModule.kt` por ficar morto. **Não resolvido por #1497 (fora do escopo daquela
+  issue, decisão explícita):** o restante do sistema legado SIG-13 continua no repositório e em
+  produção — `FeatureFlagManager`/`FeatureFlagRepository`, os dois endpoints HTTP
+  (`GET /flags`/`GET /feature-flags`) e a inicialização em `SignallQApplication.onCreate`. Como não
+  sobra nenhum consumidor real do valor lido por esse sistema, a remoção completa (código Android +
+  endpoints do Worker + tabelas D1 `feature_flags`/`feature_flag_audit`) é candidata a uma
+  **próxima issue dedicada** — avaliação de arquitetura, não decidida nem executada em #1497 (issue
+  de acompanhamento a abrir quando priorizado).
 - **Atualização em tempo real (`addOnConfigUpdateListener`)** listada no Épico como responsabilidade
   de `:core:featureflags` **não foi implementada** nesta Feature — os critérios de aceite de #1477
   não exigem, e adicionar um listener sem um caso de uso real pra testar geraria código não
@@ -283,7 +304,8 @@ evento).
 
 **Não coberto por F4/#1480 (fora do critério de aceite da issue, registrado aqui pra não se
 perder):**
-- Migração do consumidor legado SIG-13 (`DiagnosticDivergenceReporter`) para o sistema novo.
+- ~~Migração do consumidor legado SIG-13 (`DiagnosticDivergenceReporter`) para o sistema novo~~ —
+  feito em #1497 (2026-08-01), ver seção 9.
 - Gate de capacidades de `:core:*` (`coreNetwork`/discovery, `coreTelephony`, `coreRecommendation`)
   — o Épico lista isso como parte da visão maior, mas fora do escopo textual de #1480 (só os 9
   módulos `:feature:*`).

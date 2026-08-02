@@ -4,7 +4,8 @@ import io.signallq.app.core.diagnostico.DiagnosticDivergenceClassifier
 import io.signallq.app.core.diagnostico.DiagnosticEvaluationSource
 import io.signallq.app.core.diagnostico.DiagnosticRolloutEligibility
 import io.signallq.app.core.diagnostico.DiagnosticRolloutStatus
-import io.signallq.app.core.network.FeatureFlagProvider
+import io.signallq.app.core.featureflags.FeatureFlagKeys
+import io.signallq.app.core.featureflags.FeatureFlagProvider
 import timber.log.Timber
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -33,11 +34,11 @@ import org.json.JSONObject
  * Fire-and-forget, mesmo padrao de [io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository]:
  * nunca lanca excecao, nunca bloqueia o chamador, qualquer falha e so logada.
  *
- * Kill switch: [FeatureFlagProvider] com a chave `feature_diagnostic_shadow_mode`
- * (mecanismo remoto ja existente — `signallq-admin-worker` `GET /flags` — reusado
- * em vez de duplicar; ver kdoc de [FeatureFlagProvider]). #1347 (Firebase Remote
- * Config) ainda nao esta pronto para governar isto — quando estiver, este flag
- * migra para la, sem novo mecanismo paralelo nesse meio tempo.
+ * Kill switch: [FeatureFlagProvider] com a chave
+ * [FeatureFlagKeys.CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED] (Firebase Remote Config,
+ * Epico #1347/`:core:featureflags`). Migrado do mecanismo legado SIG-13
+ * (`signallq-admin-worker` `GET /flags`, chave `feature_diagnostic_shadow_mode`) em
+ * 2026-08-01 (issue #1497) — era o unico consumidor real restante do sistema legado.
  *
  * ## Rollout gradual + segmentacao (GH#1445, parte de #952)
  * [isEnabled] continua sendo SO o kill switch booleano (flag ligada/desligada
@@ -72,7 +73,7 @@ class DiagnosticDivergenceReporter(
     // "sideload"), para a dimensao de segmentacao por canal.
     private val appChannel: String = "unknown",
 ) {
-    fun isEnabled(): Boolean = featureFlagProvider.isDiagnosticShadowModeEnabled()
+    fun isEnabled(): Boolean = featureFlagProvider.isEnabled(FeatureFlagKeys.CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED)
 
     /**
      * GH#1445 — decide se esta instalacao participa do shadow mode AGORA:

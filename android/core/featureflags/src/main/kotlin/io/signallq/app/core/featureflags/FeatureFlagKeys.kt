@@ -15,6 +15,12 @@ package io.signallq.app.core.featureflags
  * demais 9 chaves abaixo (uma por modulo `:feature:*` do Consumer) sao reais desde
  * F4/#1480: cada uma gateia entrada de navegacao/overlay do respectivo modulo em
  * `AppShell.kt` (ver `AppShellFeatureGating.kt`).
+ *
+ * [CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED] (issue #1497) migrou o kill switch do
+ * shadow mode de diagnostico (comparacao local-vs-remoto, GH#1444/#1445, parte de
+ * #952) do sistema legado SIG-13 (`io.signallq.app.core.network.FeatureFlagProvider`,
+ * chave `feature_diagnostic_shadow_mode`) para este catalogo -- unico consumidor real
+ * do sistema legado, agora migrado.
  */
 object FeatureFlagKeys {
     val CONSUMER_SPEEDTEST_ENABLED = FeatureFlagKey("consumer.speedtest.enabled")
@@ -25,6 +31,7 @@ object FeatureFlagKeys {
     val CONSUMER_DNS_ENABLED = FeatureFlagKey("consumer.dns.enabled")
     val CONSUMER_FIBRA_ENABLED = FeatureFlagKey("consumer.fibra.enabled")
     val CONSUMER_DIAGNOSTICO_ENABLED = FeatureFlagKey("consumer.diagnostico.enabled")
+    val CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED = FeatureFlagKey("consumer.diagnostico.shadow_mode_enabled")
     val CONSUMER_HISTORY_ENABLED = FeatureFlagKey("consumer.history.enabled")
     val CONSUMER_SETTINGS_ENABLED = FeatureFlagKey("consumer.settings.enabled")
 
@@ -39,6 +46,7 @@ object FeatureFlagKeys {
             CONSUMER_DNS_ENABLED,
             CONSUMER_FIBRA_ENABLED,
             CONSUMER_DIAGNOSTICO_ENABLED,
+            CONSUMER_DIAGNOSTICO_SHADOW_MODE_ENABLED,
             CONSUMER_HISTORY_ENABLED,
             CONSUMER_SETTINGS_ENABLED,
         )

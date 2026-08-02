@@ -64,6 +64,9 @@ dependencies {
     implementation(project(":coreDatastore"))
     implementation(project(":coreNetwork"))
     implementation(project(":coreRecommendation"))
+    // Migracao do kill switch do shadow mode (issue #1497) — unico consumidor real do
+    // sistema legado SIG-13 agora le a flag via o catalogo tipado deste modulo.
+    implementation(project(":core:featureflags"))
     // Dominio de causa-raiz extraido (issue #1157 Fase 1a) — FindingEngine, ScoreEngine,
     // DiagnosticInput/Report/Result, engines por dominio, topology/model+correlation+internet.
     implementation(project(":core:diagnostico"))
