@@ -23,7 +23,8 @@ object DiagnosticRunner {
      *   Kotlin puro — ver docs_ai/plataforma/13_..._v1.md §3.1. Default retorna lista vazia
      *   (seguro para uso a partir do Pro, que ainda nao tem camada de apresentacao propria).
      *   O unico chamador de producao do consumidor (RemoteDiagnosticRepository, em
-     *   :featureDiagnostico) DEVE passar `RecommendationEngine::recomendar` explicitamente.
+     *   :featureDiagnostico) DEVE passar `RecomendacaoPraticaEngine::recomendar` explicitamente
+     *   (motor renomeado de `RecommendationEngine` na Fatia 9a da auditoria #1228, corrige P1-1).
      */
     fun run(
         input: DiagnosticInput,
@@ -105,6 +106,10 @@ object DiagnosticRunner {
             perfisUso = UsageProfileClassifier.classificarTodos(input),
             gameReadiness = GameReadinessClassifier.classificarTodos(input),
             geradoEmMs = System.currentTimeMillis(),
+            // GH#1228 (Fase 3) — propaga a identidade da execucao de entrada (nunca gera
+            // uma nova aqui) e fixa a versao canonica das regras aplicadas por este motor.
+            executionId = input.executionId,
+            rulesVersion = DiagnosticRulesVersion.CURRENT,
         )
 
         val scoreResultado = ScoreEngine.calcular(

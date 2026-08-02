@@ -9,11 +9,15 @@ import dagger.hilt.components.SingletonComponent
 import io.signallq.app.feature.diagnostico.BuildConfig
 import io.signallq.app.feature.diagnostico.DiagnosticOrchestrator
 import io.signallq.app.feature.diagnostico.ai.AiDiagnosisRepository
+import io.signallq.app.feature.diagnostico.remote.DiagnosticDivergenceReporter
+import io.signallq.app.feature.diagnostico.remote.DiagnosticRolloutStatusRepository
+import io.signallq.app.feature.diagnostico.remote.FileRulesetCacheStore
 import io.signallq.app.feature.diagnostico.remote.ProviderDirectoryRepository
 import io.signallq.app.feature.diagnostico.remote.RemoteDiagnosticRepository
 import io.signallq.app.core.database.SignallQDatabase
 import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
 import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.core.featureflags.FeatureFlagProvider
 import io.signallq.app.core.network.AnalyticsHelper
 import io.signallq.app.core.recommendation.RecommendationEngine
 import io.signallq.app.core.recommendation.catalog.LocalRecommendationCatalog
@@ -21,6 +25,7 @@ import io.signallq.app.core.recommendation.catalog.RecommendationCatalog
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.topology.TopologyDiagnostic
 import okhttp3.OkHttpClient
+import java.io.File
 import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Singleton
@@ -68,11 +73,80 @@ object DiagnosticoModule {
      * GH#969: wireada no [io.signallq.app.feature.diagnostico.DiagnosticOrchestrator] —
      * fluxo remoto-primeiro com fallback automatico pro motor local, sem mudanca
      * perceptivel de UI (o orquestrador so troca a fonte do relatorio).
+     *
+     * GH#1450: [FileRulesetCacheStore] persiste o ultimo ruleset remoto valido em
+     * `filesDir/diagnostic_ruleset` (nunca `cacheDir` — dado usado como fallback de
+     * seguranca, o SO nao pode limpar sob pressao de storage), habilitando o nivel
+     * intermediario `CACHED_LOCAL` do fallback de 3 niveis (#952).
      */
     @Provides
     @Singleton
-    fun provideRemoteDiagnosticRepository(): RemoteDiagnosticRepository =
-        RemoteDiagnosticRepository(baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL)
+    fun provideRemoteDiagnosticRepository(
+        @ApplicationContext ctx: Context,
+        divergenceReporter: DiagnosticDivergenceReporter,
+    ): RemoteDiagnosticRepository =
+        RemoteDiagnosticRepository(
+            baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL,
+            cacheStore = FileRulesetCacheStore(File(ctx.filesDir, "diagnostic_ruleset")),
+            divergenceReporter = divergenceReporter,
+        )
+
+    /**
+     * Provê DiagnosticRolloutStatusRepository (GH#1445, parte de #952) — busca
+     * (com cache curto) o percentual/segmentacao de rollout publicados pelo
+     * worker `signallq-diagnostic` (`GET /diagnostic/rollout-status`).
+     */
+    @Provides
+    @Singleton
+    fun provideDiagnosticRolloutStatusRepository(): DiagnosticRolloutStatusRepository =
+        DiagnosticRolloutStatusRepository(
+            baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL,
+            client = OkHttpClient.Builder()
+                .connectTimeout(5, TimeUnit.SECONDS)
+                .readTimeout(5, TimeUnit.SECONDS)
+                .writeTimeout(5, TimeUnit.SECONDS)
+                .build(),
+        )
+
+    /**
+     * Provê DiagnosticDivergenceReporter (GH#1444, parte de #952) — shadow mode,
+     * envia o registro ja classificado (nao o relatorio completo) para
+     * `POST /ingest/diagnostic-divergence` no mesmo worker `signallq-diagnostic`.
+     *
+     * Reusa o mesmo consentimento LGPD ja aplicado em [provideAdminIngestRepository]
+     * (nenhum dado sai do aparelho sem o usuario ter consentido).
+     *
+     * GH#1445: [installationIdProvider] reusa o `anon_device_id` que ja existe
+     * em [PreferenciasAppRepository] (nao cria identificador novo). [appChannel]
+     * vem de `@Named("appDistributionChannel")`, provido em `AppModule` (`:app`)
+     * — `distributionChannel()` vive em `io.signallq.app.analytics` (`:app`),
+     * que `:featureDiagnostico` nao pode importar diretamente (feature nao
+     * depende de `:app`); o binding `@Named` evita mover esse arquivo so por
+     * causa disto.
+     */
+    @Provides
+    @Singleton
+    fun provideDiagnosticDivergenceReporter(
+        featureFlagProvider: FeatureFlagProvider,
+        prefs: PreferenciasAppRepository,
+        rolloutStatusRepository: DiagnosticRolloutStatusRepository,
+        @Named("appDistributionChannel") appChannel: String,
+    ): DiagnosticDivergenceReporter =
+        DiagnosticDivergenceReporter(
+            baseUrl = BuildConfig.DIAGNOSTIC_WORKER_URL,
+            client = OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
+                .writeTimeout(10, TimeUnit.SECONDS)
+                .build(),
+            featureFlagProvider = featureFlagProvider,
+            appVersion = BuildConfig.APP_VERSION,
+            versionCode = BuildConfig.VERSION_CODE,
+            consentimentoProvider = { prefs.buscarConsentimentoLgpd() == true },
+            installationIdProvider = { prefs.buscarOuGerarAnonDeviceId() },
+            rolloutStatusProvider = { rolloutStatusRepository.current() },
+            appChannel = appChannel,
+        )
 
     /**
      * Provê ProviderDirectoryRepository no grafo Hilt (GH#965) — diretorio remoto

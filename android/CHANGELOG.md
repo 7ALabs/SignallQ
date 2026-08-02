@@ -11,6 +11,48 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 
 ## [Unreleased]
 
+## [0.31.0] — 2026-08-01
+
+### Adicionado
+- **Motor canônico de diagnóstico** (issue #1228, Fase 0 completa): avaliação local determinística como fonte de verdade, shadow mode com comparação paralela de resultado remoto (nunca altera resultado do usuário), três níveis de fallback automático (remoto ativo → cache do último remoto válido → motor local puro) e rollout gradual por feature flag. Implementação: `DiagnosticEvaluation` (novo tipo Kotlin), `DiagnosticDivergenceClassifier`, `RemoteDiagnosticRepository.evaluateShadow()`, endpoint `POST /ingest/diagnostic-divergence` no worker, e migração D1 para tabela `diagnostic_divergences` (#1438/#1444/#1454/#1455/#1452/#1453).
+- **Diagnóstico guiado por objetivo** (feature #550): 7 objetivos fechados (Baixa velocidade, Perdas/travamentos, Jogos, Vídeos, Chamadas, Wi-Fi fraco, Internet cai) com perguntas específicas e motor local (`DiagnosticoGuiadoEngine`, reutilizando `MetricClassifier`). Resultado separa visualmente "Medido pelo motor SignallQ" (evidências reais) de "Explicado por IA" (prosa), com 17 testes unitários (#1484).
+- **Modo gamer novo** (feature #550): fluxo integrado de seleção de jogo/device com resultado por perfil de jogo (`GameReadinessClassifier` com 4 perfis e 7 métricas prioritizadas), unificando 5 commits anteriores de fundação (#1486/#1488).
+- **Fusão do fluxo Jogos legado no Modo gamer** (issue #935 resolvida): `JogosScreen` (1120 linhas) e código associado removidos, fluxo 5 etapas integrado ao novo Modo gamer com mesmo motor (`JogoConexaoEngine`), telas menores e divididas por responsabilidade (#1488).
+- **Feature Flags via Firebase Remote Config** do Consumer: fundação de infra para rollout gradual de features (`FeatureFlagProvider`, kill switches individuais como `feature_diagnostic_shadow_mode`), habilitando testes A/B e rollout percentual sem nova versão (#1494).
+- **Descoberta progressiva de Ferramentas** (issue #1504): hub de Ferramentas (Central de Testes) reorganizado com items contextuais (mostrados/ocultos conforme a conexão — DNS visível só em Wi-Fi, Ping em qualquer conexão, etc.) em vez de lista fixa, melhorando onboarding e evitando ferramentas irrelevantes (#1504).
+
+### Alterado
+- **Refactors arquiteturais (#1228 Fase 1 em andamento)**:
+  - `InternetDiagnosticEngine` / `SpeedtestQualityClassifier` migrados para `MetricClassifier` (centralizado, determinístico, mesmo critério de "pior métrica vence" em toda UI) (#1467/#1523).
+  - `RecommendationEngine` legado renomeado para `RecomendacaoPraticaEngine` (motor comercial que recomenda dicas práticas, distinto do novo `DiagnosticoGuiadoEngine`), clarificando escopo (#1527).
+  - Threshold de bufferbloat (150ms) consolidado em fonte única, eliminou duplicação de limiares em dois lugares (#1526).
+  - Mapeamento `DiagnosticStatus → cor/veredito` centralizado em função pura, aplicado uniforme em toda UI (#1525).
+- **Classificação RSSI Wi-Fi na UI** unificada via `MetricClassifier` em vez de limiares locais divergentes (#1523).
+- **Redesign visual da tela Equipamento de internet**: nova hierarquia de cards (status → disponibilidade/uso → alerta → topologia → módulos técnicos → dispositivos → ações), grid consistente (tela extraída de 1549 para 549 linhas em 6 componentes dedicados), incluindo nova visibilidade progressiva e estados tipados (#1366).
+
+### Corrigido
+- **Diagnóstico guiado**: affordance visual de opção selecionável (checkbox/radio claro) no fluxo de perguntas (#1534).
+- **Visual**: altura inconsistente de cards de métrica removida, mini-gráfico ao vivo redundante do card de medições removido (#1533/#1531).
+- **Ferramentas/Equipamento**: altura consistente e hifenização corrigida em cards (#1538).
+- **TopBar**: ícone do título removido das 5 abas principais (Home, Velocidade, Sinal, Histórico, Ferramentas), mantendo somente em overlays/abas secundárias (#1537).
+- **Resultado do diagnóstico**: reconciliação de card vs. banner de latência/upload (não misturava antes, mas visualização duplicada acrescentava confusão) (#1522).
+- **Uptime**: rótulo falso "OFFLINE" removido para latência alta (estado real é ONLINE com degradação, não desconexão) (#1519).
+- **Wi-Fi + Internet**: diagnóstico agora reconhece situação real de "Wi-Fi conectado mas sem internet" (gateway/DNS/WAN falhando), tratamento diferenciado (#1514).
+- **Gateway/roteador**: sucesso simulado removido da avaliação de conectividade com gateway/roteador (era placeholder testável, nunca produtor real de conexão) (#1513).
+- **AdMob nativo**: altura `MediaView` do card de anúncio reduzida para proporcional ao criativo (#1506).
+- **Editorial**: aplicado De-Para completo de vocabulário da issue #1502 no resultado de diagnóstico (vereditos, causas, ações) (#1515).
+- **Recomendações práticas** (REC-01..REC-14): `RecommendationRequestMapper.mapTags()` deixa de re-derivar tags por regex de ID de achado bruto e passa a ler `report.recomendacoes` real da `RecomendacaoPraticaEngine`. Corrige divergência onde motor comercial podia sugerir troca de Wi-Fi mesmo quando diagnóstico local havia descartado essa causa (P1-2, #1528/#1548).
+- **Card "Modo Jogos"**: renomeado para "Modo Jogos" (não mais "Jogos") e reconectado ao slot de anúncio correto (`AdSlot.JOGOS`), que havia ficado órfão na fusão (#1490).
+
+### Removido
+- `JogosScreen`, `JogosViewModel`, `JogoConexaoEngine` e código exclusivo do fluxo legado Jogos: 1120 linhas de código obsoleto após fusão no novo Modo gamer (#1488).
+
+### Documentação / Testes
+- **ADR-011** formaliza decisão arquitetural da Fase 0 do motor canônico: colisão de nome `DiagnosticResult` (tipo local 98 usos vs. envelope do worker TS), recomendação de renomear novo tipo Kotlin como `DiagnosticEvaluation` sem tocar no existente (#1438/#1516).
+- **Testes de caracterização** (fronteiras de motor): `InternetDiagnosticEngineTest` (perda/jitter/latência/bufferbloat/upload/download) e `SpeedtestQualityClassifierTest` (faixas good/acceptable/poor, prioridade de gargalo) especificam comportamento esperado antes da migração (#1438/#1516).
+- **Teste de caracterização** para disclosure progressiva em `ModuloTecnicoCard` (#1365).
+- **Dívida registrada** (higiene, sem bloqueio): ~270 ocorrências de `.dp` literal em padding/size/width/height/offset direto em Composables do Consumer em vez de token do design system (#1500).
+
 ## [0.30.4] — 2026-07-24
 
 ### Adicionado

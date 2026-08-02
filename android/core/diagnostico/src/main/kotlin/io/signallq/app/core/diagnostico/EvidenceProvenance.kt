@@ -4,7 +4,8 @@ package io.signallq.app.core.diagnostico
  * Proveniencia de uma metrica usada pelo motor de diagnostico — generaliza para
  * TODAS as dimensoes do [ScoreEngine] o modelo que a Fase 1 introduziu apenas para
  * perda de pacotes ([InternetDiagnosticInput.packetLossSource]: "medida"/"estimated"/
- * "naoMedido"/"unknown", ja consumido pelo [RecommendationEngine.recomendarPerdaDePacotes]).
+ * "naoMedido"/"unknown", ja consumido pelo `RecomendacaoPraticaEngine.recomendarPerdaDePacotes`,
+ * renomeado de `RecommendationEngine` na Fatia 9a da auditoria #1228).
  *
  * Cada metrica bruta que entra no calculo de score carrega uma proveniencia junto do
  * valor:

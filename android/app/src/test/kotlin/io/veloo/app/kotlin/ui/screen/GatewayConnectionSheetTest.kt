@@ -188,4 +188,92 @@ class GatewayConnectionSheetTest {
         // sheet de conexao continua no ar por baixo do guia
         composeRule.onNodeWithTag("gateway_connect_button").assertIsDisplayed()
     }
+
+    // ── BUG#1511 (P0) — nenhum caminho pode simular sucesso de conexao ──────────────────────
+
+    @Test
+    fun `credencial invalida (Falha) nunca chama onConectado`() {
+        var onConectadoChamado = false
+        renderContent(
+            conectar = GatewayConnectionService { _, _, _ -> GatewayConnectionResultado.Falha("Usuário ou senha incorretos.") },
+            onConectado = { _, _, _, _, _ -> onConectadoChamado = true },
+        )
+
+        composeRule.onNodeWithTag("gateway_connect_button").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("gateway_error_message").assertIsDisplayed()
+        assertEquals(false, onConectadoChamado)
+    }
+
+    @Test
+    fun `host inacessivel nunca chama onConectado`() {
+        var onConectadoChamado = false
+        renderContent(
+            verificarAlcancabilidade = { false },
+            onConectado = { _, _, _, _, _ -> onConectadoChamado = true },
+        )
+
+        composeRule.onNodeWithTag("gateway_connect_button").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("gateway_error_message").assertIsDisplayed()
+        assertEquals(false, onConectadoChamado)
+    }
+
+    @Test
+    fun `timeout traduzido como Falha nunca chama onConectado`() {
+        // Contrato: implementacoes reais traduzem timeout/excecao tecnica em Falha antes de
+        // retornar aqui (GatewayConnectionService nao deve propagar excecao) — ver KDoc.
+        var onConectadoChamado = false
+        renderContent(
+            conectar = GatewayConnectionService { _, _, _ -> GatewayConnectionResultado.Falha("Tempo de conexão esgotado.") },
+            onConectado = { _, _, _, _, _ -> onConectadoChamado = true },
+        )
+
+        composeRule.onNodeWithTag("gateway_connect_button").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Tempo de conexão esgotado.").assertIsDisplayed()
+        assertEquals(false, onConectadoChamado)
+    }
+
+    @Test
+    fun `recurso indisponivel mostra mensagem honesta e nunca chama onConectado`() {
+        var onConectadoChamado = false
+        renderContent(
+            conectar = GatewayConnectionService { _, _, _ -> GatewayConnectionResultado.Indisponivel },
+            onConectado = { _, _, _, _, _ -> onConectadoChamado = true },
+        )
+
+        composeRule.onNodeWithTag("gateway_connect_button").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("gateway_error_message").assertIsDisplayed()
+        composeRule.onNodeWithText(MENSAGEM_GATEWAY_INDISPONIVEL).assertIsDisplayed()
+        assertEquals(false, onConectadoChamado)
+    }
+
+    @Test
+    fun `multiplos toques enquanto conectando nao disparam multiplas tentativas`() {
+        var tentativas = 0
+        val nuncaResolve = CompletableDeferred<GatewayConnectionResultado>()
+        renderContent(
+            conectar =
+                GatewayConnectionService { _, _, _ ->
+                    tentativas++
+                    nuncaResolve.await()
+                },
+        )
+
+        // botao fica desabilitado assim que entra em "Conectando" (podeConectar = false) —
+        // performClick em botao desabilitado nao dispara onClick.
+        composeRule.onNodeWithTag("gateway_connect_button").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("gateway_connect_button").performClick()
+        composeRule.onNodeWithTag("gateway_connect_button").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(1, tentativas)
+    }
 }

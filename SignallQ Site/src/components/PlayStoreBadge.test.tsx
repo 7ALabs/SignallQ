@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../lib/config', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../lib/config')>()),
-  SIGNALLQ_BETA_DOWNLOAD_URL: '',
+  SIGNALLQ_TEST_GROUP_URL: 'https://groups.google.com/g/testadores-signallq',
 }))
 
 import { PlayStoreBadge } from './PlayStoreBadge'
@@ -13,32 +13,13 @@ describe('PlayStoreBadge', () => {
     vi.restoreAllMocks()
   })
 
-  it('abre o modal de captura de e-mail em vez de window.alert quando não há URL configurada', () => {
-    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {})
+  it('encaminha para o grupo oficial de testadores sem pedir e-mail', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
     render(<PlayStoreBadge source="teste" />)
 
-    fireEvent.click(screen.getByRole('button', { name: /disponível no google play/i }))
+    fireEvent.click(screen.getByRole('button', { name: /grupo de testes/i }))
 
-    expect(alertSpy).not.toHaveBeenCalled()
-    expect(screen.getByRole('dialog', { name: /teste fechado/i })).toBeInTheDocument()
-  })
-
-  it('registra o e-mail e mostra a mensagem de sucesso', () => {
-    render(<PlayStoreBadge source="teste" />)
-    fireEvent.click(screen.getByRole('button', { name: /disponível no google play/i }))
-
-    fireEvent.change(screen.getByPlaceholderText('nome@email.com'), { target: { value: 'visitante@example.com' } })
-    fireEvent.click(screen.getByRole('button', { name: /avisar quando lançar/i }))
-
-    expect(screen.getByText(/pronto\. avisamos por e-mail/i)).toBeInTheDocument()
-  })
-
-  it('fecha o modal ao clicar em Fechar', () => {
-    render(<PlayStoreBadge source="teste" />)
-    fireEvent.click(screen.getByRole('button', { name: /disponível no google play/i }))
-    expect(screen.getByRole('dialog')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: /fechar/i }))
+    expect(openSpy).toHaveBeenCalledWith('https://groups.google.com/g/testadores-signallq', '_blank', 'noopener,noreferrer')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

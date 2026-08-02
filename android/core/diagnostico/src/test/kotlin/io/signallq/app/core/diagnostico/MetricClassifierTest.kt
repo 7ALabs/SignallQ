@@ -92,6 +92,34 @@ class MetricClassifierTest {
         assertEquals(MetricStatus.critico, MetricClassifier.classificarRssiWifi(-90, WifiBand.GHZ_6))
     }
 
+    // ── RSSI Wi-Fi -- sobrecarga BandaWifi (GH#1228 Fatia 5, P0-2) ──────────────
+    // Mapeamento BandaWifi -> WifiBand deve bater com o ja usado inline em
+    // WifiSignalQualityEngine: ghz24/desconhecida -> GHZ_2_4, ghz5 -> GHZ_5.
+
+    @Test
+    fun `sobrecarga BandaWifi ghz24 bate com WifiBand GHZ_2_4`() {
+        assertEquals(
+            MetricClassifier.classificarRssiWifi(-65, WifiBand.GHZ_2_4),
+            MetricClassifier.classificarRssiWifi(-65, BandaWifi.ghz24),
+        )
+    }
+
+    @Test
+    fun `sobrecarga BandaWifi ghz5 bate com WifiBand GHZ_5`() {
+        assertEquals(
+            MetricClassifier.classificarRssiWifi(-65, WifiBand.GHZ_5),
+            MetricClassifier.classificarRssiWifi(-65, BandaWifi.ghz5),
+        )
+    }
+
+    @Test
+    fun `sobrecarga BandaWifi desconhecida reaproveita a regua 2,4GHz`() {
+        assertEquals(
+            MetricClassifier.classificarRssiWifi(-65, WifiBand.GHZ_2_4),
+            MetricClassifier.classificarRssiWifi(-65, BandaWifi.desconhecida),
+        )
+    }
+
     // ── Latencia ─────────────────────────────────────────────────────────────
 
     @Test

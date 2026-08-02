@@ -7,7 +7,8 @@ import { buildDiagnosticAiPrompt } from "./diagnostic-ai.ts";
 import { buildDiagnosticReport, buildInconclusiveReport } from "./diagnostic-report.ts";
 import { createSession, hashPassword, revokeSession, validateSession, verifyPassword } from "./auth.ts";
 import { getBundledRuleset } from "./bundled-ruleset.ts";
-import type { DiagnosticResult, ProviderDetectionInput, ProviderSupport } from "./contracts.ts";
+import type { DiagnosticDivergenceInput, DiagnosticResult, ProviderDetectionInput, ProviderSupport } from "./contracts.ts";
+import { listDivergences, registerDivergence, summarizeDivergences } from "./divergence-store.ts";
 import {
   getGameCatalogItem,
   getGameCatalogVersion,
@@ -24,6 +25,7 @@ import {
   getProviderByAsn,
   getProviderById,
   getProviderLogoBinary,
+  listProviderAuditLog,
   listProviderReviewQueue,
   listStaleProviders,
   registerProviderDetection,
@@ -33,8 +35,19 @@ import {
   updateProviderSupport,
   uploadProviderLogo,
   upsertProvider,
+  type ProviderAdminActor,
 } from "./provider-directory.ts";
-import { createRulesetDraft, getPublishedRulesetJson, getRuleset, listRulesets, publishRuleset, rollbackRuleset } from "./ruleset-store.ts";
+import {
+  createRulesetDraft,
+  getPublishedRulesetJson,
+  getRolloutStatus,
+  getRuleset,
+  listRulesets,
+  publishRuleset,
+  rollbackRuleset,
+  updateRolloutConfig,
+  type RolloutConfig,
+} from "./ruleset-store.ts";
 
 type Env = {
   DB?: D1Database;
@@ -44,6 +57,14 @@ type Env = {
   GAME_PROFILE_SEED_JSON?: string;
   ADMIN_AUTH_PEPPER?: string;
   ADMIN_BOOTSTRAP_TOKEN?: string;
+  /** Refs #1446 — secret compartilhada com o signallq-admin-worker, que faz proxy de
+   * /admin/diagnostic/* via service binding. Quando presente no header e válida, esse caminho
+   * confia na sessão já validada lá (fonte única de "quem é admin" do Console), sem exigir cookie
+   * próprio deste worker. O cookie de sessão httpOnly nativo continua aceito em paralelo (acesso
+   * direto/retrocompat) — a secret é um atalho de confiança adicional, não substitui o cookie.
+   * Sem esta secret configurada, o atalho nunca ativa e /admin/diagnostic/* segue exigindo sessão
+   * própria (cookie) como antes. */
+  DIAGNOSTIC_PROXY_SECRET?: string;
   // GH#960 — origem permitida pra CORS em /admin/* (mesmo padrao do
   // signallq-admin-worker). Sem esta var, Access-Control-Allow-Origin fica
   // vazio (nenhuma origem liberada) em vez de quebrar o worker.
@@ -126,6 +147,55 @@ async function authenticateSession(request: Request, env: Env): Promise<{ userId
   const token = getSessionToken(request);
   if (!token) return null;
   return validateSession(token, env.DB);
+}
+
+// Refs #1446 — /admin/diagnostic/* passa a aceitar chamadas via proxy do signallq-admin-worker
+// (service binding, ver proxyDiagnosticAdmin em signallq-admin-worker/src/index.ts): a sessão do
+// Console (validada lá) é reconhecida aqui sem exigir uma segunda sessão própria — evita duas
+// fontes de verdade de "quem é admin". O cookie de sessão nativo deste worker continua funcionando
+// nesse caminho também (retrocompat/acesso direto, ex.: automação interna, testes), a secret do
+// proxy é só um atalho adicional de confiança, nunca a única forma de autenticar.
+const DIAGNOSTIC_PROXY_SECRET_HEADER = "X-Internal-Diagnostic-Proxy-Secret";
+const DIAGNOSTIC_PROXY_USER_HEADER = "X-Internal-Admin-User";
+const DIAGNOSTIC_PROXY_ROLE_HEADER = "X-Internal-Admin-Role";
+
+function isDiagnosticAdminPath(pathname: string): boolean {
+  return pathname.startsWith("/admin/diagnostic/") || pathname.startsWith("/api/admin/diagnostic/");
+}
+
+/**
+ * Resolve a sessão administrativa pra uma rota /admin/*. Pra /admin/diagnostic/*, tenta primeiro a
+ * secret do proxy (chamada vinda do admin-worker, sem cookie deste worker) — só cai pro cookie
+ * próprio se a secret não vier ou não bater, preservando o fluxo de sessão direta já existente.
+ * Toda outra rota /admin/* (providers, games, auth) nunca aceita a secret do proxy, só cookie.
+ */
+async function resolveAdminSession(
+  request: Request,
+  env: Env,
+  pathname: string,
+): Promise<{ userId: string; role: string } | null> {
+  if (isDiagnosticAdminPath(pathname) && env.DIAGNOSTIC_PROXY_SECRET) {
+    const providedSecret = request.headers.get(DIAGNOSTIC_PROXY_SECRET_HEADER);
+    if (providedSecret && providedSecret === env.DIAGNOSTIC_PROXY_SECRET) {
+      return {
+        userId: request.headers.get(DIAGNOSTIC_PROXY_USER_HEADER) ?? "admin-worker:desconhecido",
+        role: request.headers.get(DIAGNOSTIC_PROXY_ROLE_HEADER) ?? "admin",
+      };
+    }
+  }
+  return authenticateSession(request, env);
+}
+
+// GH#1461 — resolve o autor real (`session.userId` + email de `admin_users`)
+// pra gravar em `provider_audit_log`. Rotas de provider nunca aceitam a
+// secret do proxy diagnostico (ver `resolveAdminSession`), entao `session`
+// aqui e sempre uma sessao de cookie real com `userId` existente em
+// `admin_users` -- `email` so fica `null` se essa premissa quebrar.
+async function resolveProviderActor(env: Env, session: { userId: string; role: string }): Promise<ProviderAdminActor> {
+  const user = env.DB
+    ? await env.DB.prepare("SELECT email, role FROM admin_users WHERE id = ?").bind(session.userId).first<{ email: string; role: string }>()
+    : null;
+  return { userId: session.userId, email: user?.email ?? null, source: "admin-console" };
 }
 
 async function checkRateLimit(ip: string, db: D1Database): Promise<boolean> {
@@ -239,16 +309,115 @@ async function handleRulesetCreate(request: Request, env: Env, session: { userId
   return json({ ok: true, version: validation.ruleset.version }, 201);
 }
 
-async function handleRulesetPublish(version: number, env: Env, session: { userId: string; role: string }): Promise<Response> {
+// GH#1445 — valida o body de publish/rollout-update. `rolloutPercent` ausente
+// vira 0 (ver kdoc de `publishRuleset` em ruleset-store.ts) — nunca omite
+// silenciosamente para 100 como o comportamento antigo (achado #1441).
+function parseRolloutConfig(body: {
+  rolloutPercent?: unknown;
+  rolloutMinVersionCode?: unknown;
+  rolloutChannels?: unknown;
+}): { ok: true; rollout: RolloutConfig } | { ok: false; error: string } {
+  let percent = 0;
+  if (body.rolloutPercent !== undefined && body.rolloutPercent !== null) {
+    if (typeof body.rolloutPercent !== "number" || !Number.isInteger(body.rolloutPercent) || body.rolloutPercent < 0 || body.rolloutPercent > 100) {
+      return { ok: false, error: "rolloutPercent must be an integer between 0 and 100." };
+    }
+    percent = body.rolloutPercent;
+  }
+
+  let minVersionCode: number | null = null;
+  if (body.rolloutMinVersionCode !== undefined && body.rolloutMinVersionCode !== null) {
+    if (typeof body.rolloutMinVersionCode !== "number" || !Number.isInteger(body.rolloutMinVersionCode) || body.rolloutMinVersionCode < 0) {
+      return { ok: false, error: "rolloutMinVersionCode must be a non-negative integer." };
+    }
+    minVersionCode = body.rolloutMinVersionCode;
+  }
+
+  let channels: string[] | null = null;
+  if (body.rolloutChannels !== undefined && body.rolloutChannels !== null) {
+    if (!Array.isArray(body.rolloutChannels) || body.rolloutChannels.some((entry) => typeof entry !== "string" || entry.trim() === "")) {
+      return { ok: false, error: "rolloutChannels must be an array of non-empty strings." };
+    }
+    channels = body.rolloutChannels as string[];
+  }
+
+  return { ok: true, rollout: { percent, minVersionCode, channels } };
+}
+
+// GH#1445 — devolve o rollout aplicado no MESMO formato de wire aceito na
+// requisicao (rolloutPercent/rolloutMinVersionCode/rolloutChannels), em vez
+// de vazar o shape interno de RolloutConfig (percent/minVersionCode/channels)
+// — request e response usam o mesmo vocabulario, sem duas convencoes de nome
+// pro mesmo conceito.
+function rolloutConfigToWire(rollout: RolloutConfig): { rolloutPercent: number; rolloutMinVersionCode: number | null; rolloutChannels: string[] | null } {
+  return {
+    rolloutPercent: rollout.percent,
+    rolloutMinVersionCode: rollout.minVersionCode ?? null,
+    rolloutChannels: rollout.channels ?? null,
+  };
+}
+
+async function handleRulesetPublish(request: Request, version: number, env: Env, session: { userId: string; role: string }): Promise<Response> {
   if (!env.DB) return json({ error: "DB binding not configured." }, 500);
-  await publishRuleset(env.DB, version, session.userId);
-  return json({ ok: true, version, status: "PUBLISHED" });
+  // Body opcional (compatibilidade): publish sem body nenhum e valido, so
+  // publica em 0% (dark) — ver parseRolloutConfig.
+  let payload: unknown = {};
+  try {
+    const text = await request.text();
+    if (text.trim().length > 0) payload = JSON.parse(text);
+  } catch {
+    return json({ error: "Invalid JSON body." }, 400);
+  }
+  const rolloutValidation = parseRolloutConfig(payload as Record<string, unknown>);
+  if (!rolloutValidation.ok) return json({ error: rolloutValidation.error }, 400);
+  await publishRuleset(env.DB, version, session.userId, rolloutValidation.rollout);
+  return json({ ok: true, version, status: "PUBLISHED", rollout: rolloutConfigToWire(rolloutValidation.rollout) });
 }
 
 async function handleRulesetRollback(version: number, env: Env, session: { userId: string; role: string }): Promise<Response> {
   if (!env.DB) return json({ error: "DB binding not configured." }, 500);
   await rollbackRuleset(env.DB, version, session.userId);
   return json({ ok: true, version, status: "ROLLED_BACK" });
+}
+
+/**
+ * GH#1445 — atualiza SO o rollout (percentual + segmentacao) do ruleset
+ * PUBLISHED atual, sem criar nova versao/publicacao. Endpoint dedicado para
+ * o criterio "reduzir rollout_percent de volta pra 0 deve remover instalacoes
+ * do grupo sem redeploy" — diferente de publish (que so aceita body opcional),
+ * este endpoint EXIGE body valido (nao ha default seguro para "atualizar
+ * rollout sem dizer qual").
+ */
+async function handleRulesetRolloutUpdate(request: Request, version: number, env: Env, session: { userId: string; role: string }): Promise<Response> {
+  if (!env.DB) return json({ error: "DB binding not configured." }, 500);
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return json({ error: "Invalid JSON body." }, 400);
+  }
+  const rolloutValidation = parseRolloutConfig(payload as Record<string, unknown>);
+  if (!rolloutValidation.ok) return json({ error: rolloutValidation.error }, 400);
+  const result = await updateRolloutConfig(env.DB, version, rolloutValidation.rollout, session.userId);
+  if (!result.ok) return json({ error: result.error }, 409);
+  return json({ ok: true, version, rollout: rolloutConfigToWire(rolloutValidation.rollout) });
+}
+
+/**
+ * GH#1445 — status de rollout do ruleset PUBLISHED atual. Publico (sem sessao
+ * admin): e consumido pelo app antes de qualquer decisao de participar do
+ * shadow mode, mesmo padrao de publicidade de `/games/catalog/version`. Sem
+ * dado sensivel — so percentual e segmentacao agregada, nunca por-instalacao.
+ */
+async function handleDiagnosticRolloutStatus(env: Env): Promise<Response> {
+  if (!env.DB) {
+    return json({ rulesetVersion: null, rolloutPercent: 0, rolloutMinVersionCode: null, rolloutChannels: null });
+  }
+  const status = await getRolloutStatus(env.DB);
+  if (!status) {
+    return json({ rulesetVersion: null, rolloutPercent: 0, rolloutMinVersionCode: null, rolloutChannels: null });
+  }
+  return json(status);
 }
 
 async function handleDiagnosticSimulate(request: Request): Promise<Response> {
@@ -345,9 +514,104 @@ async function handleProviderDetections(request: Request, env: Env): Promise<Res
   return json({ ok: true, ...result }, 202);
 }
 
-async function handleProviderSeedSync(env: Env): Promise<Response> {
+// GH#1444 — mesmo cuidado do GH#961 em handleProviderDetections: endpoint
+// publico/anonimo (o app envia sem sessao admin), payload malformado ou null
+// nao pode derrubar o worker com 500 cru.
+const DIVERGENCE_CLASSIFICATIONS = new Set([
+  "EXACT_MATCH",
+  "EQUIVALENT_RESULT",
+  "MINOR_DIVERGENCE",
+  "MAJOR_DIVERGENCE",
+  "REMOTE_ERROR",
+  "LOCAL_ERROR",
+]);
+
+function validateDivergenceInput(input: unknown): { ok: true; input: DiagnosticDivergenceInput } | { ok: false; errors: string[] } {
+  if (!input || typeof input !== "object") {
+    return { ok: false, errors: ["Body must be an object."] };
+  }
+  const body = input as Record<string, unknown>;
+  const errors: string[] = [];
+
+  if (typeof body.executionId !== "string" || body.executionId.length === 0) {
+    errors.push("executionId is required and must be a non-empty string.");
+  }
+  if (typeof body.snapshotHash !== "string" || body.snapshotHash.length === 0) {
+    errors.push("snapshotHash is required and must be a non-empty string.");
+  }
+  if (typeof body.classification !== "string" || !DIVERGENCE_CLASSIFICATIONS.has(body.classification)) {
+    errors.push(`classification must be one of: ${Array.from(DIVERGENCE_CLASSIFICATIONS).join(", ")}.`);
+  }
+
+  const optionalString = (key: string) => {
+    if (key in body && body[key] !== null && typeof body[key] !== "string") {
+      errors.push(`${key} must be a string when present.`);
+    }
+  };
+  const optionalNumber = (key: string) => {
+    if (key in body && body[key] !== null && typeof body[key] !== "number") {
+      errors.push(`${key} must be a number when present.`);
+    }
+  };
+  optionalString("localStatus");
+  optionalString("remoteStatus");
+  optionalString("localFlow");
+  optionalString("remoteFlow");
+  optionalString("localSource");
+  optionalString("remoteSource");
+  optionalString("appVersion");
+  optionalString("createdAt");
+  optionalNumber("localScore");
+  optionalNumber("remoteScore");
+  optionalNumber("localDurationMs");
+  optionalNumber("remoteDurationMs");
+  optionalNumber("versionCode");
+
+  if (errors.length > 0) {
+    return { ok: false, errors };
+  }
+  return { ok: true, input: body as unknown as DiagnosticDivergenceInput };
+}
+
+async function handleDiagnosticDivergenceIngest(request: Request, env: Env): Promise<Response> {
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return json({ error: "Invalid JSON body." }, 400);
+  }
+
+  const validation = validateDivergenceInput(payload);
+  if (!validation.ok) {
+    return json({ error: "Invalid divergence payload.", details: validation.errors }, 400);
+  }
+
+  // Best-effort, mesmo padrao de registerProviderDetection: sem DB configurado
+  // (dev local sem binding), aceita e nao persiste — nunca derruba o app.
+  if (!env.DB) {
+    return json({ ok: true, stored: false }, 202);
+  }
+
+  const id = await registerDivergence(env.DB, validation.input);
+  return json({ ok: true, stored: true, id }, 202);
+}
+
+async function handleDiagnosticDivergencesList(url: URL, env: Env): Promise<Response> {
+  if (!env.DB) return json({ items: [], summary: {} });
+  const classification = url.searchParams.get("classification") ?? undefined;
+  const limitParam = url.searchParams.get("limit");
+  const limit = limitParam ? Number(limitParam) : undefined;
+  const [items, summary] = await Promise.all([
+    listDivergences(env.DB, { classification, limit }),
+    summarizeDivergences(env.DB),
+  ]);
+  return json({ items, summary });
+}
+
+async function handleProviderSeedSync(env: Env, session: { userId: string; role: string }): Promise<Response> {
   if (!env.DB) return json({ error: "DB binding not configured." }, 500);
-  const result = await syncSeedProvidersToDb(env);
+  const actor = await resolveProviderActor(env, session);
+  const result = await syncSeedProvidersToDb(env, actor);
   return json({ ok: true, ...result });
 }
 
@@ -361,7 +625,7 @@ async function handleProviderStale(env: Env): Promise<Response> {
   return json({ items: await listStaleProviders(env) });
 }
 
-async function handleProviderUpsert(request: Request, env: Env): Promise<Response> {
+async function handleProviderUpsert(request: Request, env: Env, session: { userId: string; role: string }): Promise<Response> {
   if (!env.DB) return json({ error: "DB binding not configured." }, 500);
   let payload: unknown;
   try {
@@ -370,16 +634,20 @@ async function handleProviderUpsert(request: Request, env: Env): Promise<Respons
     return json({ error: "Invalid JSON body." }, 400);
   }
 
-  const body = payload as { provider?: { id?: string; displayName?: string } };
+  // GH#1461 — `reason` e um campo opcional adicional pro corpo da requisicao
+  // (motivo administrativo da escrita, so pra auditoria) -- nao muda o
+  // contrato de `provider`, que continua exatamente como antes.
+  const body = payload as { provider?: { id?: string; displayName?: string }; reason?: string | null };
   if (!body.provider?.id || !body.provider.displayName) {
     return json({ error: "provider.id and provider.displayName are required." }, 400);
   }
 
-  const result = await upsertProvider(env, body.provider as Parameters<typeof upsertProvider>[1]);
+  const actor = await resolveProviderActor(env, session);
+  const result = await upsertProvider(env, body.provider as Parameters<typeof upsertProvider>[1], actor, body.reason ?? null);
   return json({ ok: true, ...result }, 201);
 }
 
-async function handleProviderReview(request: Request, env: Env, providerId: string): Promise<Response> {
+async function handleProviderReview(request: Request, env: Env, providerId: string, session: { userId: string; role: string }): Promise<Response> {
   if (!env.DB) return json({ error: "DB binding not configured." }, 500);
   let payload: unknown;
   try {
@@ -387,7 +655,8 @@ async function handleProviderReview(request: Request, env: Env, providerId: stri
   } catch {
     return json({ error: "Invalid JSON body." }, 400);
   }
-  const result = await reviewProvider(env, providerId, payload as Parameters<typeof reviewProvider>[2]);
+  const actor = await resolveProviderActor(env, session);
+  const result = await reviewProvider(env, providerId, payload as Parameters<typeof reviewProvider>[2], actor);
   return json(result);
 }
 
@@ -422,7 +691,7 @@ function validateProviderSupportInput(input: unknown): { ok: true; support: Part
   return { ok: true, support };
 }
 
-async function handleProviderSupportUpdate(request: Request, env: Env, providerId: string): Promise<Response> {
+async function handleProviderSupportUpdate(request: Request, env: Env, providerId: string, session: { userId: string; role: string }): Promise<Response> {
   if (!env.DB) return json({ error: "DB binding not configured." }, 500);
   let payload: unknown;
   try {
@@ -436,12 +705,15 @@ async function handleProviderSupportUpdate(request: Request, env: Env, providerI
     return json({ error: "Invalid provider support payload.", details: validation.errors }, 400);
   }
 
-  const result = await updateProviderSupport(env, providerId, validation.support);
+  // GH#1461 — `reason` opcional, mesma logica de handleProviderUpsert.
+  const reason = (payload as { reason?: string | null } | null)?.reason ?? null;
+  const actor = await resolveProviderActor(env, session);
+  const result = await updateProviderSupport(env, providerId, validation.support, actor, reason);
   if (!result) return json({ error: "Provider not found." }, 404);
   return json(result);
 }
 
-async function handleProviderLogoUpload(request: Request, env: Env, providerId: string): Promise<Response> {
+async function handleProviderLogoUpload(request: Request, env: Env, providerId: string, session: { userId: string; role: string }): Promise<Response> {
   const contentType = request.headers.get("Content-Type") ?? "";
   if (!contentType.startsWith("image/")) {
     return json({ error: "Content-Type must be an image/* mime type." }, 400);
@@ -457,9 +729,22 @@ async function handleProviderLogoUpload(request: Request, env: Env, providerId: 
     return json({ error: "Empty request body." }, 400);
   }
 
-  const result = await uploadProviderLogo(env, providerId, bytes, contentType);
+  // GH#1461 — corpo do request e binario (a imagem), entao `reason` (opcional,
+  // so pra auditoria) vem de query string em vez de JSON.
+  const reason = new URL(request.url).searchParams.get("reason");
+  const actor = await resolveProviderActor(env, session);
+  const result = await uploadProviderLogo(env, providerId, bytes, contentType, actor, reason);
   if (!result.ok) return json({ error: result.error }, result.status);
   return json({ ok: true, url: result.url, version: result.version }, 201);
+}
+
+// GH#1461 — leitura da trilha de auditoria de provider (endpoint pra Admin
+// consumir depois na UI, issue #1465 -- espelha `handleGameAudit`).
+// `?providerId=` opcional filtra pra um unico provedor; sem o filtro, lista
+// as ultimas 100 entradas de qualquer provedor.
+async function handleProviderAuditLog(url: URL, env: Env): Promise<Response> {
+  if (!env.DB) return json({ items: [] });
+  return json({ items: await listProviderAuditLog(env, url.searchParams.get("providerId")) });
 }
 
 // GH#965 — rota publica que serve o binario da logo gravado no D1 (BLOB
@@ -674,12 +959,15 @@ async function route(request: Request, env: Env): Promise<Response> {
       worker: "signallq-diagnostic",
       routes: [
         "/diagnostic/evaluate",
+        "/diagnostic/rollout-status",
         "/admin/diagnostic/rulesets",
         "/admin/diagnostic/rulesets/:version",
         "/admin/diagnostic/rulesets/:version/publish",
         "/admin/diagnostic/rulesets/:version/rollback",
+        "/admin/diagnostic/rulesets/:version/rollout",
         "/admin/diagnostic/rulesets/validate",
         "/admin/diagnostic/simulate",
+        "/admin/diagnostic/divergences",
         "/admin/auth/bootstrap",
         "/admin/auth/login",
         "/admin/auth/logout",
@@ -687,6 +975,7 @@ async function route(request: Request, env: Env): Promise<Response> {
         "/admin/providers/review-queue",
         "/admin/providers/stale",
         "/admin/providers/sync-seed",
+        "/admin/providers/audit",
         "/admin/providers",
         "/admin/providers/:providerId/review",
         "/admin/providers/:providerId/support",
@@ -707,12 +996,17 @@ async function route(request: Request, env: Env): Promise<Response> {
         "/providers/:providerId/logo",
         "/providers/search",
         "/ingest/provider-detection",
+        "/ingest/diagnostic-divergence",
       ],
     });
   }
 
   if (request.method === "POST" && (url.pathname === "/diagnostic/evaluate" || url.pathname === "/api/diagnostic/evaluate")) {
     return handleDiagnosticEvaluate(request, env);
+  }
+
+  if (request.method === "GET" && (url.pathname === "/diagnostic/rollout-status" || url.pathname === "/api/diagnostic/rollout-status")) {
+    return handleDiagnosticRolloutStatus(env);
   }
 
   if (url.pathname === "/admin/auth/login" && request.method === "POST") {
@@ -729,7 +1023,7 @@ async function route(request: Request, env: Env): Promise<Response> {
   }
 
   const needsAdminSession = url.pathname.startsWith("/admin/") && Boolean(env.DB);
-  const session = needsAdminSession ? await authenticateSession(request, env) : null;
+  const session = needsAdminSession ? await resolveAdminSession(request, env, url.pathname) : null;
   if (needsAdminSession && !url.pathname.startsWith("/admin/auth/") && !session) {
     return json({ error: "Unauthorized." }, 401);
   }
@@ -746,7 +1040,11 @@ async function route(request: Request, env: Env): Promise<Response> {
   }
   const rulesetPublishMatch = url.pathname.match(/^\/admin\/diagnostic\/rulesets\/(\d+)\/publish$/);
   if (request.method === "POST" && rulesetPublishMatch) {
-    return handleRulesetPublish(Number(rulesetPublishMatch[1]), env, session!);
+    return handleRulesetPublish(request, Number(rulesetPublishMatch[1]), env, session!);
+  }
+  const rulesetRolloutMatch = url.pathname.match(/^\/admin\/diagnostic\/rulesets\/(\d+)\/rollout$/);
+  if (request.method === "POST" && rulesetRolloutMatch) {
+    return handleRulesetRolloutUpdate(request, Number(rulesetRolloutMatch[1]), env, session!);
   }
   const rulesetRollbackMatch = url.pathname.match(/^\/admin\/diagnostic\/rulesets\/(\d+)\/rollback$/);
   if (request.method === "POST" && rulesetRollbackMatch) {
@@ -760,6 +1058,9 @@ async function route(request: Request, env: Env): Promise<Response> {
   if (request.method === "POST" && (url.pathname === "/admin/diagnostic/simulate" || url.pathname === "/api/admin/diagnostic/simulate")) {
     return handleDiagnosticSimulate(request);
   }
+  if (request.method === "GET" && (url.pathname === "/admin/diagnostic/divergences" || url.pathname === "/api/admin/diagnostic/divergences")) {
+    return handleDiagnosticDivergencesList(url, env);
+  }
   if (request.method === "POST" && url.pathname === "/admin/auth/users") {
     return handleAuthCreateUser(request, env, session!);
   }
@@ -770,22 +1071,25 @@ async function route(request: Request, env: Env): Promise<Response> {
     return handleProviderStale(env);
   }
   if (request.method === "POST" && url.pathname === "/admin/providers/sync-seed") {
-    return handleProviderSeedSync(env);
+    return handleProviderSeedSync(env, session!);
+  }
+  if (request.method === "GET" && url.pathname === "/admin/providers/audit") {
+    return handleProviderAuditLog(url, env);
   }
   if (request.method === "POST" && url.pathname === "/admin/providers") {
-    return handleProviderUpsert(request, env);
+    return handleProviderUpsert(request, env, session!);
   }
   const providerReviewMatch = url.pathname.match(/^\/admin\/providers\/([^/]+)\/review$/);
   if (request.method === "POST" && providerReviewMatch) {
-    return handleProviderReview(request, env, providerReviewMatch[1]!);
+    return handleProviderReview(request, env, providerReviewMatch[1]!, session!);
   }
   const providerSupportEditMatch = url.pathname.match(/^\/admin\/providers\/([^/]+)\/support$/);
   if ((request.method === "POST" || request.method === "PUT") && providerSupportEditMatch) {
-    return handleProviderSupportUpdate(request, env, providerSupportEditMatch[1]!);
+    return handleProviderSupportUpdate(request, env, providerSupportEditMatch[1]!, session!);
   }
   const providerLogoUploadMatch = url.pathname.match(/^\/admin\/providers\/([^/]+)\/logo$/);
   if (request.method === "POST" && providerLogoUploadMatch) {
-    return handleProviderLogoUpload(request, env, providerLogoUploadMatch[1]!);
+    return handleProviderLogoUpload(request, env, providerLogoUploadMatch[1]!, session!);
   }
   if (request.method === "POST" && url.pathname === "/admin/games/sync-seed") {
     return handleGameSeedSync(env, session!);
@@ -836,6 +1140,10 @@ async function route(request: Request, env: Env): Promise<Response> {
 
   if (request.method === "POST" && (url.pathname === "/ingest/provider-detection" || url.pathname === "/api/provider-detections")) {
     return handleProviderDetections(request, env);
+  }
+
+  if (request.method === "POST" && (url.pathname === "/ingest/diagnostic-divergence" || url.pathname === "/api/diagnostic-divergences")) {
+    return handleDiagnosticDivergenceIngest(request, env);
   }
 
   if (request.method === "GET" && (url.pathname.startsWith("/providers/") || url.pathname.startsWith("/api/providers/"))) {

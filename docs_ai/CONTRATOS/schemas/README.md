@@ -1,7 +1,7 @@
 # Schemas do monorepo SignallQ — índice de contratos
 
 - **Status:** ativo
-- **Última validação:** 2026-07-16
+- **Última validação:** 2026-07-26 (adicionado catálogo de Feature Flags, GH#1477)
 - **Fonte de verdade:** este arquivo referencia os schemas reais nos caminhos de origem — não
   copia conteúdo
 - **Escopo:** monorepo `7ALabs/SignallQ` — Room (Android), D1 (Cloudflare), analytics
@@ -30,8 +30,9 @@ ninguém percebesse.
 | Room — `VelooDatabase` (residual) | v10 (única versão presente) | `android/core/database/schemas/io.signallq.app.core.database.VelooDatabase/10.json` | Nenhum — histórico de schema mantido pelo Room, não referenciado por código ativo |
 | Room — `LinkaDatabase` (legado) | v10 (mais alta presente; 1–10) | `android/core/database/schemas/io.linka.app.kotlin.core.database.LinkaDatabase/1.json` … `/10.json` | Nenhum — histórico de schema mantido pelo Room, não referenciado por código ativo |
 | D1 — `signallq-admin-db` | migration 014 (`014_gh786.sql`) | `integrations/cloudflare/signallq-admin-worker/migrations/001_sig143.sql` … `014_gh786.sql` | `signallq-admin-worker` + SignallQ Console (`SignallQ Admin/`, via API do worker) |
-| D1 — `signallq-diagnostic-db` | migration 006 (`006_gh965_provider_logo_d1.sql`) | `integrations/cloudflare/signallq-diagnostic-worker/migrations/001_gh952_diagnostic_rules.sql` … `006_gh965_provider_logo_d1.sql` | `signallq-diagnostic-worker` + endpoints `/admin/*` do próprio worker |
+| D1 — `signallq-diagnostic-db` | migration 008 (`008_gh1445_rollout_segmentation.sql`) | `integrations/cloudflare/signallq-diagnostic-worker/migrations/001_gh952_diagnostic_rules.sql` … `008_gh1445_rollout_segmentation.sql` | `signallq-diagnostic-worker` + endpoints `/admin/*` do próprio worker |
 | Analytics — eventos GA4 (Firebase Analytics) | documento vivo, sem número de versão formal | `docs_ai/technical/analytics-events-schema.md` | App Android (`FirebaseAnalyticsTracker`) → GA4 → `analytics_events` (D1 admin, migration 006) → `ProductAnalyticsPage` no SignallQ Console |
+| Feature Flags — catálogo canônico do Consumer | `schemaVersion` "1.0", 2 entradas (smoke-test) | `android/core/featureflags/src/main/resources/featureflags/consumer-catalog.json` (schema documentado em `docs_ai/technical/feature-flags-remote-config.md`) | App Android (`:core:featureflags`, único consumidor nesta fase — GH#1477); Worker/Admin passam a consumir em F2/#1478 e F3/#1479 |
 
 ## 3. História dos 3 nomes de banco Room (Linka → Veloo → SignallQ)
 
@@ -71,7 +72,7 @@ Consistente com `.claude/CLAUDE.md`: "Marca anterior: Linka -> Veloo -> SignallQ
 | `013_gh788.sql` | Cria `system_health_snapshots` + índice composto |
 | `014_gh786.sql` | Adiciona coluna `uf` em `diagnostic_sessions` + índice |
 
-## 5. D1 — `signallq-diagnostic-worker` (6 migrations)
+## 5. D1 — `signallq-diagnostic-worker` (8 migrations)
 
 | Arquivo | O que faz |
 |---|---|
@@ -81,6 +82,8 @@ Consistente com `.claude/CLAUDE.md`: "Marca anterior: Linka -> Veloo -> SignallQ
 | `004_gh935_game_catalog.sql` | Cria `game_profiles`, `game_catalog`, `game_platforms`, `game_catalog_audit` |
 | `005_gh956_provider_installations.sql` | Cria `provider_detection_installations` + índice |
 | `006_gh965_provider_logo_d1.sql` | Adiciona `data_base64`/`content_type` em `provider_assets` — logo servida como BLOB do D1 (R2 descartado por exigir cartão de crédito mesmo no tier grátis) |
+| `007_gh1444_diagnostic_divergences.sql` | Recria `diagnostic_divergences` (shadow mode) com wiring completo (endpoint + call site), desta vez conectado — a versão criada pela migration 001 foi removida por nunca ter sido usada (GH#961) |
+| `008_gh1445_rollout_segmentation.sql` | Adiciona `rollout_min_version_code`/`rollout_channels` em `diagnostic_rulesets` — segmentação mínima (versão/canal do app) do rollout gradual do shadow mode; `rollout_percent` (coluna já existente desde a 001) deixa de ser sempre forçado a 100 no publish |
 
 ## 6. Eventos de analytics (GA4 / Firebase Analytics)
 

@@ -986,11 +986,14 @@ test("admin ruleset draft publish and rollback work with authenticated session",
   const publishResponse = await worker.fetch(
     new Request("https://example.com/admin/diagnostic/rulesets/7/publish", {
       method: "POST",
-      headers: { Cookie: cookie },
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 25 }),
     }),
     { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper },
   );
   assert.equal(publishResponse.status, 200);
+  const publishPayload = await publishResponse.json() as { rollout: { rolloutPercent: number } };
+  assert.equal(publishPayload.rollout.rolloutPercent, 25);
 
   const listResponse = await worker.fetch(
     new Request("https://example.com/admin/diagnostic/rulesets", {
@@ -998,9 +1001,10 @@ test("admin ruleset draft publish and rollback work with authenticated session",
     }),
     { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper },
   );
-  const listPayload = await listResponse.json() as { items: Array<{ version: number; status: string }> };
+  const listPayload = await listResponse.json() as { items: Array<{ version: number; status: string; rollout_percent: number }> };
   assert.equal(listResponse.status, 200);
   assert.equal(listPayload.items[0]?.status, "PUBLISHED");
+  assert.equal(listPayload.items[0]?.rollout_percent, 25);
 
   const rollbackResponse = await worker.fetch(
     new Request("https://example.com/admin/diagnostic/rulesets/7/rollback", {
@@ -1010,6 +1014,310 @@ test("admin ruleset draft publish and rollback work with authenticated session",
     { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper },
   );
   assert.equal(rollbackResponse.status, 200);
+});
+
+// ============================================================================
+// GH#1445 (parte de #952) — rollout gradual + segmentacao: rollout_percent
+// deixa de ser sempre 100 no publish, ganha endpoint de atualizacao in-place
+// (reversibilidade sem redeploy) e status publico consumido pelo Android.
+// ============================================================================
+
+async function loginAsRolloutAdmin(db: FakeD1Database, pepper: string): Promise<string> {
+  const passwordHash = await hashPassword("secret123", pepper);
+  db.adminUsers.set("user-1", {
+    id: "user-1",
+    email: "admin@example.com",
+    password_hash: passwordHash,
+    role: "admin",
+    active: 1,
+    created_at: 1,
+    last_login: null,
+  });
+  db.adminUsersByEmail.set("admin@example.com", "user-1");
+
+  const loginResponse = await worker.fetch(
+    jsonRequest("https://example.com/admin/auth/login", {
+      email: "admin@example.com",
+      password: "secret123",
+    }),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper },
+  );
+  return loginResponse.headers.get("set-cookie") ?? "";
+}
+
+function draftRulesetPayload(version: number) {
+  return {
+    version,
+    schemaVersion: 6,
+    engineVersion: 3,
+    publishedAt: "2026-07-26T00:00:00.000Z",
+    rules: [
+      {
+        ruleId: `draft_rule_${version}`,
+        ruleVersion: 1,
+        enabled: true,
+        priority: 50,
+        minimumSchemaVersion: 6,
+        conditions: [{ field: "quality.latencyMs", operator: "GT", value: 100 }],
+        result: {
+          findingCode: "DRAFT_RULE",
+          category: "internet",
+          severity: "WARNING",
+          confidence: "HIGH",
+          recommendationId: "RETEST",
+        },
+      },
+    ],
+  };
+}
+
+test("publish sem body publica em 0% (nunca mais forca 100 silenciosamente — achado #1441)", async () => {
+  const db = new FakeD1Database();
+  const pepper = "pepper-test";
+  const cookie = await loginAsRolloutAdmin(db, pepper);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ ruleset: draftRulesetPayload(10) }),
+    }),
+    env,
+  );
+
+  const publishResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/10/publish", {
+      method: "POST",
+      headers: { Cookie: cookie },
+    }),
+    env,
+  );
+  assert.equal(publishResponse.status, 200);
+  const payload = await publishResponse.json() as { rollout: { rolloutPercent: number } };
+  assert.equal(payload.rollout.rolloutPercent, 0);
+
+  const rolloutStatus = await worker.fetch(new Request("https://example.com/diagnostic/rollout-status"), env);
+  const statusPayload = await rolloutStatus.json() as { rulesetVersion: number; rolloutPercent: number };
+  assert.equal(statusPayload.rulesetVersion, 10);
+  assert.equal(statusPayload.rolloutPercent, 0);
+});
+
+test("publish rejeita rolloutPercent fora de 0-100", async () => {
+  const db = new FakeD1Database();
+  const pepper = "pepper-test";
+  const cookie = await loginAsRolloutAdmin(db, pepper);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ ruleset: draftRulesetPayload(11) }),
+    }),
+    env,
+  );
+
+  const publishResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/11/publish", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 150 }),
+    }),
+    env,
+  );
+  assert.equal(publishResponse.status, 400);
+});
+
+test("publish aceita segmentacao por versao minima e canal do app", async () => {
+  const db = new FakeD1Database();
+  const pepper = "pepper-test";
+  const cookie = await loginAsRolloutAdmin(db, pepper);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ ruleset: draftRulesetPayload(12) }),
+    }),
+    env,
+  );
+
+  const publishResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/12/publish", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 50, rolloutMinVersionCode: 320, rolloutChannels: ["play_store"] }),
+    }),
+    env,
+  );
+  assert.equal(publishResponse.status, 200);
+
+  const rolloutStatus = await worker.fetch(new Request("https://example.com/diagnostic/rollout-status"), env);
+  const statusPayload = await rolloutStatus.json() as {
+    rolloutPercent: number;
+    rolloutMinVersionCode: number | null;
+    rolloutChannels: string[] | null;
+  };
+  assert.equal(statusPayload.rolloutPercent, 50);
+  assert.equal(statusPayload.rolloutMinVersionCode, 320);
+  assert.deepEqual(statusPayload.rolloutChannels, ["play_store"]);
+});
+
+test("rollout-status sem ruleset publicado devolve 0% (fail closed)", async () => {
+  const db = new FakeD1Database();
+  const response = await worker.fetch(
+    new Request("https://example.com/diagnostic/rollout-status"),
+    { DB: db as unknown as D1Database },
+  );
+  const payload = await response.json() as { rulesetVersion: number | null; rolloutPercent: number };
+  assert.equal(response.status, 200);
+  assert.equal(payload.rulesetVersion, null);
+  assert.equal(payload.rolloutPercent, 0);
+});
+
+test("endpoint de rollout reduz o percentual do ruleset PUBLISHED atual sem redeploy (in-place, sem trocar versao)", async () => {
+  const db = new FakeD1Database();
+  const pepper = "pepper-test";
+  const cookie = await loginAsRolloutAdmin(db, pepper);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ ruleset: draftRulesetPayload(13) }),
+    }),
+    env,
+  );
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/13/publish", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 50 }),
+    }),
+    env,
+  );
+
+  const rolloutUpdateResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/13/rollout", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 0 }),
+    }),
+    env,
+  );
+  assert.equal(rolloutUpdateResponse.status, 200);
+
+  const rolloutStatus = await worker.fetch(new Request("https://example.com/diagnostic/rollout-status"), env);
+  const statusPayload = await rolloutStatus.json() as { rulesetVersion: number; rolloutPercent: number };
+  assert.equal(statusPayload.rulesetVersion, 13);
+  assert.equal(statusPayload.rolloutPercent, 0);
+
+  const listResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", { headers: { Cookie: cookie } }),
+    env,
+  );
+  const listPayload = await listResponse.json() as { items: Array<{ version: number; status: string }> };
+  assert.equal(listPayload.items.find((item) => item.version === 13)?.status, "PUBLISHED");
+});
+
+test("endpoint de rollout recusa atualizar ruleset que nao esta PUBLISHED", async () => {
+  const db = new FakeD1Database();
+  const pepper = "pepper-test";
+  const cookie = await loginAsRolloutAdmin(db, pepper);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ ruleset: draftRulesetPayload(14) }),
+    }),
+    env,
+  );
+
+  const rolloutUpdateResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/14/rollout", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 30 }),
+    }),
+    env,
+  );
+  assert.equal(rolloutUpdateResponse.status, 409);
+});
+
+test("rollback preserva o rollout_percent anterior do ruleset restaurado, nunca forca 100% (achado Rhodolfo, PR #1455)", async () => {
+  const db = new FakeD1Database();
+  const pepper = "pepper-test";
+  const cookie = await loginAsRolloutAdmin(db, pepper);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: pepper };
+
+  // v15 publicado a 40% — depois vira ROLLED_BACK quando v16 for publicado,
+  // mas a coluna rollout_percent dele deve continuar guardando 40, nao ser
+  // zerada nem sobrescrita.
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ ruleset: draftRulesetPayload(15) }),
+    }),
+    env,
+  );
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/15/publish", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 40 }),
+    }),
+    env,
+  );
+
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ ruleset: draftRulesetPayload(16) }),
+    }),
+    env,
+  );
+  await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/16/publish", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ rolloutPercent: 10 }),
+    }),
+    env,
+  );
+
+  const rollbackResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets/16/rollback", {
+      method: "POST",
+      headers: { Cookie: cookie },
+    }),
+    env,
+  );
+  assert.equal(rollbackResponse.status, 200);
+
+  const listResponse = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", { headers: { Cookie: cookie } }),
+    env,
+  );
+  const listPayload = await listResponse.json() as {
+    items: Array<{ version: number; status: string; rollout_percent: number }>;
+  };
+  const restored = listPayload.items.find((item) => item.version === 15);
+  const rolledBack = listPayload.items.find((item) => item.version === 16);
+  assert.equal(restored?.status, "PUBLISHED");
+  assert.equal(restored?.rollout_percent, 40, "rollback nao deve reativar rollout em 100% sem decisao explicita");
+  assert.equal(rolledBack?.status, "ROLLED_BACK");
+
+  const rolloutStatus = await worker.fetch(new Request("https://example.com/diagnostic/rollout-status"), env);
+  const statusPayload = await rolloutStatus.json() as { rulesetVersion: number; rolloutPercent: number };
+  assert.equal(statusPayload.rulesetVersion, 15);
+  assert.equal(statusPayload.rolloutPercent, 40);
 });
 
 // ============================================================================
@@ -1743,4 +2051,439 @@ test("provider logo upload: Content-Type que nao e image/* retorna 400", async (
     { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" },
   );
   assert.equal(response.status, 400);
+});
+
+// ============================================================================
+// GH#1461 — provider_audit_log: trilha de auditoria pras 5 escritas
+// administrativas do diretorio de provedores (upsert, review, support
+// update, logo upload, sync-seed).
+// ============================================================================
+
+test("provider audit: criar um provedor novo grava CREATE_PROVIDER com autor real e beforeJson nulo", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" };
+
+  const createResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ provider: { id: "audit_teste1", displayName: "Audit Teste 1" } }),
+    }),
+    env,
+  );
+  assert.equal(createResponse.status, 201);
+
+  const auditResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit?providerId=audit_teste1", { headers: { Cookie: cookie } }),
+    env,
+  );
+  assert.equal(auditResponse.status, 200);
+  const auditPayload = await auditResponse.json() as {
+    items: Array<{
+      providerId: string;
+      operation: string;
+      actorUserId: string;
+      actorEmail: string | null;
+      source: string;
+      beforeJson: string | null;
+      afterJson: string | null;
+    }>;
+  };
+  assert.equal(auditPayload.items.length, 1);
+  const entry = auditPayload.items[0]!;
+  assert.equal(entry.providerId, "audit_teste1");
+  assert.equal(entry.operation, "CREATE_PROVIDER");
+  assert.equal(entry.actorUserId, "user-1");
+  assert.equal(entry.actorEmail, "admin@example.com");
+  assert.equal(entry.source, "admin-console");
+  assert.equal(entry.beforeJson, null);
+  assert.ok(entry.afterJson?.includes("Audit Teste 1"));
+});
+
+test("provider audit: editar um provedor existente grava UPSERT_PROVIDER com beforeJson preenchido", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ provider: { id: "audit_teste2", displayName: "Audit Teste 2" } }),
+    }),
+    env,
+  );
+  await worker.fetch(
+    new Request("https://example.com/admin/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ provider: { id: "audit_teste2", displayName: "Audit Teste 2 Editado" }, reason: "correcao de nome" }),
+    }),
+    env,
+  );
+
+  const auditResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit?providerId=audit_teste2", { headers: { Cookie: cookie } }),
+    env,
+  );
+  const auditPayload = await auditResponse.json() as {
+    items: Array<{ operation: string; beforeJson: string | null; afterJson: string | null; reason: string | null }>;
+  };
+  assert.equal(auditPayload.items.length, 2);
+  // GH#1461 — busca por operation em vez de assumir items[0]: timestamps
+  // (resolucao de milissegundo) podem empatar entre as duas chamadas nesse
+  // teste, e ordenacao em empate nao e garantida (mesma limitacao ja
+  // existente em game_catalog_audit/listGameAudit).
+  const latest = auditPayload.items.find((item) => item.operation === "UPSERT_PROVIDER");
+  assert.ok(latest);
+  assert.equal(latest!.reason, "correcao de nome");
+  assert.ok(latest!.beforeJson?.includes("Audit Teste 2") && !latest!.beforeJson?.includes("Editado"));
+  assert.ok(latest!.afterJson?.includes("Audit Teste 2 Editado"));
+});
+
+test("provider audit: review grava REVIEW_PROVIDER usando notes como motivo", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ provider: { id: "audit_teste3", displayName: "Audit Teste 3" } }),
+    }),
+    env,
+  );
+  const reviewResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit_teste3/review", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ status: "VERIFIED", notes: "confirmado via site oficial" }),
+    }),
+    env,
+  );
+  assert.equal(reviewResponse.status, 200);
+
+  const auditResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit?providerId=audit_teste3", { headers: { Cookie: cookie } }),
+    env,
+  );
+  const auditPayload = await auditResponse.json() as {
+    items: Array<{ operation: string; reason: string | null }>;
+  };
+  const reviewEntry = auditPayload.items.find((item) => item.operation === "REVIEW_PROVIDER");
+  assert.ok(reviewEntry);
+  assert.equal(reviewEntry!.reason, "confirmado via site oficial");
+});
+
+test("provider audit: atualizacao de suporte grava UPDATE_SUPPORT", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ provider: { id: "audit_teste4", displayName: "Audit Teste 4" } }),
+    }),
+    env,
+  );
+  await worker.fetch(
+    new Request("https://example.com/admin/providers/audit_teste4/support", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ sacPhone: "0800-123456" }),
+    }),
+    env,
+  );
+
+  const auditResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit?providerId=audit_teste4", { headers: { Cookie: cookie } }),
+    env,
+  );
+  const auditPayload = await auditResponse.json() as { items: Array<{ operation: string }> };
+  assert.ok(auditPayload.items.some((item) => item.operation === "UPDATE_SUPPORT"));
+});
+
+test("provider audit: upload de logo grava UPLOAD_LOGO sem persistir o binario base64 no log", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ provider: { id: "audit_teste5", displayName: "Audit Teste 5" } }),
+    }),
+    env,
+  );
+  await worker.fetch(
+    new Request("https://example.com/admin/providers/audit_teste5/logo", {
+      method: "POST",
+      headers: { "content-type": "image/webp", Cookie: cookie },
+      body: new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]),
+    }),
+    env,
+  );
+
+  const auditResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit?providerId=audit_teste5", { headers: { Cookie: cookie } }),
+    env,
+  );
+  const auditPayload = await auditResponse.json() as {
+    items: Array<{ operation: string; afterJson: string | null }>;
+  };
+  const logoEntry = auditPayload.items.find((item) => item.operation === "UPLOAD_LOGO");
+  assert.ok(logoEntry);
+  assert.ok(logoEntry!.afterJson?.includes("\"version\":1"));
+  assert.ok(!logoEntry!.afterJson?.includes("data_base64"));
+  assert.ok(!logoEntry!.afterJson?.includes("AQIDBAUGBwg")); // base64 do payload de upload acima
+});
+
+test("provider audit: sync-seed grava uma entrada por provedor sincronizado com motivo seed-sync", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" };
+
+  const syncResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/sync-seed", { method: "POST", headers: { Cookie: cookie } }),
+    env,
+  );
+  assert.equal(syncResponse.status, 200);
+
+  const auditResponse = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit", { headers: { Cookie: cookie } }),
+    env,
+  );
+  const auditPayload = await auditResponse.json() as {
+    items: Array<{ operation: string; reason: string | null }>;
+  };
+  const seedEntries = auditPayload.items.filter((item) => item.reason === "seed-sync");
+  assert.ok(seedEntries.length >= 2); // claro + brisanet no catalogo seed embutido
+  assert.ok(seedEntries.every((item) => item.operation === "CREATE_PROVIDER"));
+});
+
+test("GET /admin/providers/audit sem cookie de sessao retorna 401", async () => {
+  const db = new FakeD1Database();
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/providers/audit"),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" },
+  );
+  assert.equal(response.status, 401);
+});
+
+test("provider audit: rota publica GET /providers/:id nunca expoe autor, motivo ou before/after", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const env = { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" };
+
+  await worker.fetch(
+    new Request("https://example.com/admin/providers", {
+      method: "POST",
+      headers: { "content-type": "application/json", Cookie: cookie },
+      body: JSON.stringify({ provider: { id: "audit_teste6", displayName: "Audit Teste 6" } }),
+    }),
+    env,
+  );
+
+  const publicResponse = await worker.fetch(new Request("https://example.com/providers/audit_teste6"), env);
+  const publicPayload = await publicResponse.json() as Record<string, unknown>;
+  assert.equal(publicResponse.status, 200);
+  for (const forbiddenKey of ["actorUserId", "actorEmail", "beforeJson", "afterJson", "reason", "source", "operation"]) {
+    assert.equal(Object.hasOwn(publicPayload, forbiddenKey), false);
+  }
+});
+
+// ============================================================================
+// GH#1444 (parte de #952) — shadow mode: /ingest/diagnostic-divergence e
+// /admin/diagnostic/divergences. Tabela recriada apos remocao em GH#961 —
+// desta vez com o wiring completo (ingest publico + leitura admin).
+// ============================================================================
+
+function divergencePayload(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    executionId: "exec-1",
+    snapshotHash: "hash-abc123",
+    classification: "EXACT_MATCH",
+    localStatus: "ok",
+    remoteStatus: "ok",
+    localScore: 90,
+    remoteScore: 90,
+    localFlow: "wifi",
+    remoteFlow: "wifi",
+    localSource: "BUNDLED_LOCAL",
+    remoteSource: "REMOTE",
+    localDurationMs: 12,
+    remoteDurationMs: 480,
+    appVersion: "0.31.0",
+    versionCode: 312,
+    ...overrides,
+  };
+}
+
+test("diagnostic divergence ingest aceita payload valido sem DB (best-effort, nao derruba o app)", async () => {
+  const response = await worker.fetch(
+    jsonRequest("https://example.com/ingest/diagnostic-divergence", divergencePayload()),
+    {},
+  );
+  assert.equal(response.status, 202);
+  const payload = await response.json() as { ok: boolean; stored: boolean };
+  assert.equal(payload.ok, true);
+  assert.equal(payload.stored, false);
+});
+
+test("diagnostic divergence ingest persiste no D1 quando DB esta configurado", async () => {
+  const db = new FakeD1Database();
+  const response = await worker.fetch(
+    jsonRequest("https://example.com/ingest/diagnostic-divergence", divergencePayload({ classification: "MINOR_DIVERGENCE" })),
+    { DB: db as unknown as D1Database },
+  );
+  assert.equal(response.status, 202);
+  const payload = await response.json() as { ok: boolean; stored: boolean; id: string };
+  assert.equal(payload.ok, true);
+  assert.equal(payload.stored, true);
+  assert.equal(db.diagnosticDivergences.length, 1);
+  assert.equal(db.diagnosticDivergences[0]!.classification, "MINOR_DIVERGENCE");
+  assert.equal(db.diagnosticDivergences[0]!.execution_id, "exec-1");
+});
+
+test("diagnostic divergence ingest rejeita payload null com 400 tratado (nao 500 cru)", async () => {
+  const response = await worker.fetch(
+    new Request("https://example.com/ingest/diagnostic-divergence", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "null",
+    }),
+    {},
+  );
+  assert.equal(response.status, 400);
+  const payload = await response.json() as { error: string };
+  assert.match(payload.error, /Invalid divergence payload/i);
+});
+
+test("diagnostic divergence ingest rejeita classification desconhecida", async () => {
+  const response = await worker.fetch(
+    jsonRequest("https://example.com/ingest/diagnostic-divergence", divergencePayload({ classification: "TOTALMENTE_DIFERENTE" })),
+    {},
+  );
+  assert.equal(response.status, 400);
+});
+
+test("diagnostic divergence ingest rejeita executionId ausente", async () => {
+  const payload = divergencePayload();
+  delete payload.executionId;
+  const response = await worker.fetch(
+    jsonRequest("https://example.com/ingest/diagnostic-divergence", payload),
+    {},
+  );
+  assert.equal(response.status, 400);
+});
+
+test("diagnostic divergence ingest rejeita localScore com tipo errado", async () => {
+  const response = await worker.fetch(
+    jsonRequest("https://example.com/ingest/diagnostic-divergence", divergencePayload({ localScore: "noventa" })),
+    {},
+  );
+  assert.equal(response.status, 400);
+});
+
+test("GET /admin/diagnostic/divergences exige sessao admin", async () => {
+  const db = new FakeD1Database();
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/divergences"),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" },
+  );
+  assert.equal(response.status, 401);
+});
+
+test("GET /admin/diagnostic/divergences lista registros e resumo por classificacao com sessao valida", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+
+  for (const classification of ["EXACT_MATCH", "EXACT_MATCH", "MAJOR_DIVERGENCE"]) {
+    await worker.fetch(
+      jsonRequest("https://example.com/ingest/diagnostic-divergence", divergencePayload({ classification })),
+      { DB: db as unknown as D1Database },
+    );
+  }
+
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/divergences", { headers: { Cookie: cookie } }),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" },
+  );
+  assert.equal(response.status, 200);
+  const payload = await response.json() as { items: unknown[]; summary: Record<string, number> };
+  assert.equal(payload.items.length, 3);
+  assert.equal(payload.summary.EXACT_MATCH, 2);
+  assert.equal(payload.summary.MAJOR_DIVERGENCE, 1);
+});
+
+test("GET /admin/diagnostic/divergences filtra por classification", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+
+  for (const classification of ["EXACT_MATCH", "MAJOR_DIVERGENCE"]) {
+    await worker.fetch(
+      jsonRequest("https://example.com/ingest/diagnostic-divergence", divergencePayload({ classification })),
+      { DB: db as unknown as D1Database },
+    );
+  }
+
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/divergences?classification=MAJOR_DIVERGENCE", { headers: { Cookie: cookie } }),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test" },
+  );
+  const payload = await response.json() as { items: Array<{ classification: string }> };
+  assert.equal(payload.items.length, 1);
+  assert.equal(payload.items[0]!.classification, "MAJOR_DIVERGENCE");
+});
+
+// ============================================================================
+// Refs #1446 — proxy do signallq-admin-worker pra /admin/diagnostic/* (sem cookie próprio)
+// ============================================================================
+
+test("admin diagnostic proxy: secret valida autentica /admin/diagnostic/rulesets sem cookie proprio", async () => {
+  const db = new FakeD1Database();
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      headers: { "X-Internal-Diagnostic-Proxy-Secret": "proxy-secret-test" },
+    }),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test", DIAGNOSTIC_PROXY_SECRET: "proxy-secret-test" },
+  );
+  assert.equal(response.status, 200);
+});
+
+test("admin diagnostic proxy: secret invalida cai pro fluxo de cookie e retorna 401 sem sessao", async () => {
+  const db = new FakeD1Database();
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", {
+      headers: { "X-Internal-Diagnostic-Proxy-Secret": "secret-errada" },
+    }),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test", DIAGNOSTIC_PROXY_SECRET: "proxy-secret-test" },
+  );
+  assert.equal(response.status, 401);
+});
+
+test("admin diagnostic proxy: cookie de sessao propria continua funcionando mesmo com DIAGNOSTIC_PROXY_SECRET configurada", async () => {
+  const db = new FakeD1Database();
+  const cookie = await loginAsAdmin(db);
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/diagnostic/rulesets", { headers: { Cookie: cookie } }),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test", DIAGNOSTIC_PROXY_SECRET: "proxy-secret-test" },
+  );
+  assert.equal(response.status, 200);
+});
+
+test("admin diagnostic proxy: rota /admin/providers/* nunca aceita a secret do proxy diagnostico", async () => {
+  const db = new FakeD1Database();
+  const response = await worker.fetch(
+    new Request("https://example.com/admin/providers/review-queue", {
+      headers: { "X-Internal-Diagnostic-Proxy-Secret": "proxy-secret-test" },
+    }),
+    { DB: db as unknown as D1Database, ADMIN_AUTH_PEPPER: "pepper-test", DIAGNOSTIC_PROXY_SECRET: "proxy-secret-test" },
+  );
+  assert.equal(response.status, 401);
 });

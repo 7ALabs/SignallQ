@@ -11,6 +11,7 @@ import io.signallq.app.core.database.ApelidoDispositivoEntity
 import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.database.SignallQDatabase
 import io.signallq.app.core.datastore.ConnectionProfilePersistido
+import io.signallq.app.core.datastore.ModoGamerPadraoPersistido
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.core.diagnostico.ConnectionType
 import io.signallq.app.core.diagnostico.DiagnosticInput
@@ -79,6 +80,11 @@ import io.signallq.app.feature.history.ObservadorHistoricoRoom
 import io.signallq.app.feature.history.ResumoHistorico
 import io.signallq.app.feature.speedtest.ExecutorSpeedtest
 import io.signallq.app.feature.speedtest.ModoSpeedtest
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisMensagem
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisPresenter
+import io.signallq.app.feature.speedtest.connectivity.ConnectivityDiagnosisRepository
+import io.signallq.app.feature.speedtest.connectivity.indicaAusenciaDeInternetParaBloquearSpeedtest
+import io.signallq.app.featureflags.ConsumerFeatureGateCoordinator
 import io.signallq.app.monitoramento.MonitoramentoScheduler
 import io.signallq.app.network.IspInfoCache
 import io.signallq.app.notificacao.SignallQNotificationHelper
@@ -91,8 +97,10 @@ import io.signallq.app.ui.GatewayInfo
 import io.signallq.app.ui.HistoryPoint
 import io.signallq.app.ui.IspInfo
 import io.signallq.app.ui.screen.AnalisadorState
+import io.signallq.app.ui.screen.AppShellFeatureFlagsState
 import io.signallq.app.ui.screen.resolverNetworkIdAtual
 import io.signallq.app.ui.state.UiState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -171,6 +179,15 @@ class MainViewModel
         /** GH#919 — repassado ao SignallQOrchestrator para correlacionar feature_used("diagnostico")
          *  com diagnostic_sessions.id real (schema SIG-134, distinto do funil AnalyticsHelper acima). */
         private val analyticsTracker: AnalyticsTracker,
+        /** GH#1480 (Epico #1347, F4) — deriva [featureFlagsState] do FeatureFlagProvider real
+         *  (F1/#1477). Toda a logica de flag mora no coordinator, nao aqui (regra de higiene
+         *  4.2 -- MainViewModel nao ganha responsabilidade nova). */
+        private val featureGateCoordinator: ConsumerFeatureGateCoordinator,
+        /** GH#1512 — diagnostico local de conectividade (Wi-Fi conectado sem internet).
+         *  Mesmo repositorio/motor usado por SpeedtestViewModel (core:network) -- nao
+         *  duplica logica; so intervem no cenario exato do bug (ver
+         *  [interromperSpeedtestPorWifiSemInternet]). */
+        private val connectivityDiagnosisRepository: ConnectivityDiagnosisRepository,
     ) : AndroidViewModel(application) {
         private companion object {
             const val LOG_TAG = "SignallQSpeedtestSuite"
@@ -207,6 +224,10 @@ class MainViewModel
         // O underscore no construtor e convencao para parametros que viram val publico.
         val diagnosticOrchestrator: DiagnosticOrchestrator = _diagnosticOrchestrator
         val movelSnapshot: StateFlow<MovelSnapshot?> get() = monitorTelephony.snapshotFlow
+
+        // GH#1480 (Epico #1347, F4) — gate de navegacao dos 9 modulos feature do Consumer,
+        // ja resolvido em booleano (ver ConsumerFeatureGateCoordinator).
+        val featureFlagsState: StateFlow<AppShellFeatureFlagsState> get() = featureGateCoordinator.uiState
 
         private val _analisadorState = MutableStateFlow<AnalisadorState>(AnalisadorState.Inativo)
         val analisadorState: StateFlow<AnalisadorState> = _analisadorState
@@ -615,6 +636,16 @@ class MainViewModel
         private val _speedtestPendenteModoMovel = MutableStateFlow<ModoSpeedtest?>(null)
         val speedtestPendenteModoMovel: StateFlow<ModoSpeedtest?> = _speedtestPendenteModoMovel
 
+        /** GH#1512 — conclusao do diagnostico local quando o Speedtest e interrompido por
+         *  Wi-Fi sem internet (nao um erro generico de execucao nem loading infinito). null
+         *  = sem pendencia; UI limpa apos exibir (ver [limparDiagnosticoConectividade]). */
+        private val _diagnosticoConectividade = MutableStateFlow<ConnectivityDiagnosisMensagem?>(null)
+        val diagnosticoConectividade: StateFlow<ConnectivityDiagnosisMensagem?> = _diagnosticoConectividade
+
+        fun limparDiagnosticoConectividade() {
+            _diagnosticoConectividade.value = null
+        }
+
         fun verificarDisponibilidadeGemma() {
             viewModelScope.launch {
                 gemmaAvailable.value = signallQOrchestrator.checkAiAvailability()
@@ -804,6 +835,9 @@ class MainViewModel
                             wifiScan = montarWifiScanInput(),
                             velocidadeContratadaMbps = montarVelocidadeContratadaMbps(),
                             natStatus = natStatusAtual,
+                            // GH#1228 (Fase 3) — mesma medicao persistida usada para montar
+                            // internetInput acima (ultimaMedicao); nunca gera id novo aqui.
+                            executionId = ultimaMedicao?.executionId ?: "",
                         ),
                     )
                 }
@@ -988,8 +1022,19 @@ class MainViewModel
                         return@launch
                     }
                 }
+                // GH#1512 — verificado ANTES do try/finally: se o diagnostico interromper,
+                // nao ha teste real (nao acumula MB) e nao faz sentido disparar scans/
+                // diagnostico canonico numa rede que acabamos de confirmar sem internet
+                // (iniciarRotinasNaoSpeedtest fica para quando o teste realmente roda).
+                if (interromperSpeedtestPorWifiSemInternet()) {
+                    execucaoSpeedtestEmAndamento.set(false)
+                    return@launch
+                }
                 try {
                     executarSpeedtest(modo)
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    Timber.e(t, "erro ao executar speedtest modo=${modo.name}")
                 } finally {
                     acumularMbConsumidos(modo)
                     execucaoSpeedtestEmAndamento.set(false)
@@ -1008,8 +1053,23 @@ class MainViewModel
             _speedtestPendenteModoMovel.value = null
             resetarEstadoPosSpeedtestAnterior()
             viewModelScope.launch {
+                // GH#1512 (3a revisao, correcao) -- reintroduzido: o dialog que leva ate
+                // aqui e sobre rede MEDIDA (`metered`), nao sobre transporte celular --
+                // `deveSolicitarConfirmacaoRedeMovel` dispara para qualquer rede medida,
+                // Wi-Fi tarifado incluso (hotspot, rede marcada como limitada). Remover o
+                // gate daqui permitia rodar um Speedtest completo sobre um Wi-Fi tarifado
+                // e sem internet, sem nenhum aviso. O gate ja e auto-limitado -- devolve
+                // false de cara quando nao ha rede Wi-Fi nenhuma (dados moveis puros) --
+                // entao mante-lo aqui nao interfere no caso de dados moveis de verdade.
+                if (interromperSpeedtestPorWifiSemInternet()) {
+                    execucaoSpeedtestEmAndamento.set(false)
+                    return@launch
+                }
                 try {
                     executarSpeedtest(modo)
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    Timber.e(t, "erro ao confirmar speedtest em rede movel modo=${modo.name}")
                 } finally {
                     acumularMbConsumidos(modo)
                     execucaoSpeedtestEmAndamento.set(false)
@@ -1080,6 +1140,7 @@ class MainViewModel
                     // Ler do BD aqui causava race condition: o save acontece em outra
                     // coroutine e pode nao ter terminado quando este bloco executa.
                     val internetInput = speedtestResultToInternetInput()
+                    val executionIdAtual = executionIdAtual()
                     val wifiSnapshot = monitorRede.snapshotFlow.value.wifiLinkSnapshot
                     val wifiInput =
                         wifiSnapshot?.let {
@@ -1105,6 +1166,7 @@ class MainViewModel
                             wifiScan = montarWifiScanInput(),
                             velocidadeContratadaMbps = montarVelocidadeContratadaMbps(),
                             natStatus = natStatusAtual,
+                            executionId = executionIdAtual,
                         ),
                     )
                 }
@@ -1267,6 +1329,7 @@ class MainViewModel
                     coletarTopologiaRede()
                 }
                 val internetInput = speedtestResultToInternetInput()
+                val executionIdAtual = executionIdAtual()
                 val wifiSnapshot = monitorRede.snapshotFlow.value.wifiLinkSnapshot
                 val wifiInput =
                     wifiSnapshot?.let { ws ->
@@ -1292,6 +1355,7 @@ class MainViewModel
                         wifiScan = montarWifiScanInput(),
                         velocidadeContratadaMbps = montarVelocidadeContratadaMbps(),
                         natStatus = natStatusAtual,
+                        executionId = executionIdAtual,
                     ),
                 )
             }
@@ -1372,6 +1436,23 @@ class MainViewModel
 
         fun definirTemaSelecionado(tema: String) {
             viewModelScope.launch { preferenciasAppRepository.definirTemaSelecionado(tema) }
+        }
+
+        /** Combinação jogo+device salva como padrão do Modo gamer (Feature #550, issue #1476)
+         *  — `null` enquanto o usuário nunca salvou nenhuma. */
+        val modoGamerPadrao: StateFlow<ModoGamerPadraoPersistido?> by lazy {
+            preferenciasAppRepository.modoGamerPadraoFlow
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        }
+
+        /** `suspend` direto (sem `viewModelScope.launch`) — quem chama já está numa
+         *  coroutine própria ([io.signallq.app.modogamer.ModoGamerViewModel.confirmar]). */
+        suspend fun salvarModoGamerPadrao(
+            jogoId: String?,
+            categoriaFallback: String?,
+            deviceId: String,
+        ) {
+            preferenciasAppRepository.salvarModoGamerPadrao(jogoId, categoriaFallback, deviceId)
         }
 
         fun definirAnaliseAvancada(ativa: Boolean) {
@@ -1732,6 +1813,44 @@ class MainViewModel
                 isMobileProvider = { networkCapabilitiesProvider.isMeteredNetwork() },
             )
             Timber.i("finalizado modo=${modo.name}")
+        }
+
+        /**
+         * GH#1512 — decide localmente rodando o diagnostico ativo de verdade sempre que ha
+         * uma rede Wi-Fi presente ([ConnectivityDiagnosisRepository.existeRedeWifiAtiva],
+         * checagem direta via `ConnectivityManager`, nunca via [MonitorRede]/rede default —
+         * achado de revisao: `SnapshotRede.conectado`/`estadoConexao` podem ficar
+         * "otimistas" por ate ~600ms apos instabilidade, ou seguir dados moveis quando o
+         * Android promove a rede movel a default, mascarando exatamente o cenario que esta
+         * issue pede para detectar). Sem rede Wi-Fi nenhuma, nao intervem aqui — o
+         * fluxo/dialogo ja existente (guarda de rede medida acima, `ForaDoWifiDialog` na
+         * AppShell) cobre rede movel pura.
+         */
+        private suspend fun interromperSpeedtestPorWifiSemInternet(): Boolean {
+            // GH#1512 (achado de revisao) -- existeRedeWifiAtiva() e diagnosticar() ficam
+            // no MESMO try/catch: uma excecao inesperada em qualquer uma delas (binder
+            // IPC do ConnectivityManager, I/O de persistencia, etc.) nunca pode propagar
+            // como crash nem travar execucaoSpeedtestEmAndamento -- so nao bloqueia o
+            // teste (equivalente a "sem evidencia suficiente", igual a INCONCLUSIVE logo
+            // abaixo), deixando o Speedtest seguir seu proprio caminho normal de erro.
+            val diagnostico =
+                try {
+                    if (!connectivityDiagnosisRepository.existeRedeWifiAtiva()) return false
+                    connectivityDiagnosisRepository.diagnosticar()
+                } catch (t: Throwable) {
+                    if (t is CancellationException) throw t
+                    Timber.e(t, "diagnostico de conectividade falhou inesperadamente -- nao bloqueia o speedtest")
+                    return false
+                }
+
+            // GH#1512 (3a revisao) -- politica extraida para ConnectivityBlockingPolicy.kt
+            // (testavel isoladamente, sem duplicar entre MainViewModel/SpeedtestViewModel --
+            // achado de revisao R-6). Ver KDoc la para o raciocinio completo.
+            if (!diagnostico.indicaAusenciaDeInternetParaBloquearSpeedtest()) return false
+
+            _diagnosticoConectividade.value = ConnectivityDiagnosisPresenter.apresentar(diagnostico)
+            Timber.i("speedtest interrompido -- wifi sem internet, status=${diagnostico.status}")
+            return true
         }
 
         /**
@@ -2197,6 +2316,25 @@ class MainViewModel
                     packetLossSource = it.packetLossSource,
                 )
             }
+        }
+
+        /**
+         * GH#1228 (Fase 3, executionId/rulesVersion) — mesma resolucao de fonte de
+         * [speedtestResultToInternetInput] (resultado em memoria do speedtest atual, senao a
+         * ultima medicao persistida), devolvendo o `executionId` correspondente em vez das
+         * metricas. Garante que o [DiagnosticInput] construido a partir de qualquer uma das
+         * duas fontes carregue a MESMA identidade de execucao que alimentou o `internetInput`
+         * — nunca gera um id novo aqui, nunca deixa vazio quando a fonte tem um valor real.
+         */
+        private suspend fun executionIdAtual(): String {
+            executorSpeedtest.snapshotFlow.value.resultado
+                ?.let { return it.executionId }
+            return bancoDados
+                .medicaoDao()
+                .observarUltimas(1)
+                .first()
+                .firstOrNull()
+                ?.executionId ?: ""
         }
 
         // -------------------------------------------------------------------------

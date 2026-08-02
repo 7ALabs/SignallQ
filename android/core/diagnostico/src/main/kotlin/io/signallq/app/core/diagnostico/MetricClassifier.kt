@@ -11,8 +11,20 @@ package io.signallq.app.core.diagnostico
  * Este objeto centraliza TODAS as reguas em um unico lugar, com uma unica fonte de
  * verdade: a skill `/regras-diagnostico-rede`. [WifiSignalQualityEngine] (RSSI Wi-Fi) e
  * [MobileSignalDiagnosticEngine] (RSRP/RSRQ/SINR) ja consomem este classifier (issue
- * #998). [InternetDiagnosticEngine] e SinalScreen.kt (app module) ainda NAO foram
- * migrados — fora do escopo da #998, pendente de issue propria se necessario.
+ * #998). SinalScreen.kt (app module) ainda NAO foi migrado.
+ *
+ * [InternetDiagnosticEngine] foi **parcialmente** migrado (issue #1228 Fase 1, ADR-011):
+ * jitter, download e bufferbloat usam [classificarJitter]/[classificarDownload]/
+ * [classificarBufferbloat] porque a fronteira relevante do classifier coincide, valor a
+ * valor e estritamente, com o limiar de negocio ja congelado em teste dourado. Latencia,
+ * perda de pacotes e upload **continuam com limiares literais** — as tabelas deste objeto
+ * para essas tres metricas usam fronteiras de produto diferentes (fonte:
+ * `/regras-diagnostico-rede`, tabela generica de qualidade de conexao) das que
+ * [InternetDiagnosticEngine] usa historicamente (Anatel RQUAL, limiar de videoconferencia
+ * etc.) — consolidar exigiria mudar valor de producao, decisao fora do escopo de uma
+ * migracao de "nao altera comportamento observavel". Ver comentario em cada bloco do
+ * `avaliar()` para o detalhe por metrica, e a issue #1466 para o achado de arquitetura
+ * completo e a decisao de produto pendente.
  *
  * ## Vocabulario canonico (MetricStatus)
  * [MetricStatus] usa os mesmos 6 valores que a IA de diagnostico ja usa hoje
@@ -60,6 +72,23 @@ object MetricClassifier {
             else -> MetricStatus.critico
         }
     }
+
+    /**
+     * Sobrecarga que aceita [BandaWifi] (2.4/5GHz + desconhecida) em vez de [WifiBand] --
+     * mesmo contrato ja usado pela UI (Sinal/Home) e pelo mapeamento que
+     * [WifiSignalQualityEngine] ja faz inline hoje. `BandaWifi.desconhecida` reaproveita a
+     * regua de 2,4GHz (mais conservadora), mesmo criterio de [WifiSignalQualityEngine].
+     * GH#1228 Fatia 5 (P0-2): unico ponto de conversao, evita que cada tela reimplemente o
+     * mapeamento BandaWifi -> WifiBand.
+     */
+    fun classificarRssiWifi(rssiDbm: Int, banda: BandaWifi): MetricStatus =
+        classificarRssiWifi(
+            rssiDbm = rssiDbm,
+            band = when (banda) {
+                BandaWifi.ghz24, BandaWifi.desconhecida -> WifiBand.GHZ_2_4
+                BandaWifi.ghz5 -> WifiBand.GHZ_5
+            },
+        )
 
     // ── Latencia / jitter / perda de pacotes ────────────────────────────────
     // Fonte: skill /regras-diagnostico-rede, tabela "qualidade de conexao (Brasil)".
@@ -182,11 +211,12 @@ object MetricClassifier {
     }
 
     // ── Bufferbloat ──────────────────────────────────────────────────────────
-    // Thresholds DSLReports/waveform, ja em uso em InternetDiagnosticEngine e em
-    // SpeedtestQualityClassifier (:featureSpeedtest): nenhum <5ms | leve 5-30ms |
-    // moderado 30-100ms | severo >100ms. Este modulo (:featureDiagnostico) nao pode
-    // depender de :featureSpeedtest (lei de dependencias :feature* -> :feature*
-    // proibido), entao os thresholds sao reimplementados aqui com o mesmo valor.
+    // Thresholds DSLReports/waveform, usados por InternetDiagnosticEngine (mesmo modulo)
+    // e por SpeedtestQualityClassifier.classificarBufferbloat (:featureSpeedtest): nenhum
+    // <5ms | leve 5-30ms | moderado 30-100ms | severo >100ms. GH#1228 Fatia 6 (P1-4):
+    // esta e a UNICA implementacao dos 3 cortes -- SpeedtestQualityClassifier depende deste
+    // modulo (:feature* -> :core*, direcao permitida) e so traduz o resultado para o seu
+    // proprio vocabulario (SeveridadeBufferbloat). Nao duplicar o corte numerico de novo.
     fun classificarBufferbloat(deltaMs: Double): MetricStatus = when {
         deltaMs < 5.0 -> MetricStatus.excelente
         deltaMs <= 30.0 -> MetricStatus.bom

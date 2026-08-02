@@ -17,6 +17,9 @@ export interface MedicaoRegistro {
   upload: number
   latency: number
   jitter: number | null
+  packetLossPercent?: number
+  bufferbloatMs?: number
+  stabilityScore?: number
   connectionType: string | null
   // Tipo de rede (wifi/celular/ethernet) no início do teste — distinto de
   // `connectionType` (effectiveType da Network Information API, ex. "4g"),
@@ -94,6 +97,9 @@ export function resultToRecord(result: SpeedTestResult, connectionKind: TipoRede
     upload: result.upload.mbps,
     latency: result.latency.ms,
     jitter: result.jitter ? result.jitter.ms : null,
+    packetLossPercent: result.packetLoss.percent,
+    bufferbloatMs: result.bufferbloat.ms,
+    stabilityScore: result.stabilityScore,
     connectionType: result.connectionType,
     connectionKind,
     server: result.server,

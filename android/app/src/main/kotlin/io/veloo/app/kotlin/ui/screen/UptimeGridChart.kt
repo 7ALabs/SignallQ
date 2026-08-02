@@ -106,8 +106,8 @@ fun UptimeGridChart(
                 }
             val pctCor = barCor
 
-            // Calcular períodos offline
-            val resumoOffline = calcularResumoOffline(diaBlocos)
+            // Calcular períodos degradados (offline real tem prioridade sobre latência alta)
+            val resumoOffline = calcularResumoDegradacao(diaBlocos)
 
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
@@ -199,14 +199,30 @@ private fun calcularLabelsDiasCompletos(blocos: List<BlocoUptime>): List<String>
 }
 
 /**
- * Calcula resumo textual dos períodos offline de um dia.
- * Cada bloco = 30 min.
- * Retorna null se não houver blocos offline.
+ * Calcula resumo textual dos períodos degradados de um dia.
+ *
+ * GH#1518: offline real ([StatusUptime.OFFLINE], ausência de resposta) tem prioridade sobre
+ * latência alta ([StatusUptime.LATENCIA_ALTA], rede respondeu devagar) — os dois nunca são
+ * somados na mesma frase para não misturar "sem conexão" com "latência ruim".
+ * Retorna null se o dia não tiver nenhum bloco em nenhum dos dois estados.
  */
-private fun calcularResumoOffline(diaBlocos: List<BlocoUptime>): String? {
+private fun calcularResumoDegradacao(diaBlocos: List<BlocoUptime>): String? =
+    calcularResumoPeriodo(diaBlocos, StatusUptime.OFFLINE, "offline")
+        ?: calcularResumoPeriodo(diaBlocos, StatusUptime.LATENCIA_ALTA, "de latência alta")
+
+/**
+ * Calcula resumo textual dos períodos consecutivos de [status] em um dia, usando [rotulo]
+ * na frase (ex.: "45 min $rotulo às 14h30"). Cada bloco = 30 min.
+ * Retorna null se não houver blocos com o [status] informado.
+ */
+private fun calcularResumoPeriodo(
+    diaBlocos: List<BlocoUptime>,
+    status: StatusUptime,
+    rotulo: String,
+): String? {
     if (diaBlocos.isEmpty()) return null
 
-    // Encontrar sequências consecutivas de OFFLINE
+    // Encontrar sequências consecutivas do status informado
     data class Periodo(
         val inicio: Int,
         val tamanho: Int,
@@ -218,7 +234,7 @@ private fun calcularResumoOffline(diaBlocos: List<BlocoUptime>): String? {
     var inicioIdx = 0
 
     diaBlocos.forEachIndexed { i, bloco ->
-        if (bloco.status == StatusUptime.OFFLINE) {
+        if (bloco.status == status) {
             if (!emPeriodo) {
                 emPeriodo = true
                 inicioIdx = i
@@ -246,11 +262,11 @@ private fun calcularResumoOffline(diaBlocos: List<BlocoUptime>): String? {
         if (hora != null) {
             val hh = hora.hour.toString().padStart(2, '0')
             val mm = hora.minute.toString().padStart(2, '0')
-            "$totalMinutos min offline às ${hh}h$mm"
+            "$totalMinutos min $rotulo às ${hh}h$mm"
         } else {
-            "$totalMinutos min offline"
+            "$totalMinutos min $rotulo"
         }
     } else {
-        "$totalMinutos min offline em ${periodos.size} períodos"
+        "$totalMinutos min $rotulo em ${periodos.size} períodos"
     }
 }

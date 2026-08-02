@@ -48,8 +48,6 @@ class HomeScreenNetworkPathTest {
                     ispInfo = null,
                     gateways = emptyList(),
                     deviceName = "Pixel de Teste",
-                    nomeUsuario = "Luiz",
-                    fotoUriUsuario = null,
                     connectedNetwork = null,
                     movelSnapshot = null,
                     simsAtivos = emptyList(),
@@ -57,7 +55,7 @@ class HomeScreenNetworkPathTest {
                     onDismissAnatelBanner = {},
                     onIniciarTeste = {},
                     onAbrirHistorico = {},
-                    onAbrirPerfil = {},
+                    onAbrirMenu = {},
                     onAbrirRedes = {},
                 )
             }

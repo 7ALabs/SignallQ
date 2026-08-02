@@ -22,7 +22,7 @@ data class WifiDiagnosticInput(
     val routerType: RouterType? = null,
     val dispositivosNaRede: Int? = null,
     /** Suporte do aparelho a 5GHz. Null quando desconhecido (leitura falhou) —
-     *  tratado como "desconhecido", nao "sem suporte", pelo RecommendationEngine. */
+     *  tratado como "desconhecido", nao "sem suporte", pelo RecomendacaoPraticaEngine. */
     val is5GhzCapable: Boolean? = null,
 )
 
@@ -44,7 +44,7 @@ data class InternetDiagnosticInput(
     val rttGatewayMs: Int? = null,
     /** Proveniência da medição de [perdaPercentual] — "estimated" (timeout HTTP,
      *  indício não confiável), "naoMedido", "unknown" ou "modem" (medição direta).
-     *  Fonte: ResultadoSpeedtest.packetLossSource. Usado pelo RecommendationEngine
+     *  Fonte: ResultadoSpeedtest.packetLossSource. Usado pelo RecomendacaoPraticaEngine
      *  para não cravar perda de pacotes como certeza quando é apenas estimada. */
     val packetLossSource: String? = null,
 )
@@ -117,7 +117,7 @@ data class RedeWifiVizinha(
     val seguranca: SegurancaWifi? = null,
     // #980 (Fase 2B, passo 3) — papel/confianca do motor de topologia unificado
     // (TopologiaRedeEngine/#979) pra este BSSID. Null quando o motor nao classificou essa
-    // rede (ex.: fallback de scan vazio). RecommendationEngine usa em vez de MeshOuiDatabase
+    // rede (ex.: fallback de scan vazio). RecomendacaoPraticaEngine usa em vez de MeshOuiDatabase
     // direto pra decidir se vale afirmar "OUI conhecido" nas evidencias.
     val papelTopologia: PapelTopologia? = null,
     val confiancaTopologia: NivelConfianca? = null,
@@ -172,4 +172,12 @@ data class DiagnosticInput(
      *  nunca o snapshot bruto. Null quando nenhum equipamento foi lido nesta
      *  sessao — o diagnostico continua funcionando normalmente sem ele. */
     val localDevice: SafeLocalDeviceContext? = null,
+    /** GH#1228 (Fase 3, executionId/rulesVersion) — identificador da execução de origem
+     *  desta entrada (mesmo `ResultadoSpeedtest.executionId`, GH#1221/#1225, quando o
+     *  diagnóstico segue um speedtest; ou o `MedicaoEntity.executionId` já persistido,
+     *  quando a entrada é reconstruída a partir da última medição salva). Nunca gerado
+     *  aqui — propagado por quem monta este input. Default `""` preserva os chamadores
+     *  que ainda não propagam (nenhum comportamento de classificação muda por causa
+     *  deste campo; ele só viaja até [DiagnosticReport.executionId]). */
+    val executionId: String = "",
 )
