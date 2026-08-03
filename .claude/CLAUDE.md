@@ -50,7 +50,7 @@ pequeno, seguro e relacionado à tarefa, ou registrá-lo em uma issue quando amp
 - Navegacao: `AppShell.kt` -- 5 abas (Inicio, Velocidade, Sinal, Historico, Ferramentas). Desde GH#936 (Fase 7), Ajustes deixou de ser aba e virou overlay (`Overlay.Perfil`) alcancado pelo avatar no TopBar -- ver `AppShell.kt`. Diagnostico/IA, Dispositivos, Fibra sao overlays, nao abas.
 - Background: WorkManager `MonitoramentoWorker` (30 min).
 
-**Identificadores tecnicos a preservar** (parecem marca, sao tecnicos): `io.signallq.app`, repo `buildea-labs/SignallQ`, worker `linka-ai-diagnosis-worker`, banco `linkaKotlin.db`, canais `linka_*`, DataStore `linkaPreferencias`. A skill de design system foi renomeada de `linka-design` para `SignallQ-design` em 2026-07-11 -- essa e uma renomeacao de marca intencional, nao um identificador tecnico a preservar (ver secao Design System).
+**Identificadores tecnicos a preservar** (parecem marca, sao tecnicos): `io.signallq.app`, repo `buildea-labs/signallq`, worker `linka-ai-diagnosis-worker`, banco `linkaKotlin.db`, canais `linka_*`, DataStore `linkaPreferencias`. A skill de design system foi renomeada de `linka-design` para `SignallQ-design` em 2026-07-11 -- essa e uma renomeacao de marca intencional, nao um identificador tecnico a preservar (ver secao Design System).
 
 ---
 
@@ -77,11 +77,11 @@ O monorepo-alvo `signallq-platform` (que unifica os tres + Portal + SignallQ Net
 
 ## Fontes da Verdade
 
-> **Migracao 2026-07-09:** execucao/backlog saiu do Linear e passou para **GitHub Issues** (repo `buildea-labs/SignallQ`). Linear deixou de ser fonte da verdade de tarefas — historico anterior a essa data (IDs `SIG-XXX`) continua valido como referencia, mas qualquer issue nova, prioridade ou status de trabalho vive no GitHub a partir de agora.
+> **Migracao 2026-07-09:** execucao/backlog saiu do Linear e passou para **GitHub Issues** (repo `buildea-labs/signallq`). Linear deixou de ser fonte da verdade de tarefas — historico anterior a essa data (IDs `SIG-XXX`) continua valido como referencia, mas qualquer issue nova, prioridade ou status de trabalho vive no GitHub a partir de agora.
 
 | Dominio | Ferramenta |
 |---|---|
-| Execucao, backlog, prioridades, issues | **GitHub Issues** (`buildea-labs/SignallQ`) |
+| Execucao, backlog, prioridades, issues | **GitHub Issues** (`buildea-labs/signallq`) |
 | Codigo, branches, PRs, releases, historico tecnico | **GitHub** |
 | Documentacao viva, decisoes consolidadas, roadmap, OS | **Notion** |
 | Comunicacao e alertas | **Slack** (via integracao GitHub -- nao criar fluxo manual paralelo) |
@@ -92,7 +92,7 @@ O monorepo-alvo `signallq-platform` (que unifica os tres + Portal + SignallQ Net
 
 **Regra Slack:** o GitHub notifica o Slack diretamente. Decisao que surgir no Slack vira issue no GitHub ou pagina no Notion. Slack e saida, nao fonte da verdade.
 
-**Convencao de issue no GitHub:** titulo `Task - <descricao>` para trabalho planejado e `[BUG] <descricao>` para defeito, label `enhancement`/`bug` conforme o caso, mais labels de `area:*`/`priority:*` quando fizer sentido (ver `gh label list --repo buildea-labs/SignallQ`). Ver skill `abrir-issue` para o detalhe completo (roteamento/titulo/corpo, agnostico de projeto).
+**Convencao de issue no GitHub:** titulo `Task - <descricao>` para trabalho planejado e `[BUG] <descricao>` para defeito, label `enhancement`/`bug` conforme o caso, mais labels de `area:*`/`priority:*` quando fizer sentido (ver `gh label list --repo buildea-labs/signallq`). Ver skill `abrir-issue` para o detalhe completo (roteamento/titulo/corpo, agnostico de projeto).
 
 **Hierarquia obrigatoria por Project — Epico > Feature > Task (decisao 2026-07-21):** toda issue nova nasce ja
 classificada no GitHub Project vigente. Hoje existe apenas **SignallQ Consumer** (Project #3); os Projects segmentados por produto (**SignallQ PRO**, **SignallQ Admin**, **SignallQ Site**) ainda nao foram criados. Preencher Tipo/Epico/Feature na hora, nao deixar "sem epico" por preguica de classificar.
@@ -138,7 +138,7 @@ tratar o campo plano como definitivo.
 
 ## Milestones
 
-**Fonte viva:** GitHub issue [#1222](https://github.com/buildea-labs/SignallQ/issues/1222). Decisão vigente de 2026-07-20: **lançamento público em 21/08/2026** (trilha `production`, staged rollout). Motivo: espaço pra não cortar escopo/dívida técnica sob pressão — ver `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md`.
+**Fonte viva:** GitHub issue [#1222](https://github.com/buildea-labs/signallq/issues/1222). Decisão vigente de 2026-07-20: **lançamento público em 21/08/2026** (trilha `production`, staged rollout). Motivo: espaço pra não cortar escopo/dívida técnica sob pressão — ver `docs_ai/decisions/DECISAO_CRONOGRAMA_LANCAMENTO_2026-07-20.md`.
 
 ---
 

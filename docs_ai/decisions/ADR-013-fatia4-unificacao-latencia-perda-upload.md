@@ -5,7 +5,7 @@
 
 ## Contexto
 
-A issue [#1466](https://github.com/buildea-labs/SignallQ/issues/1466) documenta uma divergência
+A issue [#1466](https://github.com/buildea-labs/signallq/issues/1466) documenta uma divergência
 real e já confirmada em produção (achado **P0-1** da auditoria completa de #1228,
 `docs_ai/ARQUITETURA/AUDITORIA_1228_FASE0_INVENTARIO_COMPLETO.md`, Parte 8): `MetricClassifier`
 (tabela genérica, fonte `/regras-diagnostico-rede`) e `InternetDiagnosticEngine` (limiares de
@@ -127,7 +127,7 @@ parâmetro de perfil, não deixa de ser uma função só).
 
 ## Referências
 
-- Issue [#1466](https://github.com/buildea-labs/SignallQ/issues/1466)
-- Issue [#1228](https://github.com/buildea-labs/SignallQ/issues/1228)
+- Issue [#1466](https://github.com/buildea-labs/signallq/issues/1466)
+- Issue [#1228](https://github.com/buildea-labs/signallq/issues/1228)
 - `docs_ai/decisions/ADR-011-fase0-motor-canonico-diagnostico.md`
 - `docs_ai/ARQUITETURA/AUDITORIA_1228_FASE0_INVENTARIO_COMPLETO.md`, achado P0-1 e Fatia 4
