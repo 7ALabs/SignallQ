@@ -47,7 +47,8 @@ ocorrência pontual, a acusação de "reescrita sem instrução" não se sustent
   1:1").
 - Persona da Lia arquivada em `~/.claude/agents/_archive/lia_2026-07-25_demitida.md`.
 - Tabelas de agentes atualizadas em `.claude/CLAUDE.md` (SignallQ), `C:\Projetos\CLAUDE.md`
-  (workspace raiz) e `SignallQ Nethal/CLAUDE.md`.
+  (workspace raiz) e `CLAUDE.md` do repo SignallQ Nethal (`D:\Buildeas\signallq-nethal\CLAUDE.md`
+  desde a migração/rename de 2026-08).
 
 ## Regra operacional criada para todo o squad (não só a Marina)
 
