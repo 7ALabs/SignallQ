@@ -1,5 +1,5 @@
 $env:Path += ";C:\Program Files\GitHub CLI"
-$repo = "buildea-labs/SignallQ"
+$repo = "buildea-labs/signallq"
 $ms = "v0.9.2 - Hardening"
 
 $issues = @(

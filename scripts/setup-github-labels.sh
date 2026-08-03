@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Cria labels do squad LINKA no repo configurado.
-# Uso: GH=/c/Program\ Files/GitHub\ CLI/gh.exe REPO=buildea-labs/SignallQ ./scripts/setup-github-labels.sh
+# Uso: GH=/c/Program\ Files/GitHub\ CLI/gh.exe REPO=buildea-labs/signallq ./scripts/setup-github-labels.sh
 set -e
 GH="${GH:-gh}"
-REPO="${REPO:-buildea-labs/SignallQ}"
+REPO="${REPO:-buildea-labs/signallq}"
 
 label() {
   local name="$1" color="$2" desc="$3"
