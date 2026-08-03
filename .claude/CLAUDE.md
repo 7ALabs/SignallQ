@@ -286,7 +286,7 @@ device/rede e planejamento tecnico continuam como skills (`/regras-android`,
 `/regras-diagnostico-rede`); busca de codigo e documentacao sao nativas/skill (`/gerar-docs`).
 
 **Bruno emprestado do Agente Virtual (decisão 2026-07-23):** o projeto Agente Virtual (squad
-irmã, `SignallQ Agents/`, repo `buildea-labs/signallq-agent`) entrou em backlog — Bruno (líder daquele
+irmã, `signallq-agent/`, repo `buildea-labs/signallq-agent`) entrou em backlog — Bruno (líder daquele
 projeto, também agente global, stack React/TS/Vite/Tailwind + Cloudflare Workers, mesma stack do
 Console/Admin) fica disponível como **capacidade extra ad-hoc** para esta squad, acionado pela
 Claudete quando Camilo (backend) ou Marina (frontend) estiverem no limite em tarefa de Console/Admin.
