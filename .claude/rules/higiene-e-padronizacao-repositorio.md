@@ -4,11 +4,11 @@
 - **Última validação:** 2026-07-16
 - **Fonte de verdade:** este arquivo (`.claude/rules/higiene-e-padronizacao-repositorio.md`) — não duplicar em `docs_ai/`, `AGENTS.md`, mirrors ou docs de módulo
 - **Escopo:** repositório `buildea-labs/signallq` (monorepo SignallQ) inteiro — Android, Admin, Cloudflare, docs
-- **Responsável:** Claudete (dono do processo), aplicado por todo agente (Camilo, Lia, Rhodolfo) e por qualquer sessão humana no repo
+- **Responsável:** Claudete (dono do processo). Esta regra se aplica a todos os agentes autorizados e aplicáveis ao repositório, conforme a governança canônica em ../ai-governance, e a qualquer sessão humana no repo.
 
 Referenciada a partir de `.claude/CLAUDE.md` (seção "Higiene e padronização do repositório") e dos
-perfis de Claudete, Camilo, Lia e Rhodolfo. Não copiar o conteúdo completo em nenhum outro lugar —
-só linkar.
+perfis dos agentes canônicos aplicáveis ao repositório. Não copiar o conteúdo completo em nenhum
+outro lugar — só linkar.
 
 ---
 
@@ -166,7 +166,7 @@ Ao tocar nele:
 
 Caminho real: `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/EquipamentoInternetScreen.kt`
 — **550 linhas** (abaixo do limiar de extração obrigatória da seção 7). A entrada anterior desta
-seção citava 1549 linhas; o número está desatualizado — o redesign de 2026-07-18 (bug #6, spec Lia)
+seção citava 1549 linhas; o número está desatualizado — o redesign de 2026-07-18 (bug #6, spec de design)
 já extraiu os painéis por capacidade em componentes próprios no mesmo pacote:
 `EquipamentoStatusPanel.kt` (status/disponibilidade/uso/alerta), `EquipamentoModuloTecnicoCard.kt`
 (módulos técnicos Fibra/WAN/LAN/Wi-Fi/dispositivos), `EquipamentoTopologiaCard.kt`,
@@ -252,7 +252,7 @@ documentos do projeto dentro de uma tarefa comum.
 
 ### 4.11 Espaçamento hardcoded em vez de token (Android)
 
-Auditoria (Juninho, 2026-07-26): ~270 ocorrências de `.dp` literal em `padding()`/`size()`/
+Auditoria (2026-07-26): ~270 ocorrências de `.dp` literal em `padding()`/`size()`/
 `width()`/`height()`/`offset()` direto em Composables do Consumer (`android/app/.../ui/component/`,
 `ui/screen/`), em vez de constante de espaçamento do design system. Tipografia está limpa (zero
 achado — tudo via `MaterialTheme.typography.*`); cor está majoritariamente limpa (as ocorrências de

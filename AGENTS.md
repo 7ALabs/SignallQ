@@ -43,7 +43,8 @@
 - **Growth:** Marcos.
 - **Operações e dados:** Gustavo.
 - **Revisão independente:** Caio.
-- **Fonte organizacional:** os agentes corporativos canônicos vivem em `../ai-governance/agents/`; personas locais, inclusive as em `.codex/agents/`, não são fonte organizacional canônica.
+- **Fonte organizacional:** os únicos agentes corporativos aplicáveis são os definidos em `../ai-governance/agents/`.
+- **Personas legadas:** arquivadas em `docs/archive/ai-governance/legacy-agents/`; não participam da descoberta ou do roteamento ativo.
 
 ## Skills locais e espelhos
 
