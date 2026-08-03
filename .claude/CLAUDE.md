@@ -36,7 +36,7 @@ pequeno, seguro e relacionado à tarefa, ou registrá-lo em uma issue quando amp
 ## Identidade
 
 - App: **SignallQ** -- diagnostico de conectividade Android.
-- Estrutura: **monorepo** — `android/` (Kotlin), `integrations/` (Cloudflare), `SignallQ Admin/` (Console), `SignallQ Site/` (site institucional), `scripts/`, `docs_ai/`.
+- Estrutura: **monorepo** — `android/` (Kotlin), `integrations/` (Cloudflare), `scripts/`, `docs_ai/`. Console (`buildea-admin`) e site institucional (`signallq-web`) foram extraídos como repositórios próprios em 2026-08-02/03 — não vivem mais aqui.
 - Package/applicationId/namespace: **`io.signallq.app`** -- identificador tecnico, **NAO renomear jamais** (quebra Firebase/assinatura). Renomeado de `io.veloo.app` em 2026-06-28 (antes de qualquer publicacao na Play Store).
 - Marca anterior: Linka -> Veloo -> **SignallQ** (rebrand em 0.16.0).
 - Versao/SDKs (versionName, versionCode, minSdk, targetSdk, compileSdk, JVM): sempre conferir em `android/gradle/libs.versions.toml` -- nao fixar numero aqui, muda a cada release.
@@ -62,8 +62,8 @@ A squad opera **tres produtos** sob o **mesmo fluxo de trabalho** (piloto automa
 |---|---|---|---|---|
 | **SignallQ** (consumer) | **ATUAL** -- versao/modulos reais: ver Identidade acima | Kotlin/Compose/M3, `io.signallq.app`, paleta violeta | skill `/SignallQ-design`; [SignallQ Design System](https://claude.ai/design/p/2d25d7a1-31b2-4ac3-881f-72dbc8f35a29) (fonte viva) | `consumer/android/vX.Y.Z` -> Play (internal->alpha…) |
 | **SignallQ Pro** | **EM ANDAMENTO** -- `android/pro/` com codigo real e em crescimento continuo, telas navegaveis (Painel, Atendimento, NovaVisita, Laudo etc.) -- estado/modulos reais: `android/settings.gradle.kts`; historico: issues #1157/#1159/#1161/#1164 | Kotlin/Compose/M3, `io.signallq.pro`, Firebase/Play proprios, paleta azul, 2 temas oficiais | skill `/signallq-pro-design`; [SignallQ PRO - Design System](https://claude.ai/design/p/77a19317-ea64-4e47-b55c-578eca776c09) (fonte viva); `docs_ai/plataforma/08..11_*`, `13_SignallQ_Pro_Arquitetura_e_Reaproveitamento_v1.md` | `pro/android/vX.Y.Z` (futuro) |
-| **SignallQ Admin** (Console) | **ATUAL** -- React 19/Vite 6/TS 5.8/Tailwind 4 | `SignallQ Admin/` + `signallq-admin-worker` (backend); schema D1 real: ver `docs_ai/plataforma/07_*`; 5 workers Cloudflare | design da Marina; [SignallQ — Protótipos](https://claude.ai/design/p/e77ea465-291f-4bf5-930c-a267680da04e) (fonte viva); `docs_ai/plataforma/07_*` | Cloudflare Pages / ambiente protegido |
-| **SignallQ Site** (institucional) | **ATUAL** -- React 19/Vite 6/TS 5.8/Tailwind 4 | `SignallQ Site/`; teste de velocidade real (Cloudflare `__down`/`__up`), historico local (IndexedDB), Pages Function de telemetria (`functions/api/track.ts` -> `signallq-admin-worker`) | design da Marina; [SignallQ — Protótipos](https://claude.ai/design/p/e77ea465-291f-4bf5-930c-a267680da04e) (fonte viva); ver `SignallQ Site/CLAUDE.md` | Cloudflare Pages, projeto `signallq` (signallq.pages.dev) |
+| **Buildea Admin** (ex-SignallQ Admin/Console) | **ATUAL, repo próprio desde 2026-08-02** -- React 19/Vite 6/TS 5.8/Tailwind 4 | `D:\Buildeas\buildea-admin`, `buildea-labs/buildea-admin` + `signallq-admin-worker` (backend, continua neste monorepo); schema D1 real: ver `docs_ai/plataforma/07_*`; 5 workers Cloudflare | design da Marina; [SignallQ — Protótipos](https://claude.ai/design/p/e77ea465-291f-4bf5-930c-a267680da04e) (fonte viva); `docs_ai/plataforma/07_*` | Cloudflare Pages / ambiente protegido |
+| **SignallQ Web** (ex-SignallQ Site, institucional) | **ATUAL, repo próprio desde 2026-08-01** -- Next.js 16/React 19/TS | `D:\Buildeas\signallq-web`, `buildea-labs/signallq-web`; teste de velocidade real (Cloudflare `__down`/`__up`), historico local (IndexedDB), Pages Function de telemetria (`functions/api/track.ts` -> `signallq-admin-worker`) | design da Marina; [SignallQ — Protótipos](https://claude.ai/design/p/e77ea465-291f-4bf5-930c-a267680da04e) (fonte viva); ver `AGENTS.md` do próprio repo | Vercel (migrando de Cloudflare Pages) |
 
 Nao-negociaveis por produto:
 - **SignallQ Pro ja tem codigo real e substancial em `android/pro/` (NAO e mais "so spec/design" -- estado/progresso real: ver issues #1157/#1159/#1161/#1164 e `android/settings.gradle.kts`) -- mas qualquer ampliacao de escopo alem do que ja foi aprovado (novas fases do MVP0, MVP1, mudanca arquitetural) continua exigindo instrucao explicita do Luiz.** Corrigir qualquer persona/doc que ainda diga "Pro sem codigo Android" -- e um erro factual desatualizado, nao mais o estado real.
@@ -71,7 +71,7 @@ Nao-negociaveis por produto:
 - **Release e identidade sao separados por produto** (applicationId, Firebase, Play listing, tag, canal). Uma mudanca num produto nao incrementa versao de outro.
 - **SignallQ Nethal** e alvo de plataforma, mas hoje vive em **repo separado** (`gmmattey/signallq-nethal`) com **squad propria** -- fora do escopo desta squad; so entra aqui quando/se for internalizado no monorepo-alvo.
 
-O monorepo-alvo `signallq-platform` (que unifica os tres + Portal + SignallQ Nethal) e **proposta** -- hoje o codigo vive no `SignallQ` (+ `SignallQ Admin/` dentro dele) e em repos separados. Ver `docs_ai/plataforma/01_..._Arquitetura_v5.md` e `00_CHANGELOG_e_Validacao_Cruzada_v5.md` para o gap doc-vs-realidade validado.
+O monorepo-alvo `signallq-platform` (que unifica os tres + Portal + SignallQ Nethal) e **proposta** -- hoje o codigo vive no `SignallQ` (Android + Workers) e em repos separados (`buildea-admin`, `signallq-web`, `signallq-nethal`). Ver `docs_ai/plataforma/01_..._Arquitetura_v5.md` e `00_CHANGELOG_e_Validacao_Cruzada_v5.md` para o gap doc-vs-realidade validado.
 
 ---
 
@@ -286,7 +286,7 @@ device/rede e planejamento tecnico continuam como skills (`/regras-android`,
 `/regras-diagnostico-rede`); busca de codigo e documentacao sao nativas/skill (`/gerar-docs`).
 
 **Bruno emprestado do Agente Virtual (decisão 2026-07-23):** o projeto Agente Virtual (squad
-irmã, `SignallQ Agents/`, repo `buildea-labs/signallq-agent`) entrou em backlog — Bruno (líder daquele
+irmã, `signallq-agent/`, repo `buildea-labs/signallq-agent`) entrou em backlog — Bruno (líder daquele
 projeto, também agente global, stack React/TS/Vite/Tailwind + Cloudflare Workers, mesma stack do
 Console/Admin) fica disponível como **capacidade extra ad-hoc** para esta squad, acionado pela
 Claudete quando Camilo (backend) ou Marina (frontend) estiverem no limite em tarefa de Console/Admin.
