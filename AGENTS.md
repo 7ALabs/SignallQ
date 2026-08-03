@@ -1,65 +1,68 @@
-# SignallQ — Guia Para Agentes
+# SignallQ
 
-Monorepo com plataformas separadas: `android/` (Kotlin nativo), `integrations/` (Cloudflare), `scripts/`, `docs_ai/`.
+## Identidade e estado atual
 
-## Entrada rapida
+- **Organização:** `buildea-labs`
+- **Finalidade:** aplicativo Android de diagnóstico de conectividade, com backend e Workers de suporte.
+- **Classificação:** produto.
+- **Estado atual:** monorepo ativo com Android Kotlin/Compose em `android/`, Workers Cloudflare em `integrations/cloudflare/`, scripts e documentação viva em `docs_ai/`.
 
-1. Leia `docs_ai/README.md` antes de carregar documentos especificos.
-2. Use `android/settings.gradle.kts` para entender os modulos Android ativos.
-3. Prefira busca por simbolo antes de abrir arquivos grandes.
-4. Nao reintroduza Flutter legado, APKs gerados, caches, segredos ou dumps temporarios.
+## Escopo e exclusões
 
-## Escopo dos agentes
+- **Pertence ao repositório:** aplicativo Android SignallQ e SignallQ Pro, módulos Gradle, Workers Cloudflare, contratos e documentação técnica relacionados.
+- **Não pertence:** aplicação Buildea Admin, que pertence ao repositório `buildea-admin`; site e PWA, que pertencem ao repositório `signallq-web`; projetos pessoais.
 
-- Produto/UX: use `docs_ai/functional/` e `docs_ai/design-system/`.
-- Engenharia Android: use `docs_ai/technical/`, `android/settings.gradle.kts` e os modulos `android/core*`/`android/feature*`.
-- QA/Release: use `docs_ai/operations/`, `docs_ai/operations/GuiaReleaseBuild.md` e `scripts/`.
-- Integracoes: use `integrations/`, mantendo dependencias baixadas fora do Git.
+## Arquitetura comprovada
 
-## Regras de trabalho
+- **Android:** Kotlin, Jetpack Compose, Material 3, MVVM, StateFlow, Hilt, Room, DataStore e WorkManager.
+- **Módulos principais:** `:app`; módulos `:core*`, `:feature*`, `:pro:*` e `:core:featureflags` declarados em `android/settings.gradle.kts`.
+- **Workers:** `ai-diagnosis-worker`, `game-latency-probe-worker`, `signallq-admin-worker`, `signallq-diagnostic-worker` e `signallq-privacy-worker`.
+- **Integrações:** Firebase Analytics e Crashlytics; a IA de diagnóstico usa `ai-diagnosis-worker`. Contratos e disponibilidade de integrações devem ser confirmados nos arquivos e ambientes aplicáveis.
+- **Identificadores técnicos:** preservar `io.signallq.app`; versões e SDKs são definidos em `android/gradle/libs.versions.toml`.
 
-- Codigo Android fica nos modulos Gradle em `android/`.
-- Codigo do admin panel fica em `SignallQ Admin/`.
-- Documentacao viva (incluindo operacional: release, APK, QA) fica em `docs_ai/`.
-- `docs/` guarda so artefatos de governanca do GitHub (migracao de issues, roadmap de epicos).
-- Scripts versionados ficam em `scripts/`.
-- Segredos devem ser recriados localmente a partir de templates, nunca migrados.
-- Artefatos de build devem ser gerados de novo, nunca versionados.
+## Comandos essenciais comprovados
 
-## Handoff e board
+- **Instalação:** a validar conforme o ambiente Android.
+- **Testes:** `./android/gradlew test`.
+- **Lint:** `./android/gradlew ktlintCheck detekt`.
+- **Build de debug:** `./android/gradlew assembleDebug`.
+- **Validações específicas:** os workflows em `.github/workflows/android-ci.yml` executam testes, Ktlint, Detekt e build debug para alterações Android. Não executar publicação, release ou deploy sem a autorização aplicável.
 
-Execução vive no **GitHub Issues** (`buildea-labs/signallq`), classificada na hierarquia Épico >
-Feature > Task via campos de Project (`Tipo`/`Épico`/`Feature`) — ver `.claude/CLAUDE.md`, seção
-"Fontes da Verdade", para o mecanismo completo. Handoff entre agentes é dispatch direto (tool
-`Agent`, retomado por `SendMessage`), não um script: não existe `.claude/tasks/queue/` de fato no
-repo, é controle de sequenciamento de quem orquestra.
+## Restrições
 
-Não há notificação manual em ferramenta externa. GitHub notifica o Slack diretamente (app oficial,
-`/github subscribe`) — nenhum agente cria fluxo manual paralelo (Discord ou script de webhook).
-Os scripts `scripts/agent-handoff.sh`, `scripts/notify.sh` e `scripts/discord_notify.sh` estão
-depreciados — não são mecanismo de handoff, não documentar como fluxo.
+- **Segurança e privacidade:** não versionar ou expor segredos, credenciais, arquivos de keystore ou dados pessoais; credenciais de integrações permanecem fora do cliente quando exigido.
+- **Custos:** novos provedores, uso de IA, Firebase, Cloudflare ou outros custos recorrentes exigem aprovação do Luiz.
+- **Compatibilidade:** consultar `android/gradle/libs.versions.toml` e a configuração Gradle antes de alterar versões, SDKs ou identificadores.
+- **Publicação:** builds, releases Android, deploys de Workers, produção e mudanças irreversíveis exigem aprovação explícita do Luiz.
 
-## Validacao minima
+## Agentes aplicáveis
 
-Antes de concluir uma mudanca Android (rodar da raiz do repo):
+- **Líder funcional:** Claudete.
+- **Responsável técnico:** Camilo.
+- **Design:** Juliana.
+- **Growth:** Marcos.
+- **Operações e dados:** Gustavo.
+- **Revisão independente:** Caio.
+- **Fonte organizacional:** os agentes corporativos canônicos vivem em `../ai-governance/agents/`; personas locais, inclusive as em `.codex/agents/`, não são fonte organizacional canônica.
 
-```powershell
-.\android\gradlew.bat test
-.\android\gradlew.bat assembleDebug
-```
+## Skills locais e espelhos
 
-Quando precisar gerar APK, use somente:
+- `.claude/skills/` é a fonte canônica das skills específicas deste repositório.
+- `.agents/skills/` e `.github/skills/` são espelhos gerados e não devem ser editados diretamente.
+- `scripts/sync-skills-mirrors.sh` é o processo de sincronização; não o execute sem demanda explícita.
 
-```powershell
-.\scripts\build-apk-debug.ps1
-.\scripts\build-apk-release.ps1
-```
+## Critérios locais de conclusão
 
-ou:
+- O escopo autorizado está atendido, os comandos e validações aplicáveis foram executados com evidência, documentação afetada está atualizada e Caio revisou quando houver código, segurança, produção ou risco relevante.
 
-```powershell
-.\android\gradlew.bat archiveDebugApk
-.\android\gradlew.bat archiveReleaseApk
-```
+## Fontes complementares
 
-Nunca entregue `app-debug.apk` ou `app-release.apk` diretamente. A regra de saida esta em `docs_ai/operations/APK_OUTPUT_POLICY.md`.
+- `docs_ai/README.md`
+- `android/settings.gradle.kts`
+- `android/gradle/libs.versions.toml`
+- `docs_ai/CONTRATOS/openapi/`
+- `.claude/rules/higiene-e-padronizacao-repositorio.md`
+- `.claude/skills/SignallQ-design/`
+- `scripts/sync-skills-mirrors.sh`
+- `../ai-governance/policies/agent-operating-contract.md`
+- `../ai-governance/policies/demand-routing.md`
