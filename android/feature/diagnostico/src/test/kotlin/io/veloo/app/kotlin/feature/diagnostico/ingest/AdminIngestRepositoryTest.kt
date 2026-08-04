@@ -8,6 +8,7 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Test
 
@@ -55,8 +56,8 @@ class AdminIngestRepositoryTest {
 
     @Test
     fun `sendAiUsage disparado antes de sendDiagnostic espera e envia so depois`() = runBlocking {
-        server.enqueue(MockResponse().setResponseCode(201))
-        server.enqueue(MockResponse().setResponseCode(201))
+        server.enqueue(MockResponse().setResponseCode(201).setBody("{\"ok\":true,\"id\":\"sessao-1\"}"))
+        server.enqueue(MockResponse().setResponseCode(201).setBody("{\"ok\":true,\"id\":\"ai-1\"}"))
 
         // sendAiUsage() e chamado primeiro (mesma ordem do bug real: dispararIngestAiUsage
         // roda dentro de callAi(), que termina ANTES de dispararIngestDiagnostico ser
@@ -97,11 +98,21 @@ class AdminIngestRepositoryTest {
 
     @Test
     fun `sendAiUsage sem sessionId nao espera nenhuma correlacao`() = runBlocking {
-        server.enqueue(MockResponse().setResponseCode(201))
+        server.enqueue(MockResponse().setResponseCode(201).setBody("{\"ok\":true,\"id\":\"ai-3\"}"))
 
         repository.sendAiUsage(aiUsagePayload(id = "ai-3", sessionId = null))
 
         assertEquals(1, server.requestCount)
         assertEquals("/ingest/ai-usage", server.takeRequest().path)
+    }
+
+    @Test
+    fun `sendDiagnostic não confirma resposta que pertence a outro id`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(201).setBody("{\"ok\":true,\"id\":\"outro-id\"}"))
+
+        val confirmado = repository.sendDiagnostic(diagnosticPayload(id = "sessao-4"))
+
+        assertFalse(confirmado)
+        assertEquals(1, server.requestCount)
     }
 }

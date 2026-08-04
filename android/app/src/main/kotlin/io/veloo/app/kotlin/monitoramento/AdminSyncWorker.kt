@@ -103,9 +103,10 @@ internal class AdminSyncWorker
 
             Log.d(TAG, "syncMedicoes: ${pendentes.size} medicoes pendentes")
 
-            pendentes.chunked(BATCH_SIZE).forEach { batch ->
-                batch.forEach { medicao ->
-                    adminIngestRepository.sendDiagnostic(
+            for (batch in pendentes.chunked(BATCH_SIZE)) {
+                var confirmouTodoBatch = true
+                for (medicao in batch) {
+                    if (!adminIngestRepository.sendDiagnostic(
                         medicao.toIngestPayload(
                             environment = environment,
                             distChannel = distChannel,
@@ -116,7 +117,13 @@ internal class AdminSyncWorker
                             osVersion = osVersion,
                             appVersion = appVersion,
                         ),
-                    )
+                    )) {
+                        confirmouTodoBatch = false
+                        break
+                    }
+                }
+                if (!confirmouTodoBatch) {
+                    throw IllegalStateException("syncMedicoes: worker não confirmou todo o batch")
                 }
                 val maxEpoch = batch.maxOf { it.timestampEpochMs }
                 preferenciasAppRepository.salvarAdminSyncMedicaoLastEpochMs(maxEpoch)
@@ -147,9 +154,10 @@ internal class AdminSyncWorker
 
             Log.d(TAG, "syncChatSessions: ${pendentes.size} sessoes pendentes")
 
-            pendentes.chunked(BATCH_SIZE).forEach { batch ->
-                batch.forEach { sessao ->
-                    adminIngestRepository.sendAiUsage(
+            for (batch in pendentes.chunked(BATCH_SIZE)) {
+                var confirmouTodoBatch = true
+                for (sessao in batch) {
+                    if (!adminIngestRepository.sendAiUsage(
                         sessao.toIngestPayload(
                             environment = environment,
                             distChannel = distChannel,
@@ -157,7 +165,13 @@ internal class AdminSyncWorker
                             versionCode = versionCode,
                             deviceId = deviceId,
                         ),
-                    )
+                    )) {
+                        confirmouTodoBatch = false
+                        break
+                    }
+                }
+                if (!confirmouTodoBatch) {
+                    throw IllegalStateException("syncChatSessions: worker não confirmou todo o batch")
                 }
                 val maxEpoch = batch.maxOf { it.criadoEmEpochMs }
                 preferenciasAppRepository.salvarAdminSyncChatLastEpochMs(maxEpoch)
@@ -191,9 +205,10 @@ internal class AdminSyncWorker
 
             Log.d(TAG, "syncRecommendationFeedback: ${pendentes.size} feedbacks pendentes")
 
-            pendentes.chunked(BATCH_SIZE).forEach { batch ->
-                batch.forEach { entrada ->
-                    adminIngestRepository.sendAnalyticsEvent(
+            for (batch in pendentes.chunked(BATCH_SIZE)) {
+                var confirmouTodoBatch = true
+                for (entrada in batch) {
+                    if (!adminIngestRepository.sendAnalyticsEvent(
                         entrada.toIngestPayload(
                             appVersion = appVersion,
                             environment = environment,
@@ -202,7 +217,13 @@ internal class AdminSyncWorker
                             versionCode = versionCode,
                             deviceId = deviceId,
                         ),
-                    )
+                    )) {
+                        confirmouTodoBatch = false
+                        break
+                    }
+                }
+                if (!confirmouTodoBatch) {
+                    throw IllegalStateException("syncRecommendationFeedback: worker não confirmou todo o batch")
                 }
                 val maxEpoch = batch.mapNotNull { it.feedbackAtEpochMs }.maxOrNull() ?: lastEpoch
                 preferenciasAppRepository.salvarAdminSyncRecommendationFeedbackLastEpochMs(maxEpoch)
