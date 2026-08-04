@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { getAnalyticsPlatformFilter, handleIngestAnalytics, handleProductAnalytics, normalizeAnalyticsTimestamp } from '../src/index.ts'
+import { getAnalyticsPlatformFilter, handleDiagnosticsSummary, handleIngestAnalytics, handleProductAnalytics, normalizeAnalyticsTimestamp } from '../src/index.ts'
 import { buildEnv } from './support.ts'
 
 class IngestDb {
@@ -52,6 +52,27 @@ class ProductDb {
           case 3: return { session_start_count: db.sessionStartCount, session_end_count: db.sessionEndCount }
           case 4: return { count: 455 }
           default: return { cohort_d1: 0, returned_d1: 0, cohort_d7: 0, returned_d7: 0, cohort_d30: 0, returned_d30: 0, total_devices: 0, avg_active_span_days: null, inactive_14d: 0, total_with_activity: 0 }
+        }
+      },
+    }
+  }
+}
+
+class DiagnosticSummaryDb {
+  readonly statements: Array<{ sql: string; values: unknown[] }> = []
+
+  prepare(sql: string) {
+    const db = this
+    return {
+      values: [] as unknown[],
+      bind(...values: unknown[]) { this.values = values; db.statements.push({ sql, values }); return this },
+      async first() {
+        return {
+          total: 10, avg_latency_ms: 21.4, avg_jitter_ms: 2, avg_packet_loss: 0.1,
+          avg_download_mbps: 100, avg_upload_mbps: 20, avg_score: 80,
+          critical_count: 1, active_count: 2,
+          with_score: 9, with_speed: 8, with_latency: 9, with_device: 10,
+          with_dist_channel: 8, complete_count: 8,
         }
       },
     }
@@ -134,4 +155,27 @@ test('cobertura de session_end só libera retenção e duração a partir de 80%
   assert.equal(reliablePayload.dataQuality.sessionEndRate, 0.8)
   assert.equal(reliablePayload.dataQuality.isSessionMetricReliable, true)
   assert.equal(reliablePayload.avg_session_duration_ms, 42_000)
+})
+
+test('resumo de diagnóstico expõe cobertura dos campos mínimos e limiar de interpretação', async () => {
+  const db = new DiagnosticSummaryDb()
+  const response = await handleDiagnosticsSummary(
+    new Request('https://x/admin/metrics/diagnostics/summary?environment=production'),
+    buildEnv(db as any),
+  )
+  const payload = await response.json() as {
+    dataQuality: { completeDiagnostics: number; speed: number; isSufficientForNetworkMetrics: boolean }
+  }
+  assert.equal(response.status, 200)
+  assert.deepEqual(payload.dataQuality, {
+    completeDiagnostics: 80,
+    score: 90,
+    speed: 80,
+    latency: 90,
+    device: 100,
+    distributionChannel: 80,
+    isSufficientForNetworkMetrics: true,
+  })
+  assert.ok(db.statements[0].sql.includes('complete_count'))
+  assert.ok(db.statements[0].sql.includes("NULLIF(dist_channel, '')"))
 })

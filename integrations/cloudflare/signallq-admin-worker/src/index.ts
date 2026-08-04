@@ -1469,7 +1469,7 @@ function providerEnumId(model: string): string {
   return "local_fallback";
 }
 
-async function handleDiagnosticsSummary(request: Request, env: Env): Promise<Response> {
+export async function handleDiagnosticsSummary(request: Request, env: Env): Promise<Response> {
   const url       = new URL(request.url);
   const period    = url.searchParams.get("period") ?? "7d";
   const since     = nowSec() - periodToSeconds(period);
@@ -1494,7 +1494,18 @@ async function handleDiagnosticsSummary(request: Request, env: Env): Promise<Res
        AVG(upload_mbps) AS avg_upload_mbps,
        AVG(CAST(score AS REAL)) AS avg_score,
        SUM(CASE WHEN status IN ('ruim','critico') THEN 1 ELSE 0 END) AS critical_count,
-       SUM(CASE WHEN resolved = 0 THEN 1 ELSE 0 END) AS active_count
+       SUM(CASE WHEN resolved = 0 THEN 1 ELSE 0 END) AS active_count,
+       SUM(CASE WHEN score IS NOT NULL THEN 1 ELSE 0 END) AS with_score,
+       SUM(CASE WHEN download_mbps IS NOT NULL AND upload_mbps IS NOT NULL THEN 1 ELSE 0 END) AS with_speed,
+       SUM(CASE WHEN latency_ms IS NOT NULL THEN 1 ELSE 0 END) AS with_latency,
+       SUM(CASE WHEN NULLIF(device_id, '') IS NOT NULL THEN 1 ELSE 0 END) AS with_device,
+       SUM(CASE WHEN NULLIF(dist_channel, '') IS NOT NULL THEN 1 ELSE 0 END) AS with_dist_channel,
+       SUM(CASE WHEN score IS NOT NULL
+                  AND download_mbps IS NOT NULL AND upload_mbps IS NOT NULL
+                  AND latency_ms IS NOT NULL
+                  AND NULLIF(device_id, '') IS NOT NULL
+                  AND NULLIF(dist_channel, '') IS NOT NULL
+                THEN 1 ELSE 0 END) AS complete_count
      FROM diagnostic_sessions
      WHERE created_at >= ?${filterClause}`
   ).bind(since, ...filterBinds).first<{
@@ -1507,16 +1518,26 @@ async function handleDiagnosticsSummary(request: Request, env: Env): Promise<Res
     avg_score: number | null;
     critical_count: number;
     active_count: number;
+    with_score: number;
+    with_speed: number;
+    with_latency: number;
+    with_device: number;
+    with_dist_channel: number;
+    complete_count: number;
   }>();
 
   const round1 = (v: number | null) => v != null ? Math.round(v * 10) / 10 : null;
+  const total = row?.total ?? 0;
+  const coverage = (count: number | null | undefined) => total > 0
+    ? Math.round(((count ?? 0) / total) * 1000) / 10
+    : null;
 
   return json({
     source:                    "d1",
     period,
     environment:               envFilter ?? "all",
     platform:                  platformFilter ?? "all",
-    totalDiagnostics:          row?.total ?? 0,
+    totalDiagnostics:          total,
     criticalCount:             row?.critical_count ?? 0,
     activeSessions:            row?.active_count ?? 0,
     averageScore:              row?.avg_score != null ? Math.round(row.avg_score) : null,
@@ -1525,6 +1546,17 @@ async function handleDiagnosticsSummary(request: Request, env: Env): Promise<Res
     averagePacketLossPercentage: round1(row?.avg_packet_loss ?? null),
     averageDownloadMbps:       round1(row?.avg_download_mbps ?? null),
     averageUploadMbps:         round1(row?.avg_upload_mbps ?? null),
+    // P1: médias só são interpretáveis junto da cobertura dos campos que as compõem.
+    // O limiar de 80% é o mesmo já usado para métricas de sessão no endpoint de produto.
+    dataQuality: {
+      completeDiagnostics: coverage(row?.complete_count),
+      score: coverage(row?.with_score),
+      speed: coverage(row?.with_speed),
+      latency: coverage(row?.with_latency),
+      device: coverage(row?.with_device),
+      distributionChannel: coverage(row?.with_dist_channel),
+      isSufficientForNetworkMetrics: total > 0 && (row?.complete_count ?? 0) / total >= 0.8,
+    },
   }, 200, env);
 }
 
