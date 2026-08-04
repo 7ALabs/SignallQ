@@ -16,8 +16,9 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Envia telemetria de diagnostico e uso de IA para o signallq-admin-worker.
  *
- * Fire-and-forget: todas as falhas sao logadas com [Timber.w] e ignoradas.
- * Nenhuma excecao propaga para o chamador — ingest nunca bloqueia o fluxo principal.
+ * Best-effort com confirmação: todas as falhas sao logadas com [Timber.w] e ignoradas.
+ * Nenhuma excecao propaga para o chamador; o retorno Boolean permite que a fila persistente
+ * só avance seu checkpoint após o Worker confirmar o mesmo identificador.
  *
  * Autenticacao: Bearer [ingestKey] (INGEST_KEY — chave com scope limitado a /ingest/,
  * diferente do ADMIN_SECRET usado pelo painel web). Vazar INGEST_KEY nao da acesso
@@ -35,6 +36,12 @@ class AdminIngestRepository(
     private val consentimentoProvider: suspend () -> Boolean = { false },
 ) {
     private val mediaTypeJson = "application/json; charset=utf-8".toMediaType()
+
+    private fun acknowledgedId(responseBody: String?, expectedId: String): Boolean =
+        runCatching {
+            val body = JSONObject(responseBody.orEmpty())
+            body.optBoolean("ok") && body.optString("id") == expectedId
+        }.getOrDefault(false)
 
     // GH#1332 — `ai_usage.session_id` tem FOREIGN KEY REFERENCES diagnostic_sessions(id)
     // no signallq-admin-worker (schema.sql). SignallQOrchestrator dispara sendDiagnostic()
@@ -69,15 +76,15 @@ class AdminIngestRepository(
      * Envia payload de diagnostico concluido. Fire-and-forget.
      * Nao lanca excecao em nenhum cenario.
      */
-    suspend fun sendDiagnostic(payload: DiagnosticIngestPayload) {
+    suspend fun sendDiagnostic(payload: DiagnosticIngestPayload): Boolean {
         if (!consentimentoProvider()) {
             pendingIngestFor(payload.id).deferred.complete(false)
-            return
+            return false
         }
         if (baseUrl.isBlank() || ingestKey.isBlank()) {
             Timber.w("sendDiagnostic ignorado: baseUrl ou ingestKey nao configurados")
             pendingIngestFor(payload.id).deferred.complete(false)
-            return
+            return false
         }
         limparPendenciasAntigas()
         val sucesso = runCatching {
@@ -92,8 +99,10 @@ class AdminIngestRepository(
                 client.newCall(req).execute().use { resp ->
                     if (!resp.isSuccessful) {
                         Timber.w("sendDiagnostic HTTP ${resp.code} — id=${payload.id}")
+                        false
+                    } else {
+                        acknowledgedId(resp.body?.string(), payload.id)
                     }
-                    resp.isSuccessful
                 }
             }
         }.onFailure { t ->
@@ -103,17 +112,18 @@ class AdminIngestRepository(
         // ver comentario GH#1332 acima. Se falhou, sendAiUsage nem tenta (a linha
         // pai nao existe no D1, o insert de ai-usage sempre falharia por FK mesmo).
         pendingIngestFor(payload.id).deferred.complete(sucesso)
+        return sucesso
     }
 
     /**
      * Envia payload de uso de IA. Fire-and-forget.
      * Nao lanca excecao em nenhum cenario.
      */
-    suspend fun sendAiUsage(payload: AiUsageIngestPayload) {
-        if (!consentimentoProvider()) return
+    suspend fun sendAiUsage(payload: AiUsageIngestPayload): Boolean {
+        if (!consentimentoProvider()) return false
         if (baseUrl.isBlank() || ingestKey.isBlank()) {
             Timber.w("sendAiUsage ignorado: baseUrl ou ingestKey nao configurados")
-            return
+            return false
         }
 
         // GH#1332 — aguarda a confirmacao do sendDiagnostic() da MESMA sessao antes
@@ -131,11 +141,11 @@ class AdminIngestRepository(
                     "sendAiUsage abortado: ingest de diagnostico da sessao $sessionId " +
                         "nao confirmado (evita FOREIGN KEY constraint no D1) — id=${payload.id}",
                 )
-                return
+                return false
             }
         }
 
-        runCatching {
+        return runCatching {
             withContext(Dispatchers.IO) {
                 val body = payload.toJson().toString()
                     .toRequestBody(mediaTypeJson)
@@ -147,12 +157,15 @@ class AdminIngestRepository(
                 client.newCall(req).execute().use { resp ->
                     if (!resp.isSuccessful) {
                         Timber.w("sendAiUsage HTTP ${resp.code} — id=${payload.id}")
+                        false
+                    } else {
+                        acknowledgedId(resp.body?.string(), payload.id)
                     }
                 }
             }
         }.onFailure { t ->
             Timber.w("sendAiUsage falhou (ignorando): ${t.message}")
-        }
+        }.getOrDefault(false)
     }
 
     /**
@@ -163,13 +176,13 @@ class AdminIngestRepository(
      * O worker aceita um batch (`events: []`) por chamada — aqui sempre enviamos
      * um unico evento por vez, no mesmo momento em que ele acontece no app.
      */
-    suspend fun sendAnalyticsEvent(payload: AnalyticsEventIngestPayload) {
-        if (!consentimentoProvider()) return
+    suspend fun sendAnalyticsEvent(payload: AnalyticsEventIngestPayload): Boolean {
+        if (!consentimentoProvider()) return false
         if (baseUrl.isBlank() || ingestKey.isBlank()) {
             Timber.w("sendAnalyticsEvent ignorado: baseUrl ou ingestKey nao configurados")
-            return
+            return false
         }
-        runCatching {
+        return runCatching {
             withContext(Dispatchers.IO) {
                 val body = JSONObject()
                     .put("events", JSONArray().put(payload.toJson()))
@@ -184,11 +197,12 @@ class AdminIngestRepository(
                     if (!resp.isSuccessful) {
                         Timber.w("sendAnalyticsEvent HTTP ${resp.code} — name=${payload.name}")
                     }
+                    resp.isSuccessful
                 }
             }
         }.onFailure { t ->
             Timber.w("sendAnalyticsEvent falhou (ignorando): ${t.message}")
-        }
+        }.getOrDefault(false)
     }
 
     // ---- Serialização ----
