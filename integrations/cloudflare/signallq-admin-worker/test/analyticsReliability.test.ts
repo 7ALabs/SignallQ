@@ -30,6 +30,13 @@ class IngestDb {
 class ProductDb {
   readonly statements: Array<{ sql: string; values: unknown[] }> = []
   private firstCalls = 0
+  private readonly sessionStartCount: number
+  private readonly sessionEndCount: number
+
+  constructor(sessionStartCount = 10, sessionEndCount = 8) {
+    this.sessionStartCount = sessionStartCount
+    this.sessionEndCount = sessionEndCount
+  }
 
   prepare(sql: string) {
     const db = this
@@ -42,7 +49,7 @@ class ProductDb {
         switch (db.firstCalls) {
           case 1: return { avg_duration_ms: 42_000 }
           case 2: return { session_count: 8 }
-          case 3: return { session_start_count: 10, session_end_count: 8 }
+          case 3: return { session_start_count: db.sessionStartCount, session_end_count: db.sessionEndCount }
           case 4: return { count: 455 }
           default: return { cohort_d1: 0, returned_d1: 0, cohort_d7: 0, returned_d7: 0, cohort_d30: 0, returned_d30: 0, total_devices: 0, avg_active_span_days: null, inactive_14d: 0, total_with_activity: 0 }
         }
@@ -97,4 +104,34 @@ test('analytics de produto assume Android, rejeita all e devolve qualidade da co
 
   const invalid = await handleProductAnalytics(new Request('https://x/admin/analytics/product?platform=all'), env)
   assert.equal(invalid.status, 400)
+})
+
+test('cobertura de session_end só libera retenção e duração a partir de 80%', async () => {
+  const unreliable = await handleProductAnalytics(
+    new Request('https://x/admin/metrics/analytics/product?platform=web'),
+    buildEnv(new ProductDb(1_000, 799) as any),
+  )
+  const unreliablePayload = await unreliable.json() as {
+    platform: string
+    avg_session_duration_ms: number | null
+    retention: unknown[]
+    dataQuality: { sessionEndRate: number; isSessionMetricReliable: boolean }
+  }
+  assert.equal(unreliablePayload.platform, 'web')
+  assert.equal(unreliablePayload.dataQuality.sessionEndRate, 0.799)
+  assert.equal(unreliablePayload.dataQuality.isSessionMetricReliable, false)
+  assert.equal(unreliablePayload.avg_session_duration_ms, null)
+  assert.deepEqual(unreliablePayload.retention, [])
+
+  const reliable = await handleProductAnalytics(
+    new Request('https://x/admin/metrics/analytics/product?platform=web'),
+    buildEnv(new ProductDb(1_000, 800) as any),
+  )
+  const reliablePayload = await reliable.json() as {
+    avg_session_duration_ms: number | null
+    dataQuality: { sessionEndRate: number; isSessionMetricReliable: boolean }
+  }
+  assert.equal(reliablePayload.dataQuality.sessionEndRate, 0.8)
+  assert.equal(reliablePayload.dataQuality.isSessionMetricReliable, true)
+  assert.equal(reliablePayload.avg_session_duration_ms, 42_000)
 })

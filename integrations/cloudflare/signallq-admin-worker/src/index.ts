@@ -4398,6 +4398,12 @@ export async function handleProductAnalytics(request: Request, env: Env): Promis
     uninstallRate:    retentionRow!.total_with_activity > 0 ? Math.round((retentionRow!.inactive_14d / retentionRow!.total_with_activity) * 1000) / 10 : null,
   }];
 
+  // Retenção e duração dependem do encerramento confiável das sessões. O Admin
+  // também aplica esse estado visualmente, mas o contrato não pode vazar valores
+  // que um consumidor futuro possa exibir por engano abaixo do limiar aprovado.
+  const reliableRetention = isSessionMetricReliable ? retention : [];
+  const reliableAverageSessionDuration = isSessionMetricReliable ? avg_session_duration_ms : null;
+
   return json({
     source: 'd1',
     period,
@@ -4415,9 +4421,9 @@ export async function handleProductAnalytics(request: Request, env: Env): Promis
     feature_usage,
     screen_navigation,
     feature_crashes,
-    avg_session_duration_ms,
+    avg_session_duration_ms: reliableAverageSessionDuration,
     session_count,
-    retention,
+    retention: reliableRetention,
   }, 200, env);
 }
 
