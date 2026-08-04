@@ -4,10 +4,14 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.signallq.app.BuildConfig
 import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.core.database.analytics.AnalyticsOutboxDao
+import io.signallq.app.core.database.analytics.AnalyticsOutboxEntity
 import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.di.ApplicationScope
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.ingest.AnalyticsEventIngestPayload
+import io.signallq.app.feature.diagnostico.ingest.toOutboxJson
+import io.signallq.app.monitoramento.AdminSyncScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -34,10 +38,17 @@ class CompositeAnalyticsTracker
         private val firebaseTracker: FirebaseAnalyticsTracker,
         private val adminIngestRepository: AdminIngestRepository,
         private val preferenciasAppRepository: PreferenciasAppRepository,
+        private val analyticsOutboxDao: AnalyticsOutboxDao,
+        private val outboxFunnelTracker: AnalyticsOutboxFunnelTracker,
         @ApplicationContext private val context: Context,
         @ApplicationScope private val applicationScope: CoroutineScope,
     ) : AnalyticsTracker {
-        private val sessionId: String = UUID.randomUUID().toString()
+        private var sessionId: String? = null
+        private var sessionStartedAtMs = 0L
+        private var sessionStartRecorded = false
+
+        private fun currentSessionId(): String =
+            sessionId ?: UUID.randomUUID().toString().also { sessionId = it }
 
         override fun registrarFeatureUsada(
             featureId: String,
@@ -53,8 +64,22 @@ class CompositeAnalyticsTracker
         }
 
         override fun registrarSessionStart() {
+            if (sessionStartRecorded) return
+            currentSessionId()
+            sessionStartedAtMs = System.currentTimeMillis()
+            sessionStartRecorded = true
             firebaseTracker.registrarSessionStart()
             enviarEvento(name = "session_start")
+        }
+
+        override fun registrarSessionEnd() {
+            val closingSessionId = sessionId ?: return
+            firebaseTracker.registrarSessionEnd()
+            // O mesmo UUID de instancia identifica inicio e fim. O Worker aceita
+            // retries pelo id do evento, enquanto o par session_id permanece estável.
+            enviarEvento(name = "session_end", sessionIdOverride = closingSessionId, durationMs = (System.currentTimeMillis() - sessionStartedAtMs).coerceAtLeast(0))
+            sessionId = null
+            sessionStartRecorded = false
         }
 
         override fun registrarFeatureCrash(
@@ -89,21 +114,24 @@ class CompositeAnalyticsTracker
             errorType: String? = null,
             batteryLevel: Int? = null,
             batteryCharging: Boolean? = null,
+            durationMs: Long? = null,
             // GH#919 — quando presente, correlaciona o evento a diagnostic_sessions.id
             // (mesmo id gravado em ai_usage.session_id) em vez do UUID de instancia.
             sessionIdOverride: String? = null,
         ) {
+            // Captura a sessão no thread chamador. A coroutine pode executar só depois de
+            // registrarSessionEnd() limpar o estado, mas o evento já pertence à sessão atual.
+            val eventSessionId = sessionIdOverride ?: currentSessionId()
             applicationScope.launch {
                 val distChannel = distributionChannel(context)
                 val deviceId =
                     runCatching {
                         preferenciasAppRepository.buscarOuGerarAnonDeviceId()
                     }.getOrDefault("unknown")
-                adminIngestRepository.sendAnalyticsEvent(
-                    AnalyticsEventIngestPayload(
+                val payload = AnalyticsEventIngestPayload(
                         id = UUID.randomUUID().toString(),
                         name = name,
-                        sessionId = sessionIdOverride ?: sessionId,
+                        sessionId = eventSessionId,
                         appVersion = BuildConfig.VERSION_NAME,
                         featureId = featureId,
                         screenName = screenName,
@@ -115,8 +143,20 @@ class CompositeAnalyticsTracker
                         buildType = BuildConfig.BUILD_TYPE,
                         versionCode = BuildConfig.VERSION_CODE,
                         deviceId = deviceId,
+                        durationMs = durationMs,
+                )
+                if (!adminIngestRepository.canSendTelemetry()) return@launch
+                val enqueueResult = analyticsOutboxDao.enqueue(
+                    AnalyticsOutboxEntity(
+                        id = payload.id,
+                        payloadJson = payload.toOutboxJson(),
+                        createdAtEpochMs = System.currentTimeMillis(),
                     ),
                 )
+                if (enqueueResult != -1L) {
+                    outboxFunnelTracker.registrar(AnalyticsOutboxFunnelTracker.Stage.CREATED)
+                }
+                AdminSyncScheduler.agendarEntregaAnalytics(context)
             }
         }
     }

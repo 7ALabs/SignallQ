@@ -59,4 +59,16 @@ internal object AdminSyncScheduler {
             periodicoRequest,
         )
     }
+
+    fun agendarEntregaAnalytics(context: Context) {
+        val request = OneTimeWorkRequestBuilder<AdminSyncWorker>()
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+            .build()
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            WORK_NAME_RETROATIVO,
+            ExistingWorkPolicy.KEEP,
+            request,
+        )
+    }
 }

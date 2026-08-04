@@ -114,6 +114,7 @@ private object NoOpAnalyticsTrackerPro : AnalyticsTracker {
     override fun registrarScreenView(screenName: String) = Unit
 
     override fun registrarSessionStart() = Unit
+    override fun registrarSessionEnd() = Unit
 
     override fun registrarFeatureCrash(
         featureId: String,

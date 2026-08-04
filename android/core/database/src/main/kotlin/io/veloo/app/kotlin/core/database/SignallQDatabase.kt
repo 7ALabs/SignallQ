@@ -11,6 +11,8 @@ import io.signallq.app.core.database.provider.ProviderDirectoryCacheDao
 import io.signallq.app.core.database.provider.ProviderDirectoryCacheEntity
 import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
 import io.signallq.app.core.database.recommendation.RecommendationHistoryEntity
+import io.signallq.app.core.database.analytics.AnalyticsOutboxDao
+import io.signallq.app.core.database.analytics.AnalyticsOutboxEntity
 
 @Database(
     entities = [
@@ -21,8 +23,9 @@ import io.signallq.app.core.database.recommendation.RecommendationHistoryEntity
         RecommendationHistoryEntity::class,
         ConnectivityDiagnosisHistoryEntity::class,
         ProviderDirectoryCacheEntity::class,
+        AnalyticsOutboxEntity::class,
     ],
-    version = 17,
+    version = 18,
     exportSchema = true,
 )
 abstract class SignallQDatabase : RoomDatabase() {
@@ -32,4 +35,5 @@ abstract class SignallQDatabase : RoomDatabase() {
     abstract fun recommendationHistoryDao(): RecommendationHistoryDao
     abstract fun connectivityDiagnosisHistoryDao(): ConnectivityDiagnosisHistoryDao
     abstract fun providerDirectoryCacheDao(): ProviderDirectoryCacheDao
+    abstract fun analyticsOutboxDao(): AnalyticsOutboxDao
 }

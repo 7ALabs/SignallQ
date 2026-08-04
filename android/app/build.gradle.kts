@@ -375,6 +375,9 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.mockk)
+    // A outbox serializa e reabre payloads JSON em testes JVM; org.json do Android SDK
+    // não existe no runtime desses testes.
+    testImplementation("org.json:json:20260719")
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
     debugImplementation(libs.compose.ui.test.manifest)
