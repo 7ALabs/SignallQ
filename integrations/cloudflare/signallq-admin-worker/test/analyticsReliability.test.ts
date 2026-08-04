@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { getAnalyticsPlatformFilter, handleIngestAnalytics, handleProductAnalytics, normalizeAnalyticsTimestamp } from '../src/index.ts'
+import { getAnalyticsPlatformFilter, handleIngestAnalytics, handleIntegrationReadiness, handleProductAnalytics, normalizeAnalyticsTimestamp } from '../src/index.ts'
 import { buildEnv } from './support.ts'
 
 class IngestDb {
@@ -52,6 +52,22 @@ class ProductDb {
           case 3: return { session_start_count: db.sessionStartCount, session_end_count: db.sessionEndCount }
           case 4: return { count: 455 }
           default: return { cohort_d1: 0, returned_d1: 0, cohort_d7: 0, returned_d7: 0, cohort_d30: 0, returned_d30: 0, total_devices: 0, avg_active_span_days: null, inactive_14d: 0, total_with_activity: 0 }
+        }
+      },
+    }
+  }
+}
+
+class ReadinessDb {
+  prepare(_sql: string) {
+    return {
+      bind(key: string) {
+        return {
+          async first() {
+            if (key === 'firebase_sync') return { value: JSON.stringify({ syncedAt: new Date().toISOString(), eventsImported: 3, crashesImported: 2 }) }
+            if (key === 'google_play_sync') return { value: JSON.stringify({ syncedAt: new Date().toISOString(), reviewsSampled: 0 }) }
+            return null
+          },
         }
       },
     }
@@ -134,4 +150,19 @@ test('cobertura de session_end só libera retenção e duração a partir de 80%
   assert.equal(reliablePayload.dataQuality.sessionEndRate, 0.8)
   assert.equal(reliablePayload.dataQuality.isSessionMetricReliable, true)
   assert.equal(reliablePayload.avg_session_duration_ms, 42_000)
+})
+
+test('prontidão de integração não confunde credencial, sync, frescor e dados recebidos', async () => {
+  const response = await handleIntegrationReadiness(
+    new Request('https://x/admin/integrations/readiness'),
+    buildEnv(new ReadinessDb() as any),
+  )
+  const payload = await response.json() as { integrations: Array<{ id: string; state: string; recordsReceived: number | null; apiReachability: string }> }
+  const firebase = payload.integrations.find((item) => item.id === 'firebase_analytics')!
+  const reviews = payload.integrations.find((item) => item.id === 'google_play_reviews')!
+  assert.equal(firebase.state, 'ready')
+  assert.equal(firebase.recordsReceived, 5)
+  assert.equal(firebase.apiReachability, 'check_system_health')
+  assert.equal(reviews.state, 'not_configured')
+  assert.equal(reviews.recordsReceived, 0)
 })

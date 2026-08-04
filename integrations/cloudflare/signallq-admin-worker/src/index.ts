@@ -3284,6 +3284,71 @@ async function handleSystemHealth(_req: Request, env: Env): Promise<Response> {
   );
 }
 
+type IntegrationReadinessState = 'not_configured' | 'not_synced' | 'stale' | 'ready';
+
+interface IntegrationReadinessItem {
+  id: string;
+  credentialsConfigured: boolean;
+  apiReachability: 'check_system_health';
+  lastSyncAt: string | null;
+  recordsReceived: number | null;
+  state: IntegrationReadinessState;
+}
+
+function integrationReadiness(
+  id: string,
+  credentialsConfigured: boolean,
+  rawSyncState: unknown,
+  recordsReceived: number | null,
+): IntegrationReadinessItem {
+  const syncedAt = rawSyncState && typeof rawSyncState === 'object' && typeof (rawSyncState as any).syncedAt === 'string'
+    ? (rawSyncState as any).syncedAt as string
+    : null;
+  if (!credentialsConfigured) return { id, credentialsConfigured, apiReachability: 'check_system_health', lastSyncAt: syncedAt, recordsReceived, state: 'not_configured' };
+  if (!syncedAt) return { id, credentialsConfigured, apiReachability: 'check_system_health', lastSyncAt: null, recordsReceived, state: 'not_synced' };
+  const syncedAtMs = Date.parse(syncedAt);
+  if (!Number.isFinite(syncedAtMs) || Date.now() - syncedAtMs > 48 * 60 * 60 * 1000) {
+    return { id, credentialsConfigured, apiReachability: 'check_system_health', lastSyncAt: syncedAt, recordsReceived, state: 'stale' };
+  }
+  return { id, credentialsConfigured, apiReachability: 'check_system_health', lastSyncAt: syncedAt, recordsReceived, state: 'ready' };
+}
+
+async function readIntegrationSyncState(env: Env, key: string): Promise<Record<string, unknown> | null> {
+  const row = await env.DB.prepare("SELECT value FROM admin_settings WHERE key = ?").bind(key).first<{ value: string }>();
+  if (!row?.value) return null;
+  try {
+    const parsed = JSON.parse(row.value);
+    return parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+}
+
+// P1: conecta configuração, execução, frescor e volume sem transformar uma credencial
+// ou um SELECT 1 em alegação de que a fonte possui dados úteis.
+export async function handleIntegrationReadiness(_req: Request, env: Env): Promise<Response> {
+  const [firebase, vitals, tracks, reviews] = await Promise.all([
+    readIntegrationSyncState(env, 'firebase_sync'),
+    readIntegrationSyncState(env, 'google_play_vitals_sync'),
+    readIntegrationSyncState(env, 'google_play_tracks_sync'),
+    readIntegrationSyncState(env, 'google_play_sync'),
+  ]);
+  const firebaseCredentials = !!(env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY);
+  const playCredentials = !!(env.GOOGLE_PLAY_CLIENT_EMAIL && env.GOOGLE_PLAY_PRIVATE_KEY);
+  const numberOf = (value: unknown): number | null => typeof value === 'number' && Number.isFinite(value) ? value : null;
+
+  return json({
+    source: 'worker',
+    freshnessThresholdHours: 48,
+    integrations: [
+      integrationReadiness('firebase_analytics', firebaseCredentials, firebase, (numberOf(firebase?.eventsImported) ?? 0) + (numberOf(firebase?.crashesImported) ?? 0)),
+      integrationReadiness('google_play_vitals', playCredentials, vitals, numberOf(vitals?.samplesReceived)),
+      integrationReadiness('google_play_tracks', playCredentials, tracks, numberOf(tracks?.tracksCount)),
+      integrationReadiness('google_play_reviews', playCredentials, reviews, numberOf(reviews?.reviewsSampled)),
+    ],
+  }, 200, env);
+}
+
 // #788 — snapshot periódico de latência/uptime, gravado pelo Cron Trigger
 // (ver `scheduled` no export default). Reaproveita os MESMOS checks reais já
 // usados por /admin/system-health (checkD1Health, checkFirebaseCredentialsHealth,
@@ -5125,6 +5190,7 @@ const ROUTES: Array<{ method: string; pattern: RegExp; handler: Handler }> = [
       return handleResolveSystemError(req, env, session);
     }) },
   { method: "GET",  pattern: /^\/admin\/system-health$/,                        handler: withErrorLogging('system-health', handleSystemHealth) },
+  { method: "GET",  pattern: /^\/admin\/integrations\/readiness$/,              handler: withErrorLogging('integration-readiness', handleIntegrationReadiness) },
   { method: "GET",  pattern: /^\/admin\/system-health\/history$/,               handler: withErrorLogging('system-health', handleSystemHealthHistory) },
   { method: "POST", pattern: /^\/admin\/system-health\/snapshot$/,              handler: withErrorLogging('system-health', handleTriggerHealthSnapshot) },
   { method: "GET",  pattern: /^\/admin\/cloudflare-usage$/,                     handler: withErrorLogging('cloudflare-usage', handleCloudflareUsage) },
