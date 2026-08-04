@@ -16,6 +16,10 @@ import io.signallq.app.feature.diagnostico.ingest.analyticsPayloadFromOutboxJson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertNotEquals
@@ -143,6 +147,31 @@ class CompositeAnalyticsTrackerTest {
         assertEquals("session_start", slots[2].name)
         assertEquals(slots[0].sessionId, slots[1].sessionId)
         assertNotEquals(slots[0].sessionId, slots[2].sessionId)
+    }
+
+    @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun `start e stop rapidos preservam o par de sessao quando coroutine executa depois`() = runTest {
+        val delayedTracker =
+            CompositeAnalyticsTracker(
+                firebaseTracker = firebaseTracker,
+                adminIngestRepository = adminIngestRepository,
+                preferenciasAppRepository = preferenciasAppRepository,
+                analyticsOutboxDao = analyticsOutboxDao,
+                outboxFunnelTracker = outboxFunnelTracker,
+                context = ApplicationProvider.getApplicationContext(),
+                applicationScope = CoroutineScope(StandardTestDispatcher(testScheduler) + SupervisorJob()),
+            )
+
+        delayedTracker.registrarSessionStart()
+        delayedTracker.registrarSessionEnd()
+        advanceUntilIdle()
+
+        val slots = mutableListOf<AnalyticsEventIngestPayload>()
+        coVerify(exactly = 2) { adminIngestRepository.sendAnalyticsEvent(capture(slots)) }
+        assertEquals("session_start", slots[0].name)
+        assertEquals("session_end", slots[1].name)
+        assertEquals(slots[0].sessionId, slots[1].sessionId)
     }
 
     @Test

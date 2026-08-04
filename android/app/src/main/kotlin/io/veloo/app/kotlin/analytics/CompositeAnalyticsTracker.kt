@@ -119,6 +119,9 @@ class CompositeAnalyticsTracker
             // (mesmo id gravado em ai_usage.session_id) em vez do UUID de instancia.
             sessionIdOverride: String? = null,
         ) {
+            // Captura a sessão no thread chamador. A coroutine pode executar só depois de
+            // registrarSessionEnd() limpar o estado, mas o evento já pertence à sessão atual.
+            val eventSessionId = sessionIdOverride ?: currentSessionId()
             applicationScope.launch {
                 val distChannel = distributionChannel(context)
                 val deviceId =
@@ -128,7 +131,7 @@ class CompositeAnalyticsTracker
                 val payload = AnalyticsEventIngestPayload(
                         id = UUID.randomUUID().toString(),
                         name = name,
-                        sessionId = sessionIdOverride ?: currentSessionId(),
+                        sessionId = eventSessionId,
                         appVersion = BuildConfig.VERSION_NAME,
                         featureId = featureId,
                         screenName = screenName,
