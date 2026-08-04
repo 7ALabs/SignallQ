@@ -1,7 +1,7 @@
 # Admin API — Schema de Contratos
 
 **Status:** ativo
-**Última validação:** 2026-07-26 (v0.30.4, versionCode 70) — GH#1471/#1312: documenta o catálogo
+**Última validação:** 2026-08-04 — contrato de prontidão de integrações; antes: 2026-07-26 (v0.30.4, versionCode 70) — GH#1471/#1312: documenta o catálogo
 remoto de releases (`app_releases`) e o disparo de push por versão/canal
 **Fonte de verdade:** código real (`integrations/cloudflare/signallq-admin-worker/src/index.ts`) + `docs_ai/CONTRATOS/openapi/signallq-admin-api.yaml` (contrato OpenAPI formal)
 **Escopo:** todos os endpoints do worker `signallq-admin` (painel Admin, ingest do app, feature flags, health)
@@ -800,6 +800,47 @@ de Firebase/BigQuery/ingest).
 | `lastSuccess` | Baseado no `ingest.lastSuccessAt` (pode ser `null` se nunca houve ingest) |
 
 **Status possíveis:** `ok`, `error`, `not_configured`, `idle`. Nenhum é tratado como "sempre verde" no frontend — `not_configured` e `idle` são estados legítimos e exibidos como tal.
+
+---
+
+### GET /admin/integrations/readiness
+
+Snapshot somente de leitura da prontidão das integrações Android. Não chama Firebase, BigQuery
+ou Google Play: consolida credenciais e o estado de sync já persistido em `admin_settings`.
+
+```json
+{
+  "source": "worker",
+  "generatedAt": "2026-08-04T12:00:00.000Z",
+  "environment": "worker",
+  "platform": "android",
+  "freshnessThresholdHours": 48,
+  "coverage": {
+    "totalIntegrations": 4,
+    "readyIntegrations": 1,
+    "nonReadyIntegrations": 3,
+    "byState": { "ready": 1, "not_configured": 3 }
+  },
+  "integrations": [
+    {
+      "id": "firebase_analytics",
+      "credentialsConfigured": true,
+      "apiReachability": "reachable",
+      "lastSyncAt": "2026-08-04T11:00:00.000Z",
+      "recordsReceived": 5,
+      "state": "ready"
+    }
+  ]
+}
+```
+
+| Campo | Semântica |
+|---|---|
+| `generatedAt` | Instante ISO 8601 em que o snapshot foi gerado. |
+| `environment` / `platform` | Contexto do contrato: execução no `worker` e fontes destinadas ao `android`; não é uma alegação de deploy em produção. |
+| `apiReachability` | `not_configured`, `not_verified` ou `reachable`. `reachable` é a evidência local de sync concluído; a rota não executa probe externo e, por isso, não declara uma API inacessível. |
+| `state` | `not_configured`, `not_synced`, `stale`, `synced_without_data` ou `ready`. Só é `ready` com credenciais, sync válido em até 48h, timestamp não futuro e `recordsReceived > 0`. |
+| `coverage` | Contagem total, pronta, não pronta e agrupamento por estado para impedir que o consumidor trate a presença da rota como cobertura completa. |
 
 ---
 

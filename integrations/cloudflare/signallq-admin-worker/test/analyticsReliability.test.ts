@@ -80,14 +80,20 @@ class DiagnosticSummaryDb {
 }
 
 class ReadinessDb {
+  private readonly states: Record<string, Record<string, unknown> | null>
+
+  constructor(states: Record<string, Record<string, unknown> | null> = {}) {
+    this.states = states
+  }
+
   prepare(_sql: string) {
+    const states = this.states
     return {
       bind(key: string) {
         return {
           async first() {
-            if (key === 'firebase_sync') return { value: JSON.stringify({ syncedAt: new Date().toISOString(), eventsImported: 3, crashesImported: 2 }) }
-            if (key === 'google_play_sync') return { value: JSON.stringify({ syncedAt: new Date().toISOString(), reviewsSampled: 0 }) }
-            return null
+            const state = states[key]
+            return state ? { value: JSON.stringify(state) } : null
           },
         }
       },
@@ -196,17 +202,79 @@ test('resumo de diagnóstico expõe cobertura dos campos mínimos e limiar de in
   assert.ok(db.statements[0].sql.includes("NULLIF(dist_channel, '')"))
 })
 
-test('prontidão de integração não confunde credencial, sync, frescor e dados recebidos', async () => {
+test('prontidão de integração expõe contrato, cobertura e fonte pronta com volume positivo', async () => {
   const response = await handleIntegrationReadiness(
     new Request('https://x/admin/integrations/readiness'),
-    buildEnv(new ReadinessDb() as any),
+    buildEnv(new ReadinessDb({
+      firebase_sync: { syncedAt: new Date().toISOString(), eventsImported: 3, crashesImported: 2 },
+    }) as any),
   )
-  const payload = await response.json() as { integrations: Array<{ id: string; state: string; recordsReceived: number | null; apiReachability: string }> }
+  const payload = await response.json() as {
+    generatedAt: string
+    environment: string
+    platform: string
+    coverage: { totalIntegrations: number; readyIntegrations: number; nonReadyIntegrations: number; byState: Record<string, number> }
+    integrations: Array<{ id: string; state: string; recordsReceived: number | null; apiReachability: string }>
+  }
   const firebase = payload.integrations.find((item) => item.id === 'firebase_analytics')!
   const reviews = payload.integrations.find((item) => item.id === 'google_play_reviews')!
   assert.equal(firebase.state, 'ready')
   assert.equal(firebase.recordsReceived, 5)
-  assert.equal(firebase.apiReachability, 'check_system_health')
+  assert.equal(firebase.apiReachability, 'reachable')
   assert.equal(reviews.state, 'not_configured')
-  assert.equal(reviews.recordsReceived, 0)
+  assert.equal(reviews.recordsReceived, null)
+  assert.match(payload.generatedAt, /^\d{4}-\d{2}-\d{2}T/)
+  assert.equal(payload.environment, 'worker')
+  assert.equal(payload.platform, 'android')
+  assert.deepEqual(payload.coverage, { totalIntegrations: 4, readyIntegrations: 1, nonReadyIntegrations: 3, byState: { ready: 1, not_configured: 3 } })
+})
+
+test('prontidão mantém credencial ausente e API não verificada distintos de uma sincronização comprovada', async () => {
+  const response = await handleIntegrationReadiness(
+    new Request('https://x/admin/integrations/readiness'),
+    buildEnv(new ReadinessDb() as any),
+  )
+  const payload = await response.json() as { integrations: Array<{ id: string; state: string; apiReachability: string }> }
+  const firebase = payload.integrations.find((item) => item.id === 'firebase_analytics')!
+  const vitals = payload.integrations.find((item) => item.id === 'google_play_vitals')!
+  const reviews = payload.integrations.find((item) => item.id === 'google_play_reviews')!
+  assert.equal(firebase.apiReachability, 'not_verified')
+  assert.equal(firebase.state, 'not_synced')
+  assert.equal(vitals.apiReachability, 'not_configured')
+  assert.equal(vitals.state, 'not_configured')
+
+  const noSyncResponse = await handleIntegrationReadiness(
+    new Request('https://x/admin/integrations/readiness'),
+    buildEnv(new ReadinessDb() as any, { GOOGLE_PLAY_CLIENT_EMAIL: 'test@signallq-test.iam.gserviceaccount.com', GOOGLE_PLAY_PRIVATE_KEY: 'test-play-key' }),
+  )
+  const noSyncPayload = await noSyncResponse.json() as { integrations: Array<{ id: string; state: string; apiReachability: string }> }
+  const unsyncedVitals = noSyncPayload.integrations.find((item) => item.id === 'google_play_vitals')!
+  assert.equal(unsyncedVitals.apiReachability, 'not_verified')
+  assert.equal(unsyncedVitals.state, 'not_synced')
+  assert.equal(reviews.state, 'not_configured')
+})
+
+test('prontidão nunca marca volume zero, sync ausente ou sync obsoleto como ready', async () => {
+  const staleAt = new Date(Date.now() - 49 * 60 * 60 * 1000).toISOString()
+  const futureAt = new Date(Date.now() + 60 * 60 * 1000).toISOString()
+  const response = await handleIntegrationReadiness(
+    new Request('https://x/admin/integrations/readiness'),
+    buildEnv(new ReadinessDb({
+      firebase_sync: { syncedAt: new Date().toISOString(), eventsImported: 0, crashesImported: 0 },
+      google_play_tracks_sync: { syncedAt: staleAt, tracksCount: 2 },
+      google_play_sync: { syncedAt: futureAt, reviewsSampled: 2 },
+    }) as any, { GOOGLE_PLAY_CLIENT_EMAIL: 'test@signallq-test.iam.gserviceaccount.com', GOOGLE_PLAY_PRIVATE_KEY: 'test-play-key' }),
+  )
+  const payload = await response.json() as { coverage: { readyIntegrations: number; byState: Record<string, number> }; integrations: Array<{ id: string; state: string; recordsReceived: number | null }> }
+  const firebase = payload.integrations.find((item) => item.id === 'firebase_analytics')!
+  const vitals = payload.integrations.find((item) => item.id === 'google_play_vitals')!
+  const tracks = payload.integrations.find((item) => item.id === 'google_play_tracks')!
+  const reviews = payload.integrations.find((item) => item.id === 'google_play_reviews')!
+  assert.equal(firebase.recordsReceived, 0)
+  assert.equal(firebase.state, 'synced_without_data')
+  assert.equal(vitals.state, 'not_synced')
+  assert.equal(tracks.state, 'stale')
+  assert.equal(reviews.state, 'stale')
+  assert.equal(payload.coverage.readyIntegrations, 0)
+  assert.deepEqual(payload.coverage.byState, { synced_without_data: 1, not_synced: 1, stale: 2 })
 })

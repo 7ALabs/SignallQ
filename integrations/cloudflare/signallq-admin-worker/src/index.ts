@@ -3346,12 +3346,19 @@ async function handleSystemHealth(_req: Request, env: Env): Promise<Response> {
   );
 }
 
-type IntegrationReadinessState = 'not_configured' | 'not_synced' | 'stale' | 'ready';
+type IntegrationReadinessState =
+  | 'not_configured'
+  | 'not_synced'
+  | 'stale'
+  | 'synced_without_data'
+  | 'ready';
+
+type ApiReachability = 'not_configured' | 'not_verified' | 'reachable';
 
 interface IntegrationReadinessItem {
   id: string;
   credentialsConfigured: boolean;
-  apiReachability: 'check_system_health';
+  apiReachability: ApiReachability;
   lastSyncAt: string | null;
   recordsReceived: number | null;
   state: IntegrationReadinessState;
@@ -3366,13 +3373,23 @@ function integrationReadiness(
   const syncedAt = rawSyncState && typeof rawSyncState === 'object' && typeof (rawSyncState as any).syncedAt === 'string'
     ? (rawSyncState as any).syncedAt as string
     : null;
-  if (!credentialsConfigured) return { id, credentialsConfigured, apiReachability: 'check_system_health', lastSyncAt: syncedAt, recordsReceived, state: 'not_configured' };
-  if (!syncedAt) return { id, credentialsConfigured, apiReachability: 'check_system_health', lastSyncAt: null, recordsReceived, state: 'not_synced' };
+  const apiReachability: ApiReachability = !credentialsConfigured
+    ? 'not_configured'
+    // Uma sincronização concluída é a única evidência local de que a API foi alcançada.
+    // Sem sync, a rota não inventa uma verificação de conectividade nem uma falha remota.
+    : syncedAt ? 'reachable' : 'not_verified';
+
+  if (!credentialsConfigured) return { id, credentialsConfigured, apiReachability, lastSyncAt: syncedAt, recordsReceived, state: 'not_configured' };
+  if (!syncedAt) return { id, credentialsConfigured, apiReachability, lastSyncAt: null, recordsReceived, state: 'not_synced' };
   const syncedAtMs = Date.parse(syncedAt);
-  if (!Number.isFinite(syncedAtMs) || Date.now() - syncedAtMs > 48 * 60 * 60 * 1000) {
-    return { id, credentialsConfigured, apiReachability: 'check_system_health', lastSyncAt: syncedAt, recordsReceived, state: 'stale' };
+  const nowMs = Date.now();
+  if (!Number.isFinite(syncedAtMs) || syncedAtMs > nowMs || nowMs - syncedAtMs > 48 * 60 * 60 * 1000) {
+    return { id, credentialsConfigured, apiReachability, lastSyncAt: syncedAt, recordsReceived, state: 'stale' };
   }
-  return { id, credentialsConfigured, apiReachability: 'check_system_health', lastSyncAt: syncedAt, recordsReceived, state: 'ready' };
+  if (recordsReceived === null || recordsReceived <= 0) {
+    return { id, credentialsConfigured, apiReachability, lastSyncAt: syncedAt, recordsReceived, state: 'synced_without_data' };
+  }
+  return { id, credentialsConfigured, apiReachability, lastSyncAt: syncedAt, recordsReceived, state: 'ready' };
 }
 
 async function readIntegrationSyncState(env: Env, key: string): Promise<Record<string, unknown> | null> {
@@ -3386,8 +3403,8 @@ async function readIntegrationSyncState(env: Env, key: string): Promise<Record<s
   }
 }
 
-// P1: conecta configuração, execução, frescor e volume sem transformar uma credencial
-// ou um SELECT 1 em alegação de que a fonte possui dados úteis.
+// P1: conecta configuração, alcance de API, execução, frescor e volume sem transformar uma
+// credencial, um sync legado ou um SELECT 1 em alegação de que a fonte possui dados úteis.
 export async function handleIntegrationReadiness(_req: Request, env: Env): Promise<Response> {
   const [firebase, vitals, tracks, reviews] = await Promise.all([
     readIntegrationSyncState(env, 'firebase_sync'),
@@ -3398,16 +3415,35 @@ export async function handleIntegrationReadiness(_req: Request, env: Env): Promi
   const firebaseCredentials = !!(env.FIREBASE_CLIENT_EMAIL && env.FIREBASE_PRIVATE_KEY);
   const playCredentials = !!(env.GOOGLE_PLAY_CLIENT_EMAIL && env.GOOGLE_PLAY_PRIVATE_KEY);
   const numberOf = (value: unknown): number | null => typeof value === 'number' && Number.isFinite(value) ? value : null;
+  const sumOf = (...values: Array<number | null>): number | null => values.every((value) => value === null)
+    ? null
+    : values.reduce<number>((sum, value) => sum + (value ?? 0), 0);
+  const integrations = [
+    integrationReadiness('firebase_analytics', firebaseCredentials, firebase, sumOf(numberOf(firebase?.eventsImported), numberOf(firebase?.crashesImported))),
+    integrationReadiness('google_play_vitals', playCredentials, vitals, numberOf(vitals?.samplesReceived)),
+    integrationReadiness('google_play_tracks', playCredentials, tracks, numberOf(tracks?.tracksCount)),
+    integrationReadiness('google_play_reviews', playCredentials, reviews, numberOf(reviews?.reviewsSampled)),
+  ];
+  const byState = Object.fromEntries(
+    Array.from(new Set(integrations.map((item) => item.state))).map((state) => [
+      state,
+      integrations.filter((item) => item.state === state).length,
+    ]),
+  );
 
   return json({
     source: 'worker',
+    generatedAt: new Date().toISOString(),
+    environment: 'worker',
+    platform: 'android',
     freshnessThresholdHours: 48,
-    integrations: [
-      integrationReadiness('firebase_analytics', firebaseCredentials, firebase, (numberOf(firebase?.eventsImported) ?? 0) + (numberOf(firebase?.crashesImported) ?? 0)),
-      integrationReadiness('google_play_vitals', playCredentials, vitals, numberOf(vitals?.samplesReceived)),
-      integrationReadiness('google_play_tracks', playCredentials, tracks, numberOf(tracks?.tracksCount)),
-      integrationReadiness('google_play_reviews', playCredentials, reviews, numberOf(reviews?.reviewsSampled)),
-    ],
+    coverage: {
+      totalIntegrations: integrations.length,
+      readyIntegrations: integrations.filter((item) => item.state === 'ready').length,
+      nonReadyIntegrations: integrations.filter((item) => item.state !== 'ready').length,
+      byState,
+    },
+    integrations,
   }, 200, env);
 }
 
