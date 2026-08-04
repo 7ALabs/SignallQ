@@ -183,17 +183,34 @@ fun analyticsPayloadFromOutboxJson(json: String): AnalyticsEventIngestPayload? =
     val value = JSONObject(json)
     AnalyticsEventIngestPayload(
         id = value.getString("id"), name = value.getString("name"),
-        sessionId = value.takeIf { !it.isNull("session_id") }?.optString("session_id")?.ifBlank { null },
-        createdAt = value.getLong("timestamp"), appVersion = value.takeIf { !it.isNull("app_version") }?.optString("app_version")?.ifBlank { null },
-        featureId = value.takeIf { !it.isNull("feature_id") }?.optString("feature_id")?.ifBlank { null }, screenName = value.takeIf { !it.isNull("screen_name") }?.optString("screen_name")?.ifBlank { null },
-        errorType = value.takeIf { !it.isNull("error_type") }?.optString("error_type")?.ifBlank { null },
-        batteryLevel = if (value.has("battery_level")) value.getInt("battery_level") else null,
-        batteryCharging = if (value.has("battery_charging")) value.getBoolean("battery_charging") else null,
-        environment = value.optString("environment").ifBlank { null }, distChannel = value.optString("dist_channel").ifBlank { null },
-        buildType = value.optString("build_type").ifBlank { null }, versionCode = if (value.has("version_code")) value.getInt("version_code") else null,
-        deviceId = value.takeIf { !it.isNull("device_id") }?.optString("device_id")?.ifBlank { null }, durationMs = if (value.has("duration_ms") && !value.isNull("duration_ms")) value.getLong("duration_ms") else null,
+        sessionId = value.optionalString("session_id"),
+        createdAt = value.getLong("timestamp"),
+        appVersion = value.optionalString("app_version"),
+        featureId = value.optionalString("feature_id"),
+        screenName = value.optionalString("screen_name"),
+        errorType = value.optionalString("error_type"),
+        batteryLevel = value.optionalInt("battery_level"),
+        batteryCharging = value.optionalBoolean("battery_charging"),
+        environment = value.optionalString("environment"),
+        distChannel = value.optionalString("dist_channel"),
+        buildType = value.optionalString("build_type"),
+        versionCode = value.optionalInt("version_code"),
+        deviceId = value.optionalString("device_id"),
+        durationMs = value.optionalLong("duration_ms"),
     )
 }.getOrNull()
+
+private fun JSONObject.optionalString(name: String): String? =
+    if (has(name) && !isNull(name)) getString(name).ifBlank { null } else null
+
+private fun JSONObject.optionalInt(name: String): Int? =
+    if (has(name) && !isNull(name)) getInt(name) else null
+
+private fun JSONObject.optionalLong(name: String): Long? =
+    if (has(name) && !isNull(name)) getLong(name) else null
+
+private fun JSONObject.optionalBoolean(name: String): Boolean? =
+    if (has(name) && !isNull(name)) getBoolean(name) else null
 
 // ---------------------------------------------------------------------------
 // Mapeamento de entidades Room para payloads de ingest (sync retroativo)

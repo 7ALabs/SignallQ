@@ -9,6 +9,7 @@ import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
@@ -132,5 +133,29 @@ class AdminIngestRepositoryTest {
 
         assertFalse(semConsentimento.sendAnalyticsEvent(AnalyticsEventIngestPayload(id = "event-5", name = "screen_view")))
         assertEquals(0, server.requestCount)
+    }
+
+    @Test
+    fun `outbox round trip preserva evento quando todos opcionais sao nulos`() {
+        val original = AnalyticsEventIngestPayload(id = "event-null", name = "screen_view")
+
+        val restored = analyticsPayloadFromOutboxJson(original.toOutboxJson())
+
+        requireNotNull(restored)
+        assertEquals(original.id, restored.id)
+        assertEquals(original.name, restored.name)
+        assertNull(restored.sessionId)
+        assertNull(restored.appVersion)
+        assertNull(restored.featureId)
+        assertNull(restored.screenName)
+        assertNull(restored.errorType)
+        assertNull(restored.batteryLevel)
+        assertNull(restored.batteryCharging)
+        assertNull(restored.environment)
+        assertNull(restored.distChannel)
+        assertNull(restored.buildType)
+        assertNull(restored.versionCode)
+        assertNull(restored.deviceId)
+        assertNull(restored.durationMs)
     }
 }

@@ -271,7 +271,7 @@ object CoreDatabaseModulo {
             }
         }
 
-    private val migracao17para18 =
+    internal val MIGRATION_17_18 =
         object : Migration(17, 18) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -308,7 +308,7 @@ object CoreDatabaseModulo {
             .addMigrations(migracao14para15)
             .addMigrations(migracao15para16)
             .addMigrations(migracao16para17)
-            .addMigrations(migracao17para18)
+            .addMigrations(MIGRATION_17_18)
             .build()
     }
 

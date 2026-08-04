@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -116,6 +117,7 @@ class CompositeAnalyticsTrackerTest {
     @Test
     fun `registrarSessionEnd fecha a mesma sessao no Firebase e no admin-worker`() {
         tracker.registrarSessionStart()
+        Thread.sleep(2)
         tracker.registrarSessionEnd()
 
         verify { firebaseTracker.registrarSessionEnd() }
@@ -125,6 +127,22 @@ class CompositeAnalyticsTrackerTest {
         assertEquals("session_end", slots[1].name)
         assertEquals(slots[0].sessionId, slots[1].sessionId)
         assertTrue(slots[0].id != slots[1].id)
+        assertTrue(requireNotNull(slots[1].durationMs) > 0)
+    }
+
+    @Test
+    fun `ciclo foreground background foreground renova a sessao`() {
+        tracker.registrarSessionStart()
+        tracker.registrarSessionEnd()
+        tracker.registrarSessionStart()
+
+        val slots = mutableListOf<AnalyticsEventIngestPayload>()
+        coVerify(exactly = 3) { adminIngestRepository.sendAnalyticsEvent(capture(slots)) }
+        assertEquals("session_start", slots[0].name)
+        assertEquals("session_end", slots[1].name)
+        assertEquals("session_start", slots[2].name)
+        assertEquals(slots[0].sessionId, slots[1].sessionId)
+        assertNotEquals(slots[0].sessionId, slots[2].sessionId)
     }
 
     @Test

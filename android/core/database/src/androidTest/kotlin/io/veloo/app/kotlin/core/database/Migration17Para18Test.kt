@@ -1,7 +1,6 @@
 package io.signallq.app.core.database
 
 import androidx.room.testing.MigrationTestHelper
-import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -19,7 +18,7 @@ class Migration17Para18Test {
     @Test
     fun migracao17Para18_criaOutboxComRetryEAceitaDadosSanitizados() {
         helper.createDatabase(TEST_DB, 17).close()
-        val db = helper.runMigrationsAndValidate(TEST_DB, 18, true, migration())
+        val db = helper.runMigrationsAndValidate(TEST_DB, 18, true, CoreDatabaseModulo.MIGRATION_17_18)
         db.execSQL(
             "INSERT INTO analytics_outbox (id, payloadJson, createdAtEpochMs, attemptCount, nextAttemptAtEpochMs) " +
                 "VALUES ('event-1', '{\"id\":\"event-1\",\"name\":\"screen_view\"}', 100, 2, 500)",
@@ -30,13 +29,6 @@ class Migration17Para18Test {
             assertEquals(100L, cursor.getLong(1))
             assertEquals(2, cursor.getInt(2))
             assertEquals(500L, cursor.getLong(3))
-        }
-    }
-
-    private fun migration() = object : androidx.room.migration.Migration(17, 18) {
-        override fun migrate(db: SupportSQLiteDatabase) {
-            db.execSQL("CREATE TABLE IF NOT EXISTS `analytics_outbox` (`id` TEXT NOT NULL, `payloadJson` TEXT NOT NULL, `createdAtEpochMs` INTEGER NOT NULL, `attemptCount` INTEGER NOT NULL, `nextAttemptAtEpochMs` INTEGER NOT NULL, PRIMARY KEY(`id`))")
-            db.execSQL("CREATE INDEX IF NOT EXISTS `index_analytics_outbox_nextAttemptAtEpochMs` ON `analytics_outbox` (`nextAttemptAtEpochMs`)")
         }
     }
 }
