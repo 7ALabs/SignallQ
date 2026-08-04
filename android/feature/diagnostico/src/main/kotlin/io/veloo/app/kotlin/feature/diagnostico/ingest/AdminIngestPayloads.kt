@@ -91,6 +91,7 @@ data class DiagnosticIngestPayload(
     val versionCode: Int? = null,
     /** UUID anonimo persistente do dispositivo. Sem PII. */
     val deviceId: String? = null,
+    val durationMs: Long? = null,
 )
 
 /**
@@ -123,6 +124,8 @@ data class AiUsageIngestPayload(
     val versionCode: Int? = null,
     /** UUID anonimo persistente do dispositivo. Sem PII. */
     val deviceId: String? = null,
+    /** Preenchido exclusivamente em session_end. */
+    val durationMs: Long? = null,
 )
 
 /**
@@ -165,6 +168,7 @@ data class AnalyticsEventIngestPayload(
     val versionCode: Int? = null,
     /** UUID anonimo persistente do dispositivo. Sem PII. */
     val deviceId: String? = null,
+    val durationMs: Long? = null,
 )
 
 fun AnalyticsEventIngestPayload.toOutboxJson(): String = JSONObject().apply {
@@ -172,22 +176,22 @@ fun AnalyticsEventIngestPayload.toOutboxJson(): String = JSONObject().apply {
     put("app_version", appVersion); put("feature_id", featureId); put("screen_name", screenName)
     put("error_type", errorType); put("battery_level", batteryLevel); put("battery_charging", batteryCharging)
     put("environment", environment); put("dist_channel", distChannel); put("build_type", buildType)
-    put("version_code", versionCode); put("device_id", deviceId); put("platform", "android")
+    put("version_code", versionCode); put("device_id", deviceId); put("duration_ms", durationMs); put("platform", "android")
 }.toString()
 
 fun analyticsPayloadFromOutboxJson(json: String): AnalyticsEventIngestPayload? = runCatching {
     val value = JSONObject(json)
     AnalyticsEventIngestPayload(
         id = value.getString("id"), name = value.getString("name"),
-        sessionId = value.optString("session_id").ifBlank { null },
-        createdAt = value.getLong("timestamp"), appVersion = value.optString("app_version").ifBlank { null },
-        featureId = value.optString("feature_id").ifBlank { null }, screenName = value.optString("screen_name").ifBlank { null },
-        errorType = value.optString("error_type").ifBlank { null },
+        sessionId = value.takeIf { !it.isNull("session_id") }?.optString("session_id")?.ifBlank { null },
+        createdAt = value.getLong("timestamp"), appVersion = value.takeIf { !it.isNull("app_version") }?.optString("app_version")?.ifBlank { null },
+        featureId = value.takeIf { !it.isNull("feature_id") }?.optString("feature_id")?.ifBlank { null }, screenName = value.takeIf { !it.isNull("screen_name") }?.optString("screen_name")?.ifBlank { null },
+        errorType = value.takeIf { !it.isNull("error_type") }?.optString("error_type")?.ifBlank { null },
         batteryLevel = if (value.has("battery_level")) value.getInt("battery_level") else null,
         batteryCharging = if (value.has("battery_charging")) value.getBoolean("battery_charging") else null,
         environment = value.optString("environment").ifBlank { null }, distChannel = value.optString("dist_channel").ifBlank { null },
         buildType = value.optString("build_type").ifBlank { null }, versionCode = if (value.has("version_code")) value.getInt("version_code") else null,
-        deviceId = value.optString("device_id").ifBlank { null },
+        deviceId = value.takeIf { !it.isNull("device_id") }?.optString("device_id")?.ifBlank { null }, durationMs = if (value.has("duration_ms") && !value.isNull("duration_ms")) value.getLong("duration_ms") else null,
     )
 }.getOrNull()
 

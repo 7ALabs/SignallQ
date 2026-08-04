@@ -42,7 +42,8 @@ class CompositeAnalyticsTracker
         @ApplicationContext private val context: Context,
         @ApplicationScope private val applicationScope: CoroutineScope,
     ) : AnalyticsTracker {
-        private val sessionId: String = UUID.randomUUID().toString()
+        private var sessionId: String? = null
+        private var sessionStartedAtMs = 0L
 
         override fun registrarFeatureUsada(
             featureId: String,
@@ -58,15 +59,20 @@ class CompositeAnalyticsTracker
         }
 
         override fun registrarSessionStart() {
+            if (sessionId != null) return
+            sessionId = UUID.randomUUID().toString()
+            sessionStartedAtMs = System.currentTimeMillis()
             firebaseTracker.registrarSessionStart()
             enviarEvento(name = "session_start")
         }
 
         override fun registrarSessionEnd() {
+            val closingSessionId = sessionId ?: return
             firebaseTracker.registrarSessionEnd()
             // O mesmo UUID de instancia identifica inicio e fim. O Worker aceita
             // retries pelo id do evento, enquanto o par session_id permanece estável.
-            enviarEvento(name = "session_end")
+            enviarEvento(name = "session_end", sessionIdOverride = closingSessionId, durationMs = (System.currentTimeMillis() - sessionStartedAtMs).coerceAtLeast(0))
+            sessionId = null
         }
 
         override fun registrarFeatureCrash(
@@ -101,6 +107,7 @@ class CompositeAnalyticsTracker
             errorType: String? = null,
             batteryLevel: Int? = null,
             batteryCharging: Boolean? = null,
+            durationMs: Long? = null,
             // GH#919 — quando presente, correlaciona o evento a diagnostic_sessions.id
             // (mesmo id gravado em ai_usage.session_id) em vez do UUID de instancia.
             sessionIdOverride: String? = null,
@@ -114,7 +121,7 @@ class CompositeAnalyticsTracker
                 val payload = AnalyticsEventIngestPayload(
                         id = UUID.randomUUID().toString(),
                         name = name,
-                        sessionId = sessionIdOverride ?: sessionId,
+                        sessionId = sessionIdOverride ?: sessionId ?: UUID.randomUUID().toString(),
                         appVersion = BuildConfig.VERSION_NAME,
                         featureId = featureId,
                         screenName = screenName,
@@ -126,6 +133,7 @@ class CompositeAnalyticsTracker
                         buildType = BuildConfig.BUILD_TYPE,
                         versionCode = BuildConfig.VERSION_CODE,
                         deviceId = deviceId,
+                        durationMs = durationMs,
                 )
                 if (!adminIngestRepository.canSendTelemetry()) return@launch
                 analyticsOutboxDao.enqueue(

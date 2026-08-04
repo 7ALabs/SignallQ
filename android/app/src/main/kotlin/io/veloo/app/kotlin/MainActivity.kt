@@ -541,6 +541,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        analyticsTracker.registrarSessionStart()
         viewModel.iniciarMonitorRede()
         if (viewModel.onboardingConcluido.value == true) {
             viewModel.iniciarRotinasNaoSpeedtest()
