@@ -14,9 +14,11 @@ import io.signallq.app.analytics.environmentFor
 import io.signallq.app.core.database.MedicaoDao
 import io.signallq.app.core.database.chat.ChatSessionDao
 import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
+import io.signallq.app.core.database.analytics.AnalyticsOutboxDao
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.ingest.toIngestPayload
+import io.signallq.app.feature.diagnostico.ingest.analyticsPayloadFromOutboxJson
 
 /**
  * Worker de sync retroativo de medicoes e sessoes de IA para o signallq-admin-worker.
@@ -41,6 +43,7 @@ internal class AdminSyncWorker
         private val medicaoDao: MedicaoDao,
         private val chatSessionDao: ChatSessionDao,
         private val recommendationHistoryDao: RecommendationHistoryDao,
+        private val analyticsOutboxDao: AnalyticsOutboxDao,
         private val adminIngestRepository: AdminIngestRepository,
     ) : CoroutineWorker(appContext, params) {
         internal companion object {
@@ -65,12 +68,39 @@ internal class AdminSyncWorker
                 syncMedicoes(environment, distChannel, buildType, versionCode, deviceId, deviceModel, osVersion, appVersion)
                 syncChatSessions(environment, distChannel, buildType, versionCode, deviceId)
                 syncRecommendationFeedback(environment, distChannel, buildType, versionCode, deviceId, appVersion)
+                if (!syncAnalyticsOutbox()) throw IllegalStateException("analytics outbox aguardando confirmação")
                 Log.d(TAG, "Sync retroativo concluido com sucesso")
                 Result.success()
             } catch (e: Exception) {
                 Log.w(TAG, "Sync retroativo falhou: ${e.message}")
                 if (runAttemptCount < 3) Result.retry() else Result.failure()
             }
+        }
+
+        private suspend fun syncAnalyticsOutbox(): Boolean {
+            if (!adminIngestRepository.canSendTelemetry()) {
+                analyticsOutboxDao.clear()
+                return true
+            }
+            val now = System.currentTimeMillis()
+            val pending = analyticsOutboxDao.due(now, BATCH_SIZE)
+            for (entry in pending) {
+                val payload = analyticsPayloadFromOutboxJson(entry.payloadJson)
+                if (payload == null || payload.id != entry.id) {
+                    Log.w(TAG, "analytics outbox descartou payload inválido id=${entry.id}")
+                    analyticsOutboxDao.acknowledge(entry.id)
+                    continue
+                }
+                if (adminIngestRepository.sendAnalyticsEvent(payload)) {
+                    analyticsOutboxDao.acknowledge(entry.id)
+                } else {
+                    val attempt = entry.attemptCount + 1
+                    val delayMs = 30_000L * (1L shl (attempt - 1).coerceAtMost(6))
+                    analyticsOutboxDao.defer(entry.id, attempt, now + delayMs)
+                    return false
+                }
+            }
+            return true
         }
 
         /**

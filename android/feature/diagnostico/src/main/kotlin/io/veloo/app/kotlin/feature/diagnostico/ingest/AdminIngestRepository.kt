@@ -37,6 +37,9 @@ class AdminIngestRepository(
 ) {
     private val mediaTypeJson = "application/json; charset=utf-8".toMediaType()
 
+    /** A fila local não deve reter nem reenviar telemetria após revogação de consentimento. */
+    suspend fun canSendTelemetry(): Boolean = consentimentoProvider()
+
     private fun acknowledgedId(responseBody: String?, expectedId: String): Boolean =
         runCatching {
             val body = JSONObject(responseBody.orEmpty())
@@ -197,7 +200,10 @@ class AdminIngestRepository(
                     if (!resp.isSuccessful) {
                         Timber.w("sendAnalyticsEvent HTTP ${resp.code} — name=${payload.name}")
                     }
-                    resp.isSuccessful
+                    resp.isSuccessful && runCatching {
+                        JSONObject(resp.body?.string().orEmpty()).getJSONArray("acceptedIds")
+                            .let { ids -> (0 until ids.length()).any { ids.getString(it) == payload.id } }
+                    }.getOrDefault(false)
                 }
             }
         }.onFailure { t ->

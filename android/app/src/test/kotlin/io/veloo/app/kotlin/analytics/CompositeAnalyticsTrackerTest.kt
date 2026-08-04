@@ -6,9 +6,13 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import io.mockk.every
+import io.signallq.app.core.database.analytics.AnalyticsOutboxDao
+import io.signallq.app.core.database.analytics.AnalyticsOutboxEntity
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.ingest.AnalyticsEventIngestPayload
+import io.signallq.app.feature.diagnostico.ingest.analyticsPayloadFromOutboxJson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -42,6 +46,7 @@ class CompositeAnalyticsTrackerTest {
     private lateinit var firebaseTracker: FirebaseAnalyticsTracker
     private lateinit var adminIngestRepository: AdminIngestRepository
     private lateinit var preferenciasAppRepository: PreferenciasAppRepository
+    private lateinit var analyticsOutboxDao: AnalyticsOutboxDao
     private lateinit var tracker: CompositeAnalyticsTracker
 
     @Before
@@ -49,7 +54,14 @@ class CompositeAnalyticsTrackerTest {
         firebaseTracker = mockk(relaxed = true)
         adminIngestRepository = mockk(relaxed = true)
         preferenciasAppRepository = mockk(relaxed = true)
+        analyticsOutboxDao = mockk(relaxed = true)
         coEvery { preferenciasAppRepository.buscarOuGerarAnonDeviceId() } returns "device-anon-123"
+        coEvery { adminIngestRepository.canSendTelemetry() } returns true
+        coEvery { analyticsOutboxDao.enqueue(any()) } coAnswers {
+            val entry = firstArg<AnalyticsOutboxEntity>()
+            adminIngestRepository.sendAnalyticsEvent(analyticsPayloadFromOutboxJson(entry.payloadJson)!!)
+            1L
+        }
 
         val scope = CoroutineScope(Dispatchers.Unconfined + SupervisorJob())
         tracker =
@@ -57,6 +69,7 @@ class CompositeAnalyticsTrackerTest {
                 firebaseTracker = firebaseTracker,
                 adminIngestRepository = adminIngestRepository,
                 preferenciasAppRepository = preferenciasAppRepository,
+                analyticsOutboxDao = analyticsOutboxDao,
                 context = ApplicationProvider.getApplicationContext(),
                 applicationScope = scope,
             )

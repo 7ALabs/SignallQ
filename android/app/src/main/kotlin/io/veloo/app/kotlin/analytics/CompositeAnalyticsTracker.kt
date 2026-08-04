@@ -4,10 +4,14 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.signallq.app.BuildConfig
 import io.signallq.app.core.datastore.PreferenciasAppRepository
+import io.signallq.app.core.database.analytics.AnalyticsOutboxDao
+import io.signallq.app.core.database.analytics.AnalyticsOutboxEntity
 import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.di.ApplicationScope
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.ingest.AnalyticsEventIngestPayload
+import io.signallq.app.feature.diagnostico.ingest.toOutboxJson
+import io.signallq.app.monitoramento.AdminSyncScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -34,6 +38,7 @@ class CompositeAnalyticsTracker
         private val firebaseTracker: FirebaseAnalyticsTracker,
         private val adminIngestRepository: AdminIngestRepository,
         private val preferenciasAppRepository: PreferenciasAppRepository,
+        private val analyticsOutboxDao: AnalyticsOutboxDao,
         @ApplicationContext private val context: Context,
         @ApplicationScope private val applicationScope: CoroutineScope,
     ) : AnalyticsTracker {
@@ -106,8 +111,7 @@ class CompositeAnalyticsTracker
                     runCatching {
                         preferenciasAppRepository.buscarOuGerarAnonDeviceId()
                     }.getOrDefault("unknown")
-                adminIngestRepository.sendAnalyticsEvent(
-                    AnalyticsEventIngestPayload(
+                val payload = AnalyticsEventIngestPayload(
                         id = UUID.randomUUID().toString(),
                         name = name,
                         sessionId = sessionIdOverride ?: sessionId,
@@ -122,8 +126,16 @@ class CompositeAnalyticsTracker
                         buildType = BuildConfig.BUILD_TYPE,
                         versionCode = BuildConfig.VERSION_CODE,
                         deviceId = deviceId,
+                )
+                if (!adminIngestRepository.canSendTelemetry()) return@launch
+                analyticsOutboxDao.enqueue(
+                    AnalyticsOutboxEntity(
+                        id = payload.id,
+                        payloadJson = payload.toOutboxJson(),
+                        createdAtEpochMs = System.currentTimeMillis(),
                     ),
                 )
+                AdminSyncScheduler.agendarEntregaAnalytics(context)
             }
         }
     }

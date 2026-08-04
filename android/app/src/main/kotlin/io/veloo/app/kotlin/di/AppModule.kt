@@ -348,6 +348,11 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideAnalyticsOutboxDao(bancoDados: SignallQDatabase): io.signallq.app.core.database.analytics.AnalyticsOutboxDao =
+        bancoDados.analyticsOutboxDao()
+
+    @Provides
+    @Singleton
     fun provideConnectivityDiagnosisHistoryDao(
         bancoDados: SignallQDatabase,
     ): ConnectivityDiagnosisHistoryDao = bancoDados.connectivityDiagnosisHistoryDao()

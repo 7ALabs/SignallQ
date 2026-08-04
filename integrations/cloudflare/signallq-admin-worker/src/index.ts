@@ -4257,6 +4257,7 @@ export async function handleIngestAnalytics(request: Request, env: Env): Promise
   // id determinístico assim que a fila local (retry/backoff) for implementada.
   let normalized = 0;
   let rejected = 0;
+  const acceptedIds: string[] = [];
   const stmts = events.flatMap((e) => {
     if (!e || !VALID_ANALYTICS_EVENTS.has(e.name)) {
       rejected += 1;
@@ -4268,14 +4269,15 @@ export async function handleIngestAnalytics(request: Request, env: Env): Promise
       return [];
     }
     if (normalizedTimestamp.normalized) normalized += 1;
-    return [
-      env.DB.prepare(
+    const id = typeof e.id === 'string' && e.id.length > 0 ? e.id : crypto.randomUUID();
+    acceptedIds.push(id);
+    return [env.DB.prepare(
         `INSERT OR IGNORE INTO analytics_events
            (id, event_name, session_id, created_at, app_version, feature_id, screen_name, error_type,
             battery_level, battery_charging, environment, device_id, version_code, dist_channel, build_type, duration_ms, platform)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).bind(
-        typeof e.id === 'string' && e.id.length > 0 ? e.id : crypto.randomUUID(),
+        id,
         e.name,
         e.session_id ?? '',
         normalizedTimestamp.timestamp,
@@ -4301,7 +4303,7 @@ export async function handleIngestAnalytics(request: Request, env: Env): Promise
   const inserted = (results as Array<{ meta?: { changes?: number } }>)
     .reduce((total, result) => total + (result.meta?.changes ?? 0), 0);
 
-  return json({ ok: true, inserted, normalized, rejected }, 201, env);
+  return json({ ok: true, inserted, normalized, rejected, acceptedIds }, 201, env);
 }
 
 const WAITLIST_PRODUCTS = new Set(['signallq', 'pro']);

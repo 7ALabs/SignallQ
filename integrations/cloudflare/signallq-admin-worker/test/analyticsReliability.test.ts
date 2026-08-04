@@ -121,11 +121,11 @@ test('ingest informa normalização, rejeição parcial e idempotência por id',
   const request = () => new Request('https://x/ingest/analytics', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
 
   const first = await handleIngestAnalytics(request(), env)
-  assert.deepEqual(await first.json(), { ok: true, inserted: 2, normalized: 1, rejected: 2 })
+  assert.deepEqual(await first.json(), { ok: true, inserted: 2, normalized: 1, rejected: 2, acceptedIds: ['milliseconds', 'missing'] })
   assert.equal(db.statements[0].values[3], 1_785_801_000)
 
   const second = await handleIngestAnalytics(request(), env)
-  assert.deepEqual(await second.json(), { ok: true, inserted: 0, normalized: 1, rejected: 2 })
+  assert.deepEqual(await second.json(), { ok: true, inserted: 0, normalized: 1, rejected: 2, acceptedIds: ['milliseconds', 'missing'] })
 })
 
 test('analytics de produto assume Android, rejeita all e devolve qualidade da cobertura', async () => {

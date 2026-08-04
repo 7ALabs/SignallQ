@@ -271,6 +271,22 @@ object CoreDatabaseModulo {
             }
         }
 
+    private val migracao17para18 =
+        object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `analytics_outbox` (" +
+                        "`id` TEXT NOT NULL, `payloadJson` TEXT NOT NULL, " +
+                        "`createdAtEpochMs` INTEGER NOT NULL, `attemptCount` INTEGER NOT NULL, " +
+                        "`nextAttemptAtEpochMs` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_analytics_outbox_nextAttemptAtEpochMs` " +
+                        "ON `analytics_outbox` (`nextAttemptAtEpochMs`)",
+                )
+            }
+        }
+
     fun criarBanco(context: Context): SignallQDatabase {
         return Room.databaseBuilder(
             context.applicationContext,
@@ -292,6 +308,7 @@ object CoreDatabaseModulo {
             .addMigrations(migracao14para15)
             .addMigrations(migracao15para16)
             .addMigrations(migracao16para17)
+            .addMigrations(migracao17para18)
             .build()
     }
 
