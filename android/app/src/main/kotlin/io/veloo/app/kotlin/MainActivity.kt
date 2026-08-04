@@ -571,6 +571,9 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStop() {
+        // Fecha a sessão de foreground antes de pausar a atividade. O envio ao Admin
+        // permanece best-effort e idempotente pelo id do evento; nunca bloqueia UI.
+        analyticsTracker.registrarSessionEnd()
         viewModel.encerrarMonitorRede()
         super.onStop()
     }

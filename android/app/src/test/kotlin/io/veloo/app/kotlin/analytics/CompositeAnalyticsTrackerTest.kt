@@ -98,6 +98,20 @@ class CompositeAnalyticsTrackerTest {
     }
 
     @Test
+    fun `registrarSessionEnd fecha a mesma sessao no Firebase e no admin-worker`() {
+        tracker.registrarSessionStart()
+        tracker.registrarSessionEnd()
+
+        verify { firebaseTracker.registrarSessionEnd() }
+        val slots = mutableListOf<AnalyticsEventIngestPayload>()
+        coVerify(exactly = 2) { adminIngestRepository.sendAnalyticsEvent(capture(slots)) }
+        assertEquals("session_start", slots[0].name)
+        assertEquals("session_end", slots[1].name)
+        assertEquals(slots[0].sessionId, slots[1].sessionId)
+        assertTrue(slots[0].id != slots[1].id)
+    }
+
+    @Test
     fun `registrarFeatureCrash envia featureId e errorType para o admin-worker`() {
         tracker.registrarFeatureCrash("dns_diagnostico", "NullPointerException")
 

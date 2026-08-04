@@ -88,6 +88,16 @@ class FirebaseAnalyticsTracker
             )
         }
 
+        override fun registrarSessionEnd() {
+            firebaseAnalytics.logEvent(
+                "app_session_end",
+                Bundle().apply {
+                    putString("session_id", sessionId)
+                    putString("app_version", appVersion)
+                },
+            )
+        }
+
         override fun registrarFeatureCrash(
             featureId: String,
             errorType: String,

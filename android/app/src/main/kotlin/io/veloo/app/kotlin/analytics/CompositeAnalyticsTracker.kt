@@ -57,6 +57,13 @@ class CompositeAnalyticsTracker
             enviarEvento(name = "session_start")
         }
 
+        override fun registrarSessionEnd() {
+            firebaseTracker.registrarSessionEnd()
+            // O mesmo UUID de instancia identifica inicio e fim. O Worker aceita
+            // retries pelo id do evento, enquanto o par session_id permanece estável.
+            enviarEvento(name = "session_end")
+        }
+
         override fun registrarFeatureCrash(
             featureId: String,
             errorType: String,
