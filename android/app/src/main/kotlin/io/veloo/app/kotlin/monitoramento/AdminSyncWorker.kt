@@ -14,7 +14,6 @@ import io.signallq.app.analytics.environmentFor
 import io.signallq.app.core.database.MedicaoDao
 import io.signallq.app.core.database.chat.ChatSessionDao
 import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
-import io.signallq.app.core.database.analytics.AnalyticsOutboxDao
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.ingest.toIngestPayload
@@ -43,8 +42,8 @@ internal class AdminSyncWorker
         private val medicaoDao: MedicaoDao,
         private val chatSessionDao: ChatSessionDao,
         private val recommendationHistoryDao: RecommendationHistoryDao,
-        private val analyticsOutboxDao: AnalyticsOutboxDao,
         private val adminIngestRepository: AdminIngestRepository,
+        private val analyticsOutboxProcessor: AnalyticsOutboxProcessor,
     ) : CoroutineWorker(appContext, params) {
         internal companion object {
             const val TAG = "AdminSyncWorker"
@@ -77,31 +76,8 @@ internal class AdminSyncWorker
             }
         }
 
-        private suspend fun syncAnalyticsOutbox(): Boolean {
-            if (!adminIngestRepository.canSendTelemetry()) {
-                analyticsOutboxDao.clear()
-                return true
-            }
-            val now = System.currentTimeMillis()
-            val pending = analyticsOutboxDao.due(now, BATCH_SIZE)
-            for (entry in pending) {
-                val payload = analyticsPayloadFromOutboxJson(entry.payloadJson)
-                if (payload == null || payload.id != entry.id) {
-                    Log.w(TAG, "analytics outbox descartou payload inválido id=${entry.id}")
-                    analyticsOutboxDao.acknowledge(entry.id)
-                    continue
-                }
-                if (adminIngestRepository.sendAnalyticsEvent(payload)) {
-                    analyticsOutboxDao.acknowledge(entry.id)
-                } else {
-                    val attempt = entry.attemptCount + 1
-                    val delayMs = 30_000L * (1L shl (attempt - 1).coerceAtMost(6))
-                    analyticsOutboxDao.defer(entry.id, attempt, now + delayMs)
-                    return false
-                }
-            }
-            return true
-        }
+        private suspend fun syncAnalyticsOutbox(): Boolean =
+            analyticsOutboxProcessor.process(System.currentTimeMillis(), BATCH_SIZE)
 
         /**
          * Sincroniza medicoes nao contaminadas desde o ultimo checkpoint.

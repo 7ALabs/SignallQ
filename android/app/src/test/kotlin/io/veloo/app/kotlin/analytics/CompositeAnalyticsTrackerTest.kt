@@ -47,6 +47,7 @@ class CompositeAnalyticsTrackerTest {
     private lateinit var adminIngestRepository: AdminIngestRepository
     private lateinit var preferenciasAppRepository: PreferenciasAppRepository
     private lateinit var analyticsOutboxDao: AnalyticsOutboxDao
+    private lateinit var outboxFunnelTracker: AnalyticsOutboxFunnelTracker
     private lateinit var tracker: CompositeAnalyticsTracker
 
     @Before
@@ -55,6 +56,7 @@ class CompositeAnalyticsTrackerTest {
         adminIngestRepository = mockk(relaxed = true)
         preferenciasAppRepository = mockk(relaxed = true)
         analyticsOutboxDao = mockk(relaxed = true)
+        outboxFunnelTracker = mockk(relaxed = true)
         coEvery { preferenciasAppRepository.buscarOuGerarAnonDeviceId() } returns "device-anon-123"
         coEvery { adminIngestRepository.canSendTelemetry() } returns true
         coEvery { analyticsOutboxDao.enqueue(any()) } coAnswers {
@@ -70,6 +72,7 @@ class CompositeAnalyticsTrackerTest {
                 adminIngestRepository = adminIngestRepository,
                 preferenciasAppRepository = preferenciasAppRepository,
                 analyticsOutboxDao = analyticsOutboxDao,
+                outboxFunnelTracker = outboxFunnelTracker,
                 context = ApplicationProvider.getApplicationContext(),
                 applicationScope = scope,
             )

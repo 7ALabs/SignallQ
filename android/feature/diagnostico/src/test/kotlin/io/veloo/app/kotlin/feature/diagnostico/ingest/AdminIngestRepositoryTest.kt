@@ -115,4 +115,22 @@ class AdminIngestRepositoryTest {
         assertFalse(confirmado)
         assertEquals(1, server.requestCount)
     }
+
+    @Test
+    fun `sendAnalyticsEvent rejeita acknowledgement ausente ou de outro evento`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(201).setBody("{\"acceptedIds\":[\"outro-id\"]}"))
+
+        val confirmado = repository.sendAnalyticsEvent(AnalyticsEventIngestPayload(id = "event-4", name = "screen_view"))
+
+        assertFalse(confirmado)
+        assertEquals("/ingest/analytics", server.takeRequest().path)
+    }
+
+    @Test
+    fun `sendAnalyticsEvent nao faz rede sem consentimento`() = runBlocking {
+        val semConsentimento = AdminIngestRepository(server.url("/").toString(), "test-key", OkHttpClient()) { false }
+
+        assertFalse(semConsentimento.sendAnalyticsEvent(AnalyticsEventIngestPayload(id = "event-5", name = "screen_view")))
+        assertEquals(0, server.requestCount)
+    }
 }
