@@ -402,6 +402,43 @@ function getPlatformFilter(url: URL): string | null {
   return platform === "all" || !platform ? null : platform;
 }
 
+type AnalyticsPlatform = "android" | "web";
+
+// Analytics de produto não pode agregar plataformas: o contrato legado sem
+// parâmetro permanece Android, mas `all` deixa de ser uma opção válida.
+export function getAnalyticsPlatformFilter(url: URL): AnalyticsPlatform | null {
+  const platform = url.searchParams.get("platform");
+  if (!platform) return "android";
+  return platform === "android" || platform === "web" ? platform : null;
+}
+
+const ANALYTICS_TIMESTAMP_SECONDS_MIN = 1_577_836_800; // 2020-01-01 UTC
+const ANALYTICS_TIMESTAMP_MILLISECONDS_MIN = ANALYTICS_TIMESTAMP_SECONDS_MIN * 1000;
+const ANALYTICS_TIMESTAMP_FUTURE_TOLERANCE_SEC = 300;
+const ANALYTICS_TIMESTAMP_CONTRACT_CUTOFF_SEC = 1_785_801_600; // 2026-08-04 UTC
+const ANALYTICS_HISTORICAL_CONTAMINATION_CLAUSE =
+  ` AND created_at < 100000000000 AND NOT (app_version = 'site' AND created_at < ${ANALYTICS_TIMESTAMP_CONTRACT_CUTOFF_SEC})`;
+
+export type NormalizedAnalyticsTimestamp = {
+  timestamp: number;
+  normalized: boolean;
+} | {
+  timestamp: null;
+  normalized: false;
+};
+
+/** Converte milissegundos explicitamente e recusa relógios fora do contrato. */
+export function normalizeAnalyticsTimestamp(value: unknown, now: number): NormalizedAnalyticsTimestamp {
+  if (value == null) return { timestamp: now, normalized: false };
+  if (typeof value !== "number" || !Number.isInteger(value)) return { timestamp: null, normalized: false };
+
+  const timestamp = value >= ANALYTICS_TIMESTAMP_MILLISECONDS_MIN ? Math.floor(value / 1000) : value;
+  if (timestamp < ANALYTICS_TIMESTAMP_SECONDS_MIN || timestamp > now + ANALYTICS_TIMESTAMP_FUTURE_TOLERANCE_SEC) {
+    return { timestamp: null, normalized: false };
+  }
+  return { timestamp, normalized: value !== timestamp };
+}
+
 /**
  * Extrai filtro de trilha do Play Console da query string (migration 012_play_track.sql).
  * ?play_track=internal|alpha|beta|production → filtra por trilha já sincronizada.
@@ -3700,6 +3737,8 @@ async function handleErrors(request: Request, env: Env): Promise<Response> {
   const url        = new URL(request.url);
   const period     = url.searchParams.get("period") ?? "30d";
   const resolvedQ  = url.searchParams.get("resolved"); // null | "all" | "true" | "false"
+  const platformFilter = getAnalyticsPlatformFilter(url);
+  if (!platformFilter) return err('platform deve ser android ou web', 400, env);
   // Fase A: o parâmetro ?environment= enviado pelo frontend é IGNORADO aqui.
   // A tabela system_errors não possui coluna environment — os erros são do worker,
   // não do app. Filtro por environment entra na Fase B junto com SIG-143.
@@ -3746,10 +3785,10 @@ async function handleErrors(request: Request, env: Env): Promise<Response> {
   const crashRows = await env.DB.prepare(
     `SELECT id, event_name, error_type, session_id, created_at
      FROM analytics_events
-     WHERE event_name = 'feature_crash' AND created_at >= ?
+     WHERE event_name = 'feature_crash' AND created_at >= ? AND platform = ?${ANALYTICS_HISTORICAL_CONTAMINATION_CLAUSE}
      ORDER BY created_at DESC
      LIMIT 100`
-  ).bind(sinceSec).all();
+  ).bind(sinceSec, platformFilter).all();
 
   const appErrorIds = (crashRows.results ?? []).map((r: any) => `app:${r.id}`);
   const resolutionByAppId = new Map<string, { resolved: boolean; resolvedBy: string; resolvedAt: number | null; resolutionNote: string }>();
@@ -3798,7 +3837,7 @@ async function handleErrors(request: Request, env: Env): Promise<Response> {
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, 100);
 
-  return json({ source: "d1", period, errors }, 200, env);
+  return json({ source: "d1", period, platform: platformFilter, errors }, 200, env);
 }
 
 // GH#782 — série temporal diária de erros para o gráfico "Taxa de erro · N
@@ -3813,23 +3852,25 @@ async function handleErrorsTimeline(request: Request, env: Env): Promise<Respons
   const url   = new URL(request.url);
   const days  = Math.min(Math.max(parseInt(url.searchParams.get("days") ?? "14"), 1), 90);
   const since = nowSec() - days * 86400;
+  const platformFilter = getAnalyticsPlatformFilter(url);
+  if (!platformFilter) return err('platform deve ser android ou web', 400, env);
 
   const rows = await env.DB.prepare(
     `SELECT
        strftime('%Y-%m-%d', datetime(created_at, 'unixepoch')) AS date,
        COUNT(*) AS count
      FROM analytics_events
-     WHERE event_name = 'feature_crash' AND created_at >= ?
+     WHERE event_name = 'feature_crash' AND created_at >= ? AND platform = ?${ANALYTICS_HISTORICAL_CONTAMINATION_CLAUSE}
      GROUP BY date
      ORDER BY date ASC`
-  ).bind(since).all();
+  ).bind(since, platformFilter).all();
 
   const series = (rows.results ?? []).map((r: any) => ({
     date:       r.date,
     errorCount: r.count ?? 0,
   }));
 
-  return json({ source: "d1", days, series }, 200, env);
+  return json({ source: "d1", days, platform: platformFilter, series }, 200, env);
 }
 
 // POST /admin/errors/:id/resolve — GH#422. Marca erro (do worker ou do app)
@@ -4035,7 +4076,7 @@ const VALID_ANALYTICS_EVENTS = new Set([
   'feature_used', 'screen_view', 'session_start', 'session_end', 'feature_crash', 'battery_snapshot',
 ]);
 
-async function handleIngestAnalytics(request: Request, env: Env): Promise<Response> {
+export async function handleIngestAnalytics(request: Request, env: Env): Promise<Response> {
   let body: any;
   try { body = await request.json(); } catch { return err('body JSON inválido', 400, env); }
 
@@ -4051,9 +4092,20 @@ async function handleIngestAnalytics(request: Request, env: Env): Promise<Respon
   // colidia). Clientes antigos que não enviam `id` ainda funcionam (fallback abaixo),
   // mas não são protegidos contra duplicação em retry — motivo para o app adotar
   // id determinístico assim que a fila local (retry/backoff) for implementada.
-  const stmts = events
-    .filter((e) => e && VALID_ANALYTICS_EVENTS.has(e.name))
-    .map((e) =>
+  let normalized = 0;
+  let rejected = 0;
+  const stmts = events.flatMap((e) => {
+    if (!e || !VALID_ANALYTICS_EVENTS.has(e.name)) {
+      rejected += 1;
+      return [];
+    }
+    const normalizedTimestamp = normalizeAnalyticsTimestamp(e.timestamp, now);
+    if (normalizedTimestamp.timestamp == null) {
+      rejected += 1;
+      return [];
+    }
+    if (normalizedTimestamp.normalized) normalized += 1;
+    return [
       env.DB.prepare(
         `INSERT OR IGNORE INTO analytics_events
            (id, event_name, session_id, created_at, app_version, feature_id, screen_name, error_type,
@@ -4063,7 +4115,7 @@ async function handleIngestAnalytics(request: Request, env: Env): Promise<Respon
         typeof e.id === 'string' && e.id.length > 0 ? e.id : crypto.randomUUID(),
         e.name,
         e.session_id ?? '',
-        typeof e.timestamp === 'number' ? e.timestamp : now,
+        normalizedTimestamp.timestamp,
         e.app_version ?? '',
         e.feature_id  ?? '',
         e.screen_name ?? '',
@@ -4078,12 +4130,15 @@ async function handleIngestAnalytics(request: Request, env: Env): Promise<Respon
         typeof e.duration_ms === 'number' ? e.duration_ms : null,
         // GH#442: mesmo critério de origem dos demais endpoints de ingest.
         e.platform === 'web' ? 'web' : 'android',
-      )
-    );
+      ),
+    ];
+  });
 
-  if (stmts.length > 0) await env.DB.batch(stmts);
+  const results = stmts.length > 0 ? await env.DB.batch(stmts) : [];
+  const inserted = (results as Array<{ meta?: { changes?: number } }>)
+    .reduce((total, result) => total + (result.meta?.changes ?? 0), 0);
 
-  return json({ ok: true, inserted: stmts.length }, 201, env);
+  return json({ ok: true, inserted, normalized, rejected }, 201, env);
 }
 
 const WAITLIST_PRODUCTS = new Set(['signallq', 'pro']);
@@ -4129,33 +4184,38 @@ async function handleIngestWaitlist(request: Request, env: Env): Promise<Respons
 const SPEEDTEST_FUNNEL_FEATURE_IDS = ['speedtest_iniciado', 'speedtest_completou', 'speedtest_compartilhou'];
 const SPEEDTEST_FUNNEL_EXCLUSION_CLAUSE = ` AND feature_id NOT IN (${SPEEDTEST_FUNNEL_FEATURE_IDS.map(() => '?').join(',')})`;
 
-async function handleProductAnalytics(request: Request, env: Env): Promise<Response> {
+export async function handleProductAnalytics(request: Request, env: Env): Promise<Response> {
   const url       = new URL(request.url);
   const period    = url.searchParams.get('period') ?? '7d';
   const since     = nowSec() - periodToSeconds(period);
+  const coverageSince = nowSec() - periodToSeconds('7d');
   const envFilter = getEnvironmentFilter(url);
+  const platformFilter = getAnalyticsPlatformFilter(url);
+  if (!platformFilter) return err('platform deve ser android ou web', 400, env);
 
   const envClause = `${envFilter ? ' AND environment = ?' : ''}${productionTrackClause(envFilter)}`;
   const envBinds  = envFilter ? [envFilter]            : [];
+  const analyticsClause = ` AND platform = ?${ANALYTICS_HISTORICAL_CONTAMINATION_CLAUSE}`;
+  const analyticsBinds = [platformFilter];
 
   const [featureRows, screenRows, crashRows, totalRows] = await Promise.all([
     // Uso por feature: contagem total e sessões únicas
     env.DB.prepare(
       `SELECT feature_id, COUNT(*) AS usage_count, COUNT(DISTINCT session_id) AS unique_sessions
        FROM analytics_events
-       WHERE event_name = 'feature_used' AND created_at >= ?${envClause}
+       WHERE event_name = 'feature_used' AND created_at >= ?${envClause}${analyticsClause}
          AND feature_id != ''${SPEEDTEST_FUNNEL_EXCLUSION_CLAUSE}
        GROUP BY feature_id ORDER BY usage_count DESC`
-    ).bind(since, ...envBinds, ...SPEEDTEST_FUNNEL_FEATURE_IDS).all(),
+    ).bind(since, ...envBinds, ...analyticsBinds, ...SPEEDTEST_FUNNEL_FEATURE_IDS).all(),
 
     // Navegação por tela
     env.DB.prepare(
       `SELECT screen_name, COUNT(*) AS views, COUNT(DISTINCT session_id) AS unique_sessions
        FROM analytics_events
-       WHERE event_name = 'screen_view' AND created_at >= ?${envClause}
+       WHERE event_name = 'screen_view' AND created_at >= ?${envClause}${analyticsClause}
          AND screen_name != ''
        GROUP BY screen_name ORDER BY views DESC`
-    ).bind(since, ...envBinds).all(),
+    ).bind(since, ...envBinds, ...analyticsBinds).all(),
 
     // Crashes por feature
     env.DB.prepare(
@@ -4163,19 +4223,19 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
               COUNT(*) AS crashes,
               GROUP_CONCAT(DISTINCT app_version) AS affected_versions
        FROM analytics_events
-       WHERE event_name = 'feature_crash' AND created_at >= ?${envClause}
+       WHERE event_name = 'feature_crash' AND created_at >= ?${envClause}${analyticsClause}
          AND feature_id != ''
        GROUP BY feature_id ORDER BY crashes DESC`
-    ).bind(since, ...envBinds).all(),
+    ).bind(since, ...envBinds, ...analyticsBinds).all(),
 
     // Total de feature_used para calcular crash rate
     env.DB.prepare(
       `SELECT feature_id, COUNT(*) AS total
        FROM analytics_events
-       WHERE event_name = 'feature_used' AND created_at >= ?${envClause}
+       WHERE event_name = 'feature_used' AND created_at >= ?${envClause}${analyticsClause}
          AND feature_id != ''${SPEEDTEST_FUNNEL_EXCLUSION_CLAUSE}
        GROUP BY feature_id`
-    ).bind(since, ...envBinds, ...SPEEDTEST_FUNNEL_FEATURE_IDS).all(),
+    ).bind(since, ...envBinds, ...analyticsBinds, ...SPEEDTEST_FUNNEL_FEATURE_IDS).all(),
   ]);
 
   // GH#418: tempo médio de sessão real (duration_ms só existe em session_end, SIG-295/GH#417).
@@ -4191,14 +4251,29 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
     env.DB.prepare(
       `SELECT AVG(duration_ms) AS avg_duration_ms
        FROM analytics_events
-       WHERE event_name = 'session_end' AND duration_ms IS NOT NULL AND created_at >= ?${envClause}`
-    ).bind(since, ...envBinds).first<{ avg_duration_ms: number | null }>(),
+       WHERE event_name = 'session_end' AND duration_ms IS NOT NULL AND created_at >= ?${envClause}${analyticsClause}`
+    ).bind(since, ...envBinds, ...analyticsBinds).first<{ avg_duration_ms: number | null }>(),
 
     env.DB.prepare(
       `SELECT COUNT(DISTINCT session_id) AS session_count
        FROM analytics_events
-       WHERE created_at >= ?${envClause}`
-    ).bind(since, ...envBinds).first<{ session_count: number }>(),
+       WHERE created_at >= ?${envClause}${analyticsClause}`
+    ).bind(since, ...envBinds, ...analyticsBinds).first<{ session_count: number }>(),
+  ]);
+
+  const [sessionCoverageRow, excludedHistoricalRow] = await Promise.all([
+    env.DB.prepare(
+      `SELECT
+         COUNT(DISTINCT CASE WHEN event_name = 'session_start' AND session_id != '' THEN session_id END) AS session_start_count,
+         COUNT(DISTINCT CASE WHEN event_name = 'session_end' AND session_id != '' THEN session_id END) AS session_end_count
+       FROM analytics_events
+       WHERE created_at >= ?${envClause}${analyticsClause}`
+    ).bind(coverageSince, ...envBinds, ...analyticsBinds).first<{ session_start_count: number | null; session_end_count: number | null }>(),
+    env.DB.prepare(
+      `SELECT COUNT(*) AS count
+       FROM analytics_events
+       WHERE platform = ? AND (created_at >= 100000000000 OR (app_version = 'site' AND created_at < ?))`
+    ).bind(platformFilter, ANALYTICS_TIMESTAMP_CONTRACT_CUTOFF_SEC).first<{ count: number }>(),
   ]);
 
   // GH#418: retenção D1/D7/D30 por cohort de device_id (device_id só existe desde GH#417/migration 008).
@@ -4208,7 +4283,7 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
     `WITH first_seen AS (
        SELECT device_id, MIN(created_at) AS install_ts
        FROM analytics_events
-       WHERE device_id != ''${envFilter ? ' AND environment = ?' : ''}
+       WHERE device_id != ''${envFilter ? ' AND environment = ?' : ''}${analyticsClause}
        GROUP BY device_id
      ),
      elapsed AS (
@@ -4219,23 +4294,23 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
      last_activity AS (
        SELECT device_id, MAX(created_at) AS last_seen
        FROM analytics_events
-       WHERE device_id != ''${envFilter ? ' AND environment = ?' : ''}
+       WHERE device_id != ''${envFilter ? ' AND environment = ?' : ''}${analyticsClause}
        GROUP BY device_id
      ),
      returned_d1 AS (
        SELECT DISTINCT a.device_id FROM analytics_events a
        JOIN first_seen f ON a.device_id = f.device_id
-       WHERE a.created_at >= f.install_ts + 86400 AND a.created_at < f.install_ts + 172800
+       WHERE a.created_at >= f.install_ts + 86400 AND a.created_at < f.install_ts + 172800${analyticsClause.replaceAll('created_at', 'a.created_at').replace("app_version", "a.app_version").replace("platform", "a.platform")}
      ),
      returned_d7 AS (
        SELECT DISTINCT a.device_id FROM analytics_events a
        JOIN first_seen f ON a.device_id = f.device_id
-       WHERE a.created_at >= f.install_ts + 86400 AND a.created_at < f.install_ts + 691200
+       WHERE a.created_at >= f.install_ts + 86400 AND a.created_at < f.install_ts + 691200${analyticsClause.replaceAll('created_at', 'a.created_at').replace("app_version", "a.app_version").replace("platform", "a.platform")}
      ),
      returned_d30 AS (
        SELECT DISTINCT a.device_id FROM analytics_events a
        JOIN first_seen f ON a.device_id = f.device_id
-       WHERE a.created_at >= f.install_ts + 86400 AND a.created_at < f.install_ts + 2678400
+       WHERE a.created_at >= f.install_ts + 86400 AND a.created_at < f.install_ts + 2678400${analyticsClause.replaceAll('created_at', 'a.created_at').replace("app_version", "a.app_version").replace("platform", "a.platform")}
      )
      SELECT
        (SELECT COUNT(*) FROM elapsed WHERE days_elapsed >= 1)  AS cohort_d1,
@@ -4249,7 +4324,7 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
        (SELECT COUNT(*) FROM last_activity WHERE last_seen < strftime('%s','now') - 1209600) AS inactive_14d,
        (SELECT COUNT(*) FROM last_activity)                    AS total_with_activity
     `
-  ).bind(...(envFilter ? [envFilter] : []), ...(envFilter ? [envFilter] : [])).first<{
+  ).bind(...(envFilter ? [envFilter] : []), ...analyticsBinds, ...(envFilter ? [envFilter] : []), ...analyticsBinds, ...analyticsBinds, ...analyticsBinds, ...analyticsBinds).first<{
     cohort_d1: number; returned_d1: number;
     cohort_d7: number; returned_d7: number;
     cohort_d30: number; returned_d30: number;
@@ -4305,6 +4380,10 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
     ? Math.round(sessionDurationRow.avg_duration_ms)
     : null;
   const session_count = sessionCountRow?.session_count ?? 0;
+  const sessionStartCount = sessionCoverageRow?.session_start_count ?? 0;
+  const sessionEndCount = sessionCoverageRow?.session_end_count ?? 0;
+  const sessionEndRate = sessionStartCount > 0 ? sessionEndCount / sessionStartCount : null;
+  const isSessionMetricReliable = sessionEndRate != null && sessionEndRate >= 0.8;
 
   const totalDevices = retentionRow?.total_devices ?? 0;
   const retention = totalDevices === 0 ? [] : [{
@@ -4319,17 +4398,32 @@ async function handleProductAnalytics(request: Request, env: Env): Promise<Respo
     uninstallRate:    retentionRow!.total_with_activity > 0 ? Math.round((retentionRow!.inactive_14d / retentionRow!.total_with_activity) * 1000) / 10 : null,
   }];
 
+  // Retenção e duração dependem do encerramento confiável das sessões. O Admin
+  // também aplica esse estado visualmente, mas o contrato não pode vazar valores
+  // que um consumidor futuro possa exibir por engano abaixo do limiar aprovado.
+  const reliableRetention = isSessionMetricReliable ? retention : [];
+  const reliableAverageSessionDuration = isSessionMetricReliable ? avg_session_duration_ms : null;
+
   return json({
     source: 'd1',
     period,
     environment: envFilter ?? 'all',
+    platform: platformFilter,
+    dataQuality: {
+      sessionStartCount,
+      sessionEndCount,
+      sessionEndRate,
+      threshold: 0.8,
+      isSessionMetricReliable,
+      excludedHistoricalTimestampEvents: excludedHistoricalRow?.count ?? 0,
+    },
     no_data_yet: feature_usage.length === 0 && screen_navigation.length === 0,
     feature_usage,
     screen_navigation,
     feature_crashes,
-    avg_session_duration_ms,
+    avg_session_duration_ms: reliableAverageSessionDuration,
     session_count,
-    retention,
+    retention: reliableRetention,
   }, 200, env);
 }
 
@@ -4344,22 +4438,25 @@ async function handleSpeedtestFunnel(request: Request, env: Env): Promise<Respon
   const period    = url.searchParams.get('period') ?? '7d';
   const since     = nowSec() - periodToSeconds(period);
   const envFilter = getEnvironmentFilter(url);
+  const platformFilter = getAnalyticsPlatformFilter(url);
+  if (!platformFilter) return err('platform deve ser android ou web', 400, env);
 
   const envClause = `${envFilter ? ' AND environment = ?' : ''}${productionTrackClause(envFilter)}`;
   const envBinds  = envFilter ? [envFilter]            : [];
+  const analyticsClause = ` AND platform = ?${ANALYTICS_HISTORICAL_CONTAMINATION_CLAUSE}`;
 
   const [abriuRow, estagiosRows] = await Promise.all([
     env.DB.prepare(
       `SELECT COUNT(*) AS count FROM analytics_events
-       WHERE event_name = 'screen_view' AND screen_name = 'speedtest' AND created_at >= ?${envClause}`
-    ).bind(since, ...envBinds).first<{ count: number }>(),
+       WHERE event_name = 'screen_view' AND screen_name = 'speedtest' AND created_at >= ?${envClause}${analyticsClause}`
+    ).bind(since, ...envBinds, platformFilter).first<{ count: number }>(),
 
     env.DB.prepare(
       `SELECT feature_id, COUNT(*) AS count FROM analytics_events
-       WHERE event_name = 'feature_used' AND created_at >= ?${envClause}
+       WHERE event_name = 'feature_used' AND created_at >= ?${envClause}${analyticsClause}
          AND feature_id IN (${SPEEDTEST_FUNNEL_FEATURE_IDS.map(() => '?').join(',')})
        GROUP BY feature_id`
-    ).bind(since, ...envBinds, ...SPEEDTEST_FUNNEL_FEATURE_IDS).all(),
+    ).bind(since, ...envBinds, platformFilter, ...SPEEDTEST_FUNNEL_FEATURE_IDS).all(),
   ]);
 
   const countByFeatureId = new Map<string, number>(
@@ -4377,6 +4474,7 @@ async function handleSpeedtestFunnel(request: Request, env: Env): Promise<Respon
     source: 'd1',
     period,
     environment: envFilter ?? 'all',
+    platform: platformFilter,
     no_data_yet: stages.every((s) => s.count === 0),
     stages,
   }, 200, env);
@@ -4386,6 +4484,8 @@ async function handleBatteryAnalytics(request: Request, env: Env): Promise<Respo
   const url    = new URL(request.url);
   const period = url.searchParams.get('period') ?? '7d';
   const since  = nowSec() - periodToSeconds(period);
+  const platformFilter = getAnalyticsPlatformFilter(url);
+  if (!platformFilter) return err('platform deve ser android ou web', 400, env);
 
   const rows = await env.DB.prepare(
     `SELECT
@@ -4394,14 +4494,15 @@ async function handleBatteryAnalytics(request: Request, env: Env): Promise<Respo
        COUNT(*) AS total
      FROM analytics_events
      WHERE event_name = 'battery_snapshot' AND created_at >= ?
-       AND battery_level IS NOT NULL`
-  ).bind(since).first<{ avg_level: number | null; charging_count: number; total: number }>();
+       AND battery_level IS NOT NULL AND platform = ?${ANALYTICS_HISTORICAL_CONTAMINATION_CLAUSE}`
+  ).bind(since, platformFilter).first<{ avg_level: number | null; charging_count: number; total: number }>();
 
   const total = rows?.total ?? 0;
 
   return json({
     source:     'd1',
     period,
+    platform: platformFilter,
     no_data_yet: total === 0,
     summary: total === 0 ? null : {
       avg_battery_level:       rows?.avg_level != null ? Math.round(rows.avg_level) : null,

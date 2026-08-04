@@ -23,11 +23,10 @@ const ADMIN_SESSION = { userId: 'admin-1', role: 'admin' }
 const VIEWER_SESSION = { userId: 'viewer-1', role: 'viewer' }
 
 // Flags reais do catálogo (#1477 + #1480) — usadas em vez de fixtures sintéticas pra provar que
-// o backend valida contra o arquivo de verdade, não um mock do catálogo. Catálogo tem 10 entradas
-// desde #1480 (F4): as 2 originais de #1477 + as 8 chaves principais de módulo instrumentadas.
+// o backend valida contra o arquivo de verdade, não um mock do catálogo. O catálogo atual tem 11 entradas.
 const MEDIUM_KEY = 'consumer.speedtest.cloudflare_engine_enabled' // criticality MEDIUM
 const HIGH_KEY = 'consumer.speedtest.enabled' // criticality HIGH
-const CATALOG_FLAG_COUNT = 10
+const CATALOG_FLAG_COUNT = 11
 
 function jsonRequest(url: string, body: unknown, init: { method?: string; headers?: Record<string, string> } = {}): Request {
   return new Request(url, {
