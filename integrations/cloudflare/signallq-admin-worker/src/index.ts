@@ -1222,8 +1222,9 @@ async function generateAndPersistAlerts(env: Env): Promise<void> {
   const AI_DAILY_BUDGET: number | null = settings.aiDailyBudgetUsd ?? null;
   const ERROR_THRESHOLD  = settings.errorSpikeThreshold    ?? 10;
   const MIN_SCORE        = settings.criticalScoreThreshold ?? 50;
+  const MIN_COMPLETENESS = settings.diagnosticCompletenessThreshold ?? 80;
 
-  const [aiCost, recentErrors, scoreRow] = await Promise.all([
+  const [aiCost, recentErrors, scoreRow, completenessRow] = await Promise.all([
     env.DB.prepare(
       "SELECT SUM(cost_usd) AS total FROM ai_usage WHERE created_at >= ?"
     ).bind(oneDayAgo).first<{ total: number | null }>(),
@@ -1236,6 +1237,17 @@ async function generateAndPersistAlerts(env: Env): Promise<void> {
       `SELECT AVG(CAST(score AS REAL)) AS avg FROM diagnostic_sessions
        WHERE created_at >= ? AND score IS NOT NULL`
     ).bind(oneDayAgo).first<{ avg: number | null }>(),
+
+    env.DB.prepare(
+      `SELECT COUNT(*) AS total,
+              SUM(CASE WHEN score IS NOT NULL
+                         AND download_mbps IS NOT NULL AND upload_mbps IS NOT NULL
+                         AND latency_ms IS NOT NULL
+                         AND NULLIF(device_id, '') IS NOT NULL
+                         AND NULLIF(dist_channel, '') IS NOT NULL
+                       THEN 1 ELSE 0 END) AS complete
+       FROM diagnostic_sessions WHERE created_at >= ?`
+    ).bind(oneDayAgo).first<{ total: number; complete: number | null }>(),
   ]);
 
   const candidates: Array<{ id: string; type: string; severity: string; title: string; message: string }> = [];
@@ -1268,6 +1280,24 @@ async function generateAndPersistAlerts(env: Env): Promise<void> {
       severity: 'warning',
       title:    'Qualidade de rede baixa',
       message:  `Score médio nas últimas 24h: ${Math.round(scoreRow.avg)} (mínimo: ${MIN_SCORE})`,
+    });
+  }
+
+  // P1: não confunde volume de diagnósticos com cobertura suficiente dos campos
+  // que sustentam score, velocidade e latência. Sem registros no período, não há
+  // base para alerta; com registros incompletos, o alerta torna a limitação visível.
+  const totalDiagnostics = completenessRow?.total ?? 0;
+  const completeDiagnostics = completenessRow?.complete ?? 0;
+  const completenessPercentage = totalDiagnostics > 0
+    ? (completeDiagnostics / totalDiagnostics) * 100
+    : null;
+  if (completenessPercentage != null && completenessPercentage < MIN_COMPLETENESS) {
+    candidates.push({
+      id:       'diagnostic_completeness_low',
+      type:     'DIAGNOSTIC_COMPLETENESS',
+      severity: 'warning',
+      title:    'Cobertura de diagnósticos insuficiente',
+      message:  `${completenessPercentage.toFixed(1)}% completos nas últimas 24h (${completeDiagnostics}/${totalDiagnostics}; mínimo: ${MIN_COMPLETENESS}%)`,
     });
   }
 
