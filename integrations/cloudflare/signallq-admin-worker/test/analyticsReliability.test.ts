@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { getAnalyticsPlatformFilter, handleDiagnosticsSummary, handleIngestAnalytics, handleProductAnalytics, normalizeAnalyticsTimestamp } from '../src/index.ts'
+import { getAnalyticsPlatformFilter, handleDiagnosticsSummary, handleIngestAnalytics, handleIntegrationReadiness, handleProductAnalytics, normalizeAnalyticsTimestamp } from '../src/index.ts'
 import { buildEnv } from './support.ts'
 
 class IngestDb {
@@ -73,6 +73,22 @@ class DiagnosticSummaryDb {
           critical_count: 1, active_count: 2,
           with_score: 9, with_speed: 8, with_latency: 9, with_device: 10,
           with_dist_channel: 8, complete_count: 8,
+        }
+      },
+    }
+  }
+}
+
+class ReadinessDb {
+  prepare(_sql: string) {
+    return {
+      bind(key: string) {
+        return {
+          async first() {
+            if (key === 'firebase_sync') return { value: JSON.stringify({ syncedAt: new Date().toISOString(), eventsImported: 3, crashesImported: 2 }) }
+            if (key === 'google_play_sync') return { value: JSON.stringify({ syncedAt: new Date().toISOString(), reviewsSampled: 0 }) }
+            return null
+          },
         }
       },
     }
@@ -178,4 +194,19 @@ test('resumo de diagnóstico expõe cobertura dos campos mínimos e limiar de in
   })
   assert.ok(db.statements[0].sql.includes('complete_count'))
   assert.ok(db.statements[0].sql.includes("NULLIF(dist_channel, '')"))
+})
+
+test('prontidão de integração não confunde credencial, sync, frescor e dados recebidos', async () => {
+  const response = await handleIntegrationReadiness(
+    new Request('https://x/admin/integrations/readiness'),
+    buildEnv(new ReadinessDb() as any),
+  )
+  const payload = await response.json() as { integrations: Array<{ id: string; state: string; recordsReceived: number | null; apiReachability: string }> }
+  const firebase = payload.integrations.find((item) => item.id === 'firebase_analytics')!
+  const reviews = payload.integrations.find((item) => item.id === 'google_play_reviews')!
+  assert.equal(firebase.state, 'ready')
+  assert.equal(firebase.recordsReceived, 5)
+  assert.equal(firebase.apiReachability, 'check_system_health')
+  assert.equal(reviews.state, 'not_configured')
+  assert.equal(reviews.recordsReceived, 0)
 })
