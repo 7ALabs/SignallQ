@@ -14,7 +14,10 @@ internal class AnalyticsOutboxProcessor
         private val adminIngestRepository: AdminIngestRepository,
         private val funnelTracker: AnalyticsOutboxFunnelTracker,
     ) {
-        suspend fun process(nowEpochMs: Long, limit: Int): Boolean {
+        suspend fun process(
+            nowEpochMs: Long,
+            limit: Int,
+        ): Boolean {
             if (!adminIngestRepository.canSendTelemetry()) {
                 analyticsOutboxDao.clear()
                 return true

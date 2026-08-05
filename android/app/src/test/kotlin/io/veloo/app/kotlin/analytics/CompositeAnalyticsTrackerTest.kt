@@ -6,7 +6,6 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
-import io.mockk.every
 import io.signallq.app.core.database.analytics.AnalyticsOutboxDao
 import io.signallq.app.core.database.analytics.AnalyticsOutboxEntity
 import io.signallq.app.core.datastore.PreferenciasAppRepository
@@ -15,14 +14,14 @@ import io.signallq.app.feature.diagnostico.ingest.AnalyticsEventIngestPayload
 import io.signallq.app.feature.diagnostico.ingest.analyticsPayloadFromOutboxJson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -151,28 +150,29 @@ class CompositeAnalyticsTrackerTest {
 
     @Test
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun `start e stop rapidos preservam o par de sessao quando coroutine executa depois`() = runTest {
-        val delayedTracker =
-            CompositeAnalyticsTracker(
-                firebaseTracker = firebaseTracker,
-                adminIngestRepository = adminIngestRepository,
-                preferenciasAppRepository = preferenciasAppRepository,
-                analyticsOutboxDao = analyticsOutboxDao,
-                outboxFunnelTracker = outboxFunnelTracker,
-                context = ApplicationProvider.getApplicationContext(),
-                applicationScope = CoroutineScope(StandardTestDispatcher(testScheduler) + SupervisorJob()),
-            )
+    fun `start e stop rapidos preservam o par de sessao quando coroutine executa depois`() =
+        runTest {
+            val delayedTracker =
+                CompositeAnalyticsTracker(
+                    firebaseTracker = firebaseTracker,
+                    adminIngestRepository = adminIngestRepository,
+                    preferenciasAppRepository = preferenciasAppRepository,
+                    analyticsOutboxDao = analyticsOutboxDao,
+                    outboxFunnelTracker = outboxFunnelTracker,
+                    context = ApplicationProvider.getApplicationContext(),
+                    applicationScope = CoroutineScope(StandardTestDispatcher(testScheduler) + SupervisorJob()),
+                )
 
-        delayedTracker.registrarSessionStart()
-        delayedTracker.registrarSessionEnd()
-        advanceUntilIdle()
+            delayedTracker.registrarSessionStart()
+            delayedTracker.registrarSessionEnd()
+            advanceUntilIdle()
 
-        val slots = mutableListOf<AnalyticsEventIngestPayload>()
-        coVerify(exactly = 2) { adminIngestRepository.sendAnalyticsEvent(capture(slots)) }
-        assertEquals("session_start", slots[0].name)
-        assertEquals("session_end", slots[1].name)
-        assertEquals(slots[0].sessionId, slots[1].sessionId)
-    }
+            val slots = mutableListOf<AnalyticsEventIngestPayload>()
+            coVerify(exactly = 2) { adminIngestRepository.sendAnalyticsEvent(capture(slots)) }
+            assertEquals("session_start", slots[0].name)
+            assertEquals("session_end", slots[1].name)
+            assertEquals(slots[0].sessionId, slots[1].sessionId)
+        }
 
     @Test
     fun `registrarFeatureCrash envia featureId e errorType para o admin-worker`() {

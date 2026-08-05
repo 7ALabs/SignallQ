@@ -17,7 +17,6 @@ import io.signallq.app.core.database.recommendation.RecommendationHistoryDao
 import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
 import io.signallq.app.feature.diagnostico.ingest.toIngestPayload
-import io.signallq.app.feature.diagnostico.ingest.analyticsPayloadFromOutboxJson
 
 /**
  * Worker de sync retroativo de medicoes e sessoes de IA para o signallq-admin-worker.
@@ -113,17 +112,18 @@ internal class AdminSyncWorker
                 var confirmouTodoBatch = true
                 for (medicao in batch) {
                     if (!adminIngestRepository.sendDiagnostic(
-                        medicao.toIngestPayload(
-                            environment = environment,
-                            distChannel = distChannel,
-                            buildType = buildType,
-                            versionCode = versionCode,
-                            deviceId = deviceId,
-                            deviceModel = deviceModel,
-                            osVersion = osVersion,
-                            appVersion = appVersion,
-                        ),
-                    )) {
+                            medicao.toIngestPayload(
+                                environment = environment,
+                                distChannel = distChannel,
+                                buildType = buildType,
+                                versionCode = versionCode,
+                                deviceId = deviceId,
+                                deviceModel = deviceModel,
+                                osVersion = osVersion,
+                                appVersion = appVersion,
+                            ),
+                        )
+                    ) {
                         confirmouTodoBatch = false
                         break
                     }
@@ -164,14 +164,15 @@ internal class AdminSyncWorker
                 var confirmouTodoBatch = true
                 for (sessao in batch) {
                     if (!adminIngestRepository.sendAiUsage(
-                        sessao.toIngestPayload(
-                            environment = environment,
-                            distChannel = distChannel,
-                            buildType = buildType,
-                            versionCode = versionCode,
-                            deviceId = deviceId,
-                        ),
-                    )) {
+                            sessao.toIngestPayload(
+                                environment = environment,
+                                distChannel = distChannel,
+                                buildType = buildType,
+                                versionCode = versionCode,
+                                deviceId = deviceId,
+                            ),
+                        )
+                    ) {
                         confirmouTodoBatch = false
                         break
                     }
@@ -215,15 +216,16 @@ internal class AdminSyncWorker
                 var confirmouTodoBatch = true
                 for (entrada in batch) {
                     if (!adminIngestRepository.sendAnalyticsEvent(
-                        entrada.toIngestPayload(
-                            appVersion = appVersion,
-                            environment = environment,
-                            distChannel = distChannel,
-                            buildType = buildType,
-                            versionCode = versionCode,
-                            deviceId = deviceId,
-                        ),
-                    )) {
+                            entrada.toIngestPayload(
+                                appVersion = appVersion,
+                                environment = environment,
+                                distChannel = distChannel,
+                                buildType = buildType,
+                                versionCode = versionCode,
+                                deviceId = deviceId,
+                            ),
+                        )
+                    ) {
                         confirmouTodoBatch = false
                         break
                     }

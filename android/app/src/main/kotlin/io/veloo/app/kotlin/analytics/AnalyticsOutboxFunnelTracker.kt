@@ -22,7 +22,9 @@ class AnalyticsOutboxFunnelTracker
             )
         }
 
-        enum class Stage(val value: String) {
+        enum class Stage(
+            val value: String,
+        ) {
             CREATED("created"),
             SENT("sent"),
             ACCEPTED("accepted"),

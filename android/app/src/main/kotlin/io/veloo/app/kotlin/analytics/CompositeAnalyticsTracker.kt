@@ -3,9 +3,9 @@ package io.signallq.app.analytics
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.signallq.app.BuildConfig
-import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.core.database.analytics.AnalyticsOutboxDao
 import io.signallq.app.core.database.analytics.AnalyticsOutboxEntity
+import io.signallq.app.core.datastore.PreferenciasAppRepository
 import io.signallq.app.core.network.AnalyticsTracker
 import io.signallq.app.di.ApplicationScope
 import io.signallq.app.feature.diagnostico.ingest.AdminIngestRepository
@@ -128,7 +128,8 @@ class CompositeAnalyticsTracker
                     runCatching {
                         preferenciasAppRepository.buscarOuGerarAnonDeviceId()
                     }.getOrDefault("unknown")
-                val payload = AnalyticsEventIngestPayload(
+                val payload =
+                    AnalyticsEventIngestPayload(
                         id = UUID.randomUUID().toString(),
                         name = name,
                         sessionId = eventSessionId,
@@ -144,15 +145,16 @@ class CompositeAnalyticsTracker
                         versionCode = BuildConfig.VERSION_CODE,
                         deviceId = deviceId,
                         durationMs = durationMs,
-                )
+                    )
                 if (!adminIngestRepository.canSendTelemetry()) return@launch
-                val enqueueResult = analyticsOutboxDao.enqueue(
-                    AnalyticsOutboxEntity(
-                        id = payload.id,
-                        payloadJson = payload.toOutboxJson(),
-                        createdAtEpochMs = System.currentTimeMillis(),
-                    ),
-                )
+                val enqueueResult =
+                    analyticsOutboxDao.enqueue(
+                        AnalyticsOutboxEntity(
+                            id = payload.id,
+                            payloadJson = payload.toOutboxJson(),
+                            createdAtEpochMs = System.currentTimeMillis(),
+                        ),
+                    )
                 if (enqueueResult != -1L) {
                     outboxFunnelTracker.registrar(AnalyticsOutboxFunnelTracker.Stage.CREATED)
                 }
