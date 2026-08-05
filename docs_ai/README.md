@@ -1,7 +1,7 @@
 # Documentação — SignallQ Android
 
 - **Status:** ativo
-- **Última validação:** 2026-07-16
+- **Última validação:** 2026-08-05 (consolidação Fase 1-3: governance + issues + consolidação)
 - **Fonte de verdade:** este arquivo é só um índice — não repete conteúdo de nenhum documento
   listado abaixo. Para os fatos em si, abra o documento apontado.
 - **Escopo:** ponto de entrada de toda a documentação viva do monorepo SignallQ

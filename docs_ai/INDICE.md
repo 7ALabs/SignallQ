@@ -4,6 +4,7 @@ description: "Mapa de toda documentação viva do projeto, com responsáveis e s
 type: "índice"
 version: "1.0.0"
 last_updated: "2026-08-05"
+consolidacao: "Fase 1-3 concluída em 2026-08-05 (ver commits 98204fcf + 3099b3d3)"
 owner: "Squad"
 status: "ativo"
 ---
