@@ -797,6 +797,8 @@ fun AppShell(
                                 dispositivosRede = snapshotDevices.dispositivos,
                                 apelidos = apelidos,
                                 onSalvarApelido = onSalvarApelido,
+                                resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
+                                resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
                             )
                         // Tab 3 — Historico (indice mantido conforme spec)
                         3 ->

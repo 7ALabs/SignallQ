@@ -123,6 +123,8 @@ import io.signallq.app.ui.LkRadius
 import io.signallq.app.ui.LkSpacing
 import io.signallq.app.ui.LkTokens
 import io.signallq.app.ui.LocalLkTokens
+import io.signallq.app.ui.OperadoraSource
+import io.signallq.app.ui.ResolvedOperadoraIdentity
 import io.signallq.app.ui.component.LkPillBadge
 import io.signallq.app.ui.component.LkSectionOverline
 import io.signallq.app.ui.component.LkSheetDivider
@@ -134,6 +136,7 @@ import io.signallq.app.ui.component.LkSurfaceCard
 import io.signallq.app.ui.component.OfflineBanner
 import io.signallq.app.ui.component.OperadoraBadge
 import io.signallq.app.ui.component.SignalBars
+import io.signallq.app.ui.component.rememberResolvedOperadoraIdentity
 import io.signallq.app.ui.component.signalColor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -185,6 +188,25 @@ fun SinalScreen(
     // Seam de teste (#893) — producao nunca passa isso, so os testes de auto-refresh
     // usam um intervalo curto pra nao esperar 30s reais por teste.
     autoRefreshIntervalMs: Long = SINAL_AUTO_REFRESH_INTERVAL_MS,
+    // GH#970 — resolucao de identidade de operadora (nivel 1, catalogo local, sincrono).
+    // Sem I/O, sem corrotina — mesmo comportamento de sempre pras ~12 operadoras principais.
+    // Mesmo padrao ja usado em HomeScreen/DiagnosticoGuiadoScreen — injetado a partir da
+    // MainActivity (OperadoraDirectoryResolver via Hilt), AppShell so repassa.
+    resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity? =
+        { _, _ -> null },
+    // GH#970 — cadeia completa (local -> diretorio remoto do worker signallq-diagnostic ->
+    // fallback generico), so chamada quando o nivel 1 acima nao encontrou.
+    resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity =
+        { nome, _ ->
+            ResolvedOperadoraIdentity(
+                displayName = nome ?: "Operadora",
+                monograma = nome?.firstOrNull()?.uppercase() ?: "?",
+                corMarca = null,
+                logoRes = null,
+                logoUrl = null,
+                source = OperadoraSource.FALLBACK,
+            )
+        },
 ) {
     val c = LocalLkTokens.current
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -309,6 +331,8 @@ fun SinalScreen(
                         temPermissaoTelefonia = temPermissaoTelefonia,
                         onSolicitarPermissaoTelefonia = onSolicitarPermissaoTelefonia,
                         tokens = c,
+                        resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
+                        resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
                     )
                 }
             }
@@ -469,6 +493,8 @@ private fun MovelTab(
     temPermissaoTelefonia: Boolean,
     onSolicitarPermissaoTelefonia: () -> Unit,
     tokens: LkTokens,
+    resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity?,
+    resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
 ) {
     val c = tokens
     if (!temPermissaoTelefonia) {
@@ -496,11 +522,15 @@ private fun MovelTab(
                 simsAtivos = simsAtivos,
                 movelSnapshot = movelSnapshot,
                 tokens = c,
+                resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
+                resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
             )
         } else if (movelSnapshot != null) {
             MobileSnapshotCard(
                 snapshot = movelSnapshot,
                 tokens = c,
+                resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
+                resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
             )
         }
     }
@@ -511,6 +541,8 @@ private fun ChipsAtivosSection(
     simsAtivos: List<MovelSimSnapshot>,
     movelSnapshot: MovelSnapshot?,
     tokens: LkTokens,
+    resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity?,
+    resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -522,6 +554,8 @@ private fun ChipsAtivosSection(
                 summarySnapshot = movelSnapshot,
                 cardLabel = "Chip ${index + 1}",
                 tokens = tokens,
+                resolveOperadoraIdentidadeLocal = resolveOperadoraIdentidadeLocal,
+                resolveOperadoraIdentidadeRemota = resolveOperadoraIdentidadeRemota,
             )
         }
     }
@@ -533,13 +567,28 @@ private fun SimCard(
     summarySnapshot: MovelSnapshot?,
     cardLabel: String,
     tokens: LkTokens,
+    resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity?,
+    resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
 ) {
     // GH#1206 item 1 — summarySnapshot representa o SIM PADRAO de dados (o
     // TelephonyManager que o produz nunca e criado com createForSubscriptionId). So pode
     // complementar dados deste card quando `sim` e de fato o SIM padrao — nunca pra um SIM
     // secundario, senao o Chip 2 pode exibir operadora/tecnologia/RSRP do Chip 1.
     val operadora = sim.operadora ?: summarySnapshot?.operadora?.takeIf { sim.isDefaultData } ?: "Operadora"
+    // Contato (site/SAC/WhatsApp) continua so nivel 1 (catalogo local) — fora do escopo desta
+    // troca (ver kdoc de ResolvedOperadoraIdentity: nao carrega contato).
     val operadoraLocal = remember(operadora) { BancoOperadoras.resolverMovel(operadora) }
+    // Identidade visual (logo) agora usa a cadeia completa local -> diretorio remoto ->
+    // fallback (GH#965/#970), igual a HomeScreen/DiagnosticoGuiadoScreen — antes, esta aba
+    // usava so o catalogo local e caia direto no placeholder generico pra qualquer operadora
+    // fora dele, mesmo quando o diretorio remoto teria o logo.
+    val identidadeOperadora =
+        rememberResolvedOperadoraIdentity(
+            ispNomeBruto = operadora,
+            viaMovel = true,
+            resolveLocal = resolveOperadoraIdentidadeLocal,
+            resolveRemoteOrFallback = resolveOperadoraIdentidadeRemota,
+        )
     val dadosSinal = sim.paraDadosSinalMovel(summarySnapshot)
     val resumoRede = buildMobileSummary(dadosSinal)
     val qualidade = classificarQualidadeSinalMovel(dadosSinal, tokens)
@@ -598,9 +647,9 @@ private fun SimCard(
                         color = tokens.textSecondary,
                     )
                 }
-                operadoraLocal?.let {
+                identidadeOperadora?.let {
                     OperadoraBadge(
-                        operadora = it,
+                        identidade = it,
                         size = 48.dp,
                     )
                 } ?: PlaceholderOperadoraBadge(tokens = tokens)
@@ -748,8 +797,21 @@ private fun PlaceholderOperadoraBadge(tokens: LkTokens) {
 private fun MobileSnapshotCard(
     snapshot: MovelSnapshot,
     tokens: LkTokens,
+    resolveOperadoraIdentidadeLocal: (String?, Boolean) -> ResolvedOperadoraIdentity?,
+    resolveOperadoraIdentidadeRemota: suspend (String?, Boolean) -> ResolvedOperadoraIdentity,
 ) {
     val operadora = snapshot.operadora ?: "Operadora"
+    // Mesma cadeia local -> diretorio remoto -> fallback (GH#965/#970) usada em SimCard —
+    // antes desta correcao, este card (usado quando nao ha SIM ativo detectado, so
+    // movelSnapshot) nunca tentava nem o catalogo local, sempre caindo no placeholder
+    // estatico incondicionalmente (achado na revisao do Caio).
+    val identidadeOperadora =
+        rememberResolvedOperadoraIdentity(
+            ispNomeBruto = snapshot.operadora,
+            viaMovel = true,
+            resolveLocal = resolveOperadoraIdentidadeLocal,
+            resolveRemoteOrFallback = resolveOperadoraIdentidadeRemota,
+        )
     val dadosSinal = snapshot.paraDadosSinalMovel()
     val qualidade = classificarQualidadeSinalMovel(dadosSinal, tokens)
     val tipoConexao = classificarTipoConexaoMovel(dadosSinal, tokens)
@@ -787,7 +849,12 @@ private fun MobileSnapshotCard(
                         color = tokens.textSecondary,
                     )
                 }
-                PlaceholderOperadoraBadge(tokens = tokens)
+                identidadeOperadora?.let {
+                    OperadoraBadge(
+                        identidade = it,
+                        size = 48.dp,
+                    )
+                } ?: PlaceholderOperadoraBadge(tokens = tokens)
             }
         }
         MobileDetailCard(
