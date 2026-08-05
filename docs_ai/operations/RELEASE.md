@@ -6,6 +6,8 @@ This document outlines the process for releasing new versions of the SignallQ An
 
 - **Status:** ativo
 - **Última validação:** 2026-07-23
+- **Validação de runbook:** 2026-08-05 — workflows referenciados (firebase-distribution.yml,
+  release.yml, promote-release.yml) e scripts (version.ps1) confirmados como existentes e atualizados
 - **Fonte de verdade:** versão real em `android/gradle/libs.versions.toml` (não fixar número
   aqui, muda a cada release); processo de release neste documento
 - **Escopo:** release Android (Firebase App Distribution + Play Console)

@@ -462,4 +462,50 @@ afiliados) segue pendente. Mesma correção já havia sido feita em `docs_ai/FUN
 - Defasagem exata do Compose BOM (ver 5.1) e status do plano de atualização em 2 PRs: não
   reconfirmados contra histórico de PRs nesta revisão — marcado `[a confirmar]`.
 - Metas formais de performance/escalabilidade de backend (D1, Workers): não encontradas em código
+
+---
+
+## 10. Referências técnicas especializadas
+
+Documentação pontual de domínios técnicos específicos. Estes docs complementam TECNICO.md — não
+repetem, apenas detalham.
+
+### Equipamento e topologia de rede
+
+- `docs_ai/technical/INTELBRAS_RX1500_FIELD_MAP.md` — mapa de campos/comandos AT do modem
+  INTELBRAS RX1500 (fibra GPON)
+- `docs_ai/technical/NOKIA_GPON_FIELD_MAP.md` — idem para Nokia G-240W-C (fibra GPON)
+- `docs_ai/technical/TPLINK_ARCHER_ROUTER_FIELD_MAP.md` — idem para TP-Link Archer roteadores
+  Wi-Fi
+
+### Features e fluxos
+
+- `docs_ai/functional/FEATURE_FLAGS.md` — feature flags remotas (lado Android + Admin panel);
+  coexiste com TECNICO.md/FUNCIONAL.md
+- `docs_ai/functional/DIAGNOSTICO_GUIADO_MODO_GAMER_SPEC.md` — especificação funcional do
+  diagnóstico guiado e modo gamer (ligado a features em FUNCIONAL.md)
+
+### Diagnóstico e análise
+
+- `docs_ai/technical/auditoria-motores-diagnostico-e-analise.md` — achados de auditoria de
+  duplicação em motores de classificação (MetricClassifier, topologia, banda)
+- `docs_ai/technical/MATRIZ_DIAGNOSTICO_2026-07-03.xlsx` — matriz de domínios de problema ×
+  causas prováveis (fonte: modelo de diagnóstico v2)
+
+### Integrações e flows
+
+- `docs_ai/technical/AI_FLOW.md` — fluxo de chamada ao worker de diagnóstico por IA
+  (`ai-diagnosis-worker`)
+- `docs_ai/technical/PING_EXECUTOR_ARCHITECTURE.md` — arquitetura de executor de ping
+  concorrente (usado por speedtest)
+- `docs_ai/technical/MONITORAMENTO_PASSIVO.md` — monitoramento de rede em segundo plano
+  (WorkManager)
+
+### Não-conformidades encontradas em auditoria (2026-08-05)
+
+- **Órfãos:** `SCREEN_MAP.md`, `PARIDADE_REC_WORKER_2026-07-26.md`, `P2_AMBIENTE_D1_ADMIN_SEPARACAO.md`
+  — não linkados de lugar nenhum, candidatos a arquivo em _archive
+- **Schemas gigantes:** `admin-api-schema.md` (52k linhas), `analytics-events.md` (21k) —
+  considerar mover para CONTRATOS/schemas/ ou validar contra OpenAPI real
+- **Ver também:** issue #1589 (limpeza de _archive)
   nem doc ativa — `[a confirmar]` (ver seção 7).
