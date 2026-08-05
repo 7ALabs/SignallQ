@@ -8,6 +8,8 @@ import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 
@@ -55,8 +57,8 @@ class AdminIngestRepositoryTest {
 
     @Test
     fun `sendAiUsage disparado antes de sendDiagnostic espera e envia so depois`() = runBlocking {
-        server.enqueue(MockResponse().setResponseCode(201))
-        server.enqueue(MockResponse().setResponseCode(201))
+        server.enqueue(MockResponse().setResponseCode(201).setBody("{\"ok\":true,\"id\":\"sessao-1\"}"))
+        server.enqueue(MockResponse().setResponseCode(201).setBody("{\"ok\":true,\"id\":\"ai-1\"}"))
 
         // sendAiUsage() e chamado primeiro (mesma ordem do bug real: dispararIngestAiUsage
         // roda dentro de callAi(), que termina ANTES de dispararIngestDiagnostico ser
@@ -97,11 +99,63 @@ class AdminIngestRepositoryTest {
 
     @Test
     fun `sendAiUsage sem sessionId nao espera nenhuma correlacao`() = runBlocking {
-        server.enqueue(MockResponse().setResponseCode(201))
+        server.enqueue(MockResponse().setResponseCode(201).setBody("{\"ok\":true,\"id\":\"ai-3\"}"))
 
         repository.sendAiUsage(aiUsagePayload(id = "ai-3", sessionId = null))
 
         assertEquals(1, server.requestCount)
         assertEquals("/ingest/ai-usage", server.takeRequest().path)
+    }
+
+    @Test
+    fun `sendDiagnostic não confirma resposta que pertence a outro id`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(201).setBody("{\"ok\":true,\"id\":\"outro-id\"}"))
+
+        val confirmado = repository.sendDiagnostic(diagnosticPayload(id = "sessao-4"))
+
+        assertFalse(confirmado)
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test
+    fun `sendAnalyticsEvent rejeita acknowledgement ausente ou de outro evento`() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(201).setBody("{\"acceptedIds\":[\"outro-id\"]}"))
+
+        val confirmado = repository.sendAnalyticsEvent(AnalyticsEventIngestPayload(id = "event-4", name = "screen_view"))
+
+        assertFalse(confirmado)
+        assertEquals("/ingest/analytics", server.takeRequest().path)
+    }
+
+    @Test
+    fun `sendAnalyticsEvent nao faz rede sem consentimento`() = runBlocking {
+        val semConsentimento = AdminIngestRepository(server.url("/").toString(), "test-key", OkHttpClient()) { false }
+
+        assertFalse(semConsentimento.sendAnalyticsEvent(AnalyticsEventIngestPayload(id = "event-5", name = "screen_view")))
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test
+    fun `outbox round trip preserva evento quando todos opcionais sao nulos`() {
+        val original = AnalyticsEventIngestPayload(id = "event-null", name = "screen_view")
+
+        val restored = analyticsPayloadFromOutboxJson(original.toOutboxJson())
+
+        requireNotNull(restored)
+        assertEquals(original.id, restored.id)
+        assertEquals(original.name, restored.name)
+        assertNull(restored.sessionId)
+        assertNull(restored.appVersion)
+        assertNull(restored.featureId)
+        assertNull(restored.screenName)
+        assertNull(restored.errorType)
+        assertNull(restored.batteryLevel)
+        assertNull(restored.batteryCharging)
+        assertNull(restored.environment)
+        assertNull(restored.distChannel)
+        assertNull(restored.buildType)
+        assertNull(restored.versionCode)
+        assertNull(restored.deviceId)
+        assertNull(restored.durationMs)
     }
 }

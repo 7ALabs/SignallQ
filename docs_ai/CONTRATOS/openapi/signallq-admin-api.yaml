@@ -1046,6 +1046,24 @@ paths:
         '401':
           $ref: '#/components/responses/401Error'
 
+  /admin/integrations/readiness:
+    get:
+      summary: Returns evidence-based readiness for Android data integrations
+      operationId: getIntegrationReadiness
+      tags:
+        - admin
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Read-only integration readiness snapshot; does not probe external APIs.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationReadinessResponse'
+        '401':
+          $ref: '#/components/responses/401Error'
+
   /admin/integrations/google-play:
     get:
       summary: Retrieves Google Play Developer API authorization state
@@ -2026,6 +2044,70 @@ components:
         ratingsImported:
           type: integer
       required: [enabled, status, message, platform]
+
+    IntegrationReadinessItem:
+      type: object
+      required: [id, credentialsConfigured, apiReachability, lastSyncAt, recordsReceived, state]
+      properties:
+        id:
+          type: string
+          enum: [firebase_analytics, google_play_vitals, google_play_tracks, google_play_reviews]
+        credentialsConfigured:
+          type: boolean
+        apiReachability:
+          type: string
+          enum: [not_configured, not_verified, reachable]
+        lastSyncAt:
+          type: string
+          format: date-time
+          nullable: true
+        recordsReceived:
+          type: number
+          nullable: true
+        state:
+          type: string
+          enum: [not_configured, not_synced, stale, synced_without_data, ready]
+
+    IntegrationReadinessCoverage:
+      type: object
+      required: [totalIntegrations, readyIntegrations, nonReadyIntegrations, byState]
+      properties:
+        totalIntegrations:
+          type: integer
+        readyIntegrations:
+          type: integer
+        nonReadyIntegrations:
+          type: integer
+        byState:
+          type: object
+          additionalProperties:
+            type: integer
+
+    IntegrationReadinessResponse:
+      type: object
+      required: [source, generatedAt, environment, platform, freshnessThresholdHours, coverage, integrations]
+      properties:
+        source:
+          type: string
+          enum: [worker]
+        generatedAt:
+          type: string
+          format: date-time
+        environment:
+          type: string
+          enum: [worker]
+        platform:
+          type: string
+          enum: [android]
+        freshnessThresholdHours:
+          type: integer
+          example: 48
+        coverage:
+          $ref: '#/components/schemas/IntegrationReadinessCoverage'
+        integrations:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntegrationReadinessItem'
 
     # Reusable Response Schemas
     PaginatedResponse:

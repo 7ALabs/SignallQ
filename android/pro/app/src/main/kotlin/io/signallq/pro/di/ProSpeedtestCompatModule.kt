@@ -115,6 +115,8 @@ private object NoOpAnalyticsTrackerPro : AnalyticsTracker {
 
     override fun registrarSessionStart() = Unit
 
+    override fun registrarSessionEnd() = Unit
+
     override fun registrarFeatureCrash(
         featureId: String,
         errorType: String,

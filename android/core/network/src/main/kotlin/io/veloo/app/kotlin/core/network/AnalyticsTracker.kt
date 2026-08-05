@@ -27,6 +27,8 @@ interface AnalyticsTracker {
     fun registrarFeatureUsada(featureId: String, sessionIdOverride: String? = null)
     fun registrarScreenView(screenName: String)
     fun registrarSessionStart()
+    /** Fecha a sessao de foreground iniciada por [registrarSessionStart]. */
+    fun registrarSessionEnd()
     fun registrarFeatureCrash(featureId: String, errorType: String)
     fun registrarBatterySnapshot(level: Int, charging: Boolean)
 

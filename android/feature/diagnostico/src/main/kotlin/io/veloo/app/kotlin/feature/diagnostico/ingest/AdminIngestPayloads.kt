@@ -4,6 +4,7 @@ import io.signallq.app.core.database.MedicaoEntity
 import io.signallq.app.core.database.chat.ChatSessionEntity
 import io.signallq.app.core.database.recommendation.RecommendationHistoryEntity
 import java.util.UUID
+import org.json.JSONObject
 
 // ---------------------------------------------------------------------------
 // Utilitarios de serialização — usados por SignallQOrchestrator ao montar payloads.
@@ -90,6 +91,7 @@ data class DiagnosticIngestPayload(
     val versionCode: Int? = null,
     /** UUID anonimo persistente do dispositivo. Sem PII. */
     val deviceId: String? = null,
+    val durationMs: Long? = null,
 )
 
 /**
@@ -122,6 +124,8 @@ data class AiUsageIngestPayload(
     val versionCode: Int? = null,
     /** UUID anonimo persistente do dispositivo. Sem PII. */
     val deviceId: String? = null,
+    /** Preenchido exclusivamente em session_end. */
+    val durationMs: Long? = null,
 )
 
 /**
@@ -164,7 +168,49 @@ data class AnalyticsEventIngestPayload(
     val versionCode: Int? = null,
     /** UUID anonimo persistente do dispositivo. Sem PII. */
     val deviceId: String? = null,
+    val durationMs: Long? = null,
 )
+
+fun AnalyticsEventIngestPayload.toOutboxJson(): String = JSONObject().apply {
+    put("id", id); put("name", name); put("session_id", sessionId); put("timestamp", createdAt)
+    put("app_version", appVersion); put("feature_id", featureId); put("screen_name", screenName)
+    put("error_type", errorType); put("battery_level", batteryLevel); put("battery_charging", batteryCharging)
+    put("environment", environment); put("dist_channel", distChannel); put("build_type", buildType)
+    put("version_code", versionCode); put("device_id", deviceId); put("duration_ms", durationMs); put("platform", "android")
+}.toString()
+
+fun analyticsPayloadFromOutboxJson(json: String): AnalyticsEventIngestPayload? = runCatching {
+    val value = JSONObject(json)
+    AnalyticsEventIngestPayload(
+        id = value.getString("id"), name = value.getString("name"),
+        sessionId = value.optionalString("session_id"),
+        createdAt = value.getLong("timestamp"),
+        appVersion = value.optionalString("app_version"),
+        featureId = value.optionalString("feature_id"),
+        screenName = value.optionalString("screen_name"),
+        errorType = value.optionalString("error_type"),
+        batteryLevel = value.optionalInt("battery_level"),
+        batteryCharging = value.optionalBoolean("battery_charging"),
+        environment = value.optionalString("environment"),
+        distChannel = value.optionalString("dist_channel"),
+        buildType = value.optionalString("build_type"),
+        versionCode = value.optionalInt("version_code"),
+        deviceId = value.optionalString("device_id"),
+        durationMs = value.optionalLong("duration_ms"),
+    )
+}.getOrNull()
+
+private fun JSONObject.optionalString(name: String): String? =
+    if (has(name) && !isNull(name)) getString(name).ifBlank { null } else null
+
+private fun JSONObject.optionalInt(name: String): Int? =
+    if (has(name) && !isNull(name)) getInt(name) else null
+
+private fun JSONObject.optionalLong(name: String): Long? =
+    if (has(name) && !isNull(name)) getLong(name) else null
+
+private fun JSONObject.optionalBoolean(name: String): Boolean? =
+    if (has(name) && !isNull(name)) getBoolean(name) else null
 
 // ---------------------------------------------------------------------------
 // Mapeamento de entidades Room para payloads de ingest (sync retroativo)
