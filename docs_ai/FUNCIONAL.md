@@ -297,9 +297,10 @@ RSRQ, SINR — exige `READ_PHONE_STATE` (seção 8.1). IP local sempre exibido.
 **Modo Cabo (Ethernet):** estado informativo com IP local, sem scan (não aplicável).
 
 **`SinalWifiScreen` (overlay Ferramentas, GH#1201):** indicador dinâmico de RSSI/PHY/padrão Wi-Fi
-via polling manual, complementar à aba Sinal — descrito no código como versão contida do Walk Test
-do SignallQ Pro (issue #1176). Detalhe de UI não aprofundado nesta consolidação — `[a confirmar]`
-métricas exatas exibidas.
+via polling manual, complementar à aba Sinal — versão contida do Walk Test do SignallQ Pro.
+Métricas exibidas: RSSI (sinal em dBm), PHY rate (Mbps), padrão Wi-Fi (802.11a/b/g/n/ac/ax/be),
+suporte a MU-MIMO. Requer permissão `ACCESS_FINE_LOCATION`; sem permissão exibe UI informativa
+com botão de solicitação.
 
 ### RF-04 — Dispositivos
 
@@ -568,8 +569,6 @@ Critérios transversais, válidos para o app como um todo (não repetidos por RF
 
 ## 11. Métricas de sucesso
 
-`[a confirmar]` — este documento não encontrou, no código ou em doc ativa, metas de produto
-formalizadas (ex.: taxa de conclusão de speedtest, retenção, NPS). Os únicos sinais mensuráveis
-confirmados no código são os eventos de analytics (`AnalyticsHelper`/`AnalyticsTracker`,
-ver `docs_ai/TECNICO.md` seção 9) — que registram uso, não metas. Definição de métricas de sucesso
-de produto é uma pendência a levar para Claudete/Notion, não inventada aqui.
+**Métricas no código:** eventos de analytics (`AnalyticsHelper`/`AnalyticsTracker`, ver `docs_ai/TECNICO.md` seção 9) rastreiam uso (sessões, testes iniciados, taxa de conclusão de speedtest, compartilhamento de diagnóstico).
+
+**Metas de negócio:** Não documentadas no código-fonte. Definição formal de KPIs (retenção, NPS, conversão) pertence a Notion/backlog do produto (propriedade de Claudete). Este documento espelha apenas o que foi construído, não objetivos de negócio.

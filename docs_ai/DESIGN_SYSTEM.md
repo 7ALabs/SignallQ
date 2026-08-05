@@ -1,7 +1,7 @@
 # Design System — SignallQ (Android, consumer)
 
 - **Status:** ativo
-- **Última validação:** 2026-07-19
+- **Última validação:** 2026-08-05 (consolidação: estrutura confirmada, fonte real em SignallQTheme.kt)
 - **Fonte de verdade:** este documento é a fonte de verdade **documental** consolidada; a fonte de
   verdade do *código* é `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/SignallQTheme.kt`
   (`LkColors`, `LkTokens`, `LkSpacing`, `LkRadius`, `signallQTypography`); a fonte de verdade da

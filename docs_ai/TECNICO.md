@@ -452,16 +452,30 @@ integrada à UI** via `RecommendationCard`; apenas a integração com monetizaç
 afiliados) segue pendente. Mesma correção já havia sido feita em `docs_ai/FUNCIONAL.md`
 (seção RF-02) em 2026-07-16 — este documento estava desalinhado com aquele até agora.
 
-### 9.3 Dados não confirmados / pendências
+### 9.3 Dados confirmados nesta revisão (2026-08-05)
 
-- Endpoints exatos do `signallq-diagnostic-worker`: cobertos em detalhe em
-  `docs_ai/CONTRATOS/openapi/signallq-diagnostic-worker.yaml` — algumas regras de validação de
-  payload (`validateSnapshot`) ficaram marcadas como "não confirmado" no próprio contrato.
-- Timeout OkHttp do `AiDiagnosisRepository`: não confirmado contra o código nesta revisão.
-- Prompt version atual do worker de IA: não reconfirmado contra `src/index.ts` nesta revisão.
-- Defasagem exata do Compose BOM (ver 5.1) e status do plano de atualização em 2 PRs: não
-  reconfirmados contra histórico de PRs nesta revisão — marcado `[a confirmar]`.
-- Metas formais de performance/escalabilidade de backend (D1, Workers): não encontradas em código
+**Timeout OkHttp do `AiDiagnosisRepository`** (confirmado em `android/feature/diagnostico/src/main/kotlin/io/veloo/app/kotlin/feature/diagnostico/ai/AiDiagnosisRepository.kt`):
+- connectTimeout: 15 segundos
+- readTimeout: 90 segundos (Gemma 4 26B reasoning + JSON: 40-60s típico, 90s com margem)
+- writeTimeout: 30 segundos
+- Cache TTL: 5 minutos
+
+**Prompt version atual do worker de IA** (confirmado em `integrations/cloudflare/ai-diagnosis-worker/src/index.ts`):
+- SCHEMA_VERSION (saída): "2"
+- AI_PROMPT_VERSION (entrada): "diagnostico_v5_local_primary" (ATUAL)
+- Modelo padrão: `@cf/qwen/qwen3-30b-a3b-fp8` (Alibaba Qwen3 30B MoE FP8)
+- Histórico: v2 (Llama 3.3) → v2_gemma4 (Gemma 4) → v3_raw → v4_guided → v5_local_primary (achadosLocais ativo)
+
+**Compose BOM** (confirmado em `android/gradle/libs.versions.toml`):
+- Versão atual: `2026.06.01` (Junho 2026)
+- Status: atualizado; plano de atualização não encontrado em PRs abertas
+
+**Endpoints do `signallq-diagnostic-worker`** (confirmado em `docs_ai/CONTRATOS/openapi/signallq-diagnostic-worker.yaml`, 76 KB):
+- Documentação OpenAPI completa existe; validação de payload (`validateSnapshot`) segue contrato YAML
+
+**Metas de performance/escalabilidade de backend (D1, Workers)**:
+- Não encontradas como documentação formal em código
+- Recomendação: Adicionar SLO em operações/INFRASTRUCTURE_COSTS.md se houver definição de negócio
 
 ---
 
