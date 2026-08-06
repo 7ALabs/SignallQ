@@ -171,10 +171,20 @@ for alvo in "${ALVOS[@]}"; do
     !dentro             { print }
   ' "$alvo" > "$tmp"
 
+  # O repo roda com core.autocrlf=true e sem .gitattributes: no Windows os .md
+  # ficam CRLF no disco, enquanto o bloco gerado sai com LF. Sem tratar isso o
+  # --check acusaria o arquivo inteiro como alterado em toda maquina Windows e
+  # passaria no CI (Linux) — alarme falso que treina todo mundo a ignorar o
+  # guardrail. Entao: comparar ignorando CR, e ao escrever preservar a
+  # convencao que o arquivo ja usa, para nao gerar arquivo de final misto.
+  if grep -q $'\r' "$alvo" 2>/dev/null; then
+    sed -i 's/\r*$/\r/' "$tmp"
+  fi
+
   if [[ "$CHECK_ONLY" == true ]]; then
-    if ! diff -q "$alvo" "$tmp" >/dev/null; then
+    if ! diff -q --strip-trailing-cr "$alvo" "$tmp" >/dev/null; then
       echo "desatualizado: $alvo"
-      diff "$alvo" "$tmp" | head -20
+      diff --strip-trailing-cr "$alvo" "$tmp" | head -20
       status=1
     fi
     rm -f "$tmp"
