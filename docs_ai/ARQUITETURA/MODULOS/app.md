@@ -1,86 +1,135 @@
-# Módulo :app
+---
+title: "Módulo :app"
+description: "Aplicação Android do SignallQ Consumer — composição de features, navegação, DI raiz e telas Compose."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-06"
+---
 
-- **Status:** ativo
-- **Última validação:** 2026-07-23 (fonte: `android/app/build.gradle.kts`, código real)
-- **Fonte de verdade:** código real do módulo — em caso de divergência, vale o código
-- **Escopo:** módulo Gradle `:app` (pasta física `android/app/`)
-- **Responsável:** Camilo (dono da implementação Android), squad SignallQ mantém
+# `:app`
 
-## Visão geral
+- **Caminho físico:** `android/app/`
+- **Namespace:** `io.signallq.app` (mesmo valor em `applicationId`)
+- **Tipo:** aplicação (`com.android.application`)
 
-Composição entre features, navegação, DI de nível de aplicação (Hilt `AppModule`), único
-`ViewModel` raiz do app (`MainViewModel`), telas de UI, integrações que dependem de múltiplas
-features (feature flags, notificações, monitoramento em background, chamadas aos Workers Cloudflare
-de ingest/probe). Namespace/applicationId: `io.signallq.app`.
+## Responsabilidade
 
-## Diagrama de componentes
+Módulo de composição do app Consumer: hospeda `SignallQApplication`, `MainActivity`, o
+`MainViewModel` raiz, o grafo Hilt de nível de aplicação (`di/AppModule.kt`), a navegação
+(`ui/screen/AppShell.kt`) e praticamente todas as telas Compose do produto. Também concentra o
+que só existe quando várias features se juntam: monetização AdMob + consentimento UMP,
+analytics/telemetria para o `signallq-admin-worker`, monitoramento em background via WorkManager,
+notificações e o exportador de relatório em PDF do consumidor.
 
-```
-:app
-├── ui/screen/      — 15+ telas Composable (Home, SpeedTest, Sinal, Historico, Dispositivos,
-│                      Ajustes, Velocidade, ResultadoVelocidade, Diagnostico, LLMChat, Fibra,
-│                      Laudo, Privacidade, Novidades, Onboarding)
-├── ui/viewmodel/   — ChatDiagnosticoIaViewModel
-├── di/             — AppModule.kt (Hilt, provê todas as dependências injetadas)
-├── pulse/          — SignallQOrchestrator.kt (fluxo Chat/Pulse)
-├── monitoramento/  — MonitoramentoWorker.kt, MonitoramentoScheduler.kt
-├── notificacao/    — SignallQNotificationHelper.kt
-└── speedtest/      — SpeedtestPersistenceCoordinator.kt
-```
+Não é dele: coleta de dados de rede (`:coreNetwork`, `:coreTelephony`), persistência
+(`:coreDatabase`, `:coreDatastore`), regras de classificação/causa-raiz (`:core:diagnostico`),
+paginação HTML→PDF (`:core:relatorio`) nem o contrato de feature flags remoto
+(`:core:featureflags`). Na prática essa fronteira ainda vaza — ver Riscos.
 
-Base física: `app/src/main/kotlin/io/veloo/app/kotlin/` (caminho legado — ver dívida 4.1 da regra
-de higiene; package declarado é `io.signallq.app`).
+## Dependências
 
-## Componentes em detalhe
+### Módulos do projeto
 
-| Componente | Tipo | Responsabilidade |
-|---|---|---|
-| `SignallQApplication.kt` | `Application` | Inicialização, Hilt, canais de notificação |
-| `MainActivity.kt` | `Activity` | Entry point único — `setContent { SignallQTheme { AppShell(...) } }` |
-| `MainViewModel.kt` | `@HiltViewModel` | Orquestra todos os serviços e expõe `StateFlow`s — **2285 linhas**, acima do limiar de "dívida crítica" (seção 7 da regra de higiene) |
-| `FeatureFlags.kt` | Object | Controle de `buildConfigField` booleanos por build type |
-| `AppShell.kt` | Composable | Shell — `NavigationBar` 5 abas + fluxos sobrepostos — **1241 linhas**, acima do limiar de extração obrigatória |
-| `AppNavGraph.kt` | `NavHost` | Rotas das 5 abas principais |
-| `SignallQTheme.kt` | Composable | Tema MD3 |
-| `AjustesScreen.kt` | Composable | Overlay Perfil/Ajustes — **803 linhas** |
+| Módulo | Para quê |
+|---|---|
+| `project(":coreNetwork")` | Monitor de conectividade, contratos de gateway/dispositivo local, scan Wi-Fi, `AnalyticsTracker`, `FeatureFlagProvider` legado (SIG-13) |
+| `project(":corePermissions")` | Fluxos de permissão (localização, telefonia, notificações) |
+| `project(":coreDatabase")` | Room — histórico de medições, outbox de analytics |
+| `project(":coreDatastore")` | `PreferenciasAppRepository` (tema, consentimento, onboarding) |
+| `project(":coreTelephony")` | RSRP/RSRQ/SINR/banda quando a conexão é móvel |
+| `project(":coreRecommendation")` | Motor de recomendações práticas do consumidor |
+| `project(":featureHome")` | Feature Home |
+| `project(":featureWifi")` | Feature Wi-Fi |
+| `project(":featureDevices")` | Feature Dispositivos |
+| `project(":featureDns")` | Feature DNS |
+| `project(":featureSpeedtest")` | Feature SpeedTest |
+| `project(":featureDiagnostico")` | Feature Diagnóstico (orquestração local + remota) |
+| `project(":featureFibra")` | Feature Fibra/GPON |
+| `project(":featureHistory")` | Feature Histórico |
+| `project(":featureSettings")` | Feature Ajustes |
+| `project(":core:diagnostico")` | `DiagnosticReport`/`DiagnosticInput`/`DiagnosticStatus` consumidos direto por telas e ViewModels (issue #1157 Fase 1a) |
+| `project(":core:relatorio")` | `exportarHtmlComoPdf` — renderer único de PDF do consumidor (GH#1219) |
+| `project(":core:featureflags")` | `FeatureFlagProvider` + catálogo tipado sobre Firebase Remote Config (issue #1477) |
 
-## Fluxo de dados principal
+### Bibliotecas externas (do catálogo `libs.versions.toml`)
 
-- **Entradas:** eventos de UI, callbacks do SO (`ConnectivityManager`, `TelephonyManager`,
-  `WifiManager`), WorkManager (execução periódica do `MonitoramentoWorker`).
-- **Saídas:** persistência em Room/DataStore, notificações via `NotificationManager`, POST HTTP aos
-  Workers Cloudflare (`ADMIN_INGEST_URL`, `GAME_LATENCY_PROBE_URL`), eventos Firebase Analytics.
-- Fluxo geral: evento de UI → função no `MainViewModel` → atualiza `StateFlow` → recomposição da UI
-  (ver `docs_ai/ARQUITETURA/README.md` seção 4).
+| Biblioteca | Para quê |
+|---|---|
+| Compose BOM, `compose.ui`, `material3`, `material.icons.extended`, `activity.compose`, `navigation.compose` | Toda a camada de UI |
+| `androidx.core.ktx`, `activity.ktx`, `lifecycle.runtime.ktx`, `lifecycle.runtime.compose` | Ciclo de vida e extensões Android |
+| Hilt (`hilt.android` + `hilt.compiler` via kapt) e `hilt.work` (+ `hilt.work.compiler` via KSP) | Injeção de dependência, inclusive nos Workers |
+| `androidx.work.runtime.ktx` | `MonitoramentoWorker`, `AdminSyncWorker` |
+| Firebase BOM + `crashlytics`, `analytics`, `config` | Crash reporting, analytics e Remote Config |
+| `okhttp` | Chamadas HTTP diretas (ingest do admin worker, sonda de latência de jogos) |
+| `coil.compose` | Logo remota de operadora de cauda longa (GH#970) |
+| `play.services.ads` + `user.messaging.platform` | AdMob nativo e gate de consentimento UMP (issue #555) |
+| `play.review` | Avaliação in-app (SIG-173/#664) |
+| `timber`, `androidx.profileinstaller`, `desugar.jdk.libs` | Log, baseline profile, desugaring |
+| Testes: `junit`, `robolectric`, `mockk`, `kotlinx.coroutines.test`, `org.json:json:20260719`, `compose.ui.test.junit4` | Suíte de unit tests JVM/Robolectric |
 
-## Decisões arquiteturais (ADR)
+Plugins aplicados: AGP application, Kotlin Android, Compose compiler, kapt, KSP, Hilt,
+`google-services`, Firebase App Distribution, Firebase Crashlytics, detekt, ktlint e
+`gradle-play-publisher`.
 
-- **Dependência de todos os 15 outros módulos consumer**, mais dois módulos cross-linha
-  (`:core:diagnostico`, `:core:relatorio` — compartilhados com SignallQ Pro, issues #1157/#1164):
+## Consumidores
 
-```
-:coreNetwork, :corePermissions, :coreDatabase, :coreDatastore, :coreTelephony,
-:coreRecommendation, :featureHome, :featureWifi, :featureDevices, :featureDns,
-:featureSpeedtest, :featureDiagnostico, :featureFibra, :featureHistory, :featureSettings,
-:core:diagnostico, :core:relatorio
-```
+Nenhum. `:app` é o topo do grafo do Consumer — a busca por `project(":app")` nos
+`build.gradle.kts` do repositório não retorna nenhum consumidor. O app Pro tem seu próprio
+topo (`:pro:app`) e não depende deste módulo.
 
-  Mais: Hilt, Compose (BOM), Navigation Compose, WorkManager, Firebase BOM (Crashlytics, Analytics,
-  Config), Coil, `play.review`, `play.services.ads` + `user.messaging.platform` (AdMob/UMP), OkHttp,
-  Timber.
-- **`:app` é o único consumidor de nenhum outro módulo** — nenhum módulo do monorepo depende de
-  `:app` (é a folha de composição, conforme a regra 5 da higiene).
-- **Único `ViewModel` raiz do app** — decisão de arquitetura preexistente que concentra composição de
-  estado em `MainViewModel`, mesmo com `feature/*` expondo estado próprio internamente.
+## Componentes principais
 
-## Riscos e mitigação
+| Arquivo / classe | Responsabilidade |
+|---|---|
+| `app/src/main/kotlin/io/veloo/app/kotlin/SignallQApplication.kt` | `@HiltAndroidApp`, `Configuration.Provider` do WorkManager; inicializa Timber/Crashlytics, feature flags legadas e do novo `FeatureFlagProvider`, coordenador de persistência de speedtest, `AdsFlagsManager` e agendamento de sync com o admin worker |
+| `app/src/main/kotlin/io/veloo/app/kotlin/MainActivity.kt` | Activity única (`@AndroidEntryPoint`), 640 linhas; monta `SignallQTheme { AppShell(...) }` e trata permissões contextuais |
+| `app/src/main/kotlin/io/veloo/app/kotlin/MainViewModel.kt` | ViewModel raiz que orquestra os serviços e expõe os `StateFlow` das telas — **2438 linhas** |
+| `app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/AppShell.kt` | Navegação, bottom bar e composição das telas — 1670 linhas |
+| `app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/AppShellFeatureGating.kt` | Aplica o gate de navegação por flag remota nos 9 módulos feature (F4/#1480) |
+| `app/src/main/kotlin/io/veloo/app/kotlin/di/AppModule.kt` | Módulo Hilt único (393 linhas) — provê tudo, inclusive a lambda `() -> FirebaseRemoteConfig` e o `FeatureFlagProvider` de `:core:featureflags` |
+| `app/src/main/kotlin/io/veloo/app/kotlin/FeatureFlags.kt` | Flags de compilação (`BuildConfig.FEATURE_*`) — mecanismo por build type, distinto das flags remotas |
+| `app/src/main/kotlin/io/veloo/app/kotlin/featureflags/ConsumerFeatureGateCoordinator.kt` | Deriva `AppShellFeatureFlagsState` reativo a partir do `FeatureFlagProvider` remoto |
+| `app/src/main/kotlin/io/veloo/app/kotlin/featureflags/FeatureFlagManager.kt` / `FeatureFlagRepository.kt` | Mecanismo legado de flags via HTTP `GET /flags` (SIG-13) |
+| `app/src/main/kotlin/io/veloo/app/kotlin/ui/relatorio/` (4 arquivos, 349 linhas) | `RelatorioDiagnosticoSnapshot` → `RelatorioDiagnosticoHtmlBuilder` (puro) → `RelatorioDiagnosticoExporter`, que delega a paginação para `:core:relatorio` |
+| `app/src/main/kotlin/io/veloo/app/kotlin/ads/` (7 arquivos) | `AdSlot`, `AdUnitIds` (real vs teste conforme `-PplayTrack`), `ConsentManager` (UMP), `AdsRemoteConfigRepository` |
+| `app/src/main/kotlin/io/veloo/app/kotlin/monitoramento/` (7 arquivos) | `MonitoramentoWorker`/`Scheduler`, `AdminSyncWorker`/`Scheduler`, `AnalyticsOutboxProcessor`, `HisteresiHelper` |
+| `app/src/main/kotlin/io/veloo/app/kotlin/analytics/` (5 arquivos) | `CompositeAnalyticsTracker`, `FirebaseAnalyticsTracker`, `AnalyticsOutboxFunnelTracker`, `DistributionChannel` |
+| `app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/` | 56 arquivos de tela/estado — inclui `SinalScreen.kt` (3383), `HomeScreen.kt` (2967), `DispositivosScreen.kt` (1380) |
+| `app/src/main/AndroidManifest.xml` | 8 permissões, `FileProvider`, App ID do AdMob, remoção do `WorkManagerInitializer` automático |
 
-| Risco | Impacto | Mitigação |
-|---|---|---|
-| `MainViewModel.kt` — 2285 linhas | Dívida crítica (seção 7 da regra de higiene) | Extrair orquestração/persistência/analytics/mapeamentos por responsabilidade ao tocar — seção 4.2 da regra |
-| `AppShell.kt` — 1241 linhas | Acima do limiar de extração obrigatória | Separar estado de navegação, overlays, wiring entre features — seção 4.3 da regra |
-| `AjustesScreen.kt` — 803 linhas | No limiar de extração obrigatória | Extrair sheets/fluxos independentes por responsabilidade — seção 4.4 da regra |
-| Caminho físico `io/veloo/app/kotlin/` diverge do package declarado `io.signallq.app` | Dívida 4.1 da regra de higiene, não exclusiva deste módulo | Não migrar oportunisticamente |
-| Dependência nova em módulos Pro-shared (`:core:diagnostico`, `:core:relatorio`) | Amplia o blast radius de mudanças nesses módulos para o produto consumer | Tratar como infraestrutura compartilhada real em code review |
+Versão declarada em `android/gradle/libs.versions.toml`: `versionCode = 72`, `versionName = 0.31.0`
+(`compileSdk = 37`, `minSdk = 24`, `targetSdk = 36`).
 
-`src/test`: **62 arquivos** (cresceu frente aos 42 da última auditoria). `src/androidTest`: 0.
+## Riscos e dívidas
+
+- **Caminho físico legado `io/veloo/app/kotlin/`.** Os 150 arquivos `.kt` de `src/main` (e os 73
+  de `src/test`) vivem sob `io/veloo/`, mas **todos os 150 declaram `package io.signallq.*`** —
+  verificado por grep, zero arquivos com `package io.veloo`. Só um arquivo
+  (`io/signallq/app/analytics/FirebaseRecommendationAnalyticsTracker.kt`) está no caminho correto.
+  Divergência conhecida entre caminho e package, ainda não migrada.
+- **Arquivos acima de 800 linhas em `src/main`** (contagem real, `wc -l`):
+  `ui/screen/SinalScreen.kt` 3383, `ui/screen/HomeScreen.kt` 2967, `MainViewModel.kt` 2438,
+  `ui/screen/AppShell.kt` 1670, `ui/screen/DispositivosScreen.kt` 1380,
+  `ui/component/LocalDeviceSection.kt` 1248, `ui/screen/DiagnosticoGuiadoScreen.kt` 895,
+  `ui/screen/SpeedTestScreen.kt` 851, `ui/screen/HistoricoScreen.kt` 815 e
+  `ui/screen/DnsScreen.kt` 815. `MainViewModel.kt` já é tratado como dívida crítica no próprio
+  código (o KDoc de `ConsumerFeatureGateCoordinator` cita a regra de higiene §4.2: extrair, não
+  adicionar responsabilidade).
+- **Tamanho geral:** 40017 linhas em `src/main` contra 8637 em `src/test` — o módulo de composição
+  concentra mais código do que qualquer módulo `core`/`feature`.
+- **Dois sistemas de feature flag remotos convivendo.** `featureflags/FeatureFlagManager` (HTTP,
+  SIG-13, contrato `io.signallq.app.core.network.FeatureFlagProvider`) e o novo
+  `io.signallq.app.core.featureflags.FeatureFlagProvider` (Firebase Remote Config). Nomes de
+  interface idênticos em pacotes diferentes — risco real de import errado. A migração está
+  prevista em F4/#1480 e o único consumidor real do legado
+  (`DiagnosticDivergenceReporter`/shadow mode) já foi migrado na #1497. Some-se a isso o terceiro
+  mecanismo, `FeatureFlags.kt` sobre `BuildConfig`.
+- **Sem testes instrumentados.** Existe `src/main` e `src/test`, mas nenhum diretório
+  `src/androidTest` — as dependências `androidTestImplementation` declaradas em
+  `build.gradle.kts` não têm código correspondente.
+- **Segredo de ingest em `BuildConfig`.** `ADMIN_INGEST_KEY` é injetada via `local.properties`/env
+  e acaba como string no APK; o escopo é limitado a `POST /ingest/*`, mas continua sendo material
+  extraível do binário.
+- **`di/AppModule.kt` como módulo Hilt único** (393 linhas) para todo o grafo da aplicação —
+  ponto de acoplamento central entre todos os módulos.

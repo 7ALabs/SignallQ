@@ -12,10 +12,10 @@ last_updated: "2026-08-06"
 **116 documentos.** Escopo: app consumer Android e backend Cloudflare. Perímetro e o que saiu em
 2026-08-06 estão em [`README.md`](README.md).
 
-> ⚠️ **Reconstrução em andamento.** Os canônicos (`FUNCIONAL`, `TECNICO`, `ARQUITETURA`,
-> `DESIGN_SYSTEM`) serão reescritos a partir do código no PR 2 — hoje contêm dados defasados.
-> A coluna "Validado" indica a última conferência **contra código**, não a data do arquivo.
-> Onde estiver `—`, trate os números como não confiáveis e confirme na fonte.
+> ✅ **Canônicos regenerados do código em 2026-08-06 (PR 2).** `TECNICO.md` e
+> `ARQUITETURA/README.md` carregam um bloco de inventário **gerado** por
+> `scripts/gerar-inventario-docs.sh` — versões, módulos, workers, tabelas D1 e contagem de
+> endpoints saem direto do código, e o CI reprova se divergirem. Não edite esse bloco à mão.
 
 ---
 
@@ -31,26 +31,29 @@ last_updated: "2026-08-06"
 
 ## Canônicos
 
-| Documento | Validado contra código |
+| Documento | Estado |
 |---|---|
-| [FUNCIONAL.md](FUNCIONAL.md) | parcial — 2026-08-05 |
-| [TECNICO.md](TECNICO.md) | ❌ defasado — declara `0.30.1`/`67`, código está em `0.31.0`/`72` |
-| [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | tokens conferidos 2026-08-06 (4/4 corretos) |
-| [ARQUITETURA/README.md](ARQUITETURA/README.md) | ❌ — cita 16 módulos, existem 28 (19 consumer + 9 Pro) |
-| [RELEASES.md](RELEASES.md) | — |
+| [TECNICO.md](TECNICO.md) | ✅ reescrito do código · inventário gerado |
+| [ARQUITETURA/README.md](ARQUITETURA/README.md) | ✅ reescrito do código · inventário gerado |
+| [FUNCIONAL.md](FUNCIONAL.md) | ⏳ em reescrita — ainda é a versão de 2026-07-23 |
+| [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | ✅ tokens conferidos 1 a 1 em `SignallQTheme.kt` |
+| [RELEASES.md](RELEASES.md) | não regenerado — histórico de releases, sai do git |
 | [plano-execucao-consumer-consolidado-2026-08-05.md](plano-execucao-consumer-consolidado-2026-08-05.md) | plano ativo, 42 issues |
 
 ## Arquitetura por módulo — `ARQUITETURA/MODULOS/`
 
-16 documentos: `app`, `core-database`, `core-datastore`, `core-network`, `core-permissions`,
-`core-recommendation`, `core-telephony`, `feature-devices`, `feature-diagnostico`, `feature-dns`,
-`feature-fibra`, `feature-history`, `feature-home`, `feature-settings`, `feature-speedtest`,
-`feature-wifi`.
+**19 documentos — um por módulo consumer, todos reescritos do código em 2026-08-06.** Mesmo
+template: responsabilidade, dependências, consumidores, componentes principais, riscos e dívidas.
+
+`app` · `core-database` · `core-datastore` · `core-diagnostico` · `core-featureflags` ·
+`core-network` · `core-permissions` · `core-recommendation` · `core-relatorio` · `core-telephony` ·
+`feature-devices` · `feature-diagnostico` · `feature-dns` · `feature-fibra` · `feature-history` ·
+`feature-home` · `feature-settings` · `feature-speedtest` · `feature-wifi`.
+
+Os três que faltavam (`core-relatorio`, `core-diagnostico`, `core-featureflags`) foram criados.
+Módulos `:pro:*` não têm documento: estão on hold.
 
 Também em `ARQUITETURA/`: `AUDITORIA_1228_FASE0_INVENTARIO_COMPLETO.md`.
-
-> Faltam documentos para 3 módulos consumer reais: `:core:relatorio`, `:core:diagnostico`,
-> `:core:featureflags`. Serão criados no PR 2.
 
 ## Contratos — `CONTRATOS/`
 

@@ -1,61 +1,88 @@
-# Módulo :coreDatabase
+---
+title: "Módulo :coreDatabase"
+description: "Banco Room local do Consumer: 8 entidades, 7 DAOs, schema na versão 18 com 17 migrations encadeadas."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-06"
+---
 
-- **Status:** ativo
-- **Última validação:** 2026-07-23 (fonte: `android/core/database/build.gradle.kts`, código real)
-- **Fonte de verdade:** código real do módulo — em caso de divergência, vale o código
-- **Escopo:** módulo Gradle `:coreDatabase` (alias legado; pasta física `android/core/database/`)
-- **Responsável:** Camilo (dono da implementação Android), squad SignallQ mantém
+# `:coreDatabase`
 
-## Visão geral
+- **Caminho físico:** `android/core/database/` (alias flat legado — `projectDir` remapeado em `settings.gradle.kts`)
+- **Namespace:** `io.signallq.app.core.database`
+- **Tipo:** biblioteca Android
 
-Persistência local via Room (SQLite). Único módulo com acesso direto ao banco `SignallQDatabase`.
-Namespace declarado: `io.signallq.app.core.database`.
+## Responsabilidade
 
-## Diagrama de componentes
+Define o banco Room local do app Consumer (`SignallQDatabase`), suas Entities, Daos e toda a cadeia de migrations, além da fábrica `CoreDatabaseModulo.criarBanco(context)`. É a única fonte de persistência estruturada/relacional do Consumer.
 
-```
-:coreDatabase
-├── (raiz, io/veloo/ — caminho legado)
-│     SignallQDatabase (Room DB, v14), MedicaoEntity/Dao, ApelidoDispositivoEntity/Dao,
-│     CoreDatabaseModulo (fábrica + migrações)
-├── chat/ (io/veloo/)
-│     ChatSessionEntity/Dao, ChatMessageEntity
-└── recommendation/ (io/signallq/ — único subpacote já no caminho correto)
-      RecommendationHistoryEntity, RecommendationHistoryDao
-```
+Não é dele: preferências chave-valor (`:coreDatastore`), regras de negócio sobre os dados persistidos (ficam nas features e em `:core:diagnostico`), nem a persistência do app Pro — que tem banco próprio em `:pro:core:database`. Também não expõe Repository: os Daos são consumidos diretamente pelas camadas acima.
 
-## Componentes em detalhe
+## Dependências
 
-| Componente | Tipo | Responsabilidade |
-|---|---|---|
-| `SignallQDatabase.kt` | Room Database | DB principal — **versão 14** (confirmado em código: `version = 14`) |
-| `MedicaoEntity.kt` / `MedicaoDao.kt` | Entity/DAO | Tabela `medicao` — medições de speedtest e monitoramento |
-| `ApelidoDispositivoEntity.kt` / `ApelidoDispositivoDao.kt` | Entity/DAO | Tabela `apelido_dispositivo` |
-| `CoreDatabaseModulo.kt` | Object | Fábrica `criarBanco(context)` + migrações |
-| `chat/ChatSessionEntity.kt`, `chat/ChatMessageEntity.kt` | Entity | Tabelas `chat_sessions`, `chat_messages` |
-| `chat/ChatSessionDao.kt` | DAO | Queries de sessões e mensagens de chat |
-| `recommendation/RecommendationHistoryEntity.kt` / `RecommendationHistoryDao.kt` | Entity/DAO | Histórico de recomendações servidas por `:coreRecommendation` — subpacote já criado direto em `io/signallq/`, não em `io/veloo` |
+| Módulo/lib | Para quê |
+|---|---|
+| `androidx.core.ktx` | utilitários de plataforma |
+| `androidx.room.runtime` (`api`) | runtime Room, reexportado aos consumidores |
+| `androidx.room.ktx` (`api`) | suporte a coroutines/`Flow` nos Daos, reexportado |
+| `androidx.room.compiler` (`kapt`) | geração de código Room |
+| `junit` (test) | teste JVM de `MedicaoEntity` |
+| `androidx.room.testing` (androidTest) | `MigrationTestHelper` nos testes de migration |
+| `kotlinx.coroutines.test` (androidTest) | `runTest`/`Flow.first()` em `ChatSessionDaoTest` (dependência que faltava, corrigida na GH#1228 Fase 3) |
+| `androidx.junit`, `androidx.espresso.core` (androidTest) | scaffolding instrumentado |
 
-## Fluxo de dados principal
+Nenhuma dependência de outro módulo do monorepo.
 
-- **Entradas:** escritas de medições, apelidos, sessões de chat e histórico de recomendação vindas
-  de `:app` e das features consumidoras.
-- **Saídas:** `Flow`/consultas Room expostas via DAOs para `:app`, `:featureDevices`,
-  `:featureDiagnostico`, `:featureHistory` (confirmado via grep de `project(":coreDatabase")`).
+## Consumidores
 
-## Decisões arquiteturais (ADR)
+| Módulo | Tipo |
+|---|---|
+| `:app` | `implementation` |
+| `:featureDevices`, `:featureDiagnostico`, `:featureHistory`, `:featureSpeedtest` | `implementation` |
 
-- **Nenhuma dependência de outro módulo do monorepo.** Libs: `androidx-core-ktx`,
-  `androidx-room-runtime`/`room-ktx` (via `api`, propaga para consumidores), `kapt` room-compiler.
-  Testes: `androidx-room-testing`.
-- **Subpacote `recommendation/` nasceu direto em `io/signallq/`** enquanto o resto do módulo
-  permanece em `io/veloo/app/kotlin/core/database/` — mesmo padrão observado em `:coreNetwork`
-  (código novo já nasce no caminho correto, código antigo só migra na tarefa dedicada da regra de
-  higiene 4.1).
+Nenhum módulo `:pro:*` depende deste — o Pro usa `:pro:core:database`.
 
-## Riscos e mitigação
+## Componentes principais
 
-| Risco | Impacto | Mitigação |
-|---|---|---|
-| Caminho físico misto `io/veloo` (maioria) + `io/signallq` (`recommendation/`) | Duas convenções dentro do mesmo módulo | Não migrar oportunisticamente — parte da migração dedicada 4.1 |
-| Cobertura de teste baixa: `src/test` **1 arquivo**, `src/androidTest` **4 arquivos** (Room/DAO) frente ao papel central deste módulo | Migrações e queries sem characterization test isolado | Priorizar teste de migração/DAO ao tocar o schema |
+| Arquivo/classe | Responsabilidade |
+|---|---|
+| `src/main/kotlin/io/veloo/app/kotlin/core/database/SignallQDatabase.kt` | `@Database` com 8 entities, `version = 18`, `exportSchema = true`; expõe os 7 Daos |
+| `src/main/kotlin/io/veloo/app/kotlin/core/database/CoreDatabaseModulo.kt` (315 linhas) | define as 17 migrations e monta o `Room.databaseBuilder` (arquivo `linkaKotlin.db`) |
+| `src/main/kotlin/io/veloo/app/kotlin/core/database/MedicaoEntity.kt` / `MedicaoDao.kt` | histórico de medições de speedtest/monitoramento |
+| `src/main/kotlin/io/veloo/app/kotlin/core/database/ApelidoDispositivoEntity.kt` / `ApelidoDispositivoDao.kt` | apelido por MAC de dispositivo da rede local |
+| `src/main/kotlin/io/veloo/app/kotlin/core/database/chat/ChatSessionEntity.kt`, `ChatMessageEntity.kt`, `ChatSessionDao.kt` | sessões e mensagens do chat de diagnóstico |
+| `src/main/kotlin/io/signallq/app/core/database/recommendation/RecommendationHistoryEntity.kt` / `Dao` | histórico de exibições do Recommendation Engine (cooldown, limites, feedback — issues #790/#812) |
+| `src/main/kotlin/io/signallq/app/core/database/connectivity/ConnectivityDiagnosisHistoryEntity.kt` / `Dao` | histórico do diagnóstico de conectividade (GH#1512), só campos sanitizados |
+| `src/main/kotlin/io/signallq/app/core/database/provider/ProviderDirectoryCacheEntity.kt` / `Dao` | cache local do diretório remoto de provedores (GH#1462) |
+| `src/main/kotlin/io/signallq/app/core/database/analytics/AnalyticsOutboxEntity.kt` / `Dao` | outbox de eventos de analytics com retry (`enqueue`/`due`/`acknowledge`/`defer`/`clear`) |
+
+### Schema Room
+
+- **Versão atual:** `18`
+- **`exportSchema`:** `true`; `room.schemaLocation` = `$projectDir/schemas`, `room.incremental` = `true`
+- **Arquivo do banco:** `linkaKotlin.db` (nome legado, mantido para não quebrar bases instaladas)
+
+| Entity | Tabela real |
+|---|---|
+| `MedicaoEntity` | `medicao` |
+| `ApelidoDispositivoEntity` | `apelido_dispositivo` |
+| `ChatSessionEntity` | `chat_sessions` |
+| `ChatMessageEntity` | `chat_messages` |
+| `RecommendationHistoryEntity` | `recommendation_history` |
+| `ConnectivityDiagnosisHistoryEntity` | `connectivity_diagnosis_history` |
+| `ProviderDirectoryCacheEntity` | `provider_directory_cache` |
+| `AnalyticsOutboxEntity` | `analytics_outbox` |
+
+**Migrations:** 17 objetos `Migration`, de 1→2 até 17→18, todos registrados por `addMigrations` em `criarBanco`. Não há `fallbackToDestructiveMigration`. A última (`MIGRATION_17_18`, `internal`) cria `analytics_outbox` e seu índice `index_analytics_outbox_nextAttemptAtEpochMs`.
+
+**Testes de migration existentes** (`src/androidTest/.../`): `Migration9Para10Test`, `Migration13Para14Test`, `Migration14Para15Test`, `Migration15Para16Test`, `Migration16Para17Test`, `Migration17Para18Test` — 6 das 17 migrations têm teste dedicado. Também há `ChatSessionDaoTest`, `AnalyticsOutboxDaoTest` e `RecommendationHistoryDaoTest`.
+
+## Riscos e dívidas
+
+- **Schema `15.json` ausente:** `schemas/io.signallq.app.core.database.SignallQDatabase/` contém `10..14`, `16`, `17`, `18` — falta o `15.json`, apesar de `exportSchema = true`. Rompe a cadeia de validação automática de migrations nessa faixa.
+- **Schemas de nomes antigos ainda versionados:** `schemas/io.linka.app.kotlin.core.database.LinkaDatabase/` (`1..10`) e `schemas/io.signallq.app.core.database.VelooDatabase/` (`10.json`) permanecem no repositório — três nomes de banco na história do produto (Linka → Veloo → SignallQ).
+- **Nomes legados em produção:** o arquivo do banco continua `linkaKotlin.db`. Trocar exige migração de dados, não é rename cosmético.
+- **Caminho físico legado `io/veloo/`:** 18 dos 27 arquivos `.kt` do módulo estão sob `io/veloo/app/kotlin/...` embora declarem `package io.signallq...`. Inclui o próprio `SignallQDatabase.kt` e `CoreDatabaseModulo.kt`.
+- **Cobertura parcial de migrations:** 11 das 17 migrations não têm teste instrumentado dedicado (nenhuma de 1→2 a 8→9, nem 10→11..12→13).
+- Nenhum arquivo acima de 800 linhas (maior: `CoreDatabaseModulo.kt`, 315 linhas; `src/main` total: 17 arquivos, 933 linhas).

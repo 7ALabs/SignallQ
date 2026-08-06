@@ -1,62 +1,68 @@
-# Módulo :featureWifi
+---
+title: "Módulo :featureWifi"
+description: "Resumo textual do estado da conexão Wi-Fi e vocabulário de topologia (mesh, repetidor, AP) usado pela tela Sinal."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-06"
+---
 
-- **Status:** ativo (módulo hoje fino — a maior parte do domínio migrou para `:coreNetwork`)
-- **Última validação:** 2026-07-23 (fonte: `android/feature/wifi/build.gradle.kts`, código real)
-- **Fonte de verdade:** código real do módulo — em caso de divergência, vale o código
-- **Escopo:** módulo Gradle `:featureWifi` (alias legado; pasta física `android/feature/wifi/`)
-- **Responsável:** Camilo (dono da implementação Android), squad SignallQ mantém
+# `:featureWifi`
 
-## Visão geral
+- **Caminho físico:** `android/feature/wifi/` (alias flat legado)
+- **Namespace:** `io.signallq.app.feature.wifi`
 
-Módulo hoje **fino**: correção factual relevante desde a última auditoria (2026-07-16) — as classes
-antes descritas aqui (`ScannerRedesWifi`, `SnapshotScanWifi`, `TopologiaWifiEngine`,
-`MeshOuiDatabase`) **não existem mais neste módulo**. O código real migrou para
-`io.signallq.app.core.network.wifi`/`.topologia` em `:coreNetwork` (comentário no próprio código-
-fonte: "Tipo movido para coreNetwork/contracts — mantido aqui como typealias para não quebrar
-imports existentes"). `:featureWifi` hoje contém só a fábrica, o agrupamento de topologia local
-(`GrupoRedeWifi`/`RedeClassificada`) e o resumo textual da conexão Wi-Fi. Namespace declarado:
-`io.signallq.app.feature.wifi`.
+## Responsabilidade
 
-## Diagrama de componentes
+Traduz o `SnapshotRede` de `:coreNetwork` em um resumo apresentável do estado da conexão (`MontarResumoWifiUseCase` → `ResumoWifi`: título + detalhe por tipo de conexão) e expõe o vocabulário de topologia Wi-Fi consumido pela tela Sinal (`TipoTopologia`, `ConfiancaTopologia`, `RedeClassificada`, `GrupoRedeWifi`). Também reexporta, via `typealias`, os contratos `RedeVizinha`/`SegurancaWifi` que já migraram para `coreNetwork/contracts`.
 
-```
-:featureWifi (fino)
-FeatureWifiModulo — fábrica: criarScannerRedesWifi() delega para ScannerRedesWifi (:coreNetwork)
-GrupoRedeWifi — TipoTopologia, ConfiancaTopologia, RedeClassificada (agrupamento local)
-MontarResumoWifiUseCase — monta ResumoWifi a partir de SnapshotRede (:coreNetwork)
-RedeVizinha.kt — typealias para io.signallq.app.core.network.contracts.wifi.{RedeVizinha,SegurancaWifi}
-```
+Não é dele: varrer redes Wi-Fi (isso é `ScannerRedesWifi`, de `:coreNetwork` — o módulo só oferece uma factory que a instancia), classificar topologia de fato (`TopologiaRedeEngine`, também em `:coreNetwork`), renderizar a tela Sinal, nem gerenciar permissões de localização.
 
-## Componentes em detalhe
+## Dependências
 
-| Componente | Tipo | Responsabilidade |
+Extraídas de `android/feature/wifi/build.gradle.kts`.
+
+| Tipo | Dependência | Observação |
 |---|---|---|
-| `FeatureWifiModulo.kt` | Object | Fábrica — `criarScannerRedesWifi()` delega para `ScannerRedesWifi` de `:coreNetwork` |
-| `GrupoRedeWifi.kt` | Enum/Data class | `TipoTopologia` (ROTEADOR, ROTEADOR_MESH, NO_MESH, REPETIDOR, PONTO_DE_ACESSO, DESCONHECIDO), `ConfiancaTopologia`, `RedeClassificada` — agrupamento local de redes vizinhas por topologia |
-| `MontarResumoWifiUseCase.kt` | Use case | Monta `ResumoWifi` (título/detalhe textual) a partir de `SnapshotRede` |
-| `ResumoWifi.kt` | Data class | Resultado textual do use case acima |
-| `RedeVizinha.kt` | `typealias` | Reexporta `RedeVizinha`/`SegurancaWifi` de `:coreNetwork.contracts.wifi` — compatibilidade de import |
+| Plugin | `com.android.library` | — |
+| Plugin | `org.jetbrains.kotlin.android` | — |
+| `implementation` | `project(":coreNetwork")` | `SnapshotRede`, `EstadoConexao`, `ScannerRedesWifi`, contratos de `wifi` |
+| `implementation` | `libs.androidx.core.ktx` | — |
+| `implementation` | `libs.kotlinx.coroutines.android` | — |
+| `implementation` | `libs.timber` | log |
+| `testImplementation` | `libs.junit` | declarado, mas não há `src/test` no módulo |
+| `androidTestImplementation` | `libs.androidx.junit`, `libs.androidx.espresso.core` | não há `src/androidTest` |
 
-## Fluxo de dados principal
+Sem Hilt e sem Compose: o wiring é feito por `FeatureWifiModulo` (factories manuais) e consumido pelo `AppModule` do `:app`.
 
-- **Entradas:** `SnapshotRede`/`ScannerRedesWifi` (ambos hoje implementados em `:coreNetwork`,
-  apenas invocados via fábrica deste módulo).
-- **Saídas:** `ResumoWifi`, `RedeClassificada` consumidos por `:app` (tela Sinal).
+## Consumidores
 
-## Decisões arquiteturais (ADR)
+`grep` por `project(":featureWifi")` em `android/**/build.gradle.kts`:
 
-- **Depende só de `:coreNetwork`.** Libs: `androidx-core-ktx`, `kotlinx-coroutines-android`,
-  `timber`.
-- **Migração de domínio para `:coreNetwork` não documentada em ADR formal** — observada apenas pelo
-  comentário no código-fonte e pela ausência das classes antes descritas neste doc. Recomenda-se à
-  squad decidir se `:featureWifi` continua existindo como módulo fino (fábrica + agrupamento local)
-  ou se deveria ser absorvido por `:coreNetwork`/`:app`, já que hoje tem responsabilidade mínima
-  própria.
+| Consumidor | Arquivo |
+|---|---|
+| `:app` | `android/app/build.gradle.kts:312` |
 
-## Riscos e mitigação
+No código do `:app`, os tipos do módulo aparecem em `di/AppModule.kt`, `ui/screen/AppShellState.kt`, `ui/screen/HomeScreen.kt`, `ui/screen/SinalScreen.kt` e `ui/screen/SinalTopologiaHelpers.kt`.
 
-| Risco | Impacto | Mitigação |
+## Componentes principais
+
+| Arquivo / classe | Linhas | Responsabilidade |
 |---|---|---|
-| Módulo com responsabilidade própria mínima após a migração — risco de virar "módulo esqueleto" como `:featureHome`/`:featureSettings` eram antes de ganharem lógica própria | Ambiguidade sobre se o módulo ainda se justifica como `feature` separada | Decisão de squad: manter fino (fronteira de composição) ou consolidar |
-| `src/test`: **0 arquivos** (antes 5 — os testes de `TopologiaWifiEngine`/`ScannerRedesWifi` provavelmente migraram junto com o código para `:coreNetwork`, que também está sem teste próprio desses componentes) | Nenhuma cobertura de teste dedicada ao agrupamento de topologia (`GrupoRedeWifi`) nem em `:featureWifi` nem confirmadamente em `:coreNetwork` | Confirmar onde ficou (ou não) a cobertura de teste da classificação de topologia Wi-Fi; adicionar se realmente não existe mais em lugar nenhum |
-| Caminho físico `io/veloo` diverge do package declarado | Dívida 4.1 da regra de higiene | Não migrar oportunisticamente |
+| `android/feature/wifi/src/main/kotlin/io/veloo/app/kotlin/feature/wifi/MontarResumoWifiUseCase.kt` | 46 | Mapeia `EstadoConexao` (wifi/móvel/ethernet/desconectado/desconhecido) em título + detalhe; monta a string técnica `ssid=… bssid=… rssi=… link=… freq=…`. |
+| `android/feature/wifi/src/main/kotlin/io/veloo/app/kotlin/feature/wifi/GrupoRedeWifi.kt` | 24 | `TipoTopologia` (roteador, roteador mesh, nó mesh, repetidor, ponto de acesso, desconhecido), `ConfiancaTopologia`, `RedeClassificada`, `GrupoRedeWifi`. |
+| `android/feature/wifi/src/main/kotlin/io/veloo/app/kotlin/feature/wifi/FeatureWifiModulo.kt` | 11 | Factories: `criarMontarResumoWifiUseCase()` e `criarScannerRedesWifi(context)` (delega a `:coreNetwork`). |
+| `android/feature/wifi/src/main/kotlin/io/veloo/app/kotlin/feature/wifi/ResumoWifi.kt` | 7 | Data class de saída (`titulo`, `detalhe`). |
+| `android/feature/wifi/src/main/kotlin/io/veloo/app/kotlin/feature/wifi/RedeVizinha.kt` | 5 | Apenas `typealias` para `io.signallq.app.core.network.contracts.wifi.{RedeVizinha, SegurancaWifi}` — compatibilidade de imports após a migração para `coreNetwork`. |
+| `android/feature/wifi/src/main/AndroidManifest.xml` | — | `<manifest />` vazio. |
+
+Total de Kotlin no módulo: 93 linhas, todas em `src/main`.
+
+## Riscos e dívidas
+
+- **Zero testes.** O módulo declara `testImplementation(libs.junit)` mas **não possui diretório `src/test`**. `MontarResumoWifiUseCase` é lógica pura, 100% testável, e está descoberta.
+- **Regra de negócio dentro de Composable, no `:app`.** O agrupamento e a classificação de redes que dão sentido a `GrupoRedeWifi`/`RedeClassificada` são montados dentro de `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/SinalScreen.kt` (**3383 linhas**) — inclusive a construção literal de `RedeClassificada(..., TipoTopologia.DESCONHECIDO, ConfiancaTopologia.BAIXA, motivo = "")` na linha 1078. O módulo `:featureWifi` fornece só os tipos; a decisão vive na tela. `SinalTopologiaHelpers.kt` (221 linhas) e `SinalWifiScreen.kt` (221 linhas) também moram no `:app`.
+- **Desequilíbrio de massa:** 93 linhas no módulo contra ~3600 linhas de tela Wi-Fi/Sinal no `:app`. Mesma inconsistência de `:featureHome`.
+- **Caminho legado `io/veloo`:** diretório `src/main/kotlin/io/veloo/app/kotlin/feature/wifi/` com pacote `io.signallq.app.feature.wifi`.
+- **Regra de dependência entre features: respeitada.** Nenhum `project(":feature…")` no `build.gradle.kts`; a única dependência de projeto é `:coreNetwork`.
+- Nenhum arquivo acima de 800 linhas dentro do módulo.

@@ -1,247 +1,213 @@
-# Arquitetura — SignallQ (visão de sistema)
+---
+title: "Arquitetura — SignallQ consumer"
+description: "Visão de sistema, módulos Gradle e dependências, do código real"
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-06"
+---
 
-- **Status:** ativo
-- **Última validação:** 2026-07-23
-- **Fonte de verdade:** código real (`android/settings.gradle.kts`, `build.gradle.kts` de cada
-  módulo) — em caso de divergência com este documento, vale o código (ver
-  `.claude/rules/higiene-e-padronizacao-repositorio.md`, seção 3, "Precedência de fontes técnicas")
-- **Escopo:** app Android SignallQ (monorepo `7ALabs/SignallQ`) — os 16 módulos Gradle da linha
-  consumer, seus contratos entre si, e as integrações externas que o app consome. Não cobre os
-  módulos `:pro:*`/`:core:diagnostico`/`:core:relatorio` (linha SignallQ Pro) além do ponto onde eles
-  cruzam com a linha consumer (seção 4)
-- **Responsável:** Claudete (dono do processo de documentação viva), squad SignallQ
-  (Camilo/Lia/Rhodolfo/Juninho) aplica e mantém
-- **Documentos por módulo:** `docs_ai/ARQUITETURA/MODULOS/<nome>.md` — um por módulo Gradle real
+# Arquitetura — SignallQ consumer
+
+- **Fonte de verdade:** o código. Este documento é derivado dele, não o contrário. Os números do
+  bloco de inventário abaixo são **gerados** por `scripts/gerar-inventario-docs.sh`.
+- **Escopo:** app consumer Android (`io.signallq.app`) e sua relação com o backend Cloudflare.
+  Não cobre SignallQ Pro (on hold — `../pro-onhold/`), Admin (`buildea-admin`) nem web
+  (`signallq-web`).
+- **Detalhe por módulo:** `MODULOS/` — um documento por módulo Gradle consumer.
+
+<!-- INVENTARIO:INICIO — gerado por scripts/gerar-inventario-docs.sh, nao editar a mao -->
+
+> **Inventário gerado do código.** Não editar manualmente — rode
+> `scripts/gerar-inventario-docs.sh`. Cada número abaixo sai da fonte citada.
+
+| Fato | Valor | Fonte |
+|---|---|---|
+| versionName / versionCode (consumer) | **0.31.0** / **72** | `android/gradle/libs.versions.toml` |
+| proVersionName / proVersionCode | 0.3.0 / 8 | `android/gradle/libs.versions.toml` |
+| compileSdk / minSdk / targetSdk | 37 / 24 / 36 | `android/gradle/libs.versions.toml` |
+| Compose BOM · Room · Hilt | 2026.06.01 · 2.8.4 · 2.60.1 | `android/gradle/libs.versions.toml` |
+| Módulos Gradle | **28** — 19 consumer + 9 Pro | `android/settings.gradle.kts` |
+| Workers Cloudflare | 5 | `integrations/cloudflare/*/wrangler.toml` |
+| Tabelas D1 | 38 — 20 admin + 18 diagnostic | `*/migrations/*.sql`, `*/schema.sql` |
+| Contratos OpenAPI | 7 contratos · **122** endpoints | `docs_ai/CONTRATOS/openapi/` |
+| Arquivos `.kt` em caminho legado `io/veloo` | 527 (sendo 362 em `src/main`) | dívida conhecida — higiene §4.1 |
+
+**Módulos consumer (19):** :app :core:diagnostico :core:featureflags :core:relatorio :coreDatabase :coreDatastore :coreNetwork :corePermissions :coreRecommendation :coreTelephony :featureDevices :featureDiagnostico :featureDns :featureFibra :featureHistory :featureHome :featureSettings :featureSpeedtest :featureWifi
+
+**Módulos Pro (9, on hold):** :pro:app :pro:core:database :pro:core:designsystem :pro:feature:ambiente :pro:feature:auth :pro:feature:cliente :pro:feature:laudo :pro:feature:medicao-diagnostico :pro:feature:visita
+
+**Workers:**
+
+| Diretório | `name` no wrangler |
+|---|---|
+| `ai-diagnosis-worker` | `linka-ai-diagnosis-worker` |
+| `game-latency-probe-worker` | `signallq-game-latency-probe` |
+| `signallq-admin-worker` | `signallq-admin` |
+| `signallq-diagnostic-worker` | `signallq-diagnostic` |
+| `signallq-privacy-worker` | `signallq-privacy` |
+
+**Contratos:**
+
+| Arquivo | Versão | Endpoints |
+|---|---|---:|
+| `ai-diagnosis-worker.yaml` | 2 | 2 |
+| `game-latency-probe-worker.yaml` | 1 | 2 |
+| `signallq-admin-api.yaml` | 2.1.0 | 59 |
+| `signallq-analytics-events.yaml` | 1.0.0 | 5 |
+| `signallq-diagnostic-worker.yaml` | 1 | 43 |
+| `signallq-integrations-api.yaml` | 1.0.0 | 9 |
+| `signallq-privacy-worker.yaml` | 1 | 2 |
+
+<!-- INVENTARIO:FIM -->
 
 ---
 
 ## 1. Visão geral
 
-O SignallQ é um app Android de diagnóstico de conectividade. O usuário roda testes locais (Wi-Fi,
-velocidade, DNS, sinal móvel, fibra) e opcionalmente uma análise assistida por IA; o app persiste
-histórico localmente e observa a rede em background para alertar sobre degradação.
+App Android nativo de diagnóstico de conectividade. Mede velocidade, analisa Wi-Fi e rede móvel,
+lê modem/ONT de fibra, testa DNS e interpreta tudo isso em veredito humano — por um motor
+determinístico local e, opcionalmente, por um Worker de IA.
 
-A linha consumer é composta por **16 módulos Gradle** validados em `android/settings.gradle.kts`:
-`:app` + 6 módulos `core/*` (infraestrutura compartilhada) + 9 módulos `feature/*` (domínio de cada
-funcionalidade). Desde a issue #1157 (Fase 1a, SignallQ Pro), parte do domínio de diagnóstico e de
-geração de PDF foi extraída para dois módulos novos e compartilhados com a linha Pro —
-`:core:diagnostico` e `:core:relatorio` — hoje consumidos também por `:featureDiagnostico`,
-`:featureHistory` e `:app` (ver seção 4).
-
-## 2. Diagrama de componentes
+Quatro camadas:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      Dispositivo Android                     │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │  App SignallQ (io.signallq.app)                        │  │
-│  │  UI (Compose) → MainViewModel → Serviços/Engines/Repos  │  │
-│  │  Room (SQLite) · DataStore · WorkManager · Hilt DI      │  │
-│  └───────────┬─────────────────────────────┬───────────────┘  │
-│              │ HTTP                        │ APIs do SO       │
-└──────────────┼──────────────────────────────┼──────────────────┘
-               ▼                              ▼
-    ┌──────────────────────┐      ConnectivityManager · WifiManager
-    │  Cloudflare Workers   │      TelephonyManager · NetworkInterface
-    │  - linka-ai-diagnosis │      (Wi-Fi vizinho, sinal móvel, ARP/mDNS)
-    │    -worker (IA)       │
-    │  - signallq-diagnostic│
-    │    (motor remoto +    │      Modem GPON Nokia (HTTP local, LAN)
-    │    diretório provedor)│
-    │  - signallq-admin     │      Google Play (avaliação nativa, Ads/UMP)
-    │    (ingest métricas)  │
-    │  - game-latency-probe │
-    └──────────┬────────────┘
-               ▼
-    ┌──────────────────────┐
-    │  Gemini 2.0 Flash     │  (primário, com GEMINI_API_KEY)
-    │  Qwen3 30B MoE FP8    │  (fallback Cloudflare Workers AI)
-    └──────────────────────┘
-
-    Firebase (projeto signallq-app): Analytics, Crashlytics, Remote Config,
-    App Distribution — fora do fluxo de diagnóstico, mas integrado ao :app.
+│  :app          UI (Compose), navegação, DI, composição      │
+│                ↑ TODA a UI vive aqui — ver §4               │
+├─────────────────────────────────────────────────────────────┤
+│  :feature*     motores e vocabulário por domínio            │
+│                (9 módulos — sem Composable)                 │
+├─────────────────────────────────────────────────────────────┤
+│  :core*        infraestrutura compartilhada                 │
+│                (9 módulos — rede, banco, prefs, permissões, │
+│                 telefonia, recomendação, diagnóstico,       │
+│                 relatório, feature flags)                   │
+└─────────────────────────────────────────────────────────────┘
+                              ↕ HTTPS
+┌─────────────────────────────────────────────────────────────┐
+│  Cloudflare    5 Workers · 2 bancos D1                      │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## 3. Componentes em detalhe
+## 2. Regras de dependência
 
-### 3.1 App Android (16 módulos Gradle — linha consumer)
+1. `:feature*` **nunca** depende de outra `:feature*` — composição acontece em `:app` ou por
+   contrato normalizado em um `core`.
+2. `:core*` não depende de `:feature*`.
+3. `:app` pode depender de tudo.
+4. `:core:featureflags` é exclusivo do consumer — proibido para `:pro:*`.
 
-| Camada | Módulos | Papel |
+**Duas violações da regra 1 existem hoje:**
+
+| Violação | Onde | Uso real |
 |---|---|---|
-| `:app` | 1 | composição, navegação, DI de aplicação, `MainViewModel` (único ViewModel raiz) |
-| `core/*` | 6 | infraestrutura compartilhada e contratos normalizados |
-| `feature/*` | 9 | domínio de cada funcionalidade (estado, casos de uso, componentes exclusivos) |
+| `:featureDiagnostico` → `:featureSpeedtest` | `android/feature/diagnostico/build.gradle.kts:62` | `SignallQOrchestrator.kt` importa `ExecutorSpeedtest`, `ResultadoSpeedtest`, `ModoSpeedtest`, `SpeedtestQualityClassifier` |
+| `:pro:feature:medicao-diagnostico` → `:featureSpeedtest` | `android/pro/feature/medicao-diagnostico/build.gradle.kts:69` | mesma dependência, do lado Pro (on hold) |
 
-Ver seção 5 da regra de higiene (`.claude/rules/higiene-e-padronizacao-repositorio.md`) para a
-convenção completa de responsabilidade de módulo — não duplicada aqui.
+Não são acidentes de import: o acoplamento é profundo. O destino correto é extrair o contrato de
+speedtest para um `core` — tarefa dedicada, não correção oportunista.
 
-### 3.2 Cloudflare Workers (`integrations/cloudflare/`)
+O contraexemplo de como fazer certo está em `:featureHome`, que precisa de dados de medição e
+**não** depende de `:featureSpeedtest`: define uma struct genérica (`ResolvedorMedicaoHome`) e
+empurra a adaptação para `HomeMedicaoAdapter.kt`, em `:app`.
 
-| Worker | Consumido por | Função |
+## 3. Módulos
+
+### `:core*` — infraestrutura (9)
+
+| Módulo | Papel | Observação |
 |---|---|---|
-| `linka-ai-diagnosis-worker` | `:featureDiagnostico` (`AiDiagnosisRepository`) | Análise LLM de diagnóstico (Gemini 2.0 Flash primário, Qwen3 fallback) |
-| `signallq-diagnostic` | `:featureDiagnostico` (`BuildConfig.DIAGNOSTIC_WORKER_URL`) | Motor de diagnóstico remoto + diretório de provedores (logo de operadora) |
-| `signallq-admin-worker` | `:app` (`BuildConfig.ADMIN_INGEST_URL`) | Ingest de métricas para o SignallQ Console |
-| `game-latency-probe-worker` | `:app` (`BuildConfig.GAME_LATENCY_PROBE_URL`) | Sonda regional TCP/HTTPS para a tela Jogos |
+| `:coreNetwork` | Sondagens de rede, contratos de analytics | **Sem lib HTTP** — `HttpURLConnection`/`Socket`/`InetAddress` amarrados à `Network` sob análise. Maior e mais consumido: 9 consumidores |
+| `:coreDatabase` | Room — histórico, outbox de analytics | Schema **v18**, 8 entidades, 7 DAOs, 17 migrations encadeadas |
+| `:coreDatastore` | Preferências do usuário, credenciais de modem | DataStore `linkaPreferencias` |
+| `:corePermissions` | Fluxo de permissões de rede | Sem testes |
+| `:coreTelephony` | Rede móvel (RSRP/RSRQ/SINR) | Exige só `READ_PHONE_STATE`; não usa IMEI/IMSI |
+| `:coreRecommendation` | Motor de recomendação por tags | **Único módulo fisicamente em `io/signallq/`** |
+| `:core:diagnostico` | Motor canônico de diagnóstico | Compartilhado com o Pro |
+| `:core:relatorio` | Paginação HTML→PDF | Compartilhado com o Pro; 194 linhas, **zero testes** |
+| `:core:featureflags` | Flags remotas do consumer | 11 flags no catálogo; proibido para `:pro:*` |
 
-### 3.3 Firebase (projeto `signallq-app`)
+Os seis primeiros são **aliases flat legados** (`:coreNetwork`) com `projectDir` remapeado para
+pasta hierárquica (`core/network`). Os três últimos nasceram já hierárquicos (`:core:diagnostico`).
+Renomear os legados para `:core:network` é migração dedicada — afeta CI, scripts e documentação.
 
-Analytics (events), Crashlytics (error logs), Remote Config, App Distribution (canal de release
-debug/release). Não usa Realtime Database.
+### `:feature*` — domínios (9)
 
-## 4. Fluxo de dados principal
-
-```
-UI (Composables)
-    ↑ StateFlow.collectAsStateWithLifecycle()
-MainViewModel (@HiltViewModel — único ViewModel raiz, em :app)
-    ↑ dependências injetadas via Hilt (AppModule)
-Serviços / Repositórios / Engines / Use Cases (core/* e feature/*)
-    ↑ Room / DataStore / ConnectivityManager / TelephonyManager / WifiManager / OkHttp
-```
-
-Fluxo unidirecional: evento da UI → função no `MainViewModel` → atualiza `StateFlow` → recomposição
-da UI. Cada `StateFlow` é criado no `MainViewModel` e coletado individualmente por tela — não há
-estado global de UI.
-
-Principais streams (detalhe em `docs_ai/ARQUITETURA/MODULOS/app.md`):
-
-```
-MonitorRedeAndroid (:coreNetwork)      → snapshotRede        → HomeScreen, SpeedTestScreen, SinalScreen
-ExecutorSpeedtest (:featureSpeedtest)  → snapshotSpeedtest    → VelocidadeScreen, ResultadoVelocidadeScreen
-DiagnosticOrchestrator (:featureDiagnostico) → snapshotDiagnostico → diagnóstico inline em ResultadoVelocidadeScreen
-```
-
-> Correção (2026-07-16, revalidada 2026-07-23): `DiagnosticoScreen`, `ChatScreen`/`LLMChatScreen`
-> citadas em versões anteriores deste documento não existem mais no código — o diagnóstico assistido
-> por IA hoje é inline em `ResultadoVelocidadeScreen` via `AnalisadorEntryRow`/
-> `AnaliseDetalhadaBottomSheet` (turno único, sem chat contínuo). Ver `docs_ai/FUNCIONAL.md` seção
-> 4.2 para o fluxo completo.
-
-### 4.1 Diagrama de dependências entre módulos
-
-Gerado a partir dos `implementation(project(":..."))` reais em cada `build.gradle.kts` (revalidado em
-2026-07-23). Módulos sem seta de saída não dependem de nenhum outro módulo do monorepo.
-
-```mermaid
-graph TD
-    APP[":app"]
-
-    subgraph core
-        coreNetwork[":coreNetwork"]
-        coreDatabase[":coreDatabase"]
-        coreDatastore[":coreDatastore"]
-        corePermissions[":corePermissions"]
-        coreTelephony[":coreTelephony"]
-        coreRecommendation[":coreRecommendation"]
-    end
-
-    subgraph feature
-        featureHome[":featureHome"]
-        featureWifi[":featureWifi"]
-        featureDevices[":featureDevices"]
-        featureDns[":featureDns"]
-        featureSpeedtest[":featureSpeedtest"]
-        featureDiagnostico[":featureDiagnostico"]
-        featureFibra[":featureFibra"]
-        featureHistory[":featureHistory"]
-        featureSettings[":featureSettings"]
-    end
-
-    subgraph pro["linha SignallQ Pro (fora do escopo deste doc)"]
-        coreDiagnosticoPro[":core:diagnostico"]
-        coreRelatorioPro[":core:relatorio"]
-    end
-
-    APP --> coreNetwork
-    APP --> corePermissions
-    APP --> coreDatabase
-    APP --> coreDatastore
-    APP --> coreTelephony
-    APP --> coreRecommendation
-    APP --> featureHome
-    APP --> featureWifi
-    APP --> featureDevices
-    APP --> featureDns
-    APP --> featureSpeedtest
-    APP --> featureDiagnostico
-    APP --> featureFibra
-    APP --> featureHistory
-    APP --> featureSettings
-    APP -.->|"cross-linha (GH#1157)"| coreDiagnosticoPro
-    APP -.->|"cross-linha (GH#1164)"| coreRelatorioPro
-
-    featureWifi --> coreNetwork
-    featureFibra --> coreNetwork
-    featureSpeedtest --> coreNetwork
-    featureSpeedtest --> coreDatastore
-    featureSpeedtest --> coreTelephony
-    featureDevices --> coreDatabase
-    featureDevices --> coreDatastore
-    featureDevices --> coreNetwork
-    featureHistory --> coreDatabase
-    featureHistory -.->|"cross-linha (GH#1164)"| coreRelatorioPro
-    featureDiagnostico --> coreDatabase
-    featureDiagnostico --> coreDatastore
-    featureDiagnostico --> coreNetwork
-    featureDiagnostico --> coreRecommendation
-    featureDiagnostico -.->|"cross-linha (GH#1157)"| coreDiagnosticoPro
-    featureDiagnostico -.->|"VIOLAÇÃO: feature→feature"| featureSpeedtest
-```
-
-**Nota sobre a aresta pontilhada feature→feature:** `:featureDiagnostico` declara
-`implementation(project(":featureSpeedtest"))` — dependência direta de feature para feature, o que
-contraria a regra 4.5 da regra de higiene ("Features não podem depender diretamente de outras
-features"). Registrado como dívida real, não corrigida nesta tarefa (documentação read-only). Ver
-seção 6.
-
-**Nota sobre as arestas cross-linha (novo, 2026-07-23):** desde a issue #1157 (Fase 1a do MVP0
-SignallQ Pro), os motores de diagnóstico por domínio (`FindingEngine`, `ScoreEngine`,
-`InternetDiagnosticEngine`, `DnsDiagnosticEngine`, `FibraSignalQualityEngine`,
-`HistoricalDegradationEngine`, `MobileSignalDiagnosticEngine`, modelos `DiagnosticInput`/
-`DiagnosticReport`/`DiagnosticResult`) foram extraídos de `:featureDiagnostico` para o módulo
-compartilhado `:core:diagnostico` — hoje consumidos tanto pela linha consumer quanto pela linha Pro.
-Da mesma forma, `PdfPrintHelper`/`WebViewHtmlPdfExporter` (antes em `:featureHistory`) foram
-extraídos para `:core:relatorio` (issue #1164). Isso significa que dois módulos de domínio nascidos
-como Pro-only hoje têm consumidor real na linha consumer — não é dívida, é reaproveitamento
-intencional (ver `docs_ai/pro-onhold/13_SignallQ_Pro_Arquitetura_e_Reaproveitamento_v1.md`), mas
-qualquer mudança em `:core:diagnostico`/`:core:relatorio` passa a ter blast radius nos dois produtos.
-
-## 5. Decisões arquiteturais (ADR)
-
-- **Navegação sem rotas por URI.** `AppShell.kt` (em `:app`) gerencia o índice da aba selecionada via
-  estado, sem Navigation Component com rotas por URI para a navegação principal. 5 abas: Início,
-  Velocidade, Sinal, Histórico, **Ferramentas** (substituiu a antiga aba Ajustes). Fluxos secundários
-  (Diagnóstico/IA inline, Dispositivos, Fibra/Equipamento de Internet, Laudo, Ping, DNS, Jogos,
-  Perfil, Privacidade, Novidades, Onboarding) são overlays via `AnimatedVisibility`, controlados pela
-  pilha `overlayStack`/estado booleano no `MainViewModel` — não são rotas de navigation separadas.
-  Ajustes virou o overlay "Perfil", acessado pelo avatar no TopBar de qualquer aba (GH#930/#936). Ver
-  `docs_ai/FUNCIONAL.md` seção 2 para o detalhe completo.
-- **Único `ViewModel` raiz (`MainViewModel`) em `:app`.** Cada `feature/*` expõe estado/regra de
-  domínio própria (interfaces, use cases, state holders como `DevicesViewModel`/`SpeedtestViewModel`),
-  mas a composição de estado exposta à UI principal é centralizada — decisão original do produto,
-  não revisitada nesta auditoria.
-- **Domínio de diagnóstico e de PDF extraídos para módulos compartilhados com a linha Pro.**
-  `:core:diagnostico` (engines por domínio) e `:core:relatorio` (motor de paginação HTML→PDF) nasceram
-  na issue #1157/#1164 para viabilizar reaproveitamento entre consumer e Pro sem duplicar motor —
-  ver seção 4.1.
-- **Persistência:** Room (`SignallQDatabase`, versão real **14**, confirmada em
-  `core/database/.../SignallQDatabase.kt`) para dados estruturados (medições, apelidos de
-  dispositivos, sessões/mensagens de chat, histórico de recomendações); DataStore Preferences
-  (`linkaPreferencias`) para preferências do usuário — ver `docs_ai/TECNICO.md` seção 8.1 para a
-  história dos 3 nomes de banco (Linka/Veloo/SignallQ).
-- **Integrações externas:** Cloudflare Workers (seção 3.2); Firebase Analytics/Crashlytics/Remote
-  Config/App Distribution (projeto `signallq-app`); Google Play (avaliação nativa `libs.play.review`,
-  Google Mobile Ads SDK + UMP com gate de consentimento obrigatório); modem GPON Nokia via HTTP
-  direto na rede local (`:featureFibra`), sem passar por backend próprio.
-
-## 6. Riscos e mitigação
-
-| Risco | Impacto | Mitigação |
+| Módulo | Produção | Papel |
 |---|---|---|
-| Caminho físico `io/veloo` vs. package `io.signallq.app` (dívida 4.1 da regra de higiene) — a maioria dos arquivos `.kt` da linha consumer ainda reside fisicamente em `io/veloo/app/kotlin/...` apesar de declarar `package io.signallq.app...`; parte de `:coreDatabase` (subpacote `recommendation/`) e todo `:coreRecommendation` já nasceram no caminho correto `io/signallq/` | Confuso para navegação/onboarding; risco de duas árvores físicas concorrentes se migrado oportunisticamente | Migração dedicada e atômica (não oportunista) — ver `.claude/rules/higiene-e-padronizacao-repositorio.md`, seção 4.1 |
-| Violação real de dependência feature→feature (`:featureDiagnostico` → `:featureSpeedtest`) | Contraria a regra 4.5; acopla dois domínios que deveriam se comunicar via `:app` ou contrato `core` | Extrair contrato normalizado (ex. `SnapshotExecucaoSpeedtest` já é candidato) para um módulo `core`, ou mover a composição para `:app` |
-| `MainViewModel.kt` (**2285 linhas**, GH conhecido) e `AppShell.kt` (**1241 linhas**) acima do limiar de "dívida crítica" (seção 7 da regra de higiene) | Concentração de responsabilidade, risco de regressão em qualquer mudança | Extrair por responsabilidade ao tocar — ver `docs_ai/ARQUITETURA/MODULOS/app.md` e seção 4.2/4.3 da regra de higiene |
-| `:coreRecommendation` pronta (issue #790) mas ainda não integrada a monetização real (AdMob/afiliados) | Engine mantida sem uso de produto completo | Fora de escopo desta auditoria — acompanhar decisão de produto |
-| Cross-dependência nova consumer↔Pro via `:core:diagnostico`/`:core:relatorio` (seção 4.1) | Mudança em módulo Pro-shared pode quebrar consumer silenciosamente e vice-versa | Tratar os dois módulos como infraestrutura compartilhada real (não "só Pro") ao revisar PR que os toque; considerar checklist de dois produtos |
-| Aliases Gradle legados (`:coreNetwork` em vez de `:core:network`) | Inconsistência com o padrão hierárquico adotado pelos módulos novos (`:core:diagnostico`, `:pro:*`) | Migração desejada mas não executada — ver regra de higiene seção 5, não fazer oportunisticamente |
+| `:featureSpeedtest` | motor de medição | `ExecutorSpeedtestCloudflare.kt` tem **1495 linhas**, sem teste direto |
+| `:featureDiagnostico` | orquestração + IA | Cliente do Worker de IA e do ingest de analytics |
+| `:featureDevices` | scanner da rede local | O mais maduro: 2033 linhas de produção, 1487 de teste |
+| `:featureFibra` | leitura de ONT GPON | Um único driver real: Nokia G-1425G-B |
+| `:featureDns` | comparação de resolvedores | Sem ViewModel próprio — estado vai direto ao `MainViewModel` |
+| `:featureHistory` | histórico e exportação | **Dois motores de PDF ativos em paralelo** |
+| `:featureWifi` | vocabulário de Wi-Fi | 93 linhas; a classificação real está em `SinalScreen.kt` |
+| `:featureHome` | resolução de medição da Home | 67 linhas; exemplo canônico da regra de dependência |
+| `:featureSettings` | regras de ajustes | 203 linhas, zero dependências, zero UI — **não é feature**, é biblioteca de regras puras; destino natural é um `core` |
+
+## 4. A inconsistência principal: UI fora das features
+
+**Nenhum dos 9 módulos `:feature*` contém um único `@Composable`.** Toda a interface vive em
+`android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/`.
+
+Consequência direta: as features viraram bibliotecas de motor e vocabulário, e `:app` concentra
+40.017 linhas em 150 arquivos, com dez acima de 800 linhas:
+
+| Arquivo | Linhas |
+|---|---:|
+| `SinalScreen.kt` | 3383 |
+| `HomeScreen.kt` | 2967 |
+| `MainViewModel.kt` | 2438 |
+| `DispositivosScreen.kt` | 1380 |
+| `DnsScreen.kt` | 815 |
+
+Isso puxa efeitos concretos: `:featureWifi` tem 93 linhas porque a classificação de redes é montada
+dentro de `SinalScreen.kt` (que chega a construir `RedeClassificada(...)` inline na linha 1078); e
+`:featureDns` não tem ViewModel porque o `MainViewModel` monolítico assume o estado.
+
+O destino arquitetural é mover cada tela para o módulo da sua feature. É migração dedicada, por
+tela, com teste de caracterização antes — ver `.claude/rules/higiene-e-padronizacao-repositorio.md`
+§4 para o registro de cada arquivo crítico.
+
+## 5. Fluxo de dados
+
+**Medição:** `:app` dispara → `:featureSpeedtest` executa → resultado classificado por
+`:core:diagnostico` → persistido por `:coreDatabase` → recomendação por `:coreRecommendation` →
+renderizado por `:app`.
+
+**Diagnóstico com IA:** `:featureDiagnostico` monta payload → `POST` ao `ai-diagnosis-worker` →
+resposta v2 → fallback local determinístico em qualquer falha (sem auth, timeout, não-2xx, JSON
+inválido).
+
+**Analytics:** cada evento vai **simultaneamente** ao Firebase e a uma outbox Room local; um
+processador com backoff drena a outbox para `POST /ingest/analytics` no `signallq-admin-worker`,
+que grava em D1. Não há Cloudflare Queue — a ingestão é HTTP síncrono direto para D1.
+
+## 6. Backend Cloudflare
+
+5 Workers. Dois têm banco D1 próprio: `signallq-admin` (20 tabelas) e `signallq-diagnostic`
+(18 tabelas). O nome declarado no `wrangler.toml` difere do nome do diretório em **todos os cinco**
+— conferir a tabela do inventário acima antes de fazer deploy.
+
+Contratos em `../CONTRATOS/openapi/`.
+
+## 7. Riscos arquiteturais
+
+| Risco | Evidência | Efeito |
+|---|---|---|
+| UI monolítica em `:app` | 5 arquivos acima de 800 linhas, `SinalScreen.kt` com 3383 | Features anêmicas; mudança visual exige tocar arquivo gigante |
+| Feature→feature | 2 violações confirmadas (§2) | Grafo de dependências deixa de ser acíclico por camada |
+| Caminho físico legado `io/veloo` | Todos os módulos exceto `:coreRecommendation` | Duas árvores concorrentes; `:featureDiagnostico` já tem as duas no mesmo source set |
+| Três mecanismos de feature flag | `:core:featureflags` + `FeatureFlagProvider` legado em `:coreNetwork` + Firebase Remote Config | Colisão de nome e ambiguidade sobre qual vence |
+| Dois motores de PDF | `:featureHistory` usa `PdfDocument` e HTML→WebView via `:core:relatorio` | Manutenção dupla |
+| Versão de dependência fora do catálogo | `:featureDevices` fixa `okhttp:5.4.0` no build | Pode divergir do `libs.okhttp` dos demais |
+| Schema Room sem `15.json` | `core/database/schemas/` tem 10–14, 16, 17, 18 | Migration 14→15 não verificável por diff de schema |
+| `:core:diagnostico` não é Kotlin puro | `build.gradle.kts` declara "zero `android.*`", mas `topology/` faz HTTP e `Runtime.exec("/system/bin/ping")` | Contrato do módulo não corresponde ao conteúdo |
+| Credencial de modem em claro | `CredenciaisModemStore` cai para `SharedPreferences` sem cifra em `catch (_: Exception)` genérico quando o AndroidKeyStore falha | Exposição de senha de roteador — ver `../TECNICO.md` §6 |
+
+## 8. Decisões arquiteturais relacionadas
+
+`ADR-003` DispatcherProvider por injeção · `ADR-004` estrutura multi-módulo · `ADR-008` features
+novas D1-only · `ADR-011` motor canônico de diagnóstico, fase 0 · `ADR-012` `executionId`/
+`rulesVersion` · `ADR-013` unificação de latência/perda/upload. Todos em `../decisions/`.

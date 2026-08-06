@@ -1,51 +1,61 @@
-# Módulo :corePermissions
+---
+title: "Módulo :corePermissions"
+description: "Avaliação do estado das permissões de rede (localização fina e NEARBY_WIFI_DEVICES) sem acoplar a UI ao framework."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-06"
+---
 
-- **Status:** ativo
-- **Última validação:** 2026-07-23 (fonte: `android/core/permissions/build.gradle.kts`, código real)
-- **Fonte de verdade:** código real do módulo — em caso de divergência, vale o código
-- **Escopo:** módulo Gradle `:corePermissions` (alias legado; pasta física `android/core/permissions/`)
-- **Responsável:** Camilo (dono da implementação Android), squad SignallQ mantém
+# `:corePermissions`
 
-## Visão geral
+- **Caminho físico:** `android/core/permissions/` (alias flat legado — `projectDir` remapeado em `settings.gradle.kts`)
+- **Namespace:** `io.signallq.app.core.permissions`
+- **Tipo:** biblioteca Android
 
-Contrato e estado de permissões de rede em runtime (localização para scan Wi-Fi, telefonia para
-sinal móvel, etc.). Namespace declarado: `io.signallq.app.core.permissions`.
+## Responsabilidade
 
-## Diagrama de componentes
+Responde a uma pergunta só: quais permissões relevantes para operações de rede já estão concedidas e quais faltam. Expõe o contrato `GerenciadorPermissoesRede` (`avaliar()` → `SnapshotPermissoesRede`, `listarPermissoesPendentes()`) e o utilitário `LocationPermissionHelper`, encapsulando as diferenças de API level (`NEARBY_WIFI_DEVICES` só existe a partir do Android 13/TIRAMISU).
 
-```
-:corePermissions (io/veloo/ — caminho legado)
-GerenciadorPermissoesRede (interface) → GerenciadorPermissoesRedeAndroid (impl)
-    ↳ SnapshotPermissoesRede (estado), EstadoPermissao (enum), LocationPermissionHelper (utilitário)
-```
+Não é dele: **solicitar** permissão ao usuário — quem dispara o launcher e desenha a sheet de justificativa é a UI em `:app`/features. Também não declara nenhuma permissão no próprio manifesto (o `AndroidManifest.xml` do módulo é vazio) e não conhece Wi-Fi, telefonia ou rede em si.
 
-## Componentes em detalhe
+## Dependências
 
-| Componente | Tipo | Responsabilidade |
-|---|---|---|
-| `GerenciadorPermissoesRede.kt` | Interface | Contrato de gerenciamento de permissões |
-| `GerenciadorPermissoesRedeAndroid.kt` | Implementação | Implementação real via APIs Android |
-| `SnapshotPermissoesRede.kt` | Data class | Estado atual das permissões |
-| `EstadoPermissao.kt` | Enum | Estados possíveis de uma permissão |
-| `LocationPermissionHelper.kt` | Utilitário | Apoio à checagem/solicitação de permissão de localização |
+| Módulo/lib | Para quê |
+|---|---|
+| `androidx.core.ktx` | `ContextCompat.checkSelfPermission` |
+| `junit` (test) | declarada, mas sem nenhum teste no módulo |
+| `androidx.junit`, `androidx.espresso.core` (androidTest) | scaffolding padrão, sem teste instrumentado |
 
-## Fluxo de dados principal
+É o módulo mais enxuto dos seis: nenhuma dependência de outro módulo do monorepo, nenhuma dependência de coroutines.
 
-- **Entradas:** resultado de solicitações de permissão do Android (`ActivityResultContracts`,
-  chamado a partir de `:app`).
-- **Saídas:** `SnapshotPermissoesRede` consumido por `:app` para decidir quais telas/recursos
-  habilitar.
+## Consumidores
 
-## Decisões arquiteturais (ADR)
+| Módulo | Tipo |
+|---|---|
+| `:app` | `implementation` |
+| `:pro:feature:auth` | `implementation` |
+| `:pro:feature:medicao-diagnostico` | `implementation` |
 
-- **Nenhuma dependência de outro módulo do monorepo.** Libs: `androidx-core-ktx`.
-- **Apenas `:app` consome este módulo** (confirmado via grep de `project(":corePermissions")`) —
-  nenhuma feature declara dependência direta; a implementação concreta e o wiring de permissões
-  concentram-se em `:app`.
+Observação: nenhum módulo `:feature*` do Consumer depende dele diretamente — o consumo passa por `:app`.
 
-## Riscos e mitigação
+## Componentes principais
 
-| Risco | Impacto | Mitigação |
-|---|---|---|
-| Módulo pequeno (5 arquivos) sem nenhum teste (`src/test`: 0) | Regra de permissão sem cobertura automatizada | Adicionar teste ao tocar `GerenciadorPermissoesRedeAndroid` |
-| Caminho físico `io/veloo` diverge do package declarado | Dívida 4.1 da regra de higiene | Não migrar oportunisticamente |
+| Arquivo/classe | Responsabilidade |
+|---|---|
+| `src/main/kotlin/io/veloo/app/kotlin/core/permissions/GerenciadorPermissoesRede.kt` | contrato: `avaliar()` e `listarPermissoesPendentes()` |
+| `src/main/kotlin/io/veloo/app/kotlin/core/permissions/GerenciadorPermissoesRedeAndroid.kt` (56 linhas) | implementação sobre `ContextCompat`; trata `NEARBY_WIFI_DEVICES` como concedida abaixo da API 33 |
+| `src/main/kotlin/io/veloo/app/kotlin/core/permissions/SnapshotPermissoesRede.kt` | `data class` com `localizacaoFina` + `nearbyWifi` e o predicado `estaAptoParaScanRede()` |
+| `src/main/kotlin/io/veloo/app/kotlin/core/permissions/EstadoPermissao.kt` | enum `concedida` / `negada` |
+| `src/main/kotlin/io/veloo/app/kotlin/core/permissions/LocationPermissionHelper.kt` (43 linhas) | `object` utilitário: aceita `ACCESS_FINE_LOCATION` ou fallback `ACCESS_COARSE_LOCATION`; lista as duas em `permissoesAoSolicitar()` |
+| `src/main/kotlin/io/veloo/app/kotlin/core/permissions/CorePermissionsModulo.kt` | fábrica manual `criarGerenciadorPermissoesRede(context)` |
+
+Permissões avaliadas: `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION` (só no helper) e `NEARBY_WIFI_DEVICES`.
+
+## Riscos e dívidas
+
+- **Zero testes:** 0 arquivos em `src/test` e `src/androidTest` para 135 linhas de `src/main`, apesar de `junit`/`androidx.junit`/`espresso` estarem declarados. É o único dos seis módulos `core` legados sem nenhum teste.
+- **Caminho físico legado `io/veloo/`:** todos os 6 arquivos `.kt` estão sob `io/veloo/app/kotlin/core/permissions/` embora declarem `package io.signallq.app.core.permissions`.
+- **Dois modelos concorrentes de localização:** `GerenciadorPermissoesRedeAndroid` exige `ACCESS_FINE_LOCATION` estrita; `LocationPermissionHelper` aceita `COARSE` como suficiente. Convivem sem uma regra única declarada — quem chamar qual muda o resultado.
+- **Estado binário sem "negada permanentemente":** o enum `EstadoPermissao` só tem `concedida`/`negada`, então a UI não distingue "ainda não pediu" de "usuário marcou não perguntar de novo" a partir deste módulo.
+- Nenhum arquivo acima de 800 linhas (maior: `GerenciadorPermissoesRedeAndroid.kt`, 56 linhas).

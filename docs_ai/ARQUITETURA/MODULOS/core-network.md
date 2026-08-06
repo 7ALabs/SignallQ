@@ -1,98 +1,89 @@
-# Módulo :coreNetwork
+---
+title: "Módulo :coreNetwork"
+description: "Infraestrutura de rede compartilhada: monitoramento de conexão, sondagens de conectividade, scan Wi-Fi, topologia/OUI e contratos de analytics."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-06"
+---
 
-- **Status:** ativo
-- **Última validação:** 2026-07-23 (fonte: `android/core/network/build.gradle.kts`, código real)
-- **Fonte de verdade:** código real do módulo — em caso de divergência, vale o código
-- **Escopo:** módulo Gradle `:coreNetwork` (alias legado; pasta física `android/core/network/`)
-- **Responsável:** Camilo (dono da implementação Android), squad SignallQ mantém
+# `:coreNetwork`
 
-## Visão geral
+- **Caminho físico:** `android/core/network/` (alias flat legado — `projectDir` remapeado em `settings.gradle.kts`)
+- **Namespace:** `io.signallq.app.core.network`
+- **Tipo:** biblioteca Android
 
-Infraestrutura de rede compartilhada — sem dependência de nenhum outro módulo do monorepo. Cresceu
-significativamente desde a última auditoria (2026-07-16): além do monitoramento de conectividade e
-latência de gateway original, hoje concentra também os **contratos de dispositivo local/gateway**,
-o **motor de classificação de topologia** e o **scan/classificação de Wi-Fi**, que antes viviam em
-`:featureDevices`/`:featureWifi` ou eram descritos como pertencentes a eles. Namespace declarado:
-`io.signallq.app.core.network`.
+## Responsabilidade
 
-## Diagrama de componentes
+Concentra a infraestrutura de rede compartilhada do app Consumer: observação do estado de conexão (`MonitorRede`), diagnóstico local de conectividade por sondagens ativas (gateway → DNS → rota externa → hostname/captive portal), scan de redes Wi-Fi vizinhas, classificação de topologia/OUI e os contratos de dados de dispositivo local, gateway e fibra. Também hospeda os dois contratos de instrumentação (`AnalyticsTracker` e `AnalyticsHelper`) usados pelas features sem acoplá-las ao Firebase.
 
-```
-:coreNetwork
-├── (raiz) — monitoramento de conectividade e latência
-│     MonitorRede / MonitorRedeAndroid, SnapshotRede, WifiLinkSnapshot, EstadoConexao,
-│     GatewayLatencyMeasurer, NetworkCapabilitiesProvider, DispatcherProvider
-├── wifi/            — scan e modelo de rede Wi-Fi (io/signallq/, caminho já correto)
-│     ScannerRedesWifi, SnapshotScanWifi, ScanResultAdapter
-├── topologia/engine/ — TopologiaRedeEngine (classificação mesh/repetidor/roteador)
-├── topologia/oui/    — OuiCatalog (base de fabricantes por MAC)
-└── contracts/
-      ├── gateway/     — EquipmentClassifier, EquipmentClassification, DeviceDriverCatalog,
-      │                  PublicCompatibilityCatalog, GatewayConnectionService, AcessoEquipamento
-      ├── localdevice/ — LocalNetworkDeviceSnapshot, ClientSnapshot, WifiSnapshot, LanSnapshot,
-      │                  WanSnapshot, FiberSnapshot, DeviceCapabilities, LocalDeviceSafeFilter
-      ├── topologia/   — ClassificacaoTopologia, PapelTopologia, Evidencia, ConflitoSinal,
-      │                  NivelConfianca
-      ├── wifi/        — RedeVizinha, SegurancaWifi, channel/ChannelEvaluator (avaliação de canal)
-      ├── oui/         — OuiEntry, NivelValidacaoOui, EspecificidadeOui
-      └── fibra/       — ClassificadorSaudeGpon, GponSaudeStatus
-```
+Não é dele: persistir nada (isso é `:coreDatabase`/`:coreDatastore`), pedir permissões ao usuário (`:corePermissions`), ler telefonia móvel (`:coreTelephony`), falar com o Worker de IA ou implementar analytics — as implementações Firebase vivem em `:app`. Também não expõe cliente HTTP genérico: só faz as chamadas HTTP mínimas das próprias sondagens.
 
-`:featureWifi` e `:featureFibra` hoje reexportam alguns desses tipos via `typealias` (comentário no
-código: "Tipo movido para coreNetwork/contracts — mantido aqui como typealias para não quebrar
-imports existentes") para não quebrar consumidores de `:app` — ver `docs_ai/ARQUITETURA/MODULOS/
-feature-wifi.md` e `feature-fibra.md`.
+## Dependências
 
-## Componentes em detalhe
+| Módulo/lib | Para quê |
+|---|---|
+| `androidx.core.ktx` | utilitários de plataforma (`ContextCompat`, extensões Android) |
+| `androidx.lifecycle.runtime.ktx` | integração de ciclo de vida do monitoramento |
+| `kotlinx.coroutines.android` | `StateFlow`, `runInterruptible`, `withTimeoutOrNull` nas sondagens |
+| `timber` | log do `ScannerRedesWifi` (movido de `:featureWifi`, issue #1157 Fase 1c) |
+| `junit`, `kotlinx.coroutines.test` (test) | testes JVM das sondagens e do engine |
+| `androidx.junit`, `androidx.espresso.core` (androidTest) | scaffolding padrão, sem teste instrumentado próprio |
 
-| Componente | Tipo | Responsabilidade |
+Nenhuma dependência de outro módulo do monorepo. Nenhuma biblioteca HTTP (sem OkHttp/Retrofit): o cliente é `java.net.HttpURLConnection` + `java.net.Socket` + `java.net.InetAddress` puros, amarrados à rede sob análise via `ConnectivityProbeBinding`.
+
+**Timeouts declarados no código:**
+
+| Constante | Valor | Arquivo |
 |---|---|---|
-| `MonitorRede.kt` / `MonitorRedeAndroid.kt` | Interface/Impl | Contrato e implementação (`ConnectivityManager.NetworkCallback`) de monitoramento de conectividade |
-| `SnapshotRede.kt` | Data class | Estado atual da rede |
-| `WifiLinkSnapshot.kt` | Data class | Snapshot do link Wi-Fi (RSSI, canal, freq, link speed) |
-| `EstadoConexao.kt` | Enum | wifi, movel, cabo, desconhecido |
-| `GatewayLatencyMeasurer.kt` | Utilitário | RTT TCP do gateway local |
-| `NetworkCapabilitiesProvider.kt` | Interface | Acesso a `NetworkCapabilities` |
-| `DispatcherProvider.kt` / `DefaultDispatcherProvider.kt` | Interface/Impl | Abstração de Dispatchers para testabilidade |
-| `wifi/ScannerRedesWifi.kt` | Serviço | Scan de redes Wi-Fi vizinhas |
-| `wifi/SnapshotScanWifi.kt` | Data class | Estado do scan Wi-Fi |
-| `topologia/engine/TopologiaRedeEngine.kt` | Engine | Classifica topologia (roteador/mesh/repetidor) a partir do scan |
-| `topologia/oui/OuiCatalog.kt` | Object | Base de OUIs de fabricante por MAC |
-| `contracts/gateway/EquipmentClassifier.kt` | Engine | Classifica equipamento (roteador/ONT/mesh) por fingerprint |
-| `contracts/gateway/DeviceDriverCatalog.kt` | Catálogo | Drivers/suporte por modelo de equipamento conhecido |
-| `contracts/localdevice/LocalNetworkDeviceSnapshot.kt` | Data class | Snapshot consolidado de um dispositivo local (Wi-Fi/LAN/WAN/fibra) |
-| `contracts/wifi/channel/ChannelEvaluator.kt` | Engine | Avaliação de canal Wi-Fi (candidatos, congestionamento) |
-| `contracts/fibra/ClassificadorSaudeGpon.kt` | Engine | Avalia saúde da ONT (Rx/Tx/temperatura) — contrato consumido por `:featureFibra` |
-| `AnalyticsHelper.kt` / `AnalyticsTracker.kt` / `FeatureFlagProvider.kt` | Contrato | Abstrações de analytics/feature flag consumidas por outros módulos |
+| `ConnectivityDiagnosisEngine.STEP_TIMEOUT_MS_DEFAULT` | 2500 ms | `connectivity/ConnectivityDiagnosisEngine.kt` |
+| `ConnectivityDiagnosisEngine.GLOBAL_TIMEOUT_MS_DEFAULT` | 8000 ms | idem |
+| `GatewayReachabilityProbe.TIMEOUT_MS_DEFAULT` | 1200 ms | `connectivity/GatewayReachabilityProbe.kt` |
+| `DnsReachabilityProbe.TIMEOUT_MS_DEFAULT` | 1500 ms | `connectivity/DnsReachabilityProbe.kt` |
+| `ExternalIpReachabilityProbe.TIMEOUT_MS_DEFAULT` | 1500 ms | `connectivity/ExternalIpReachabilityProbe.kt` |
+| `HostnameReachabilityProbe.TIMEOUT_MS_DEFAULT` | 2500 ms | `connectivity/HostnameReachabilityProbe.kt` |
+| `GatewayLatencyMeasurer.TIMEOUT_MS_DEFAULT` | 1000 ms (3 amostras, portas 80/443/53) | `.../network/GatewayLatencyMeasurer.kt` |
+| `TIMEOUT_SCAN_MS` | 10 000 ms | `wifi/ScannerRedesWifi.kt` |
 
-## Fluxo de dados principal
+## Consumidores
 
-- **Entradas:** callbacks do `ConnectivityManager`/`WifiManager` do SO; resultado de scan Wi-Fi.
-- **Processamento:** classificação de topologia (`TopologiaRedeEngine`), classificação de
-  equipamento (`EquipmentClassifier`), avaliação de canal (`ChannelEvaluator`), medição de latência
-  de gateway.
-- **Saídas:** `StateFlow<SnapshotRede>`, `SnapshotScanWifi`, `LocalNetworkDeviceSnapshot`,
-  `ClassificacaoTopologia` — consumidos por `:app` e por `:featureWifi`, `:featureFibra`,
-  `:featureSpeedtest`, `:featureDiagnostico` (via grep de `project(":coreNetwork")`).
+| Módulo | Tipo |
+|---|---|
+| `:app` | `implementation` |
+| `:core:diagnostico` | `implementation` |
+| `:featureDevices`, `:featureDiagnostico`, `:featureFibra`, `:featureSpeedtest`, `:featureWifi` | `implementation` |
+| `:pro:app`, `:pro:feature:medicao-diagnostico` | `implementation` |
 
-## Decisões arquiteturais (ADR)
+É o módulo core mais consumido do repositório (9 consumidores diretos).
 
-- **Nenhuma dependência de outro módulo do monorepo** — infraestrutura de base. Libs de produção:
-  `androidx-core-ktx`, `lifecycle-runtime-ktx`, `kotlinx-coroutines-android`.
-- **Consolidação de contratos de topologia/equipamento/dispositivo local aqui, e não em
-  `:featureWifi`/`:featureDevices`** — decisão real observada no código (comentário explícito de
-  migração, `typealias` de compatibilidade nos módulos de origem), não documentada antes em nenhum
-  ADR formal. Racional provável: esses contratos são consumidos por mais de uma feature
-  (`:featureWifi`, `:featureFibra`, `:featureDiagnostico`), então pertencem a `core` pela regra 5 da
-  higiene ("infraestrutura compartilhada, contratos normalizados"). Recomenda-se abrir um ADR formal
-  retroativo se a squad quiser fixar esse racional.
-- **Caminho físico misto dentro do mesmo módulo:** subpacote `wifi/` já nasceu em `io/signallq/`,
-  mas `contracts/*` e a raiz ainda estão em `io/veloo/app/core/network/...` — ver seção de riscos.
+## Componentes principais
 
-## Riscos e mitigação
+| Arquivo/classe | Responsabilidade |
+|---|---|
+| `src/main/kotlin/io/veloo/app/kotlin/core/network/MonitorRede.kt` | contrato do monitor de conexão (`snapshotFlow`, `iniciar`, `encerrar`) |
+| `src/main/kotlin/io/veloo/app/kotlin/core/network/MonitorRedeAndroid.kt` (262 linhas) | implementação sobre `ConnectivityManager`/`WifiManager`/`LocationManager` |
+| `src/main/kotlin/io/veloo/app/kotlin/core/network/CoreNetworkModulo.kt` | fábrica manual (`criarMonitorRede`, `criarNetworkCapabilitiesProvider`) |
+| `src/main/kotlin/io/veloo/app/kotlin/core/network/AnalyticsHelper.kt` (157 linhas) | contrato do funil de 7 eventos (SIG-155) + `NoOpAnalyticsHelper` |
+| `src/main/kotlin/io/veloo/app/kotlin/core/network/AnalyticsTracker.kt` | contrato de eventos GA4 genéricos (SIG-134): `feature_used`, `screen_view`, `app_session_start/end`, `feature_crash`, `battery_snapshot`, `feature_blocked_remote` |
+| `src/main/kotlin/io/veloo/app/kotlin/core/network/GatewayLatencyMeasurer.kt` | RTT do gateway por TCP connect (sem ICMP/root), mediana de 3 amostras |
+| `src/main/kotlin/io/signallq/app/core/network/connectivity/ConnectivityDiagnosisEngine.kt` (180 linhas) | motor puro que encadeia as sondagens e produz `ConnectivityDiagnosis` |
+| `src/main/kotlin/io/signallq/app/core/network/connectivity/ConnectivityDiagnosisRunner.kt` (167 linhas) | ponto de entrada Android; `ConnectivityDiagnosisSource` permite fake em teste JVM |
+| `src/main/kotlin/io/signallq/app/core/network/connectivity/{Gateway,Dns,ExternalIp,Hostname}ReachabilityProbe.kt` | as quatro sondagens concretas |
+| `src/main/kotlin/io/signallq/app/core/network/connectivity/ConnectivityProbeBinding.kt` + `AndroidNetworkProbeBinding.kt` | amarram socket/resolução/HTTP à `Network` sob análise (testável por fake) |
+| `src/main/kotlin/io/signallq/app/core/network/wifi/ScannerRedesWifi.kt` (142 linhas) | scan de redes vizinhas via `WifiManager` + `BroadcastReceiver` |
+| `src/main/kotlin/io/veloo/app/core/network/topologia/engine/TopologiaRedeEngine.kt` (272 linhas) | motor único de classificação de topologia (issues #975/#979) |
+| `src/main/kotlin/io/veloo/app/core/network/topologia/oui/OuiCatalog.kt` (350 linhas) | catálogo OUI único, unificação de `OuiDatabase` + `MeshOuiDatabase` |
+| `src/main/kotlin/io/veloo/app/core/network/contracts/gateway/GatewayConnectionService.kt` | contrato de conexão ao gateway — implementação real ainda pendente (#547); BUG#1511 proíbe mock que devolva sucesso |
+| `src/main/kotlin/io/veloo/app/core/network/contracts/localdevice/LocalDeviceSafeFilter.kt` (121 linhas) | allowlist de campos seguros do dispositivo local (GH#541) |
 
-| Risco | Impacto | Mitigação |
-|---|---|---|
-| Módulo cresceu de "monitoramento simples" para concentrar 3 domínios (conectividade, topologia, catálogo de equipamento) sem doc atualizada até agora | Onboarding e navegação ficam desalinhados com o código real | Este doc já reflete o estado atual; reler ao tocar o módulo de novo |
-| Caminho físico misto `io/veloo` (`contracts/*`, raiz) vs. `io/signallq` (`wifi/`) dentro do mesmo módulo | Duas convenções coexistindo torna a dívida 4.1 mais difícil de fechar de uma vez | Não migrar oportunisticamente — tratar como parte da migração dedicada da regra de higiene 4.1 |
-| 13 arquivos em `src/test`, `src/androidTest`: 0, para um módulo que hoje concentra classificação de topologia e equipamento (lógica de decisão real) | Risco de regressão silenciosa em classificadores | Priorizar characterization tests para `TopologiaRedeEngine`/`EquipmentClassifier` ao tocá-los |
+### Contrato `AnalyticsHelper`
+
+Interface do funil principal de engajamento (SIG-155), implementada por `FirebaseAnalyticsHelper` em `:app`. Cobre sete eventos encadeados: `app_aberto` → `speedtest_iniciado` → `speedtest_concluido` → `diag_iniciado` → `diag_concluido` → `ia_laudo_solicitado` → `ia_laudo_recebido`. Convive com `AnalyticsTracker` (schema SIG-134) sem se misturar: são dois contratos distintos que podem compartilhar a mesma instância de `FirebaseAnalytics` internamente. Sem PII nos parâmetros; `versao_app` é anexado pela implementação, fora da assinatura. `NoOpAnalyticsHelper` serve como default em instanciação manual fora do grafo Hilt.
+
+## Riscos e dívidas
+
+- **Caminho físico legado `io/veloo/`:** 67 dos 92 arquivos `.kt` do módulo ainda estão sob `src/*/kotlin/io/veloo/...`, embora o `package` declarado já seja `io.signallq...`. Pasta e pacote divergem — renomeação pendente.
+- **Duas raízes de pacote convivendo:** `io.signallq.app.core.network.*` (contratos novos de conectividade/Wi-Fi) e o mesmo pacote alcançado por arquivos em `io/veloo/app/kotlin/...` e `io/veloo/app/core/...`. Três layouts físicos para uma árvore lógica só.
+- **Módulo grande:** 74 arquivos e 3951 linhas em `src/main` — é o maior dos seis módulos `core` flat legados. Nenhum arquivo passa de 800 linhas (maior: `OuiCatalog.kt`, 350 linhas).
+- **`GatewayConnectionService` sem implementação real** (issue #547 aberta); risco de reintrodução do BUG#1511 se alguém injetar um mock de sucesso em produção.
+- Sem testes instrumentados próprios (`androidTest` vazio) apesar das dependências declaradas; a cobertura é toda JVM (18 arquivos de teste).

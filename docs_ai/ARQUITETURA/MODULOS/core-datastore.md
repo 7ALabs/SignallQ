@@ -1,55 +1,63 @@
-# Módulo :coreDatastore
+---
+title: "Módulo :coreDatastore"
+description: "Preferências do app em DataStore Preferences e credenciais do modem em EncryptedSharedPreferences."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-06"
+---
 
-- **Status:** ativo
-- **Última validação:** 2026-07-23 (fonte: `android/core/datastore/build.gradle.kts`, código real)
-- **Fonte de verdade:** código real do módulo — em caso de divergência, vale o código
-- **Escopo:** módulo Gradle `:coreDatastore` (alias legado; pasta física `android/core/datastore/`)
-- **Responsável:** Camilo (dono da implementação Android), squad SignallQ mantém
+# `:coreDatastore`
 
-## Visão geral
+- **Caminho físico:** `android/core/datastore/` (alias flat legado — `projectDir` remapeado em `settings.gradle.kts`)
+- **Namespace:** `io.signallq.app.core.datastore`
+- **Tipo:** biblioteca Android
 
-Preferências do usuário via Jetpack DataStore (Preferences), armazenadas no arquivo
-`linkaPreferencias` (identificador técnico preservado — não renomear). Cresceu desde a última
-auditoria: além do repositório único de preferências, hoje também guarda perfil de conexão
-persistido, credenciais de modem e feature flags locais. Namespace declarado:
-`io.signallq.app.core.datastore`.
+## Responsabilidade
 
-## Diagrama de componentes
+Persistência chave-valor do app Consumer: preferências do usuário e estado de app em DataStore Preferences (`PreferenciasAppRepository`), credenciais do modem em `EncryptedSharedPreferences` (`CredenciaisModemStore`) e o cache local de feature flags remotas (`FeatureFlagStore`).
 
-```
-:coreDatastore (io/veloo/ — caminho legado)
-├── PreferenciasAppRepository — flows reativos de preferências do usuário
-├── ConnectionProfilePersistido — perfil de conexão (ISP/plano) persistido
-├── CredenciaisModemStore — credenciais do modem/ONT, para acesso HTTP local (:featureFibra)
-└── FeatureFlagStore — feature flags locais persistidas
-```
+Não é dele: dados estruturados/relacionais (`:coreDatabase`), a origem das feature flags remotas (Firebase Remote Config, em `:core:featureflags`), nem regra de negócio sobre as preferências — só guarda e expõe `Flow`/`suspend`.
 
-## Componentes em detalhe
+## Dependências
 
-| Componente | Tipo | Responsabilidade |
-|---|---|---|
-| `PreferenciasAppRepository.kt` | Repository | Flows reativos de preferências do usuário — inclui estados de histerese (`alerta_latencia_ativo`, `alerta_dns_ativo`, `alerta_rssi_ativo`, `alerta_sem_internet_ativo`) usados pelo `MonitoramentoWorker` |
-| `ConnectionProfilePersistido.kt` | Repository/modelo | Persistência do perfil de conexão detectado/informado pelo usuário |
-| `CredenciaisModemStore.kt` | Repository | Persiste credenciais de acesso ao modem/ONT local |
-| `FeatureFlagStore.kt` | Repository | Persistência local de feature flags |
+| Módulo/lib | Para quê |
+|---|---|
+| `androidx.core.ktx` | utilitários de plataforma |
+| `androidx.datastore.preferences` | `preferencesDataStore` do `PreferenciasAppRepository` |
+| `androidx.security.crypto` | `MasterKey` + `EncryptedSharedPreferences` do `CredenciaisModemStore` |
+| `kotlinx.coroutines.android` | `Flow`, `StateFlow`, `withContext(ioDispatcher)` |
+| `junit` (test) | teste JVM de `ConnectionProfilePersistido` |
+| `androidx.junit`, `androidx.espresso.core` (androidTest) | scaffolding padrão, sem teste instrumentado próprio |
 
-## Fluxo de dados principal
+Nenhuma dependência de outro módulo do monorepo.
 
-- **Entradas:** escritas de preferência vindas de `:app` (Ajustes/Perfil) e features que persistem
-  flags ou credenciais.
-- **Saídas:** `Flow` reativo por chave, consumido por `:app`, `:featureDevices`,
-  `:featureSpeedtest`, `:featureDiagnostico` (confirmado via grep de `project(":coreDatastore")`).
+## Consumidores
 
-## Decisões arquiteturais (ADR)
+| Módulo | Tipo |
+|---|---|
+| `:app` | `implementation` |
+| `:featureDevices`, `:featureDiagnostico`, `:featureSpeedtest` | `implementation` |
+| `:pro:app` | `implementation` |
 
-- **Nenhuma dependência de outro módulo do monorepo.** Libs: `androidx-core-ktx`,
-  `androidx-datastore-preferences`, `androidx-security-crypto`, `kotlinx-coroutines-android`.
-- `androidx-security-crypto` sugere que `CredenciaisModemStore` usa armazenamento criptografado para
-  credenciais do modem — coerente com guardar segredo local sensível.
+## Componentes principais
 
-## Riscos e mitigação
+| Arquivo/classe | Responsabilidade |
+|---|---|
+| `src/main/kotlin/io/veloo/app/kotlin/core/datastore/PreferenciasAppRepository.kt` (694 linhas) | Repository único de preferências sobre DataStore (`name = "linkaPreferencias"`); implementa `FeatureFlagStore` |
+| `src/main/kotlin/io/veloo/app/kotlin/core/datastore/CredenciaisModemStore.kt` (132 linhas) | usuário/senha/BSSID vinculado do modem em `EncryptedSharedPreferences` (AES-256 GCM via AndroidKeyStore), arquivo `signallq_modem_credentials` |
+| `src/main/kotlin/io/veloo/app/kotlin/core/datastore/FeatureFlagStore.kt` | contrato mínimo (`salvarFeatureFlags`/`buscarFeatureFlags`), isolado para permitir fake sem `Context` |
+| `src/main/kotlin/io/veloo/app/kotlin/core/datastore/CoreDatastoreModulo.kt` | fábrica manual `criarPreferenciasAppRepository(context)` |
+| `src/main/kotlin/io/veloo/app/kotlin/core/datastore/ConnectionProfilePersistido.kt` | modelo serializado do perfil de conexão persistido |
+| `src/main/kotlin/io/veloo/app/kotlin/core/datastore/ModoGamerPadraoPersistido.kt` | modelo serializado do modo gamer padrão |
 
-| Risco | Impacto | Mitigação |
-|---|---|---|
-| Nenhum teste unitário (`src/test`: **1 arquivo**, cobre parcialmente) para um módulo que hoje guarda também credenciais e feature flags, não só preferências simples | Lacuna de teste em superfície sensível (credenciais) | Priorizar teste do `CredenciaisModemStore` e `FeatureFlagStore` ao tocá-los |
-| Caminho físico `io/veloo` diverge do package declarado | Ver dívida 4.1 da regra de higiene | Não migrar oportunisticamente |
+O `CredenciaisModemStore` tem fallback explícito para `SharedPreferences` em claro (arquivo `signallq_modem_credentials_fallback`) quando o AndroidKeyStore não está disponível — cenário previsto para testes com Robolectric; em device real o KeyStore sempre existe.
+
+## Riscos e dívidas
+
+- **`PreferenciasAppRepository.kt` com 694 linhas** (abaixo do limite de 800, mas é um "god repository"): concentra dezenas de chaves heterogêneas — monitoramento, modem, tema, perfil do usuário, operadora/região, onboarding, consentimento LGPD, dismisses de sheets de permissão e feature flags. Candidato natural a fatiamento por domínio.
+- **Nomes legados em produção:** o DataStore chama-se `linkaPreferencias`. Renomear exige migração de dados.
+- **Caminho físico legado `io/veloo/`:** todos os 7 arquivos `.kt` do módulo estão sob `io/veloo/app/kotlin/core/datastore/` embora declarem `package io.signallq.app.core.datastore`.
+- **Cobertura de teste baixa:** 1 único arquivo de teste (`ConnectionProfilePersistidoTest`) para 916 linhas de `src/main`. Nem `PreferenciasAppRepository` nem `CredenciaisModemStore` — o componente que lida com credenciais — têm teste próprio.
+- **Chave plaintext legada** `gatewaySessionBssid` ainda declarada no repository, mantida só para migração única (GH#530); precisa de data de remoção.
+- **Fallback sem criptografia** no `CredenciaisModemStore` é acionado por `catch (_: Exception)` genérico: uma falha inesperada do KeyStore em device real degradaria silenciosamente para armazenamento em claro.

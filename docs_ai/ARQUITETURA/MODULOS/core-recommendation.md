@@ -1,63 +1,67 @@
-# Módulo :coreRecommendation
+---
+title: "Módulo :coreRecommendation"
+description: "Motor stateless de decisão de recomendações pós-diagnóstico, com catálogo local de fallback e contratos de analytics."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-06"
+---
 
-- **Status:** ativo (motor pronto, ainda não integrado a monetização real)
-- **Última validação:** 2026-07-23 (fonte: `android/core/recommendation/build.gradle.kts`, código real)
-- **Fonte de verdade:** código real do módulo — em caso de divergência, vale o código
-- **Escopo:** módulo Gradle `:coreRecommendation` (alias legado; pasta física `android/core/recommendation/`)
-- **Responsável:** Camilo (dono da implementação Android), squad SignallQ mantém
+# `:coreRecommendation`
 
-## Visão geral
+- **Caminho físico:** `android/core/recommendation/` (alias flat legado — `projectDir` remapeado em `settings.gradle.kts`)
+- **Namespace:** `io.signallq.app.core.recommendation`
+- **Tipo:** biblioteca Android (plugin `com.android.library`), porém sem nenhuma API Android no código — é lógica Kotlin pura
 
-Recommendation Engine desacoplado do motor de diagnóstico (issue #790) — engine determinística que
-ranqueia recomendações (`free_tip`/`tutorial`/`configuration`/`affiliate_product`/`partner_offer`/
-`operator_offer`/`native_ad_fallback`) por tags de diagnóstico, com cooldown/frequência e contrato de
-analytics. Único módulo `core` que já nasceu fisicamente em `io/signallq/` — não sofre da dívida 4.1.
-Já integrado à UI via `RecommendationEngineCard` em `ResultadoVelocidadeScreen.kt` (GH#813), mas
-ainda não integrado a AdMob/afiliados reais.
+## Responsabilidade
 
-**Não confundir** com o `RecommendationEngine` de `:featureDiagnostico`, que gera dicas práticas do
-diagnóstico local, sem monetização/catálogo.
+Decide **qual** recomendação exibir após um diagnóstico. Recebe um `RecommendationRequest` já estruturado (tags, métricas, contexto de rede, flags e histórico), filtra candidatos do catálogo por rede, flags, relevância de tag, limiar de afiliado e histórico (cooldown/limite diário/semanal), calcula score e devolve a lista ranqueada (`rank`) ou a única decisão a exibir (`choose`).
 
-## Diagrama de componentes
+Não é dele: rodar o diagnóstico, carregar o histórico (quem chama busca em `:coreDatabase` e passa em `RecommendationRequest.history`), desenhar o card, enviar eventos ao Firebase ou integrar SDK de anúncio. O motor é **stateless** e não conhece Compose, Room nem AdMob — só define os contratos (`RecommendationCatalog`, `RecommendationAnalyticsTracker`) que o integrador implementa.
 
-```
-:coreRecommendation (io/signallq/ — caminho já correto)
-RecommendationEngine (entrada: RecommendationRequest, saída: RecommendationDecision)
-    ├── catalog/RecommendationCatalog (interface) → LocalRecommendationCatalog (impl)
-    └── analytics/RecommendationAnalytics (contrato de eventos)
-```
+Estratégia de decisão (issue #790): 1) recomendação gratuita quando resolve; 2) produto afiliado só com forte relação com o diagnóstico; 3) serviço/parceiro/operadora quando mais adequado; 4) AdMob nativo apenas como fallback. Como só existe um card por diagnóstico, a regra "nunca afiliado + AdMob simultâneos" é garantida estruturalmente.
 
-## Componentes em detalhe
+## Dependências
 
-| Componente | Tipo | Responsabilidade |
-|---|---|---|
-| `RecommendationEngine.kt` | Engine | Ranqueia recomendações por tags de diagnóstico |
-| `RecommendationRequest.kt` / `RecommendationDecision.kt` | Data class | Contrato de entrada/saída da engine |
-| `Recommendation.kt` | Data class | Modelo de uma recomendação |
-| `RecommendationType.kt` | Enum | Tipos de recomendação (tip, tutorial, configuration, affiliate, etc.) |
-| `DiagnosticTag.kt` / `DiagnosticMetrics.kt` | Data class/Enum | Entrada da engine — tags e métricas de diagnóstico |
-| `NetworkContextType.kt` | Enum | Contexto de rede usado na decisão |
-| `RecommendationFeedback.kt` | Data class | Feedback do usuário sobre a recomendação |
-| `catalog/RecommendationCatalog.kt` (interface) / `LocalRecommendationCatalog.kt` (impl) | Repository | Catálogo de recomendações disponíveis |
-| `analytics/RecommendationAnalytics.kt` | Contrato | Eventos de analytics da engine |
+| Módulo/lib | Para quê |
+|---|---|
+| `junit` (test) | `RecommendationEngineTest` |
+| `androidx.junit`, `androidx.espresso.core` (androidTest) | scaffolding padrão, sem teste instrumentado |
 
-## Fluxo de dados principal
+**Nenhuma dependência de `implementation`** — nem `androidx.core.ktx`, nem coroutines, nem módulo do monorepo. É o único dos seis módulos `core` legados com o bloco de dependências de produção vazio.
 
-- **Entradas:** `RecommendationRequest` (tags de diagnóstico) vindo de `:featureDiagnostico`.
-- **Saídas:** `RecommendationDecision`/`Recommendation`, exibida via `RecommendationEngineCard` em
-  `:app`; histórico persistido em `:coreDatabase` (subpacote `recommendation/`, ver
-  `core-database.md`).
+## Consumidores
 
-## Decisões arquiteturais (ADR)
+| Módulo | Tipo |
+|---|---|
+| `:app` | `implementation` |
+| `:featureDiagnostico` | `implementation` |
 
-- **Nenhuma dependência de outro módulo do monorepo** — módulo Kotlin puro de domínio, sem libs de
-  produção além do padrão Android library plugin.
-- **Único módulo `core` já nascido em `io/signallq/`** — criado depois do rebrand (issue #790),
-  serve de referência de caminho-alvo para a migração dedicada da dívida 4.1.
+## Componentes principais
 
-## Riscos e mitigação
+| Arquivo/classe | Responsabilidade |
+|---|---|
+| `src/main/kotlin/io/signallq/app/core/recommendation/RecommendationEngine.kt` (163 linhas) | motor: `rank()` (filtros encadeados + ordenação por `priorityTier` e `-score`) e `choose()` |
+| `src/main/kotlin/io/signallq/app/core/recommendation/Recommendation.kt` | item de catálogo (tags, redes aplicáveis, `basePriority`, `cooldownHours`, `maxPerDay`/`maxPerWeek`) |
+| `src/main/kotlin/io/signallq/app/core/recommendation/RecommendationDecision.kt` | saída do motor: recomendação + `matchedTags`, `score`, `priorityTier`, `reason`, `trackingId` |
+| `src/main/kotlin/io/signallq/app/core/recommendation/RecommendationRequest.kt` | entrada estruturada + `RecommendationFlags` (inclui `minAffiliateMatchRatio`, default 0.5) |
+| `src/main/kotlin/io/signallq/app/core/recommendation/RecommendationType.kt` | `FREE_TIP`, `TUTORIAL`, `CONFIGURATION`, `AFFILIATE_PRODUCT`, `PARTNER_OFFER`, `OPERATOR_OFFER`, `NATIVE_AD_FALLBACK` + propriedade `monetized` |
+| `src/main/kotlin/io/signallq/app/core/recommendation/DiagnosticTag.kt` | `value class` sobre `String` (não enum, para o catálogo remoto poder introduzir tags sem release) |
+| `src/main/kotlin/io/signallq/app/core/recommendation/DiagnosticMetrics.kt` | métricas cruas do teste + `DeviceContext`, todas opcionais |
+| `src/main/kotlin/io/signallq/app/core/recommendation/RecommendationFeedback.kt` | `RecommendationFeedbackType` e `RecommendationHistoryEntry` |
+| `src/main/kotlin/io/signallq/app/core/recommendation/NetworkContextType.kt` | `WIFI`, `MOVEL`, `ETHERNET` |
+| `src/main/kotlin/io/signallq/app/core/recommendation/catalog/RecommendationCatalog.kt` | `fun interface` da fonte de candidatos |
+| `src/main/kotlin/io/signallq/app/core/recommendation/catalog/LocalRecommendationCatalog.kt` (88 linhas) | catálogo mínimo embarcado, usado enquanto o catálogo remoto não existe |
+| `src/main/kotlin/io/signallq/app/core/recommendation/analytics/RecommendationAnalytics.kt` (51 linhas) | 6 eventos (`recommendation_eligible/shown/clicked/dismissed/feedback/fallback_ad_shown`), payload e `RecommendationAnalyticsTracker` |
 
-| Risco | Impacto | Mitigação |
-|---|---|---|
-| Cobertura de teste baixa (`src/test`: **1 arquivo**) para uma engine de decisão com múltiplos tipos e regras de cooldown/frequência | Risco de regressão silenciosa se a engine crescer sem characterization tests adicionais | Ampliar teste ao adicionar novo `RecommendationType`/regra |
-| Ainda não integrado a nenhuma monetização real (AdMob/afiliados) | Engine mantida sem uso de produto completo | Fora de escopo desta auditoria — acompanhar decisão de produto |
+### Único módulo nascido em `io/signallq/`
+
+**Confirmado:** todos os 13 arquivos `.kt` deste módulo (12 em `src/main`, 1 em `src/test`) estão sob `.../kotlin/io/signallq/app/core/recommendation/` — zero arquivos em `io/veloo/`. É o único dos seis módulos `core` flat legados em que caminho físico e pacote já coincidem; os outros cinco têm de 6 a 67 arquivos ainda sob `io/veloo/`. Também é o único cujo `build.gradle.kts` não começa com BOM UTF-8, sinal de que nasceu depois da migração de nome.
+
+## Riscos e dívidas
+
+- **Catálogo remoto inexistente:** só há `LocalRecommendationCatalog`, com um exemplo por categoria. Toda a monetização depende hoje de uma lista hardcoded no app — mudar recomendação exige release.
+- **Plugin Android sem uso de Android:** aplica `com.android.library` e declara `compileSdk`/`minSdk`/`testInstrumentationRunner` para código Kotlin puro. Poderia ser um módulo `java-library`/JVM, o que aceleraria build e testes.
+- **Acoplamento indireto com `:coreDatabase`:** a tabela `recommendation_history` e `RecommendationHistoryEntity`/`RecommendationHistoryDao` vivem em `:coreDatabase`, enquanto o modelo `RecommendationHistoryEntry` vive aqui. Os dois precisam evoluir juntos sem que o Gradle imponha a relação — desalinhamento não quebra a compilação.
+- **Cobertura concentrada:** 1 arquivo de teste (`RecommendationEngineTest`, 270 linhas) para 482 linhas de `src/main`; cobre o motor, não o catálogo nem o mapeamento de analytics.
+- Nenhum arquivo acima de 800 linhas (maior: `RecommendationEngine.kt`, 163 linhas).

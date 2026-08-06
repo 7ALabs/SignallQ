@@ -1,19 +1,20 @@
 # Design System — SignallQ (Android, consumer)
 
 - **Status:** ativo
-- **Última validação:** 2026-08-05 (consolidação: estrutura confirmada, fonte real em SignallQTheme.kt)
-- **Fonte de verdade:** este documento é a fonte de verdade **documental** consolidada; a fonte de
-  verdade do *código* é `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/SignallQTheme.kt`
-  (`LkColors`, `LkTokens`, `LkSpacing`, `LkRadius`, `signallQTypography`); a fonte de verdade da
-  *não-negociáveis* de produto é `.claude/CLAUDE.md`, seção "Design System"
-- **Escopo:** app Android SignallQ consumer (`io.signallq.app`), v0.26.0+. Não cobre SignallQ Pro
-  (`/signallq-pro-design`, paleta azul `#0B6CFF`) nem o Console (`SignallQ Admin/DESIGN.md`)
-- **Responsável:** Lia (conteúdo/tokens/skill), aplicado por Camilo (implementação Android)
-- **Documentos substituídos:** consolida `docs_ai/design-system/COLORS.md`,
-  `COMPONENTS_ANDROID.md`, `DESIGN_TOKENS.md`, `MD3_GUIDELINES.md`, `SPACING.md`,
-  `TYPOGRAPHY.md` (em `docs_ai/_archive/`); expandido em 2026-07-19 com catálogo de estados
-  semânticos, sistema de profundidade (4 níveis), regras de gráficos, conteúdo simulado e
-  mapeamento Compose
+- **Última validação contra código:** 2026-08-06 — os 4 tokens de marca conferidos um a um em
+  `SignallQTheme.kt` (claro `primary` :39, `secondary` :43; escuro `primary` :86, `secondary` :90),
+  todos batendo. `#6C2BFF` confirmado morto: zero ocorrências em todo `android/`
+- **Fonte de verdade:** o *código* — `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/SignallQTheme.kt`
+  (`LkColors`, `LkTokens`, `LkSpacing`, `LkRadius`, `signallQTypography`). Este documento é derivado
+  dele. Não-negociáveis de produto ficam em `.claude/CLAUDE.md`, seção "Design System"
+- **Escopo:** app Android SignallQ consumer (`io.signallq.app`). Não cobre SignallQ Pro — que está
+  **on hold** e tem identidade azul própria (`#0B6CFF`, skill `/signallq-pro-design`, specs
+  congeladas em `pro-onhold/`) — nem o painel Admin, que vive no repositório `buildea-admin`
+- **Responsável:** Camilo (implementação Android). O papel de design não tem titular desde
+  2026-07-25 (ver `decisions/DECISAO_DEMISSAO_LIA_2026-07-25.md`)
+- **Documentos substituídos:** consolidou `COLORS.md`, `COMPONENTS_ANDROID.md`, `DESIGN_TOKENS.md`,
+  `MD3_GUIDELINES.md`, `SPACING.md` e `TYPOGRAPHY.md`, removidos da árvore em 2026-08-06
+  (recuperáveis em `git show 10b2f05d:docs_ai/_archive/2026-07-16_COLORS.md` e equivalentes)
 
 ---
 

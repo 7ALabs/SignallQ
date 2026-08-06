@@ -1,50 +1,74 @@
-# Módulo :coreTelephony
+---
+title: "Módulo :coreTelephony"
+description: "Coleta de sinal e identidade de célula da rede móvel via TelephonyManager, sem PII e degradando para null quando falta permissão."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-06"
+---
 
-- **Status:** ativo
-- **Última validação:** 2026-07-23 (fonte: `android/core/telephony/build.gradle.kts`, código real)
-- **Fonte de verdade:** código real do módulo — em caso de divergência, vale o código
-- **Escopo:** módulo Gradle `:coreTelephony` (alias legado; pasta física `android/core/telephony/`)
-- **Responsável:** Camilo (dono da implementação Android), squad SignallQ mantém
+# `:coreTelephony`
 
-## Visão geral
+- **Caminho físico:** `android/core/telephony/` (alias flat legado — `projectDir` remapeado em `settings.gradle.kts`)
+- **Namespace:** `io.signallq.app.core.telephony`
+- **Tipo:** biblioteca Android
 
-Monitoramento de sinal móvel (4G/5G) via `TelephonyManager`. Namespace declarado:
-`io.signallq.app.core.telephony`.
+## Responsabilidade
 
-## Diagrama de componentes
+Fornece os dados de rede móvel usados pelo diagnóstico: tecnologia (5G SA/NSA, 4G, 3G, 2G), RSRP/RSRQ/SINR/EcNo, banda, identidade de célula (cellId, mcc, mnc, tac), roaming e rádio desligado — via `MonitorTelephony.snapshotFlow` e `captureSimsAtivos()` por SIM ativo.
 
-```
-:coreTelephony (io/veloo/ — caminho legado)
-MonitorTelephony (interface) → MonitorTelephonyImpl (impl)
-    ↳ MovelSnapshot (sinal), MovelSimSnapshot (dados do SIM/operadora)
-```
+Não é dele: solicitar `READ_PHONE_STATE` ao usuário (isso é da UI), classificar a qualidade do sinal (`MetricClassifier` vive em `:core:diagnostico`, GH#1206), persistir os snapshots ou enviá-los à IA. O contrato de erro é explícito: **nunca lança** — sem permissão, sem SIM ativa ou em emulador, `snapshotFlow.value` permanece `null` e o fato é logado uma vez por sessão.
 
-## Componentes em detalhe
+## Dependências
 
-| Componente | Tipo | Responsabilidade |
-|---|---|---|
-| `MonitorTelephony.kt` | Interface | Contrato de monitoramento de sinal móvel |
-| `MonitorTelephonyImpl.kt` | Implementação | Produz `MovelSnapshot` via `TelephonyManager` — só ativo com permissão concedida |
-| `MovelSnapshot.kt` | Data class | RSRP, RSRQ, SINR, tecnologia, banda, operadora |
-| `MovelSimSnapshot.kt` | Data class | Dados do SIM/operadora (separado do snapshot de sinal) |
+| Módulo/lib | Para quê |
+|---|---|
+| `androidx.core.ktx` | `ContextCompat.checkSelfPermission` |
+| `kotlinx.coroutines.android` | `StateFlow` do snapshot |
+| `timber` | log único de permissão negada/revogada |
+| `junit` (test) | `MonitorTelephonyTest` + `MonitorTelephonyFake` |
+| `androidx.junit`, `androidx.espresso.core` (androidTest) | scaffolding padrão, sem teste instrumentado próprio |
 
-## Fluxo de dados principal
+Nenhuma dependência de outro módulo do monorepo — notadamente **não** depende de `:corePermissions`; a checagem é feita direto com `ContextCompat`.
 
-- **Entradas:** callbacks do `TelephonyManager` do SO.
-- **Saídas:** `MovelSnapshot` consumido por `:app` (tela Sinal) e `:featureSpeedtest` (contexto de
-  rede móvel durante o teste) — confirmado via grep de `project(":coreTelephony")`.
+## Permissões exigidas
 
-## Decisões arquiteturais (ADR)
+Declara **uma única** permissão no `src/main/AndroidManifest.xml`:
 
-- **Nenhuma dependência de outro módulo do monorepo.** Libs: `androidx-core-ktx`,
-  `kotlinx-coroutines-android`, `timber`.
-- Separação `MonitorTelephony`/`MonitorTelephonyImpl` (interface + impl explícita) segue o mesmo
-  padrão dos demais módulos `core` (`MonitorRede`/`MonitorRedeAndroid`, `GerenciadorPermissoesRede`/
-  `GerenciadorPermissoesRedeAndroid`) — consistente.
+| Permissão | Uso |
+|---|---|
+| `android.permission.READ_PHONE_STATE` | `getAllCellInfo()` + `signalStrength` em rede móvel; runtime desde a API 23 |
 
-## Riscos e mitigação
+Regras registradas no próprio manifesto e no KDoc de `MonitorTelephonyImpl`:
 
-| Risco | Impacto | Mitigação |
-|---|---|---|
-| Cobertura de teste baixa (`src/test`: **2 arquivos**) para um domínio com múltiplos estados de rede móvel e dependência de permissão | Regressão silenciosa em classificação de sinal | Ampliar teste ao tocar o módulo |
-| Caminho físico `io/veloo` diverge do package declarado | Dívida 4.1 da regra de higiene | Não migrar oportunisticamente |
+- Solicitação **lazy**: só quando o usuário roda um diagnóstico em rede móvel, com justificativa "para análise de sinal 4G/5G".
+- **Não** solicita `ACCESS_FINE_LOCATION`/`ACCESS_COARSE_LOCATION` — `getAllCellInfo()` na API 29+ não exige.
+- **Não** usa `getDeviceId`, `getImei` nem `getSubscriberId`.
+- `cellId`/`mcc`/`mnc`/`tac` são tratados como metadados sensíveis: coletados só para o diagnóstico de IA, descartados após envio, não persistidos localmente e não logados em produção.
+
+## Consumidores
+
+| Módulo | Tipo |
+|---|---|
+| `:app` | `implementation` |
+| `:featureSpeedtest` | `implementation` |
+| `:pro:app` | `implementation` |
+
+## Componentes principais
+
+| Arquivo/classe | Responsabilidade |
+|---|---|
+| `src/main/kotlin/io/veloo/app/kotlin/core/telephony/MonitorTelephony.kt` | contrato: `snapshotFlow`, `iniciar()`/`encerrar()` idempotentes, `captureSimsAtivos(context)` |
+| `src/main/kotlin/io/veloo/app/kotlin/core/telephony/MonitorTelephonyImpl.kt` (655 linhas) | implementação Android: `registerTelephonyCallback` na API 31+, fallback `PhoneStateListener` até a API 30; executor single-thread daemon; `SecurityException` capturada em toda chamada |
+| `src/main/kotlin/io/veloo/app/kotlin/core/telephony/MovelSnapshot.kt` | snapshot da célula servidora — todos os campos opcionais, sem PII |
+| `src/main/kotlin/io/veloo/app/kotlin/core/telephony/MovelSimSnapshot.kt` | snapshot por SIM ativo (subId, slot, operadora, tecnologia, RSRP/RSRQ/SINR, roaming, rádio desligado) |
+| `src/main/kotlin/io/veloo/app/kotlin/core/telephony/CoreTelephonyModulo.kt` | fábrica manual `criarMonitorTelephony(context)` |
+| `src/test/kotlin/io/veloo/app/kotlin/core/telephony/MonitorTelephonyFake.kt` | fake do contrato para uso em teste |
+
+## Riscos e dívidas
+
+- **`MonitorTelephonyImpl.kt` com 655 linhas** (abaixo de 800, mas é 83% das 792 linhas de `src/main` do módulo): concentra dois caminhos de API (31+ e ≤30), extração de LTE e NR, `SubscriptionManager` e toda a tolerância a `SecurityException` em OEMs. Difícil de testar em unidade — a suíte JVM cobre o contrato via `MonitorTelephonyFake`, não a implementação real.
+- **Caminho físico legado `io/veloo/`:** todos os 7 arquivos `.kt` do módulo estão sob `io/veloo/app/kotlin/core/telephony/` embora declarem `package io.signallq.app.core.telephony`.
+- **Sem teste instrumentado:** `androidTest` vazio; comportamento em device real (MIUI, dual SIM, modo avião) só é validado manualmente.
+- **Checagem de permissão duplicada:** o módulo reimplementa a verificação com `ContextCompat` em vez de reutilizar `:corePermissions`; o snapshot de permissões do app e o deste módulo podem divergir.
+- Uso de `@SuppressLint` para contornar avisos de permissão exige que o contrato "nunca lança" continue verdadeiro em cada nova chamada de API adicionada.

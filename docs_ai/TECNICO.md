@@ -1,525 +1,274 @@
-# Documentação Técnica — SignallQ Android
+---
+title: "Documentação técnica — SignallQ consumer"
+description: "Stack, build, persistência, integrações Cloudflare, analytics e segurança, do código real"
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-06"
+---
 
-- **Status:** ativo
-- **Última validação:** 2026-07-23
-- **Fonte de verdade:** este arquivo — consolida `ANDROID_TECNICO.md`, `technical/BUILD_SYSTEM.md`,
-  `technical/CLOUDFLARE.md`, `technical/STORAGE.md`, `technical/DATA_FLOW.md`, `technical/API_MAP.md`,
-  `technical/MODULES.md`, `technical/SERVICES.md`, `technical/DEPENDENCY_AUDIT.md`,
-  `technical/analytics-events.md`, `technical/analytics-events-schema.md`,
-  `technical/THIRD_PARTY_LICENSES.md` e a parte técnica de `functional/FEATURE_FLAGS.md`. Os
-  arquivos de origem devem ser movidos para `docs_ai/_archive/` com data e referência a este
-  documento — não duplicar conteúdo técnico fora daqui.
-- **Escopo:** stack, build, persistência, integrações Cloudflare, analytics, dependências,
-  segurança e processo de release do app Android SignallQ **consumer** (`io.signallq.app`). Não
-  cobre SignallQ Pro (`android/pro/`, `io.signallq.pro`), Admin ou Site. Detalhe por módulo Gradle
-  vive em `docs_ai/ARQUITETURA/MODULOS/*.md` — este documento cobre visão geral de stack, não
-  repete responsabilidade módulo a módulo. Contratos de API/endpoints detalhados vivem em
-  `docs_ai/CONTRATOS/openapi/`, referenciados, não repetidos.
-- **Responsável:** Camilo (implementação Android/Admin/Cloudflare), Rhodolfo (manutenção da doc)
-- **Para funcionalidades da perspectiva do usuário:** ver `docs_ai/FUNCIONAL.md`.
+# Documentação técnica — SignallQ consumer
 
-> Segue o template de **Especificação Técnica**
-> (`.claude/rules/higiene-e-padronizacao-repositorio.md`, seção 10): Objetivo técnico → Visão geral
-> da solução → Modelo de dados → APIs/Endpoints → Integrações e dependências → Segurança e
-> privacidade → Performance e escalabilidade → Rollout e observabilidade → Riscos técnicos. O
-> conteúdo pré-existente (identidade, stack, módulos, dependências) é mantido e reorganizado dentro
-> dessas seções — não foi descartado.
+- **Fonte de verdade:** o código. Este documento é derivado dele. Números vêm do bloco de
+  inventário abaixo, **gerado** por `scripts/gerar-inventario-docs.sh` — não editar à mão.
+- **Escopo:** app consumer Android (`io.signallq.app`) e backend Cloudflare. Não cobre SignallQ Pro
+  (on hold — `pro-onhold/`), Admin (`buildea-admin`) nem web (`signallq-web`).
+- **Perspectiva do usuário:** `FUNCIONAL.md`. **Detalhe por módulo:** `ARQUITETURA/MODULOS/`.
+
+<!-- INVENTARIO:INICIO — gerado por scripts/gerar-inventario-docs.sh, nao editar a mao -->
+
+> **Inventário gerado do código.** Não editar manualmente — rode
+> `scripts/gerar-inventario-docs.sh`. Cada número abaixo sai da fonte citada.
+
+| Fato | Valor | Fonte |
+|---|---|---|
+| versionName / versionCode (consumer) | **0.31.0** / **72** | `android/gradle/libs.versions.toml` |
+| proVersionName / proVersionCode | 0.3.0 / 8 | `android/gradle/libs.versions.toml` |
+| compileSdk / minSdk / targetSdk | 37 / 24 / 36 | `android/gradle/libs.versions.toml` |
+| Compose BOM · Room · Hilt | 2026.06.01 · 2.8.4 · 2.60.1 | `android/gradle/libs.versions.toml` |
+| Módulos Gradle | **28** — 19 consumer + 9 Pro | `android/settings.gradle.kts` |
+| Workers Cloudflare | 5 | `integrations/cloudflare/*/wrangler.toml` |
+| Tabelas D1 | 38 — 20 admin + 18 diagnostic | `*/migrations/*.sql`, `*/schema.sql` |
+| Contratos OpenAPI | 7 contratos · **122** endpoints | `docs_ai/CONTRATOS/openapi/` |
+| Arquivos `.kt` em caminho legado `io/veloo` | 527 (sendo 362 em `src/main`) | dívida conhecida — higiene §4.1 |
+
+**Módulos consumer (19):** :app :core:diagnostico :core:featureflags :core:relatorio :coreDatabase :coreDatastore :coreNetwork :corePermissions :coreRecommendation :coreTelephony :featureDevices :featureDiagnostico :featureDns :featureFibra :featureHistory :featureHome :featureSettings :featureSpeedtest :featureWifi
+
+**Módulos Pro (9, on hold):** :pro:app :pro:core:database :pro:core:designsystem :pro:feature:ambiente :pro:feature:auth :pro:feature:cliente :pro:feature:laudo :pro:feature:medicao-diagnostico :pro:feature:visita
+
+**Workers:**
+
+| Diretório | `name` no wrangler |
+|---|---|
+| `ai-diagnosis-worker` | `linka-ai-diagnosis-worker` |
+| `game-latency-probe-worker` | `signallq-game-latency-probe` |
+| `signallq-admin-worker` | `signallq-admin` |
+| `signallq-diagnostic-worker` | `signallq-diagnostic` |
+| `signallq-privacy-worker` | `signallq-privacy` |
+
+**Contratos:**
+
+| Arquivo | Versão | Endpoints |
+|---|---|---:|
+| `ai-diagnosis-worker.yaml` | 2 | 2 |
+| `game-latency-probe-worker.yaml` | 1 | 2 |
+| `signallq-admin-api.yaml` | 2.1.0 | 59 |
+| `signallq-analytics-events.yaml` | 1.0.0 | 5 |
+| `signallq-diagnostic-worker.yaml` | 1 | 43 |
+| `signallq-integrations-api.yaml` | 1.0.0 | 9 |
+| `signallq-privacy-worker.yaml` | 1 | 2 |
+
+<!-- INVENTARIO:FIM -->
 
 ---
 
 ## 1. Objetivo técnico
 
-Documentar, com código real como fonte, a stack, arquitetura, persistência, integrações Cloudflare,
-segurança, performance e processo de release do app Android SignallQ consumer — para que qualquer
-agente ou desenvolvedor entenda como o app é construído e integrado sem precisar reler o código
-inteiro, e para servir de checagem factual contra desatualização de doc.
+Documentar como o app é construído e integrado, com o código como fonte, para que qualquer pessoa
+ou agente entenda a stack sem reler o repositório inteiro — e para servir de checagem factual
+contra desatualização.
 
----
+## 2. Visão geral
 
-## 2. Visão geral da solução
-
-### 2.1 Identidade e Versão
+### 2.1 Identidade
 
 | Campo | Valor |
 |---|---|
-| App | SignallQ — diagnóstico de conectividade Android |
-| Estrutura | Monorepo — `android/` (Kotlin), `integrations/` (Cloudflare), `packages/`, `scripts/`, `docs_ai/` |
-| Package / applicationId / namespace | `io.signallq.app` — **identificador técnico, nunca renomear** (quebra Firebase/assinatura). Renomeado de `io.veloo.app` em 2026-06-28, antes de qualquer publicação |
-| Marca | Linka → Veloo → **SignallQ** (rebrand em 0.16.0) |
-| versionName | **0.30.1** |
-| versionCode | **67** |
-| Fonte da versão | `android/gradle/libs.versions.toml` |
+| Estrutura | Monorepo — `android/`, `integrations/cloudflare/`, `packages/`, `scripts/`, `docs_ai/` |
+| Package / applicationId / namespace | `io.signallq.app` — **identificador técnico, nunca renomear** (quebra Firebase e assinatura) |
+| Marca | Linka → Veloo → **SignallQ** |
+| Repositório | `buildea-labs/signallq` |
 
-> Correção (2026-07-23): a revisão anterior deste documento (2026-07-16) já havia corrigido o
-> valor de `0.23.0`/56 (histórico, citado em docs arquivados) para `0.25.0`/60. Reconfirmado nesta
-> revisão contra `libs.versions.toml`: o valor real atual é `0.30.1`/`67` — a versão sobe a cada
-> release, sempre confirmar diretamente no arquivo, nunca fixar de memória.
+**Identificadores técnicos preservados por compatibilidade de infra** — parecem marca antiga, são
+técnicos: banco `linkaKotlin.db`, DataStore `linkaPreferencias`, canais de notificação `linka_*`,
+Worker `linka-ai-diagnosis-worker`.
 
-**Caminho físico legado:** ~460 arquivos `.kt` ainda residem em
-`android/<módulo>/src/.../kotlin/io/veloo/app/kotlin/...` apesar de declararem
-`package io.signallq.app...`. Divergência confirmada e documentada como dívida estrutural em
-`.claude/rules/higiene-e-padronizacao-repositorio.md` (seção 4.1) — migração é tarefa dedicada,
-fora do escopo deste documento.
-
----
+**Caminho físico legado:** os arquivos `.kt` vivem em `.../kotlin/io/veloo/app/kotlin/...` embora
+declarem `package io.signallq.app`. Único módulo já alinhado: `:coreRecommendation`, fisicamente em
+`io/signallq/`. Dívida registrada em `.claude/rules/higiene-e-padronizacao-repositorio.md` §4.1 —
+migração é tarefa dedicada e atômica.
 
 ### 2.2 Stack
 
-| Tecnologia | Versão | Função |
+| Tecnologia | Versão | Papel |
 |---|---|---|
-| Kotlin | 2.2.20 | Linguagem principal |
-| Jetpack Compose BOM | 2025.05.01 | UI declarativa |
-| Material Design 3 | — | Sistema de design |
-| Room | 2.8.4 | Persistência local (SQLite) |
-| DataStore Preferences | 1.1.1 | Preferências do usuário |
-| Kotlin Coroutines | 1.9.0 | Operações assíncronas |
-| OkHttp | 4.12.0 | HTTP (speedtest, IA, fibra) |
-| Hilt / Dagger | 2.58 | Injeção de dependência |
-| Timber | 5.0.1 | Logging |
-| Coil | 3.1.0 | Carregamento de imagens |
-| WorkManager | 2.11.2 | Background tasks |
-| Navigation Compose | 2.8.0 | Navegação |
-| Android Gradle Plugin | 8.11.1 | Build system |
-| Firebase BOM | 34.15.0 | Analytics, Crashlytics |
+| Kotlin | 2.3.21 | Linguagem |
+| AGP | 9.2.1 (application) / 9.3.1 (library) | Build |
+| Compose (plugin) | 2.4.10 | Compilador Compose |
+| Compose BOM | ver inventário | UI declarativa |
+| Material 3 | via BOM (+ `com.google.android.material` 1.14.0) | Design system |
+| Room | ver inventário | Persistência local |
+| DataStore Preferences | 1.2.1 | Preferências |
+| Hilt / Dagger | ver inventário | Injeção de dependência |
+| WorkManager | 2.11.2 | Trabalho em segundo plano |
+| Firebase BOM | 34.15.0 | Analytics, Crashlytics, Remote Config |
+| Timber | logging (ver `ADR-001`) |
+| OkHttp | **uso parcial — ver 2.3** | HTTP |
 
-**Injeção de dependência:** Hilt via `di/AppModule.kt` (`@Module @InstallIn(SingletonComponent::class)`).
-`@HiltAndroidApp` em `SignallQApplication`. Módulos `*Modulo.kt` seguem existindo como fábricas
-estáticas usadas internamente pelos Hilt modules.
+### 2.3 HTTP: duas pilhas convivem
 
-**Arquitetura:** MVVM + StateFlow. Fluxo unidirecional: evento UI → função no ViewModel → atualiza
-`StateFlow` → recomposição. `stateIn(viewModelScope, WhileSubscribed(5000), initial)` em todos os
-flows expostos; `collectAsStateWithLifecycle()` nas telas (nunca `collectAsState()`).
+Detalhe que costuma ser documentado errado: **não existe uma única pilha HTTP**.
 
----
-
-### 2.3 Config Android (SDKs, build types)
-
-| Parâmetro | Valor |
-|---|---|
-| compileSdk | **37** |
-| minSdk | 24 (Android 7.0 Nougat) |
-| targetSdk | **36** |
-| JVM target | 17 |
-| rootProject.name | `linkaAndroidKotlin` |
-| Chaves de assinatura | `key.properties` (gitignored), template em `key.properties.template` |
-| Desugaring | habilitado — suporte a APIs Java 8+ em minSdk 24 |
-
-**Plugins do módulo `:app`:** `com.android.application 8.11.1`, `kotlin.android 2.2.20`,
-`kotlin.plugin.compose 2.2.20`, `hilt 2.58`, `kapt`, `detekt 1.23.7`, `ktlint 12.1.1`,
-`firebase-crashlytics`.
-
-**Build types:**
-- `debug` — todas as feature flags de compilação ativas.
-- `release` — apenas flags MVP ativas (ver seção 5.2).
-
-> Correção: `BUILD_SYSTEM.md` estava travado em `0.16.0`/versionCode `46`/compileSdk `36` — os
-> valores reais atuais são os da tabela acima.
-
-### 2.4 Módulos Gradle
-
-**16 módulos consumer** declarados em `android/settings.gradle.kts` (confirmado por leitura direta
-do arquivo): `:app` + 6 `core*` (`coreNetwork`, `corePermissions`, `coreDatabase`, `coreDatastore`,
-`coreTelephony`, `coreRecommendation`) + 9 `feature*` (`featureHome`, `featureWifi`, `featureDevices`,
-`featureDns`, `featureSpeedtest`, `featureDiagnostico`, `featureFibra`, `featureHistory`,
-`featureSettings`).
-
-> Correção histórica: `MODULES.md` e `ANDROID_TECNICO.md` (docs arquivados) afirmavam **15**
-> módulos, alegando que o `.claude/CLAUDE.md` estava errado ao citar 16. É o inverso — o
-> `.claude/CLAUDE.md` estava certo. O módulo omitido nesses dois documentos era
-> `:coreRecommendation` (issue #790, engine de recomendação desacoplada do motor de diagnóstico —
-> **já integrada à UI** via `RecommendationCard`/`RecommendationEngineCard` em
-> `ResultadoVelocidadeScreen.kt` (GH#813), ainda não integrada a monetização real (AdMob/afiliados).
-> Não confundir com o `RecommendationEngine` de `:featureDiagnostico`, que gera as 14 regras
-> (REC-01..REC-14) de dicas práticas do diagnóstico local, sem monetização/catálogo.
-
-> **Nota de escopo (2026-07-23):** `settings.gradle.kts` também declara módulos do **SignallQ Pro**
-> (`:pro:app`, `:core:relatorio`, `:core:diagnostico`, `:pro:core:designsystem`,
-> `:pro:core:database`, `:pro:feature:auth`, `:pro:feature:cliente`, `:pro:feature:visita`,
-> `:pro:feature:ambiente`, `:pro:feature:medicao-diagnostico`, `:pro:feature:laudo`) — produto
-> distinto (`io.signallq.pro`), fora do escopo deste documento. Os 16 módulos acima são
-> especificamente do app consumer.
-
-Detalhe de responsabilidade por módulo, namespace e dependências não é repetido aqui — ver
-`docs_ai/ARQUITETURA/MODULOS/*.md`.
-
----
+- **`:coreNetwork` não usa OkHttp.** As sondagens de rede usam `HttpURLConnection`, `Socket` e
+  `InetAddress` puros, amarrados à `Network` sob análise — necessário para medir a interface
+  correta em vez da rota padrão do sistema. Oito timeouts constantes: passo 2500 ms, global
+  8000 ms, gateway 1200 ms, DNS 1500 ms, IP externo 1500 ms, hostname 2500 ms, RTT de gateway
+  1000 ms, varredura Wi-Fi 10 000 ms.
+- **OkHttp é usado nas chamadas a Workers**, em `:featureDiagnostico`.
+- **`:featureDevices` fixa `okhttp:5.4.0` direto no `build.gradle.kts`**, fora do version catalog —
+  pode divergir do `libs.okhttp` dos demais módulos. Dívida registrada.
 
 ## 3. Modelo de dados
 
-### 3.1 Room — `SignallQDatabase`
+### 3.1 Local — Room
 
-**Módulo:** `:coreDatabase`. **Versão atual do schema: v14** (confirmado em
-`android/core/database/schemas/` — migration 13→14 em GH#1027 adiciona coluna `bandaWifi` para
-capturar banda Wi-Fi durante medição; reconfirmado nesta revisão, sem migration nova desde então).
+Schema **v18**, `exportSchema = true`, 8 entidades, 7 DAOs, 17 migrations encadeadas, sem
+`fallbackToDestructiveMigration`. Arquivo do banco: `linkaKotlin.db`.
 
-**Histórico dos 3 nomes de banco** (as três pastas de schema coexistem em
-`android/core/database/schemas/`, refletindo o histórico de rebrand Linka → Veloo → SignallQ):
+Schemas versionados em `android/core/database/schemas/`. **Falta o `15.json`** — existem 10–14, 16,
+17, 18. A migration 14→15 não é verificável por diff de schema. Persistem também schemas de dois
+nomes antigos do banco (`LinkaDatabase` 1–10, `VelooDatabase` 10), mantidos por histórico.
 
-| Pasta de schema | Package declarado | Versão mais alta | Status |
-|---|---|---|---|
-| `io.linka.app.kotlin.core.database.LinkaDatabase` | pacote antigo `io.linka.app.kotlin` | v10 | **Legado** — schema da era Linka, congelado |
-| `io.signallq.app.core.database.VelooDatabase` | já `io.signallq.app`, classe ainda `VelooDatabase` | v10 (única versão) | **Residual** — não recebeu migration própria; classe renomeada de novo antes de v11 nascer |
-| `io.signallq.app.core.database.SignallQDatabase` | `io.signallq.app` | **v14** | **Atual** — única classe `RoomDatabase` presente no `.kt` atual |
+Detalhe em `ARQUITETURA/MODULOS/core-database.md`.
 
-`LinkaDatabase`/`VelooDatabase` não têm arquivo `.kt` correspondente — existem só como histórico de
-schema JSON gerado pelo Room em builds anteriores ao rebrand (comportamento normal de
-`exportSchema`, preservado para validar migrations históricas). Não consolidar/apagar essas pastas.
+### 3.2 Preferências — DataStore
 
-**Entidades (banco atual):** `MedicaoEntity` (tabela `medicao`), `ApelidoDispositivoEntity`
-(`apelido_dispositivo`), `ChatSessionEntity` (`chat_sessions`), `ChatMessageEntity`
-(`chat_messages`). **DAOs:** `MedicaoDao`, `ApelidoDispositivoDao`, `ChatSessionDao`.
+`linkaPreferencias`. `PreferenciasAppRepository.kt` (694 linhas) concentra dezenas de chaves — é um
+repositório-gaveta e está registrado como dívida.
 
-`medicao`: registra tanto speedtests completos (`downloadMbps`/`uploadMbps` preenchidos,
-`connectionType` real, `fonte = "android"`) quanto monitoramento passivo (`connectionType =
-"monitor"`, `downloadMbps`/`uploadMbps = null`, só latência e RSSI).
+### 3.3 Remoto — D1
 
-### 3.2 DataStore — `PreferenciasAppRepository`
+Dois bancos, contagem no inventário. `signallq-admin-db` guarda sessões de diagnóstico, uso de IA,
+eventos de analytics, flags, usuários e sessões do Admin, saúde do sistema, releases, anúncios
+locais e waitlist. `signallq-diagnostic-db` guarda regras de diagnóstico, diretório de provedores
+(6 tabelas), catálogo de jogos, divergências de diagnóstico e sua própria tabela de usuários admin.
 
-**Módulo:** `:coreDatastore`. **Arquivo DataStore:** `linkaPreferencias` (nome técnico legado,
-preservado — não renomear). Chaves organizadas em Boolean, String, Int, Long — cobrindo
-monitoramento, modem GPON, onboarding, histerese de alertas, tema, perfil, operadora/ISP,
-plano/UF/cidade e versão de changelog vista.
+**Não existe tabela `provider_directory`** — apesar do nome aparecer em migration, módulo e
+variável. O diretório de provedores é modelado em `providers`, `provider_identifiers`,
+`provider_channels`, `provider_assets`, `provider_detection_stats` e `provider_enrichment_jobs`.
 
-### 3.3 D1 (Cloudflare)
+## 4. APIs e endpoints
 
-Usado pelos workers `signallq-admin` e `signallq-diagnostic`. Migrations versionadas em
-`integrations/cloudflare/signallq-diagnostic-worker/migrations/` e
-`integrations/cloudflare/signallq-admin-worker/migrations/`. Inventário completo e histórico de
-cada migration: `docs_ai/CONTRATOS/schemas/README.md` — não repetido aqui.
+Contratos formais em `CONTRATOS/openapi/` — contagem no inventário. Não repetir rota aqui: o
+contrato é a fonte.
 
-### 3.4 Uso conjunto
+Complemento narrativo do Worker admin: `technical/admin-api-schema.md`.
 
-| Dado | Onde | Escreve | Lê |
-|---|---|---|---|
-| Speedtest completo | Room / `medicao` | `ExecutorSpeedtest` via ViewModel | `HistoricoScreen`, `ResultadoVelocidadeScreen` |
-| Medição passiva | Room / `medicao` | `MonitoramentoWorker` | `HistoricoScreen` (gráfico uptime) |
-| Apelidos de dispositivos | Room / `apelido_dispositivo` | `DispositivosScreen` via ViewModel | `DispositivosScreen` |
-| Preferências do usuário | DataStore | `AjustesScreen` via ViewModel | Múltiplas telas + `MonitoramentoWorker` |
-| Flags remotas de produto | DataStore (cache) ← D1 via Admin Worker | `FeatureFlagRepository` | `FeatureFlagProvider` |
+### 4.1 Diagnóstico com IA
 
----
+`:featureDiagnostico` → `ai-diagnosis-worker`.
 
-## 4. APIs/Endpoints
+| Aspecto | Valor |
+|---|---|
+| Modelo padrão | `@cf/qwen/qwen3-30b-a3b-fp8` (Qwen3 30B MoE FP8) |
+| Schema de saída | `2` |
+| Versão do prompt de entrada | `diagnostico_v5_local_primary` |
+| Timeouts OkHttp | connect 15 s · read 90 s · write 30 s |
+| **Timeout efetivo** | **40 s** — `explainDiagnosis` é envolvido em `withTimeoutOrNull(40_000L)`; os 90 s só valem no caminho de streaming |
+| Cache | 5 minutos |
+| Falha | Fallback local determinístico em qualquer erro — sem auth, timeout, não-2xx ou JSON inválido |
 
-### 4.1 Cloudflare — Visão Geral dos Workers
+O cliente sempre envia payload v2 e o parser aceita schema `1` e `2`, tolerando campos ausentes.
 
-**5 Workers** em `integrations/cloudflare/`, confirmados por diretório + `name` real em cada
-`wrangler.toml`:
+Na versão `v5_local_primary`, quando o motor local reporta confiança ≥ 0,75, **ele é a decisão
+primária** e a IA apenas valida e explica.
 
-| Diretório | Name (wrangler.toml) | Propósito |
+### 4.2 Ingestão de analytics
+
+`POST /ingest/analytics` no `signallq-admin-worker`, protegido por `INGEST_KEY`.
+
+## 5. Analytics e observabilidade
+
+Cada evento vai **simultaneamente** ao Firebase Analytics e a uma outbox Room local
+(`CompositeAnalyticsTracker`). Um processador com backoff e ack idempotente drena a outbox para o
+Worker admin, que grava em D1. **Não há Cloudflare Queue** — a ingestão é HTTP direto para D1.
+
+Contagem de eventos no inventário. Quatro grupos:
+
+| Grupo | Onde | Exemplos |
 |---|---|---|
-| `ai-diagnosis-worker` | `linka-ai-diagnosis-worker` (nome legado, técnico — não renomear) | Motor de IA de diagnóstico (LLM). Endpoint consumido pelo app: `POST /api/ai/diagnostico-conexao` |
-| `signallq-admin-worker` | `signallq-admin` | Backend do painel admin + ingest de dados do app |
-| `signallq-diagnostic-worker` | `signallq-diagnostic` | Motor de diagnóstico server-side (ruleset versionado, catálogo de jogos, diretório de provedores/ISP, auth admin) — persistência D1 própria |
-| `signallq-privacy-worker` | `signallq-privacy` | Página pública de política de privacidade (HTML estático, sem D1/IA/auth) — exigida por Play Store/LGPD |
-| `game-latency-probe-worker` | `signallq-game-latency-probe` | Sonda de latência para a tela Jogos (estratégia `REGIONAL_ESTIMATE`), responde `/probe` com 204 sem corpo |
+| Ciclo de vida e uso | `FirebaseAnalyticsTracker.kt` | `feature_used`, `screen_view`, `app_session_start`, `app_session_end`, `feature_crash`, `battery_snapshot`, `feature_blocked_remote` |
+| Funil de produto | `FirebaseAnalyticsHelper.kt` (contrato em `:coreNetwork`) | `app_aberto`, `speedtest_iniciado`, `speedtest_concluido`, `diag_iniciado`, `diag_concluido`, `ia_laudo_solicitado`, `ia_laudo_recebido` |
+| Recomendação | `:coreRecommendation` | `recommendation_eligible`, `_shown`, `_clicked`, `_dismissed`, `_feedback`, `_fallback_ad_shown` |
+| Outbox | `AnalyticsOutboxFunnelTracker.kt` | `analytics_outbox_delivery` |
 
-Contrato completo de cada um: `docs_ai/CONTRATOS/openapi/`.
-
-### 4.2 IA de Diagnóstico (`linka-ai-diagnosis-worker`)
-
-**Provider primário:** Gemini 2.0 Flash quando a secret `GEMINI_API_KEY` está configurada
-(produção) — tentado primeiro. **Fallback cloud:** Qwen3 30B MoE FP8 (Cloudflare Workers AI). Sem a
-secret, Qwen3/CF é o único provider cloud; em falha de ambos, o cliente Kotlin usa fallback local
-(sem IA externa). Ordem confirmada em `src/providers.ts` (comentário do arquivo: "Primary: Gemini
-2.0 Flash… Fallback: Qwen3 30B MoE FP8").
-
-**Endpoint consumido pelo app:** `POST /api/ai/diagnostico-conexao` (worker `ai-diagnosis-worker`).
-Motor de laudo automático e análise por problema específico usam o `signallq-diagnostic-worker`
-(timeout 42s, GH#962/#969) — ver `docs_ai/FUNCIONAL.md` RF-02 para o fluxo do usuário.
-
-**Integração Android:** módulo `:featureDiagnostico`, classe `AiDiagnosisRepository`. Transporte:
-OkHttp 4.12.0, POST JSON. **Deploy:** `npx wrangler deploy` no diretório do worker — **obrigatório
-antes do commit Android** quando houver mudança em
-`integrations/cloudflare/ai-diagnosis-worker/src/` (ver seção 8.3).
-
----
-
-## 5. Integrações e dependências
-
-### 5.1 Dependências Principais e Auditoria
-
-Fonte: `android/gradle/libs.versions.toml`, auditado em 2026-06-28/2026-07-05.
-
-**Sem CVE crítico afetando as versões em uso.**
-
-| Dependência | Status | Nota |
-|---|---|---|
-| Firebase BOM 34.15.0, Hilt 2.58, Room 2.8.4, Material 1.12.0, WorkManager 2.11.2, Timber 5.0.1, ProfileInstaller 1.4.1, Desugar 2.1.5, Detekt 1.23.7, JUnit 4.13.2 | ok | Atualizados |
-| **Compose BOM 2025.05.01** | **atualizar — prioridade alta** | Defasado (recente: 2026.06.00) — reconfirmar defasagem exata na próxima auditoria de dependências, não repetida nesta revisão de docs. Todas as libs Compose sobem juntas via BOM |
-| Lifecycle 2.8.7, Coroutines 1.9.0, Navigation 2.8.0, Coil 3.1.0 | atualizar — prioridade média | Bug fixes e melhorias acumuladas |
-| OkHttp 4.12.0 | sem urgência | 5.x traz HTTP/3; 4.12.0 sem CVE conhecido |
-| DataStore, Robolectric, AndroidX Test JUnit, Espresso, Google Services Plugin, Firebase plugins, KtLint Gradle Plugin | atualizar — prioridade baixa | Incrementais |
-
-**Plano sugerido (2 PRs):** PR1 = Compose BOM + Lifecycle + Coroutines + Navigation (roda suite
-completa depois); PR2 = demais libs de baixo risco em batch. `[a confirmar]` se este plano já foi
-executado — não reconfirmado contra histórico de PRs nesta revisão.
-
-### 5.2 Feature Flags Técnicas (compile-time)
-
-Controle granular via **flags booleanas em compiletime**, definidas em `app/build.gradle.kts` como
-`buildConfigField`, com blocos distintos para `debug` (todas `true`) e `release` (apenas MVP `true`).
-Objeto `FeatureFlags` (`app/src/main/kotlin/io/veloo/app/kotlin/FeatureFlags.kt`) expõe cada flag via
-`BuildConfig.FEATURE_*` — **acesso sempre via `FeatureFlags.*`, nunca `BuildConfig.DEBUG` ou
-`BuildConfig.FEATURE_*` diretamente nas telas.**
-
-**Ativação em release:** alterar valor no bloco `release` de `app/build.gradle.kts`, incrementar
-versão, rebuild e testar. Lista atual de flags ativas/inativas em release: ver
-`docs_ai/FUNCIONAL.md` seção 8.3 (não duplicada aqui — evita duas listas divergentes).
-
-**Arquitetura de proteção de overlays controlados por flag** (dupla camada):
-1. `AnimatedVisibility` no `AppShell` — `visible` verifica `FeatureFlags.*`; flag inativa impede o
-   Composable de entrar em composição.
-2. Gate na lambda de entrada (ex.: `onConectarFibra`, `onAbrirDnsBenchmark`) — verifica a flag antes
-   de executar side-effects, mesmo em cenário de recomposição inesperada.
-
-**Sistema separado — flags remotas (produto):** existe também um `FeatureFlagManager` /
-`FeatureFlagRepository` (`app/src/main/kotlin/io/veloo/app/kotlin/featureflags/`) que consome
-`GET /flags` (schema atual) e `GET /feature-flags` (legado) do Admin Worker, com cache em
-DataStore. É um mecanismo **distinto** das flags de compilação acima — controla toggles de produto
-via painel administrativo, não requer novo build. Efeito do lado do usuário: ver `FUNCIONAL.md`.
-Endpoints: ver `docs_ai/CONTRATOS/openapi/signallq-admin-api.yaml`.
-
-> Correção de escopo: a documentação anterior de feature flags (`functional/FEATURE_FLAGS.md`)
-> descrevia majoritariamente esse segundo sistema (remoto/D1), inclusive citando `Felipe`/`Gema`
-> como responsáveis — ambos fora do squad desde 2026-07-09/07-10. O código real confirma que esse
-> sistema existe (`FeatureFlagManager.kt`, `FeatureFlagRepository.kt`), mas seu detalhe de produto
-> pertence a `FUNCIONAL.md`, não a este documento.
-
-**Terceiro sistema — Firebase Remote Config (GH#1477 + GH#1480, Épico #1347, 2026-07-26):** módulo
-`:core:featureflags` (`android/core/featureflags/`), catálogo tipado versionado
-(`consumer-catalog.json`) + `FeatureFlagProvider` sobre a mesma instância de `FirebaseRemoteConfig`
-já usada pelo toggle de anúncios acima. Destino é substituir o sistema SIG-13 (D1). Desde GH#1480
-(F4), as 9 flags principais de módulo (`consumer.{modulo}.enabled`) já gateiam tab/overlay real em
-`AppShell.kt` (`androidImplemented=true`) — só `consumer.speedtest.cloudflare_engine_enabled`
-continua smoke-test. Detalhe completo: `docs_ai/technical/feature-flags-remote-config.md`.
-
-### 5.3 Firebase
-
-**Projeto ativo:** `signallq-app` (conta 7Agents) — app Android `io.signallq.app`.
-
-**Projeto legado (abandonado):** `device-streaming-ef179de4` (conta pessoal), app
-`io.linka.app.kotlin` — requer limpeza manual no console (fora do escopo deste doc, ver
-`.claude/CLAUDE.md` seção "Infraestrutura e Contas Legadas").
-
-**Analytics:** Firebase Analytics (eventos) habilitado com LGPD consent gate. **Crashlytics:** logs
-de erro. **Não usa:** Realtime Database.
-
-Ver seção 8.1 (Rollout e observabilidade → Analytics) para o contrato de eventos.
-
----
+Crashlytics ativo. **Não há Firebase Realtime Database.**
 
 ## 6. Segurança e privacidade
 
-- **Assinatura:** chaves em `key.properties` (gitignored, nunca versionado); template público em
-  `key.properties.template`.
-- **Secrets de worker** (ex.: `GEMINI_API_KEY`) configuradas via Cloudflare, nunca hardcoded em
-  `wrangler.toml` nem no app.
-- **Endpoint de leitura de flags** (`GET /flags`, `GET /feature-flags`): público, rate-limited por
-  device.
-- **Endpoint de escrita** (toggle de flag no Admin): requer sessão + `role=admin`.
-- **Analytics:** sem PII nos parâmetros de evento (sem SSID completo, sem IP público, sem BSSID).
-- **LGPD:** Firebase Analytics habilitado com consent gate; página pública de política de
-  privacidade servida pelo worker `signallq-privacy`.
+### 6.1 Falhas conhecidas em aberto
 
-### 6.1 Licenças de terceiros (assets)
+| Falha | Evidência | Issue |
+|---|---|---|
+| `POST /ingest/provider-detection` e `/ingest/diagnostic-divergence` aceitam requisição **anônima** | `signallq-diagnostic-worker/src/index.ts:1141,1145` — ficam fora do gate `needsAdminSession`, que só cobre `/admin/`. É intencional e comentado no código | **#1585** |
+| Credencial de modem gravada **em claro** | `CredenciaisModemStore` cai para `SharedPreferences` sem cifra em `catch (_: Exception)` genérico quando o AndroidKeyStore falha | — |
+| Sessão admin duplicada entre Workers | `auth.ts` de admin e diagnostic são funcionalmente idênticos; `validateSession` é byte-a-byte igual. Duas fontes de verdade sobre quem é admin | **#1587** |
 
-Distinto de `operations/THIRD_PARTY_NOTICES.md` (licenças de bibliotecas OSS — não tocado por este
-documento, permanece onde está). Este item cobre **assets** embutidos no app:
+O padrão de proteção **já existe** no repositório: o `signallq-admin-worker` valida `INGEST_KEY`/
+`SITE_INGEST_KEY` via `authenticateIngest()`. Ele simplesmente não foi aplicado ao diagnostic.
 
-**Google Sans Flex** — fonte base do tema (`SignallQTheme.kt`, `signallQFontFamily`). Licença SIL
-Open Font License v1.1, texto integral embutido no APK em
-`android/app/src/main/assets/licenses/google_sans_flex_OFL.txt`. Procedência verificada em canais
-oficiais do Google. 4 pesos estáticos versionados (400/500/600/700).
+### 6.2 Autenticação dos Workers
 
----
+PBKDF2 com 100.000 iterações, formato `pbkdf2$100000$salt$hash`, token opaco SHA-256, sessão em D1
+com TTL de 7 dias. Mitigação parcial da duplicação: o admin faz proxy de `/admin/diagnostic/*` por
+service binding com `DIAGNOSTIC_PROXY_SECRET` — mas `/admin/providers/*`, `/admin/games/*` e
+`/admin/auth/*` seguem exigindo a sessão duplicada.
 
-## 7. Performance e escalabilidade
+### 6.3 Privacidade
 
-- **Compose BOM defasado** (ver 5.1) é o principal item de dívida com potencial impacto em
-  performance/manutenibilidade — bug fixes e otimizações de recomposição do Compose ficam de fora
-  até a atualização.
-- **Rate limiting de scan Wi-Fi (Android, API 28+):** `startScan()` limitado a 4 chamadas/2min em
-  foreground pelo próprio SO; scanner usa cache de `scanResults` como fallback em throttling (ver
-  `docs_ai/FUNCIONAL.md` RF-03).
-- **`stateIn(viewModelScope, WhileSubscribed(5000), initial)`** em todos os flows expostos — evita
-  recomputação enquanto não há coletor ativo (ex.: tela em background).
-- Escalabilidade de backend (D1, Workers) não tem meta formal de carga documentada —
-  `[a confirmar]`, não encontrado em código nem doc ativa nesta revisão.
+`:coreTelephony` exige apenas `READ_PHONE_STATE` e **não** usa IMEI, IMSI ou `getDeviceId`. Textos
+legais em `legal/`. Worker dedicado: `signallq-privacy-worker`.
 
----
+## 7. Performance
 
-## 8. Rollout e observabilidade
+Sem metas formais de performance ou escalabilidade de backend definidas em código ou documento
+ativo. Os limites que existem são os timeouts de rede (§2.3, §4.1) e os limiares da seção 7 da
+regra de higiene para tamanho de arquivo.
 
-### 8.1 Analytics
+## 8. Build e release
 
-Dois esquemas de instrumentação coexistem, sem redundância entre si — cobrem escopos diferentes,
-embora compartilhem a mesma instância de `FirebaseAnalytics`:
+`compileSdk`, `minSdk` e `targetSdk` no inventário.
 
-#### 8.1.1 `AnalyticsHelper` — funil principal
+Dois canais, ambos por GitHub Actions — nunca comando local:
 
-Interface em `core/network/AnalyticsHelper.kt`, implementação `FirebaseAnalyticsHelper` em `:app`,
-injetada via Hilt. **7 eventos implementados e testados**
-(`FirebaseAnalyticsHelperTest.kt`, MockK + Robolectric):
+1. **Firebase App Distribution** — `.github/workflows/firebase-distribution.yml`, disparo manual.
+2. **Play Console** — tag `vX.Y.Z` dispara `release.yml`, que publica na trilha `internal`;
+   `promote-release.yml` promove o **mesmo AAB** para `alpha` sem rebuild. Beta e produção estão
+   bloqueados por guardrail no workflow.
+
+**Regra dura:** nunca subir build sem incrementar `versionCode` antes. O Pro tem contador próprio
+(`proVersionCode`/`proVersionName`) — nunca incrementar junto.
+
+Estado atual: consumer em trilha **alpha**. Procedimento completo em `operations/RELEASE.md`.
+
+Validações locais, a partir de `android/` (`gradlew.bat` no Windows):
 
 ```
-app_aberto → speedtest_iniciado → speedtest_concluido → diag_iniciado
-  → diag_concluido → ia_laudo_solicitado → ia_laudo_recebido
+./gradlew ktlintCheck
+./gradlew detekt
+./gradlew test
+./gradlew assembleDebug
 ```
-
-Contrato ampliado (eventos ainda não implementados): `docs_ai/technical/analytics-events.md` —
-mantido como documento de detalhe, não absorvido integralmente aqui.
-
-#### 8.1.2 `AnalyticsTracker` — schema GA4
-
-Interface em `core/network` (`AnalyticsTracker`), implementação `FirebaseAnalyticsTracker`
-(`@Singleton`) em `:app`. Alimenta o `ProductAnalyticsPage` do Admin. **5 eventos:**
-`feature_used`, `screen_view`, `app_session_start`, `feature_crash`, `battery_snapshot` —
-`session_id` é um UUID por instância de processo, sem PII. Detalhe: `docs_ai/technical/analytics-events-schema.md`.
-
-> Nenhum dos dois arquivos-fonte é redundante do outro — `analytics-events.md` é o contrato mais
-> amplo (implementado + proposto, funil de conversão); `analytics-events-schema.md` é o schema GA4
-> efetivamente implementado (uso de feature, não funil). Ambos permanecem como referência de
-> detalhe; esta seção só consolida a visão geral.
-
-**Regra de manutenção:** qualquer evento novo/alterado exige atualização do arquivo de detalhe
-correspondente no mesmo PR. Injetar `AnalyticsHelper`/`AnalyticsTracker` via Hilt — nunca
-`FirebaseAnalytics` diretamente, nunca `logEvent` em Composable.
-
----
-
-### 8.2 Testes
-
-- **~66 arquivos de teste unitário** — JUnit4 + Robolectric + coroutines-test + room-testing, em
-  `android/*/src/test/`.
-- **3 testes androidTest** de Room/DAO.
-- **Comando:** `.\android\gradlew.bat test` (Windows) / `./gradlew test` (a partir de `android/`).
-
-Estratégia de teste por camada e cobertura por feature: ver `docs_ai/testing/` — visão geral, não
-repetida aqui.
-
-### 8.3 Build e Release Local
-
-#### 8.3.1 Comandos
-
-```bash
-# A partir de android/, gradlew.bat no Windows
-./gradlew build              # Build completo
-./gradlew assembleDebug      # APK debug
-./gradlew assembleRelease    # APK release
-./gradlew lint                # Lint estático
-./gradlew test                # Testes
-./gradlew ktlintCheck         # Lint de formatação
-./gradlew detekt              # Análise estática
-```
-
-#### 8.3.2 Processo de release (Firebase App Distribution)
-
-Ordem obrigatória, sem pular etapas:
-
-1. **Commit** — stage de todos os arquivos modificados, mensagem descritiva.
-2. **Push** — `git push origin main`.
-3. **Clean build** — `.\android\gradlew.bat clean assembleRelease --no-build-cache` (nunca usar
-   cache em release).
-4. **Upload** — `.\android\gradlew.bat appDistributionUploadRelease`.
-
-**Worker Cloudflare:** ao mudar `integrations/cloudflare/ai-diagnosis-worker/src/`, rodar
-`npx wrangler deploy` **antes** do commit Android.
-
-Checklist completo por stack (Android + Cloudflare Pages/Workers) e changelog: ver skill
-`checar-release` — não repetido aqui.
-
----
 
 ## 9. Riscos técnicos
 
-### 9.1 Divergências corrigidas em revisões anteriores (histórico)
+| Risco | Detalhe |
+|---|---|
+| UI monolítica em `:app` | 150 arquivos, 40.017 linhas, dez acima de 800. `SinalScreen.kt` 3383, `HomeScreen.kt` 2967, `MainViewModel.kt` 2438 |
+| Dependência feature→feature | 2 violações — ver `ARQUITETURA/README.md` §2 |
+| Três mecanismos de feature flag | `:core:featureflags` (11 flags), `FeatureFlagProvider` legado em `:coreNetwork`, e Firebase Remote Config — com colisão de nome entre os dois primeiros |
+| Ausência de teste em pontos sensíveis | `:core:relatorio` (0 testes, compartilhado com o Pro), `:corePermissions` (0), `ExecutorSpeedtestCloudflare.kt` (1495 linhas, sem teste direto), `ExecutorFibra` e `NokiaModemCrypto` |
+| `:app` sem `androidTest` | Dependências de teste instrumentado declaradas, diretório inexistente |
+| Duas árvores físicas em `:featureDiagnostico` | `io/veloo` e `io/signallq` no mesmo source set |
+| `:core:diagnostico` não é Kotlin puro | Declara "zero `android.*`" mas `topology/` faz HTTP e `Runtime.exec("/system/bin/ping")` |
+| Fibra com um único driver | Só Nokia G-1425G-B em produção. TP-Link e Intelbras têm apenas mapa de reconhecimento documental em `technical/*_FIELD_MAP.md`, sem código |
+| `MetricClassifier` não usado em `SinalScreen.kt` | Limiares duplicados em três lugares — issue **#1586** |
 
-| Item | Documentos com valor errado | Valor incorreto citado | Valor real confirmado em 2026-07-16 |
-|---|---|---|---|
-| versionName/versionCode | ANDROID_TECNICO, BUILD_SYSTEM, CLOUDFLARE, STORAGE, DATA_FLOW, API_MAP, MODULES, SERVICES, DEPENDENCY_AUDIT, analytics-events(-schema), CLAUDE.md | `0.23.0`/56 (ou `0.16.0`/46 em BUILD_SYSTEM) | `0.25.0`/60 — reconfirmado e atualizado nesta revisão (2026-07-23) para `0.30.1`/67 |
-| compileSdk | ANDROID_TECNICO, BUILD_SYSTEM | 36 | 37 |
-| Total de módulos Gradle | ANDROID_TECNICO, MODULES | 15 (alegando CLAUDE.md errado) | 16 — CLAUDE.md estava certo; faltava `:coreRecommendation`. Reconfirmado ainda válido em 2026-07-23 (módulos consumer; Pro cresceu à parte, ver 2.4) |
-| Total de Workers Cloudflare | CLOUDFLARE, API_MAP | 3 | 5 — faltavam `signallq-diagnostic-worker` e `game-latency-probe-worker`. Reconfirmado ainda válido em 2026-07-23 |
-| Versão do schema Room | STORAGE, ANDROID_TECNICO, DATA_FLOW, MODULES, SERVICES, CLAUDE.md | v10 (ou "v12" no CLAUDE.md) | v14 (`SignallQDatabase`, GH#1027 — +bandaWifi). Reconfirmado ainda v14 em 2026-07-23, sem migration nova |
+## 10. Referências
 
-### 9.2 Divergência corrigida nesta revisão (2026-07-23)
-
-`coreRecommendation` estava documentado (seção 2.4, correção histórica) como "ainda não integrada a
-UI/monetização" — impreciso. O código real (`ResultadoVelocidadeScreen.kt`, import
-`io.signallq.app.core.recommendation.RecommendationDecision`) mostra que a engine **já está
-integrada à UI** via `RecommendationCard`; apenas a integração com monetização real (AdMob/
-afiliados) segue pendente. Mesma correção já havia sido feita em `docs_ai/FUNCIONAL.md`
-(seção RF-02) em 2026-07-16 — este documento estava desalinhado com aquele até agora.
-
-### 9.3 Dados confirmados nesta revisão (2026-08-05)
-
-**Timeout OkHttp do `AiDiagnosisRepository`** (confirmado em `android/feature/diagnostico/src/main/kotlin/io/veloo/app/kotlin/feature/diagnostico/ai/AiDiagnosisRepository.kt`):
-- connectTimeout: 15 segundos
-- readTimeout: 90 segundos (Gemma 4 26B reasoning + JSON: 40-60s típico, 90s com margem)
-- writeTimeout: 30 segundos
-- Cache TTL: 5 minutos
-
-**Prompt version atual do worker de IA** (confirmado em `integrations/cloudflare/ai-diagnosis-worker/src/index.ts`):
-- SCHEMA_VERSION (saída): "2"
-- AI_PROMPT_VERSION (entrada): "diagnostico_v5_local_primary" (ATUAL)
-- Modelo padrão: `@cf/qwen/qwen3-30b-a3b-fp8` (Alibaba Qwen3 30B MoE FP8)
-- Histórico: v2 (Llama 3.3) → v2_gemma4 (Gemma 4) → v3_raw → v4_guided → v5_local_primary (achadosLocais ativo)
-
-**Compose BOM** (confirmado em `android/gradle/libs.versions.toml`):
-- Versão atual: `2026.06.01` (Junho 2026)
-- Status: atualizado; plano de atualização não encontrado em PRs abertas
-
-**Endpoints do `signallq-diagnostic-worker`** (confirmado em `docs_ai/CONTRATOS/openapi/signallq-diagnostic-worker.yaml`, 76 KB):
-- Documentação OpenAPI completa existe; validação de payload (`validateSnapshot`) segue contrato YAML
-
-**Metas de performance/escalabilidade de backend (D1, Workers)**:
-- Não encontradas como documentação formal em código
-- Recomendação: Adicionar SLO em operações/INFRASTRUCTURE_COSTS.md se houver definição de negócio
-
----
-
-## 10. Referências técnicas especializadas
-
-Documentação pontual de domínios técnicos específicos. Estes docs complementam TECNICO.md — não
-repetem, apenas detalham.
-
-### Equipamento e topologia de rede
-
-- `docs_ai/technical/INTELBRAS_RX1500_FIELD_MAP.md` — mapa de campos/comandos AT do modem
-  INTELBRAS RX1500 (fibra GPON)
-- `docs_ai/technical/NOKIA_GPON_FIELD_MAP.md` — idem para Nokia G-240W-C (fibra GPON)
-- `docs_ai/technical/TPLINK_ARCHER_ROUTER_FIELD_MAP.md` — idem para TP-Link Archer roteadores
-  Wi-Fi
-
-### Features e fluxos
-
-- `docs_ai/functional/FEATURE_FLAGS.md` — feature flags remotas (lado Android + Admin panel);
-  coexiste com TECNICO.md/FUNCIONAL.md
-- `docs_ai/functional/DIAGNOSTICO_GUIADO_MODO_GAMER_SPEC.md` — especificação funcional do
-  diagnóstico guiado e modo gamer (ligado a features em FUNCIONAL.md)
-
-### Diagnóstico e análise
-
-- `docs_ai/technical/auditoria-motores-diagnostico-e-analise.md` — achados de auditoria de
-  duplicação em motores de classificação (MetricClassifier, topologia, banda)
-- `docs_ai/technical/MATRIZ_DIAGNOSTICO_2026-07-03.xlsx` — matriz de domínios de problema ×
-  causas prováveis (fonte: modelo de diagnóstico v2)
-
-### Integrações e flows
-
-- `docs_ai/technical/AI_FLOW.md` — fluxo de chamada ao worker de diagnóstico por IA
-  (`ai-diagnosis-worker`)
-- `docs_ai/technical/PING_EXECUTOR_ARCHITECTURE.md` — arquitetura de executor de ping
-  concorrente (usado por speedtest)
-- `docs_ai/technical/MONITORAMENTO_PASSIVO.md` — monitoramento de rede em segundo plano
-  (WorkManager)
-
-### Não-conformidades encontradas em auditoria (2026-08-05)
-
-- **Órfãos:** `SCREEN_MAP.md`, `PARIDADE_REC_WORKER_2026-07-26.md`, `P2_AMBIENTE_D1_ADMIN_SEPARACAO.md`
-  — não linkados de lugar nenhum, candidatos a arquivo em _archive
-- **Schemas gigantes:** `admin-api-schema.md` (52k linhas), `analytics-events.md` (21k) —
-  considerar mover para CONTRATOS/schemas/ ou validar contra OpenAPI real
-- **Ver também:** issue #1589 (limpeza de _archive)
-  nem doc ativa — `[a confirmar]` (ver seção 7).
+Equipamento: `technical/INTELBRAS_RX1500_FIELD_MAP.md`, `NOKIA_GPON_FIELD_MAP.md`,
+`TPLINK_ARCHER_ROUTER_FIELD_MAP.md` · Fluxos: `technical/AI_FLOW.md`,
+`PING_EXECUTOR_ARCHITECTURE.md`, `MONITORAMENTO_PASSIVO.md` · Flags:
+`technical/feature-flags-remote-config.md`, `functional/FEATURE_FLAGS.md` · Auditoria de motores:
+`technical/auditoria-motores-diagnostico-e-analise.md` · Worker admin:
+`technical/admin-api-schema.md`.

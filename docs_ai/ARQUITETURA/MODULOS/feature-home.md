@@ -1,48 +1,65 @@
-# Módulo :featureHome
+---
+title: "Módulo :featureHome"
+description: "Regra pura de escolha da medição exibida na tela Início — sem UI, sem I/O e sem dependência de outras features."
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-06"
+---
 
-- **Status:** ativo
-- **Última validação:** 2026-07-23 (fonte: `android/feature/home/build.gradle.kts`, código real)
-- **Fonte de verdade:** código real do módulo — em caso de divergência, vale o código
-- **Escopo:** módulo Gradle `:featureHome` (alias legado; pasta física `android/feature/home/`)
-- **Responsável:** Camilo (dono da implementação Android), squad SignallQ mantém
+# `:featureHome`
 
-## Visão geral
+- **Caminho físico:** `android/feature/home/` (alias flat legado)
+- **Namespace:** `io.signallq.app.feature.home`
 
-**Correção factual desde a última auditoria (2026-07-16):** este módulo deixou de ser "só a fábrica
-do módulo" — hoje contém `ResolvedorMedicaoHome.kt`, uma peça real de domínio. A tela em si
-(`HomeScreen.kt`, aba 0/Início) continua residindo em `:app` (`ui/screen/HomeScreen.kt`), não neste
-módulo. Namespace declarado: `io.signallq.app.feature.home`.
+## Responsabilidade
 
-## Diagrama de componentes
+Concentra a única regra de negócio da tela Início que foi extraída para fora do `:app`: decidir **qual** medição é exibida — a da execução atual ou a última medição salva no histórico — nunca uma mistura das duas (`ResolvedorMedicaoHome`). Trabalha sobre uma struct genérica (`MetricasMedicaoHome`), deliberadamente desacoplada dos tipos de `:featureSpeedtest` e de `:coreDatabase`.
 
-```
-:featureHome (io/veloo/ — caminho legado)
-FeatureHomeModulo — fábrica estática
-ResolvedorMedicaoHome — resolve/seleciona a medição relevante para a Home
-```
+Não é dele: renderizar a tela Início (o `HomeScreen.kt` inteiro vive em `:app`), buscar dados, converter entidades do Room, orquestrar speedtest ou navegação. O módulo não tem nenhum Composable, ViewModel, UiState nem Repository.
 
-## Componentes em detalhe
+## Dependências
 
-| Componente | Tipo | Responsabilidade |
+Extraídas de `android/feature/home/build.gradle.kts`.
+
+| Tipo | Dependência | Observação |
 |---|---|---|
-| `FeatureHomeModulo.kt` | Object | Fábrica estática do módulo |
-| `ResolvedorMedicaoHome.kt` | Resolver | Resolve qual medição/estado exibir na Home a partir dos dados disponíveis |
+| Plugin | `com.android.library` | módulo de biblioteca Android |
+| Plugin | `org.jetbrains.kotlin.android` | — |
+| `implementation` | `libs.androidx.core.ktx` | única dependência de runtime |
+| `testImplementation` | `libs.junit` | — |
+| `androidTestImplementation` | `libs.androidx.junit`, `libs.androidx.espresso.core` | herdado do template; não há teste instrumentado no módulo |
 
-## Fluxo de dados principal
+Nenhuma dependência de módulo `:core*` e nenhuma de outra `feature` — é o módulo mais isolado dos cinco.
 
-- **Entradas:** dados de medição/estado de rede consultados pelo resolvedor.
-- **Saídas:** resultado de `ResolvedorMedicaoHome` consumido por `:app` (`HomeScreen.kt`).
+## Consumidores
 
-## Decisões arquiteturais (ADR)
+`grep` por `project(":featureHome")` em `android/**/build.gradle.kts`:
 
-- **Nenhuma dependência de outro módulo do monorepo.** Libs: `androidx-core-ktx`.
-- A tela real permanece em `:app`, não neste módulo — a UI da Home não migrou para cá; só a lógica
-  de resolução de medição ganhou um lar próprio.
+| Consumidor | Arquivo |
+|---|---|
+| `:app` | `android/app/build.gradle.kts:311` |
 
-## Riscos e mitigação
+No código, o consumo é feito por `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/HomeMedicaoAdapter.kt` (55 linhas — adapta `ResultadoSpeedtest`/`MedicaoEntity` para `MetricasMedicaoHome`) e por `HomeScreen.kt`.
 
-| Risco | Impacto | Mitigação |
+## Componentes principais
+
+| Arquivo / classe | Linhas | Responsabilidade |
 |---|---|---|
-| Módulo ainda concentra pouca responsabilidade própria frente ao volume de lógica de Home que continua em `:app` | Convenção "feature deve possuir estado/ViewModel/casos de uso próprios" (seção 5 da higiene) só parcialmente cumprida | Não é correção pequena o suficiente para fazer oportunisticamente — registrar se revisitado |
-| `src/test`: **1 arquivo** (era 0) | Cobertura ainda mínima frente ao papel de resolver estado exibido na Home | Ampliar teste ao tocar |
-| Caminho físico `io/veloo` diverge do package declarado | Dívida 4.1 da regra de higiene | Não migrar oportunisticamente |
+| `android/feature/home/src/main/kotlin/io/veloo/app/kotlin/feature/home/ResolvedorMedicaoHome.kt` → `ResolvedorMedicaoHome` | 65 | Escolhe entre medição atual e anterior de forma atômica; nunca combina campos de execuções diferentes. |
+| mesmo arquivo → `MetricasMedicaoHome` | — | Struct genérica de entrada (download, upload, latência, jitter, perda, timestamp, `connectionType`, ssid, veredito gamer, gargalo, flag `utilizavel`). |
+| mesmo arquivo → `ResolvedHomeMeasurement` / `OrigemMedicaoHome` | — | Saída com a origem explícita (`ATUAL` / `ANTERIOR`) para a UI rotular "Resultado anterior · Wi-Fi · há 2h". |
+| `android/feature/home/src/main/kotlin/io/veloo/app/kotlin/feature/home/FeatureHomeModulo.kt` | 2 | `object FeatureHomeModulo` vazio — placeholder de factory do módulo, sem membros. |
+| `android/feature/home/src/test/kotlin/io/veloo/app/kotlin/feature/home/ResolvedorMedicaoHomeTest.kt` | 78 | Único teste do módulo. |
+| `android/feature/home/src/main/AndroidManifest.xml` | — | `<manifest />` vazio. |
+
+Total de Kotlin no módulo: 145 linhas (67 em `src/main`, 78 em `src/test`).
+
+## Riscos e dívidas
+
+- **Módulo quase vazio versus tela gigante no `:app`.** `HomeScreen.kt` tem **2967 linhas** em `android/app/src/main/kotlin/io/veloo/app/kotlin/ui/screen/HomeScreen.kt`, enquanto `:featureHome` inteiro tem 67 linhas de produção. A feature "Início" não mora no módulo `:featureHome` — mora no `:app`. É a inconsistência arquitetural mais visível deste módulo: o nome promete uma feature, o conteúdo entrega um utilitário.
+- **Caminho legado `io/veloo`.** O diretório físico é `src/main/kotlin/io/veloo/app/kotlin/feature/home/`, mas o `package` declarado é `io.signallq.app.feature.home` e o namespace do Gradle também. Pasta e pacote divergentes em 100% dos arquivos.
+- **`FeatureHomeModulo` é código morto** (`object` sem membros, 2 linhas). Ou ganha as factories do módulo, ou é removido.
+- **Regra de dependência entre features: respeitada.** O KDoc de `ResolvedorMedicaoHome` documenta explicitamente que a struct genérica existe porque `feature/home → feature/speedtest` é proibido, e a adaptação dos tipos reais foi empurrada para o `:app` (`HomeMedicaoAdapter.kt`). É o exemplo correto do padrão no repositório.
+- **Cobertura de teste:** adequada para o que existe (1 arquivo de teste para 1 arquivo de regra).
+- Nenhum arquivo acima de 800 linhas dentro do módulo.
