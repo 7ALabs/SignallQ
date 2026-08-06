@@ -1,3 +1,12 @@
+---
+title: "Plano de execução consolidado — SignallQ Consumer"
+description: "Fila de 42 issues do consumer organizada em ondas"
+type: "plano"
+status: "ativo"
+owner: "Claudete"
+last_updated: "2026-08-06"
+---
+
 # Plano de Execução Consolidado — SignallQ Consumer v2
 
 **Data:** 2026-08-05 · **Fila Consumer:** 42 issues (36 anteriores + 6 novas) · **Blocos:** 7 ondas + Fase 0

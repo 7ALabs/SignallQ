@@ -1,0 +1,80 @@
+name: Docs CI
+
+# Guardrail da documentacao. Existe porque regra sem enforcement foi como
+# docs_ai/ chegou a 235 arquivos com inventario defasado — ver
+# .claude/rules/politica-documentacao-viva.md.
+#
+# Em PR valida so os .md alterados: exigir frontmatter da arvore inteira
+# reprovaria a divida antiga e travaria todo mundo. Divida NOVA e barrada;
+# a antiga aparece no relatorio semanal e encolhe conforme os arquivos sao
+# tocados.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # Segunda, 09:00 BRT (12:00 UTC) — relatorio de cobertura, nunca falha.
+    - cron: '0 12 * * 1'
+  workflow_dispatch:
+
+jobs:
+  validar:
+    name: Validar documentação
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Historico completo: o modo PR compara com a base.
+          fetch-depth: 0
+
+      - name: Validar (PR — só o que mudou)
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          bash scripts/validar-docs.sh --base origin/${{ github.base_ref }}
+
+      - name: Validar (push em main — estrutura e sincronia)
+        if: github.event_name == 'push'
+        run: bash scripts/validar-docs.sh --base HEAD~1
+
+      - name: Relatório de cobertura (não falha)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: bash scripts/validar-docs.sh --relatorio | tee "$GITHUB_STEP_SUMMARY"
+
+      - name: Como corrigir
+        if: failure()
+        run: |
+          cat <<'FIM'
+
+          A validação da documentação falhou. Correções mais comuns:
+
+            bloco de inventário desatualizado
+              → bash scripts/gerar-inventario-docs.sh
+
+            espelhos de skill divergentes
+              → bash scripts/sync-skills-mirrors.sh
+
+            documento sem frontmatter
+              → adicione no topo do arquivo:
+                 ---
+                 title: "..."
+                 description: "..."
+                 type: "técnico | funcional | adr | runbook | referência | plano"
+                 status: "ativo | draft | congelado | deprecated"
+                 owner: "Nome"
+                 last_updated: "AAAA-MM-DD"
+                 ---
+
+            contagem do INDICE.md diverge do disco
+              → atualize o número na seção correspondente de docs_ai/INDICE.md
+
+            pasta nova não citada
+              → adicione a pasta em docs_ai/INDICE.md ou docs_ai/README.md
+
+          Para rodar localmente o que o CI roda:
+            bash scripts/validar-docs.sh --base origin/main
+
+          FIM
+          exit 1

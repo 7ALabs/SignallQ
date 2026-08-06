@@ -1,8 +1,10 @@
 ---
 title: "Templates de Documentação — SignallQ"
 description: "Modelos oficiais para manter documentação viva, consistente e confiável"
+type: "referência"
+status: "ativo"
 version: "1.0.0"
-last_updated: "2026-08-05"
+last_updated: "2026-08-06"
 owner: "Squad"
 ---
 

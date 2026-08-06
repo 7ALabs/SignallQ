@@ -124,6 +124,11 @@ aplicação, auditoria de telas, endosso de marca. Conteúdo vigente consolidado
 
 `PRIVACY_POLICY.md` · `TERMS_OF_USE.md`.
 
+## Testes — `testing/`
+
+`firebase-test-cases.yaml` — casos de teste do Firebase Test Lab. Único artefato da pasta e não é
+Markdown, por isso não aparece nas contagens de documento.
+
 ## Templates — `templates/` (5)
 
 `README.md` · `TEMPLATE_TECNICO.md` · `TEMPLATE_FUNCIONAL.md` · `TEMPLATE_ADR.md` ·

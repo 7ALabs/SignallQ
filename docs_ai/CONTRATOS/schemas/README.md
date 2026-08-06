@@ -1,3 +1,12 @@
+---
+title: "Índice de schemas — SignallQ"
+description: "Ponteiro para os schemas reais (Room, D1, analytics, feature flags) na origem"
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-06"
+---
+
 # Schemas do monorepo SignallQ — índice de contratos
 
 - **Status:** ativo

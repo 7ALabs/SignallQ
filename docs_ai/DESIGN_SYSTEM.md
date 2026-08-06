@@ -1,3 +1,12 @@
+---
+title: "Design System — SignallQ consumer"
+description: "Cores, tipografia, espaçamento, componentes e tokens do app Android consumer"
+type: "técnico"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-06"
+---
+
 # Design System — SignallQ (Android, consumer)
 
 - **Status:** ativo

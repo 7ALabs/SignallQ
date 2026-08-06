@@ -1,3 +1,12 @@
+---
+title: "Plano de atualização — documentos, agentes e skills"
+description: "Cadência e rotina de manutenção da documentação, dos agentes e das skills"
+type: "runbook"
+status: "ativo"
+owner: "Gustavo"
+last_updated: "2026-08-06"
+---
+
 # Plano De Atualizacao - Documentos, Agentes E Skills
 
 - **Status:** ativo

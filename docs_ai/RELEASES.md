@@ -1,3 +1,12 @@
+---
+title: "Histórico de releases — SignallQ Android"
+description: "Releases publicados, com versão, data e escopo"
+type: "referência"
+status: "ativo"
+owner: "Camilo"
+last_updated: "2026-08-06"
+---
+
 # Histórico de Releases — SignallQ Android
 
 **Mantido por:** Rhodolfo

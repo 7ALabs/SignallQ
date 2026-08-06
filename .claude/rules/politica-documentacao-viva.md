@@ -13,6 +13,39 @@ effective_date: "2026-08-05"
 
 ---
 
+## 0. Enforcement (2026-08-06)
+
+Esta política deixou de ser só texto. `.github/workflows/docs-ci.yml` roda
+`scripts/validar-docs.sh` em toda PR e reprova quando:
+
+| Verificação | O que pega |
+|---|---|
+| Inventário gerado vs. código | `TECNICO.md`/`ARQUITETURA/README.md` com versão, contagem de módulos, tabelas D1 ou endpoints diferentes do código |
+| Espelhos de skill | `.agents/skills/` ou `.github/skills/` divergindo de `.claude/skills/` |
+| Frontmatter | `.md` em `docs_ai/` alterado pela PR sem `title`, `description`, `type`, `status`, `owner`, `last_updated` |
+| Localização | `.md` criado fora da árvore permitida |
+| Contagem do índice | `INDICE.md` declarando "`technical/` (14)" quando o disco tem 15 |
+| Pasta órfã | pasta nova em `docs_ai/` não citada em `INDICE.md` nem `README.md` |
+| Documento solto | `.md` na raiz de `docs_ai/` sem citação no índice |
+
+**A PR valida apenas os arquivos que ela toca.** Exigir frontmatter da árvore
+inteira reprovaria 79 documentos herdados e travaria todo mundo. Dívida nova é
+barrada; a antiga aparece no relatório semanal (segunda, 09:00 BRT) e encolhe
+conforme os arquivos são tocados — quem mexe num documento o traz ao padrão.
+
+Rodar localmente o mesmo que o CI roda:
+
+```bash
+bash scripts/validar-docs.sh --base origin/main   # como na PR
+bash scripts/validar-docs.sh --relatorio          # cobertura, nunca falha
+```
+
+Isenções: `docs_ai/pro-onhold/` (congelado), `docs_ai/templates/` e
+`docs_ai/decisions/` (vocabulário próprio de status), e tudo fora de `docs_ai/`
+— `SKILL.md` usa o cabeçalho exigido pelo carregador de skills.
+
+---
+
 ## 1. Princípios
 
 ### 1.1 Documentação é código
